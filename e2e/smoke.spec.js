@@ -7,7 +7,7 @@
  *   2. Begin with Aurora → the soundscape truly sounds
  *   3. Leave, Begin again → it sounds the SECOND time (the level-
  *      overwrite regression)
- *   4. Exiting a session resumes the lobby drone
+ *   4. Exiting a session leaves the rooms silent (the lobby drone is gone)
  *   6. The loaded text and settings survive a refresh
  */
 import { readFileSync } from 'node:fs';
@@ -87,7 +87,7 @@ test('1 · Home presents one key, and every room behind Menu', async ({ page }) 
     }
 });
 
-test('1b · a saved colourway is on <html> before the app runs, under the live script policy', async ({ page }) => {
+test('1b · the shell loads under the live script policy with nothing refused', async ({ page }) => {
     // vite preview sends no security headers, so the shell gets the live policy here.
     const policy = readFileSync(resolve('public/_headers'), 'utf8')
         .match(/^\s+Content-Security-Policy:\s*(.+)$/mu)[1];
@@ -99,18 +99,8 @@ test('1b · a saved colourway is on <html> before the app runs, under the live s
     page.on('console', message => {
         if (/Content Security Policy/iu.test(message.text())) refused.push(message.text());
     });
-    await page.addInitScript(() => {
-        localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'cobalt', chamberAccentNamed: true }));
-        // Where parsing was when the accent first landed. No <body> yet means
-        // it came from <head>, before any module (the app) could run.
-        new MutationObserver((records, observer) => {
-            window.__accentFirstSet = { accent: document.documentElement.dataset.accent, inHead: !document.body };
-            observer.disconnect();
-        }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-accent'] });
-    });
     await page.goto('/');
     await expect(page.locator('.portal .home-title').first()).toBeVisible({ timeout: 15_000 });
-    expect(await page.evaluate(() => window.__accentFirstSet)).toEqual({ accent: 'cobalt', inHead: true });
     expect(refused).toEqual([]);
 });
 
@@ -140,7 +130,7 @@ test('2+3 · Aurora sounds — and sounds again the second time', async ({ page 
     expect(state.soundscapeVolume).toBeGreaterThan(0);
 });
 
-test('4 · exiting a session resumes the lobby drone', async ({ page }) => {
+test('4 · exiting a session leaves the rooms silent: the lobby drone is gone (Q6)', async ({ page }) => {
     await boot(page, { prefs: { soundscape: 'aurora', audioPreset: 'silent' } });
     await enterChamber(page);
     await beginSession(page);
@@ -148,10 +138,10 @@ test('4 · exiting a session resumes the lobby drone', async ({ page }) => {
         { timeout: 15_000 }).toBe(true);
 
     await exitSession(page);
-    const state = await expect.poll(async () => {
+    await expect.poll(async () => {
         const s = await audioState(page);
-        return s.sessionActive === false && s.ambient ? 'lobby' : JSON.stringify(s);
-    }, { timeout: 20_000 }).toBe('lobby');
+        return s.sessionActive === false && !s.ambient ? 'silent' : JSON.stringify(s);
+    }, { timeout: 20_000 }).toBe('silent');
 });
 
 test('6 · text and settings survive a refresh', async ({ page }) => {

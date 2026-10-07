@@ -1104,6 +1104,45 @@ describe('inside an MCP host', () => {
         await host.stop();
     });
 
+    it('keeps a keyboard reader on the object: Play on the poster and Play again each leave the focus on the new Play/Pause', async () => {
+        // A browser's frame keeps the focus on its body once the pressed control is gone; jsdom does not say so.
+        vi.spyOn(document, 'hasFocus').mockReturnValue(true);
+        const { environment, sent, hostSays } = framed();
+        mount('?embed=mcp&voice=paced', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
+        answerCurrent(hostSays);
+        await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
+        const runtimes = [];
+        host.buildRuntime = vi.fn(async () => {
+            const subscribers = new Set();
+            const runtime = {
+                status: 'live', snapshot: () => ({ status: runtime.status, error: null, main: {}, side: null }),
+                subscribe: fn => { subscribers.add(fn); return () => subscribers.delete(fn); },
+                composed: () => null,
+                start: vi.fn(async () => {}), stop: vi.fn(async () => {}),
+                end() { runtime.status = 'ended'; for (const fn of [...subscribers]) fn(runtime.snapshot()); }
+            };
+            runtimes.push(runtime);
+            return runtime;
+        });
+        const object = () => document.querySelector('#rise-stage-controls [data-stage="play"]');
+
+        const poster = container.querySelector('.live-start');
+        poster.focus();
+        poster.click();
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledTimes(1));
+        expect(document.activeElement).toBe(object());
+        expect(object().getAttribute('aria-label')).toMatch(/^Pause/u);
+
+        runtimes[0].end();
+        object().focus();
+        object().click();
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalledTimes(1));
+        expect(document.activeElement).toBe(object());
+        await host.stop();
+    });
+
     it('removes the Current listener when a buffered answer is delivered during subscription', async () => {
         const { environment, sent } = framed({
             initialCurrent: true,

@@ -3,12 +3,9 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(self), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://export.arxiv.org https://commons.wikimedia.org https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl https://openrouter.ai https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob: https://www.artic.edu https://images.metmuseum.org https://openaccess-cdn.clevelandart.org https://iiif.micr.io https://cdm16998.contentdm.oclc.org https://quod.lib.umich.edu https://cdn.esahubble.org https://esahubble.org https://images-assets.nasa.gov https://cdn.eso.org https://www.eso.org https://upload.wikimedia.org https://media.artmuseum.princeton.edu; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://export.arxiv.org https://commons.wikimedia.org https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl https://openrouter.ai https://generativelanguage.googleapis.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'
 
 /index.html
-  Cache-Control: public, max-age=0, must-revalidate
-
-/accent-boot.js
   Cache-Control: public, max-age=0, must-revalidate
 
 /connect/*

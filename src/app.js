@@ -25,7 +25,6 @@ import {
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
-import { DEFAULT_CHAMBER_ACCENT, applyChamberAccent, migrateChamberAccent, resolveChamberAccent } from './core/chamber-accent.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
@@ -359,9 +358,6 @@ class App {
                 if (engine.lifecycle && !engine.audible) {
                     await engine.lifecycle.ensureLive();
                 }
-                if (this.settings?.enableAmbient) {
-                    engine.startAmbientPlaylist();
-                }
             } catch (error) {
                 console.warn('[RISE] Audio initialization unavailable:', error);
             } finally {
@@ -413,10 +409,9 @@ class App {
         // Audio errors: disable audio and continue
         errorBoundary.registerRecoveryHandler(ErrorCategory.AUDIO, (report) => {
             if (this.settings) {
-                this.settings.enableAmbient = false;
                 this.settings.enableBinaural = false;
             }
-            return this.audioEngine?.stopSession({ resumeAmbient: false, immediate: true });
+            return this.audioEngine?.stopSession({ immediate: true });
         });
 
         // Visual errors: disable visual interlocution
@@ -952,14 +947,13 @@ class App {
             // Display
             fontSize: 'medium',
             chamberFace: 'literary',
-            chamberAccent: DEFAULT_CHAMBER_ACCENT,
-            chamberMask: false,
+            // Living Text tints the words of a reading that asks for it; on unless the reader turns it off.
+            livingText: true,
             showProgress: true,
             showDuration: true,
             showArtworkLabels: true,
 
             // Audio
-            enableAmbient: false,
             masterVolume: 0.75,
             enableBinaural: false,
 
@@ -988,21 +982,15 @@ class App {
                 'showProgress',
                 'showDuration',
                 'showArtworkLabels',
-                'enableAmbient',
+                'livingText',
                 'enableBinaural',
                 'photosensitivityMode',
-                'reducedMotion',
-                'chamberMask'
+                'reducedMotion'
             ];
             this.settings = {
                 ...defaultSettings,
                 fontSize: resolveFontSize(merged.fontSize),
                 chamberFace: resolveChamberStreamFace(merged.chamberFace),
-                chamberAccent: resolveChamberAccent(
-                    migrateChamberAccent(merged.chamberAccent, merged.chamberAccentNamed)),
-                // Marks this blob as written after Slate became a hue of its
-                // own, so a stored 'slate' is never mistaken for the default.
-                chamberAccentNamed: true,
                 masterVolume: Number.isFinite(Number(merged.masterVolume))
                     ? Math.max(0, Math.min(1, Number(merged.masterVolume)))
                     : defaultSettings.masterVolume,
@@ -1045,13 +1033,9 @@ class App {
             ? clampReadingWpm(value, this.settings.defaultWpm)
             : key === 'chamberFace'
                 ? resolveChamberStreamFace(value)
-                : key === 'chamberAccent'
-                    ? resolveChamberAccent(value)
-                    : key === 'chamberMask'
-                    ? value === true
-                    : key === 'fontSize'
-                        ? resolveFontSize(value)
-                        : value;
+                : key === 'fontSize'
+                    ? resolveFontSize(value)
+                    : value;
     }
 
     handleSettingsTransaction(changes) {
@@ -1063,14 +1047,14 @@ class App {
         this.saveSettings();
 
         // Apply certain settings immediately
-        if (keys.some(key => ['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'chamberAccent', 'showProgress', 'showDuration'].includes(key))) {
+        if (keys.some(key => ['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'showProgress', 'showDuration'].includes(key))) {
             this.applyAccessibilitySettings();
         }
 
         if (Object.hasOwn(next, 'masterVolume') && this.audioEngine) {
             this.audioEngine.setMasterVolume(this.settings.masterVolume);
         }
-        if (keys.some(key => ['chamberFace', 'chamberMask', 'fontSize'].includes(key))) {
+        if (keys.some(key => ['chamberFace', 'fontSize'].includes(key))) {
             const chamber = this.router?.getViewInstance?.('read')?.paneInstance('chamber');
             chamber?.applyChamberStreamFace?.();
             chamber?.applyChamberMask?.();
@@ -1079,9 +1063,8 @@ class App {
         if (Object.hasOwn(next, 'showArtworkLabels')) {
             this._visualCortex?.setArtworkLabelsVisible(this.settings.showArtworkLabels);
         }
-        if (Object.hasOwn(next, 'enableAmbient') && this.audioEngine?.isInitialized && !this.audioEngine.sessionActive) {
-            if (this.settings.enableAmbient) this.audioEngine.startAmbientPlaylist();
-            else this.audioEngine.stopAmbient(true);
+        if (Object.hasOwn(next, 'livingText')) {
+            this.router?.getViewInstance?.('read')?.paneInstance('chamber')?.applyLivingTextSetting?.();
         }
     }
 
@@ -1131,9 +1114,6 @@ class App {
 
         root.dataset.fontSize = resolveFontSize(this.settings?.fontSize);
         root.dataset.chamberFace = resolveChamberStreamFace(this.settings?.chamberFace);
-        // The default is the bare :root, so it must CLEAR data-accent, not stamp
-        // it — applyChamberAccent owns that rule for the app and the Chamber both.
-        applyChamberAccent(root, this.settings?.chamberAccent);
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);
         this._visualCortex?.setArtworkLabelsVisible(this.settings?.showArtworkLabels !== false);

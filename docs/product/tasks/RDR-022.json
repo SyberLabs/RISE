@@ -40,6 +40,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/478",
       "note": "Part B: looks row with live switches, pace control in the seventh slot; rendered at three widths.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/experiments/EMBED-STAGE-HOST-2026-10-07.md",
+      "note": "The LIVE-004 witness ran on exact main 122b1cb6, a release that includes #474 and #478. LIVE-004 did not pass (three embed playback defects), so this acceptance line waits on its re-witness.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -58,10 +64,14 @@
     {
       "date": "2026-10-07T12:48:17.892Z",
       "summary": "Part B opened as #478; remaining acceptance is the LIVE-004 witness on a release that includes it."
+    },
+    {
+      "date": "2026-10-07T13:54:48.876Z",
+      "summary": "The LIVE-004 witness ran on 122b1cb6, which includes this; LIVE-004 did not pass"
     }
   ],
-  "updatedAt": "2026-10-07T12:48:17.892Z",
-  "revision": 4,
+  "updatedAt": "2026-10-07T13:54:48.876Z",
+  "revision": 5,
   "summary": "Seven-button bar plus Dive and one Look sheet for every reader-origin reading (#474, #478): looks switch in place where a live path exists; gallery looks in a reading opened without a gallery, and rhythm changes, wait on a reopen-at-position path. Remaining acceptance: LIVE-004 witnessed on a release that includes this.",
   "blocker": null
 }

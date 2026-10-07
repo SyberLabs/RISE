@@ -839,12 +839,17 @@ export class LiveHost {
         return true;
     }
 
-    async beginEmbedded() {
+    /** @param {{keepFocus?: boolean}} [how] keepFocus: the control that started it had the focus (Play again's). */
+    async beginEmbedded({ keepFocus = false } = {}) {
         if (!this.embeddedEvents || this.embeddedBeginStarted || this.destroyed || this.embeddedStartupCancelled) return;
         this.embeddedBeginStarted = true;
         this.starting = true;
         const play = this.container.querySelector('.live-start');
+        let takeFocus = keepFocus;
         if (play) {
+            // The stage's object takes the focus once it can be pressed; until then it rests nowhere, not on a disabled poster.
+            takeFocus ||= play === this.container.ownerDocument.activeElement;
+            play.blur();
             play.disabled = true;
             play.setAttribute('aria-label', 'Starting');
         }
@@ -863,7 +868,8 @@ export class LiveHost {
                 chamber: () => { const player = runtime.playerFor?.(); return player ? this.chamberPlaying(player) : null; },
                 paintTheme: theme => this.paintEmbedTheme(theme ?? this.embeddedTheme),
                 audible: this.voiceKind === 'browser',
-                degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability))
+                degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability)),
+                takeFocus
             });
             await runtime.start('The answer the assistant presents');
         } catch (error) {
@@ -889,12 +895,13 @@ export class LiveHost {
         if (!this.embeddedEvents || this.destroyed || this.embeddedStartupCancelled || this.starting) return;
         const runtime = this.runtime;
         this.runtime = null;
+        const keepFocus = this.controls?.element.contains(this.container.ownerDocument.activeElement) === true;
         this.controls?.destroy();
         this.controls = null;
         await runtime?.stop();
         if (this.destroyed || this.embeddedStartupCancelled) return;
         this.embeddedBeginStarted = false;
-        await this.beginEmbedded();
+        await this.beginEmbedded({ keepFocus });
     }
 
     cancelEmbeddedPending() {

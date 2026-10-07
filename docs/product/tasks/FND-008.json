@@ -3,8 +3,8 @@
   "title": "Make the nine themes the one colour vocabulary",
   "lane": "shared",
   "milestone": "Reader consolidation",
-  "status": "in_progress",
-  "delivery": "not_shipped",
+  "status": "done",
+  "delivery": "merged",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -33,6 +33,18 @@
       "ref": "docs/product/discussions/2026-10-05-one-colour-vocabulary-design.md",
       "note": "B2a design: the map beside RISE_CURRENT_THEMES, seven pull requests, five owner questions",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-07-chrome-follows-theme.md",
+      "note": "B2b decisions: what is removed, what a themed and an untitled reading do to the page, Home, the host card, one owner of the root, the on-accent ink.",
+      "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/487",
+      "note": "B2b: Settings accent, chamber-accent.js, the ten data-accent colourways and accent-boot.js removed; src/core/chrome-theme.js paints the theme accent on the root from the Chamber. Rendered: a cobalt reading sets the root accent to #58B8FF; Home unpainted.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -43,10 +55,14 @@
     {
       "date": "2026-10-05T13:24:00.400Z",
       "summary": "B2a designed: the theme-to-engine map and its seven pull requests are recorded; build authorized for PR1."
+    },
+    {
+      "date": "2026-10-07T21:05:19.075Z",
+      "summary": "B2b: accent removed, chrome follows the reading theme; all three acceptance lines hold"
     }
   ],
-  "updatedAt": "2026-10-05T13:24:00.400Z",
-  "revision": 2,
-  "summary": "Four colour vocabularies become one: the nine themes, with every engine palette derived from them.",
+  "updatedAt": "2026-10-07T21:05:19.075Z",
+  "revision": 3,
+  "summary": "The nine themes are the one colour vocabulary: every engine palette derives from them (B2a, #426, #434, #437, #438, #452, #455, #458), and the Settings accent is gone, the page chrome taking the reading's theme accent while it is on screen (B2b).",
   "blocker": null
 }

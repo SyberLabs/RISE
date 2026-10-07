@@ -95,7 +95,8 @@ import {
 import { hasNextLibraryDivision } from '../../core/reading-continuation.js';
 import { READING_PACE } from '../../core/reading-limits.js';
 import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
-import { applyChamberAccent, resolveChamberAccent } from '../../core/chamber-accent.js';
+import { beginStep } from '../../core/begin-steps.js';
+import { clearChromeTheme, paintChromeTheme } from '../../core/chrome-theme.js';
 import {
   estimateGlyphBox,
   fitWordAtomPx,
@@ -311,7 +312,7 @@ export class Chamber {
     // object so the player shares the same track. Purely additive — a null
     // track means the raw platform behavior everywhere.
     this.semanticTrack = null;
-    const wantsLivingText = this.session?.visualConfig?.livingText?.enabled;
+    const wantsLivingText = this.livingTextWanted();
     const wantsResponsive = this.session?.visualConfig?.visualMode === 'interlocution'
       && this.session?.visualConfig?.interlocution?.responsive;
     if ((wantsLivingText || wantsResponsive) && Array.isArray(this.session?.atoms)) {
@@ -459,6 +460,7 @@ export class Chamber {
     this.bindVisualViewport();
     this.initializeDisplay();
     this.applyChamberMask();
+    beginStep('chamber:mounted');
 
     // A spatial reading opens as a page (SPATIAL-CHAMBER-SPEC §3).
     // projection === 'page' is parked in production UI; e2e/page-suspend.spec.js
@@ -471,12 +473,15 @@ export class Chamber {
         this.togglePageMode(true);
       }, 120);
     } else if (this.autoStart && !this.hostPlays) {
-      // Auto-start if requested (skip pre-session screen). Tracked and
-      // Page-aware: a reader who opens the Page inside this delay must
-      // not have a stream start underneath them when it fires.
+      // Auto-start if requested (skip pre-session screen), in a task of its
+      // own so the router has unhidden the view first; the view fades in over
+      // the field already showing. No fixed wait: Begin to first word is R2's
+      // budget (RDR-015). Tracked and Page-aware: a reader who opens the Page
+      // before it fires must not have a stream start underneath them.
       this._autoStartTimer = setTimeout(async () => {
         this._autoStartTimer = null;
         if (this._destroyed || this.pageModeActive) return;
+        beginStep('chamber:autostart');
 
         // A READING MUST NOT BEGIN INTO A CONTEXT THAT IS NOT RUNNING.
         //
@@ -519,13 +524,14 @@ export class Chamber {
         // Fullscreen is the reader's choice (the Fullscreen control), never
         // a side effect of starting.
         if (this.player) {
+          beginStep('chamber:play');
           this.player.play();
           if (this.audioEngine) {
             console.log('[Chamber] Triggering atmospheric swell (auto-start)');
             this.audioEngine.fadeInSession(1.2);
           }
         }
-      }, 500); // Relaxed timing for engine stability
+      }, 0);
     }
   }
 
@@ -1000,6 +1006,11 @@ export class Chamber {
 
   applySessionColors() {
     const colors = this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session);
+    // The page's chrome follows the theme, unless a host draws the chrome around this reading.
+    if (!this.chromeless) {
+      if (colors) paintChromeTheme(document.documentElement, colors.accent, this);
+      else clearChromeTheme(document.documentElement, this);
+    }
     if (!colors && !this._jevLook?.textColor && !this._jevLook?.backgroundColor) return;
     const accent = colors?.accent || JEV_PALETTES.classic.accent;
     const hex = accent.slice(1);
@@ -1064,20 +1075,6 @@ export class Chamber {
     fail.hidden = allowlisted && atomDisplay?.dataset.chamberFace === requested;
   }
 
-  applyChamberAccent() {
-    return applyChamberAccent(
-      document.documentElement,
-      this.getSettings()?.chamberAccent
-    );
-  }
-
-  _reportAccentApply(requested) {
-    const fail = this.container.querySelector('#chamber-accent-fail');
-    if (!fail) return;
-    const took = this.applyChamberAccent();
-    fail.hidden = took && resolveChamberAccent(requested) === requested;
-  }
-
   chamberMaskApplies() {
     return this._textMaterialCapabilityContext().capability.maskActive;
   }
@@ -1110,8 +1107,7 @@ export class Chamber {
       visualMode: visualConfig?.visualMode,
       presentation,
       wordFill: visualConfig?.interlocution?.wordFill,
-      wordFillDeclared: visualConfig?.interlocution?.wordFillDeclared,
-      legacyMask: settings.chamberMask === true
+      wordFillDeclared: visualConfig?.interlocution?.wordFillDeclared
     };
     return {
       capability: resolveTextMaterialCapability(input),
@@ -3554,6 +3550,28 @@ export class Chamber {
    * field is GENERATED in those colours instead of being covered in one.
    * That leaves the picture intact, which a wash by its nature cannot.
    */
+  /** Living Text tints a reading that asks for it, unless the reader has turned it off in Settings. */
+  livingTextWanted() {
+    return this.session?.visualConfig?.livingText?.enabled === true && this.getSettings()?.livingText !== false;
+  }
+
+  /** The Settings switch changed: the tint starts with the next words, or stops on the words on screen now. */
+  applyLivingTextSetting() {
+    if (this.livingTextWanted() && Array.isArray(this.session?.atoms)) {
+      try {
+        this.session.semanticTrack = this.session.semanticTrack || scoreAtoms(this.session.atoms);
+        this.semanticTrack = this.session.semanticTrack;
+      } catch {
+        this.semanticTrack = null;
+      }
+      return;
+    }
+    this.semanticTrack = null;
+    const atomDisplay = this.container.querySelector('#atom-display');
+    atomDisplay?.style.removeProperty('color');
+    atomDisplay?.style.removeProperty('text-shadow');
+  }
+
   applyLivingText(atomDisplay, index) {
     if (!this.semanticTrack) return;
     const sig = this.semanticTrack[index];
@@ -3983,7 +4001,7 @@ export class Chamber {
       onChange: (key, value) => {
         this.onSettingsChange(key, value);
         if (key === 'chamberFace') this._jevLook.face = null;
-        if (key === 'chamberFace' || key === 'chamberMask') {
+        if (key === 'chamberFace') {
           this.applyChamberStreamFace();
           this.applyChamberMask();
         }
@@ -3994,7 +4012,6 @@ export class Chamber {
           this.applyChamberMask();
         }
         if (key === 'chamberFace') this._reportFaceApply(value);
-        if (key === 'chamberAccent') this._reportAccentApply(value);
       }
     });
   }
@@ -5139,6 +5156,7 @@ export class Chamber {
       '--color-accent', '--color-accent-rgb', '--color-threshold']) {
       this.container.style.removeProperty(name);
     }
+    clearChromeTheme(document.documentElement, this);
     this.container.classList.remove('is-look-open');
     this.closeSettings();
     this.unbindVisualViewport();

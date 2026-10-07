@@ -1345,6 +1345,28 @@ describe('Workshop atmosphere: exclusive beds', () => {
         container.querySelector('[data-action="apply-audio-default"]').click();
     }
 
+    it('shapes a tone where it is set: delivery and waveform appear under a tone sounding for the whole reading, and only there', () => {
+        const { workshop, container } = makeWorkshop();
+        const control = (action, value) => container.querySelector(`[data-action="${action}"][data-value="${value}"]`);
+        chooseAudio(container, 'soundscape:aurora');
+        expect(container.querySelector('[data-action="set-tone-delivery"]')).toBeNull();
+        container.querySelector('[data-audio-asset-id="tone:focus"]').click();
+        expect(container.querySelector('[data-action="set-tone-delivery"]')).toBeNull();
+
+        container.querySelector('[data-action="apply-audio-default"]').click();
+        expect(control('set-tone-delivery', 'binaural').getAttribute('aria-pressed')).toBe('true');
+        workshop.editorDirty = false;
+        control('set-tone-delivery', 'isochronic').click();
+        control('set-tone-waveform', 'triangle').click();
+        expect(workshop.sessionData).toMatchObject({ audioPreset: 'focus', entrainmentMode: 'isochronic', entrainmentWaveform: 'triangle' });
+        expect(workshop.editorDirty).toBe(true);
+        expect(control('set-tone-delivery', 'isochronic').getAttribute('aria-pressed')).toBe('true');
+        expect(control('set-tone-waveform', 'triangle').getAttribute('aria-pressed')).toBe('true');
+
+        workshop.destroy();
+        container.remove();
+    });
+
     it('keeps selection ephemeral and commits through the Audio Inspector', () => {
         const { workshop, container } = makeWorkshop();
         workshop.editorDirty = false;

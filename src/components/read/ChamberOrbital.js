@@ -95,7 +95,9 @@ const AUDIO_PRESET_IDS = new Set([
 /* The padlock drawn on a chunking mode Recitation has taken. Declared
    once so the first render and the runtime toggle cannot disagree —
    the gap after it is CSS, never a text node (see the toggle). */
-const LOCK_MARK = '<svg class="chunk-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Locked" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
+const RECITATION_LOCK_NOTE = 'Recitation locks Word and Sentence. The voice is a pack of pre-recorded phrases built into this release — one audio file per phrase — so a reading cut any other way has no recording to play and would run silent. Turn Recitation off to read by word or by sentence.';
+const INLAY_LOCK_NOTE = 'Inlay paints one word at a time, the imagery inside each word. Choose another look to read by phrase or by sentence.';
+const LOCK_MARK ='<svg class="chunk-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Locked" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
 
 const svgIcon = paths => `<svg class="reader-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
 // One entry per pace profile, in the order pacing.js lists them: what a reader
@@ -292,8 +294,9 @@ export class ChamberOrbital {
     }
     if (!saved) return;
 
-    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'revealMode', 'soundscape', 'audioPreset',
-      'entrainmentMode', 'entrainmentWaveform', 'voiceId'];
+    // A tone's delivery and waveform are not setup's to keep: an older save of them is not read, so no
+    // choice is left that setup cannot show (the Workshop shapes a tone).
+    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'revealMode', 'soundscape', 'audioPreset', 'voiceId'];
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
     }
@@ -337,7 +340,9 @@ export class ChamberOrbital {
         focals: { ...defaults.focals, ...(vi.focals || {}) },
         attractor: { ...defaults.attractor, ...(vi.attractor || {}) },
         genesis: { ...defaults.genesis, ...(vi.genesis || {}) },
-        livingText: { ...defaults.livingText, ...(vi.livingText || {}) },
+        // Living Text is the reader's Setting for every reading, not setup's: a setup reading always asks,
+        // and an older save of the switch setup no longer shows is not read.
+        livingText: { ...defaults.livingText },
         interlocution: {
           ...defaults.interlocution,
           ...(vi.interlocution || {}),
@@ -517,8 +522,7 @@ export class ChamberOrbital {
 
   _persistPrefs() {
     this._normalizeAudioExclusivity();
-    const { wpm, curve, chunkMode, revealMode, soundscape, audioPreset, entrainmentMode,
-      entrainmentWaveform, voiceId, visualInterlocution } = this.config;
+    const { wpm, curve, chunkMode, revealMode, soundscape, audioPreset, voiceId, visualInterlocution } = this.config;
     // atriumCollections and the visual program are LAUNCH-SCOPED
     // identity, not preferences — they belong to the specific reading
     // that was launched, never to the tab. Persisting them would
@@ -549,8 +553,7 @@ export class ChamberOrbital {
       phraseDefault: true,
       wpm, curve, chunkMode,
       revealMode: revealMode === 'progressive' ? 'progressive' : 'instant',
-      soundscape, audioPreset, entrainmentMode,
-      entrainmentWaveform, voiceId,
+      soundscape, audioPreset, voiceId,
       visualInterlocution: normalizedVisuals
     };
     this._persistText();
@@ -819,6 +822,7 @@ export class ChamberOrbital {
     if (status) status.textContent = this.getLookStatus();
     const imagery = this.container.querySelector('.orbit-visual .orbit-label');
     if (imagery) imagery.textContent = this.getImageryLabel();
+    this._paintRhythmLocks();
     this._paintSummaries();
     this._paintPreview();
   }
@@ -862,10 +866,11 @@ export class ChamberOrbital {
     this._persistPrefs();
   }
 
-  /** The Rhythm & pace sheet's Default: its own four choices, and nothing else. */
+  /** The Rhythm & pace sheet's Default: its own four choices, and nothing else; Inlay keeps its word. */
   resetRhythm() {
+    const inlay = lookOf(this.config) === 'inlay';
     const { wpm, curve, chunkMode, revealMode } = createDefaultConfig();
-    Object.assign(this.config, { wpm, curve, chunkMode, revealMode });
+    Object.assign(this.config, { wpm, curve, chunkMode: inlay ? 'word' : chunkMode, revealMode });
     this.syncUIWithConfig();
     this.updateOrbitStatus('temporal');
     this._persistPrefs();
@@ -1011,36 +1016,6 @@ export class ChamberOrbital {
                 ${group.entries.map(sound => this.renderSoundChoice(sound)).join('')}
               </div>
             </div>`).join('')}
-            <div class="pure-tone-controls" id="pure-tone-controls"
-              ${this.config.audioPreset === 'silent' ? 'hidden' : ''}>
-
-            <!-- These parameters belong to the selected Pure Tone. -->
-            <div class="config-subsection">
-              <div class="config-label-row">
-                <label class="config-label">Entrainment Type</label>
-                <span class="config-info" tabindex="0" role="img" aria-label="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head." data-tooltip="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head.">?</span>
-              </div>
-              <div class="audio-mode-options">
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'binaural' ? 'active' : ''}" data-entrainment="binaural">Binaural</button>
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'monaural' ? 'active' : ''}" data-entrainment="monaural">Monaural</button>
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'isochronic' ? 'active' : ''}" data-entrainment="isochronic">Isochronic</button>
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'spatial' ? 'active' : ''}" data-entrainment="spatial">Spatial</button>
-              </div>
-            </div>
-
-            <!-- Waveform -->
-            <div class="config-subsection">
-              <div class="config-label-row">
-                <label class="config-label">Waveform</label>
-                <span class="config-info" tabindex="0" role="img" aria-label="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present." data-tooltip="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present.">?</span>
-              </div>
-              <div class="audio-waveform-options">
-                <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sine' ? 'active' : ''}" data-waveform="sine">Sine</button>
-                <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'triangle' ? 'active' : ''}" data-waveform="triangle">Triangle</button>
-                <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sawtooth' ? 'active' : ''}" data-waveform="sawtooth">Saw</button>
-              </div>
-            </div>
-            </div>
             <!-- Chant is Chapel-exclusive: recorded sacred music
                  belongs to the room built for it, not to ambient
                  texture under arbitrary text — the same scoping
@@ -1117,13 +1092,7 @@ export class ChamberOrbital {
                 <button class="chunk-option ${this.config.chunkMode === 'word' ? 'active' : ''} ${recitationEnabled ? 'is-locked' : ''}" data-chunk="word"
                   ${recitationEnabled ? 'disabled title="Recitation is spoken in phrases"' : ''}>${recitationEnabled ? LOCK_MARK : ''}Word</button>
               </div>
-              <p class="config-note text-mist" data-chunk-lock-note ${recitationEnabled ? '' : 'hidden'}>
-                Recitation locks Word and Sentence. The voice is a pack of
-                pre-recorded phrases built into this release — one audio
-                file per phrase — so a reading cut any other way has no
-                recording to play and would run silent. Turn Recitation
-                off to read by word or by sentence.
-              </p>
+              <p class="config-note text-mist" data-chunk-lock-note ${recitationEnabled ? '' : 'hidden'}>${RECITATION_LOCK_NOTE}</p>
             </div>
 
             <!-- Pacing -->
@@ -1492,50 +1461,43 @@ export class ChamberOrbital {
       });
     });
 
-    // Entrainment mode
-    const entrainmentOptions = this.container.querySelectorAll('[data-entrainment]');
-    entrainmentOptions.forEach(opt => {
-      this._listen(opt, 'click', () => {
-        this.getAudioEngine()?.playHiss();
-        this.config.entrainmentMode = opt.dataset.entrainment;
-        this.updateOrbitStatus('audio');
-        entrainmentOptions.forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
-      });
-    });
-
-    // Waveform
-    const waveformOptions = this.container.querySelectorAll('[data-waveform]');
-    waveformOptions.forEach(opt => {
-      this._listen(opt, 'click', () => {
-        this.getAudioEngine()?.playClick();
-        this.config.entrainmentWaveform = opt.dataset.waveform;
-        this.updateOrbitStatus('audio');
-        waveformOptions.forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
-      });
-    });
-
-
-    this.container.querySelectorAll('[data-entrainment]').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.entrainment === this.config.entrainmentMode);
-    });
-    this.container.querySelectorAll('[data-waveform]').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.waveform === this.config.entrainmentWaveform);
-    });
-
     // Static voice-pack controls are bound with the rest of Recitation
     // in attachConfigEvents.
   }
 
-  /** Mark the one sound chosen, and show tone delivery only beside a tone. */
+  /**
+   * The rhythms the reading cannot take, locked where the reader finds them dead and named: a recitation is
+   * recorded phrase by phrase, and Inlay paints one word at a time. The lock is drawn on the button, in the
+   * Rhythm sheet, not in the panel that caused it; its mark is its own element (a text node for the gap would
+   * have taken the label with it when removed).
+   */
+  _paintRhythmLocks() {
+    const recited = this.config.recitation?.enabled === true;
+    const inlay = !recited && lookOf(this.config) === 'inlay';
+    const keep = recited ? 'phrase' : inlay ? 'word' : null;
+    const reason = recited ? 'Recitation is spoken in phrases' : 'Inlay paints one word at a time';
+    this.container.querySelectorAll('[data-chunk]').forEach(chunk => {
+      chunk.classList.toggle('active', chunk.dataset.chunk === this.config.chunkMode);
+      const locked = keep !== null && chunk.dataset.chunk !== keep;
+      chunk.disabled = locked;
+      chunk.classList.toggle('is-locked', locked);
+      chunk.title = locked ? reason : '';
+      const mark = chunk.querySelector('.chunk-lock');
+      if (locked && !mark) chunk.insertAdjacentHTML('afterbegin', LOCK_MARK);
+      else if (!locked && mark) mark.remove();
+    });
+    const note = this.container.querySelector('[data-chunk-lock-note]');
+    if (!note) return;
+    note.hidden = keep === null;
+    if (keep !== null) note.textContent = recited ? RECITATION_LOCK_NOTE : INLAY_LOCK_NOTE;
+  }
+
+  /** Mark the one sound chosen. A tone's delivery and waveform are shaped in the Workshop. */
   _paintSound() {
     const id = this._soundId();
     this.container.querySelectorAll('#modal-audio [data-soundscape], #modal-audio [data-audio-preset]').forEach(opt => {
       opt.classList.toggle('active', (opt.dataset.soundscape || opt.dataset.audioPreset) === id);
     });
-    const pureToneControls = this.container.querySelector('#pure-tone-controls');
-    if (pureToneControls) pureToneControls.hidden = this.config.audioPreset === 'silent';
   }
 
   attachTemporalModalEvents() {
@@ -1589,7 +1551,6 @@ export class ChamberOrbital {
     // phrase mode is the asset identity used by the installed pack.
     const recitationOptions = this.container.querySelectorAll('[data-recitation]');
     const recitationNote = this.container.querySelector('[data-recitation-note]');
-    const chunkLockNote = this.container.querySelector('[data-chunk-lock-note]');
     const voiceSection = this.container.querySelector('#voice-select-section');
     recitationOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
@@ -1600,28 +1561,8 @@ export class ChamberOrbital {
         if (enabled) this.config.chunkMode = 'phrase';
         recitationOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
-        chunkOptions.forEach(chunk => {
-          chunk.classList.toggle('active', chunk.dataset.chunk === this.config.chunkMode);
-          const locked = enabled && chunk.dataset.chunk !== 'phrase';
-          chunk.disabled = locked;
-          // The lock is drawn where the reader is looking when they
-          // find the button dead — in the Temporal panel, on the
-          // button itself, not in the Audio panel behind another orb.
-          chunk.classList.toggle('is-locked', locked);
-          chunk.title = locked ? 'Recitation is spoken in phrases' : '';
-          // The mark is its own element and the gap after it is CSS.
-          // A text node for the space would have made the span's
-          // nextSibling " Word", and removing the mark would have
-          // taken the label with it.
-          const mark = chunk.querySelector('.chunk-lock');
-          if (locked && !mark) {
-            chunk.insertAdjacentHTML('afterbegin', LOCK_MARK);
-          } else if (!locked && mark) {
-            mark.remove();
-          }
-        });
+        this._paintRhythmLocks();
         if (recitationNote) recitationNote.hidden = !enabled;
-        if (chunkLockNote) chunkLockNote.hidden = !enabled;
         this.updateOrbitStatus('temporal');
         // The voice picker is meaningless without a voice to pick for.
         if (voiceSection) voiceSection.hidden = !enabled;
@@ -1745,11 +1686,7 @@ export class ChamberOrbital {
       opt.classList.toggle('active', opt.dataset.curve === this.config.curve);
     });
 
-    const chunkOptions = this.container.querySelectorAll('[data-chunk]');
-    chunkOptions.forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.chunk === this.config.chunkMode);
-      opt.disabled = enabled && opt.dataset.chunk !== 'phrase';
-    });
+    this._paintRhythmLocks();
     this.container.querySelectorAll('[data-reveal]').forEach(opt => {
       const selected = this.config.revealMode === 'progressive' ? 'progressive' : 'instant';
       opt.classList.toggle('active', opt.dataset.reveal === selected);

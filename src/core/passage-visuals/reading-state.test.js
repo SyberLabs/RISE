@@ -22,9 +22,12 @@ describe('the director\'s flame recipes', () => {
     expect([recipe.id, recipe.name]).toEqual([preset.id, preset.name]);
   });
 
-  it('are the presets themselves without a theme', () => {
+  it('are turned to the classic theme when the reading names none, so every passage keeps one colour', () => {
     const director = ensureDirector(reading(undefined));
-    expect(director.flameRecipe('verdant-current')).toBe(flamePreset('verdant-current'));
+    const classic = jevColors('classic');
+    for (const id of ['ember-cathedral', 'violet-nebula', 'glacial-silk', 'solar-bloom', 'verdant-current']) {
+      expect(director.flameRecipe(id).macros.hue, id).toBe(themedFlameRecipe(flamePreset(id), classic).macros.hue);
+    }
   });
 });
 

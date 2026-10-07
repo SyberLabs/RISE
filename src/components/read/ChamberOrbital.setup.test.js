@@ -696,6 +696,44 @@ describe('the Rhythm & pace sheet', () => {
         orbital.destroy();
     });
 
+    it('in Inlay, locks Phrase and Sentence and says why on the controls; another look gives them back', () => {
+        setWidth(820);
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('[data-look="inlay"]').click();
+        const sheet = open(container);
+        const chunk = id => sheet.querySelector(`[data-chunk="${id}"]`);
+        const note = sheet.querySelector('[data-chunk-lock-note]');
+        for (const id of ['phrase', 'sentence']) {
+            expect(chunk(id).disabled, id).toBe(true);
+            expect(chunk(id).title, id).toBe('Inlay paints one word at a time');
+            expect(chunk(id).querySelector('.chunk-lock'), id).not.toBeNull();
+        }
+        expect(chunk('word').disabled).toBe(false);
+        expect(chunk('word').classList).toContain('active');
+        expect(note.hidden).toBe(false);
+        expect(note.textContent).toMatch(/Inlay paints one word at a time/u);
+
+        container.querySelector('[data-look="plain"]').click();
+        for (const id of ['phrase', 'sentence', 'word']) {
+            expect(chunk(id).disabled, id).toBe(false);
+            expect(chunk(id).querySelector('.chunk-lock'), id).toBeNull();
+        }
+        expect(note.hidden).toBe(true);
+        orbital.destroy();
+    });
+
+    it('keeps Inlay in Inlay on Default: its rhythm is the word', () => {
+        setWidth(820);
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('[data-look="inlay"]').click();
+        open(container).querySelector('[data-action="rhythm-default"]').click();
+        expect(orbital.config.chunkMode).toBe('word');
+        expect(lookOf(orbital.config)).toBe('inlay');
+        orbital.destroy();
+    });
+
     it('closes on Escape and gives focus back to its row', () => {
         const { container, orbital } = createOrbital();
         const sheet = open(container);
@@ -768,6 +806,49 @@ describe('the Sound panel: one sound list (RDR-024)', () => {
         orbital.beginSession();
         expect(onBeginSession.mock.calls[0][0].selectedSwellId).toBeNull();
         expect(JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'))).not.toHaveProperty('selectedSwellId');
+        orbital.destroy();
+    });
+
+    it('keeps a tone’s delivery and waveform out of setup: they are shaped in the Workshop', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('#modal-audio [data-audio-preset="focus"]').click();
+        const panel = container.querySelector('#modal-audio');
+        expect(panel.querySelector('[data-entrainment], [data-waveform]')).toBeNull();
+        expect(panel.textContent).not.toMatch(/Entrainment|Waveform/u);
+        orbital.destroy();
+    });
+
+    it('forgets a delivery and waveform an older setup remembered, so its tone plays as the Workshop would start it', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({ paceV2: true, audioPreset: 'focus', entrainmentMode: 'isochronic', entrainmentWaveform: 'sawtooth' }));
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0]).toMatchObject({ audioPreset: 'focus', entrainmentMode: 'binaural', entrainmentWaveform: 'sine' });
+        const saved = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'));
+        expect(saved).not.toHaveProperty('entrainmentMode');
+        expect(saved).not.toHaveProperty('entrainmentWaveform');
+        orbital.destroy();
+    });
+
+    it('carries the delivery and waveform of a composition opened in setup through to its reading', () => {
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations', { audioPreset: 'deep', entrainmentMode: 'monaural', entrainmentWaveform: 'triangle' });
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0]).toMatchObject({ audioPreset: 'deep', entrainmentMode: 'monaural', entrainmentWaveform: 'triangle' });
+        orbital.destroy();
+    });
+});
+
+describe('Living Text: the reader’s Setting, not setup’s', () => {
+    it('asks for it in every setup reading, whatever an older setup saved: Settings decides', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            paceV2: true, visualInterlocution: { visualMode: 'off', livingText: { enabled: false } }
+        }));
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0].visualConfig.livingText).toEqual({ enabled: true });
         orbital.destroy();
     });
 });

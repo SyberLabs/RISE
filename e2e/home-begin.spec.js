@@ -6,7 +6,8 @@ import { test, expect } from './fixtures.js';
  * (docs/product/discussions/2026-10-05-canonical-home-design.md §5, §7 row 4).
  *
  * PR 7 (A3's remainder, RDR-015) holds Home under the Read view and skips the
- * overlay and its settle; the Chamber still starts 500 ms after it mounts. The
+ * overlay and its settle, and the Chamber starts on the task after it mounts,
+ * with no fixed wait. Each step of a Begin is stamped (src/core/begin-steps.js). The
  * numbers are read on every CI run so the gap is known, not guessed; they go
  * in the annotation, in every expect message, and on stdout, which is what the
  * list reporter prints for a failure. Headless Chromium draws with
@@ -14,9 +15,9 @@ import { test, expect } from './fixtures.js';
  *
  * What PR 7 made true is asserted on every case: the overlay never shows and
  * a field is visible on every frame. Criterion 4's two timing bounds are open
- * (RDR-015) and are recorded, not asserted: today's poem, revel and iris land
- * at 3 to 4 s, and the signal roll sits on both bounds (first word 1.2 to
- * 1.43 s, longest task 0 to 61 ms), so neither a plain assertion nor
+ * (RDR-015) and are recorded, not asserted: on CI today's poem, signal and iris
+ * reach the first word in 0.96 to 1.41 s and revel in 3.4 s (its Gallery
+ * preload), with long tasks of 0 to 453 ms, so neither a plain assertion nor
  * test.fail() would be stable. Set TIMING_ASSERTED when criterion 4 closes.
  */
 const BUDGET_MS = 1500;
@@ -50,7 +51,7 @@ async function settled(page) {
  * #view-read; one sample per frame between them says what was on screen.
  */
 const observe = page => page.evaluate(() => {
-  const begin = { t0: null, tWord: null, word: '', samples: [], longTasks: [] };
+  const begin = { t0: null, tWord: null, word: '', samples: [], longTasks: [], steps: [] };
   window.__riseBegin = begin;
   const home = document.querySelector('#view-home');
   const read = document.querySelector('#view-read');
@@ -122,7 +123,9 @@ for (const [name, look] of cases) {
       .filter(task => task.start + task.duration > begin.t0 && task.start < begin.tWord)
       .map(task => task.duration));
     const at = list => (list.length ? `, from ${list[0].t} ms to ${list[list.length - 1].t} ms` : '');
-    const summary = `${name}: first word ${firstWord} ms (“${begin.word.slice(0, 24)}”) | overlay shown in ${overlayShown.length} of ${frames} frames${at(overlayShown)} | no field in ${fieldless.length} of ${frames} frames${at(fieldless)} | longest long task ${Math.round(longest)} ms`;
+    // Where the time went: each step the factory and the Chamber stamped (src/core/begin-steps.js), from the press.
+    const steps = begin.steps.map(([step, at]) => `${step} ${Math.round(at - begin.t0)}`).join(', ');
+    const summary = `${name}: first word ${firstWord} ms (“${begin.word.slice(0, 24)}”) | overlay shown in ${overlayShown.length} of ${frames} frames${at(overlayShown)} | no field in ${fieldless.length} of ${frames} frames${at(fieldless)} | longest long task ${Math.round(longest)} ms | steps: ${steps}`;
     test.info().annotations.push({ type: 'begin-to-first-word', description: summary });
     console.log(`[home-begin] ${summary}`);
 

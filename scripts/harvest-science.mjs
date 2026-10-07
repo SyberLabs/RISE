@@ -66,10 +66,11 @@ const get = async (url, label, { retries = 2 } = {}) => {
  *
  * Nothing on Netlify holds an API key. The harvest runs here on a
  * workstation, the reviewed pins are committed, and the deployed reader
- * fetches the image directly — `img-src ... https:` in netlify.toml
- * already permits any image host, while `connect-src` does NOT list
- * api.si.edu, so the browser could not reach the search API even if
- * something asked it to. That whole arrangement holds only if the
+ * fetches the image directly — `img-src` in netlify.toml names each
+ * catalogue's image hosts (a new host is added there, and
+ * src/core/csp-image-hosts.test.js holds the set), while `connect-src`
+ * does NOT list api.si.edu, so the browser could not reach the search
+ * API even if something asked it to. That whole arrangement holds only if the
  * delivery URL is publicly fetchable, and an unverified assumption there
  * would surface as a missing figure in production rather than as an
  * error at harvest time, which is the wrong end to find out.

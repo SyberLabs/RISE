@@ -58,6 +58,8 @@ import {
   personalAudioIsWholeReading,
   personalBedSoundscapeId,
   PERSONAL_BED_PREFIX,
+  TONE_DELIVERIES,
+  TONE_WAVEFORMS,
   WORKSHOP_AUDIO_ASSETS,
   WorkshopAudioPreviewController,
   workshopAudioAsset,
@@ -2038,6 +2040,22 @@ export class Workshop {
                 ${this.audioPreviewState.state === 'playing' ? '' : 'disabled'}>Stop</button>
       </div>
       <p class="studio-preview-status" aria-live="polite">${playing ? 'Previewing this atmosphere · stops automatically' : 'Preview is bounded and never changes the project.'}</p>
+      ${current && asset.kind === 'tone' && asset.value !== 'silent' ? this.renderToneShape() : ''}
+    </div>`;
+  }
+
+  /** How the tone under the whole reading reaches the ears, and its wave: shaped here, not in Reader setup. */
+  renderToneShape() {
+    const row = (label, action, options, chosen) => {
+      const id = `studio-tone-${action}`;
+      return `<span class="studio-kicker" id="${id}">${label}</span>
+        <div class="studio-compact-options studio-choice-grid studio-choice-grid-${options.length}" role="group" aria-labelledby="${id}">
+          ${options.map(option => `<button type="button" class="chunk-btn${option.value === chosen ? ' active' : ''}" data-action="${action}" data-value="${option.value}" aria-pressed="${option.value === chosen}" title="${this.escapeHtml(option.note)}">${option.label}</button>`).join('')}
+        </div>`;
+    };
+    return `<div class="studio-tone-shape">
+      ${row('Delivery', 'set-tone-delivery', TONE_DELIVERIES, this.sessionData.entrainmentMode || TONE_DELIVERIES[0].value)}
+      ${row('Waveform', 'set-tone-waveform', TONE_WAVEFORMS, this.sessionData.entrainmentWaveform || TONE_WAVEFORMS[0].value)}
     </div>`;
   }
 
@@ -2141,7 +2159,13 @@ export class Workshop {
     if (!assetId) return false;
     const personal = this.selectedPersonalAudio();
     if (!personal && workshopAudioAsset(assetId)?.value === 'silent') return false;
-    await this.audioPreview.play(assetId, { swellId: swellId || personal?.id || null });
+    await this.audioPreview.play(assetId, {
+      swellId: swellId || personal?.id || null,
+      entrainment: {
+        mode: this.sessionData.entrainmentMode || TONE_DELIVERIES[0].value,
+        waveform: this.sessionData.entrainmentWaveform || TONE_WAVEFORMS[0].value
+      }
+    });
     return true;
   }
 
@@ -4755,6 +4779,14 @@ export class Workshop {
         this.selectAudioAsset(`swell:${target.dataset.id}`);
       } else if (action === 'apply-audio-default') {
         this.applySelectedAudioDefault();
+      } else if (action === 'set-tone-delivery' || action === 'set-tone-waveform') {
+        const [field, options] = action === 'set-tone-delivery'
+          ? ['entrainmentMode', TONE_DELIVERIES] : ['entrainmentWaveform', TONE_WAVEFORMS];
+        if (options.some(option => option.value === target.dataset.value)) {
+          this.sessionData[field] = target.dataset.value;
+          this.markEditorDirty();
+          this.refreshAudioStudio();
+        }
       } else if (action === 'preview-audio-default') {
         void this.previewSelectedAudioDefault();
       } else if (action === 'stop-audio-preview') {
