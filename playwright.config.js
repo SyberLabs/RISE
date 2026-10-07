@@ -19,8 +19,10 @@ import { defineConfig } from '@playwright/test';
  * 30-minute cap with no assertion, and the answer was to raise the cap.
  * Raising a cap does not make a slow gate safe, it makes it slower.
  *
- * Measured on this suite, one worker, production build: 502 seconds of
- * test time across 18 spec files, of which `mobile.spec.js` alone is 200.
+ * Measured when the corridor was chosen (August 2026), one worker,
+ * production build: 502 seconds of test time across the 18 spec files of
+ * the day, of which `mobile.spec.js` alone was 200. The suite has grown
+ * since.
  * The list below is 134 seconds of that — the corridor a reader actually
  * walks, plus the two things that must never silently break.
  *
