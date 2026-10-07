@@ -28,6 +28,12 @@
       "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
       "note": "Owner decisions Q1-Q6, 2026-10-05.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/474",
+      "note": "Part A: six-button bar plus Dive, one Look sheet reusing existing live handlers; embed and /live unchanged; rendered at three widths. Part B (look switching mid-reading, pace in the bar) remains.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -38,10 +44,14 @@
     {
       "date": "2026-10-07T11:08:01.964Z",
       "summary": "Started before the LIVE-004 witness on the owner's direction (2026-10-07); LIVE-004 is to be witnessed on a release that includes it."
+    },
+    {
+      "date": "2026-10-07T12:11:49.595Z",
+      "summary": "Part A opened as #474."
     }
   ],
-  "updatedAt": "2026-10-07T11:08:01.964Z",
-  "revision": 2,
+  "updatedAt": "2026-10-07T12:11:49.595Z",
+  "revision": 3,
   "summary": "The Jev look panel, the Visual direction drawer, Kaleidoscope, Next scene and the Visuals toggle become one Look sheet.",
   "blocker": null
 }

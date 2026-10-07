@@ -49,6 +49,7 @@ test('cold sample deep link admits a preset Gallery, then returns to its thresho
   await expect(page.locator('#jev-next-scene')).toBeEnabled({ timeout: 20_000 });
   expect(jevRequests()).toBe(0);
   await page.locator('#chamber-display').hover();
+  await page.locator('#look-btn').click();
   await page.locator('#jev-next-scene').click();
   await expect(page.locator('#jev-scene-status')).toContainText('Next scene selected');
   await expect.poll(() => page.evaluate(() => {
@@ -75,6 +76,8 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 
   const shift = page.locator('#jev-next-scene');
+  await page.locator('#chamber-display').hover();
+  await page.locator('#look-btn').click();
   await expect(shift).toBeVisible();
   await expect(shift).toBeEnabled({ timeout: 20_000 });
   const before = await page.evaluate(() => {
@@ -186,31 +189,29 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
   expect(requestBody.questions.book.type).toBe('choice');
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
   await page.locator('#chamber-display').hover();
-  await page.locator('#jev-look-btn').click();
-  await page.locator('[name="jev-font-size"]').selectOption('xlarge');
+  await page.locator('#look-btn').click();
+  await page.locator('[data-look-size="xlarge"]').click();
   await expect(page.locator('#atom-display')).toHaveAttribute('data-font-size', 'xlarge');
-  const text = page.locator('[name="jev-text-color"]');
-  await text.selectOption('jade');
-  await page.locator('[name="jev-background-color"]').selectOption('ember');
+  await page.locator('[data-look-colour="jade"]').click();
   await expect(page.locator('.chamber')).toHaveCSS('--color-light', '#AFFFCE');
-  await expect(page.locator('.chamber')).toHaveCSS('--color-void', '#1C0B0A');
+  await expect(page.locator('.chamber')).toHaveCSS('--color-void', '#061912');
   await expect(page.locator('#atom-display')).toHaveCSS('color', 'rgb(175, 255, 206)');
   const currentWord = await page.locator('#atom-display').textContent();
   await expect.poll(() => page.locator('#atom-display').textContent()).not.toBe(currentWord);
   await expect(page.locator('#atom-display')).toHaveCSS('color', 'rgb(175, 255, 206)');
   await expect(page.locator('#atom-display')).toHaveAttribute('data-font-size', 'xlarge');
-  await page.locator('[name="jev-volume"]').evaluate(input => {
+  await page.locator('[name="look-volume"]').evaluate(input => {
     input.value = '30';
     input.dispatchEvent(new Event('input', { bubbles: true }));
   });
-  await expect(page.locator('#jev-volume-value')).toHaveText('30%');
+  await expect(page.locator('#look-volume-value')).toHaveText('30%');
   await expect.poll(() => page.evaluate(() => window.__RISE_TEST__
     ?.getAudioEngine()?.config?.masterVolume)).toBe(0.3);
-  await page.locator('[name="jev-soundscape"]').selectOption('aurora');
+  await page.locator('[name="look-sound"]').selectOption('aurora');
   await expect.poll(() => page.evaluate(() => Boolean(window.__RISE_TEST__
     ?.getAudioEngine()?.layers?.soundscape))).toBe(true);
-  await page.locator('[name="jev-soundscape"]').selectOption('none');
-  await expect(page.locator('[name="jev-soundscape"]')).toHaveValue('none');
+  await page.locator('[name="look-sound"]').selectOption('none');
+  await expect(page.locator('[name="look-sound"]')).toHaveValue('none');
   await expect.poll(() => page.evaluate(() => Boolean(window.__RISE_TEST__
     ?.getAudioEngine()?.layers?.soundscape))).toBe(false);
 });
@@ -226,6 +227,7 @@ test.describe('touch reader', () => {
     await expect(shift).toBeEnabled({ timeout: 20_000 });
     await page.locator('#chamber-display').tap({ position: { x: 40, y: 120 } });
     await expect(page.locator('#chamber-controls')).toHaveCSS('opacity', '1');
+    await page.locator('#look-btn').tap();
     await shift.tap();
     await expect(page.locator('#jev-scene-status')).toContainText('Next scene selected');
   });

@@ -1,6 +1,10 @@
 // The on-device Kev and embedding workers are the only documents allowed to
 // fetch model hosts and compile WebAssembly. Dedicated workers are governed
-// by the policy on their own scripts, so pages keep the site policy.
+// by the policy on their own scripts, so pages keep the site policy. Both
+// scripts get this one policy: the Kev worker's runtime binary is bundled
+// with the site, and cdn.jsdelivr.net is for the embedding worker's CPU
+// runtime alone (ORT_WASM_CPU in embed-model.js), which it
+// checks against a pinned digest.
 export const KEV_WORKER_POLICY = "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; "
     + 'connect-src https://huggingface.co https://*.huggingface.co https://*.hf.co https://cdn.jsdelivr.net';
 
