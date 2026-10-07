@@ -6,7 +6,8 @@ import { test, expect } from './fixtures.js';
  * (docs/product/discussions/2026-10-05-canonical-home-design.md §5, §7 row 4).
  *
  * PR 7 (A3's remainder, RDR-015) holds Home under the Read view and skips the
- * overlay and its settle; the Chamber still starts 500 ms after it mounts. The
+ * overlay and its settle, and the Chamber starts on the task after it mounts,
+ * with no fixed wait. Each step of a Begin is stamped (src/core/begin-steps.js). The
  * numbers are read on every CI run so the gap is known, not guessed; they go
  * in the annotation, in every expect message, and on stdout, which is what the
  * list reporter prints for a failure. Headless Chromium draws with

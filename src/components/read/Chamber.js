@@ -473,9 +473,11 @@ export class Chamber {
         this.togglePageMode(true);
       }, 120);
     } else if (this.autoStart && !this.hostPlays) {
-      // Auto-start if requested (skip pre-session screen). Tracked and
-      // Page-aware: a reader who opens the Page inside this delay must
-      // not have a stream start underneath them when it fires.
+      // Auto-start if requested (skip pre-session screen), in a task of its
+      // own so the router has unhidden the view first; the view fades in over
+      // the field already showing. No fixed wait: Begin to first word is R2's
+      // budget (RDR-015). Tracked and Page-aware: a reader who opens the Page
+      // before it fires must not have a stream start underneath them.
       this._autoStartTimer = setTimeout(async () => {
         this._autoStartTimer = null;
         if (this._destroyed || this.pageModeActive) return;
@@ -529,7 +531,7 @@ export class Chamber {
             this.audioEngine.fadeInSession(1.2);
           }
         }
-      }, 500); // Relaxed timing for engine stability
+      }, 0);
     }
   }
 
