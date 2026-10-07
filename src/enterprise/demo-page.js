@@ -406,7 +406,9 @@ $('#export-trace').addEventListener('click', () => {
 const DEVICE_FAILED = {
     'no-webgpu': 'This browser has no WebGPU, so Kev can’t run here. Choose Local rules, or open this room in local RISE.',
     'no-adapter': 'No usable GPU for WebGPU, so Kev can’t run here. Choose Local rules, or open this room in local RISE.',
+    unpinned: 'This build doesn’t pin Kev’s weights, so nothing was downloaded. Choose Local rules, or open this room in local RISE.',
     'wrong-model': 'The published Kev bundle isn’t the pinned checkpoint, so it wasn’t loaded.',
+    digest: 'A downloaded Kev file didn’t match its pinned digest, so Kev wasn’t loaded.',
     'runtime-digest': 'The downloaded runtime didn’t match its pinned digest, so it wasn’t used.',
     'no-jspi': 'This browser can’t stream Kev to the GPU. Use a current Chrome or Edge, or choose Local rules.',
     storage: 'There isn’t enough disk space to keep Kev. Free some space, then choose Kev (device) again.',

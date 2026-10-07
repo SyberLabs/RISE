@@ -20,7 +20,7 @@ it('maps a faithful reading of every poem in the pool onto the atoms a recited d
   for (const item of todayPool()) {
     const work = releaseArchiveTexts().find(record => record.id === item.workId);
     const { entries } = await work.getDivisions();
-    const input = await resolveJevReading(todayDecision({ ...item, seed: 'recitation' }, { recited: true }),
+    const input = await resolveJevReading(todayDecision({ ...item, seed: 'recitation' }),
       { entryId: item.entryId, label: item.label });
     const atoms = compileSession(input).atoms.map(atom => normalizeVoiceText(atom)).filter(Boolean);
     const result = mapAlignment({ atoms, alignment: faithful(spokenText(entries[item.entryId].content)) });
@@ -32,18 +32,18 @@ it('maps a faithful reading of every poem in the pool onto the atoms a recited d
   expect(failures).toEqual([]);
 }, 120_000);
 
-it('cuts every temper\'s recited reading into the same atoms', async () => {
+it('cuts every look\'s recited reading into the same atoms', async () => {
   const [item] = todayPool();
   const atomsFor = async seed => {
-    const input = await resolveJevReading(todayDecision({ ...item, seed }, { recited: true }), { entryId: item.entryId, label: item.label });
+    const input = await resolveJevReading(todayDecision({ ...item, seed }), { entryId: item.entryId, label: item.label });
     return compileSession(input).atoms.map(atom => normalizeVoiceText(atom)).filter(Boolean);
   };
-  const tempers = new Map();
-  for (let day = 1; day < 40 && tempers.size < 3; day++) {
+  const looks = new Map();
+  for (let day = 1; day < 40 && looks.size < 3; day++) {
     const seed = `2026-10-${String(day).padStart(2, '0')}`;
-    tempers.set(todayDecision({ ...item, seed }).temper, await atomsFor(seed));
+    looks.set(todayDecision({ ...item, seed }).look, await atomsFor(seed));
   }
-  expect(tempers.size).toBe(3);
-  const [first, ...rest] = [...tempers.values()];
+  expect(looks.size).toBe(3);
+  const [first, ...rest] = [...looks.values()];
   for (const atoms of rest) expect(atoms).toEqual(first);
 });

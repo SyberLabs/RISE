@@ -2,11 +2,13 @@
  * Kev inference off the main thread, so the transcript and rail never wait
  * on the GPU.
  *
- * Load order: WebGPU adapter, then the manifest (refused unless it names the
+ * Load order: the pin (a model without one loads nothing), WebGPU adapter,
+ * then the manifest (refused unless it is the pinned bytes and names the
  * pinned checkpoint), then the runtime binary (refused unless it hashes to
- * the pinned digest), then the weights. WebGPU only: the CPU fallback is too
- * slow for a live rail, so a device without a usable adapter reports that
- * and loads nothing.
+ * the pinned digest), then the weights, each refused unless it has its
+ * pinned size and digest. WebGPU only: the CPU fallback is too slow for a
+ * live rail, so a device without a usable adapter reports that and loads
+ * nothing.
  *
  * The weights never sit whole in this worker (see kev-store.js). The JSPI
  * build of the runtime is the one that reads a Blob lazily, one tensor at a
@@ -18,7 +20,7 @@ import { Kev, PointerHead } from '@ai-ecoverse/kev.js';
 import { Tokenizer } from '@huggingface/tokenizers';
 import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.jspi.wasm?url';
 import { DEVICE_MODELS, ORT_WASM, runMatches } from './device-model.js';
-import { CACHE_NAME, dropOtherRevisions, LoadFailure, storedFile } from './kev-store.js';
+import { CACHE_NAME, dropOtherRevisions, LoadFailure, pinnedFile, storedFile, variantFiles } from './kev-store.js';
 
 let kev = null;
 
@@ -76,15 +78,25 @@ function progressReporter() {
 async function load(modelId) {
     const model = DEVICE_MODELS[modelId];
     if (!model) throw new LoadFailure('unknown-model', modelId);
+    pinnedFile(model, 'manifest.json');
     const started = performance.now();
     const adapter = await adapterInfo();
     post({ type: 'phase', phase: 'manifest', adapter });
 
-    const manifest = await (await fetchChecked(`${model.base}/manifest.json`, 'manifest')).json();
+    if (typeof caches === 'undefined') throw new LoadFailure('storage', 'no Cache Storage');
+    const cache = await caches.open(CACHE_NAME);
+    const rev = model.revision;
+    await dropOtherRevisions(cache, model.base, rev);
+    const onProgress = progressReporter();
+    const file = (path) => {
+        const pin = pinnedFile(model, path);
+        return storedFile(cache, `${model.base}/${path}`, { rev, bytes: pin.bytes, sha256: pin.sha256, file: path, onProgress });
+    };
+    const manifest = JSON.parse(await (await file('manifest.json')).text());
     if (!runMatches(manifest.run, model.run)) throw new LoadFailure('wrong-model', String(manifest.run));
-
-    const variant = manifest.variants?.[model.variant];
-    if (!variant) throw new LoadFailure('wrong-model', `no variant ${model.variant}`);
+    const paths = variantFiles(manifest, model.variant);
+    // Every file is pinned, or none is fetched; announcing each up front keeps the total from growing as downloads start.
+    for (const path of paths) onProgress({ file: path, loaded: 0, total: pinnedFile(model, path).bytes });
 
     post({ type: 'phase', phase: 'runtime' });
     if (typeof WebAssembly.Suspending !== 'function') throw new LoadFailure('no-jspi');
@@ -94,20 +106,9 @@ async function load(modelId) {
     ort.env.wasm.numThreads = 1;
 
     post({ type: 'phase', phase: 'download' });
-    if (typeof caches === 'undefined') throw new LoadFailure('storage', 'no Cache Storage');
-    const cache = await caches.open(CACHE_NAME);
-    const rev = manifest.revision ?? manifest.run;
-    await dropOtherRevisions(cache, model.base, rev);
-    const onProgress = progressReporter();
-    const sizes = variant.sizes || {};
-    // Announce every file up front so the total does not grow as downloads start.
-    for (const [file, bytes] of Object.entries(sizes)) onProgress({ file, loaded: 0, total: bytes });
-    const file = (path) => storedFile(cache, `${model.base}/${path}`, { rev, bytes: sizes[path], file: path, onProgress });
-    const { files } = manifest;
-    const [tokenizerJson, tokenizerConfig, head, graph] = await Promise.all(
-        [files.tokenizer, files.tokenizer_config, files.head, variant.model].map(file));
+    const [tokenizerJson, tokenizerConfig, head, graph] = await Promise.all(paths.slice(0, 4).map(file));
     const weights = [];
-    for (const path of variant.data) weights.push({ path: path.split('/').pop(), data: await file(path) });
+    for (const path of paths.slice(4)) weights.push({ path: path.split('/').pop(), data: await file(path) });
 
     post({ type: 'phase', phase: 'session' });
     const session = await ort.InferenceSession.create(new Uint8Array(await graph.arrayBuffer()), {

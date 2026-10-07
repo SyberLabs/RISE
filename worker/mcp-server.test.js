@@ -420,6 +420,18 @@ describe('the app', () => {
     expect(result.contents[0]._meta.ui.csp.frameDomains).toEqual(['https://staging.rise.example']);
   });
 
+  it('frames the page with the witness log switched on only while MCP_WITNESS is true, and otherwise byte for byte as today', async () => {
+    const plain = (await json(await post(rpc('resources/read', { uri: APP_URI })))).result.contents[0];
+    const witness = (await json(await post(rpc('resources/read', { uri: APP_URI }), { env: { ...ON, MCP_WITNESS: 'true' } }))).result.contents[0];
+    expect(witness.text).toContain(`src="${SITE}/live?embed=mcp&log=host"`);
+    expect(witness.text.replace('&log=host', '')).toBe(plain.text);
+    expect(witness._meta).toEqual(plain._meta);
+    for (const value of [undefined, 'false', 'TRUE', '1']) {
+      const same = (await json(await post(rpc('resources/read', { uri: APP_URI }), { env: { ...ON, MCP_WITNESS: value } }))).result.contents[0];
+      expect(same, String(value)).toEqual(plain);
+    }
+  });
+
   it('says a resource it does not have is not found, and does not echo more than a clipped address', async () => {
     for (const uri of ['ui://rise/other', 'file:///etc/passwd', '', undefined, 5, null, {}]) {
       const { error } = await json(await post(rpc('resources/read', { uri })));

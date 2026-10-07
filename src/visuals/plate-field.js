@@ -51,6 +51,9 @@ export class PlateField {
      *   - getSignal
      *   - sliceFirstPlate  bake the first plate in slices too; start()
      *     resolves true once it is drawn, false if stopped before
+     *   - look  per family, the engine options every plate bakes with
+     *     ({ ostensoria: { palette }, apparitio: { palette, sat } }); a
+     *     family without one bakes as the engine rolls
      */
     constructor(host, options = {}) {
         this.host = host;
@@ -62,6 +65,7 @@ export class PlateField {
         this.reducedMotion = !!options.reducedMotion;
         this.sliceFirstPlate = !!options.sliceFirstPlate;
         this.families = normalizeFamilies(options.families);
+        this.look = normalizeLook(options.look);
         this.getSignal = typeof options.getSignal === 'function'
             ? options.getSignal
             : () => null;
@@ -321,10 +325,10 @@ export class PlateField {
         const engine = new Engine();
         const seed = `gallery-plate:${id}:${cursor}`;
         if (typeof engine.beginBake === 'function') {
-            engine.beginBake(this.getSignal() || null, seed);
+            engine.beginBake(this.getSignal() || null, seed, this.look?.[id] || {});
             this._pending = { engine, family: id, cursor };
         } else {
-            engine.generate(this.getSignal() || null, seed);
+            engine.generate(this.getSignal() || null, seed, this.look?.[id] || {});
             this._hot = { engine, family: id, cursor };
         }
     }
@@ -358,7 +362,7 @@ export class PlateField {
         this._abortBake();
         const Engine = ENGINES[id];
         const engine = new Engine();
-        engine.generate(this.getSignal() || null, `gallery-plate:${id}:${cursor}`);
+        engine.generate(this.getSignal() || null, `gallery-plate:${id}:${cursor}`, this.look?.[id] || {});
         return engine;
     }
 
@@ -516,6 +520,18 @@ export class PlateField {
         else if (this.running) this._startBake();
     }
 
+    /**
+     * A new look drops the bake under way and begins it again, so it lands
+     * on the next plate rather than the one after. The same look keeps it.
+     */
+    setLook(look) {
+        const next = normalizeLook(look);
+        if (JSON.stringify(next) === JSON.stringify(this.look)) return;
+        this.look = next;
+        this._abortBake();
+        if (this.running) this._startBake();
+    }
+
     setCadence({ dwellMs, crossfadeMs } = {}) {
         if (Number.isFinite(dwellMs) && dwellMs > 0) this.dwellMs = dwellMs;
         if (Number.isFinite(crossfadeMs) && crossfadeMs >= 0) {
@@ -549,4 +565,8 @@ export class PlateField {
 function normalizeFamilies(families) {
     if (!Array.isArray(families)) return [];
     return families.filter(id => PLATE_FAMILIES.includes(id));
+}
+
+function normalizeLook(look) {
+    return look && typeof look === 'object' ? look : null;
 }

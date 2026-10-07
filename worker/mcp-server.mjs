@@ -192,13 +192,14 @@ function call(id, params) {
   });
 }
 
-function read(id, params, origin) {
+function read(id, params, origin, witness) {
   if (params?.uri !== APP_URI) return failure(id, -32002, 'Resource not found', { uri: typeof params?.uri === 'string' ? clip(params.uri, 200) : null });
   return result(id, {
     contents: [{
       uri: APP_URI,
       mimeType: APP_MIME,
-      text: relayHtml({ origin, path: EMBED_PATH }),
+      // The witness log (docs/plans/EMBED-WITNESS.md) is switched on by the demo config for one session; production never sets it.
+      text: relayHtml({ origin, path: witness ? `${EMBED_PATH}&log=host` : EMBED_PATH }),
       _meta: {
         ui: {
           // The app frames RISE's own page and nothing else, fetches nothing itself, and asks for no device.
@@ -215,7 +216,7 @@ function read(id, params, origin) {
 }
 
 /** One JSON-RPC message, answered. `null` for one that is not answered (a notification or a response). */
-export function dispatch(message, origin, { gate0 = false } = {}) {
+export function dispatch(message, origin, { gate0 = false, witness = false } = {}) {
   if (!message || typeof message !== 'object' || Array.isArray(message) || message.jsonrpc !== '2.0') {
     return failure(null, -32600, 'Invalid request');
   }
@@ -244,7 +245,7 @@ export function dispatch(message, origin, { gate0 = false } = {}) {
     }
     case 'resources/list':
       return result(id, { resources: [{ uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME }] });
-    case 'resources/read': return read(id, params, origin);
+    case 'resources/read': return read(id, params, origin, witness);
     default: return failure(id, -32601, 'Method not found');
   }
 }
@@ -294,7 +295,7 @@ export async function handleMcp(request, env) {
     return failure(null, -32700, 'Parse error');
   }
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
-  return dispatch(message, origin, { gate0: env.MCP_GATE0 === 'true' });
+  return dispatch(message, origin, { gate0: env.MCP_GATE0 === 'true', witness: env.MCP_WITNESS === 'true' });
 }
 
 /**

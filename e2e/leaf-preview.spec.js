@@ -28,7 +28,7 @@ async function openDynamic(page) {
     await page.goto('/');
     await openHomeNav(page, 'chamber');
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
-    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
+    { const look = page.locator('#modal-look'); if (await look.isHidden()) await page.locator('[data-orbit="look"]').click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible();
     await page.locator('.vnav-node[data-id="visual"]').click();
