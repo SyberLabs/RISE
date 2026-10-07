@@ -180,7 +180,7 @@
    shadows (1.8:1 over white) and a 52% band on a phone (3.0:1).
 
    One pane, no shadow, no hairline, the Atlas panel radius. A reading
-   with nothing behind it ("Read plainly") never gets a pane at all:
+   with nothing behind it (the Plain look) never gets a pane at all:
    the tile is only applied when imagery is mounted.
 
    Scoped under .chamber so it outranks the older glass rules in

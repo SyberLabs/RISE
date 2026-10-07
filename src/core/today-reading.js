@@ -1,22 +1,20 @@
 /**
- * How today's poem is read: a roll for its work, in a temper drawn from the
- * date, so the day's poem has one look and sound all day. Only the vivid
- * tempers qualify, those whose procedural visuals are immersive or
+ * How today's poem is read: a roll for its work, in a look and at a pace in
+ * that look's range drawn from the date, so the day's poem has one look,
+ * sound and pace all day. Only
+ * the vivid looks qualify, those whose procedural visuals are immersive or
  * psychedelic (owner decision, 2026-10-03): a poem of the day is never read on
- * plain black, nor under a quiet light it could be mistaken for.
+ * plain black, nor under a quiet light it could be mistaken for. It reads in
+ * phrases on every date, the unit a recitation's voice pack is cut in.
  * The division is not the roll's; resolveJevReading opens the day's exact one.
  */
-import { VISUAL_TEMPERS, composeRoll } from './roll.js';
+import { ROLL_RANGES, VIVID_LOOKS, composeRoll } from './roll.js';
 import { seededRandom } from './today-poem.js';
 
-/**
- * A recited day is read a line at a time (the voice comes one clip per line);
- * every other draw (temper, engine, sound, colours) is the same, because the
- * chunk mode still takes its one draw from the same sequence.
- */
-export function todayDecision(pick, { recited = false } = {}) {
+export function todayDecision(pick) {
   const random = seededRandom(`rise-today-reading:${pick.seed}`);
-  const drawn = VISUAL_TEMPERS[Math.floor(random() * VISUAL_TEMPERS.length)];
-  const temper = recited ? { ...drawn, chunkMode: ['phrase'] } : drawn;
-  return composeRoll({ temper, workId: pick.workId, section: 'first', random });
+  const look = VIVID_LOOKS[Math.floor(random() * VIVID_LOOKS.length)];
+  const { paces } = ROLL_RANGES[look.id];
+  const pace = paces[Math.floor(random() * paces.length)];
+  return composeRoll({ look: look.id, workId: pick.workId, section: 'first', rhythm: 'phrase', pace, random });
 }

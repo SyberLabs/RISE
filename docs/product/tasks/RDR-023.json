@@ -14,7 +14,8 @@
   ],
   "acceptance": [
     "Over a 10-minute reading, engine family and colour theme stay constant unless the reader changes them (R6).",
-    "The Gallery look follows the text with sourced works."
+    "The Gallery look follows the text with sourced works.",
+    "Living Flame is a listed Dynamic engine in setup through a dedicated mode that Follow text, Page view and the Workshop fallback all understand (directionEligibility, src/page/flow.js, visualFallbackCueFromConfig); the Flame look lowers into it."
   ],
   "evidence": [
     {
@@ -28,16 +29,26 @@
       "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
       "note": "Owner decisions Q1-Q6, 2026-10-05.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/468",
+      "note": "The navigator derives from the catalog; the Living Flame mode was stopped here because Follow text, Page view and the Workshop fallback do not know it.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
     {
       "date": "2026-10-05T08:40:23.000Z",
       "summary": "Seeded from Package C4 after the owner decisions."
+    },
+    {
+      "date": "2026-10-07T09:25:55.659Z",
+      "summary": "Living Flame as a setup choice recorded here: it needs Follow text, Page view and the Workshop fallback to know a dedicated mode."
     }
   ],
-  "updatedAt": "2026-10-05T08:40:23.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-07T09:25:55.659Z",
+  "revision": 2,
   "summary": "Follow text varies intensity and composition within the reading's own engines and theme.",
   "blocker": null
 }

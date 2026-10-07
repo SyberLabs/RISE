@@ -664,6 +664,31 @@ describe('Attractor reduced motion', () => {
     field.destroy();
   });
 
+  it('reads the app’s root class live, so turning the setting off mid-reading sets the field moving again', () => {
+    const root = document.documentElement.classList;
+    const field = new AttractorField(makeHost(), { adaptive: false });
+    try {
+      field.tick(1000);
+      field.tick(1016);
+      root.add('reduced-motion');
+      field.tick(1032);
+      field.tick(1048);
+      const still = paints(field);
+      field.tick(1064);
+      expect(paints(field)).toBe(still);
+
+      root.remove('reduced-motion');
+      field.tick(1080);
+      field.tick(1096);
+      field.tick(1112);
+      expect(paints(field)).toBe(still + 3);
+      expect(field.rafId).not.toBeNull();
+    } finally {
+      root.remove('reduced-motion');
+      field.destroy();
+    }
+  });
+
   it('repaints the still once when what it shows changes', () => {
     window.matchMedia = () => ({ matches: true });
     const field = new AttractorField(makeHost(), { adaptive: false });

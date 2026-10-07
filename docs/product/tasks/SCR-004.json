@@ -1,0 +1,36 @@
+{
+  "id": "SCR-004",
+  "title": "Ask speaks the same vocabulary",
+  "lane": "reader",
+  "milestone": "Score stage 1",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "next",
+  "dependencies": [
+    "RDR-020",
+    "SCR-001"
+  ],
+  "acceptance": [
+    "Jev and Kev menus offer looks, collections, sounds and pace from the same catalogue the Composer reads; validateJevRecommendation is unchanged.",
+    "Every Ask result reopens identically in Reader setup."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-06-score-speech-service-roadmap.md",
+      "note": "The score, speech and service roadmap; Record.",
+      "date": "2026-10-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-06T01:30:00.000Z",
+      "summary": "Seeded from the 2026-10-06 roadmap record."
+    }
+  ],
+  "updatedAt": "2026-10-06T01:30:00.000Z",
+  "revision": 1,
+  "summary": "The in-app model and the Composer share one vocabulary; built as RDR-020's third pull request, not a separate lane.",
+  "blocker": null
+}

@@ -11,6 +11,7 @@ import { LiveHost, framedBy } from './LiveHost.js';
 import { createVirtualClock } from '../clock.js';
 import { createMockAdapter } from '../adapters/mock.js';
 import { BLACK_HOLES_CURRENT } from '../../test/sealed-current.js';
+import { createFakeSpeech } from '../../test/fake-speech.js';
 
 const env = ({ speech = false, recognition = false, motion = false } = {}) => ({
     window: {
@@ -112,6 +113,49 @@ describe('choosing a voice', () => {
         mount('?voice=paced', env({ speech: true }));
         await host.buildVoices(createVirtualClock());
         expect(container.querySelector('.live-notes').textContent).toMatch(/Speech is off/u);
+    });
+});
+
+describe('the voice the browser speaks with', () => {
+    const ARIA = { name: 'Microsoft Aria Online (Natural) - English (United States)', lang: 'en-US', localService: false, default: false };
+    const EDGE = [{ name: 'Microsoft David - English (United States)', lang: 'en-US', localService: true, default: true }, ARIA];
+
+    /** A device that speaks on `clock` and offers `voices`, with the page in `language`. */
+    function speaking(clock, voices, language = 'en-US') {
+        const synth = createFakeSpeech(clock);
+        synth.getVoices = () => voices;
+        const environment = env({ speech: true });
+        Object.assign(environment.window, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance });
+        Object.assign(environment, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance, navigator: { language } });
+        return { environment, synth };
+    }
+
+    it('is the best installed one, and every utterance is given it', async () => {
+        const clock = createVirtualClock();
+        const { environment, synth } = speaking(clock, EDGE);
+        const given = [];
+        const speak = synth.speak.bind(synth);
+        synth.speak = utterance => { given.push([utterance.voice, utterance.lang]); speak(utterance); };
+        mount('', environment);
+        const voices = await host.buildVoices(clock);
+        voices.create().enqueue({ id: 'a', text: 'hello there' });
+        await clock.runAll();
+        expect(given).toEqual([[ARIA, 'en-US']]);
+    });
+
+    it('is named in the measuring record, by name and language and nothing else', async () => {
+        const { environment } = speaking(createVirtualClock(), EDGE);
+        mount('?measure=1', environment);
+        await host.buildRuntime();
+        expect(environment.__riseLive.voice()).toEqual({ name: ARIA.name, lang: 'en-US' });
+    });
+
+    it('is recorded as none when the browser is left to choose', async () => {
+        const safari = [{ name: 'Albert', lang: 'en-US', default: true }, { name: 'Samantha', lang: 'en-US', default: true }];
+        const { environment } = speaking(createVirtualClock(), safari);
+        mount('?measure=1', environment);
+        await host.buildRuntime();
+        expect(environment.__riseLive.voice()).toBeNull();
     });
 });
 
@@ -789,6 +833,33 @@ describe('inside an MCP host', () => {
         expect(root.dataset.embed).toBeUndefined();
         expect(root.style.getPropertyValue('--safe-top')).toBe('');
         expect(root.style.getPropertyValue('--font-sans')).toBe('');
+    });
+
+    it('writes the host’s context and each size report to the console as JSON only when the page is opened with ?log=host', async () => {
+        const logged = vi.spyOn(console, 'log').mockImplementation(() => {});
+        try {
+            const first = framed();
+            mount('?embed=mcp&voice=paced&log=host', first.environment);
+            await vi.waitFor(() => expect(first.sent).toHaveLength(1));
+            first.hostSays({ jsonrpc: '2.0', id: first.sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: { displayMode: 'inline', theme: 'dark', styles: { variables: { '--font-sans': 'Inter' } } } } });
+            await vi.waitFor(() => expect(heights(first.sent)).toHaveLength(1));
+            expect(logged.mock.calls.map(([line]) => JSON.parse(line))).toEqual([
+                { 'rise-host': 'initialize', displayMode: 'inline', theme: 'dark', stylesVariables: ['--font-sans'] },
+                { 'rise-host': 'size-changed', height: 481 }
+            ]);
+            await host.stop();
+            logged.mockClear();
+
+            const second = framed();
+            mount('?embed=mcp&voice=paced', second.environment);
+            await vi.waitFor(() => expect(second.sent).toHaveLength(1));
+            second.hostSays({ jsonrpc: '2.0', id: second.sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: { theme: 'dark' } } });
+            await vi.waitFor(() => expect(heights(second.sent)).toHaveLength(1));
+            expect(logged).not.toHaveBeenCalled();
+            await host.stop();
+        } finally {
+            logged.mockRestore();
+        }
     });
 
     it('has no prompt, no provider to choose, and waits for a reader click after the host’s answer is ready', async () => {
@@ -1511,6 +1582,51 @@ describe('inside an MCP host', () => {
             expect(painted()['--color-void']).toBe('#061912');
             host.destroy();
             expect(painted()).toEqual(unpainted);
+        });
+
+        /** Play the held answer with a fake runtime; resolves once the stage is up. */
+        async function played(runtime) {
+            host.buildRuntime = vi.fn(async () => runtime);
+            container.querySelector('.live-start').click();
+            await vi.waitFor(() => expect(runtime.start).toHaveBeenCalledTimes(1));
+            document.querySelector('#rise-stage-controls [data-stage="settings"]').click();
+        }
+        const fakeRuntime = extra => ({ start: vi.fn(async () => {}), stop: vi.fn(async () => {}), status: 'live', snapshot: () => ({ status: 'live' }), subscribe: () => () => {}, composed: () => null, ...extra });
+        const pick = (control, value) => { control.value = value; control.dispatchEvent(new Event('change', { bubbles: true })); };
+
+        it('the stage’s Theme row paints the frame, and As written returns the answer’s own theme, not RISE’s', async () => {
+            vi.spyOn(LiveHost.prototype, 'validateEmbeddedCurrent').mockResolvedValue([JADE_OPEN]);
+            await poster();
+            await played(fakeRuntime());
+            const theme = document.querySelector('#rise-settings-theme');
+            pick(theme, 'rose');
+            expect(painted()).toEqual({ '--color-void': '#1A0414', '--color-light': '#FFF0F4', '--color-cloud': '#FFF0F4', '--color-accent': '#FF5C93' });
+            pick(theme, '');
+            expect(painted()).toEqual({ '--color-void': '#061912', '--color-light': '#E8FFF4', '--color-cloud': '#E8FFF4', '--color-accent': '#4CE6A4' });
+            await host.stop();
+        });
+
+        it('the stage reaches the shown Chamber playing the runtime’s Player, for its theme and its saved settings', async () => {
+            await poster();
+            const player = {};
+            const chamber = { player, setColourTheme: vi.fn(() => true), onSettingsChange: vi.fn(), getSettings: () => ({ reducedMotion: false, fontSize: 'large' }) };
+            host.router = {
+                views: new Map([['read', { container: { hidden: false } }]]),
+                getViewInstance: name => (name === 'read' ? { activePane: 'chamber', paneInstance: pane => (pane === 'chamber' ? chamber : null) } : null)
+            };
+            await played(fakeRuntime({ playerFor: () => player }));
+            expect(document.querySelector('#rise-settings [role="radiogroup"] input:checked').value).toBe('large');
+            pick(document.querySelector('#rise-settings-theme'), 'cobalt');
+            expect(chamber.setColourTheme).toHaveBeenCalledWith('cobalt');
+            document.querySelector('#rise-settings-still').click();
+            expect(chamber.onSettingsChange).toHaveBeenCalledWith('reducedMotion', true);
+            document.querySelector('#rise-settings input[value="small"]').click();
+            expect(chamber.onSettingsChange).toHaveBeenLastCalledWith('fontSize', 'small');
+            // A Chamber playing another Player is not this reading's.
+            chamber.player = {};
+            pick(document.querySelector('#rise-settings-theme'), 'jade');
+            expect(chamber.setColourTheme).not.toHaveBeenCalledWith('jade');
+            await host.stop();
         });
     });
 });

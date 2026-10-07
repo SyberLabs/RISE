@@ -7,7 +7,7 @@ const TRANSIT_MS = 900;
 
 /**
  * Each jump composes a reading on this device, the way Home's ROLL does, and
- * never lands on the work or temper it just left. Nothing is sent.
+ * never lands on the work or look it just left. Nothing is sent.
  */
 function localCourse() {
   let previous = null;

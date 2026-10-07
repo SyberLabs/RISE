@@ -132,7 +132,10 @@
   color: var(--rs-text-3);
 }
 
-/* ─── Body ─── */
+/* ─── Body ───
+   FOUR CHOICES, ONE COLUMN, NO SCROLL ON A PHONE (RDR-021): text, look,
+   rhythm and pace, Begin. The body still owns a scroll for long titles and
+   short landscape screens, but at 390x844 and 360x640 nothing reaches it. */
 .reader-body {
   flex: 1;
   min-height: 0;
@@ -141,31 +144,94 @@
   padding: 0 var(--rs-gutter);
 }
 
-.reader-grid {
-  max-width: 1200px;
+.reader-column {
+  max-width: 880px;
+  min-height: 100%;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
-  gap: 96px;
-  align-items: start;
+  padding: 32px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* ─── The live preview ───
+   IT TAKES WHAT THE SCREEN HAS LEFT. The column fills the body and the
+   preview grows into the spare height, up to a band and down to a floor, so
+   a short screen loses preview before it gains a scroll. It sits 16px above
+   the text it previews (12px on a phone), not a section gap away. */
+.setup-preview {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 88px;
+  max-height: 240px;
+  margin-bottom: -24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--preview-ground, var(--rs-bg));
+  color: var(--preview-ink, var(--rs-text));
+}
+
+.setup-preview-still,
+.setup-preview-live {
+  position: absolute;
+  inset: 0;
+}
+
+.setup-preview-still {
+  background-position: center;
+  background-size: cover;
+  opacity: .7;
+}
+
+.setup-preview-live {
+  opacity: 0;
+  transition: opacity 400ms var(--rs-ease);
+}
+
+.setup-preview-live.is-live {
+  opacity: 1;
+}
+
+.setup-preview-live canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.setup-preview-unit {
+  position: relative;
+  max-width: 36ch;
+  margin: 0;
+  padding: 0 24px;
+  font-family: var(--rs-serif);
+  font-size: 20px;
+  line-height: 28px;
+  text-align: center;
+  text-shadow: 0 0 12px var(--preview-ground, var(--rs-bg));
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 /* ─── Your text ─── */
-.reader-text {
-  padding-top: 64px;
-  position: sticky;
-  top: 0;
-}
-
 .text-loaded,
 .text-empty {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name change"
+    "meta change";
+  align-items: center;
+  column-gap: 24px;
+  row-gap: 4px;
 }
 
-.reader-eyebrow,
-.reader-label,
-.text-facts dt {
+.reader-label {
   margin: 0;
   font-family: var(--rs-mono);
   font-weight: 500;
@@ -174,12 +240,6 @@
   letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--rs-text-3);
-}
-
-.reader-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
 .reader-dot {
@@ -192,7 +252,8 @@
 }
 
 .text-name {
-  margin: 24px 0 0;
+  grid-area: name;
+  margin: 0;
   font-family: var(--rs-serif);
   font-weight: 400;
   font-size: 40px;
@@ -202,33 +263,17 @@
   overflow-wrap: anywhere;
 }
 
-.text-facts {
-  margin: 32px 0 0;
-  padding: 0;
-}
-
-.text-facts > div {
-  border-top: 1px solid var(--rs-line);
-  border-bottom: 1px solid var(--rs-line);
-  padding: 16px 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.text-facts dd {
+.text-meta {
+  grid-area: meta;
   margin: 0;
   font-size: 14px;
   line-height: 20px;
-  color: var(--rs-text);
+  color: var(--rs-text-3);
   font-variant-numeric: tabular-nums;
 }
 
-.text-actions {
-  margin-top: 24px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
+.text-change {
+  grid-area: change;
 }
 
 .reader-link {
@@ -251,47 +296,6 @@
   text-underline-offset: 3px;
 }
 
-.reader-link-quiet {
-  color: var(--rs-text-2);
-}
-
-.reader-link-quiet:hover {
-  color: var(--rs-text);
-}
-
-.text-empty .reader-help {
-  margin-top: 8px;
-}
-
-.reader-secondary {
-  align-self: flex-start;
-  margin-top: 24px;
-  height: 44px;
-  padding: 0 20px;
-  background: transparent;
-  border: 1px solid var(--rs-line-strong);
-  border-radius: 8px;
-  color: var(--rs-text);
-  font-family: var(--rs-sans);
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 120ms var(--rs-ease);
-}
-
-.reader-secondary:hover {
-  background: var(--rs-surface-2);
-}
-
-/* ─── Main column ─── */
-.reader-main {
-  padding: 64px 0;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
 .reader-help {
   margin: 0;
   font-size: 14px;
@@ -299,210 +303,115 @@
   color: var(--rs-text-3);
 }
 
-/* ─── THE STANCE ROW — intentions, above the parameters ───
-   A real radio group. The chosen posture carries the product's accent
-   dot; nothing else on the screen is lit. */
-.orbital-stances {
+/* ─── THE LOOK TILES ───
+   Three looks, each a swatch of its own ground, accent and ink. The chosen
+   one carries the product's accent dot; nothing else on the screen is lit. */
+.reader-choices {
   display: flex;
   flex-direction: column;
 }
 
-.stance-question {
-  margin: 0;
-  font-family: var(--rs-serif);
-  font-weight: 400;
-  font-size: 40px;
-  line-height: 44px;
-  letter-spacing: -0.01em;
+.look-tiles {
+  margin-top: 12px;
+  max-width: 600px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.look-tile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "swatch swatch"
+    "name mark";
+  align-items: center;
+  gap: 10px 8px;
+  padding: 8px 10px 10px 8px;
+  background: transparent;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 8px;
+  color: var(--rs-text-2);
+  font-family: var(--rs-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms var(--rs-ease), border-color 120ms var(--rs-ease), color 120ms var(--rs-ease);
+}
+
+.look-tile:hover {
+  background: var(--rs-surface-2);
   color: var(--rs-text);
 }
 
-.reader-lede {
-  margin: 12px 0 0;
-  font-size: 18px;
-  line-height: 28px;
-  color: var(--rs-text-2);
+.look-tile[aria-pressed="true"] {
+  border-color: var(--rs-text-2);
+  color: var(--rs-text);
 }
 
-/* Hairline containers bleed 16px past the column so row hover fills
-   reach the edge while text stays aligned with the heading. */
-.stance-options {
-  margin: 32px -16px 0;
-  border-bottom: 1px solid var(--rs-line);
-}
-
-.stance-option {
+.look-tile-swatch {
+  grid-area: swatch;
   position: relative;
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-  padding: 24px 16px;
-  border-top: 1px solid var(--rs-line);
-  cursor: pointer;
-  transition: background 120ms var(--rs-ease);
+  display: block;
+  height: 72px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--look-bg);
 }
 
-.stance-option:hover {
-  background: var(--rs-surface-2);
-}
-
-.stance-option:has(.stance-input:focus-visible) {
-  outline: 2px solid var(--rs-brand);
-  outline-offset: -2px;
-}
-
-/* Rows that bleed to the scroller's edge draw their ring inside. */
-.chamber-orbital .reader-disclosure:focus-visible,
-.chamber-orbital .orbit-node:focus-visible {
-  outline-offset: -2px;
-}
-
-.stance-input {
-  position: absolute;
-  opacity: 0;
-  width: 1px;
-  height: 1px;
-  margin: 0;
-}
-
-.stance-mark {
-  margin-top: 4px;
-  width: 20px;
-  height: 20px;
-  box-sizing: border-box;
-  border: 1px solid var(--rs-line-strong);
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stance-option.active .stance-mark {
-  border-color: var(--rs-accent);
-}
-
-.stance-option.active .stance-mark::after {
+/* A look that draws a field glows in its accent; Plain draws none. */
+.look-tile-swatch.has-field::before {
   content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 70% 35%, var(--look-accent), transparent 65%);
+  opacity: .55;
+}
+
+/* A line of the look's ink, where the words would sit. */
+.look-tile-swatch::after {
+  content: '';
+  position: absolute;
+  left: 14%;
+  right: 38%;
+  bottom: 22%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--look-ink);
+  opacity: .85;
+}
+
+.look-tile-name {
+  grid-area: name;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.look-tile-mark {
+  grid-area: mark;
   width: 8px;
   height: 8px;
   border-radius: 999px;
+}
+
+.look-tile[aria-pressed="true"] .look-tile-mark {
   background: var(--rs-accent);
 }
 
-.stance-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.look-line {
+  margin-top: 12px;
 }
 
-.stance-name {
-  font-size: 18px;
-  line-height: 28px;
-  font-weight: 600;
-  color: var(--rs-text-2);
-}
-
-.stance-line {
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--rs-text-3);
-}
-
-.stance-option.active .stance-name {
-  color: var(--rs-text);
-}
-
-.stance-option.active .stance-line {
-  color: var(--rs-text-2);
-}
-
-.stance-note {
-  margin: 16px 0 0;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--rs-text-3);
-  transition: opacity 900ms var(--rs-ease);
-}
-
-.stance-note.is-retiring {
-  opacity: 0;
-}
-
-/* ─── Adjust: one disclosure over the three settings panels ─── */
-.reader-adjust {
-  margin: 48px -16px 0;
-  border-top: 1px solid var(--rs-line);
+/* ─── Customize look and Rhythm & pace: rows that open the sheets ───
+   Hairline rows bleed 16px past the column so the hover fill reaches the
+   edge while their text stays aligned with the tiles. */
+.reader-rows {
+  margin: 24px -16px 0;
   border-bottom: 1px solid var(--rs-line);
-}
-
-.reader-disclosure {
-  width: 100%;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  background: transparent;
-  border: 0;
-  color: var(--rs-text-2);
-  font-family: var(--rs-sans);
-  cursor: pointer;
-  text-align: left;
-  transition: background 120ms var(--rs-ease);
-}
-
-.reader-disclosure:hover {
-  background: var(--rs-surface-2);
-}
-
-.reader-disclosure .reader-icon {
-  transition: transform 200ms var(--rs-ease);
-}
-
-.reader-disclosure[aria-expanded="true"] {
-  color: var(--rs-text);
-}
-
-.reader-disclosure[aria-expanded="true"] .reader-icon {
-  transform: rotate(180deg);
-}
-
-.reader-disclosure-text {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.reader-disclosure-title {
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 500;
-  color: var(--rs-text);
-}
-
-.reader-disclosure-summary {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--rs-text-3);
-}
-
-.reader-adjust-panel {
-  padding-top: 8px;
-  animation: reader-enter 200ms var(--rs-ease) both;
-}
-
-.reader-adjust-panel > .reader-help {
-  padding: 0 16px;
-}
-
-.reader-adjust-panel[hidden] {
-  display: none;
-}
-
-.orbit-container {
-  margin-top: 16px;
 }
 
 .orbit-node {
@@ -526,6 +435,11 @@
 .orbit-node:hover {
   background: var(--rs-surface-2);
   color: var(--rs-text);
+}
+
+/* Rows that bleed to the scroller's edge draw their ring inside. */
+.chamber-orbital .orbit-node:focus-visible {
+  outline-offset: -2px;
 }
 
 .orbit-content {
@@ -553,57 +467,6 @@
   word-break: keep-all;
 }
 
-/* ─── Stream / Page ─── */
-.reader-mode {
-  margin-top: 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.reader-segmented {
-  display: inline-flex;
-  align-self: flex-start;
-  border: 1px solid var(--rs-line-strong);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.reader-segmented button {
-  height: 42px;
-  padding: 0 20px;
-  background: transparent;
-  border: 0;
-  color: var(--rs-text-2);
-  font-family: var(--rs-sans);
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 120ms var(--rs-ease);
-}
-
-.reader-segmented button + button {
-  border-left: 1px solid var(--rs-line-strong);
-}
-
-.reader-segmented button:hover {
-  color: var(--rs-text);
-}
-
-.reader-segmented button[aria-pressed="true"] {
-  background: var(--rs-surface-2);
-  color: var(--rs-text);
-}
-
-.reader-segmented button:focus-visible {
-  outline-offset: -2px;
-}
-
-.reader-mode .reader-help {
-  color: var(--rs-text-2);
-}
-
 /* ─── Action bar ─── */
 .orbital-actions {
   flex: none;
@@ -614,7 +477,7 @@
 }
 
 .reader-actions-inner {
-  max-width: 1200px;
+  max-width: 880px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -638,26 +501,6 @@
   align-items: center;
   gap: 12px;
   flex: none;
-}
-
-/* Reset: ghost — restores default dials, keeps the loaded text */
-.orbital-reset {
-  height: 44px;
-  padding: 0 20px;
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
-  color: var(--rs-text-2);
-  font-family: var(--rs-sans);
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 120ms var(--rs-ease);
-}
-
-.orbital-reset:hover {
-  color: var(--rs-text);
 }
 
 /* Begin reading: the one primary action */
@@ -696,31 +539,19 @@
   cursor: not-allowed;
 }
 
-@keyframes reader-enter {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
-}
-
 /* ─── Tablet and phone ─── */
 @media (max-width: 1023px) {
   .chamber-orbital {
     --rs-gutter: 32px;
   }
 
-  .reader-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0;
+  .reader-column {
+    padding: 32px 0;
+    gap: 32px;
   }
 
-  .reader-text {
-    position: static;
-    padding-top: 32px;
-    padding-bottom: 32px;
-    border-bottom: 1px solid var(--rs-line);
-  }
-
-  .reader-main {
-    padding: 32px 0 48px;
+  .setup-preview {
+    margin-bottom: -16px;
   }
 }
 
@@ -729,33 +560,53 @@
     --rs-gutter: 16px;
   }
 
-  .text-name {
-    margin-top: 16px;
-    font-size: 32px;
-    line-height: 36px;
+  .reader-column {
+    padding: 20px 0 16px;
+    gap: 20px;
   }
 
-  .text-facts {
-    margin-top: 24px;
+  .setup-preview {
+    margin-bottom: -8px;
   }
 
-  .stance-question {
-    font-size: 32px;
-    line-height: 36px;
-  }
-
-  .reader-lede {
-    font-size: 16px;
+  .setup-preview-unit {
+    padding: 0 16px;
+    font-size: 17px;
     line-height: 24px;
   }
 
-  .reader-adjust,
-  .reader-mode {
-    margin-top: 32px;
+  /* Two lines at most, so a long title never pushes the rows under the Begin bar;
+     the full title stays in the element's title attribute. */
+  .text-name {
+    font-size: 28px;
+    line-height: 32px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
   }
 
-  .stance-option {
-    padding: 16px;
+  .look-tiles {
+    margin-top: 8px;
+    gap: 8px;
+  }
+
+  .look-tile-swatch {
+    height: 48px;
+  }
+
+  /* The phone gives the line's room to the rows (CONSOLIDATED-READER §3). */
+  .look-line {
+    display: none;
+  }
+
+  .reader-rows {
+    margin-top: 16px;
+  }
+
+  .orbit-node {
+    min-height: 52px;
   }
 
   .orbital-actions {
@@ -797,18 +648,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reader-adjust-panel {
-    animation: none;
-  }
-
-  .btn-large:hover:not(:disabled) .reader-icon,
-  .reader-disclosure .reader-icon {
+  .btn-large:hover:not(:disabled) .reader-icon {
     transition: none;
     transform: none;
   }
 
-  .reader-disclosure[aria-expanded="true"] .reader-icon {
-    transform: rotate(180deg);
+  .setup-preview-live {
+    transition: none;
   }
 }
 
@@ -1709,6 +1555,7 @@
 .orbital-modal .audio-mode-option.active,
 .orbital-modal .audio-waveform-option.active,
 .orbital-modal .chunk-option.active,
+.orbital-modal .chunk-option[aria-pressed="true"],
 .orbital-modal .curve-option.active {
   background: transparent;
   border-color: var(--rs-brand);
@@ -2424,5 +2271,133 @@
   #modal-visual #orbital-visual-navigator > .vnav {
     flex: 1;
     min-height: 0;
+  }
+}
+
+/* ─── THE TWO SHEETS: Customize look and Rhythm & pace ───
+   A side panel on a desk and a bottom sheet on a phone, over a setup that
+   stays in sight. Last in the file: they take precedence over the centred
+   panel rules above at every width and height. The Sound and Visuals panels
+   they open stay centred, above them. */
+.orbital-modal.reader-sheet {
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 0;
+  background: rgba(10, 10, 12, 0.6);
+  backdrop-filter: none;
+}
+
+.reader-sheet .modal-content {
+  max-width: 440px;
+  height: 100%;
+  max-height: none;
+  border-width: 0 0 0 1px;
+  border-radius: 0;
+  animation: sheet-from-side 0.3s var(--ease-out);
+}
+
+@keyframes sheet-from-side {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.reader-sheet .modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--sy-surface);
+}
+
+.sheet-looks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sheet-colours {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sheet-colour {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--rs-line-strong);
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--swatch-accent) 0 30%, var(--swatch-bg) 32%);
+  cursor: pointer;
+}
+
+/* Chosen: the brand ring the other options use, drawn outside the swatch. */
+.sheet-colour[aria-pressed="true"] {
+  border-color: var(--rs-brand);
+  box-shadow: 0 0 0 2px var(--sy-surface), 0 0 0 4px var(--rs-brand);
+}
+
+/* Focus sits outside the chosen ring, so the two never read as one. */
+.orbital-modal .sheet-colour:focus-visible {
+  outline-offset: 6px;
+}
+
+.orbital-modal .config-section.sheet-rows {
+  padding: 0;
+}
+
+.sheet-rows .orbit-node {
+  min-height: 56px;
+  padding: 8px 0;
+}
+
+.sheet-rows .orbit-node:first-child {
+  border-top: 0;
+}
+
+.sheet-lab {
+  margin-top: 16px;
+}
+
+.sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--rs-line);
+}
+
+@media (max-width: 640px) {
+  .orbital-modal.reader-sheet {
+    align-items: flex-end;
+  }
+
+  .reader-sheet .modal-content {
+    max-width: none;
+    height: auto;
+    max-height: 92dvh;
+    border-width: 1px 0 0;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: modal-slide-up 0.4s var(--ease-out);
+  }
+
+  .sheet-looks {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .orbital-modal .sheet-looks .chunk-option {
+    padding: 12px 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader-sheet .modal-content {
+    animation: none;
   }
 }
