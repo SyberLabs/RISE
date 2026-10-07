@@ -21,9 +21,10 @@ import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
  * It is off unless MCP_ENABLED is 'true'. It answers only requests from no
  * browser origin or from its own (an MCP host's server has none; a page on
  * another site must not be able to make a browser talk to it), refuses a
- * protocol version it does not speak before reading anything, reads a bounded
- * body, and returns nothing it was sent except a validator's message or an
- * argument's name, clipped.
+ * protocol version it does not speak before reading anything, holds each client
+ * address to the site's rate limiter where the platform offers one, reads a
+ * bounded body, and returns nothing it was sent except a validator's message or
+ * an argument's name, clipped.
  *
  * CHECKED AGAINST THE REFERENCE, NOT AGAINST A PRODUCT: the shapes below were
  * compared with @modelcontextprotocol/ext-apps 2.0.3 and the SDK's own client
@@ -265,6 +266,19 @@ export async function handleMcp(request, env) {
   const version = request.headers.get('MCP-Protocol-Version');
   if (version !== null && !/^\d{4}-\d{2}-\d{2}$/u.test(version)) {
     return http(400, { error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: `This server speaks MCP ${PROTOCOL_VERSIONS.join(', ')}.` } });
+  }
+  // Each client address is held to the limiter live answers use (wrangler.production.jsonc), before the
+  // body is read. Where there is no limiter or no address (tests, a local run), or the limiter itself
+  // fails, the route is as it was: the limiter is the platform's, and its absence closes nothing here.
+  const ip = request.headers.get('CF-Connecting-IP')?.trim();
+  if (ip && typeof env.DECISION_LIMITER?.limit === 'function') {
+    let allowed = true;
+    try {
+      allowed = (await env.DECISION_LIMITER.limit({ key: `mcp:${ip}` }))?.success === true;
+    } catch {
+      /* the platform's fault, not the host's */
+    }
+    if (!allowed) return http(429, { error: { code: 'RATE_LIMITED', message: 'Too many requests were sent. Try again in a minute.' } });
   }
   let text;
   try {

@@ -157,8 +157,7 @@ describe('choosing a look', () => {
         expect(container.querySelector('#wpm-slider').value).toBe('200');
         expect(container.querySelector('[data-soundscape="aurora"]').classList)
             .toContain('active');
-        expect(container.querySelector('[data-audio-preset="silent"]').classList)
-            .toContain('active');
+        expect(container.querySelector('#modal-audio .active[data-audio-preset]')).toBeNull();
         // The Navigator holds its own mapped selection; a look it was never
         // told about would be reverted the next time it emitted a change.
         expect(orbital.visualNavigator.getConfig().visualMode).toBe('focals');
