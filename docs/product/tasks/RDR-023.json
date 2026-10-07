@@ -3,9 +3,9 @@
   "title": "Keep Follow text inside one look",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "planned",
+  "status": "in_progress",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
     "RDR-020",
@@ -35,6 +35,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/468",
       "note": "The navigator derives from the catalog; the Living Flame mode was stopped here because Follow text, Page view and the Workshop fallback do not know it.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/491",
+      "note": "Part 1, one family and one colour (R6): Follow text chooses only the five flame compositions a theme can colour (Prismatic Knot's spectrum left out), locally and from Jev (menu, response check and staging; catalogue version 2 retires cached wider choices); a reading with no theme lowers them through classic. Saved readings replay as shown. Remaining: part 2, the Gallery look follows with sourced works; part 3, Living Flame as a dedicated setup mode understood by Follow text, Page view and the Workshop fallback.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -45,10 +51,14 @@
     {
       "date": "2026-10-07T09:25:55.659Z",
       "summary": "Living Flame as a setup choice recorded here: it needs Follow text, Page view and the Workshop fallback to know a dedicated mode."
+    },
+    {
+      "date": "2026-10-07T21:34:20.772Z",
+      "summary": "Part 1: Follow text keeps one family and one colour"
     }
   ],
-  "updatedAt": "2026-10-07T09:25:55.659Z",
-  "revision": 2,
+  "updatedAt": "2026-10-07T21:34:20.772Z",
+  "revision": 3,
   "summary": "Follow text varies intensity and composition within the reading's own engines and theme.",
   "blocker": null
 }

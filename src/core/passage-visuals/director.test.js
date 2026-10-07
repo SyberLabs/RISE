@@ -8,6 +8,7 @@ import {
   TREATMENT_IDS,
   compileTreatmentCue,
   effectiveEnergy,
+  FOLLOW_TREATMENT_IDS,
   localDirection
 } from './treatments.js';
 import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
@@ -34,13 +35,23 @@ describe('local direction mapping', () => {
     [{ valence: 0.9, arousal: 0.9, confidence: undefined }, 'glacial-silk', 'quiet'],
     [{ valence: 0.16, arousal: 0.65, confidence: 0.15 }, 'solar-bloom', 'intense'],
     [{ valence: 0.15, arousal: 0.65, confidence: 1 }, 'ember-cathedral', 'intense'],
-    [{ valence: -0.16, arousal: 0.7, confidence: 1 }, 'prismatic-knot', 'intense'],
+    [{ valence: -0.16, arousal: 0.7, confidence: 1 }, 'violet-nebula', 'intense'],
     [{ valence: -0.16, arousal: 0.35, confidence: 1 }, 'violet-nebula', 'quiet'],
     [{ valence: 0.16, arousal: 0.2, confidence: 1 }, 'glacial-silk', 'quiet'],
     [{ valence: -0.5, arousal: 0.5, confidence: 1 }, 'ember-cathedral', 'balanced'],
     [{ valence: 0, arousal: 0.36, confidence: 1 }, 'ember-cathedral', 'balanced']
   ])('maps %o to %s / %s', (signal, treatmentId, intensityBand) => {
     expect(localDirection(signal)).toEqual({ treatmentId, intensityBand });
+  });
+
+  it('keeps to the flame compositions a theme can colour, so a reading keeps one family and one colour', () => {
+    expect(FOLLOW_TREATMENT_IDS).toEqual(['ember-cathedral', 'violet-nebula', 'glacial-silk', 'solar-bloom', 'verdant-current']);
+    for (let valence = -1; valence <= 1; valence += 0.25) {
+      for (let arousal = 0; arousal <= 1; arousal += 0.25) {
+        const { treatmentId } = localDirection({ valence, arousal, confidence: 1 });
+        expect(FOLLOW_TREATMENT_IDS, `${valence}/${arousal}`).toContain(treatmentId);
+      }
+    }
   });
 
   it('treats unsupported-language text as low confidence without claiming to read it', () => {
@@ -114,14 +125,25 @@ describe('PassageDirector', () => {
     director.observe(session.atoms[0]);
     const firstRecord = director.blocks[0].admitted;
     const staged = director.stage(director.blocks.map(block => ({
-      blockId: block.id, treatmentId: 'prismatic-knot', intensityBand: 'intense'
+      blockId: block.id, treatmentId: 'solar-bloom', intensityBand: 'intense'
     })));
     expect(staged).toBe(director.blocks.length - 1);
     expect(director.blocks[0].admitted).toBe(firstRecord);
     const later = session.atoms.find(atom => director.blockIndexForAtom(atom) === 1);
     expect(director.observe(later).record).toEqual({
-      treatmentId: 'prismatic-knot', intensityBand: 'intense', provenance: 'jev'
+      treatmentId: 'solar-bloom', intensityBand: 'intense', provenance: 'jev'
     });
+  });
+
+  it('refuses a late choice of another engine, or of the spectrum, so Follow text keeps one family and one colour', async () => {
+    const { director, text } = reading([long(calm, 12), long(storm, 12)]);
+    director.identify('primary', (await prepareVisualSource(text)).blocks);
+    expect(director.stage([
+      { blockId: director.blocks[0].id, treatmentId: 'klee-harmonic', intensityBand: 'quiet' },
+      { blockId: director.blocks[0].id, treatmentId: 'attractor', intensityBand: 'quiet' },
+      { blockId: director.blocks[1].id, treatmentId: 'prismatic-knot', intensityBand: 'intense' },
+      { blockId: director.blocks[1].id, treatmentId: 'stillness', intensityBand: 'quiet' }
+    ])).toBe(0);
   });
 
   it('keeps admitted choices on a backward seek and ignores later rewrites', async () => {

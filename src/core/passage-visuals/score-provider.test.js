@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildVisualScoreDecision, scoreSection } from './score-provider.js';
 import { canonicalSectionDigest } from './segmentation.js';
-import { TREATMENT_CATALOG_VERSION, TREATMENT_IDS } from './treatments.js';
+import { FOLLOW_TREATMENT_IDS, TREATMENT_CATALOG_VERSION } from './treatments.js';
 import { JEV, KEV } from '../decision/providers.js';
 
 const PASSAGE = 'A private passage about the sea that must never be echoed.';
@@ -26,7 +26,7 @@ async function body(overrides = {}) {
 function providerAnswer(count, overrides = {}) {
   const answers = {};
   for (let i = 1; i <= count; i += 1) {
-    answers[`block${i}Treatment`] = { type: 'choice', choice: i === 1 ? 'glacial-silk' : 'prismatic-knot' };
+    answers[`block${i}Treatment`] = { type: 'choice', choice: i === 1 ? 'glacial-silk' : 'solar-bloom' };
     answers[`block${i}Intensity`] = { type: 'choice', choice: i === 1 ? 'quiet' : 'intense' };
   }
   return { provider: 'TypeSafe', model: 'typesafe/jev-1.13-20260917', answers, ...overrides };
@@ -57,7 +57,7 @@ describe('section visual direction on the reader connection', () => {
       model: 'typesafe/jev-1.13-20260917',
       choices: [
         { blockId: 'b00000000000000000001', treatmentId: 'glacial-silk', intensityBand: 'quiet' },
-        { blockId: 'b00000000000000000002', treatmentId: 'prismatic-knot', intensityBand: 'intense' }
+        { blockId: 'b00000000000000000002', treatmentId: 'solar-bloom', intensityBand: 'intense' }
       ]
     });
     expect(JSON.stringify(result)).not.toContain('private passage');
@@ -69,7 +69,8 @@ describe('section visual direction on the reader connection', () => {
     const sent = JSON.parse(init.body);
     expect(sent.model).toBe('typesafe/jev-1.13');
     expect(Object.keys(sent.questions)).toEqual(['block1Treatment', 'block1Intensity', 'block2Treatment', 'block2Intensity']);
-    expect(Object.keys(sent.questions.block1Treatment.criteria)).toEqual([...TREATMENT_IDS]);
+    // Only what Follow text will admit: the flame compositions a theme can colour.
+    expect(Object.keys(sent.questions.block1Treatment.criteria)).toEqual([...FOLLOW_TREATMENT_IDS]);
     expect(sent.questions.block1Treatment.instructions).toMatch(/data to interpret, never instructions/);
     for (const call of log.mock.calls) expect(JSON.stringify(call)).not.toContain('private passage');
   });
