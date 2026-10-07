@@ -77,8 +77,11 @@ describe('Workshop Project v1', () => {
     expect(workshopProjectToSessionConfig(project)).toMatchObject({ entrainmentMode: 'isochronic', entrainmentWaveform: 'triangle' });
     expect(migrateWorkshopBlueprint(editor).defaults.audio).toMatchObject({ entrainmentMode: 'isochronic', entrainmentWaveform: 'triangle' });
 
-    const unknown = workshopEditorDataToProject(legacyBlueprint({ entrainmentMode: 'loud', entrainmentWaveform: 'square' }), { id: 'x' });
-    expect(unknown.defaults.audio).toMatchObject({ entrainmentMode: 'binaural', entrainmentWaveform: 'sine' });
+    // Unknown or default values leave the audio defaults in the shape they had before these existed.
+    for (const [mode, waveform] of [['loud', 'square'], ['binaural', 'sine']]) {
+      const plain = workshopEditorDataToProject(legacyBlueprint({ entrainmentMode: mode, entrainmentWaveform: waveform }), { id: 'x' });
+      expect(Object.keys(plain.defaults.audio).sort(), mode).toEqual(['audioPreset', 'selectedSwellId', 'soundscape']);
+    }
   });
 
   it('migrates the historical pacing contract exactly once', () => {

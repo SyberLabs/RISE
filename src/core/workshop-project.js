@@ -215,13 +215,15 @@ function normalizeAudio(value = {}) {
     selectedSwellId: typeof input.selectedSwellId === 'string'
       ? input.selectedSwellId.slice(0, WORKSHOP_PROJECT_LIMITS.maxIdLength)
       : null,
-    entrainmentMode: oneOf(TONE_DELIVERIES, input.entrainmentMode),
-    entrainmentWaveform: oneOf(TONE_WAVEFORMS, input.entrainmentWaveform)
+    // Kept only when chosen: a project at the defaults has the shape it always had, which a personal
+    // project's exact check and every file written before these existed rely on.
+    ...chosen('entrainmentMode', TONE_DELIVERIES, input.entrainmentMode),
+    ...chosen('entrainmentWaveform', TONE_WAVEFORMS, input.entrainmentWaveform)
   };
 }
 
-/** The value if the list has it, else the list's first. */
-const oneOf = (list, value) => (list.some(item => item.value === value) ? value : list[0].value);
+/** `{ [key]: value }` when the list has the value and it is not the list's first (the default), else nothing. */
+const chosen = (key, list, value) => (value !== list[0].value && list.some(item => item.value === value) ? { [key]: value } : {});
 
 function normalizeDefaults(value = {}) {
   const input = value && typeof value === 'object' ? value : {};
