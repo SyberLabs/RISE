@@ -219,7 +219,6 @@ export class AudioEngine {
                 click: null,
                 hiss: null
             },
-            drones: [],
             swells: [],
             personalSwells: []
         };
@@ -279,13 +278,6 @@ export class AudioEngine {
                 typingSprite: '/audio/typing-sprite.ogg',
                 click: '/audio/click.wav',
                 hiss: '/audio/hiss.wav',
-                drones: [
-                    // MP3 at 128k: universal decodeAudioData support (incl.
-                    // Safari), ~92% smaller than the original WAVs
-                    '/audio/stasis_draken.mp3',
-                    '/audio/cosmos_pointpark.mp3',
-                    '/audio/nox_drone.mp3'
-                ],
                 // No built-in swells ship today. The two HQ files these
                 // paths named were never added to public/, so every boot
                 // fetched them, hit the SPA catch-all, and got index.html
@@ -302,7 +294,6 @@ export class AudioEngine {
         this.currentBand = 'theta';
 
         // Conflict Management
-        this.ambienceActive = false;
         this.sessionActive = false;
 
         // Spatial motion timer
@@ -330,8 +321,6 @@ export class AudioEngine {
         // asks this whether it is allowed to be heard. Built alongside
         // the context, in _bindContextLifecycle.
         this.lifecycle = null;
-        this._ambientAwaitingVisibility = false;
-        this._resumeAmbient = null;
         this._onContextStateChange = null;
         this._onVisibilityChange = null;
     }
@@ -550,8 +539,7 @@ export class AudioEngine {
      * context to `interrupted` before visibilitychange arrives.
      */
     get audioIntent() {
-        return this.ambienceActive === true
-            || this.sessionActive === true
+        return this.sessionActive === true
             || this.isPlaying === true;
     }
 
@@ -708,21 +696,6 @@ export class AudioEngine {
      */
     async _onVisibilityVisible() {
         await this.lifecycle?.onVisible();
-        this._restoreAmbienceAfterVisibility();
-    }
-
-    /**
-     * The drone the reader left running, back once and only once.
-     *
-     * `ambienceActive` is INTENT and survives the yield untouched;
-     * what stopped was the scheduling, which refuses to start a source
-     * the reader cannot hear.
-     */
-    _restoreAmbienceAfterVisibility() {
-        if (!this._ambientAwaitingVisibility) return;
-        if (!this.ambienceActive || this.sessionActive) return;
-        this._ambientAwaitingVisibility = false;
-        this._resumeAmbient?.();
     }
 
     /**
@@ -774,7 +747,6 @@ export class AudioEngine {
     _unbindContextLifecycle() {
         this.lifecycle?.detach();
         this.lifecycle = null;
-        this._ambientAwaitingVisibility = false;
         if (this._onContextStateChange) {
             this.context?.removeEventListener?.('statechange', this._onContextStateChange);
             this._onContextStateChange = null;
@@ -1547,7 +1519,6 @@ export class AudioEngine {
      * Stop ambient audio
      */
     stopAmbient(instant = false) {
-        this.ambienceActive = false;
         if (this.layers.ambient) {
             const oldSource = this.layers.ambient;
             this.layers.ambient = null;
@@ -1626,18 +1597,16 @@ export class AudioEngine {
             console.error('[AudioEngine] Failed to load typing config', e);
         }
 
-        const [typingBuffer, clickBuffer, hissBuffer, droneBuffers, swellBuffers] = await Promise.all([
+        const [typingBuffer, clickBuffer, hissBuffer, swellBuffers] = await Promise.all([
             loadBuffer(this.config.paths.typingSprite),
             loadBuffer(this.config.paths.click),
             loadBuffer(this.config.paths.hiss),
-            Promise.all(this.config.paths.drones.map(loadBuffer)),
             Promise.all(this.config.paths.swells.map(loadBuffer))
         ]);
 
         this.buffers.typing = typingBuffer;
         this.buffers.ui.click = clickBuffer;
         this.buffers.ui.hiss = hissBuffer;
-        this.buffers.drones = (droneBuffers || []).filter(b => b !== null);
         this.buffers.swells = (swellBuffers || []).filter(b => b !== null);
 
         await this.reloadPersonalSwells();
@@ -1650,8 +1619,6 @@ export class AudioEngine {
                 config: !!this.buffers.typingConfig
             });
         }
-
-        console.log('[AudioEngine] Assets loaded: ' + this.buffers.drones.length + ' drones available');
     }
 
     /**
@@ -1887,54 +1854,6 @@ export class AudioEngine {
 
         source.connect(this.layerGains.ui);
         source.start();
-    }
-
-    /**
-     * Start randomized ambient drone playlist
-     */
-    startAmbientPlaylist() {
-        if (!this.isInitialized || this.buffers.drones.length === 0) {
-            console.log('[AudioEngine] startAmbientPlaylist: skipped (not initialized or no drones)');
-            return;
-        }
-        if (this.sessionActive) {
-            console.log('[AudioEngine] startAmbientPlaylist: skipped (session active)');
-            return;
-        }
-
-        this.ambienceActive = true;
-        this.isPlaying = true;
-
-        const playNext = () => {
-            if (!this.ambienceActive || this.sessionActive) return;
-            // NOT WHILE THE PAGE IS HIDDEN. This loop re-arms itself from
-            // source.onended, and WebKit goes on firing that callback for
-            // a backgrounded page - so without this the lobby could start
-            // a fresh drone behind another tab. The intent above stays
-            // true; only the sound waits.
-            if (!this.visible) {
-                this._ambientAwaitingVisibility = true;
-                audioDiag('ambience:withheld', { reason: 'hidden' });
-                return;
-            }
-
-            const buffer = this.buffers.drones[Math.floor(Math.random() * this.buffers.drones.length)];
-            const source = this.context.createBufferSource();
-            source.buffer = buffer;
-
-            source.connect(this.layerGains.ambient);
-            source.start();
-            this.setLayerVolume('ambient', this.config.layerVolumes.ambient, true);
-
-            source.onended = () => {
-                if (this.ambienceActive && !this.sessionActive) playNext();
-            };
-
-            this.layers.ambient = source;
-        };
-
-        this._resumeAmbient = playNext;
-        playNext();
     }
 
     // LAYER CONTROL
