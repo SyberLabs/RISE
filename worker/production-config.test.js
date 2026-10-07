@@ -21,6 +21,16 @@ describe('the production Worker', () => {
   it('runs first for the API and for the page an MCP app frames', () => {
     expect(config.assets.run_worker_first).toEqual(expect.arrayContaining(['/api/*', '/live']));
   });
+
+  // docs/plans/LIVE-MCP.md §"Turning it on" and AGENTS.md say both routes are
+  // off in production. The Worker turns either on only for the exact text "true"
+  // (live-realtime.mjs, mcp-server.mjs), so the committed config must say "false"
+  // in so many words: switching one on is then a visible one-line diff, never a
+  // missing or mistyped var.
+  it('ships with live realtime and the MCP server switched off, explicitly', () => {
+    expect(config.vars.LIVE_REALTIME_ENABLED).toBe('false');
+    expect(config.vars.MCP_ENABLED).toBe('false');
+  });
 });
 
 describe('every Worker configuration', () => {
