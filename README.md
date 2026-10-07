@@ -1,3 +1,5 @@
+<img src="docs/assets/rise-logo.jpg" width="120" alt="RISE logo: a chrome, iridescent letter R on black">
+
 # RISE
 
 **A browser-based audiovisual reader.** RISE presents text through time, image, sound, and procedural visuals, so a book can be read as a timed stream or a typeset page.
