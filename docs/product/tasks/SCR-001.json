@@ -3,9 +3,9 @@
   "title": "Design the v2 Current: looks, collections, sound, pace, and stage 2",
   "lane": "live-sdk",
   "milestone": "Score stage 1",
-  "status": "planned",
+  "status": "in_review",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
     "RDR-020",
@@ -23,16 +23,26 @@
       "ref": "docs/product/discussions/2026-10-06-score-speech-service-roadmap.md",
       "note": "The score, speech and service roadmap; Record.",
       "date": "2026-10-06"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-07-current-with-a-look.md",
+      "note": "The design record: look on the Current (1a), admitted only from the Composer view (Plain, Garden, Signal today) and lowered through the look's partial; 1b fields with gates and prerequisites; stage 2's program reserved; the guide generated from LOOKS. Class C: in review until the owner signs off the four defaults.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
     {
       "date": "2026-10-06T01:30:00.000Z",
       "summary": "Seeded from the 2026-10-06 roadmap record."
+    },
+    {
+      "date": "2026-10-07T21:24:59.784Z",
+      "summary": "Design record written; awaiting the owner's sign-off on four defaults"
     }
   ],
-  "updatedAt": "2026-10-06T01:30:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-07T21:24:59.784Z",
+  "revision": 2,
   "summary": "Score stage 1 as decided on 2026-10-06, in two halves: 1a adds look and nothing else; 1b adds collection, sound and pace, each with its own witness. Approach C over B, reasons recorded.",
-  "blocker": null
+  "blocker": "Class C: the owner signs off the record's four defaults (verified looks only, explicit theme wins, no schema bump, 1a after V1)."
 }
