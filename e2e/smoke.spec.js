@@ -296,9 +296,10 @@ test('9 - in-session Visuals control kills a live presence and keeps safety laye
     await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
 
     const cortex = page.locator('#visual-cortex');
-    const toggle = page.locator('#visuals-toggle-btn');
+    const toggle = page.locator('#look-sheet [data-look-visuals="off"]');
     await expect(cortex).toBeVisible({ timeout: 15_000 });
     await page.locator('#chamber-display').hover();
+    await page.locator('#look-btn').click();
     await expect(toggle).toBeVisible();
 
     const liveLayers = await page.evaluate(() => ({
@@ -309,7 +310,7 @@ test('9 - in-session Visuals control kills a live presence and keeps safety laye
 
     await toggle.click();
     await expect(cortex).toBeHidden();
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(() => page.evaluate(() =>
         window.__RISE_TEST__?.getCurrentSession()?.visualConfig?.visualMode
     )).toBe('off');
@@ -322,13 +323,15 @@ test('9 - in-session Visuals control kills a live presence and keeps safety laye
           ?.visualInterlocution?.visualMode
     )).toBe('interlocution');
 
-    // The Chamber intentionally lets its controls dematerialize after idle;
-    // ordinary pointer activity must reveal them before the second action.
-    await page.locator('#chamber-display').hover();
+    // The sheet stays open while the bar fades, so the second press needs
+    // no pointer activity first.
     await expect(toggle).toBeVisible();
     await toggle.click();
-    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
     await expect(cortex).toBeVisible({ timeout: 10_000 });
+    // Escape closes the sheet first; the next one is the reading's.
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#look-sheet')).toBeHidden();
 
     // Escape opens the exit confirmation, whose Player.pause cascade must
     // synchronously kill the current presence and remain visually topmost.
