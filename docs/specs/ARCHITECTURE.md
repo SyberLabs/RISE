@@ -1432,9 +1432,9 @@ The import graph in §3 is not checked, it is *generated*:
 `npm run docs:diagram` writes it out of `src/`, and CI fails when the committed
 copy is not what the tree produces. A claim that writes itself cannot drift.
 
-CI runs that guard and that generator in a job of their own, because both are
-about this file and both must run for a change that touches only this file —
-the unit suite, where the guard lives, is skipped for a prose-only change.
+CI runs that guard and that generator in the one pull-request job, beside the
+hygiene, build and first-load checks, so both run for every pull request,
+including a change that touches only this file.
 
 What the test cannot check — whether the *reasoning* is still true — is why §8
 records reasons rather than conclusions. A reason that has stopped applying is
@@ -1445,7 +1445,7 @@ visible to a reader; a conclusion is not.
 ```bash
 npm run test:run                       # includes the guard above
 npm run build
-npm run test:e2e                       # CI shards this four ways
+npm run test:e2e                       # CI runs this sharded, after a merge to main
 npm run test:e2e:gate                  # the corridor only, for a fast local loop
 npm run docs:diagram                   # must leave this file unchanged
 npm run measure:first-load             # what a first visit costs, against its budget
