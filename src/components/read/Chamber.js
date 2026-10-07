@@ -108,7 +108,7 @@ import { resolveTextMaterialCapability } from '../../core/chamber-text-material.
 import { FitMaskRuntime } from '../../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../../core/visual-selection.js';
 import { sessionColorTheme, sessionColorThemeId } from '../../core/session-presentation.js';
-import { themeEngine } from '../../core/theme-engine-map.js';
+import { themeEngine, themedFlameLookup } from '../../core/theme-engine-map.js';
 import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
@@ -947,8 +947,11 @@ export class Chamber {
       colors
     };
     this.applySessionColors();
-    // The flame follows the phase's colors, as it did at the opening.
-    visualCortex.fractal?.setColorTheme(sessionColorTheme(this.session));
+    // The engines follow the phase's theme, as they did at the opening.
+    visualCortex.updateConfig(
+      { colorTheme, flameColors: sessionColorTheme(this.session) },
+      { preservePresentation: true }
+    );
     return true;
   }
 
@@ -2159,7 +2162,8 @@ export class Chamber {
       const { readingToWorkshopProject } = await import('../../core/passage-visuals/workshop-export.js');
       const projectId = `directed-${Date.now().toString(36)}`;
       const project = readingToWorkshopProject({
-        session: this.session, director, flameRecipe: flamePreset, projectId, updatedAt: Date.now()
+        session: this.session, director, projectId, updatedAt: Date.now(),
+        flameRecipe: themedFlameLookup(flamePreset, sessionColorTheme(this.session))
       });
       const saved = await MemoryCore.saveWorkshopBlueprintAsync(project);
       if (!saved) throw new Error('The Workshop project was not saved.');
@@ -4026,8 +4030,9 @@ export class Chamber {
     if (id.startsWith?.('living-flame:')) {
       const key = id.slice('living-flame:'.length);
       const recipeId = key.split('~')[0];
+      const flameRecipe = themedFlameLookup(flamePreset, sessionColorTheme(this.session));
       const config = this._pageFlameRecipes?.get(key)
-        || (flamePreset(recipeId) ? { recipe: flamePreset(recipeId) } : null);
+        || (flameRecipe(recipeId) ? { recipe: flameRecipe(recipeId) } : null);
       if (!config) return [];
       const { sampleLivingFlame } = await import('../../visuals/living-flame/index.js');
       // A flame is one composition: two moments of it are enough to show

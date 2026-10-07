@@ -393,6 +393,53 @@ describe('PlateField', () => {
         field.destroy();
     });
 
+    it('bakes the first and every later plate with the look, and with nothing when there is none', () => {
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        const field = new PlateField(host, {
+            families: ['ostensoria'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200,
+            look: { ostensoria: { palette: 'teal' } }
+        });
+        field.start();
+        expect(Ostensoria.prototype.generate.mock.calls[0][2]).toEqual({ palette: 'teal' });
+        expect(Ostensoria.prototype.beginBake.mock.calls[0][2]).toEqual({ palette: 'teal' });
+        frame(16);
+        frame(8_000);
+        expect(Ostensoria.prototype.beginBake).toHaveBeenCalledTimes(2);
+        expect(Ostensoria.prototype.beginBake.mock.calls[1][2]).toEqual({ palette: 'teal' });
+        field.destroy();
+
+        const bare = new PlateField(host, { families: ['ostensoria'], dwellMs: 8_000, crossfadeMs: 1_200 });
+        bare.start();
+        expect(Ostensoria.prototype.generate.mock.calls.at(-1)[2]).toEqual({});
+        expect(Ostensoria.prototype.beginBake.mock.calls.at(-1)[2]).toEqual({});
+        bare.destroy();
+    });
+
+    it('setLook aborts the pending bake and starts another for the same plate; an equal look keeps it', () => {
+        // A palette that only reached the bake after this one would land a
+        // plate late, so the bake under way is dropped and begun again.
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200
+        });
+        field.start();
+        expect(Apparitio.prototype.beginBake).toHaveBeenCalledTimes(1);
+        const pending = field._pending;
+
+        field.setLook({ apparitio: { palette: 'holo' } });
+        expect(Apparitio.prototype.beginBake).toHaveBeenCalledTimes(2);
+        expect(Apparitio.prototype.beginBake.mock.calls[1]).toEqual([null, 'gallery-plate:apparitio:2', { palette: 'holo' }]);
+        expect(field._pending).not.toBe(pending);
+
+        field.setLook({ apparitio: { palette: 'holo' } });
+        expect(Apparitio.prototype.beginBake).toHaveBeenCalledTimes(2);
+        field.destroy();
+    });
+
     it('waits for a late bake rather than finishing it in one long frame at the seam', () => {
         // On a slow phone the slices had not finished by the seam, and
         // finishing them there froze the reading for seconds. The plate on

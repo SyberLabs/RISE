@@ -43,7 +43,7 @@ describe('today\'s poem recitations', () => {
       expect(createHash('sha256').update(bytes).digest('hex').slice(0, 16), key).toBe(pack.split('/').pop().slice(0, 16));
       const manifest = JSON.parse(bytes.toString('utf8'));
       const item = pool.get(key);
-      const input = await resolveJevReading(todayDecision({ ...item, seed: 'recitation' }, { recited: true }),
+      const input = await resolveJevReading(todayDecision({ ...item, seed: 'recitation' }),
         { entryId: item.entryId, label: item.label });
       const atoms = compileSession(input).atoms;
       const voice = new Voice({ voiceId: INDEX.voiceId, manifest });

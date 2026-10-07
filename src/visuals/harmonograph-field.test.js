@@ -169,4 +169,29 @@ describe('HarmonographField', () => {
         expect(rafQueue).toHaveLength(0);
         field.destroy();
     });
+
+    it('hands the anchors the cortex supplies to every figure, beside the climate', () => {
+        const anchors = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12], [13, 14, 15]];
+        const field = new HarmonographField(host, {
+            dwellMs: 8_000,
+            getClimate: () => 'auto',
+            getAnchors: () => anchors
+        });
+        field.start();
+        field._rotate(false);
+        const generate = Harmonograph.prototype.generate;
+        expect(generate).toHaveBeenCalledTimes(2);
+        for (const call of generate.mock.calls) {
+            expect(call[2]).toEqual({ climate: 'auto', anchors });
+        }
+        field.destroy();
+    });
+
+    it('passes null anchors when the cortex supplies none', () => {
+        const field = new HarmonographField(host, { dwellMs: 8_000 });
+        field.start();
+        expect(Harmonograph.prototype.generate.mock.calls[0][2])
+            .toEqual({ climate: 'auto', anchors: null });
+        field.destroy();
+    });
 });

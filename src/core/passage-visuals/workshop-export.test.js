@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { jevColors } from '../jev-palette.js';
 import { compileSession } from '../session-compiler.js';
+import { sessionColorTheme } from '../session-presentation.js';
+import { themedFlameLookup, themedFlameRecipe } from '../theme-engine-map.js';
 import { workshopProjectToSessionConfig, visualAssignmentsFromProgram } from '../workshop-project.js';
 import { validateVisualScoreLane } from '../visual-score-lane.js';
 import { VisualScheduleController } from '../visual-scheduler.js';
@@ -14,9 +17,9 @@ const calm = 'The quiet garden rests in gentle peace and the still water holds t
 const storm = 'The furious storm tore the burning city apart with terror and rage and the screaming war raged on.';
 const gallery = { visualMode: 'interlocution', interlocution: { sourceFamily: 'procedural', procedural: [], sourced: [], presentation: 'continuous' } };
 
-async function directedReading() {
+async function directedReading(presentation) {
   const text = [calm, storm, calm, storm].map(sentence => Array.from({ length: 12 }, () => sentence).join(' ')).join('\n\n');
-  const session = compileSession({ title: 'Directed', text, wpm: 300, chunkMode: 'phrase', visualConfig: gallery });
+  const session = compileSession({ title: 'Directed', text, wpm: 300, chunkMode: 'phrase', visualConfig: gallery, presentation });
   const director = new PassageDirector({
     sources: [{ id: 'primary', text: session.sourceTexts.get('primary') }],
     atoms: session.atoms,
@@ -45,6 +48,20 @@ describe('reading to Workshop', () => {
     expect(clips.some(clip => clip.cue.kind === 'procedural' && clip.cue.config?.preset === 'architectural')).toBe(true);
     // Nothing the reader has not reached is assigned.
     expect(clips.at(-1).anchor.toCharacter).toBeLessThanOrEqual(director.blocks[2].to);
+  });
+
+  it('carries the reading\'s theme in every flame recipe it saves', async () => {
+    const colors = jevColors('jade');
+    const { session, director } = await directedReading({ colorTheme: 'jade', colors });
+    const flameRecipe = themedFlameLookup(flamePreset, sessionColorTheme(session));
+    const project = readingToWorkshopProject({ session, director, flameRecipe, projectId: 'directed-4' });
+    const flames = project.experienceProgram.tracks.find(track => track.kind === 'visual').clips
+      .filter(clip => clip.cue.renderer === 'living-flame');
+    expect(flames.length).toBeGreaterThan(0);
+    for (const clip of flames) {
+      expect(clip.cue.config.recipe).toEqual(themedFlameRecipe(flamePreset(clip.cue.config.recipe.id), colors));
+    }
+    expect(flames.some(clip => clip.cue.config.recipe.macros.hue !== 0)).toBe(true);
   });
 
   it('opens in the Workshop lane against its own asset registry', async () => {

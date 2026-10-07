@@ -93,7 +93,7 @@ describe('the searchable visual catalog', () => {
     mount();
     vi.spyOn(visualCortex, 'renderLeafStill').mockResolvedValue({ url: 'javascript:alert(1)' });
     container.querySelector('[data-preview="klee"]').click();
-    await vi.waitFor(() => expect(container.querySelector('.visual-catalog__preview').textContent).toBe('This preview is unavailable.'));
+    await vi.waitFor(() => expect(container.querySelector('[data-visual-id="klee"] .visual-catalog__preview').textContent).toBe('This preview is unavailable.'));
     expect(container.querySelector('img')).toBeNull();
   });
 });

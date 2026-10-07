@@ -10,7 +10,7 @@
  * ledger enumerated CONCERNS, gathered by reading the old panel's surface, so
  * glass was never entered — and what is never entered is never answered for.
  * It stayed live the whole time: honoured by the Chamber, carried by the
- * compiler, set to true by a Stance, and reachable by no reader.
+ * compiler, set to true by a look, and reachable by no reader.
  *
  * A hand-built inventory can miss a key. This one is generated from the
  * compiler itself: every setting the compiler honours must be either

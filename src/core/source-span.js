@@ -7,7 +7,7 @@
  * are checked after whitespace normalization before any atom is annotated.
  */
 
-import { isDroppedWordToken, restoreLiteral, SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
+import { isDroppedWordToken, restoreLiteral, SOURCE_MARKER, SOURCE_SCORE_CUT } from './source-tokens.js';
 import { prepareChunkText } from './chunk-profiles.js';
 
 const SOURCE_TOKEN = /\S+/gu;

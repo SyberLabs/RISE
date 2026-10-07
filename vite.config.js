@@ -5,6 +5,7 @@ import { defineConfig } from 'vite';
 import { curiaPlugin } from './scripts/curia-plugin.js';
 import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
 import { oversizedFiles } from './scripts/asset-size-limit.mjs';
+import { dropUnfetchedWasm } from './scripts/drop-unfetched-wasm.mjs';
 
 // A FORK DIES AT ITS HEAP CEILING, NOT AT THE MACHINE'S.
 //
@@ -69,7 +70,9 @@ const memoryCeiling = Math.floor(totalmem() / (WORKER_HEAP_MB * 1024 ** 2));
 export default defineConfig({
   // Curia / Export MP4: apply:'serve' means the endpoints exist only on
   // the dev server; production builds carry no write path.
-  plugins: [curiaPlugin(), exportMp4Plugin(), refuseOversizedAssets()],
+  // drop-unfetched-wasm: the embed worker supplies its own runtime binary,
+  // so the copy Vite emits for the runtime's URL is never requested.
+  plugins: [curiaPlugin(), exportMp4Plugin(), dropUnfetchedWasm(), refuseOversizedAssets()],
 
   // Console statements are left in: error reporting has to survive the
   // build, and the noisy paths are already gated by their own callers.
@@ -164,11 +167,8 @@ export default defineConfig({
     // a fork from a measurement that only ever watched one; the number that
     // matters is what a fork holds by the end, and that is over 2 GB.
     pool: 'forks',
-    poolOptions: {
-      forks: { execArgv: [`--max-old-space-size=${WORKER_HEAP_MB}`] }
-    },
+    execArgv: [`--max-old-space-size=${WORKER_HEAP_MB}`],
     maxWorkers: Math.max(1, Math.min(coreCeiling, memoryCeiling)),
-    minWorkers: 1,
 
     include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js']
   }

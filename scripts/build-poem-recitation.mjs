@@ -75,7 +75,7 @@ async function poemFor(item) {
   const { entries } = await work.getDivisions();
   const entry = entries[item.entryId];
   const pick = { ...item, seed: 'recitation' };
-  const input = await resolveJevReading(todayDecision(pick, { recited: true }), { entryId: item.entryId, label: item.label });
+  const input = await resolveJevReading(todayDecision(pick), { entryId: item.entryId, label: item.label });
   const atoms = compileSession(input).atoms.map(atom => normalizeVoiceText(atom)).filter(Boolean);
   return { key: `${item.workId}:${item.entryId}`, label: item.label, text: spokenText(entry.content), atoms };
 }
