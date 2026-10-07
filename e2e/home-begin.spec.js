@@ -15,9 +15,9 @@ import { test, expect } from './fixtures.js';
  *
  * What PR 7 made true is asserted on every case: the overlay never shows and
  * a field is visible on every frame. Criterion 4's two timing bounds are open
- * (RDR-015) and are recorded, not asserted: today's poem, revel and iris land
- * at 3 to 4 s, and the signal roll sits on both bounds (first word 1.2 to
- * 1.43 s, longest task 0 to 61 ms), so neither a plain assertion nor
+ * (RDR-015) and are recorded, not asserted: on CI today's poem, signal and iris
+ * reach the first word in 0.96 to 1.41 s and revel in 3.4 s (its Gallery
+ * preload), with long tasks of 0 to 453 ms, so neither a plain assertion nor
  * test.fail() would be stable. Set TIMING_ASSERTED when criterion 4 closes.
  */
 const BUDGET_MS = 1500;
