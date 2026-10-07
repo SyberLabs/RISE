@@ -22,6 +22,7 @@ if (typeof globalThis.indexedDB === 'undefined') {
 const { LOOKS, applyLook, lookOf, lookOfSession } = await import('./looks.js');
 const { ChamberOrbital, createDefaultConfig } = await import('../components/read/ChamberOrbital.js');
 const { normalizeVisualConfig } = await import('./session-compiler.js');
+const { resolveTextMaterialCapability } = await import('./chamber-text-material.js');
 const { normalizeVisualSelection } = await import('./visual-selection.js');
 const { sessionColorThemeId, sessionPresentation } = await import('./session-presentation.js');
 const { ENGINE_CATALOG } = await import('./visual-registry.js');
@@ -116,6 +117,21 @@ describe('what each look names', () => {
         }
         expect(LOOKS.filter(entry => 'chunkMode' in entry.config).map(entry => entry.id)).toEqual(['inlay']);
         expect(look('inlay').config.chunkMode).toBe('word');
+    });
+
+    it('makes Inlay whole in one tap: the imagery fills each word with no Settings toggle on', () => {
+        const given = throughTheEngine(applyLook(createDefaultConfig(), 'inlay'));
+        const interlocution = given.visualInterlocution.interlocution;
+        const capability = resolveTextMaterialCapability({
+            face: given.presentation.chamberFace,
+            fontSize: given.presentation.fontSize,
+            chunkMode: given.chunkMode,
+            visualMode: given.visualInterlocution.visualMode,
+            presentation: interlocution.presentation,
+            wordFill: interlocution.wordFill,
+            legacyMask: false
+        });
+        expect(capability).toMatchObject({ available: true, maskActive: true });
     });
 
     it('offers Inlay on a phone first, as data for the surfaces that list it', () => {
