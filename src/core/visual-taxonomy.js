@@ -25,7 +25,7 @@ import {
   HARMONOGRAPH_CLIMATES,
   KLEE_PRESETS
 } from './visual-style-definitions.js';
-import { LISTED_PROCEDURAL_PATTERNS } from './visual-registry.js';
+import { LISTED_ENGINES } from './visual-registry.js';
 
 /**
  * The four kinds of field, and the one rule that separates them.
@@ -99,7 +99,7 @@ export function substylesFor(engineId) {
  * `category`, in catalog order. A listed entry without a category is not
  * shown, and the registry test fails.
  */
-const engineLeavesIn = category => LISTED_PROCEDURAL_PATTERNS
+const engineLeavesIn = category => LISTED_ENGINES
   .filter(pattern => pattern.category === category)
   .map(pattern => Object.freeze({
     id: pattern.id,

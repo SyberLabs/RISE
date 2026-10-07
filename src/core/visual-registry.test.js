@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { RISE_CURRENT_VISUALS } from './rise-current.js';
-import { ENGINE_CATALOG, LISTED_PROCEDURAL_PATTERNS } from './visual-registry.js';
+import { ENGINE_CATALOG, LISTED_ENGINES, LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERNS } from './visual-registry.js';
 import { DEDICATED_MODE, FIELD, taxonomyLeaves } from './visual-taxonomy.js';
 
 const entry = id => ENGINE_CATALOG.find(item => item.id === id);
@@ -28,7 +28,13 @@ describe('the engine catalog', () => {
     const listed = ENGINE_CATALOG.filter(item => item.listed);
     const offered = taxonomyLeaves().map(leaf => leaf.engineId).filter(Boolean);
     expect(listed.map(item => item.id).sort()).toEqual([...offered].sort());
-    expect(LISTED_PROCEDURAL_PATTERNS).toEqual(listed);
+    expect(LISTED_ENGINES).toEqual(listed);
+  });
+
+  it('keeps Living Flame out of what the cortex draws: word fill, a Gallery shelf, the specimen catalog', () => {
+    expect(LISTED_PROCEDURAL_PATTERNS.map(item => item.id))
+      .toEqual(LISTED_ENGINES.filter(item => item.id === 'attractor' || PROCEDURAL_PATTERNS.includes(item)).map(item => item.id));
+    expect(LISTED_PROCEDURAL_PATTERNS.map(item => item.id)).not.toContain('living-flame');
   });
 
   it('gives the navigator its engine leaves: each listed entry, in catalog order within its category', () => {

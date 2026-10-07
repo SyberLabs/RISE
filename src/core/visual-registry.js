@@ -105,9 +105,16 @@ export const ENGINE_CATALOG = Object.freeze([
   })
 ]);
 
-/** Gallery / PREP listing: the engines Reader setup offers. */
+/** Every engine Reader setup offers, in navigator order. */
+export const LISTED_ENGINES = Object.freeze(ENGINE_CATALOG.filter(item => item.listed));
+
+/**
+ * The listed engines the cortex draws: the procedural patterns and Attractor.
+ * Living Flame is listed but is a field of its own, so word fill, a Gallery
+ * shelf and the specimen catalog never take it.
+ */
 export const LISTED_PROCEDURAL_PATTERNS = Object.freeze(
-  ENGINE_CATALOG.filter(pattern => pattern.listed)
+  LISTED_ENGINES.filter(item => item.id === 'attractor' || PROCEDURAL_PATTERNS.includes(item))
 );
 
 /** Engines suitable for authoring inside letterforms. Runtime support is broader for legacy data. */

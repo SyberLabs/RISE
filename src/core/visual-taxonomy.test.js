@@ -7,7 +7,7 @@
  * admit room one.
  */
 import { describe, expect, it } from 'vitest';
-import { LISTED_PROCEDURAL_PATTERNS } from './visual-registry.js';
+import { LISTED_ENGINES } from './visual-registry.js';
 import {
   FIELD,
   VISUAL_TAXONOMY,
@@ -72,7 +72,7 @@ describe('every engine is placed', () => {
     // THE GUARD THE FLAT DROPDOWN NEVER HAD. A new engine in the registry that
     // this tree does not name fails here rather than reaching a reader as an
     // uncategorised line — the vocabulary-in-two-places defect, refused.
-    const registered = LISTED_PROCEDURAL_PATTERNS.map(p => p.id).sort();
+    const registered = LISTED_ENGINES.map(p => p.id).sort();
     const placed = taxonomyLeaves()
       .filter(l => l.engineId && registered.includes(l.engineId))
       .map(l => l.engineId).sort();
