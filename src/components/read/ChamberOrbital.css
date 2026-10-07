@@ -146,11 +146,76 @@
 
 .reader-column {
   max-width: 880px;
+  min-height: 100%;
   margin: 0 auto;
-  padding: 56px 0 48px;
+  padding: 32px 0;
   display: flex;
   flex-direction: column;
   gap: 40px;
+}
+
+/* ─── The live preview ───
+   IT TAKES WHAT THE SCREEN HAS LEFT. The column fills the body and the
+   preview grows into the spare height, up to a band and down to a floor, so
+   a short screen loses preview before it gains a scroll. It sits 16px above
+   the text it previews (12px on a phone), not a section gap away. */
+.setup-preview {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 88px;
+  max-height: 240px;
+  margin-bottom: -24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--preview-ground, var(--rs-bg));
+  color: var(--preview-ink, var(--rs-text));
+}
+
+.setup-preview-still,
+.setup-preview-live {
+  position: absolute;
+  inset: 0;
+}
+
+.setup-preview-still {
+  background-position: center;
+  background-size: cover;
+  opacity: .7;
+}
+
+.setup-preview-live {
+  opacity: 0;
+  transition: opacity 400ms var(--rs-ease);
+}
+
+.setup-preview-live.is-live {
+  opacity: 1;
+}
+
+.setup-preview-live canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.setup-preview-unit {
+  position: relative;
+  max-width: 36ch;
+  margin: 0;
+  padding: 0 24px;
+  font-family: var(--rs-serif);
+  font-size: 20px;
+  line-height: 28px;
+  text-align: center;
+  text-shadow: 0 0 12px var(--preview-ground, var(--rs-bg));
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 /* ─── Your text ─── */
@@ -484,6 +549,10 @@
     padding: 32px 0;
     gap: 32px;
   }
+
+  .setup-preview {
+    margin-bottom: -16px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -494,6 +563,16 @@
   .reader-column {
     padding: 20px 0 16px;
     gap: 20px;
+  }
+
+  .setup-preview {
+    margin-bottom: -8px;
+  }
+
+  .setup-preview-unit {
+    padding: 0 16px;
+    font-size: 17px;
+    line-height: 24px;
   }
 
   .text-name {
@@ -565,6 +644,10 @@
   .btn-large:hover:not(:disabled) .reader-icon {
     transition: none;
     transform: none;
+  }
+
+  .setup-preview-live {
+    transition: none;
   }
 }
 

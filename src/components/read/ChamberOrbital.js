@@ -53,9 +53,11 @@ import {
 import { LOOKS, applyLook, lookOf } from '../../core/looks.js';
 import { JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
 import { FONT_SIZE_CHIPS, resolveFontSize } from '../../core/chamber-type-size.js';
+import { themeEngine } from '../../core/theme-engine-map.js';
 // One engine has a name; the taxonomy is where it is kept.
 import { leafById } from '../../core/visual-taxonomy.js';
 import '../VisualNavigator.css';
+import { createSetupPreview, firstUnit } from './setup-preview.js';
 import './ChamberOrbital.css';
 import markUrl from '../../content/compositions/syberlabs-mark.png';
 
@@ -66,6 +68,16 @@ const NARROWEST_LIMIT = Math.min(...LOOKS.map(look => look.maxViewportWidth || I
 const LOOK_SIZES = FONT_SIZE_CHIPS.filter(chip => chip.id !== 'xl');
 const CHUNK_LABELS = Object.freeze({ phrase: 'Phrase', sentence: 'Sentence', word: 'Word' });
 const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/** The engine a reading's field draws first, or null when it draws none the preview can show. */
+const previewEngine = visual => {
+  if (visual.visualMode === 'attractor') return 'attractor';
+  if (visual.visualMode === 'genesis') return 'klee';
+  if (visual.visualMode === 'interlocution') {
+    return normalizeVisualSelection(visual.interlocution || {}).procedural[0] || null;
+  }
+  return null;
+};
 
 // Last-used session settings survive across chamber visits (the orbital
 // instance itself is destroyed whenever a session runs in the shared view)
@@ -250,6 +262,8 @@ export class ChamberOrbital {
 
     // The Chamber's single visual-control surface.
     this.visualNavigator = null;
+    this._previewOptions = options.preview;
+    this.preview = null;
 
     // One abortable event scope owns every listener installed by this
     // Orbital. The Chamber and immersive session reuse the same container,
@@ -598,6 +612,8 @@ export class ChamberOrbital {
 
         <div class="reader-body">
           <div class="reader-column">
+            <div class="setup-preview" aria-hidden="true"></div>
+
             <section class="reader-text" aria-label="Your text">
               <div class="text-source" id="text-source">
                 ${this.renderTextSource()}
@@ -642,6 +658,32 @@ export class ChamberOrbital {
     `;
 
     this.initVisualPanel();
+    this.preview = createSetupPreview(this.container.querySelector('.setup-preview'), this._previewOptions);
+    this._paintPreview();
+  }
+
+  /**
+   * The preview: the field this configuration draws, in the colours the
+   * reading opens in, under its first unit. An attractor left white takes the
+   * theme's row, as the Chamber mounts it.
+   */
+  _paintPreview() {
+    const visual = this.config.visualInterlocution || {};
+    const theme = this._effectivePresentation().colorTheme;
+    const colors = this.config.presentation?.colors || jevColors(theme, theme, theme);
+    const engine = previewEngine(visual);
+    const attractor = visual.attractor || {};
+    const { text, sources, chunkMode, verseLines } = this.config;
+    this.preview?.show({
+      engine,
+      style: engine !== 'attractor' ? {}
+        : (!attractor.palette || attractor.palette === 'white'
+          ? { ...attractor, ...themeEngine(theme, 'attractor') }
+          : attractor),
+      ground: colors.background,
+      ink: colors.text,
+      unit: firstUnit({ text, sources, chunkMode, verseLines })
+    });
   }
 
   /** A row that opens a sheet or panel; its status says what is chosen there. */
@@ -783,6 +825,7 @@ export class ChamberOrbital {
     const imagery = this.container.querySelector('.orbit-visual .orbit-label');
     if (imagery) imagery.textContent = this.getImageryLabel();
     this._paintSummaries();
+    this._paintPreview();
   }
 
   /**
@@ -1790,6 +1833,7 @@ export class ChamberOrbital {
     if (modal) {
       modal.hidden = false;
       this._modals = [...this._modals.filter(open => open !== orbit), orbit];
+      this.preview?.suspend('sheet');
       if (orbit === 'visual') this.visualNavigator?.enterStage();
       modal.querySelector('.modal-close')?.focus();
     }
@@ -1800,6 +1844,7 @@ export class ChamberOrbital {
     if (modal) {
       modal.hidden = true;
       this._modals = this._modals.filter(open => open !== orbit);
+      if (!this._modals.length) this.preview?.resume('sheet');
       if (orbit === 'visual') this.visualNavigator?.leaveStage();
       this.container.querySelector(`[data-orbit="${orbit}"]`)?.focus();
     }
@@ -2168,6 +2213,7 @@ export class ChamberOrbital {
   }
 
   beginSession() {
+    this.preview?.suspend('begin');
     // The moment settings are used is the moment they become "last known"
     this._persistPrefs();
 
@@ -2255,5 +2301,6 @@ export class ChamberOrbital {
     if (this.visualNavigator) {
       this.visualNavigator.destroy();
     }
+    this.preview?.destroy();
   }
 }
