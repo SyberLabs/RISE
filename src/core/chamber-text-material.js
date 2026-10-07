@@ -10,7 +10,7 @@ export function isVisualMaskMaterial(value) {
 
 export function resolveTextMaterialCapability({
   face, fontSize, chunkMode, visualMode, presentation, wordFill,
-  wordFillDeclared, legacyMask = false, programOwned = false
+  wordFillDeclared, programOwned = false
 } = {}) {
   const thick = resolveChamberStreamFace(face) === 'thick';
   const fit = FIT_SIZE_ALIASES.has(String(fontSize || '').trim().toLowerCase());
@@ -19,7 +19,7 @@ export function resolveTextMaterialCapability({
     && (presentation === 'continuous' || presentation === 'continuous-word');
   const declared = wordFillDeclared === true || (wordFillDeclared == null
     && wordFill != null && typeof wordFill === 'object' && !Array.isArray(wordFill));
-  const materialRequestsMask = declared ? isVisualMaskMaterial(wordFill) : legacyMask === true;
+  const materialRequestsMask = declared && isVisualMaskMaterial(wordFill);
   const maskRequested = materialRequestsMask && wordTiming && gallery;
   const canMask = thick && fit && wordTiming && gallery;
   const capabilityReason = !materialRequestsMask ? null

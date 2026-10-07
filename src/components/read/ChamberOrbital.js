@@ -340,7 +340,9 @@ export class ChamberOrbital {
         focals: { ...defaults.focals, ...(vi.focals || {}) },
         attractor: { ...defaults.attractor, ...(vi.attractor || {}) },
         genesis: { ...defaults.genesis, ...(vi.genesis || {}) },
-        livingText: { ...defaults.livingText, ...(vi.livingText || {}) },
+        // Living Text is the reader's Setting for every reading, not setup's: a setup reading always asks,
+        // and an older save of the switch setup no longer shows is not read.
+        livingText: { ...defaults.livingText },
         interlocution: {
           ...defaults.interlocution,
           ...(vi.interlocution || {}),

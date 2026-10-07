@@ -1,5 +1,5 @@
 /**
- * TWO SWITCHES THAT SAY WHAT THEY DO, AND TOGGLE ONCE WHEN PRESSED.
+ * A SWITCH THAT SAYS WHAT IT DOES, AND TOGGLES ONCE WHEN PRESSED.
  *
  * Living Text and Glass were bare checkboxes at 0.7rem with a word beside
  * them. They communicated a boolean and nothing else: not what the setting
@@ -10,7 +10,7 @@
  * The row is the control. That is the trap this guards: a label wrapping an
  * input already forwards a click, so ADDING a row handler is how the same
  * press becomes two toggles. The native path is kept and nothing is layered
- * on top of it.
+ * on top of it. Living Text has since moved to Settings, for every reading.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VisualNavigator } from './VisualNavigator.js';
@@ -44,7 +44,7 @@ afterEach(() => {
 describe('the reader controls are finished controls', () => {
     it('explains each setting on the row, not in a tooltip', () => {
         mount();
-        for (const action of ['living-text', 'glass']) {
+        for (const action of ['glass']) {
             const control = row(action);
             expect(control, `${action} is a row`).toBeTruthy();
             const description = control.querySelector('.vnav-switch-note');
@@ -55,7 +55,7 @@ describe('the reader controls are finished controls', () => {
 
     it('keeps a real checkbox under the styled control', () => {
         mount();
-        for (const action of ['living-text', 'glass']) {
+        for (const action of ['glass']) {
             const input = nav.container.querySelector(`[data-action="${action}"]`);
             expect(input.tagName).toBe('INPUT');
             expect(input.type).toBe('checkbox');
@@ -64,7 +64,7 @@ describe('the reader controls are finished controls', () => {
 
     it('ties the description to the control for a screen reader', () => {
         mount();
-        for (const action of ['living-text', 'glass']) {
+        for (const action of ['glass']) {
             const input = nav.container.querySelector(`[data-action="${action}"]`);
             const describedBy = input.getAttribute('aria-describedby');
             expect(describedBy, `${action} names its description`).toBeTruthy();
@@ -74,21 +74,20 @@ describe('the reader controls are finished controls', () => {
 
     it('toggles exactly once when the row is pressed', () => {
         mount();
-        const before = nav.selection.livingText.enabled;
+        const before = nav.glassOn();
         // A press on the row, the way a finger lands on it. The label forwards
         // to the input natively; a second handler here would double it.
-        row('living-text').click();
-        expect(nav.selection.livingText.enabled, 'one press, one change')
-            .toBe(!before);
+        row('glass').click();
+        expect(nav.glassOn(), 'one press, one change').toBe(!before);
     });
 
     it('toggles exactly once when the control itself is pressed', () => {
         mount();
-        const before = nav.selection.livingText.enabled;
-        const input = nav.container.querySelector('[data-action="living-text"]');
+        const before = nav.glassOn();
+        const input = nav.container.querySelector('[data-action="glass"]');
         input.checked = !input.checked;
         input.dispatchEvent(new Event('change', { bubbles: true }));
-        expect(nav.selection.livingText.enabled).toBe(!before);
+        expect(nav.glassOn()).toBe(!before);
     });
 
     it('says why Glass cannot act, on the row, where a phone can read it', () => {
@@ -103,25 +102,21 @@ describe('the reader controls are finished controls', () => {
 
     it('lights the row it is standing on, and unlights it', () => {
         // The lit state is the row's now, so the class and the control have to
-        // agree after every press. setLivingText emitted without rendering,
-        // which nothing revealed while the native checkbox was the picture.
+        // agree after every press.
         mount();
         for (let press = 0; press < 2; press += 1) {
-            row('living-text').click();
-            const control = row('living-text');
-            const input = nav.container.querySelector('[data-action="living-text"]');
+            row('glass').click();
+            const control = row('glass');
+            const input = nav.container.querySelector('[data-action="glass"]');
             expect(control.classList.contains('is-on'), `press ${press + 1}`)
                 .toBe(input.checked);
-            expect(input.checked).toBe(nav.selection.livingText.enabled);
+            expect(input.checked).toBe(nav.glassOn());
         }
     });
 
-    it('does not change the settings it persists', () => {
+    it('offers no Living Text switch: it is the reader’s Setting, for every reading', () => {
         mount();
-        row('living-text').click();
-        const patch = onChange.mock.calls.at(-1)[0];
-        // The keys the Chamber and storage already read. A restyle may not
-        // rename what it round-trips.
-        expect(patch.livingText).toMatchObject({ enabled: expect.any(Boolean) });
+        expect(nav.container.querySelector('[data-action="living-text"]')).toBeNull();
+        expect(nav.container.textContent).not.toMatch(/Living Text/u);
     });
 });

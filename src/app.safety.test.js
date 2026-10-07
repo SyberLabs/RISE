@@ -317,29 +317,29 @@ describe('App safety orchestration', () => {
     expect(document.documentElement.dataset.chamberFace).toBe('literary');
   });
 
-  it('persists chamberMask as a boolean and coerces anything else to false', () => {
+  it('keeps Living Text on unless the reader turns it off, and keeps neither the mask switch nor the drone', () => {
+    localStorage.setItem('rise-settings', JSON.stringify({ chamberMask: true, enableAmbient: true }));
     const app = new App();
     app.loadSettings();
-    expect(app.settings.chamberMask).toBe(false);
+    expect(app.settings.livingText).toBe(true);
+    expect(app.settings).not.toHaveProperty('chamberMask');
+    expect(app.settings).not.toHaveProperty('enableAmbient');
 
-    localStorage.setItem('rise-settings', JSON.stringify({ chamberMask: true }));
-    app.loadSettings();
-    expect(app.settings.chamberMask).toBe(true);
+    const applyLivingTextSetting = vi.fn();
+    app.router = { getViewInstance: name => (name === 'read' ? { paneInstance: pane => (pane === 'chamber' ? { applyLivingTextSetting } : null) } : null) };
+    app.handleSettingsChange('livingText', false);
+    expect(applyLivingTextSetting).toHaveBeenCalledTimes(1);
+    const saved = JSON.parse(localStorage.getItem('rise-settings'));
+    expect(saved.livingText).toBe(false);
+    expect(saved).not.toHaveProperty('chamberMask');
+    expect(saved).not.toHaveProperty('enableAmbient');
 
-    localStorage.setItem('rise-settings', JSON.stringify({ chamberMask: 'yes' }));
-    app.loadSettings();
-    expect(app.settings.chamberMask).toBe(false);
-
-    app.handleSettingsChange('chamberMask', true);
-    expect(app.settings.chamberMask).toBe(true);
-    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberMask).toBe(true);
-
-    app.handleSettingsChange('chamberMask', 'yes');
-    expect(app.settings.chamberMask).toBe(false);
-    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberMask).toBe(false);
+    const returning = new App();
+    returning.loadSettings();
+    expect(returning.settings.livingText).toBe(false);
   });
 
-  it('pushes a live Chamber face or mask change onto the open session', () => {
+  it('pushes a live Chamber face change onto the open session, and re-applies its mask', () => {
     const app = new App();
     app.loadSettings();
     const applyChamberStreamFace = vi.fn();
@@ -353,9 +353,6 @@ describe('App safety orchestration', () => {
     app.handleSettingsChange('chamberFace', 'jp');
     expect(applyChamberStreamFace).toHaveBeenCalled();
     expect(applyChamberMask).toHaveBeenCalled();
-
-    app.handleSettingsChange('chamberMask', true);
-    expect(applyChamberMask).toHaveBeenCalledTimes(2);
   });
 
   it('installs normalized text-material settings atomically before one live Chamber update', () => {
@@ -367,8 +364,7 @@ describe('App safety orchestration', () => {
     const visibleStates = [];
     const applyChamberStreamFace = vi.fn(() => visibleStates.push({
       chamberFace: app.settings.chamberFace,
-      fontSize: app.settings.fontSize,
-      chamberMask: app.settings.chamberMask
+      fontSize: app.settings.fontSize
     }));
     const applyChamberMask = vi.fn();
     const applyChamberTypeSize = vi.fn();
@@ -379,14 +375,12 @@ describe('App safety orchestration', () => {
     app.handleSettingsTransaction({
       chamberFace: 'thick',
       fontSize: 'fit',
-      chamberMask: 'yes',
       defaultWpm: 5000
     });
 
     expect(app.settings).toMatchObject({
       chamberFace: 'thick',
       fontSize: 'fit',
-      chamberMask: false,
       defaultWpm: 1000
     });
     expect(save).toHaveBeenCalledTimes(1);
@@ -394,7 +388,7 @@ describe('App safety orchestration', () => {
     expect(applyChamberStreamFace).toHaveBeenCalledTimes(1);
     expect(applyChamberMask).toHaveBeenCalledTimes(1);
     expect(applyChamberTypeSize).toHaveBeenCalledTimes(1);
-    expect(visibleStates).toEqual([{ chamberFace: 'thick', fontSize: 'fit', chamberMask: false }]);
+    expect(visibleStates).toEqual([{ chamberFace: 'thick', fontSize: 'fit' }]);
     expect(JSON.parse(localStorage.getItem('rise-settings'))).toMatchObject(app.settings);
 
     const restored = new App();
@@ -402,7 +396,6 @@ describe('App safety orchestration', () => {
     expect(restored.settings).toMatchObject({
       chamberFace: 'thick',
       fontSize: 'fit',
-      chamberMask: false,
       defaultWpm: 1000
     });
   });

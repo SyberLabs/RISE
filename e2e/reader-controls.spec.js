@@ -3,7 +3,8 @@
  *
  * Living Text and Glass were bare checkboxes with a word beside them. The
  * trap in fixing that is the double toggle: a label wrapping an input already
- * forwards a click, so a row handler added on top makes one press two.
+ * forwards a click, so a row handler added on top makes one press two. Living
+ * Text has since moved to Settings, for every reading; Glass carries the guard.
  */
 import { test, expect, openHomeNav } from './fixtures.js';
 
@@ -31,18 +32,18 @@ const stateOf = (page, action) => page.evaluate((name) =>
 test('pressing the row toggles once, and pressing it back returns', async ({ page }) => {
     await openNavigator(page);
 
-    const row = page.locator('[data-action="living-text"]').locator('xpath=ancestor::label[1]');
+    const row = page.locator('[data-action="glass"]').locator('xpath=ancestor::label[1]');
     await expect(row).toBeVisible();
 
-    const before = await stateOf(page, 'living-text');
+    const before = await stateOf(page, 'glass');
     await row.click();
     await page.waitForTimeout(250);
-    const after = await stateOf(page, 'living-text');
+    const after = await stateOf(page, 'glass');
     expect(after, 'one press, one change').toBe(!before);
 
-    await page.locator('[data-action="living-text"]').locator('xpath=ancestor::label[1]').click();
+    await page.locator('[data-action="glass"]').locator('xpath=ancestor::label[1]').click();
     await page.waitForTimeout(250);
-    expect(await stateOf(page, 'living-text'), 'and back again').toBe(before);
+    expect(await stateOf(page, 'glass'), 'and back again').toBe(before);
 });
 
 test('each row explains itself where a phone can read it', async ({ page }) => {
@@ -54,7 +55,7 @@ test('each row explains itself where a phone can read it', async ({ page }) => {
     // guards — so it is read where the row now lives.
     await page.locator('[data-stage="text"]').click();
 
-    for (const action of ['living-text', 'glass']) {
+    for (const action of ['glass']) {
         const row = page.locator(`[data-action="${action}"]`).locator('xpath=ancestor::label[1]');
         const note = row.locator('.vnav-switch-note');
         await expect(note, `${action} carries its reason on the row`).toBeVisible();
@@ -69,10 +70,10 @@ test('each row explains itself where a phone can read it', async ({ page }) => {
 test('the setting survives leaving the panel and coming back', async ({ page }) => {
     await openNavigator(page);
 
-    const before = await stateOf(page, 'living-text');
-    await page.locator('[data-action="living-text"]').locator('xpath=ancestor::label[1]').click();
+    const before = await stateOf(page, 'glass');
+    await page.locator('[data-action="glass"]').locator('xpath=ancestor::label[1]').click();
     await page.waitForTimeout(300);
-    const chosen = await stateOf(page, 'living-text');
+    const chosen = await stateOf(page, 'glass');
     expect(chosen).toBe(!before);
 
     // Out of the panel and back in: the same answer, from the same key.
@@ -82,5 +83,5 @@ test('the setting survives leaving the panel and coming back', async ({ page }) 
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 10_000 });
 
-    expect(await stateOf(page, 'living-text'), 'the choice round-trips').toBe(chosen);
+    expect(await stateOf(page, 'glass'), 'the choice round-trips').toBe(chosen);
 });

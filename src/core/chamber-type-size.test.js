@@ -117,18 +117,9 @@ describe('text material mask capability', () => {
         })).toBe(true);
     });
 
-    it('preserves legacy mask inference within the Thick Fit contract', () => {
-        expect(maskActive({
-            ...canonical,
-            wordFill: undefined,
-            legacyMask: true
-        })).toBe(true);
-        expect(maskActive({
-            ...canonical,
-            chunkMode: 'sentence',
-            wordFill: undefined,
-            legacyMask: true
-        })).toBe(false);
+    it('asks for the mask only where the word fill is declared: there is no Settings switch, Inlay declares it', () => {
+        expect(maskActive({ ...canonical, wordFill: undefined })).toBe(false);
+        expect(maskActive({ ...canonical, wordFill: undefined, legacyMask: true })).toBe(false);
     });
 });
 

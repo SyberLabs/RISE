@@ -266,7 +266,6 @@ export class VisualNavigator {
       this.render();
     });
     q('[data-action="glass"]')?.addEventListener('change', e => this.setGlass(e.target.checked));
-    q('[data-action="living-text"]')?.addEventListener('change', e => this.setLivingText(e.target.checked));
     q('[data-action="open-personal"]')?.addEventListener('click', () => this.onOpenPersonal());
     this.container.querySelectorAll('[data-action="release-to-program"]').forEach(b =>
       b.onclick = () => this.releaseToProgram());

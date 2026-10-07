@@ -57,6 +57,9 @@ const SESSION_SCOPE = 'session';
  */
 const BAR_SCOPE = 'bar';
 
+/** The sizes Settings offers for every reading; XL is a reading's own choice, and Fit is Inlay's. */
+const SETTINGS_SIZES = Object.freeze(['small', 'medium', 'large']);
+
 const VOLUME_PRESETS = Object.freeze([
     Object.freeze({ value: 0, label: 'Mute' }),
     Object.freeze({ value: 50, label: '50%' }),
@@ -138,9 +141,9 @@ export class Settings {
               </div>
             </div>
 
-            ${this.toggleRow('chamberMask', 'Show imagery through words',
-                'In a Gallery reading shown one word at a time in the Thick typeface at Fit size, each word becomes a window onto the imagery.',
-                this.settings.chamberMask === true)}
+            ${this.toggleRow('livingText', 'Living Text',
+                'The words take a tint from the feeling of the passage they are in, in every reading.',
+                this.settings.livingText !== false)}
             ${this.toggleRow('showProgress', 'Show progress',
                 'A thin bar along the bottom of a reading.',
                 Boolean(this.settings.showProgress))}
@@ -154,10 +157,6 @@ export class Settings {
 
           <section class="settings-section" aria-labelledby="audio-heading">
             <h2 id="audio-heading" class="settings-section-title">Sound</h2>
-
-            ${this.inSession ? '' : this.toggleRow('enableAmbient', 'Ambient sound',
-                'A quiet drone on Home and in the other rooms. It never plays during a reading, and is off until you turn it on.',
-                Boolean(this.settings.enableAmbient))}
 
             <div class="settings-row">
               <label class="settings-label" for="master-volume">Volume</label>
@@ -291,7 +290,7 @@ export class Settings {
         <section class="settings-bar-group" aria-labelledby="bar-size-label">
           <span class="settings-bar-label" id="bar-size-label">Size</span>
           <div class="settings-control" role="radiogroup" aria-labelledby="bar-size-label">
-            ${FONT_SIZE_CHIPS.filter(chip => chip.fontSize !== 'fit').map(chip => `
+            ${this.sizeChoices(size).map(chip => `
               <label class="radio">
                 <input type="radio" name="font-size" value="${chip.fontSize}"
                   data-font-size="${chip.id}" ${chip.fontSize === size ? 'checked' : ''} />
@@ -331,9 +330,14 @@ export class Settings {
         return sizeFitHint(Boolean((atom?.textContent || '').trim()));
     }
 
+    /** S, M and L; a size saved beyond them (XL, or Fit from before Inlay) stays shown until another is picked. */
+    sizeChoices(selected) {
+        return FONT_SIZE_CHIPS.filter(chip => SETTINGS_SIZES.includes(chip.fontSize) || chip.fontSize === selected);
+    }
+
     renderFontSizeRadios() {
         const selected = resolveFontSize(this.settings.fontSize);
-        return FONT_SIZE_CHIPS.map((chip) => `
+        return this.sizeChoices(selected).map((chip) => `
           <label class="radio">
             <input
               type="radio"
