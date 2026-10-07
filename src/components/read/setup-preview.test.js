@@ -194,6 +194,12 @@ describe('the measurement record', () => {
     };
   };
 
+  it('is kept when the page was opened with ?measure=1 and the router has since dropped the query', async () => {
+    const win = { ...frameWindow(''), document: { documentElement: { dataset: { riseMeasure: '' } } } };
+    preview = createSetupPreview(host, { factories, loadStill: async () => STILL, win });
+    expect(win.__riseSetupPreview).toBeDefined();
+  });
+
   it('is not kept, and no frame is watched, without ?measure=1', async () => {
     const win = frameWindow('');
     preview = createSetupPreview(host, { factories, loadStill: async () => STILL, win });

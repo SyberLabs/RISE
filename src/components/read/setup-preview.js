@@ -94,7 +94,10 @@ export function createSetupPreview(host, {
     }
     lastFrame = now;
   };
-  if (new URLSearchParams(win.location?.search || '').has('measure')) {
+  // The router drops the query on its first navigation, so the app records ?measure at boot.
+  const measuring = new URLSearchParams(win.location?.search || '').has('measure')
+    || win.document?.documentElement?.dataset?.riseMeasure !== undefined;
+  if (measuring) {
     const share = count => (tally.frames ? count / tally.frames : 0);
     win.__riseSetupPreview = Object.freeze({
       get frames() { return tally.frames; },

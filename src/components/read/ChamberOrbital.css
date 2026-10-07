@@ -575,9 +575,16 @@
     line-height: 24px;
   }
 
+  /* Two lines at most, so a long title never pushes the rows under the Begin bar;
+     the full title stays in the element's title attribute. */
   .text-name {
     font-size: 28px;
     line-height: 32px;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
   }
 
   .look-tiles {

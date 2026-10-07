@@ -901,7 +901,7 @@ export class ChamberOrbital {
     if (this.config.text) {
       return `
         <div class="text-loaded">
-          <h1 class="text-name">${escapeHtml(this.config.textSource || 'Text loaded')}</h1>
+          <h1 class="text-name" title="${escapeHtml(this.config.textSource || 'Text loaded')}">${escapeHtml(this.config.textSource || 'Text loaded')}</h1>
           <p class="text-meta">${this.getTextMeta()}</p>
           <button type="button" class="reader-link text-change" data-action="library">Change text</button>
         </div>
