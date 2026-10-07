@@ -11,6 +11,12 @@
 import { normalizeProceduralStyle } from './visual-style-definitions.js';
 import { isJevColorTheme } from './jev-color-themes.js';
 import { normalizeLivingFlameConfig } from './flame-recipe.js';
+import { flamePreset } from '../visuals/living-flame/flame-presets.js';
+
+// Classic's composition (THEME_ENGINE_MAP), named here because the theme map
+// reaches the session compiler, which reaches this file. No theme reaches this
+// lowering, so it draws what a reading with no theme draws.
+const FALLBACK_FLAME_COMPOSITION = 'ember-cathedral';
 
 const INFINITY_TOKEN = '__rise_infinity__';
 const MAX_SEGMENTS = 512;
@@ -63,6 +69,9 @@ export function visualFallbackCueFromConfig(value = {}) {
   }
   if (config.visualMode === 'genesis') {
     return { kind: 'field', renderer: 'genesis', config: normalizeFieldConfig(config.genesis) };
+  }
+  if (config.visualMode === 'living-flame') {
+    return { kind: 'field', renderer: 'living-flame', config: { recipe: flamePreset(FALLBACK_FLAME_COMPOSITION) } };
   }
   return { kind: 'still' };
 }

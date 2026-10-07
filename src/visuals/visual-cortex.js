@@ -51,7 +51,8 @@ import {
 } from './artwork-label.js';
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
 import { LISTED_PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
-import { rockGardenInk, themeEngine } from '../core/theme-engine-map.js';
+import { flameComposition, rockGardenInk, themeEngine } from '../core/theme-engine-map.js';
+import { flamePreset } from './living-flame/flame-presets.js';
 import { accentFlameAnchors } from '../core/conductor.js';
 import {
     GALLERY_CADENCE_DEFAULT,
@@ -1686,6 +1687,13 @@ export class VisualCortex {
         // work, not decoration — and the reading is never charged for it.
         const url = shippedStillUrl(type);
         if (url) return { url, still: true };
+        // A field of its own, not a Gallery engine: one still of the
+        // composition a reading with no theme draws, which the queue keeps.
+        if (type === 'living-flame') {
+            const { sampleLivingFlame } = await import('./living-flame/index.js');
+            const flame = await sampleLivingFlame(flamePreset(flameComposition(null)));
+            return flame ? { url: flame, still: true } : null;
+        }
         try {
             if (!this.initialized) this.init();
             return await this._renderContinuousProceduralWork(type);

@@ -12,8 +12,8 @@ import { DEDICATED_MODE, FIELD, taxonomyLeaves } from './visual-taxonomy.js';
 const entry = id => ENGINE_CATALOG.find(item => item.id === id);
 
 describe('the engine catalog', () => {
-  it('holds Living Flame and night streaks, offered by neither Reader setup nor the Composer', () => {
-    expect(entry('living-flame')).toMatchObject({ name: 'Living Flame', listed: false, composer: false });
+  it('lists Living Flame in Reader setup only, and night streaks nowhere (RDR-023)', () => {
+    expect(entry('living-flame')).toMatchObject({ name: 'Living Flame', listed: true, category: 'dynamic', composer: false });
     expect(entry('night-streaks')).toMatchObject({ name: 'Night Streaks', listed: false, composer: false });
   });
 

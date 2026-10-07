@@ -26,7 +26,7 @@ export const WORKSHOP_PROJECT_LIMITS = Object.freeze({
 
 const CHUNK_MODES = new Set(['word', 'phrase', 'sentence']);
 const CURVES = new Set(PACE_CURVE_IDS);
-const VISUAL_SURFACES = new Set(['off', 'focal', 'attractor', 'genesis', 'scored']);
+const VISUAL_SURFACES = new Set(['off', 'focal', 'attractor', 'genesis', 'living-flame', 'scored']);
 
 export class WorkshopProjectError extends Error {
   constructor(code, message, path = '$', details = {}) {

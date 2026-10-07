@@ -56,9 +56,11 @@ export const FIELD = Object.freeze({
  * continuous field host, and a dedicated mode mounts its own instead.
  *
  * Genesis keeps its mode. It is a composition that grows over ~28 seconds and
- * holds the room as one drawing gesture; it is not a gallery of plates.
+ * holds the room as one drawing gesture; it is not a gallery of plates. Living
+ * Flame is one composition breathing in the room, so it has a mode too; Follow
+ * text changes its composition by passage (RDR-023).
  */
-export const DEDICATED_MODE = Object.freeze({ klee: 'genesis' });
+export const DEDICATED_MODE = Object.freeze({ klee: 'genesis', 'living-flame': 'living-flame' });
 
 /**
  * A leaf's substyle benches — the SAME objects the current panel renders,

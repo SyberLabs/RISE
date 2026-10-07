@@ -59,7 +59,7 @@ describe('the tree', () => {
   it('holds the drawing engines under Dynamic, Attractor and Genesis first', () => {
     const dynamic = leafOrBranch('dynamic');
     expect(dynamic.children.map(n => n.id))
-      .toEqual(['attractor', 'klee', 'harmonograph', 'ostensoria', 'apparitio']);
+      .toEqual(['attractor', 'klee', 'harmonograph', 'ostensoria', 'apparitio', 'living-flame']);
     // The renames the creator settled, surfaced as labels over registry ids.
     expect(leafById('klee').label).toBe('Genesis');
     expect(leafById('ostensoria').label).toBe('Iris Plates');

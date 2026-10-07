@@ -55,6 +55,15 @@ describe('the looks', () => {
         orbital.destroy();
     });
 
+    it('lowers Flame into the Living Flame mode, and names it rather than reading Off (RDR-023)', () => {
+        const { container, orbital } = createOrbital();
+        choose(container, 'flame');
+        expect(orbital.config.visualInterlocution.visualMode).toBe('living-flame');
+        expect(orbital.getVisualPreview()).toBe('Living Flame');
+        expect(lookOf(orbital.config)).toBe('flame');
+        orbital.destroy();
+    });
+
     it('meets a reader who has chosen nothing already in Plain', () => {
         // The factory defaults ARE a named look. If they drift out of one,
         // the first thing a visitor sees is a row where nothing is chosen.

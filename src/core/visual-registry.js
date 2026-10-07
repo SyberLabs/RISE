@@ -81,7 +81,8 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
  * a Storm of Steel work-engine.
  *
  * Living Flame and night streaks are fields of their own, not procedural
- * patterns, so neither reaches PROCEDURAL_PATTERN_IDS.
+ * patterns, so neither reaches PROCEDURAL_PATTERN_IDS. Living Flame is listed
+ * and takes the room through its own mode (DEDICATED_MODE).
  */
 export const ENGINE_CATALOG = Object.freeze([
   Object.freeze({
@@ -91,7 +92,7 @@ export const ENGINE_CATALOG = Object.freeze([
   }),
   ...PROCEDURAL_PATTERNS,
   Object.freeze({
-    id: 'living-flame', name: 'Living Flame', listed: false, composer: false,
+    id: 'living-flame', name: 'Living Flame', icon: '♨', listed: true, category: 'dynamic', composer: false,
     description: 'An iterated-function flame drawn by many thousands of glowing particles: '
       + 'one composition at a time, drifting and breathing slowly on a dark ground. '
       + 'Dense and luminous; reads as atmosphere, not as a made mark.'
