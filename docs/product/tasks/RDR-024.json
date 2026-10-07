@@ -3,9 +3,9 @@
   "title": "Offer one sound list",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "planned",
+  "status": "in_progress",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
     "RDR-020"
@@ -26,16 +26,26 @@
       "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
       "note": "Owner decisions Q1-Q6, 2026-10-05.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/476",
+      "note": "One grouped sound list in setup and the Look sheet; swells to the Workshop; tone delivery and waveform still in setup until Make can set them.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
     {
       "date": "2026-10-05T08:40:23.000Z",
       "summary": "Seeded from Package C5 after the owner decisions."
+    },
+    {
+      "date": "2026-10-07T12:33:20.671Z",
+      "summary": "Opened as #476; tone delivery and waveform remain in setup until Make can set them."
     }
   ],
-  "updatedAt": "2026-10-05T08:40:23.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-07T12:33:20.671Z",
+  "revision": 2,
   "summary": "Reader setup's 3 soundscapes and the 24 elsewhere become one grouped list.",
   "blocker": null
 }
