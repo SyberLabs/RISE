@@ -19,13 +19,14 @@ which replaced the Oracle
 ## One engine
 
 Both skins compose with **the roll** (`src/core/roll.js`): a reading on the
-device, by chance inside bounds (work × section × temper). It is the decision
+device, by chance inside bounds (work × section × look × rhythm × pace, the
+look from `src/core/looks.js`). It is the decision
 shape Jev returns, passes the same admission (`validateJevRecommendation`), and
 says what it is (`model: rise/roll-1`, `provider: RISE`). Nothing is sent; no
-provider is called. It never repeats the previous work or temper, so going
-again always changes something: no part (the work, the temper, the section)
+provider is called. It never repeats the previous work or look, so going
+again always changes something: no part (the work, the look, the section)
 repeats the previous roll. Home rolls vivid readings only
-(`vivid: true`: the tempers whose visuals are immersive or psychedelic), as
+(`vivid: true`: the looks whose visuals are immersive or psychedelic), as
 today's poem is read. A roll carries `title` and `author`, from a
 small table held to the Library by a test, so a standalone page can name a work
 without loading the Library.

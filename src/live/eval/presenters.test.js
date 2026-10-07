@@ -171,8 +171,7 @@ describe('spoken, over a generic visualizer', () => {
         document.documentElement.classList.add(mode);
         try {
             const { clock } = speak({ visualizer: true });
-            await flush();
-            expect(fields).toHaveLength(1);
+            await vi.waitFor(() => expect(fields).toHaveLength(1));
             await clock.runAll();
             expect(fields[0].calls).toEqual([]);
         } finally {

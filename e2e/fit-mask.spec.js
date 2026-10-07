@@ -68,7 +68,7 @@ async function openPrep(page, viewport, prefs = PREFS) {
   await page.goto('/');
   await openHomeNav(page, 'chamber');
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
-  { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
+  { const look = page.locator('#modal-look'); if (await look.isHidden()) await page.locator('[data-orbit="look"]').click(); }
   await page.locator('[data-orbit="visual"]').click();
   // A phone opens the stage, whose Letters sheet holds Face, Size and Ink;
   // a desk opens the directory and walks to Size.
@@ -142,6 +142,9 @@ async function begin(page) {
   const closeVisual = page.locator('#modal-visual [data-close="visual"]');
   if (await closeStage.isVisible()) await closeStage.click();
   else if (await closeVisual.isVisible()) await closeVisual.click();
+  // The Visuals panel opens from the Customize look sheet, which stays open.
+  const closeLook = page.locator('#modal-look [data-close="look"]');
+  if (await closeLook.isVisible()) await closeLook.click();
   await page.locator('#begin-btn').click();
   const warning = page.locator('#photosensitivity-modal');
   const display = page.locator('#chamber-display');

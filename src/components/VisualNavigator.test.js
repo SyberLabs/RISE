@@ -957,7 +957,7 @@ describe('reader-facing state', () => {
 
   it('reopens on the glass the reading was saved with', () => {
     // The switch survived the port from VIP only as a capability: the Chamber
-    // honours interlocution.streamGlass and a Stance still sets it, so without
+    // honours interlocution.streamGlass and a look still sets it, so without
     // a control a preset could put the reading behind glass and no reader
     // could take it away. It round-trips on the compiler's own default —
     // glass unless explicitly false.

@@ -5,10 +5,10 @@ import { validateJevRecommendation } from '../app/jev-reading.js';
 import { resolveJevChamberConfig } from '../core/jev-config.js';
 import { jevColors } from '../core/jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../core/jev-sequence.js';
-import { rollReading } from '../core/roll.js';
+import { composeRoll, rollReading } from '../core/roll.js';
 import { Home } from './Home.js';
 import { DecisionError } from '../core/decision/call.js';
-import { acceptOpenRouterKey, resetConnectionForTests } from '../core/ai-connection.js';
+import { acceptOpenRouterKey, disconnect, resetConnectionForTests } from '../core/ai-connection.js';
 
 // The recommender runs in the page on the reader's own connection. Here a
 // stand-in connection answers with the decision each test scripts.
@@ -142,6 +142,48 @@ it('says what asking needs when there is no AI, sends nothing, and closes on Can
   portal.destroy();
 });
 
+it('offers Ask among Home\'s keys only while the reader\'s own AI is connected; the Menu entry stays', () => {
+  const { portal, container } = mount();
+  const ask = () => container.querySelector('.home-actions [data-home="ask-open"]');
+  expect(ask().hidden).toBe(true);
+  acceptOpenRouterKey(KEY);
+  expect(ask().hidden).toBe(false);
+  expect(ask().textContent.trim()).toBe('Ask for a reading');
+  expect(ask().classList.contains('home-link')).toBe(true);
+  expect(container.querySelector('.portal-nav [data-home="ask-open"]')).not.toBeNull();
+  disconnect();
+  expect(ask().hidden).toBe(true);
+  portal.destroy();
+});
+
+it('Ask on Home is the eighth target on a desk and opens the request', async () => {
+  acceptOpenRouterKey(KEY);
+  const { portal, container } = mount();
+  const targets = [...container.querySelectorAll('button:not([hidden]), a[href]')]
+    .filter(node => !node.closest('.portal-nav, dialog, .portal-legal'));
+  expect(targets.map(node => node.dataset.home || node.dataset.nav || node.dataset.action || node.className))
+    .toEqual(['library', 'make', 'settings', 'portal-menu-toggle', 'enter', 'roll', 'adjust', 'ask-open']);
+  container.querySelector('.home-actions [data-home="ask-open"]').click();
+  await vi.waitFor(() => expect(dialog(container).open).toBe(true));
+  expect(document.activeElement).toBe(field(container));
+  portal.destroy();
+});
+
+it('with a reading to resume, Continue leads, Ask keeps its place, and today\'s poem is the line after them', async () => {
+  acceptOpenRouterKey(KEY);
+  // A reading from the Library carries no presentation and no engine: the slot still names it.
+  const session = { name: 'Meditations · Book 1', wpm: 250, totalDuration: 60_000, visualConfig: null, presentation: null };
+  const { portal, container } = mount({ getCurrentSession: () => session });
+  portal.activate();
+  await vi.waitFor(() => expect(container.querySelector('.home-line')).not.toBeNull());
+  const targets = [...container.querySelectorAll('button:not([hidden]), a[href]')]
+    .filter(node => !node.closest('.portal-nav, dialog, .portal-legal'));
+  expect(targets.map(node => node.dataset.home || node.dataset.nav || node.dataset.action || node.className))
+    .toEqual(['library', 'make', 'settings', 'portal-menu-toggle', 'continue', 'roll', 'ask-open', 'enter']);
+  expect(container.querySelector('.home-meta').textContent).toBe('1 min');
+  portal.destroy();
+});
+
 it('is a labelled request with a microphone, Ask and Cancel once connected', async () => {
   acceptOpenRouterKey(KEY);
   const { portal, container } = mount();
@@ -180,10 +222,10 @@ it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and p
     body: JSON.stringify({ intent: 'i want something psychedelic fast tokyo drift style', nightDrive: true })
   }));
   expect(launch).not.toHaveBeenCalled();
-  // An asked reading has no temper, so no look word; the plan stays in the spoken status.
+  // An asked reading is named by the look its answer lowers into, here none of them; the plan stays in the spoken status.
   expect(container.querySelector('h1').textContent).toBe('Ulysses');
   expect(container.querySelector('.home-label').textContent).toBe('As you asked');
-  await vi.waitFor(() => expect(container.querySelector('.home-meta').textContent).toBe('James Joyce · 3 min'));
+  await vi.waitFor(() => expect(container.querySelector('.home-meta').textContent).toBe('James Joyce · 3 min · Custom'));
   expect(container.querySelector('.home-epigraph').dataset.face).toBe('jp');
   expect(homeStatus(container)).toBe('As you asked. Ulysses, by James Joyce. Fast phrases, fractal light, chase, large japanese serif.');
   const note = container.querySelector('.home-note');
@@ -204,7 +246,7 @@ it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and p
   await vi.waitFor(() => expect(hook(container, 'roll').disabled).toBe(false));
   hook(container, 'roll').click();
   await vi.waitFor(() => expect(portal.reading).not.toBe(asked), { timeout: 3000 });
-  expect(rollReading).toHaveBeenLastCalledWith({ previous: { temper: null, decision: asked.decision }, vivid: true });
+  expect(rollReading).toHaveBeenLastCalledWith({ previous: { look: null, decision: asked.decision }, vivid: true });
   expect(container.querySelector('.home-note').hidden).toBe(true);
   portal.destroy();
 });
@@ -286,6 +328,21 @@ it('keeps what was typed while Home is open, across closing and opening again', 
   hook(container, 'ask-cancel').click();
   await openAsk(container);
   expect(field(container).value).toBe('something slow about the sea');
+  portal.destroy();
+});
+
+it('names an asked reading by the look its answer lowers into', async () => {
+  acceptOpenRouterKey(KEY);
+  // A Jev answer that lowers into exactly Nocturne's field, sound, type and colour.
+  const nocturne = composeRoll({ look: 'nocturne', workId: 'ulysses', section: 'first' });
+  const answer = { ...nocturne, model: 'typesafe/jev-1.13', provider: 'TypeSafe' };
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json(answer)));
+  const { portal, container } = mount();
+  await openAsk(container);
+  ask(container, 'something slow under rain');
+  await vi.waitFor(() => expect(dialog(container).open).toBe(false), { timeout: 3000 });
+  expect(container.querySelector('.home-label').textContent).toBe('As you asked');
+  await vi.waitFor(() => expect(container.querySelector('.home-meta').textContent).toBe('James Joyce · 6 min · Nocturne'));
   portal.destroy();
 });
 

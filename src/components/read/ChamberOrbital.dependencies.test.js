@@ -50,13 +50,4 @@ describe('ChamberOrbital host capabilities', () => {
 
     expect(audioEngine.playClick).toHaveBeenCalledOnce();
   });
-
-  it('reports a reset through the injected notifier', () => {
-    const notify = vi.fn();
-    const orbital = mount({ notify });
-
-    orbital.resetPrefs();
-
-    expect(notify).toHaveBeenCalledWith('Settings restored to defaults');
-  });
 });

@@ -32,7 +32,7 @@ async function mockScoring(page, { delayMs = 0, treatmentId = EMPTY_TREATMENT, s
   return requests;
 }
 
-/** Library → Middlemarch → first chapter → Read with imagery → Begin. */
+/** Library → Middlemarch → first chapter → Gallery → Begin. */
 async function beginChapter(page, { wpm = 1000, text = null, connectAI = false } = {}) {
   await page.goto('/');
   await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
@@ -46,7 +46,7 @@ async function beginChapter(page, { wpm = 1000, text = null, connectAI = false }
     await page.locator('.toc-entry').first().click();
   }
   await page.waitForFunction(() => !!window.__RISE_TEST__?.getView('read')?.paneInstance('setup')?.config?.text, null, { timeout: 20_000 });
-  await page.locator('[data-stance="imagery"]').first().check({ force: true });
+  await page.locator('[data-look="gallery"]').click();
   await page.evaluate((value) => {
     window.__RISE_TEST__.getView('read').paneInstance('setup').config.wpm = value;
   }, wpm);
