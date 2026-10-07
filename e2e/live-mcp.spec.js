@@ -483,6 +483,39 @@ test('once the reading has ended, the display stays, its field holds one frame, 
   await expect(app.getByRole('button', { name: 'Play again', exact: true })).toBeVisible();
 });
 
+test('from the keyboard alone: Play, Pause, the sheet and Play again, with the focus kept on the stage throughout', async ({ page, baseURL }) => {
+  const app = await openHost(page, baseURL, { current: { ...TWO_FIELDS, id: 'one-field', segments: TWO_FIELDS.segments.slice(0, 1) } });
+  const object = app.locator('#rise-stage-controls [data-stage="play"]');
+  const settings = app.getByRole('button', { name: 'Settings', exact: true });
+  const status = app.locator('.rise-stage__status');
+  await app.getByRole('button', { name: 'Play', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  // The poster's Play is gone once pressed; the focus is handed to the object that replaced it.
+  await expect(object).toHaveAttribute('aria-label', 'Pause', { timeout: 10_000 });
+  await expect(object).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(status).toContainText('Paused.');
+  await expect(object).toBeFocused();
+
+  await page.keyboard.press('Tab');
+  await expect(settings).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(app.locator('#rise-settings')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(app.locator('#rise-settings')).toBeHidden();
+  await expect(settings).toBeFocused();
+
+  await page.keyboard.press('Shift+Tab');
+  await expect(object).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(status).toContainText('Finished', { timeout: 20_000 });
+  await expect(object).toHaveAttribute('aria-label', 'Play again');
+  await expect(object).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(object).toHaveAttribute('aria-label', 'Pause', { timeout: 10_000 });
+  await expect(object).toBeFocused();
+});
+
 /** The Settings sheet's own scroll: a card scrolls nothing inside it ("No nested scrolling"). */
 const sheetScroll = app => app.locator('#rise-settings').evaluate(sheet => sheet.scrollHeight - sheet.clientHeight);
 

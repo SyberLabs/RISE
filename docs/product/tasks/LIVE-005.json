@@ -3,9 +3,9 @@
   "title": "Complete reader control and durable replay",
   "lane": "live-sdk",
   "milestone": "M2 control and replay",
-  "status": "planned",
+  "status": "in_review",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
     "LIVE-004"
@@ -58,6 +58,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/423",
       "note": "Open, not merged: rise_present described as the plugin docs ask, the host's tool-cancelled heard by the port and the embed, host context kept from the hello and merged on change, a cancel after delivery keeps the answer, /live in run_worker_first. Branch evidence only.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-07-reader-control-and-replay.md",
+      "note": "M2 mapped line by line to tests in the embed: Stop folded into Pause and teardown; settings kept vs for this reading; place kept through pauses and hidden pages (#484); the focus handed to the stage for keyboard readers; replay as the host redelivery and Play again, with a Vault save left out of the card (reversible, owner to confirm).",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -76,10 +82,14 @@
     {
       "date": "2026-10-05T13:19:25.034Z",
       "summary": "Linked the embed stage decision record, #420 (held frame after resize) and #423 (tool-cancelled, host context); status unchanged (Composer lane)"
+    },
+    {
+      "date": "2026-10-07T20:29:04.826Z",
+      "summary": "M2 built in the embed and recorded; keyboard focus handover added; real-host witness deferred to the final pass"
     }
   ],
-  "updatedAt": "2026-10-05T13:19:25.034Z",
-  "revision": 4,
+  "updatedAt": "2026-10-07T20:29:04.826Z",
+  "revision": 5,
   "summary": "Predictable Begin/pause/resume/Stop, no stale callback restart, place preservation and existing interchange/Vault replay.",
-  "blocker": null
+  "blocker": "Built and pinned by tests; the real-host witness waits for the whole product to be provisionally ready (owner, 2026-10-07)."
 }

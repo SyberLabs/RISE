@@ -66,6 +66,7 @@ afterEach(() => {
     stage?.destroy();
     stage = null;
     document.body.replaceChildren();
+    vi.restoreAllMocks();
 });
 
 describe('the one object', () => {
@@ -95,6 +96,40 @@ describe('the one object', () => {
         expect(play().getAttribute('aria-label')).toBe('Starting');
         runtime.set('live');
         expect(play().disabled).toBe(false);
+    });
+
+    // jsdom says a document has the focus only while one of its elements has it; a browser's frame has it with
+    // the focus on its body too, which is where it is once the pressed control is gone.
+    const frameHasFocus = has => vi.spyOn(document, 'hasFocus').mockReturnValue(has);
+
+    it('takes the focus when asked, once it can be pressed, so a keyboard reader who pressed Play is on Pause', () => {
+        frameHasFocus(true);
+        const runtime = fakeRuntime('starting');
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, takeFocus: true });
+        expect(document.activeElement).not.toBe(play());
+        runtime.set('live');
+        expect(document.activeElement).toBe(play());
+    });
+
+    it('never takes the focus from where the reader has put it, from a frame that has lost it, nor unless asked', () => {
+        const left = frameHasFocus(false);
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, takeFocus: true });
+        expect(document.activeElement).not.toBe(play());
+        stage.destroy();
+        left.mockRestore();
+
+        const elsewhere = document.createElement('button');
+        document.body.append(elsewhere);
+        const runtime = fakeRuntime('starting');
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, takeFocus: true });
+        elsewhere.focus();
+        runtime.set('live');
+        expect(document.activeElement).toBe(elsewhere);
+        stage.destroy();
+
+        elsewhere.blur();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {} });
+        expect(document.activeElement).not.toBe(play());
     });
 
     it('is Play again once the reading has ended, and asks the host, never the finished runtime', () => {
