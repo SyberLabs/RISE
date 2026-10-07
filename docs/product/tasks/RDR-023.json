@@ -41,6 +41,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/491",
       "note": "Part 1, one family and one colour (R6): Follow text chooses only the five flame compositions a theme can colour (Prismatic Knot's spectrum left out), locally and from Jev (menu, response check and staging; catalogue version 2 retires cached wider choices); a reading with no theme lowers them through classic. Saved readings replay as shown. Remaining: part 2, the Gallery look follows with sourced works; part 3, Living Flame as a dedicated setup mode understood by Follow text, Page view and the Workshop fallback.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/494",
+      "note": "Part 3: Living Flame as a dedicated setup mode (DEDICATED_MODE) understood by directionEligibility, src/page/flow.js, visualFallbackCueFromConfig, the Workshop project and the Chamber; the Flame look lowers into it.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -55,10 +61,14 @@
     {
       "date": "2026-10-07T21:34:20.772Z",
       "summary": "Part 1: Follow text keeps one family and one colour"
+    },
+    {
+      "date": "2026-10-07T22:18:31.945Z",
+      "summary": "Part 3: Living Flame is a listed Dynamic engine with a mode of its own"
     }
   ],
-  "updatedAt": "2026-10-07T21:34:20.772Z",
-  "revision": 3,
-  "summary": "Follow text varies intensity and composition within the reading's own engines and theme.",
+  "updatedAt": "2026-10-07T22:18:31.945Z",
+  "revision": 4,
+  "summary": "Follow text varies intensity and composition within the reading’s own engines and theme. Part 1 (#491): Follow chooses only the five flame compositions a theme can colour, lowered through classic when a reading names no theme. Part 3 (#494): Living Flame is a listed Dynamic engine with a dedicated mode, visualMode living-flame, in the theme’s composition and colours; Follow text, the Page, the Workshop fallback and project, the Chamber and setup all know it, and the Flame look lowers into it. Remaining: part 2, the Gallery look follows the text with sourced works, which waits on the owner’s choice of collections and mood matching.",
   "blocker": null
 }
