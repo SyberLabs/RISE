@@ -167,11 +167,8 @@ export default defineConfig({
     // a fork from a measurement that only ever watched one; the number that
     // matters is what a fork holds by the end, and that is over 2 GB.
     pool: 'forks',
-    poolOptions: {
-      forks: { execArgv: [`--max-old-space-size=${WORKER_HEAP_MB}`] }
-    },
+    execArgv: [`--max-old-space-size=${WORKER_HEAP_MB}`],
     maxWorkers: Math.max(1, Math.min(coreCeiling, memoryCeiling)),
-    minWorkers: 1,
 
     include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js']
   }

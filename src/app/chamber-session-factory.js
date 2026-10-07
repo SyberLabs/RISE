@@ -34,9 +34,12 @@ export async function createChamberSession(operations, container, sessionData) {
     // A LIVE READING ARRIVES WITH ITS PLAYER, ALREADY RUNNING OR HELD. It is the
     // one Player for the whole Current, so it is adopted, not rebuilt; and
     // because the view replaces one already on screen (a Dive, coming back), the
-    // preparation overlay and its settling delay are skipped.
+    // preparation overlay and its settling delay are skipped. So are they for a
+    // reading begun from Home: the router keeps Home shown under the Read view
+    // until this one has faded in, so Home's own field is the ground (RDR-015).
     const live = takeLivePlayer(session);
-    const ui = live ? { showLoading() {}, updateLoadingStatus() {}, hideLoading() {} } : operations;
+    const quiet = live || session?.origin?.view === 'home';
+    const ui = quiet ? { showLoading() {}, updateLoadingStatus() {}, hideLoading() {} } : operations;
     const revision = operations.router.navigationRevision;
     const assertCurrent = () => {
         if (revision !== operations.router.navigationRevision) throw new DOMException('Launch cancelled', 'AbortError');
@@ -437,7 +440,7 @@ export async function createChamberSession(operations, container, sessionData) {
         }
 
         // Brief delay for smooth transition
-        if (!live) await new Promise(resolve => setTimeout(resolve, 300));
+        if (!quiet) await new Promise(resolve => setTimeout(resolve, 300));
         assertCurrent();
 
         ui.hideLoading();

@@ -14,14 +14,17 @@
  * instrument (src/live/eval/study.js) and `?eval=later` with its later questions.
  * `?voice=paced` makes the reading silent and
  * paced as if spoken, which is what every automated test uses. `?measure=1`
- * exposes a read-only record of when atoms were shown and when the voice spoke
- * (`window.__riseLive`), which is how sync error is measured in a real browser.
+ * exposes a read-only record of when atoms were shown, when the voice spoke and
+ * which installed voice it was (`window.__riseLive`), which is how sync error is
+ * measured in a real browser.
  *
  * `?embed=mcp` is the page an MCP host's app frames (worker/mcp-server.mjs,
  * src/live/hosts/mcp-relay.js): no prompt, no provider to choose. The host's own
  * model wrote the answer and hands it over through the frame's parent; the same
  * runtime, Chamber and voice play it, under the stage's two objects
- * (stage-controls.js) instead of this page's bar.
+ * (stage-controls.js) instead of this page's bar. With `?log=host` as well, a
+ * witness session's switch, the port writes what the host says about the frame
+ * to the console as JSON lines (docs/plans/EMBED-WITNESS.md); nothing else.
  */
 
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
@@ -100,6 +103,8 @@ export class LiveHost {
         // Which voice the reading uses, and how many voices the browser offered, once each is known.
         this.voiceKind = null;
         this.voiceCount = null;
+        // The installed voice a browser reading speaks with, by name and language; null leaves the browser's default.
+        this.spokenVoice = null;
         this.destroyed = false;
         this.starting = false;
         this.embeddedStartupCancelled = false;
@@ -110,6 +115,7 @@ export class LiveHost {
         this.embeddedQueuedCurrent = null;
         this.embeddedBeginStarted = false;
         this.embeddedEvents = null;
+        this.embeddedTheme = null;
         this.stopListeningCurrent = null;
         this.stopListeningError = null;
         this.embeddedAnswerTimeoutMs = 60_000;
@@ -381,15 +387,7 @@ export class LiveHost {
         }
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
-        // The container is shown before the router finishes its fade-in. Stop exposing controls as
-        // soon as it is hidden, and resolve the instance through the router's public API.
-        const mountedChamber = player => {
-            // On screen only: Read's container shown and the chamber pane the one it shows.
-            const read = this.router?.getViewInstance?.('read');
-            if (this.router?.views?.get('read')?.container?.hidden !== false || read?.activePane !== 'chamber') return null;
-            const chamber = read.paneInstance('chamber');
-            return chamber?.player === player ? chamber : null;
-        };
+        const mountedChamber = player => this.chamberPlaying(player);
         const runtime = createLiveRuntime({
             adapter: await this.buildAdapter(clock, createMockAdapter),
             clock,
@@ -415,10 +413,24 @@ export class LiveHost {
                 journal: () => runtime.journal(),
                 atoms: () => this.atomLog.map(entry => ({ ...entry })),
                 startedAt: () => this.startedAt,
+                voice: () => this.spokenVoice,
                 now: () => performance.now()
             });
         }
         return runtime;
+    }
+
+    /**
+     * The Chamber on screen playing `player`, or null. The container is shown before the router
+     * finishes its fade-in. Stop exposing controls as soon as it is hidden, and resolve the instance
+     * through the router's public API.
+     */
+    chamberPlaying(player) {
+        // On screen only: Read's container shown and the chamber pane the one it shows.
+        const read = this.router?.getViewInstance?.('read');
+        if (this.router?.views?.get('read')?.container?.hidden !== false || read?.activePane !== 'chamber') return null;
+        const chamber = read.paneInstance('chamber');
+        return chamber?.player === player ? chamber : null;
     }
 
     /**
@@ -475,7 +487,7 @@ export class LiveHost {
     async buildVoices(clock) {
         const wants = this.selectedVoice();
         if (wants === 'browser') {
-            const { createBrowserVoice, whenVoicesAvailable } = await import('../voices/browser.js');
+            const { chooseVoice, createBrowserVoice, whenVoicesAvailable } = await import('../voices/browser.js');
             const synth = this.env.speechSynthesis;
             const list = await whenVoicesAvailable(synth, { clock });
             this.voiceCount = list.length;
@@ -483,9 +495,13 @@ export class LiveHost {
                 this.voiceKind = 'browser';
                 this.showNotes();
                 const speech = { synth, Utterance: this.env.SpeechSynthesisUtterance };
-                return { create: () => createBrowserVoice({ speech, clock, lang: this.env.navigator?.language || 'en' }) };
+                const lang = this.env.navigator?.language || 'en';
+                const voice = chooseVoice(list, lang);
+                this.spokenVoice = voice ? Object.freeze({ name: voice.name, lang: voice.lang }) : null;
+                return { create: () => createBrowserVoice({ speech, clock, lang, voice }) };
             }
         }
+        this.spokenVoice = null;
         const { createSyntheticVoice } = await import('../voices/synthetic.js');
         this.voiceKind = 'paced';
         this.showNotes();
@@ -593,7 +609,7 @@ export class LiveHost {
         try {
             const [{ createMcpGuestPort }] = await Promise.all([import('../hosts/mcp-port.js'), this.modules]);
             if (this.destroyed || this.embeddedStartupCancelled) return;
-            this.port = createMcpGuestPort({ frame });
+            this.port = createMcpGuestPort({ frame, log: this.params.get('log') === 'host' ? line => console.log(line) : undefined });
             this.stopListeningError = this.port.onError(error => this.refuseEmbeddedProposal(error));
             this.port.onToolCancelled(() => {
                 // The host withdrew the call this frame waits on: no answer will come of it. An
@@ -778,6 +794,8 @@ export class LiveHost {
      * text, never markup; the heading is clamped to three lines, so the whole title is its label too.
      */
     showPoster({ title, theme }) {
+        // The answer's own theme: what the stage's Theme row calls "As written".
+        this.embeddedTheme = theme ?? null;
         this.paintEmbedTheme(theme);
         const main = this.container.querySelector('.live-host--embedded');
         main.classList.add('live-host--poster');
@@ -842,6 +860,8 @@ export class LiveHost {
             this.controls = createStageControls({
                 runtime,
                 onPlayAgain: () => { void this.playAgainEmbedded(); },
+                chamber: () => { const player = runtime.playerFor?.(); return player ? this.chamberPlaying(player) : null; },
+                paintTheme: theme => this.paintEmbedTheme(theme ?? this.embeddedTheme),
                 audible: this.voiceKind === 'browser',
                 degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability))
             });

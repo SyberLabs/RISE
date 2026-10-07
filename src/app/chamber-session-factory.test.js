@@ -108,3 +108,45 @@ describe('when the factory lets go of the session', () => {
             .toBeLessThan(op.router.back.mock.invocationCallOrder[0]);
     });
 });
+
+describe('a reading begun from Home', () => {
+    // Home's own field is the ground the router holds under the Read view, so
+    // the preparation overlay and its settle have nothing to cover (RDR-015).
+    it('raises no preparation overlay and does not settle', async () => {
+        const op = operations();
+        vi.useFakeTimers();
+
+        await createChamberSession(op, document.createElement('div'), { ...session(), origin: { view: 'home' } });
+
+        expect(Chamber).toHaveBeenCalledTimes(1);
+        expect(op.showLoading).not.toHaveBeenCalled();
+        expect(op.updateLoadingStatus).not.toHaveBeenCalled();
+        expect(op.hideLoading).not.toHaveBeenCalled();
+    });
+
+    it('leaves the overlay and the settle to a reading begun anywhere else', async () => {
+        const op = operations();
+        vi.useFakeTimers();
+
+        const pending = createChamberSession(op, document.createElement('div'), { ...session(), origin: { view: 'library' } });
+        await vi.advanceTimersByTimeAsync(299);
+        expect(Chamber).not.toHaveBeenCalled();
+        await vi.advanceTimersByTimeAsync(1);
+        await pending;
+
+        expect(Chamber).toHaveBeenCalledTimes(1);
+        expect(op.showLoading).toHaveBeenCalledWith('Preparing Session');
+        expect(op.hideLoading).toHaveBeenCalledTimes(1);
+    });
+
+    it('is as quiet as a live reading', async () => {
+        const op = operations();
+        const live = session();
+        offerLivePlayer(live, { stop: vi.fn(), on: vi.fn() });
+
+        await createChamberSession(op, document.createElement('div'), live);
+
+        expect(op.showLoading).not.toHaveBeenCalled();
+        expect(op.hideLoading).not.toHaveBeenCalled();
+    });
+});

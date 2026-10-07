@@ -15,7 +15,9 @@
     "No text streams on Home and no sound plays before a press.",
     "All five rooms are reachable in 1 click on desktop and 2 taps on phone.",
     "Continue appears if and only if a reading can be resumed, and is then the primary action.",
-    "npm run measure:first-load holds."
+    "npm run measure:first-load holds.",
+    "Criterion 4 (R2) is held by RDR-015 and FND-010",
+    "Criterion 7 is RDR-007/RDR-009"
   ],
   "evidence": [
     {
@@ -35,6 +37,48 @@
       "ref": "docs/product/discussions/2026-10-05-canonical-home-design.md",
       "note": "B4 design: the still window, eight pull requests, five owner questions",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/427",
+      "note": "The B4 design record. Merged.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/430",
+      "note": "PR 1: word counts to Home and the exact division to Adjust. Merged.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/431",
+      "note": "PR 2: the stage keeps the old engine at full strength under the incoming one. Merged.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/433",
+      "note": "PR 3: a finished or unopened reading releases the session. Merged.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/436",
+      "note": "PR 4a: the still window, the stream out, Begin the one key. Merged.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/440",
+      "note": "PR 4b: Library, Make and Settings in the header on a desk, Adjust always, Ask when connected. Merged.",
+      "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/453",
+      "note": "PR 4c: Continue leads when a reading is in memory. Merged.",
+      "date": "2026-10-05"
     }
   ],
   "activity": [
@@ -49,10 +93,18 @@
     {
       "date": "2026-10-05T17:55:03.092Z",
       "summary": "B4 design recorded (docs/product/discussions/2026-10-05-canonical-home-design.md): the still window, eight pull requests, five owner questions; criterion 4 held by RDR-015 and FND-010."
+    },
+    {
+      "date": "2026-10-05T23:10:27.769Z",
+      "summary": "PR 5 (b4-frame-test): src/components/home-frame.test.js pins the order of Home's six regions and the action hooks (docs/product/discussions/2026-10-05-canonical-home-design.md §2, criterion 7); acceptance records criterion 4 under RDR-015 and FND-010 and criterion 7 under RDR-007/RDR-009; evidence lists the B4 pull requests #427, #430, #431, #433, #436, #440 (merged) and #453 (open)."
+    },
+    {
+      "date": "2026-10-05T23:23:01.857Z",
+      "summary": "PR 4c merged as #453."
     }
   ],
-  "updatedAt": "2026-10-05T17:55:03.092Z",
-  "revision": 3,
+  "updatedAt": "2026-10-05T23:23:01.857Z",
+  "revision": 5,
   "summary": "The canonical Home, 'a home with a window': the featured reading's field full screen, an epigraph set still, Begin as the only primary action, Continue when there is a reading to resume, Adjust into Read, the rooms as header links. Build authorized by Mateo on 2026-10-05 with Seth's full agreement; Seth reviews. Uses the existing backdrop renderer; D1 replaces it later.",
   "blocker": null
 }

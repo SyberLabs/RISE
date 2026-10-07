@@ -153,15 +153,22 @@ export class Router {
                 throw new DOMException('Launch cancelled', 'AbortError');
             }
         };
+        // A reading launched from Home is drawn over Home's last frame: Home
+        // stays shown and running under the Read view until the reading has
+        // faded in, so no bare ground shows between the two (RDR-015). The
+        // stylesheet lifts #view-read above #view-home while both show.
+        let homeHeld = launchesReading && previousViewName === 'home';
 
         try {
             if (inPlace) {
                 await newView.instance.update(options.data);
             } else {
-                previousView?.instance?.deactivate?.();
-                if (previousView?.container) {
-                    await this.fadeOut(previousView.container);
-                    previousView.container.hidden = true;
+                if (!homeHeld) {
+                    previousView?.instance?.deactivate?.();
+                    if (previousView?.container) {
+                        await this.fadeOut(previousView.container);
+                        previousView.container.hidden = true;
+                    }
                 }
 
                 assertCurrentLaunch();
@@ -189,6 +196,11 @@ export class Router {
                 newView.container.hidden = false;
                 await this.fadeIn(newView.container);
                 assertCurrentLaunch();
+                if (homeHeld) {
+                    previousView.instance?.deactivate?.();
+                    previousView.container.hidden = true;
+                    homeHeld = false;
+                }
                 newView.instance?.activate?.();
             }
 
@@ -234,7 +246,8 @@ export class Router {
 
             newView.instance?.deactivate?.();
             if (newView.container !== previousView?.container) newView.container.hidden = true;
-            if (previousView?.container) {
+            // A Home still held was never taken down, so it is not brought back.
+            if (previousView?.container && !homeHeld) {
                 previousView.container.hidden = false;
                 await this.fadeIn(previousView.container).catch(() => {});
                 previousView.instance?.activate?.();

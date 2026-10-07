@@ -1,10 +1,10 @@
 /**
- * THE PROMPT AND THE WAY BACK DO NOT SHARE A ROW.
+ * THE TITLE AND THE WAY BACK DO NOT SHARE A ROW.
  *
- * `.orbital-back` and `.orbital-origin-slot` are absolutely positioned in the
- * top corners while "How do you want to read?" sits in the centred flow. At
- * phone widths the flow rises into the corners and the Library chip lands on
- * top of the prompt — in the primary entry corridor.
+ * `.orbital-back` and `.orbital-origin-slot` sit in the header's corners
+ * while the text's title opens the flow beneath. At phone widths the flow
+ * must not rise into the corners and put the Library chip on top of the
+ * title — in the primary entry corridor.
  *
  * Measured as geometry rather than inspected: two rectangles either intersect
  * or they do not, and no amount of shrinking type is an answer to overlap.
@@ -37,14 +37,14 @@ test('the prompt and the Library chip never occupy the same pixels', async ({ pa
     }, { seed: SEED });
     await page.goto('/');
     await openHomeNav(page, 'chamber');
-    await expect(page.locator('.stance-question')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('.text-name')).toBeVisible({ timeout: 20_000 });
 
     const collisions = [];
     for (const viewport of WIDTHS) {
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
         await page.waitForTimeout(350);
 
-        const prompt = await page.locator('.stance-question').boundingBox();
+        const prompt = await page.locator('.text-name').boundingBox();
         const library = await page.locator('.orbital-origin-chip').boundingBox();
         const back = await page.locator('.orbital-back').boundingBox();
 
