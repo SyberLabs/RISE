@@ -749,33 +749,42 @@ describe('the lifecycle gate goes quiet without a click', () => {
  * trace. One console line per site, the first time only.
  */
 describe('a swallowed failure is said once', () => {
+  // The gate hands several test files to one fork, and a stop timer another
+  // file left running can land its own once-line in this spy. So the claims
+  // below are made on the errors this test threw, never on the text of a
+  // line, which any module instance of the engine could have written.
+  const saidAbout = (warn, error) => warn.mock.calls.filter(call => call[1] === error);
+
   it('warns the first time a node will not stop, and not the second', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const engine = new AudioEngine();
-    const stubborn = () => ({ stop() { throw new Error('already stopped'); } });
+    const first = new Error('already stopped');
+    const second = new Error('already stopped, again');
 
-    engine.layers.noise = stubborn();
+    engine.layers.noise = { stop() { throw first; } };
     engine.stopNoise(true);
     expect(engine.layers.noise).toBeNull();
-    engine.layers.noise = stubborn();
+    engine.layers.noise = { stop() { throw second; } };
     engine.stopNoise(true);
 
-    const said = warn.mock.calls.filter(([line]) => String(line).includes('stopNoise'));
-    expect(said).toHaveLength(1);
-    expect(said[0][1].message).toBe('already stopped');
+    expect(saidAbout(warn, first)).toHaveLength(1);
+    expect(String(saidAbout(warn, first)[0][0])).toContain('stopNoise');
+    expect(saidAbout(warn, second)).toHaveLength(0);
   });
 
   it('counts per site, so another site still gets its one line', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const engine = new AudioEngine();
-    engine.layers.noise = { stop() { throw new Error('noise'); } };
+    const noise = new Error('noise');
+    const drone = new Error('drone');
+    engine.layers.noise = { stop() { throw noise; } };
     engine.stopNoise(true);
-    engine.layers.drone = { main: { stop() { throw new Error('drone'); } }, detune: { stop() {} } };
+    engine.layers.drone = { main: { stop() { throw drone; } }, detune: { stop() {} } };
     engine.stopDrone(true);
 
-    const lines = warn.mock.calls.map(([line]) => String(line));
-    expect(lines.filter(l => l.includes('stopNoise'))).toHaveLength(0);
-    expect(lines.filter(l => l.includes('stopDrone'))).toHaveLength(1);
+    expect(saidAbout(warn, noise), 'stopNoise already had its line above').toHaveLength(0);
+    expect(saidAbout(warn, drone)).toHaveLength(1);
+    expect(String(saidAbout(warn, drone)[0][0])).toContain('stopDrone');
     expect(engine.layers.drone).toBeNull();
   });
 });
