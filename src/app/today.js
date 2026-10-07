@@ -1,6 +1,6 @@
 /**
  * Today's poem, ready to read: the day's exact division in the day's look
- * (the vivid temper todayDecision draws), through the same edition gate as
+ * (the vivid look todayDecision draws), through the same edition gate as
  * Home's rolls. Leaving the reading returns Home.
  *
  * When this release carries the poem's recitation (src/audio/poem-recitation.json,
@@ -25,7 +25,7 @@ export function poemRecitation(pick, index = POEM_RECITATIONS) {
 export async function todaySession(date = new Date(), index = POEM_RECITATIONS) {
   const pick = todayPoem(date);
   const recitation = poemRecitation(pick, index);
-  const reading = await resolveJevReading(todayDecision(pick, { recited: Boolean(recitation) }),
+  const reading = await resolveJevReading(todayDecision(pick),
     { entryId: pick.entryId, label: pick.label });
   return {
     ...reading,

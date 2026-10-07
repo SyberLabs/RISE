@@ -6,12 +6,14 @@
  * never serialized with the session. Nothing here performs network work.
  */
 
+import { sessionColorTheme } from '../session-presentation.js';
+import { themedFlameLookup } from '../theme-engine-map.js';
 import { isContinuousPresentation } from '../visual-presence.js';
 import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
 import { PassageDirector } from './director.js';
 
 /**
- * The Gallery shelf a "Read with imagery" stance seeds when the reader has
+ * The Gallery shelf the Gallery look seeds when the reader has
  * chosen nothing. An empty or default shelf is permission for procedural
  * visuals, not a choice of a particular one.
  */
@@ -102,7 +104,9 @@ export function ensureDirector(session, state = directionStateFor(session)) {
         chunkProfile: source.chunkProfile ?? null
       }))
       .filter(source => typeof source.text === 'string');
-    const director = new PassageDirector({ sources, atoms: session.atoms || [], flameRecipe: flamePreset });
+    // The theme is lowered where the cue is built, so a saved cue draws as saved.
+    const flameRecipe = themedFlameLookup(flamePreset, sessionColorTheme(session));
+    const director = new PassageDirector({ sources, atoms: session.atoms || [], flameRecipe });
     if (!director.ready) throw new Error('No directable source text');
     state.director = director;
   } catch (error) {

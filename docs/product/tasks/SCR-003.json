@@ -1,0 +1,36 @@
+{
+  "id": "SCR-003",
+  "title": "Present looks and sourced stills in the embed",
+  "lane": "live-sdk",
+  "milestone": "Score stage 1",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": null,
+  "priority": "next",
+  "dependencies": [
+    "SCR-002"
+  ],
+  "acceptance": [
+    "A Current with a look opens in that look in the embed; the three visual ids still open as before.",
+    "The Intensity row hides for an engine without a verified mutable control.",
+    "A host session on the exact release records admission, Begin, the look and a sourced still (the LIVE-002 pattern)."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-06-score-speech-service-roadmap.md",
+      "note": "The score, speech and service roadmap; Record.",
+      "date": "2026-10-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-06T01:30:00.000Z",
+      "summary": "Seeded from the 2026-10-06 roadmap record."
+    }
+  ],
+  "updatedAt": "2026-10-06T01:30:00.000Z",
+  "revision": 1,
+  "summary": "The embed side of stage 1a (one look), witnessed in the real host; sourced stills, the CSP hosts and a bed are 1b.",
+  "blocker": null
+}

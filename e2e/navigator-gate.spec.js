@@ -16,8 +16,8 @@ async function openNavigator(page, { withText }) {
     }, { seed: SEED, withText });
     await page.goto('/');
     await openHomeNav(page, 'chamber');
-    await expect(page.locator('[data-action="toggle-adjust"]')).toBeVisible({ timeout: 20_000 });
-    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
+    await expect(page.locator('[data-orbit="look"]')).toBeVisible({ timeout: 20_000 });
+    { const look = page.locator('#modal-look'); if (await look.isHidden()) await page.locator('[data-orbit="look"]').click(); }
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vnav')).toBeVisible({ timeout: 10_000 });
 }

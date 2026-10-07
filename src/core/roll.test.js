@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { TEMPERS, VISUAL_TEMPERS, rollReading, composeRoll, rollTitleOf } from './roll.js';
+import {
+  JEV_SPELLING, ROLL_LOOKS, ROLL_RANGES, VIVID_LOOKS, rollReading, composeRoll, rollTitleOf
+} from './roll.js';
+import { LOOKS } from './looks.js';
+import { resolveJevChamberConfig } from './jev-config.js';
 import { getTextById } from '../content/library.js';
 import { validateJevRecommendation } from '../app/jev-reading.js';
 import { jevReleasedWorkIds, summarizeJevPlan } from './jev-describe.js';
@@ -16,6 +20,9 @@ function seeded(seed) {
   };
 }
 
+const SECTIONS = ['first', 'middle', 'last', 'shortest', 'longest'];
+const ids = looks => looks.map(look => look.id);
+
 describe('a roll', () => {
   it('draws only from works RISE has released', () => {
     const released = new Set(jevReleasedWorkIds());
@@ -25,18 +32,22 @@ describe('a roll', () => {
     }
   });
 
-  it('is admitted by the same gate as a Jev answer, for every temper, work and section', () => {
-    for (const temper of TEMPERS) {
-      for (const workId of jevReleasedWorkIds()) {
-        for (const section of ['first', 'middle', 'last', 'shortest', 'longest']) {
-          const decision = composeRoll({ temper, workId, section, random: seeded(workId.length + section.length) });
-          expect(() => validateJevRecommendation(decision), `${temper.id} × ${workId} × ${section}`).not.toThrow();
+  it('is admitted by the same gate as a Jev answer, for every look, its rhythms and paces, every work and section', () => {
+    let turn = 0;
+    for (const { id: look } of ROLL_LOOKS) {
+      for (const rhythm of ROLL_RANGES[look].rhythms) {
+        for (const pace of ROLL_RANGES[look].paces) {
+          for (const workId of jevReleasedWorkIds()) {
+            const section = SECTIONS[turn++ % SECTIONS.length];
+            const decision = composeRoll({ look, workId, section, rhythm, pace, random: seeded(turn) });
+            expect(() => validateJevRecommendation(decision), `${look} × ${rhythm} × ${pace} × ${workId}`).not.toThrow();
+          }
         }
       }
     }
   });
 
-  it('stays admitted across many random draws inside each temper', () => {
+  it('stays admitted across many random draws', () => {
     const random = seeded(7);
     for (let i = 0; i < 1000; i += 1) {
       expect(() => validateJevRecommendation(rollReading({ random }).decision)).not.toThrow();
@@ -50,13 +61,21 @@ describe('a roll', () => {
     expect(decision.requestId).toMatch(/^roll-/u);
   });
 
-  it('never repeats the previous work or temper', () => {
+  it('carries the look it was composed in', () => {
+    const random = seeded(17);
+    for (let i = 0; i < 50; i += 1) {
+      const rolled = rollReading({ random });
+      expect(rolled.decision.look).toBe(rolled.look);
+    }
+  });
+
+  it('never repeats the previous work or look', () => {
     const random = seeded(11);
     let previous = rollReading({ random });
     for (let i = 0; i < 300; i += 1) {
       const next = rollReading({ random, previous });
       expect(next.decision.workId).not.toBe(previous.decision.workId);
-      expect(next.temper).not.toBe(previous.temper);
+      expect(next.look).not.toBe(previous.look);
       previous = next;
     }
   });
@@ -82,51 +101,132 @@ describe('a roll', () => {
     }
   });
 
-  it('reaches every temper', () => {
+  it('reaches every look it may draw, and every rhythm and pace inside each look', () => {
     const random = seeded(13);
-    const seen = new Set();
-    for (let i = 0; i < 400; i += 1) seen.add(rollReading({ random }).temper);
-    expect([...seen].sort()).toEqual(TEMPERS.map(temper => temper.id).sort());
+    const drawn = new Map();
+    for (let i = 0; i < 800; i += 1) {
+      const { look, decision } = rollReading({ random });
+      const seen = drawn.get(look) ?? { rhythms: new Set(), paces: new Set() };
+      seen.rhythms.add(decision.config.chunkMode);
+      seen.paces.add(decision.config.wpm);
+      drawn.set(look, seen);
+    }
+    expect([...drawn.keys()].sort()).toEqual(ids(ROLL_LOOKS).sort());
+    for (const [look, { rhythms, paces }] of drawn) {
+      expect([...rhythms].sort(), look).toEqual([...ROLL_RANGES[look].rhythms].sort());
+      expect([...paces].sort((a, b) => a - b), look).toEqual([...ROLL_RANGES[look].paces].sort((a, b) => a - b));
+    }
   });
 });
 
-describe('the look a roll leaves to its theme', () => {
-  const temperOf = id => TEMPERS.find(temper => temper.id === id);
-  const draws = (id, random) => composeRoll({ temper: temperOf(id), workId: jevReleasedWorkIds()[0], section: 'first', random }).config;
+describe('the looks a roll draws', () => {
+  it('are every look but Gallery and Flame, whose fields are not on Jev\'s menu, and Inlay, held back until five readers are observed', () => {
+    expect(ids(ROLL_LOOKS)).toEqual(['plain', 'nocturne', 'garden', 'signal', 'iris', 'revel', 'vigil']);
+  });
+
+  it('are the registry\'s own entries, so a look is tuned in one place', () => {
+    for (const look of ROLL_LOOKS) expect(LOOKS).toContain(look);
+  });
+
+  it('refuses a look a roll cannot draw', () => {
+    for (const look of ['gallery', 'flame', 'inlay', 'ember']) {
+      expect(() => composeRoll({ look, workId: jevReleasedWorkIds()[0], section: 'first' }), look).toThrow(TypeError);
+    }
+  });
+});
+
+describe('the spelling table', () => {
+  it('names each look value Jev\'s menu spells another way', () => {
+    expect(JEV_SPELLING).toEqual({
+      soundscape: { none: 'silent' },
+      galleryCadence: { 0.15: 'slow', 0.5: 'balanced', 0.85: 'lively' }
+    });
+  });
+
+  it('is the inverse of how Jev\'s plan is resolved', () => {
+    const plan = { chunkMode: 'phrase', visualMode: 'interlocution', visualEngine: 'turrell', visualStyle: 'gentle', fontSize: 'large', colorTheme: 'classic', wordFill: 'plain' };
+    for (const [soundscape, audio] of Object.entries(JEV_SPELLING.soundscape)) {
+      expect(resolveJevChamberConfig({ ...plan, audio, galleryCadence: 'slow' }).soundscape).toBe(soundscape);
+    }
+    for (const [cadence, name] of Object.entries(JEV_SPELLING.galleryCadence)) {
+      expect(resolveJevChamberConfig({ ...plan, audio: 'aurora', galleryCadence: name })
+        .visualConfig.interlocution.galleryCadence).toBe(Number(cadence));
+    }
+  });
+});
+
+describe('what a look leaves to its theme', () => {
+  const draws = (look, random) => composeRoll({ look, workId: jevReleasedWorkIds()[0], section: 'first', random }).config;
 
   it('signal names no filament palette: white, so the theme\'s row mounts', () => {
-    expect(temperOf('signal').palettes).toBeUndefined();
     for (const random of [() => 0, () => 0.5, () => 0.999]) expect(draws('signal', random).visualPalette).toBe('white');
   });
 
   it('garden names no Genesis preset: random, so the theme\'s preset mounts', () => {
-    expect(temperOf('garden').klee).toEqual(['random']);
     for (const random of [() => 0, () => 0.5, () => 0.999]) expect(draws('garden', random).kleePreset).toBe('random');
   });
 });
 
-describe('the rhythm a roll reads in', () => {
+describe('the rhythm and pace a roll reads at', () => {
+  it('comes from each look\'s own range, the one its temper had, centre first', () => {
+    expect(ROLL_RANGES).toEqual({
+      plain: { rhythms: ['sentence'], paces: [150, 200] },
+      nocturne: { rhythms: ['phrase'], paces: [150, 200] },
+      garden: { rhythms: ['phrase'], paces: [150, 200] },
+      signal: { rhythms: ['phrase'], paces: [250, 300] },
+      iris: { rhythms: ['phrase'], paces: [200, 250] },
+      revel: { rhythms: ['phrase'], paces: [300, 400] },
+      vigil: { rhythms: ['sentence', 'phrase'], paces: [100, 150] }
+    });
+    expect(Object.keys(ROLL_RANGES).sort()).toEqual(ids(ROLL_LOOKS).sort());
+  });
+
   it('is never a word at a time: Word stays a choice in Reader setup', () => {
-    for (const temper of TEMPERS) expect(temper.chunkMode, temper.id).not.toContain('word');
+    for (const [look, { rhythms }] of Object.entries(ROLL_RANGES)) expect(rhythms, look).not.toContain('word');
+  });
+
+  it('is the rhythm and pace it was given inside the look\'s range, with an even curve', () => {
+    for (const { id } of ROLL_LOOKS) {
+      const { rhythms, paces } = ROLL_RANGES[id];
+      const rhythm = rhythms.at(-1), pace = paces.at(-1);
+      const { config } = composeRoll({ look: id, workId: jevReleasedWorkIds()[0], section: 'first', rhythm, pace });
+      expect([config.chunkMode, config.wpm, config.curve], id).toEqual([rhythm, pace, 'flat']);
+    }
+  });
+
+  it('is the look\'s centre when none is given', () => {
+    for (const { id } of ROLL_LOOKS) {
+      const { config } = composeRoll({ look: id, workId: jevReleasedWorkIds()[0], section: 'first' });
+      expect([config.chunkMode, config.wpm], id).toEqual([ROLL_RANGES[id].rhythms[0], ROLL_RANGES[id].paces[0]]);
+    }
+  });
+
+  it('refuses a rhythm or a pace outside the look\'s range', () => {
+    const roll = overrides => () => composeRoll({ workId: jevReleasedWorkIds()[0], section: 'first', ...overrides });
+    expect(roll({ look: 'revel', pace: 150 })).toThrow(TypeError);
+    expect(roll({ look: 'revel', rhythm: 'sentence' })).toThrow(TypeError);
+    expect(roll({ look: 'vigil', rhythm: 'word' })).toThrow(TypeError);
+    expect(roll({ look: 'plain', rhythm: 'phrase' })).toThrow(TypeError);
   });
 });
 
 describe('a vivid roll', () => {
-  it('names the tempers whose visuals are immersive or psychedelic', () => {
-    expect(VISUAL_TEMPERS.map(item => item.id).sort()).toEqual(['ember', 'revel', 'signal']);
+  it('names the looks whose visuals are immersive or psychedelic', () => {
+    expect(ids(VIVID_LOOKS)).toEqual(['signal', 'iris', 'revel']);
   });
 
-  it('draws only vivid tempers, and never the previous one', () => {
+  it('draws only vivid looks, and never the previous one', () => {
     const random = seeded(53);
-    const vivid = new Set(VISUAL_TEMPERS.map(item => item.id));
+    const vivid = new Set(ids(VIVID_LOOKS));
     const seen = new Set();
     let previous = rollReading({ random, vivid: true });
     for (let i = 0; i < 300; i += 1) {
       const next = rollReading({ random, previous, vivid: true });
-      expect(vivid.has(next.temper), next.temper).toBe(true);
-      expect(next.temper).not.toBe(previous.temper);
+      expect(vivid.has(next.look), next.look).toBe(true);
+      expect(next.look).not.toBe(previous.look);
       expect(next.decision.config.visualMode).not.toBe('off');
-      seen.add(next.temper);
+      expect(next.decision.config.chunkMode).toBe('phrase');
+      seen.add(next.look);
       previous = next;
     }
     expect([...seen].sort()).toEqual([...vivid].sort());
@@ -157,26 +257,19 @@ describe('a roll names its reading', () => {
 });
 
 describe('the plan line', () => {
-  const plan = overrides => composeRoll({
-    temper: TEMPERS.find(temper => temper.id === 'plainsong'), workId: jevReleasedWorkIds()[0],
-    section: 'first', random: () => 0, ...overrides
+  const plan = (look, overrides = {}) => composeRoll({
+    look, workId: jevReleasedWorkIds()[0], section: 'first', random: () => 0, ...overrides
   }).config;
 
   it('names pace and unit, imagery, sound and type, from the plan itself', () => {
-    const parts = summarizeJevPlan(plan());
+    const parts = summarizeJevPlan(plan('plain'));
     expect(parts).toHaveLength(4);
     expect(parts[1]).toBe('no imagery');
     expect(parts[2]).toBe('silence');
   });
 
   it('follows the plan when the plan changes', () => {
-    const nocturne = composeRoll({
-      temper: TEMPERS.find(temper => temper.id === 'nocturne'), workId: jevReleasedWorkIds()[0],
-      section: 'first', random: () => 0
-    }).config;
-    const [pace, imagery, sound] = summarizeJevPlan(nocturne);
-    expect(pace).toBe(`${nocturne.wpm === 150 ? 'slow' : 'steady'} phrases`);
-    expect(imagery).toBe('soft atmospheric light');
-    expect(sound).toBe(nocturne.audio.replace(/-/gu, ' '));
+    const nocturne = plan('nocturne', { pace: 200 });
+    expect(summarizeJevPlan(nocturne)).toEqual(['steady phrases', 'soft atmospheric light', 'soft rain', 'literary serif']);
   });
 });

@@ -45,6 +45,17 @@ describe('the tree', () => {
       .toEqual(['gallery-procedural', 'gallery-sourced', 'personal']);
   });
 
+  it('holds the held fields under Procedural, Fractal Flames first', () => {
+    const procedural = leafOrBranch('gallery-procedural');
+    expect(procedural.children.map(n => [n.id, n.label]))
+      .toEqual([
+        ['fractal', 'Fractal Flames'],
+        ['turrell', 'Turrell Fields'],
+        ['neural', 'Neural Networks'],
+        ['rockgarden', 'Rock Garden']
+      ]);
+  });
+
   it('holds the drawing engines under Dynamic, Attractor and Genesis first', () => {
     const dynamic = leafOrBranch('dynamic');
     expect(dynamic.children.map(n => n.id))

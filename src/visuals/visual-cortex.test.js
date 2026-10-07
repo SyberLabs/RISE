@@ -11,7 +11,9 @@ import { ContinuousField } from './continuous-field.js';
 import { WorkEngineField } from './work-engine-field.js';
 import { Ostensoria } from './ostensoria.js';
 import { Apparitio } from './apparitio.js';
+import { Harmonograph } from './harmonograph.js';
 import * as flameFillAdapter from './flame-fill-adapter.js';
+import { accentFlameAnchors } from '../core/conductor.js';
 import { grantVisualInterlocutionConsent } from '../core/visual-safety.js';
 import { JEV_COLOR_THEMES } from '../core/jev-color-themes.js';
 import { JEV_PALETTES } from '../core/jev-palette.js';
@@ -291,6 +293,53 @@ describe('VisualCortex Klee delegation', () => {
         cortex.beginSessionVisualIdentity(themed);
         cortex.resetSessionVisualIdentity();
         expect(cortex.config).toMatchObject(cleared);
+    });
+
+    describe('the plate look', () => {
+        it.each(JEV_COLOR_THEMES)('%s: "auto" is answered by the theme\'s ramp', theme => {
+            const cortex = new VisualCortex();
+            cortex.beginSessionVisualIdentity({ colorTheme: theme });
+            expect(cortex._plateLook('ostensoria')).toEqual(THEME_ENGINE_MAP[theme].ostensoria);
+            expect(cortex._plateLook('apparitio')).toEqual(THEME_ENGINE_MAP[theme].apparitio);
+        });
+
+        it('a cue\'s explicit palette wins over the theme; a cue naming none hands back to it', () => {
+            const cortex = new VisualCortex();
+            cortex.beginSessionVisualIdentity({ colorTheme: 'jade' });
+
+            cortex.applyCue({ kind: 'procedural', collections: ['ostensoria'], config: { palette: 'ember' } });
+            expect(cortex.config.ostensoriaPalette).toBe('ember');
+            expect(cortex._plateLook('ostensoria')).toEqual({ palette: 'ember' });
+
+            cortex.applyCue({ kind: 'procedural', collections: ['apparitio'], config: { palette: 'marian' } });
+            expect(cortex.config.apparitioPalette).toBe('marian');
+            expect(cortex._plateLook('apparitio')).toEqual({ palette: 'marian' });
+
+            cortex.applyCue({ kind: 'procedural', collections: ['ostensoria'] });
+            expect(cortex.config.ostensoriaPalette).toBe('auto');
+            expect(cortex._plateLook('ostensoria')).toEqual({ palette: 'teal' });
+        });
+
+        it('without a theme or a cue there is no look, so today\'s roll stands', () => {
+            const cortex = new VisualCortex();
+            cortex.beginSessionVisualIdentity({});
+            expect(cortex._plateLook('ostensoria')).toBeNull();
+            expect(cortex._plateLook('apparitio')).toBeNull();
+        });
+
+        it('the Page-still queue takes the Iris look as the config moves', () => {
+            const cortex = new VisualCortex();
+            cortex.ostensoria = { setLook: vi.fn() };
+
+            cortex.beginSessionVisualIdentity({ colorTheme: 'rose' });
+            expect(cortex.ostensoria.setLook).toHaveBeenLastCalledWith({ palette: 'rose' });
+
+            cortex.applyCue({ kind: 'procedural', collections: ['ostensoria'], config: { palette: 'ember' } });
+            expect(cortex.ostensoria.setLook).toHaveBeenLastCalledWith({ palette: 'ember' });
+
+            cortex.resetSessionVisualIdentity();
+            expect(cortex.ostensoria.setLook).toHaveBeenLastCalledWith(null);
+        });
     });
 
     it('applyCue renders a generic sourced cue as the active pool (Chapel-agnostic)', () => {
@@ -2292,14 +2341,70 @@ describe('Continuous Field (Gallery) wiring', () => {
                 generateRockGarden: vi.fn(),
                 renderRockGarden: vi.fn(() => true)
             };
+            cortex.ostensoria = { generate: vi.fn(() => true), render: vi.fn(() => true), setLook: vi.fn() };
+            cortex.apparitio = { generate: vi.fn(() => true), render: vi.fn(() => true) };
+            cortex.harmonograph = { generate: vi.fn(() => true), render: vi.fn(() => true) };
             return cortex;
         }
+
+        it('amethyst: the Harmonograph still draws the reading\'s anchors under the climate\'s chord', async () => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({ colorTheme: 'amethyst', flameColors: JEV_PALETTES.amethyst });
+
+            await cortex._renderContinuousProceduralWork('harmonograph');
+
+            expect(cortex.harmonograph.generate.mock.calls[0][2]).toEqual({
+                climate: 'auto', anchors: accentFlameAnchors(JEV_PALETTES.amethyst)
+            });
+            cortex.destroy();
+        });
+
+        it('without a theme the Harmonograph still gets no anchors, as today', async () => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({});
+
+            await cortex._renderContinuousProceduralWork('harmonograph');
+
+            expect(cortex.harmonograph.generate.mock.calls[0][2])
+                .toEqual({ climate: 'auto', anchors: null });
+            cortex.destroy();
+        });
 
         async function renderThree(cortex) {
             for (const type of ['turrell', 'neural', 'rockgarden']) {
                 await cortex._renderContinuousProceduralWork(type);
             }
         }
+
+        async function renderPlates(cortex) {
+            for (const type of ['ostensoria', 'apparitio']) {
+                await cortex._renderContinuousProceduralWork(type);
+            }
+        }
+
+        it('rose: the plate stills take the rose Iris ramp and the marian Spectral ramp', async () => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({ colorTheme: 'rose', flameColors: JEV_PALETTES.rose });
+
+            await renderPlates(cortex);
+
+            expect(cortex.ostensoria.setLook).toHaveBeenLastCalledWith({ palette: 'rose' });
+            expect(cortex.ostensoria.generate.mock.calls[0][2]).toEqual({ palette: 'rose' });
+            expect(cortex.apparitio.generate.mock.calls[0][2]).toEqual({ palette: 'marian' });
+            cortex.destroy();
+        });
+
+        it('without a theme the plate stills bake with no options, as today', async () => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({});
+
+            await renderPlates(cortex);
+
+            expect(cortex.ostensoria.setLook).toHaveBeenLastCalledWith(null);
+            expect(cortex.ostensoria.generate.mock.calls[0][2]).toEqual({});
+            expect(cortex.apparitio.generate.mock.calls[0][2]).toEqual({});
+            cortex.destroy();
+        });
 
         it.each(JEV_COLOR_THEMES)('%s: Turrell and Neural take the mapped palette, Rock Garden the reading\'s ink', async theme => {
             const cortex = stubbedEngines();
@@ -2340,6 +2445,20 @@ describe('Continuous Field (Gallery) wiring', () => {
             });
             cortex.destroy();
         });
+    });
+
+    it('the theme answers the live plate bake, and a cue\'s explicit palette replaces the bake under way', () => {
+        stubLivingPlateEngines();
+        const { cortex } = hostedContinuousCortex();
+        cortex.beginSessionVisualIdentity({ colorTheme: 'jade' });
+        cortex.updateConfig({ enabled: true, presentation: 'continuous', activeTypes: ['ostensoria'] });
+        expect(cortex._plateField?.running).toBe(true);
+        expect(Ostensoria.prototype.generate.mock.calls.at(-1)[2]).toEqual({ palette: 'teal' });
+        expect(Ostensoria.prototype.beginBake.mock.calls.at(-1)[2]).toEqual({ palette: 'teal' });
+
+        cortex.applyCue({ kind: 'procedural', collections: ['ostensoria'], config: { palette: 'ember' } });
+        expect(Ostensoria.prototype.beginBake.mock.calls.at(-1)[2]).toEqual({ palette: 'ember' });
+        cortex.destroy();
     });
 
     it('renders a Fractal Flame Gallery through the selected ASCII language', async () => {
@@ -2489,6 +2608,23 @@ describe('Continuous Field (Gallery) wiring', () => {
 
         cortex.updateConfig({ presentation: 'full-frame' });
         expect(cortex._harmonographField?.running).toBe(false);
+        cortex.destroy();
+    });
+
+    it('the Gallery Harmonograph draws each figure in the reading\'s anchors', () => {
+        const generate = vi.spyOn(Harmonograph.prototype, 'generate');
+        const { cortex } = hostedContinuousCortex();
+        cortex.beginSessionVisualIdentity({ colorTheme: 'amethyst', flameColors: JEV_PALETTES.amethyst });
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['harmonograph']
+        });
+        expect(cortex._harmonographField?.running).toBe(true);
+        expect(generate.mock.calls.at(-1)[2]).toEqual({
+            climate: 'auto', anchors: accentFlameAnchors(JEV_PALETTES.amethyst)
+        });
+        generate.mockRestore();
         cortex.destroy();
     });
 

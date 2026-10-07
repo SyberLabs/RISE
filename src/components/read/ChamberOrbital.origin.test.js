@@ -121,33 +121,6 @@ describe('ChamberOrbital origin chip', () => {
         container.remove();
     });
 
-    it('full settings re-renders replace rather than multiply delegated navigation', () => {
-        const { orbital, container, onNavigate } = makeOrbital();
-        orbital.loadText('Scripture', 'The Chapel · Numbers 2', {
-            origin: { view: 'chapel', icon: '✛', name: 'Chapel' }
-        });
-        orbital.resetPrefs();
-        orbital.resetPrefs();
-        container.querySelector('.orbital-origin-chip').click();
-
-        expect(onNavigate).toHaveBeenCalledTimes(1);
-        expect(onNavigate).toHaveBeenCalledWith('chapel');
-        orbital.destroy();
-        container.remove();
-    });
-
-    it('clears the chip when the text is cleared', () => {
-        const { orbital, container } = makeOrbital();
-        orbital.loadText('text', 'Vault: Researcher', { origin: { view: 'vault', icon: '◈', name: 'Vault' } });
-        expect(container.querySelector('.orbital-origin-chip')).not.toBeNull();
-
-        orbital.clearText();
-        expect(container.querySelector('.orbital-origin-chip')).toBeNull();
-
-        orbital.destroy();
-        container.remove();
-    });
-
     it('handleEscape closes an open modal and consumes the key; falls through otherwise', () => {
         const { orbital, container } = makeOrbital();
 
@@ -160,37 +133,6 @@ describe('ChamberOrbital origin chip', () => {
 
         orbital.destroy();
         container.remove();
-    });
-
-    it('Reset restores factory defaults and clears prefs, but keeps the loaded text', () => {
-        localStorage.removeItem('rise_orbital_prefs_v1');
-
-        const { orbital, container } = makeOrbital();
-        orbital.loadText('the text', 'Walden · Economy', { origin: LIBRARY_ORIGIN });
-        orbital.config.wpm = 400;
-        orbital.config.visualInterlocution.visualMode = 'genesis';
-        orbital._persistPrefs();
-
-        container.querySelector('[data-action="reset-prefs"]').click();
-
-        expect(orbital.config.wpm).toBe(200);
-        expect(orbital.config.visualInterlocution.visualMode).toBe('off');
-        expect(localStorage.getItem('rise_orbital_prefs_v1')).toBeNull();
-        // Session context survives — settings amnesia, not session amnesia
-        expect(orbital.config.text).toBe('the text');
-        expect(orbital.config.origin?.view).toBe('library');
-        expect(container.querySelector('.orbital-origin-chip')).not.toBeNull();
-
-        // A fresh orbital starts from defaults (destroy persists the
-        // now-default config, which is equivalent)
-        orbital.destroy();
-        container.remove();
-        const fresh = makeOrbital();
-        expect(fresh.orbital.config.wpm).toBe(200);
-        expect(fresh.orbital.config.visualInterlocution.visualMode).toBe('off');
-        fresh.orbital.destroy();
-        fresh.container.remove();
-        localStorage.removeItem('rise_orbital_prefs_v1');
     });
 
     it('persists settings changed WITHOUT pressing Begin (destroy + panel-change paths)', () => {
@@ -348,7 +290,7 @@ describe('ChamberOrbital origin chip', () => {
         expect(plainC.querySelector('[data-soundscape="chant-znamenny"]').hidden).toBe(true);
     });
 
-    it('soundscape: renders on top of the audio panel, persists, resets', () => {
+    it('soundscape: renders on top of the audio panel, persists', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
 
         const { orbital, container } = makeOrbital();
@@ -388,11 +330,6 @@ describe('ChamberOrbital origin chip', () => {
         container.remove();
         const restored = makeOrbital();
         expect(restored.orbital.config.soundscape).toBe('aurora');
-
-        // Reset restores 'none'
-        restored.container.querySelector('[data-action="reset-prefs"]').click();
-        expect(restored.orbital.config.soundscape).toBe('none');
-
         restored.orbital.destroy();
         restored.container.remove();
 
@@ -553,16 +490,8 @@ describe('ChamberOrbital origin chip', () => {
         expect(b.orbital.config.textSource).toBe('Walden · Economy');
         expect(b.orbital.config.origin?.view).toBe('library');
         expect(b.container.querySelector('.orbital-origin-chip')).not.toBeNull();
-
-        // Clearing the card clears the persistence with it
-        b.orbital.clearText();
         b.orbital.destroy();
         b.container.remove();
-        const c = makeOrbital();
-        expect(c.orbital.config.text).toBeNull();
-        expect(localStorage.getItem('rise_orbital_text_v1')).toBeNull();
-        c.orbital.destroy();
-        c.container.remove();
     });
 
     it('retains Chapel passage boundaries and provenance through refresh and Begin', () => {
@@ -661,17 +590,16 @@ describe('reading-owned visual program persistence', () => {
         second.container.remove();
     });
 
-    it('survives settings reset but is removed with its reading', () => {
+    it('is removed with its reading', () => {
         const first = makeOrbital();
         first.orbital.loadText('[v 27:1] Reading', 'The Chapel · Matthew 27', { visualProgram });
-        first.orbital.resetPrefs();
         expect(first.orbital.config.visualProgram.segments[0].id).toBe('before-pilate');
-        first.orbital.clearText();
+        first.orbital.loadText('Plain prose.', 'Plain', {});
         first.orbital.destroy();
         first.container.remove();
 
         const second = makeOrbital();
-        expect(second.orbital.config.text).toBeNull();
+        expect(second.orbital.config.textSource).toBe('Plain');
         expect(second.orbital.config.visualProgram).toBeNull();
         second.orbital.destroy();
         second.container.remove();
@@ -945,7 +873,7 @@ describe('Launch-scoped identity is not persisted as reusable preferences', () =
     });
 });
 
-describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', () => {
+describe('the next text resets launch-scoped visual identity (2026-07 Doré leak)', () => {
     const launchWith = (orbital, collection) => {
         orbital.loadText('text', 'Source', {
             visualConfig: {
@@ -960,31 +888,22 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
 
     // Every "From this reading" pill family must die with its text —
     // Doré cycle, engineering blueprints, and colonial-freedom plates
-    // all leaked through clear-text before this fix.
+    // all leaked into the next text before this fix.
     for (const collection of ['dore:numbers', 'blueprint:beam-engine', 'freedom:haiti-france', 'chapel-passion']) {
-        it(`clears a ${collection.split(':')[0]} pill on clear-text`, () => {
+        it(`clears a ${collection.split(':')[0]} pill when a plain text replaces its reading`, () => {
             const { orbital } = makeOrbital();
             launchWith(orbital, collection);
             expect(orbital.config.visualInterlocution.interlocution.atriumCollections)
                 .toContain(collection);
-            orbital.clearText();
+            // a plain library text carries no visual selection
+            orbital.loadText('Plain prose.', 'Plain', {});
             expect(orbital.config.visualInterlocution.interlocution.atriumCollections).toEqual([]);
             expect(orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
+            expect(orbital.config.visualProgram).toBeNull();
             expect(orbital.visualNavigator._chapelLaunch).toBe(false);
             orbital.destroy();
         });
     }
-
-    it('loading a plain source after a launch clears the prior pills', () => {
-        const { orbital } = makeOrbital();
-        launchWith(orbital, 'dore:numbers');
-        // a plain library text carries no visual selection
-        orbital.loadText('Plain prose.', 'Plain', {});
-        expect(orbital.config.visualInterlocution.interlocution.atriumCollections).toEqual([]);
-        expect(orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
-        expect(orbital.config.visualProgram).toBeNull();
-        orbital.destroy();
-    });
 
     // The Chapel-HELD focal (an Icon, or the per-book Rosa Mystica) is
     // launch-scoped exactly like the pills: it must not outlive the reading
@@ -1001,16 +920,6 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
         });
     };
 
-    it('releases a Chapel-held Icon focal on clear-text', () => {
-        const { orbital } = makeOrbital();
-        launchChapelIcon(orbital, 'icon-transfiguration');
-        expect(orbital.config.visualInterlocution.focals.type).toBe('icon');
-        orbital.clearText();
-        expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
-        expect(orbital.config.visualInterlocution.focals.iconId).toBeNull();
-        orbital.destroy();
-    });
-
     it('releases a Chapel-held Icon focal when a plain text is loaded next', () => {
         const { orbital } = makeOrbital();
         launchChapelIcon(orbital, 'icon-transfiguration');
@@ -1022,23 +931,23 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
         orbital.destroy();
     });
 
-    it('releases a per-book Rosa Mystica focal on clear-text', () => {
+    it('releases a per-book Rosa Mystica focal when a plain text is loaded next', () => {
         const { orbital } = makeOrbital();
         orbital.loadText('Chapel text', 'The Chapel · Psalm 23', {
             visualConfig: { visualMode: 'focals', focals: { type: 'rose', roseMode: 'vitrum' } }
         });
         expect(orbital.config.visualInterlocution.focals.type).toBe('rose');
-        orbital.clearText();
+        orbital.loadText('Plain prose.', 'Plain', {});
         expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
         orbital.destroy();
     });
 
-    it('a standard glyph (a user choice, not Chapel-held) survives clear-text', () => {
+    it('a standard glyph (a user choice, not Chapel-held) survives into the next text', () => {
         const { orbital } = makeOrbital();
         orbital.loadText('text', 'Source', {
             visualConfig: { visualMode: 'focals', focals: { type: 'standard', standardGlyph: 'spiral' } }
         });
-        orbital.clearText();
+        orbital.loadText('Plain prose.', 'Plain', {});
         expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
         expect(orbital.config.visualInterlocution.focals.standardGlyph).toBe('spiral');
         orbital.destroy();

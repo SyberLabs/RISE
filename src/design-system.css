@@ -1532,6 +1532,18 @@ textarea:focus {
   animation-fill-mode: both;
 }
 
+/* A reading launched from Home is drawn over Home's last frame: the router
+   keeps #view-home shown under #view-read until the reading has faded in
+   (router.js, RDR-015). Both sit in flow, so for as long as both show the
+   Read view is lifted to the viewport, above Home; Home's own stacking
+   context (.portal-home, isolation: isolate) keeps its fixed engine and
+   header under it. */
+#view-home:not([hidden]) ~ #view-read:not([hidden]) {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+}
+
 /* Subtle breathing animation for sigils */
 
 /* Progress bar smooth fill */

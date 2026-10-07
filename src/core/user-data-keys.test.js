@@ -118,7 +118,9 @@ describe('the localStorage registry is the erase inventory', () => {
         const byKey = new Map(Object.entries(USER_DATA_KEYS).map(([label, key]) => [key, label]));
         // `solPlan` outlives the room that wrote it: the Solarium is gone and
         // readers still hold plans, so it is registered and no longer written.
-        const expectedAbsent = new Set([USER_DATA_KEYS.solPlan]);
+        // `stanceNoteSeen` likewise outlives setup's stance note, which looks
+        // replaced; readers' browsers still hold the flag, and erase clears it.
+        const expectedAbsent = new Set([USER_DATA_KEYS.solPlan, USER_DATA_KEYS.stanceNoteSeen]);
         const stale = ERASABLE_LOCAL_KEYS.filter(key => !written.has(key)
             && !labelsUsed.has(byKey.get(key))
             && !expectedAbsent.has(key));

@@ -19,7 +19,10 @@ if (typeof globalThis.indexedDB === 'undefined') {
     globalThis.indexedDB = { open: () => ({ onsuccess: null, onerror: null, onupgradeneeded: null }) };
 }
 
-if (typeof URL.createObjectURL !== 'function') {
+// The environment may lend Node's own createObjectURL, which mints
+// blob:nodedata: URLs that safeUrl refuses as foreign; a browser mints
+// same-origin ones, so this double always stands in.
+{
     const objectUrls = new Map();
     let objectUrlSeq = 0;
     URL.createObjectURL = (blob) => {

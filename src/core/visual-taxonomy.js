@@ -43,32 +43,6 @@ export const FIELD = Object.freeze({
   DYNAMIC: 'dynamic'
 });
 
-/**
- * Which category each registered procedural engine belongs to.
- *
- * The reader-facing split the creator settled: engines that DRAW themselves —
- * orbit, grow, trace — are Dynamic and exclusive; engines that are simply a
- * held field are Gallery and blendable. Attractor and Klee are Dynamic but
- * reach the cortex through their own dedicated modes rather than the gallery
- * pool, so they carry `mode` here; the rest are Dynamic-by-single-procedural
- * (one engine, continuous) or Gallery-by-pool.
- *
- * A NEW ENGINE MUST BE PLACED. `everyEngineIsCategorised` (the test) fails if
- * the registry gains an id this map does not name, so an engine can never
- * reach a reader uncategorised — the guard the flat dropdown never had.
- */
-const ENGINE_CATEGORY = Object.freeze({
-  attractor: FIELD.DYNAMIC,
-  klee: FIELD.DYNAMIC,          // surfaced as the "Genesis" leaf
-  harmonograph: FIELD.DYNAMIC,
-  ostensoria: FIELD.DYNAMIC,    // surfaced as "Iris Plates"
-  apparitio: FIELD.DYNAMIC,     // surfaced as "Spectral Plates"
-  fractal: FIELD.GALLERY,
-  turrell: FIELD.GALLERY,
-  neural: FIELD.GALLERY,
-  rockgarden: FIELD.GALLERY
-});
-
 /** Engines that own a dedicated visualMode, not the shared procedural pool. */
 /**
  * A leaf that takes over the room with its own visualMode rather than being
@@ -85,17 +59,6 @@ const ENGINE_CATEGORY = Object.freeze({
  * holds the room as one drawing gesture; it is not a gallery of plates.
  */
 export const DEDICATED_MODE = Object.freeze({ klee: 'genesis' });
-
-/** Display names that diverge from the registry id (the creator's renames). */
-const DISPLAY_NAME = Object.freeze({
-  klee: 'Genesis',
-  ostensoria: 'Iris Plates',
-  apparitio: 'Spectral Plates',
-  rockgarden: 'Rock Garden'
-});
-
-const engine = id => LISTED_PROCEDURAL_PATTERNS.find(p => p.id === id) || null;
-const engineName = id => DISPLAY_NAME[id] || engine(id)?.name || id;
 
 /**
  * A leaf's substyle benches — the SAME objects the current panel renders,
@@ -129,13 +92,20 @@ export function substylesFor(engineId) {
   }
 }
 
-const leaf = (id, extra = {}) => Object.freeze({
-  id,
-  label: extra.label || engineName(id),
-  category: extra.category || ENGINE_CATEGORY[id] || FIELD.GALLERY,
-  engineId: extra.engineId ?? id,
-  ...extra
-});
+/**
+ * Engine leaves come from the catalog: its listed entries, each under its
+ * `category`, in catalog order. A listed entry without a category is not
+ * shown, and the registry test fails.
+ */
+const engineLeavesIn = category => LISTED_PROCEDURAL_PATTERNS
+  .filter(pattern => pattern.category === category)
+  .map(pattern => Object.freeze({
+    id: pattern.id,
+    label: pattern.label ?? pattern.name,
+    category,
+    engineId: pattern.id,
+    kind: 'leaf'
+  }));
 
 /**
  * THE TREE. Off, then Visual with its three rooms. Focal is a leaf with a
@@ -172,7 +142,7 @@ export const VISUAL_TAXONOMY = Object.freeze({
               label: 'Procedural',
               kind: 'branch',
               children: Object.freeze(
-                galleryEngineIds().map(id => leaf(id, { kind: 'leaf' }))
+                engineLeavesIn(FIELD.GALLERY)
               )
             }),
             Object.freeze({
@@ -194,23 +164,13 @@ export const VISUAL_TAXONOMY = Object.freeze({
           category: FIELD.DYNAMIC,
           kind: 'branch',
           children: Object.freeze(
-            dynamicEngineIds().map(id => leaf(id, { kind: 'leaf' }))
+            engineLeavesIn(FIELD.DYNAMIC)
           )
         })
       ])
     })
   ])
 });
-
-function galleryEngineIds() {
-  return Object.keys(ENGINE_CATEGORY).filter(id => ENGINE_CATEGORY[id] === FIELD.GALLERY);
-}
-function dynamicEngineIds() {
-  // Attractor and Genesis(klee) first — they carry the dedicated modes and the
-  // richest benches — then the single-procedural dynamic fields.
-  const order = ['attractor', 'klee', 'harmonograph', 'ostensoria', 'apparitio'];
-  return order.filter(id => ENGINE_CATEGORY[id] === FIELD.DYNAMIC);
-}
 
 /** Every leaf, flattened — the panel's lookup and the tests' inventory. */
 export function taxonomyLeaves(node = VISUAL_TAXONOMY, out = []) {
