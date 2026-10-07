@@ -696,6 +696,44 @@ describe('the Rhythm & pace sheet', () => {
         orbital.destroy();
     });
 
+    it('in Inlay, locks Phrase and Sentence and says why on the controls; another look gives them back', () => {
+        setWidth(820);
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('[data-look="inlay"]').click();
+        const sheet = open(container);
+        const chunk = id => sheet.querySelector(`[data-chunk="${id}"]`);
+        const note = sheet.querySelector('[data-chunk-lock-note]');
+        for (const id of ['phrase', 'sentence']) {
+            expect(chunk(id).disabled, id).toBe(true);
+            expect(chunk(id).title, id).toBe('Inlay paints one word at a time');
+            expect(chunk(id).querySelector('.chunk-lock'), id).not.toBeNull();
+        }
+        expect(chunk('word').disabled).toBe(false);
+        expect(chunk('word').classList).toContain('active');
+        expect(note.hidden).toBe(false);
+        expect(note.textContent).toMatch(/Inlay paints one word at a time/u);
+
+        container.querySelector('[data-look="plain"]').click();
+        for (const id of ['phrase', 'sentence', 'word']) {
+            expect(chunk(id).disabled, id).toBe(false);
+            expect(chunk(id).querySelector('.chunk-lock'), id).toBeNull();
+        }
+        expect(note.hidden).toBe(true);
+        orbital.destroy();
+    });
+
+    it('keeps Inlay in Inlay on Default: its rhythm is the word', () => {
+        setWidth(820);
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('[data-look="inlay"]').click();
+        open(container).querySelector('[data-action="rhythm-default"]').click();
+        expect(orbital.config.chunkMode).toBe('word');
+        expect(lookOf(orbital.config)).toBe('inlay');
+        orbital.destroy();
+    });
+
     it('closes on Escape and gives focus back to its row', () => {
         const { container, orbital } = createOrbital();
         const sheet = open(container);

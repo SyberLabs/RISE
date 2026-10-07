@@ -95,7 +95,9 @@ const AUDIO_PRESET_IDS = new Set([
 /* The padlock drawn on a chunking mode Recitation has taken. Declared
    once so the first render and the runtime toggle cannot disagree —
    the gap after it is CSS, never a text node (see the toggle). */
-const LOCK_MARK = '<svg class="chunk-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Locked" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
+const RECITATION_LOCK_NOTE = 'Recitation locks Word and Sentence. The voice is a pack of pre-recorded phrases built into this release — one audio file per phrase — so a reading cut any other way has no recording to play and would run silent. Turn Recitation off to read by word or by sentence.';
+const INLAY_LOCK_NOTE = 'Inlay paints one word at a time, the imagery inside each word. Choose another look to read by phrase or by sentence.';
+const LOCK_MARK ='<svg class="chunk-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Locked" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
 
 const svgIcon = paths => `<svg class="reader-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
 // One entry per pace profile, in the order pacing.js lists them: what a reader
@@ -818,6 +820,7 @@ export class ChamberOrbital {
     if (status) status.textContent = this.getLookStatus();
     const imagery = this.container.querySelector('.orbit-visual .orbit-label');
     if (imagery) imagery.textContent = this.getImageryLabel();
+    this._paintRhythmLocks();
     this._paintSummaries();
     this._paintPreview();
   }
@@ -861,10 +864,11 @@ export class ChamberOrbital {
     this._persistPrefs();
   }
 
-  /** The Rhythm & pace sheet's Default: its own four choices, and nothing else. */
+  /** The Rhythm & pace sheet's Default: its own four choices, and nothing else; Inlay keeps its word. */
   resetRhythm() {
+    const inlay = lookOf(this.config) === 'inlay';
     const { wpm, curve, chunkMode, revealMode } = createDefaultConfig();
-    Object.assign(this.config, { wpm, curve, chunkMode, revealMode });
+    Object.assign(this.config, { wpm, curve, chunkMode: inlay ? 'word' : chunkMode, revealMode });
     this.syncUIWithConfig();
     this.updateOrbitStatus('temporal');
     this._persistPrefs();
@@ -1086,13 +1090,7 @@ export class ChamberOrbital {
                 <button class="chunk-option ${this.config.chunkMode === 'word' ? 'active' : ''} ${recitationEnabled ? 'is-locked' : ''}" data-chunk="word"
                   ${recitationEnabled ? 'disabled title="Recitation is spoken in phrases"' : ''}>${recitationEnabled ? LOCK_MARK : ''}Word</button>
               </div>
-              <p class="config-note text-mist" data-chunk-lock-note ${recitationEnabled ? '' : 'hidden'}>
-                Recitation locks Word and Sentence. The voice is a pack of
-                pre-recorded phrases built into this release — one audio
-                file per phrase — so a reading cut any other way has no
-                recording to play and would run silent. Turn Recitation
-                off to read by word or by sentence.
-              </p>
+              <p class="config-note text-mist" data-chunk-lock-note ${recitationEnabled ? '' : 'hidden'}>${RECITATION_LOCK_NOTE}</p>
             </div>
 
             <!-- Pacing -->
@@ -1465,6 +1463,33 @@ export class ChamberOrbital {
     // in attachConfigEvents.
   }
 
+  /**
+   * The rhythms the reading cannot take, locked where the reader finds them dead and named: a recitation is
+   * recorded phrase by phrase, and Inlay paints one word at a time. The lock is drawn on the button, in the
+   * Rhythm sheet, not in the panel that caused it; its mark is its own element (a text node for the gap would
+   * have taken the label with it when removed).
+   */
+  _paintRhythmLocks() {
+    const recited = this.config.recitation?.enabled === true;
+    const inlay = !recited && lookOf(this.config) === 'inlay';
+    const keep = recited ? 'phrase' : inlay ? 'word' : null;
+    const reason = recited ? 'Recitation is spoken in phrases' : 'Inlay paints one word at a time';
+    this.container.querySelectorAll('[data-chunk]').forEach(chunk => {
+      chunk.classList.toggle('active', chunk.dataset.chunk === this.config.chunkMode);
+      const locked = keep !== null && chunk.dataset.chunk !== keep;
+      chunk.disabled = locked;
+      chunk.classList.toggle('is-locked', locked);
+      chunk.title = locked ? reason : '';
+      const mark = chunk.querySelector('.chunk-lock');
+      if (locked && !mark) chunk.insertAdjacentHTML('afterbegin', LOCK_MARK);
+      else if (!locked && mark) mark.remove();
+    });
+    const note = this.container.querySelector('[data-chunk-lock-note]');
+    if (!note) return;
+    note.hidden = keep === null;
+    if (keep !== null) note.textContent = recited ? RECITATION_LOCK_NOTE : INLAY_LOCK_NOTE;
+  }
+
   /** Mark the one sound chosen. A tone's delivery and waveform are shaped in the Workshop. */
   _paintSound() {
     const id = this._soundId();
@@ -1524,7 +1549,6 @@ export class ChamberOrbital {
     // phrase mode is the asset identity used by the installed pack.
     const recitationOptions = this.container.querySelectorAll('[data-recitation]');
     const recitationNote = this.container.querySelector('[data-recitation-note]');
-    const chunkLockNote = this.container.querySelector('[data-chunk-lock-note]');
     const voiceSection = this.container.querySelector('#voice-select-section');
     recitationOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
@@ -1535,28 +1559,8 @@ export class ChamberOrbital {
         if (enabled) this.config.chunkMode = 'phrase';
         recitationOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
-        chunkOptions.forEach(chunk => {
-          chunk.classList.toggle('active', chunk.dataset.chunk === this.config.chunkMode);
-          const locked = enabled && chunk.dataset.chunk !== 'phrase';
-          chunk.disabled = locked;
-          // The lock is drawn where the reader is looking when they
-          // find the button dead — in the Temporal panel, on the
-          // button itself, not in the Audio panel behind another orb.
-          chunk.classList.toggle('is-locked', locked);
-          chunk.title = locked ? 'Recitation is spoken in phrases' : '';
-          // The mark is its own element and the gap after it is CSS.
-          // A text node for the space would have made the span's
-          // nextSibling " Word", and removing the mark would have
-          // taken the label with it.
-          const mark = chunk.querySelector('.chunk-lock');
-          if (locked && !mark) {
-            chunk.insertAdjacentHTML('afterbegin', LOCK_MARK);
-          } else if (!locked && mark) {
-            mark.remove();
-          }
-        });
+        this._paintRhythmLocks();
         if (recitationNote) recitationNote.hidden = !enabled;
-        if (chunkLockNote) chunkLockNote.hidden = !enabled;
         this.updateOrbitStatus('temporal');
         // The voice picker is meaningless without a voice to pick for.
         if (voiceSection) voiceSection.hidden = !enabled;
@@ -1680,11 +1684,7 @@ export class ChamberOrbital {
       opt.classList.toggle('active', opt.dataset.curve === this.config.curve);
     });
 
-    const chunkOptions = this.container.querySelectorAll('[data-chunk]');
-    chunkOptions.forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.chunk === this.config.chunkMode);
-      opt.disabled = enabled && opt.dataset.chunk !== 'phrase';
-    });
+    this._paintRhythmLocks();
     this.container.querySelectorAll('[data-reveal]').forEach(opt => {
       const selected = this.config.revealMode === 'progressive' ? 'progressive' : 'instant';
       opt.classList.toggle('active', opt.dataset.reveal === selected);
