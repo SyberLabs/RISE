@@ -600,6 +600,7 @@
   font: 500 14px/20px var(--sy-font-sans);
   letter-spacing: 0;
   text-transform: none;
+  white-space: nowrap;
 }
 
 .jev-next-scene:disabled {
@@ -2477,6 +2478,16 @@
 @media (min-width: 641px) {
   .is-look-open .chamber-field {
     padding-right: calc(var(--space-xl) + min(22rem, 100vw));
+  }
+
+  /* The bar centres in the same space, so Exit is never under the sheet; its
+     labels yield to icons there, since the open sheet already names the choice. */
+  .is-look-open .chamber-controls {
+    left: calc((100% - var(--space-xl) - min(22rem, 100vw)) / 2);
+  }
+
+  .is-look-open .chamber-controls .control-label {
+    display: none;
   }
 }
 
