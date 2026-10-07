@@ -3,9 +3,9 @@
   "title": "Reconcile Reader release gates",
   "lane": "reader",
   "milestone": "Reader release",
-  "status": "planned",
+  "status": "done",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
   "acceptance": [
@@ -25,16 +25,26 @@
       "ref": "docs/RELEASE-ACCEPTANCE-PROTOCOL.md",
       "note": "Human gates remain authoritative.",
       "date": "2026-10-03"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/experiments/RELEASE-GATES-2026-10-07.md",
+      "note": "npm run release:check on 8ef95ec9 after content:build, audio:hydrate and build: 3 pass, 5 blocked, 3 human gates; the 779 voice issues are all VOICE_REVIEW_ENTRY_MISSING; release-evidence.json and certifications.json are empty.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
     {
       "date": "2026-10-03",
       "summary": "Seeded from repository evidence and approved product direction; future acceptance is not assumed."
+    },
+    {
+      "date": "2026-10-07T21:38:08.079Z",
+      "summary": "Release gates reconciled on 8ef95ec9; every blocker is a human gate"
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
-  "summary": "Reconcile historical certification, acoustic, device and stranger gates against the current release. Current state is unknown until reviewed.",
+  "updatedAt": "2026-10-07T21:38:08.079Z",
+  "revision": 2,
+  "summary": "Reconciled on exact main 8ef95ec9: the machine side passes (toolchain, ffmpeg, all 877 voice assets byte-identical in the build); every remaining blocker is a human gate (0 certified works, three keystone editions, 285 phrases unreviewed, five devices, three stranger tests), held for the final witness pass.",
   "blocker": null
 }
