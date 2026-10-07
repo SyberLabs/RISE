@@ -6,6 +6,7 @@ import { ingestCorpus } from './corpus.js';
 import { demoCorpusInput, demoDeck } from './demo.js';
 import { createDeviceDecider, DEVICE_PROVIDER } from './device-decider.js';
 import { DEVICE_MODELS, ORT_WASM, runMatches } from './device-model.js';
+import { pinnedFile, UNPINNED } from './kev-store.js';
 import { createLiveLoop } from './live.js';
 import { prepareTalk } from './prepare.js';
 import { RAIL_QUESTION } from './rail-question.js';
@@ -73,10 +74,34 @@ describe('device model pins', () => {
         expect(createHash('sha256').update(bytes).digest('hex')).toBe(ORT_WASM.sha256);
     });
 
-    it('loads weights only over https from the published bundle', () => {
-        for (const model of Object.values(DEVICE_MODELS)) {
-            expect(model.base).toMatch(/^https:\/\/huggingface\.co\/ai-ecoverse\/kev\.js\/resolve\//u);
+    it('loads weights only over https from the published bundle at a pinned commit, or refuses by name', () => {
+        for (const [id, model] of Object.entries(DEVICE_MODELS)) {
+            expect(model.bundle).toBe(id);
+            if (!model.files) {
+                // Not pinned yet: the loader refuses before any fetch, and names the command that fills the pin.
+                expect(model.base).toBeUndefined();
+                expect(() => pinnedFile(model, 'manifest.json')).toThrow(expect.objectContaining({ code: 'unpinned', detail: UNPINNED }));
+                continue;
+            }
+            expect(model.revision).toMatch(/^[0-9a-f]{40}$/u);
+            expect(model.base).toBe(`https://huggingface.co/ai-ecoverse/kev.js/resolve/${model.revision}/${id}`);
+            expect(Object.keys(model.files)).toContain('manifest.json');
+            for (const [path, pin] of Object.entries(model.files)) {
+                expect(path, path).not.toMatch(/^\/|\.\./u);
+                expect(pin.bytes, path).toBeGreaterThan(0);
+                expect(pin.sha256, path).toMatch(/^[0-9a-f]{64}$/u);
+            }
         }
+    });
+
+    it('refuses Kev-4B until scripts/pin-kev-weights.mjs has recorded its commit and digests', () => {
+        const model = DEVICE_MODELS['kev-4b'];
+        if (model.files) {
+            expect(model.revision).toMatch(/^[0-9a-f]{40}$/u);
+            return;
+        }
+        expect(() => pinnedFile(model, 'manifest.json'))
+            .toThrow(expect.objectContaining({ code: 'unpinned', detail: 'weights are not pinned; run scripts/pin-kev-weights.mjs' }));
     });
 });
 
