@@ -36,9 +36,11 @@ const CLOSE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden
  * @param {boolean} [options.audible] whether the voice makes sound; a silent one is said to be pacing
  * @param {{capability: string, effect: string}[]} [options.degradations] what this device cannot do, for the
  *   hidden status; a `speechOutput` entry marks the object as having no voice
+ * @param {boolean} [options.takeFocus] the control that started the reading had the focus and is gone: the
+ *   object takes it once it can be pressed, unless the reader has put the focus somewhere else meanwhile
  * @param {Document} [options.doc]
  */
-export function createStageControls({ runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], doc = document }) {
+export function createStageControls({ runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], takeFocus = false, doc = document }) {
     const noVoice = degradations.some(note => note.capability === 'speechOutput');
     const systemStill = degradations.some(note => note.capability === 'reducedMotion');
     // Why it is silent, in the object's name: the two reasons src/live/capabilities.js gives.
@@ -198,6 +200,11 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
         settings.hidden = gone;
         if (gone) closeSheet(false);
         play.disabled = !(status === 'live' || status === 'interrupted' || status === 'ended');
+        if (takeFocus && !play.disabled && !gone) {
+            takeFocus = false;
+            // Only from nowhere: a frame whose document has lost the focus, or a reader who moved it, keeps theirs.
+            if (doc.hasFocus() && (doc.activeElement === doc.body || doc.activeElement === null)) play.focus();
+        }
         play.setAttribute('aria-label', name(status));
         // The end is drawn apart from a pause: the same triangle would leave a sighted reader unable to tell them.
         play.innerHTML = `${status === 'live' ? PAUSE_GLYPH : status === 'ended' ? AGAIN_GLYPH : PLAY_GLYPH}${noVoice ? NO_VOICE_GLYPH : ''}`;
