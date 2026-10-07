@@ -249,7 +249,7 @@ export function createLiveRuntime({
         });
         run.player.on('state', ({ state }) => {
             if (run.closed) return;
-            if (state === 'paused') run.voice?.hold();
+            if (state === 'paused') holdVoice(run);
             else if (state === 'playing') run.voice?.release();
             else if (state === 'complete') {
                 run.finished = true;
@@ -442,7 +442,7 @@ export function createLiveRuntime({
             // Something else is about to speak, and a device speaks one thing at a time. A voice that will
             // take up at the start of the phrase is decided here, once, so that every way back (Surface, a
             // Dive that fails to open, a resume after one) shows that phrase again and times it by the voice.
-            if (main.voice?.hold({ exclusive: true, ...(phrase ? { resumeAt: phrase } : {}) }) === true) main.player.restartCurrentAtom();
+            if (main.voice?.hold(phrase ? { resumeAt: phrase } : undefined) === true) main.player.restartCurrentAtom();
             const view = main.stream.snapshot();
             const index = view.segments.findIndex(segment => segment.id === position.segmentId);
             const context = view.segments.slice(Math.max(0, index - 1), index + 1)
@@ -492,6 +492,17 @@ export function createLiveRuntime({
     };
 
     // ─── helpers that need the runs above ───────────────────────────────
+
+    /**
+     * Hold a run's voice where its words are. A held voice is silenced, not paused (voices/browser.js), and is
+     * told where the phrase on screen begins; when it takes up there, that phrase is shown again from its start,
+     * so after a pause or a hidden page the voice and the words begin it together.
+     */
+    function holdVoice(run) {
+        if (!run.voice) return;
+        const phrase = run.player.betweenPhrases ? null : run.governor?.restartPoint(run.player.sessionState.currentIndex) ?? null;
+        if (run.voice.hold(phrase ? { resumeAt: phrase } : undefined) === true) run.player.restartCurrentAtom();
+    }
 
     function attachVoice(run) {
         if (!run.voice) return;

@@ -40,6 +40,12 @@
       "ref": "docs/experiments/EMBED-STAGE-HOST-2026-10-07.md",
       "note": "Real-host witness on exact main 122b1cb6 (embed stage and RDR-022 included), ChatGPT developer mode, desktop Chrome. Purpose, poster, voice, Play/Pause and the Settings rows witnessed (owner: \"voice works\"); the host applies the reported height (400 at the hello, 481 after the report). Not passed: no Finished or Play again at the end; the first Play after returning from a new chat is silent; voice and text fall out of sync, the voice restarting mid-passage, after the tab is hidden and shown. Local acceptance stays the CI record.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/484",
+      "note": "Fixes the three witness defects: a hold cancels and remembers instead of pausing Chromium's browser-wide speech engine, every pause takes up the phrase on screen with the voice, a new voice clears an engine left paused, and the end draws a replay arrow. Needs a re-witness on a release that includes it.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -58,10 +64,14 @@
     {
       "date": "2026-10-07T13:54:48.703Z",
       "summary": "Witnessed in ChatGPT on 122b1cb6 (record EMBED-STAGE-HOST-2026-10-07); not passed: three playback defects, left in review"
+    },
+    {
+      "date": "2026-10-07T14:31:33.423Z",
+      "summary": "The three witness defects fixed in #484; re-witness next"
     }
   ],
-  "updatedAt": "2026-10-07T13:54:48.703Z",
-  "revision": 4,
+  "updatedAt": "2026-10-07T14:31:33.423Z",
+  "revision": 5,
   "summary": "Integrate score, admitted host behavior and fixtures into a coherent first-use experience.",
-  "blocker": "Three playback defects from the 2026-10-07 witness: no end state (Finished / Play again); silent first Play after returning from a new chat; voice and text desync, with false restarts, after leaving and returning to the tab. Witness again on a release that fixes them."
+  "blocker": "Re-witness in ChatGPT on a release that includes #484 (the fixes for the three playback defects of the 2026-10-07 witness)."
 }

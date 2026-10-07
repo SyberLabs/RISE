@@ -7,19 +7,22 @@
  * corrected only at each segment's start and end, which is what the speech
  * clock is built to tolerate.
  *
- * Holding is the hard part, and it has two kinds:
- *  - a hold (the reader paused): `pause()`, which keeps the utterance where it
- *    was, and `resume()` carries on from the same sample;
- *  - an exclusive hold (a Dive is about to speak): the device can only speak
- *    one thing at a time, so the held utterance is cancelled and remembered at
- *    the last word boundary heard, and on release it is spoken again from that
- *    word. A voice with no boundaries restarts its segment, which is the one
- *    place this can say something twice, and it is a limit of the platform.
- *    The hold can be told where to take up instead (`resumeAt`: the segment, a
- *    character, and the time at that character), which is what the reading on
- *    screen knows and the voice does not: it lets the voice begin again exactly
- *    where the phrase the reader is looking at begins, whether or not it ever
- *    reported a boundary.
+ * Holding is the hard part. A hold never calls `pause()`: the engine behind
+ * `speechSynthesis` is the whole browser's, and in Chromium its paused flag is
+ * one for every page (TtsControllerImpl). It is cleared only by `resume()` from
+ * a page that still has something to say, or by `cancel()`, so a page taken
+ * away while paused (a closed tab, an assistant's card unmounted, which goes
+ * hidden on its way out and is paused by the Player) leaves every later page
+ * silent. So a held utterance is cancelled and remembered at the last word
+ * boundary heard, and on release it is spoken again from that word. A voice
+ * with no boundaries restarts its segment, which is the one place this can say
+ * something twice, and it is a limit of the platform. The hold can be told
+ * where to take up instead (`resumeAt`: the segment, a character, and the time
+ * at that character), which is what the reading on screen knows and the voice
+ * does not: it lets the voice begin again exactly where the phrase the reader
+ * is looking at begins, whether or not it ever reported a boundary. For the
+ * same reason a voice clears the engine with `cancel()` when it is made: some
+ * other page may have left it paused.
  *
  * Time is `playedMs`: speaking time only, so a hold takes none of it.
  */
@@ -29,11 +32,11 @@ import { createRealClock } from '../clock.js';
 export function createBrowserVoice({ speech, clock = createRealClock(), lang = 'en', rate = 1, voice = null } = {}) {
     const { synth, Utterance } = speech ?? {};
     if (!synth || typeof Utterance !== 'function') throw new TypeError('A browser voice needs speechSynthesis and its utterance');
+    synth.cancel();
 
     let report = { start() {}, mark() {}, end() {}, fail() {} };
     let closed = false;
     let held = false;
-    let exclusive = false;
     const queue = [];
     const seen = new Set();
     const finished = new Map();
@@ -91,7 +94,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     }
 
     function next() {
-        if (closed || current || exclusive) return;
+        if (closed || current || held) return;
         const item = queue.shift();
         if (!item) return;
         current = item;
@@ -119,54 +122,38 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         },
 
         /**
-         * @param {{exclusive?: boolean, resumeAt?: {segmentId: string, charIndex: number, tMs: number}}} [how]
-         *   exclusive: something else is about to speak. resumeAt: where to take up again, which an exclusive
-         *   hold uses in place of the last word heard.
+         * Silence it and remember where it was; a later hold may still say where to take up.
+         * @param {{resumeAt?: {segmentId: string, charIndex: number, tMs: number}}} [how]
+         *   resumeAt: where to take up again, in place of the last word heard.
          * @returns {boolean} whether it will take up at the place it was told, so that whatever shows the words
          *   can begin that phrase again too
          */
-        hold({ exclusive: wantsExclusive = false, resumeAt } = {}) {
+        hold({ resumeAt } = {}) {
             if (closed) return false;
-            let tookPlace = false;
             if (!held) {
                 held = true;
-                if (current?.started) {
-                    current.played = playedNow(current);
-                    current.startedAt = null;
-                }
-                synth.pause();
-            }
-            if (wantsExclusive && !exclusive) {
-                exclusive = true;
                 if (current) {
                     // Spoken again from the last word heard; time is what it was there.
+                    const speaking = current.utterance;
                     current.utterance = null;
-                    // Only a place in the segment being held is one to take up at.
-                    if (resumeAt?.segmentId === current.id) {
-                        current.lastMark = resumeAt.charIndex;
-                        current.lastMarkAt = resumeAt.tMs;
-                        tookPlace = true;
-                    }
                     current.played = current.lastMarkAt;
                     current.startedAt = null;
+                    if (speaking) synth.cancel();
                 }
-                synth.cancel();
-                synth.resume();
             }
-            return tookPlace;
+            // Only a place in the segment being held is one to take up at.
+            if (!current || resumeAt?.segmentId !== current.id) return false;
+            current.lastMark = resumeAt.charIndex;
+            current.lastMarkAt = resumeAt.tMs;
+            current.played = resumeAt.tMs;
+            return true;
         },
 
         release() {
             if (!held || closed) return;
             held = false;
-            if (exclusive) {
-                exclusive = false;
-                if (current) speakFrom(current, current.lastMark);
-                else next();
-                return;
-            }
-            if (current?.started) current.startedAt = clock.now();
-            synth.resume();
+            if (current) speakFrom(current, current.lastMark);
+            else next();
         },
 
         /** What has been spoken of an utterance, or undefined if it has not begun. */
@@ -181,10 +168,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             queue.length = 0;
             if (current) current.utterance = null;
             current = null;
-            if (speaking || held) {
-                synth.cancel();
-                synth.resume();
-            }
+            if (speaking) synth.cancel();
         },
 
         close() {

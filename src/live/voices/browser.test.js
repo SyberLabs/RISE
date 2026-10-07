@@ -2,14 +2,14 @@
  * The browser voice, against a fake `speechSynthesis` on a clock the test owns.
  *
  * What is being held to: it reports start, word marks and end at the times
- * they happen; a hold takes no speaking time, whether it is a pause or the
- * exclusive kind a Dive needs; the device speaks one thing at a time; a voice
+ * they happen; a hold silences the device without pausing the engine every
+ * page shares, and takes no speaking time; the device speaks one thing at a time; a voice
  * that reports no boundaries still works; and nothing that was cancelled ever
  * reports again.
  */
 import { describe, expect, it } from 'vitest';
 import { createVirtualClock } from '../clock.js';
-import { createFakeSpeech } from '../../test/fake-speech.js';
+import { createFakeSpeech, createFakeSpeechEngine } from '../../test/fake-speech.js';
 import { chooseVoice, createBrowserVoice, whenVoicesAvailable } from './browser.js';
 
 const TEXT = 'one two three four five six seven';
@@ -114,25 +114,20 @@ describe('speaking', () => {
 });
 
 describe('a hold, when the reader pauses', () => {
-    it('pauses the device and takes no speaking time; later times shift by exactly the hold', async () => {
-        const free = setup();
-        free.voice.enqueue({ id: 'a', text: TEXT });
-        await free.clock.runAll();
-
+    it('silences the device without pausing it, takes no speaking time, and says it again from the last word heard', async () => {
         const { clock, voice, log, synth } = setup();
         voice.enqueue({ id: 'a', text: TEXT });
-        await clock.advance(30 + 195);
+        await clock.advance(30 + 9 * MS);          // marks at 4 and 8 have been heard
         voice.hold();
-        expect(synth.paused).toBe(true);
-        expect(voice.playedMs('a')).toBe(195);
-        await clock.advance(5_000);
-        expect(voice.playedMs('a')).toBe(195);
-        voice.release();
         expect(synth.paused).toBe(false);
+        expect(synth.speaking).toBe(false);
+        expect(voice.playedMs('a')).toBe(8 * MS);
+        await clock.advance(5_000);
+        expect(voice.playedMs('a')).toBe(8 * MS);
+        voice.release();
         await clock.runAll();
-
-        const shifted = free.log.map(e => (e[0] >= 30 + 195 ? [e[0] + 5_000, ...e.slice(1)] : e));
-        expect(log).toEqual(shifted);
+        expect(kinds(log, 'start', 'a')).toHaveLength(1);
+        expect(kinds(log, 'end', 'a')).toEqual([[expect.any(Number), 'end', 'a', TEXT.length * MS]]);
     });
 
     it('can be held before anything has begun, and holding twice does no harm', async () => {
@@ -150,7 +145,43 @@ describe('a hold, when the reader pauses', () => {
     });
 });
 
-describe('an exclusive hold, when something else is about to speak', () => {
+describe('the speech engine, which every page in the browser shares', () => {
+    function onEngine(engine, clock) {
+        const synth = createFakeSpeech(clock, { msPerChar: MS, latencyMs: 30, engine });
+        const voice = createBrowserVoice({ speech: { synth, Utterance: synth.Utterance }, clock });
+        const log = [];
+        voice.attach({ start: id => log.push(['start', id]), end: id => log.push(['end', id]) });
+        return { synth, voice, log };
+    }
+
+    it('speaks even when a page that went away left the engine paused', async () => {
+        const clock = createVirtualClock();
+        const engine = createFakeSpeechEngine();
+        createFakeSpeech(clock, { engine }).pause();
+        const { voice, log } = onEngine(engine, clock);
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.runAll();
+        expect(log).toEqual([['start', 'a'], ['end', 'a']]);
+    });
+
+    it('never leaves the engine paused while it is held, so a page that goes away held leaves no silence behind', async () => {
+        const clock = createVirtualClock();
+        const engine = createFakeSpeechEngine();
+        const { synth, voice } = onEngine(engine, clock);
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(30 + 9 * MS);
+        voice.hold();
+        expect(engine.paused).toBe(false);
+        expect(synth.speaking).toBe(false);
+
+        const next = onEngine(engine, clock);
+        next.voice.enqueue({ id: 'b', text: 'the next page speaks' });
+        await clock.runAll();
+        expect(next.log).toEqual([['start', 'b'], ['end', 'b']]);
+    });
+});
+
+describe('a hold, when something else is about to speak', () => {
     it('lets the other speak, then says the held one again from the last word heard', async () => {
         const { clock, voice, log, synth } = setup();
         const other = createBrowserVoice({ speech: { synth, Utterance: synth.Utterance }, clock });
@@ -159,7 +190,7 @@ describe('an exclusive hold, when something else is about to speak', () => {
 
         voice.enqueue({ id: 'a', text: TEXT });
         await clock.advance(30 + 9 * MS);          // marks at 4 and 8 have been heard
-        voice.hold({ exclusive: true });
+        voice.hold();
         const before = log.length;
         expect(synth.speaking).toBe(false);
         expect(voice.playedMs('a')).toBe(8 * MS);
@@ -182,32 +213,18 @@ describe('an exclusive hold, when something else is about to speak', () => {
         const { clock, voice, log } = setup({ boundaries: false });
         voice.enqueue({ id: 'a', text: TEXT });
         await clock.advance(30 + 200);
-        voice.hold({ exclusive: true });
+        voice.hold();
         voice.release();
         await clock.runAll();
         expect(kinds(log, 'start', 'a')).toHaveLength(1);
         expect(kinds(log, 'end', 'a')).toHaveLength(1);
     });
 
-    it('can upgrade a pause to an exclusive hold', async () => {
-        const { clock, voice, synth } = setup();
-        voice.enqueue({ id: 'a', text: TEXT });
-        await clock.advance(30 + 120);
-        voice.hold();
-        expect(synth.paused).toBe(true);
-        voice.hold({ exclusive: true });
-        expect(synth.paused).toBe(false);
-        expect(synth.speaking).toBe(false);
-        voice.release();
-        await clock.runAll();
-        expect(voice.playedMs('a')).toBe(TEXT.length * MS);
-    });
-
     it('does not start what is queued while it is held, and starts it after', async () => {
         const { clock, voice, log } = setup();
         voice.enqueue({ id: 'a', text: 'first words' });
         await clock.advance(200);
-        voice.hold({ exclusive: true });
+        voice.hold();
         voice.enqueue({ id: 'b', text: 'second words' });
         await clock.advance(10_000);
         expect(kinds(log, 'start', 'b')).toEqual([]);
@@ -218,7 +235,7 @@ describe('an exclusive hold, when something else is about to speak', () => {
     });
 });
 
-describe('an exclusive hold told where to take up again', () => {
+describe('a hold told where to take up again', () => {
     /** Every utterance the device was given, so a test can say what was said again and from where. */
     function watchSpeech(synth) {
         const said = [];
@@ -236,7 +253,7 @@ describe('an exclusive hold told where to take up again', () => {
                 voice.enqueue({ id: 'a', text: TEXT });
                 await clock.advance(30 + 9 * MS);
                 voice.hold();
-                voice.hold({ exclusive: true, resumeAt: at(14) });
+                voice.hold({ resumeAt: at(14) });
                 expect(voice.playedMs('a')).toBe(14 * MS);
                 voice.release();
                 await clock.runAll();
@@ -252,7 +269,7 @@ describe('an exclusive hold told where to take up again', () => {
                     const said = watchSpeech(synth);
                     voice.enqueue({ id: 'a', text: TEXT });
                     await clock.advance(30 + 9 * MS);
-                    voice.hold({ exclusive: true, resumeAt: at(charIndex) });
+                    voice.hold({ resumeAt: at(charIndex) });
                     voice.release();
                     await clock.runAll();
                     expect(said.at(-1), String(charIndex)).toBe(TEXT.slice(charIndex));
@@ -267,14 +284,13 @@ describe('an exclusive hold told where to take up again', () => {
             if (speak) { voice.enqueue({ id: 'a', text: TEXT }); await clock.advance(30 + 9 * MS); }
             return voice.hold(how);
         };
-        expect(await hold({ exclusive: true, resumeAt: at(14) })).toBe(true);
-        expect(await hold({ exclusive: true, resumeAt: at(14) }, { boundaries: false })).toBe(true);
-        // Not told, told about another segment, told for a hold that only pauses, or nothing to say it again: no.
-        expect(await hold({ exclusive: true })).toBe(false);
-        expect(await hold({ exclusive: true, resumeAt: at(14, 14 * MS, 'other') })).toBe(false);
-        expect(await hold({ resumeAt: at(14) })).toBe(false);
+        expect(await hold({ resumeAt: at(14) })).toBe(true);
+        expect(await hold({ resumeAt: at(14) }, { boundaries: false })).toBe(true);
+        // Not told, told about another segment, or nothing to say it again: no.
         expect(await hold()).toBe(false);
-        expect(await hold({ exclusive: true, resumeAt: at(14) }, { speak: false })).toBe(false);
+        expect(await hold({ resumeAt: at(14, 14 * MS, 'other') })).toBe(false);
+        expect(await hold()).toBe(false);
+        expect(await hold({ resumeAt: at(14) }, { speak: false })).toBe(false);
     });
 
     it('ignores it when it is about another segment, and says the last word heard again as it always did', async () => {
@@ -282,20 +298,10 @@ describe('an exclusive hold told where to take up again', () => {
         const said = watchSpeech(synth);
         voice.enqueue({ id: 'a', text: TEXT });
         await clock.advance(30 + 9 * MS);
-        voice.hold({ exclusive: true, resumeAt: at(14, 14 * MS, 'other') });
+        voice.hold({ resumeAt: at(14, 14 * MS, 'other') });
         expect(voice.playedMs('a')).toBe(8 * MS);
         voice.release();
         expect(said.at(-1)).toBe(TEXT.slice(8));
-    });
-
-    it('does nothing with it for a hold that is only a pause, and does not speak again on release', async () => {
-        const { clock, voice, synth } = setup();
-        const said = watchSpeech(synth);
-        voice.enqueue({ id: 'a', text: TEXT });
-        await clock.advance(30 + 9 * MS);
-        voice.hold({ resumeAt: at(14) });
-        voice.release();
-        expect(said).toEqual([TEXT]);
     });
 
     it('counts the place it was told as the last word heard, so a second hold with no place says it from there again', async () => {
@@ -303,10 +309,10 @@ describe('an exclusive hold told where to take up again', () => {
         const said = watchSpeech(synth);
         voice.enqueue({ id: 'a', text: TEXT });
         await clock.advance(30 + 9 * MS);
-        voice.hold({ exclusive: true, resumeAt: at(14) });
+        voice.hold({ resumeAt: at(14) });
         voice.release();
         await clock.advance(30 + 3 * MS);
-        voice.hold({ exclusive: true });
+        voice.hold();
         expect(voice.playedMs('a')).toBe(14 * MS);
         voice.release();
         expect(said.at(-1)).toBe(TEXT.slice(14));
@@ -349,7 +355,7 @@ describe('stopping', () => {
         const { clock, voice, synth } = setup();
         voice.enqueue({ id: 'a', text: TEXT });
         await clock.advance(100);
-        voice.hold({ exclusive: true });
+        voice.hold();
         voice.cancel();
         expect(synth.paused).toBe(false);
         expect(synth.speaking).toBe(false);
@@ -468,7 +474,7 @@ describe('choosing the voice', () => {
 });
 
 describe('speaking with a chosen voice', () => {
-    it('gives every utterance the voice, including one said again after an exclusive hold', async () => {
+    it('gives every utterance the voice, including one said again after a hold', async () => {
         const chosen = EDGE[3];
         const { clock, voice: speaker, synth } = setup({}, { voice: chosen });
         const given = [];
@@ -476,7 +482,7 @@ describe('speaking with a chosen voice', () => {
         synth.speak = utterance => { given.push(utterance.voice); speak(utterance); };
         speaker.enqueue({ id: 'a', text: TEXT });
         await clock.advance(30 + 9 * MS);
-        speaker.hold({ exclusive: true });
+        speaker.hold();
         speaker.release();
         await clock.runAll();
         expect(given).toEqual([chosen, chosen]);

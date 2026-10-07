@@ -19,6 +19,7 @@ const SIZE_CHIPS = FONT_SIZE_CHIPS.filter(chip => chip.fontSize !== 'fit');
 const STILL_NOTE = 'Imagery stays still.';
 
 const PLAY_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M8 5.5v13l10-6.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>';
+const AGAIN_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M6.7 3.2v3.5h3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const PAUSE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M8 5.5v13M16 5.5v13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 const SETTINGS_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="16" cy="7" r="2.25" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="8" cy="17" r="2.25" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>';
 const NO_VOICE_GLYPH = '<svg class="rise-stage__novoice" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 10v4h3l4 3V7l-4 3zM15 9l5 6M20 9l-5 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>';
@@ -198,7 +199,8 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
         if (gone) closeSheet(false);
         play.disabled = !(status === 'live' || status === 'interrupted' || status === 'ended');
         play.setAttribute('aria-label', name(status));
-        play.innerHTML = `${status === 'live' ? PAUSE_GLYPH : PLAY_GLYPH}${noVoice ? NO_VOICE_GLYPH : ''}`;
+        // The end is drawn apart from a pause: the same triangle would leave a sighted reader unable to tell them.
+        play.innerHTML = `${status === 'live' ? PAUSE_GLYPH : status === 'ended' ? AGAIN_GLYPH : PLAY_GLYPH}${noVoice ? NO_VOICE_GLYPH : ''}`;
         alert.textContent = status === 'failed' ? describeStatus(snapshot, { audible, dive: false }) : '';
         alert.hidden = status !== 'failed';
         wholeReading();
