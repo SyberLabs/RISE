@@ -263,7 +263,7 @@ describe('VisualScoreCoordinator', () => {
 describe('VisualScoreCache', () => {
   it('keys by source, section, segmentation, catalog, prompt, and model', () => {
     expect(scoreCacheKey('a'.repeat(64), 'b'.repeat(64))).toBe(
-      `${'a'.repeat(64)}:${'b'.repeat(64)}:s1:c1:p1:typesafe/jev-1.13`);
+      `${'a'.repeat(64)}:${'b'.repeat(64)}:s1:c2:p1:typesafe/jev-1.13`);
   });
 
   it('evicts the least recently used beyond 100 sections', () => {

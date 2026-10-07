@@ -15,6 +15,7 @@ import { alignSourceAtoms, normalizeQuote } from '../source-span.js';
 import { segmentSource } from './segmentation.js';
 import {
   compileTreatmentCue,
+  isFollowChoice,
   isTreatmentChoice,
   localDirection
 } from './treatments.js';
@@ -188,7 +189,8 @@ export class PassageDirector {
     for (const choice of choices || []) {
       const index = this.blocks.findIndex(block => block.id && block.id === choice.blockId);
       const block = this.blocks[index];
-      if (!block || block.admitted || !isTreatmentChoice(choice.treatmentId, choice.intensityBand)) continue;
+      // A new choice keeps the reading's family and colour (R6); a saved one replays as shown (restore).
+      if (!block || block.admitted || !isFollowChoice(choice.treatmentId, choice.intensityBand)) continue;
       block.staged = Object.freeze({
         treatmentId: choice.treatmentId, intensityBand: choice.intensityBand, provenance
       });

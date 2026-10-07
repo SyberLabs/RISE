@@ -7,7 +7,7 @@
  * returns is ever executed or passed through as parameters.
  */
 
-export const TREATMENT_CATALOG_VERSION = 1;
+export const TREATMENT_CATALOG_VERSION = 2;
 
 export const INTENSITY_BANDS = Object.freeze({ quiet: 0.15, balanced: 0.35, intense: 0.6 });
 export const INTENSITY_BAND_IDS = Object.freeze(Object.keys(INTENSITY_BANDS));
@@ -46,6 +46,21 @@ export const VISUAL_TREATMENTS = Object.freeze([
 
 export const TREATMENT_IDS = Object.freeze(VISUAL_TREATMENTS.map(item => item.id));
 const BY_ID = new Map(VISUAL_TREATMENTS.map(item => [item.id, item]));
+
+/**
+ * WHAT FOLLOW TEXT MAY CHOOSE: one family, one colour (R6). A reading keeps its engine family and its
+ * colour theme while the text moves only the composition and the intensity, so Follow text draws the
+ * flame compositions and nothing else, and only those a theme can colour: Prismatic Knot is a cyclic
+ * spectrum, which theming leaves as it is (themedFlameRecipe), so it would flash every colour in a
+ * reading that has one. The other treatments stay for saved readings, which replay as they were shown.
+ */
+export const FOLLOW_TREATMENT_IDS = Object.freeze(VISUAL_TREATMENTS
+  .filter(item => item.kind === 'flame' && item.id !== 'prismatic-knot').map(item => item.id));
+const FOLLOW = new Set(FOLLOW_TREATMENT_IDS);
+
+export function isFollowChoice(treatmentId, intensityBand) {
+  return FOLLOW.has(treatmentId) && Object.hasOwn(INTENSITY_BANDS, intensityBand);
+}
 
 export function visualTreatment(id) {
   return BY_ID.get(id) || null;
@@ -105,7 +120,8 @@ export function localDirection(signal) {
   const intensityBand = arousal >= 0.65 ? 'intense' : arousal <= 0.35 ? 'quiet' : 'balanced';
   let treatmentId = 'ember-cathedral';
   if (arousal >= 0.65 && valence > 0.15) treatmentId = 'solar-bloom';
-  else if (arousal >= 0.65 && valence < -0.15) treatmentId = 'prismatic-knot';
+  // Conflict reads through the intense band, in the nebula's dark folds, not in another colour.
+  else if (arousal >= 0.65 && valence < -0.15) treatmentId = 'violet-nebula';
   else if (arousal <= 0.35 && valence < -0.15) treatmentId = 'violet-nebula';
   else if (arousal <= 0.35 && valence > 0.15) treatmentId = 'glacial-silk';
   return { treatmentId, intensityBand };

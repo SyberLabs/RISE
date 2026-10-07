@@ -6,6 +6,7 @@
  * never serialized with the session. Nothing here performs network work.
  */
 
+import { jevColors } from '../jev-palette.js';
 import { sessionColorTheme } from '../session-presentation.js';
 import { themedFlameLookup } from '../theme-engine-map.js';
 import { isContinuousPresentation } from '../visual-presence.js';
@@ -104,8 +105,9 @@ export function ensureDirector(session, state = directionStateFor(session)) {
         chunkProfile: source.chunkProfile ?? null
       }))
       .filter(source => typeof source.text === 'string');
-    // The theme is lowered where the cue is built, so a saved cue draws as saved.
-    const flameRecipe = themedFlameLookup(flamePreset, sessionColorTheme(session));
+    // The theme is lowered where the cue is built, so a saved cue draws as saved. A reading with no theme
+    // takes classic's, the Gallery look's, so its passages keep one colour too (R6).
+    const flameRecipe = themedFlameLookup(flamePreset, sessionColorTheme(session) || jevColors('classic'));
     const director = new PassageDirector({ sources, atoms: session.atoms || [], flameRecipe });
     if (!director.ready) throw new Error('No directable source text');
     state.director = director;
