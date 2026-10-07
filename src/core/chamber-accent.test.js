@@ -152,10 +152,10 @@ describe('Chamber accent allowlist', () => {
         );
         const begin = css.match(/\.btn-large\s*\{[^}]+\}/);
         const beginHover = css.match(/\.btn-large:hover:not\(:disabled\)\s*\{[^}]+\}/);
-        const mark = css.match(/\.stance-option\.active \.stance-mark\s*\{[^}]+\}/);
+        const mark = css.match(/\.look-tile\[aria-pressed="true"\] \.look-tile-mark\s*\{[^}]+\}/);
         expect(begin, '.btn-large').toBeTruthy();
         expect(beginHover, '.btn-large:hover').toBeTruthy();
-        expect(mark, '.stance-option.active .stance-mark').toBeTruthy();
+        expect(mark, '.look-tile[aria-pressed="true"] .look-tile-mark').toBeTruthy();
         expect(begin[0]).toMatch(/background:\s*var\(--rs-text\)/);
         expect(begin[0]).not.toMatch(/box-shadow/);
         expect(beginHover[0]).toMatch(/#FFFFFF/i);

@@ -51,17 +51,21 @@ import {
   sequenceHasCapability
 } from '../../core/sequence-capabilities.js';
 import { LOOKS, applyLook, lookOf } from '../../core/looks.js';
+import { JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
+import { FONT_SIZE_CHIPS, resolveFontSize } from '../../core/chamber-type-size.js';
 // One engine has a name; the taxonomy is where it is kept.
 import { leafById } from '../../core/visual-taxonomy.js';
-import { USER_DATA_KEYS } from '../../core/user-data-keys.js';
 import '../VisualNavigator.css';
 import './ChamberOrbital.css';
 import markUrl from '../../content/compositions/syberlabs-mark.png';
 
-const STANCE_NOTE_SEEN_KEY = USER_DATA_KEYS.stanceNoteSeen;
-// The looks Reader setup offers, in the order a reader meets them.
-const SETUP_LOOKS = Object.freeze(['plain', 'gallery', 'vigil']
-  .map(id => LOOKS.find(look => look.id === id)));
+const lookById = id => LOOKS.find(look => look.id === id);
+// The smallest screen limit any look carries; crossing it changes what is offered.
+const NARROWEST_LIMIT = Math.min(...LOOKS.map(look => look.maxViewportWidth || Infinity));
+// Size for this reading: S, M and L, and Fit, which only Inlay offers.
+const LOOK_SIZES = FONT_SIZE_CHIPS.filter(chip => chip.id !== 'xl');
+const CHUNK_LABELS = Object.freeze({ phrase: 'Phrase', sentence: 'Sentence', word: 'Word' });
+const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 // Last-used session settings survive across chamber visits (the orbital
 // instance itself is destroyed whenever a session runs in the shared view)
@@ -96,22 +100,17 @@ export const CURVE_OPTIONS = Object.freeze({
 });
 const ICON_BACK = svgIcon('<path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path>');
 const ICON_ARROW = svgIcon('<path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path>');
-const ICON_CHEVRON = svgIcon('<path d="m6 9 6 6 6-6"></path>');
 const ICON_CHEVRON_RIGHT = svgIcon('<path d="m9 6 6 6-6 6"></path>');
 const ICON_CLOSE = svgIcon('<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>');
 const ICON_PLAY = svgIcon('<path d="M7 4.5v15l12-7.5z"></path>');
-
-const PROJECTION_HELP = {
-  stream: 'Words arrive through time. Set pacing and playback.',
-  page: 'Words occupy a spatial surface you can navigate.'
-};
 
 const STATIC_VOICE_PACKS = availableVoicePacks();
 const STATIC_VOICE_IDS = new Set(STATIC_VOICE_PACKS.map(pack => pack.id));
 const DEFAULT_STATIC_VOICE_ID = defaultVoicePackId();
 
 /**
- * Factory defaults for the orbital — shared by constructor and Reset.
+ * Factory defaults for the orbital — shared by the constructor and the
+ * Rhythm & pace sheet's Default.
  * Exported so defaults can be asserted; silent default drift breaks e2e.
  */
 export function createDefaultConfig() {
@@ -230,7 +229,6 @@ export class ChamberOrbital {
     this.getSettings = options.getSettings || (() => ({}));
     this.onSettingChange = options.onSettingChange || (() => { });
     this.onSettingsTransaction = options.onSettingsTransaction || (() => { });
-    this.notify = options.notify || (() => { });
     this.visualConsentScope = crypto.randomUUID();
 
     // Session configuration state (factory defaults; see createDefaultConfig)
@@ -245,9 +243,10 @@ export class ChamberOrbital {
     // refresh. A launch that carries fresh text (Vault, Library)
     // overwrites this via loadText immediately after construction.
     this._applySavedText();
+    this._ownLook = this._readingLook();
 
-    // Active modal
-    this.activeModal = null;
+    // Open dialogs, innermost last: a sheet can open a panel over itself.
+    this._modals = [];
 
     // The Chamber's single visual-control surface.
     this.visualNavigator = null;
@@ -357,75 +356,6 @@ export class ChamberOrbital {
     if (!this.isChapelSession() && String(this.config.soundscape || '').startsWith('chant-')) {
       this.config.soundscape = 'none';
     }
-  }
-
-  /**
-   * Reset: restore factory-default settings. The loaded text, its source,
-   * and the origin chip survive — this is settings amnesia, not session
-   * amnesia (the text card has its own ✕ for that).
-   */
-  resetPrefs() {
-    try {
-      localStorage.removeItem(ORBITAL_PREFS_KEY);
-    } catch (e) {
-      console.warn('[ChamberOrbital] Could not clear prefs:', e);
-    }
-
-    const {
-      text,
-      textSource,
-      origin,
-      presentation,
-      sources,
-      provenance,
-      continuation,
-      capabilities,
-      projection,
-      visualProgram,
-      readingVisualIdentity
-    } = this.config;
-    this.config = {
-      ...createDefaultConfig(),
-      text,
-      textSource,
-      origin,
-      presentation,
-      sources,
-      provenance,
-      continuation,
-      capabilities,
-      projection,
-      visualProgram,
-      readingVisualIdentity
-    };
-    if (this.config.readingVisualIdentity && !this.config.visualProgram) {
-      this.config.visualInterlocution.interlocution =
-        reconcileReadingVisualIdentity(
-          this.config.visualInterlocution.interlocution,
-          this.config.readingVisualIdentity
-        );
-    }
-
-    // The Navigator holds its own mapped selection — rebuild it.
-    if (this.visualNavigator) {
-      this.visualNavigator.destroy();
-      this.visualNavigator = null;
-    }
-    this.render();
-    this.attachEvents();
-    this.syncUIWithConfig();
-    this.updateOrbitStatus('temporal');
-    this.updateOrbitStatus('audio');
-    this.updateOrbitStatus('visual');
-
-    // Name what SURVIVED, not only what changed. Reset clearing every
-    // dial while the text stays put reads as a half-finished reset
-    // unless the boundary is stated at the moment it is crossed.
-    this.notify(
-      this.config.text
-        ? 'Settings restored — the loaded text stays'
-        : 'Settings restored to defaults'
-    );
   }
 
   _applySavedText() {
@@ -667,51 +597,24 @@ export class ChamberOrbital {
         </header>
 
         <div class="reader-body">
-          <div class="reader-grid">
-            <aside class="reader-text" aria-label="Your text">
+          <div class="reader-column">
+            <section class="reader-text" aria-label="Your text">
               <div class="text-source" id="text-source">
                 ${this.renderTextSource()}
               </div>
-            </aside>
+            </section>
 
-            <div class="reader-main">
-              <!-- THE DOORWAY, ABOVE THE PARAMETERS (NORTH-STAR §4).
-                   One named look sets field, sound, type and colour. The
-                   finer controls stay one disclosure away and still hold
-                   every setting a look touched. -->
-              ${this.renderLooks()}
-
-              <!-- Progressive disclosure: the three settings panels -->
-              <section class="orbital-stage reader-adjust">
-                <button type="button" class="reader-disclosure" data-action="toggle-adjust"
-                  aria-expanded="${this._adjustOpen ? 'true' : 'false'}" aria-controls="reader-adjust-panel">
-                  <span class="reader-disclosure-text">
-                    <span class="reader-disclosure-title">Adjust timing, sound and visuals</span>
-                    <span class="reader-disclosure-summary" id="reader-adjust-summary">${escapeHtml(this.getAdjustSummary())}</span>
-                  </span>
-                  ${ICON_CHEVRON}
-                </button>
-                <div class="reader-adjust-panel" id="reader-adjust-panel" ${this._adjustOpen ? '' : 'hidden'}>
-                  <p class="reader-help">Tune visual fields and sound around the reading.</p>
-                  <div class="orbit-container" id="orbit-container">
-                    ${this.renderAdjustRow('temporal', 'Timing', this.getTemporalStatus())}
-                    ${this.renderAdjustRow('audio', 'Sound', this.getAudioStatus())}
-                    ${this.renderAdjustRow('visual', 'Visuals', this.getVisualPreview())}
-                  </div>
-                </div>
-              </section>
-
-              <section class="reader-mode">
-                <span class="reader-label" id="reader-mode-label">Mode</span>
-                <div class="reader-segmented" role="group" aria-labelledby="reader-mode-label">
-                  <button type="button" data-projection="stream"
-                    aria-pressed="${this.config.projection !== 'page'}">Stream</button>
-                  <button type="button" data-projection="page"
-                    aria-pressed="${this.config.projection === 'page'}">Page</button>
-                </div>
-                <p class="reader-help" id="reader-mode-help">${PROJECTION_HELP[this.config.projection === 'page' ? 'page' : 'stream']}</p>
-              </section>
-            </div>
+            <!-- FOUR CHOICES (CONSOLIDATED-READER §3): text, look, rhythm and
+                 pace, Begin. Every other control is one sheet away. -->
+            <section class="orbital-stage reader-choices" aria-label="How it reads">
+              <span class="reader-label" id="reader-look-label">Look</span>
+              <div class="look-tiles" id="look-tiles" role="group" aria-labelledby="reader-look-label">${this.renderTiles()}</div>
+              <p class="reader-help look-line" id="look-line">${escapeHtml(this.getLookLine())}</p>
+              <div class="reader-rows">
+                ${this.renderSheetRow('look', 'Customize look', this.getLookStatus())}
+                ${this.renderSheetRow('temporal', 'Rhythm &amp; pace', this.getTemporalStatus())}
+              </div>
+            </section>
           </div>
         </div>
 
@@ -723,8 +626,6 @@ export class ChamberOrbital {
               <span id="reader-summary-text">${escapeHtml(this.getReaderSummary())}</span>
             </p>
             <div class="reader-buttons">
-              <button type="button" class="orbital-reset" data-action="reset-prefs"
-                title="Restore default settings (keeps loaded text)">Reset</button>
               <button type="button" class="btn-large" id="begin-btn" ${!this.config.text ? 'disabled' : ''}>
                 <span>Begin reading</span>
                 ${ICON_ARROW}
@@ -743,8 +644,8 @@ export class ChamberOrbital {
     this.initVisualPanel();
   }
 
-  /** One row inside the disclosure: opens the matching settings panel. */
-  renderAdjustRow(orbit, label, status) {
+  /** A row that opens a sheet or panel; its status says what is chosen there. */
+  renderSheetRow(orbit, label, status) {
     return `
       <button type="button" class="orbit-node orbit-${orbit}" data-orbit="${orbit}"
         aria-haspopup="dialog" aria-controls="modal-${orbit}">
@@ -757,125 +658,130 @@ export class ChamberOrbital {
     `;
   }
 
-  getAdjustSummary() {
-    return `${this.getTemporalStatus()} · ${this.getAudioStatus()} · ${this.getVisualPreview()}`;
-  }
-
   getReaderSummary() {
     if (!this.config.text) return 'Choose a text to begin.';
-    const look = LOOKS.find(entry => entry.id === lookOf(this.config));
     const name = this.config.textSource || 'Your text';
-    return `${name} · ${look ? look.name : 'Custom'}`;
+    return `${name} · ${this.getLookStatus()}`;
+  }
+
+  getLookStatus() {
+    return lookById(lookOf(this.config))?.name || 'Custom';
+  }
+
+  getLookLine() {
+    return lookById(lookOf(this.config))?.line || 'A look of your own: field, sound and type as you set them.';
+  }
+
+  getImageryLabel() {
+    return this.config.visualInterlocution?.visualMode === 'focals' ? 'Glyph' : 'Imagery';
+  }
+
+  getTextMeta() {
+    const words = this.getWordCount();
+    const minutes = Math.max(1, Math.round(words / (this.config.wpm || 200)));
+    return `${words.toLocaleString('en-US')} words · about ${minutes} min`;
   }
 
   _paintSummaries() {
-    const adjust = this.container.querySelector('#reader-adjust-summary');
-    if (adjust) adjust.textContent = this.getAdjustSummary();
     const summary = this.container.querySelector('#reader-summary-text');
     if (summary) summary.textContent = this.getReaderSummary();
+    const meta = this.container.querySelector('.text-meta');
+    if (meta && this.config.text) meta.textContent = this.getTextMeta();
   }
 
-  setAdjustOpen(open) {
-    this._adjustOpen = open;
-    const toggle = this.container.querySelector('[data-action="toggle-adjust"]');
-    const panel = this.container.querySelector('#reader-adjust-panel');
-    if (toggle) toggle.setAttribute('aria-expanded', String(open));
-    if (panel) panel.hidden = !open;
-  }
-
-  setProjection(projection) {
-    this.config.projection = projection === 'page' ? 'page' : 'stream';
-    this._syncProjection();
-    // Projection belongs to the loaded reading, so it is saved with it.
-    this._persistText();
-  }
-
-  _syncProjection() {
-    const current = this.config.projection === 'page' ? 'page' : 'stream';
-    this.container.querySelectorAll('[data-projection]').forEach(button => {
-      button.setAttribute('aria-pressed', String(button.dataset.projection === current));
-    });
-    const help = this.container.querySelector('#reader-mode-help');
-    if (help) help.textContent = PROJECTION_HELP[current];
+  /** Whether this screen may offer a look; a look limited to narrow screens says how narrow. */
+  _offered(id) {
+    const width = lookById(id)?.maxViewportWidth;
+    return !width || (typeof window.matchMedia === 'function'
+      && window.matchMedia(`(max-width: ${width}px)`).matches);
   }
 
   /**
-   * The look row: intentions, above the parameters.
-   *
-   * Which one is marked is READ OFF the configuration (`lookOf`) rather than
-   * remembered, so the row cannot go on claiming a look the reader has
-   * already adjusted away from. A real radio group: when the configuration
-   * is in another look or none, no radio is checked.
+   * The look this reading arrived in, or null. Read once per reading so the
+   * tiles hold still while the reader chooses among them; a reading that
+   * claims no type or colour has no look of its own.
    */
-  renderLooks() {
+  _readingLook() {
+    if (!this.config.presentation) return null;
+    const id = lookOf(this.config);
+    return id === 'custom' ? null : id;
+  }
+
+  /**
+   * The three tiles: this reading's own look, else Gallery; then Plain; then
+   * Inlay where it is offered, else Nocturne. A look already shown gives its
+   * place to Gallery, then Nocturne.
+   */
+  _tileLooks() {
+    const own = this._ownLook;
+    const first = own && own !== 'plain' && this._offered(own) ? own : 'gallery';
+    const third = this._offered('inlay') ? 'inlay' : 'nocturne';
+    return [...new Set([first, 'plain', third, 'gallery', 'nocturne'])].slice(0, 3);
+  }
+
+  /**
+   * The look tiles. Which one is marked is READ OFF the configuration
+   * (`lookOf`) rather than remembered, so no tile goes on claiming a look the
+   * reader has already adjusted away from.
+   */
+  renderTiles() {
     const current = lookOf(this.config);
-    const group = `reader-stance-${this.visualConsentScope}`;
-    const options = SETUP_LOOKS.map(look => {
-      const chosen = look.id === current;
-      const id = escapeHtml(look.id);
+    return this._tileLooks().map(id => {
+      const look = lookById(id);
+      const palette = JEV_PALETTES[look.config.presentation.colorTheme];
+      const field = look.config.visualInterlocution.visualMode !== 'off';
       return `
-        <label class="stance-option${chosen ? ' active' : ''}">
-          <input type="radio" class="stance-input" name="${group}" value="${id}"
-            data-stance="${id}" ${chosen ? 'checked' : ''}
-            aria-describedby="stance-line-${id}">
-          <span class="stance-mark" aria-hidden="true"></span>
-          <span class="stance-text">
-            <span class="stance-name">${escapeHtml(look.name)}</span>
-            <span class="stance-line" id="stance-line-${id}">${escapeHtml(look.line)}</span>
-          </span>
-        </label>
+        <button type="button" class="look-tile" data-look="${escapeHtml(id)}" aria-pressed="${id === current}">
+          <span class="look-tile-swatch${field ? ' has-field' : ''}" aria-hidden="true"
+            style="--look-bg:${palette.background};--look-ink:${palette.text};--look-accent:${palette.accent}"></span>
+          <span class="look-tile-name">${escapeHtml(look.name)}</span>
+          <span class="look-tile-mark" aria-hidden="true"></span>
+        </button>
       `;
     }).join('');
+  }
 
-    return `
-      <section class="orbital-stances" aria-labelledby="reader-stance-question">
-        <h1 class="stance-question" id="reader-stance-question">How do you want to read?</h1>
-        <p class="reader-lede">One text. Many ways to feel it.</p>
-        <div class="stance-options" role="radiogroup" aria-labelledby="reader-stance-question">${options}</div>
-        ${this._stanceNoteDue() ? `<p class="stance-note" data-stance-note>
-          A look sets visuals, sound, type and colour. It does not lock them —
-          adjust anything below.
-        </p>` : ''}
-      </section>
-    `;
+  _paintTiles() {
+    const row = this.container.querySelector('#look-tiles');
+    if (row) row.innerHTML = this.renderTiles();
   }
 
   /**
-   * The note explains the mechanism once. A reader who has met it does not
-   * need it again on every visit, and the room it takes is room the ring
-   * wants — so it is shown on a first-ever Orbital and then retired, fading
-   * out on its own rather than waiting to be dismissed.
+   * The colour and size the reading will open in: its own where it claims
+   * them, else the classic theme and the reader's own Settings size.
    */
-  _stanceNoteDue() {
-    if (this._stanceNoteRetired) return false;
-    try {
-      return localStorage.getItem(STANCE_NOTE_SEEN_KEY) !== 'true';
-    } catch {
-      return false;   // no storage: never risk showing it forever
-    }
+  _effectivePresentation() {
+    const claimed = this.config.presentation || {};
+    return {
+      colorTheme: claimed.colorTheme || 'classic',
+      fontSize: claimed.fontSize || resolveFontSize(this.getSettings()?.fontSize)
+    };
   }
 
-  _retireStanceNote() {
-    const note = this.container.querySelector('[data-stance-note]');
-    if (!note) return;
-    this._stanceNoteTimer = setTimeout(() => {
-      note.classList.add('is-retiring');
-      this._stanceNoteTimer = setTimeout(() => {
-        this._stanceNoteRetired = true;
-        try { localStorage.setItem(STANCE_NOTE_SEEN_KEY, 'true'); } catch { /* private mode */ }
-        note.remove();
-      }, 900);
-    }, 7000);
-  }
-
-  /** Repaint which look the configuration is in. */
+  /** Repaint everything that names or marks the look the configuration is in. */
   _syncLookRow() {
     const current = lookOf(this.config);
-    this.container.querySelectorAll('[data-stance]').forEach(input => {
-      const chosen = input.dataset.stance === current;
-      input.checked = chosen;
-      input.closest('.stance-option')?.classList.toggle('active', chosen);
+    const presentation = this._effectivePresentation();
+    const mark = (selector, key, value) => this.container.querySelectorAll(selector).forEach(el => {
+      el.setAttribute('aria-pressed', String(value !== undefined && el.dataset[key] === value));
     });
+    mark('[data-look]', 'look', current);
+    mark('[data-look-option]', 'lookOption', current);
+    mark('[data-colour]', 'colour', presentation.colorTheme);
+    mark('[data-look-size]', 'lookSize', presentation.fontSize);
+    this.container.querySelectorAll('[data-look-option]').forEach(option => {
+      option.hidden = !this._offered(option.dataset.lookOption);
+    });
+    const fit = this.container.querySelector('[data-look-size="fit"]');
+    if (fit) fit.hidden = current !== 'inlay';
+    const lab = this.container.querySelector('[data-action="open-visual-lab"]');
+    if (lab) lab.hidden = current !== 'flame';
+    const line = this.container.querySelector('#look-line');
+    if (line) line.textContent = this.getLookLine();
+    const status = this.container.querySelector('.orbit-look .orbit-status');
+    if (status) status.textContent = this.getLookStatus();
+    const imagery = this.container.querySelector('.orbit-visual .orbit-label');
+    if (imagery) imagery.textContent = this.getImageryLabel();
     this._paintSummaries();
   }
 
@@ -895,6 +801,35 @@ export class ChamberOrbital {
     this.updateOrbitStatus('temporal');
     this.updateOrbitStatus('audio');
     this.updateOrbitStatus('visual');
+    this._persistPrefs();
+  }
+
+  /** One of the nine themes for this reading: ink, ground and accent together. */
+  setColour(theme) {
+    this.config.presentation = {
+      ...(this.config.presentation || {}),
+      colorTheme: theme,
+      textColor: theme,
+      backgroundColor: theme,
+      colors: jevColors(theme, theme, theme)
+    };
+    this._syncLookRow();
+    this._persistPrefs();
+  }
+
+  /** The text size for this reading; the reader's own Settings size is left alone. */
+  setSize(fontSize) {
+    this.config.presentation = { ...(this.config.presentation || {}), fontSize };
+    this._syncLookRow();
+    this._persistPrefs();
+  }
+
+  /** The Rhythm & pace sheet's Default: its own four choices, and nothing else. */
+  resetRhythm() {
+    const { wpm, curve, chunkMode, revealMode } = createDefaultConfig();
+    Object.assign(this.config, { wpm, curve, chunkMode, revealMode });
+    this.syncUIWithConfig();
+    this.updateOrbitStatus('temporal');
     this._persistPrefs();
   }
 
@@ -923,25 +858,18 @@ export class ChamberOrbital {
     if (this.config.text) {
       return `
         <div class="text-loaded">
-          <p class="reader-eyebrow"><span class="reader-dot" aria-hidden="true"></span>Your text</p>
-          <h2 class="text-name">${escapeHtml(this.config.textSource || 'Text loaded')}</h2>
-          <dl class="text-facts">
-            <div><dt>Words</dt><dd class="text-meta">${this.getWordCount().toLocaleString('en-US')}</dd></div>
-          </dl>
-          <div class="text-actions">
-            <button type="button" class="reader-link" data-action="library">Choose another text</button>
-            <button type="button" class="reader-link reader-link-quiet text-clear" data-action="clear-text">Remove text</button>
-          </div>
+          <h1 class="text-name">${escapeHtml(this.config.textSource || 'Text loaded')}</h1>
+          <p class="text-meta">${this.getTextMeta()}</p>
+          <button type="button" class="reader-link text-change" data-action="library">Change text</button>
         </div>
       `;
     }
 
     return `
       <div class="text-empty">
-        <p class="reader-eyebrow"><span class="reader-dot" aria-hidden="true"></span>Your text</p>
-        <h2 class="text-name">No text chosen</h2>
-        <p class="reader-help">Pick something from the Library to read.</p>
-        <button type="button" class="reader-secondary text-choose-btn" data-action="library">Choose a text</button>
+        <h1 class="text-name">No text chosen</h1>
+        <p class="text-meta">Pick something from the Library to read.</p>
+        <button type="button" class="reader-link text-change" data-action="library">Choose a text</button>
       </div>
     `;
   }
@@ -960,7 +888,57 @@ export class ChamberOrbital {
         ${escapeHtml(pack.label)}
       </option>
     `).join('');
+    const currentLook = lookOf(this.config);
+    const presentation = this._effectivePresentation();
     return `
+      <!-- Customize look: a side panel on a desk, a bottom sheet on a phone -->
+      <div class="orbital-modal reader-sheet" id="modal-look" hidden>
+        <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-look-title">
+          <div class="modal-header">
+            <h2 id="modal-look-title">Customize look</h2>
+            <button type="button" class="modal-close" data-close="look" aria-label="Close Customize look">${ICON_CLOSE}</button>
+          </div>
+          <div class="modal-body">
+            <div class="config-section">
+              <span class="config-label" id="sheet-look-label">Look</span>
+              <div class="sheet-looks" role="group" aria-labelledby="sheet-look-label">
+                ${LOOKS.map(look => `
+                <button type="button" class="chunk-option" data-look-option="${escapeHtml(look.id)}"
+                  aria-pressed="${look.id === currentLook}" ${this._offered(look.id) ? '' : 'hidden'}>${escapeHtml(look.name)}</button>`).join('')}
+              </div>
+            </div>
+
+            <div class="config-section">
+              <span class="config-label" id="sheet-colour-label">Colour</span>
+              <div class="sheet-colours" role="group" aria-labelledby="sheet-colour-label">
+                ${Object.entries(JEV_PALETTES).map(([id, palette]) => `
+                <button type="button" class="sheet-colour" data-colour="${id}"
+                  aria-pressed="${id === presentation.colorTheme}" aria-label="${this.capitalizeFirst(id)}" title="${this.capitalizeFirst(id)}"
+                  style="--swatch-bg:${palette.background};--swatch-accent:${palette.accent}"></button>`).join('')}
+              </div>
+            </div>
+
+            <div class="config-section sheet-rows">
+              ${this.renderSheetRow('audio', 'Sound', this.getAudioStatus())}
+              ${this.renderSheetRow('visual', this.getImageryLabel(), this.getVisualPreview())}
+            </div>
+
+            <div class="config-section">
+              <span class="config-label" id="sheet-size-label">Size</span>
+              <div class="chunk-options sheet-sizes" role="group" aria-labelledby="sheet-size-label">
+                ${LOOK_SIZES.map(chip => `
+                <button type="button" class="chunk-option" data-look-size="${chip.fontSize}"
+                  aria-pressed="${chip.fontSize === presentation.fontSize}"
+                  ${chip.fontSize === 'fit' && currentLook !== 'inlay' ? 'hidden' : ''}>${chip.label}</button>`).join('')}
+              </div>
+            </div>
+
+            <button type="button" class="reader-link sheet-lab" data-action="open-visual-lab"
+              ${currentLook === 'flame' ? '' : 'hidden'}>Open in Visual Lab ›</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Visual Modal -->
       <div class="orbital-modal" id="modal-visual" hidden>
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-visual-title">
@@ -1128,38 +1106,14 @@ export class ChamberOrbital {
         </div>
       </div>
 
-      <!-- Temporal Modal -->
-      <div class="orbital-modal" id="modal-temporal" hidden>
+      <!-- Rhythm & pace: how the text is cut, and how fast it comes -->
+      <div class="orbital-modal reader-sheet" id="modal-temporal" hidden>
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-temporal-title">
           <div class="modal-header">
-            <h2 id="modal-temporal-title">Timing</h2>
-            <button type="button" class="modal-close" data-close="temporal" aria-label="Close timing settings">${ICON_CLOSE}</button>
+            <h2 id="modal-temporal-title">Rhythm &amp; pace</h2>
+            <button type="button" class="modal-close" data-close="temporal" aria-label="Close Rhythm and pace">${ICON_CLOSE}</button>
           </div>
           <div class="modal-body">
-            <!-- Pacing -->
-            <div class="config-section">
-              <label class="input-label">
-                <span>Pacing</span>
-                <span class="input-label-value font-mono" id="wpm-val">${this.config.wpm} WPM</span>
-              </label>
-              <input type="range" id="wpm-slider" class="slider" min="100" max="500" value="${this.config.wpm}" step="10">
-              <div class="config-notice text-fog font-mono" style="font-size: 12px; margin-top: 0.5rem;">
-                Adjustable while reading with the arrow keys
-              </div>
-            </div>
-
-            <!-- Curve -->
-            <div class="config-section">
-              <label class="config-label">Pacing Curve</label>
-              <div class="curve-options">
-                ${PACE_CURVE_IDS.map(id => `
-                <button class="curve-option ${this.config.curve === id ? 'active' : ''}" data-curve="${id}">
-                  <span class="curve-icon">${svgIcon(`<path d="${CURVE_OPTIONS[id].path}"></path>`)}</span>
-                  <span>${CURVE_OPTIONS[id].label}</span>
-                </button>`).join('')}
-              </div>
-            </div>
-
             <!-- Chunking.
                  A DISABLED CONTROL MUST SAY WHO DISABLED IT.
                  Word and Sentence are unavailable while Recitation is
@@ -1169,13 +1123,13 @@ export class ChamberOrbital {
                  indistinguishable from broken. The lock is drawn on
                  the control it applies to, and named. -->
             <div class="config-section">
-              <label class="config-label">Chunking Mode</label>
+              <label class="config-label">Rhythm</label>
               <div class="chunk-options">
-                <button class="chunk-option ${this.config.chunkMode === 'word' ? 'active' : ''} ${recitationEnabled ? 'is-locked' : ''}" data-chunk="word"
-                  ${recitationEnabled ? 'disabled title="Recitation is spoken in phrases"' : ''}>${recitationEnabled ? LOCK_MARK : ''}Word</button>
                 <button class="chunk-option ${this.config.chunkMode === 'phrase' ? 'active' : ''}" data-chunk="phrase">Phrase</button>
                 <button class="chunk-option ${this.config.chunkMode === 'sentence' ? 'active' : ''} ${recitationEnabled ? 'is-locked' : ''}" data-chunk="sentence"
                   ${recitationEnabled ? 'disabled title="Recitation is spoken in phrases"' : ''}>${recitationEnabled ? LOCK_MARK : ''}Sentence</button>
+                <button class="chunk-option ${this.config.chunkMode === 'word' ? 'active' : ''} ${recitationEnabled ? 'is-locked' : ''}" data-chunk="word"
+                  ${recitationEnabled ? 'disabled title="Recitation is spoken in phrases"' : ''}>${recitationEnabled ? LOCK_MARK : ''}Word</button>
               </div>
               <p class="config-note text-mist" data-chunk-lock-note ${recitationEnabled ? '' : 'hidden'}>
                 Recitation locks Word and Sentence. The voice is a pack of
@@ -1184,6 +1138,30 @@ export class ChamberOrbital {
                 recording to play and would run silent. Turn Recitation
                 off to read by word or by sentence.
               </p>
+            </div>
+
+            <!-- Pacing -->
+            <div class="config-section">
+              <label class="input-label">
+                <span>Pace</span>
+                <span class="input-label-value font-mono" id="wpm-val">${this.config.wpm} WPM</span>
+              </label>
+              <input type="range" id="wpm-slider" class="slider" min="100" max="500" value="${this.config.wpm}" step="10" aria-label="Pace in words per minute">
+              <div class="config-notice text-fog font-mono" style="font-size: 12px; margin-top: 0.5rem;">
+                Adjustable while reading with the arrow keys
+              </div>
+            </div>
+
+            <!-- Curve -->
+            <div class="config-section">
+              <label class="config-label">Curve</label>
+              <div class="curve-options">
+                ${PACE_CURVE_IDS.map(id => `
+                <button class="curve-option ${this.config.curve === id ? 'active' : ''}" data-curve="${id}">
+                  <span class="curve-icon">${svgIcon(`<path d="${CURVE_OPTIONS[id].path}"></path>`)}</span>
+                  <span>${CURVE_OPTIONS[id].label}</span>
+                </button>`).join('')}
+              </div>
             </div>
 
             <div class="config-section">
@@ -1199,6 +1177,9 @@ export class ChamberOrbital {
               </p>
             </div>
 
+            <div class="sheet-actions">
+              <button type="button" class="reader-link" data-action="rhythm-default">Default</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1343,7 +1324,7 @@ export class ChamberOrbital {
   }
 
   getTemporalStatus() {
-    return `${this.config.wpm} WPM`;
+    return `${CHUNK_LABELS[this.config.chunkMode] || CHUNK_LABELS.phrase} · ${this.config.wpm} wpm`;
   }
 
   getWordCount() {
@@ -1364,10 +1345,9 @@ export class ChamberOrbital {
   }
 
   attachEvents() {
-    this._retireStanceNote();
     // Full renders replace the controls but not `this.container`. Abort the
     // prior scope before binding the new DOM so delegated listeners cannot
-    // multiply across Reset or shared-container reconstruction.
+    // multiply across shared-container reconstruction.
     this._eventController?.abort();
     this._eventController = new AbortController();
     this._listen(window, 'beforeunload', this._boundPersist);
@@ -1378,7 +1358,7 @@ export class ChamberOrbital {
       this.onNavigate('home');
     });
 
-    // Origin chip (delegated — the chip re-renders on loadText/clearText)
+    // Origin chip (delegated — the chip re-renders on loadText)
     this._listen(this.container, 'click', (e) => {
       if (e.target.closest('[data-action="origin-return"]') && this.config.origin?.view) {
         this.getAudioEngine()?.playClick();
@@ -1390,16 +1370,10 @@ export class ChamberOrbital {
       }
     });
 
-    // Reset settings to factory defaults (keeps the loaded text)
-    this._listen(this.container.querySelector('[data-action="reset-prefs"]'), 'click', () => {
-      this.getAudioEngine()?.playClick();
-      this.resetPrefs();
-    });
-
     // Text source actions
     this.attachTextSourceEvents();
 
-    // Look row (the doorway) sits above the orbits it sets
+    // Looks, colours and sizes (delegated: the tiles repaint)
     this.attachLookEvents();
 
     // Orbit node clicks
@@ -1418,38 +1392,46 @@ export class ChamberOrbital {
   }
 
   attachTextSourceEvents() {
-    // Browse library (single entry point)
+    // Change text: the Library is where another text is chosen
     this._listen(this.container.querySelector('[data-action="library"]'), 'click', () => {
       this.getAudioEngine()?.playHiss();
       this.onNavigate('library');
     });
-
-    this._listen(this.container.querySelector('[data-action="clear-text"]'), 'click', () => {
-      this.getAudioEngine()?.playHiss();
-      this.clearText();
-    });
   }
 
   attachLookEvents() {
-    this.container.querySelectorAll('[data-stance]').forEach(input => {
-      this._listen(input, 'change', () => {
-        if (!input.checked) return;
+    this._listen(this.container, 'click', (e) => {
+      const look = e.target.closest('[data-look], [data-look-option]');
+      const colour = e.target.closest('[data-colour]');
+      const size = e.target.closest('[data-look-size]');
+      if (look) {
         this.getAudioEngine()?.playClick();
-        this.chooseLook(input.dataset.stance);
-      });
+        this.chooseLook(look.dataset.look || look.dataset.lookOption);
+      } else if (colour) {
+        this.getAudioEngine()?.playClick();
+        this.setColour(colour.dataset.colour);
+      } else if (size) {
+        this.getAudioEngine()?.playClick();
+        this.setSize(size.dataset.lookSize);
+      } else if (e.target.closest('[data-action="open-visual-lab"]')) {
+        this.getAudioEngine()?.playClick();
+        this.onNavigate('visual-lab');
+      } else if (e.target.closest('[data-action="rhythm-default"]')) {
+        this.getAudioEngine()?.playClick();
+        this.resetRhythm();
+      }
     });
 
-    this._listen(this.container.querySelector('[data-action="toggle-adjust"]'), 'click', () => {
-      this.getAudioEngine()?.playClick();
-      this.setAdjustOpen(!this._adjustOpen);
-    });
-
-    this.container.querySelectorAll('[data-projection]').forEach(button => {
-      this._listen(button, 'click', () => {
-        this.getAudioEngine()?.playClick();
-        this.setProjection(button.dataset.projection);
+    // Crossing the narrowest look's limit changes which looks are offered.
+    const narrow = Number.isFinite(NARROWEST_LIMIT) && typeof window.matchMedia === 'function'
+      ? window.matchMedia(`(max-width: ${NARROWEST_LIMIT}px)`)
+      : null;
+    if (narrow?.addEventListener) {
+      this._listen(narrow, 'change', () => {
+        this._paintTiles();
+        this._syncLookRow();
       });
-    });
+    }
   }
 
   attachOrbitEvents() {
@@ -1472,6 +1454,13 @@ export class ChamberOrbital {
         this.closeModal(btn.dataset.close);
       });
     });
+
+    // The two sheets keep focus inside and close on Escape themselves; the
+    // panels they open close through the router's Escape (handleEscape).
+    for (const sheet of ['look', 'temporal']) {
+      const dialog = this.container.querySelector(`#modal-${sheet} [role="dialog"]`);
+      this._listen(dialog, 'keydown', event => this._sheetKeydown(event, sheet, dialog));
+    }
 
     // Click outside to close
     const modals = this.container.querySelectorAll('.orbital-modal');
@@ -1712,6 +1701,8 @@ export class ChamberOrbital {
         this.config.chunkMode = opt.dataset.chunk;
         chunkOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
+        this.updateOrbitStatus('temporal');
+        this._syncLookRow();
       });
     });
 
@@ -1789,11 +1780,16 @@ export class ChamberOrbital {
     return false;
   }
 
+  /** The innermost open dialog, or null. */
+  get activeModal() {
+    return this._modals.at(-1) ?? null;
+  }
+
   openModal(orbit) {
     const modal = this.container.querySelector(`#modal-${orbit}`);
     if (modal) {
       modal.hidden = false;
-      this.activeModal = orbit;
+      this._modals = [...this._modals.filter(open => open !== orbit), orbit];
       if (orbit === 'visual') this.visualNavigator?.enterStage();
       modal.querySelector('.modal-close')?.focus();
     }
@@ -1803,9 +1799,33 @@ export class ChamberOrbital {
     const modal = this.container.querySelector(`#modal-${orbit}`);
     if (modal) {
       modal.hidden = true;
-      this.activeModal = null;
+      this._modals = this._modals.filter(open => open !== orbit);
       if (orbit === 'visual') this.visualNavigator?.leaveStage();
       this.container.querySelector(`[data-orbit="${orbit}"]`)?.focus();
+    }
+  }
+
+  /** Escape closes a sheet; Tab and Shift+Tab wrap inside it. */
+  _sheetKeydown(event, sheet, dialog) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.closeModal(sheet);
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const reachable = [...dialog.querySelectorAll(FOCUSABLE)]
+      .filter(el => !el.disabled && !el.closest('[hidden]'));
+    if (!reachable.length) return;
+    const first = reachable[0];
+    const last = reachable[reachable.length - 1];
+    const active = dialog.ownerDocument.activeElement;
+    if (event.shiftKey && (active === first || !dialog.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || !dialog.contains(active))) {
+      event.preventDefault();
+      first.focus();
     }
   }
 
@@ -1891,7 +1911,6 @@ export class ChamberOrbital {
     if (voiceSection) voiceSection.hidden = !enabled;
     const voiceSelect = this.container.querySelector('#voice-select');
     if (voiceSelect && this.config.voiceId) voiceSelect.value = this.config.voiceId;
-    this._syncProjection();
     this._syncLookRow();
   }
 
@@ -2066,6 +2085,9 @@ export class ChamberOrbital {
     // reading's sourced pool stranded on disk.
     this._persistPrefs();
 
+    this._ownLook = this._readingLook();
+    this._paintTiles();
+
     // Sync HTML modal elements with new config state
     this.syncUIWithConfig();
 
@@ -2101,8 +2123,8 @@ export class ChamberOrbital {
   /**
    * Reset every piece of launch-scoped visual IDENTITY — the pills,
    * the pericope program, the Chapel-domain memory — so it never
-   * outlives the reading that created it. Called on clear-text and on
-   * loading a source that carries no visual selection of its own.
+   * outlives the reading that created it. Called on every load, before the
+   * new source's own visual selection (if any) is applied.
    */
   _clearLaunchVisualIdentity() {
     this.config.visualProgram = null;
@@ -2143,45 +2165,6 @@ export class ChamberOrbital {
       fallback: { kind: 'still' }
     };
     return true;
-  }
-
-  clearText() {
-    this.config.text = null;
-    this.config.textSource = null;
-    this.config.origin = null;
-    this.config.presentation = null;
-    this.config.sources = null;
-    this.config.provenance = null;
-    this.config.capabilities = [];
-    this.config.recitation = { enabled: false };
-    // LAUNCH-SCOPED VISUAL IDENTITY dies with the text that carried it
-    // (2026-07 pill-leak fix): a Doré/Chapel/pericope reading's "From
-    // this reading" pills, its program, and the Chapel-domain flag all
-    // belong to the cleared reading. Without this, clearing a Numbers
-    // launch and loading a plain text left the Doré pill stranded.
-    this._clearLaunchVisualIdentity();
-    this.updateOriginChip();
-    this._persistPrefs(); // clears both the reading and its effective pool
-
-    // Lock visual interlocution again
-    if (this.visualNavigator) {
-      this.visualNavigator.setLocked(true);
-      this.updateOrbitStatus('visual');
-    }
-
-    // Re-render text source area
-    const textSourceEl = this.container.querySelector('#text-source');
-    if (textSourceEl) {
-      textSourceEl.innerHTML = this.renderTextSource();
-      this.attachTextSourceEvents();
-    }
-
-    // Disable begin button
-    const beginBtn = this.container.querySelector('#begin-btn');
-    if (beginBtn) {
-      beginBtn.disabled = true;
-    }
-    this._paintSummaries();
   }
 
   beginSession() {
@@ -2265,8 +2248,6 @@ export class ChamberOrbital {
     // (session start destroys this instance; so does navigating away)
     this._persistPrefs();
     this._destroyed = true;
-    clearTimeout(this._stanceNoteTimer);
-    this._stanceNoteTimer = null;
     this._eventController?.abort();
     this._eventController = null;
 

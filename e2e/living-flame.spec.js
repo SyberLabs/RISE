@@ -46,7 +46,7 @@ async function beginChapter(page, { wpm = 1000, text = null, connectAI = false }
     await page.locator('.toc-entry').first().click();
   }
   await page.waitForFunction(() => !!window.__RISE_TEST__?.getView('read')?.paneInstance('setup')?.config?.text, null, { timeout: 20_000 });
-  await page.locator('[data-stance="gallery"]').first().check({ force: true });
+  await page.locator('[data-look="gallery"]').click();
   await page.evaluate((value) => {
     window.__RISE_TEST__.getView('read').paneInstance('setup').config.wpm = value;
   }, wpm);
