@@ -108,6 +108,16 @@ describe('the one object', () => {
         expect(runtime.interrupt).not.toHaveBeenCalled();
     });
 
+    it('looks finished at the end: Play again is drawn apart from the Play of a paused reading', () => {
+        const runtime = fakeRuntime('interrupted');
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        const paused = play().innerHTML;
+        runtime.set('ended');
+        expect(play().innerHTML).not.toBe(paused);
+        runtime.set('interrupted');
+        expect(play().innerHTML).toBe(paused);
+    });
+
     it('is hidden, with Settings, when the reading failed or was stopped', () => {
         const runtime = fakeRuntime('live');
         stage = createStageControls({ runtime, onPlayAgain: () => {} });

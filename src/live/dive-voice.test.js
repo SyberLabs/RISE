@@ -32,9 +32,18 @@ beforeEach(() => {
 });
 afterEach(async () => {
     await runtime?.stop();
+    delete document.hidden;
+    delete document.visibilityState;
     vi.restoreAllMocks();
     vi.useRealTimers();
 });
+
+/** Hide or show the page, as a switch of tab does, and as a frame that is taken away does on its way out. */
+function setHidden(hidden) {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (hidden ? 'hidden' : 'visible') });
+    document.dispatchEvent(new Event('visibilitychange'));
+}
 
 function build({ boundaries, paced = false, failDive = false, flash = false }) {
     const synth = createFakeSpeech(clock, { msPerChar: MS_PER_CHAR, latencyMs: 30, boundaries });
@@ -64,7 +73,7 @@ function build({ boundaries, paced = false, failDive = false, flash = false }) {
         voices: { create: () => (paced ? createSyntheticVoice({ clock, msPerChar: MS_PER_CHAR }) : createBrowserVoice({ speech: { synth, Utterance: synth.Utterance }, clock })) },
         host: { present: async () => {}, dismiss: () => {} }
     });
-    return { atoms, spoken, players };
+    return { atoms, spoken, players, synth };
 }
 
 const main = atoms => atoms.filter(entry => entry.role === 'main');
@@ -136,6 +145,45 @@ for (const boundaries of [true, false]) {
                 }
                 if (round === 0) await readUntilMidPassage(atoms, { afterFirst: true });
             }
+        });
+    });
+}
+
+/** The voice said the phrase that was on screen again from its first character, and the same phrase was shown again from its start. */
+function expectTakenUpTogether({ atoms, spoken }, before, { segment, atom }) {
+    const resumed = spoken.slice(before.spoken).find(entry => passageOf(segment).endsWith(entry.text) && entry.text.length > 0);
+    expect(resumed?.text).toBe(passageOf(segment).slice(passageOf(segment).indexOf(atom.text)));
+    expect(main(atoms).slice(before.atoms)[0]).toMatchObject({ index: atom.index, text: atom.text });
+}
+
+for (const boundaries of [true, false]) {
+    describe(`${boundaries ? 'a voice that reports word boundaries' : 'a voice that reports none'}, held and taken up again without a Dive`, () => {
+        it('takes up the phrase on screen again, the voice and the words together, when the reader pauses and plays', async () => {
+            const built = build({ boundaries });
+            await runtime.start('Explain black holes.');
+            const at = await readUntilMidPassage(built.atoms, { afterFirst: true });
+            await runtime.interrupt();
+            await tick(2_000);
+            const before = { spoken: built.spoken.length, atoms: main(built.atoms).length };
+            runtime.resume();
+            await tick(200);
+            expectTakenUpTogether(built, before, at);
+        });
+
+        it('leaves nothing holding the speech engine while the page is hidden, and takes up the phrase on screen with the voice when it is shown', async () => {
+            const built = build({ boundaries });
+            await runtime.start('Explain black holes.');
+            const at = await readUntilMidPassage(built.atoms, { afterFirst: true });
+            setHidden(true);
+            // The engine is the whole browser's: a page that is hidden may be taken away, and a pause would outlive it.
+            expect(built.synth.paused).toBe(false);
+            expect(built.synth.speaking).toBe(false);
+            await tick(5_000);
+            const before = { spoken: built.spoken.length, atoms: main(built.atoms).length };
+            setHidden(false);
+            await tick(200);
+            expectTakenUpTogether(built, before, at);
+            expect(runtime.snapshot().status).toBe('live');
         });
     });
 }
