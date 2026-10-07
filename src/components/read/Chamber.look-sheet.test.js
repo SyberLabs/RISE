@@ -1,11 +1,12 @@
 /**
- * The reading bar and its one Look sheet (RDR-022, part A).
+ * The reading bar, its one Look sheet and its Rhythm & pace sheet (RDR-022).
  *
- * A reader-origin reading carries at most seven buttons in its bar, plus Dive
- * when the text has threads. Everything that changes the picture lives in one
- * Look sheet: a modal dialog that takes focus, keeps Tab inside, closes on
- * Escape and hands focus back to Look. A host that draws its own controls
- * (`chrome: 'none'`) gets neither.
+ * A reader-origin reading carries seven buttons in its bar, plus Dive when
+ * the text has threads. Everything that changes the picture lives in one Look
+ * sheet, and the pace in one Rhythm & pace sheet: modal dialogs that take
+ * focus, keep Tab inside, close on Escape and hand focus back to the button
+ * that opened them. A host that draws its own controls (`chrome: 'none'`)
+ * gets none of them.
  */
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -16,7 +17,7 @@ import { compileSession } from '../../core/session-compiler.js';
 import { buildJevVisualProgram } from '../../core/jev-sequence.js';
 import { JEV_INKS, JEV_PALETTES } from '../../core/jev-palette.js';
 import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
-import { applyLook } from '../../core/looks.js';
+import { applyLook, lookOfSession } from '../../core/looks.js';
 import { SOUND_GROUPS } from '../../audio/sound-list.js';
 import { flamePreset, FLAME_PRESET_IDS } from '../../visuals/living-flame/flame-presets.js';
 import { visualCortex } from '../../visuals/visual-cortex.js';
@@ -141,27 +142,27 @@ afterEach(() => {
 });
 
 describe('the reading bar', () => {
-  const SIX = ['play-pause-btn', 'look-btn', 'page-mode-btn', 'fullscreen-btn', 'chamber-settings-btn', 'exit-btn'];
+  const SEVEN = ['play-pause-btn', 'look-btn', 'pace-btn', 'page-mode-btn', 'fullscreen-btn', 'chamber-settings-btn', 'exit-btn'];
 
   it.each([
     ['a Stream reading', streamReading],
     ['a Jev reading', jevReading],
     ['a Library reading', libraryReading]
-  ])('carries the same six buttons for %s', (_name, reading) => {
+  ])('carries the same seven buttons for %s', (_name, reading) => {
     stubFullscreen();
     const { chamber, container } = mount(reading());
-    expect(barButtons(container)).toEqual(SIX);
+    expect(barButtons(container)).toEqual(SEVEN);
     for (const id of ['visuals-toggle-btn', 'visual-direction-btn', 'kaleidoscope-btn', 'jev-next-scene', 'jev-look-btn']) {
       expect(container.querySelector(`#chamber-controls #${id}`)).toBeNull();
     }
     chamber.destroy();
   });
 
-  it('adds Dive beyond the six only when the text has threads', () => {
+  it('adds Dive beyond the seven only when the text has threads', () => {
     stubFullscreen();
     const { chamber, container } = mount(threaded());
     const buttons = barButtons(container);
-    expect(buttons).toHaveLength(7);
+    expect(buttons).toHaveLength(8);
     expect(buttons).toContain('dive-btn');
     chamber.destroy();
   });
@@ -482,12 +483,196 @@ describe('the Look sheet', () => {
   });
 });
 
+describe('switching looks in the reading', () => {
+  const lookChips = container => [...container.querySelectorAll('[data-look-id]')];
+  const pressed = container => lookChips(container)
+    .filter(chip => chip.getAttribute('aria-pressed') === 'true').map(chip => chip.dataset.lookId);
+
+  afterEach(() => { delete window.matchMedia; });
+
+  it('offers the looks, marks the one the reading is in, and none when it is in none', () => {
+    const signal = mount(lookReading('signal'));
+    open(signal.container);
+    expect(lookChips(signal.container).map(chip => chip.dataset.lookId))
+      .toEqual(['plain', 'gallery', 'nocturne', 'garden', 'flame', 'signal', 'iris', 'revel', 'vigil']);
+    expect(pressed(signal.container)).toEqual(['signal']);
+    signal.chamber.destroy();
+
+    const custom = mount(streamReading());
+    open(custom.container);
+    expect(pressed(custom.container)).toEqual([]);
+    custom.chamber.destroy();
+  });
+
+  it('offers Inlay only on a narrow screen and only to a word-by-word reading', () => {
+    window.matchMedia = query => ({ matches: query === '(max-width: 820px)' });
+    const phrase = mount(streamReading({ chunkMode: 'phrase' }));
+    expect(phrase.container.querySelector('[data-look-id="inlay"]')).toBeNull();
+    phrase.chamber.destroy();
+
+    const word = mount(streamReading({ chunkMode: 'word' }));
+    expect(word.container.querySelector('[data-look-id="inlay"]')).not.toBeNull();
+    word.chamber.destroy();
+
+    window.matchMedia = () => ({ matches: false });
+    const wide = mount(streamReading({ chunkMode: 'word' }));
+    expect(wide.container.querySelector('[data-look-id="inlay"]')).toBeNull();
+    wide.chamber.destroy();
+  });
+
+  it('switches to Plain live, keeping the reader’s place', () => {
+    const applyCue = vi.spyOn(visualCortex, 'applyCue');
+    const { chamber, container } = mount(lookReading('gallery'));
+    chamber.player.sessionState.currentIndex = 2;
+    open(container);
+    container.querySelector('[data-look-id="plain"]').click();
+    expect(lookOfSession(chamber.session)).toBe('plain');
+    expect(applyCue).toHaveBeenLastCalledWith({ kind: 'still' }, expect.anything());
+    expect(chamber.player.sessionState.currentIndex).toBe(2);
+    expect(chamber.player.state).toBe('playing');
+    expect(chamber.player.stop).not.toHaveBeenCalled();
+    expect(chamber.player.pause).not.toHaveBeenCalled();
+    expect(container.querySelector('#look-sheet-name').textContent).toBe('Plain');
+    expect(pressed(container)).toEqual(['plain']);
+    expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('book');
+    expect(container.querySelector('#atom-display').dataset.fontSize).toBe('large');
+    chamber.destroy();
+  });
+
+  it('mounts a new field live, with the look’s colour and sound', () => {
+    canvasStubs();
+    const calls = [];
+    const audioEngine = {
+      stopSoundscape: () => calls.push('stop'),
+      applyPreset: id => calls.push(`preset:${id}`),
+      startSoundscape: id => calls.push(`soundscape:${id}`)
+    };
+    const { chamber, container } = mount(lookReading('gallery'), { audioEngine });
+    chamber.player.sessionState.currentIndex = 1;
+    open(container);
+    container.querySelector('[data-look-id="signal"]').click();
+    expect(lookOfSession(chamber.session)).toBe('signal');
+    expect(container.querySelector('.chamber-attractor')).not.toBeNull();
+    expect(container.style.getPropertyValue('--color-void')).toBe(JEV_PALETTES.cobalt.background);
+    expect(calls.at(-1)).toBe('soundscape:faded-signal');
+    expect(chamber.player.sessionState.currentIndex).toBe(1);
+    expect(container.querySelector('#look-sheet-name').textContent).toBe('Signal');
+    chamber.destroy();
+  });
+
+  it('turns the Gallery to another gallery look live, through the cortex', () => {
+    // The pool the session installed, as the launch hands it to the cortex.
+    visualCortex.updateConfig({ activeTypes: ['turrell', 'custom'] }, { preservePresentation: true });
+    const { chamber, container } = mount(lookReading('gallery'));
+    const update = vi.spyOn(visualCortex, 'updateConfig');
+    open(container);
+    container.querySelector('[data-look-id="revel"]').click();
+    expect(lookOfSession(chamber.session)).toBe('revel');
+    expect(update).toHaveBeenCalledWith({ galleryCadence: 0.85 }, { preservePresentation: true });
+    expect(update).toHaveBeenLastCalledWith({ activeTypes: ['fractal', 'custom'] }, { preservePresentation: true });
+    chamber.destroy();
+  });
+
+  it('switches a word-by-word Gallery to Inlay live on a narrow screen', () => {
+    window.matchMedia = query => ({ matches: query === '(max-width: 820px)' });
+    const { chamber, container } = mount(streamReading({ chunkMode: 'word' }));
+    open(container);
+    container.querySelector('[data-look-id="inlay"]').click();
+    expect(lookOfSession(chamber.session)).toBe('inlay');
+    expect(container.querySelector('#atom-display').dataset.fontSize).toBe('fit');
+    expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('thick');
+    chamber.destroy();
+  });
+
+  it('retires Next scene once the reader has chosen a look over Jev’s scenes', () => {
+    const { chamber, container } = mount(jevReading());
+    chamber._updateJevSceneControl(atoms[1]);
+    expect(container.querySelector('#jev-next-scene').disabled).toBe(false);
+    open(container);
+    container.querySelector('[data-look-id="revel"]').click();
+    chamber._updateJevSceneControl(atoms[1]);
+    expect(container.querySelector('#jev-next-scene').disabled).toBe(true);
+    chamber.destroy();
+  });
+
+  it('shows a gallery look as unavailable, with its reason, where the reading opened without a gallery', () => {
+    const { chamber, container } = mount(lookReading('plain'));
+    open(container);
+    const gallery = container.querySelector('[data-look-id="gallery"]');
+    expect(gallery.disabled).toBe(true);
+    expect(gallery.getAttribute('aria-label')).toMatch(/^Gallery, unavailable: .*reopen/);
+    gallery.click();
+    expect(lookOfSession(chamber.session)).toBe('plain');
+    expect(container.querySelector('[data-look-id="vigil"]').disabled).toBe(false);
+    chamber.destroy();
+  });
+});
+
+describe('the Rhythm & pace sheet', () => {
+  const pace = container => container.querySelector('#pace-btn');
+
+  it('names the rhythm and the pace on the bar', () => {
+    const { chamber, container } = mount(streamReading({ chunkMode: 'phrase' }));
+    expect(pace(container).textContent.trim()).toBe('Phrase · 200');
+    expect(pace(container).getAttribute('aria-label')).toBe('Rhythm and pace: Phrase, 200 words per minute');
+    chamber.destroy();
+  });
+
+  it('opens as a modal dialog from the bar, and Escape hands focus back', () => {
+    const { chamber, container } = mount(streamReading({ chunkMode: 'phrase' }));
+    const sheet = container.querySelector('#pace-sheet');
+    pace(container).click();
+    expect(sheet.hidden).toBe(false);
+    expect(sheet.getAttribute('role')).toBe('dialog');
+    expect(sheet.getAttribute('aria-modal')).toBe('true');
+    expect(pace(container).getAttribute('aria-expanded')).toBe('true');
+    expect(sheet.contains(document.activeElement)).toBe(true);
+    document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(sheet.hidden).toBe(true);
+    expect(document.activeElement).toBe(pace(container));
+    expect(chamber.player.pause).not.toHaveBeenCalled();
+    chamber.destroy();
+  });
+
+  it('changes the pace live through the Player’s speed, and the bar follows', () => {
+    const { chamber, container } = mount(streamReading({ chunkMode: 'phrase' }));
+    pace(container).click();
+    input(container.querySelector('[name="pace-wpm"]'), 250);
+    expect(chamber.player.setSpeedFactor).toHaveBeenLastCalledWith(0.8);
+    expect(pace(container).textContent.trim()).toBe('Phrase · 250');
+    expect(container.querySelector('#pace-wpm-value').textContent).toBe('250 wpm');
+    chamber.destroy();
+  });
+
+  it('follows the arrow keys too', () => {
+    const { chamber, container } = mount(streamReading({ chunkMode: 'phrase' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    expect(pace(container).textContent.trim()).toBe('Phrase · 210');
+    chamber.destroy();
+  });
+
+  it('marks the rhythm and shows the others as unavailable, with the reason', () => {
+    const { chamber, container } = mount(streamReading({ chunkMode: 'phrase' }));
+    pace(container).click();
+    const phrase = container.querySelector('[data-rhythm="phrase"]');
+    expect(phrase.getAttribute('aria-pressed')).toBe('true');
+    for (const id of ['sentence', 'word']) {
+      const chip = container.querySelector(`[data-rhythm="${id}"]`);
+      expect(chip.disabled).toBe(true);
+      expect(chip.getAttribute('aria-label')).toMatch(/unavailable: a new rhythm recuts the text/);
+    }
+    chamber.destroy();
+  });
+});
+
 describe('a host that draws its own controls', () => {
-  it('gets no bar and no Look sheet', () => {
+  it('gets no bar, no Look sheet and no Rhythm & pace sheet', () => {
     const { chamber, container } = mount(lookReading('signal'), { chrome: 'none', hostPlays: true });
     expect(container.querySelector('#chamber-controls')).toBeNull();
     expect(container.querySelector('#look-btn')).toBeNull();
     expect(container.querySelector('#look-sheet')).toBeNull();
+    expect(container.querySelector('#pace-btn')).toBeNull();
+    expect(container.querySelector('#pace-sheet')).toBeNull();
     chamber.destroy();
   });
 });

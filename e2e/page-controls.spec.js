@@ -31,7 +31,7 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
     };
     return {
       play: vis('#play-pause-btn'), time: vis('#time-display'),
-      look: vis('#look-btn'), settings: vis('#chamber-settings-btn'),
+      look: vis('#look-btn'), pace: vis('#pace-btn'), settings: vis('#chamber-settings-btn'),
       pageBtn: vis('#page-mode-btn'), exit: vis('#exit-btn'),
       elongate: vis('#page-elongate')
     };
@@ -60,6 +60,7 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
   // Everything that changes the picture, the flash kill switch included,
   // is in the Look sheet, so Look is on the bar in both projections.
   expect(inStream.look).toBe(true);
+  expect(inStream.pace).toBe(true);
   expect(inStream.elongate, 'Elongate belongs to the Page').toBe(false);
 
   // Page: only what a reader needs — page toggle, sound, exit. Sound used to
@@ -67,6 +68,8 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
   // door is what has to survive the Page.
   expect(inPage.play).toBe(false);
   expect(inPage.time).toBe(false);
+  // A page is read at the reader's own pace.
+  expect(inPage.pace).toBe(false);
   expect(inPage.look).toBe(true);
   expect(inPage.settings, 'Sound is reachable in the Page').toBe(true);
   expect(inPage.pageBtn).toBe(true);

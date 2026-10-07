@@ -1811,7 +1811,8 @@
    a page has no playback. Keep Page toggle, music, and exit. Driven by
    the toggle's class so leave restores automatically. */
 .chamber-display.page-mode-on #play-pause-btn,
-.chamber-display.page-mode-on #time-display {
+.chamber-display.page-mode-on #time-display,
+.chamber-display.page-mode-on #pace-btn {
   display: none;
 }
 
@@ -2216,7 +2217,8 @@
    own colours. Modal and topmost: it clears the field and the bar.
    ───────────────────────────────────────────────────────────── */
 
-.look-btn[aria-expanded="true"] {
+.look-btn[aria-expanded="true"],
+.pace-btn[aria-expanded="true"] {
   color: var(--sy-text);
   background: var(--sy-surface-2);
 }
@@ -2292,6 +2294,15 @@
   font-size: 0.8rem;
   color: var(--color-fog);
 }
+
+.look-sheet-note {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-fog);
+}
+
+.look-sheet-note[hidden] { display: none; }
 
 .look-sheet-label output {
   color: var(--color-light);
