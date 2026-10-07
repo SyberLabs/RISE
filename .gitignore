@@ -67,6 +67,7 @@ build/wiki/
 
 # Generated render output
 out/
+engine-stills-themes/
 tools/ffmpeg/
 met-*.html
 contact-sheet*.html

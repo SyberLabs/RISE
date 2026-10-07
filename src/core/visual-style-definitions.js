@@ -50,7 +50,9 @@ export const OSTENSORIA_PALETTES = Object.freeze([
   Object.freeze({ id: 'lilac', name: 'Lilac' }),
   Object.freeze({ id: 'teal', name: 'Teal' }),
   Object.freeze({ id: 'sepia', name: 'Sepia' }),
-  Object.freeze({ id: 'peacock', name: 'Peacock' })
+  Object.freeze({ id: 'peacock', name: 'Peacock' }),
+  Object.freeze({ id: 'rose', name: 'Rose' }),
+  Object.freeze({ id: 'citrine', name: 'Citrine' })
 ]);
 
 export const APPARITIO_PALETTES = Object.freeze([

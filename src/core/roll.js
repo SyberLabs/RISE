@@ -1,24 +1,26 @@
 /**
  * ROLL: a reading composed on this device, by chance, inside bounds.
  *
- * A roll is reading × section × temper. A temper is a coherent region of
- * the choices Jev itself may make (pace, unit, imagery, sound, type,
- * colour); a roll picks one value from each of the temper's short lists.
- * So every roll reads as an intention ("slow phrases · soft atmospheric
- * light · soft rain · literary serif"), never as a slot machine.
+ * A roll is work × section × look × rhythm × pace. The look (looks.js) is
+ * the one audiovisual choice; rhythm and pace are drawn from a short range
+ * that suits the look, but they are not part of it: the look never changes
+ * how the text moves, and setup changes either. So every roll reads as an
+ * intention ("slow phrases · soft atmospheric light · soft
+ * rain · literary serif"), never as a slot machine.
  *
  * The result is the same decision shape Jev returns and passes the same
  * admission (validateJevRecommendation). It says what it is: model
  * rise/roll-1, provider RISE. Nothing is sent anywhere.
  *
  * One visual and one sound hold for the whole reading, so the decision
- * survives the hand-off to Reader Setup intact.
+ * reopens in Reader Setup as the look it was drawn in.
  */
 
 import { jevReleasedEdition, jevReleasedWorkIds } from './jev-describe.js';
 import { resolveJevChamberConfig } from './jev-config.js';
 import { jevColors } from './jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from './jev-sequence.js';
+import { LOOKS } from './looks.js';
 
 const SECTIONS = Object.freeze(['first', 'middle', 'last', 'shortest', 'longest']);
 
@@ -72,98 +74,97 @@ export function rollTitleOf(workId) {
 }
 
 /**
- * Each list is a closed choice; the first entry is the temper's centre.
- * Values are exactly those validateJevRecommendation admits.
+ * Look values Jev's menu (validateJevRecommendation) spells another way. Every
+ * other value a look writes is spelled the same on both sides.
  */
-export const TEMPERS = Object.freeze([
-  {
-    id: 'nocturne', chunkMode: ['phrase'], wpm: [150, 200], curve: ['flat', 'wave'],
-    visualMode: 'interlocution', visualStyle: 'gentle', engines: ['turrell', 'harmonograph'],
-    galleryCadence: ['slow'], audio: ['soft-rain', 'aurora', 'nocturne', 'starlight'],
-    faces: ['literary', 'book'], sizes: ['medium', 'large'], colors: ['classic', 'amethyst']
-  },
-  {
-    id: 'plainsong', chunkMode: ['sentence'], wpm: [150, 200], curve: ['flat', 'induction'],
-    visualMode: 'off', visualStyle: 'quiet', engines: ['turrell'],
-    galleryCadence: ['slow'], audio: ['silent'],
-    faces: ['book', 'literary', 'display'], sizes: ['large', 'xlarge'], colors: ['classic', 'jade']
-  },
-  {
-    id: 'signal', chunkMode: ['phrase'], wpm: [250, 300], curve: ['wave'],
-    visualMode: 'attractor', visualStyle: 'immersive', engines: ['apparitio'],
-    galleryCadence: ['balanced'], audio: ['faded-signal', 'night-drive', 'mystery'],
-    faces: ['mono', 'sans'], sizes: ['large'], colors: ['cobalt', 'prism']
-  },
-  {
-    id: 'ember', chunkMode: ['phrase'], wpm: [200, 250], curve: ['ascent', 'climax'],
-    visualMode: 'interlocution', visualStyle: 'immersive', engines: ['apparitio', 'ostensoria'],
-    galleryCadence: ['balanced'], audio: ['triumph', 'wonder', 'excited'],
-    faces: ['display', 'thick'], sizes: ['large', 'fit'], colors: ['ember']
-  },
-  {
-    id: 'garden', chunkMode: ['phrase'], wpm: [150, 200], curve: ['flat'],
-    visualMode: 'genesis', visualStyle: 'gentle', engines: ['klee'], klee: ['random'],
-    galleryCadence: ['slow'], audio: ['piano', 'lullaby', 'waltz'],
-    faces: ['literary', 'book'], sizes: ['medium', 'large'], colors: ['jade', 'classic']
-  },
-  {
-    id: 'vigil', chunkMode: ['sentence', 'phrase'], wpm: [100, 150], curve: ['flat'],
-    visualMode: 'focals', visualStyle: 'quiet', engines: ['turrell'],
-    galleryCadence: ['slow'], audio: ['haunted', 'mystery', 'sad', 'nocturne'],
-    faces: ['display', 'literary'], sizes: ['large'], colors: ['amethyst', 'classic']
-  },
-  {
-    id: 'revel', chunkMode: ['phrase'], wpm: [300, 400], curve: ['climax', 'wave'],
-    visualMode: 'interlocution', visualStyle: 'psychedelic', engines: ['fractal'],
-    galleryCadence: ['lively'], audio: ['chase', 'thrilling', 'excited'],
-    faces: ['thick', 'sans'], sizes: ['fit', 'xlarge'], colors: ['prism']
-  },
-  {
-    id: 'salon', chunkMode: ['phrase'], wpm: [200, 250], curve: ['wave'],
-    visualMode: 'interlocution', visualStyle: 'gentle', engines: ['klee', 'harmonograph'],
-    galleryCadence: ['balanced'], audio: ['jazz', 'bossa', 'ragtime', 'blues'],
-    faces: ['sans', 'literary'], sizes: ['medium'], colors: ['cobalt', 'classic', 'ember']
-  }
-].map(temper => Object.freeze(temper)));
+export const JEV_SPELLING = Object.freeze({
+  soundscape: Object.freeze({ none: 'silent' }),
+  galleryCadence: Object.freeze({ 0.15: 'slow', 0.5: 'balanced', 0.85: 'lively' })
+});
 
 /**
- * The vivid tempers: those whose procedural visuals are immersive or
+ * What Jev's menu requires that a look does not say, for each look a roll may
+ * draw. `engines` stands in only where the look names none Jev offers; a look
+ * whose field is not on the menu (Gallery's sourced works, Flame's Living
+ * Flame) has no entry. Inlay has none until the five-reader observation
+ * (consolidated-reader decisions, Q3).
+ */
+const JEV_FILLS = Object.freeze({
+  plain: { visualStyle: 'quiet', engines: ['turrell'] },
+  nocturne: { visualStyle: 'gentle' },
+  garden: { visualStyle: 'gentle', kleePreset: 'random' },
+  signal: { visualStyle: 'immersive', engines: ['apparitio'] },
+  iris: { visualStyle: 'immersive' },
+  revel: { visualStyle: 'psychedelic' },
+  vigil: { visualStyle: 'quiet', engines: ['turrell'] }
+});
+
+/** The looks a roll may draw, in the registry's order. */
+export const ROLL_LOOKS = Object.freeze(LOOKS.filter(look => Object.hasOwn(JEV_FILLS, look.id)));
+
+/**
+ * The vivid looks: those whose procedural visuals are immersive or
  * psychedelic, so a reading drawn from them is never plain black or quiet.
  */
-export const VISUAL_TEMPERS = Object.freeze(TEMPERS.filter(temper => temper.visualMode !== 'off'
-  && ['immersive', 'psychedelic'].includes(temper.visualStyle)));
+export const VIVID_LOOKS = Object.freeze(ROLL_LOOKS.filter(look =>
+  ['immersive', 'psychedelic'].includes(JEV_FILLS[look.id].visualStyle)));
+
+/**
+ * The rhythms and paces a roll draws in each look, centre first: the ranges
+ * of the tempers the looks replaced. What a roll draws only; a look never
+ * holds its rhythm or pace, and the reader changes both in setup. Never Word,
+ * which stays a choice in Reader setup; every pace is one Jev's menu admits.
+ */
+export const ROLL_RANGES = Object.freeze({
+  plain: { rhythms: ['sentence'], paces: [150, 200] },
+  nocturne: { rhythms: ['phrase'], paces: [150, 200] },
+  garden: { rhythms: ['phrase'], paces: [150, 200] },
+  signal: { rhythms: ['phrase'], paces: [250, 300] },
+  iris: { rhythms: ['phrase'], paces: [200, 250] },
+  revel: { rhythms: ['phrase'], paces: [300, 400] },
+  vigil: { rhythms: ['sentence', 'phrase'], paces: [100, 150] }
+});
 
 const pick = (list, random) => list[Math.min(list.length - 1, Math.floor(random() * list.length))];
 
 let serial = 0;
 
-/** One reading from one temper, for one work and section. Pure given `random`. */
-export function composeRoll({ temper, workId, section, random = Math.random }) {
+/**
+ * One reading in one look, for one work and section, at one rhythm and pace
+ * inside the look's range (its centre when not given). `look` is a look id;
+ * `random` picks among the look's engines. Pure given `random`.
+ */
+export function composeRoll({ look: id, workId, section, rhythm, pace, random = Math.random }) {
+  const look = ROLL_LOOKS.find(entry => entry.id === id);
+  if (!look) throw new TypeError(`A roll cannot draw the look ${JSON.stringify(id)}.`);
+  const range = ROLL_RANGES[look.id];
+  rhythm ??= range.rhythms[0];
+  pace ??= range.paces[0];
+  if (!range.rhythms.includes(rhythm) || !range.paces.includes(pace)) {
+    throw new TypeError(`${look.name} is not rolled in ${rhythm} at ${pace} words a minute.`);
+  }
   const edition = jevReleasedEdition(workId);
   if (!edition) throw new TypeError(`${workId} is not a released reading.`);
-  const engine = pick(temper.engines, random);
-  const audio = pick(temper.audio, random);
-  const color = pick(temper.colors, random);
-  const chunkMode = pick(temper.chunkMode, random);
+  const fills = JEV_FILLS[look.id];
+  const { visualInterlocution: visual, presentation, soundscape } = look.config;
+  const engine = pick(fills.engines ?? look.engines, random);
+  const audio = JEV_SPELLING.soundscape[soundscape] ?? soundscape;
+  const color = presentation.colorTheme;
   const selectors = {
-    section, chunkMode,
-    wpm: pick(temper.wpm, random),
-    curve: pick(temper.curve, random),
+    section, chunkMode: rhythm, wpm: pace, curve: 'flat',
     audio, middleAudio: audio, finaleAudio: audio,
-    visualMode: temper.visualMode, visualStyle: temper.visualStyle,
+    visualMode: visual.visualMode, visualStyle: fills.visualStyle,
     visualEngine: engine, middleEngine: engine, finaleEngine: engine,
-    visualPalette: pick(temper.palettes || ['white'], random),
-    kleePreset: pick(temper.klee || ['harmonic'], random),
+    visualPalette: 'white',
+    kleePreset: fills.kleePreset ?? 'harmonic',
     visualArc: 'single', arcSplit: '50',
-    galleryCadence: pick(temper.galleryCadence, random),
-    chamberFace: pick(temper.faces, random),
-    fontSize: pick(temper.sizes, random),
+    galleryCadence: JEV_SPELLING.galleryCadence[visual.interlocution?.galleryCadence] ?? 'slow',
+    chamberFace: presentation.chamberFace,
+    fontSize: presentation.fontSize,
     colorTheme: color, textColor: color, backgroundColor: color,
     middleTheme: color, finaleTheme: color,
     wordFill: 'plain', projection: 'stream', revealMode: 'instant'
   };
-  // Fit paints single words only; any other unit reads larger instead.
-  if (selectors.fontSize === 'fit' && chunkMode !== 'word') selectors.fontSize = 'large';
   const resolved = resolveJevChamberConfig(selectors);
   const config = {
     ...selectors,
@@ -183,24 +184,26 @@ export function composeRoll({ temper, workId, section, random = Math.random }) {
     ...rollTitleOf(edition.workId),
     editionId: edition.editionId,
     sourceRevision: edition.sourceRevision,
-    temper: temper.id,
+    look: look.id,
     config
   };
 }
 
 /**
- * Roll a reading. Given the previous roll, no part (work, temper, section)
+ * Roll a reading. Given the previous roll, no part (work, look, section)
  * repeats, so Roll Again always visibly changes. A vivid roll draws its
- * temper from VISUAL_TEMPERS only.
+ * look from VIVID_LOOKS only.
  */
 export function rollReading({ random = Math.random, previous = null, vivid = false } = {}) {
   const draw = (list, last) => pick(list.filter(item => item !== last), random);
-  const temper = draw(vivid ? VISUAL_TEMPERS : TEMPERS, TEMPERS.find(item => item.id === previous?.temper));
+  const look = draw((vivid ? VIVID_LOOKS : ROLL_LOOKS).map(entry => entry.id), previous?.look);
   const decision = composeRoll({
-    temper,
+    look,
     workId: draw(jevReleasedWorkIds(), previous?.decision.workId),
     section: draw(SECTIONS, previous?.decision.config.section),
+    rhythm: pick(ROLL_RANGES[look].rhythms, random),
+    pace: pick(ROLL_RANGES[look].paces, random),
     random
   });
-  return { temper: temper.id, decision };
+  return { look, decision };
 }

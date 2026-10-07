@@ -240,7 +240,7 @@ test('the visual navigator holds every visual and all of Text, on a phone and on
     const toc = page.locator('.toc-entry').first();
     if (await toc.isVisible().catch(() => false)) { await toc.click(); }
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
-    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
+    { const look = page.locator('#modal-look'); if (await look.isHidden()) await page.locator('[data-orbit="look"]').click(); }
     await page.locator('.orbit-visual').click();
     await expect(page.locator('.vstage')).toBeVisible({ timeout: 15000 });
 
@@ -380,14 +380,19 @@ test('the configuration panels are not several screens of picture tiles', async 
     await toc.click();
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
 
+    // Rhythm & pace and Customize look open from the first screen; Sound and
+    // Visuals open from inside Customize look, which stays open beneath them.
     const panels = [
         ['.orbit-temporal', '#modal-temporal'],
+        ['.orbit-look', '#modal-look'],
         ['.orbit-audio', '#modal-audio'],
         ['.orbit-visual', '#modal-visual']
     ];
 
     for (const [node, modal] of panels) {
-        { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
+        if (node === '.orbit-audio' || node === '.orbit-visual') {
+            { const look = page.locator('#modal-look'); if (await look.isHidden()) await page.locator('[data-orbit="look"]').click(); }
+        }
         await page.locator(node).click();
         await expect(page.locator(modal)).toBeVisible({ timeout: 15000 });
         const m = await page.evaluate((sel) => {
@@ -419,7 +424,7 @@ test('the configuration panels are not several screens of picture tiles', async 
 });
 
 test('Begin reading can actually be pressed on a phone', async ({ page }) => {
-    // Begin/Reset must receive taps (not be covered by .orbital-stage).
+    // Begin must receive taps (not be covered by .orbital-stage).
     test.setTimeout(180000);
     await enter(page, 390, 844);
     await openHomeNav(page, 'library');
@@ -443,7 +448,7 @@ test('Begin reading can actually be pressed on a phone', async ({ page }) => {
                 intercepted: top ? `${top.tagName.toLowerCase()}.${top.className.toString().slice(0, 30)}` : 'null'
             };
         };
-        return { begin: check('#begin-btn'), reset: check('.orbital-reset') };
+        return { begin: check('#begin-btn') };
     });
     console.log('REACH ' + JSON.stringify(reach));
 
@@ -451,8 +456,6 @@ test('Begin reading can actually be pressed on a phone', async ({ page }) => {
     expect(reach.begin.disabled).toBe(false);
     expect(reach.begin.reachable,
         `Begin reading is covered by ${reach.begin.intercepted}`).toBe(true);
-    expect(reach.reset.reachable,
-        `Reset is covered by ${reach.reset.intercepted}`).toBe(true);
 
     await page.locator('#begin-btn').click({ timeout: 10000 });
     const accept = page.locator('#safety-accept');

@@ -18,9 +18,13 @@ function capturingContext() {
     // The shared 2d stub is a Proxy that invents a vi.fn for any property
     // read, so a marker property on the context would always read truthy.
     const wrapped = new WeakSet();
-    const original = HTMLCanvasElement.prototype.getContext;
-    const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext')
-        .mockImplementation(function getContext(type) {
+    // The setup's getContext is already a mock, and vi.spyOn on a mock reuses it,
+    // so a spy here would replace the stub it calls. Wrap the stub instead.
+    const proto = HTMLCanvasElement.prototype;
+    const original = proto.getContext;
+    Object.defineProperty(proto, 'getContext', {
+        configurable: true,
+        value: function getContext(type) {
             const ctx = original.call(this, type);
             if (ctx && !wrapped.has(ctx)) {
                 wrapped.add(ctx);
@@ -31,8 +35,12 @@ function capturingContext() {
                 };
             }
             return ctx;
-        });
-    return { written, restore: () => spy.mockRestore() };
+        }
+    });
+    return {
+        written,
+        restore: () => Object.defineProperty(proto, 'getContext', { configurable: true, value: original })
+    };
 }
 
 /**

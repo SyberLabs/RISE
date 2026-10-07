@@ -499,3 +499,41 @@ describe('saying how much room it takes', () => {
         ]);
     });
 });
+
+describe('writing down what the host says, for a witness', () => {
+    it('given a log, writes one JSON line for the hello’s context, one per change, and one per size report', async () => {
+        const lines = [];
+        const { port, hostSays } = await connected({
+            log: line => lines.push(line),
+            hostContext: {
+                containerDimensions: { width: 560, maxHeight: 640 }, displayMode: 'inline', availableDisplayModes: ['inline', 'fullscreen'],
+                safeAreaInsets: { top: 0, right: 0, bottom: 34, left: 0 }, theme: 'dark',
+                styles: { variables: { '--font-sans': 'Inter, sans-serif', '--color-background': '#fff' } },
+                platform: 'web', deviceCapabilities: { touch: false }, locale: 'en-US'
+            }
+        });
+        hostSays(notification(METHODS.hostContextChanged, { containerDimensions: { maxHeight: 520 } }));
+        port.sizeChanged({ height: 481 });
+        expect(lines.map(line => JSON.parse(line))).toEqual([
+            {
+                'rise-host': 'initialize',
+                containerDimensions: { width: 560, maxHeight: 640 }, displayMode: 'inline', availableDisplayModes: ['inline', 'fullscreen'],
+                safeAreaInsets: { top: 0, right: 0, bottom: 34, left: 0 }, theme: 'dark',
+                stylesVariables: ['--font-sans', '--color-background'],
+                platform: 'web', deviceCapabilities: { touch: false }
+            },
+            { 'rise-host': 'context-changed', containerDimensions: { maxHeight: 520 } },
+            { 'rise-host': 'size-changed', height: 481 }
+        ]);
+    });
+
+    it('writes a change’s style variables as their keys, and a hello without a context as the marker alone', async () => {
+        const lines = [];
+        const { hostSays } = await connected({ log: line => lines.push(line) });
+        hostSays(notification(METHODS.hostContextChanged, { theme: 'light', styles: { variables: { '--font-sans': 'Inter' } } }));
+        expect(lines.map(line => JSON.parse(line))).toEqual([
+            { 'rise-host': 'initialize' },
+            { 'rise-host': 'context-changed', theme: 'light', stylesVariables: ['--font-sans'] }
+        ]);
+    });
+});

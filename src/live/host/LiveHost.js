@@ -14,14 +14,17 @@
  * instrument (src/live/eval/study.js) and `?eval=later` with its later questions.
  * `?voice=paced` makes the reading silent and
  * paced as if spoken, which is what every automated test uses. `?measure=1`
- * exposes a read-only record of when atoms were shown and when the voice spoke
- * (`window.__riseLive`), which is how sync error is measured in a real browser.
+ * exposes a read-only record of when atoms were shown, when the voice spoke and
+ * which installed voice it was (`window.__riseLive`), which is how sync error is
+ * measured in a real browser.
  *
  * `?embed=mcp` is the page an MCP host's app frames (worker/mcp-server.mjs,
  * src/live/hosts/mcp-relay.js): no prompt, no provider to choose. The host's own
  * model wrote the answer and hands it over through the frame's parent; the same
  * runtime, Chamber and voice play it, under the stage's two objects
- * (stage-controls.js) instead of this page's bar.
+ * (stage-controls.js) instead of this page's bar. With `?log=host` as well, a
+ * witness session's switch, the port writes what the host says about the frame
+ * to the console as JSON lines (docs/plans/EMBED-WITNESS.md); nothing else.
  */
 
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
@@ -100,6 +103,8 @@ export class LiveHost {
         // Which voice the reading uses, and how many voices the browser offered, once each is known.
         this.voiceKind = null;
         this.voiceCount = null;
+        // The installed voice a browser reading speaks with, by name and language; null leaves the browser's default.
+        this.spokenVoice = null;
         this.destroyed = false;
         this.starting = false;
         this.embeddedStartupCancelled = false;
@@ -408,6 +413,7 @@ export class LiveHost {
                 journal: () => runtime.journal(),
                 atoms: () => this.atomLog.map(entry => ({ ...entry })),
                 startedAt: () => this.startedAt,
+                voice: () => this.spokenVoice,
                 now: () => performance.now()
             });
         }
@@ -481,7 +487,7 @@ export class LiveHost {
     async buildVoices(clock) {
         const wants = this.selectedVoice();
         if (wants === 'browser') {
-            const { createBrowserVoice, whenVoicesAvailable } = await import('../voices/browser.js');
+            const { chooseVoice, createBrowserVoice, whenVoicesAvailable } = await import('../voices/browser.js');
             const synth = this.env.speechSynthesis;
             const list = await whenVoicesAvailable(synth, { clock });
             this.voiceCount = list.length;
@@ -489,9 +495,13 @@ export class LiveHost {
                 this.voiceKind = 'browser';
                 this.showNotes();
                 const speech = { synth, Utterance: this.env.SpeechSynthesisUtterance };
-                return { create: () => createBrowserVoice({ speech, clock, lang: this.env.navigator?.language || 'en' }) };
+                const lang = this.env.navigator?.language || 'en';
+                const voice = chooseVoice(list, lang);
+                this.spokenVoice = voice ? Object.freeze({ name: voice.name, lang: voice.lang }) : null;
+                return { create: () => createBrowserVoice({ speech, clock, lang, voice }) };
             }
         }
+        this.spokenVoice = null;
         const { createSyntheticVoice } = await import('../voices/synthetic.js');
         this.voiceKind = 'paced';
         this.showNotes();
@@ -599,7 +609,7 @@ export class LiveHost {
         try {
             const [{ createMcpGuestPort }] = await Promise.all([import('../hosts/mcp-port.js'), this.modules]);
             if (this.destroyed || this.embeddedStartupCancelled) return;
-            this.port = createMcpGuestPort({ frame });
+            this.port = createMcpGuestPort({ frame, log: this.params.get('log') === 'host' ? line => console.log(line) : undefined });
             this.stopListeningError = this.port.onError(error => this.refuseEmbeddedProposal(error));
             this.port.onToolCancelled(() => {
                 // The host withdrew the call this frame waits on: no answer will come of it. An

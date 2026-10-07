@@ -15,14 +15,31 @@
  * field the way Page Mode samples it.
  *
  *   node scripts/build-engine-stills.mjs
+ *
+ * The render-and-tune pass for the colour themes:
+ *
+ *   node scripts/build-engine-stills.mjs --themes
+ *
+ * writes every engine that takes a theme under each of the nine, as
+ * <engine>-<theme>.webp, into engine-stills-themes/ at the repo root (ignored
+ * by git) and nothing into public/engine-stills. It needs the app running, as
+ * below; the supplied specimens are not touched. The pictures are for eyes:
+ * what an owner tunes from them is one id or one dial in
+ * src/core/theme-engine-map.js. e2e/theme-engines.spec.js asserts the same
+ * stills by number.
  */
 import { chromium } from 'playwright';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { JEV_PALETTES } from '../src/core/jev-palette.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = join(HERE, '..', 'public', 'engine-stills');
+const THEMES = process.argv.includes('--themes');
+const OUT = THEMES
+    ? join(HERE, '..', 'engine-stills-themes')
+    : join(HERE, '..', 'public', 'engine-stills');
+const THEMED_ENGINES = ['klee', 'turrell', 'neural', 'rockgarden', 'harmonograph', 'apparitio', 'ostensoria'];
 // The phone navigator shows a still full-bleed. The engines draw a reading at
 // CSS pixels (a Fractal reading on a 390x844 phone is a 390x844 canvas), so a
 // still of 1000-1440px is at least as sharp as the reading it stands for.
@@ -111,8 +128,8 @@ const page = await browser.newPage({ viewport: RENDER_VIEWPORT, deviceScaleFacto
 await mkdir(OUT, { recursive: true });
 const written = [];
 
-// 1. The specimens supplied as files.
-for (const [engine, file] of Object.entries(FROM_FILE)) {
+// 1. The specimens supplied as files. The theme pass has none.
+for (const [engine, file] of THEMES ? [] : Object.entries(FROM_FILE)) {
     if (!file) { console.log(`${engine}: no source given, skipped`); continue; }
     const raw = await readFile(file);
     const ext = file.toLowerCase().endsWith('.jpg') ? 'jpeg' : 'png';
@@ -143,7 +160,32 @@ try {
 // and an unattended one would replace the picked specimen with a worse one.
 // Without RISE_STILL_FRACTAL the committed fractal.webp stands.
 const toRender = ['apparitio', ...(FROM_FILE.ostensoria ? [] : ['ostensoria'])];
-const rendered = !reachable ? {} : await page.evaluate(async engines => {
+
+// The theme pass: one reading identity per theme, then every themed engine
+// once, keyed <engine>-<theme>. Ostensoria goes last because its still queues
+// three more plates, which the next theme's look flushes. Each theme is its own
+// trip to the page so no one evaluate carries sixty-three pictures.
+async function renderThemed() {
+    const out = {};
+    for (const [theme, colors] of Object.entries(JEV_PALETTES)) {
+        Object.assign(out, await page.evaluate(async ({ theme, colors, engines }) => {
+            const urls = {};
+            const cortex = await window.__RISE_TEST__.ensureVisualCortex();
+            cortex.init();
+            cortex.beginSessionVisualIdentity({ colorTheme: theme, flameColors: colors, activeTypes: engines });
+            for (const engine of engines) {
+                try {
+                    const work = await cortex._renderContinuousProceduralWork(engine);
+                    if (work?.url) urls[`${engine}-${theme}`] = work.url;
+                } catch { /* omitted */ }
+            }
+            return urls;
+        }, { theme, colors, engines: THEMED_ENGINES }));
+    }
+    return out;
+}
+
+const rendered = !reachable ? {} : THEMES ? await renderThemed() : await page.evaluate(async engines => {
     const out = {};
     const cortex = await window.__RISE_TEST__.ensureVisualCortex();
     cortex.init();
@@ -166,7 +208,7 @@ for (const [engine, url] of Object.entries(rendered)) {
 }
 
 await browser.close();
-console.log('\nengine stills written to public/engine-stills:');
+console.log(`\nengine stills written to ${THEMES ? 'engine-stills-themes' : 'public/engine-stills'}:`);
 for (const [engine, size, how] of written) {
     console.log(`  ${engine.padEnd(12)} ${String(Math.round(size / 1024)).padStart(4)}KB  (${how})`);
 }
