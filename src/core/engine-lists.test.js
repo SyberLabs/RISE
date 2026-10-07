@@ -19,7 +19,6 @@ const ENGINE_IDS = LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id);
 
 const ALLOWED = Object.freeze({
   'src/core/visual-registry.js': 'the registry itself',
-  'src/core/visual-taxonomy.js': 'the order the tree shows the registry\'s dynamic engines in',
   'src/core/visual-catalog.js': 'the catalog\'s manifests, keyed by registered engine',
   'src/app/jev-reading.js': 'Jev\'s closed choices, a model-facing contract checked by validateJevRecommendation',
   'src/core/jev-sequence.js': 'the phases Jev\'s closed choices are scheduled through',

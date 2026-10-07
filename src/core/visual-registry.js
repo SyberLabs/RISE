@@ -8,6 +8,11 @@
  * Reader setup; `composer`, a visual the ChatGPT Composer may present. The
  * Composer set follows RISE_CURRENT_VISUALS (rise-current.js), never the
  * reverse.
+ *
+ * A listed entry is a navigator leaf: `category` places it under Gallery
+ * (held, blendable) or Dynamic (drawn, exclusive), `label` names it where
+ * the navigator's name differs from `name`, and catalog order is the
+ * navigator's order within each category.
  */
 
 /**
@@ -18,47 +23,51 @@
  */
 export const PROCEDURAL_PATTERNS = Object.freeze([
   Object.freeze({
-    id: 'klee', name: 'Klee Lines', icon: '╱', hasPresets: true, listed: true, composer: true,
+    id: 'klee', name: 'Klee Lines', label: 'Genesis', icon: '╱', hasPresets: true,
+    listed: true, category: 'dynamic', composer: true,
     description: 'Line drawing that wanders — bezier curves, arcs and polygons in varied '
       + 'weights, composed as a sparse figure on a dark ground. Graphic and deliberate '
       + 'rather than atmospheric; reads as a made mark.'
   }),
   Object.freeze({
-    id: 'turrell', name: 'Turrell Fields', icon: '◈', listed: true, composer: false,
-    description: 'A bounded aperture of soft light held inside a near-black chamber, its '
-      + 'edge diffuse enough that the eye cannot decide whether it is an opening, a surface '
-      + 'or a solid. Almost still, no line work, entirely atmosphere.'
-  }),
-  Object.freeze({
-    id: 'fractal', name: 'Fractal Flames', icon: '✧', listed: true, composer: false,
+    id: 'fractal', name: 'Fractal Flames', icon: '✧', listed: true, category: 'gallery', composer: false,
     description: 'Iterated-function flames: dense filamentary structures of light on black, '
       + 'symmetrical and self-similar, closer to smoke or a nebula than to drawing. The '
       + 'busiest of these surfaces.'
   }),
   Object.freeze({
-    id: 'neural', name: 'Neural Networks', icon: '◉', wordFillCapable: false, listed: true, composer: false,
+    id: 'turrell', name: 'Turrell Fields', icon: '◈', listed: true, category: 'gallery', composer: false,
+    description: 'A bounded aperture of soft light held inside a near-black chamber, its '
+      + 'edge diffuse enough that the eye cannot decide whether it is an opening, a surface '
+      + 'or a solid. Almost still, no line work, entirely atmosphere.'
+  }),
+  Object.freeze({
+    id: 'neural', name: 'Neural Networks', icon: '◉', wordFillCapable: false,
+    listed: true, category: 'gallery', composer: false,
     description: 'Layered nodes joined by weighted, glowing connections, with pulses passing '
       + 'along them. Diagrammatic and regular — a legible structure rather than a texture.'
   }),
   Object.freeze({
-    id: 'rockgarden', name: 'Rock Garden', icon: '◯', wordFillCapable: false, listed: true, composer: false,
+    id: 'rockgarden', name: 'Rock Garden', icon: '◯', wordFillCapable: false,
+    listed: true, category: 'gallery', composer: false,
     description: 'A few overlapping stone-like forms — ellipses, blobs, irregular polygons — '
       + 'placed asymmetrically in greyscale, after karesansui. Sparse, quiet and mostly '
       + 'empty space.'
   }),
   Object.freeze({
-    id: 'harmonograph', name: 'Harmonograph', icon: '∿', listed: true, composer: false,
+    id: 'harmonograph', name: 'Harmonograph', icon: '∿', listed: true, category: 'dynamic', composer: false,
     description: 'A single continuous line traced by two damped pendulums tuned to a musical '
       + 'interval, winding into a lattice and decaying into stillness. Thin, precise, and '
       + 'visibly losing energy as it draws.'
   }),
   Object.freeze({
-    id: 'ostensoria', name: 'Iris Plates', icon: '◍', listed: true, composer: false,
+    id: 'ostensoria', name: 'Iris Plates', icon: '◍', listed: true, category: 'dynamic', composer: false,
     description: 'A square plate grown from strange-attractor density — radial vessels, '
       + 'spectral bands, and a dark halo on the chamber void. One seed, one plate, drawn once.'
   }),
   Object.freeze({
-    id: 'apparitio', name: 'Spectral Plates', icon: '☾', wordFillCapable: false, listed: true, composer: false,
+    id: 'apparitio', name: 'Spectral Plates', icon: '☾', wordFillCapable: false,
+    listed: true, category: 'dynamic', composer: false,
     description: 'An upright apparition on a single mirror axis: swept spectral wings, a '
       + 'filigree spine, a crowning halo on the chamber void. Each seed appears once.'
   })
@@ -75,12 +84,12 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
  * patterns, so neither reaches PROCEDURAL_PATTERN_IDS.
  */
 export const ENGINE_CATALOG = Object.freeze([
-  ...PROCEDURAL_PATTERNS,
   Object.freeze({
-    id: 'attractor', name: 'Attractor', icon: '∮', listed: true, composer: true,
+    id: 'attractor', name: 'Attractor', icon: '∮', listed: true, category: 'dynamic', composer: true,
     description: 'A persistent strange-attractor filament of light around the reading — '
       + 'gentle chaotic flow, no interrupts.'
   }),
+  ...PROCEDURAL_PATTERNS,
   Object.freeze({
     id: 'living-flame', name: 'Living Flame', listed: false, composer: false,
     description: 'An iterated-function flame drawn by many thousands of glowing particles: '
