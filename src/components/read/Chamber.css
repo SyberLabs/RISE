@@ -614,14 +614,6 @@
   font: 400 12px/16px var(--sy-font-sans);
 }
 
-.chamber-display.page-mode-on .jev-next-scene {
-  display: none;
-}
-
-.chamber-display.page-mode-on .jev-scene-status {
-  display: none;
-}
-
 .control-btn .icon {
   width: 20px;
   height: 20px;
@@ -724,100 +716,6 @@
 
 .chamber-settings-overlay[hidden] {
   display: none !important;
-}
-
-.jev-look-btn[aria-expanded="true"] {
-  color: var(--sy-text);
-  background: var(--sy-surface-2);
-}
-
-.jev-look-panel {
-  position: fixed;
-  right: max(1rem, env(safe-area-inset-right));
-  bottom: calc(6rem + env(safe-area-inset-bottom));
-  z-index: 150000;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-  width: min(23rem, calc(100vw - 2rem));
-  max-height: calc(100dvh - 8rem);
-  overflow-y: auto;
-  padding: 1rem;
-  color: var(--color-light);
-  background: color-mix(in srgb, var(--color-void) 94%, black);
-  border: 1px solid var(--color-accent);
-  border-radius: 1rem;
-  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
-}
-
-.jev-look-panel[hidden] { display: none; }
-
-.jev-look-panel label {
-  display: grid;
-  gap: 0.3rem;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-}
-
-.jev-look-choice {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.jev-look-choice select { flex: 1; }
-
-.jev-look-swatch {
-  flex: none;
-  width: 1.1rem;
-  height: 1.1rem;
-  border: 1px solid var(--color-light);
-  border-radius: 50%;
-}
-
-.jev-look-panel select {
-  min-width: 0;
-  min-height: 2.5rem;
-  padding: 0.4rem;
-  color: var(--color-light);
-  background: var(--color-void);
-  border: 1px solid var(--color-accent);
-  border-radius: 0.4rem;
-}
-
-.jev-look-panel input[type="range"] {
-  width: 100%;
-  accent-color: var(--color-accent);
-}
-
-.jev-look-panel output {
-  font-variant-numeric: tabular-nums;
-}
-
-.jev-look-panel select:focus-visible,
-.jev-look-panel input:focus-visible,
-.jev-look-btn:focus-visible {
-  outline: 2px solid var(--color-light);
-  outline-offset: 2px;
-}
-
-[data-jev-visual-strength="soft"] .chamber .chamber-continuous-field .continuous-field-layer > :not(.continuous-field-label) {
-  opacity: 0.45;
-}
-
-[data-jev-visual-strength="soft"] .chamber :is(
-  .chamber-genesis, .chamber-attractor, .chamber-living-flame,
-  .chamber-focal, .sequence-video-field
-) {
-  opacity: 0.45;
-}
-
-@media (max-width: 640px) {
-  .jev-look-panel {
-    left: 1rem;
-    right: 1rem;
-    width: auto;
-  }
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1541,10 +1439,6 @@
   z-index: 10;
 }
 
-.rhythmic-visuals-toggle.is-off {
-  color: var(--sy-text-3);
-}
-
 /* Kaleidoscope: the first control that applies and un-applies mid-read.
    Quiet until engaged, then plain text colour — the button reports the
    field's state without a glow. */
@@ -1917,9 +1811,7 @@
    a page has no playback. Keep Page toggle, music, and exit. Driven by
    the toggle's class so leave restores automatically. */
 .chamber-display.page-mode-on #play-pause-btn,
-.chamber-display.page-mode-on #time-display,
-.chamber-display.page-mode-on #visuals-toggle-btn,
-.chamber-display.page-mode-on #kaleidoscope-btn {
+.chamber-display.page-mode-on #time-display {
   display: none;
 }
 
@@ -2227,7 +2119,10 @@
     padding: 0;
   }
 
+  /* The time sits on its own line above the buttons, so the buttons keep
+     one row. */
   .chamber-controls .time-display {
+    flex-basis: 100%;
     padding: 0 var(--sy-space-2);
   }
 
@@ -2316,92 +2211,206 @@
 }
 
 /* ─────────────────────────────────────────────────────────────
-   VISUAL DIRECTION DRAWER — Follow text, Hold, Off, scene controls
+   THE LOOK SHEET — colour, size, sound and the visuals, in one dialog.
+   A side panel on a desk and a bottom sheet on a phone, in the reading's
+   own colours. Modal and topmost: it clears the field and the bar.
    ───────────────────────────────────────────────────────────── */
 
-.visual-direction-panel {
+.look-btn[aria-expanded="true"] {
+  color: var(--sy-text);
+  background: var(--sy-surface-2);
+}
+
+.look-sheet {
   position: fixed;
-  right: max(1rem, env(safe-area-inset-right));
-  bottom: calc(6rem + env(safe-area-inset-bottom));
+  top: 0;
+  right: 0;
+  bottom: 0;
   z-index: 150000;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  width: min(22rem, calc(100vw - 2rem));
-  max-height: calc(100dvh - 8rem);
+  gap: 1rem;
+  width: min(22rem, 100vw);
   overflow-y: auto;
-  padding: 1rem;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
   color: var(--color-light);
   background: color-mix(in srgb, var(--color-void) 94%, black);
-  border: 1px solid var(--color-accent);
-  border-radius: 1rem;
-  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
+  border-left: 1px solid var(--color-accent);
+  box-shadow: 0 0 3rem rgba(0, 0, 0, 0.55);
+  font-family: var(--sy-font-sans);
 }
 
-.visual-direction-panel[hidden] { display: none; }
+.look-sheet[hidden] { display: none; }
 
-.visual-direction-panel .vd-modes {
-  display: grid;
-  gap: 0.4rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.visual-direction-panel legend,
-.visual-direction-panel .vd-field {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-}
-
-.visual-direction-panel legend {
-  margin-bottom: 0.4rem;
-  color: var(--color-fog);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.visual-direction-panel .vd-mode {
+.look-sheet-head {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  min-height: 36px;
+  gap: 0.75rem;
+}
+
+.look-sheet-title {
+  margin: 0;
+  font: 600 1rem/1.4 var(--sy-font-sans);
+}
+
+.look-sheet-name {
+  flex: 1;
+  color: var(--color-fog);
   font-size: 0.9rem;
+}
+
+.look-sheet-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0.6rem;
   cursor: pointer;
 }
 
-.visual-direction-panel .vd-mode input { accent-color: var(--color-accent); }
-.visual-direction-panel .vd-mode input:disabled + span { opacity: 0.45; }
+.look-sheet-close .icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
 
-.visual-direction-panel .vd-field {
+.look-sheet-row {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.5rem;
 }
 
-.visual-direction-panel .vd-field output {
-  justify-self: end;
-  margin-top: -1.25rem;
+.look-sheet-row[hidden] { display: none; }
+
+.look-sheet-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--color-fog);
 }
 
-.visual-direction-panel input[type="range"] {
+.look-sheet-label output {
+  color: var(--color-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.look-colours,
+.look-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.look-colour {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-shadow);
+  border-radius: 999px;
+  background: radial-gradient(circle, var(--swatch-accent) 0 30%, var(--swatch-bg) 32%);
+  cursor: pointer;
+}
+
+.look-colour[aria-pressed="true"] {
+  border-color: var(--color-light);
+  box-shadow: 0 0 0 2px var(--color-void), 0 0 0 4px var(--color-light);
+}
+
+.look-chip,
+.look-sheet select,
+.look-sheet .vd-consent button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.85rem;
+  color: var(--color-light);
+  background: transparent;
+  border: 1px solid var(--color-shadow);
+  border-radius: 0.6rem;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.look-chip[aria-pressed="true"] {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+
+.look-chip[hidden] { display: none; }
+
+.look-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.look-chip .icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.look-sheet select {
   width: 100%;
+  background: var(--color-void);
+}
+
+.look-sheet input[type="range"] {
+  width: 100%;
+  min-height: 44px;
   accent-color: var(--color-accent);
 }
 
-.visual-direction-panel .vd-provenance,
-.visual-direction-panel .vd-note,
-.visual-direction-panel .vd-status,
-.visual-direction-panel .vd-consent p {
+.look-vivid {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--color-fog);
+}
+
+.look-link {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0;
+  color: var(--color-light);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.look-link[hidden] { display: none; }
+
+.look-direction {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.look-direction:empty { display: none; }
+
+.look-sheet .vd-provenance,
+.look-sheet .vd-note,
+.look-sheet .vd-status,
+.look-sheet .vd-consent p {
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.45;
   color: var(--color-fog);
 }
 
-.visual-direction-panel .vd-provenance { color: var(--color-light); }
-.visual-direction-panel .vd-status:empty { display: none; }
+.look-sheet .vd-provenance { color: var(--color-light); }
+.look-sheet .vd-status:empty { display: none; }
 
-.visual-direction-panel .vd-consent {
+.look-sheet .vd-consent {
   display: grid;
   gap: 0.6rem;
   padding: 0.75rem;
@@ -2409,27 +2418,7 @@
   border-radius: 0.75rem;
 }
 
-.visual-direction-panel .vd-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.visual-direction-panel button {
-  min-height: 38px;
-  padding: 0 0.8rem;
-  border: 1px solid var(--color-shadow);
-  border-radius: 0.6rem;
-  background: transparent;
-  color: var(--color-light);
-  font: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-
-.visual-direction-panel button:disabled { opacity: 0.45; cursor: default; }
-
-.visual-direction-panel .vd-primary {
+.look-sheet .vd-consent .vd-primary {
   border-color: var(--color-accent);
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -2437,11 +2426,15 @@
   padding: 0.5rem 0.8rem;
 }
 
-.visual-direction-panel button:focus-visible,
-.visual-direction-panel input:focus-visible,
-.visual-direction-btn:focus-visible {
+.look-sheet button:focus-visible,
+.look-sheet input:focus-visible,
+.look-sheet select:focus-visible {
   outline: 2px solid var(--color-light);
   outline-offset: 2px;
+}
+
+.look-sheet .look-colour:focus-visible {
+  outline-offset: 6px;
 }
 
 .chamber-lab-host {
@@ -2451,11 +2444,38 @@
 }
 
 @media (max-width: 640px) {
-  .visual-direction-panel {
-    left: 1rem;
-    right: 1rem;
+  .look-sheet {
+    top: auto;
+    left: 0;
     width: auto;
+    max-height: 85dvh;
+    border-left: 0;
+    border-top: 1px solid var(--color-accent);
+    border-radius: 16px 16px 0 0;
   }
+}
+
+/* While the side sheet is open the reading is laid out in the space left of
+   it, so the text it changes stays in sight. Only the field's padding moves:
+   the engines are absolutely placed against its padding box and stay full
+   bleed. The phone's bottom sheet leaves the reading where it is. */
+.chamber-field {
+  transition: padding-right 240ms var(--ease-out);
+}
+
+@media (min-width: 641px) {
+  .is-look-open .chamber-field {
+    padding-right: calc(var(--space-xl) + min(22rem, 100vw));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chamber-field { transition: none; }
+}
+
+:root.reduced-motion .chamber-field,
+:root.photosensitivity-mode .chamber-field {
+  transition: none;
 }
 
 /* DIVE. A press-and-hold is how a reader glances under a passage, so the
