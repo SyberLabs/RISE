@@ -3,7 +3,7 @@
   "title": "Accept one complete composed explanation",
   "lane": "live-sdk",
   "milestone": "M1 acceptance",
-  "status": "planned",
+  "status": "in_review",
   "delivery": "not_shipped",
   "owner": null,
   "priority": "next",
@@ -34,6 +34,12 @@
       "ref": "docs/plans/EMBED-WITNESS.md",
       "note": "The witness runbook (PR 6, code and docs): the ?log=host switch writes the host's context and each size report to the console as JSON; the runbook gives the owner the exact candidate, the demo Worker deploy, the developer-mode connection per the current OpenAI page, the one conversation, the five host questions with what each answer changes, the record's template and the Worker made inert. The session itself, and the real-host acceptance it records, are still to come.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/experiments/EMBED-STAGE-HOST-2026-10-07.md",
+      "note": "Real-host witness on exact main 122b1cb6 (embed stage and RDR-022 included), ChatGPT developer mode, desktop Chrome. Purpose, poster, voice, Play/Pause and the Settings rows witnessed (owner: \"voice works\"); the host applies the reported height (400 at the hello, 481 after the report). Not passed: no Finished or Play again at the end; the first Play after returning from a new chat is silent; voice and text fall out of sync, the voice restarting mid-passage, after the tab is hidden and shown. Local acceptance stays the CI record.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -48,10 +54,14 @@
     {
       "date": "2026-10-05T22:51:45.398Z",
       "summary": "Added the witness runbook (docs/plans/EMBED-WITNESS.md) and the ?log=host switch; the ChatGPT session itself is the owner's, not yet held"
+    },
+    {
+      "date": "2026-10-07T13:54:48.703Z",
+      "summary": "Witnessed in ChatGPT on 122b1cb6 (record EMBED-STAGE-HOST-2026-10-07); not passed: three playback defects, left in review"
     }
   ],
-  "updatedAt": "2026-10-05T22:51:45.398Z",
-  "revision": 3,
+  "updatedAt": "2026-10-07T13:54:48.703Z",
+  "revision": 4,
   "summary": "Integrate score, admitted host behavior and fixtures into a coherent first-use experience.",
-  "blocker": null
+  "blocker": "Three playback defects from the 2026-10-07 witness: no end state (Finished / Play again); silent first Play after returning from a new chat; voice and text desync, with false restarts, after leaving and returning to the tab. Witness again on a release that fixes them."
 }
