@@ -36,7 +36,7 @@ function setup({ paragraphs = 20, fetchImpl, cache, now } = {}) {
     now: now || (() => 0),
     onEvent: event => events.push(event)
   });
-  return { session, director, coordinator, events, text };
+  return { session, director, coordinator, events, text, fetchImpl };
 }
 
 /** A fetch whose replies the test releases one at a time. */
@@ -63,12 +63,27 @@ function controlledFetch({ status = 200, reply = null } = {}) {
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
 async function settle() { for (let i = 0; i < 8; i += 1) await flush(); }
 
+/**
+ * Waits until the provider has received at least `count` requests. Between
+ * observe() and the request the coordinator awaits two SHA-256 digests on the
+ * platform's crypto thread pool, so under load that takes more timer ticks
+ * than settle() counts; this waits on the event itself.
+ */
+function received(fetchImpl, count) {
+  return vi.waitFor(() => {
+    const seen = fetchImpl.mock.calls.length;
+    if (seen < count) throw new Error(`expected ${count} request(s) by now, saw ${seen}`);
+  }, { timeout: 5000, interval: 5 });
+}
+
 async function ready(context, { permit = true, playing = true } = {}) {
   await context.coordinator.prepare();
   if (permit) context.coordinator.setPermission(context.coordinator.sourceDigests);
   context.coordinator.setActivity({ playing, visible: true, inChamber: true, mode: 'follow' });
   context.coordinator.observe(0);
   await settle();
+  // Without permission for this source, the coordinator never asks.
+  if (permit) await received(context.fetchImpl, 1);
 }
 
 describe('VisualScoreCoordinator', () => {
@@ -85,6 +100,7 @@ describe('VisualScoreCoordinator', () => {
     expect(calls[0].request).not.toHaveProperty('previousTreatmentId');
     calls[0].answer();
     await settle();
+    await received(fetchImpl, 2);
     expect(calls).toHaveLength(2);
     expect(calls[1].request.blocks[0].id).toBe(context.director.blocks[sections[1].startBlock].id);
     expect(calls[1].request.previousTreatmentId).toBe('solar-bloom');
@@ -94,6 +110,7 @@ describe('VisualScoreCoordinator', () => {
     expect(calls).toHaveLength(2);
     context.coordinator.observe(sections[1].startBlock);
     await settle();
+    await received(fetchImpl, 3);
     expect(calls).toHaveLength(3);
   });
 
@@ -157,6 +174,7 @@ describe('VisualScoreCoordinator', () => {
     expect(context.events.find(event => event.kind === 'failed').code).toMatch(/INVALID/);
     expect(context.director.pendingChoice(0).provenance).toBe('local');
     // The next section is attempted; the failed one is never asked again.
+    await received(fetchImpl, 2);
     expect(calls).toHaveLength(2);
     calls[1].answer();
     await settle();
@@ -189,6 +207,7 @@ describe('VisualScoreCoordinator', () => {
     context.coordinator.observe(last.startBlock);
     await settle();
     expect(context.events.some(event => event.kind === 'aborted' && event.reason === 'seek')).toBe(true);
+    await received(fetchImpl, 2);
     expect(calls).toHaveLength(2);
     expect(calls[1].request.blocks[0].id).toBe(context.director.blocks[last.startBlock].id);
     // The cancelled section's late answer cannot be adopted.

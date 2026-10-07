@@ -6,7 +6,7 @@
  * offer different engines.
  *
  * A list here is three or more registered engine ids written one after
- * another; data that composes an engine or two (a temper, a treatment) is
+ * another; data that composes an engine or two (a look, a treatment) is
  * not a list of engines. The files that may still hold one say why.
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -19,7 +19,6 @@ const ENGINE_IDS = LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id);
 
 const ALLOWED = Object.freeze({
   'src/core/visual-registry.js': 'the registry itself',
-  'src/core/visual-taxonomy.js': 'the order the tree shows the registry\'s dynamic engines in',
   'src/core/visual-catalog.js': 'the catalog\'s manifests, keyed by registered engine',
   'src/app/jev-reading.js': 'Jev\'s closed choices, a model-facing contract checked by validateJevRecommendation',
   'src/core/jev-sequence.js': 'the phases Jev\'s closed choices are scheduled through',
