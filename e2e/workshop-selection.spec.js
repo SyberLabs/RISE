@@ -29,6 +29,40 @@ async function openWorkshopWithSource(page) {
     await expect(page.locator('#visual-score-text')).toBeVisible();
 }
 
+/**
+ * WHERE THE TEXT IS, ONCE IT HAS STOPPED MOVING.
+ *
+ * `html { scroll-behavior: smooth }` animates every programmatic scroll of the
+ * document, including the one Playwright makes to bring a button into view
+ * before clicking it. Clicking Score after the Assets steps could leave that
+ * animation still running when the test measured `#visual-score-text` and
+ * dispatched the touch at coordinates taken from the measurement; by touchEnd
+ * the text had moved on by some thirty pixels, the tap landed in the box's
+ * padding or on the header above it, and Chromium collapsed the selection,
+ * which left nothing for `captureVisualScoreSelection` to find. The visual
+ * lane never showed this only because its touch lands off-screen.
+ *
+ * So the box is measured only after the text has held one position for a
+ * stretch longer than the animation takes to begin. Two quiet frames, which
+ * is Playwright's own stability check, are not enough: the scroll a click
+ * starts can wait a few frames before its first step.
+ */
+async function settledTextBox(page) {
+    await page.waitForFunction(() => {
+        const top = document.querySelector('#visual-score-text')?.getBoundingClientRect().top;
+        const now = performance.now();
+        const seen = window.__riseSettledText;
+        if (!seen || seen.top !== top) {
+            window.__riseSettledText = { top, since: now };
+            return false;
+        }
+        if (now - seen.since < 150) return false;
+        window.__riseSettledText = null;
+        return true;
+    });
+    return page.locator('#visual-score-text').boundingBox();
+}
+
 test('touch selection opens the passage palette and assigns without a synthetic mouseup', async ({ page }) => {
     test.setTimeout(90_000);
     await openWorkshopWithSource(page);
@@ -48,8 +82,7 @@ test('touch selection opens the passage palette and assigns without a synthetic 
     await expect(page.locator('#studio-contextual-inspector')).not.toContainText('Presentation');
     await page.getByRole('button', { name: 'Score', exact: true }).click();
 
-    const text = page.locator('#visual-score-text');
-    const box = await text.boundingBox();
+    const box = await settledTextBox(page);
     expect(box).not.toBeNull();
 
     const cdp = await page.context().newCDPSession(page);
@@ -88,8 +121,7 @@ test('touch selection opens the passage palette and assigns without a synthetic 
     await page.getByRole('button', { name: 'Score', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Audio', exact: true })).toHaveAttribute('aria-selected', 'true');
 
-    const audioText = page.locator('#visual-score-text');
-    const audioBox = await audioText.boundingBox();
+    const audioBox = await settledTextBox(page);
     expect(audioBox).not.toBeNull();
     await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
@@ -117,7 +149,7 @@ test('touch selection opens the passage palette and assigns without a synthetic 
 });
 
 async function selectFirstWords(page, cdp, chars = 20) {
-    const box = await page.locator('#visual-score-text').boundingBox();
+    const box = await settledTextBox(page);
     await cdp.send('Input.dispatchTouchEvent', {
         type: 'touchStart', touchPoints: [{ x: box.x + 24, y: box.y + 28 }]
     });
