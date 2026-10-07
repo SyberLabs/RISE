@@ -212,8 +212,9 @@ Leave these alone without new evidence.
   one reported bug was a stale deployment — including Scriptorium uploads.
 - **Netlify SPA rewrites return 200 for missing assets.** A `200` proves
   nothing; fetch the content and look at it.
-- Suite is roughly 2,150 tests over 200 files; `maxWorkers` scales to the
-  machine. CI runs Unit, Build, Hygiene and Browser smoke; the last is slow.
+- The suite is large; `maxWorkers` scales to the machine. What CI runs on a
+  pull request, and what only after a merge, is in `AGENTS.md` (Testing /
+  build gotchas) and `.github/workflows/`.
 - **Other agents commit to this working directory and switch its branch.**
   Save a patch before large operations, stage only your own files, and verify
   in a detached worktree of the actual commit — local green means nothing when

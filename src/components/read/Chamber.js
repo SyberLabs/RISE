@@ -74,7 +74,8 @@ export const ICONS = Object.freeze({
   check: svg('<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'),
   arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
   dive: svg('<path d="M4.5 9.5c2.5-2 5-2 7.5 0s5 2 7.5 0"/>'
-    + '<path d="M4.5 15c2.5-2 5-2 7.5 0s5 2 7.5 0"/>')
+    + '<path d="M4.5 15c2.5-2 5-2 7.5 0s5 2 7.5 0"/>'),
+  pace: svg('<path d="M4.5 17a7.5 7.5 0 1 1 15 0"/><path d="m12 17 3.6-5.2"/>')
 });
 
 import { livingTextAppearance, ensureTextContrast, scoreAtoms, planInterlocution } from '../../core/conductor.js';
@@ -116,11 +117,15 @@ import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig,
 import { directionStateFor, ensureDirector, followProgram, permittedSourceDigests } from '../../core/passage-visuals/reading-state.js';
 import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
-import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
+import { SOUND_GROUPS, soundOf } from '../../audio/sound-list.js';
 import { connectionState } from '../../core/ai-connection.js';
-import { LOOKS, lookOfSession } from '../../core/looks.js';
+import { LOOKS, applyLook, lookOfSession } from '../../core/looks.js';
 import { ATTRACTOR_VISUAL_MANIFEST } from '../../core/visual-control-contract.js';
 import './Chamber.css';
+
+const RHYTHMS = Object.freeze([['phrase', 'Phrase'], ['sentence', 'Sentence'], ['word', 'Word']]);
+const RHYTHM_UNAVAILABLE = 'a new rhythm recuts the text, and a reading cannot yet reopen at your place';
+const LOOK_UNAVAILABLE = 'this reading opened without a gallery, and a reading cannot yet reopen in another look at your place';
 
 /**
  * THE SEAM, AS THE CHAMBER IS WILLING TO DRAW IT.
@@ -263,6 +268,9 @@ export class Chamber {
      */
     this.offersVisualsToggle = this.hasRhythmicVisuals
         && !isContinuousPresentation(this.session?.visualConfig?.interlocution?.presentation);
+    // Only a reading that opened with a Gallery has the cortex identity and
+    // the host a Gallery look needs; the fields mount anywhere.
+    this.opensWithGallery = this.hasRhythmicVisuals && !this.offersVisualsToggle;
     /**
      * A dive looks under the passage the reading is at, so it is offered only
      * where something was written to lie there. An ordinary reading carries
@@ -619,13 +627,20 @@ export class Chamber {
               class="time-separator" aria-hidden="true">/</span><span
               id="time-total">0:00</span></span>
 
-            <!-- At most seven buttons: these six, and Dive where the text has
-                 threads. Everything that changes the picture is in the Look
-                 sheet; Page view's turn and Elongate exist only in Page view. -->
+            <!-- Seven buttons, and Dive where the text has threads. Everything
+                 that changes the picture is in the Look sheet, and the pace
+                 in the Rhythm & pace sheet; Page view's turn and Elongate
+                 exist only in Page view. -->
             <button class="control-btn look-btn" id="look-btn" type="button"
               aria-label="Look" aria-haspopup="dialog" aria-expanded="false" aria-controls="look-sheet">
               <span class="icon" aria-hidden="true">${ICONS.spark}</span>
               <span class="control-label">Look</span>
+            </button>
+
+            <button class="control-btn pace-btn" id="pace-btn" type="button"
+              aria-label="${this._paceName()}" aria-haspopup="dialog" aria-expanded="false" aria-controls="pace-sheet">
+              <span class="icon" aria-hidden="true">${ICONS.pace}</span>
+              <span class="control-label" id="pace-label">${this._paceLabel()}</span>
             </button>
 
             <!-- PAGE TURN, IN THE BAR THAT ALREADY EXISTS.
@@ -767,6 +782,7 @@ export class Chamber {
 
         <div class="chamber-settings-overlay" id="chamber-settings-overlay" hidden></div>
         ${this.chromeless ? '' : this.renderLookSheet()}
+        ${this.chromeless ? '' : this.renderPaceSheet()}
 
         ${this.chromeless ? '' : `
         <!-- Custom Exit Confirmation Overlay -->
@@ -814,6 +830,13 @@ export class Chamber {
             </button>
           </div>
           <div class="look-sheet-row">
+            <div class="look-chips" role="group" aria-label="Looks">
+              ${LOOKS.filter(look => this._lookOffered(look)).map(look => `<button type="button" class="look-chip"
+                data-look-id="${look.id}" aria-pressed="false">${look.name}</button>`).join('')}
+            </div>
+            <p class="look-sheet-note" id="look-unavailable-note" hidden>Gallery looks open from Reader setup for now: a reading cannot yet reopen in another look at your place.</p>
+          </div>
+          <div class="look-sheet-row">
             <span class="look-sheet-label" id="look-colour-label">Colour</span>
             <div class="look-colours" role="group" aria-labelledby="look-colour-label">
               ${Object.entries(JEV_PALETTES).map(([id, palette]) => `<button type="button" class="look-colour"
@@ -832,8 +855,11 @@ export class Chamber {
           <div class="look-sheet-row look-sheet-sound">
             <label class="look-sheet-label" for="look-sound">Sound</label>
             <select id="look-sound" name="look-sound">
-              <option value="authored">As written</option><option value="none">Silence</option>
-              ${JEV_AUDIO_IDS.map(id => `<option value="${id}">${id.split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ')}</option>`).join('')}
+              <option value="authored">As written</option>
+              ${SOUND_GROUPS.map(group => {
+                const options = group.entries.map(sound => `<option value="${sound.id}">${escapeHtml(sound.name)}</option>`).join('');
+                return group.id === 'silence' ? options : `<optgroup label="${group.label}">${options}</optgroup>`;
+              }).join('')}
             </select>
             <label class="look-sheet-label" for="look-volume">Volume
               <output id="look-volume-value">${volume}%</output></label>
@@ -871,11 +897,86 @@ export class Chamber {
         </div>`;
   }
 
+  /**
+   * RHYTHM & PACE, IN THE READING. Pace changes live, as the arrow keys change
+   * it. A rhythm recuts the text, which a reading in progress cannot do, so
+   * the others are shown with that reason.
+   */
+  renderPaceSheet() {
+    return `
+        <div class="look-sheet pace-sheet" id="pace-sheet" role="dialog" aria-modal="true"
+          aria-labelledby="pace-sheet-title" hidden>
+          <div class="look-sheet-head">
+            <h2 class="look-sheet-title" id="pace-sheet-title">Rhythm &amp; pace</h2>
+            <button type="button" class="look-sheet-close" id="pace-sheet-close" aria-label="Close Rhythm and pace">
+              <span class="icon" aria-hidden="true">${ICONS.exit}</span>
+            </button>
+          </div>
+          <div class="look-sheet-row">
+            <span class="look-sheet-label" id="pace-rhythm-label">Rhythm</span>
+            <div class="look-chips" role="group" aria-labelledby="pace-rhythm-label">
+              ${RHYTHMS.map(([id, label]) => this.session?.chunkMode === id
+                ? `<button type="button" class="look-chip" data-rhythm="${id}" aria-pressed="true">${label}</button>`
+                : `<button type="button" class="look-chip" data-rhythm="${id}" aria-pressed="false" disabled
+                  aria-label="${label}, unavailable: ${RHYTHM_UNAVAILABLE}" title="${RHYTHM_UNAVAILABLE}">${label}</button>`).join('')}
+            </div>
+            <p class="look-sheet-note">A new rhythm recuts the text, so it is chosen in Reader setup.</p>
+          </div>
+          <div class="look-sheet-row">
+            <label class="look-sheet-label" for="pace-wpm">Pace
+              <output id="pace-wpm-value">${this.currentWpm} wpm</output></label>
+            <input id="pace-wpm" name="pace-wpm" type="range" min="${READING_PACE.min}" max="${READING_PACE.max}"
+              step="10" value="${this.currentWpm}" aria-valuetext="${this.currentWpm} words per minute" />
+          </div>
+        </div>`;
+  }
+
+  /** What the bar's pace button reads: the rhythm and the pace, or the pace alone. */
+  _paceLabel() {
+    const rhythm = RHYTHMS.find(([id]) => id === this.session?.chunkMode)?.[1];
+    return rhythm ? `${rhythm} · ${this.currentWpm}` : `${this.currentWpm} wpm`;
+  }
+
+  _paceName() {
+    const rhythm = RHYTHMS.find(([id]) => id === this.session?.chunkMode)?.[1];
+    return `Rhythm and pace: ${rhythm ? `${rhythm}, ` : ''}${this.currentWpm} words per minute`;
+  }
+
+  _syncPace() {
+    const label = this.container.querySelector('#pace-label');
+    if (label) label.textContent = this._paceLabel();
+    this.container.querySelector('#pace-btn')?.setAttribute('aria-label', this._paceName());
+    const output = this.container.querySelector('#pace-wpm-value');
+    if (output) output.textContent = `${this.currentWpm} wpm`;
+    const range = this.container.querySelector('[name="pace-wpm"]');
+    if (range) {
+      range.value = String(this.currentWpm);
+      range.setAttribute('aria-valuetext', `${this.currentWpm} words per minute`);
+    }
+  }
+
+  /** Whether this screen and this rhythm may offer a look; a look that cuts the text is offered only in its own rhythm. */
+  _lookOffered(look) {
+    const width = look.maxViewportWidth;
+    if (width && window.matchMedia?.(`(max-width: ${width}px)`)?.matches !== true) return false;
+    return !look.config.chunkMode || look.config.chunkMode === this.session?.chunkMode;
+  }
+
+  /** Whether a look's field is a Gallery pool, which only the cortex can hold. Living Flame is drawn as a field. */
+  _lookDrawsGallery(look) {
+    return look.config.visualInterlocution.visualMode === 'interlocution' && !look.engines.includes('living-flame');
+  }
+
+  /** A Gallery look in a reading that opened without one would need the reading reopened, which no path does yet. */
+  _lookNeedsReopen(look) {
+    return this._lookDrawsGallery(look) && !this.opensWithGallery;
+  }
+
   applyChamberStreamFace() {
     const atomDisplay = this.container.querySelector('#atom-display');
     if (!atomDisplay) return false;
     atomDisplay.dataset.chamberFace = resolveChamberStreamFace(
-      this.getSettings()?.chamberFace
+      this._jevLook?.face || this.getSettings()?.chamberFace
     );
     if (atomDisplay.classList.contains('is-mask')) {
       void this.syncFillGlyphMask();
@@ -1003,7 +1104,7 @@ export class Chamber {
     const visualConfig = this.session?.visualConfig;
     const presentation = this.session?.visualConfig?.interlocution?.presentation;
     const input = {
-      face: settings.chamberFace,
+      face: this._jevLook?.face || settings.chamberFace,
       fontSize: this.effectiveFontSize(),
       chunkMode: this.session?.chunkMode,
       visualMode: visualConfig?.visualMode,
@@ -1141,6 +1242,7 @@ export class Chamber {
     });
     settingsBtn?.addEventListener('click', () => {
       this.closeLookSheet(false);
+      this._closeSheet('pace', false);
       this.audioEngine?.playHiss();
       this.toggleSettings();
     });
@@ -1231,6 +1333,7 @@ export class Chamber {
 
     this.attachBandMove();
     this.attachLookSheet();
+    this.attachPaceSheet();
 
     // Player events
     if (this.player) {
@@ -1416,8 +1519,8 @@ export class Chamber {
   handleKeyboard(e) {
     const settingsOverlay = this.container.querySelector('#chamber-settings-overlay');
     if (settingsOverlay && !settingsOverlay.hidden) return;
-    // The Look sheet is modal: its own controls own the keys while it is open.
-    if (this.container.querySelector('#look-sheet')?.hidden === false) return;
+    // The sheets are modal: their own controls own the keys while one is open.
+    if (this.container.querySelector('#look-sheet:not([hidden]), #pace-sheet:not([hidden])')) return;
 
     // Don't let spacebar trigger play/pause while user is typing in a field
     const tag = document.activeElement?.tagName;
@@ -1660,7 +1763,9 @@ export class Chamber {
     this._jevCurrentAtom = atom || null;
     const button = this.container.querySelector('#jev-next-scene');
     if (!button) return;
+    // Without its schedule (a look chosen, or the scene held) there is no next scene to bring.
     const visualsAllowed = !this.pageModeActive
+      && Boolean(this._visualSchedule)
       && this.player?.state === 'playing'
       && this.session?.jevSceneShifted !== true
       && this.session?.visualConfig?.visualMode === 'interlocution'
@@ -1781,12 +1886,13 @@ export class Chamber {
     if (!button || !sheet) return;
     button.addEventListener('click', () => this.toggleLookSheet());
     sheet.querySelector('#look-sheet-close')?.addEventListener('click', () => this.closeLookSheet());
-    sheet.addEventListener('keydown', event => this._lookSheetKeydown(event, sheet));
+    sheet.addEventListener('keydown', event => this._sheetKeydown(event, sheet, 'look'));
     sheet.addEventListener('click', (event) => {
       const target = event.target.closest?.('button');
       if (!target || target.disabled) return;
-      const { lookColour, lookSize, lookVisuals, vd } = target.dataset;
-      if (lookColour) this.setLookColour(lookColour);
+      const { lookId, lookColour, lookSize, lookVisuals, vd } = target.dataset;
+      if (lookId) this.chooseLook(lookId);
+      else if (lookColour) this.setLookColour(lookColour);
       else if (lookSize) this.changeJevLook('jev-font-size', lookSize);
       else if (lookVisuals === 'hold') this.toggleHoldScene();
       else if (lookVisuals === 'off') this.setVisualsOff(!this._visualsOff());
@@ -1815,34 +1921,61 @@ export class Chamber {
     this._refreshLookSheet();
   }
 
-  toggleLookSheet() {
-    const sheet = this.container.querySelector('#look-sheet');
-    if (!sheet) return;
-    if (sheet.hidden) this.openLookSheet();
-    else this.closeLookSheet();
+  attachPaceSheet() {
+    const button = this.container.querySelector('#pace-btn');
+    const sheet = this.container.querySelector('#pace-sheet');
+    if (!button || !sheet) return;
+    button.addEventListener('click', () => this._toggleSheet('pace'));
+    sheet.querySelector('#pace-sheet-close')?.addEventListener('click', () => this._closeSheet('pace'));
+    sheet.addEventListener('keydown', event => this._sheetKeydown(event, sheet, 'pace'));
+    sheet.querySelector('[name="pace-wpm"]')?.addEventListener('input', (event) => {
+      const wpm = Number(event.target.value);
+      if (Number.isFinite(wpm)) this.updateWpm(wpm - this.currentWpm);
+    });
   }
 
-  /** A modal dialog over the reading, which goes on playing beneath it. */
+  toggleLookSheet() {
+    this._toggleSheet('look');
+  }
+
   openLookSheet() {
-    const sheet = this.container.querySelector('#look-sheet');
-    if (!sheet || !sheet.hidden) return false;
-    this.closeSettings();
-    sheet.hidden = false;
-    // The stylesheet lays the reading out beside the side sheet while this is set.
-    this.container.classList.add('is-look-open');
-    this.container.querySelector('#look-btn')?.setAttribute('aria-expanded', 'true');
-    this._refreshLookSheet();
-    this.showControls();
-    this._lookSheetReachable(sheet)[0]?.focus();
-    return true;
+    return this._openSheet('look');
   }
 
   closeLookSheet(refocus = true) {
-    const sheet = this.container.querySelector('#look-sheet');
+    return this._closeSheet('look', refocus);
+  }
+
+  _toggleSheet(name) {
+    const sheet = this.container.querySelector(`#${name}-sheet`);
+    if (!sheet) return;
+    if (sheet.hidden) this._openSheet(name);
+    else this._closeSheet(name);
+  }
+
+  /** A modal dialog over the reading, which goes on playing beneath it. One sheet is open at a time. */
+  _openSheet(name) {
+    const sheet = this.container.querySelector(`#${name}-sheet`);
+    if (!sheet || !sheet.hidden) return false;
+    this.closeSettings();
+    this._closeSheet(name === 'look' ? 'pace' : 'look', false);
+    sheet.hidden = false;
+    // The stylesheet lays the reading out beside the side sheet while this is set.
+    this.container.classList.add('is-look-open');
+    this.container.querySelector(`#${name}-btn`)?.setAttribute('aria-expanded', 'true');
+    if (name === 'look') this._refreshLookSheet();
+    else this._syncPace();
+    this.showControls();
+    this._sheetReachable(sheet)[0]?.focus();
+    return true;
+  }
+
+  _closeSheet(name, refocus = true) {
+    const sheet = this.container.querySelector(`#${name}-sheet`);
     if (!sheet || sheet.hidden) return false;
     sheet.hidden = true;
     this.container.classList.remove('is-look-open');
-    const button = this.container.querySelector('#look-btn');
+    const button = this.container.querySelector(`#${name}-btn`);
     button?.setAttribute('aria-expanded', 'false');
     if (refocus) {
       this.showControls();
@@ -1851,21 +1984,21 @@ export class Chamber {
     return true;
   }
 
-  _lookSheetReachable(sheet) {
+  _sheetReachable(sheet) {
     return [...sheet.querySelectorAll('button, input, select')]
       .filter(element => !element.disabled && !element.closest('[hidden]'));
   }
 
   /** Escape closes the sheet and goes no further; Tab and Shift+Tab wrap inside it. */
-  _lookSheetKeydown(event, sheet) {
+  _sheetKeydown(event, sheet, name) {
     if (event.key === 'Escape') {
-      if (!this.closeLookSheet()) return;
+      if (!this._closeSheet(name)) return;
       event.preventDefault();
       event.stopPropagation();
       return;
     }
     if (event.key !== 'Tab') return;
-    const reachable = this._lookSheetReachable(sheet);
+    const reachable = this._sheetReachable(sheet);
     if (!reachable.length) return;
     const first = reachable[0];
     const last = reachable[reachable.length - 1];
@@ -1879,8 +2012,8 @@ export class Chamber {
     }
   }
 
-  /** The look this reading is in, with the reader's own colour, size and sound laid over it. */
-  _lookName() {
+  /** The look this reading is in, with the reader's own colour, size and sound laid over it, or 'custom'. */
+  _lookId() {
     const session = this.session || {};
     const theme = this._jevLook.backgroundColor;
     const fontSize = this._jevLook.fontSize;
@@ -1891,8 +2024,100 @@ export class Chamber {
     } : session.presentation;
     const sound = this._jevSoundChoice && this._jevSoundChoice !== 'authored'
       ? { soundscape: this._jevSoundChoice } : {};
-    const id = lookOfSession({ ...session, presentation, ...sound });
-    return LOOKS.find(look => look.id === id)?.name || 'Custom';
+    return lookOfSession({ ...session, presentation, ...sound });
+  }
+
+  /**
+   * A LOOK CHOSEN IN THE READING becomes the reading's own configuration, as
+   * Begin would have handed it, and is applied through the live paths: face,
+   * colour, size and sound as the sheet's own controls apply them, and the
+   * field through the cue path an authored schedule uses. Like a scene from
+   * the Visual Lab it is a manual Hold. The player is not touched, so the
+   * reader's place and pace hold.
+   */
+  chooseLook(id) {
+    const look = LOOKS.find(entry => entry.id === id);
+    if (!look || this.pageModeActive || !this._lookOffered(look) || this._lookNeedsReopen(look)) return false;
+    const previousShelf = this.session.visualConfig?.interlocution?.procedural || [];
+    // A look never flashes: the flash economy stops for good, before its
+    // switch can write the reading's visual mode back.
+    if (this.offersVisualsToggle) {
+      this.toggleRhythmicVisuals(false);
+      this.offersVisualsToggle = false;
+    }
+    const next = applyLook({ presentation: this.session.presentation, visualInterlocution: this.session.visualConfig }, id);
+    Object.assign(this.session, {
+      visualConfig: next.visualInterlocution,
+      presentation: next.presentation,
+      soundscape: next.soundscape,
+      audioPreset: next.audioPreset
+    });
+    const { chamberFace, colorTheme, fontSize } = next.presentation;
+    this._jevLook.face = chamberFace;
+    this.applyChamberStreamFace();
+    this.applyScheduledColorTheme(colorTheme);
+    this.setLookColour(colorTheme);
+    this.changeJevLook('jev-font-size', fontSize);
+    this.changeJevLook('jev-soundscape', next.soundscape);
+    this._applyLookField(look, previousShelf);
+    this._refreshLookSheet();
+    return true;
+  }
+
+  _applyLookField(look, previousShelf) {
+    const state = this._direction;
+    const visual = this.session.visualConfig;
+    const transitionMs = this._visualTransitionMs();
+    if (state?.mode === 'off') this._resumeVisualWork();
+    if (state) state.mode = 'hold';
+    this._ownSchedule = null;
+    this._visualSchedule = null;
+    const cue = this._lookDrawsGallery(look) ? null : this._lookFieldCue();
+    if (state) state.heldCue = cue;
+    if (cue) {
+      this.applyScheduledVisualCue(cue, { transitionMs });
+    } else {
+      // The pool keeps the reading's own works and takes the look's engines.
+      this._ownActiveTypes = [
+        ...(visual.interlocution?.procedural || []),
+        ...this._ownActiveTypes.filter(type => !previousShelf.includes(type))
+      ];
+      const cadence = visual.interlocution?.galleryCadence;
+      if (Number.isFinite(cadence)) visualCortex.updateConfig({ galleryCadence: cadence }, { preservePresentation: true });
+      this._restoreOwnVisuals(transitionMs);
+    }
+    this._syncScoringActivity();
+  }
+
+  /** The cue that draws a look's field, from the reading's configuration as the look left it. */
+  _lookFieldCue() {
+    const visual = this.session.visualConfig;
+    if (visual.visualMode === 'off') return { kind: 'still' };
+    if (visual.visualMode === 'genesis') return { kind: 'field', renderer: 'genesis', config: visual.genesis || {} };
+    if (visual.visualMode === 'attractor') return { kind: 'field', renderer: 'attractor', config: visual.attractor || {} };
+    if (visual.visualMode === 'focals') return { kind: 'field', renderer: 'focal', config: visual.focals || {} };
+    // The flame's composition is the theme's, and its hue the accent's, as Follow text themes it.
+    const composition = themeEngine(sessionColorThemeId(this.session), 'livingFlame')?.composition;
+    const recipe = themedFlameLookup(flamePreset, sessionColorTheme(this.session))(composition);
+    return recipe ? this._flameCue(recipe) : { kind: 'still' };
+  }
+
+  _syncLooks() {
+    const current = this._lookId();
+    let unavailable = false;
+    this.container.querySelectorAll('[data-look-id]').forEach(chip => {
+      const look = LOOKS.find(entry => entry.id === chip.dataset.lookId);
+      const blocked = this._lookNeedsReopen(look);
+      unavailable ||= blocked;
+      chip.setAttribute('aria-pressed', String(look.id === current));
+      chip.disabled = blocked || this.pageModeActive;
+      if (blocked) {
+        chip.setAttribute('aria-label', `${look.name}, unavailable: ${LOOK_UNAVAILABLE}`);
+        chip.title = LOOK_UNAVAILABLE;
+      }
+    });
+    const note = this.container.querySelector('#look-unavailable-note');
+    if (note) note.hidden = !unavailable;
   }
 
   /** One of the nine themes over this reading: ink, ground and accent together, as Reader setup gives them. */
@@ -1977,7 +2202,8 @@ export class Chamber {
     const sheet = this.container.querySelector('#look-sheet');
     if (!sheet) return;
     const name = sheet.querySelector('#look-sheet-name');
-    if (name) name.textContent = this._lookName();
+    if (name) name.textContent = LOOKS.find(look => look.id === this._lookId())?.name || 'Custom';
+    this._syncLooks();
     const colour = this._jevLook.backgroundColor || this._colourTheme || sessionColorThemeId(this.session);
     sheet.querySelectorAll('[data-look-colour]').forEach(swatch => {
       swatch.setAttribute('aria-pressed', String(swatch.dataset.lookColour === colour));
@@ -3756,6 +3982,7 @@ export class Chamber {
       onDataCleared: this.onDataCleared,
       onChange: (key, value) => {
         this.onSettingsChange(key, value);
+        if (key === 'chamberFace') this._jevLook.face = null;
         if (key === 'chamberFace' || key === 'chamberMask') {
           this.applyChamberStreamFace();
           this.applyChamberMask();
@@ -3792,7 +4019,8 @@ export class Chamber {
       this.applyChamberMask();
       this._syncLookSize();
     } else if (name === 'jev-soundscape') {
-      if (value !== 'authored' && value !== 'none' && !JEV_AUDIO_IDS.includes(value)) return;
+      const sound = soundOf(value);
+      if (value !== 'authored' && !sound) return;
       if (!this.audioEngine) return;
       this._jevSoundChoice = value;
       this._audioSchedule?.setEnabled(false);
@@ -3807,7 +4035,8 @@ export class Chamber {
           && (this.audioEngine.sessionActive === false
             || this.audioEngine.isInitialized === false)
           && typeof this.audioEngine.startSession === 'function') {
-        void this.audioEngine.startSession({ soundscape: value, entrySwell: false })
+        void this.audioEngine.startSession(sound.kind === 'tone'
+          ? { preset: value, entrySwell: false } : { soundscape: value, entrySwell: false })
           .then(result => {
             if (result?.cancelled || this._destroyed) return;
             if (this._jevSoundChoice === value) this.audioEngine.fadeInSession?.(0.6);
@@ -3829,7 +4058,8 @@ export class Chamber {
         } else if (this.session?.audioPreset && this.session.audioPreset !== 'silent') {
           this.audioEngine.applyPreset?.(this.session.audioPreset);
         }
-      } else if (value !== 'none') this.audioEngine.startSoundscape?.(value);
+      } else if (sound.kind === 'tone') this.audioEngine.applyPreset?.(value);
+      else if (value !== 'none') this.audioEngine.startSoundscape?.(value);
     }
   }
 
@@ -3898,6 +4128,7 @@ export class Chamber {
     const diveButton = this.container.querySelector('#dive-btn');
     if (diveButton) diveButton.hidden = next;
     this._syncLookSize();
+    this._syncLooks();
     this._updateJevSceneControl(this._jevCurrentAtom);
     if (!next) this._syncPageTurn();
 
@@ -4029,6 +4260,7 @@ export class Chamber {
       const unavailableDive = this.container.querySelector('#dive-btn');
       if (unavailableDive) unavailableDive.hidden = false;
       this._syncLookSize();
+      this._syncLooks();
       btn?.setAttribute('aria-pressed', 'false');
       btn?.classList.remove('is-on');
       display?.classList.remove('page-mode-on');
@@ -4492,6 +4724,7 @@ export class Chamber {
     this.player.setSpeedFactor(factor);
 
     this.showSpeedHud();
+    this._syncPace();
     
     this.audioEngine?.playClick();
   }
@@ -4605,7 +4838,7 @@ export class Chamber {
       this.closeSettings();
       return true;
     }
-    if (this.closeLookSheet()) return true;
+    if (this.closeLookSheet() || this._closeSheet('pace')) return true;
     const overlay = this.container.querySelector('#exit-confirm-overlay');
     const overlayVisible = overlay && overlay.style.display === 'flex' && !overlay.classList.contains('hidden');
     if (overlayVisible) {

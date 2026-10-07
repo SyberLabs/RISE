@@ -62,7 +62,8 @@ describe('the Look sheet in a Jev reading', () => {
     const { chamber, container } = mount();
     const ids = [...container.querySelectorAll('[name="look-sound"] option')]
       .map(option => option.value);
-    expect(ids).toEqual(['authored', 'none', ...JEV_AUDIO_IDS]);
+    expect(ids.slice(0, 2)).toEqual(['authored', 'none']);
+    expect(ids).toEqual(expect.arrayContaining(JEV_AUDIO_IDS));
     chamber.destroy();
   });
 
