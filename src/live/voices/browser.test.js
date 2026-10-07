@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { createVirtualClock } from '../clock.js';
 import { createFakeSpeech } from '../../test/fake-speech.js';
-import { createBrowserVoice, whenVoicesAvailable } from './browser.js';
+import { chooseVoice, createBrowserVoice, whenVoicesAvailable } from './browser.js';
 
 const TEXT = 'one two three four five six seven';
 const MS = 50;
@@ -383,5 +383,102 @@ describe('waiting for the browser to have voices', () => {
         await clock.advance(800);
         expect(await never).toEqual([]);
         expect(listeners.size).toBe(0);
+    });
+});
+
+/** Lists shaped as each browser reports them (names, langs and flags as getVoices() gives them). */
+const voice = (name, lang, { local = true, isDefault = false } = {}) => ({ name, lang, voiceURI: name, localService: local, default: isDefault });
+const EDGE = [
+    voice('Microsoft David - English (United States)', 'en-US', { isDefault: true }),
+    voice('Microsoft Mark - English (United States)', 'en-US'),
+    voice('Microsoft AvaMultilingual Online (Natural) - English (United States)', 'en-US', { local: false }),
+    voice('Microsoft Aria Online (Natural) - English (United States)', 'en-US', { local: false }),
+    voice('Microsoft Sonia Online (Natural) - English (United Kingdom)', 'en-GB', { local: false }),
+    voice('Microsoft Denise Online (Natural) - French (France)', 'fr-FR', { local: false })
+];
+// Safari says every voice is the default, and lists novelty voices beside the real ones.
+const SAFARI = [
+    voice('Albert', 'en-US', { isDefault: true }),
+    voice('Bad News', 'en-US', { isDefault: true }),
+    voice('Samantha', 'en-US', { isDefault: true }),
+    voice('Daniel', 'en-GB', { isDefault: true }),
+    voice('Thomas', 'fr-FR', { isDefault: true })
+];
+// Chrome's own Google voices are network voices that stop after 14 seconds with no callback.
+const CHROME = [
+    voice('Microsoft David - English (United States)', 'en-US', { isDefault: true }),
+    voice('Microsoft Zira - English (United States)', 'en-US'),
+    voice('Google US English', 'en-US', { local: false }),
+    voice('Google UK English Female', 'en-GB', { local: false })
+];
+const nameOf = chosen => chosen?.name ?? null;
+
+describe('choosing the voice', () => {
+    it('takes a natural voice in the page’s own locale over the default, and a single-language one over a multilingual one', () => {
+        expect(nameOf(chooseVoice(EDGE, 'en-US'))).toBe('Microsoft Aria Online (Natural) - English (United States)');
+        expect(nameOf(chooseVoice(EDGE, 'en-GB'))).toBe('Microsoft Sonia Online (Natural) - English (United Kingdom)');
+        expect(nameOf(chooseVoice(EDGE, 'fr-FR'))).toBe('Microsoft Denise Online (Natural) - French (France)');
+    });
+
+    it('takes a multilingual natural voice when it is the only natural one', () => {
+        const list = EDGE.filter(v => !v.name.includes('Aria'));
+        expect(nameOf(chooseVoice(list, 'en-US'))).toBe('Microsoft AvaMultilingual Online (Natural) - English (United States)');
+    });
+
+    it('falls back to the base language when no voice has the page’s locale', () => {
+        expect(nameOf(chooseVoice(EDGE, 'fr-CA'))).toBe('Microsoft Denise Online (Natural) - French (France)');
+        expect(nameOf(chooseVoice(EDGE, 'en'))).toBe('Microsoft Aria Online (Natural) - English (United States)');
+        expect(nameOf(chooseVoice(CHROME, 'en-AU'))).toBe('Microsoft David - English (United States)');
+    });
+
+    it('reads a language written with an underscore or in another case, as Android writes it', () => {
+        expect(nameOf(chooseVoice([voice('Android voice', 'en_us', { isDefault: true })], 'en-US'))).toBe('Android voice');
+    });
+
+    it('takes the one default voice where there is no natural one, and never a Google network voice over it', () => {
+        expect(nameOf(chooseVoice(CHROME, 'en-US'))).toBe('Microsoft David - English (United States)');
+    });
+
+    it('leaves the browser to choose when it cannot tell which voice is the default, as in Safari', () => {
+        expect(chooseVoice(SAFARI, 'en-US')).toBeNull();
+        expect(chooseVoice(SAFARI, 'en-GB')).toBe(SAFARI[3]);
+    });
+
+    it('leaves the browser to choose when there is nothing in the page’s language, or nothing at all', () => {
+        expect(chooseVoice(CHROME, 'de-DE')).toBeNull();
+        expect(chooseVoice(CHROME.filter(v => !v.default), 'en-GB')).toBeNull();
+        expect(chooseVoice([], 'en-US')).toBeNull();
+    });
+
+    it('chooses from the list that arrives late, with voiceschanged', async () => {
+        const clock = createVirtualClock();
+        let voices = [];
+        const listeners = new Set();
+        const synth = {
+            getVoices: () => voices,
+            addEventListener: (_name, fn) => listeners.add(fn),
+            removeEventListener: (_name, fn) => listeners.delete(fn)
+        };
+        const late = whenVoicesAvailable(synth, { clock });
+        expect(chooseVoice(synth.getVoices(), 'en-US')).toBeNull();
+        voices = EDGE;
+        for (const fn of [...listeners]) fn();
+        expect(nameOf(chooseVoice(await late, 'en-US'))).toBe('Microsoft Aria Online (Natural) - English (United States)');
+    });
+});
+
+describe('speaking with a chosen voice', () => {
+    it('gives every utterance the voice, including one said again after an exclusive hold', async () => {
+        const chosen = EDGE[3];
+        const { clock, voice: speaker, synth } = setup({}, { voice: chosen });
+        const given = [];
+        const speak = synth.speak.bind(synth);
+        synth.speak = utterance => { given.push(utterance.voice); speak(utterance); };
+        speaker.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(30 + 9 * MS);
+        speaker.hold({ exclusive: true });
+        speaker.release();
+        await clock.runAll();
+        expect(given).toEqual([chosen, chosen]);
     });
 });

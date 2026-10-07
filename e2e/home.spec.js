@@ -1,12 +1,16 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, connectTestOpenRouter } from './fixtures.js';
 import { openAskDialog } from './reader-connection.js';
 
 /**
  * Home is a home with a window: today's poem's engine moves full-screen,
  * the slot names the poem and sets its opening's first line still, and
  * nothing streams. Begin opens it through the app's launchToday, as /today
- * does; Another reading rolls a vivid one in its place, which Adjust opens
- * in Reader Setup. Leaving a reading comes back to Home and the same reading.
+ * does; Another reading rolls a vivid one in its place; Adjust opens the
+ * reading showing in Reader Setup, today's at its exact poem. On a desk
+ * Library, Make and Settings sit in the header; Ask joins the keys for a
+ * connected reader. A reading left unfinished comes back to Home and leads
+ * it: Continue is the one key, and today's poem waits on one line below. A
+ * reading read to its end offers no Continue.
  */
 async function openHome(page) {
   await page.goto('/');
@@ -48,7 +52,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }
     await openHome(page);
     await expect(page.locator('.home-label')).toHaveText('Today’s poem');
     await epigraph(page);
-    for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="library"]', '.portal-legal-link']) {
+    for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="adjust"]', '.portal-legal-link']) {
       expect(await bottom(page, selector), selector).toBeLessThanOrEqual(viewport.height);
     }
     // One solid key, and no word moving.
@@ -70,7 +74,7 @@ test('the window stands over the slot, then the keys, in one column; on a phone 
   await epigraph(page);
   const boxes = () => page.evaluate(() => {
     const box = sel => document.querySelector(sel).getBoundingClientRect().toJSON();
-    return { window: box('.home-window'), slot: box('.home-featured'), enter: box('[data-home="enter"]'), roll: box('[data-home="roll"]'), link: box('.home-link') };
+    return { window: box('.home-window'), slot: box('.home-featured'), enter: box('[data-home="enter"]'), roll: box('[data-home="roll"]'), link: box('[data-home="adjust"]') };
   });
   let b = await boxes();
   expect(b.window.bottom).toBeLessThanOrEqual(b.slot.top + 1);
@@ -85,7 +89,8 @@ test('the window stands over the slot, then the keys, in one column; on a phone 
   expect(Math.abs(b.roll.top - b.link.top)).toBeLessThan(4);
 });
 
-test('the opening is real text for a screen reader, and focus runs header, key, Another reading, link', async ({ page }) => {
+test('the opening is real text for a screen reader, and focus runs the header rooms, the Menu, key, Another reading, Adjust', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await openHome(page);
   const { spoken, text } = await reading(page);
   await expect(page.locator('[role="status"] [data-home-status]')).toHaveText(spoken);
@@ -93,24 +98,67 @@ test('the opening is real text for a screen reader, and focus runs header, key, 
   await expect(page.locator('.home-epigraph')).toHaveAttribute('aria-hidden', 'true');
   await page.locator('body').focus();
   const order = [];
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 7; i++) {
     await page.keyboard.press('Tab');
-    order.push(await page.evaluate(() => document.activeElement.dataset.home || document.activeElement.className));
+    order.push(await page.evaluate(() => {
+      const { dataset, className } = document.activeElement;
+      return dataset.home || dataset.nav || dataset.action || className;
+    }));
   }
-  expect(order).toEqual(['portal-menu-toggle', 'enter', 'roll', 'library']);
+  expect(order).toEqual(['library', 'make', 'settings', 'portal-menu-toggle', 'enter', 'roll', 'adjust']);
   // Nothing a reader must read is under 12px, and every key is a 44px target.
   const sizes = await page.evaluate(() => ({
-    text: Math.min(...[...document.querySelectorAll('.home-featured *, .home-actions *, .portal-footer *')]
+    text: Math.min(...[...document.querySelectorAll('.home-rooms *, .home-featured *, .home-actions *, .portal-footer *')]
       .filter(el => el.textContent.trim() && el.getClientRects().length)
       .map(el => parseFloat(getComputedStyle(el).fontSize))),
-    targets: Math.min(...[...document.querySelectorAll('.home-actions button, .portal-legal-link')]
+    targets: Math.min(...[...document.querySelectorAll('.home-room, .home-actions button:not([hidden]), .portal-legal-link')]
       .map(el => el.getBoundingClientRect().height))
   }));
   expect(sizes.text).toBeGreaterThanOrEqual(12);
   expect(sizes.targets).toBeGreaterThanOrEqual(44);
 });
 
-test('Begin plays today\'s exact poem, and leaving it returns to Home on the same poem', async ({ page }) => {
+/** Every control a reader can reach outside the Menu sheet, the dialog and the legal links. */
+const targets = page => page.evaluate(() => [...document.querySelectorAll('.portal button, .portal a[href]')]
+  .filter(el => !el.closest('.portal-nav, dialog, .portal-legal'))
+  .filter(el => { const box = el.getBoundingClientRect(); return box.width > 0 && box.height > 0; })
+  .length);
+
+test('a desk offers seven targets and a phone four; one more each once the reader\'s own AI is connected', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openHome(page);
+  await expect(page.locator('.home-rooms')).toBeVisible();
+  expect(await targets(page)).toBe(7);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.home-rooms')).toBeHidden();
+  expect(await targets(page)).toBe(4);
+  await connectTestOpenRouter(page);
+  await expect(page.locator('.home-actions [data-home="ask-open"]')).toBeVisible();
+  expect(await targets(page)).toBe(5);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  expect(await targets(page)).toBe(8);
+  // Ask on Home opens the request itself, the Menu closed.
+  await page.locator('.home-actions [data-home="ask-open"]').click();
+  await expect(page.locator('#home-intent')).toBeVisible();
+  await expect(page.locator('.portal-nav')).toBeHidden();
+});
+
+test('on a desk Library, Make and Settings are one press away in the header, the Menu closed', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  for (const [selector, room, path] of [
+    ['.home-rooms [data-nav="library"]', 'library', '/library'],
+    ['.home-rooms [data-nav="make"]', 'make', '/make/workshop'],
+    ['.home-rooms [data-action="settings"]', 'settings', '/settings']
+  ]) {
+    await openHome(page);
+    await expect(page.locator('.portal-nav')).toBeHidden();
+    await page.locator(selector).click();
+    await expect.poll(() => view(page), { timeout: 15_000 }).toBe(room);
+    expect(new URL(page.url()).pathname, selector).toBe(path);
+  }
+});
+
+test('Begin plays today\'s exact poem; left unfinished, it leads Home as Continue, today\'s poem one line below', async ({ page }) => {
   await openHome(page);
   const { title, text } = await reading(page);
   await page.locator('[data-home="enter"]').click();
@@ -119,7 +167,7 @@ test('Begin plays today\'s exact poem, and leaving it returns to Home on the sam
     && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 30_000 });
   const session = await page.evaluate(() => {
     const s = window.__RISE_TEST__.getCurrentSession();
-    return { text: [...s.sourceTexts.values()].join(' '), origin: s.origin?.view, visualMode: s.visualConfig?.visualMode ?? 'off' };
+    return { name: s.name, text: [...s.sourceTexts.values()].join(' '), origin: s.origin?.view, visualMode: s.visualConfig?.visualMode ?? 'off' };
   });
   expect(session.origin).toBe('home');
   expect(session.visualMode).not.toBe('off');
@@ -130,20 +178,69 @@ test('Begin plays today\'s exact poem, and leaving it returns to Home on the sam
   await page.keyboard.press('Escape');
   await page.locator('#exit-confirm-overlay').getByRole('button', { name: 'End reading' }).click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
-  await expect(page.locator('h1')).toHaveText(title);
-  await expect(page.locator('[data-home="enter"]')).toBeEnabled();
-  await epigraph(page);
+  // Left unfinished, the reading leads: Continue is the one key, the slot
+  // names the session with its whole length (no "left", no bar, no epigraph),
+  // and today's poem is one line under the keys, which Begin opens.
+  await expect(page.locator('.home-label')).toHaveText('Continue');
+  await expect(page.locator('h1')).toHaveText(session.name);
+  await expect(page.locator('.home-meta')).toHaveText(/^\d+ min$/u);
+  await expect(page.locator('.home-epigraph')).toBeEmpty();
+  await expect(page.locator('.home .btn-primary')).toHaveText('Continue');
+  await expect(page.locator('.home .btn-primary')).toHaveAttribute('data-home', 'continue');
+  await expect(page.locator('[data-home="adjust"]')).toBeHidden();
+  await expect(page.locator('.home-line')).toContainText(`Today’s poem · ${title}`);
+  await expect(page.locator('.home-line')).toHaveAttribute('data-home', 'enter');
+  await expect(page.locator('.home-line')).toBeEnabled();
+  // The same counts as with Begin: Continue in its place, the line for Adjust.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  expect(await targets(page)).toBe(7);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await targets(page)).toBe(4);
+
+  // Continue reopens the reading held.
+  await page.locator('[data-home="continue"]').click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
+  expect(await page.evaluate(() => window.__RISE_TEST__.getCurrentSession().name)).toBe(session.name);
 });
 
-test('Another reading rolls a vivid one, named by chance with its look; Begin plays it, and Home holds it on return', async ({ page }) => {
+test('a reading read to its end offers no Continue; Begin leads again', async ({ page }) => {
   await openHome(page);
-  const decision = await another(page);
-  expect(['signal', 'ember', 'revel']).toContain(decision.temper);
-  await expect(page.locator('.home-label')).toHaveText('By chance');
-  await expect(page.locator('.home-meta')).toContainText(`${decision.temper[0].toUpperCase()}${decision.temper.slice(1)}`);
-  await expect(page.locator('[data-home="library"]')).toHaveCount(0);
+  // The shortest division at the fastest pace, so the reading ends within the test.
+  await page.evaluate(async () => {
+    const portal = window.__RISE_TEST__.getView('home');
+    const tools = await portal.loadTools();
+    const decision = tools.composeRoll({ look: 'signal', workId: 'lyrical-ballads', section: 'shortest' });
+    decision.config.wpm = 500;
+    portal.showDecision(tools, decision, { look: 'signal' });
+  });
+  await expect(page.locator('[data-home="adjust"]')).toBeVisible();
   await epigraph(page);
   const heading = await page.locator('h1').textContent();
+  await page.locator('[data-home="enter"]').click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
+  // Ten times faster still. The Player marks the reading complete at its last word.
+  await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber').player.setSpeedFactor(0.1));
+  await expect(page.locator('#chamber-post')).toBeVisible({ timeout: 90_000 });
+  await page.locator('#post-return-chamber').click();
+  await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
+  // Leaving a finished reading releases it: nothing to continue, so Begin leads the reading Home had.
+  expect(await page.evaluate(() => window.__RISE_TEST__.getCurrentSession())).toBeNull();
+  await expect(page.locator('h1')).toHaveText(heading);
+  await expect(page.locator('.home-label')).toHaveText('By chance');
+  await expect(page.locator('.home .btn-primary')).toHaveText('Begin');
+  await expect(page.locator('.home .btn-primary')).toHaveAttribute('data-home', 'enter');
+  await expect(page.locator('[data-home="continue"]')).toHaveCount(0);
+  await expect(page.locator('.home-line')).toHaveCount(0);
+  await expect(page.locator('[data-home="adjust"]')).toBeVisible();
+});
+
+test('Another reading rolls a vivid one, named by chance with its look; Begin plays it, and on return it leads as Continue', async ({ page }) => {
+  await openHome(page);
+  const decision = await another(page);
+  expect(['signal', 'iris', 'revel']).toContain(decision.look);
+  await expect(page.locator('.home-label')).toHaveText('By chance');
+  await expect(page.locator('.home-meta')).toContainText(`${decision.look[0].toUpperCase()}${decision.look.slice(1)}`);
+  await epigraph(page);
   await page.locator('[data-home="enter"]').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
   const session = await page.evaluate(() => {
@@ -156,7 +253,15 @@ test('Another reading rolls a vivid one, named by chance with its look; Begin pl
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
-  await expect(page.locator('h1')).toHaveText(heading);
+  // Left unfinished, the rolled reading leads as Continue, named by its session.
+  await expect(page.locator('.home-label')).toHaveText('Continue');
+  await expect(page.locator('.home .btn-primary')).toHaveAttribute('data-home', 'continue');
+  await expect(page.locator('.home-line')).toBeVisible();
+  // Another reading takes the slot for the visit: Begin leads it, Adjust is back, the line is gone.
+  await another(page);
+  await expect(page.locator('.home-label')).toHaveText('By chance');
+  await expect(page.locator('.home .btn-primary')).toHaveAttribute('data-home', 'enter');
+  await expect(page.locator('.home-line')).toHaveCount(0);
 });
 
 test('Adjust opens Reader Setup with the rolled reading set, and Begin plays it as rolled', async ({ page }) => {
@@ -183,6 +288,18 @@ test('Adjust opens Reader Setup with the rolled reading set, and Begin plays it 
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
   const begun = await page.evaluate(() => window.__RISE_TEST__.getCurrentSession().presentation);
   expect(begun).toEqual(decision.config.presentation);
+});
+
+test('Adjust on today\'s poem opens Reader Setup at the day\'s exact poem, not the plan\'s first section', async ({ page }) => {
+  await openHome(page);
+  const exact = await page.evaluate(() => window.__RISE_TEST__.getView('home').reading.exact);
+  expect(exact.entryId).toBeTruthy();
+  await page.locator('[data-home="adjust"]').click();
+  await expect.poll(() => view(page), { timeout: 20_000 }).toBe('read');
+  await expect.poll(() => page.evaluate(() => window.__RISE_TEST__.getView('read')?.activePane)).toBe('setup');
+  await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
+  const continuation = await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('setup').config.continuation);
+  expect(continuation.entryId).toBe(String(exact.entryId));
 });
 
 test('Home still reads on ink on a device with no WebGL', async ({ page }) => {
@@ -224,13 +341,13 @@ test('a reload starts on today\'s poem again', async ({ page }) => {
 test('the longest titles and plans stay on a small phone with the key on screen', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 640 });
   await openHome(page);
-  for (const [work, temper, section] of [['lyrical-ballads', 'revel', 'shortest'], ['the-photo-that-knew-your-street', 'ember', 'longest'], ['spoon-river-anthology', 'signal', 'first']]) {
-    await page.evaluate(async ([work, temper, section]) => {
+  for (const [work, look, section] of [['lyrical-ballads', 'revel', 'shortest'], ['the-photo-that-knew-your-street', 'iris', 'longest'], ['spoon-river-anthology', 'signal', 'first']]) {
+    await page.evaluate(async ([work, look, section]) => {
       const portal = window.__RISE_TEST__.getView('home');
       const tools = await portal.loadTools();
-      const decision = tools.composeRoll({ temper: tools.TEMPERS.find(t => t.id === temper), workId: work, section });
-      portal.showDecision(tools, decision, { temper });
-    }, [work, temper, section]);
+      const decision = tools.composeRoll({ look, workId: work, section });
+      portal.showDecision(tools, decision, { look });
+    }, [work, look, section]);
     await expect(page.locator('[data-home="adjust"]')).toBeVisible();
     await epigraph(page);
     expect(await sideways(page), work).toBeLessThanOrEqual(0);

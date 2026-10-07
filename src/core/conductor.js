@@ -337,7 +337,7 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
         // NO HALO. Arousal used to widen a glow of the word's own colour
         // behind it, up to 48px at 60% alpha. A glow of the ink's own hue
         // adds no contrast, it only blurs the letterforms and lays a
-        // coloured cloud behind "Read plainly", whose promise is nothing
+        // coloured cloud behind the Plain look, whose promise is nothing
         // behind the words. The colour shift above carries the signal;
         // legibility over imagery is the scrim's job, not the glyph's.
         // Kept as zeroes so every caller still writes a well-formed value.
@@ -746,9 +746,14 @@ const HARMONOGRAPH_CLIMATES = Object.keys(HARMONOGRAPH_INTERVALS);
  * (responsive off) it varies the climate per flash rather than
  * defaulting to one eternal neutral.
  *
+ * options.anchors recolours only: it replaces the plan's palette stops
+ * and leaves the chord, the rng draws and the shared climate arrays
+ * untouched. An explicit climate ignores it (the veto covers colour).
+ *
  * @param {Object} signal - { valence, arousal } or null
  * @param {Function} [rng]
- * @param {Object} [options] - { climate: 'auto' | palette name }
+ * @param {Object} [options] - { climate: 'auto' | palette name,
+ *                               anchors: five RGB stops or null }
  * @returns {{ paletteName, anchors, ratio, detune, damping, rotary,
  *             rotation, amplitude, cycles }}
  */
@@ -775,7 +780,9 @@ export function planHarmonograph(signal, rng = Math.random, options = {}) {
 
     return {
         paletteName,
-        anchors: FLAME_PALETTES[paletteName],
+        anchors: !requested && Array.isArray(options.anchors)
+            ? options.anchors
+            : FLAME_PALETTES[paletteName],
         ratio,
         // Slight detune makes the figure precess instead of retracing
         // itself — the drone's 1.002 shimmer, drawn (livelier when intense)

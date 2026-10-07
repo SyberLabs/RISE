@@ -12,7 +12,8 @@ import { Home } from './Home.js';
 import { createRouteManifest } from '../app/route-manifest.js';
 import { ROUTE_ALIASES } from '../core/route-url.js';
 import { openingLines, validateJevRecommendation } from '../app/jev-reading.js';
-import { composeRoll, rollReading, TEMPERS } from '../core/roll.js';
+import { composeRoll, rollReading } from '../core/roll.js';
+import { LOOKS } from '../core/looks.js';
 import { summarizeJevPlan } from '../core/jev-describe.js';
 import { poemTitle, todayPoem } from '../core/today-poem.js';
 import { todayDecision } from '../core/today-reading.js';
@@ -78,12 +79,17 @@ function makePortal(options = {}) {
 
 const hook = (container, name) => container.querySelector(`[data-home="${name}"]`);
 const words = node => node.textContent.replace(/\s+/gu, ' ').trim();
-const actions = container => [...container.querySelectorAll('.home-actions button')].map(words);
+/** The keys offered under the slot (Ask stays hidden until the reader's own AI is connected). */
+const actions = container => [...container.querySelectorAll('.home-actions button:not([hidden])')].map(words);
 /** The slot: eyebrow, name, meta line, epigraph. */
 const slot = container => ['.home-label', 'h1', '.home-meta', '.home-epigraph'].map(sel => words(container.querySelector(sel)));
 const epigraph = container => container.querySelector('.home-epigraph');
+/** Every control a reader can reach outside the Menu sheet and the dialog, in focus order. */
+const targets = container => [...container.querySelectorAll('button:not([hidden]), a[href]')].filter(node => !node.closest('.portal-nav, dialog'));
 const status = container => container.querySelector('[data-home-status]').textContent;
 const capital = text => text[0].toUpperCase() + text.slice(1);
+/** What a reader reads for a look: its name in the registry. */
+const lookName = id => LOOKS.find(look => look.id === id).name;
 const minutes = (count, wpm) => Math.max(1, Math.round(count / wpm));
 
 /** Today's poem, as Home names it. */
@@ -97,7 +103,7 @@ function today(date = new Date()) {
         title: poemTitle(pick.label),
         firstLine: passage.split('\n').map(line => line.trim()).find(Boolean),
         minutes: minutes(pick.words, decision.config.wpm),
-        look: capital(decision.temper)
+        look: lookName(decision.look)
     };
 }
 
@@ -109,9 +115,9 @@ async function arrive(portal, container) {
 }
 
 /** A rolled classic. */
-const classic = (workId, temper = 'revel') => ({
-    temper,
-    decision: composeRoll({ temper: TEMPERS.find(t => t.id === temper), workId, section: 'first' })
+const classic = (workId, look = 'revel') => ({
+    look,
+    decision: composeRoll({ look, workId, section: 'first' })
 });
 
 async function another(container, portal) {
@@ -120,17 +126,17 @@ async function another(container, portal) {
     await vi.waitFor(() => expect(portal.reading).not.toBe(before), { timeout: 3000 });
 }
 
-/** What Home rolls from: the reading showing, by its temper and decision. */
-const from = reading => ({ temper: reading.temper, decision: reading.decision });
+/** What Home rolls from: the reading showing, by its look and decision. */
+const from = reading => ({ look: reading.look, decision: reading.decision });
 
 describe('Home on arrival', () => {
     it('names today\'s poem in the slot, with one solid key, before anything loads', () => {
         const { portal, container } = makePortal();
         expect(slot(container)).toEqual(['Today’s poem', '', '', '']);
-        expect(actions(container)).toEqual(['Begin', 'Another reading', 'Library']);
+        expect(actions(container)).toEqual(['Begin', 'Another reading', 'Adjust']);
         expect([...container.querySelectorAll('.home .btn-primary')]).toEqual([hook(container, 'enter')]);
         expect(hook(container, 'roll').classList.contains('btn-secondary')).toBe(true);
-        expect(hook(container, 'library').classList.contains('home-link')).toBe(true);
+        expect(hook(container, 'adjust').classList.contains('home-link')).toBe(true);
         // The window holds the engine, never words; the opening is real text beside the slot.
         expect(container.querySelector('.home-window')).not.toBeNull();
         expect(container.querySelector('.home-engine').getAttribute('aria-hidden')).toBe('true');
@@ -159,7 +165,7 @@ describe('Home on arrival', () => {
         expect(stages.made[0].host).toBe(container.querySelector('.home-engine'));
         const [engine] = shown();
         expect(engine.workId).toBe(pick.workId);
-        expect(engine.temper).toBe(decision.temper);
+        expect(engine.look).toBe(decision.look);
         expect(engine.config).toEqual(decision.config);
         portal.destroy();
     });
@@ -181,13 +187,23 @@ describe('Home on arrival', () => {
         portal.destroy();
     });
 
-    it('keeps the header, then Begin, Another reading and the link, in that order', async () => {
+    it('keeps the header rooms and the Menu, then Begin, Another reading and Adjust, in that order', async () => {
         const { portal, container } = makePortal();
         await arrive(portal, container);
-        const order = [...container.querySelectorAll('button:not([hidden]), a[href]')]
-            .filter(node => !node.closest('.portal-nav, dialog'));
-        expect(order.map(node => node.dataset.home || node.className)).toEqual(
-            ['portal-menu-toggle', 'enter', 'roll', 'library', 'portal-footer-link portal-legal-link', 'portal-footer-link portal-legal-link']);
+        expect(targets(container).map(node => node.dataset.home || node.dataset.nav || node.dataset.action || node.className)).toEqual(
+            ['library', 'make', 'settings', 'portal-menu-toggle', 'enter', 'roll', 'adjust', 'portal-footer-link portal-legal-link', 'portal-footer-link portal-legal-link']);
+        portal.destroy();
+    });
+
+    it('offers seven targets on a desk, legal links aside; Ask waits for the reader\'s own AI', async () => {
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        const counted = () => targets(container).filter(node => !node.closest('.portal-legal'));
+        expect(counted()).toHaveLength(7);
+        // Nothing is connected here, so Ask stays in the Menu alone.
+        expect(container.querySelector('.home-actions [data-home="ask-open"]').hidden).toBe(true);
+        await another(container, portal);
+        expect(counted()).toHaveLength(7);
         portal.destroy();
     });
 
@@ -468,8 +484,20 @@ describe('Begin', () => {
         hook(container, 'enter').click();
         await vi.waitFor(() => expect(onLaunchJevReading).toHaveBeenLastCalledWith(portal.reading.decision, { firstReadPreview: false }));
         await vi.waitFor(() => expect(hook(container, 'adjust').disabled).toBe(false));
+        // A rolled reading has no exact division: setup opens the plan's section.
         hook(container, 'adjust').click();
-        await vi.waitFor(() => expect(onAdjustReading).toHaveBeenCalledWith(portal.reading.decision));
+        await vi.waitFor(() => expect(onAdjustReading).toHaveBeenCalledWith(portal.reading.decision, null));
+        portal.destroy();
+    });
+
+    it('Adjust opens today\'s exact poem in Reader Setup, not the plan\'s first section', async () => {
+        const onAdjustReading = vi.fn().mockResolvedValue(undefined);
+        const { portal, container } = makePortal({ onAdjustReading });
+        await arrive(portal, container);
+        const { pick } = today();
+        hook(container, 'adjust').click();
+        await vi.waitFor(() => expect(onAdjustReading).toHaveBeenCalledWith(portal.reading.decision, { entryId: pick.entryId, label: pick.label }));
+        await vi.waitFor(() => expect(hook(container, 'adjust').disabled).toBe(false));
         portal.destroy();
     });
 
@@ -499,29 +527,146 @@ describe('Begin', () => {
     });
 });
 
-describe('the rest of Home', () => {
-    it('the Library link opens the Library', async () => {
-        const { portal, container, onNavigate } = makePortal();
-        hook(container, 'library').click();
-        expect(onNavigate).toHaveBeenCalledWith('library');
+// Continue appears if and only if there is a reading to resume, and then it
+// leads (docs/product/discussions/2026-10-05-canonical-home-design.md §7,
+// criterion 5). The reading is the app's in-memory session, held only while
+// a begun reading is unfinished.
+describe('Continue', () => {
+    /** A reading begun and left unfinished, as the app holds it (src/core/models.js Session). */
+    const held = () => ({
+        name: 'Meditations · Book 1', wpm: 250, totalDuration: 170_000,
+        visualConfig: { visualMode: 'attractor', attractor: { palette: 'white' } },
+        presentation: { chamberFace: 'book', colorTheme: 'ember', colors: { text: '#f4f1ea', background: '#1a0f0a' } }
+    });
+    const line = container => container.querySelector('.home-line');
+    const primary = container => [...container.querySelectorAll('.home .btn-primary')];
+    const label = container => words(container.querySelector('.home-label'));
+    /** Show Home with a reading to resume and wait for today's poem to arrive on the line. */
+    async function arriveHeld(portal, container) {
+        portal.activate();
+        await vi.waitFor(() => expect(line(container)).not.toBeNull());
+    }
+
+    it('offers no Continue anywhere without a reading to resume, and Begin leads', async () => {
+        const { portal, container } = makePortal();
+        await arrive(portal, container);
+        expect(hook(container, 'continue')).toBeNull();
+        expect(line(container)).toBeNull();
+        expect(primary(container)).toEqual([hook(container, 'enter')]);
+        expect(container.querySelector('.home').textContent).not.toMatch(/Continue/u);
         portal.destroy();
     });
 
-    it('offers Continue reading as a pill when there is a session, and reads audio from its owner', () => {
+    it('leads with the reading to resume: Continue the one key, the slot naming it with its length, its field behind, today\'s poem one line below', async () => {
+        const session = held();
         const audio = { playClick: vi.fn() };
-        const { portal, container, onNavigate } = makePortal({
-            getAudioEngine: () => audio,
-            getCurrentSession: () => ({ title: 'Meditations' })
-        });
-        const continuation = container.querySelector('.portal-continue');
-        expect(continuation.hidden).toBe(false);
-        expect(continuation.textContent).toContain('Meditations');
-        continuation.click();
-        expect(onNavigate).toHaveBeenCalledWith('chamber-session', { title: 'Meditations' });
-        container.querySelector('[data-nav="library"]').click();
-        expect(audio.playClick).toHaveBeenCalledTimes(2);
+        const onLaunchToday = vi.fn().mockResolvedValue(undefined);
+        const { portal, container, onNavigate } = makePortal({ getCurrentSession: () => session, getAudioEngine: () => audio, onLaunchToday });
+        await arriveHeld(portal, container);
+        const { title, author } = today();
+        // An honest length, no "left" and no bar: the press reopens the reading from its first word.
+        expect(slot(container)).toEqual(['Continue', 'Meditations · Book 1', '3 min', '']);
+        expect(status(container)).toBe('Continue: Meditations · Book 1. 3 minutes.');
+        expect(container.querySelector('.home [class*="progress"]')).toBeNull();
+        expect(primary(container)).toEqual([hook(container, 'continue')]);
+        expect(actions(container)).toEqual(['Continue', 'Another reading', `Today’s poem · ${title}, by ${author} Begin`]);
+        expect(hook(container, 'adjust').hidden).toBe(true);
+        expect(line(container)).toBe(hook(container, 'enter'));
+        expect(targets(container).filter(node => !node.closest('.portal-legal'))).toHaveLength(7);
+        // The field behind is the reading's own engine and colours, as the stage mounts a decision's.
+        await vi.waitFor(() => expect(stages.made).toHaveLength(1));
+        expect(shown().at(-1).config).toEqual({ visualConfig: session.visualConfig, colorTheme: 'ember', colors: session.presentation.colors });
+
+        hook(container, 'continue').click();
+        await vi.waitFor(() => expect(onNavigate).toHaveBeenCalledWith('chamber-session', session));
+        expect(audio.playClick).toHaveBeenCalledOnce();
+        await vi.waitFor(() => expect(hook(container, 'continue').disabled).toBe(false));
+        line(container).click();
+        await vi.waitFor(() => expect(onLaunchToday).toHaveBeenCalledOnce());
         portal.destroy();
-        expect(makePortal().container.querySelector('.portal-continue').hidden).toBe(true);
+    });
+
+    it('Another reading takes the slot for the visit; a return gives it back to the reading to resume', async () => {
+        const session = held();
+        const { portal, container } = makePortal({ getCurrentSession: () => session });
+        await arriveHeld(portal, container);
+        await another(container, portal);
+        // A reading to resume is no roll to roll away from.
+        expect(rollReading).toHaveBeenCalledWith({ previous: null, vivid: true });
+        expect(label(container)).toBe('By chance');
+        expect(primary(container)).toEqual([hook(container, 'enter')]);
+        expect(hook(container, 'continue')).toBeNull();
+        expect(line(container)).toBeNull();
+        expect(hook(container, 'adjust').hidden).toBe(false);
+        portal.deactivate();
+        portal.update();
+        portal.activate();
+        expect(label(container)).toBe('Continue');
+        expect(primary(container)).toEqual([hook(container, 'continue')]);
+        expect(line(container)).not.toBeNull();
+        portal.destroy();
+    });
+
+    it('gives today\'s poem the slot again when the reading was finished while away', async () => {
+        let session = held();
+        const { portal, container } = makePortal({ getCurrentSession: () => session });
+        await arriveHeld(portal, container);
+        portal.deactivate();
+        session = null;
+        portal.update();
+        portal.activate();
+        const { title, author, work, minutes, look, firstLine } = today();
+        expect(label(container)).toBe('Today’s poem');
+        expect(words(container.querySelector('h1'))).toBe(title);
+        expect(words(container.querySelector('.home-meta'))).toBe(`${author} · ${work} · ${minutes} min · ${look}`);
+        await vi.waitFor(() => expect(words(epigraph(container))).toBe(firstLine));
+        expect(primary(container)).toEqual([hook(container, 'enter')]);
+        expect(hook(container, 'continue')).toBeNull();
+        expect(line(container)).toBeNull();
+        expect(hook(container, 'adjust').hidden).toBe(false);
+        // Its engine takes the window back.
+        await vi.waitFor(() => expect(shown().at(-1)).toBe(portal.reading.decision));
+        portal.destroy();
+    });
+
+    it('names the new day\'s poem on the line at midnight', async () => {
+        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+        vi.setSystemTime(new Date(2026, 9, 3, 23, 59, 30));
+        const session = held();
+        const { portal, container } = makePortal({ getCurrentSession: () => session });
+        await arriveHeld(portal, container);
+        expect(words(line(container))).toContain(today(new Date(2026, 9, 3)).title);
+        vi.advanceTimersByTime(60_000);
+        await vi.waitFor(() => expect(words(line(container))).toContain(today(new Date(2026, 9, 4)).title));
+        expect(label(container)).toBe('Continue');
+        portal.destroy();
+    });
+});
+
+describe('the rest of Home', () => {
+    it('opens Library, Make and Settings from the header with one press, the Menu closed and unchanged', () => {
+        const { portal, container, onNavigate } = makePortal();
+        const rooms = container.querySelector('.sl-header .home-rooms');
+        // Beside the Menu, not a second landmark naming the same rooms.
+        expect(rooms.closest('nav')).toBeNull();
+        expect([...rooms.querySelectorAll('button')].map(words)).toEqual(['Library', 'Make', 'Settings']);
+        rooms.querySelector('[data-nav="library"]').click();
+        expect(onNavigate).toHaveBeenCalledWith('library');
+        rooms.querySelector('[data-nav="make"]').click();
+        expect(onNavigate).toHaveBeenLastCalledWith('make');
+        const opened = vi.fn();
+        window.addEventListener('rise-open-settings', opened, { once: true });
+        rooms.querySelector('[data-action="settings"]').click();
+        expect(opened).toHaveBeenCalledOnce();
+        expect(container.querySelector('.sl-header').classList.contains('is-open')).toBe(false);
+        expect(container.querySelectorAll('.portal-nav button, .portal-nav a')).toHaveLength(8);
+        portal.destroy();
+    });
+
+    it('shows the header rooms only at a desk, 900px and wider', () => {
+        // jsdom lays nothing out; the rule itself is held: hidden by default, a row from 900px.
+        expect(portalCss).toMatch(/\.home-rooms\s*\{[^}]*display:\s*none;/u);
+        expect(portalCss).toMatch(/@media \(min-width: 900px\)\s*\{\s*\.home-rooms\s*\{[^}]*display:\s*flex;/u);
     });
 
     it('offers a disclosed preset scene sample and a separate live RISE link', async () => {

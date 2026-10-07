@@ -351,3 +351,89 @@ describe('Stale-build recovery preserves the destination, not just the view', ()
     router.destroy();
   });
 });
+
+describe('Router holds Home under a reading launched from it', () => {
+  // Home's last frame is the ground until the reading's field is up: the
+  // Read view is unhidden over Home and faded in, and only then is Home
+  // deactivated and hidden (RDR-015). Read's place above Home is the
+  // stylesheet's (#view-home:not([hidden]) ~ #view-read:not([hidden])).
+  let router;
+  let home;
+  const container = id => document.querySelector(`#view-${id}`);
+
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="view-home"></div><div id="view-read"></div><div id="view-library"></div>';
+    router = new Router();
+    router.transitionDuration = 0;
+    home = { activate: vi.fn(), deactivate: vi.fn() };
+    router.registerView('home', { container: container('home'), init: () => home });
+    router.registerView('read', { container: container('read'), init: () => ({}) });
+    router.registerView('library', { container: container('library'), init: () => ({}) });
+  });
+
+  /** Holds the next fade-in until the returned release is called. */
+  function holdFadeIn() {
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    vi.spyOn(router, 'fadeIn').mockImplementationOnce(() => held).mockResolvedValue(undefined);
+    return release;
+  }
+
+  it('keeps Home shown and running until the reading has faded in, then hides it', async () => {
+    await router.navigate('home');
+    const fadeOut = vi.spyOn(router, 'fadeOut');
+    const release = holdFadeIn();
+
+    const launch = router.navigate('chamber-session', { data: { atoms: [{}] } });
+    await vi.waitFor(() => expect(router.fadeIn).toHaveBeenCalledWith(container('read')));
+
+    expect(container('home').hidden).toBe(false);
+    expect(fadeOut).not.toHaveBeenCalled();
+    expect(home.deactivate).not.toHaveBeenCalled();
+    expect(container('read').hidden).toBe(false);
+
+    release();
+    expect(await launch).toBe(true);
+    expect(home.deactivate).toHaveBeenCalledTimes(1);
+    expect(container('home').hidden).toBe(true);
+    expect(router.currentView).toBe('read');
+    router.destroy();
+  });
+
+  it('still takes any other view down before the next one is shown', async () => {
+    await router.navigate('home');
+    const release = holdFadeIn();
+
+    const move = router.navigate('library');
+    await vi.waitFor(() => expect(router.fadeIn).toHaveBeenCalledWith(container('library')));
+
+    expect(home.deactivate).toHaveBeenCalledTimes(1);
+    expect(container('home').hidden).toBe(true);
+
+    release();
+    expect(await move).toBe(true);
+    router.destroy();
+  });
+
+  it('leaves Home as it was when the launch is cancelled under it', async () => {
+    // Escape during the launch bumps the revision; the reading is abandoned
+    // after it is built. Home was never taken down, so it is not faded back
+    // in (fadeIn starts from opacity 0: a dip to black) nor activated again.
+    router.registerView('read', {
+      container: container('read'),
+      init: () => { router.navigationRevision += 1; return {}; }
+    });
+    await router.navigate('home');
+    const fadeIn = vi.spyOn(router, 'fadeIn');
+
+    expect(await router.navigate('chamber-session', { data: { atoms: [{}] } })).toBe(false);
+
+    expect(container('home').hidden).toBe(false);
+    expect(container('read').hidden).toBe(true);
+    expect(home.deactivate).not.toHaveBeenCalled();
+    expect(home.activate).toHaveBeenCalledTimes(1);
+    expect(fadeIn).not.toHaveBeenCalledWith(container('home'));
+    expect(router.currentView).toBe('home');
+    router.destroy();
+  });
+});

@@ -113,6 +113,8 @@ describe('themeEngine', () => {
     expect(themeEngine('jade', 'turrell')).toBe('ethereal');
     expect(themeEngine('jade', 'attractor')).toBe(RISE_CURRENT_THEMES.jade.attractor);
     expect(themeEngine('silver', 'apparitio')).toEqual({ palette: 'prism', sat: 0.25 });
+    expect(themeEngine('rose', 'ostensoria')).toEqual({ palette: 'rose' });
+    expect(themeEngine('citrine', 'ostensoria')).toEqual({ palette: 'citrine' });
   });
 
   it('answers null for an unknown theme or engine, own keys only', () => {

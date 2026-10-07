@@ -314,14 +314,88 @@
   min-height: 44px;
 }
 
-.rise-settings__row label { flex: 0 0 auto; min-width: 5.5rem; font-size: 0.9rem; }
+.rise-settings__row + .rise-settings__row { margin-top: 4px; }
+.rise-settings__row > label,
+.rise-settings__label { flex: 0 0 auto; min-width: 5.5rem; font-size: 0.9rem; }
 .rise-settings__row input[type="range"] { flex: 1 1 auto; min-width: 0; height: 44px; margin: 0; accent-color: var(--color-light); }
 .rise-settings__row input:disabled { opacity: 0.5; }
+
+/* The other three rows: a select, a switch and four chips, each a 44 px target, in the same glass. */
+.rise-settings__row select {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid rgba(232, 232, 236, 0.08);
+  border-radius: 8px;
+  background: rgba(10, 10, 12, 0.36);
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  color-scheme: dark;
+}
+
+/* The switch's label is the rest of its row, so the whole 44 px row toggles it. */
+.rise-settings__row--switch > label { flex: 1 1 auto; }
+
+.rise-settings__row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 26px;
+  margin: 0;
+  border: 1px solid rgba(232, 232, 236, 0.18);
+  border-radius: 13px;
+  background: rgba(232, 232, 236, 0.14);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.rise-settings__row input[type="checkbox"]::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-light);
+  transition: transform 120ms ease;
+}
+
+.rise-settings__row input[type="checkbox"]:checked { background: var(--color-light); }
+.rise-settings__row input[type="checkbox"]:checked::after { background: var(--color-void); transform: translateX(18px); }
+.rise-settings__row input[type="checkbox"]:disabled { cursor: default; }
+
+/* Text size: the label gives way to the four chips; the native radio lies over each chip, so arrow keys and focus are the browser's. */
+.rise-settings__row--chips .rise-settings__label { flex: 1 1 auto; min-width: 0; }
+.rise-settings__chips { display: flex; flex: 0 0 auto; gap: 4px; }
+.rise-settings__chip { position: relative; display: inline-flex; width: 44px; height: 44px; }
+.rise-settings__chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+
+.rise-settings__chip span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(232, 232, 236, 0.08);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.rise-settings__chip input:checked + span { background: var(--color-light); color: var(--color-void); }
+.rise-settings__chip input:focus-visible + span,
+.rise-settings select:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
   .rise-settings { animation: none; }
   .live-host--embedded .live-start,
-  .rise-stage__object { transition: none; }
+  .rise-stage__object,
+  .rise-settings__row input[type="checkbox"],
+  .rise-settings__row input[type="checkbox"]::after { transition: none; }
 }
 
 .live-error,
