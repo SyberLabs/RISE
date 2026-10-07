@@ -49,13 +49,17 @@ beforeEach(() => {
   vi.mocked(rollReading).mockClear();
   window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
 });
-afterEach(() => {
+afterEach(async () => {
   delete globalThis.__notConnected;
   resetConnectionForTests();
   document.body.innerHTML = '';
   sessionStorage.clear();
   vi.unstubAllGlobals();
   vi.doUnmock('../app/invocation.js');
+  // doUnmock only queues. vitest applies the queue at the next import, in the
+  // order its path lookups return, so an unmock left here could land after the
+  // next test's doMock and undo it. Importing applies it now.
+  await import('../app/invocation.js');
 });
 
 /** The plan the live service returned for the Tokyo Drift request (2026-09-27). */
