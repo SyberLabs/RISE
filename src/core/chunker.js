@@ -5,6 +5,13 @@
 
 import { Atom } from './models.js';
 import { READING_PACE } from './reading-limits.js';
+import { LITERAL_BRACKET, LITERAL_PIPE, SOURCE_MARKER, SOURCE_SCORE_CUT, restoreLiteral, isDroppedWordToken } from './source-tokens.js';
+
+// The vocabulary the span aligner shares with the chunker lives in the leaf
+// `source-tokens.js` so that `source-span.js` need not import the chunker and
+// close a cycle through `models.js`. Re-exported here, so every caller that
+// learned these names from the chunker still finds them.
+export { LITERAL_BRACKET, LITERAL_PIPE, SOURCE_MARKER, SOURCE_SCORE_CUT, restoreLiteral, isDroppedWordToken };
 
 /**
  * Special markers in text
@@ -14,14 +21,6 @@ const MARKERS = {
     FLASH: '[FLASH]',
     HOLD: '[HOLD]'
 };
-
-// Private-use sentinel inserted by the session compiler at authored media
-// boundaries. It is deliberately neither whitespace nor punctuation: the
-// chunker, and only the chunker, interprets it. It creates no atom, pause, or
-// display character; it merely prevents a linguistic chunk from crossing a
-// score-authority boundary.
-export const SOURCE_SCORE_CUT = '\uE000';
-export const SOURCE_MARKER = /\[(?:PAUSE|FLASH|HOLD)\]/gi;
 
 // LITERAL TEXT. A source may say that its `|` and its `[PAUSE]`, `[FLASH]`,
 // `[HOLD]` are words and not choreography (`literal: true`). The chunker is the
@@ -33,9 +32,8 @@ export const SOURCE_MARKER = /\[(?:PAUSE|FLASH|HOLD)\]/gi;
 // offset in the source, and every Dive anchored to one, is the same before and
 // after. It is reversible, which is what makes it unambiguous: text that already
 // holds a stand-in, or the score cut, cannot be escaped and is refused, so no
-// pair of different texts can ever escape to the same thing.
-export const LITERAL_PIPE = '\uE010';
-export const LITERAL_BRACKET = '\uE011';
+// pair of different texts can ever escape to the same thing. The stand-ins
+// themselves are declared in `source-tokens.js`.
 const LITERAL_RESERVED = /[\uE000\uE010\uE011]/u;
 const MARKER_OPEN = /\[(?=(?:PAUSE|FLASH|HOLD)\])/giu;
 
@@ -51,11 +49,6 @@ export function escapeLiteral(text) {
         throw new RangeError('Literal text cannot contain the score cut or the stand-ins that escape it');
     }
     return text.replace(/\|/gu, LITERAL_PIPE).replace(MARKER_OPEN, LITERAL_BRACKET);
-}
-
-/** What the author wrote, from what escapeLiteral made of it. */
-export function restoreLiteral(text) {
-    return text.replace(/\uE010/gu, '|').replace(/\uE011/gu, '[');
 }
 
 export function insertSourceScoreCuts(text, offsets = []) {
@@ -414,27 +407,6 @@ function checkMarker(text) {
  * @param {string} text 
  * @returns {string[]}
  */
-/**
- * A standalone token that word chunking discards: a lone mark carrying no
- * letter or digit, which would otherwise be flashed at the reader as if it
- * were a word. Punctuation attached to a word stays with the word; only a
- * mark standing by itself is dropped.
- *
- * EXPORTED BECAUSE THE SPAN ALIGNER MUST GET THE SAME ANSWER.
- * `alignSourceAtoms` walks the raw source token stream against compiled
- * atoms, so it has to know exactly what the chunker left behind. When it did
- * not, a spaced em-dash — ordinary in any pasted article — made every atom
- * after it disagree with the text, and passage authoring failed at Run with
- * SOURCE_SPAN_ATOM_ALIGNMENT.
- */
-export function isDroppedWordToken(value, literal = false) {
-    const val = String(value ?? '').trim();
-    if (!val) return true;
-    // A literal `|` standing alone is a word the author wrote, not a stray mark.
-    if (literal && (val === LITERAL_PIPE || val === LITERAL_BRACKET)) return false;
-    return val.length === 1 && /[^a-zA-Z0-9À-ÿ]/u.test(val);
-}
-
 function splitWords(text, literal = false) {
     // Punctuation stays attached to its word; a mark alone is not a word.
     // `SYNTHESIS` and `BARRIER` used to be discarded here as leftover labels
