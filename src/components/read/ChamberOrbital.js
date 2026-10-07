@@ -292,8 +292,9 @@ export class ChamberOrbital {
     }
     if (!saved) return;
 
-    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'revealMode', 'soundscape', 'audioPreset',
-      'entrainmentMode', 'entrainmentWaveform', 'voiceId'];
+    // A tone's delivery and waveform are not setup's to keep: an older save of them is not read, so no
+    // choice is left that setup cannot show (the Workshop shapes a tone).
+    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'revealMode', 'soundscape', 'audioPreset', 'voiceId'];
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
     }
@@ -517,8 +518,7 @@ export class ChamberOrbital {
 
   _persistPrefs() {
     this._normalizeAudioExclusivity();
-    const { wpm, curve, chunkMode, revealMode, soundscape, audioPreset, entrainmentMode,
-      entrainmentWaveform, voiceId, visualInterlocution } = this.config;
+    const { wpm, curve, chunkMode, revealMode, soundscape, audioPreset, voiceId, visualInterlocution } = this.config;
     // atriumCollections and the visual program are LAUNCH-SCOPED
     // identity, not preferences — they belong to the specific reading
     // that was launched, never to the tab. Persisting them would
@@ -549,8 +549,7 @@ export class ChamberOrbital {
       phraseDefault: true,
       wpm, curve, chunkMode,
       revealMode: revealMode === 'progressive' ? 'progressive' : 'instant',
-      soundscape, audioPreset, entrainmentMode,
-      entrainmentWaveform, voiceId,
+      soundscape, audioPreset, voiceId,
       visualInterlocution: normalizedVisuals
     };
     this._persistText();
@@ -1011,36 +1010,6 @@ export class ChamberOrbital {
                 ${group.entries.map(sound => this.renderSoundChoice(sound)).join('')}
               </div>
             </div>`).join('')}
-            <div class="pure-tone-controls" id="pure-tone-controls"
-              ${this.config.audioPreset === 'silent' ? 'hidden' : ''}>
-
-            <!-- These parameters belong to the selected Pure Tone. -->
-            <div class="config-subsection">
-              <div class="config-label-row">
-                <label class="config-label">Entrainment Type</label>
-                <span class="config-info" tabindex="0" role="img" aria-label="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head." data-tooltip="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head.">?</span>
-              </div>
-              <div class="audio-mode-options">
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'binaural' ? 'active' : ''}" data-entrainment="binaural">Binaural</button>
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'monaural' ? 'active' : ''}" data-entrainment="monaural">Monaural</button>
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'isochronic' ? 'active' : ''}" data-entrainment="isochronic">Isochronic</button>
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'spatial' ? 'active' : ''}" data-entrainment="spatial">Spatial</button>
-              </div>
-            </div>
-
-            <!-- Waveform -->
-            <div class="config-subsection">
-              <div class="config-label-row">
-                <label class="config-label">Waveform</label>
-                <span class="config-info" tabindex="0" role="img" aria-label="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present." data-tooltip="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present.">?</span>
-              </div>
-              <div class="audio-waveform-options">
-                <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sine' ? 'active' : ''}" data-waveform="sine">Sine</button>
-                <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'triangle' ? 'active' : ''}" data-waveform="triangle">Triangle</button>
-                <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sawtooth' ? 'active' : ''}" data-waveform="sawtooth">Saw</button>
-              </div>
-            </div>
-            </div>
             <!-- Chant is Chapel-exclusive: recorded sacred music
                  belongs to the room built for it, not to ambient
                  texture under arbitrary text — the same scoping
@@ -1492,50 +1461,16 @@ export class ChamberOrbital {
       });
     });
 
-    // Entrainment mode
-    const entrainmentOptions = this.container.querySelectorAll('[data-entrainment]');
-    entrainmentOptions.forEach(opt => {
-      this._listen(opt, 'click', () => {
-        this.getAudioEngine()?.playHiss();
-        this.config.entrainmentMode = opt.dataset.entrainment;
-        this.updateOrbitStatus('audio');
-        entrainmentOptions.forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
-      });
-    });
-
-    // Waveform
-    const waveformOptions = this.container.querySelectorAll('[data-waveform]');
-    waveformOptions.forEach(opt => {
-      this._listen(opt, 'click', () => {
-        this.getAudioEngine()?.playClick();
-        this.config.entrainmentWaveform = opt.dataset.waveform;
-        this.updateOrbitStatus('audio');
-        waveformOptions.forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
-      });
-    });
-
-
-    this.container.querySelectorAll('[data-entrainment]').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.entrainment === this.config.entrainmentMode);
-    });
-    this.container.querySelectorAll('[data-waveform]').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.waveform === this.config.entrainmentWaveform);
-    });
-
     // Static voice-pack controls are bound with the rest of Recitation
     // in attachConfigEvents.
   }
 
-  /** Mark the one sound chosen, and show tone delivery only beside a tone. */
+  /** Mark the one sound chosen. A tone's delivery and waveform are shaped in the Workshop. */
   _paintSound() {
     const id = this._soundId();
     this.container.querySelectorAll('#modal-audio [data-soundscape], #modal-audio [data-audio-preset]').forEach(opt => {
       opt.classList.toggle('active', (opt.dataset.soundscape || opt.dataset.audioPreset) === id);
     });
-    const pureToneControls = this.container.querySelector('#pure-tone-controls');
-    if (pureToneControls) pureToneControls.hidden = this.config.audioPreset === 'silent';
   }
 
   attachTemporalModalEvents() {

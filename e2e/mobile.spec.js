@@ -398,8 +398,7 @@ test('the configuration panels are not several screens of picture tiles', async 
         const m = await page.evaluate((sel) => {
             const body = document.querySelector(`${sel} .modal-body`);
             const opts = [...document.querySelectorAll(
-                `${sel} .audio-preset-option, ${sel} .curve-option,`
-                + ` ${sel} .audio-mode-option, ${sel} .audio-waveform-option`
+                `${sel} .audio-preset-option, ${sel} .curve-option`
             )].map(o => Math.round(o.getBoundingClientRect().height));
             return {
                 id: sel,

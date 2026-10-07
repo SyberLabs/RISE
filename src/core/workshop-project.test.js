@@ -70,6 +70,20 @@ describe('Workshop Project v1', () => {
     expect(Object.isFrozen(project)).toBe(true);
   });
 
+  it('keeps a tone’s delivery and waveform with the project, through to the reading, and refuses unknown ones', () => {
+    const editor = legacyBlueprint({ soundscape: 'none', audioPreset: 'focus', entrainmentMode: 'isochronic', entrainmentWaveform: 'triangle' });
+    const project = workshopEditorDataToProject(editor, { id: editor.id });
+    expect(project.defaults.audio).toMatchObject({ audioPreset: 'focus', entrainmentMode: 'isochronic', entrainmentWaveform: 'triangle' });
+    expect(workshopProjectToSessionConfig(project)).toMatchObject({ entrainmentMode: 'isochronic', entrainmentWaveform: 'triangle' });
+    expect(migrateWorkshopBlueprint(editor).defaults.audio).toMatchObject({ entrainmentMode: 'isochronic', entrainmentWaveform: 'triangle' });
+
+    // Unknown or default values leave the audio defaults in the shape they had before these existed.
+    for (const [mode, waveform] of [['loud', 'square'], ['binaural', 'sine']]) {
+      const plain = workshopEditorDataToProject(legacyBlueprint({ entrainmentMode: mode, entrainmentWaveform: waveform }), { id: 'x' });
+      expect(Object.keys(plain.defaults.audio).sort(), mode).toEqual(['audioPreset', 'selectedSwellId', 'soundscape']);
+    }
+  });
+
   it('migrates the historical pacing contract exactly once', () => {
     const migrated = migrateWorkshopBlueprint(legacyBlueprint({ wpm: 200, paceV2: false }));
     expect(migrated.defaults.reading.wpm).toBe(290);

@@ -770,4 +770,34 @@ describe('the Sound panel: one sound list (RDR-024)', () => {
         expect(JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'))).not.toHaveProperty('selectedSwellId');
         orbital.destroy();
     });
+
+    it('keeps a tone’s delivery and waveform out of setup: they are shaped in the Workshop', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('#modal-audio [data-audio-preset="focus"]').click();
+        const panel = container.querySelector('#modal-audio');
+        expect(panel.querySelector('[data-entrainment], [data-waveform]')).toBeNull();
+        expect(panel.textContent).not.toMatch(/Entrainment|Waveform/u);
+        orbital.destroy();
+    });
+
+    it('forgets a delivery and waveform an older setup remembered, so its tone plays as the Workshop would start it', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({ paceV2: true, audioPreset: 'focus', entrainmentMode: 'isochronic', entrainmentWaveform: 'sawtooth' }));
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0]).toMatchObject({ audioPreset: 'focus', entrainmentMode: 'binaural', entrainmentWaveform: 'sine' });
+        const saved = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'));
+        expect(saved).not.toHaveProperty('entrainmentMode');
+        expect(saved).not.toHaveProperty('entrainmentWaveform');
+        orbital.destroy();
+    });
+
+    it('carries the delivery and waveform of a composition opened in setup through to its reading', () => {
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations', { audioPreset: 'deep', entrainmentMode: 'monaural', entrainmentWaveform: 'triangle' });
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0]).toMatchObject({ audioPreset: 'deep', entrainmentMode: 'monaural', entrainmentWaveform: 'triangle' });
+        orbital.destroy();
+    });
 });
