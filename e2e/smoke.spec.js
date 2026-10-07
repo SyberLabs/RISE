@@ -7,7 +7,7 @@
  *   2. Begin with Aurora → the soundscape truly sounds
  *   3. Leave, Begin again → it sounds the SECOND time (the level-
  *      overwrite regression)
- *   4. Exiting a session resumes the lobby drone
+ *   4. Exiting a session leaves the rooms silent (the lobby drone is gone)
  *   6. The loaded text and settings survive a refresh
  */
 import { readFileSync } from 'node:fs';
@@ -130,7 +130,7 @@ test('2+3 · Aurora sounds — and sounds again the second time', async ({ page 
     expect(state.soundscapeVolume).toBeGreaterThan(0);
 });
 
-test('4 · exiting a session resumes the lobby drone', async ({ page }) => {
+test('4 · exiting a session leaves the rooms silent: the lobby drone is gone (Q6)', async ({ page }) => {
     await boot(page, { prefs: { soundscape: 'aurora', audioPreset: 'silent' } });
     await enterChamber(page);
     await beginSession(page);
@@ -138,10 +138,10 @@ test('4 · exiting a session resumes the lobby drone', async ({ page }) => {
         { timeout: 15_000 }).toBe(true);
 
     await exitSession(page);
-    const state = await expect.poll(async () => {
+    await expect.poll(async () => {
         const s = await audioState(page);
-        return s.sessionActive === false && s.ambient ? 'lobby' : JSON.stringify(s);
-    }, { timeout: 20_000 }).toBe('lobby');
+        return s.sessionActive === false && !s.ambient ? 'silent' : JSON.stringify(s);
+    }, { timeout: 20_000 }).toBe('silent');
 });
 
 test('6 · text and settings survive a refresh', async ({ page }) => {
