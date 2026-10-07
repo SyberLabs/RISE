@@ -26,7 +26,7 @@ async function openStage(page, { width, height }) {
     await expect(toc.or(stage)).toBeVisible({ timeout: 30000 });
     if (await toc.isVisible()) await toc.click();
     await expect(stage).toBeVisible({ timeout: 30000 });
-    { const adjust = page.locator('[data-action="toggle-adjust"]'); if (await adjust.getAttribute('aria-expanded') === 'false') await adjust.click(); }
+    { const look = page.locator('#modal-look'); if (await look.isHidden()) await page.locator('[data-orbit="look"]').click(); }
     await page.locator('.orbit-visual').click();
     await expect(page.locator('.vstage')).toBeVisible({ timeout: 15000 });
 }
