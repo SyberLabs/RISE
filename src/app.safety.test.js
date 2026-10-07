@@ -449,71 +449,24 @@ describe('App safety orchestration', () => {
     expect(applyChamberTypeSize).toHaveBeenCalledTimes(3);
   });
 
-  it('persists an allowlisted Chamber accent on :root with chamberFace and fontSize', () => {
-    const app = new App();
-    app.loadSettings();
-    expect(app.settings.chamberAccent).toBe('default');
-    expect(app.settings.chamberFace).toBe('literary');
-    expect(app.settings.fontSize).toBe('medium');
-
+  it('keeps no accent of the reader’s own: a saved one is dropped, and nothing is stamped on :root', () => {
     localStorage.setItem('rise-settings', JSON.stringify({
-      fontSize: 'large',
-      chamberFace: 'jp',
-      chamberAccent: 'sunset'
+      fontSize: 'large', chamberFace: 'jp', chamberAccent: 'sunset', chamberAccentNamed: true
     }));
+    const app = new App();
     app.loadSettings();
-    expect(app.settings.fontSize).toBe('large');
-    expect(app.settings.chamberFace).toBe('jp');
-    expect(app.settings.chamberAccent).toBe('sunset');
+    expect(app.settings).not.toHaveProperty('chamberAccent');
+    expect(app.settings).not.toHaveProperty('chamberAccentNamed');
+    expect(app.settings).toMatchObject({ fontSize: 'large', chamberFace: 'jp' });
 
     app.applyAccessibilitySettings();
-    expect(document.documentElement.dataset.fontSize).toBe('large');
+    expect(document.documentElement.dataset.accent).toBeUndefined();
     expect(document.documentElement.dataset.chamberFace).toBe('jp');
-    expect(document.documentElement.dataset.accent).toBe('sunset');
 
-    app.handleSettingsChange('chamberAccent', 'gecko');
-    expect(app.settings.chamberAccent).toBe('gecko');
-    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberAccent).toBe('gecko');
-    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberFace).toBe('jp');
-    expect(JSON.parse(localStorage.getItem('rise-settings')).fontSize).toBe('large');
-    expect(document.documentElement.dataset.accent).toBe('gecko');
-  });
-
-  it('coerces an unknown Chamber accent to the default on load and change', () => {
-    const app = new App();
-    localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'violet' }));
-    app.loadSettings();
-    expect(app.settings.chamberAccent).toBe('default');
-
-    app.handleSettingsChange('chamberAccent', 'chartreuse');
-    expect(app.settings.chamberAccent).toBe('default');
-    // The default is the bare :root — coercing to it clears the attribute.
-    expect(document.documentElement.dataset.accent).toBeUndefined();
-  });
-
-  // The ground state answered to 'slate' until Slate became a hue of its own.
-  // A reader who never touched the setting has that word in localStorage and
-  // means the default by it, so the look they saved is the look they keep.
-  it('keeps a pre-split stored slate on the default, and takes a chosen Slate at its word', () => {
-    const app = new App();
-    localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'slate' }));
-    app.loadSettings();
-    expect(app.settings.chamberAccent).toBe('default');
-    app.applyAccessibilitySettings();
-    expect(document.documentElement.dataset.accent).toBeUndefined();
-
-    // Choosing Slate deliberately saves the marker with it, so the next load
-    // reads it as the hue rather than migrating it away again.
-    app.handleSettingsChange('chamberAccent', 'slate');
+    app.handleSettingsChange('fontSize', 'small');
     const saved = JSON.parse(localStorage.getItem('rise-settings'));
-    expect(saved.chamberAccent).toBe('slate');
-    expect(saved.chamberAccentNamed).toBe(true);
-
-    const returning = new App();
-    returning.loadSettings();
-    expect(returning.settings.chamberAccent).toBe('slate');
-    returning.applyAccessibilitySettings();
-    expect(document.documentElement.dataset.accent).toBe('slate');
+    expect(saved).not.toHaveProperty('chamberAccent');
+    expect(saved).not.toHaveProperty('chamberAccentNamed');
   });
 });
 

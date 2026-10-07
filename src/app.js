@@ -25,7 +25,6 @@ import {
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
-import { DEFAULT_CHAMBER_ACCENT, applyChamberAccent, migrateChamberAccent, resolveChamberAccent } from './core/chamber-accent.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
@@ -952,7 +951,6 @@ class App {
             // Display
             fontSize: 'medium',
             chamberFace: 'literary',
-            chamberAccent: DEFAULT_CHAMBER_ACCENT,
             chamberMask: false,
             showProgress: true,
             showDuration: true,
@@ -998,11 +996,6 @@ class App {
                 ...defaultSettings,
                 fontSize: resolveFontSize(merged.fontSize),
                 chamberFace: resolveChamberStreamFace(merged.chamberFace),
-                chamberAccent: resolveChamberAccent(
-                    migrateChamberAccent(merged.chamberAccent, merged.chamberAccentNamed)),
-                // Marks this blob as written after Slate became a hue of its
-                // own, so a stored 'slate' is never mistaken for the default.
-                chamberAccentNamed: true,
                 masterVolume: Number.isFinite(Number(merged.masterVolume))
                     ? Math.max(0, Math.min(1, Number(merged.masterVolume)))
                     : defaultSettings.masterVolume,
@@ -1045,9 +1038,7 @@ class App {
             ? clampReadingWpm(value, this.settings.defaultWpm)
             : key === 'chamberFace'
                 ? resolveChamberStreamFace(value)
-                : key === 'chamberAccent'
-                    ? resolveChamberAccent(value)
-                    : key === 'chamberMask'
+                : key === 'chamberMask'
                     ? value === true
                     : key === 'fontSize'
                         ? resolveFontSize(value)
@@ -1063,7 +1054,7 @@ class App {
         this.saveSettings();
 
         // Apply certain settings immediately
-        if (keys.some(key => ['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'chamberAccent', 'showProgress', 'showDuration'].includes(key))) {
+        if (keys.some(key => ['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'showProgress', 'showDuration'].includes(key))) {
             this.applyAccessibilitySettings();
         }
 
@@ -1131,9 +1122,6 @@ class App {
 
         root.dataset.fontSize = resolveFontSize(this.settings?.fontSize);
         root.dataset.chamberFace = resolveChamberStreamFace(this.settings?.chamberFace);
-        // The default is the bare :root, so it must CLEAR data-accent, not stamp
-        // it — applyChamberAccent owns that rule for the app and the Chamber both.
-        applyChamberAccent(root, this.settings?.chamberAccent);
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);
         this._visualCortex?.setArtworkLabelsVisible(this.settings?.showArtworkLabels !== false);

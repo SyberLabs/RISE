@@ -101,7 +101,6 @@ describe('Settings display type', () => {
         for (const kept of [
             'input[name="font-size"]',
             'input[name="chamber-face"]',
-            'input[name="chamber-accent"]',
             '[data-setting="chamberMask"]',
             '[data-setting="showProgress"]',
             '[data-setting="showArtworkLabels"]',
@@ -200,34 +199,12 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
-    it('places Accent after Face/Size with the four offered chips and fail copy', () => {
-        const { container, settings, onChange } = mountSettings();
-        const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
-        const faceRow = container.querySelector('#chamber-face-label')?.closest('.settings-row');
-        const sizeRow = container.querySelector('#font-size-label')?.closest('.settings-row');
-        const accentRow = container.querySelector('#chamber-accent-label')?.closest('.settings-row');
-
-        expect(container.querySelector('#chamber-accent-label')?.textContent.trim()).toBe('Accent');
-        expect(faceRow.compareDocumentPosition(accentRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(sizeRow.compareDocumentPosition(accentRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(radios.map((radio) => [
-            radio.value,
-            radio.closest('label')?.textContent.replace(/\s+/g, ' ').trim()
-        ])).toEqual([
-            ['default', 'Default'],
-            ['slate', 'Slate'],
-            ['amber', 'Amber'],
-            ['gecko', 'Jade']
-        ]);
-        expect(radios.find((radio) => radio.value === 'default').checked).toBe(true);
-        expect(container.querySelector('#chamber-accent-fail')?.textContent.trim())
-            .toBe('Accent did not take.');
-        expect(container.querySelector('#chamber-accent-fail')?.hidden).toBe(true);
-
-        radios.find((radio) => radio.value === 'amber').click();
-        expect(onChange).toHaveBeenCalledWith('chamberAccent', 'amber');
-        expect(radios.every((radio) => radio.closest('[role="radiogroup"]')
-            === radios[0].closest('[role="radiogroup"]'))).toBe(true);
+    it('offers no accent: the reading’s theme is the only colour a reader sees', () => {
+        const { container, settings } = mountSettings();
+        expect(container.querySelector('input[name="chamber-accent"]')).toBeNull();
+        expect(container.querySelector('#chamber-accent-label')).toBeNull();
+        expect(container.querySelector('#chamber-accent-fail')).toBeNull();
+        expect(container.textContent).not.toMatch(/\bAccent\b/u);
         settings.destroy();
     });
 
@@ -248,15 +225,6 @@ describe('Settings display type', () => {
         );
     });
 
-    it('keeps a stored accent that is no longer offered visible and chosen', () => {
-        const { container, settings } = mountSettings({ chamberAccent: 'cobalt' });
-        const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
-
-        expect(radios.map((radio) => radio.value)).toEqual(['default', 'slate', 'cobalt', 'amber', 'gecko']);
-        expect(radios.find((radio) => radio.value === 'cobalt').checked).toBe(true);
-        settings.destroy();
-    });
-
     it('shows the destructive action as a plain secondary button, sentence case', () => {
         const { container, settings } = mountSettings();
         const clear = container.querySelector('[data-action="clear-history"]');
@@ -266,22 +234,6 @@ describe('Settings display type', () => {
         expect(container.querySelector('main')).toBeTruthy();
         expect(container.querySelector('[role="main"]')).toBeNull();
         expect(container.querySelector('[data-setting="enableBinaural"]')).toBeNull();
-        settings.destroy();
-    });
-
-    it('coerces an unknown persisted accent to the default and ignores a forged radio value', () => {
-        const { container, settings, onChange } = mountSettings({ chamberAccent: 'violet' });
-        const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
-
-        expect(radios.find((radio) => radio.value === 'default').checked).toBe(true);
-
-        const gecko = radios.find((radio) => radio.value === 'gecko');
-        gecko.value = 'chartreuse';
-        gecko.checked = true;
-        gecko.dispatchEvent(new Event('change'));
-
-        expect(onChange).not.toHaveBeenCalled();
-        expect(onChange).not.toHaveBeenCalledWith('chamberAccent', 'chartreuse');
         settings.destroy();
     });
 

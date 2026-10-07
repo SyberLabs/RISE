@@ -95,7 +95,7 @@ import {
 import { hasNextLibraryDivision } from '../../core/reading-continuation.js';
 import { READING_PACE } from '../../core/reading-limits.js';
 import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
-import { applyChamberAccent, resolveChamberAccent } from '../../core/chamber-accent.js';
+import { clearChromeTheme, paintChromeTheme } from '../../core/chrome-theme.js';
 import {
   estimateGlyphBox,
   fitWordAtomPx,
@@ -1000,6 +1000,11 @@ export class Chamber {
 
   applySessionColors() {
     const colors = this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session);
+    // The page's chrome follows the theme, unless a host draws the chrome around this reading.
+    if (!this.chromeless) {
+      if (colors) paintChromeTheme(document.documentElement, colors.accent, this);
+      else clearChromeTheme(document.documentElement, this);
+    }
     if (!colors && !this._jevLook?.textColor && !this._jevLook?.backgroundColor) return;
     const accent = colors?.accent || JEV_PALETTES.classic.accent;
     const hex = accent.slice(1);
@@ -1062,20 +1067,6 @@ export class Chamber {
     const allowlisted = resolveChamberStreamFace(requested) === requested;
     const atomDisplay = this.container.querySelector('#atom-display');
     fail.hidden = allowlisted && atomDisplay?.dataset.chamberFace === requested;
-  }
-
-  applyChamberAccent() {
-    return applyChamberAccent(
-      document.documentElement,
-      this.getSettings()?.chamberAccent
-    );
-  }
-
-  _reportAccentApply(requested) {
-    const fail = this.container.querySelector('#chamber-accent-fail');
-    if (!fail) return;
-    const took = this.applyChamberAccent();
-    fail.hidden = took && resolveChamberAccent(requested) === requested;
   }
 
   chamberMaskApplies() {
@@ -3994,7 +3985,6 @@ export class Chamber {
           this.applyChamberMask();
         }
         if (key === 'chamberFace') this._reportFaceApply(value);
-        if (key === 'chamberAccent') this._reportAccentApply(value);
       }
     });
   }
@@ -5139,6 +5129,7 @@ export class Chamber {
       '--color-accent', '--color-accent-rgb', '--color-threshold']) {
       this.container.style.removeProperty(name);
     }
+    clearChromeTheme(document.documentElement, this);
     this.container.classList.remove('is-look-open');
     this.closeSettings();
     this.unbindVisualViewport();

@@ -147,17 +147,13 @@ test('Begin, Another reading, Adjust, the legal links and Ask are reachable on a
     }
 });
 
-// The SyberLabs home is neutral ink on near-black: a sitting may retint the
-// RISE marker, never the chrome, so every text colour stays legible whatever
-// the reader chose.
-const SITTINGS = ['default', 'slate', 'ivory', 'purple', 'cobalt', 'amber',
-    'sunset', 'gecko', 'garnet', 'teal', 'orchid'];
-
-test('Home text keeps AA contrast in every sitting', async ({ page }) => {
+// The SyberLabs home is neutral ink on near-black, and there is no accent of
+// the reader's own to retint it, so every text colour stays legible.
+test('Home text keeps AA contrast', async ({ page }) => {
     await openPortal(page);
     // The epigraph follows the opening.
     await expect(page.locator('.home-epigraph')).not.toBeEmpty({ timeout: 15_000 });
-    const results = await page.evaluate((sittings) => {
+    const results = await page.evaluate(() => {
         const rgb = colour => {
             const ctx = document.createElement('canvas').getContext('2d');
             ctx.fillStyle = colour;
@@ -168,17 +164,10 @@ test('Home text keeps AA contrast in every sitting', async ({ page }) => {
         const lum = ([r, g, b]) => 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
         const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
         const ground = rgb(getComputedStyle(document.querySelector('.portal')).backgroundColor);
-        const out = [];
-        for (const id of sittings) {
-            if (id === 'default') document.documentElement.removeAttribute('data-accent');
-            else document.documentElement.setAttribute('data-accent', id);
-            for (const sel of ['.portal-nav-link', '.home-room', '.home-title', '.home-label', '.home-meta', '.home-epigraph', '.home-link', '[data-home="adjust"]', '.portal-footer-link']) {
-                out.push({ id, sel, ratio: +ratio(rgb(getComputedStyle(document.querySelector(sel)).color), ground).toFixed(2) });
-            }
-        }
-        return out;
-    }, SITTINGS);
-    for (const { id, sel, ratio } of results) {
-        expect(ratio, `${sel} in ${id} measured ${ratio}:1`).toBeGreaterThanOrEqual(4.5);
+        return ['.portal-nav-link', '.home-room', '.home-title', '.home-label', '.home-meta', '.home-epigraph', '.home-link', '[data-home="adjust"]', '.portal-footer-link']
+            .map(sel => ({ sel, ratio: +ratio(rgb(getComputedStyle(document.querySelector(sel)).color), ground).toFixed(2) }));
+    });
+    for (const { sel, ratio } of results) {
+        expect(ratio, `${sel} measured ${ratio}:1`).toBeGreaterThanOrEqual(4.5);
     }
 });
