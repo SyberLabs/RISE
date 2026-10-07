@@ -95,6 +95,7 @@ import {
 import { hasNextLibraryDivision } from '../../core/reading-continuation.js';
 import { READING_PACE } from '../../core/reading-limits.js';
 import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
+import { beginStep } from '../../core/begin-steps.js';
 import { clearChromeTheme, paintChromeTheme } from '../../core/chrome-theme.js';
 import {
   estimateGlyphBox,
@@ -459,6 +460,7 @@ export class Chamber {
     this.bindVisualViewport();
     this.initializeDisplay();
     this.applyChamberMask();
+    beginStep('chamber:mounted');
 
     // A spatial reading opens as a page (SPATIAL-CHAMBER-SPEC §3).
     // projection === 'page' is parked in production UI; e2e/page-suspend.spec.js
@@ -471,12 +473,15 @@ export class Chamber {
         this.togglePageMode(true);
       }, 120);
     } else if (this.autoStart && !this.hostPlays) {
-      // Auto-start if requested (skip pre-session screen). Tracked and
-      // Page-aware: a reader who opens the Page inside this delay must
-      // not have a stream start underneath them when it fires.
+      // Auto-start if requested (skip pre-session screen), in a task of its
+      // own so the router has unhidden the view first; the view fades in over
+      // the field already showing. No fixed wait: Begin to first word is R2's
+      // budget (RDR-015). Tracked and Page-aware: a reader who opens the Page
+      // before it fires must not have a stream start underneath them.
       this._autoStartTimer = setTimeout(async () => {
         this._autoStartTimer = null;
         if (this._destroyed || this.pageModeActive) return;
+        beginStep('chamber:autostart');
 
         // A READING MUST NOT BEGIN INTO A CONTEXT THAT IS NOT RUNNING.
         //
@@ -519,13 +524,14 @@ export class Chamber {
         // Fullscreen is the reader's choice (the Fullscreen control), never
         // a side effect of starting.
         if (this.player) {
+          beginStep('chamber:play');
           this.player.play();
           if (this.audioEngine) {
             console.log('[Chamber] Triggering atmospheric swell (auto-start)');
             this.audioEngine.fadeInSession(1.2);
           }
         }
-      }, 500); // Relaxed timing for engine stability
+      }, 0);
     }
   }
 

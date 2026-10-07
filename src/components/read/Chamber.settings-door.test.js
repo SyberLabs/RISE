@@ -320,7 +320,7 @@ describe('Chamber Settings door', () => {
     });
   });
 
-  it('auto-starts at its timer boundary without a hydration gate', async () => {
+  it('auto-starts on the next task after mounting, with no fixed wait and no hydration gate (RDR-015)', async () => {
     vi.useFakeTimers();
     try {
       const player = fakePlayer('idle');
@@ -337,7 +337,8 @@ describe('Chamber Settings door', () => {
         player,
         autoStart: true
       });
-      await vi.advanceTimersByTimeAsync(500);
+      expect(player.play).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(0);
       expect(player.play).toHaveBeenCalledOnce();
       chamber.destroy();
     } finally {
