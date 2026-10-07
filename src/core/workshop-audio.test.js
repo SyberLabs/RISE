@@ -59,6 +59,16 @@ describe('WorkshopAudioPreviewController', () => {
     expect(onChange).toHaveBeenCalled();
   });
 
+  it('previews a tone as it will sound: its delivery and waveform are set before it starts', async () => {
+    const audio = { ...engine(), setEntrainmentConfig: vi.fn() };
+    const preview = new WorkshopAudioPreviewController({ engineProvider: () => audio });
+    await preview.play('tone:deep', { entrainment: { mode: 'isochronic', waveform: 'triangle' } });
+    expect(audio.setEntrainmentConfig).toHaveBeenCalledWith({ mode: 'isochronic', waveform: 'triangle' });
+    expect(audio.setEntrainmentConfig.mock.invocationCallOrder[0]).toBeLessThan(audio.applyPreset.mock.invocationCallOrder.at(-1));
+    expect(audio.applyPreset).toHaveBeenLastCalledWith('deep');
+    preview.destroy();
+  });
+
   it('cancels a stale asynchronous preview before it can publish ownership', async () => {
     let release;
     const audio = engine();

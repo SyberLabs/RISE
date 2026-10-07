@@ -10,6 +10,19 @@ import { createEditorAsset } from './editor-asset.js';
 export const PERSONAL_BED_PREFIX = 'personal:';
 export const personalBedSoundscapeId = (swellId) => `${PERSONAL_BED_PREFIX}${swellId}`;
 
+/** How a tone reaches the ears, and the shape of its wave: the values the engine plays, the first of each its default. */
+export const TONE_DELIVERIES = Object.freeze([
+  Object.freeze({ value: 'binaural', label: 'Binaural', note: 'Headphones: a different tone in each ear.' }),
+  Object.freeze({ value: 'monaural', label: 'Monaural', note: 'Works on speakers.' }),
+  Object.freeze({ value: 'isochronic', label: 'Isochronic', note: 'Rhythmic pulses.' }),
+  Object.freeze({ value: 'spatial', label: 'Spatial', note: 'The sound field turns around your head.' })
+]);
+export const TONE_WAVEFORMS = Object.freeze([
+  Object.freeze({ value: 'sine', label: 'Sine', note: 'Smooth and gentle.' }),
+  Object.freeze({ value: 'triangle', label: 'Triangle', note: 'Subtle harmonic texture.' }),
+  Object.freeze({ value: 'sawtooth', label: 'Saw', note: 'Brighter and more present.' })
+]);
+
 const AUDIO_COLORS = Object.freeze({
   silent: '#8d91a3', aurora: '#b46dce', 'faded-signal': '#ef8254',
   focus: '#d1b85c', deep: '#7769c9', gateway: '#c76f9d', swell: '#67b9c7'
@@ -226,6 +239,7 @@ export class WorkshopAudioPreviewController {
       engine.startSoundscape?.(asset.value);
     } else if (asset.kind === 'tone') {
       engine.stopSoundscape?.(true);
+      if (options.entrainment) engine.setEntrainmentConfig?.(options.entrainment);
       engine.applyPreset?.(asset.value);
     } else {
       engine.stopSwell?.(true);

@@ -10,7 +10,7 @@ import {
 } from './visual-score-lane.js';
 import { visualFallbackCueFromConfig } from './visual-program.js';
 import { compileWorkshopScoreProgram } from './audio-score-lane.js';
-import { audioScoreAssetFromId } from './workshop-audio.js';
+import { audioScoreAssetFromId, TONE_DELIVERIES, TONE_WAVEFORMS } from './workshop-audio.js';
 import { narrationAssignmentsFromClips } from './narration-score-lane.js';
 
 export const WORKSHOP_PROJECT_SCHEMA = 'rise.workshop-project.v1';
@@ -214,9 +214,14 @@ function normalizeAudio(value = {}) {
     audioPreset: text(input.audioPreset, 'silent', 80),
     selectedSwellId: typeof input.selectedSwellId === 'string'
       ? input.selectedSwellId.slice(0, WORKSHOP_PROJECT_LIMITS.maxIdLength)
-      : null
+      : null,
+    entrainmentMode: oneOf(TONE_DELIVERIES, input.entrainmentMode),
+    entrainmentWaveform: oneOf(TONE_WAVEFORMS, input.entrainmentWaveform)
   };
 }
+
+/** The value if the list has it, else the list's first. */
+const oneOf = (list, value) => (list.some(item => item.value === value) ? value : list[0].value);
 
 function normalizeDefaults(value = {}) {
   const input = value && typeof value === 'object' ? value : {};
@@ -371,7 +376,9 @@ export function migrateWorkshopBlueprint(value) {
       audio: {
         soundscape: legacy.soundscape,
         audioPreset: legacy.audioPreset,
-        selectedSwellId: legacy.selectedSwellId
+        selectedSwellId: legacy.selectedSwellId,
+        entrainmentMode: legacy.entrainmentMode,
+        entrainmentWaveform: legacy.entrainmentWaveform
       },
       projection: legacy.projection,
       recitation: legacy.recitation,
@@ -466,6 +473,8 @@ export function workshopProjectToSessionConfig(value) {
     soundscape: audio.soundscape,
     audioPreset: audio.audioPreset,
     selectedSwellId: audio.selectedSwellId,
+    entrainmentMode: audio.entrainmentMode,
+    entrainmentWaveform: audio.entrainmentWaveform,
     projection: project.defaults.projection,
     recitation: plainClone(project.defaults.recitation),
     voiceId: project.defaults.voiceId,
@@ -530,7 +539,9 @@ export function workshopEditorDataToProject(value, { id, updatedAt = 0 } = {}) {
       audio: {
         soundscape: editor.soundscape,
         audioPreset: editor.audioPreset,
-        selectedSwellId: editor.selectedSwellId
+        selectedSwellId: editor.selectedSwellId,
+        entrainmentMode: editor.entrainmentMode,
+        entrainmentWaveform: editor.entrainmentWaveform
       },
       projection: editor.projection,
       recitation: editor.recitation,

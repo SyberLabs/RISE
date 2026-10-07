@@ -3,8 +3,8 @@
   "title": "Offer one sound list",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "in_progress",
-  "delivery": "not_shipped",
+  "status": "done",
+  "delivery": "merged",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
@@ -32,6 +32,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/476",
       "note": "One grouped sound list in setup and the Look sheet; swells to the Workshop; tone delivery and waveform still in setup until Make can set them.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/486",
+      "note": "Tone delivery and waveform move to the Workshop: saved with the project (unknown values fall back to binaural/sine), shown under a tone set for the whole reading, used by its preview; setup loses the two rows and forgets an older save of them; a composition opened in setup keeps its own. Rendered at 1280x800 and in the 390x844 Inspector.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -42,10 +48,14 @@
     {
       "date": "2026-10-07T12:33:20.671Z",
       "summary": "Opened as #476; tone delivery and waveform remain in setup until Make can set them."
+    },
+    {
+      "date": "2026-10-07T20:47:11.236Z",
+      "summary": "Tone delivery and waveform moved to the Workshop; both acceptance lines hold"
     }
   ],
-  "updatedAt": "2026-10-07T12:33:20.671Z",
-  "revision": 2,
-  "summary": "Reader setup's 3 soundscapes and the 24 elsewhere become one grouped list.",
+  "updatedAt": "2026-10-07T20:47:11.236Z",
+  "revision": 3,
+  "summary": "One grouped sound list in Reader setup and the Look sheet (#476); a tone's delivery and waveform are shaped in the Workshop, where they are saved with the project and heard in its preview, and setup no longer offers or keeps them.",
   "blocker": null
 }

@@ -1994,6 +1994,17 @@
   color: var(--sy-text-3);
 }
 
+/* A tone's delivery and waveform: each label sits on its row, the rows apart. */
+.workshop-studio .studio-tone-shape {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.workshop-studio .studio-tone-shape .studio-kicker + .studio-compact-options + .studio-kicker {
+  margin-top: 10px;
+}
+
 .workshop-studio .studio-visual-inspector {
   padding: 0;
 }
