@@ -312,7 +312,7 @@ export class Chamber {
     // object so the player shares the same track. Purely additive — a null
     // track means the raw platform behavior everywhere.
     this.semanticTrack = null;
-    const wantsLivingText = this.session?.visualConfig?.livingText?.enabled;
+    const wantsLivingText = this.livingTextWanted();
     const wantsResponsive = this.session?.visualConfig?.visualMode === 'interlocution'
       && this.session?.visualConfig?.interlocution?.responsive;
     if ((wantsLivingText || wantsResponsive) && Array.isArray(this.session?.atoms)) {
@@ -1107,8 +1107,7 @@ export class Chamber {
       visualMode: visualConfig?.visualMode,
       presentation,
       wordFill: visualConfig?.interlocution?.wordFill,
-      wordFillDeclared: visualConfig?.interlocution?.wordFillDeclared,
-      legacyMask: settings.chamberMask === true
+      wordFillDeclared: visualConfig?.interlocution?.wordFillDeclared
     };
     return {
       capability: resolveTextMaterialCapability(input),
@@ -3551,6 +3550,28 @@ export class Chamber {
    * field is GENERATED in those colours instead of being covered in one.
    * That leaves the picture intact, which a wash by its nature cannot.
    */
+  /** Living Text tints a reading that asks for it, unless the reader has turned it off in Settings. */
+  livingTextWanted() {
+    return this.session?.visualConfig?.livingText?.enabled === true && this.getSettings()?.livingText !== false;
+  }
+
+  /** The Settings switch changed: the tint starts with the next words, or stops on the words on screen now. */
+  applyLivingTextSetting() {
+    if (this.livingTextWanted() && Array.isArray(this.session?.atoms)) {
+      try {
+        this.session.semanticTrack = this.session.semanticTrack || scoreAtoms(this.session.atoms);
+        this.semanticTrack = this.session.semanticTrack;
+      } catch {
+        this.semanticTrack = null;
+      }
+      return;
+    }
+    this.semanticTrack = null;
+    const atomDisplay = this.container.querySelector('#atom-display');
+    atomDisplay?.style.removeProperty('color');
+    atomDisplay?.style.removeProperty('text-shadow');
+  }
+
   applyLivingText(atomDisplay, index) {
     if (!this.semanticTrack) return;
     const sig = this.semanticTrack[index];
@@ -3980,7 +4001,7 @@ export class Chamber {
       onChange: (key, value) => {
         this.onSettingsChange(key, value);
         if (key === 'chamberFace') this._jevLook.face = null;
-        if (key === 'chamberFace' || key === 'chamberMask') {
+        if (key === 'chamberFace') {
           this.applyChamberStreamFace();
           this.applyChamberMask();
         }

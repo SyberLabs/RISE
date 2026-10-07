@@ -117,7 +117,7 @@ describe('the text', () => {
     click(nav.container.querySelector('[data-font-size="fit"]'));
     expect(onTextMaterialTransaction).toHaveBeenCalledOnce();
     expect(onTextMaterialTransaction).toHaveBeenCalledWith(expect.objectContaining({
-      settings: { chamberFace: 'literary', fontSize: 'fit', chamberMask: false },
+      settings: { chamberFace: 'literary', fontSize: 'fit' },
       temporal: { chunkMode: 'word', recitation: false },
       visualConfig: expect.objectContaining({
         visualMode: 'interlocution',
@@ -970,14 +970,6 @@ describe('reader-facing state', () => {
     expect(lastPatch().interlocution.streamGlass).toBe(true);
   });
 
-  it('emits Living Text as an independent visual setting', () => {
-    mount({ livingText: { enabled: false } });
-    const toggle = nav.container.querySelector('[data-action="living-text"]');
-    toggle.checked = true;
-    toggle.dispatchEvent(new Event('change', { bubbles: true }));
-    expect(lastPatch().livingText).toEqual({ enabled: true });
-  });
-
   it('offers one Gallery cadence control and emits the chosen pace', () => {
     mount();
     descend('visual', 'gallery', 'gallery-procedural', 'fractal');
@@ -1040,10 +1032,8 @@ describe('reader-facing state', () => {
     expect(nav.container.querySelector('[data-pool="aic-postimpressionism"]')?.disabled).toBe(true);
     expect([...nav.container.querySelectorAll('[data-gallery-cadence]')]
       .every(control => control.disabled)).toBe(true);
-    expect(nav.container.querySelector('[data-action="living-text"]')?.disabled).toBe(true);
 
     nav.setCadence(1);
-    nav.setLivingText(false);
     expect(onChange).not.toHaveBeenCalled();
     expect(nav.getConfig()).toMatchObject({
       livingText: { enabled: true, intensity: 0.4 },

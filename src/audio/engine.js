@@ -2451,7 +2451,7 @@ export class AudioEngine {
     /**
      * Stop all audio with a gentle fade-out "echo"
      */
-    stopSession({ resumeAmbient = true, immediate = false } = {}) {
+    stopSession({ immediate = false } = {}) {
         this._cancelPendingSessionStop();
         const generation = ++this._sessionGeneration;
         this.sessionActive = false;
@@ -2490,12 +2490,11 @@ export class AudioEngine {
             // This brings the volume back to config.masterVolume (0.7) for the menu
             if (this.context) this.setVolume(this.config.masterVolume);
 
-            // 3. RE-START MENU AMBIENCE
-            // stopAmbient(true) ensures any lingering session ambience is dead
+            // 3. NO MENU AMBIENCE: the lobby drone is gone (Q6). stopAmbient(true)
+            // ensures any lingering session ambience is dead.
             this.stopAmbient(true);
-            if (resumeAmbient) this.startAmbientPlaylist();
-            
-            console.log(`[AudioEngine] Session stopped${resumeAmbient ? ', menu ambience resumed' : ''}.`);
+
+            console.log('[AudioEngine] Session stopped.');
             resolve({ cancelled: false });
           }, transitionTime);
         });

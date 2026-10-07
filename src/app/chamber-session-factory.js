@@ -539,10 +539,7 @@ export async function createChamberSession(operations, container, sessionData) {
         // Reached through the catch, so either subsystem may have
         // been what failed to arrive. Teardown must not need them.
         operations.getVisualCortex()?.updateConfig({ enabled: false });
-        await operations.getAudioEngine()?.stopSession({
-            resumeAmbient: operations.getSettings()?.enableAmbient === true,
-            immediate: true
-        })?.catch(() => {});
+        await operations.getAudioEngine()?.stopSession({ immediate: true })?.catch(() => {});
         operations.hideLoading();
         if (error?.name === 'AbortError') throw error;
         // A missing optional chunk must not trigger the router's reload recovery:

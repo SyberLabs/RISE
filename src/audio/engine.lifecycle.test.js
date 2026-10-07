@@ -473,7 +473,7 @@ describe('AudioEngine lifecycle ownership', () => {
     await vi.advanceTimersByTimeAsync(50);
     await first;
 
-    const stopped = engine.stopSession({ resumeAmbient: false, immediate: true });
+    const stopped = engine.stopSession({ immediate: true });
     await vi.runOnlyPendingTimersAsync();
     await stopped;
 
@@ -483,6 +483,23 @@ describe('AudioEngine lifecycle ownership', () => {
 
     expect(startedAtVolumes).toEqual([0.85, 0.85]);
     expect(engine.config.layerVolumes.soundscape).toBe(0.85);
+  });
+
+  it('ends a session without starting the lobby drone, which is gone (Q6)', async () => {
+    vi.useFakeTimers();
+    const engine = new AudioEngine();
+    vi.spyOn(engine, 'init').mockResolvedValue(undefined);
+    vi.spyOn(engine, 'resume').mockResolvedValue(undefined);
+    vi.spyOn(engine, 'stopAmbient').mockImplementation(() => {});
+    vi.spyOn(engine, 'playSwell').mockImplementation(() => {});
+    const drone = vi.spyOn(engine, 'startAmbientPlaylist').mockImplementation(() => {});
+    const started = engine.startSession({ preset: 'focus' });
+    await vi.advanceTimersByTimeAsync(50);
+    await started;
+    const stopped = engine.stopSession();
+    await vi.runOnlyPendingTimersAsync();
+    await stopped;
+    expect(drone).not.toHaveBeenCalled();
   });
 });
 
@@ -583,7 +600,7 @@ describe('AudioEngine reading-clock entrainment', () => {
     engine.setEntrainmentPosition(0.5);
     expect(param.setTargetAtTime).toHaveBeenCalledTimes(1);
 
-    engine.stopSession({ resumeAmbient: false, immediate: true });
+    engine.stopSession({ immediate: true });
     expect(engine._positionRamp).toBeNull();
   });
 

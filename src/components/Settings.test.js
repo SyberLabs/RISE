@@ -101,7 +101,7 @@ describe('Settings display type', () => {
         for (const kept of [
             'input[name="font-size"]',
             'input[name="chamber-face"]',
-            '[data-setting="chamberMask"]',
+            '[data-setting="livingText"]',
             '[data-setting="showProgress"]',
             '[data-setting="showArtworkLabels"]',
             '#master-volume',
@@ -114,7 +114,6 @@ describe('Settings display type', () => {
     it('keeps the full panel in Home, where nothing is running', () => {
         const { container, settings } = mountSettings();
         for (const kept of [
-            '[data-setting="enableAmbient"]',
             '[data-action="export-data"]',
             '[data-action="clear-history"]',
             '.settings-about'
@@ -122,43 +121,53 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
-    it('keeps Size on S | M | L | XL | Fit chips and drops the 0–2 slider', () => {
-        const { container, settings, onChange } = mountSettings({ fontSize: 'medium' });
-        const radios = [...container.querySelectorAll('input[name="font-size"]')];
+    it('offers S, M and L in both panels, and keeps a saved XL or Fit shown and chosen until another is picked', () => {
+        for (const scope of [undefined, 'session']) {
+            const container = document.createElement('div');
+            document.body.appendChild(container);
+            const onChange = vi.fn();
+            const panel = new Settings(container, { scope, settings: { fontSize: 'medium' }, onChange });
+            const radios = [...container.querySelectorAll('input[name="font-size"]')];
+            expect(radios.map(radio => [radio.value, radio.closest('label')?.textContent.trim()]), String(scope))
+                .toEqual([['small', 'S'], ['medium', 'M'], ['large', 'L']]);
+            expect(radios.find(radio => radio.value === 'medium').checked).toBe(true);
+            radios.find(radio => radio.value === 'large').click();
+            expect(onChange).toHaveBeenCalledWith('fontSize', 'large');
+            const forged = radios.find(radio => radio.value === 'small');
+            forged.value = 'huge';
+            forged.checked = true;
+            forged.dispatchEvent(new Event('change'));
+            expect(onChange).not.toHaveBeenCalledWith('fontSize', 'huge');
+            panel.destroy();
+            container.remove();
+        }
+        for (const saved of ['xlarge', 'fit']) {
+            const { container, settings } = mountSettings({ fontSize: saved });
+            const radios = [...container.querySelectorAll('input[name="font-size"]')];
+            expect(radios.map(radio => radio.value), saved).toEqual(['small', 'medium', 'large', saved]);
+            expect(radios.find(radio => radio.value === saved).checked).toBe(true);
+            settings.destroy();
+        }
+    });
 
-        expect(container.querySelector('#font-size')).toBeNull();
-        expect(radios.map((radio) => [
-            radio.dataset.fontSize,
-            radio.value,
-            radio.closest('label')?.textContent.replace(/\s+/g, ' ').trim()
-        ])).toEqual([
-            ['s', 'small', 'S'],
-            ['m', 'medium', 'M'],
-            ['l', 'large', 'L'],
-            ['xl', 'xlarge', 'XL'],
-            ['fit', 'fit', 'Fit']
-        ]);
-        expect(radios.find((radio) => radio.value === 'medium').checked).toBe(true);
-        expect(container.querySelector('#font-size-hint')?.hidden).toBe(true);
+    it('holds Living Text, on unless the reader turns it off, for every reading', () => {
+        const { container, settings, onChange } = mountSettings();
+        const toggle = container.querySelector('[data-setting="livingText"]');
+        expect(toggle.checked).toBe(true);
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        expect(onChange).toHaveBeenCalledWith('livingText', false);
+        settings.destroy();
+        const off = mountSettings({ livingText: false });
+        expect(off.container.querySelector('[data-setting="livingText"]').checked).toBe(false);
+        off.settings.destroy();
+    });
 
-        radios.find((radio) => radio.value === 'large').click();
-        expect(onChange).toHaveBeenCalledWith('fontSize', 'large');
-
-        radios.find((radio) => radio.value === 'xlarge').click();
-        expect(onChange).toHaveBeenCalledWith('fontSize', 'xlarge');
-
-        radios.find((radio) => radio.value === 'fit').click();
-        expect(onChange).toHaveBeenCalledWith('fontSize', 'fit');
-        expect(container.querySelector('#font-size-hint')?.hidden).toBe(false);
-        expect(container.querySelector('#font-size-hint')?.textContent)
-            .toMatch(/Fit waits for the chamber|Words fill the chamber/);
-
-        const forged = radios.find((radio) => radio.value === 'large');
-        forged.value = 'huge';
-        forged.checked = true;
-        forged.dispatchEvent(new Event('change'));
-        expect(onChange).not.toHaveBeenCalledWith('fontSize', 'huge');
-
+    it('offers no imagery-through-words switch and no lobby drone: Inlay does the one, and the other is gone', () => {
+        const { container, settings } = mountSettings();
+        expect(container.querySelector('[data-setting="chamberMask"]')).toBeNull();
+        expect(container.querySelector('[data-setting="enableAmbient"]')).toBeNull();
+        expect(container.textContent).not.toMatch(/imagery through words|Ambient sound|Lobby drone/u);
         settings.destroy();
     });
 
@@ -234,25 +243,6 @@ describe('Settings display type', () => {
         expect(container.querySelector('main')).toBeTruthy();
         expect(container.querySelector('[role="main"]')).toBeNull();
         expect(container.querySelector('[data-setting="enableBinaural"]')).toBeNull();
-        settings.destroy();
-    });
-
-    it('emits chamberMask as a boolean and defaults the toggle off', () => {
-        const { container, settings, onChange } = mountSettings();
-        const toggle = container.querySelector('[data-setting="chamberMask"]');
-
-        expect(toggle).toBeTruthy();
-        expect(toggle.type).toBe('checkbox');
-        expect(toggle.checked).toBe(false);
-
-        toggle.checked = true;
-        toggle.dispatchEvent(new Event('change'));
-        expect(onChange).toHaveBeenCalledWith('chamberMask', true);
-        expect(onChange.mock.calls.every(([, value]) => typeof value === 'boolean')).toBe(true);
-
-        toggle.checked = false;
-        toggle.dispatchEvent(new Event('change'));
-        expect(onChange).toHaveBeenLastCalledWith('chamberMask', false);
         settings.destroy();
     });
 

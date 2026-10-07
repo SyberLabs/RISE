@@ -133,7 +133,7 @@ describe('Chamber Settings door', () => {
     expect(container.querySelector('#master-volume'), 'Sound').toBeTruthy();
     expect(container.querySelectorAll('[data-volume]'), 'its presets').toHaveLength(3);
     expect([...container.querySelectorAll('input[name="font-size"]')].map(i => i.value))
-      .toEqual(['small', 'medium', 'large', 'xlarge']);
+      .toEqual(['small', 'medium', 'large']);
     expect(container.querySelector('[data-setting="photosensitivityMode"]')).toBeTruthy();
     expect(container.querySelector('[data-setting="reducedMotion"]')).toBeTruthy();
 
@@ -290,6 +290,37 @@ describe('Chamber Settings door', () => {
     expect(container.querySelector('#chamber-settings-overlay .settings')).toBeFalsy();
 
     chamber.destroy();
+  });
+
+  describe('Living Text follows the reader’s Settings', () => {
+    const asks = { visualConfig: { visualMode: 'off', livingText: { enabled: true } } };
+
+    it('tints a reading that asks for it only while Settings allows it, and stops at once when turned off', () => {
+      let settings = { livingText: false };
+      const { chamber, container } = mount(fakePlayer(), asks, { getSettings: () => settings });
+      expect(chamber.semanticTrack).toBeNull();
+
+      settings = { livingText: true };
+      chamber.applyLivingTextSetting();
+      expect(chamber.semanticTrack).not.toBeNull();
+
+      const atom = container.querySelector('#atom-display');
+      atom.style.color = 'rgb(1, 2, 3)';
+      atom.style.textShadow = '0 0 4px red';
+      settings = { livingText: false };
+      chamber.applyLivingTextSetting();
+      expect(chamber.semanticTrack).toBeNull();
+      expect(atom.style.color).toBe('');
+      expect(atom.style.textShadow).toBe('');
+      chamber.destroy();
+    });
+
+    it('never tints a reading that does not ask for it, whatever Settings says', () => {
+      const { chamber } = mount(fakePlayer(), {}, { getSettings: () => ({ livingText: true }) });
+      chamber.applyLivingTextSetting();
+      expect(chamber.semanticTrack).toBeNull();
+      chamber.destroy();
+    });
   });
 
   describe('the page chrome follows the reading’s theme', () => {

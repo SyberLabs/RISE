@@ -358,9 +358,6 @@ class App {
                 if (engine.lifecycle && !engine.audible) {
                     await engine.lifecycle.ensureLive();
                 }
-                if (this.settings?.enableAmbient) {
-                    engine.startAmbientPlaylist();
-                }
             } catch (error) {
                 console.warn('[RISE] Audio initialization unavailable:', error);
             } finally {
@@ -412,10 +409,9 @@ class App {
         // Audio errors: disable audio and continue
         errorBoundary.registerRecoveryHandler(ErrorCategory.AUDIO, (report) => {
             if (this.settings) {
-                this.settings.enableAmbient = false;
                 this.settings.enableBinaural = false;
             }
-            return this.audioEngine?.stopSession({ resumeAmbient: false, immediate: true });
+            return this.audioEngine?.stopSession({ immediate: true });
         });
 
         // Visual errors: disable visual interlocution
@@ -951,13 +947,13 @@ class App {
             // Display
             fontSize: 'medium',
             chamberFace: 'literary',
-            chamberMask: false,
+            // Living Text tints the words of a reading that asks for it; on unless the reader turns it off.
+            livingText: true,
             showProgress: true,
             showDuration: true,
             showArtworkLabels: true,
 
             // Audio
-            enableAmbient: false,
             masterVolume: 0.75,
             enableBinaural: false,
 
@@ -986,11 +982,10 @@ class App {
                 'showProgress',
                 'showDuration',
                 'showArtworkLabels',
-                'enableAmbient',
+                'livingText',
                 'enableBinaural',
                 'photosensitivityMode',
-                'reducedMotion',
-                'chamberMask'
+                'reducedMotion'
             ];
             this.settings = {
                 ...defaultSettings,
@@ -1038,11 +1033,9 @@ class App {
             ? clampReadingWpm(value, this.settings.defaultWpm)
             : key === 'chamberFace'
                 ? resolveChamberStreamFace(value)
-                : key === 'chamberMask'
-                    ? value === true
-                    : key === 'fontSize'
-                        ? resolveFontSize(value)
-                        : value;
+                : key === 'fontSize'
+                    ? resolveFontSize(value)
+                    : value;
     }
 
     handleSettingsTransaction(changes) {
@@ -1061,7 +1054,7 @@ class App {
         if (Object.hasOwn(next, 'masterVolume') && this.audioEngine) {
             this.audioEngine.setMasterVolume(this.settings.masterVolume);
         }
-        if (keys.some(key => ['chamberFace', 'chamberMask', 'fontSize'].includes(key))) {
+        if (keys.some(key => ['chamberFace', 'fontSize'].includes(key))) {
             const chamber = this.router?.getViewInstance?.('read')?.paneInstance('chamber');
             chamber?.applyChamberStreamFace?.();
             chamber?.applyChamberMask?.();
@@ -1070,9 +1063,8 @@ class App {
         if (Object.hasOwn(next, 'showArtworkLabels')) {
             this._visualCortex?.setArtworkLabelsVisible(this.settings.showArtworkLabels);
         }
-        if (Object.hasOwn(next, 'enableAmbient') && this.audioEngine?.isInitialized && !this.audioEngine.sessionActive) {
-            if (this.settings.enableAmbient) this.audioEngine.startAmbientPlaylist();
-            else this.audioEngine.stopAmbient(true);
+        if (Object.hasOwn(next, 'livingText')) {
+            this.router?.getViewInstance?.('read')?.paneInstance('chamber')?.applyLivingTextSetting?.();
         }
     }
 

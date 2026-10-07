@@ -839,3 +839,16 @@ describe('the Sound panel: one sound list (RDR-024)', () => {
         orbital.destroy();
     });
 });
+
+describe('Living Text: the reader’s Setting, not setup’s', () => {
+    it('asks for it in every setup reading, whatever an older setup saved: Settings decides', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            paceV2: true, visualInterlocution: { visualMode: 'off', livingText: { enabled: false } }
+        }));
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0].visualConfig.livingText).toEqual({ enabled: true });
+        orbital.destroy();
+    });
+});
