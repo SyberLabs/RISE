@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { RISE_CURRENT_VISUALS } from './rise-current.js';
 import { ENGINE_CATALOG, LISTED_PROCEDURAL_PATTERNS } from './visual-registry.js';
-import { DEDICATED_MODE, taxonomyLeaves } from './visual-taxonomy.js';
+import { DEDICATED_MODE, FIELD, taxonomyLeaves } from './visual-taxonomy.js';
 
 const entry = id => ENGINE_CATALOG.find(item => item.id === id);
 
@@ -29,6 +29,18 @@ describe('the engine catalog', () => {
     const offered = taxonomyLeaves().map(leaf => leaf.engineId).filter(Boolean);
     expect(listed.map(item => item.id).sort()).toEqual([...offered].sort());
     expect(LISTED_PROCEDURAL_PATTERNS).toEqual(listed);
+  });
+
+  it('gives the navigator its engine leaves: each listed entry, in catalog order within its category', () => {
+    const listed = ENGINE_CATALOG.filter(item => item.listed);
+    const expected = [FIELD.GALLERY, FIELD.DYNAMIC]
+      .flatMap(category => listed.filter(item => item.category === category))
+      .map(item => [item.id, item.category, item.label ?? item.name]);
+    const leaves = taxonomyLeaves()
+      .filter(leaf => leaf.engineId)
+      .map(leaf => [leaf.engineId, leaf.category, leaf.label]);
+    expect(leaves).toEqual(expected);
+    expect(expected).toHaveLength(listed.length);
   });
 
   it('presents in the Composer exactly the visuals a Current may name', () => {

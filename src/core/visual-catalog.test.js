@@ -32,7 +32,7 @@ describe('visual catalog metadata', () => {
 
   it('keeps specimen support, live openings, and mutable controls separate', () => {
     expect(VISUAL_CATALOG.filter(({ liveVisual }) => liveVisual !== null).map(({ id, liveVisual }) => [id, liveVisual]))
-      .toEqual([['klee', 'genesis'], ['attractor', 'attractor']]);
+      .toEqual([['attractor', 'attractor'], ['klee', 'genesis']]);
     expect(VISUAL_CATALOG.filter(({ mutableControls }) => mutableControls.length > 0)
       .map(({ id, mutableControls }) => [id, mutableControls]))
       .toEqual([['attractor', ['intensity']]]);
@@ -273,9 +273,9 @@ describe('queryVisualCatalog', () => {
 
   it('filters to admitted live openings when liveOnly is true', () => {
     expect(queryVisualCatalog({ capabilities: { canvas: true }, liveOnly: true })
-      .map(({ id }) => id)).toEqual(['klee', 'attractor']);
+      .map(({ id }) => id)).toEqual(['attractor', 'klee']);
     expect(queryVisualCatalog({ liveOnly: true, includeUnavailable: true })
-      .map(({ id }) => id)).toEqual(['klee', 'attractor']);
+      .map(({ id }) => id)).toEqual(['attractor', 'klee']);
   });
 
   it('returns immutable arrays and immutable entry metadata', () => {
