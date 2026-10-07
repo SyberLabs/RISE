@@ -1,10 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
-import {
-    CHAMBER_ACCENTS,
-    CHAMBER_ACCENT_TOKENS,
-    resolveChamberAccent
-} from '../core/chamber-accent.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
 import {
@@ -56,13 +51,11 @@ const SESSION_SCOPE = 'session';
  *            A reader who starts feeling unwell needs the graded switch, and
  *            needs it without ending the reading.
  *
- * Face and Accent are the One Type editor's and Home's: changing a
- * typeface mid-sentence is not a rescue, it is a decision made too late.
+ * Face is the One Type editor's and Home's: changing a typeface
+ * mid-sentence is not a rescue, it is a decision made too late. There is no
+ * accent: the reading's theme is the only colour a reader sees.
  */
 const BAR_SCOPE = 'bar';
-
-/** The accents the panel offers: the default and three that read as ink. */
-const OFFERED_ACCENTS = Object.freeze(['default', 'slate', 'amber', 'gecko']);
 
 const VOLUME_PRESETS = Object.freeze([
     Object.freeze({ value: 0, label: 'Mute' }),
@@ -142,17 +135,6 @@ export class Settings {
               <div class="settings-control" role="radiogroup" aria-labelledby="chamber-face-label">
                 ${this.renderChamberFaceRadios()}
                 <p class="settings-fail" id="chamber-face-fail" hidden>Typeface did not take.</p>
-              </div>
-            </div>
-
-            <div class="settings-row">
-              <div class="settings-label-group">
-                <span class="settings-label" id="chamber-accent-label">Accent</span>
-                <p class="settings-hint">The highlight colour in a reading and its setup, such as the progress bar.</p>
-              </div>
-              <div class="settings-control" role="radiogroup" aria-labelledby="chamber-accent-label">
-                ${this.renderChamberAccentRadios()}
-                <p class="settings-fail" id="chamber-accent-fail" hidden>Accent did not take.</p>
               </div>
             </div>
 
@@ -380,37 +362,6 @@ export class Settings {
         `).join('');
     }
 
-    /**
-     * A COLOUR PICKER HAS TO SHOW THE COLOUR, and it offers few of them.
-     * The system is neutral first with one signal, so the panel offers the
-     * default and three sittings that hold 4.5:1 as text on Atlas ink
-     * (--sy-bg) (cobalt, at 3.3:1, did not). The other colourways stay on
-     * the allowlist, so a reader who chose one keeps it and sees it here
-     * until they pick another.
-     */
-    renderChamberAccentRadios() {
-        const selected = resolveChamberAccent(this.settings.chamberAccent);
-        const offered = CHAMBER_ACCENTS.filter((accent) =>
-            OFFERED_ACCENTS.includes(accent.id) || accent.id === selected);
-        return offered.map((accent) => {
-            const hue = CHAMBER_ACCENT_TOKENS[accent.id]?.['--color-accent'];
-            const swatch = hue
-                ? `--swatch: ${hue}; --swatch-far: ${hue}`
-                : '--swatch: #2A2A30; --swatch-far: #E4D2AE';
-            return `
-          <label class="radio radio-swatch" style="${swatch}">
-            <input
-              type="radio"
-              name="chamber-accent"
-              value="${accent.id}"
-              ${accent.id === selected ? 'checked' : ''}
-            />
-            <span class="radio-label">${accent.label}</span>
-          </label>
-        `;
-        }).join('');
-    }
-
     leave() {
         if (this.onClose) this.onClose();
         else this.onNavigate('home');
@@ -456,15 +407,6 @@ export class Settings {
                 if (resolveChamberStreamFace(requested) !== requested) return;
                 this.settings.chamberFace = requested;
                 this.onChange('chamberFace', requested);
-            });
-        });
-
-        this.container.querySelectorAll('input[name="chamber-accent"]').forEach((input) => {
-            input.addEventListener('change', (e) => {
-                const requested = e.target.value;
-                if (resolveChamberAccent(requested) !== requested) return;
-                this.settings.chamberAccent = requested;
-                this.onChange('chamberAccent', requested);
             });
         });
 

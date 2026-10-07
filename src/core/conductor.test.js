@@ -10,7 +10,6 @@ import {
     scoreAtoms,
     scoreChunk
 } from './conductor.js';
-import { CHAMBER_ACCENT_TOKENS } from './chamber-accent.js';
 import { JEV_PALETTES } from './jev-palette.js';
 
 const mkAtoms = (...contents) => contents.map(c => ({ content: c, duration: 300 }));
@@ -82,8 +81,9 @@ describe('livingTextAppearance', () => {
             return rgb.flatMap((channel, index) => channel === max ? [index] : []);
         };
 
-        for (const token of Object.values(CHAMBER_ACCENT_TOKENS)) {
-            const base = token['--color-accent-rgb'].split(',').map(Number);
+        // The shipped accents are the nine themes'.
+        for (const { accent } of Object.values(JEV_PALETTES)) {
+            const base = [1, 3, 5].map(at => parseInt(accent.slice(at, at + 2), 16));
             const dominant = dominantChannels(base);
             expect(dominant).toHaveLength(1);
 

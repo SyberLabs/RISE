@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { Settings } from '../Settings.js';
 import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
-import { resolveChamberAccent } from '../../core/chamber-accent.js';
+import { JEV_PALETTES, jevPalette } from '../../core/jev-palette.js';
 
 function fakePlayer(initialState = 'playing') {
   const player = {
@@ -292,22 +292,32 @@ describe('Chamber Settings door', () => {
     chamber.destroy();
   });
 
-  it('does not show Accent fail when Default clears data-accent', () => {
-    const { chamber, container } = mount(fakePlayer(), {}, {
-      getSettings: () => ({ chamberAccent: 'default' })
-    });
-    const fail = document.createElement('p');
-    fail.id = 'chamber-accent-fail';
-    fail.hidden = true;
-    fail.textContent = 'Accent did not take.';
-    container.appendChild(fail);
-    document.documentElement.dataset.accent = 'cobalt';
-    chamber.applyChamberAccent();
-    chamber._reportAccentApply('default');
+  describe('the page chrome follows the reading’s theme', () => {
+    const rose = { presentation: { colorTheme: 'rose', colors: jevPalette('rose') } };
+    const accent = () => document.documentElement.style.getPropertyValue('--color-accent');
 
-    expect(document.documentElement.dataset.accent).toBeUndefined();
-    expect(fail.hidden).toBe(true);
-    chamber.destroy();
+    it('dresses the page chrome in its theme while it is on screen, and gives it back when it goes', () => {
+      const { chamber } = mount(fakePlayer(), rose);
+      expect(accent()).toBe(JEV_PALETTES.rose.accent);
+      chamber.destroy();
+      expect(accent()).toBe('');
+    });
+
+    it('lets the reader’s theme change carry the chrome with it, and As written give it back', () => {
+      const { chamber } = mount(fakePlayer());
+      expect(accent()).toBe('');
+      chamber.setColourTheme('jade');
+      expect(accent()).toBe(JEV_PALETTES.jade.accent);
+      chamber.setColourTheme(null);
+      expect(accent()).toBe('');
+      chamber.destroy();
+    });
+
+    it('leaves the page alone under a host that draws its own chrome', () => {
+      const { chamber } = mount(fakePlayer(), rose, { chrome: 'none' });
+      expect(accent()).toBe('');
+      chamber.destroy();
+    });
   });
 
   it('auto-starts at its timer boundary without a hydration gate', async () => {
