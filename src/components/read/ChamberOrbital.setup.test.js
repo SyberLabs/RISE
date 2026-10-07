@@ -127,6 +127,188 @@ describe('the first screen', () => {
     });
 });
 
+describe('the live preview', () => {
+    const MORNING = 'Begin the morning by saying to thyself, I shall meet with the busy-body. The rest follows.';
+    let built = [];
+    let loadStill = null;
+    const factories = {
+        attractor: async (_host, style) => {
+            const record = { style, destroyed: false };
+            record.destroy = () => { record.destroyed = true; };
+            built.push(record);
+            return record;
+        }
+    };
+    const living = () => built.filter(record => !record.destroyed);
+    const settle = async (ms = 0) => {
+        await vi.advanceTimersByTimeAsync(ms);
+        await Promise.resolve();
+    };
+    const withPreview = () => {
+        const made = createOrbital({ preview: { factories, loadStill } });
+        made.orbital.loadText(MORNING, 'Meditations');
+        return made;
+    };
+    const chooseSignal = (container, orbital) => {
+        container.querySelector('[data-orbit="look"]').click();
+        container.querySelector('[data-look-option="signal"]').click();
+        orbital.closeModal('look');
+    };
+    const previewOf = container => container.querySelector('.setup-preview');
+    const unit = container => previewOf(container).querySelector('.setup-preview-unit').textContent;
+    const ground = container => previewOf(container).style.getPropertyValue('--preview-ground');
+    const ink = container => previewOf(container).style.getPropertyValue('--preview-ink');
+    const stillOf = container => previewOf(container).querySelector('.setup-preview-still').style.backgroundImage;
+    const setHidden = hidden => {
+        Object.defineProperty(document, 'visibilityState', { configurable: true, value: hidden ? 'hidden' : 'visible' });
+        document.dispatchEvent(new Event('visibilitychange'));
+    };
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        built = [];
+        loadStill = vi.fn(async id => `https://rise.test/${id}.webp`);
+    });
+
+    afterEach(() => {
+        setHidden(false);
+        vi.useRealTimers();
+    });
+
+    it('sits above the text and adds no control, at every width', () => {
+        for (const width of [1280, 390, 360]) {
+            setWidth(width);
+            const { container, orbital } = withPreview();
+            const preview = previewOf(container);
+            expect(preview, `${width}`).not.toBeNull();
+            expect(preview.compareDocumentPosition(container.querySelector('.reader-text'))
+                & Node.DOCUMENT_POSITION_FOLLOWING, `${width}`).toBeTruthy();
+            expect(preview.querySelectorAll(FOCUSABLE), `${width}`).toHaveLength(0);
+            expect(firstScreen(container), `${width}`).toHaveLength(8);
+            orbital.destroy();
+            container.remove();
+        }
+    });
+
+    it('shows the current look\'s field and colour, and the first unit in the current rhythm', async () => {
+        const { container, orbital } = withPreview();
+        container.querySelector('[data-look="gallery"]').click();
+        await settle(0);
+
+        expect(loadStill).toHaveBeenLastCalledWith('turrell');
+        expect(stillOf(container)).toContain('https://rise.test/turrell.webp');
+        expect(ground(container)).toBe('#08090F');
+        expect(ink(container)).toBe('#F4EEE4');
+        expect(unit(container)).toBe('Begin the morning by saying to thyself,');
+        orbital.destroy();
+    });
+
+    it('draws Signal\'s attractor live, coloured by its theme as the Chamber colours it', async () => {
+        const { container, orbital } = withPreview();
+        chooseSignal(container, orbital);
+        await settle(600);
+
+        expect(living()).toHaveLength(1);
+        expect(living()[0].style).toEqual({ system: 'thomas', palette: 'blue', form: 'mirror' });
+        expect(ground(container)).toBe('#071326');
+        orbital.destroy();
+    });
+
+    it('draws no field in Plain: the ground and the first unit only', async () => {
+        const { container, orbital } = withPreview();
+        container.querySelector('[data-look="plain"]').click();
+        await settle(1000);
+
+        expect(loadStill).not.toHaveBeenCalled();
+        expect(built).toHaveLength(0);
+        expect(stillOf(container)).toBe('');
+        expect(unit(container)).toBe('Begin the morning by saying to thyself,');
+        orbital.destroy();
+    });
+
+    it('follows the look, the colour, the rhythm and the text', () => {
+        const { container, orbital } = withPreview();
+        container.querySelector('[data-look="nocturne"]').click();
+        expect(ground(container)).toBe('#140B20');
+
+        container.querySelector('[data-orbit="look"]').click();
+        container.querySelector('[data-colour="jade"]').click();
+        expect(ground(container)).toBe('#061912');
+        expect(ink(container)).toBe('#AFFFCE');
+        orbital.closeModal('look');
+
+        container.querySelector('[data-orbit="temporal"]').click();
+        container.querySelector('[data-chunk="word"]').click();
+        expect(unit(container)).toBe('Begin');
+        container.querySelector('[data-chunk="sentence"]').click();
+        expect(unit(container)).toBe('Begin the morning by saying to thyself, I shall meet with the busy-body.');
+        orbital.closeModal('temporal');
+
+        orbital.loadText('It is enough. The rest follows.', 'Enchiridion');
+        expect(unit(container)).toBe('It is enough.');
+        orbital.destroy();
+    });
+
+    it('pauses while a sheet or panel covers it, and resumes when the last one closes', async () => {
+        const { container, orbital } = withPreview();
+        container.querySelector('[data-orbit="look"]').click();
+        container.querySelector('[data-look-option="signal"]').click();
+        await settle(1000);
+        expect(living()).toHaveLength(0);
+
+        container.querySelector('#modal-look [data-orbit="audio"]').click();
+        orbital.closeModal('audio');
+        await settle(1000);
+        expect(living()).toHaveLength(0);
+
+        orbital.closeModal('look');
+        await settle(600);
+        expect(living()).toHaveLength(1);
+
+        container.querySelector('[data-orbit="temporal"]').click();
+        expect(living()).toHaveLength(0);
+        orbital.destroy();
+    });
+
+    it('pauses while the tab is hidden', async () => {
+        const { container, orbital } = withPreview();
+        chooseSignal(container, orbital);
+        await settle(600);
+        setHidden(true);
+        expect(living()).toHaveLength(0);
+        setHidden(false);
+        await settle(600);
+        expect(living()).toHaveLength(1);
+        orbital.destroy();
+    });
+
+    it('stops when Begin is pressed', async () => {
+        const { container, orbital, onBeginSession } = withPreview();
+        chooseSignal(container, orbital);
+        await settle(600);
+        expect(living()).toHaveLength(1);
+        container.querySelector('#begin-btn').click();
+        expect(onBeginSession).toHaveBeenCalledOnce();
+        expect(living()).toHaveLength(0);
+        await settle(1000);
+        expect(living()).toHaveLength(0);
+        orbital.destroy();
+    });
+
+    it('is destroyed when setup unmounts', async () => {
+        const { container, orbital } = withPreview();
+        chooseSignal(container, orbital);
+        await settle(600);
+        expect(living()).toHaveLength(1);
+        orbital.destroy();
+        expect(living()).toHaveLength(0);
+        setHidden(true);
+        setHidden(false);
+        await settle(1000);
+        expect(living()).toHaveLength(0);
+    });
+});
+
 describe('which three looks the tiles offer', () => {
     it('offers Gallery, Plain and Nocturne on a desk to a reading with no look of its own', () => {
         const { container, orbital } = createOrbital();

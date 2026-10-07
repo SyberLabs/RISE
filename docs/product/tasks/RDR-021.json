@@ -3,8 +3,8 @@
   "title": "Rebuild Reader setup's first screen around four choices",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "in_progress",
-  "delivery": "not_shipped",
+  "status": "in_review",
+  "delivery": "merged",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
@@ -32,7 +32,13 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/470",
-      "note": "Part A: eight first-screen controls, Customize look and Rhythm & pace sheets; rendered at three widths, no phone scroll. Part B (live preview, phone GPU cost) remains.",
+      "note": "Part A: eight first-screen controls, Customize look and Rhythm & pace sheets; rendered at three widths, no phone scroll. Part B (live preview, phone GPU cost) remains. Merged.",
+      "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/471",
+      "note": "Part B: the live preview through the navigator live stage, pause rules, title clamp, ?measure=1 frame record; rendered at three widths with short and long titles; headless Signal cost recorded.",
       "date": "2026-10-07"
     }
   ],
@@ -44,10 +50,14 @@
     {
       "date": "2026-10-07T10:05:04.137Z",
       "summary": "Part A opened as #470; part B, the live preview, remains."
+    },
+    {
+      "date": "2026-10-07T10:41:38.160Z",
+      "summary": "Part B opened as #471; awaiting the phone GPU reading."
     }
   ],
-  "updatedAt": "2026-10-07T10:05:04.137Z",
-  "revision": 2,
-  "summary": "Text, Look, Rhythm and Pace in front; everything else behind two sheets.",
+  "updatedAt": "2026-10-07T10:41:38.160Z",
+  "revision": 3,
+  "summary": "Eight first-screen controls with no phone scroll (#470) and a live preview that pauses when hidden or covered (#471), rendered at three widths; the remaining acceptance is the preview's GPU cost read on a real phone with ?measure=1.",
   "blocker": null
 }
