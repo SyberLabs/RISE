@@ -17,6 +17,7 @@ import { buildJevVisualProgram } from '../../core/jev-sequence.js';
 import { JEV_INKS, JEV_PALETTES } from '../../core/jev-palette.js';
 import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
 import { applyLook } from '../../core/looks.js';
+import { SOUND_GROUPS } from '../../audio/sound-list.js';
 import { flamePreset, FLAME_PRESET_IDS } from '../../visuals/living-flame/flame-presets.js';
 import { visualCortex } from '../../visuals/visual-cortex.js';
 
@@ -337,6 +338,29 @@ describe('the Look sheet', () => {
     input(volume, 30);
     expect(calls.slice(-2)).toEqual([0.3, 'masterVolume:0.3']);
     expect(container.querySelector('#look-volume-value').textContent).toBe('30%');
+    chamber.destroy();
+  });
+
+  it('offers the one sound list, grouped, and plays a tone through the reading’s audio engine', () => {
+    const calls = [];
+    const audioEngine = {
+      stopSoundscape: () => calls.push('stop'),
+      applyPreset: id => calls.push(`preset:${id}`),
+      startSoundscape: id => calls.push(`soundscape:${id}`)
+    };
+    const { chamber, container } = mount(streamReading(), { audioEngine });
+    open(container);
+    const sound = container.querySelector('[name="look-sound"]');
+    expect([...sound.querySelectorAll(':scope > option')].map(option => option.value)).toEqual(['authored', 'none']);
+    expect([...sound.querySelectorAll('optgroup')].map(group => [group.label, [...group.children].map(option => option.value)]))
+      .toEqual(SOUND_GROUPS.filter(group => group.id !== 'silence')
+        .map(group => [group.label, group.entries.map(entry => entry.id)]));
+    expect(sound.querySelectorAll('optgroup option')).toHaveLength(27);
+
+    sound.value = 'deep';
+    sound.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(calls).toEqual(['stop', 'preset:silent', 'preset:deep']);
+    expect(sound.value).toBe('deep');
     chamber.destroy();
   });
 

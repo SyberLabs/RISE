@@ -116,7 +116,7 @@ import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig,
 import { directionStateFor, ensureDirector, followProgram, permittedSourceDigests } from '../../core/passage-visuals/reading-state.js';
 import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
-import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
+import { SOUND_GROUPS, soundOf } from '../../audio/sound-list.js';
 import { connectionState } from '../../core/ai-connection.js';
 import { LOOKS, lookOfSession } from '../../core/looks.js';
 import { ATTRACTOR_VISUAL_MANIFEST } from '../../core/visual-control-contract.js';
@@ -832,8 +832,11 @@ export class Chamber {
           <div class="look-sheet-row look-sheet-sound">
             <label class="look-sheet-label" for="look-sound">Sound</label>
             <select id="look-sound" name="look-sound">
-              <option value="authored">As written</option><option value="none">Silence</option>
-              ${JEV_AUDIO_IDS.map(id => `<option value="${id}">${id.split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ')}</option>`).join('')}
+              <option value="authored">As written</option>
+              ${SOUND_GROUPS.map(group => {
+                const options = group.entries.map(sound => `<option value="${sound.id}">${escapeHtml(sound.name)}</option>`).join('');
+                return group.id === 'silence' ? options : `<optgroup label="${group.label}">${options}</optgroup>`;
+              }).join('')}
             </select>
             <label class="look-sheet-label" for="look-volume">Volume
               <output id="look-volume-value">${volume}%</output></label>
@@ -3792,7 +3795,8 @@ export class Chamber {
       this.applyChamberMask();
       this._syncLookSize();
     } else if (name === 'jev-soundscape') {
-      if (value !== 'authored' && value !== 'none' && !JEV_AUDIO_IDS.includes(value)) return;
+      const sound = soundOf(value);
+      if (value !== 'authored' && !sound) return;
       if (!this.audioEngine) return;
       this._jevSoundChoice = value;
       this._audioSchedule?.setEnabled(false);
@@ -3807,7 +3811,8 @@ export class Chamber {
           && (this.audioEngine.sessionActive === false
             || this.audioEngine.isInitialized === false)
           && typeof this.audioEngine.startSession === 'function') {
-        void this.audioEngine.startSession({ soundscape: value, entrySwell: false })
+        void this.audioEngine.startSession(sound.kind === 'tone'
+          ? { preset: value, entrySwell: false } : { soundscape: value, entrySwell: false })
           .then(result => {
             if (result?.cancelled || this._destroyed) return;
             if (this._jevSoundChoice === value) this.audioEngine.fadeInSession?.(0.6);
@@ -3829,7 +3834,8 @@ export class Chamber {
         } else if (this.session?.audioPreset && this.session.audioPreset !== 'silent') {
           this.audioEngine.applyPreset?.(this.session.audioPreset);
         }
-      } else if (value !== 'none') this.audioEngine.startSoundscape?.(value);
+      } else if (sound.kind === 'tone') this.audioEngine.applyPreset?.(value);
+      else if (value !== 'none') this.audioEngine.startSoundscape?.(value);
     }
   }
 
