@@ -2,17 +2,18 @@
  * A frozen Decision Arena result, replayed as a real reading.
  *
  * `/arena/<caseId>/<decider>` names one case and one of four deciders. The
- * decision each decider made for that case was captured once and frozen into
- * a same-origin file (`/content/arena/run-<sha12>.json`, written by
- * scripts/arena); nothing here calls a model. The frozen decision plays under
+ * decision each decider made for that case was captured once and frozen;
+ * scripts/arena writes a slim replay file beside the full run
+ * (`/content/arena/replay-<sha12>.json`, run 1 only, no raw answers), and
+ * this reads only that. Nothing here calls a model. The frozen decision plays under
  * RISE's own label, `rise/arena-replay-1`, and goes through the same gate as
  * every other reading (jev-reading.js). Loaded only when the address is opened.
  */
 import { ARENA_DECIDERS } from '../core/jev-demo-path.js';
 
-const SCHEMA = 'syberlabs.decision-arena/v1';
+const SCHEMA = 'syberlabs.decision-arena-replay/v1';
 const INDEX_SCHEMA = 'syberlabs.decision-arena-index/v1';
-const RUN_FILE = /^run-[0-9a-f]{12}\.json$/u;
+const REPLAY_FILE = /^replay-[0-9a-f]{12}\.json$/u;
 
 export const ARENA_LABELS = Object.freeze({
   openai: 'A · OpenAI Decisions',
@@ -28,15 +29,15 @@ async function fetchJson(path) {
 }
 
 /**
- * The reading envelope for a frozen decision. The run keeps only what was
+ * The reading envelope for a frozen decision. The harness keeps only what was
  * admitted (book and choices); it plays under RISE's replay label, naming the
  * model that made it: the one the provider served, else the one asked for,
  * else the decider itself (rules call no model).
  */
-export function arenaReplayDecision(run, provider, admitted) {
+export function arenaReplayDecision(requestId, provider, admitted) {
   const { workId, editionId, sourceRevision, reason, config } = admitted;
   return {
-    schemaVersion: 2, requestId: run.runId, model: 'rise/arena-replay-1', provider: 'RISE',
+    schemaVersion: 2, requestId, model: 'rise/arena-replay-1', provider: 'RISE',
     sourceModel: provider.servedModels?.[0] || provider.requestedModel || provider.id,
     workId, editionId, sourceRevision, reason, config
   };
@@ -44,30 +45,30 @@ export function arenaReplayDecision(run, provider, admitted) {
 
 /**
  * One case from the latest real (not mock) run in the index: when it was
- * captured, and for each decider either its first run's admitted decision or
- * why there is none. Throws when the files are missing or malformed, or the
- * run lacks the case. The file's name is its content hash; that is checked
- * where runs are written (scripts/arena), not here.
+ * captured, and for each decider either its admitted decision or why there is
+ * none. Throws when the files are missing or malformed, or the run lacks the
+ * case. File names carry content hashes; those are checked where runs are
+ * written (scripts/arena), not here.
  */
 export async function loadArenaCase(caseId, load = fetchJson) {
   const index = await load('/content/arena/index.json');
   const latest = index?.schema === INDEX_SCHEMA && Array.isArray(index.runs)
-    ? index.runs.filter(entry => entry?.mock === false).at(-1)?.file : null;
-  if (!RUN_FILE.test(latest)) throw new Error('The arena index names no run.');
-  const run = await load(`/content/arena/${latest}`);
-  if (run?.schema !== SCHEMA || run.harness?.mock !== false
-    || !Array.isArray(run.providers) || !Array.isArray(run.results)) throw new Error('The arena run is not readable.');
-  const rows = run.results.filter(row => row?.caseId === caseId && row.run === 1);
-  if (!rows.length) throw new Error(`The arena run has no case ${caseId}.`);
+    ? index.runs.filter(entry => entry?.mock === false).at(-1)?.replay : null;
+  if (!REPLAY_FILE.test(latest)) throw new Error('The arena index names no run.');
+  const replay = await load(`/content/arena/${latest}`);
+  if (replay?.schema !== SCHEMA || typeof replay.runFile !== 'string'
+    || !Array.isArray(replay.providers) || !replay.decisions) throw new Error('The arena run is not readable.');
+  const found = Object.hasOwn(replay.decisions, caseId) ? replay.decisions[caseId] : null;
+  if (!found) throw new Error(`The arena run has no case ${caseId}.`);
   const deciders = {};
   for (const id of ARENA_DECIDERS) {
-    const provider = run.providers.find(item => item?.id === id);
-    const row = provider && rows.find(item => item.providerId === id);
-    deciders[id] = !row ? { status: 'not run' }
-      : row.admitted ? { decision: arenaReplayDecision(run, provider, row.admitted) }
-        : { status: `rejected: ${row.rejectCode || 'invalid'}` };
+    const provider = replay.providers.find(item => item?.id === id);
+    const entry = provider && Object.hasOwn(found, id) ? found[id] : null;
+    deciders[id] = !entry ? { status: 'not run' }
+      : entry.rejectCode ? { status: `rejected: ${entry.rejectCode}` }
+        : { decision: arenaReplayDecision(replay.runFile, provider, entry) };
   }
-  return { createdAt: typeof run.createdAt === 'string' ? run.createdAt.slice(0, 10) : 'unknown', deciders };
+  return { createdAt: typeof replay.createdAt === 'string' ? replay.createdAt.slice(0, 10) : 'unknown', deciders };
 }
 
 const escape = value => String(value).replace(/[&<>"']/gu, c => `&#${c.charCodeAt(0)};`);

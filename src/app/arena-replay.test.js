@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ARENA_CASE, ARENA_RUN_FILE, arenaIndexFixture, arenaRunFixture } from '../test/arena-run.fixture.js';
+import { ARENA_CASE, ARENA_REPLAY_FILE, arenaIndexFixture, arenaReplayFixture } from '../test/arena-run.fixture.js';
 import { loadArenaCase, mountArenaReplay } from './arena-replay.js';
 import { resolveJevReading } from './jev-reading.js';
 
-const files = (index = arenaIndexFixture(), run = arenaRunFixture()) => async path => {
+const files = (index = arenaIndexFixture(), run = arenaReplayFixture()) => async path => {
   if (path === '/content/arena/index.json') return index;
-  if (path === `/content/arena/${ARENA_RUN_FILE}`) return run;
+  if (path === `/content/arena/${ARENA_REPLAY_FILE}`) return run;
   throw new Error(`${path}: 404`);
 };
 
@@ -13,7 +13,7 @@ describe('arena replay', () => {
   it('replays each decider\'s first run under RISE\'s replay label, through the reading gate', async () => {
     const { createdAt, deciders } = await loadArenaCase(ARENA_CASE, files());
     expect(createdAt).toBe('2026-10-07');
-    expect(deciders.openai.decision).toMatchObject({ model: 'rise/arena-replay-1', provider: 'RISE', sourceModel: 'gpt-6-luna-2026-09-01', requestId: 'arena-20261007T120000-0123456' });
+    expect(deciders.openai.decision).toMatchObject({ model: 'rise/arena-replay-1', provider: 'RISE', sourceModel: 'gpt-6-luna-2026-09-01', requestId: 'run-0123456789ab.json' });
     expect(deciders.jev.decision.sourceModel).toBe('typesafe/jev-1.13');
     expect(deciders.kev).toEqual({ status: 'not run' });
     expect(deciders.rules).toEqual({ status: 'rejected: OUT_OF_MENU' });
@@ -24,11 +24,11 @@ describe('arena replay', () => {
   it('refuses a missing or malformed index or run, and a case the run does not have', async () => {
     await expect(loadArenaCase('nope', files())).rejects.toThrow('no case');
     const index = arenaIndexFixture();
-    await expect(loadArenaCase(ARENA_CASE, files({ ...index, runs: [{ file: '../secrets.json', mock: false }] }))).rejects.toThrow('names no run');
+    await expect(loadArenaCase(ARENA_CASE, files({ ...index, runs: [{ replay: '../secrets.json', mock: false }] }))).rejects.toThrow('names no run');
     // A mock run says nothing about any model: never replayed.
     await expect(loadArenaCase(ARENA_CASE, files({ ...index, runs: index.runs.filter(entry => entry.mock) }))).rejects.toThrow('names no run');
-    await expect(loadArenaCase(ARENA_CASE, files(undefined, { ...arenaRunFixture(), harness: { mock: true } }))).rejects.toThrow('not readable');
-    await expect(loadArenaCase(ARENA_CASE, files(undefined, { ...arenaRunFixture(), schema: 'other/v2' }))).rejects.toThrow('not readable');
+    await expect(loadArenaCase('__proto__', files())).rejects.toThrow('no case');
+    await expect(loadArenaCase(ARENA_CASE, files(undefined, { ...arenaReplayFixture(), schema: 'other/v2' }))).rejects.toThrow('not readable');
     await expect(loadArenaCase(ARENA_CASE, async () => { throw new Error('404'); })).rejects.toThrow('404');
   });
 

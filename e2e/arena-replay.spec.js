@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { ARENA_CASE, ARENA_RUN_FILE, arenaIndexFixture, arenaRunFixture } from '../src/test/arena-run.fixture.js';
+import { ARENA_CASE, ARENA_REPLAY_FILE, arenaIndexFixture, arenaReplayFixture } from '../src/test/arena-run.fixture.js';
 
 /**
  * /arena/<case>/<decider> replays a frozen Decision Arena result as a real
@@ -8,9 +8,9 @@ import { ARENA_CASE, ARENA_RUN_FILE, arenaIndexFixture, arenaRunFixture } from '
  */
 const pathOf = page => new URL(page.url()).pathname;
 
-async function serveArena(page, run = arenaRunFixture()) {
+async function serveArena(page, run = arenaReplayFixture()) {
   await page.route('**/content/arena/index.json', route => route.fulfill({ json: arenaIndexFixture() }));
-  await page.route(`**/content/arena/${ARENA_RUN_FILE}`, route => route.fulfill({ json: run }));
+  await page.route(`**/content/arena/${ARENA_REPLAY_FILE}`, route => route.fulfill({ json: run }));
 }
 
 async function reading(page) {
