@@ -25,11 +25,11 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640 }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin' }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     return `<!doctype html><meta charset="utf-8"><title>fake host</title>
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:${height}px}</style>
-<iframe id="view" sandbox="allow-scripts allow-same-origin" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
+<iframe id="view" sandbox="${sandbox}" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
 <script>
 const CURRENT = ${JSON.stringify(current)};
 const DIVE = ${JSON.stringify(dive)};
@@ -83,7 +83,10 @@ async function openHost(page, baseURL, options = {}) {
   const relay = options.selfContained
     ? cardHtml({ origin: options.appOrigin ?? origin, indexHtml: await (await fetch(`${origin}/index.html`)).text(), path })
     : relayHtml({ origin: options.appOrigin ?? origin, path });
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
+  // frame keeps it because the relay frames RISE's real page.
+  const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
   return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');

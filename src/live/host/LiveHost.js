@@ -662,7 +662,8 @@ export class LiveHost {
             const { containerDimensions, safeAreaInsets, styles } = this.port.hostContext();
             for (const side of SAFE_SIDES) root.style.setProperty(`--safe-${side}`, `${Number(safeAreaInsets?.[side]) || 0}px`);
             const sans = styles?.variables?.['--font-sans'];
-            if (typeof sans === 'string' && sans) root.style.setProperty('--font-sans', sans);
+            // A font stack is a short list of names; anything longer is not one the page should take from its host.
+            if (typeof sans === 'string' && sans && sans.length <= 200) root.style.setProperty('--font-sans', sans);
             else root.style.removeProperty('--font-sans');
             const height = embedHeight(frame.innerWidth, containerDimensions?.maxHeight);
             if (height === reported) return;
