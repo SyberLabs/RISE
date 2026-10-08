@@ -1,0 +1,24 @@
+{
+  // A workers.dev preview of the Plus routes (worker/plus.mjs) for test-mode runs.
+  // No secret is set here: without STRIPE_SECRET_KEY, PLUS_COOKIE_SECRET and
+  // ELEVENLABS_API_KEY every /api/plus route answers 503. Set them with
+  // `wrangler secret put <NAME> --config wrangler.plus-preview.jsonc`.
+  "name": "rise-plus-preview",
+  "main": "./worker/index.mjs",
+  "compatibility_date": "2026-09-26",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false", "PLUS_VOICE_SLUG": "el_plus", "PLUS_VOICE_MODEL": "eleven_flash_v2_5" },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*"]
+  },
+  "r2_buckets": [{ "binding": "PLUS_AUDIO", "bucket_name": "rise-plus-audio-preview" }],
+  "ratelimits": [{
+    "name": "DECISION_LIMITER",
+    "namespace_id": "2026092602",
+    "simple": { "limit": 30, "period": 60 }
+  }]
+}
