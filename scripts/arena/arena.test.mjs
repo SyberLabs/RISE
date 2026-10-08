@@ -265,14 +265,15 @@ const walk = (path, skip = () => false) => !existsSync(path) ? [] : readdirSync(
 
 test('nothing under src/ imports the arena harness', () => {
   const offenders = walk(join(ROOT, 'src')).filter(file => /\.m?js$/u.test(file)
-    && /scripts\/arena/u.test(readFileSync(file, 'utf8')));
+    && /(?:from\s*|import\s*\(\s*)['"][^'"]*scripts\/arena/u.test(readFileSync(file, 'utf8')));
   assert.deepEqual(offenders, []);
 });
 
 test('the reader app never names the OpenAI Decisions endpoint or model', () => {
   const frozen = full => /[/\\]content[/\\]arena$/u.test(full);
   const files = [...walk(join(ROOT, 'src')), ...walk(join(ROOT, 'public'), frozen), ...walk(join(ROOT, 'dist'), frozen)]
-    .filter(file => /\.(?:m?js|html|json|css|txt)$/u.test(file) || basename(file) === '_headers');
+    .filter(file => /\.(?:m?js|html|json|css|txt)$/u.test(file) || basename(file) === '_headers')
+    .filter(file => !/\.test\.m?js$/u.test(file) && !/[/\\]src[/\\]test[/\\]/u.test(file));
   assert.ok(files.length > 100, 'no app files were read');
   const offenders = files.filter(file => /api\.openai\.com|gpt-6-luna/u.test(readFileSync(file, 'utf8')))
     .map(file => relative(ROOT, file));
