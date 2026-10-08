@@ -5,8 +5,10 @@
  * JSON-RPC to each other with `postMessage`. This is the whole of what the page
  * knows about that: it says hello, receives the Currents the host's model hands
  * it, hears when the host cancels the call or changes where the app is shown,
- * and can ask the host's model a question directly (sampling). Every method
- * name is in METHODS, so the vocabulary is one table.
+ * can ask the host's model a question directly (sampling), and can tell that
+ * model, for its next turn, what went wrong in a generated scene
+ * (`ui/update-model-context`, where the host offers it). Every method name is
+ * in METHODS, so the vocabulary is one table.
  *
  * WHY NOT A MESSAGE. The extension has `ui/message`, which puts text in the
  * conversation, but it answers only whether the host took it: the model's reply
@@ -44,13 +46,20 @@ export const METHODS = Object.freeze({
     hostContextChanged: 'ui/notifications/host-context-changed',
     toolCancelled: 'ui/notifications/tool-cancelled',
     ping: 'ping',
-    teardown: 'ui/resource-teardown'
+    teardown: 'ui/resource-teardown',
+    updateModelContext: 'ui/update-model-context'
 });
 
 /** The extension's protocol version this was written against (ext-apps `LATEST_PROTOCOL_VERSION`). */
 export const PROTOCOL_VERSION = '2026-01-26';
 
-export const PORT_LIMITS = Object.freeze({ message: MCP_MESSAGE_BYTES, current: MCP_CURRENT_BYTES, buffered: 8, pending: 8, remembered: 8, answer: 100_000 });
+export const PORT_LIMITS = Object.freeze({
+    message: MCP_MESSAGE_BYTES, current: MCP_CURRENT_BYTES, buffered: 8, pending: 8, remembered: 8, answer: 100_000,
+    /** What one report to the model's context may hold, and how many one Current may send. */
+    report: 2_000, reportLine: 400, reports: 5
+});
+
+const REPORT_LEAD = 'RISE could not run part of the reading it is showing; the reader sees its fallback instead:';
 
 const isPlainObject = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 
@@ -94,6 +103,9 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
     let next = 1;
     let closed = false;
     let sampling = false;
+    let modelContext = false;
+    // The lines reported to the model for the Current on screen: each report replaces the last in the host's context.
+    let reported = [];
     // What the host said about where the app is shown (theme, size, display mode), as last merged.
     let hostContext = {};
 
@@ -189,6 +201,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
         }
         remembered.push(key);
         if (remembered.length > PORT_LIMITS.remembered) remembered.shift();
+        reported = [];
         if (listeners.size === 0) {
             buffered.push(found);
             if (buffered.length > PORT_LIMITS.buffered) buffered.shift();
@@ -215,6 +228,8 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
         async connect() {
             const result = await request(METHODS.initialize, { appInfo: { name: appName, version: '1' }, appCapabilities: { availableDisplayModes: ['inline'] }, protocolVersion: PROTOCOL_VERSION });
             sampling = Boolean(result?.hostCapabilities?.sampling);
+            // Only text is ever sent, so only a host that names text among the modalities it takes is sent any.
+            modelContext = isPlainObject(result?.hostCapabilities?.updateModelContext) && isPlainObject(result.hostCapabilities.updateModelContext.text);
             hostContext = isPlainObject(result?.hostContext) ? { ...result.hostContext } : {};
             witness('initialize', witnessed(hostContext, WITNESSED_CONTEXT));
             send({ method: METHODS.initialized, params: {} });
@@ -272,6 +287,22 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             if (Number.isFinite(height)) size.height = Math.round(height);
             witness('size-changed', size);
             send({ method: METHODS.sizeChanged, params: size });
+        },
+
+        /**
+         * Tell the host's model, for its next turn, what went wrong in the reading on screen: one line of
+         * RISE's own words (the caller quotes anything a scene wrote as data). Sent only to a host that said
+         * at hello it takes text for its model's context, at most PORT_LIMITS.reports times per Current.
+         * The host keeps only the latest update, so each carries every line so far. True if it was sent.
+         */
+        report(line) {
+            if (closed || !modelContext || reported.length >= PORT_LIMITS.reports) return false;
+            const clean = String(line).replace(/[\u0000-\u001F\u007F]/gu, ' ');
+            reported.push(clean.length <= PORT_LIMITS.reportLine ? clean : `${clean.slice(0, PORT_LIMITS.reportLine - 1)}…`);
+            const text = [REPORT_LEAD, ...reported].join('\n').slice(0, PORT_LIMITS.report);
+            // A host that refuses or does not answer costs nothing: the reader already sees the fallback.
+            request(METHODS.updateModelContext, { content: [{ type: 'text', text }] }).catch(() => {});
+            return true;
         },
 
         /** Whether the host said, when the app said hello, that it will put a question to its model. */

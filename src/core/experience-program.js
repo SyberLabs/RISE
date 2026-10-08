@@ -40,8 +40,14 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
   maxMetadataDepth: 4,
   maxMetadataKeys: 40,
   maxMetadataArray: 64,
-  maxMetadataString: 2_000
+  maxMetadataString: 2_000,
+  /** A generated scene's id and its code, in UTF-8 bytes (creative-control design §5). */
+  maxSceneIdLength: 120,
+  maxSceneCodeBytes: 24_576
 });
+
+/** The size of a scene's code as it travels, in UTF-8 bytes. */
+export const sceneCodeBytes = code => new TextEncoder().encode(code).length;
 
 const AUTHORITIES = new Set(['published', 'user', 'proposed']);
 
@@ -58,7 +64,7 @@ export const PROGRAM_TRACK_KINDS = Object.freeze([
  */
 export const PROGRAM_THREAD_KINDS = Object.freeze(['gloss', 'echo']);
 export const PROGRAM_VISUAL_KINDS = Object.freeze([
-  'still', 'focal', 'field', 'sourced', 'procedural', 'video'
+  'still', 'focal', 'field', 'sourced', 'procedural', 'video', 'scene'
 ]);
 export const PROGRAM_VISUAL_FIELD_RENDERERS = Object.freeze([
   'focal', 'attractor', 'genesis', 'living-flame'
@@ -353,8 +359,25 @@ function validateVisualCue(value, path) {
     cueFields.add('audioPolicy');
     cueFields.add('reducedMotion');
   }
+  if (source.kind === 'scene') {
+    cueFields.add('sceneId');
+    cueFields.add('code');
+  }
   onlyKeys(source, cueFields, path);
   if (source.kind === 'still') return { kind: 'still' };
+  if (source.kind === 'scene') {
+    const sceneId = exactId(source.sceneId, `${path}.sceneId`);
+    if (sceneId.length > EXPERIENCE_PROGRAM_LIMITS.maxSceneIdLength) {
+      fail('PROGRAM_ID_TOO_LONG',
+        `Scene ids may not exceed ${EXPERIENCE_PROGRAM_LIMITS.maxSceneIdLength} characters`, `${path}.sceneId`);
+    }
+    if (typeof source.code !== 'string' || !source.code
+      || sceneCodeBytes(source.code) > EXPERIENCE_PROGRAM_LIMITS.maxSceneCodeBytes) {
+      fail('PROGRAM_SCENE_CODE',
+        `A scene's code is a module of at most ${EXPERIENCE_PROGRAM_LIMITS.maxSceneCodeBytes} bytes`, `${path}.code`);
+    }
+    return { kind: 'scene', sceneId, code: source.code };
+  }
   if (source.kind === 'focal') {
     return {
       kind: 'focal',

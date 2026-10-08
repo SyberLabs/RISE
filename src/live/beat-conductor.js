@@ -13,14 +13,26 @@
  * Player times what remains of the atom itself on resume, as it does for the
  * speech governor.
  *
- * Scenes that can end a hold early (`maxMs`) are a later sub-project; here a
- * hold lasts exactly its `ms`.
+ * A beat's cue is fired when the beat begins, on the first atom of its
+ * passage the Player shows, as the running engine's commands the compiler
+ * lowered it to (rise-current.js); the runtime delivers them. It is fired
+ * once that atom's other listeners have run, so a beat that starts a scene
+ * and cues it reaches the scene it started.
+ *
+ * A hold with `maxMs` belongs to the scene running under it, when there is
+ * one to ask (`onHold`, the host's): the hold ends when the scene's promise
+ * does (the scene runtime keeps it within ms, the scene's done and maxMs), and
+ * at maxMs at the latest whatever it does. While the scene holds, the Player
+ * is told the hold may last maxMs, so its own watchdog waits that long. A hold
+ * with no scene to ask, or no maxMs, lasts exactly its `ms`.
  */
-export function createBeatConductor({ clock }) {
+export function createBeatConductor({ clock, onCue = null, onHold = null }) {
     let player = null;
     let release = null;
     let stopWatching = null;
+    let stopAtoms = null;
     let waiting = null;
+    let lastCued = null;
 
     const timed = atom => atom?.hold !== undefined || atom?.beatTimed === true;
 
@@ -29,19 +41,38 @@ export function createBeatConductor({ clock }) {
     }
 
     function duration(atom) {
-        return timed(atom) ? atom.duration : undefined;
+        if (!timed(atom)) return undefined;
+        return waiting?.atom === atom && waiting.held ? atom.hold.maxMs : atom.duration;
+    }
+
+    /** The scene's promise for a hold it may end, or null when the conductor's own clock decides. */
+    function sceneHold(atom) {
+        if (atom.hold?.maxMs === undefined || typeof onHold !== 'function') return null;
+        try {
+            const held = onHold(atom);
+            return typeof held?.then === 'function' ? held : null;
+        } catch {
+            return null;
+        }
     }
 
     function completion(atom) {
         if (!timed(atom)) return null;
         cancelWait();
-        const mine = { cancel: null };
+        const held = sceneHold(atom);
+        const mine = { cancel: null, atom, held: held !== null };
         waiting = mine;
         return new Promise(resolve => {
-            mine.cancel = clock.setTimer(() => {
-                if (waiting === mine) waiting = null;
+            let stop = null;
+            const end = () => {
+                if (waiting !== mine) return;
+                waiting = null;
+                stop?.();
                 resolve({ reason: 'ended' });
-            }, atom.duration);
+            };
+            stop = clock.setTimer(end, held ? atom.hold.maxMs : atom.duration);
+            mine.cancel = () => stop();
+            held?.then(end, () => {});
         });
     }
 
@@ -54,12 +85,23 @@ export function createBeatConductor({ clock }) {
             stopWatching = player.on('state', ({ state }) => {
                 if (state === 'paused' || state === 'idle' || state === 'complete') cancelWait();
             });
+            stopAtoms = player.on('atom', ({ atom }) => {
+                const cue = atom?.beat?.cue;
+                if (!cue || atom.sourceId === lastCued) return;
+                lastCued = atom.sourceId;
+                const given = { cue, sceneId: atom.scene ?? null, commands: atom.cueCommands ?? [] };
+                // After the atom's other listeners: the view mounts the scene a beat starts as the atom arrives.
+                queueMicrotask(() => { if (player) onCue?.(given); });
+            });
         },
 
         dispose() {
             cancelWait();
             stopWatching?.();
             stopWatching = null;
+            stopAtoms?.();
+            stopAtoms = null;
+            lastCued = null;
             release?.();
             release = null;
             player = null;

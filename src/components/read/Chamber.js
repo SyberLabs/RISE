@@ -9,6 +9,8 @@ import { parsePageCollectionId, sampleWorkEngine } from '../../visuals/work-engi
 import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../../visuals/work-engine-field.js';
 import { MemoryCore } from '../../core/memory.js';
 import { AttractorField } from '../../visuals/attractor.js';
+import { resolveTypeFace, stepFontSize } from '../../core/typography.js';
+import { loadMath, renderMath, splitMath } from '../../core/math-typeset.js';
 import { NightStreaks } from '../../visuals/night-streaks.js';
 import { KleeField } from '../../visuals/klee-field.js';
 import { VisualFieldDirector } from '../../visuals/visual-field-director.js';
@@ -111,6 +113,7 @@ import { resolveSessionWordFill } from '../../core/visual-selection.js';
 import { sessionColorTheme, sessionColorThemeId } from '../../core/session-presentation.js';
 import { flameComposition, themeEngine, themedFlameLookup } from '../../core/theme-engine-map.js';
 import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
+import { styleOf } from '../../core/styles.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../../core/jev-sequence.js';
@@ -121,7 +124,11 @@ import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
 import { SOUND_GROUPS, soundOf } from '../../audio/sound-list.js';
 import { connectionState } from '../../core/ai-connection.js';
 import { LOOKS, applyLook, lookOfSession } from '../../core/looks.js';
-import { ATTRACTOR_VISUAL_MANIFEST } from '../../core/visual-control-contract.js';
+import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../../core/visual-control-contract.js';
+import { manifestFor } from '../../scenes/manifests.js';
+import { createFlashWatch, createSceneRuntime, SCENE_VISUAL_MANIFEST } from '../../scenes/scene-runtime.js';
+import { VisualFlashGate } from '../../core/visual-safety.js';
+import { mountSceneLayer } from './scene-layer.js';
 import './Chamber.css';
 
 const RHYTHMS = Object.freeze([['phrase', 'Phrase'], ['sentence', 'Sentence'], ['word', 'Word']]);
@@ -176,10 +183,32 @@ const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
   + `rgb(0, 0, 0) calc(100% - ${PROGRESSIVE_GLASS_FEATHER}px), `
   + 'rgba(0, 0, 0, 0) 100%)';
 
+/**
+ * The words of what is shown, with its formulas each as one word (math-typeset.js) and a beat's
+ * emphasis marked on the words it names, whatever their punctuation or case.
+ */
+/** The reader's size, stepped by a beat's `size` when it has one; the one owner of an atom's size. */
+function beatFontSize(base, beat) {
+  return resolveFontSize(beat?.size ? stepFontSize(base, beat.size) : base);
+}
+
+function shownWords(content, emphasis) {
+  const wanted = new Set((emphasis ?? []).map(word => word.toLowerCase()));
+  const bare = word => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+  const words = [];
+  for (const part of splitMath(content)) {
+    if (part.kind === 'math') words.push({ text: part.value, emphasised: false, math: true, display: part.display });
+    else for (const word of splitWords(part.value)) words.push(wanted.has(bare(word.text)) ? { ...word, emphasised: true } : word);
+  }
+  return words;
+}
+
 export class Chamber {
   constructor(container, options = {}) {
     this.container = container;
     this.session = options.session;
+    // A reading that shows maths fetches its typesetter as it opens, not at its first formula (math-typeset.js).
+    if (this.session?.hasMath) void loadMath().catch(() => {});
     this.player = options.player;
     // A host that runs the reading itself (a live Current, whose Player is
     // started by the runtime once this view is up) wants the reading shown
@@ -2596,6 +2625,8 @@ export class Chamber {
 
   /** One scheduled cue owns the complete visual presentation transition. */
   applyScheduledVisualCue(cue, meta = {}) {
+    // A generated scene that has failed once is not run again in this Chamber; its passages draw the fallback.
+    if (cue?.kind === 'scene' && this._failedScenes?.has(cue.sceneId)) cue = this._sceneFallbackCue();
     this._currentVisualCue = cue || null;
     this.applyScheduledColorTheme(cue?.colorTheme);
     const fieldCue = cue?.kind === 'focal'
@@ -2722,8 +2753,84 @@ export class Chamber {
     }
   }
 
+  /** What a passage draws when its generated scene cannot: the program's fallback, never another scene. */
+  _sceneFallbackCue() {
+    const fallback = this.session?.visualProgram?.fallback;
+    return fallback && fallback.kind !== 'scene' ? fallback : { kind: 'still' };
+  }
+
+  /**
+   * A diagnostic of a generated scene, kept for the runtime report (creative-control design §12); the last 20.
+   * The page is told too, so a live host can report it (LiveHost.reportScene) without the Chamber knowing one exists.
+   */
+  _noteScene(diagnostic) {
+    this.sceneDiagnostics = [...(this.sceneDiagnostics ?? []), diagnostic].slice(-20);
+    this.container.ownerDocument.defaultView?.dispatchEvent(new CustomEvent('rise-scene-diagnostic', { detail: { ...diagnostic } }));
+  }
+
+  /**
+   * A generated scene (src/scenes/): a canvas behind the reading, given to a
+   * worker that runs the scene's code. Its holds and cues come through the
+   * director's record; a scene that fails gives way to the fallback, and one
+   * that would flash is frozen on its last frame.
+   */
+  _mountSceneCue(field, cue) {
+    let destroyed = false;
+    let runtime = null;
+    const layer = mountSceneLayer({
+      field,
+      insertBehindReading: (host, node) => this._insertBehindReading(host, node),
+      onResize: ({ width, height }) => runtime?.resize(width, height, window.devicePixelRatio || 1)
+    });
+    const watch = createFlashWatch(new VisualFlashGate({ minIntervalMs: 0, burstWindowMs: 1000, maxBurst: 3 }));
+    const record = {
+      node: layer.node,
+      renderer: 'scene',
+      sceneId: cue.sceneId,
+      pause: () => runtime.pause(),
+      resume: () => runtime.play(),
+      discoverVisual: () => (destroyed || !layer.node.isConnected ? null
+        : Object.freeze({ manifest: SCENE_VISUAL_MANIFEST, current: Object.freeze({}), target: Object.freeze({}) })),
+      controlVisual: command => {
+        const validated = validateVisualCommand(command, SCENE_VISUAL_MANIFEST);
+        if (!validated.ok) return { status: 'refused', code: validated.code };
+        if (destroyed) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+        runtime.cue(validated.command.value);
+        return { status: 'accepted', surface: 'scene', parameter: 'cue', requested: validated.requested, effective: validated.effective };
+      },
+      hold: ({ ms, maxMs }) => runtime.hold({ ms, maxMs }),
+      destroy: () => {
+        destroyed = true;
+        runtime.dispose();
+        layer.destroy();
+      }
+    };
+    runtime = createSceneRuntime({
+      createWorker: () => import('../../scenes/create-scene-worker.js').then(module => module.createSceneWorker()),
+      canvas: layer.canvas,
+      theme: (this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session)) ?? {},
+      reducedMotion: this._prefersReducedMotion() || document.documentElement.classList.contains('photosensitivity-mode'),
+      library: styleOf(this.session?.style)?.library ?? {},
+      onFailure: diagnostic => {
+        this._noteScene(diagnostic);
+        (this._failedScenes ??= new Set()).add(cue.sceneId);
+        if (!destroyed && this._visualFieldDirector?.active === record) this.applyScheduledVisualCue(this._sceneFallbackCue(), {});
+      },
+      onLuma: (value, t) => {
+        if (!watch(value, t)) return;
+        runtime.freeze();
+        this._noteScene({ sceneId: cue.sceneId, phase: 'flash', message: 'Frozen: the scene would flash more than three times a second', where: null });
+      }
+    });
+    layer.resize();
+    void runtime.start({ id: cue.sceneId, code: cue.code });
+    if (this._visualFieldDirector?.paused !== true) runtime.play();
+    return record;
+  }
+
   mountVisualFieldCue(cue) {
     const field = this.container.querySelector('#chamber-field');
+    if (field && cue?.kind === 'scene') return this._mountSceneCue(field, cue);
     if (!field || cue?.kind !== 'field') return null;
     const config = cue.config && typeof cue.config === 'object' ? cue.config : {};
     // The reading's theme fills what the cue left to the engine: an absent
@@ -2825,12 +2932,28 @@ export class Chamber {
         if (paused) controller.pause();
         this.livingFlameField = controller;
       }).catch(error => console.warn('[Chamber] Living Flame unavailable:', error));
+      // The flame's macros as a cue may move them while it runs (src/scenes/manifests.js).
+      let macros = { ...(flame.recipe.macros ?? {}) };
+      const FLAME_MANIFEST = manifestFor('living-flame');
       return {
         node: host,
         renderer: 'living-flame',
         pause: () => { paused = true; controller?.pause?.(); },
         resume: () => { paused = false; controller?.resume?.(); },
         setEnergy: () => controller?.setEnergy?.(this._effectiveFlameEnergy(intensity)),
+        discoverVisual: () => (destroyed || !host.isConnected ? null : Object.freeze({
+          manifest: FLAME_MANIFEST, current: Object.freeze({ ...macros }), target: Object.freeze({ ...macros })
+        })),
+        controlVisual: command => {
+          const validated = validateVisualCommand(command, FLAME_MANIFEST);
+          if (!validated.ok) return { status: 'refused', code: validated.code };
+          if (destroyed || !controller || !host.isConnected) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+          const { parameter, value } = validated.command;
+          macros = { ...macros, [parameter]: value };
+          if (parameter === 'energy') controller.setEnergy(value);
+          else controller.setRecipe({ ...flame.recipe, macros }, { transitionMs: reducedMotion ? 0 : 800 });
+          return { status: 'accepted', surface: 'living-flame', parameter, requested: validated.requested, effective: value };
+        },
         morph: (next, { transitionMs } = {}) => {
           const nextFlame = normalizeLivingFlameConfig(next?.config);
           if (!nextFlame || !controller?.canMorphTo?.(nextFlame.recipe)) return false;
@@ -2939,6 +3062,13 @@ export class Chamber {
     }
     return this._visualFieldDirector?.controlVisual(command)
       || { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+  }
+
+  /** A hold the running generated scene may end early (beat-conductor.js), or null when that scene is not running. */
+  holdScene(atom) {
+    const record = this._visualFieldDirector?.active;
+    if (record?.renderer !== 'scene' || !atom?.hold || record.sceneId !== atom.hold.sceneId) return null;
+    return record.hold(atom.hold);
   }
 
   /** Logical reading time for Living Flame, in milliseconds. */
@@ -3138,21 +3268,46 @@ export class Chamber {
     }
   }
 
-  paintAtomText(atomDisplay, content, { reveal = false } = {}) {
-    const words = splitWords(content);
+  paintAtomText(atomDisplay, content, { reveal = false, emphasis = null } = {}) {
+    const words = shownWords(content, emphasis);
     const marked = words.some(w => w.emphasised);
+    const maths = words.some(w => w.math);
 
-    if (!reveal && !marked) {
+    if (!reveal && !marked && !maths) {
       atomDisplay.textContent = stripEmphasis(content);
       return null;
     }
 
     atomDisplay.innerHTML = words.map(w =>
-      `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}"` +
-      `${reveal ? ' data-pending=""' : ''}>${escapeHtml(w.text)}</span>`
+      `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}${w.math ? ' atom-math' : ''}"` +
+      `${reveal ? ' data-pending=""' : ''}>${w.math ? renderMath(w.text, { display: w.display }) : escapeHtml(w.text)}</span>`
     ).join(' ');
 
     return reveal ? Array.from(atomDisplay.querySelectorAll('.atom-word')) : null;
+  }
+
+  /**
+   * The typography a beat asks for (src/core/beats.js): its place on the field, its size as a step
+   * from the reader's own, its face by role or id, else the Current's faces for text and captions
+   * (typography.js). Returns false when the beat shows nothing ("place": "none").
+   */
+  applyBeatTypography(atomDisplay, atom) {
+    const beat = atom?.beat ?? null;
+    const place = beat?.place && beat.place !== 'centre' ? beat.place : null;
+    if (place && place !== 'none') atomDisplay.dataset.place = place;
+    else delete atomDisplay.dataset.place;
+    atomDisplay.dataset.fontSize = beatFontSize(this.effectiveFontSize(), beat);
+    const faces = this.session?.presentation?.typeFaces ?? null;
+    const named = beat?.type ?? (place && place !== 'none' ? faces?.caption : faces?.text) ?? null;
+    const face = resolveTypeFace(named);
+    if (face) {
+      atomDisplay.style.setProperty('--font-stream-face', face.family);
+      atomDisplay.style.setProperty('--font-stream-weight', String(face.weight));
+    } else {
+      atomDisplay.style.removeProperty('--font-stream-face');
+      atomDisplay.style.removeProperty('--font-stream-weight');
+    }
+    return place !== 'none';
   }
 
   /**
@@ -3409,9 +3564,9 @@ export class Chamber {
    * Sized on what is SHOWN — emphasis marks are notation and would
    * otherwise push a phrase into a smaller face than it needs.
    */
-  sizeAtomText(atomDisplay, content) {
+  sizeAtomText(atomDisplay, content, beat = null) {
     atomDisplay.style.removeProperty('font-size');
-    const fontSize = resolveFontSize(this.effectiveFontSize());
+    const fontSize = beatFontSize(this.effectiveFontSize(), beat);
     atomDisplay.dataset.fontSize = fontSize;
     atomDisplay.style.setProperty('--font-size-intent', String(threeStepIntent(fontSize)));
 
@@ -3631,6 +3786,13 @@ export class Chamber {
     // a word while it is being read. The next atom sees the next artwork.
     this._fitBoxSnapshot = this._resolveWordFitBox();
     this.applyChamberMask();
+    // A beat's place, size and face (Creative Control); a beat placed nowhere is heard and not seen.
+    if (!this.applyBeatTypography(atomDisplay, atom)) {
+      this.cancelReveal();
+      atomDisplay.style.opacity = '0';
+      atomDisplay.textContent = '';
+      return;
+    }
 
     // Genesis field follows the passage's mood when Living Text has a track
     if (this.kleeField && this.semanticTrack) {
@@ -3675,7 +3837,7 @@ export class Chamber {
       const spans = this.paintAtomText(
         atomDisplay,
         atom.content,
-        { reveal: deferReveal }
+        { reveal: deferReveal, emphasis: atom.beat?.emphasis }
       );
       if (spans) {
         this._concealedReveal = {
@@ -3685,7 +3847,7 @@ export class Chamber {
         };
       }
 
-      this.sizeAtomText(atomDisplay, atom.content);
+      this.sizeAtomText(atomDisplay, atom.content, atom.beat);
 
       this.applyLivingText(atomDisplay, index);
       atomDisplay.style.opacity = '1';
@@ -3707,9 +3869,9 @@ export class Chamber {
           ? spoken.durationMs
           : revealBudget(atom.duration, { reducedMotion }))
         : 0;
-      const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0 });
+      const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0, emphasis: atom.beat?.emphasis });
 
-      this.sizeAtomText(atomDisplay, atom.content);
+      this.sizeAtomText(atomDisplay, atom.content, atom.beat);
 
       this.applyLivingText(atomDisplay, index);
 

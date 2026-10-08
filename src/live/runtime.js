@@ -123,9 +123,17 @@ export function createLiveRuntime({
         }
     }
 
+    /** A beat's cue, as the running engine's commands the compiler lowered it to, each through controlVisual. */
+    function cueScene(commands) {
+        for (const command of commands) controlVisual(command);
+    }
+
     function controlVisual(command) {
         const run = visualRun();
-        const checked = validateVisualCommand(command);
+        // The running engine's own manifest bounds the command; the attractor's stands in before anything is shown.
+        const discovered = discoverVisual()?.manifest;
+        const manifest = discovered?.parameters ? discovered : ATTRACTOR_VISUAL_MANIFEST;
+        const checked = validateVisualCommand(command, manifest);
         if (!checked.ok) return recordVisualReceipt(run, visualRefusal(checked.code));
         if (!visualRunIsActive(run)) return recordVisualReceipt(run, visualRefusal('NOT_LIVE'));
         if (!run.presented) return recordVisualReceipt(run, visualRefusal());
@@ -137,9 +145,11 @@ export function createLiveRuntime({
         } catch {
             response = visualRefusal();
         }
-        const bounds = ATTRACTOR_VISUAL_MANIFEST.parameters.intensity;
-        const receipt = response?.status === 'accepted' && Number.isFinite(response.effective)
-            && response.effective >= bounds.minimum && response.effective <= bounds.maximum
+        const spec = manifest.parameters[checked.command.parameter];
+        const kept = spec.type === 'enum' || spec.type === 'name'
+            ? response?.effective === checked.command.value
+            : Number.isFinite(response?.effective) && response.effective >= spec.minimum && response.effective <= spec.maximum;
+        const receipt = response?.status === 'accepted' && kept
             ? Object.freeze({ status: 'accepted', surface: checked.command.surface, parameter: checked.command.parameter,
                 requested: checked.requested, effective: response.effective })
             : visualRefusal(response?.code || 'NO_ACTIVE_VISUAL');
@@ -196,6 +206,8 @@ export function createLiveRuntime({
         run.governor.update({ atoms: session.atoms, segments });
         // Passages no voice says: a hold, or a beat shown for a while (rise-current.js).
         run.unspokenIds = session.unspokenIds ?? null;
+        // Spoken passages that follow one of those: each is given to the voice when the reading reaches it (see speak).
+        run.voiceWaitsFor = session.voiceWaitsFor ?? null;
         // Words are given to the voice once the reading is on screen (see speak): a voice
         // that began while the host was still mounting would say the first words unseen.
         run.unspoken.push(...fresh);
@@ -232,9 +244,13 @@ export function createLiveRuntime({
         if (run.stream.terminal) run.player.setLive(false);
     }
 
-    /** Give the voice what has been committed and not yet handed to it. */
+    /**
+     * Give the voice what has been committed and not yet handed to it. A passage after one no voice says
+     * waits, with all after it, until the reading reaches it: a voice given it at once would say it during the hold.
+     */
     function speak(run) {
-        const fresh = run.unspoken.splice(0);
+        const waits = run.unspoken.findIndex(segment => run.voiceWaitsFor?.has(segment.id) && segment.id !== run.segmentId);
+        const fresh = run.unspoken.splice(0, waits < 0 ? run.unspoken.length : waits);
         if (!run.voice) return;
         for (const segment of fresh) {
             if (run.unspokenIds?.has(segment.id)) continue;
@@ -255,6 +271,7 @@ export function createLiveRuntime({
             const at = run.governor.positionOf(index);
             if (at && at.segmentId !== run.segmentId) {
                 run.segmentId = at.segmentId;
+                if (run.unspoken.length > 0) speak(run);
                 set(status);
             }
         });
@@ -348,7 +365,19 @@ export function createLiveRuntime({
             graceMs,
             onDegrade: ({ reason }) => note('voice.degraded', { role, reason })
         });
-        run.conductor = createBeatConductor({ clock });
+        run.conductor = createBeatConductor({
+            clock,
+            onCue: ({ commands }) => cueScene(commands),
+            // A hold the running scene may end early is the host's to ask of the scene (Chamber.holdScene).
+            onHold: atom => {
+                if (run.closed || typeof host.holdScene !== 'function') return null;
+                try {
+                    return host.holdScene({ role: run.role, player: run.player, atom }) ?? null;
+                } catch {
+                    return null;
+                }
+            }
+        });
         return run;
     }
 

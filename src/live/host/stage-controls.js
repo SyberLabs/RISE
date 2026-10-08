@@ -147,8 +147,9 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
     }
 
     function refreshIntensity() {
-        const discovery = runtime.discoverVisual?.() ?? null;
-        // Only a field with a verified mutable control offers the row; most looks draw none.
+        const found = runtime.discoverVisual?.() ?? null;
+        // Only a field whose intensity changes while it runs offers the row: the attractor's does, the flame's is fixed.
+        const discovery = found?.manifest?.parameters?.intensity?.cueable === true ? found : null;
         intensity.closest('.rise-settings__row').hidden = !discovery;
         intensity.disabled = !discovery;
         if (!discovery) return;

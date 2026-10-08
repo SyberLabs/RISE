@@ -60,7 +60,10 @@ const FAMILIES = [
     { name: 'JetBrains Mono', spec: 'JetBrains+Mono:wght@400;500' },
     // SyberLabs design system: interface sans and display serif.
     { name: 'Instrument Sans', spec: 'Instrument+Sans:wght@400;500;600' },
-    { name: 'Instrument Serif', spec: 'Instrument+Serif:ital@0;1' }
+    { name: 'Instrument Serif', spec: 'Instrument+Serif:ital@0;1' },
+    // Creative Control: the handwritten and condensed roles a composition may name (src/core/typography.js).
+    { name: 'Caveat', spec: 'Caveat:wght@500' },
+    { name: 'Barlow Condensed', spec: 'Barlow+Condensed:wght@500' }
 ];
 
 /**

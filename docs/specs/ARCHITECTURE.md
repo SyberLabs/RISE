@@ -156,12 +156,13 @@ flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>13 modules"]
     audio["audio<br/>Web Audio, recitation<br/>13 modules"]
-    components["components<br/>routed views<br/>51 modules"]
+    components["components<br/>routed views<br/>52 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>164 modules"]
+    core["core<br/>session, player, router<br/>169 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>44 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>49 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
+    scenes["scenes<br/>engine manifests, cues; scene runtime<br/>7 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>59 modules"]
@@ -181,8 +182,9 @@ flowchart LR
     components -.-> |2 lazy| app
     components --> |5| audio
     components --> |23| content
-    components --> |183| core
+    components --> |187| core
     components -.-> |1 lazy| page
+    components --> |2| scenes
     components --> |4| sources
     components -.-> |2 lazy| vendor
     components --> |18| visuals
@@ -192,14 +194,17 @@ flowchart LR
     content --> |1| visuals
     core --> |9| audio
     core --> |15| content
+    core --> |9| scenes
     core --> |4| sources
     core --> |7| visuals
     live -.-> |3 lazy| app
     live -.-> |2 lazy| components
-    live --> |14| core
+    live --> |19| core
     live -.-> |1 lazy| visuals
     page --> |4| core
     page --> |4| visuals
+    scenes --> |2| core
+    scenes --> |1| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
     visuals --> |25| core
@@ -466,6 +471,10 @@ owning the glyph-mask state machine.
 - **A new personal store is added to `src/core/user-data.js` in the same change
   that introduces it.** A store missing from that inventory is data export
   cannot carry out and erase cannot clear.
+- **The renderer contract moves with its document.** What a third party builds
+  against (the Current v2, manifests and cues, generated scenes and their
+  worker protocol, the MCP tools) is `docs/specs/RISE-SDK.md`, held to the code
+  by `src/core/rise-sdk.test.js`.
 
 ---
 
@@ -652,11 +661,17 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, four production dependencies: `sql.js` for browser-local work,
-  and `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
+  per room, six production dependencies: `sql.js` for browser-local work;
+  `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
   for on-device Kev, imported only by the EnterpRise worker that runs it
-  (§8.32). The tokenizer already shipped inside kev.js; it is named because
-  the worker builds Kev's session itself.
+  (§8.32); `katex` for maths in what a reading shows, fetched only when
+  a reading has a formula (docs/superpowers/specs/2026-10-08-creative-control-design.md
+  §10); and `acorn`, which runs only in the Cloudflare Worker, to parse a
+  scene a model wrote before it is admitted (same design, §12): a Worker
+  has no `eval`, and admission must read the code without running it, so a
+  real parser is the smallest correct tool and a pattern match is not. It
+  has no dependencies of its own and reaches no page. The tokenizer already shipped inside
+  kev.js; it is named because the worker builds Kev's session itself.
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`

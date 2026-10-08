@@ -181,6 +181,8 @@ their own and the licence and copyright notice travel with them.
 | Space Grotesk | © The Space Grotesk Project Authors |
 | Crimson Pro | © The Crimson Pro Project Authors |
 | Marcellus | © The Marcellus Project Authors |
+| Caveat | © The Caveat Project Authors |
+| Barlow Condensed | © The Barlow Project Authors |
 | JetBrains Mono | © The JetBrains Mono Project Authors |
 | Instrument Sans | © The Instrument Sans Project Authors |
 | Instrument Serif | © The Instrument Serif Project Authors |

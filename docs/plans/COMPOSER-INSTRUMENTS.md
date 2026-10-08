@@ -31,7 +31,7 @@ Every Current lowers to a continuous presentation, so none of the three ever rea
 - One instrument per passage, chosen from a closed list. The instrument changes only at a passage boundary.
 - One theme per answer. Whatever a passage says does not change the colours.
 - At most 16 passages (`RISE_CURRENT_LIMITS`). The answer's visual rhythm is therefore coarse by design.
-- The instrument says what a passage is *like*, as the model's guide puts it (`src/live/adapters/current-guide.js`). It is never evidence, and it never stands in for a word.
+- The instrument says what a passage is *like*, as the model's guide puts it (`src/live/guide/`). It is never evidence, and it never stands in for a word.
 
 ## Three explanations, three demands
 

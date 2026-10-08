@@ -5,7 +5,8 @@ import { validateVisualCommand } from '../core/visual-control-contract.js';
  *
  * The generic visual scheduler decides *which* cue is active. This director
  * owns the expensive DOM/rendering state needed by field cues and guarantees
- * that a successor retires its predecessor exactly once. Collection, video,
+ * that a successor retires its predecessor exactly once. A generated scene is
+ * held the same way, one layer per scene id and code. Collection, video,
  * procedural, and still cues clear the field without learning how a field is
  * rendered.
  */
@@ -28,11 +29,13 @@ export class VisualFieldDirector {
 
   applyCue(cue, { transitionMs = this.transitionMs } = {}) {
     const transition = Math.max(0, Math.min(Number(transitionMs) || 0, 2000));
-    if (cue?.kind !== 'field') {
+    if (cue?.kind !== 'field' && cue?.kind !== 'scene') {
       this.clear({ transitionMs: transition });
       return false;
     }
-    const key = JSON.stringify([cue.renderer, cue.config || {}]);
+    const key = cue.kind === 'scene'
+      ? JSON.stringify(['scene', cue.sceneId, cue.code])
+      : JSON.stringify([cue.renderer, cue.config || {}]);
     if (this.active?.key === key) {
       this.active.cancelVisualControl?.();
       return true;
@@ -87,9 +90,11 @@ export class VisualFieldDirector {
   }
 
   controlVisual(command) {
-    const validated = validateVisualCommand(command);
-    if (!validated.ok) return { status: 'refused', code: validated.code };
     const record = this.active;
+    // The active field's own manifest bounds the command; a record that names none is held to the attractor's.
+    const manifest = typeof record?.discoverVisual === 'function' ? record.discoverVisual()?.manifest : null;
+    const validated = validateVisualCommand(command, manifest?.parameters ? manifest : undefined);
+    if (!validated.ok) return { status: 'refused', code: validated.code };
     if (this.destroyed || !record || record.generation !== this.generation
       || record.node?.isConnected === false) {
       return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };

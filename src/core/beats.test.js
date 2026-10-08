@@ -10,8 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { BEAT_LIMITS, lowerBeats, validateBeats, validateScenes } from './beats.js';
 
 const SCENES = [{ id: 'field', engine: 'attractor' }, { id: 'calm', engine: 'still' }];
-const sceneIds = new Set(SCENES.map(scene => scene.id));
-const beats = (list, options = {}) => validateBeats(list, '$.beats', { sceneIds, ...options });
+const beats = (list, options = {}) => validateBeats(list, '$.beats', { scenes: SCENES, ...options });
 const refuses = (list, code, options) => {
   let caught = null;
   try { beats(list, options); } catch (error) { caught = error; }
@@ -28,8 +27,8 @@ describe('the three kinds of beat', () => {
   });
 
   it('reads a hold, with its duration and the most it may stretch to', () => {
-    const [hold] = beats([{ hold: { ms: 3000, maxMs: 8000 }, cue: 'rotate' }]);
-    expect(hold).toEqual({ kind: 'hold', hold: { ms: 3000, maxMs: 8000 }, cue: 'rotate' });
+    const [, hold] = beats([{ say: 'x', scene: 'field' }, { hold: { ms: 3000, maxMs: 8000 }, cue: 'bright' }]);
+    expect(hold).toEqual({ kind: 'hold', hold: { ms: 3000, maxMs: 8000 }, cue: 'bright' });
     expect(beats([{ hold: { ms: 500 } }])[0].hold).toEqual({ ms: 500 });
   });
 
@@ -50,11 +49,11 @@ describe('the three kinds of beat', () => {
 describe('what a beat may carry', () => {
   it('admits a scene it knows, a cue, a transition, a place, a size, a face, emphasis and a sound', () => {
     const [beat] = beats([{
-      say: 'Here.', scene: 'field', cue: 'draw', transition: { ms: 400 }, place: 'left', size: 'display',
+      say: 'Here.', scene: 'field', cue: 'set:intensity=0.6', transition: { ms: 400 }, place: 'left', size: 'display',
       type: 'book-serif', emphasis: ['Here'], sound: 'starlight'
     }]);
     expect(beat.scene).toBe('field');
-    expect(beat.cue).toBe('draw');
+    expect(beat.cue).toBe('set:intensity=0.6');
     expect(beat.transition).toEqual({ ms: 400 });
     expect(beat.type).toBe('book-serif');
     expect(beat.emphasis).toEqual(['Here']);
@@ -67,7 +66,13 @@ describe('what a beat may carry', () => {
     refuses([{ say: 'x', size: 'huge' }], 'BEAT_SIZE');
     refuses([{ say: 'x', type: 'comic-sans' }], 'BEAT_TYPE');
     refuses([{ say: 'x', sound: 'airhorn' }], 'BEAT_SOUND');
-    refuses([{ say: 'x', cue: 'has space' }], 'BEAT_CUE');
+    refuses([{ say: 'x', scene: 'field', cue: 'has space' }], 'BEAT_CUE');
+    // A cue is the running scene's: named in its manifest, or setting a parameter it changes while it runs.
+    refuses([{ say: 'x', cue: 'bright' }], 'BEAT_CUE');
+    expect(refuses([{ say: 'x', scene: 'field', cue: 'rotate' }], 'BEAT_CUE').message).toContain('attractor takes the cues');
+    refuses([{ say: 'x', scene: 'field', cue: 'set:palette=jade' }], 'BEAT_CUE');
+    refuses([{ say: 'x', scene: 'field', cue: 'set:intensity=0.9' }], 'BEAT_CUE');
+    expect(refuses([{ say: 'x', scene: 'calm', cue: 'bright' }], 'BEAT_CUE').message).toContain('still takes no cues');
     refuses([{ say: 'x', extra: true }], 'CURRENT_UNKNOWN_FIELD');
   });
 
@@ -76,7 +81,7 @@ describe('what a beat may carry', () => {
     refuses([{ hold: { ms: BEAT_LIMITS.holdMaxMs + 1 } }], 'BEAT_HOLD');
     refuses([{ hold: { ms: 2000, maxMs: 1000 } }], 'BEAT_HOLD');
     refuses([{ hold: { ms: 2000, maxMs: BEAT_LIMITS.holdMaxMs + 1 } }], 'BEAT_HOLD');
-    refuses([{ say: 'x', cue: 'c'.repeat(BEAT_LIMITS.cue + 1) }], 'BEAT_CUE');
+    refuses([{ say: 'x', scene: 'field', cue: 'c'.repeat(BEAT_LIMITS.cue + 1) }], 'BEAT_CUE');
     refuses([{ say: 'x', emphasis: Array.from({ length: BEAT_LIMITS.emphasis + 1 }, () => 'w') }], 'BEAT_EMPHASIS');
     refuses([{ say: 'x', emphasis: ['w'.repeat(BEAT_LIMITS.emphasisLength + 1)] }], 'BEAT_EMPHASIS');
     refuses([{ say: 'x', transition: { ms: BEAT_LIMITS.transitionMaxMs + 1 } }], 'BEAT_TRANSITION');
@@ -97,22 +102,59 @@ describe('what a beat may carry', () => {
 });
 
 describe('scenes, in this release', () => {
-  it('admits a native scene by engine, with no parameters yet', () => {
+  it('admits a native scene by engine, with its parameters held to the engine’s manifest', () => {
     expect(validateScenes(SCENES, '$.scenes')).toEqual(SCENES.map(scene => ({ ...scene })));
     expect(validateScenes([{ id: 'f', engine: 'genesis', params: {} }], '$.scenes')).toEqual([{ id: 'f', engine: 'genesis' }]);
+    expect(validateScenes([{ id: 'f', engine: 'attractor', params: { palette: 'jade', intensity: 0.5 } }], '$.scenes'))
+      .toEqual([{ id: 'f', engine: 'attractor', params: { palette: 'jade', intensity: 0.5 } }]);
+    expect(validateScenes([{ id: 'p', engine: 'ostensoria', params: { palette: 'ice' } }], '$.scenes')).toEqual([{ id: 'p', engine: 'ostensoria', params: { palette: 'ice' } }]);
   });
 
-  it('refuses an unknown engine, parameters, generated code, a duplicate id, and too many', () => {
-    const refusesScene = (list, code) => {
-      let caught = null;
-      try { validateScenes(list, '$.scenes'); } catch (error) { caught = error; }
-      expect(caught?.code).toBe(code);
-    };
-    refusesScene([{ id: 'f', engine: 'fractal' }], 'SCENE_ENGINE');
-    refusesScene([{ id: 'f', engine: 'attractor', params: { energy: 1 } }], 'SCENE_PARAMS');
-    refusesScene([{ id: 'f', code: 'export default () => ({})' }], 'SCENE_CODE');
+  const refusesScene = (list, code) => {
+    let caught = null;
+    try { validateScenes(list, '$.scenes'); } catch (error) { caught = error; }
+    expect(caught?.code).toBe(code);
+    return caught;
+  };
+
+  it('refuses an unknown engine, a parameter off the manifest, a duplicate id, and too many', () => {
+    refusesScene([{ id: 'f', engine: 'shader' }], 'SCENE_ENGINE');
+    refusesScene([{ id: 'f', engine: 'attractor', params: { energy: 1 } }], 'SCENE_PARAM');
+    refusesScene([{ id: 'f', engine: 'attractor', params: { intensity: 2 } }], 'SCENE_PARAM');
     refusesScene([{ id: 'f', engine: 'attractor' }, { id: 'f', engine: 'still' }], 'CURRENT_DUPLICATE_ID');
     refusesScene(Array.from({ length: BEAT_LIMITS.scenes + 1 }, (_, i) => ({ id: `s${i}`, engine: 'still' })), 'SCENE_COUNT');
+  });
+
+  it('admits a generated scene: an ES module with a default export, within its size', () => {
+    const code = 'export default function scene(rise) { return { frame() {} }; }';
+    expect(validateScenes([{ id: 'vector', code }], '$.scenes')).toEqual([{ id: 'vector', code }]);
+  });
+
+  it('refuses generated code that is not text, too large, without a default export, or beside an engine', () => {
+    refusesScene([{ id: 'f', code: 42 }], 'SCENE_CODE');
+    refusesScene([{ id: 'f', code: `export default 1;${'x'.repeat(BEAT_LIMITS.code)}` }], 'SCENE_CODE');
+    const missing = refusesScene([{ id: 'f', code: 'function scene() {}' }], 'SCENE_CODE');
+    expect(missing.message).toMatch(/export default/u);
+    expect(missing.path).toBe('$.scenes[0].code');
+    refusesScene([{ id: 'f', engine: 'attractor', code: 'export default () => ({})' }], 'SCENE_CODE');
+    refusesScene([{ id: 'f', params: {}, code: 'export default () => ({})' }], 'SCENE_CODE');
+  });
+
+  it('lets a generated scene take any cue by name, since its code decides what a cue means, and keeps the name’s bounds', () => {
+    const scenes = [{ id: 'vector', code: 'export default () => ({ frame() {} })' }];
+    const [, hold] = validateBeats([{ say: 'x', scene: 'vector', cue: 'draw' }, { hold: { ms: 2000, maxMs: 5000 }, cue: 'rotate:90' }], '$.beats', { scenes });
+    expect(hold.cue).toBe('rotate:90');
+    let caught = null;
+    try { validateBeats([{ say: 'x', scene: 'vector', cue: 'two words' }], '$.beats', { scenes }); } catch (error) { caught = error; }
+    expect(caught?.code).toBe('BEAT_CUE');
+  });
+
+  it('lowers a generated scene’s passages with the scene, and draws it', () => {
+    const scenes = [{ id: 'vector', code: 'export default () => ({ frame() {} })' }];
+    const lowered = lowerBeats({ scenes, beats: validateBeats([{ say: 'x', scene: 'vector' }, { hold: { ms: 2000, maxMs: 5000 } }], '$.beats', { scenes }) });
+    expect(lowered.segments.map(segment => segment.visual)).toEqual(['scene', 'scene']);
+    expect(lowered.segments[1].scene).toEqual(scenes[0]);
+    expect(lowered.segments[1].hold).toEqual({ ms: 2000, maxMs: 5000, sceneId: 'vector' });
   });
 });
 
@@ -121,7 +163,7 @@ describe('lowering beats to the passages the score understands', () => {
     scenes: SCENES,
     beats: beats([
       { say: 'One.', scene: 'field', sound: 'starlight' },
-      { hold: { ms: 3000, maxMs: 8000 }, cue: 'rotate' },
+      { hold: { ms: 3000, maxMs: 8000 }, cue: 'bright' },
       { say: 'Two squared.', show: 'Two²', place: 'caption' },
       { show: 'A title.', hold: { ms: 2500 }, scene: 'calm' },
       { say: 'Three.', sound: 'none' }
@@ -147,7 +189,7 @@ describe('lowering beats to the passages the score understands', () => {
   });
 
   it('draws nothing of its own before any scene has started, so a look may', () => {
-    const { segments } = lowerBeats({ scenes: [], beats: beats([{ say: 'A' }, { say: 'B' }], { sceneIds: new Set() }) });
+    const { segments } = lowerBeats({ scenes: [], beats: beats([{ say: 'A' }, { say: 'B' }], { scenes: [] }) });
     expect(segments.map(segment => segment.visual)).toEqual([undefined, undefined]);
   });
 
@@ -157,14 +199,16 @@ describe('lowering beats to the passages the score understands', () => {
       { segmentId: 'beat-0', cue: { kind: 'soundscape', soundscapeId: 'starlight' } },
       { segmentId: 'beat-4', cue: { kind: 'silence' } }
     ]);
-    const tone = lowerBeats({ scenes: [], beats: beats([{ say: 'A', sound: 'focus' }], { sceneIds: new Set() }) });
+    const tone = lowerBeats({ scenes: [], beats: beats([{ say: 'A', sound: 'focus' }], { scenes: [] }) });
     expect(tone.audio).toEqual([{ segmentId: 'beat-0', cue: { kind: 'tone', presetId: 'focus' } }]);
   });
 
   it('carries each beat’s typography and cue on its passage for the layers that render them', () => {
     const { segments } = lowerBeats(current);
     expect(segments[2].beat).toEqual({ place: 'caption' });
-    expect(segments[1].beat).toEqual({ cue: 'rotate' });
+    expect(segments[1].beat).toEqual({ cue: 'bright' });
+    expect(segments[1].scene).toEqual({ id: 'field', engine: 'attractor' });
+    expect(segments[3].scene).toEqual({ id: 'calm', engine: 'still' });
     expect(segments[0].beat).toEqual({ scene: 'field' });
   });
 

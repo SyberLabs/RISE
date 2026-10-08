@@ -1,0 +1,67 @@
+{
+  "prompt": "Show me what a derivative is.",
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "slope-of-a-curve",
+    "title": "The slope of a curve",
+    "theme": "silver",
+    "style": "premium-educational",
+    "origin": {
+      "kind": "model",
+      "name": "Your name",
+      "provider": "Who runs you"
+    },
+    "scenes": [
+      {
+        "id": "curve",
+        "code": "export const reportsCompletion = true;\nexport default function scene(rise) {\n  const { lib } = rise;\n  const plane = lib.axes({ x: [-0.5, 3], y: [-0.5, 4] });\n  const f = x => 0.5 * x * x;\n  const a = 1.2;\n  const curve = { to: 0 };\n  const secant = { h: 1.5, shown: 0 };\n  return {\n    frame() {\n      lib.clear();\n      lib.grid(plane, { step: 0.5 });\n      plane.draw();\n      lib.plot(plane, f, { to: curve.to });\n      if (secant.shown > 0) {\n        const b = a + secant.h;\n        const slope = (f(b) - f(a)) / secant.h;\n        const y = x => f(a) + slope * (x - a);\n        lib.line(plane, [a - 1, y(a - 1)], [a + 1.6, y(a + 1.6)], { color: lib.color('highlight', secant.shown) });\n        lib.point(plane, [b, f(b)], { color: lib.color('muted') });\n        lib.point(plane, [a, f(a)], { label: 'a' });\n      }\n    },\n    cue(name, { instant }) {\n      if (name === 'curve') return lib.tween(curve, { to: 1 }, { ms: 1500, instant });\n      if (name === 'secant') return lib.tween(secant, { shown: 1 }, { ms: 600, instant });\n      if (name === 'shrink') return lib.tween(secant, { h: 0.001 }, { ms: 3000, instant }).then(() => rise.done());\n    }\n  };\n}"
+      }
+    ],
+    "beats": [
+      {
+        "say": "Here is a curve: y equals one half x squared.",
+        "show": "Here is a curve: $y = \\tfrac{1}{2}x^2$.",
+        "scene": "curve",
+        "cue": "curve"
+      },
+      {
+        "hold": {
+          "ms": 1500
+        }
+      },
+      {
+        "say": "Pick a point on it, and a second point a little further along. The line through both is a secant.",
+        "cue": "secant"
+      },
+      {
+        "hold": {
+          "ms": 1500
+        }
+      },
+      {
+        "say": "Now slide the second point toward the first."
+      },
+      {
+        "hold": {
+          "ms": 3000,
+          "maxMs": 4500
+        },
+        "cue": "shrink"
+      },
+      {
+        "say": "The secant settles into the tangent line, and its slope is the derivative at that point.",
+        "emphasis": [
+          "derivative"
+        ]
+      },
+      {
+        "show": "$f'(a) = \\lim_{h \\to 0} \\dfrac{f(a+h) - f(a)}{h}$",
+        "hold": {
+          "ms": 3500
+        },
+        "place": "centre",
+        "size": "larger"
+      }
+    ]
+  }
+}

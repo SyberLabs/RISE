@@ -34,10 +34,10 @@ function setup(options = {}) {
 const notification = (method, params) => ({ jsonrpc: '2.0', method, params });
 
 /** A port that has said hello to a host that does, or does not, take questions for its model. */
-async function connected({ sampling = true, hostContext, ...options } = {}) {
+async function connected({ sampling = true, hostContext, capabilities = {}, ...options } = {}) {
     const made = setup(options);
     const connecting = made.port.connect();
-    made.hostSays({ jsonrpc: '2.0', id: made.sent[0].message.id, result: { hostInfo: { name: 'a host' }, hostCapabilities: sampling ? { sampling: {} } : {}, ...(hostContext === undefined ? {} : { hostContext }) } });
+    made.hostSays({ jsonrpc: '2.0', id: made.sent[0].message.id, result: { hostInfo: { name: 'a host' }, hostCapabilities: { ...(sampling ? { sampling: {} } : {}), ...capabilities }, ...(hostContext === undefined ? {} : { hostContext }) } });
     await connecting;
     made.sent.length = 0;
     return made;
@@ -98,7 +98,9 @@ describe('what the reference says', () => {
             hostContextChanged: 'ui/notifications/host-context-changed',
             toolCancelled: 'ui/notifications/tool-cancelled',
             ping: 'ping',
-            teardown: 'ui/resource-teardown'
+            teardown: 'ui/resource-teardown',
+            // McpUiUpdateModelContextRequest in ext-apps src/spec.types.ts; a request, answered with {}.
+            updateModelContext: 'ui/update-model-context'
         });
     });
 });
@@ -360,6 +362,70 @@ describe('saying hello', () => {
         expect((await connected({ sampling: true })).port.canSample()).toBe(true);
         expect((await connected({ sampling: false })).port.canSample()).toBe(false);
         expect(setup().port.canSample()).toBe(false);
+    });
+});
+
+describe('telling the host’s model what went wrong in a scene (CC-006)', () => {
+    const MODEL_CONTEXT = { updateModelContext: { text: {}, image: {} } };
+    const reports = sent => sent.filter(item => item.message.method === METHODS.updateModelContext).map(item => item.message);
+    const toolResult = current => notification(METHODS.toolResult, { structuredContent: { current } });
+
+    it('reports to a host that said at hello it takes text for its model’s context, as the whole report so far', async () => {
+        const { port, sent, hostSays } = await connected({ capabilities: MODEL_CONTEXT });
+        expect(port.report('scene "vector": frame failed')).toBe(true);
+        expect(port.report('scene "dots": load failed')).toBe(true);
+        const [first, second] = reports(sent);
+        expect(first).toMatchObject({ jsonrpc: '2.0', id: expect.any(Number), params: { content: [{ type: 'text', text: expect.stringContaining('scene "vector": frame failed') }] } });
+        // Each update replaces the last in the host's context, so each carries every line so far.
+        expect(second.params.content[0].text).toContain('scene "vector": frame failed\nscene "dots": load failed');
+        expect(second.params.content[0].text.startsWith('RISE')).toBe(true);
+        hostSays({ jsonrpc: '2.0', id: first.id, result: {} });
+        hostSays({ jsonrpc: '2.0', id: second.id, error: { code: -32000, message: 'Context update denied' } });
+        await Promise.resolve();
+    });
+
+    it('sends nothing, and says so, where the host did not offer it, offered it without text, or has not said hello', async () => {
+        for (const capabilities of [{}, { updateModelContext: true }, { updateModelContext: { image: {} } }, { updateModelContext: { text: true } }, { updateModelContext: [] }]) {
+            const { port, sent } = await connected({ capabilities });
+            expect(port.report('scene "vector": frame failed'), JSON.stringify(capabilities)).toBe(false);
+            expect(sent).toEqual([]);
+        }
+        const { port, sent } = setup();
+        expect(port.report('x')).toBe(false);
+        expect(sent).toEqual([]);
+    });
+
+    it('keeps each report under 2,000 characters with no control characters, and stops after five for one Current', async () => {
+        const { port, sent } = await connected({ capabilities: MODEL_CONTEXT });
+        for (let index = 0; index < 7; index += 1) port.report(`line ${index}\u0007\n${'x'.repeat(900)}`);
+        const sentReports = reports(sent);
+        expect(sentReports).toHaveLength(5);
+        for (const message of sentReports) {
+            const { text } = message.params.content[0];
+            expect(text.length).toBeLessThanOrEqual(2_000);
+            expect(text).not.toMatch(/\u0007/u);
+        }
+        expect(port.report('one more')).toBe(false);
+    });
+
+    it('starts afresh for a new Current, and not for the same one again', async () => {
+        const { port, sent, hostSays } = await connected({ capabilities: MODEL_CONTEXT });
+        port.onCurrent(() => true);
+        hostSays(toolResult(CURRENT));
+        for (let index = 0; index < 5; index += 1) port.report(`old ${index}`);
+        expect(port.report('old 5')).toBe(false);
+        hostSays(toolResult(CURRENT));
+        expect(port.report('still old')).toBe(false);
+        hostSays(toolResult({ ...CURRENT, id: 'next' }));
+        expect(port.report('new 0')).toBe(true);
+        expect(reports(sent).at(-1).params.content[0].text).not.toContain('old');
+    });
+
+    it('reports nothing once closed', async () => {
+        const { port, sent } = await connected({ capabilities: MODEL_CONTEXT });
+        port.close();
+        expect(port.report('x')).toBe(false);
+        expect(sent).toEqual([]);
     });
 });
 

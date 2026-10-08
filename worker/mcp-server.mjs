@@ -1,12 +1,13 @@
 import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_SCHEMA_V2, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
-import { CURRENT_GUIDE, TOOL_NAME } from '../src/live/adapters/current-guide.js';
-import { BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES } from '../src/core/beats.js';
+import { CURRENT_GUIDE, STYLE_LINES, TOOL_NAME, styleGuide } from '../src/live/guide/index.js';
+import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES } from '../src/core/beats.js';
 import { SOUND_IDS } from '../src/audio/sound-ids.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
 import { readText } from './live-realtime.mjs';
 import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
+import { admitSceneCode, describeDiagnostic } from './scene-admission.mjs';
 
 /**
  * RISE as an MCP server: one tool that presents a Current, and the app that shows it.
@@ -26,8 +27,8 @@ import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
  * another site must not be able to make a browser talk to it), refuses a
  * protocol version it does not speak before reading anything, holds each client
  * address to the site's rate limiter where the platform offers one, reads a
- * bounded body, and returns nothing it was sent except a validator's message or
- * an argument's name, clipped.
+ * bounded body, and returns nothing it was sent except a validator's message, a
+ * scene parser's diagnostic (scene-admission.mjs) or an argument's name, clipped.
  *
  * CHECKED AGAINST THE REFERENCE, NOT AGAINST A PRODUCT: the shapes below were
  * compared with @modelcontextprotocol/ext-apps 2.0.3 and the SDK's own client
@@ -37,11 +38,19 @@ import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
 export const MCP_PATH = '/api/mcp';
 export const APP_URI = 'ui://rise/current';
 export const APP_MIME = 'text/html;profile=mcp-app';
+/** Each style's full guidance, as a resource: ui://rise/guide/<style>. */
+const GUIDE_PREFIX = 'ui://rise/guide/';
+const GUIDE_MIME = 'text/markdown';
+const GUIDE_URIS = new Map(RISE_CURRENT_STYLES.map(id => [`${GUIDE_PREFIX}${id}`, id]));
+/** The same guidance as a tool, for hosts whose model cannot read resources. */
+export const GUIDE_TOOL_NAME = 'rise_guide';
 export const SERVER_INFO = Object.freeze({ name: 'rise', title: 'RISE', version: '1.0.0' });
 /** Newest first. A client's version is answered with itself if it is here, and otherwise with the newest. */
 export const PROTOCOL_VERSIONS = Object.freeze(['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
 const MAX_BODY_BYTES = 262_144;
 const MAX_MESSAGE = 300;
+/** Lines of scene refusals in one answer, across every scene. */
+export const MAX_SCENE_LINES = 10;
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -54,7 +63,7 @@ const JSON_HEADERS = {
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
 
 // Conditional on the reader's request, as the directory's review asks: a server must not tell the model to call a tool the reader did not ask for.
-const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. When the reader asks for a reading, a spoken or visual explanation, or names RISE, answer by calling ${TOOL_NAME} with a Current.`;
+const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. When the reader asks for a reading, a spoken or visual explanation, or names RISE, answer by calling ${TOOL_NAME} with a Current. Before writing a Current in a named style, call ${GUIDE_TOOL_NAME} with that style to read how.`;
 
 const shortText = max => ({ type: 'string', minLength: 1, maxLength: max });
 
@@ -110,10 +119,30 @@ export function currentJsonSchemaV2() {
         description: 'The pictures a beat may start; a scene keeps running under the beats that follow until another starts.',
         maxItems: BEAT_LIMITS.scenes,
         items: {
-          type: 'object',
-          properties: { id, engine: { type: 'string', enum: SCENE_ENGINES } },
-          required: ['id', 'engine'],
-          additionalProperties: false
+          oneOf: [{
+            type: 'object',
+            properties: {
+              id,
+              engine: { type: 'string', enum: SCENE_ENGINES },
+              params: { type: 'object', description: 'The engine\u2019s parameters, by the guide\u2019s list for that engine; each within its bounds.' }
+            },
+            required: ['id', 'engine'],
+            additionalProperties: false
+          }, {
+            type: 'object',
+            properties: {
+              id,
+              code: {
+                type: 'string',
+                minLength: 1,
+                // maxLength counts characters, never more than the bytes the validator counts: looser, never stricter.
+                maxLength: BEAT_LIMITS.code,
+                description: `A picture you write: the text of an ES module of at most ${BEAT_LIMITS.code.toLocaleString('en-US')} bytes whose one default export function receives \`rise\` and returns { frame(t, dt), cue(name, { instant }) }. No imports, no network, no timers: time comes from \`frame\`. Draw with rise.ctx and rise.lib.`
+              }
+            },
+            required: ['id', 'code'],
+            additionalProperties: false
+          }]
         }
       },
       beats: {
@@ -128,7 +157,7 @@ export function currentJsonSchemaV2() {
             show: { ...text, description: 'What is shown, when it differs from what is said, or with "hold" and no "say": a line shown for a while.' },
             hold,
             scene: { ...id, description: 'Start this scene at this beat.' },
-            cue: { type: 'string', pattern: '^[A-Za-z0-9_-]+$', maxLength: BEAT_LIMITS.cue, description: 'A signal to the running scene.' },
+            cue: { type: 'string', pattern: BEAT_CUE_PATTERN, maxLength: BEAT_LIMITS.cue, description: 'A signal to the running scene: one of its cues, or set:<parameter>=<value>.' },
             transition: { type: 'object', properties: { ms: { type: 'integer', minimum: 0, maximum: BEAT_LIMITS.transitionMaxMs } }, required: ['ms'], additionalProperties: false },
             place: { type: 'string', enum: BEAT_PLACES },
             size: { type: 'string', enum: BEAT_SIZES },
@@ -221,7 +250,14 @@ const CURRENT = { oneOf: [currentJsonSchema(), currentJsonSchemaV2()] };
 export const TOOL = Object.freeze({
   name: TOOL_NAME,
   title: 'Present a reading in RISE',
-  description: `Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer and shows the words as they are spoken; the reader presses Play, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.\n\n${CURRENT_GUIDE}`,
+  description: [
+    'Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer and shows the words as they are spoken; the reader presses Play, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.',
+    '',
+    CURRENT_GUIDE,
+    '',
+    `Styles, for "style" on a v2 Current. Before writing in a style, call ${GUIDE_TOOL_NAME} with {"style": "<style>"} for its full guidance and two worked Currents.`,
+    ...STYLE_LINES
+  ].join('\n'),
   inputSchema: {
     type: 'object',
     properties: { current: CURRENT },
@@ -243,6 +279,24 @@ export const TOOL = Object.freeze({
   }
 });
 
+/**
+ * A style's full guidance, as a tool: a host such as claude.ai lets the reader attach resources and
+ * lets its model only call tools, so the guide resources alone would never reach the model.
+ */
+export const GUIDE_TOOL = Object.freeze({
+  name: GUIDE_TOOL_NAME,
+  title: 'Read a RISE style',
+  description: `Read how to write a RISE Current in a named style, with worked examples, before calling ${TOOL_NAME} in that style.`,
+  inputSchema: {
+    type: 'object',
+    properties: { style: { type: 'string', enum: RISE_CURRENT_STYLES } },
+    required: ['style'],
+    additionalProperties: false
+  },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  securitySchemes: [{ type: 'noauth' }]
+});
+
 function http(status, body, headers = {}) {
   return new Response(body === null ? null : JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
 }
@@ -250,10 +304,23 @@ function http(status, body, headers = {}) {
 const result = (id, value) => http(200, { jsonrpc: '2.0', id, result: value });
 const failure = (id, code, message, data) => http(200, { jsonrpc: '2.0', id: id ?? null, error: { code, message, ...(data === undefined ? {} : { data }) } });
 
+/** Text that came from what the model sent, fit to be echoed: no control characters, clipped. */
+const clean = (text, length = MAX_MESSAGE) => clip(String(text).replace(/[\u0000-\u001F\u007F]/gu, ' '), length);
+
 /** The text of a refusal a model can act on: what was wrong and where. */
 function refusal(error) {
-  const message = String(error?.message ?? 'The Current was not valid').replace(/[\u0000-\u001F\u007F]/gu, ' ');
-  return `RISE refused this Current: ${clip(message, MAX_MESSAGE)}. Correct it and call ${TOOL_NAME} again.`;
+  return `RISE refused this Current: ${clean(error?.message ?? 'The Current was not valid')}. Correct it and call ${TOOL_NAME} again.`;
+}
+
+/** Every generated scene's code, parsed and held to the scene rules (scene-admission.mjs); the refusal's lines, or none. */
+function sceneRefusals(current) {
+  const lines = [];
+  for (const scene of Array.isArray(current.scenes) ? current.scenes : []) {
+    if (scene?.code === undefined) continue;
+    const verdict = admitSceneCode(scene.code);
+    if (!verdict.ok) for (const diagnostic of verdict.diagnostics) lines.push(clean(`Scene "${scene.id}" was refused: ${describeDiagnostic(diagnostic)}`));
+  }
+  return lines.slice(0, MAX_SCENE_LINES);
 }
 
 function call(id, params) {
@@ -276,13 +343,31 @@ function call(id, params) {
   } catch (error) {
     return result(id, { content: [{ type: 'text', text: refusal(error) }], isError: true });
   }
+  const refused = sceneRefusals(args.current);
+  if (refused.length) {
+    const text = [...refused, `Repair the scene’s code and call ${TOOL_NAME} again with the whole Current.`].join('\n');
+    return result(id, { content: [{ type: 'text', text }], isError: true });
+  }
   return result(id, {
     content: [{ type: 'text', text: 'RISE accepted this Current for presentation to the reader.' }],
     structuredContent: { current: args.current }
   });
 }
 
+/** rise_guide: one style's full guidance, or a refusal that names the styles and echoes nothing it was sent. */
+function guide(id, params) {
+  const args = params.arguments;
+  const keys = args && typeof args === 'object' && !Array.isArray(args) ? Object.keys(args) : null;
+  const style = keys?.length === 1 && keys[0] === 'style' && typeof args.style === 'string' && RISE_CURRENT_STYLES.includes(args.style) ? args.style : null;
+  if (style === null) {
+    return result(id, { content: [{ type: 'text', text: `Call ${GUIDE_TOOL_NAME} with {"style": <a style>} only; the styles are ${RISE_CURRENT_STYLES.join(', ')}.` }], isError: true });
+  }
+  return result(id, { content: [{ type: 'text', text: styleGuide(style) }] });
+}
+
 function read(id, params, origin, witness, card) {
+  const style = GUIDE_URIS.get(params?.uri);
+  if (style !== undefined) return result(id, { contents: [{ uri: params.uri, mimeType: GUIDE_MIME, text: styleGuide(style) }] });
   if (params?.uri !== APP_URI) return failure(id, -32002, 'Resource not found', { uri: typeof params?.uri === 'string' ? clip(params.uri, 200) : null });
   return result(id, {
     contents: [{
@@ -332,15 +417,24 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
       });
     }
     case 'ping': return result(id, {});
-    case 'tools/list': return result(id, { tools: gate0 ? [TOOL, GATE0_TOOL] : [TOOL] });
+    case 'tools/list': return result(id, { tools: gate0 ? [TOOL, GUIDE_TOOL, GATE0_TOOL] : [TOOL, GUIDE_TOOL] });
     case 'tools/call': {
+      if (params?.name === GUIDE_TOOL_NAME) return guide(id, params);
       if (!gate0 || params?.name !== GATE0_TOOL_NAME) return call(id, params);
       const probe = callGate0(params.arguments, Date.now());
       if (probe.log) console.log(probe.log);
       return result(id, probe.result);
     }
     case 'resources/list':
-      return result(id, { resources: [{ uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME }] });
+      return result(id, {
+        resources: [
+          { uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME },
+          ...[...GUIDE_URIS].map(([uri, style]) => ({
+            uri, name: `rise-guide-${style}`, title: `RISE style: ${style}`,
+            description: `How to write a Current in the ${style} style, with two worked Currents.`, mimeType: GUIDE_MIME
+          }))
+        ]
+      });
     case 'resources/read': return read(id, params, origin, witness, card);
     default: return failure(id, -32601, 'Method not found');
   }
@@ -393,7 +487,7 @@ export async function handleMcp(request, env) {
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
   // The self-contained card is the deployed page itself, read when the host asks for the app.
   let card = null;
-  if (env.MCP_SELF_CONTAINED === 'true' && message?.method === 'resources/read' && typeof env.ASSETS?.fetch === 'function') {
+  if (env.MCP_SELF_CONTAINED === 'true' && message?.method === 'resources/read' && message.params?.uri === APP_URI && typeof env.ASSETS?.fetch === 'function') {
     try {
       const page = await env.ASSETS.fetch(new Request(`${origin}/index.html`));
       if (page.ok) card = await page.text();

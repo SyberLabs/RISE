@@ -84,6 +84,25 @@ export function framedBy(frame) {
     return 'an unidentified page';
 }
 
+const SCENE_PHASES = ['load', 'init', 'frame', 'cue'];
+/** Text a scene may have written, fit to be quoted inside RISE's line: one line, no double quote to close the quote with, clipped. */
+function quotable(value, length) {
+    const flat = String(value ?? '').replace(/[\u0000-\u001F\u007F]+/gu, ' ').replace(/"/gu, "'");
+    return flat.length <= length ? flat : `${flat.slice(0, length - 1)}…`;
+}
+
+/**
+ * One failed generated scene (the Chamber's diagnostic) as a line in RISE's words, for DevTools and the
+ * host's model. A scene's code can write its error's message (`throw new Error(...)`), so the message is
+ * quoted as data, never as RISE speaking; its id and place are bounded and checked the same way.
+ */
+export function sceneReportLine({ sceneId, phase, message, where }) {
+    const id = quotable(sceneId, 40);
+    if (phase === 'flash') return `scene "${id}": frozen — it would flash more than three times a second; its last frame stays`;
+    const at = typeof where === 'string' && /^scene\.js(:\d{1,6}:\d{1,6})?$/u.test(where) ? ` at ${where}` : '';
+    return `scene "${id}": ${SCENE_PHASES.includes(phase) ? phase : 'failed'} — the scene’s own words: "${quotable(message, 200)}"${at}`;
+}
+
 export class LiveHost {
     /**
      * @param {HTMLElement} container
@@ -116,12 +135,18 @@ export class LiveHost {
         this.embeddedQueuedCurrent = null;
         this.embeddedBeginStarted = false;
         this.embeddedEvents = null;
+        this.embeddedCurrent = null;
         this.embeddedTheme = null;
         this.stopListeningCurrent = null;
         this.stopListeningError = null;
         this.embeddedAnswerTimeoutMs = 60_000;
         this.embeddedAnswerTimer = null;
         this.atomLog = [];
+        // A generated scene that failed in the Chamber (Chamber.js `_noteScene`) is said in DevTools, kept for
+        // ?measure=1, and told to the host's model where the host takes it (reportScene).
+        this.sceneReports = [];
+        this.onSceneDiagnostic = event => this.reportScene(event.detail);
+        container.ownerDocument.defaultView?.addEventListener('rise-scene-diagnostic', this.onSceneDiagnostic);
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
         // Which Gemini model to ask, if the reader named one; not secret, and empty means the default.
@@ -406,6 +431,7 @@ export class LiveHost {
                 discoverVisual: ({ player }) => mountedChamber(player)?.discoverVisual?.() ?? null,
                 controlVisual: ({ player, command }) => mountedChamber(player)?.controlVisual?.(command)
                     ?? { status: 'refused', code: 'NO_ACTIVE_VISUAL' },
+                holdScene: ({ player, atom }) => mountedChamber(player)?.holdScene?.(atom) ?? null,
                 dismiss: () => {}
             }
         });
@@ -415,10 +441,20 @@ export class LiveHost {
                 atoms: () => this.atomLog.map(entry => ({ ...entry })),
                 startedAt: () => this.startedAt,
                 voice: () => this.spokenVoice,
+                scenes: () => [...this.sceneReports],
                 now: () => performance.now()
             });
         }
         return runtime;
+    }
+
+    /** A failed generated scene, in RISE's words: DevTools, ?measure=1, and the host's model if the host takes its context. */
+    reportScene(diagnostic) {
+        if (this.destroyed || !diagnostic || typeof diagnostic !== 'object') return;
+        const line = sceneReportLine(diagnostic);
+        console.warn('[RISE scene]', line);
+        if (this.params.has('measure')) this.sceneReports = [...this.sceneReports, line].slice(-20);
+        this.port?.report(line);
     }
 
     /**
@@ -457,7 +493,10 @@ export class LiveHost {
     async buildAdapter(clock, createMockAdapter) {
         if (this.providerName === 'mcp') {
             const { createMcpAppAdapter } = await import('../adapters/mcp-app.js');
-            return createMcpAppAdapter({ port: this.port, clock, host: framedBy(this.env.window ?? this.env), admittedEvents: this.embeddedEvents });
+            return createMcpAppAdapter({
+                port: this.port, clock, host: framedBy(this.env.window ?? this.env),
+                admittedEvents: this.embeddedEvents, admittedCurrent: this.embeddedCurrent
+            });
         }
         if (this.providerName === 'gemini') {
             const [{ createGeminiAdapter }, { createGeminiFetchTransport }] = await Promise.all([
@@ -732,6 +771,7 @@ export class LiveHost {
         this.embeddedQueuedCurrent = null;
         this.embeddedProposalCurrent = null;
         this.embeddedEvents = null;
+        this.embeddedCurrent = null;
         this.embeddedCurrentHandled = false;
         this.container.querySelector('.live-start')?.remove();
         this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
@@ -782,6 +822,7 @@ export class LiveHost {
             this.port?.forgetCurrent(current);
             this.embeddedProposalCurrent = null;
             this.embeddedEvents = null;
+            this.embeddedCurrent = null;
             this.say(`Ask the assistant again. The Current was refused: ${text(failure?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
             this.armEmbeddedAnswerTimer();
             return;
@@ -789,6 +830,7 @@ export class LiveHost {
 
         this.clearEmbeddedAnswerTimer();
         this.embeddedEvents = events;
+        this.embeddedCurrent = current;
         this.embeddedCurrentHandled = true;
         this.stopListeningCurrent?.();
         this.stopListeningCurrent = null;
@@ -886,6 +928,7 @@ export class LiveHost {
             this.controls = null;
             this.runtime = null;
             this.embeddedEvents = null;
+            this.embeddedCurrent = null;
             this.say(`Could not start: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
             this.port?.close();
             this.port = null;
@@ -920,6 +963,7 @@ export class LiveHost {
         this.stopListeningError?.();
         this.stopListeningError = null;
         this.embeddedEvents = null;
+        this.embeddedCurrent = null;
         this.embeddedCurrentProcessing = false;
         this.embeddedProposalCurrent = null;
         this.embeddedQueuedCurrent = null;
@@ -974,6 +1018,7 @@ export class LiveHost {
     destroy() {
         if (this.destroyed) return;
         this.destroyed = true;
+        this.container.ownerDocument.defaultView?.removeEventListener('rise-scene-diagnostic', this.onSceneDiagnostic);
         this.embeddedStartupCancelled = true;
         this.cancelEmbeddedPending();
         this.stopHearingExitListener();

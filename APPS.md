@@ -22,6 +22,10 @@ You press **Play**, and you can pause, resume, and play it again.
   procedural engines: line drawings that grow, a strange-attractor filament,
   soft fields of light, fractal flames, harmonic line figures, and spectral
   plates. RISE does not use AI models to make images, video or audio.
+- **A picture your assistant writes is kept apart.** When your assistant
+  writes a small program to draw a picture for the reading, RISE checks it
+  first and runs it in its own worker, with no network and no access to your
+  data.
 - **RISE keeps nothing.** It receives only the reading your assistant writes
   for it, plays it, and stores none of it. See the
   [Privacy Policy](privacy.html).

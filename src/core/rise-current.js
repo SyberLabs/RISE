@@ -1,6 +1,9 @@
 import { compileSession } from './session-compiler.js';
 import { RiseCurrentError, fail, hasLiteralForbidden, hasReservedMarker, id as trimmedId, keys, label, object } from './current-validation.js';
 import { BEAT_TYPES, lowerBeats, validateBeats, validateScenes } from './beats.js';
+import { hasMath } from './math-text.js';
+import { STYLES, styleOf } from './styles.js';
+import { cueCommands, sceneCue } from '../scenes/manifests.js';
 
 export { RiseCurrentError, hasLiteralForbidden, hasReservedMarker };
 
@@ -14,8 +17,8 @@ import { jevColors } from './jev-palette.js';
 export const RISE_CURRENT_SCHEMA = 'rise.current.v1';
 /** The Current with beats and scenes (beats.js); a v1 Current stays valid beside it. */
 export const RISE_CURRENT_SCHEMA_V2 = 'rise.current.v2';
-/** The styles a v2 Current may name: guidance and defaults bundled under one name. */
-export const RISE_CURRENT_STYLES = Object.freeze(['premium-educational', 'open-field']);
+/** The styles a v2 Current may name: guidance and defaults bundled under one name (styles.js). */
+export const RISE_CURRENT_STYLES = Object.freeze(Object.keys(STYLES));
 
 /** The bounds of a sealed Current. The realtime protocol lowers through them, so it shares them. */
 export const RISE_CURRENT_LIMITS = Object.freeze({
@@ -217,8 +220,8 @@ function validateRiseCurrentV2(source) {
     }
   }
   const scenes = validateScenes(source.scenes, '$.scenes');
-  const beats = validateBeats(source.beats, '$.beats', { sceneIds: new Set(scenes.map(scene => scene.id)) });
-  const lowered = lowerBeats({ scenes, beats });
+  const beats = validateBeats(source.beats, '$.beats', { scenes });
+  const lowered = lowerBeats({ scenes, beats, typography: styleOf(style)?.typography ?? null });
   const segments = lowered.segments.map(segment => ({ ...segment, dives: [] }));
   return freeze({
     schema: RISE_CURRENT_SCHEMA_V2, id: currentId, title, ...(theme === undefined ? {} : { theme }),
@@ -235,8 +238,31 @@ function validateRiseCurrentV2(source) {
  * runtime and the layers.
  */
 function timeBeats(session, current) {
+  const unspoken = new Set(current.unspokenIds);
+  const voiceWaitsFor = new Set();
+  let afterSilence = false;
   for (const segment of current.segments) {
     const atoms = session.atoms.filter(atom => atom.sourceId === segment.id);
+    // The seam into a passage no voice says is timed with it: the speech governor would wait for words never said.
+    const seam = session.atoms[session.atoms.indexOf(atoms[0]) - 1];
+    if (unspoken.has(segment.id) && seam?.seam) seam.beatTimed = true;
+    // A spoken passage after one no voice says waits for the reading to reach it before the voice is given it (runtime.js).
+    if (afterSilence && !unspoken.has(segment.id)) voiceWaitsFor.add(segment.id);
+    afterSilence = unspoken.has(segment.id);
+    // The beat's typography and cue ride on its atoms for the layers that render them.
+    if (Object.keys(segment.beat).length > 0) for (const atom of atoms) atom.beat = segment.beat;
+    if (segment.scene) {
+      // The beat's cue as the running engine's commands, for the conductor to deliver when the beat begins;
+      // a generated scene takes the cue by name, through the scene's one parameter.
+      const { cue } = segment.beat;
+      const commands = !cue ? null
+        : segment.scene.code !== undefined ? [{ surface: 'scene', parameter: 'cue', value: cue }]
+          : cueCommands(segment.scene.engine, cue) ?? [];
+      for (const atom of atoms) {
+        atom.scene = segment.scene.id;
+        if (commands) atom.cueCommands = commands;
+      }
+    }
     if (segment.hold) {
       for (const atom of atoms) {
         atom.duration = segment.hold.ms;
@@ -256,10 +282,15 @@ function timeBeats(session, current) {
     }
   }
   session.spokenIds = new Set(current.spokenIds);
-  session.unspokenIds = new Set(current.unspokenIds);
+  session.unspokenIds = unspoken;
+  session.voiceWaitsFor = voiceWaitsFor;
   session.spokenText = new Map(current.segments.filter(segment => segment.spoken !== null).map(segment => [segment.id, segment.spoken]));
   session.beats = current.beats;
   session.scenes = current.scenes;
+  // The style's library defaults reach a generated scene through the Chamber (styles.js).
+  session.style = current.style ?? null;
+  // Maths in what is shown: the Chamber fetches the typesetter as the reading opens, not at its first formula.
+  session.hasMath = current.segments.some(segment => hasMath(segment.text));
   return session;
 }
 
@@ -267,6 +298,9 @@ function timeBeats(session, current) {
 function materializeValidatedRiseCurrent(current, lowered = null) {
   // A look lowered for the card brings its theme when the Current names none.
   const themeId = current.theme ?? lowered?.theme;
+  // The faces for text and captions: the style's, under the Current's own, role by role.
+  const typeFaces = { ...styleOf(current.style)?.typography.type, ...current.type };
+  const faces = Object.keys(typeFaces).length > 0;
   const look = themeId === undefined ? null : RISE_CURRENT_THEMES[themeId];
   const program = createExperienceProgram({
     schema: EXPERIENCE_PROGRAM_SCHEMA,
@@ -286,6 +320,10 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
         // Every passage has a clip: one that names no visual takes the look's, since the reader
         // schedules a program only when it has passages, and the fallback alone would draw nothing.
         clips: current.segments.flatMap((segment, index) => {
+          // A v2 passage under a scene draws that scene, by its engine's manifest.
+          if (segment.scene) {
+            return [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: sceneCue(segment.scene, look?.[segment.scene.engine] ?? null) }];
+          }
           if (segment.visual === undefined) {
             return lowered ? [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: lowered.fallbackCue }] : [];
           }
@@ -331,9 +369,20 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
     visualConfig: {
       visualMode: current.segments.some(segment => segment.visual !== undefined && segment.visual !== 'still')
         || (lowered !== null && lowered.fallbackCue.kind !== 'still') ? 'interlocution' : 'off',
-      interlocution: lowered?.shelf ?? { presentation: 'continuous', procedural: [], sourced: [] }
+      interlocution: lowered?.shelf ?? {
+        presentation: 'continuous',
+        // The pattern engines the scenes draw with, so the gallery field admits them.
+        procedural: [...new Set(current.segments.map(segment => segment.scene).filter(scene => scene && sceneCue(scene).kind === 'procedural').map(scene => scene.engine))],
+        sourced: []
+      }
     },
-    ...(look ? { presentation: { colorTheme: themeId, colors: jevColors(themeId), ...lowered?.type } } : {})
+    ...(look || faces ? {
+      presentation: {
+        ...(look ? { colorTheme: themeId, colors: jevColors(themeId), ...lowered?.type } : {}),
+        // The faces a v2 Current asks for, by role or id, for its text and its captions (typography.js).
+        ...(faces ? { typeFaces } : {})
+      }
+    } : {})
   };
 }
 

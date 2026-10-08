@@ -10,15 +10,17 @@
  * only while switched on.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
+import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
-import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE } from '../src/live/adapters/current-guide.js';
-import { BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
+import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, STYLE_LINES, styleGuide } from '../src/live/guide/index.js';
+import { BEAT_CUE_PATTERN, BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
-import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
+import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, GUIDE_TOOL, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
 
 const SITE = 'https://rise.example';
+/** The most the tool's description may say, in characters. */
+const DESCRIPTION_BUDGET = 12_000;
 const ON = { MCP_ENABLED: 'true' };
 
 function post(body, { headers = {}, env = ON, url = `${SITE}${MCP_PATH}`, raw } = {}) {
@@ -170,13 +172,51 @@ describe('saying hello', () => {
     expect(Object.keys(result.capabilities).sort()).toEqual(['resources', 'tools']);
     expect(result.serverInfo).toMatchObject({ name: 'rise' });
     expect(result.instructions).toContain('rise_present');
+    expect(result.instructions).toContain('rise_guide');
+  });
+});
+
+describe('the guide tool', () => {
+  const callGuide = async args => (await json(await post(rpc('tools/call', { name: 'rise_guide', arguments: args })))).result;
+
+  it('is listed after rise_present: read-only, no sign-in, one sentence, a style from the enum, and no app', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    expect(result.tools.map(tool => tool.name)).toEqual(['rise_present', 'rise_guide']);
+    const guide = result.tools[1];
+    expect(guide).toEqual(GUIDE_TOOL);
+    expect(guide.description).toBe('Read how to write a RISE Current in a named style, with worked examples, before calling rise_present in that style.');
+    expect(guide.inputSchema).toEqual({
+      type: 'object', properties: { style: { type: 'string', enum: [...RISE_CURRENT_STYLES] } }, required: ['style'], additionalProperties: false
+    });
+    expect(guide.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false, openWorldHint: false });
+    expect(guide.securitySchemes).toEqual([{ type: 'noauth' }]);
+    expect(guide._meta).toBeUndefined();
+  });
+
+  it('gives each style’s full guidance as one text block, the same text as the resource', async () => {
+    for (const id of RISE_CURRENT_STYLES) {
+      const result = await callGuide({ style: id });
+      expect(result.isError).toBeUndefined();
+      const { result: read } = await json(await post(rpc('resources/read', { uri: `ui://rise/guide/${id}` })));
+      expect(result.content).toEqual([{ type: 'text', text: read.contents[0].text }]);
+      expect(result.content[0].text).toBe(styleGuide(id));
+    }
+  });
+
+  it('refuses a style RISE does not have, or anything beside the style, and names the styles', async () => {
+    for (const args of [{ style: 'baroque' }, { style: 'constructor' }, { style: 5 }, {}, { style: 'open-field', theme: 'jade' }, undefined, []]) {
+      const result = await callGuide(args);
+      expect(result.isError, JSON.stringify(args)).toBe(true);
+      expect(result.content[0].text).toContain(RISE_CURRENT_STYLES.join(', '));
+      expect(result.content[0].text).not.toContain('baroque');
+    }
   });
 });
 
 describe('the tool', () => {
-  it('is one tool, read-only, callable with no sign-in, with the guide to writing a Current', async () => {
+  it('is one tool to present, read-only, callable with no sign-in, with the guide to writing a Current', async () => {
     const { result } = await json(await post(rpc('tools/list')));
-    expect(result.tools).toHaveLength(1);
+    expect(result.tools.filter(tool => tool.name === 'rise_present')).toHaveLength(1);
     const [tool] = result.tools;
     expect(tool.name).toBe('rise_present');
     expect(tool.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false, openWorldHint: false });
@@ -196,7 +236,22 @@ describe('the tool', () => {
     expect(tool.description).toMatch(/Do not use it for/u);
     // The embed takes no question, so the description promises none.
     expect(tool.description).not.toMatch(/ask about/u);
-    expect(tool.description.endsWith(CURRENT_GUIDE)).toBe(true);
+    expect(tool.description).toContain(`\n\n${CURRENT_GUIDE}\n\n`);
+  });
+
+  it('ends with one line per style, and says the guide tool gives each style’s full guidance', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    const [tool] = result.tools;
+    expect(tool.description.endsWith(STYLE_LINES.join('\n'))).toBe(true);
+    expect(tool.description).toContain('call rise_guide with {"style": "<style>"}');
+    expect(tool.description).not.toContain('ui://rise/guide');
+    for (const id of RISE_CURRENT_STYLES) expect(tool.description).toContain(`- ${id}: `);
+  });
+
+  it('keeps the description within its budget: the worked examples are resources, not description', () => {
+    // A host reads the whole description on every turn; ~12k characters is about 3k tokens.
+    expect(TOOL.description.length).toBeLessThanOrEqual(DESCRIPTION_BUDGET);
+    for (const id of RISE_CURRENT_STYLES) expect(TOOL.description).not.toContain(styleGuide(id));
   });
 
   it('points at the app in the extension’s key and in its older spelling, and gives the host short words for while it runs and once it is done', async () => {
@@ -282,6 +337,59 @@ describe('the tool', () => {
     }
   });
 
+  describe('a generated scene, admitted by its parse (CC-006)', () => {
+    const GOOD_SCENE = 'export default function scene(rise) {\n  return { frame(t) { rise.lib.clear(); } };\n}\n';
+    const withScene = (code, id = 'vector') => {
+      const current = structuredClone(CURRENT_EXAMPLE_V2);
+      current.scenes.push({ id, code });
+      return current;
+    };
+    const present = async current => (await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current } })))).result;
+
+    it('takes a Current whose scene parses and keeps to the rules', async () => {
+      const current = withScene(GOOD_SCENE);
+      const result = await present(current);
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toEqual({ current });
+    });
+
+    it('refuses the whole call for one bad scene, one line per problem with the scene named, then how to go on', async () => {
+      const result = await present(withScene("export default function scene(rise) {\n  fetch('https://evil.example');\n  debugger;\n  return { frame() {} };\n}\n"));
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent).toBeUndefined();
+      expect(result.content[0].text.split('\n')).toEqual([
+        'Scene "vector" was refused: line 2, column 3: `fetch` is not available to a scene, and the name is refused even as a local name.',
+        'Scene "vector" was refused: line 3, column 3: `debugger` is not available to a scene.',
+        'Repair the scene’s code and call rise_present again with the whole Current.'
+      ]);
+    });
+
+    it('names each refused scene, and says a missing default export without a line', async () => {
+      // The validator's shape check sees "export default" in the comment; only the parse sees there is none.
+      const current = withScene('// export default\nexport const x = 1;', 'first');
+      current.scenes.push({ id: 'second', code: 'import x from "y";\nexport default () => ({ frame() {} });' });
+      const lines = (await present(current)).content[0].text.split('\n');
+      expect(lines[0]).toBe('Scene "first" was refused: a scene is an ES module with one default export function, export default function scene(rise) { return { frame(t, dt) {} }; }.');
+      expect(lines[1]).toMatch(/^Scene "second" was refused: line 1, column 1: a scene imports nothing/u);
+      expect(lines).toHaveLength(3);
+    });
+
+    it('clips what the parse echoes from the code, and strips control characters from it', async () => {
+      const name = `a${'b'.repeat(2_000)}`;
+      const text = (await present(withScene(`let ${name};\nlet ${name};\nexport default () => ({ frame() {} });`))).content[0].text;
+      const [line] = text.split('\n');
+      expect(line.startsWith('Scene "vector" was refused: line 2, column 5: the code does not parse as a module: Identifier')).toBe(true);
+      expect(line.length).toBeLessThanOrEqual(300);
+      expect(text).not.toMatch(/[\u0000-\u0009\u000B-\u001F\u007F]/u);
+    });
+
+    it('refuses an oversize scene before reading it, as the validator does', async () => {
+      const result = await present(withScene(`export default () => ({ frame() {} });\n//${'x'.repeat(30_000)}`));
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/^RISE refused this Current: /u);
+    });
+  });
+
   it('keeps nothing between calls: the same call answers the same, in any order', async () => {
     const a = await (await post(rpc('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } }))).text();
     await post(rpc('tools/call', { name: 'rise_present', arguments: { current: { schema: 'x' } } }));
@@ -293,6 +401,10 @@ describe('the shape of a Current, as the host’s model is told it', () => {
   /** Enough of JSON Schema for the keywords the Current’s schema uses: the problems found, in words. */
   function conforms(schema, value, path = '$') {
     const problems = [];
+    if (schema.oneOf) {
+      const matching = schema.oneOf.filter(branch => conforms(branch, value, path).length === 0).length;
+      if (matching !== 1) problems.push(`${path}: matches ${matching} of oneOf, not exactly one`);
+    }
     const type = Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value;
     if ('const' in schema && value !== schema.const) problems.push(`${path}: not ${schema.const}`);
     if (schema.enum && !schema.enum.includes(value)) problems.push(`${path}: not one of ${schema.enum.join(', ')}`);
@@ -364,16 +476,38 @@ describe('the shape of a Current, as the host’s model is told it', () => {
     }
   });
 
+  it('describes a cue with the validator’s own pattern, so a set: cue the guide teaches is in the schema', () => {
+    const { pattern } = currentJsonSchemaV2().properties.beats.items.properties.cue;
+    expect(pattern).toBe(BEAT_CUE_PATTERN);
+    const schemaCue = new RegExp(pattern, 'u');
+    for (const cue of ['set:intensity=0.6', 'calm', 'draw_2', 'turn-left']) expect(schemaCue.test(cue), cue).toBe(true);
+    for (const cue of ['a b', 'x/y', 'é', '']) expect(schemaCue.test(cue), cue).toBe(false);
+    // The hold runs under the attractor, whose intensity is cueable: the validator accepts what the schema now does.
+    const current = structuredClone(CURRENT_EXAMPLE_V2);
+    current.beats[1].cue = 'set:intensity=0.6';
+    expect(() => validateRiseCurrent(current)).not.toThrow();
+    expect(conforms(currentJsonSchemaV2(), current)).toEqual([]);
+  });
+
   it('describes the v2 Current as the validator admits it: beats over scenes', () => {
     const v2 = currentJsonSchemaV2();
     expect(conforms(v2, CURRENT_EXAMPLE_V2)).toEqual([]);
     expect(() => validateRiseCurrent(CURRENT_EXAMPLE_V2)).not.toThrow();
     expect(v2.properties.beats.maxItems).toBe(BEAT_LIMITS.beats);
-    expect(v2.properties.scenes.items.properties.engine.enum).toBe(SCENE_ENGINES);
+    const [native, generated] = v2.properties.scenes.items.oneOf;
+    expect(native.properties.engine.enum).toBe(SCENE_ENGINES);
+    expect(generated).toMatchObject({ required: ['id', 'code'], additionalProperties: false });
+    expect(generated.properties.code.maxLength).toBe(BEAT_LIMITS.code);
+    expect(generated.properties.code.description).toMatch(/default export function.*rise.*no imports.*no network.*no timers.*frame/isu);
+    const coded = structuredClone(CURRENT_EXAMPLE_V2);
+    coded.scenes.push({ id: 'vector', code: 'export default () => ({ frame() {} });' });
+    expect(() => validateRiseCurrent(coded)).not.toThrow();
+    expect(conforms(v2, coded)).toEqual([]);
     for (const mutate of [
       c => { c.beats[0].extra = 1; },
       c => { c.beats[0].place = 'margin'; },
-      c => { c.scenes[0].engine = 'fractal'; },
+      c => { c.scenes[0].engine = 'shader'; },
+      c => { c.scenes[0].code = 'export default () => ({ frame() {} });'; },
       c => { c.beats = []; }
     ]) {
       const current = structuredClone(CURRENT_EXAMPLE_V2);
@@ -414,10 +548,45 @@ describe('the shape of a Current, as the host’s model is told it', () => {
   });
 });
 
-describe('the app', () => {
-  it('is listed as one resource with the extension’s type', async () => {
+describe('the guides to the styles', () => {
+  const GUIDE_URIS = RISE_CURRENT_STYLES.map(id => `ui://rise/guide/${id}`);
+
+  it('are listed after the app, one Markdown resource per style, each named and described in one line', async () => {
     const { result } = await json(await post(rpc('resources/list')));
-    expect(result.resources).toEqual([expect.objectContaining({ uri: APP_URI, mimeType: APP_MIME })]);
+    expect(result.resources.map(resource => resource.uri)).toEqual([APP_URI, ...GUIDE_URIS]);
+    for (const resource of result.resources.slice(1)) {
+      expect(resource.mimeType).toBe('text/markdown');
+      expect(resource.name).toMatch(/^rise-guide-[a-z-]+$/u);
+      for (const key of ['title', 'description']) expect(resource[key], key).toMatch(/^[^\n]+$/u);
+    }
+  });
+
+  it('are read as the style’s full guidance, with its worked Currents', async () => {
+    for (const id of RISE_CURRENT_STYLES) {
+      const { result } = await json(await post(rpc('resources/read', { uri: `ui://rise/guide/${id}` })));
+      expect(result.contents).toEqual([{ uri: `ui://rise/guide/${id}`, mimeType: 'text/markdown', text: styleGuide(id) }]);
+    }
+  });
+
+  it('are not found for a style RISE does not have', async () => {
+    for (const uri of ['ui://rise/guide/', 'ui://rise/guide/baroque', 'ui://rise/guide/constructor', 'ui://rise/guide/open-field/x', 'ui://rise/guide/Open-Field']) {
+      const { error } = await json(await post(rpc('resources/read', { uri })));
+      expect(error, uri).toMatchObject({ code: -32002, message: 'Resource not found' });
+    }
+  });
+
+  it('are served without reading the deployed page, even with the self-contained card switched on', async () => {
+    const ASSETS = { asked: null, fetch: async request => { ASSETS.asked = request.url; return new Response('<!doctype html>'); } };
+    const response = await post(rpc('resources/read', { uri: GUIDE_URIS[0] }), { env: { ...ON, MCP_SELF_CONTAINED: 'true', ASSETS } });
+    expect((await json(response)).result.contents[0].mimeType).toBe('text/markdown');
+    expect(ASSETS.asked).toBeNull();
+  });
+});
+
+describe('the app', () => {
+  it('is listed as a resource with the extension’s type, first', async () => {
+    const { result } = await json(await post(rpc('resources/list')));
+    expect(result.resources[0]).toEqual(expect.objectContaining({ uri: APP_URI, mimeType: APP_MIME }));
   });
 
   it('is served as an HTML document that frames RISE’s own page at this origin, asks the host for that frame only, and says in one sentence what it shows', async () => {
