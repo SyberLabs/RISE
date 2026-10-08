@@ -3,8 +3,8 @@
   "title": "Make public copy and the Privacy Policy match what the AI paths do",
   "lane": "shared",
   "milestone": "Release reliability",
-  "status": "in_progress",
-  "delivery": "not_shipped",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude truth pass (T2)",
   "priority": "now",
   "dependencies": [],
@@ -33,6 +33,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/530",
       "note": "Copy-only truth pass; open, not merged.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/privacy",
+      "note": "Merged as 5be8d13d (#530) and deployed: live /privacy shows \"Live answers (experimental)\" and the Dive question disclosure, checked by curl 2026-10-08. Human acceptance not yet recorded.",
+      "date": "2026-10-08"
     }
   ],
   "activity": [
@@ -43,10 +49,14 @@
     {
       "date": "2026-10-08T18:43:17.175Z",
       "summary": "Opened PR 530; not merged."
+    },
+    {
+      "date": "2026-10-08T19:39:22.370Z",
+      "summary": "Merged as 5be8d13d and deployed; live /privacy verified"
     }
   ],
-  "updatedAt": "2026-10-08T18:43:17.175Z",
-  "revision": 2,
+  "updatedAt": "2026-10-08T19:39:22.370Z",
+  "revision": 3,
   "summary": "A truth pass so readers are told which AI connection receives their text and what RISE's server sees.",
   "blocker": null
 }

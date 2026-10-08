@@ -83,4 +83,26 @@ describe('no shared inference credential in server code', () => {
     const offenders = serverFiles.filter(file => /redirect:\s*['"]error['"]/.test(readFileSync(file, 'utf8')));
     expect(offenders).toEqual([]);
   });
+
+  describe('frozen arena files', () => {
+    const shell = () => new Response('<!DOCTYPE html>', { headers: { 'Content-Type': 'text/html' } });
+    const json = () => new Response('{}', { headers: { 'Content-Type': 'application/octet-stream' } });
+
+    it('answers a missing file with 404, never the app shell', async () => {
+      const env = { ASSETS: { fetch: vi.fn(async () => shell()) } };
+      const response = await worker.fetch(new Request(`${SITE}/content/arena/replay-0123456789ab.json`), env);
+      expect(response.status).toBe(404);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+    });
+
+    it('serves a run file as immutable JSON and the index as must-revalidate', async () => {
+      const env = { ASSETS: { fetch: vi.fn(async () => json()) } };
+      const run = await worker.fetch(new Request(`${SITE}/content/arena/run-0123456789ab.json`), env);
+      expect(run.status).toBe(200);
+      expect(run.headers.get('content-type')).toBe('application/json');
+      expect(run.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+      const index = await worker.fetch(new Request(`${SITE}/content/arena/index.json`), env);
+      expect(index.headers.get('cache-control')).toBe('public, max-age=0, must-revalidate');
+    });
+  });
 });
