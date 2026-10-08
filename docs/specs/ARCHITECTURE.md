@@ -194,7 +194,7 @@ flowchart LR
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
-    core --> |9| audio
+    core --> |10| audio
     core --> |15| content
     core --> |9| scenes
     core --> |4| sources

@@ -50,6 +50,17 @@ export function plusState() {
   return { claimed: Number.isFinite(value?.claimedAt), lapsed: value?.lapsed === true };
 }
 
+/** What the Worker last said of this period's voice allowance, kept beside the claim; null until it has voiced something here. */
+export function plusAllowance() {
+  const allowance = stored()?.allowance;
+  return Number.isFinite(allowance?.used) && Number.isFinite(allowance?.limit) ? allowance : null;
+}
+
+export function notePlusAllowance(allowance) {
+  if (!Number.isFinite(allowance?.used) || !Number.isFinite(allowance?.limit) || !stored()) return;
+  store({ ...stored(), allowance: { used: allowance.used, limit: allowance.limit, periodEnd: allowance.periodEnd } });
+}
+
 /** The Worker answered PLUS_REQUIRED or PLUS_LAPSED: no more requests until the reader claims again. */
 export function markPlusLapsed() {
   store({ ...(stored() ?? { claimedAt: Date.now() }), lapsed: true });

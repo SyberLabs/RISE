@@ -1,5 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
-import { PLUS_PAYMENT_LINK, PLUS_PRICE, forgetPlus, plusState } from '../app/plus.js';
+import { PLUS_PAYMENT_LINK, PLUS_PRICE, forgetPlus, plusAllowance, plusState } from '../app/plus.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
@@ -282,9 +282,13 @@ export class Settings {
               <a class="btn-secondary" href="${PLUS_PAYMENT_LINK}" rel="noopener">Subscribe</a>
             </div>`;
         }
+        const allowance = plusAllowance();
+        const used = allowance
+            ? ` ${allowance.used.toLocaleString('en')} of ${allowance.limit.toLocaleString('en')} characters used this month.`
+            : '';
         return `
             ${this.toggleRow('plusVoice', 'Plus voice',
-                'Reads a reading of your own aloud.',
+                `Reads a reading of your own aloud.${used}`,
                 this.settings.plusVoice !== false)}
             <div class="settings-row settings-action">
               <div class="settings-label-group">

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exportUserData } from '../core/user-data.js';
 import { Settings } from './Settings.js';
+import { notePlusAllowance } from '../app/plus.js';
 
 vi.mock('../core/user-data.js', () => ({
     clearUserData: vi.fn(),
@@ -426,6 +427,19 @@ describe('Settings Plus voice', () => {
         expect(localStorage.getItem('rise.plus')).toBeNull();
         expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
         expect(settings.container.querySelector('a[href^="https://buy.stripe.com/"]')).toBeTruthy();
+        settings.destroy();
+    });
+
+    it('shows what the Worker last said of the allowance, once it has voiced something here', () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        let settings = mount();
+        expect(settings.container.textContent).not.toContain('characters used');
+        settings.destroy();
+        document.body.replaceChildren();
+
+        notePlusAllowance({ used: 12345, limit: 105000, periodEnd: 1 });
+        settings = mount();
+        expect(settings.container.textContent).toContain('12,345 of 105,000 characters used this month.');
         settings.destroy();
     });
 

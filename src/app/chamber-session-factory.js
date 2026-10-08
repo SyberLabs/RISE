@@ -21,7 +21,28 @@ import { audioDiag } from '../core/audio-diagnostics.js';
 import { liveExited, liveMounted, takeLivePlayer } from './live-handoff.js';
 import { beginStep } from '../core/begin-steps.js';
 import { SEQUENCE_CAPABILITIES } from '../core/sequence-capabilities.js';
-import { PLUS_VOICE_MAX_CHARS, markPlusLapsed, plusNotice, plusState } from './plus.js';
+import { PLUS_VOICE_MAX_CHARS, markPlusLapsed, notePlusAllowance, plusNotice, plusState } from './plus.js';
+
+/**
+ * Whether a reading is the reader's own material, the only kind the Plus voice
+ * reads (RFC 0001 rev 3, decision D9): a Composer Current (its provenance names
+ * the Current, src/core/rise-current.js), a personal reading written for this
+ * reader (src/core/personal-project.js), a file the reader opened from the
+ * Library (provenance `local-text`, src/components/Library.js), or a Make
+ * project built only from text the reader brought (Workshop sources from a
+ * file, a paste or the reader's recursion journal). Library and canon works,
+ * Keystones, Journeys, today's poem and minted programs carry other
+ * provenance or providers and are never voiced per reader.
+ */
+const OWN_SOURCE_PROVIDERS = new Set(['local', 'recursion']);
+export function isReadersOwn(session) {
+    const provenance = session?.provenance;
+    if (typeof provenance?.currentId === 'string') return true;
+    if (provenance?.kind === 'personal-generated' || provenance?.kind === 'local-text') return true;
+    const sources = Array.isArray(session?.sources) ? session.sources : [];
+    return session?.isCustom === true && sources.length > 0
+        && sources.every(source => OWN_SOURCE_PROVIDERS.has(source?.providerId));
+}
 
 /**
  * The one place a Player is made. A host that needs a Player for a Session it
@@ -142,13 +163,15 @@ export async function createChamberSession(operations, container, sessionData) {
         // the safety decision has completed.
         ui.showLoading('Preparing Session');
 
-        // The Plus voice, for a reading that brings no recitation of its
-        // own: one request, awaited, never retried. A refusal leaves the
-        // reading silent and is said once the Chamber is up. The Worker
-        // voices a Current, not a chapter, so a longer text is not sent.
+        // The Plus voice, for a reading of the reader's own that brings no
+        // recitation of its own: kept in this browser once voiced, otherwise
+        // one request, awaited, never retried. A refusal leaves the reading
+        // silent and is said once the Chamber is up. The Worker voices a
+        // Current, not a chapter, so a longer text is not sent.
         let plusRefused = null;
+        let plusVoicing = null;
         const plus = plusState();
-        if (!live && !spatialLaunch && session.recitation?.enabled !== true
+        if (!live && !spatialLaunch && session.recitation?.enabled !== true && isReadersOwn(session)
             && plus.claimed && !plus.lapsed && operations.getSettings()?.plusVoice !== false) {
             const { spokenAtoms, voiceReading } = await import('../audio/plus-voice.js');
             assertCurrent();
@@ -159,9 +182,11 @@ export async function createChamberSession(operations, container, sessionData) {
                 const voiced = await voiceReading(session.atoms);
                 assertCurrent();
                 if (voiced.ok) {
+                    plusVoicing = voiced;
+                    if (voiced.allowance) notePlusAllowance(voiced.allowance);
                     session.revealMode = 'progressive';
                     session.capabilities = [...(session.capabilities ?? []), SEQUENCE_CAPABILITIES.RECITATION_AUDIO];
-                    session.recitation = { enabled: true, pack: voiced.pack };
+                    session.recitation = { enabled: true, pack: null };
                     session.voiceId = voiced.voiceId;
                 } else {
                     plusRefused = voiced.code;
@@ -183,7 +208,9 @@ export async function createChamberSession(operations, container, sessionData) {
             recitationVoice = new Voice({
                 audioEngine,
                 voiceId: session.voiceId,
-                packUrl: session.recitation.pack
+                ...(plusVoicing
+                    ? { manifest: plusVoicing.manifest, fetchImpl: plusVoicing.fetchImpl }
+                    : { packUrl: session.recitation.pack })
             });
             recitationVoice.enabled = true;
             recitationReady = recitationVoice.prepare(session.atoms, 0)

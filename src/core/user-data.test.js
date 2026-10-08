@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PersonalSwells } from './personal-swells.js';
 import { SourceCache } from '../sources/cache.js';
 import { WorkshopMedia } from './workshop-media.js';
+import { PlusVoices } from '../audio/plus-voice-store.js';
 import {
     clearUserData,
     exportUserData,
@@ -101,12 +102,13 @@ describe('personal data inventory', () => {
         expect(data.warnings.join(' ')).toMatch(/reached its .* binary budget/);
     });
 
-    it('clears local stores, visual consent, personal audio, workshop media, and source caches', async () => {
+    it('clears local stores, visual consent, personal audio, workshop media, source caches, and Plus voicings', async () => {
         Object.values(USER_DATA_KEYS).forEach(key => localStorage.setItem(key, '{}'));
         sessionStorage.setItem(VISUAL_CONSENT_KEY, 'true');
         const clearSwells = vi.spyOn(PersonalSwells, 'clear').mockResolvedValue(undefined);
         const clearCache = vi.spyOn(SourceCache, 'clear').mockResolvedValue(undefined);
         const clearMedia = vi.spyOn(WorkshopMedia, 'clear').mockResolvedValue(undefined);
+        const clearPlusVoices = vi.spyOn(PlusVoices, 'clear').mockResolvedValue(undefined);
 
         await clearUserData();
 
@@ -115,5 +117,6 @@ describe('personal data inventory', () => {
         expect(clearSwells).toHaveBeenCalledOnce();
         expect(clearCache).toHaveBeenCalledOnce();
         expect(clearMedia).toHaveBeenCalledOnce();
+        expect(clearPlusVoices).toHaveBeenCalledOnce();
     });
 });

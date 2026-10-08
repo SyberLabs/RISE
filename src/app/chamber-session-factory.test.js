@@ -9,12 +9,12 @@
  * unfinished one.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createChamberSession } from './chamber-session-factory.js';
+import { createChamberSession, isReadersOwn } from './chamber-session-factory.js';
 import { offerLivePlayer } from './live-handoff.js';
 import { Chamber } from '../components/read/Chamber.js';
 import { voiceReading } from '../audio/plus-voice.js';
 import { Voice } from '../audio/voice.js';
-import { plusState } from './plus.js';
+import { plusAllowance, plusState } from './plus.js';
 
 vi.mock('../components/read/Chamber.js', () => ({
     Chamber: vi.fn(function Chamber(container, options) { this.options = options; this.announceMovement = vi.fn(); })
@@ -159,9 +159,11 @@ describe('a reading begun from Home', () => {
 });
 
 describe('the Plus voice at the start of a reading', () => {
-    const HASH = 'a'.repeat(64);
-    const PACK = `/api/plus/audio/voiced/${HASH}/pack.json`;
-    const reading = (text = 'A phrase of my own') => ({ ...session(), atoms: [{ content: text }] });
+    const MANIFEST = { schema: 'rise.recitation-voice-pack.v1', voices: { el_plus: { entries: {} } } };
+    const fetchImpl = async () => new Response(new Uint8Array([1]));
+    const VOICED = { ok: true, voiceId: 'el_plus', manifest: MANIFEST, fetchImpl, allowance: { used: 18, limit: 105000, periodEnd: 1 } };
+    /** A Composer Current: the reader's own material. */
+    const reading = (text = 'A phrase of my own') => ({ ...session(), atoms: [{ content: text }], provenance: { currentId: 'cur-1' } });
     /** A voiced reading starts the engine's session, which the plain stub does not have. */
     const voiced = (op = operations()) => {
         const audio = op.getAudioEngine();
@@ -182,15 +184,18 @@ describe('the Plus voice at the start of a reading', () => {
 
     it('voices the reading once and hands the Chamber the pack as the clock', async () => {
         localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
-        voiceReading.mockResolvedValue({ ok: true, voiceId: 'el_plus', pack: PACK });
+        voiceReading.mockResolvedValue(VOICED);
         const options = await mount(voiced(), reading());
 
         expect(voiceReading).toHaveBeenCalledTimes(1);
         expect(options.session).toMatchObject({
             revealMode: 'progressive', capabilities: ['recitation-audio'],
-            recitation: { enabled: true, pack: PACK }, voiceId: 'el_plus'
+            recitation: { enabled: true, pack: null }, voiceId: 'el_plus'
         });
-        expect(Voice).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'el_plus', packUrl: PACK }));
+        // The kept voicing is handed to the Voice directly: no pack address, no audio URL.
+        expect(Voice).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'el_plus', manifest: MANIFEST, fetchImpl }));
+        expect(Voice.mock.calls[0][0]).not.toHaveProperty('packUrl');
+        expect(plusAllowance()).toEqual({ used: 18, limit: 105000, periodEnd: 1 });
         expect(options.voice.onLapse).toBeTypeOf('function');
         options.voice.onLapse();
         expect(plusState().lapsed).toBe(true);
@@ -223,6 +228,41 @@ describe('the Plus voice at the start of a reading', () => {
         await mount(operations(), reading('word '.repeat(2001)));
         expect(voiceReading).not.toHaveBeenCalled();
         expect(Chamber.mock.instances[0].announceMovement).toHaveBeenCalledWith('This reading is too long for the Plus voice.');
+    });
+
+    it('reads silently and says so when the voice could not be rendered (502)', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        voiceReading.mockResolvedValue({ ok: false, code: 'UPSTREAM', message: 'later' });
+        const options = await mount(operations(), reading());
+        expect(options.voice).toBeNull();
+        expect(plusState().lapsed).toBe(false);
+        expect(Chamber.mock.instances[0].announceMovement).toHaveBeenCalledWith('The Plus voice could not be rendered. Reading continues silently.');
+    });
+
+    it('voices only the reader\'s own material, never a library or canon reading', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        voiceReading.mockResolvedValue(VOICED);
+        const text = [{ content: 'Sing, goddess, the wrath' }];
+        const notOwn = [
+            { ...session(), atoms: text },
+            { ...session(), atoms: text, provenance: { kind: 'library-work', workId: 'the-iliad' }, origin: { view: 'library' } },
+            { ...session(), atoms: text, origin: 'keystones' },
+            { ...session(), atoms: text, isCustom: true, provenance: { kind: 'minted-program', slug: 'x' }, sources: [{ providerId: 'archive-ingest' }] },
+            { ...session(), atoms: text, isCustom: true, sources: [{ providerId: 'local' }, { providerId: 'library-archive' }] }
+        ];
+        for (const reading of notOwn) {
+            vi.clearAllMocks();
+            const options = await mount(operations(), reading);
+            expect(voiceReading).not.toHaveBeenCalled();
+            expect(options.voice).toBeNull();
+            expect(Chamber.mock.instances[0].announceMovement).not.toHaveBeenCalled();
+        }
+
+        expect(isReadersOwn({ provenance: { currentId: 'c' } })).toBe(true);
+        expect(isReadersOwn({ provenance: { kind: 'personal-generated' } })).toBe(true);
+        expect(isReadersOwn({ provenance: { kind: 'local-text' } })).toBe(true);
+        expect(isReadersOwn({ isCustom: true, sources: [{ providerId: 'local' }, { providerId: 'recursion' }] })).toBe(true);
+        expect(isReadersOwn({ sources: [{ providerId: 'local' }] })).toBe(false);
     });
 
     it('is left off by the reader\'s switch', async () => {

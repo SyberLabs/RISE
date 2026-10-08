@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { claimPlus, forgetPlus, markPlusLapsed, plusNotice, plusState } from './plus.js';
+import { claimPlus, forgetPlus, markPlusLapsed, notePlusAllowance, plusAllowance, plusNotice, plusState } from './plus.js';
 import { enterFromPlusClaim } from './plus-claim.js';
 
 afterEach(() => {
@@ -24,6 +24,17 @@ describe('Plus on this browser', () => {
     markPlusLapsed();
     expect(plusState()).toEqual({ claimed: true, lapsed: true });
     await claimPlus('cs_test_2', { fetchImpl: async () => new Response(null, { status: 204 }) });
+    expect(plusState()).toEqual({ claimed: true, lapsed: false });
+  });
+
+  it('keeps the allowance the Worker last reported beside the claim, and only beside one', async () => {
+    notePlusAllowance({ used: 1, limit: 105000, periodEnd: 2 });
+    expect(plusAllowance()).toBeNull();
+    await claimPlus('cs_test_1', { fetchImpl: async () => new Response(null, { status: 204 }) });
+    notePlusAllowance({ used: 'many', limit: 105000 });
+    expect(plusAllowance()).toBeNull();
+    notePlusAllowance({ used: 900, limit: 105000, periodEnd: 2 });
+    expect(plusAllowance()).toEqual({ used: 900, limit: 105000, periodEnd: 2 });
     expect(plusState()).toEqual({ claimed: true, lapsed: false });
   });
 
