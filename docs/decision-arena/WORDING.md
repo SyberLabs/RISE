@@ -26,3 +26,11 @@ written, and tuned, by RISE's authors.
 6. **Show the interval with the number.** Every Brier score, agreement rate
    and difference is printed with its 95% interval and its n. Reliability
    bins with fewer than 15 rows are marked as thin.
+7. **Never pool repeats.** The runs of one decider ask the same cases, so
+   they are not independent; an interval over all runs pooled is falsely
+   narrow. State run 1 and show the other runs beside it as stability. Take
+   agreement intervals and differences from the report's `agreement` block
+   (`node scripts/arena/arena.mjs report`), never compute them on the page:
+   explicit agreement carries a case-clustered bootstrap interval, contrast
+   pairs a Wilson interval over run 1's pairs, and each difference a paired
+   case-clustered interval with `withinNoise`.
