@@ -17,7 +17,7 @@ const run = (patch = {}) => ({
   scores: {}, notes: [], ...patch
 });
 function file(value) {
-  const text = `${JSON.stringify(value, null, 2)}\n`;
+  const text = `${JSON.stringify(value)}\n`;
   return { text, name: `run-${sha256Hex(text).slice(0, 12)}.json` };
 }
 
@@ -32,6 +32,13 @@ test('refuses a run edited after capture, or misnamed', () => {
   const { text, name } = file(run());
   assert.throws(() => readArenaRun(text.replace('"c"', '"d"'), name), /hash in its name/u);
   assert.throws(() => readArenaRun(text, 'run-latest.json'), /run-<sha12>/u);
+});
+
+test('refuses a run re-encoded under a fresh name: only the canonical bytes are a run', () => {
+  const value = run();
+  for (const text of [`${JSON.stringify(value, null, 2)}\n`, `${JSON.stringify(value)}\n\n`, `${JSON.stringify(value)} \n`]) {
+    assert.throws(() => readArenaRun(text, `run-${sha256Hex(text).slice(0, 12)}.json`), /canonical form/u);
+  }
 });
 
 test('refuses an unknown schema, an uncommitted harness unless mock, and a non-boolean partial', () => {

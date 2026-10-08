@@ -52,8 +52,10 @@ export function arenaReplayDecision(requestId, provider, admitted) {
  */
 export async function loadArenaCase(caseId, load = fetchJson) {
   const index = await load('/content/arena/index.json');
-  const latest = index?.schema === INDEX_SCHEMA && Array.isArray(index.runs)
-    ? index.runs.filter(entry => entry?.mock === false).at(-1)?.replay : null;
+  // The latest real run; a run stopped at its cost cap only when no complete one exists.
+  const real = index?.schema === INDEX_SCHEMA && Array.isArray(index.runs)
+    ? index.runs.filter(entry => entry?.mock === false) : [];
+  const latest = (real.filter(entry => entry.partial !== true).at(-1) ?? real.at(-1))?.replay;
   if (!REPLAY_FILE.test(latest)) throw new Error('The arena index names no run.');
   const replay = await load(`/content/arena/${latest}`);
   if (replay?.schema !== SCHEMA || typeof replay.runFile !== 'string'
