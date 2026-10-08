@@ -38,6 +38,10 @@
   Cache-Control: public, max-age=31536000, immutable
   Content-Type: application/json
 
+/content/arena/replay-*.json
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: application/json
+
 /content/arena/index.json
   Cache-Control: public, max-age=0, must-revalidate
   Content-Type: application/json

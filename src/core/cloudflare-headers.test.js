@@ -54,7 +54,7 @@ describe('Cloudflare static headers', () => {
         expect(existsSync(output)).toBe(true);
         const headers = readFileSync(output, 'utf8');
         for (const path of ['/assets/*', '/fonts/*.woff2', '/audio/recitation/*', '/content/works/*',
-            '/content/arena/run-*.json']) {
+            '/content/arena/run-*.json', '/content/arena/replay-*.json']) {
             expect(rule(path, headers).get('Cache-Control'), path)
                 .toBe('public, max-age=31536000, immutable');
         }

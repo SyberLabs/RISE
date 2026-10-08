@@ -1,22 +1,19 @@
 // Scores re-derived from a run's results, deterministically: the same run file
 // and the same fixtures always print the same bytes. Scores are "agreement with
 // author-written expectations", not accuracy; the cases were tuned on Jev.
-import { existsSync, readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { buildRecommendRequest } from '../../src/core/decision/recommend.js';
 import { scoreDecisions } from '../jev-eval.mjs';
 import { sha256Hex } from './arena-file.mjs';
+import { calibration } from './calibration.mjs';
 
 // Option fields in the fixtures that name a different question.
 const QUESTION_OF = Object.freeze({ visualMode: 'visual', chunkMode: 'chunk', revealMode: 'reveal' });
 
-// calibration.mjs arrives with #531. A run records the version of it that
-// scored the run (the first twelve hex digits of its bytes' SHA-256); a run
-// without one is never given calibration, so older runs still reproduce.
-const CALIBRATION = fileURLToPath(new URL('./calibration.mjs', import.meta.url));
-const calibrationModule = existsSync(CALIBRATION) ? await import(CALIBRATION) : null;
-export const CALIBRATION_VERSION = calibrationModule ? sha256Hex(readFileSync(CALIBRATION)).slice(0, 12) : null;
-export const calibration = calibrationModule?.calibration;
+// A run records the version of calibration.mjs that scored it (the first
+// twelve hex digits of its bytes' SHA-256); a run without one is never given
+// calibration, so older runs still reproduce.
+export const CALIBRATION_VERSION = sha256Hex(readFileSync(new URL('./calibration.mjs', import.meta.url))).slice(0, 12);
 
 /** Each fixture case's `expect` as {question: acceptable choices}. */
 export const expectedChoices = item => Object.fromEntries(Object.entries(item.expect || {})
@@ -80,7 +77,7 @@ export function scoreRun(run, { cases, controls = [], options, catalog }) {
   const questions = new Map([...cases, ...controls].map(item => [item.id, buildRecommendRequest({
     intent: item.intent, catalog, turn: 0, nightDrive: false }).body.questions]));
   const expected = new Map(cases.map(item => [item.id, expectedChoices(item)]));
-  const calibrated = run.calibrationVersion && calibration
+  const calibrated = run.calibrationVersion
     ? calibration(calibrationRows(run.results, id => expected.get(id))) : null;
   const scores = {};
   for (const { id } of run.providers) {

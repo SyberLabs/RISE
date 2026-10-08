@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ARENA_SCHEMA, readArenaRun, sha256Hex } from './arena-file.mjs';
+import { ARENA_SCHEMA, readArenaReplay, readArenaRun, REPLAY_SCHEMA, replayName, replayText, sha256Hex } from './arena-file.mjs';
 
 const H = 'a'.repeat(64);
 const run = (patch = {}) => ({
@@ -58,4 +58,28 @@ test('refuses rows from unlisted providers or with an inconsistent verdict', () 
     const { text, name } = file(run({ results }));
     assert.throws(() => readArenaRun(text, name), /malformed result row/u);
   }
+});
+
+test('the replay holds run 1 of the cases only: admitted decisions or reject codes, no controls, no raw answers', () => {
+  const base = run();
+  const providers = [...base.providers, { id: 'openai', requestedModel: 'm', servedModels: ['m-1'], revision: null,
+    pricing: { source: 'list' } }];
+  const results = [...base.results,
+    { ...base.results[1], providerId: 'openai', run: 1, rejectCode: 'REFUSAL', rawAnswers: { book: { type: 'refusal' } } },
+    { ...base.results[0], caseId: 'odds-50-1' }];
+  const { text, name } = file(run({ providers, results }));
+  const replay = JSON.parse(replayText(readArenaRun(text, name), name));
+  assert.deepEqual(replay, { schema: REPLAY_SCHEMA, runFile: name, createdAt: '2026-10-08T00:00:00.000Z',
+    providers: [{ id: 'rules', requestedModel: null, servedModels: [] }, { id: 'openai', requestedModel: 'm', servedModels: ['m-1'] }],
+    decisions: { c: { rules: { workId: 'w', config: {} }, openai: { rejectCode: 'REFUSAL' } } } });
+});
+
+test('a replay is accepted only under its run file\'s name and only as the bytes the run derives', () => {
+  const { text, name } = file(run());
+  const replay = replayText(readArenaRun(text, name), name);
+  assert.equal(replayName(name), name.replace('run-', 'replay-'));
+  assert.equal(readArenaReplay(replay, replayName(name), text, name).runFile, name);
+  assert.throws(() => readArenaReplay(replay, 'replay-000000000000.json', text, name), /named replay-<sha12>/u);
+  assert.throws(() => readArenaReplay(replay.replace('"w"', '"x"'), replayName(name), text, name), /not the one/u);
+  assert.throws(() => readArenaReplay(`${JSON.stringify(JSON.parse(replay), null, 2)}\n`, replayName(name), text, name), /not the one/u);
 });

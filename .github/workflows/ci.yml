@@ -33,7 +33,7 @@ jobs:
           node scripts/ci-hygiene.mjs
           npm run roadmap:check
           npm run test:roadmap
-          node --test scripts/decision-eval.test.mjs scripts/arena/arena.test.mjs scripts/arena/arena-file.test.mjs local/bridge.test.mjs local/hardware.test.mjs local/launcher.test.mjs
+          node --test scripts/decision-eval.test.mjs scripts/arena/arena.test.mjs scripts/arena/arena-file.test.mjs scripts/arena/calibration.test.mjs local/bridge.test.mjs local/hardware.test.mjs local/launcher.test.mjs
           python3 -m unittest discover -s deploy/kev -p 'test_*.py'
           npm run security:audit &
           audit=$!

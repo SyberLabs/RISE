@@ -1413,7 +1413,11 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `scripts/arena/arena-file.mjs` refuses a file whose bytes do not match its
   name, whose schema is unknown, or whose harness had uncommitted changes
   (a mock run, a pipeline check never committed, is exempt). Every decider's answers pass through the same `admitAnswers` the browser
-  uses, and both the raw and the admitted decision are kept.
+  uses, and both the raw and the admitted decision are kept. Beside each run
+  sits a slim `replay-<sha12>.json` under the same digits: run 1 of the fixed
+  cases, each decider's admitted decision or reject code, no controls and no
+  raw answers. It is derived from the run file alone, and the arena file
+  reader accepts it only as those exact bytes.
 - **Rejected:** live side-by-side calls from the reader's page, a shared
   SyberLabs key for comparisons, and a reader pasting a third-party key into
   RISE for this.

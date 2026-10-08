@@ -4,7 +4,9 @@
 //
 //   capture  asks every decider every case, and every control in
 //            scripts/arena/controls.json when it exists, --runs times and
-//            writes public/content/arena/run-<sha12>.json plus index.json.
+//            writes public/content/arena/run-<sha12>.json, its slim
+//            replay-<sha12>.json (run 1 of the cases, no controls, no raw
+//            answers) and index.json.
 //            Billed deciders need --bill-operator and refuse under CI.
 //            --max-usd (default 20) is checked before each call against the
 //            spend so far plus that call's reserve (its estimate, or the
@@ -12,7 +14,8 @@
 //            pass the cap; the capture stops after the first call over and
 //            writes what it has, marked partial.
 //            --mock answers every network decider from a local stand-in.
-//   report   re-derives the scores of one run file, deterministically.
+//   report   re-derives the scores of one run file, deterministically, and
+//            checks its replay file is the one the run derives.
 //            With --reveal-seed-file, it also scores the controls' calibration
 //            against the labels the revealed seed draws; without it they are
 //            sealed.
@@ -24,7 +27,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { committedCatalog } from '../../local/catalog.mjs';
 import { admitAnswers, buildRecommendRequest } from '../../src/core/decision/recommend.js';
@@ -34,8 +37,10 @@ import { jevDecider } from './adapters/jev.mjs';
 import { kevDecider } from './adapters/kev.mjs';
 import { OPENAI_MODEL, openaiDecider } from './adapters/openai.mjs';
 import { rulesDecider, rulesFloorDecider } from './adapters/rules.mjs';
-import { ARENA_SCHEMA, readArenaRun } from './arena-file.mjs';
-import { CALIBRATION_VERSION, calibration, calibrationRows, scoreRun } from './report.mjs';
+import { ARENA_SCHEMA, readArenaReplay, readArenaRun, replayName, replayText } from './arena-file.mjs';
+import { calibration } from './calibration.mjs';
+import { revealLabels } from './controls.mjs';
+import { CALIBRATION_VERSION, calibrationRows, scoreRun } from './report.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 export const ARENA_DIR = 'public/content/arena';
@@ -181,7 +186,7 @@ export async function captureRun({ cases, controls = [], options, casesHash, opt
   const createdAt = now().toISOString();
   const run = { schema: ARENA_SCHEMA, runId: `arena-${createdAt.replace(/[-:.]/gu, '').slice(0, 15)}-${harness.commit.slice(0, 7)}`,
     createdAt, harness, ...(stopped ? { partial: true } : {}),
-    ...(CALIBRATION_VERSION ? { calibrationVersion: CALIBRATION_VERSION } : {}),
+    calibrationVersion: CALIBRATION_VERSION,
     inputs: { cases: { sha256: casesHash, count: cases.length }, options: { sha256: optionsHash },
       catalog: { sha256: digest(JSON.stringify(catalog)) },
       ...(controls.length ? { controls: { sha256: controlsHash, count: controls.length } } : {}) },
@@ -190,7 +195,7 @@ export async function captureRun({ cases, controls = [], options, casesHash, opt
   return { run, spent };
 }
 
-/** Writes the run under its own hash (never overwriting) and adds it to the index. */
+/** Writes the run and its replay under the run's hash (never overwriting) and adds them to the index. */
 export async function writeRun(run, dir) {
   // Compact: a run is read by code, and pretty-printing nearly doubles it.
   const text = `${JSON.stringify(run)}\n`;
@@ -198,11 +203,12 @@ export async function writeRun(run, dir) {
   const file = `run-${sha256.slice(0, 12)}.json`;
   await mkdir(dir, { recursive: true });
   await writeFile(join(dir, file), text, { flag: 'wx' });
+  await writeFile(join(dir, replayName(file)), replayText(JSON.parse(text), file), { flag: 'wx' });
   const indexPath = join(dir, 'index.json');
   let index = { schema: 'syberlabs.decision-arena-index/v1', runs: [] };
   try { index = JSON.parse(await readFile(indexPath, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   index.runs = [...index.runs.filter(entry => entry.file !== file),
-    { file, sha256, runId: run.runId, createdAt: run.createdAt, mock: run.harness.mock, partial: run.partial === true }]
+    { file, replay: replayName(file), sha256, runId: run.runId, createdAt: run.createdAt, mock: run.harness.mock, partial: run.partial === true }]
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   await writeFile(indexPath, `${JSON.stringify(index, null, 2)}\n`);
   return join(dir, file);
@@ -252,11 +258,14 @@ export async function report(args) {
     fail('The run was captured against different cases, options, controls or catalog; check out its harness commit.');
   }
   const scores = scoreRun(run, { cases, controls, options, catalog });
+  let matchesReplay = true;
+  try {
+    readArenaReplay(await readFile(join(dirname(path), replayName(basename(path))), 'utf8'),
+      replayName(basename(path)), text, basename(path));
+  } catch { matchesReplay = false; }
   const seedFile = argument(args, '--reveal-seed-file');
   let controlScores = controls.length ? 'sealed' : null;
   if (controls.length && seedFile) {
-    if (!calibration) fail('Calibration is not in this harness; check out a commit with scripts/arena/calibration.mjs.');
-    const { revealLabels } = await import('./controls.mjs');
     const labels = revealLabels(controlsFile, (await readFile(seedFile, 'utf8')).trim(), text);
     const fields = new Map(controls.map(item => [item.id, item.field]));
     controlScores = calibration(calibrationRows(run.results,
@@ -264,7 +273,7 @@ export async function report(args) {
   }
   return `${JSON.stringify({ schema: 'syberlabs.decision-arena-report/v1', runId: run.runId,
     file: basename(path), partial: run.partial === true,
-    matchesRecorded: JSON.stringify(scores) === JSON.stringify(run.scores), scores,
+    matchesRecorded: JSON.stringify(scores) === JSON.stringify(run.scores), matchesReplay, scores,
     ...(controlScores ? { controls: controlScores } : {}) }, null, 2)}\n`;
 }
 

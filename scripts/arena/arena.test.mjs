@@ -12,9 +12,9 @@ import { jevDecider } from './adapters/jev.mjs';
 import { kevDecider } from './adapters/kev.mjs';
 import { openaiDecider, toOpenAI } from './adapters/openai.mjs';
 import { rulesAnswers } from './adapters/rules.mjs';
-import { readArenaRun, sha256Hex } from './arena-file.mjs';
+import { readArenaReplay, readArenaRun, replayName, sha256Hex } from './arena-file.mjs';
 import { ARENA_DIR, capture, captureRun, decidersFor, guard, mockFetch, report, writeRun } from './arena.mjs';
-import { calibration, calibrationRows, expectedChoices, scoreRun } from './report.mjs';
+import { calibrationRows, expectedChoices, scoreRun } from './report.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const OPENAI_KEY = 'sk-SENTINEL-openai-0123456789abcdef';
@@ -165,17 +165,15 @@ test('a run without calibrationVersion is scored without calibration, so older r
   const { run } = await captureRun({ ...oneCase(), catalog, deciders, runs: 1, maxUsd: 1, harness });
   const old = { ...run, calibrationVersion: undefined };
   assert.equal(scoreRun(old, { ...oneCase(), catalog }).openai.calibration, undefined);
-  if (calibration) {
-    assert.match(run.calibrationVersion, /^[0-9a-f]{12}$/u);
-    const questions = fixture.cases.slice(0, 2).reduce((sum, item) => sum + Object.keys(expectedChoices(item)).length, 0);
-    assert.equal(run.scores.openai.calibration.secondary.confidence.n, questions);
-  }
+  assert.match(run.calibrationVersion, /^[0-9a-f]{12}$/u);
+  const questions = fixture.cases.slice(0, 2).reduce((sum, item) => sum + Object.keys(expectedChoices(item)).length, 0);
+  assert.equal(run.scores.openai.calibration.secondary.confidence.n, questions);
 });
 
 const CONTROL = { id: 'odds-70-test', group: 'control', field: 'audio', odds: { 'soft-rain': 0.7, silent: 0.3 },
   intent: "Ten slips are in a hat: seven say 'soft-rain', three say 'silent'. One slip will be drawn after you answer. Which sound?" };
 
-test('controls are asked with the cases, sealed in the report until the seed is revealed', async t => {
+test('controls are asked with the cases, sealed in the report until the seed is revealed', async () => {
   const controlsDir = join(dir, 'controls');
   const seed = 'test-seed-not-a-secret';
   const controlsFile = { kind: 'rise.decision-arena.controls.v1', seedCommitment: sha256Hex(seed), cases: [CONTROL] };
@@ -193,10 +191,10 @@ test('controls are asked with the cases, sealed in the report until the seed is 
   const sealed = JSON.parse(await report(args));
   assert.equal(sealed.controls, 'sealed');
   assert.equal(sealed.matchesRecorded, true);
-  if (!calibration || !existsSync(join(ROOT, 'scripts/arena/controls.mjs'))) {
-    t.skip('calibration.mjs and controls.mjs arrive with #531');
-    return;
-  }
+  assert.equal(sealed.matchesReplay, true);
+  const replay = JSON.parse(await readFile(join(controlsDir, replayName(basename(path))), 'utf8'));
+  assert.equal(Object.keys(replay.decisions).length, 39);
+  assert.equal(replay.decisions[CONTROL.id], undefined);
   const revealed = JSON.parse(await report([...args, '--reveal-seed-file', join(controlsDir, 'seed')]));
   assert.equal(revealed.matchesRecorded, true);
   assert.equal(revealed.controls.openai.secondary.confidence.n, 1);
@@ -242,12 +240,20 @@ test('a mock capture is a valid run file, never overwritten, and its report is b
   const accepted = readArenaRun(await readFile(path, 'utf8'), basename(path));
   assert.equal(accepted.results.length, 39 * 5 * 2);
   assert.ok(accepted.results.every(row => row.admitted));
+  const replayPath = join(dir, 'mock', replayName(basename(path)));
+  const replay = JSON.parse(await readFile(replayPath, 'utf8'));
+  assert.equal(Object.keys(replay.decisions).length, 39);
+  assert.ok(Object.values(replay.decisions).every(byProvider => Object.keys(byProvider).length === 5));
+  assert.ok(!(await readFile(replayPath, 'utf8')).includes('rawAnswers'));
   await assert.rejects(writeRun(run, join(dir, 'mock')), { code: 'EEXIST' });
   const index = JSON.parse(await readFile(join(dir, 'mock/index.json'), 'utf8'));
-  assert.deepEqual(index.runs.map(entry => entry.file), [basename(path)]);
+  assert.deepEqual(index.runs.map(entry => [entry.file, entry.replay]), [[basename(path), basename(replayPath)]]);
   const first = await report(['--run', path]);
   assert.equal(await report(['--run', path]), first);
   assert.equal(JSON.parse(first).matchesRecorded, true);
+  assert.equal(JSON.parse(first).matchesReplay, true);
+  await writeFile(replayPath, '{}\n');
+  assert.equal(JSON.parse(await report(['--run', path])).matchesReplay, false);
 });
 
 const walk = (path, skip = () => false) => !existsSync(path) ? [] : readdirSync(path, { withFileTypes: true })
@@ -273,9 +279,12 @@ test('the reader app never names the OpenAI Decisions endpoint or model', () => 
   assert.deepEqual(offenders, []);
 });
 
-test('every committed arena run is valid and not a mock', async () => {
+test('every committed arena run is valid, not a mock, and its replay is the one it derives, byte for byte', async () => {
   for (const file of walk(join(ROOT, ARENA_DIR)).filter(path => /run-[0-9a-f]{12}\.json$/u.test(path))) {
-    const run = readArenaRun(readFileSync(file, 'utf8'), basename(file));
+    const text = readFileSync(file, 'utf8');
+    const run = readArenaRun(text, basename(file));
     assert.equal(run.harness.mock, false, `${relative(ROOT, file)} is a mock run`);
+    const replay = join(ROOT, ARENA_DIR, replayName(basename(file)));
+    readArenaReplay(readFileSync(replay, 'utf8'), basename(replay), text, basename(file));
   }
 });
