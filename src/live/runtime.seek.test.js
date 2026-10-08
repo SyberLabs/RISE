@@ -130,6 +130,11 @@ describe('where the reader is', () => {
         expect(runtime.snapshot().position).toEqual(runtime.position());
         expect(runtime.snapshot().pace).toBe(1);
     });
+
+    it('lists every passage in order, each with whether a voice says it, for a stage that draws them', async () => {
+        await open();
+        expect(runtime.passages()).toEqual(SKY.beats.map((beat, index) => ({ segmentId: `beat-${index}`, spoken: beat.say !== undefined })));
+    });
 });
 
 describe('a seek', () => {

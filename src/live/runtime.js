@@ -545,6 +545,12 @@ export function createLiveRuntime({
             return positionOf(main);
         },
 
+        /** Every passage of the reading in order, each with whether a voice says it; empty before it has words. */
+        passages() {
+            if (!main?.player) return [];
+            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, spoken: !main.unspokenIds?.has(id) }));
+        },
+
         /**
          * Move the reading to the start of a passage (`segmentId`), or `delta` passages on or back. The voice moves
          * first and the words follow it there. A held reading stays held; an ended one is live again from there.
