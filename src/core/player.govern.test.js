@@ -147,6 +147,64 @@ describe('governing the end of an atom', () => {
         expect(shown[2].at - shown[1].at).toBeLessThan(1100);
     });
 
+    it('re-arms the watchdog from the new estimate when the pace slows mid-atom, and the governed end still advances', async () => {
+        player = new Player(session());
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        let endFirst = null;
+        // The estimate follows the pace, as the speech clock's does once rescaled: 1000 ms at 1x.
+        player.govern({
+            duration: () => 1000 * player.speedFactor,
+            completion: (_atom, index) => (index === 0 ? new Promise(resolve => { endFirst = resolve; }) : null)
+        });
+        player.play();
+        await tick(400);
+        // Half the pace at 400 ms: what remains (600 ms of 1000) takes 1200 ms, so the watchdog is due at 400 + 1200 + 2500.
+        player.setSpeedFactor(2);
+        await tick(3650);
+        expect(player.speechWatchdogId).not.toBe(null);
+        expect(player.timerId).toBe(null);
+        expect(shown.map(entry => entry.index)).toEqual([0]);
+        endFirst({ reason: 'ended' });
+        await tick(20);
+        expect(shown.map(entry => entry.index)).toEqual([0, 1]);
+    });
+
+    it('re-times an ungoverned atom on its timer: the part shown stays shown, the rest goes at the new pace', async () => {
+        const timed = session();
+        for (const atom of timed.atoms) atom.duration = 1000;
+        player = new Player(timed);
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        player.play();
+        await tick(400);
+        // 1.5x: the remaining 600 ms takes 400.
+        player.setSpeedFactor(1 / 1.5);
+        await tick(700);
+        expect(shown[1].at).toBeGreaterThanOrEqual(800);
+        expect(shown[1].at).toBeLessThan(820);
+    });
+
+    it('scales only the time left when the reading is paused', async () => {
+        const timed = session();
+        for (const atom of timed.atoms) atom.duration = 1000;
+        player = new Player(timed);
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        player.play();
+        await tick(400);
+        player.pause();
+        player.setSpeedFactor(2);
+        expect(player.timerId).toBe(null);
+        expect(player.currentAtomRemainingTime).toBeCloseTo(1200, 0);
+        await tick(1000);
+        player.play();
+        await tick(1250);
+        expect(shown.map(entry => entry.index)).toEqual([0, 1]);
+        expect(shown[1].at - 1400).toBeGreaterThanOrEqual(1200);
+        expect(shown[1].at - 1400).toBeLessThan(1220);
+    });
+
     it('carries on for an atom that nothing governs', async () => {
         player = new Player(session());
         const shown = [];
