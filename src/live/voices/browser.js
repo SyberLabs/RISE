@@ -207,8 +207,10 @@ export function chooseVoice(voices, lang) {
  * Voices load late in some browsers: `getVoices()` is empty until
  * `voiceschanged`. Resolves with the voice list once there is one, or with an
  * empty list after `timeoutMs`, so a host never waits on a browser that has none.
+ * A fresh frame in a host's sandbox takes well over a second to list its first
+ * voice; the wait allows for that, and is paid in full only where there are none.
  */
-export function whenVoicesAvailable(synth, { timeoutMs = 800, clock = createRealClock() } = {}) {
+export function whenVoicesAvailable(synth, { timeoutMs = 2500, clock = createRealClock() } = {}) {
     const now = synth.getVoices?.() ?? [];
     if (now.length > 0 || typeof synth.addEventListener !== 'function') return Promise.resolve(now);
     return new Promise(resolve => {

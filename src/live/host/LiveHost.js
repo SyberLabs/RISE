@@ -607,6 +607,9 @@ export class LiveHost {
         this.say('Waiting for the answer…');
         this.providerName = 'mcp';
         this.startedAt = performance.now();
+        // A fresh frame lists its voices late (a host's sandbox: none at first, hundreds a moment later), and the first
+        // getVoices() is what starts the listing. Asked now, so that by the reader's Play press the list is there.
+        this.env.speechSynthesis?.getVoices?.();
         try {
             const [{ createMcpGuestPort }] = await Promise.all([import('../hosts/mcp-port.js'), this.modules]);
             if (this.destroyed || this.embeddedStartupCancelled) return;
@@ -713,7 +716,9 @@ export class LiveHost {
             this.embeddedAnswerTimer = null;
             if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled
                 || this.embeddedBeginStarted) return;
-            this.say('Ask the assistant again. No Current arrived in time.', { alert: true });
+            // The host owns the wait: a long answer streams for longer than this, and a host re-showing an old call may
+            // deliver its result late or not at all. The reader is told what to do, and the card keeps listening.
+            this.say('Still waiting for the assistant’s answer. If none arrives, reload this chat.', { alert: true });
         }, this.embeddedAnswerTimeoutMs);
     }
 
