@@ -1,4 +1,4 @@
-import { test, expect, connectTestOpenRouter } from './fixtures.js';
+import { test, expect, connectTestOpenRouter, revealChamberControls } from './fixtures.js';
 import { openAskDialog } from './reader-connection.js';
 
 /**
@@ -249,7 +249,7 @@ test('Another reading rolls a vivid one, named by chance with its look; Begin pl
   });
   expect(session).toEqual({ wpm: decision.config.wpm, face: decision.config.presentation.chamberFace, experience: 'jev' });
 
-  await page.locator('#chamber-display').hover();
+  await revealChamberControls(page);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
