@@ -111,7 +111,7 @@ function fakeRuntime(initial = 'live') {
         resume: vi.fn(() => { calls.push(['resume']); runtime.set('live'); }),
         dive: vi.fn(async body => { if (state.status === 'diving') throw new Error('A Dive inside a Dive is not built'); calls.push(['dive', body]); runtime.set('diving'); }),
         surface: vi.fn(async () => { calls.push(['surface']); runtime.set('live'); }),
-        discoverVisual: vi.fn(() => ({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, current: { intensity: 0.65 }, target: { intensity: 0.65 } })),
+        discoverVisual: vi.fn(() => ({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75, cueable: true } } }, current: { intensity: 0.65 }, target: { intensity: 0.65 } })),
         controlVisual: vi.fn(command => ({ status: 'accepted', surface: 'attractor', parameter: 'intensity', requested: command.value, effective: command.value })),
         set(status, extra) { state = snapshot(status, extra); for (const fn of [...listeners]) fn(state); },
         calls
@@ -281,7 +281,7 @@ describe('visual control', () => {
 
     it('does not lower brightness beneath the active visual manifest minimum', () => {
         const runtime = fakeRuntime('live');
-        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, current: { intensity: 0.4 }, target: { intensity: 0.4 } });
+        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75, cueable: true } } }, current: { intensity: 0.4 }, target: { intensity: 0.4 } });
         controls = createLiveControls({ runtime, onStop: () => {} });
         $('input[name="visual"]').value = 'make it calmer';
         $('[data-live="visual-submit"]').click();
@@ -306,7 +306,7 @@ describe('visual control', () => {
 
     it('requests the capped target and reports a no-change outcome only after acceptance', () => {
         const runtime = fakeRuntime('live');
-        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, target: { intensity: 0.75 }, current: { intensity: 0.75 } });
+        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75, cueable: true } } }, target: { intensity: 0.75 }, current: { intensity: 0.75 } });
         controls = createLiveControls({ runtime, onStop: () => {} });
         $('input[name="visual"]').value = 'more vibrant';
         $('[data-live="visual-submit"]').click();
@@ -318,6 +318,17 @@ describe('visual control', () => {
         expect($('.live-controls__status').textContent).not.toContain('brightness is already at its maximum');
         expect($('.live-controls__error').textContent).toContain('There is no adjustable visual on screen right now.');
         expect($('.live-controls__error').textContent).toContain('brightness');
+    });
+
+    it('refuses to change a field whose intensity is fixed while it runs', () => {
+        const runtime = fakeRuntime('live');
+        runtime.set('live', { main: { currentId: 'main-1', segmentId: 'segment-1' } });
+        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'living-flame', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, target: { intensity: 0.65 }, current: { intensity: 0.65 } });
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        $('input[name="visual"]').value = 'more vibrant';
+        $('[data-live="visual-submit"]').click();
+        expect(runtime.controlVisual).not.toHaveBeenCalled();
+        expect($('.live-controls__error').textContent).toContain('There is no adjustable visual on screen right now.');
     });
 
     it('clears only its own refusal alert when the active field changes', async () => {
@@ -346,7 +357,7 @@ describe('visual control', () => {
 
     it('keeps outcome feedback for the active segment and clears it when the selected run or segment changes', () => {
         const runtime = fakeRuntime('live');
-        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, target: { intensity: 0.75 }, current: { intensity: 0.75 } });
+        runtime.discoverVisual.mockReturnValue({ manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75, cueable: true } } }, target: { intensity: 0.75 }, current: { intensity: 0.75 } });
         runtime.set('live', { main: { currentId: 'main-1', segmentId: 'main-segment-1' } });
         controls = createLiveControls({ runtime, onStop: () => {} });
         $('input[name="visual"]').value = 'more vibrant';

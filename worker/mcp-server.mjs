@@ -111,7 +111,11 @@ export function currentJsonSchemaV2() {
         maxItems: BEAT_LIMITS.scenes,
         items: {
           type: 'object',
-          properties: { id, engine: { type: 'string', enum: SCENE_ENGINES } },
+          properties: {
+            id,
+            engine: { type: 'string', enum: SCENE_ENGINES },
+            params: { type: 'object', description: 'The engine\u2019s parameters, by the guide\u2019s list for that engine; each within its bounds.' }
+          },
           required: ['id', 'engine'],
           additionalProperties: false
         }

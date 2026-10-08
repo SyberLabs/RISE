@@ -833,13 +833,13 @@ const SKY_BEATS = {
   title: 'Why the sky is blue',
   origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
   look: 'signal',
-  scenes: [{ id: 'field', engine: 'attractor' }],
+  scenes: [{ id: 'field', engine: 'attractor', params: { palette: 'jade', intensity: 0.5 } }, { id: 'flame', engine: 'living-flame', params: { preset: 'violet-nebula', energy: 0.5 } }],
   beats: [
     { say: 'Sunlight carries every colour at once.', scene: 'field', emphasis: ['colour'] },
-    { hold: { ms: 1500 } },
+    { hold: { ms: 1500 }, cue: 'bright' },
     { show: 'A line nobody says.', hold: { ms: 1200 }, place: 'top', type: 'handwritten' },
     { say: 'Scattering goes as one over lambda to the fourth.', show: 'Scattering goes as $1/\lambda^4$.', place: 'caption' },
-    { say: 'So blue reaches your eye from every part of the sky.' }
+    { say: 'So blue reaches your eye from every part of the sky.', scene: 'flame' }
   ]
 };
 
@@ -864,5 +864,7 @@ test('a Current of beats plays in the self-contained card: a hold, a shown line,
   await expect(app.locator('#atom-display')).toHaveAttribute('data-place', 'caption');
   await expectShown(app, 'So blue reaches your eye');
   await expect(app.locator('#atom-display')).not.toHaveAttribute('data-place', /./u);
+  // The last beat started the Living Flame scene, from its preset and the scene's macros.
+  await expect(app.locator('.chamber-living-flame')).toBeAttached({ timeout: 15_000 });
   expect(errors).toEqual([]);
 });

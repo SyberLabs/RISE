@@ -13,6 +13,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createStageControls } from './stage-controls.js';
+import { ATTRACTOR_VISUAL_MANIFEST } from '../../core/visual-control-contract.js';
+import { manifestFor } from '../../scenes/manifests.js';
 
 const snapshot = (status, extra = {}) => ({
     status, error: null, main: { voiceDegraded: false, speaking: null, segmentId: 's1', ...extra.main }, side: null, ...(extra.error ? { error: extra.error } : {})
@@ -20,7 +22,9 @@ const snapshot = (status, extra = {}) => ({
 
 const SEGMENTS = [{ text: 'first line', ended: true }, { text: 'second line', ended: true }, { text: 'still being written', ended: false }];
 
-function fakeRuntime(initial = 'live', { visual = true } = {}) {
+const ATTRACTOR_DISCOVERY = { manifest: ATTRACTOR_VISUAL_MANIFEST, current: { intensity: 0.65 }, target: { intensity: 0.65 } };
+
+function fakeRuntime(initial = 'live', { visual = true, discovery = ATTRACTOR_DISCOVERY } = {}) {
     const listeners = new Set();
     let state = snapshot(initial);
     const calls = [];
@@ -31,9 +35,7 @@ function fakeRuntime(initial = 'live', { visual = true } = {}) {
         composed: () => ({ segments: SEGMENTS }),
         interrupt: vi.fn(async () => { calls.push(['interrupt']); runtime.set('interrupted'); }),
         resume: vi.fn(() => { calls.push(['resume']); runtime.set('live'); }),
-        discoverVisual: vi.fn(() => (visual
-            ? { manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, current: { intensity: 0.65 }, target: { intensity: 0.65 } }
-            : null)),
+        discoverVisual: vi.fn(() => (visual ? discovery : null)),
         controlVisual: vi.fn(command => { calls.push(['controlVisual', command]); return { status: 'accepted', surface: 'attractor', parameter: 'intensity', requested: command.value, effective: command.value }; }),
         set(status, extra) { state = snapshot(status, extra); for (const fn of [...listeners]) fn(state); },
         calls
@@ -317,6 +319,27 @@ describe('the Settings sheet', () => {
         expect(intensity().getAttribute('title')).toBeNull();
         // The sheet still opened with its first enabled control focused: the Theme select.
         expect(document.activeElement).toBe(theme());
+    });
+
+    it('shows its row only for a field whose intensity changes while it runs: the attractor, not the flame', () => {
+        const row = () => intensity().closest('.rise-settings__row');
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {} });
+        settings().click();
+        expect(row().hidden).toBe(false);
+        expect(intensity().disabled).toBe(false);
+        stage.destroy();
+
+        const flame = { manifest: manifestFor('living-flame'), current: { energy: 0.35, intensity: 0.35 }, target: { energy: 0.35, intensity: 0.35 } };
+        stage = createStageControls({ runtime: fakeRuntime('live', { discovery: flame }), onPlayAgain: () => {} });
+        settings().click();
+        expect(row().hidden).toBe(true);
+        expect(intensity().disabled).toBe(true);
+        stage.destroy();
+
+        stage = createStageControls({ runtime: fakeRuntime('live', { visual: false }), onPlayAgain: () => {} });
+        settings().click();
+        expect(row().hidden).toBe(true);
+        expect(intensity().disabled).toBe(true);
     });
 
     it('sends the chosen intensity again when the reading moves to a new passage', () => {

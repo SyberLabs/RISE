@@ -123,7 +123,8 @@ import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
 import { SOUND_GROUPS, soundOf } from '../../audio/sound-list.js';
 import { connectionState } from '../../core/ai-connection.js';
 import { LOOKS, applyLook, lookOfSession } from '../../core/looks.js';
-import { ATTRACTOR_VISUAL_MANIFEST } from '../../core/visual-control-contract.js';
+import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../../core/visual-control-contract.js';
+import { manifestFor } from '../../scenes/manifests.js';
 import './Chamber.css';
 
 const RHYTHMS = Object.freeze([['phrase', 'Phrase'], ['sentence', 'Sentence'], ['word', 'Word']]);
@@ -182,6 +183,11 @@ const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
  * The words of what is shown, with its formulas each as one word (math-typeset.js) and a beat's
  * emphasis marked on the words it names, whatever their punctuation or case.
  */
+/** The reader's size, stepped by a beat's `size` when it has one; the one owner of an atom's size. */
+function beatFontSize(base, beat) {
+  return resolveFontSize(beat?.size ? stepFontSize(base, beat.size) : base);
+}
+
 function shownWords(content, emphasis) {
   const wanted = new Set((emphasis ?? []).map(word => word.toLowerCase()));
   const bare = word => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
@@ -2844,12 +2850,28 @@ export class Chamber {
         if (paused) controller.pause();
         this.livingFlameField = controller;
       }).catch(error => console.warn('[Chamber] Living Flame unavailable:', error));
+      // The flame's macros as a cue may move them while it runs (src/scenes/manifests.js).
+      let macros = { ...(flame.recipe.macros ?? {}) };
+      const FLAME_MANIFEST = manifestFor('living-flame');
       return {
         node: host,
         renderer: 'living-flame',
         pause: () => { paused = true; controller?.pause?.(); },
         resume: () => { paused = false; controller?.resume?.(); },
         setEnergy: () => controller?.setEnergy?.(this._effectiveFlameEnergy(intensity)),
+        discoverVisual: () => (destroyed || !host.isConnected ? null : Object.freeze({
+          manifest: FLAME_MANIFEST, current: Object.freeze({ ...macros }), target: Object.freeze({ ...macros })
+        })),
+        controlVisual: command => {
+          const validated = validateVisualCommand(command, FLAME_MANIFEST);
+          if (!validated.ok) return { status: 'refused', code: validated.code };
+          if (destroyed || !controller || !host.isConnected) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+          const { parameter, value } = validated.command;
+          macros = { ...macros, [parameter]: value };
+          if (parameter === 'energy') controller.setEnergy(value);
+          else controller.setRecipe({ ...flame.recipe, macros }, { transitionMs: reducedMotion ? 0 : 800 });
+          return { status: 'accepted', surface: 'living-flame', parameter, requested: validated.requested, effective: value };
+        },
         morph: (next, { transitionMs } = {}) => {
           const nextFlame = normalizeLivingFlameConfig(next?.config);
           if (!nextFlame || !controller?.canMorphTo?.(nextFlame.recipe)) return false;
@@ -3185,8 +3207,7 @@ export class Chamber {
     const place = beat?.place && beat.place !== 'centre' ? beat.place : null;
     if (place && place !== 'none') atomDisplay.dataset.place = place;
     else delete atomDisplay.dataset.place;
-    const base = this.effectiveFontSize();
-    atomDisplay.dataset.fontSize = resolveFontSize(beat?.size ? stepFontSize(base, beat.size) : base);
+    atomDisplay.dataset.fontSize = beatFontSize(this.effectiveFontSize(), beat);
     const faces = this.session?.presentation?.typeFaces ?? null;
     const named = beat?.type ?? (place && place !== 'none' ? faces?.caption : faces?.text) ?? null;
     const face = resolveTypeFace(named);
@@ -3454,9 +3475,9 @@ export class Chamber {
    * Sized on what is SHOWN — emphasis marks are notation and would
    * otherwise push a phrase into a smaller face than it needs.
    */
-  sizeAtomText(atomDisplay, content) {
+  sizeAtomText(atomDisplay, content, beat = null) {
     atomDisplay.style.removeProperty('font-size');
-    const fontSize = resolveFontSize(this.effectiveFontSize());
+    const fontSize = beatFontSize(this.effectiveFontSize(), beat);
     atomDisplay.dataset.fontSize = fontSize;
     atomDisplay.style.setProperty('--font-size-intent', String(threeStepIntent(fontSize)));
 
@@ -3737,7 +3758,7 @@ export class Chamber {
         };
       }
 
-      this.sizeAtomText(atomDisplay, atom.content);
+      this.sizeAtomText(atomDisplay, atom.content, atom.beat);
 
       this.applyLivingText(atomDisplay, index);
       atomDisplay.style.opacity = '1';
@@ -3761,7 +3782,7 @@ export class Chamber {
         : 0;
       const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0, emphasis: atom.beat?.emphasis });
 
-      this.sizeAtomText(atomDisplay, atom.content);
+      this.sizeAtomText(atomDisplay, atom.content, atom.beat);
 
       this.applyLivingText(atomDisplay, index);
 

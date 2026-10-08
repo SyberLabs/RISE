@@ -15,7 +15,7 @@
  * which compiles it; the stream carries progress, status and the voice's words.
  */
 
-import { validateRiseCurrent } from '../../core/rise-current.js';
+import { RISE_CURRENT_VISUALS, validateRiseCurrent } from '../../core/rise-current.js';
 import { EVENT_LIMITS } from '../protocol.js';
 
 /**
@@ -33,7 +33,9 @@ export function currentToEvents(input) {
         // A hold has no words for the stream; a shown beat's words are the shown ones.
         if (segment.hold) continue;
         const literal = segment.literal ? { literal: true } : {};
-        events.push({ type: 'segment.begin', body: { segmentId: segment.id, ...(segment.visual === undefined ? {} : { visual: segment.visual }), ...literal } });
+        // The stream's visual vocabulary is v1's; a v2 scene outside it is drawn from the sealed Current alone.
+        const visual = RISE_CURRENT_VISUALS.includes(segment.visual) ? { visual: segment.visual } : {};
+        events.push({ type: 'segment.begin', body: { segmentId: segment.id, ...visual, ...literal } });
         const text = segment.spoken ?? segment.text;
         for (let offset = 0; offset < text.length;) {
             // A chunk is never blank, however the whitespace in the text falls.

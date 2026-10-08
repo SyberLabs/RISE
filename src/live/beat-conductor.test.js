@@ -9,19 +9,20 @@ import { createVirtualClock } from './clock.js';
 import { createBeatConductor } from './beat-conductor.js';
 
 function fakePlayer() {
-  const stateListeners = new Set();
+  const listeners = { state: new Set(), atom: new Set() };
   let governor = null;
   return {
     govern(given) { governor = given; return () => { governor = null; }; },
-    on(name, fn) { if (name === 'state') stateListeners.add(fn); return () => stateListeners.delete(fn); },
-    set(state) { for (const fn of stateListeners) fn({ state }); },
+    on(name, fn) { listeners[name]?.add(fn); return () => listeners[name]?.delete(fn); },
+    set(state) { for (const fn of listeners.state) fn({ state }); },
+    show(atom) { for (const fn of listeners.atom) fn({ atom, index: 0, concealed: false }); },
     get governor() { return governor; }
   };
 }
 
-function setup() {
+function setup(options = {}) {
   const clock = createVirtualClock();
-  const conductor = createBeatConductor({ clock });
+  const conductor = createBeatConductor({ clock, ...options });
   const player = fakePlayer();
   conductor.install(player);
   return { clock, conductor, player };
@@ -30,6 +31,29 @@ function setup() {
 const HOLD = { content: '', duration: 3000, hold: { ms: 3000, sceneId: 'field' } };
 const SHOWN = { content: 'A title.', duration: 1500, beatTimed: true };
 const SAID = { content: 'Words a voice says.', duration: 1200 };
+
+describe('what the conductor cues', () => {
+  it('fires a beat’s cue once, on the first atom of its passage, with the scene it is for', () => {
+    const cues = [];
+    const { player } = setup({ onCue: cue => cues.push(cue) });
+    const bright = [{ surface: 'attractor', parameter: 'intensity', value: 0.75 }];
+    const first = { content: 'Here is', sourceId: 'beat-0', beat: { cue: 'bright' }, scene: 'field', cueCommands: bright };
+    const second = { content: 'a vector.', sourceId: 'beat-0', beat: { cue: 'bright' }, scene: 'field', cueCommands: bright };
+    player.show(first);
+    player.show(second);
+    player.show({ content: 'No cue.', sourceId: 'beat-1', scene: 'field' });
+    player.show({ content: '', sourceId: 'beat-2', beat: { cue: 'calm' }, scene: 'field', hold: { ms: 1000, sceneId: 'field' } });
+    expect(cues).toEqual([{ cue: 'bright', sceneId: 'field', commands: bright }, { cue: 'calm', sceneId: 'field', commands: [] }]);
+  });
+
+  it('fires nothing once disposed', () => {
+    const cues = [];
+    const { conductor, player } = setup({ onCue: cue => cues.push(cue) });
+    conductor.dispose();
+    player.show({ content: 'x', sourceId: 'beat-0', beat: { cue: 'bright' }, scene: 'field' });
+    expect(cues).toEqual([]);
+  });
+});
 
 describe('what the conductor times', () => {
   it('ends a hold’s atom when its duration has passed, and not before', async () => {

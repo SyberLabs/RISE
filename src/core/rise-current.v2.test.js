@@ -18,7 +18,7 @@ const V2 = Object.freeze({
   scenes: [{ id: 'field', engine: 'attractor' }, { id: 'calm', engine: 'still' }],
   beats: [
     { say: 'Here is a vector.', scene: 'field', sound: 'starlight' },
-    { hold: { ms: 3000, maxMs: 8000 }, cue: 'rotate' },
+    { hold: { ms: 3000, maxMs: 8000 }, cue: 'bright' },
     { say: 'Its length is root x squared plus y squared.', show: 'Its length is √(x² + y²).', place: 'caption' },
     { show: 'The Pythagorean theorem, in two dimensions. It holds in every right triangle.', hold: { ms: 2500 }, scene: 'calm', size: 'smaller' },
     { say: 'So the whole story is one idea.' }
@@ -105,6 +105,17 @@ describe('compiling a v2 Current', () => {
     expect(session.spokenText.get('beat-2')).toBe('Its length is root x squared plus y squared.');
   });
 
+  it('times the seam into a passage no voice says with that passage, and names the spoken passages that come after one', () => {
+    const session = compileRiseCurrent(V2);
+    const seamInto = id => session.atoms[session.atoms.findIndex(atom => atom.sourceId === id) - 1];
+    for (const id of ['beat-1', 'beat-3']) {
+      expect(seamInto(id).seam).toBeDefined();
+      expect(seamInto(id).beatTimed).toBe(true);
+    }
+    for (const id of ['beat-2', 'beat-4']) expect(seamInto(id).beatTimed).toBeUndefined();
+    expect([...session.voiceWaitsFor]).toEqual(['beat-2', 'beat-4']);
+  });
+
   it('leaves a v1 Current exactly as it was', () => {
     const session = compileRiseCurrent({
       schema: RISE_CURRENT_SCHEMA, id: 'v1', title: 'V1', origin: { kind: 'human', name: 'T' },
@@ -115,12 +126,27 @@ describe('compiling a v2 Current', () => {
   });
 });
 
+describe('scenes with parameters', () => {
+  it('lowers a persistent engine with the theme’s defaults under the scene’s parameters, and a pattern engine as a procedural cue the field admits', () => {
+    const { program } = materializeRiseCurrent({ ...V2, scenes: [{ id: 'field', engine: 'attractor', params: { palette: 'jade' } }, { id: 'calm', engine: 'ostensoria', params: { palette: 'ice' } }] });
+    const clips = program.tracks.find(track => track.kind === 'visual').clips;
+    expect(clips[0].cue).toEqual({ kind: 'field', renderer: 'attractor', config: { system: 'thomas', palette: 'jade', form: 'mirror' } });
+    expect(clips[3].cue).toEqual({ kind: 'procedural', collections: ['ostensoria'], config: { palette: 'ice' } });
+    const session = compileRiseCurrent({ ...V2, scenes: [{ id: 'field', engine: 'attractor' }, { id: 'calm', engine: 'ostensoria' }] });
+    expect(session.visualConfig.interlocution.procedural).toEqual(['ostensoria']);
+    expect(session.visualConfig.visualMode).toBe('interlocution');
+  });
+});
+
 describe('what a v2 Current carries for the layers', () => {
   it('puts each beat’s typography and cue on its atoms, the Current’s faces on the presentation, and says when there is maths', () => {
     const session = compileRiseCurrent(V2);
     const caption = session.atoms.find(atom => atom.sourceId === 'beat-2');
     expect(caption.beat).toEqual({ place: 'caption' });
-    expect(session.atoms.find(atom => atom.sourceId === 'beat-1').beat).toEqual({ cue: 'rotate' });
+    expect(session.atoms.find(atom => atom.sourceId === 'beat-1').beat).toEqual({ cue: 'bright' });
+    expect(session.atoms.find(atom => atom.sourceId === 'beat-1').scene).toBe('field');
+    expect(session.atoms.find(atom => atom.sourceId === 'beat-1').cueCommands).toEqual([{ surface: 'attractor', parameter: 'intensity', value: 0.75 }]);
+    expect(session.atoms.find(atom => atom.sourceId === 'beat-3').scene).toBe('calm');
     expect(session.presentation.typeFaces).toEqual({ text: 'book-serif', caption: 'humanist-sans' });
     expect(session.hasMath).toBe(false);
     const withMath = compileRiseCurrent({ ...V2, beats: [{ say: 'x squared', show: 'So $x^2$.' }] });

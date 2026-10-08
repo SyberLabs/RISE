@@ -373,7 +373,7 @@ describe('the shape of a Current, as the host’s model is told it', () => {
     for (const mutate of [
       c => { c.beats[0].extra = 1; },
       c => { c.beats[0].place = 'margin'; },
-      c => { c.scenes[0].engine = 'fractal'; },
+      c => { c.scenes[0].engine = 'shader'; },
       c => { c.beats = []; }
     ]) {
       const current = structuredClone(CURRENT_EXAMPLE_V2);

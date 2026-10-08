@@ -1,0 +1,48 @@
+{
+  "id": "CC-004",
+  "title": "Native engine manifests and cues",
+  "lane": "live-sdk",
+  "milestone": "Creative Control",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "CC-002"
+  ],
+  "acceptance": [
+    "Every engine the catalog lists has a manifest stating only what the engine honours: its parameters with bounds, and which it changes while it runs (cueable); unit-tested against the catalog.",
+    "A scene's params are validated against its engine's manifest with a path and a code; a beat's cue is one of the running scene's named cues or set:<parameter>=<value> on a cueable parameter, refused otherwise with the engine's offer; unit-tested.",
+    "A scene lowers to the score as a field cue (the theme's defaults under its params; the Living Flame a whole recipe from preset and macros) or a procedural cue the gallery field admits; unit-tested.",
+    "A cue reaches the running engine when its beat begins, as the manifest's commands through the existing visual-control path, validated against the active engine's manifest; the attractor's intensity and the flame's macros change in place; unit-tested at the conductor, the runtime, the contract and the director.",
+    "The Worker's schema admits params and the guide lists every engine with its parameters and cues; the catalog marks every listed engine composer-ready."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-08-creative-control-design.md",
+      "note": "The Creative Control design; §9 native engines and manifests.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/519",
+      "note": "Manifests for every catalog engine (src/scenes/manifests.js), params and cue validation, cues through the visual-control path; the Living Flame joins the composer. Unit evidence: src/scenes/manifests.test.js, src/core/beats.test.js, src/live/beat-conductor.test.js, src/live/runtime.v2.test.js, src/visuals/attractor-manifest.test.js, src/live/host/stage-controls.test.js, src/live/host/controls.test.js, src/components/read/Chamber.beat-typography.test.js, Chamber.beat-place.test.js, Chamber.beat-size.test.js. Browser evidence: the full-validation run linked from the PR.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T16:00:00.000Z",
+      "summary": "Opened after CC-003; built directly against the design. Living Flame joins the composer (widens RDR-023 at the owner's direction)."
+    },
+    {
+      "date": "2026-10-08T13:26:35.525Z",
+      "summary": "Two card defects fixed after the first validation run (Intensity only for a cueable field; the voice waits for the reading through a hold); beat size step and text controls fixed; PR evidence linked"
+    }
+  ],
+  "updatedAt": "2026-10-08T13:26:35.525Z",
+  "revision": 2,
+  "summary": "Every native engine exposed to the model with truthful parameter manifests; scene params and cues validated against them; cues delivered to the running engine through the existing visual-control path.",
+  "blocker": null
+}

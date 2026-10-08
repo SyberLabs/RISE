@@ -13,14 +13,20 @@
  * Player times what remains of the atom itself on resume, as it does for the
  * speech governor.
  *
+ * A beat's cue is fired when the beat begins, on the first atom of its
+ * passage the Player shows, as the running engine's commands the compiler
+ * lowered it to (rise-current.js); the runtime delivers them.
+ *
  * Scenes that can end a hold early (`maxMs`) are a later sub-project; here a
  * hold lasts exactly its `ms`.
  */
-export function createBeatConductor({ clock }) {
+export function createBeatConductor({ clock, onCue = null }) {
     let player = null;
     let release = null;
     let stopWatching = null;
+    let stopAtoms = null;
     let waiting = null;
+    let lastCued = null;
 
     const timed = atom => atom?.hold !== undefined || atom?.beatTimed === true;
 
@@ -54,12 +60,21 @@ export function createBeatConductor({ clock }) {
             stopWatching = player.on('state', ({ state }) => {
                 if (state === 'paused' || state === 'idle' || state === 'complete') cancelWait();
             });
+            stopAtoms = player.on('atom', ({ atom }) => {
+                const cue = atom?.beat?.cue;
+                if (!cue || atom.sourceId === lastCued) return;
+                lastCued = atom.sourceId;
+                onCue?.({ cue, sceneId: atom.scene ?? null, commands: atom.cueCommands ?? [] });
+            });
         },
 
         dispose() {
             cancelWait();
             stopWatching?.();
             stopWatching = null;
+            stopAtoms?.();
+            stopAtoms = null;
+            lastCued = null;
             release?.();
             release = null;
             player = null;
