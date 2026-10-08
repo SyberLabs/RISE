@@ -169,10 +169,22 @@ describe('when the Player cannot go on', () => {
             'Date', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame'] });
     });
 
+    // The fault under test is the Player's advance from its frame timer. A
+    // field of its own would paint on that same faked clock, and through
+    // the recording canvas fake an attractor's frames cost more real time
+    // than the test has; so the reading is held over a still field.
+    const stillCurrent = () => compileRiseCurrent({
+        schema: 'rise.current.v1',
+        id: 'chamber-held',
+        title: 'Chamber held',
+        origin: { kind: 'human', name: 'Tester' },
+        segments: SEGMENTS.map(segment => ({ ...segment, visual: 'still' }))
+    });
+
     function mountReading() {
         const container = document.createElement('div');
         document.body.appendChild(container);
-        const player = new Player(current(3));
+        const player = new Player(stillCurrent());
         const chamber = new Chamber(container, {
             session: player.sessionState.session, player, autoStart: false
         });
