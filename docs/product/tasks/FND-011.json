@@ -27,16 +27,26 @@
       "ref": "src/components/read",
       "note": "npx vitest run on Guide, Home*, home-*, read/Chamber.* and core/system-design tests: 38 files, 425 tests passed on branch truth/reader-ai-copy. ci-hygiene, vite build and measure:first-load also passed.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/530",
+      "note": "Copy-only truth pass; open, not merged.",
+      "date": "2026-10-08"
     }
   ],
   "activity": [
     {
       "date": "2026-10-08T18:45:00.000Z",
       "summary": "Claimed and implemented on branch truth/reader-ai-copy; not merged."
+    },
+    {
+      "date": "2026-10-08T18:43:17.175Z",
+      "summary": "Opened PR 530; not merged."
     }
   ],
-  "updatedAt": "2026-10-08T18:45:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-08T18:43:17.175Z",
+  "revision": 2,
   "summary": "A truth pass so readers are told which AI connection receives their text and what RISE's server sees.",
   "blocker": null
 }
