@@ -184,7 +184,7 @@ const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
  */
 function shownWords(content, emphasis) {
   const wanted = new Set((emphasis ?? []).map(word => word.toLowerCase()));
-  const bare = word => word.toLowerCase().replace(/^[^p{L}p{N}]+|[^p{L}p{N}]+$/gu, '');
+  const bare = word => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
   const words = [];
   for (const part of splitMath(content)) {
     if (part.kind === 'math') words.push({ text: part.value, emphasised: false, math: true, display: part.display });
