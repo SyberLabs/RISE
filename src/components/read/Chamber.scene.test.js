@@ -95,6 +95,14 @@ describe('a generated scene in the Chamber', () => {
     chamber.destroy();
   });
 
+  it('lands a cue at once when the reading was moved past its beat (a seek), so the scene is where it would have been', async () => {
+    const { chamber, worker } = await mounted();
+    vi.spyOn(chamber, 'visualShown').mockReturnValue(true);
+    expect(chamber.controlVisual({ surface: 'scene', parameter: 'cue', value: 'draw' }, { instant: true }).status).toBe('accepted');
+    expect(worker.of(TO_WORKER.cue)).toEqual([{ type: TO_WORKER.cue, name: 'draw', instant: true }]);
+    chamber.destroy();
+  });
+
   it('holds a beat of its own scene, and no other', async () => {
     const { chamber, worker } = await mounted();
     expect(chamber.holdScene({ hold: { ms: 2000, maxMs: 5000, sceneId: 'other' } })).toBeNull();

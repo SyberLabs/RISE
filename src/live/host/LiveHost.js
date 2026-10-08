@@ -433,7 +433,7 @@ export class LiveHost {
                     return this.present.presentLive(this.router, session, player);
                 },
                 discoverVisual: ({ player }) => mountedChamber(player)?.discoverVisual?.() ?? null,
-                controlVisual: ({ player, command }) => mountedChamber(player)?.controlVisual?.(command)
+                controlVisual: ({ player, command, instant }) => mountedChamber(player)?.controlVisual?.(command, { instant: instant === true })
                     ?? { status: 'refused', code: 'NO_ACTIVE_VISUAL' },
                 holdScene: ({ player, atom }) => mountedChamber(player)?.holdScene?.(atom) ?? null,
                 dismiss: () => {}

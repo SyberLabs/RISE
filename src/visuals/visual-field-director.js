@@ -89,7 +89,7 @@ export class VisualFieldDirector {
     return record.discoverVisual();
   }
 
-  controlVisual(command) {
+  controlVisual(command, options = {}) {
     const record = this.active;
     // The active field's own manifest bounds the command; a record that names none is held to the attractor's.
     const manifest = typeof record?.discoverVisual === 'function' ? record.discoverVisual()?.manifest : null;
@@ -102,7 +102,7 @@ export class VisualFieldDirector {
     if (typeof record.controlVisual !== 'function') {
       return { status: 'refused', code: 'UNSUPPORTED_SURFACE' };
     }
-    return record.controlVisual(command);
+    return record.controlVisual(command, options);
   }
 
   retire(record, immediate = false, transitionMs = this.transitionMs) {

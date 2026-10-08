@@ -599,7 +599,7 @@ describe('the runtime visual bridge', () => {
         expect(chamber.player).toBe(player);
         expect(host.runtime.discoverVisual()).toMatchObject({ current: { intensity: 0.65 } });
         expect(host.runtime.controlVisual(command)).toMatchObject({ status: 'accepted', requested: 0.7, effective: 0.7 });
-        expect(chamber.controlVisual).toHaveBeenCalledWith(command);
+        expect(chamber.controlVisual).toHaveBeenCalledWith(command, { instant: false });
 
         chamber.player = {};
         expect(host.runtime.discoverVisual()).toBeNull();
