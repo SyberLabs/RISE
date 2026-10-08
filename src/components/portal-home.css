@@ -169,14 +169,15 @@
 .home-epigraph[data-face="book"] { --home-face-weight: 600; }
 .home-epigraph[data-face="jp"] { --home-face: var(--font-jp); }
 
-/* What RISE is, on a first visit only: one line at every width, never two. */
+/* What RISE is, on a first visit only: one line where it fits, balanced over
+   two on the narrowest phones (measured: it overflows 360 px at 14 px). */
 .home-about {
   grid-row: 5;
   margin: calc(-1 * var(--sy-space-3)) 0 var(--sy-space-5);
   font-size: 14px;
   line-height: 20px;
   color: var(--sy-text-2);
-  white-space: nowrap;
+  text-wrap: balance;
 }
 
 .home-actions {
