@@ -123,6 +123,30 @@ describe('governing the end of an atom', () => {
         expect(shown[2].at - shown[1].at).toBe(1000);
     });
 
+    it('lets a late end touch only the atom it was asked for, not an ungoverned atom shown after it', async () => {
+        player = new Player(session());
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        let endFirst = null;
+        // The first atom's end is held back past its watchdog; the second declines governance and runs on its own timer.
+        player.govern({
+            duration: () => 1000,
+            completion: (_atom, index) => (index === 0 ? new Promise(resolve => { endFirst = resolve; }) : index === 1 ? null
+                : new Promise(resolve => { setTimeout(() => resolve({ reason: 'ended' }), 1000); }))
+        });
+        player.play();
+        for (let i = 0; i < 200 && !shown.some(entry => entry.index === 1); i += 1) await tick(50);
+        expect(shown.some(entry => entry.index === 1)).toBe(true);
+        // The first atom's end arrives at last, while the second is on screen.
+        await tick(300);
+        endFirst({ reason: 'ended' });
+        await tick(3000);
+        expect(shown.map(entry => entry.index)).toEqual([0, 1, 2]);
+        // The second atom is shown for its whole time (its own timer runs on frames, so a frame over): the stale end did not cut it short.
+        expect(shown[2].at - shown[1].at).toBeGreaterThanOrEqual(1000);
+        expect(shown[2].at - shown[1].at).toBeLessThan(1100);
+    });
+
     it('carries on for an atom that nothing governs', async () => {
         player = new Player(session());
         const shown = [];

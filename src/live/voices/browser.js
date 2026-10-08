@@ -26,6 +26,14 @@
  *
  * Time is `playedMs`: speaking time only, so a hold takes none of it.
  *
+ * A voice stopped from outside (another page's `cancel()`, another speaker on
+ * the device) is known by the `interrupted` or `canceled` error on an utterance
+ * this voice still holds, since it lets go of one before it cancels one; that is
+ * how Chromium reports it, as the specification says. An engine that reports a
+ * cancelled utterance through `onend` instead cannot be told apart from one that
+ * finished, here: such an end is taken as an end. The speech clock, which knows
+ * how long the words should have taken, is where that case would be recognised.
+ *
  * Chrome's Google voices are network voices that stop after about fourteen
  * seconds of one utterance without reporting an end, so a segment said in one
  * of them is said a sentence at a time (a long sentence is cut at a pause, or

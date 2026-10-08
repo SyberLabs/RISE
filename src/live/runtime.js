@@ -601,6 +601,11 @@ export function createLiveRuntime({
                 else if (run.role === 'main' && status === 'live') {
                     run.player.pause();
                     set('interrupted');
+                } else if (run.role === 'side') {
+                    // A Dive has no Play of its own on the stage to take the voice up again, so it is not held:
+                    // its clock stands down and the Dive finishes on the timer rather than waiting on a voice
+                    // that will not resume. Holding a Dive comes with the Dive, when it returns to scope.
+                    run.governor.standDown('voice-taken');
                 }
             },
             restarted: (id, afterMs) => { if (!run.closed) note('voice.restarted', { role: run.role, segmentId: id, afterMs }); },

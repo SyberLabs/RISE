@@ -220,6 +220,25 @@ for (const boundaries of [true, false]) {
     });
 }
 
+describe('a Dive whose voice is taken from outside', () => {
+    it('is not held, since the stage has no Play for it: its clock stands down, it says so, and it finishes on the timer', async () => {
+        const built = build({ boundaries: true });
+        await runtime.start('Explain black holes.');
+        await readUntilMidPassage(built.atoms, { afterFirst: true });
+        await runtime.dive({ question: 'dive on event horizon' });
+        await tick(1_500);
+        expect(runtime.snapshot().status).toBe('diving');
+        built.synth.cancel();
+        await tick(50);
+        expect(runtime.snapshot().status).toBe('diving');
+        expect(runtime.journal().filter(entry => entry.type === 'voice.taken').map(entry => entry.role)).toEqual(['side']);
+        expect(runtime.journal().filter(entry => entry.type === 'voice.degraded' && entry.role === 'side').map(entry => entry.reason)).toEqual(['voice-taken']);
+        // The Dive goes on without its voice and ends, instead of waiting on a voice that will not resume.
+        await tick(60_000);
+        expect(runtime.journal().some(entry => entry.type === 'run.finished' && entry.role === 'side')).toBe(true);
+    });
+});
+
 describe('held in the moment between two passages', () => {
     it('shows the next passage when the voice begins it again, not before, however slowly the voice starts', async () => {
         // The first utterance after the hold's cancel starts 2 s late, as a network voice's engine can.
