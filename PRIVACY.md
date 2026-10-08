@@ -155,13 +155,45 @@ What each feature sends, and only when you use it:
 - **Visual direction** while you read: sections of the reading's text, one at
   a time as you read. For a released RISE text this happens automatically
   while you are connected; for text you brought, only after you press **Send
-  this reading to Jev** in the reading's visual panel, and it stops when you
-  press **Stop sending**. Text already sent cannot be recalled.
+  this reading to Jev** (or **to Kev**, when you run RISE locally) in the
+  reading's visual panel, and it stops when you press **Stop sending**. Text
+  already sent cannot be recalled.
 
 RISE's server publishes the public reading catalog (released editions,
 sounds, and type options, as a static file). It does
 not receive your requests or your key. Former server-side AI routes remain
-only to tell older tabs they are retired.
+only to tell older tabs they are retired. The one exception is the optional
+OpenAI Live answer below, which is switched off on this site.
+
+### Live answers (experimental)
+
+The Live Current page (`/live`) answers a typed question as a spoken, timed
+reading. By default it uses a built-in demonstration that makes no network
+request. Two providers can be chosen instead, each with a key you type into the
+page. The key is held only in that page's memory and forgotten when the session
+ends, is refused, or the page closes; it is not stored in your browser. What the
+provider receives is your prompt (up to 2,000 characters), RISE's fixed
+instructions, and, if you stop an answer to ask about a place in it, the
+passages of that answer you stopped in. Each provider bills your key and
+processes the request under its own policy.
+
+- **Google Gemini.** Your browser sends the request, with your Gemini API key
+  in a request header, directly to Google at
+  `generativelanguage.googleapis.com`. RISE's servers do not see the key or the
+  request. See <https://policies.google.com/privacy>.
+- **OpenAI Realtime.** This route is switched off on rise.syberlabs.io
+  (`LIVE_REALTIME_ENABLED` is `false`), so today it refuses every request.
+  When it is switched on, your browser sends your OpenAI key, in a request
+  header, and a WebRTC session description (connection details, not your
+  prompt) once to RISE's server at `/api/live/realtime`. The server uses the
+  key for one request to OpenAI to open the session, with RISE's fixed
+  instructions, and returns OpenAI's answer to your browser. It does not store
+  or log the key, does not put it in a URL, and does not pass on OpenAI's error
+  text, which could contain it. Your prompt and the answer then travel
+  directly between your browser and OpenAI and never reach RISE's server.
+  Session starts are counted per IP address for one minute, by Cloudflare's
+  rate limiter, to stop abuse; RISE keeps no record of them. See
+  <https://openai.com/policies/privacy-policy/>.
 
 ### RISE inside ChatGPT or Claude
 
@@ -365,8 +397,11 @@ ask first.
 
 ## 11. Retention
 
-RISE does not receive or persist AI requests. An OpenRouter key is held only in
-the tab's memory and never stored. Cloudflare and Netlify handle hosting and
+RISE does not receive or persist AI requests. An OpenRouter, Gemini, or OpenAI
+key is held only in the page's memory and never stored. If the OpenAI Live route
+is switched on, RISE's server uses the reader's OpenAI key for one request to
+open a session and keeps neither the key nor the request; see section 4. Google
+and OpenAI process Live requests under their own policies. Cloudflare and Netlify handle hosting and
 API request data under their own policies. OpenRouter processes the requests
 you send it under its own policy; see section 4. No provider-side retention
 guarantee is made here.
