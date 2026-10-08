@@ -1,6 +1,6 @@
 {
   "id": "ARENA-REPLAY",
-  "title": "Decision Arena replay: /arena/<case>/<decider> plays a frozen result as a reading",
+  "title": "Decision Arena replay: /arena, /arena/<case> and /arena/<case>/<decider> compare and play a frozen result",
   "lane": "reader",
   "milestone": "Decision Arena",
   "status": "in_review",
@@ -12,7 +12,8 @@
     "/arena/<caseId>/<decider> (openai, jev, kev, rules) loads /content/arena/index.json and its run file only when opened, and plays the first run's admitted decision for that case and decider through the same reading gate, with no model call.",
     "A frozen decision is admitted only under its own label, rise/arena-replay-1 with provider RISE, keeping the original model as sourceModel; other unknown labels are still refused.",
     "Four plain-text deciders (A · OpenAI Decisions, B · TypeSafe Jev, C · Kev, D · rules, no model) switch the same case one reading at a time; a decider with no admitted decision reads 'not run' or 'rejected: <code>' as text; the page states the capture date and that there is no partnership with OpenAI or TypeSafe.",
-    "A missing index or run file, or a case the run lacks, opens Home; first load stays within the 64 KB brotli budget.",
+    "A missing or unreadable index (including the app's HTML page served in its place), a mock-only index, or a case the run lacks shows one plain line and a link (Home, or the case list), not a silent redirect; first load stays within the 64 KB brotli budget.",
+    "/arena lists the run's cases by the reader's request; /arena/<case> shows the four deciders' book, look, sound and pace side by side with each served model (sourceModel) beside its label, and a 'Play this one' button per admitted decision.",
     "Seth or Mateo plays a real frozen run at rise.syberlabs.io/arena/<case>/<decider> after the billed capture lands."
   ],
   "evidence": [
@@ -39,6 +40,18 @@
       "ref": "src/app/arena-replay.test.js",
       "note": "Branch arena/replay, slim replay file: vitest arena-replay, jev-reading, route-url, Home 82 passed; test:e2e:gate 45 passed, 3 skipped (arena-replay 3/3) on a private port; first load 57.5 KB br of 64 KB. Fixture only, no real capture.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/arena-replay.spec.js",
+      "note": "PR #536 (arena/replay-polish): arena-replay 4 passed (replay, /arena list and /arena/<case> by keyboard at 375px, no-run, unknown case); test:e2e:gate 46 passed, 3 skipped on a private port; first load 57.5 KB br of 64 KB. Fixture run only.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/app/arena-replay.test.js",
+      "note": "PR #536: vitest arena-replay, route-url, Home, jev-reading, scoring-client (Kev staged as 'kev'), Chamber.provenance and the CI fast subset, 347 passed.",
+      "date": "2026-10-08"
     }
   ],
   "activity": [
@@ -53,10 +66,14 @@
     {
       "date": "2026-10-08T19:11:08.541Z",
       "summary": "Reads the slim replay file instead of the full run"
+    },
+    {
+      "date": "2026-10-08T19:48:25.784Z",
+      "summary": "Case list, side-by-side comparison with served models, honest no-run state (PR #536)"
     }
   ],
-  "updatedAt": "2026-10-08T19:11:08.541Z",
-  "revision": 3,
+  "updatedAt": "2026-10-08T19:48:25.784Z",
+  "revision": 4,
   "summary": "Replays frozen Decision Arena results as real readings, one decider at a time. Reads only the harness's slim replay file (PR #532): index runs[] latest non-mock entry's replay, then replay-<sha12>.json (syberlabs.decision-arena-replay/v1: runFile, createdAt, providers, decisions[case][provider] = admitted or {rejectCode}). The fixture src/test/arena-run.fixture.js is the contract; content hashes are checked by the harness, not the browser.",
   "blocker": null
 }
