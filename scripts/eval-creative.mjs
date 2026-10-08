@@ -1,5 +1,5 @@
 /**
- * The Creative Control evaluation (docs/evals/creative-control/README.md).
+ * The Creative Control evaluation (docs/evals/creative-control/CREATIVE-CONTROL-EVALS.md).
  *
  * For every case in the corpus (docs/evals/creative-control/<style>/*.json,
  * each { prompt, current }), the Current goes through the Worker's own
