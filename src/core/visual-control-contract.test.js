@@ -25,4 +25,13 @@ describe('a visual command against a manifest', () => {
     expect(validateVisualCommand({ surface: 'test', parameter: 'mood', value: 'bright' }, manifest)).toMatchObject({ ok: true, effective: 'bright' });
     expect(validateVisualCommand({ surface: 'test', parameter: 'mood', value: 'loud' }, manifest).code).toBe('INVALID_CONTROL');
   });
+
+  it('takes a generated scene’s cue as a bounded name the scene decides the meaning of', () => {
+    const manifest = { surface: 'scene', parameters: { cue: { type: 'name', cueable: true } } };
+    expect(validateVisualCommand({ surface: 'scene', parameter: 'cue', value: 'rotate:90' }, manifest))
+      .toMatchObject({ ok: true, command: { surface: 'scene', parameter: 'cue', value: 'rotate:90' }, effective: 'rotate:90' });
+    for (const value of ['', 'x'.repeat(41), 'two words', '<b>', 7]) {
+      expect(validateVisualCommand({ surface: 'scene', parameter: 'cue', value }, manifest).code, String(value)).toBe('INVALID_CONTROL');
+    }
+  });
 });

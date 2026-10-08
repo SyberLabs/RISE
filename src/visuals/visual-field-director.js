@@ -5,7 +5,8 @@ import { validateVisualCommand } from '../core/visual-control-contract.js';
  *
  * The generic visual scheduler decides *which* cue is active. This director
  * owns the expensive DOM/rendering state needed by field cues and guarantees
- * that a successor retires its predecessor exactly once. Collection, video,
+ * that a successor retires its predecessor exactly once. A generated scene is
+ * held the same way, one layer per scene id and code. Collection, video,
  * procedural, and still cues clear the field without learning how a field is
  * rendered.
  */
@@ -28,11 +29,13 @@ export class VisualFieldDirector {
 
   applyCue(cue, { transitionMs = this.transitionMs } = {}) {
     const transition = Math.max(0, Math.min(Number(transitionMs) || 0, 2000));
-    if (cue?.kind !== 'field') {
+    if (cue?.kind !== 'field' && cue?.kind !== 'scene') {
       this.clear({ transitionMs: transition });
       return false;
     }
-    const key = JSON.stringify([cue.renderer, cue.config || {}]);
+    const key = cue.kind === 'scene'
+      ? JSON.stringify(['scene', cue.sceneId, cue.code])
+      : JSON.stringify([cue.renderer, cue.config || {}]);
     if (this.active?.key === key) {
       this.active.cancelVisualControl?.();
       return true;

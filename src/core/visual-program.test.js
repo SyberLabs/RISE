@@ -65,6 +65,14 @@ describe('visual program persistence boundary', () => {
     expect(normalizeVisualCue(cue)).toEqual(cue);
   });
 
+  it('keeps a generated scene’s id and code, and stills one that is malformed or too large', () => {
+    const cue = { kind: 'scene', sceneId: 'vector', code: 'export default () => ({ frame() {} })' };
+    expect(normalizeVisualCue({ ...cue, extra: true })).toEqual(cue);
+    expect(normalizeVisualCue({ ...cue, code: 7 })).toEqual({ kind: 'still' });
+    expect(normalizeVisualCue({ ...cue, sceneId: '' })).toEqual({ kind: 'still' });
+    expect(normalizeVisualCue({ ...cue, code: 'x'.repeat(24_577) })).toEqual({ kind: 'still' });
+  });
+
   it('round-trips bounded procedural styles without carrying unknown fields', () => {
     const styled = {
       coordinateSpace: 'source',

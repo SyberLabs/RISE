@@ -1,0 +1,40 @@
+{
+  "id": "CC-005",
+  "title": "Scene runtime for generated visuals",
+  "lane": "live-sdk",
+  "milestone": "Creative Control",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "CC-002",
+    "CC-004"
+  ],
+  "acceptance": [
+    "A v2 Current admits a generated scene { id, code }: an ES module with a default export of at most 24,576 bytes, refused with a path and a code otherwise or beside an engine; any cue name is the scene's to interpret; it lowers to a scene cue on the score and its cues to the scene's one command; unit-tested.",
+    "The scene's code runs only in a Web Worker that owns the transferred canvas, with every banned global shadowed by a stub that throws and cannot be put back before the code is imported; a dry frame runs before the scene is ready, and any error reports its phase, a bounded message and where in the scene's code; unit-tested against a fake worker scope.",
+    "In a host's card the worker is RISE's built script fetched as text and started from a blob: URL; the built worker imports nothing at run time (checked in dist).",
+    "The Chamber's runtime sends frames only while the reading plays (scene time stops on pause, a step is capped at 100 ms), fails a frame over 200 ms, three over 24 ms in one second, any reported error or a second of silence, then ends the worker and applies the reading's fallback, keeping a diagnostic; a scene that would flash more than three times a second is frozen; unit-tested.",
+    "A hold with maxMs under a scene that declared reportsCompletion ends when the scene says done, no sooner than 200 ms and no later than maxMs; otherwise, and on failure, at its ms; unit-tested at the runtime, the conductor and the live runtime.",
+    "In the self-contained card a generated scene draws and ends its hold early, and a scene that throws falls back with its hold at ms (e2e/live-mcp.spec.js)."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-08-creative-control-design.md",
+      "note": "The Creative Control design; §7 runtime, §8 scene API, §12 dry frame and fallback, §13 security.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T18:00:00.000Z",
+      "summary": "Built on cc-004-manifests: worker, runtime, layer, score and compile, Chamber and conductor wiring, browser tests. Server static admission stays with CC-006; seek with instant cues and fonts in the worker are not built here."
+    }
+  ],
+  "updatedAt": "2026-10-08T18:00:00.000Z",
+  "revision": 1,
+  "summary": "Generated scenes run in an isolated worker on the reading's clock, cued by beats, ending their holds, budgeted, flash-gated, and replaced by the reading's fallback when they fail.",
+  "blocker": null
+}

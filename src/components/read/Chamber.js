@@ -125,6 +125,9 @@ import { connectionState } from '../../core/ai-connection.js';
 import { LOOKS, applyLook, lookOfSession } from '../../core/looks.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../../core/visual-control-contract.js';
 import { manifestFor } from '../../scenes/manifests.js';
+import { createFlashWatch, createSceneRuntime, SCENE_VISUAL_MANIFEST } from '../../scenes/scene-runtime.js';
+import { VisualFlashGate } from '../../core/visual-safety.js';
+import { mountSceneLayer } from './scene-layer.js';
 import './Chamber.css';
 
 const RHYTHMS = Object.freeze([['phrase', 'Phrase'], ['sentence', 'Sentence'], ['word', 'Word']]);
@@ -2621,6 +2624,8 @@ export class Chamber {
 
   /** One scheduled cue owns the complete visual presentation transition. */
   applyScheduledVisualCue(cue, meta = {}) {
+    // A generated scene that has failed once is not run again in this Chamber; its passages draw the fallback.
+    if (cue?.kind === 'scene' && this._failedScenes?.has(cue.sceneId)) cue = this._sceneFallbackCue();
     this._currentVisualCue = cue || null;
     this.applyScheduledColorTheme(cue?.colorTheme);
     const fieldCue = cue?.kind === 'focal'
@@ -2747,8 +2752,79 @@ export class Chamber {
     }
   }
 
+  /** What a passage draws when its generated scene cannot: the program's fallback, never another scene. */
+  _sceneFallbackCue() {
+    const fallback = this.session?.visualProgram?.fallback;
+    return fallback && fallback.kind !== 'scene' ? fallback : { kind: 'still' };
+  }
+
+  /** A diagnostic of a generated scene, kept for the runtime report (creative-control design §12); the last 20. */
+  _noteScene(diagnostic) {
+    this.sceneDiagnostics = [...(this.sceneDiagnostics ?? []), diagnostic].slice(-20);
+  }
+
+  /**
+   * A generated scene (src/scenes/): a canvas behind the reading, given to a
+   * worker that runs the scene's code. Its holds and cues come through the
+   * director's record; a scene that fails gives way to the fallback, and one
+   * that would flash is frozen on its last frame.
+   */
+  _mountSceneCue(field, cue) {
+    let destroyed = false;
+    let runtime = null;
+    const layer = mountSceneLayer({
+      field,
+      insertBehindReading: (host, node) => this._insertBehindReading(host, node),
+      onResize: ({ width, height }) => runtime?.resize(width, height, window.devicePixelRatio || 1)
+    });
+    const watch = createFlashWatch(new VisualFlashGate({ minIntervalMs: 0, burstWindowMs: 1000, maxBurst: 3 }));
+    const record = {
+      node: layer.node,
+      renderer: 'scene',
+      sceneId: cue.sceneId,
+      pause: () => runtime.pause(),
+      resume: () => runtime.play(),
+      discoverVisual: () => (destroyed || !layer.node.isConnected ? null
+        : Object.freeze({ manifest: SCENE_VISUAL_MANIFEST, current: Object.freeze({}), target: Object.freeze({}) })),
+      controlVisual: command => {
+        const validated = validateVisualCommand(command, SCENE_VISUAL_MANIFEST);
+        if (!validated.ok) return { status: 'refused', code: validated.code };
+        if (destroyed) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+        runtime.cue(validated.command.value);
+        return { status: 'accepted', surface: 'scene', parameter: 'cue', requested: validated.requested, effective: validated.effective };
+      },
+      hold: ({ ms, maxMs }) => runtime.hold({ ms, maxMs }),
+      destroy: () => {
+        destroyed = true;
+        runtime.dispose();
+        layer.destroy();
+      }
+    };
+    runtime = createSceneRuntime({
+      createWorker: () => import('../../scenes/create-scene-worker.js').then(module => module.createSceneWorker()),
+      canvas: layer.canvas,
+      theme: (this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session)) ?? {},
+      reducedMotion: this._prefersReducedMotion() || document.documentElement.classList.contains('photosensitivity-mode'),
+      onFailure: diagnostic => {
+        this._noteScene(diagnostic);
+        (this._failedScenes ??= new Set()).add(cue.sceneId);
+        if (!destroyed && this._visualFieldDirector?.active === record) this.applyScheduledVisualCue(this._sceneFallbackCue(), {});
+      },
+      onLuma: (value, t) => {
+        if (!watch(value, t)) return;
+        runtime.freeze();
+        this._noteScene({ sceneId: cue.sceneId, phase: 'flash', message: 'Frozen: the scene would flash more than three times a second', where: null });
+      }
+    });
+    layer.resize();
+    void runtime.start({ id: cue.sceneId, code: cue.code });
+    if (this._visualFieldDirector?.paused !== true) runtime.play();
+    return record;
+  }
+
   mountVisualFieldCue(cue) {
     const field = this.container.querySelector('#chamber-field');
+    if (field && cue?.kind === 'scene') return this._mountSceneCue(field, cue);
     if (!field || cue?.kind !== 'field') return null;
     const config = cue.config && typeof cue.config === 'object' ? cue.config : {};
     // The reading's theme fills what the cue left to the engine: an absent
@@ -2980,6 +3056,13 @@ export class Chamber {
     }
     return this._visualFieldDirector?.controlVisual(command)
       || { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+  }
+
+  /** A hold the running generated scene may end early (beat-conductor.js), or null when that scene is not running. */
+  holdScene(atom) {
+    const record = this._visualFieldDirector?.active;
+    if (record?.renderer !== 'scene' || !atom?.hold || record.sceneId !== atom.hold.sceneId) return null;
+    return record.hold(atom.hold);
   }
 
   /** Logical reading time for Living Flame, in milliseconds. */

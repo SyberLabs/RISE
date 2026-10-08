@@ -146,7 +146,7 @@ export function createLiveRuntime({
             response = visualRefusal();
         }
         const spec = manifest.parameters[checked.command.parameter];
-        const kept = spec.type === 'enum'
+        const kept = spec.type === 'enum' || spec.type === 'name'
             ? response?.effective === checked.command.value
             : Number.isFinite(response?.effective) && response.effective >= spec.minimum && response.effective <= spec.maximum;
         const receipt = response?.status === 'accepted' && kept
@@ -365,7 +365,19 @@ export function createLiveRuntime({
             graceMs,
             onDegrade: ({ reason }) => note('voice.degraded', { role, reason })
         });
-        run.conductor = createBeatConductor({ clock, onCue: ({ commands }) => cueScene(commands) });
+        run.conductor = createBeatConductor({
+            clock,
+            onCue: ({ commands }) => cueScene(commands),
+            // A hold the running scene may end early is the host's to ask of the scene (Chamber.holdScene).
+            onHold: atom => {
+                if (run.closed || typeof host.holdScene !== 'function') return null;
+                try {
+                    return host.holdScene({ role: run.role, player: run.player, atom }) ?? null;
+                } catch {
+                    return null;
+                }
+            }
+        });
         return run;
     }
 
