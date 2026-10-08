@@ -29,7 +29,7 @@ Reading runs entirely in the browser, except optional visual direction, which se
 - **First load held under a 64 KB brotli budget** enforced in CI; `npm run measure:first-load` prints today's size and request count.
 - **Thousands of Vitest unit and integration tests** plus Playwright browser tests, including real `ffmpeg` encoding and live Chromium rendering.
 - **Generated architecture diagram** and tested design contracts, so documentation cannot drift from the code.
-- **Edge backend:** Cloudflare Workers serve the app and a static public decision catalog. The backend runs no AI model and holds no model credential; decisions run on the reader's own connection. A GitHub Actions job runs for each push to `main`; it rebuilds, deploys and checks the live site only when its commit is still the tip of `main` at the deploy step, so superseded pushes are skipped and the newest deploys.
+- **Edge backend:** Cloudflare Workers serve the app and a static public decision catalog. The backend runs no AI model and stores no model credential; decisions run on the reader’s own connection. (The optional Live page, switched off in production, would pass a reader’s own OpenAI key through once to open a session; see PRIVACY.md.) A GitHub Actions job runs for each push to `main`; it rebuilds, deploys and checks the live site only when its commit is still the tip of `main` at the deploy step, so superseded pushes are skipped and the newest deploys.
 
 **Stack:** JavaScript (ES modules) · Vite · Web Audio API · Canvas 2D · IndexedDB · Cloudflare Workers · Vitest · Playwright · GitHub Actions
 

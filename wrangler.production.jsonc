@@ -16,7 +16,8 @@
     // The Kev worker script carries its own policy (worker/kev-worker-script.mjs).
     // /live reaches handleLive (worker/mcp-server.mjs), which loosens the embedded page's framing
     // headers only while MCP_ENABLED is "true"; off, the page is served exactly as the asset.
-    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*"]
+    // /content/arena/* reaches serveArenaFile, so a missing run file is a 404, not the app shell.
+    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*"]
   },
   // Serves the live Realtime route (worker/live-realtime.mjs); off by default.
   "ratelimits": [{
