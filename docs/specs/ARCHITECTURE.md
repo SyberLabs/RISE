@@ -181,7 +181,7 @@ flowchart LR
     components -.-> |2 lazy| app
     components --> |5| audio
     components --> |23| content
-    components --> |182| core
+    components --> |183| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
