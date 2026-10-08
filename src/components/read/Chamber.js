@@ -183,6 +183,11 @@ const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
  * The words of what is shown, with its formulas each as one word (math-typeset.js) and a beat's
  * emphasis marked on the words it names, whatever their punctuation or case.
  */
+/** The reader's size, stepped by a beat's `size` when it has one; the one owner of an atom's size. */
+function beatFontSize(base, beat) {
+  return resolveFontSize(beat?.size ? stepFontSize(base, beat.size) : base);
+}
+
 function shownWords(content, emphasis) {
   const wanted = new Set((emphasis ?? []).map(word => word.toLowerCase()));
   const bare = word => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
@@ -3202,8 +3207,7 @@ export class Chamber {
     const place = beat?.place && beat.place !== 'centre' ? beat.place : null;
     if (place && place !== 'none') atomDisplay.dataset.place = place;
     else delete atomDisplay.dataset.place;
-    const base = this.effectiveFontSize();
-    atomDisplay.dataset.fontSize = resolveFontSize(beat?.size ? stepFontSize(base, beat.size) : base);
+    atomDisplay.dataset.fontSize = beatFontSize(this.effectiveFontSize(), beat);
     const faces = this.session?.presentation?.typeFaces ?? null;
     const named = beat?.type ?? (place && place !== 'none' ? faces?.caption : faces?.text) ?? null;
     const face = resolveTypeFace(named);
@@ -3471,9 +3475,9 @@ export class Chamber {
    * Sized on what is SHOWN — emphasis marks are notation and would
    * otherwise push a phrase into a smaller face than it needs.
    */
-  sizeAtomText(atomDisplay, content) {
+  sizeAtomText(atomDisplay, content, beat = null) {
     atomDisplay.style.removeProperty('font-size');
-    const fontSize = resolveFontSize(this.effectiveFontSize());
+    const fontSize = beatFontSize(this.effectiveFontSize(), beat);
     atomDisplay.dataset.fontSize = fontSize;
     atomDisplay.style.setProperty('--font-size-intent', String(threeStepIntent(fontSize)));
 
@@ -3754,7 +3758,7 @@ export class Chamber {
         };
       }
 
-      this.sizeAtomText(atomDisplay, atom.content);
+      this.sizeAtomText(atomDisplay, atom.content, atom.beat);
 
       this.applyLivingText(atomDisplay, index);
       atomDisplay.style.opacity = '1';
@@ -3778,7 +3782,7 @@ export class Chamber {
         : 0;
       const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0, emphasis: atom.beat?.emphasis });
 
-      this.sizeAtomText(atomDisplay, atom.content);
+      this.sizeAtomText(atomDisplay, atom.content, atom.beat);
 
       this.applyLivingText(atomDisplay, index);
 

@@ -408,8 +408,9 @@ export function createLiveControls({ runtime, onStop, audible = true, dive: canA
     function applyVisualControl(direction) {
         const discovery = runtime.discoverVisual?.();
         const target = discovery?.target?.intensity ?? discovery?.current?.intensity;
+        // Only a field whose intensity changes while it runs can be made calmer or more vibrant.
         const bounds = discovery?.manifest?.parameters?.intensity;
-        if (!Number.isFinite(target) || !Number.isFinite(bounds?.minimum) || !Number.isFinite(bounds?.maximum) || bounds.minimum > bounds.maximum) {
+        if (bounds?.cueable !== true || !Number.isFinite(target) || !Number.isFinite(bounds?.minimum) || !Number.isFinite(bounds?.maximum) || bounds.minimum > bounds.maximum) {
             visualOutcome = visualRefusalMessage('NO_ACTIVE_VISUAL');
             show(visualOutcome, true);
             render(runtime.snapshot());
