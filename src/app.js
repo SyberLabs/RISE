@@ -34,6 +34,8 @@ import { installTestBridge } from './app/test-bridge.js';
 
 // Not a room: the address opens today's poem in the reader (launchToday).
 const TODAY_PATH = '/today';
+/** The Checkout success page (src/app/plus-claim.js). */
+const PLUS_CLAIM_PATH = '/plus/claim';
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
 
@@ -315,6 +317,12 @@ class App {
                 this.showToast(error.message || 'Today’s poem could not be opened.', 5000);
                 await this.router.navigate('home');
             }
+        } else if (pathname === PLUS_CLAIM_PATH) {
+            const { enterFromPlusClaim } = await import('./app/plus-claim.js');
+            await enterFromPlusClaim(appLocation().search, {
+                home: () => this.router.navigate('home'),
+                notify: message => this.showToast(message, 5000)
+            });
         } else {
             // Every other address is the table's to resolve (route-url.js);
             // the cases above are not addresses: a hash, a query code, a
@@ -961,6 +969,8 @@ class App {
             // Audio
             masterVolume: 0.75,
             enableBinaural: false,
+            // The Plus voice reads a reading of the reader's own aloud; on once Plus is claimed here.
+            plusVoice: true,
 
             // Safety / Accessibility
             photosensitivityMode: false,
@@ -989,6 +999,7 @@ class App {
                 'showArtworkLabels',
                 'livingText',
                 'enableBinaural',
+                'plusVoice',
                 'photosensitivityMode',
                 'reducedMotion'
             ];

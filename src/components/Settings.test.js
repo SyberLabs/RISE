@@ -386,3 +386,55 @@ describe('Settings affect section', () => {
         settings.destroy();
     });
 });
+
+describe('Settings Plus voice', () => {
+    afterEach(() => {
+        localStorage.clear();
+        vi.unstubAllGlobals();
+        document.body.replaceChildren();
+    });
+
+    const mount = (settings = {}) => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        return new Settings(container, { settings, onChange: vi.fn() });
+    };
+
+    it('offers the payment link until Plus is claimed in this browser', () => {
+        const settings = mount();
+        const link = settings.container.querySelector('a[href^="https://buy.stripe.com/"]');
+        expect(link).toBeTruthy();
+        expect(settings.container.textContent).toContain('$8.99 a month');
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        expect(settings.container.querySelector('.settings-fail[hidden]')).toBeTruthy();
+        settings.destroy();
+    });
+
+    it('shows the switch, on by default, and forgets the claim on request', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        const fetchImpl = vi.fn(async () => new Response(null, { status: 204 }));
+        vi.stubGlobal('fetch', fetchImpl);
+        const settings = mount();
+        const toggle = settings.container.querySelector('[data-setting="plusVoice"]');
+        expect(toggle.checked).toBe(true);
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        expect(settings.onChange).toHaveBeenCalledWith('plusVoice', false);
+
+        await settings.forgetPlus();
+        expect(fetchImpl).toHaveBeenCalledWith('/api/plus/forget', { method: 'POST' });
+        expect(localStorage.getItem('rise.plus')).toBeNull();
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        expect(settings.container.querySelector('a[href^="https://buy.stripe.com/"]')).toBeTruthy();
+        settings.destroy();
+    });
+
+    it('says when the Worker reported a lapse', () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1, lapsed: true }));
+        const settings = mount();
+        const fail = settings.container.querySelector('.settings-fail:not([hidden])');
+        expect(fail?.textContent).toBe('Plus voice has lapsed.');
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        settings.destroy();
+    });
+});

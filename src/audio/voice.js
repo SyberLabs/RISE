@@ -68,6 +68,8 @@ export class Voice {
         this._warned = new Set();
         this._reportedPlayback = false;
         this.onProgress = null;
+        // Told once when a clip answers 402: the Plus voice is no longer paid for.
+        this.onLapse = null;
     }
 
     get available() {
@@ -376,9 +378,7 @@ export class Voice {
                     const response = await this._fetch(manifestEntry.asset, {
                         signal: controller?.signal
                     });
-                    if (!response?.ok) {
-                        throw new Error(`asset returned HTTP ${response?.status ?? 'unknown'}`);
-                    }
+                    if (!response?.ok) throw await this._refused(response);
                     const bytes = await response.arrayBuffer();
                     const mimeType = manifestEntry.mimeType || 'audio/wav';
                     blob = new Blob([bytes], { type: mimeType });
@@ -441,14 +441,32 @@ export class Voice {
         return load;
     }
 
+    /**
+     * The error for a clip that did not come. A 402 is the Worker saying the
+     * Plus voice is no longer paid for (worker/plus.mjs): the voice goes
+     * silent from the next phrase, and the host is told once.
+     */
+    async _refused(response) {
+        const error = new Error(`asset returned HTTP ${response?.status ?? 'unknown'}`);
+        if (response?.status === 402 && this.enabled) {
+            let code = 'PLUS_LAPSED';
+            try {
+                code = (await response.json())?.error?.code ?? code;
+            } catch {
+                /* the status is enough */
+            }
+            this.enabled = false;
+            this.onLapse?.(code);
+        }
+        return error;
+    }
+
     /** The decoded whole of a shared asset, fetched and decoded once per URL. */
     _sharedBuffer(asset) {
         if (!this._shared.has(asset)) {
             const load = (async () => {
                 const response = await this._fetch(asset);
-                if (!response?.ok) {
-                    throw new Error(`asset returned HTTP ${response?.status ?? 'unknown'}`);
-                }
+                if (!response?.ok) throw await this._refused(response);
                 return this._decode(await response.arrayBuffer());
             })().catch(error => {
                 this._shared.delete(asset);

@@ -20,6 +20,8 @@ import { sessionImageryCollections } from '../core/visual-selection.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 import { liveExited, liveMounted, takeLivePlayer } from './live-handoff.js';
 import { beginStep } from '../core/begin-steps.js';
+import { SEQUENCE_CAPABILITIES } from '../core/sequence-capabilities.js';
+import { PLUS_VOICE_MAX_CHARS, markPlusLapsed, plusNotice, plusState } from './plus.js';
 
 /**
  * The one place a Player is made. A host that needs a Player for a Session it
@@ -139,6 +141,34 @@ export async function createChamberSession(operations, container, sessionData) {
         // Only enter the non-interactive preparation phase after
         // the safety decision has completed.
         ui.showLoading('Preparing Session');
+
+        // The Plus voice, for a reading that brings no recitation of its
+        // own: one request, awaited, never retried. A refusal leaves the
+        // reading silent and is said once the Chamber is up. The Worker
+        // voices a Current, not a chapter, so a longer text is not sent.
+        let plusRefused = null;
+        const plus = plusState();
+        if (!live && !spatialLaunch && session.recitation?.enabled !== true
+            && plus.claimed && !plus.lapsed && operations.getSettings()?.plusVoice !== false) {
+            const { spokenAtoms, voiceReading } = await import('../audio/plus-voice.js');
+            assertCurrent();
+            if (spokenAtoms(session.atoms).join(' ').length > PLUS_VOICE_MAX_CHARS) {
+                plusRefused = 'TOO_LONG';
+            } else {
+                ui.updateLoadingStatus('Asking for the Plus voice...');
+                const voiced = await voiceReading(session.atoms);
+                assertCurrent();
+                if (voiced.ok) {
+                    session.revealMode = 'progressive';
+                    session.capabilities = [...(session.capabilities ?? []), SEQUENCE_CAPABILITIES.RECITATION_AUDIO];
+                    session.recitation = { enabled: true, pack: voiced.pack };
+                    session.voiceId = voiced.voiceId;
+                } else {
+                    plusRefused = voiced.code;
+                    if (voiced.code === 'PLUS_REQUIRED' || voiced.code === 'PLUS_LAPSED') markPlusLapsed();
+                }
+            }
+        }
 
         // Start the selected neural voice during preparation, not
         // after the first atom is already on screen. It builds a
@@ -527,6 +557,16 @@ export async function createChamberSession(operations, container, sessionData) {
                 }
             }
         });
+        // What the Plus voice answered, in the quiet place the movement title
+        // uses; and a lapse mid-reading (a clip answered 402) goes silent at
+        // the next phrase with the same word.
+        if (plusRefused) chamber.announceMovement(plusNotice(plusRefused));
+        if (recitationVoice) {
+            recitationVoice.onLapse = () => {
+                markPlusLapsed();
+                chamber.announceMovement(plusNotice('PLUS_LAPSED'));
+            };
+        }
         // Its listeners are bound, so the reading can begin while the router is
         // still fading the view in.
         if (live) liveMounted();

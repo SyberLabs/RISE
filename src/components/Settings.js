@@ -1,4 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
+import { PLUS_PAYMENT_LINK, PLUS_PRICE, forgetPlus, plusState } from '../app/plus.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
@@ -177,6 +178,8 @@ export class Settings {
                 </span>
               </div>
             </div>
+
+            ${this.inSession ? '' : this.plusVoiceRow()}
           </section>
 
           <section class="settings-section" aria-labelledby="safety-heading">
@@ -258,6 +261,37 @@ export class Settings {
                 <input id="${id}" type="checkbox" data-setting="${key}" ${checked ? 'checked' : ''} />
                 <span class="toggle-switch"></span>
               </label>
+            </div>`;
+    }
+
+    /**
+     * The Plus voice: the way to buy it, or, once claimed in this browser,
+     * its switch and the way to forget it here. A lapse the Worker reported
+     * (src/app/plus.js) is said on the buying row, so the link is the way back.
+     */
+    plusVoiceRow() {
+        const plus = plusState();
+        if (!plus.claimed || plus.lapsed) {
+            return `
+            <div class="settings-row settings-action">
+              <div class="settings-label-group">
+                <span class="settings-label">Plus voice</span>
+                <p class="settings-hint">A reading of your own, read aloud. ${PLUS_PRICE}.</p>
+                <p class="settings-fail" ${plus.lapsed ? '' : 'hidden'}>Plus voice has lapsed.</p>
+              </div>
+              <a class="btn-secondary" href="${PLUS_PAYMENT_LINK}" rel="noopener">Subscribe</a>
+            </div>`;
+        }
+        return `
+            ${this.toggleRow('plusVoice', 'Plus voice',
+                'Reads a reading of your own aloud.',
+                this.settings.plusVoice !== false)}
+            <div class="settings-row settings-action">
+              <div class="settings-label-group">
+                <span class="settings-label">Forget Plus on this browser</span>
+                <p class="settings-hint">Clears the receipt this browser holds. The subscription itself stays with Stripe.</p>
+              </div>
+              <button type="button" class="btn-secondary" data-action="forget-plus">Forget</button>
             </div>`;
     }
 
@@ -451,6 +485,10 @@ export class Settings {
             this.clearHistory();
         });
 
+        this.container.querySelector('[data-action="forget-plus"]')?.addEventListener('click', () => {
+            void this.forgetPlus();
+        });
+
     }
 
     /**
@@ -551,6 +589,16 @@ export class Settings {
             console.error('[Settings] Clear data failed:', e);
             this.showToast('Some browser data could not be cleared');
         }
+    }
+
+    /** The panel is drawn again so the row shows the way to buy Plus. */
+    async forgetPlus() {
+        await forgetPlus();
+        this.showToast('Plus voice forgotten on this browser.');
+        this.emotions?.destroy();
+        this.emotions = null;
+        this.render();
+        this.attachEvents();
     }
 
     showToast(message) {

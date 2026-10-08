@@ -600,3 +600,28 @@ describe('a voiced reading: one performance, many phrases', () => {
         expect(voice.coverage(texts.map(content => ({ content })))).toEqual({ speakable: 2, missing: 0, complete: true });
     });
 });
+
+describe('a Plus voice that lapses mid-reading', () => {
+    it('goes silent at the next phrase and tells the host once', async () => {
+        const asset = `/api/plus/audio/voiced/${'c'.repeat(64)}/audio.mp3`;
+        const texts = ['First phrase here', 'Second phrase here'];
+        const entries = Object.fromEntries(texts.map((text, index) => [voiceAssetKey(text), {
+            text, asset, mimeType: 'audio/mpeg', fromMs: index * 1500, toMs: index * 1500 + 1200, durationMs: 1200, onsetsMs: [0]
+        }]));
+        const manifest = { schema: VOICE_PACK_SCHEMA, voices: { el_plus: { label: 'Plus', entries } } };
+        const fetchImpl = vi.fn(async () => Response.json({ error: { code: 'PLUS_LAPSED', message: 'lapsed' } }, { status: 402 }));
+        const voice = new Voice({ voiceId: 'el_plus', manifest, fetchImpl, audioEngine: { context: { state: 'running' }, init: vi.fn() } });
+        voice.enabled = true;
+        voice.onLapse = vi.fn();
+        await voice.load();
+        voice._atoms = texts.map(content => ({ content }));
+
+        expect(await voice._ensureIndex(0)).toBeNull();
+        expect(await voice._ensureIndex(1)).toBeNull();
+
+        expect(voice.onLapse).toHaveBeenCalledTimes(1);
+        expect(voice.onLapse).toHaveBeenCalledWith('PLUS_LAPSED');
+        expect(voice.available).toBe(false);
+        expect(voice.speak(0)).toBeNull();
+    });
+});

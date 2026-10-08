@@ -12,9 +12,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createChamberSession } from './chamber-session-factory.js';
 import { offerLivePlayer } from './live-handoff.js';
 import { Chamber } from '../components/read/Chamber.js';
+import { voiceReading } from '../audio/plus-voice.js';
+import { Voice } from '../audio/voice.js';
+import { plusState } from './plus.js';
 
 vi.mock('../components/read/Chamber.js', () => ({
-    Chamber: vi.fn(function Chamber(container, options) { this.options = options; })
+    Chamber: vi.fn(function Chamber(container, options) { this.options = options; this.announceMovement = vi.fn(); })
+}));
+vi.mock('../audio/plus-voice.js', async importOriginal => ({ ...await importOriginal(), voiceReading: vi.fn() }));
+vi.mock('../audio/voice.js', () => ({
+    Voice: vi.fn(function Voice(options) { this.options = options; this.prepare = async () => true; this.destroy = vi.fn(); })
 }));
 
 const session = () => ({ atoms: [{}], visualConfig: { visualMode: 'off' } });
@@ -148,5 +155,81 @@ describe('a reading begun from Home', () => {
 
         expect(op.showLoading).not.toHaveBeenCalled();
         expect(op.hideLoading).not.toHaveBeenCalled();
+    });
+});
+
+describe('the Plus voice at the start of a reading', () => {
+    const HASH = 'a'.repeat(64);
+    const PACK = `/api/plus/audio/voiced/${HASH}/pack.json`;
+    const reading = (text = 'A phrase of my own') => ({ ...session(), atoms: [{ content: text }] });
+    /** A voiced reading starts the engine's session, which the plain stub does not have. */
+    const voiced = (op = operations()) => {
+        const audio = op.getAudioEngine();
+        audio.startSession = vi.fn(async () => {});
+        return op;
+    };
+
+    afterEach(() => localStorage.clear());
+
+    it('is not asked for until Plus is claimed here, or when the reading brings its own', async () => {
+        await mount(operations(), reading());
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        vi.clearAllMocks();
+        await mount(voiced(), { ...reading(), recitation: { enabled: true, pack: '/audio/recitation/el_reader/0.json' } });
+        expect(voiceReading).not.toHaveBeenCalled();
+        expect(Chamber.mock.calls[0][1].voice.options.packUrl).toBe('/audio/recitation/el_reader/0.json');
+    });
+
+    it('voices the reading once and hands the Chamber the pack as the clock', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        voiceReading.mockResolvedValue({ ok: true, voiceId: 'el_plus', pack: PACK });
+        const options = await mount(voiced(), reading());
+
+        expect(voiceReading).toHaveBeenCalledTimes(1);
+        expect(options.session).toMatchObject({
+            revealMode: 'progressive', capabilities: ['recitation-audio'],
+            recitation: { enabled: true, pack: PACK }, voiceId: 'el_plus'
+        });
+        expect(Voice).toHaveBeenCalledWith(expect.objectContaining({ voiceId: 'el_plus', packUrl: PACK }));
+        expect(options.voice.onLapse).toBeTypeOf('function');
+        options.voice.onLapse();
+        expect(plusState().lapsed).toBe(true);
+        expect(Chamber.mock.instances[0].announceMovement).toHaveBeenCalledWith('Plus voice has lapsed. Reading continues silently.');
+    });
+
+    it('reads silently, marks the lapse and says so when the Worker refuses', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        voiceReading.mockResolvedValue({ ok: false, code: 'PLUS_LAPSED', message: 'lapsed' });
+        const options = await mount(operations(), reading());
+        expect(options.voice).toBeNull();
+        expect(options.session.recitation).toBeUndefined();
+        expect(plusState().lapsed).toBe(true);
+        expect(Chamber.mock.instances[0].announceMovement).toHaveBeenCalledWith('Plus voice has lapsed. Reading continues silently.');
+
+        // Lapsed: not asked again until the reader claims again.
+        vi.clearAllMocks();
+        await mount(operations(), reading());
+        expect(voiceReading).not.toHaveBeenCalled();
+    });
+
+    it('keeps the allowance refusal to a notice, and never sends a text past the cap', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        voiceReading.mockResolvedValue({ ok: false, code: 'PLUS_ALLOWANCE', message: 'used up' });
+        await mount(operations(), reading());
+        expect(plusState().lapsed).toBe(false);
+        expect(Chamber.mock.instances[0].announceMovement).toHaveBeenCalledWith('This month\'s voice allowance is used up. Reading continues silently.');
+
+        vi.clearAllMocks();
+        await mount(operations(), reading('word '.repeat(2001)));
+        expect(voiceReading).not.toHaveBeenCalled();
+        expect(Chamber.mock.instances[0].announceMovement).toHaveBeenCalledWith('This reading is too long for the Plus voice.');
+    });
+
+    it('is left off by the reader\'s switch', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        const op = operations();
+        op.getSettings = () => ({ plusVoice: false });
+        await mount(op, reading());
+        expect(voiceReading).not.toHaveBeenCalled();
     });
 });
