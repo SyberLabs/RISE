@@ -154,6 +154,7 @@ export function agreementReport(run, { cases, options }) {
   const ran = run.providers.filter(({ status = 'ran' }) => status === 'ran').map(({ id }) => id);
   const deciders = {};
   const perCase = {};
+  const notReached = [];
   for (const id of ran) {
     const rows = run.results.filter(row => row.providerId === id);
     const runNumbers = [...new Set(rows.map(row => row.run))].sort((a, b) => a - b);
@@ -170,7 +171,10 @@ export function agreementReport(run, { cases, options }) {
         contrast: { ...scored.contrast, rate: rate(scored.contrast) }, caseRows };
     });
     const [headline] = runs;
-    if (!headline) continue;
+    if (!headline) {
+      notReached.push(id);
+      continue;
+    }
     perCase[id] = headline.caseRows;
     const spread = key => {
       const rates = runs.map(item => item[key].rate).filter(value => value !== null);
@@ -192,5 +196,5 @@ export function agreementReport(run, { cases, options }) {
   const differences = scored.flatMap((a, index) => scored.slice(index + 1).map(b => ({ a, b,
     metric: 'explicit agreement, a minus b, headline run, paired case-clustered bootstrap, 95%',
     ...roundInterval(pairedBootstrapDiff(perCase[a], perCase[b], explicitRate)) })));
-  return { decisions: 'admitted', deciders, differences };
+  return { decisions: 'admitted', deciders, ...(notReached.length ? { notReached } : {}), differences };
 }
