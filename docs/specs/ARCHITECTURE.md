@@ -158,7 +158,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>13 modules"]
     components["components<br/>routed views<br/>51 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>176 modules"]
+    core["core<br/>session, player, router<br/>178 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>44 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -181,7 +181,7 @@ flowchart LR
     components -.-> |2 lazy| app
     components --> |5| audio
     components --> |23| content
-    components --> |183| core
+    components --> |185| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -652,11 +652,13 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, four production dependencies: `sql.js` for browser-local work,
-  and `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
+  per room, five production dependencies: `sql.js` for browser-local work;
+  `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
   for on-device Kev, imported only by the EnterpRise worker that runs it
-  (§8.32). The tokenizer already shipped inside kev.js; it is named because
-  the worker builds Kev's session itself.
+  (§8.32); and `katex` for maths in what a reading shows, fetched only when
+  a reading has a formula (docs/superpowers/specs/2026-10-08-creative-control-design.md
+  §10). The tokenizer already shipped inside
+  kev.js; it is named because the worker builds Kev's session itself.
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`

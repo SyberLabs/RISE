@@ -114,3 +114,16 @@ describe('compiling a v2 Current', () => {
     expect(session.atoms.every(atom => atom.hold === undefined && atom.beatTimed === undefined)).toBe(true);
   });
 });
+
+describe('what a v2 Current carries for the layers', () => {
+  it('puts each beat’s typography and cue on its atoms, the Current’s faces on the presentation, and says when there is maths', () => {
+    const session = compileRiseCurrent(V2);
+    const caption = session.atoms.find(atom => atom.sourceId === 'beat-2');
+    expect(caption.beat).toEqual({ place: 'caption' });
+    expect(session.atoms.find(atom => atom.sourceId === 'beat-1').beat).toEqual({ cue: 'rotate' });
+    expect(session.presentation.typeFaces).toEqual({ text: 'book-serif', caption: 'humanist-sans' });
+    expect(session.hasMath).toBe(false);
+    const withMath = compileRiseCurrent({ ...V2, beats: [{ say: 'x squared', show: 'So $x^2$.' }] });
+    expect(withMath.hasMath).toBe(true);
+  });
+});

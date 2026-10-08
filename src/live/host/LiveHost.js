@@ -116,6 +116,7 @@ export class LiveHost {
         this.embeddedQueuedCurrent = null;
         this.embeddedBeginStarted = false;
         this.embeddedEvents = null;
+        this.embeddedCurrent = null;
         this.embeddedTheme = null;
         this.stopListeningCurrent = null;
         this.stopListeningError = null;
@@ -457,7 +458,10 @@ export class LiveHost {
     async buildAdapter(clock, createMockAdapter) {
         if (this.providerName === 'mcp') {
             const { createMcpAppAdapter } = await import('../adapters/mcp-app.js');
-            return createMcpAppAdapter({ port: this.port, clock, host: framedBy(this.env.window ?? this.env), admittedEvents: this.embeddedEvents });
+            return createMcpAppAdapter({
+                port: this.port, clock, host: framedBy(this.env.window ?? this.env),
+                admittedEvents: this.embeddedEvents, admittedCurrent: this.embeddedCurrent
+            });
         }
         if (this.providerName === 'gemini') {
             const [{ createGeminiAdapter }, { createGeminiFetchTransport }] = await Promise.all([
@@ -732,6 +736,7 @@ export class LiveHost {
         this.embeddedQueuedCurrent = null;
         this.embeddedProposalCurrent = null;
         this.embeddedEvents = null;
+        this.embeddedCurrent = null;
         this.embeddedCurrentHandled = false;
         this.container.querySelector('.live-start')?.remove();
         this.say(`Ask the assistant again. The Current was refused: ${text(error?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
@@ -782,6 +787,7 @@ export class LiveHost {
             this.port?.forgetCurrent(current);
             this.embeddedProposalCurrent = null;
             this.embeddedEvents = null;
+            this.embeddedCurrent = null;
             this.say(`Ask the assistant again. The Current was refused: ${text(failure?.message, 'invalid Current').slice(0, 220)}`, { alert: true });
             this.armEmbeddedAnswerTimer();
             return;
@@ -789,6 +795,7 @@ export class LiveHost {
 
         this.clearEmbeddedAnswerTimer();
         this.embeddedEvents = events;
+        this.embeddedCurrent = current;
         this.embeddedCurrentHandled = true;
         this.stopListeningCurrent?.();
         this.stopListeningCurrent = null;
@@ -886,6 +893,7 @@ export class LiveHost {
             this.controls = null;
             this.runtime = null;
             this.embeddedEvents = null;
+            this.embeddedCurrent = null;
             this.say(`Could not start: ${text(error?.message, 'unknown error').slice(0, 200)}`, { alert: true });
             this.port?.close();
             this.port = null;
@@ -920,6 +928,7 @@ export class LiveHost {
         this.stopListeningError?.();
         this.stopListeningError = null;
         this.embeddedEvents = null;
+        this.embeddedCurrent = null;
         this.embeddedCurrentProcessing = false;
         this.embeddedProposalCurrent = null;
         this.embeddedQueuedCurrent = null;
