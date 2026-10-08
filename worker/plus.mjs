@@ -439,8 +439,8 @@ export async function handlePlus(request, env) {
 }
 
 /**
- * A character meter: one instance per subscription (`sub:<id>`, keyed by billing
- * period end) and one for everyone (`global`, keyed by UTC day). A Durable Object
+ * A character meter: one instance per subscription (`sub:<id>`, holding only the current
+ * billing period end and its count) and one for everyone (`global`, the current UTC day). A Durable Object
  * runs one request at a time, and the read and write below have no await between
  * them, so no two reservations can both fit in the same last gap. SQLite-backed
  * (wrangler `new_sqlite_classes`), the only kind the Workers Free plan offers; the
@@ -460,15 +460,22 @@ export class PlusMeter {
     if (!Number.isInteger(n) || n < 0 || (typeof period !== 'number' && typeof period !== 'string')) {
       return Response.json({ ok: false, error: 'bad meter request' }, { status: 400 });
     }
-    const key = `used:${period}`;
-    const used = this.kv.get(key) ?? 0;
+    // One period and one count, never a history: a newer period overwrites the
+    // old count (PRIVACY.md: "one number: the characters voiced in the current
+    // billing period"). A request still carrying an older period, as one can at a
+    // renewal, reserves nothing and releases nothing, so it cannot roll the count back.
+    const current = this.kv.get('period');
+    const stale = current !== undefined && period < current;
+    const used = current === period ? this.kv.get('used') ?? 0 : 0;
     if (op === '/reserve') {
-      if (!(used + n <= limit)) return Response.json({ ok: false, used });
-      this.kv.put(key, used + n);
+      if (stale || !(used + n <= limit)) return Response.json({ ok: false, used });
+      this.kv.put('period', period);
+      this.kv.put('used', used + n);
       return Response.json({ ok: true, used: used + n });
     }
     if (op === '/release') {
-      this.kv.put(key, Math.max(0, used - n));
+      if (stale || current !== period) return Response.json({ ok: true, used });
+      this.kv.put('used', Math.max(0, used - n));
       return Response.json({ ok: true, used: Math.max(0, used - n) });
     }
     return Response.json({ ok: false, error: 'no such meter operation' }, { status: 404 });

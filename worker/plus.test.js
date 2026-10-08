@@ -708,6 +708,17 @@ describe('PlusMeter', () => {
     expect(await call(m, 'release', { period: 3, n: 5 })).toEqual({ ok: true, used: 0 });
   });
 
+  it('holds one period and one count, never a history, and an older period cannot roll it back', async () => {
+    const map = new Map();
+    const m = new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); } } } });
+    for (const period of [100, 200, 300]) await call(m, 'reserve', { period, n: 10, limit: 100 });
+    expect([...map.keys()].sort()).toEqual(['period', 'used']);
+    expect([map.get('period'), map.get('used')]).toEqual([300, 10]);
+    expect(await call(m, 'reserve', { period: 200, n: 1, limit: 100 })).toEqual({ ok: false, used: 0 });
+    expect(await call(m, 'release', { period: 200, n: 10 })).toEqual({ ok: true, used: 0 });
+    expect([map.get('period'), map.get('used')]).toEqual([300, 10]);
+  });
+
   it('refuses a malformed request', async () => {
     const m = meter();
     expect((await m.fetch(new Request('https://plus-meter/reserve', { method: 'POST', body: JSON.stringify({ period: 1, n: -5, limit: 100 }) }))).status).toBe(400);
