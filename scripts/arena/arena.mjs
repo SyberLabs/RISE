@@ -7,7 +7,11 @@
 //            writes public/content/arena/run-<sha12>.json, its slim
 //            replay-<sha12>.json (run 1 of the cases, no controls, no raw
 //            answers) and index.json.
-//            Billed deciders need --bill-operator and refuse under CI.
+//            --deciders picks who is asked (default: all). Each one left out is
+//            recorded as `not run: <reason>`, the reason given by
+//            --not-run "openai=no key,kev=hardware/setup" (default: not selected).
+//            A real capture refuses under CI, and needs --bill-operator
+//            whenever openai or jev is asked.
 //            --max-usd (default 20) is checked before each call against the
 //            spend so far plus that call's reserve (its estimate, or the
 //            dearest call yet). A call that costs more than its reserve can
@@ -57,11 +61,14 @@ function argument(args, flag, fallback) {
 const digest = value => createHash('sha256').update(value).digest('hex');
 const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' }).trim();
 
-/** Billing guard: a billed capture is a person's deliberate act, never CI's. */
+const BILLED = Object.freeze(['openai', 'jev']);
+const selected = args => argument(args, '--deciders', DECIDERS.join(',')).split(',');
+
+/** Billing guard: a real capture is a person's deliberate act, never CI's; billing is opted into. */
 export function guard(args, env) {
   if (args.includes('--mock')) return;
   if (env.CI) fail('The arena never bills from CI. Run it by hand, or use --mock.');
-  if (!args.includes('--bill-operator')) {
+  if (selected(args).some(name => BILLED.includes(name)) && !args.includes('--bill-operator')) {
     fail('A capture bills the operator’s own OpenAI and OpenRouter accounts. Add --bill-operator to proceed, or use --mock.');
   }
 }
@@ -118,9 +125,19 @@ async function readControls(path) {
   return { controls: file.cases, controlsHash: digest(text), file };
 }
 
+/** Each known decider left out of `names`, as {id, status: 'not run: <reason>'}, from --not-run "id=reason,…". */
+export function notRunFor(names, reasons = '') {
+  const given = new Map(reasons ? reasons.split(',').map(pair => {
+    const [id, reason] = pair.split('=').map(part => part?.trim());
+    if (!DECIDERS.includes(id) || names.includes(id) || !reason) fail(`--not-run takes id=reason for a decider left out of --deciders, not "${pair}".`);
+    return [id, reason];
+  }) : []);
+  return DECIDERS.filter(id => !names.includes(id)).map(id => ({ id, status: `not run: ${given.get(id) || 'not selected'}` }));
+}
+
 /** Asks every decider every case and control, in memory. Returns the run object (unwritten). */
 export async function captureRun({ cases, controls = [], options, casesHash, optionsHash, controlsHash = null,
-  catalog, deciders, runs, maxUsd, harness, now = () => new Date() }) {
+  catalog, deciders, notRun = [], runs, maxUsd, harness, now = () => new Date() }) {
   const requests = [...cases, ...controls].map(item => ({ item,
     ...buildRecommendRequest({ intent: item.intent, catalog, turn: 0, nightDrive: false }) }));
   const estimate = deciders.reduce((sum, decider) => sum
@@ -183,6 +200,11 @@ export async function captureRun({ cases, controls = [], options, casesHash, opt
       revision: decider.revision, ranFrom: status.from, ranTo: status.to, pricing: decider.pricing,
       status: status.notRun || 'ran' };
   });
+  for (const { id, status } of notRun) {
+    notes.push(`${id}: ${status}.`);
+    providers.push({ id, requestedModel: null, servedModels: [], revision: null, ranFrom: null, ranTo: null,
+      pricing: { source: 'none: not run', asOf: null }, status });
+  }
   const createdAt = now().toISOString();
   const run = { schema: ARENA_SCHEMA, runId: `arena-${createdAt.replace(/[-:.]/gu, '').slice(0, 15)}-${harness.commit.slice(0, 7)}`,
     createdAt, harness, ...(stopped ? { partial: true } : {}),
@@ -230,12 +252,14 @@ export async function capture(args, { env = process.env, fetchImpl = fetch, log 
   if (!mock && controls.length && !controlsFile.seedCommitment) {
     fail('Commit the controls seed first: node scripts/arena/controls.mjs commit.');
   }
-  const deciders = decidersFor(argument(args, '--deciders', DECIDERS.join(',')).split(','), {
+  const names = selected(args);
+  const notRun = notRunFor(names, argument(args, '--not-run'));
+  const deciders = decidersFor(names, {
     env: mock ? MOCK_ENV : env, fetchImpl: mock ? mockFetch : fetchImpl,
     origin: argument(args, '--origin', 'http://127.0.0.1:5780') });
   const catalog = await committedCatalog();
   const { run, spent } = await captureRun({ cases, controls, options, casesHash, optionsHash, controlsHash,
-    catalog, deciders, runs, maxUsd, harness });
+    catalog, deciders, notRun, runs, maxUsd, harness });
   const path = await writeRun(run, resolve(ROOT, argument(args, '--out-dir', ARENA_DIR)));
   log(`Wrote ${path}: ${run.results.length} results, $${spent.toFixed(4)} estimated spend.${mock ? ' MOCK: pipeline check only.' : ''}${run.partial ? ` PARTIAL: stopped at the $${maxUsd} cap.` : ''}`);
   return path;
@@ -282,7 +306,7 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   try {
     if (command === 'capture') await capture(args);
     else if (command === 'report') process.stdout.write(await report(args));
-    else fail('Usage: arena.mjs capture (--bill-operator | --mock) [--deciders a,b] [--runs 3] [--max-usd 20]'
+    else fail('Usage: arena.mjs capture [--bill-operator | --mock] [--deciders a,b] [--not-run id=reason,…] [--runs 3] [--max-usd 20]'
       + ' | report --run FILE [--reveal-seed-file PATH]. --max-usd stops after the first call over the cap; see the header.');
   } catch (error) {
     console.error(`Arena failed: ${error.message}`);

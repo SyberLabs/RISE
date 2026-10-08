@@ -5,7 +5,7 @@
  * fixture is the contract the replay reads: if the harness renames a field,
  * change it here first. Never shipped: only tests import it. OpenAI and Jev
  * each have an admitted decision for the case (different sections of
- * Middlemarch), Kev was not run, and the rules answer was out of the menu.
+ * Middlemarch), Kev was not run (its status says why), and the rules answer was out of the menu.
  */
 import { sampleJevSceneDecision } from '../app/jev-scene-demo.js';
 
@@ -39,10 +39,10 @@ export function arenaReplayFixture() {
     runFile: `run-${HASH}.json`,
     createdAt: CREATED_AT,
     providers: [
-      { id: 'openai', servedModels: ['gpt-6-luna-2026-09-01'], requestedModel: 'gpt-6-luna' },
-      { id: 'jev', servedModels: ['typesafe/jev-1.13'], requestedModel: 'typesafe/jev-1.13' },
-      { id: 'kev', servedModels: [], requestedModel: 'kev-latest' },
-      { id: 'rules', servedModels: [], requestedModel: null }
+      { id: 'openai', servedModels: ['gpt-6-luna-2026-09-01'], requestedModel: 'gpt-6-luna', status: 'ran' },
+      { id: 'jev', servedModels: ['typesafe/jev-1.13'], requestedModel: 'typesafe/jev-1.13', status: 'ran' },
+      { id: 'kev', servedModels: [], requestedModel: null, status: 'not run: hardware/setup' },
+      { id: 'rules', servedModels: [], requestedModel: null, status: 'ran' }
     ],
     decisions: {
       [ARENA_CASE]: {

@@ -5,14 +5,16 @@
  * Each case in controls.json states its own odds ("seven of ten slips say
  * 'soft-rain'"). A well-calibrated decider should put that probability on
  * each option. The slip for a case is drawn from
- * sha256("<seed>:<sha256 of the captured run file>:<case id>").
+ * sha256("<seed>:<sha256 of JSON.stringify(run.results)>:<case id>"): the
+ * captured answers, not the file's bytes, so re-encoding the file (extra
+ * whitespace, reordered metadata) cannot re-roll the labels.
  *
  * What this guarantees:
  * - Deciders cannot see the labels: they do not exist until after capture.
  * - The seed cannot change after capture: its sha256 is committed to
  *   controls.json beforehand, and revealLabels refuses any other seed.
  * - Nobody can steer the labels before capture, the operator included: they
- *   depend on the captured run file, whose bytes nobody knows in advance.
+ *   depend on the captured answers, which nobody knows in advance.
  *
  * What it does not guarantee: the operator who runs `commit` holds the seed,
  * so once a run is captured they can compute its labels, and could discard
@@ -42,8 +44,8 @@ export function commitment(seed) {
 
 /**
  * One label per case, drawn from the case's stated odds. The draw for a case
- * depends only on the seed, the run digest (sha256 hex of the captured run
- * file) and the case id: u = the first 48 bits of
+ * depends only on the seed, the run digest (sha256 hex of
+ * JSON.stringify(run.results)) and the case id: u = the first 48 bits of
  * sha256("<seed>:<runDigest>:<id>") as a fraction of 2^48, walked along the
  * odds in the order they are listed.
  */
@@ -57,11 +59,14 @@ export function drawLabels(cases, seed, runDigest) {
   }));
 }
 
-/** drawLabels for the captured run file's bytes, after checking the revealed seed against the commitment. */
+/** sha256 hex of a run's captured answers: JSON.stringify(run.results). */
+export const resultsDigest = runText => sha256(JSON.stringify(JSON.parse(runText).results)).toString('hex');
+
+/** drawLabels for a captured run file's answers, after checking the revealed seed against the commitment. */
 export function revealLabels(controls, seed, runFile) {
   if (!controls.seedCommitment) throw new Error('controls.json has no seedCommitment; run `node scripts/arena/controls.mjs commit` before capture.');
   if (commitment(seed) !== controls.seedCommitment) throw new Error('The revealed seed does not match seedCommitment.');
-  return drawLabels(controls.cases, seed, sha256(runFile).toString('hex'));
+  return drawLabels(controls.cases, seed, resultsDigest(runFile));
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
