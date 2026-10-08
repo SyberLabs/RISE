@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 import { publicCatalog, validCatalog, validSoundCatalog } from './catalog.js';
-import { CHOICES, choiceMenu, createRecommender } from './recommend.js';
+import { CHOICES, admitAnswers, choiceMenu, createRecommender, validDecision } from './recommend.js';
 import { DecisionError } from './call.js';
 import { JEV, KEV } from './providers.js';
 
@@ -1247,5 +1247,30 @@ describe('the color menus Jev is offered', () => {
 
   it('name every filament palette the attractor draws, in its order', () => {
     expect(Object.keys(CHOICES.visualPalette)).toEqual(ATTRACTOR_PALETTES.map(palette => palette.id));
+  });
+});
+
+describe('admitAnswers', () => {
+  const workId = books[0].work_id;
+  const value = extra => ({ id: 'r1', provider: 'TypeSafe', model: 'typesafe/jev-1.13', answers: answers(workId, extra) });
+  it.each([
+    ['plain answers', 'I want a thoughtful novel.', {}],
+    ['a psychedelic override', 'Something trippy and vivid.', { visualStyle: { type: 'choice', choice: 'psychedelic' } }],
+    ['a no-visual override', 'Text only, no visuals.', { visual: { type: 'choice', choice: 'genesis' } }]
+  ])('is exactly the book and settings validDecision admits (%s)', (_, intent, extra) => {
+    const admitted = admitAnswers(value(extra).answers, books, intent, CHOICES);
+    const decision = validDecision(value(extra), books, intent, CHOICES, JEV);
+    expect(admitted).not.toBeNull();
+    expect(admitted.book.work_id).toBe(decision.workId);
+    expect(admitted.config).toEqual(decision.config);
+  });
+
+  it('admits nothing validDecision would refuse', () => {
+    for (const extra of [{ book: { type: 'choice', choice: 'not-a-book' } },
+      { pace: { type: 'choice', choice: '999' } }, { chunk: { type: 'refusal' } }]) {
+      expect(admitAnswers(value(extra).answers, books, 'A novel.', CHOICES)).toBeNull();
+      expect(validDecision(value(extra), books, 'A novel.', CHOICES, JEV)).toBeNull();
+    }
+    expect(admitAnswers(null, books, 'A novel.', CHOICES)).toBeNull();
   });
 });

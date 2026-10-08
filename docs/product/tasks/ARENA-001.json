@@ -1,0 +1,33 @@
+{
+  "id": "ARENA-001",
+  "title": "Decision Arena harness: frozen, operator-paid capture of RISE's cases across deciders",
+  "lane": "shared",
+  "milestone": "Decision Arena",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude (lane H)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "scripts/arena/arena.mjs capture asks openai (Decisions API), jev, kev, rules and rules-floor the 39 fixed cases through the browser's own request and admitAnswers, keeping raw and admitted decisions; tested with mocked fetch only.",
+    "A billed capture refuses under CI, without --bill-operator, from a dirty harness, and before cumulative cost would pass --max-usd (at most 20); keys are never written, printed or thrown; tested.",
+    "The run is written once (wx) as public/content/arena/run-<sha12>.json with index.json, schema syberlabs.decision-arena/v1; src/core/decision/arena-file.js refuses an unknown schema, a dirty harness and a hash/name mismatch; tested.",
+    "report re-derives scores (valid, out-of-menu, explicit and contrast agreement raw and admitted, stability, latency, cost per 1k) byte-identically, and calls lane C's calibration(rows) when scripts/arena/calibration.mjs exists.",
+    "Nothing under src/ imports the harness, and the app and dist/ never name api.openai.com or gpt-6-luna; tested."
+  ],
+  "evidence": [],
+  "activity": [
+    {
+      "date": "2026-10-08T18:00:00.000Z",
+      "summary": "Opened as lane H of the approved Decision Arena plan."
+    },
+    {
+      "date": "2026-10-08T18:50:19.082Z",
+      "summary": "Claimed by lane H on branch arena/harness"
+    }
+  ],
+  "updatedAt": "2026-10-08T18:50:19.082Z",
+  "revision": 2,
+  "summary": "The benchmark harness for the Decision Arena: an operator-paid, offline capture frozen into a content-addressed file, scored deterministically. No billed run is part of this task.",
+  "blocker": null
+}

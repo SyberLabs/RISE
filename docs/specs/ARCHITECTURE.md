@@ -73,6 +73,8 @@ else is a recommendation.
   │                                                                         │
   │   Kokoro TTS ───────▶ build-voice-pack.mjs ─▶ recitation Opus + manifest │
   │                                                                         │
+  │   arena.mjs ─▶ operator-paid decider capture ─▶ frozen run-<sha12>.json │
+  │                                                                         │
   │   check-release-readiness.mjs  ── fails closed while any gate is open    │
   └────────────────────────────────┬────────────────────────────────────────┘
                                    │  emits JS modules + public/ assets
@@ -1401,6 +1403,27 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `docs/product/discussions/2026-10-04-composer-decision.md`.
 - **Status:** settled.
 
+### 8.47 The arena is a frozen file; live runs are the reader's
+
+- **Chosen:** the Decision Arena compares deciders on RISE's own fixed cases
+  offline. An operator runs `scripts/arena/arena.mjs` by hand, on the
+  operator's own keys, under a spending cap; it refuses to run in CI or
+  without an explicit billing flag. The capture is frozen into one file named
+  by the hash of its bytes, served immutable beside an index that revalidates.
+  `src/core/decision/arena-file.js` refuses a file whose bytes do not match its
+  name, whose schema is unknown, or whose harness had uncommitted changes.
+  Every decider's answers pass through the same `admitAnswers` the browser
+  uses, and both the raw and the admitted decision are kept.
+- **Rejected:** live side-by-side calls from the reader's page, a shared
+  SyberLabs key for comparisons, and a reader pasting a third-party key into
+  RISE for this.
+- **Why:** a comparison anyone can check must be the same bytes for everyone,
+  and RISE spends no shared inference (§2, #294). A frozen file costs nothing
+  per view, names the commit that produced it, and cannot be edited without
+  changing its name. Nothing under `src/` imports the harness, and the built
+  app never names the OpenAI endpoint; `scripts/arena/arena.test.mjs` holds both.
+- **Status:** settled.
+
 ---
 
 ## 9. What this design costs
@@ -1424,6 +1447,9 @@ Stated plainly so it is never rediscovered as a surprise.
 - **The release is gated on people**, and cannot be hurried by engineering.
   §8.15.
 - **Access control does not exist**, by choice. §8.1, §8.41.
+- **Frozen results age.** An arena run describes the deciders on the day it
+  was captured; a vendor's later model is not in it. A newer run is a new
+  file, never an edit. §8.47.
 
 ---
 
