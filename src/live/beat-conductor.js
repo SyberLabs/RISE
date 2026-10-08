@@ -76,6 +76,7 @@ export function createBeatConductor({ clock, onCue = null, onHold = null }) {
         cancelWait();
         const held = sceneHold(atom);
         if (held) sceneHeld.add(atom);
+        else sceneHeld.delete(atom);
         const mine = { cancel: null, atom, held: held !== null };
         waiting = mine;
         return new Promise(resolve => {
