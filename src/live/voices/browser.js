@@ -206,6 +206,11 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             else next();
         },
 
+        /** The utterance it has begun and not yet ended, or null. */
+        speakingId() {
+            return current?.started ? current.id : null;
+        },
+
         /** What has been spoken of an utterance, or undefined if it has not begun. */
         playedMs(id) {
             if (finished.has(id)) return finished.get(id);

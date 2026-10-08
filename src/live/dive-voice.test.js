@@ -45,8 +45,8 @@ function setHidden(hidden) {
     document.dispatchEvent(new Event('visibilitychange'));
 }
 
-function build({ boundaries, paced = false, failDive = false, flash = false }) {
-    const synth = createFakeSpeech(clock, { msPerChar: MS_PER_CHAR, latencyMs: 30, boundaries });
+function build({ boundaries, paced = false, failDive = false, flash = false, latencyAfterCancelMs = null }) {
+    const synth = createFakeSpeech(clock, { msPerChar: MS_PER_CHAR, latencyMs: 30, boundaries, latencyAfterCancelMs });
     const spoken = [];
     const speak = synth.speak.bind(synth);
     synth.speak = utterance => { spoken.push({ at: performance.now(), text: utterance.text }); speak(utterance); };
@@ -187,6 +187,32 @@ for (const boundaries of [true, false]) {
         });
     });
 }
+
+describe('held in the moment between two passages', () => {
+    it('shows the next passage when the voice begins it again, not before, however slowly the voice starts', async () => {
+        // The first utterance after the hold's cancel starts 2 s late, as a network voice's engine can.
+        const built = build({ boundaries: true, latencyAfterCancelMs: 2_000 });
+        await runtime.start('Explain black holes.');
+        // Read on until the reading waits between two passages: the first said, the next asked for and not begun.
+        for (let waited = 0; waited < 30_000; waited += 5) {
+            const reading = built.players[0];
+            if (reading?.sessionState.state === 'playing' && reading.sessionState.currentIndex > 0 && reading.sessionState.currentAtom?.seam) break;
+            await tick(5);
+        }
+        expect(built.players[0].sessionState.currentAtom?.seam).toBeDefined();
+        await runtime.interrupt();
+        await tick(2_000);
+        const since = main(built.atoms).length;
+        const resumedAt = performance.now();
+        runtime.resume();
+        await tick(8_000);
+        const next = main(built.atoms).slice(since).find(entry => entry.text !== '');
+        // The voice begins the passage 2 s after Play; its first words appear then, not while the voice is still silent.
+        expect(next.at - resumedAt).toBeGreaterThanOrEqual(2_000);
+        expect(next.at - resumedAt).toBeLessThanOrEqual(2_000 + 100);
+        expect(runtime.journal().filter(entry => entry.type === 'voice.degraded')).toEqual([]);
+    });
+});
 
 describe('a voice that reports no boundaries, in the first passage, before its speed is known', () => {
     it('is taken up as it always was: said again from the start, the phrase on screen not shown again', async () => {

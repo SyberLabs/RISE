@@ -30,14 +30,19 @@
  * the Current. A voice that is slow but still reporting is never cut off.
  *
  * The first utterance of a reading has `firstGraceMs` to begin, because a speech
- * engine that has not yet spoken in this page starts slowly; later ones have
- * `graceMs`.
+ * engine that has not yet spoken in this page starts slowly, and so does the
+ * first after a pause (a held voice is cancelled and spoken again, and a network
+ * voice's engine may have shut down meanwhile); later ones have `graceMs`. A
+ * voice still saying an earlier passage (one said again from further back after
+ * a pause) is owed the time that passage is expected to take before the grace
+ * for the next one begins.
  *
  * Degrading is quiet and one way. If the voice does not begin what it was
- * asked to say within `graceMs`, the governor stands down for the rest of the
- * Current and the Player's own timer carries on, because a reading that stops
- * is worse than a reading that is not synchronised. The host is told, so it can
- * show that the voice is not being heard.
+ * asked to say within its grace, the governor stands down for the rest of the
+ * Current and the Player's own timer carries on, at the pace the voice was
+ * measured at, because a reading that stops is worse than a reading that is not
+ * synchronised. The host is told, so it can show that the voice is not being
+ * heard.
  *
  * Pause. The Player does not consult a governor when it resumes from a pause,
  * so the atom that was paused finishes on the timer for what remained of it.
@@ -102,9 +107,10 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
         if (waiting) { waiting.cancel?.(); waiting.dead = true; waiting = null; }
     }
 
+    /** How long an atom takes to say. Still answered once stood down, so the words keep the pace of speech. */
     function estimate(atom, index) {
         const entry = map[index];
-        if (degraded || !entry?.segmentId || entry.seam || entry.end <= entry.start) return undefined;
+        if (!entry?.segmentId || entry.seam || entry.end <= entry.start) return undefined;
         return Math.max(SHORTEST_ATOM_MS, charTime(entry.segmentId, entry.end) - charTime(entry.segmentId, entry.start));
     }
 
@@ -122,6 +128,12 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
         waiting = mine;
         const beganAt = clock.now();
         const grace = begun ? graceMs : Math.max(graceMs, GOVERNOR_LIMITS.firstGraceMs);
+        // A voice still saying an earlier passage (one held and said again from further back, say) has not failed to
+        // begin this one: the grace starts when that passage should be over, by the time it is expected to take.
+        const still = voice.speakingId?.() ?? null;
+        const owed = still && still !== entry.segmentId && segments.has(still)
+            ? Math.max(0, charTime(still, segments.get(still).length) - (voice.playedMs(still) ?? 0))
+            : 0;
 
         return new Promise(resolve => {
             const finish = result => {
@@ -133,7 +145,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
                 if (mine.dead) return;
                 const played = voice.playedMs(entry.segmentId);
                 if (played === undefined) {
-                    if (clock.now() - beganAt >= grace) {
+                    if (clock.now() - beganAt >= grace + owed) {
                         degrade('voice-did-not-start');
                         finish({ reason: 'timeout' });
                         return;
@@ -198,6 +210,9 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
             // A paused reading is waiting on nothing; the Player will not ask again for this atom.
             stopWatchingState = player.on('state', ({ state }) => {
                 if (state === 'paused' || state === 'idle' || state === 'complete') cancelWait();
+                // A held voice is cancelled and spoken again, and an engine left idle may have shut down meanwhile:
+                // its next start is as slow as a first one.
+                if (state === 'paused') begun = false;
             });
         },
 

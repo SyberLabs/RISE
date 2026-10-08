@@ -543,14 +543,15 @@ export function createLiveRuntime({
     /**
      * Hold a run's voice where its words are. A held voice is silenced, not paused (voices/browser.js), and is
      * told where the phrase on screen begins; when it takes up there, that phrase is shown again from its start,
-     * so after a pause or a hidden page the voice and the words begin it together.
+     * so after a pause or a hidden page the voice and the words begin it together. Held between two passages, the
+     * seam is taken up again too, so the next passage is shown when the voice begins it, not on the seam's own clock.
      */
     function holdVoice(run) {
         if (!run.voice) return;
         const phrase = run.player.betweenPhrases ? null : run.governor?.restartPoint(run.player.sessionState.currentIndex) ?? null;
         const takenUp = run.voice.hold(phrase ? { resumeAt: phrase } : undefined) === true;
         note('voice.held', { role: run.role, segmentId: run.speaking ?? null, ...(phrase ? { resumeAt: phrase.charIndex } : {}), restarts: takenUp });
-        if (takenUp) run.player.restartCurrentAtom();
+        if (takenUp || run.player.sessionState.currentAtom?.seam) run.player.restartCurrentAtom();
     }
 
     function attachVoice(run) {

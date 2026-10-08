@@ -13,16 +13,23 @@
  * a page's `resume` does nothing while it has nothing of its own to say
  * (SpeechSynthesis::resume). Pages given the same `engine` share it, so a test
  * can leave it paused from a page that went away.
+ *
+ * `latencyAfterCancelMs`: the first utterance begun after a `cancel` that stopped
+ * one starts that late instead, as Chrome's network voices can after their
+ * engine has shut down (its offscreen document is closed 30 s after the last
+ * stop, chrome/browser/resources/network_speech_synthesis/mv3/tts_extension.js).
  */
 export function createFakeSpeechEngine() {
     return { paused: false };
 }
 
 export function createFakeSpeech(clock, {
-    msPerChar = 50, latencyMs = 30, boundaries = true, cancelReports = 'error', failWith = null, engine = createFakeSpeechEngine()
+    msPerChar = 50, latencyMs = 30, boundaries = true, cancelReports = 'error', failWith = null, engine = createFakeSpeechEngine(),
+    latencyAfterCancelMs = null
 } = {}) {
     const queue = [];
     let current = null;
+    let cold = false;
 
     class Utterance {
         constructor(text) {
@@ -40,17 +47,19 @@ export function createFakeSpeech(clock, {
     const words = text => [...text.matchAll(/\S+/gu)].map(match => match.index);
 
     function begin(utterance) {
+        const latency = cold ? latencyAfterCancelMs : latencyMs;
+        cold = false;
         const total = utterance.text.length * msPerChar;
-        const events = [{ at: latencyMs, run: () => utterance.onstart?.({}) }];
+        const events = [{ at: latency, run: () => utterance.onstart?.({}) }];
         if (boundaries) {
             for (const charIndex of words(utterance.text)) {
-                events.push({ at: latencyMs + charIndex * msPerChar, run: () => utterance.onboundary?.({ name: 'word', charIndex }) });
+                events.push({ at: latency + charIndex * msPerChar, run: () => utterance.onboundary?.({ name: 'word', charIndex }) });
             }
         }
-        events.push({ at: latencyMs + total, run: () => { current = null; utterance.onend?.({}); next(); } });
+        events.push({ at: latency + total, run: () => { current = null; utterance.onend?.({}); next(); } });
         current = { utterance, events, index: 0, played: 0, since: null, cancel: null };
         if (failWith) {
-            current.events = [{ at: latencyMs, run: () => { current = null; utterance.onerror?.({ error: failWith }); next(); } }];
+            current.events = [{ at: latency, run: () => { current = null; utterance.onerror?.({ error: failWith }); next(); } }];
         }
         schedule();
     }
@@ -112,6 +121,7 @@ export function createFakeSpeech(clock, {
             current = null;
             if (stopped) {
                 stopped.cancel?.();
+                cold = latencyAfterCancelMs !== null;
                 clock.setTimer(() => {
                     if (cancelReportsError()) stopped.utterance.onerror?.({ error: 'canceled' });
                     else stopped.utterance.onend?.({});

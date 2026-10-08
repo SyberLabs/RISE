@@ -1101,6 +1101,9 @@ export class Player {
                         this.scheduleNextAtom(true);
                         return;
                     }
+                    // An end that arrives after the watchdog has put this atom on its timer wins, and the timer
+                    // goes: left running, it would advance the reading a second time.
+                    if (this.timerId) cancelAnimationFrame(this.timerId);
                     this.timerId = null;
                     this.atomStartTime = null;
                     this.currentAtomRemainingTime = null;
