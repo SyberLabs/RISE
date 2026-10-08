@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { buildRecommendRequest } from '../../src/core/decision/recommend.js';
 import { scoreDecisions } from '../jev-eval.mjs';
 import { sha256Hex } from './arena-file.mjs';
-import { calibration } from './calibration.mjs';
+import { calibration, clusterBootstrap, pairedBootstrapDiff, wilson } from './calibration.mjs';
 
 // Option fields in the fixtures that name a different question.
 const QUESTION_OF = Object.freeze({ visualMode: 'visual', chunkMode: 'chunk', revealMode: 'reveal' });
@@ -134,4 +134,63 @@ export function scoreRun(run, { cases, controls = [], options, catalog }) {
     };
   }
   return scores;
+}
+
+/** Explicit agreement over per-case rows {passed, total}: checks passed over checks made. */
+const explicitRate = rows => rows.reduce((sum, row) => sum + row.passed, 0) / rows.reduce((sum, row) => sum + row.total, 0);
+const rate = ({ passed, total }) => (total ? round(passed / total) : null);
+const roundInterval = ({ estimate, lo, hi, ...rest }) => ({ estimate: round(estimate), lo: round(lo), hi: round(hi), ...rest });
+
+/**
+ * Agreement of admitted decisions with each run stated apart, never pooled:
+ * the repeats of one decider are not independent, so pooling them narrows
+ * any interval falsely. Run 1 is the headline. Its explicit agreement carries
+ * a case-clustered 95% bootstrap interval, its contrast pairs a 95% Wilson
+ * interval, and every pair of deciders that ran a paired case-clustered
+ * difference with `withinNoise`. Computed only for the report, never stored
+ * in run.scores, so recorded scores still reproduce.
+ */
+export function agreementReport(run, { cases, options }) {
+  const ran = run.providers.filter(({ status = 'ran' }) => status === 'ran').map(({ id }) => id);
+  const deciders = {};
+  const perCase = {};
+  for (const id of ran) {
+    const rows = run.results.filter(row => row.providerId === id);
+    const runNumbers = [...new Set(rows.map(row => row.run))].sort((a, b) => a - b);
+    const runs = runNumbers.map(number => {
+      const mine = rows.filter(row => row.run === number);
+      const reached = run.partial ? cases.filter(item => mine.some(row => row.caseId === item.id)) : cases;
+      const admittedRows = mine.map(row => row.admitted ? { id: row.caseId, decision: admittedDecision(row, options),
+        workId: row.admitted.workId } : { id: row.caseId });
+      const scored = scoreDecisions(reached, admittedRows, options);
+      const caseRows = reached.map(item => ({ caseId: item.id,
+        ...scoreDecisions([item], admittedRows.filter(row => row.id === item.id), options).explicit }))
+        .filter(row => row.total);
+      return { run: number, explicit: { ...scored.explicit, rate: rate(scored.explicit) },
+        contrast: { ...scored.contrast, rate: rate(scored.contrast) }, caseRows };
+    });
+    const [headline] = runs;
+    if (!headline) continue;
+    perCase[id] = headline.caseRows;
+    const spread = key => {
+      const rates = runs.map(item => item[key].rate).filter(value => value !== null);
+      return rates.length ? { min: Math.min(...rates), max: Math.max(...rates) } : null;
+    };
+    const { lo, hi } = wilson(headline.contrast.passed, headline.contrast.total);
+    deciders[id] = {
+      headlineRun: headline.run,
+      explicit: { ...headline.explicit, cases: headline.caseRows.length,
+        interval: { method: 'case-clustered percentile bootstrap, 95%',
+          ...roundInterval(clusterBootstrap(headline.caseRows, explicitRate)) } },
+      contrast: { ...headline.contrast,
+        interval: { method: 'Wilson score over pairs, 95%', lo: round(lo), hi: round(hi) } },
+      runs: runs.map(({ caseRows, ...item }) => item),
+      acrossRuns: { runs: runs.length, explicitRate: spread('explicit'), contrastRate: spread('contrast') }
+    };
+  }
+  const scored = ran.filter(id => perCase[id]);
+  const differences = scored.flatMap((a, index) => scored.slice(index + 1).map(b => ({ a, b,
+    metric: 'explicit agreement, a minus b, headline run, paired case-clustered bootstrap, 95%',
+    ...roundInterval(pairedBootstrapDiff(perCase[a], perCase[b], explicitRate)) })));
+  return { decisions: 'admitted', deciders, differences };
 }

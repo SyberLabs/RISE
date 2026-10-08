@@ -19,7 +19,9 @@
 //            writes what it has, marked partial.
 //            --mock answers every network decider from a local stand-in.
 //   report   re-derives the scores of one run file, deterministically, and
-//            checks its replay file is the one the run derives.
+//            checks its replay file is the one the run derives. Its
+//            `agreement` block states run 1 with case-clustered intervals and
+//            paired differences; it is never stored in the run's scores.
 //            With --reveal-seed-file, it also scores the controls' calibration
 //            against the labels the revealed seed draws; without it they are
 //            sealed.
@@ -44,7 +46,7 @@ import { rulesDecider, rulesFloorDecider } from './adapters/rules.mjs';
 import { ARENA_SCHEMA, readArenaReplay, readArenaRun, replayName, replayText } from './arena-file.mjs';
 import { calibration } from './calibration.mjs';
 import { revealLabels } from './controls.mjs';
-import { CALIBRATION_VERSION, calibrationRows, scoreRun } from './report.mjs';
+import { agreementReport, CALIBRATION_VERSION, calibrationRows, scoreRun } from './report.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 export const ARENA_DIR = 'public/content/arena';
@@ -298,6 +300,7 @@ export async function report(args) {
   return `${JSON.stringify({ schema: 'syberlabs.decision-arena-report/v1', runId: run.runId,
     file: basename(path), partial: run.partial === true,
     matchesRecorded: JSON.stringify(scores) === JSON.stringify(run.scores), matchesReplay, scores,
+    agreement: agreementReport(run, { cases, options }),
     ...(controlScores ? { controls: controlScores } : {}) }, null, 2)}\n`;
 }
 

@@ -15,7 +15,7 @@ import { openaiDecider, toOpenAI } from './adapters/openai.mjs';
 import { rulesAnswers } from './adapters/rules.mjs';
 import { readArenaReplay, readArenaRun, replayName, sha256Hex } from './arena-file.mjs';
 import { ARENA_DIR, capture, captureRun, decidersFor, guard, mockFetch, notRunFor, report, writeRun } from './arena.mjs';
-import { calibrationRows, expectedChoices, scoreRun } from './report.mjs';
+import { agreementReport, calibrationRows, expectedChoices, scoreRun } from './report.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const OPENAI_KEY = 'sk-SENTINEL-openai-0123456789abcdef';
@@ -184,6 +184,35 @@ test('stability compares the choices made, not the confidence or probabilities a
   assert.equal(scores.openai.stability.identicalRaw, 1);
 });
 
+test('agreement is stated per run, never pooled: repeats of a deterministic decider do not narrow its interval', async () => {
+  const names = ['rules', 'rules-floor'];
+  const once = (await captureRun({ ...fixture, catalog, deciders: decidersFor(names, {}), runs: 1, maxUsd: 0, harness })).run;
+  const thrice = (await captureRun({ ...fixture, catalog, deciders: decidersFor(names, {}),
+    notRun: notRunFor(names, 'kev=hardware/setup'), runs: 3, maxUsd: 0, harness })).run;
+  const one = agreementReport(once, fixture);
+  const three = agreementReport(thrice, fixture);
+  // Only deciders that ran are reported; run 1 is the headline, with the same interval however many repeats.
+  assert.deepEqual(Object.keys(three.deciders), names);
+  assert.deepEqual(three.deciders.rules.explicit, one.deciders.rules.explicit);
+  assert.deepEqual(three.deciders.rules.contrast, one.deciders.rules.contrast);
+  assert.deepEqual(three.differences, one.differences);
+  const { explicit, contrast, runs, acrossRuns } = three.deciders.rules;
+  assert.equal(explicit.total, thrice.scores.rules.explicit.admitted.total / 3);
+  assert.equal(explicit.interval.method, 'case-clustered percentile bootstrap, 95%');
+  assert.ok(explicit.interval.lo <= explicit.rate && explicit.rate <= explicit.interval.hi);
+  assert.ok(contrast.interval.lo <= contrast.rate && contrast.rate <= contrast.interval.hi);
+  assert.deepEqual(runs.map(item => item.run), [1, 2, 3]);
+  assert.deepEqual(acrossRuns.explicitRate, { min: explicit.rate, max: explicit.rate });
+  assert.deepEqual(three.differences.map(({ a, b, clusters }) => [a, b, clusters]), [['rules', 'rules-floor', explicit.cases]]);
+  assert.equal(typeof three.differences[0].withinNoise, 'boolean');
+  // A later run that disagrees shows in the per-run figures, not in the headline.
+  const changed = structuredClone(thrice);
+  for (const row of changed.results.filter(item => item.providerId === 'rules' && item.run === 3)) row.admitted = null;
+  const varied = agreementReport(changed, fixture).deciders.rules;
+  assert.deepEqual(varied.explicit, explicit);
+  assert.deepEqual(varied.acrossRuns.explicitRate, { min: 0, max: explicit.rate });
+});
+
 test('calibration rows: one per expected question, with the raw choice, probabilities and confidence', () => {
   const item = fixture.cases.find(entry => entry.expect?.visualMode);
   const expected = expectedChoices(item);
@@ -337,6 +366,17 @@ test('every committed arena run is valid, not a mock, and its replay is the one 
     assert.equal(run.inputs.cases.sha256, fixture.casesHash, `${relative(ROOT, file)} was asked other cases than scripts/jev-eval-cases.json`);
     const replay = join(ROOT, ARENA_DIR, replayName(basename(file)));
     readArenaReplay(readFileSync(replay, 'utf8'), basename(replay), text, basename(file));
+  }
+});
+
+test('every committed arena run reports its recorded scores, with case-clustered agreement and paired differences', async () => {
+  for (const file of walk(join(ROOT, ARENA_DIR)).filter(path => /run-[0-9a-f]{12}\.json$/u.test(path))) {
+    const output = JSON.parse(await report(['--run', file]));
+    assert.equal(output.matchesRecorded, true, `${relative(ROOT, file)} no longer matches its recorded scores`);
+    assert.equal(output.matchesReplay, true);
+    const ran = Object.keys(output.scores).filter(id => !output.scores[id].status);
+    assert.deepEqual(Object.keys(output.agreement.deciders), ran);
+    assert.equal(output.agreement.differences.length, ran.length * (ran.length - 1) / 2);
   }
 });
 
