@@ -158,6 +158,10 @@ export const RENDER_SUPPORT = Object.freeze({
     'muted runtime policy'
   ]),
 
+  'visual:scene': unsupported('visual:scene',
+    'A generated scene draws in a worker on the display clock; the offline stage cannot run it at explicit t yet',
+    ['scene worker', 'OffscreenCanvas', 'display frame clock']),
+
   'audio:hold': nativeSlice('audio:hold', ['AudioContext.currentTime']),
   'audio:silence': nativeSlice('audio:silence', ['AudioContext.currentTime']),
   'audio:soundscape': nativeSlice('audio:soundscape', [
@@ -295,6 +299,7 @@ export function classifyCue(cue, trackKind = null) {
   if (kind === 'focal') return 'visual:focal';
   if (kind === 'field') return `visual:field:${cue.renderer}`;
   if (kind === 'video') return 'visual:video';
+  if (kind === 'scene') return 'visual:scene';
   if (kind === 'sourced') return classifySourcedCue(cue);
   if (kind === 'procedural') return classifyProceduralCue(cue);
   return `undeclared:${trackKind || 'unknown'}:${String(kind)}`;

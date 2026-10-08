@@ -117,3 +117,61 @@ describe('a v2 Current in the runtime', () => {
     expect(shown[at + 1].at - shown[at].at).toBeGreaterThanOrEqual(caption.say.length * msPerChar);
   });
 });
+
+describe('a generated scene in the runtime', () => {
+  const SCENE_MANIFEST = { surface: 'scene', parameters: { cue: { type: 'name', cueable: true } } };
+  const GENERATED = {
+    ...V2,
+    id: 'vector',
+    scenes: [{ id: 'vector', code: 'export const reportsCompletion = true; export default () => ({ frame() {} });' }],
+    beats: [
+      { say: 'Here is a vector.', scene: 'vector', cue: 'draw' },
+      { hold: { ms: 5000, maxMs: 8000 }, cue: 'rotate' },
+      { say: 'It turned.' }
+    ]
+  };
+
+  it('delivers its cues by name and lets the scene end its hold early, through the host', async () => {
+    const clock = createRealClock();
+    const port = createFakeMcpPort({ clock, answerAfterMs: 10 });
+    const adapter = createMcpAppAdapter({ port, clock, host: 'https://host.example' });
+    const voice = createSyntheticVoice({ clock, msPerChar: 10, breathMs: 50 });
+    const players = [];
+    const commands = [];
+    const holds = [];
+    const shownAt = new Map();
+    runtime = createLiveRuntime({
+      adapter, clock, voices: { create: () => voice },
+      createPlayer: session => {
+        const player = new Player(session);
+        player.on('atom', ({ atom }) => { if (!shownAt.has(atom.sourceId)) shownAt.set(atom.sourceId, Date.now()); });
+        players.push(player);
+        return player;
+      },
+      host: {
+        present() {}, dismiss() {},
+        discoverVisual: () => ({ manifest: SCENE_MANIFEST, current: {}, target: {} }),
+        controlVisual: ({ command }) => { commands.push(command); return { status: 'accepted', surface: 'scene', parameter: 'cue', requested: command.value, effective: command.value }; },
+        holdScene: ({ role, atom }) => {
+          holds.push({ role, hold: atom.hold });
+          return new Promise(resolve => { setTimeout(() => resolve({ reason: 'ended' }), 600); });
+        }
+      }
+    });
+    const started = runtime.start('Show me a vector');
+    port.answer(GENERATED, 10);
+    await tick(100);
+    await started;
+    await tick(30_000);
+    expect(players[0].sessionState.state).toBe('complete');
+    expect(commands).toEqual([
+      { surface: 'scene', parameter: 'cue', value: 'draw' },
+      { surface: 'scene', parameter: 'cue', value: 'rotate' }
+    ]);
+    expect(holds).toEqual([{ role: 'main', hold: { ms: 5000, maxMs: 8000, sceneId: 'vector' } }]);
+    // The hold ended when the scene said so, well before its 5 s.
+    const held = shownAt.get('beat-2') - shownAt.get('beat-1');
+    expect(held).toBeGreaterThanOrEqual(600);
+    expect(held).toBeLessThan(2000);
+  });
+});

@@ -868,3 +868,79 @@ test('a Current of beats plays in the self-contained card: a hold, a shown line,
   await expect(app.locator('.chamber-living-flame')).toBeAttached({ timeout: 15_000 });
   expect(errors).toEqual([]);
 });
+
+// CC-005: a generated scene runs in a worker the card makes from RISE's own script, and may end its hold early.
+const ORBIT_CODE = [
+  'export const reportsCompletion = true;',
+  'export default function scene(rise) {',
+  '  const { lib } = rise;',
+  '  let now = 0;',
+  '  let cuedAt = null;',
+  '  let ended = false;',
+  '  return {',
+  '    cue() { if (cuedAt === null) cuedAt = now; },',
+  '    frame(t) {',
+  '      now = t;',
+  '      lib.clear();',
+  '      const axes = lib.axes({ x: [-1, 1], y: [-1, 1] });',
+  '      lib.point(axes, [Math.cos(t / 400) * 0.7, Math.sin(t / 400) * 0.7], { radius: 14 });',
+  '      if (!ended && cuedAt !== null && t - cuedAt >= 500) { ended = true; rise.done(); }',
+  '    }',
+  '  };',
+  '}'
+].join('\n');
+
+const sceneBeats = (code, hold) => ({
+  schema: 'rise.current.v2',
+  id: 'orbit',
+  title: 'A point going round',
+  origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
+  look: 'signal',
+  scenes: [{ id: 'orbit', code }],
+  beats: [
+    { say: 'A point.', scene: 'orbit' },
+    { hold, cue: 'settle' },
+    { say: 'It came to rest.' }
+  ]
+});
+
+/** Milliseconds from the first beat on screen to the beat after the hold. */
+async function heldFor(app) {
+  await expectShown(app, 'A point.');
+  const from = Date.now();
+  await expectShown(app, 'It came to rest', 20_000);
+  return Date.now() - from;
+}
+
+test('a generated scene draws in the self-contained card and ends its hold when it says it is done', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const current = sceneBeats(ORBIT_CODE, { ms: 6000, maxMs: 8000 });
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await begin(app);
+  await expect(app.locator('canvas.chamber-scene')).toBeAttached({ timeout: 15_000 });
+  // The voice's first beat (about half a second paced) and a hold the scene ends 500 ms after its cue: far short of the 6 s it would run.
+  expect(await heldFor(app)).toBeLessThan(5000);
+  expect(errors).toEqual([]);
+});
+
+test('a generated scene that throws gives way to the look’s field, and its hold runs on its ms', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const broken = ORBIT_CODE.replace('now = t;', 'now = t; if (t >= 0) throw new TypeError("the scene broke");');
+  const current = sceneBeats(broken, { ms: 1500, maxMs: 8000 });
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await begin(app);
+  const held = await heldFor(app);
+  // At its ms (1.5 s, after a beat of about half a second), never at its maxMs (8 s).
+  expect(held).toBeGreaterThanOrEqual(1500);
+  expect(held).toBeLessThan(6000);
+  // The signal look's field stands in for the scene, whose canvas is gone.
+  await expect(app.locator('.chamber-attractor').first()).toBeAttached({ timeout: 15_000 });
+  await expect(app.locator('canvas.chamber-scene')).toHaveCount(0, { timeout: 5_000 });
+  expect(errors).toEqual([]);
+});

@@ -150,11 +150,13 @@ export function cueCommands(engine, cue) {
  * The visual cue a scene lowers to on the score: a field cue for a persistent
  * engine (its config the theme's defaults under the scene's parameters; the
  * Living Flame a whole recipe from its preset and macros), a procedural cue
- * for a pattern engine, a still for none.
- * @param {{engine: string, params?: object}} scene
+ * for a pattern engine, a still for none; a generated scene is a scene cue
+ * carrying its code, which only the scene worker runs.
+ * @param {{id?: string, engine?: string, params?: object, code?: string}} scene
  * @param {object|null} themeConfig the theme's own defaults for this engine (rise-current.js)
  */
 export function sceneCue(scene, themeConfig = null) {
+  if (typeof scene.code === 'string') return { kind: 'scene', sceneId: scene.id, code: scene.code };
   const manifest = manifestFor(scene.engine);
   const params = scene.params ?? {};
   if (!manifest || manifest.kind === 'still') return { kind: 'still' };

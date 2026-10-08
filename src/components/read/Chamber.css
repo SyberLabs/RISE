@@ -1334,6 +1334,17 @@
   display: block;
 }
 
+/* A generated scene's canvas; its pixels are drawn by the scene's worker. */
+.chamber-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
 .chamber-scheduled-field {
   opacity: 0;
   transition: opacity 320ms ease;

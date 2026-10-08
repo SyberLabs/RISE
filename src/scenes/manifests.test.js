@@ -89,6 +89,11 @@ describe('what a scene lowers to on the score', () => {
     expect(sceneCue({ engine: 'turrell' })).toEqual({ kind: 'procedural', collections: ['turrell'], config: {} });
     expect(sceneCue({ engine: 'still' })).toEqual({ kind: 'still' });
   });
+
+  it('is a scene cue carrying the code, for a generated scene', () => {
+    const code = 'export default () => ({ frame() {} })';
+    expect(sceneCue({ id: 'vector', code })).toEqual({ kind: 'scene', sceneId: 'vector', code });
+  });
 });
 
 describe('the guide’s account', () => {

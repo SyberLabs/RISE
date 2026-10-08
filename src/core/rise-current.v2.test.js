@@ -153,3 +153,32 @@ describe('what a v2 Current carries for the layers', () => {
     expect(withMath.hasMath).toBe(true);
   });
 });
+
+describe('a generated scene', () => {
+  const CODE = 'export const reportsCompletion = true;\nexport default function scene(rise) { return { frame() {}, cue() { rise.done(); } }; }';
+  const GENERATED = {
+    ...V2,
+    scenes: [{ id: 'vector', code: CODE }],
+    beats: [
+      { say: 'Here is a vector.', scene: 'vector', cue: 'draw' },
+      { hold: { ms: 3000, maxMs: 8000 }, cue: 'rotate' },
+      { say: 'That is all.' }
+    ]
+  };
+
+  it('lowers to a scene cue on the score carrying its code, and makes the reading draw', () => {
+    const { program } = materializeRiseCurrent(GENERATED);
+    const clips = program.tracks.find(track => track.kind === 'visual').clips;
+    expect(clips.map(clip => clip.cue)).toEqual(Array.from({ length: 3 }, () => ({ kind: 'scene', sceneId: 'vector', code: CODE })));
+    expect(compileRiseCurrent(GENERATED).visualConfig.visualMode).toBe('interlocution');
+  });
+
+  it('delivers its cues as the scene’s own command, and gives its hold the scene', () => {
+    const session = compileRiseCurrent(GENERATED);
+    const hold = session.atoms.find(atom => atom.sourceId === 'beat-1');
+    expect(hold.cueCommands).toEqual([{ surface: 'scene', parameter: 'cue', value: 'rotate' }]);
+    expect(hold.hold).toEqual({ ms: 3000, maxMs: 8000, sceneId: 'vector' });
+    expect(session.atoms.find(atom => atom.sourceId === 'beat-0').cueCommands).toEqual([{ surface: 'scene', parameter: 'cue', value: 'draw' }]);
+    expect(session.visualProgram.segments.some(segment => segment.cue.kind === 'scene' && segment.cue.code === CODE)).toBe(true);
+  });
+});

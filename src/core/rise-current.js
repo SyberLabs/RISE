@@ -251,8 +251,12 @@ function timeBeats(session, current) {
     // The beat's typography and cue ride on its atoms for the layers that render them.
     if (Object.keys(segment.beat).length > 0) for (const atom of atoms) atom.beat = segment.beat;
     if (segment.scene) {
-      // The beat's cue as the running engine's commands, for the conductor to deliver when the beat begins.
-      const commands = segment.beat.cue ? cueCommands(segment.scene.engine, segment.beat.cue) ?? [] : null;
+      // The beat's cue as the running engine's commands, for the conductor to deliver when the beat begins;
+      // a generated scene takes the cue by name, through the scene's one parameter.
+      const { cue } = segment.beat;
+      const commands = !cue ? null
+        : segment.scene.code !== undefined ? [{ surface: 'scene', parameter: 'cue', value: cue }]
+          : cueCommands(segment.scene.engine, cue) ?? [];
       for (const atom of atoms) {
         atom.scene = segment.scene.id;
         if (commands) atom.cueCommands = commands;

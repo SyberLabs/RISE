@@ -17,17 +17,21 @@
  *
  * A scene names a native engine and its parameters, held to the engine's
  * manifest (src/scenes/manifests.js); a cue names one of the running scene's
- * cues, or sets one of its cueable parameters. Generated code is a later
- * sub-project, and is refused here with words that say so.
+ * cues, or sets one of its cueable parameters. A generated scene is code: an
+ * ES module with a default export, checked here only for its shape and size
+ * (what it may reference is the server's static admission, and the worker's
+ * own guard); any cue name is its to interpret.
  */
 import { soundKind } from '../audio/sound-ids.js';
 import { fail, id, keys, object, spokenText } from './current-validation.js';
 import { TYPE_NAMES } from './typography.js';
+import { EXPERIENCE_PROGRAM_LIMITS, sceneCodeBytes } from './experience-program.js';
 import { cueCommands, manifestFor, SCENE_ENGINES as ENGINES, validateSceneParams } from '../scenes/manifests.js';
 
 export const BEAT_LIMITS = Object.freeze({
   beats: 64,
   scenes: 8,
+  code: EXPERIENCE_PROGRAM_LIMITS.maxSceneCodeBytes,
   text: 4_000,
   totalText: 20_000,
   id: 120,
@@ -67,7 +71,16 @@ export function validateScenes(value, path) {
     if (seen.has(sceneId)) fail('CURRENT_DUPLICATE_ID', `${at}.id`, 'Duplicate scene id');
     seen.add(sceneId);
     if (scene.code !== undefined) {
-      fail('SCENE_CODE', `${at}.code`, 'Generated scenes are not admitted yet; name a native engine');
+      if (scene.engine !== undefined || scene.params !== undefined) {
+        fail('SCENE_CODE', at, 'A scene is a native engine with params, or generated code, not both');
+      }
+      if (typeof scene.code !== 'string' || sceneCodeBytes(scene.code) > BEAT_LIMITS.code) {
+        fail('SCENE_CODE', `${at}.code`, `A scene's code is the text of an ES module of at most ${BEAT_LIMITS.code.toLocaleString('en-US')} bytes`);
+      }
+      if (!/\bexport\s+default\b/u.test(scene.code)) {
+        fail('SCENE_CODE', `${at}.code`, 'A scene is an ES module with a default export: export default function scene(rise) { return { frame(t, dt) {} }; }');
+      }
+      return { id: sceneId, code: scene.code };
     }
     if (!SCENE_ENGINES.includes(scene.engine)) {
       fail('SCENE_ENGINE', `${at}.engine`, `Unknown engine; use one of ${SCENE_ENGINES.join(', ')}`);
@@ -99,11 +112,11 @@ function oneOf(value, list, code, path, what) {
 /**
  * @param {unknown} value the model's beats
  * @param {string} path where they are, for refusals
- * @param {{scenes: Array<{id: string, engine: string}>}} context the scenes a beat may start or cue
+ * @param {{scenes: Array<{id: string, engine?: string, code?: string}>}} context the scenes a beat may start or cue
  * @returns {Array<object>} the beats, each with its `kind`, frozen
  */
 export function validateBeats(value, path, { scenes }) {
-  const engineOf = new Map(scenes.map(scene => [scene.id, scene.engine]));
+  const sceneOf = new Map(scenes.map(scene => [scene.id, scene]));
   let running = null;
   if (!Array.isArray(value) || value.length < 1 || value.length > BEAT_LIMITS.beats) {
     fail('BEAT_COUNT', path, `Expected 1 to ${BEAT_LIMITS.beats} beats`);
@@ -131,7 +144,7 @@ export function validateBeats(value, path, { scenes }) {
     }
     if (has('hold')) out.hold = hold(beat.hold, `${at}.hold`);
     if (has('scene')) {
-      if (!engineOf.has(beat.scene)) fail('BEAT_SCENE', `${at}.scene`, 'A beat starts a scene the Current declares');
+      if (!sceneOf.has(beat.scene)) fail('BEAT_SCENE', `${at}.scene`, 'A beat starts a scene the Current declares');
       out.scene = beat.scene;
       running = beat.scene;
     }
@@ -140,8 +153,8 @@ export function validateBeats(value, path, { scenes }) {
         fail('BEAT_CUE', `${at}.cue`, `A cue is a name of at most ${BEAT_LIMITS.cue} letters, digits, _, -, : or =`);
       }
       if (running === null) fail('BEAT_CUE', `${at}.cue`, 'A cue needs a scene running: start one with "scene" first');
-      const engine = engineOf.get(running);
-      if (cueCommands(engine, beat.cue) === null) {
+      const { engine, code } = sceneOf.get(running);
+      if (code === undefined && cueCommands(engine, beat.cue) === null) {
         const manifest = manifestFor(engine);
         const named = Object.keys(manifest.cues);
         const settable = Object.entries(manifest.parameters).filter(([, spec]) => spec.cueable).map(([name]) => `set:${name}=<value>`);
@@ -208,7 +221,7 @@ export function lowerBeats({ scenes, beats }) {
     const segment = { id: segmentId, beat: meta };
     if (running !== null) {
       const scene = byId.get(running);
-      segment.visual = scene.engine;
+      segment.visual = scene.engine ?? 'scene';
       segment.scene = { ...scene };
     }
     if (beat.kind === 'hold') {

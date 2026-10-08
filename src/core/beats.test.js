@@ -110,18 +110,51 @@ describe('scenes, in this release', () => {
     expect(validateScenes([{ id: 'p', engine: 'ostensoria', params: { palette: 'ice' } }], '$.scenes')).toEqual([{ id: 'p', engine: 'ostensoria', params: { palette: 'ice' } }]);
   });
 
-  it('refuses an unknown engine, a parameter off the manifest, generated code, a duplicate id, and too many', () => {
-    const refusesScene = (list, code) => {
-      let caught = null;
-      try { validateScenes(list, '$.scenes'); } catch (error) { caught = error; }
-      expect(caught?.code).toBe(code);
-    };
+  const refusesScene = (list, code) => {
+    let caught = null;
+    try { validateScenes(list, '$.scenes'); } catch (error) { caught = error; }
+    expect(caught?.code).toBe(code);
+    return caught;
+  };
+
+  it('refuses an unknown engine, a parameter off the manifest, a duplicate id, and too many', () => {
     refusesScene([{ id: 'f', engine: 'shader' }], 'SCENE_ENGINE');
     refusesScene([{ id: 'f', engine: 'attractor', params: { energy: 1 } }], 'SCENE_PARAM');
     refusesScene([{ id: 'f', engine: 'attractor', params: { intensity: 2 } }], 'SCENE_PARAM');
-    refusesScene([{ id: 'f', code: 'export default () => ({})' }], 'SCENE_CODE');
     refusesScene([{ id: 'f', engine: 'attractor' }, { id: 'f', engine: 'still' }], 'CURRENT_DUPLICATE_ID');
     refusesScene(Array.from({ length: BEAT_LIMITS.scenes + 1 }, (_, i) => ({ id: `s${i}`, engine: 'still' })), 'SCENE_COUNT');
+  });
+
+  it('admits a generated scene: an ES module with a default export, within its size', () => {
+    const code = 'export default function scene(rise) { return { frame() {} }; }';
+    expect(validateScenes([{ id: 'vector', code }], '$.scenes')).toEqual([{ id: 'vector', code }]);
+  });
+
+  it('refuses generated code that is not text, too large, without a default export, or beside an engine', () => {
+    refusesScene([{ id: 'f', code: 42 }], 'SCENE_CODE');
+    refusesScene([{ id: 'f', code: `export default 1;${'x'.repeat(BEAT_LIMITS.code)}` }], 'SCENE_CODE');
+    const missing = refusesScene([{ id: 'f', code: 'function scene() {}' }], 'SCENE_CODE');
+    expect(missing.message).toMatch(/export default/u);
+    expect(missing.path).toBe('$.scenes[0].code');
+    refusesScene([{ id: 'f', engine: 'attractor', code: 'export default () => ({})' }], 'SCENE_CODE');
+    refusesScene([{ id: 'f', params: {}, code: 'export default () => ({})' }], 'SCENE_CODE');
+  });
+
+  it('lets a generated scene take any cue by name, since its code decides what a cue means, and keeps the name’s bounds', () => {
+    const scenes = [{ id: 'vector', code: 'export default () => ({ frame() {} })' }];
+    const [, hold] = validateBeats([{ say: 'x', scene: 'vector', cue: 'draw' }, { hold: { ms: 2000, maxMs: 5000 }, cue: 'rotate:90' }], '$.beats', { scenes });
+    expect(hold.cue).toBe('rotate:90');
+    let caught = null;
+    try { validateBeats([{ say: 'x', scene: 'vector', cue: 'two words' }], '$.beats', { scenes }); } catch (error) { caught = error; }
+    expect(caught?.code).toBe('BEAT_CUE');
+  });
+
+  it('lowers a generated scene’s passages with the scene, and draws it', () => {
+    const scenes = [{ id: 'vector', code: 'export default () => ({ frame() {} })' }];
+    const lowered = lowerBeats({ scenes, beats: validateBeats([{ say: 'x', scene: 'vector' }, { hold: { ms: 2000, maxMs: 5000 } }], '$.beats', { scenes }) });
+    expect(lowered.segments.map(segment => segment.visual)).toEqual(['scene', 'scene']);
+    expect(lowered.segments[1].scene).toEqual(scenes[0]);
+    expect(lowered.segments[1].hold).toEqual({ ms: 2000, maxMs: 5000, sceneId: 'vector' });
   });
 });
 

@@ -12,6 +12,7 @@ import { normalizeProceduralStyle } from './visual-style-definitions.js';
 import { isJevColorTheme } from './jev-color-themes.js';
 import { normalizeLivingFlameConfig } from './flame-recipe.js';
 import { flamePreset } from '../visuals/living-flame/flame-presets.js';
+import { EXPERIENCE_PROGRAM_LIMITS, sceneCodeBytes } from './experience-program.js';
 
 // Classic's composition (THEME_ENGINE_MAP), named here because the theme map
 // reaches the session compiler, which reaches this file. No theme reaches this
@@ -148,6 +149,12 @@ export function normalizeVisualCue(value) {
       timeMode: modes.has(value.timeMode) ? value.timeMode : 'loop',
       audioPolicy: 'muted', reducedMotion: 'poster'
     };
+  }
+  if (value.kind === 'scene') {
+    const { maxSceneIdLength, maxSceneCodeBytes } = EXPERIENCE_PROGRAM_LIMITS;
+    const valid = typeof value.sceneId === 'string' && value.sceneId && value.sceneId.length <= maxSceneIdLength
+      && typeof value.code === 'string' && value.code && sceneCodeBytes(value.code) <= maxSceneCodeBytes;
+    return valid ? { kind: 'scene', sceneId: value.sceneId, code: value.code } : { kind: 'still' };
   }
   return { kind: 'still' };
 }

@@ -407,6 +407,7 @@ export class LiveHost {
                 discoverVisual: ({ player }) => mountedChamber(player)?.discoverVisual?.() ?? null,
                 controlVisual: ({ player, command }) => mountedChamber(player)?.controlVisual?.(command)
                     ?? { status: 'refused', code: 'NO_ACTIVE_VISUAL' },
+                holdScene: ({ player, atom }) => mountedChamber(player)?.holdScene?.(atom) ?? null,
                 dismiss: () => {}
             }
         });
