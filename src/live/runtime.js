@@ -35,7 +35,8 @@ import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 
-export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500 });
+/** voiceTailMs: how long a reading whose words have all been shown waits for its voice to finish saying them. */
+export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500, voiceTailMs: 20_000 });
 
 export class LiveRuntimeError extends Error {
     constructor(code, message) {
@@ -260,6 +261,7 @@ export function createLiveRuntime({
             if (run.unspokenIds?.has(segment.id)) continue;
             try {
                 run.voice.enqueue({ id: segment.id, text: segment.text });
+                run.owed.add(segment.id);
             } catch (caught) {
                 run.governor.standDown('voice-refused');
                 note('voice.failed', { role: run.role, message: String(caught?.message ?? caught).slice(0, 200) });
@@ -285,11 +287,30 @@ export function createLiveRuntime({
             else if (state === 'playing') { if (run.voice) note('voice.released', { role: run.role, segmentId: run.speaking ?? null }); run.voice?.release(); }
             else if (state === 'complete') {
                 run.finished = true;
-                note('run.finished', { role: run.role });
-                if (run.role === 'main' && status === 'live') set('ended');
-                else set(status);
+                run.completedAt = clock.now();
+                settle(run);
             }
         });
+    }
+
+    /**
+     * The words have all been shown; the reading is over when the voice has said what it was given too, so the end
+     * is never shown under a voice still talking. A voice that never finishes is waited for `voiceTailMs` at most.
+     */
+    function settle(run) {
+        if (run.owed.size === 0) { endRun(run); return; }
+        run.tail ??= clock.setTimer(() => endRun(run), RUNTIME_LIMITS.voiceTailMs);
+    }
+
+    function endRun(run) {
+        if (run.closed || run.ended) return;
+        run.ended = true;
+        run.tail?.();
+        run.tail = null;
+        const voiceTailMs = Math.round(clock.now() - run.completedAt);
+        note('run.finished', { role: run.role, ...(voiceTailMs > 0 ? { voiceTailMs } : {}) });
+        if (run.role === 'main' && (status === 'live' || status === 'interrupted')) set('ended');
+        else set(status);
     }
 
     async function pump(run) {
@@ -346,7 +367,9 @@ export function createLiveRuntime({
     async function openRun(request, role) {
         const run = {
             role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
-            lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
+            lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null,
+            // Passages the voice was given and has not finished or failed; the run ends when none are left.
+            owed: new Set(), completedAt: null, tail: null, ended: false
         };
         if (role === 'main') main = run;
         else side = run;
@@ -394,6 +417,8 @@ export function createLiveRuntime({
         if (!run || run.closed) return;
         run.closed = true;
         run.abort.abort();
+        run.tail?.();
+        run.tail = null;
         run.conductor?.dispose();
         run.governor?.dispose();
         run.voice?.close?.();
@@ -463,6 +488,8 @@ export function createLiveRuntime({
             if (status !== 'interrupted') throw new LiveRuntimeError('NOT_INTERRUPTED', 'Nothing is held');
             set('live');
             main.player.play();
+            // A Player whose words are all shown does not play again, so the voice saying the last of them is let go here.
+            if (main.finished && !main.ended) main.voice?.release();
         },
 
         /**
@@ -569,7 +596,9 @@ export function createLiveRuntime({
             taken: (id, reason) => {
                 if (run.closed) return;
                 note('voice.taken', { role: run.role, segmentId: id, reason });
-                if (run.role === 'main' && status === 'live') {
+                // Taken while saying the last words, after they were all shown: it will not go on, so the reading is over.
+                if (run.finished) endRun(run);
+                else if (run.role === 'main' && status === 'live') {
                     run.player.pause();
                     set('interrupted');
                 }
@@ -579,12 +608,16 @@ export function createLiveRuntime({
                 if (run.closed) return;
                 run.governor.standDown('voice-failed');
                 note('voice.failed', { role: run.role, segmentId: id, message: String(reason).slice(0, 200) });
+                run.owed.delete(id);
+                if (run.finished) settle(run);
             },
             end: (id, durationMs) => {
                 if (run.closed) return;
                 run.governor.observe('end', id, durationMs);
                 if (run.speaking === id) run.speaking = null;
                 note('speech.end', { role: run.role, segmentId: id, durationMs });
+                run.owed.delete(id);
+                if (run.finished) settle(run);
                 set(status);
             }
         });

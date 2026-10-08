@@ -57,9 +57,15 @@ async function read(kind, pauseAt = null) {
         port: { onCurrent: () => () => {}, canSample: () => false }, clock, host: 'https://host.example',
         admittedEvents: currentToEvents(SKY_PREMIUM_EDUCATIONAL), admittedCurrent: SKY_PREMIUM_EDUCATIONAL
     });
+    // When the words on screen were all shown: the Player's own end, not the run's, which waits for the voice.
+    let finishedAt = null;
     runtime = createLiveRuntime({
         adapter, clock,
-        createPlayer: session => new Player(session),
+        createPlayer: session => {
+            const player = new Player(session);
+            player.on('complete', () => { finishedAt = performance.now(); });
+            return player;
+        },
         voices: { create: () => createBrowserVoice({ speech: { synth, Utterance: synth.Utterance }, clock, lang: 'en-US', voice }) },
         host: { present: async () => {}, dismiss: () => {} }
     });
@@ -72,13 +78,13 @@ async function read(kind, pauseAt = null) {
         if (runtime.status === 'interrupted') runtime.resume();
     }
     const said = () => runtime.journal().filter(entry => entry.type === 'speech.end').length;
-    for (let waited = 0; waited < 200_000 && (said() < SPOKEN || !runtime.journal().some(entry => entry.type === 'run.finished')); waited += 1_000) {
+    for (let waited = 0; waited < 200_000 && (said() < SPOKEN || finishedAt === null); waited += 1_000) {
         await tick(1_000);
     }
     const journal = runtime.journal();
     const result = {
         degraded: journal.filter(entry => entry.type === 'voice.degraded').map(entry => entry.reason),
-        finishedAt: journal.find(entry => entry.type === 'run.finished')?.at ?? null,
+        finishedAt,
         voiceEndedAt: journal.filter(entry => entry.type === 'speech.end').at(-1)?.at ?? null,
         said: said()
     };

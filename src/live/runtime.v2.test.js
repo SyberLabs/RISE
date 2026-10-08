@@ -10,7 +10,7 @@ import { Player } from '../core/player.js';
 import { createRealClock } from './clock.js';
 import { createFakeMcpPort } from '../test/fake-mcp-port.js';
 import { createMcpAppAdapter } from './adapters/mcp-app.js';
-import { createLiveRuntime } from './runtime.js';
+import { createLiveRuntime, RUNTIME_LIMITS } from './runtime.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
 import { ATTRACTOR_VISUAL_MANIFEST } from '../core/visual-control-contract.js';
 
@@ -173,5 +173,82 @@ describe('a generated scene in the runtime', () => {
     const held = shownAt.get('beat-2') - shownAt.get('beat-1');
     expect(held).toBeGreaterThanOrEqual(600);
     expect(held).toBeLessThan(2000);
+  });
+});
+
+describe('the end of a reading', () => {
+  const SPOKEN = {
+    ...V2,
+    beats: [{ say: 'A first passage, said slowly.', scene: 'field' }, { say: 'And the last words of the reading.' }]
+  };
+
+  /**
+   * A synthetic voice that is given each passage 5 s late, so the clock gives up on it and the words, at the
+   * pace of speech, finish while the voice is still saying them. `drop`: a passage it accepts and never says.
+   */
+  function lateRun({ drop = null } = {}) {
+    const clock = createRealClock();
+    const port = createFakeMcpPort({ clock, answerAfterMs: 10 });
+    const adapter = createMcpAppAdapter({ port, clock, host: 'https://host.example' });
+    const voice = createSyntheticVoice({ clock, msPerChar: 120, breathMs: 50 });
+    const enqueue = voice.enqueue.bind(voice);
+    voice.enqueue = item => { if (item.id !== drop) clock.setTimer(() => enqueue(item), 5_000); };
+    const seen = { completeAt: null, statuses: [] };
+    runtime = createLiveRuntime({
+      adapter, clock, voices: { create: () => voice },
+      createPlayer: session => {
+        const player = new Player(session);
+        player.on('complete', () => { seen.completeAt = performance.now(); });
+        return player;
+      },
+      host: { present() {}, dismiss() {} }
+    });
+    runtime.subscribe(view => { if (seen.statuses.at(-1)?.status !== view.status) seen.statuses.push({ status: view.status, at: performance.now() }); });
+    port.answer(SPOKEN, 10);
+    return { seen, started: runtime.start('Why is the sky blue?') };
+  }
+
+  const endedAt = seen => seen.statuses.find(entry => entry.status === 'ended')?.at ?? null;
+  const lastSpeechEnd = () => runtime.journal().filter(entry => entry.type === 'speech.end').at(-1)?.at ?? null;
+
+  it('is not over while its last words are still being said: it ends when the voice does', async () => {
+    const { seen, started } = lateRun();
+    await tick(100);
+    await started;
+    await tick(40_000);
+    // The words finished first: the clock gave up on a voice that began late.
+    expect(seen.completeAt).not.toBeNull();
+    expect(lastSpeechEnd()).toBeGreaterThan(seen.completeAt + 1_000);
+    expect(endedAt(seen)).toBeGreaterThanOrEqual(lastSpeechEnd());
+    expect(endedAt(seen)).toBeLessThanOrEqual(lastSpeechEnd() + 100);
+  });
+
+  it('ends at the latest its bounded time after the words, for a voice that never finishes', async () => {
+    const { seen, started } = lateRun({ drop: 'beat-1' });
+    await tick(100);
+    await started;
+    await tick(60_000);
+    expect(seen.completeAt).not.toBeNull();
+    expect(endedAt(seen) - seen.completeAt).toBeGreaterThanOrEqual(RUNTIME_LIMITS.voiceTailMs - 50);
+    expect(endedAt(seen) - seen.completeAt).toBeLessThanOrEqual(RUNTIME_LIMITS.voiceTailMs + 50);
+  });
+
+  it('holds the voice on a Pause while it says its last words, and lets it finish on Play', async () => {
+    const { seen, started } = lateRun();
+    await tick(100);
+    await started;
+    for (let waited = 0; seen.completeAt === null && waited < 40_000; waited += 100) await tick(100);
+    expect(runtime.status).toBe('live');
+    await runtime.interrupt();
+    expect(runtime.status).toBe('interrupted');
+    const said = runtime.journal().filter(entry => entry.type === 'speech.end').length;
+    await tick(10_000);
+    // Held: nothing more is said, and the reading is not over.
+    expect(runtime.journal().filter(entry => entry.type === 'speech.end').length).toBe(said);
+    expect(endedAt(seen)).toBeNull();
+    runtime.resume();
+    await tick(30_000);
+    expect(endedAt(seen)).toBeGreaterThanOrEqual(lastSpeechEnd());
+    expect(runtime.journal().filter(entry => entry.type === 'speech.end').map(entry => entry.segmentId)).toEqual(['beat-0', 'beat-1']);
   });
 });
