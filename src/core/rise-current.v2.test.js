@@ -105,6 +105,17 @@ describe('compiling a v2 Current', () => {
     expect(session.spokenText.get('beat-2')).toBe('Its length is root x squared plus y squared.');
   });
 
+  it('times the seam into a passage no voice says with that passage, and names the spoken passages that come after one', () => {
+    const session = compileRiseCurrent(V2);
+    const seamInto = id => session.atoms[session.atoms.findIndex(atom => atom.sourceId === id) - 1];
+    for (const id of ['beat-1', 'beat-3']) {
+      expect(seamInto(id).seam).toBeDefined();
+      expect(seamInto(id).beatTimed).toBe(true);
+    }
+    for (const id of ['beat-2', 'beat-4']) expect(seamInto(id).beatTimed).toBeUndefined();
+    expect([...session.voiceWaitsFor]).toEqual(['beat-2', 'beat-4']);
+  });
+
   it('leaves a v1 Current exactly as it was', () => {
     const session = compileRiseCurrent({
       schema: RISE_CURRENT_SCHEMA, id: 'v1', title: 'V1', origin: { kind: 'human', name: 'T' },

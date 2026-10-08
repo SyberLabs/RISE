@@ -206,6 +206,8 @@ export function createLiveRuntime({
         run.governor.update({ atoms: session.atoms, segments });
         // Passages no voice says: a hold, or a beat shown for a while (rise-current.js).
         run.unspokenIds = session.unspokenIds ?? null;
+        // Spoken passages that follow one of those: each is given to the voice when the reading reaches it (see speak).
+        run.voiceWaitsFor = session.voiceWaitsFor ?? null;
         // Words are given to the voice once the reading is on screen (see speak): a voice
         // that began while the host was still mounting would say the first words unseen.
         run.unspoken.push(...fresh);
@@ -242,9 +244,13 @@ export function createLiveRuntime({
         if (run.stream.terminal) run.player.setLive(false);
     }
 
-    /** Give the voice what has been committed and not yet handed to it. */
+    /**
+     * Give the voice what has been committed and not yet handed to it. A passage after one no voice says
+     * waits, with all after it, until the reading reaches it: a voice given it at once would say it during the hold.
+     */
     function speak(run) {
-        const fresh = run.unspoken.splice(0);
+        const waits = run.unspoken.findIndex(segment => run.voiceWaitsFor?.has(segment.id) && segment.id !== run.segmentId);
+        const fresh = run.unspoken.splice(0, waits < 0 ? run.unspoken.length : waits);
         if (!run.voice) return;
         for (const segment of fresh) {
             if (run.unspokenIds?.has(segment.id)) continue;
@@ -265,6 +271,7 @@ export function createLiveRuntime({
             const at = run.governor.positionOf(index);
             if (at && at.segmentId !== run.segmentId) {
                 run.segmentId = at.segmentId;
+                if (run.unspoken.length > 0) speak(run);
                 set(status);
             }
         });

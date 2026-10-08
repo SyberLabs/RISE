@@ -237,8 +237,17 @@ function validateRiseCurrentV2(source) {
  * runtime and the layers.
  */
 function timeBeats(session, current) {
+  const unspoken = new Set(current.unspokenIds);
+  const voiceWaitsFor = new Set();
+  let afterSilence = false;
   for (const segment of current.segments) {
     const atoms = session.atoms.filter(atom => atom.sourceId === segment.id);
+    // The seam into a passage no voice says is timed with it: the speech governor would wait for words never said.
+    const seam = session.atoms[session.atoms.indexOf(atoms[0]) - 1];
+    if (unspoken.has(segment.id) && seam?.seam) seam.beatTimed = true;
+    // A spoken passage after one no voice says waits for the reading to reach it before the voice is given it (runtime.js).
+    if (afterSilence && !unspoken.has(segment.id)) voiceWaitsFor.add(segment.id);
+    afterSilence = unspoken.has(segment.id);
     // The beat's typography and cue ride on its atoms for the layers that render them.
     if (Object.keys(segment.beat).length > 0) for (const atom of atoms) atom.beat = segment.beat;
     if (segment.scene) {
@@ -268,7 +277,8 @@ function timeBeats(session, current) {
     }
   }
   session.spokenIds = new Set(current.spokenIds);
-  session.unspokenIds = new Set(current.unspokenIds);
+  session.unspokenIds = unspoken;
+  session.voiceWaitsFor = voiceWaitsFor;
   session.spokenText = new Map(current.segments.filter(segment => segment.spoken !== null).map(segment => [segment.id, segment.spoken]));
   session.beats = current.beats;
   session.scenes = current.scenes;
