@@ -35,7 +35,8 @@ import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 
-export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500 });
+/** voiceTailMs: how long a reading whose words have all been shown waits for its voice to finish saying them. */
+export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500, voiceTailMs: 20_000 });
 
 export class LiveRuntimeError extends Error {
     constructor(code, message) {
@@ -260,6 +261,7 @@ export function createLiveRuntime({
             if (run.unspokenIds?.has(segment.id)) continue;
             try {
                 run.voice.enqueue({ id: segment.id, text: segment.text });
+                run.owed.add(segment.id);
             } catch (caught) {
                 run.governor.standDown('voice-refused');
                 note('voice.failed', { role: run.role, message: String(caught?.message ?? caught).slice(0, 200) });
@@ -285,11 +287,30 @@ export function createLiveRuntime({
             else if (state === 'playing') { if (run.voice) note('voice.released', { role: run.role, segmentId: run.speaking ?? null }); run.voice?.release(); }
             else if (state === 'complete') {
                 run.finished = true;
-                note('run.finished', { role: run.role });
-                if (run.role === 'main' && status === 'live') set('ended');
-                else set(status);
+                run.completedAt = clock.now();
+                settle(run);
             }
         });
+    }
+
+    /**
+     * The words have all been shown; the reading is over when the voice has said what it was given too, so the end
+     * is never shown under a voice still talking. A voice that never finishes is waited for `voiceTailMs` at most.
+     */
+    function settle(run) {
+        if (run.owed.size === 0) { endRun(run); return; }
+        run.tail ??= clock.setTimer(() => endRun(run), RUNTIME_LIMITS.voiceTailMs);
+    }
+
+    function endRun(run) {
+        if (run.closed || run.ended) return;
+        run.ended = true;
+        run.tail?.();
+        run.tail = null;
+        const voiceTailMs = Math.round(clock.now() - run.completedAt);
+        note('run.finished', { role: run.role, ...(voiceTailMs > 0 ? { voiceTailMs } : {}) });
+        if (run.role === 'main' && (status === 'live' || status === 'interrupted')) set('ended');
+        else set(status);
     }
 
     async function pump(run) {
@@ -346,7 +367,9 @@ export function createLiveRuntime({
     async function openRun(request, role) {
         const run = {
             role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
-            lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
+            lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null,
+            // Passages the voice was given and has not finished or failed; the run ends when none are left.
+            owed: new Set(), completedAt: null, tail: null, ended: false
         };
         if (role === 'main') main = run;
         else side = run;
@@ -394,6 +417,8 @@ export function createLiveRuntime({
         if (!run || run.closed) return;
         run.closed = true;
         run.abort.abort();
+        run.tail?.();
+        run.tail = null;
         run.conductor?.dispose();
         run.governor?.dispose();
         run.voice?.close?.();
@@ -463,6 +488,8 @@ export function createLiveRuntime({
             if (status !== 'interrupted') throw new LiveRuntimeError('NOT_INTERRUPTED', 'Nothing is held');
             set('live');
             main.player.play();
+            // A Player whose words are all shown does not play again, so the voice saying the last of them is let go here.
+            if (main.finished && !main.ended) main.voice?.release();
         },
 
         /**
@@ -543,18 +570,20 @@ export function createLiveRuntime({
     /**
      * Hold a run's voice where its words are. A held voice is silenced, not paused (voices/browser.js), and is
      * told where the phrase on screen begins; when it takes up there, that phrase is shown again from its start,
-     * so after a pause or a hidden page the voice and the words begin it together.
+     * so after a pause or a hidden page the voice and the words begin it together. Held between two passages, the
+     * seam is taken up again too, so the next passage is shown when the voice begins it, not on the seam's own clock.
      */
     function holdVoice(run) {
         if (!run.voice) return;
         const phrase = run.player.betweenPhrases ? null : run.governor?.restartPoint(run.player.sessionState.currentIndex) ?? null;
         const takenUp = run.voice.hold(phrase ? { resumeAt: phrase } : undefined) === true;
         note('voice.held', { role: run.role, segmentId: run.speaking ?? null, ...(phrase ? { resumeAt: phrase.charIndex } : {}), restarts: takenUp });
-        if (takenUp) run.player.restartCurrentAtom();
+        if (takenUp || run.player.sessionState.currentAtom?.seam) run.player.restartCurrentAtom();
     }
 
     function attachVoice(run) {
         if (!run.voice) return;
+        note('voice.chosen', { role: run.role, kind: run.voice.id, name: run.voice.chosen?.name ?? null, local: run.voice.chosen?.local ?? null });
         // A renderer is not trusted to stop calling once its run has closed.
         run.voice.attach({
             start: id => {
@@ -562,16 +591,38 @@ export function createLiveRuntime({
                 run.speaking = id; note('speech.start', { role: run.role, segmentId: id }); set(status);
             },
             mark: (id, charIndex, tMs) => { if (!run.closed) run.governor.observe('mark', id, charIndex, tMs); },
+            // Something else on the device stopped the voice. The reading is held where it is, as a reader's Pause
+            // holds it, rather than going on in silence; Play takes up the phrase on screen with the voice.
+            taken: (id, reason) => {
+                if (run.closed) return;
+                note('voice.taken', { role: run.role, segmentId: id, reason });
+                // Taken while saying the last words, after they were all shown: it will not go on, so the reading is over.
+                if (run.finished) endRun(run);
+                else if (run.role === 'main' && status === 'live') {
+                    run.player.pause();
+                    set('interrupted');
+                } else if (run.role === 'side') {
+                    // A Dive has no Play of its own on the stage to take the voice up again, so it is not held:
+                    // its clock stands down and the Dive finishes on the timer rather than waiting on a voice
+                    // that will not resume. Holding a Dive comes with the Dive, when it returns to scope.
+                    run.governor.standDown('voice-taken');
+                }
+            },
+            restarted: (id, afterMs) => { if (!run.closed) note('voice.restarted', { role: run.role, segmentId: id, afterMs }); },
             fail: (id, reason) => {
                 if (run.closed) return;
                 run.governor.standDown('voice-failed');
                 note('voice.failed', { role: run.role, segmentId: id, message: String(reason).slice(0, 200) });
+                run.owed.delete(id);
+                if (run.finished) settle(run);
             },
             end: (id, durationMs) => {
                 if (run.closed) return;
                 run.governor.observe('end', id, durationMs);
                 if (run.speaking === id) run.speaking = null;
                 note('speech.end', { role: run.role, segmentId: id, durationMs });
+                run.owed.delete(id);
+                if (run.finished) settle(run);
                 set(status);
             }
         });

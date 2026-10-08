@@ -104,6 +104,49 @@ describe('governing the end of an atom', () => {
         expect(asked).toEqual([]);
     });
 
+    it('advances once when a governed end arrives after the watchdog has put the atom on its timer', async () => {
+        player = new Player(session());
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        // Every atom lasts 1000 ms by the governor; the first one's end comes 4000 ms in, after the watchdog
+        // (1000 ms + its 2500 ms margin) has given up on it and started the atom's timer again.
+        player.govern({
+            duration: () => 1000,
+            completion: (_atom, index) => new Promise(resolve => { setTimeout(() => resolve({ reason: 'ended' }), index === 0 ? 4000 : 1000); })
+        });
+        player.play();
+        await tick(4000 + 3 * 1000 + 100);
+        // Each atom once, in order: the session is three sentences, so three atoms.
+        expect(shown.map(entry => entry.index)).toEqual([0, 1, 2]);
+        // The atom after the late one is shown for its whole governed time, not cut short by the watchdog's leftover timer.
+        expect(shown[1].at).toBe(4000);
+        expect(shown[2].at - shown[1].at).toBe(1000);
+    });
+
+    it('lets a late end touch only the atom it was asked for, not an ungoverned atom shown after it', async () => {
+        player = new Player(session());
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        let endFirst = null;
+        // The first atom's end is held back past its watchdog; the second declines governance and runs on its own timer.
+        player.govern({
+            duration: () => 1000,
+            completion: (_atom, index) => (index === 0 ? new Promise(resolve => { endFirst = resolve; }) : index === 1 ? null
+                : new Promise(resolve => { setTimeout(() => resolve({ reason: 'ended' }), 1000); }))
+        });
+        player.play();
+        for (let i = 0; i < 200 && !shown.some(entry => entry.index === 1); i += 1) await tick(50);
+        expect(shown.some(entry => entry.index === 1)).toBe(true);
+        // The first atom's end arrives at last, while the second is on screen.
+        await tick(300);
+        endFirst({ reason: 'ended' });
+        await tick(3000);
+        expect(shown.map(entry => entry.index)).toEqual([0, 1, 2]);
+        // The second atom is shown for its whole time (its own timer runs on frames, so a frame over): the stale end did not cut it short.
+        expect(shown[2].at - shown[1].at).toBeGreaterThanOrEqual(1000);
+        expect(shown[2].at - shown[1].at).toBeLessThan(1100);
+    });
+
     it('carries on for an atom that nothing governs', async () => {
         player = new Player(session());
         const shown = [];

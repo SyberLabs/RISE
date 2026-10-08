@@ -1028,6 +1028,10 @@ export class Player {
         if (!isResuming && !alreadyPrepared) {
             if (!this._prepareCurrentAtom()) return;
         }
+        // A fresh atom, governed or not, outdates every completion still owed to an earlier one: a late end
+        // for an atom already left must not touch the timer of the one on screen. A watchdog's resume of
+        // the same atom keeps the id, so its own late end still wins.
+        if (!isResuming) this.speechSyncId += 1;
 
         // Event-governed completion. RECITATION-SPEC §2 requires the
         // utterance's actual end — not an estimated duration — to advance
@@ -1059,7 +1063,7 @@ export class Player {
             this.currentAtomRemainingTime = this._atomDisplayMs(atom);
             this.currentAtomDisplayTime = this.currentAtomRemainingTime;
             this.atomStartTime = performance.now();
-            const currentSyncId = ++this.speechSyncId;
+            const currentSyncId = this.speechSyncId;
 
             // A CLOCK THAT STOPS MUST NOT STOP THE READING.
             //
@@ -1101,6 +1105,9 @@ export class Player {
                         this.scheduleNextAtom(true);
                         return;
                     }
+                    // An end that arrives after the watchdog has put this atom on its timer wins, and the timer
+                    // goes: left running, it would advance the reading a second time.
+                    if (this.timerId) cancelAnimationFrame(this.timerId);
                     this.timerId = null;
                     this.atomStartTime = null;
                     this.currentAtomRemainingTime = null;
