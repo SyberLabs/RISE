@@ -200,6 +200,13 @@ test('calibration rows: one per expected question, with the raw choice, probabil
   assert.equal(rows.find(row => row.question === 'visualStyle').choice, null);
 });
 
+test('a provider written before statuses existed is scored as having run', async () => {
+  const deciders = [openaiDecider({ env: { OPENAI_API_KEY: OPENAI_KEY }, fetchImpl: mockFetch })];
+  const { run } = await captureRun({ ...oneCase(), catalog, deciders, runs: 1, maxUsd: 1, harness });
+  const old = { ...run, providers: run.providers.map(({ status, ...provider }) => provider) };
+  assert.deepEqual(scoreRun(old, { ...oneCase(), catalog }).openai, scoreRun(run, { ...oneCase(), catalog }).openai);
+});
+
 test('a run without calibrationVersion is scored without calibration, so older runs still match', async () => {
   const deciders = [openaiDecider({ env: { OPENAI_API_KEY: OPENAI_KEY }, fetchImpl: mockFetch })];
   const { run } = await captureRun({ ...oneCase(), catalog, deciders, runs: 1, maxUsd: 1, harness });
@@ -359,11 +366,20 @@ function checkPublished(dir, before = null) {
   }
 }
 
-/** origin/main's arena index, or null when origin/main has none or is not fetched here. */
+/**
+ * origin/main's arena index, or null when origin/main has not published one.
+ * CI checks out a single commit, so origin/main is fetched when missing; a
+ * failed fetch fails the test rather than skipping the append-only check.
+ */
 function mainIndex() {
+  const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   try {
-    return JSON.parse(execFileSync('git', ['show', `origin/main:${ARENA_DIR}/index.json`],
-      { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }));
+    git('rev-parse', '--verify', '-q', 'origin/main');
+  } catch {
+    git('fetch', '--depth=1', 'origin', 'main:refs/remotes/origin/main');
+  }
+  try {
+    return JSON.parse(git('show', `origin/main:${ARENA_DIR}/index.json`));
   } catch {
     return null;
   }

@@ -84,7 +84,7 @@ export function scoreRun(run, { cases, controls = [], options, catalog }) {
   const calibrated = run.calibrationVersion
     ? calibration(calibrationRows(run.results, id => expected.get(id))) : null;
   const scores = {};
-  for (const { id, status } of run.providers) {
+  for (const { id, status = 'ran' } of run.providers) {
     if (status !== 'ran') {
       scores[id] = { status };
       continue;
