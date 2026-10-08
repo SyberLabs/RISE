@@ -1,11 +1,21 @@
 import { compileSession } from './session-compiler.js';
+import { RiseCurrentError, fail, hasLiteralForbidden, hasReservedMarker, id as trimmedId, keys, label, object } from './current-validation.js';
+import { BEAT_TYPES, lowerBeats, validateBeats, validateScenes } from './beats.js';
+
+export { RiseCurrentError, hasLiteralForbidden, hasReservedMarker };
+
+/** A trimmed id within the Current's own bound. */
+const id = (value, path) => trimmedId(value, RISE_CURRENT_LIMITS.id, path);
 import { createExperienceProgram, EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
 import { snapCharacterRangeToTokens } from './source-span.js';
-import { hasLiteralForbidden, SOURCE_MARKER, SOURCE_SCORE_CUT } from './chunker.js';
 import { JEV_COLOR_THEMES } from './jev-color-themes.js';
 import { jevColors } from './jev-palette.js';
 
 export const RISE_CURRENT_SCHEMA = 'rise.current.v1';
+/** The Current with beats and scenes (beats.js); a v1 Current stays valid beside it. */
+export const RISE_CURRENT_SCHEMA_V2 = 'rise.current.v2';
+/** The styles a v2 Current may name: guidance and defaults bundled under one name. */
+export const RISE_CURRENT_STYLES = Object.freeze(['premium-educational', 'open-field']);
 
 /** The bounds of a sealed Current. The realtime protocol lowers through them, so it shares them. */
 export const RISE_CURRENT_LIMITS = Object.freeze({
@@ -32,48 +42,6 @@ export const RISE_CURRENT_LOOKS = Object.freeze(['plain', 'gallery', 'nocturne',
 /** The closed theme choice: the shipped color themes, so RISE has one color vocabulary. */
 export const RISE_CURRENT_THEME_IDS = JEV_COLOR_THEMES;
 
-export class RiseCurrentError extends Error {
-  constructor(code, path, message) {
-    super(`${message} (${path})`);
-    this.name = 'RiseCurrentError';
-    this.code = code;
-    this.path = path;
-  }
-}
-
-const fail = (code, path, message) => { throw new RiseCurrentError(code, path, message); };
-
-function object(value, path) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)
-    || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)) {
-    fail('CURRENT_OBJECT', path, 'Expected a plain object');
-  }
-  return value;
-}
-
-function keys(value, allowed, path) {
-  for (const key of Object.keys(value)) {
-    if (!allowed.includes(key) || ['__proto__', 'constructor', 'prototype'].includes(key)) {
-      // The name is the author's: bounded before it is echoed back to them.
-      fail('CURRENT_UNKNOWN_FIELD', `${path}.${key.slice(0, 40)}`, `Unknown field: ${key.slice(0, 40)}`);
-    }
-  }
-}
-
-function label(value, max, path, code = 'CURRENT_TEXT') {
-  if (typeof value !== 'string' || !value.trim() || value.length > max) {
-    fail(code, path, `Expected nonblank text of at most ${max} characters`);
-  }
-  return value;
-}
-
-function id(value, path) {
-  if (typeof value !== 'string' || !value || value !== value.trim() || value.length > RISE_CURRENT_LIMITS.id) {
-    fail('CURRENT_ID', path, `Expected a trimmed id of at most ${RISE_CURRENT_LIMITS.id} characters`);
-  }
-  return value;
-}
-
 function anchor(value, text, path) {
   const source = object(value, path);
   keys(source, ['fromCharacter', 'toCharacter', 'quoteStart', 'quoteEnd'], path);
@@ -99,15 +67,6 @@ function anchor(value, text, path) {
     fail('CURRENT_QUOTE', path, 'Quote fingerprints do not match the selected text');
   }
   return { fromCharacter, toCharacter, quoteStart, quoteEnd };
-}
-
-/** True when a literal text holds what is never text: the score cut, or a stand-in that escapes a control. */
-export { hasLiteralForbidden };
-
-/** True when text contains a playback marker the chunker would read as an instruction. */
-export function hasReservedMarker(text) {
-  return new RegExp(SOURCE_MARKER.source, 'i').test(text)
-    || text.includes(SOURCE_SCORE_CUT) || text.includes('|');
 }
 
 /** Check one Dive's anchor against the text it points into; returns the clean anchor. */
@@ -140,10 +99,8 @@ export const RISE_CURRENT_THEMES = freeze({
 });
 
 /** Strict, detached input from an author or model. No runtime objects are accepted. */
-export function validateRiseCurrent(input) {
-  const source = object(input, '$');
-  keys(source, ['schema', 'id', 'title', 'theme', 'look', 'origin', 'segments'], '$');
-  if (source.schema !== RISE_CURRENT_SCHEMA) fail('CURRENT_SCHEMA', '$.schema', 'Unknown Current schema');
+/** What every Current carries before its passages or beats: id, title, theme, look and origin. */
+function validateHead(source) {
   const currentId = id(source.id, '$.id');
   const title = label(source.title, RISE_CURRENT_LIMITS.title, '$.title');
   const theme = source.theme;
@@ -165,6 +122,15 @@ export function validateRiseCurrent(input) {
     fail('CURRENT_PROVIDER', '$.origin.provider', 'A human origin cannot name a model provider');
   }
 
+  return { currentId, title, theme, look, cleanOrigin };
+}
+
+export function validateRiseCurrent(input) {
+  const source = object(input, '$');
+  if (source.schema === RISE_CURRENT_SCHEMA_V2) return validateRiseCurrentV2(source);
+  keys(source, ['schema', 'id', 'title', 'theme', 'look', 'origin', 'segments'], '$');
+  if (source.schema !== RISE_CURRENT_SCHEMA) fail('CURRENT_SCHEMA', '$.schema', 'Unknown Current schema');
+  const { currentId, title, theme, look, cleanOrigin } = validateHead(source);
   if (!Array.isArray(source.segments) || source.segments.length < 1
     || source.segments.length > RISE_CURRENT_LIMITS.segments) {
     fail('CURRENT_SEGMENTS', '$.segments', `Expected 1 to ${RISE_CURRENT_LIMITS.segments} segments`);
@@ -226,6 +192,77 @@ export function validateRiseCurrent(input) {
   });
 }
 
+/**
+ * A v2 Current: beats over scenes, lowered here to the passages the rest of
+ * this module scores and compiles. Each passage carries what is shown as its
+ * text, and beside it what is spoken, its hold, its shown time and its
+ * typography (beats.js).
+ */
+function validateRiseCurrentV2(source) {
+  keys(source, ['schema', 'id', 'title', 'theme', 'look', 'origin', 'style', 'type', 'scenes', 'beats'], '$');
+  const { currentId, title, theme, look, cleanOrigin } = validateHead(source);
+  const style = source.style;
+  if (style !== undefined && !RISE_CURRENT_STYLES.includes(style)) {
+    fail('CURRENT_STYLE', '$.style', `Unknown style; use one of ${RISE_CURRENT_STYLES.join(', ')}`);
+  }
+  let type;
+  if (source.type !== undefined) {
+    const given = object(source.type, '$.type');
+    keys(given, ['text', 'caption'], '$.type');
+    type = {};
+    for (const role of ['text', 'caption']) {
+      if (given[role] === undefined) continue;
+      if (!BEAT_TYPES.includes(given[role])) fail('BEAT_TYPE', `$.type.${role}`, `Unknown face; use one of ${BEAT_TYPES.join(', ')}`);
+      type[role] = given[role];
+    }
+  }
+  const scenes = validateScenes(source.scenes, '$.scenes');
+  const beats = validateBeats(source.beats, '$.beats', { sceneIds: new Set(scenes.map(scene => scene.id)) });
+  const lowered = lowerBeats({ scenes, beats });
+  const segments = lowered.segments.map(segment => ({ ...segment, dives: [] }));
+  return freeze({
+    schema: RISE_CURRENT_SCHEMA_V2, id: currentId, title, ...(theme === undefined ? {} : { theme }),
+    ...(look === undefined ? {} : { look }), origin: cleanOrigin, ...(style === undefined ? {} : { style }),
+    ...(type === undefined ? {} : { type }), scenes, beats, segments, audio: lowered.audio,
+    spokenIds: [...lowered.spokenIds], unspokenIds: [...lowered.unspokenIds]
+  });
+}
+
+/**
+ * Give a v2 Session's atoms the time its beats ask for: a hold's one silent
+ * atom lasts the hold, and a shown beat's atoms share its hold in proportion
+ * to their words. The voice's texts and the beats ride on the Session for the
+ * runtime and the layers.
+ */
+function timeBeats(session, current) {
+  for (const segment of current.segments) {
+    const atoms = session.atoms.filter(atom => atom.sourceId === segment.id);
+    if (segment.hold) {
+      for (const atom of atoms) {
+        atom.duration = segment.hold.ms;
+        atom.hold = { ...segment.hold };
+      }
+    } else if (segment.shownMs !== undefined) {
+      const worded = atoms.filter(atom => atom.content);
+      const letters = worded.reduce((sum, atom) => sum + atom.content.length, 0);
+      let given = 0;
+      worded.forEach((atom, index) => {
+        atom.duration = index === worded.length - 1
+          ? segment.shownMs - given
+          : Math.round(segment.shownMs * (atom.content.length / letters));
+        given += atom.duration;
+        atom.beatTimed = true;
+      });
+    }
+  }
+  session.spokenIds = new Set(current.spokenIds);
+  session.unspokenIds = new Set(current.unspokenIds);
+  session.spokenText = new Map(current.segments.filter(segment => segment.spoken !== null).map(segment => [segment.id, segment.spoken]));
+  session.beats = current.beats;
+  session.scenes = current.scenes;
+  return session;
+}
+
 /** Map validated Current data once for the durable pair and Session wrapper. */
 function materializeValidatedRiseCurrent(current, lowered = null) {
   // A look lowered for the card brings its theme when the Current names none.
@@ -261,6 +298,11 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
         }),
         fallback: lowered?.fallbackCue ?? { kind: 'still' }
       },
+      ...(current.audio?.length ? [{
+        id: 'current-audio', kind: 'audio',
+        clips: current.audio.map((item, index) => ({ id: `audio-${index}`, anchor: { sourceIds: [item.segmentId] }, cue: { ...item.cue } })),
+        fallback: { kind: 'silence', fadeMs: 500 }
+      }] : []),
       {
         id: 'current-dives', kind: 'thread',
         clips: current.segments.flatMap((segment, index) => segment.dives.map((dive, noteIndex) => ({
@@ -313,7 +355,7 @@ export function compileRiseCurrent(input, { projection = 'stream', lowerLook = n
   const current = validateRiseCurrent(input);
   const lowered = current.look !== undefined && typeof lowerLook === 'function' ? lowerLook(current) : null;
   const { program, sources, title, provenance, visualConfig, ...presentation } = materializeValidatedRiseCurrent(current, lowered);
-  return compileSession({
+  const session = compileSession({
     title,
     sources,
     experienceProgram: program,
@@ -323,4 +365,5 @@ export function compileRiseCurrent(input, { projection = 'stream', lowerLook = n
     projection,
     ...presentation
   });
+  return current.schema === RISE_CURRENT_SCHEMA_V2 ? timeBeats(session, current) : session;
 }

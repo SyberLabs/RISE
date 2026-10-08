@@ -12,10 +12,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
-import { CURRENT_EXAMPLE, CURRENT_GUIDE } from '../src/live/adapters/current-guide.js';
+import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE } from '../src/live/adapters/current-guide.js';
+import { BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
-import { APP_MIME, APP_URI, currentJsonSchema, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
+import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
 
 const SITE = 'https://rise.example';
 const ON = { MCP_ENABLED: 'true' };
@@ -363,12 +364,31 @@ describe('the shape of a Current, as the host’s model is told it', () => {
     }
   });
 
+  it('describes the v2 Current as the validator admits it: beats over scenes', () => {
+    const v2 = currentJsonSchemaV2();
+    expect(conforms(v2, CURRENT_EXAMPLE_V2)).toEqual([]);
+    expect(() => validateRiseCurrent(CURRENT_EXAMPLE_V2)).not.toThrow();
+    expect(v2.properties.beats.maxItems).toBe(BEAT_LIMITS.beats);
+    expect(v2.properties.scenes.items.properties.engine.enum).toBe(SCENE_ENGINES);
+    for (const mutate of [
+      c => { c.beats[0].extra = 1; },
+      c => { c.beats[0].place = 'margin'; },
+      c => { c.scenes[0].engine = 'fractal'; },
+      c => { c.beats = []; }
+    ]) {
+      const current = structuredClone(CURRENT_EXAMPLE_V2);
+      mutate(current);
+      expect(() => validateRiseCurrent(current)).toThrow();
+      expect(conforms(v2, current).length).toBeGreaterThan(0);
+    }
+  });
+
   it('refuses, as the validator does, a field it does not know, a theme or a visual off the catalog, another schema, no segments, and no origin', () => {
     const cases = [
       c => { c.extra = 1; },
       c => { c.theme = 'neon'; },
       c => { c.segments[0].visual = 'shader'; },
-      c => { c.schema = 'rise.current.v2'; },
+      c => { c.schema = 'rise.current.v0'; },
       c => { c.segments = []; },
       c => { c.segments[0].text = ''; },
       c => { delete c.origin; }
@@ -383,12 +403,12 @@ describe('the shape of a Current, as the host’s model is told it', () => {
 
   it('is what the tool asks for, as "current" and nothing beside it', async () => {
     const { result } = await json(await post(rpc('tools/list')));
-    expect(result.tools[0].inputSchema).toEqual({ type: 'object', properties: { current: schema }, required: ['current'], additionalProperties: false });
+    expect(result.tools[0].inputSchema).toEqual({ type: 'object', properties: { current: { oneOf: [schema, currentJsonSchemaV2()] } }, required: ['current'], additionalProperties: false });
   });
 
   it('is what the tool promises back, and what it gives back', async () => {
     const { result: listed } = await json(await post(rpc('tools/list')));
-    expect(listed.tools[0].outputSchema).toEqual({ type: 'object', properties: { current: schema }, required: ['current'] });
+    expect(listed.tools[0].outputSchema).toEqual({ type: 'object', properties: { current: { oneOf: [schema, currentJsonSchemaV2()] } }, required: ['current'] });
     const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } })));
     expect(conforms(listed.tools[0].outputSchema, result.structuredContent)).toEqual([]);
   });

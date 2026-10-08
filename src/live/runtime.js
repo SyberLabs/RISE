@@ -30,6 +30,7 @@ import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
+import { createBeatConductor } from './beat-conductor.js';
 import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
@@ -173,7 +174,8 @@ export function createLiveRuntime({
         const fresh = ended.slice(run.lowered);
         let session;
         try {
-            let current = run.stream.toCurrent();
+            // A sealed Current is compiled whole (its beats never pass through the stream); a streamed one is rebuilt.
+            let current = run.connection?.sealed ?? run.stream.toCurrent();
             // A Dive keeps the colors of the answer it comes from, whatever it said of itself.
             if (run.role === 'side') {
                 const { theme: _own, ...rest } = current;
@@ -192,6 +194,8 @@ export function createLiveRuntime({
         session.visualProgram = withExperientialState(session.visualProgram, id => conditions.get(id));
         const segments = ended.map(({ id, text }) => ({ id, text }));
         run.governor.update({ atoms: session.atoms, segments });
+        // Passages no voice says: a hold, or a beat shown for a while (rise-current.js).
+        run.unspokenIds = session.unspokenIds ?? null;
         // Words are given to the voice once the reading is on screen (see speak): a voice
         // that began while the host was still mounting would say the first words unseen.
         run.unspoken.push(...fresh);
@@ -204,7 +208,11 @@ export function createLiveRuntime({
             run.player.setLive(true);
             watchPlayer(run);
             // With no voice there is no clock but the Player’s own.
-            if (run.voice) run.governor.install(run.player);
+            // With a voice, the conductor is asked first: it times what no voice says, and declines the rest to the governor.
+            if (run.voice) {
+                run.conductor.install(run.player);
+                run.governor.install(run.player);
+            }
             if (run.role === 'main') set('live');
             // The host may need a moment to put the Player on screen; the reading starts when it has.
             run.presenting = Promise.resolve(host.present?.({ role: run.role, session, player: run.player, run: summary(run) }))
@@ -229,6 +237,7 @@ export function createLiveRuntime({
         const fresh = run.unspoken.splice(0);
         if (!run.voice) return;
         for (const segment of fresh) {
+            if (run.unspokenIds?.has(segment.id)) continue;
             try {
                 run.voice.enqueue({ id: segment.id, text: segment.text });
             } catch (caught) {
@@ -314,7 +323,7 @@ export function createLiveRuntime({
      */
     async function openRun(request, role) {
         const run = {
-            role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null,
+            role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
         };
         if (role === 'main') main = run;
@@ -339,6 +348,7 @@ export function createLiveRuntime({
             graceMs,
             onDegrade: ({ reason }) => note('voice.degraded', { role, reason })
         });
+        run.conductor = createBeatConductor({ clock });
         return run;
     }
 
@@ -350,6 +360,7 @@ export function createLiveRuntime({
         if (!run || run.closed) return;
         run.closed = true;
         run.abort.abort();
+        run.conductor?.dispose();
         run.governor?.dispose();
         run.voice?.close?.();
         run.player?.destroy();
