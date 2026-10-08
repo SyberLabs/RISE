@@ -211,6 +211,9 @@ function read(id, params, origin, witness, card) {
           csp: card === null ? { frameDomains: [origin], connectDomains: [], resourceDomains: [] } : cardCsp(origin),
           prefersBorder: false
         },
+        // ChatGPT's dedicated origin for the app (required to submit), under ChatGPT's own key: Claude validates
+        // ui.domain against its own format and would refuse RISE's origin there.
+        'openai/widgetDomain': origin,
         // Read by ChatGPT before the app loads, so that it picks the mode first; inline is the only one, and the app says the same at ui/initialize.
         'openai/ui': { availableDisplayModes: ['inline'] },
         // Read by the host's model when the app loads, so that it need not describe the app itself.
