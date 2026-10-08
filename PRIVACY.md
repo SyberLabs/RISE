@@ -174,7 +174,8 @@ page. The key is held only in that page's memory and forgotten when the session
 ends, is refused, or the page closes; it is not stored in your browser. What the
 provider receives is your prompt (up to 2,000 characters), RISE's fixed
 instructions, and, if you stop an answer to ask about a place in it, the
-passages of that answer you stopped in. Each provider bills your key and
+new question you type (up to 2,000 characters) together with the passages of
+that answer you stopped in. Each provider bills your key and
 processes the request under its own policy.
 
 - **Google Gemini.** Your browser sends the request, with your Gemini API key
