@@ -26,10 +26,13 @@ const MUSEUM_SOURCE = /^(?:aic|sci)-/u;
 
 /**
  * What Follow text draws (R6): museum works for the Gallery look's Turrell
- * shelf or a shelf of museum and science collections, flames otherwise.
+ * shelf or a shelf of museum and science collections, flames otherwise,
+ * and always where the words themselves draw imagery from the room.
  */
 function followFamily(visual = {}) {
   if (visual.visualMode !== 'interlocution') return 'flame';
+  // Words that draw imagery from the room (a declared word fill) keep it: museum cues would change what fills them.
+  if (visual.interlocution?.wordFillDeclared === true) return 'flame';
   const procedural = (visual.interlocution?.procedural || []).filter(Boolean);
   const sourced = (visual.interlocution?.sourced || []).filter(Boolean);
   const museum = sourced.length > 0 && sourced.every(id => MUSEUM_SOURCE.test(id));

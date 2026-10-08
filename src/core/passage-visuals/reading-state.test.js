@@ -54,6 +54,12 @@ describe('which choices Follow text draws', () => {
     expect(family(shelf([], ['aic-landscapes', 'sci-astronomy']))).toEqual(['gallery', 'gallery']);
   });
 
+  it('draws flames where the words draw from the room, so Follow never changes what fills them', () => {
+    const filled = shelf(['turrell']);
+    filled.interlocution = { ...filled.interlocution, wordFill: { mode: 'pick', sourceFamily: 'procedural', procedural: ['fractal'], sourced: [] }, wordFillDeclared: true };
+    expect(family(filled)).toEqual(['flame', 'flame']);
+  });
+
   it('draws flames for a Living Flame reading and an empty shelf, as before', () => {
     expect(family({ visualMode: 'living-flame' })).toEqual(['flame', 'flame']);
     expect(family(shelf([]))).toEqual(['flame', 'flame']);

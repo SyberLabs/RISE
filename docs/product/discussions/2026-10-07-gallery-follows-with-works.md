@@ -10,6 +10,7 @@ Now the family is worked out from the reading's configuration:
 
 - **`gallery`:** the Gallery look's Turrell shelf, or a shelf made only of museum and science collections (`aic-…`, `sci-…`).
 - **`flame`:** everything else, as before. That covers Living Flame, an empty shelf, and other engines.
+- **Also `flame`: a reading whose words draw imagery** (a declared word fill). Its words fill from the room's pool, and a museum cue swaps that pool, so Follow would change what fills the words. Full validation caught exactly that: Fit's held image left the word mask.
 
 A Gallery reading follows its text with one museum collection per passage, chosen by the passage's mood.
 
