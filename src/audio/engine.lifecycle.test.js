@@ -492,14 +492,13 @@ describe('AudioEngine lifecycle ownership', () => {
     vi.spyOn(engine, 'resume').mockResolvedValue(undefined);
     vi.spyOn(engine, 'stopAmbient').mockImplementation(() => {});
     vi.spyOn(engine, 'playSwell').mockImplementation(() => {});
-    const drone = vi.spyOn(engine, 'startAmbientPlaylist').mockImplementation(() => {});
     const started = engine.startSession({ preset: 'focus' });
     await vi.advanceTimersByTimeAsync(50);
     await started;
     const stopped = engine.stopSession();
     await vi.runOnlyPendingTimersAsync();
     await stopped;
-    expect(drone).not.toHaveBeenCalled();
+    expect(engine.layers.ambient).toBeNull();
   });
 });
 
