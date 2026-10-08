@@ -49,6 +49,7 @@ import { defineConfig } from '@playwright/test';
 const ADMISSION = '**/audio-admission.spec.js';
 
 const GATE = [
+    '**/arena-replay.spec.js',
     '**/curation.spec.js',
     '**/journeys.spec.js',
     '**/keystones.spec.js',

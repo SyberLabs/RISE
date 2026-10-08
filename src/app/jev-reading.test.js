@@ -128,6 +128,18 @@ describe('Jev reading handoff', () => {
     }
   });
 
+  it('admits a frozen arena replay under its own label only, with the model that made it', () => {
+    const replay = { ...decision(), model: 'rise/arena-replay-1', provider: 'RISE', sourceModel: 'gpt-6-luna' };
+    expect(() => validateJevRecommendation(replay)).not.toThrow();
+    for (const changed of [
+      { sourceModel: undefined }, { sourceModel: '' }, { provider: 'OpenAI' },
+      { model: 'rise/arena-replay-2' }, { model: 'gpt-6-luna' }, { model: 'rise/anything' }
+    ]) {
+      expect(() => validateJevRecommendation({ ...replay, ...changed }), JSON.stringify(changed))
+        .toThrow('invalid reading plan');
+    }
+  });
+
   it('rejects unknown options and changed edition identity', async () => {
     await expect(resolveJevReading({ ...decision(), schemaVersion: 1 }))
       .rejects.toThrow('invalid reading plan');

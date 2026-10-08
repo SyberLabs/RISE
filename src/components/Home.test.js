@@ -721,6 +721,21 @@ describe('the rest of Home', () => {
         portal.destroy();
     });
 
+    it('leaves the address alone when an arena replay fails after the reader has moved on', async () => {
+        let fail;
+        vi.stubGlobal('fetch', vi.fn(() => new Promise((_, reject) => { fail = reject; })));
+        window.history.replaceState({}, '', '/arena/quiet-evening/jev');
+        const { portal } = makePortal({ demoMode: true });
+        await vi.waitFor(() => expect(fail).toBeTypeOf('function'));
+        window.history.replaceState({}, '', '/library');
+        fail(new Error('slow 404'));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(window.location.pathname).toBe('/library');
+        portal.destroy();
+        vi.unstubAllGlobals();
+        window.history.replaceState({}, '', '/');
+    });
+
     it('the Menu holds every room and Ask for a reading, starts at Home, keeps focus and closes on Escape', () => {
         const { portal, container, onNavigate } = makePortal();
         const header = container.querySelector('.sl-header');
