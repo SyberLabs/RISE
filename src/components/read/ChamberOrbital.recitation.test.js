@@ -54,6 +54,47 @@ describe('ChamberOrbital static Recitation controls', () => {
         orbital.destroy();
     });
 
+    it('shows a Voice row only when the text has a recitation', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        const row = container.querySelector('[data-recitation-capability]');
+        expect(row.hidden).toBe(true);
+        expect(row.querySelector('.config-label').textContent).toBe('Voice');
+
+        orbital.loadText('Begin the morning', 'Meditations', {
+            capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO]
+        });
+        expect(row.hidden).toBe(false);
+        expect([...row.querySelectorAll('[data-recitation]')].map(button => button.textContent.trim()))
+            .toEqual(['None', 'Recited']);
+
+        orbital.destroy();
+    });
+
+    it('says Phrase (recited), and why, where the rhythm used to lock in silence', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations', {
+            capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO]
+        });
+        container.querySelector('[data-chunk="word"]').click();
+        const rhythm = () => container.querySelector('[data-orbit="temporal"] .orbit-status').textContent;
+        const note = container.querySelector('[data-recitation-note]');
+        expect(rhythm()).toBe('Word · 200 wpm');
+        expect(note.hidden).toBe(true);
+
+        container.querySelector('[data-recitation="on"]').click();
+        expect(rhythm()).toBe('Phrase (recited) · 200 wpm');
+        expect(note.hidden).toBe(false);
+        expect(note.textContent).toContain('Phrase (recited)');
+        expect(note.textContent.replace(/\s+/g, ' ')).toContain('recorded one phrase at a time');
+
+        container.querySelector('[data-recitation="off"]').click();
+        expect(rhythm()).toBe('Phrase · 200 wpm');
+        expect(note.hidden).toBe(true);
+
+        orbital.destroy();
+    });
+
     it('draws the chunking lock as a labelled SVG, not an emoji, and removes it on release', () => {
         const { container, orbital } = createOrbital();
         orbital.loadText('Begin the morning', 'Meditations', {

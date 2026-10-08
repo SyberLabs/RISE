@@ -19,7 +19,7 @@ function words(value) {
     .replace(/[^\p{L}\p{N}]+/gu, ' ').trim().replace(/\s+/gu, ' ');
 }
 
-function namesCatalogEntry(intent, books) {
+export function namesCatalogEntry(intent, books) {
   const phrase = ` ${words(intent)} `;
   return books.some(book => [book.title, book.author]
     .some(name => words(name).length > 2 && phrase.includes(` ${words(name)} `)));

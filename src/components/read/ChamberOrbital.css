@@ -770,17 +770,6 @@
   margin-bottom: 0;
 }
 
-.pure-tone-controls {
-  margin-top: var(--space-md);
-  padding: var(--space-md);
-  border-left: 1px solid rgba(var(--color-accent-rgb), 0.32);
-  background: rgba(var(--color-accent-rgb), 0.035);
-}
-
-.pure-tone-controls[hidden] {
-  display: none;
-}
-
 .config-subsection + .config-subsection {
   margin-top: var(--space-md);
   padding-top: var(--space-md);
@@ -1077,46 +1066,6 @@
   background: rgba(var(--color-accent-rgb), 0.15);
   color: var(--color-light);
   box-shadow: inset 0 0 16px rgba(var(--color-accent-rgb), 0.2);
-}
-
-.audio-mode-options {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-md);
-}
-
-.audio-waveform-options {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-md);
-}
-
-.audio-mode-option,
-.audio-waveform-option {
-  background: transparent;
-  border: 1px solid var(--color-shadow);
-  padding: var(--space-md);
-  cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-default);
-  color: var(--color-cloud);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.audio-mode-option:hover,
-.audio-waveform-option:hover {
-  border-color: var(--color-threshold);
-  color: var(--color-light);
-  background: rgba(var(--color-accent-rgb), 0.05);
-}
-
-.audio-mode-option.active,
-.audio-waveform-option.active {
-  border-color: var(--color-threshold);
-  background: rgba(var(--color-accent-rgb), 0.15);
-  color: var(--color-light);
-  box-shadow: inset 0 0 12px rgba(var(--color-accent-rgb), 0.2);
 }
 
 .preset-label {
@@ -1491,21 +1440,17 @@
 
 /* ─── Option tiles ─── */
 .orbital-modal .audio-preset-options,
-.orbital-modal .audio-mode-options,
-.orbital-modal .audio-waveform-options,
 .orbital-modal .chunk-options,
 .orbital-modal .curve-options {
   gap: 8px;
 }
 
-/* Four soundscapes (six in the Chapel) read as a 2×n set, not 3 + 1. */
+/* Each group of the sound list reads as a 2×n set. */
 .orbital-modal .soundscape-options {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .orbital-modal .audio-preset-option,
-.orbital-modal .audio-mode-option,
-.orbital-modal .audio-waveform-option,
 .orbital-modal .chunk-option,
 .orbital-modal .curve-option {
   min-height: 44px;
@@ -1532,8 +1477,6 @@
 }
 
 .orbital-modal .audio-preset-option:hover,
-.orbital-modal .audio-mode-option:hover,
-.orbital-modal .audio-waveform-option:hover,
 .orbital-modal .chunk-option:hover,
 .orbital-modal .curve-option:hover {
   background: var(--rs-surface-2);
@@ -1543,8 +1486,6 @@
 
 /* [hidden] must still hide: the Chapel-only chant tiles rely on it. */
 .orbital-modal .audio-preset-option[hidden],
-.orbital-modal .audio-mode-option[hidden],
-.orbital-modal .audio-waveform-option[hidden],
 .orbital-modal .chunk-option[hidden],
 .orbital-modal .curve-option[hidden] {
   display: none;
@@ -1552,8 +1493,6 @@
 
 /* Selected: brand border drawn 2px (1px border + 1px inset), text white. */
 .orbital-modal .audio-preset-option.active,
-.orbital-modal .audio-mode-option.active,
-.orbital-modal .audio-waveform-option.active,
 .orbital-modal .chunk-option.active,
 .orbital-modal .chunk-option[aria-pressed="true"],
 .orbital-modal .curve-option.active {
@@ -1622,14 +1561,6 @@
 .chunk-lock {
   flex: none;
   display: block;
-}
-
-/* Pure Tone parameters: an indented hairline, not a tinted box. */
-.orbital-modal .pure-tone-controls {
-  margin-top: 16px;
-  padding: 0 0 0 16px;
-  background: none;
-  border-left: 1px solid var(--rs-line);
 }
 
 .orbital-modal .config-subsection + .config-subsection {
@@ -2086,9 +2017,7 @@
 }
 
 @media (max-width: 768px) {
-  .audio-preset-options,
-  .audio-mode-options,
-  .audio-waveform-options {
+  .audio-preset-options {
     grid-template-columns: 1fr;
   }
 
@@ -2117,9 +2046,7 @@
   /* Phone panels: list-style options (row), not picture tiles. */
 
   /* Compact grids so mode/preset choices fit a phone panel. */
-  .audio-preset-options,
-  .audio-mode-options,
-  .audio-waveform-options {
+  .audio-preset-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-xs);
   }
@@ -2143,15 +2070,8 @@
   }
 
   .orbital-modal .audio-preset-option,
-  .orbital-modal .audio-mode-option,
-  .orbital-modal .audio-waveform-option,
   .orbital-modal .chunk-option {
     padding: 12px 8px;
-  }
-
-  /* Three waveforms, one row, not two and a stray. */
-  .orbital-modal .audio-waveform-options {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .orbital-modal .config-section {
@@ -2162,10 +2082,6 @@
   .orbital-modal .input-label,
   .orbital-modal .config-label-row {
     margin-bottom: 8px;
-  }
-
-  .orbital-modal .pure-tone-controls {
-    padding-left: 12px;
   }
 
   /* The panel takes the screen it is on. 80vh left a fifth of the

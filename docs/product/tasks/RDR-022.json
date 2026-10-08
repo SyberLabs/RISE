@@ -3,8 +3,8 @@
   "title": "Give every reading one Look sheet and a seven-button bar",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "in_progress",
-  "delivery": "not_shipped",
+  "status": "in_review",
+  "delivery": "merged",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
@@ -28,6 +28,24 @@
       "ref": "docs/product/discussions/2026-10-05-consolidated-reader-decisions.md",
       "note": "Owner decisions Q1-Q6, 2026-10-05.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/474",
+      "note": "Part A: six-button bar plus Dive, one Look sheet reusing existing live handlers; embed and /live unchanged; rendered at three widths. Part B (look switching mid-reading, pace in the bar) remains. Merged.",
+      "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/478",
+      "note": "Part B: looks row with live switches, pace control in the seventh slot; rendered at three widths.",
+      "date": "2026-10-07"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/experiments/EMBED-STAGE-HOST-2026-10-07.md",
+      "note": "The LIVE-004 witness ran on exact main 122b1cb6, a release that includes #474 and #478. LIVE-004 did not pass (three embed playback defects), so this acceptance line waits on its re-witness.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -38,10 +56,22 @@
     {
       "date": "2026-10-07T11:08:01.964Z",
       "summary": "Started before the LIVE-004 witness on the owner's direction (2026-10-07); LIVE-004 is to be witnessed on a release that includes it."
+    },
+    {
+      "date": "2026-10-07T12:11:49.595Z",
+      "summary": "Part A opened as #474."
+    },
+    {
+      "date": "2026-10-07T12:48:17.892Z",
+      "summary": "Part B opened as #478; remaining acceptance is the LIVE-004 witness on a release that includes it."
+    },
+    {
+      "date": "2026-10-07T13:54:48.876Z",
+      "summary": "The LIVE-004 witness ran on 122b1cb6, which includes this; LIVE-004 did not pass"
     }
   ],
-  "updatedAt": "2026-10-07T11:08:01.964Z",
-  "revision": 2,
-  "summary": "The Jev look panel, the Visual direction drawer, Kaleidoscope, Next scene and the Visuals toggle become one Look sheet.",
+  "updatedAt": "2026-10-07T13:54:48.876Z",
+  "revision": 5,
+  "summary": "Seven-button bar plus Dive and one Look sheet for every reader-origin reading (#474, #478): looks switch in place where a live path exists; gallery looks in a reading opened without a gallery, and rhythm changes, wait on a reopen-at-position path. Remaining acceptance: LIVE-004 witnessed on a release that includes this.",
   "blocker": null
 }

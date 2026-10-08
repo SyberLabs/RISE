@@ -4,6 +4,7 @@
  * Begin opens it; Another reading rolls a vivid one in its place. Every
  * room is one Menu away.
  */
+import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -643,6 +644,41 @@ describe('Continue', () => {
     });
 });
 
+describe('the line on what RISE is', () => {
+    const LINE = 'Texts read to you, with light and sound made for them.';
+    const about = container => container.querySelector('.home-about');
+    beforeEach(() => localStorage.clear());
+
+    it('says what RISE is on a first visit, in one short line', () => {
+        const { portal, container } = makePortal();
+        expect(words(about(container))).toBe(LINE);
+        expect(LINE.length).toBeLessThanOrEqual(60);
+        expect(about(container).hidden).toBe(false);
+        portal.destroy();
+    });
+
+    it('is seen once: showing Home records it, and the next visit leaves it out', () => {
+        const first = makePortal();
+        first.portal.activate();
+        expect(localStorage.getItem(USER_DATA_KEYS.homeSeen)).toBe('1');
+        first.portal.destroy();
+        const second = makePortal();
+        expect(about(second.container).hidden).toBe(true);
+        second.portal.destroy();
+    });
+
+    it('still renders when storage refuses, and shows the line', () => {
+        const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+        const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+        const { portal, container } = makePortal();
+        expect(() => portal.activate()).not.toThrow();
+        expect(about(container).hidden).toBe(false);
+        read.mockRestore();
+        write.mockRestore();
+        portal.destroy();
+    });
+});
+
 describe('the rest of Home', () => {
     it('opens Library, Make and Settings from the header with one press, the Menu closed and unchanged', () => {
         const { portal, container, onNavigate } = makePortal();
@@ -683,6 +719,21 @@ describe('the rest of Home', () => {
         container.querySelector('#jev-scene-demo-start').click();
         await vi.waitFor(() => expect(onLaunchJevSample).toHaveBeenCalledOnce());
         portal.destroy();
+    });
+
+    it('leaves the address alone when an arena replay fails after the reader has moved on', async () => {
+        let fail;
+        vi.stubGlobal('fetch', vi.fn(() => new Promise((_, reject) => { fail = reject; })));
+        window.history.replaceState({}, '', '/arena/quiet-evening/jev');
+        const { portal } = makePortal({ demoMode: true });
+        await vi.waitFor(() => expect(fail).toBeTypeOf('function'));
+        window.history.replaceState({}, '', '/library');
+        fail(new Error('slow 404'));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        expect(window.location.pathname).toBe('/library');
+        portal.destroy();
+        vi.unstubAllGlobals();
+        window.history.replaceState({}, '', '/');
     });
 
     it('the Menu holds every room and Ask for a reading, starts at Home, keeps focus and closes on Escape', () => {

@@ -1,0 +1,516 @@
+{
+  "kind": "rise.decision-arena.controls.v1",
+  "seedCommitment": null,
+  "cases": [
+    {
+      "id": "odds-50-1",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "soft-rain": 0.5,
+        "silent": 0.5
+      },
+      "intent": "Ten slips are in a hat: five say 'soft-rain', five say 'silent'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-50-2",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "aurora": 0.5,
+        "piano": 0.5
+      },
+      "intent": "Ten slips are in a hat: five say 'aurora', five say 'piano'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-50-3",
+      "group": "control",
+      "field": "chunk",
+      "odds": {
+        "phrase": 0.5,
+        "sentence": 0.5
+      },
+      "intent": "Ten slips are in a hat: five say 'phrase', five say 'sentence'. One slip will be drawn after you answer, and that draw is the right answer. Which chunk size?"
+    },
+    {
+      "id": "odds-50-4",
+      "group": "control",
+      "field": "curve",
+      "odds": {
+        "flat": 0.5,
+        "wave": 0.5
+      },
+      "intent": "Ten slips are in a hat: five say 'flat', five say 'wave'. One slip will be drawn after you answer, and that draw is the right answer. Which pace curve?"
+    },
+    {
+      "id": "odds-50-5",
+      "group": "control",
+      "field": "chamberFace",
+      "odds": {
+        "literary": 0.5,
+        "sans": 0.5
+      },
+      "intent": "Ten slips are in a hat: five say 'literary', five say 'sans'. One slip will be drawn after you answer, and that draw is the right answer. Which font?"
+    },
+    {
+      "id": "odds-50-6",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "lullaby": 0.5,
+        "jazz": 0.5
+      },
+      "intent": "Ten slips are in a hat: five say 'lullaby', five say 'jazz'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-50-7",
+      "group": "control",
+      "field": "pace",
+      "odds": {
+        "200": 0.5,
+        "300": 0.5
+      },
+      "intent": "Ten slips are in a hat: five say '200', five say '300'. One slip will be drawn after you answer, and that draw is the right answer. Which pace?"
+    },
+    {
+      "id": "odds-50-8",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "wonder": 0.5,
+        "mystery": 0.5
+      },
+      "intent": "Ten slips are in a hat: five say 'wonder', five say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-60-1",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "soft-rain": 0.6,
+        "silent": 0.4
+      },
+      "intent": "Ten slips are in a hat: six say 'soft-rain', four say 'silent'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-60-2",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "aurora": 0.4,
+        "piano": 0.6
+      },
+      "intent": "Ten slips are in a hat: four say 'aurora', six say 'piano'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-60-3",
+      "group": "control",
+      "field": "chunk",
+      "odds": {
+        "phrase": 0.6,
+        "sentence": 0.4
+      },
+      "intent": "Ten slips are in a hat: six say 'phrase', four say 'sentence'. One slip will be drawn after you answer, and that draw is the right answer. Which chunk size?"
+    },
+    {
+      "id": "odds-60-4",
+      "group": "control",
+      "field": "curve",
+      "odds": {
+        "flat": 0.4,
+        "wave": 0.6
+      },
+      "intent": "Ten slips are in a hat: four say 'flat', six say 'wave'. One slip will be drawn after you answer, and that draw is the right answer. Which pace curve?"
+    },
+    {
+      "id": "odds-60-5",
+      "group": "control",
+      "field": "chamberFace",
+      "odds": {
+        "literary": 0.6,
+        "sans": 0.4
+      },
+      "intent": "Ten slips are in a hat: six say 'literary', four say 'sans'. One slip will be drawn after you answer, and that draw is the right answer. Which font?"
+    },
+    {
+      "id": "odds-60-6",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "lullaby": 0.4,
+        "jazz": 0.6
+      },
+      "intent": "Ten slips are in a hat: four say 'lullaby', six say 'jazz'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-60-7",
+      "group": "control",
+      "field": "pace",
+      "odds": {
+        "200": 0.6,
+        "300": 0.4
+      },
+      "intent": "Ten slips are in a hat: six say '200', four say '300'. One slip will be drawn after you answer, and that draw is the right answer. Which pace?"
+    },
+    {
+      "id": "odds-60-8",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "wonder": 0.4,
+        "mystery": 0.6
+      },
+      "intent": "Ten slips are in a hat: four say 'wonder', six say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-70-1",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "soft-rain": 0.7,
+        "silent": 0.3
+      },
+      "intent": "Ten slips are in a hat: seven say 'soft-rain', three say 'silent'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-70-2",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "aurora": 0.3,
+        "piano": 0.7
+      },
+      "intent": "Ten slips are in a hat: three say 'aurora', seven say 'piano'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-70-3",
+      "group": "control",
+      "field": "chunk",
+      "odds": {
+        "phrase": 0.7,
+        "sentence": 0.3
+      },
+      "intent": "Ten slips are in a hat: seven say 'phrase', three say 'sentence'. One slip will be drawn after you answer, and that draw is the right answer. Which chunk size?"
+    },
+    {
+      "id": "odds-70-4",
+      "group": "control",
+      "field": "curve",
+      "odds": {
+        "flat": 0.3,
+        "wave": 0.7
+      },
+      "intent": "Ten slips are in a hat: three say 'flat', seven say 'wave'. One slip will be drawn after you answer, and that draw is the right answer. Which pace curve?"
+    },
+    {
+      "id": "odds-70-5",
+      "group": "control",
+      "field": "chamberFace",
+      "odds": {
+        "literary": 0.7,
+        "sans": 0.3
+      },
+      "intent": "Ten slips are in a hat: seven say 'literary', three say 'sans'. One slip will be drawn after you answer, and that draw is the right answer. Which font?"
+    },
+    {
+      "id": "odds-70-6",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "lullaby": 0.3,
+        "jazz": 0.7
+      },
+      "intent": "Ten slips are in a hat: three say 'lullaby', seven say 'jazz'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-70-7",
+      "group": "control",
+      "field": "pace",
+      "odds": {
+        "200": 0.7,
+        "300": 0.3
+      },
+      "intent": "Ten slips are in a hat: seven say '200', three say '300'. One slip will be drawn after you answer, and that draw is the right answer. Which pace?"
+    },
+    {
+      "id": "odds-70-8",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "wonder": 0.3,
+        "mystery": 0.7
+      },
+      "intent": "Ten slips are in a hat: three say 'wonder', seven say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-80-1",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "soft-rain": 0.8,
+        "silent": 0.2
+      },
+      "intent": "Ten slips are in a hat: eight say 'soft-rain', two say 'silent'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-80-2",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "aurora": 0.2,
+        "piano": 0.8
+      },
+      "intent": "Ten slips are in a hat: two say 'aurora', eight say 'piano'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-80-3",
+      "group": "control",
+      "field": "chunk",
+      "odds": {
+        "phrase": 0.8,
+        "sentence": 0.2
+      },
+      "intent": "Ten slips are in a hat: eight say 'phrase', two say 'sentence'. One slip will be drawn after you answer, and that draw is the right answer. Which chunk size?"
+    },
+    {
+      "id": "odds-80-4",
+      "group": "control",
+      "field": "curve",
+      "odds": {
+        "flat": 0.2,
+        "wave": 0.8
+      },
+      "intent": "Ten slips are in a hat: two say 'flat', eight say 'wave'. One slip will be drawn after you answer, and that draw is the right answer. Which pace curve?"
+    },
+    {
+      "id": "odds-80-5",
+      "group": "control",
+      "field": "chamberFace",
+      "odds": {
+        "literary": 0.8,
+        "sans": 0.2
+      },
+      "intent": "Ten slips are in a hat: eight say 'literary', two say 'sans'. One slip will be drawn after you answer, and that draw is the right answer. Which font?"
+    },
+    {
+      "id": "odds-80-6",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "lullaby": 0.2,
+        "jazz": 0.8
+      },
+      "intent": "Ten slips are in a hat: two say 'lullaby', eight say 'jazz'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-80-7",
+      "group": "control",
+      "field": "pace",
+      "odds": {
+        "200": 0.8,
+        "300": 0.2
+      },
+      "intent": "Ten slips are in a hat: eight say '200', two say '300'. One slip will be drawn after you answer, and that draw is the right answer. Which pace?"
+    },
+    {
+      "id": "odds-80-8",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "wonder": 0.2,
+        "mystery": 0.8
+      },
+      "intent": "Ten slips are in a hat: two say 'wonder', eight say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-90-1",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "soft-rain": 0.9,
+        "silent": 0.1
+      },
+      "intent": "Ten slips are in a hat: nine say 'soft-rain', one says 'silent'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-90-2",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "aurora": 0.1,
+        "piano": 0.9
+      },
+      "intent": "Ten slips are in a hat: one says 'aurora', nine say 'piano'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-90-3",
+      "group": "control",
+      "field": "chunk",
+      "odds": {
+        "phrase": 0.9,
+        "sentence": 0.1
+      },
+      "intent": "Ten slips are in a hat: nine say 'phrase', one says 'sentence'. One slip will be drawn after you answer, and that draw is the right answer. Which chunk size?"
+    },
+    {
+      "id": "odds-90-4",
+      "group": "control",
+      "field": "curve",
+      "odds": {
+        "flat": 0.1,
+        "wave": 0.9
+      },
+      "intent": "Ten slips are in a hat: one says 'flat', nine say 'wave'. One slip will be drawn after you answer, and that draw is the right answer. Which pace curve?"
+    },
+    {
+      "id": "odds-90-5",
+      "group": "control",
+      "field": "chamberFace",
+      "odds": {
+        "literary": 0.9,
+        "sans": 0.1
+      },
+      "intent": "Ten slips are in a hat: nine say 'literary', one says 'sans'. One slip will be drawn after you answer, and that draw is the right answer. Which font?"
+    },
+    {
+      "id": "odds-90-6",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "lullaby": 0.1,
+        "jazz": 0.9
+      },
+      "intent": "Ten slips are in a hat: one says 'lullaby', nine say 'jazz'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-90-7",
+      "group": "control",
+      "field": "pace",
+      "odds": {
+        "200": 0.9,
+        "300": 0.1
+      },
+      "intent": "Ten slips are in a hat: nine say '200', one says '300'. One slip will be drawn after you answer, and that draw is the right answer. Which pace?"
+    },
+    {
+      "id": "odds-90-8",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "wonder": 0.1,
+        "mystery": 0.9
+      },
+      "intent": "Ten slips are in a hat: one says 'wonder', nine say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-3way-1",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "soft-rain": 0.5,
+        "piano": 0.3,
+        "silent": 0.2
+      },
+      "intent": "Ten slips are in a hat: five say 'soft-rain', three say 'piano', two say 'silent'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-3way-2",
+      "group": "control",
+      "field": "chunk",
+      "odds": {
+        "word": 0.6,
+        "phrase": 0.3,
+        "sentence": 0.1
+      },
+      "intent": "Ten slips are in a hat: six say 'word', three say 'phrase', one says 'sentence'. One slip will be drawn after you answer, and that draw is the right answer. Which chunk size?"
+    },
+    {
+      "id": "odds-3way-3",
+      "group": "control",
+      "field": "curve",
+      "odds": {
+        "flat": 0.4,
+        "wave": 0.4,
+        "ascent": 0.2
+      },
+      "intent": "Ten slips are in a hat: four say 'flat', four say 'wave', two say 'ascent'. One slip will be drawn after you answer, and that draw is the right answer. Which pace curve?"
+    },
+    {
+      "id": "odds-3way-4",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "aurora": 0.7,
+        "nocturne": 0.2,
+        "blues": 0.1
+      },
+      "intent": "Ten slips are in a hat: seven say 'aurora', two say 'nocturne', one says 'blues'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-3way-5",
+      "group": "control",
+      "field": "chamberFace",
+      "odds": {
+        "book": 0.4,
+        "mono": 0.3,
+        "display": 0.3
+      },
+      "intent": "Ten slips are in a hat: four say 'book', three say 'mono', three say 'display'. One slip will be drawn after you answer, and that draw is the right answer. Which font?"
+    },
+    {
+      "id": "odds-3way-6",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "waltz": 0.5,
+        "bossa": 0.4,
+        "starlight": 0.1
+      },
+      "intent": "Ten slips are in a hat: five say 'waltz', four say 'bossa', one says 'starlight'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-3way-7",
+      "group": "control",
+      "field": "pace",
+      "odds": {
+        "150": 0.8,
+        "250": 0.1,
+        "400": 0.1
+      },
+      "intent": "Ten slips are in a hat: eight say '150', one says '250', one says '400'. One slip will be drawn after you answer, and that draw is the right answer. Which pace?"
+    },
+    {
+      "id": "odds-3way-8",
+      "group": "control",
+      "field": "audio",
+      "odds": {
+        "happy": 0.6,
+        "sad": 0.2,
+        "haunted": 0.2
+      },
+      "intent": "Ten slips are in a hat: six say 'happy', two say 'sad', two say 'haunted'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+    },
+    {
+      "id": "odds-3way-9",
+      "group": "control",
+      "field": "chunk",
+      "odds": {
+        "sentence": 0.5,
+        "paragraph": 0.3,
+        "word": 0.2
+      },
+      "intent": "Ten slips are in a hat: five say 'sentence', three say 'paragraph', two say 'word'. One slip will be drawn after you answer, and that draw is the right answer. Which chunk size?"
+    },
+    {
+      "id": "odds-3way-10",
+      "group": "control",
+      "field": "curve",
+      "odds": {
+        "induction": 0.4,
+        "climax": 0.3,
+        "wave": 0.3
+      },
+      "intent": "Ten slips are in a hat: four say 'induction', three say 'climax', three say 'wave'. One slip will be drawn after you answer, and that draw is the right answer. Which pace curve?"
+    }
+  ]
+}

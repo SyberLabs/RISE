@@ -73,6 +73,8 @@ else is a recommendation.
   │                                                                         │
   │   Kokoro TTS ───────▶ build-voice-pack.mjs ─▶ recitation Opus + manifest │
   │                                                                         │
+  │   arena.mjs ─▶ operator-paid decider capture ─▶ frozen run-<sha12>.json │
+  │                                                                         │
   │   check-release-readiness.mjs  ── fails closed while any gate is open    │
   └────────────────────────────────┬────────────────────────────────────────┘
                                    │  emits JS modules + public/ assets
@@ -154,14 +156,15 @@ it, and CI fails when the committed copy is not what `src/` produces.
 ```mermaid
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
-    app["app<br/>composition root<br/>13 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>11 modules"]
-    components["components<br/>routed views<br/>51 modules"]
+    app["app<br/>composition root<br/>14 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>13 modules"]
+    components["components<br/>routed views<br/>52 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>171 modules"]
+    core["core<br/>session, player, router<br/>181 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>42 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>51 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
+    scenes["scenes<br/>engine manifests, cues; scene runtime<br/>7 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>59 modules"]
@@ -171,38 +174,42 @@ flowchart LR
     app --> |1| audio
     app -.-> |8 lazy| components
     app --> |3| content
-    app --> |43| core
+    app --> |47| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
-    audio --> |6| core
+    audio --> |8| core
     components --> |3| affect
-    components -.-> |2 lazy| app
-    components --> |3| audio
+    components -.-> |3 lazy| app
+    components --> |5| audio
     components --> |23| content
-    components --> |184| core
+    components --> |187| core
     components -.-> |1 lazy| page
+    components --> |2| scenes
     components --> |4| sources
     components -.-> |2 lazy| vendor
-    components --> |19| visuals
+    components --> |18| visuals
     content --> |3| audio
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
-    core --> |8| audio
+    core --> |9| audio
     core --> |15| content
+    core --> |9| scenes
     core --> |4| sources
-    core --> |20| visuals
+    core --> |22| visuals
     live -.-> |3 lazy| app
     live -.-> |2 lazy| components
-    live --> |11| core
+    live --> |19| core
     live -.-> |1 lazy| visuals
-    page --> |2| core
-    page --> |3| visuals
+    page --> |4| core
+    page --> |4| visuals
+    scenes --> |2| core
+    scenes --> |1| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
-    visuals --> |23| core
+    visuals --> |25| core
     visuals --> |4| sources
     wormhole --> |1| app
     wormhole --> |2| core
@@ -466,6 +473,10 @@ owning the glyph-mask state machine.
 - **A new personal store is added to `src/core/user-data.js` in the same change
   that introduces it.** A store missing from that inventory is data export
   cannot carry out and erase cannot clear.
+- **The renderer contract moves with its document.** What a third party builds
+  against (the Current v2, manifests and cues, generated scenes and their
+  worker protocol, the MCP tools) is `docs/specs/RISE-SDK.md`, held to the code
+  by `src/core/rise-sdk.test.js`.
 
 ---
 
@@ -652,11 +663,17 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, four production dependencies: `sql.js` for browser-local work,
-  and `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
+  per room, six production dependencies: `sql.js` for browser-local work;
+  `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
   for on-device Kev, imported only by the EnterpRise worker that runs it
-  (§8.32). The tokenizer already shipped inside kev.js; it is named because
-  the worker builds Kev's session itself.
+  (§8.32); `katex` for maths in what a reading shows, fetched only when
+  a reading has a formula (docs/superpowers/specs/2026-10-08-creative-control-design.md
+  §10); and `acorn`, which runs only in the Cloudflare Worker, to parse a
+  scene a model wrote before it is admitted (same design, §12): a Worker
+  has no `eval`, and admission must read the code without running it, so a
+  real parser is the smallest correct tool and a pattern match is not. It
+  has no dependencies of its own and reaches no page. The tokenizer already shipped inside
+  kev.js; it is named because the worker builds Kev's session itself.
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
   declarative rendering, diffing, and would largely remove the `innerHTML`
@@ -1386,6 +1403,31 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `docs/product/discussions/2026-10-04-composer-decision.md`.
 - **Status:** settled.
 
+### 8.47 The arena is a frozen file; live runs are the reader's
+
+- **Chosen:** the Decision Arena compares deciders on RISE's own fixed cases
+  offline. An operator runs `scripts/arena/arena.mjs` by hand, on the
+  operator's own keys, under a spending cap; it refuses to run in CI or
+  without an explicit billing flag. The capture is frozen into one file named
+  by the hash of its bytes, served immutable beside an index that revalidates.
+  `scripts/arena/arena-file.mjs` refuses a file whose bytes do not match its
+  name, whose schema is unknown, or whose harness had uncommitted changes
+  (a mock run, a pipeline check never committed, is exempt). Every decider's answers pass through the same `admitAnswers` the browser
+  uses, and both the raw and the admitted decision are kept. Beside each run
+  sits a slim `replay-<sha12>.json` under the same digits: run 1 of the fixed
+  cases, each decider's admitted decision or reject code, no controls and no
+  raw answers. It is derived from the run file alone, and the arena file
+  reader accepts it only as those exact bytes.
+- **Rejected:** live side-by-side calls from the reader's page, a shared
+  SyberLabs key for comparisons, and a reader pasting a third-party key into
+  RISE for this.
+- **Why:** a comparison anyone can check must be the same bytes for everyone,
+  and RISE spends no shared inference (§2, #294). A frozen file costs nothing
+  per view, names the commit that produced it, and cannot be edited without
+  changing its name. Nothing under `src/` imports the harness, and the built
+  app never names the OpenAI endpoint; `scripts/arena/arena.test.mjs` holds both.
+- **Status:** settled.
+
 ---
 
 ## 9. What this design costs
@@ -1409,6 +1451,9 @@ Stated plainly so it is never rediscovered as a surprise.
 - **The release is gated on people**, and cannot be hurried by engineering.
   §8.15.
 - **Access control does not exist**, by choice. §8.1, §8.41.
+- **Frozen results age.** An arena run describes the deciders on the day it
+  was captured; a vendor's later model is not in it. A newer run is a new
+  file, never an edit. §8.47.
 
 ---
 
@@ -1432,9 +1477,9 @@ The import graph in §3 is not checked, it is *generated*:
 `npm run docs:diagram` writes it out of `src/`, and CI fails when the committed
 copy is not what the tree produces. A claim that writes itself cannot drift.
 
-CI runs that guard and that generator in a job of their own, because both are
-about this file and both must run for a change that touches only this file —
-the unit suite, where the guard lives, is skipped for a prose-only change.
+CI runs that guard and that generator in the one pull-request job, beside the
+hygiene, build and first-load checks, so both run for every pull request,
+including a change that touches only this file.
 
 What the test cannot check — whether the *reasoning* is still true — is why §8
 records reasons rather than conclusions. A reason that has stopped applying is
@@ -1445,7 +1490,7 @@ visible to a reader; a conclusion is not.
 ```bash
 npm run test:run                       # includes the guard above
 npm run build
-npm run test:e2e                       # CI shards this four ways
+npm run test:e2e                       # CI runs this sharded, after a merge to main
 npm run test:e2e:gate                  # the corridor only, for a fast local loop
 npm run docs:diagram                   # must leave this file unchanged
 npm run measure:first-load             # what a first visit costs, against its budget

@@ -63,7 +63,7 @@ describe('external Current validation', () => {
   });
 
   it.each([
-    ['wrong schema', { schema: 'rise.current.v2' }, 'CURRENT_SCHEMA', '$.schema'],
+    ['wrong schema', { schema: 'rise.current.v0' }, 'CURRENT_SCHEMA', '$.schema'],
     ['unknown visual', { segments: [{ id: 'a', text: 'Text', visual: 'eval-js' }] }, 'CURRENT_VISUAL', '$.segments[0].visual'],
     ['executable field', { segments: [{ id: 'a', text: 'Text', javascript: 'alert(1)' }] }, 'CURRENT_UNKNOWN_FIELD', '$.segments[0].javascript'],
     ['duplicate segment', { segments: [{ id: 'a', text: 'First' }, { id: 'a', text: 'Second' }] }, 'CURRENT_DUPLICATE_ID', '$.segments[1].id'],
@@ -312,12 +312,15 @@ describe('the theme a Current may name', () => {
     ['a segment palette', { segments: [{ id: 'a', text: 'T', palette: 'gold' }] }, '$.segments[0].palette'],
     ['a segment style', { segments: [{ id: 'a', text: 'T', style: 'color: red' }] }, '$.segments[0].style'],
     ['a segment colors', { segments: [{ id: 'a', text: 'T', colors: { background: '#000' } }] }, '$.segments[0].colors'],
-    ['top-level colors', { colors: { background: '#000000', text: '#ffffff', accent: '#ff0000' } }, '$.colors'],
-    ['a top-level look', { look: 'cobalt' }, '$.look']
+    ['top-level colors', { colors: { background: '#000000', text: '#ffffff', accent: '#ff0000' } }, '$.colors']
   ])('refuses %s as an unknown field', (_name, patch, path) => {
     expect(() => validateRiseCurrent(current(patch))).toThrow(expect.objectContaining({
       code: 'CURRENT_UNKNOWN_FIELD', path
     }));
+  });
+
+  it('refuses a theme given as a look: a look is one of the ten looks (SCR-002)', () => {
+    expect(() => validateRiseCurrent(current({ look: 'cobalt' }))).toThrow(expect.objectContaining({ code: 'CURRENT_LOOK', path: '$.look' }));
   });
 
   it('with no theme, carries no theme key, configures nothing and presents nothing', () => {

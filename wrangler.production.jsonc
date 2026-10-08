@@ -6,7 +6,7 @@
   "preview_urls": false,
   // Shared model inference is retired. Readers use their own OpenRouter account
   // or run Kev locally; the optional live integrations remain switched off.
-  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false" },
+  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "true", "MCP_SELF_CONTAINED": "true" },
   // rise.syberlabs.io is attached to this Worker in the Cloudflare dashboard.
   "observability": { "enabled": true },
   "assets": {

@@ -77,6 +77,27 @@ describe('VisualFieldDirector', () => {
     vi.advanceTimersByTime(1);
     expect(log).toEqual(['destroy:genesis']);
   });
+
+  it('mounts a generated scene as a field: one layer per scene and code, crossfaded like any other', () => {
+    vi.useFakeTimers();
+    const log = [];
+    const director = new VisualFieldDirector({
+      transitionMs: 100,
+      scheduleFrame: callback => callback(),
+      mount: cue => record(cue.kind === 'scene' ? cue.sceneId : cue.renderer, log)
+    });
+    const vector = { kind: 'scene', sceneId: 'vector', code: 'export default () => ({ frame() {} })' };
+    expect(director.applyCue({ kind: 'field', renderer: 'genesis', config: {} })).toBe(true);
+    expect(director.applyCue(vector)).toBe(true);
+    const mounted = director.active;
+    expect(mounted.node.dataset.name).toBe('vector');
+    expect(director.applyCue({ ...vector })).toBe(true);
+    expect(director.active).toBe(mounted);
+    vi.advanceTimersByTime(100);
+    expect(log).toEqual(['destroy:genesis']);
+    expect(director.applyCue({ ...vector, code: 'export default () => ({ frame() { } })' })).toBe(true);
+    expect(director.active).not.toBe(mounted);
+  });
 });
 
 describe('VisualFieldDirector living-flame support', () => {

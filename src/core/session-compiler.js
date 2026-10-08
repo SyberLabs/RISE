@@ -80,7 +80,7 @@ const CURVE_STATES = {
 const CURVES = Object.freeze(Object.fromEntries(
     PACE_CURVE_IDS.map(id => [id, CURVE_STATES[id]])
 ));
-const VISUAL_MODES = new Set(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
+const VISUAL_MODES = new Set(['off', 'focals', 'attractor', 'genesis', 'living-flame', 'interlocution']);
 const ATTRACTOR_SYSTEM_IDS = new Set(['aizawa', 'thomas', 'halvorsen']);
 const ATTRACTOR_PALETTE_SET = new Set(ATTRACTOR_PALETTES.map(item => item.id));
 const ATTRACTOR_FORM_SET = new Set(['mirror', 'kaleido', 'bilateral']);
@@ -460,6 +460,15 @@ function elideSharedHead(previousName, nextName) {
 function describeSeam(previous, next) {
     const name = typeof next?.name === 'string' ? next.name.trim() : '';
     if (!name) return null;
+    // Two passages of one Current are one piece, however many there are: a sealed answer's
+    // passages share its provenance, and naming each as the next piece showed a reader a
+    // title card at every beat ("WHY THE SKY IS BLUE · 9", then · 10). The boundary keeps its
+    // seam, which the voice and the beats time by, and nothing to show: the Chamber paints an
+    // unnamed seam as the silence it is.
+    const currentId = next?.provenance?.currentId;
+    if (typeof currentId === 'string' && previous?.provenance?.currentId === currentId) {
+        return { depth: 'piece', label: '', name: '' };
+    }
     const previousName = typeof previous?.name === 'string' ? previous.name.trim() : '';
     const sameWork = Boolean(previous)
         && parseLibraryExtent(previous.id).workId === parseLibraryExtent(next.id).workId;

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   deserializeVisualProgram,
+  normalizeVisualCue,
   normalizeVisualProgram,
   serializeVisualProgram,
   visualFallbackCueFromConfig
 } from './visual-program.js';
 import { compileSession } from './session-compiler.js';
+import { flameComposition } from './theme-engine-map.js';
 import { VisualScheduleController } from './visual-scheduler.js';
 
 const program = {
@@ -54,6 +56,21 @@ describe('visual program persistence boundary', () => {
     })).toEqual({
       kind: 'field', renderer: 'focal', config: { standardGlyph: 'star' }
     });
+  });
+
+  it('lowers a Living Flame reading to its field, in the classic composition where no theme is known', () => {
+    const cue = visualFallbackCueFromConfig({ visualMode: 'living-flame' });
+    expect(cue).toMatchObject({ kind: 'field', renderer: 'living-flame' });
+    expect(cue.config.recipe.id).toBe(flameComposition(null));
+    expect(normalizeVisualCue(cue)).toEqual(cue);
+  });
+
+  it('keeps a generated scene’s id and code, and stills one that is malformed or too large', () => {
+    const cue = { kind: 'scene', sceneId: 'vector', code: 'export default () => ({ frame() {} })' };
+    expect(normalizeVisualCue({ ...cue, extra: true })).toEqual(cue);
+    expect(normalizeVisualCue({ ...cue, code: 7 })).toEqual({ kind: 'still' });
+    expect(normalizeVisualCue({ ...cue, sceneId: '' })).toEqual({ kind: 'still' });
+    expect(normalizeVisualCue({ ...cue, code: 'x'.repeat(24_577) })).toEqual({ kind: 'still' });
   });
 
   it('round-trips bounded procedural styles without carrying unknown fields', () => {

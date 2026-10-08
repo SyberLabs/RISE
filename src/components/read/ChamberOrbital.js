@@ -9,8 +9,6 @@
  */
 
 import { VisualNavigator } from '../VisualNavigator.js';
-import { PersonalSwells } from '../../core/personal-swells.js';
-import { namingModal } from '../NamingModal.js';
 import { escapeHtml } from '../../core/sanitize.js';
 import { PACE_CURVE_IDS } from '../../core/pacing.js';
 import {
@@ -45,6 +43,7 @@ import {
   availableVoicePacks,
   defaultVoicePackId
 } from '../../audio/voice-pack.js';
+import { SOUND_GROUPS, soundOf } from '../../audio/sound-list.js';
 import {
   SEQUENCE_CAPABILITIES,
   normalizeSequenceCapabilities,
@@ -73,6 +72,7 @@ const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]:not([tab
 const previewEngine = visual => {
   if (visual.visualMode === 'attractor') return 'attractor';
   if (visual.visualMode === 'genesis') return 'klee';
+  if (visual.visualMode === 'living-flame') return 'living-flame';
   if (visual.visualMode === 'interlocution') {
     return normalizeVisualSelection(visual.interlocution || {}).procedural[0] || null;
   }
@@ -96,7 +96,9 @@ const AUDIO_PRESET_IDS = new Set([
 /* The padlock drawn on a chunking mode Recitation has taken. Declared
    once so the first render and the runtime toggle cannot disagree —
    the gap after it is CSS, never a text node (see the toggle). */
-const LOCK_MARK = '<svg class="chunk-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Locked" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
+const RECITATION_LOCK_NOTE = 'Recitation locks Word and Sentence. The voice is a pack of pre-recorded phrases built into this release — one audio file per phrase — so a reading cut any other way has no recording to play and would run silent. Turn Recitation off to read by word or by sentence.';
+const INLAY_LOCK_NOTE = 'Inlay paints one word at a time, the imagery inside each word. Choose another look to read by phrase or by sentence.';
+const LOCK_MARK ='<svg class="chunk-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Locked" focusable="false"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>';
 
 const svgIcon = paths => `<svg class="reader-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
 // One entry per pace profile, in the order pacing.js lists them: what a reader
@@ -114,7 +116,6 @@ const ICON_BACK = svgIcon('<path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></
 const ICON_ARROW = svgIcon('<path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path>');
 const ICON_CHEVRON_RIGHT = svgIcon('<path d="m9 6 6 6-6 6"></path>');
 const ICON_CLOSE = svgIcon('<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>');
-const ICON_PLAY = svgIcon('<path d="M7 4.5v15l12-7.5z"></path>');
 
 const STATIC_VOICE_PACKS = availableVoicePacks();
 const STATIC_VOICE_IDS = new Set(STATIC_VOICE_PACKS.map(pack => pack.id));
@@ -156,7 +157,7 @@ export function createDefaultConfig() {
 
     // Visual orbit
     visualInterlocution: {
-      // Top-level mode: 'off' | 'focals' | 'attractor' | 'genesis' | 'interlocution'
+      // Top-level mode: 'off' | 'focals' | 'attractor' | 'genesis' | 'living-flame' | 'interlocution'
       visualMode: 'off',
 
       // Focals config (persistent gentle focal point)
@@ -294,8 +295,9 @@ export class ChamberOrbital {
     }
     if (!saved) return;
 
-    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'revealMode', 'soundscape', 'audioPreset',
-      'entrainmentMode', 'entrainmentWaveform', 'voiceId', 'selectedSwellId'];
+    // A tone's delivery and waveform are not setup's to keep: an older save of them is not read, so no
+    // choice is left that setup cannot show (the Workshop shapes a tone).
+    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'revealMode', 'soundscape', 'audioPreset', 'voiceId'];
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
     }
@@ -339,7 +341,9 @@ export class ChamberOrbital {
         focals: { ...defaults.focals, ...(vi.focals || {}) },
         attractor: { ...defaults.attractor, ...(vi.attractor || {}) },
         genesis: { ...defaults.genesis, ...(vi.genesis || {}) },
-        livingText: { ...defaults.livingText, ...(vi.livingText || {}) },
+        // Living Text is the reader's Setting for every reading, not setup's: a setup reading always asks,
+        // and an older save of the switch setup no longer shows is not read.
+        livingText: { ...defaults.livingText },
         interlocution: {
           ...defaults.interlocution,
           ...(vi.interlocution || {}),
@@ -519,9 +523,7 @@ export class ChamberOrbital {
 
   _persistPrefs() {
     this._normalizeAudioExclusivity();
-    const { wpm, curve, chunkMode, revealMode, soundscape, audioPreset, entrainmentMode,
-      entrainmentWaveform, voiceId, selectedSwellId,
-      visualInterlocution } = this.config;
+    const { wpm, curve, chunkMode, revealMode, soundscape, audioPreset, voiceId, visualInterlocution } = this.config;
     // atriumCollections and the visual program are LAUNCH-SCOPED
     // identity, not preferences — they belong to the specific reading
     // that was launched, never to the tab. Persisting them would
@@ -552,8 +554,7 @@ export class ChamberOrbital {
       phraseDefault: true,
       wpm, curve, chunkMode,
       revealMode: revealMode === 'progressive' ? 'progressive' : 'instant',
-      soundscape, audioPreset, entrainmentMode,
-      entrainmentWaveform, voiceId, selectedSwellId,
+      soundscape, audioPreset, voiceId,
       visualInterlocution: normalizedVisuals
     };
     this._persistText();
@@ -585,8 +586,6 @@ export class ChamberOrbital {
     if (data && data.text) {
       this.loadText(data.text, data.source || 'Library', data.config);
     }
-    // Always refresh swells when view is updated/re-entered
-    this.renderPersonalPool();
   }
 
   render() {
@@ -824,6 +823,7 @@ export class ChamberOrbital {
     if (status) status.textContent = this.getLookStatus();
     const imagery = this.container.querySelector('.orbit-visual .orbit-label');
     if (imagery) imagery.textContent = this.getImageryLabel();
+    this._paintRhythmLocks();
     this._paintSummaries();
     this._paintPreview();
   }
@@ -867,10 +867,11 @@ export class ChamberOrbital {
     this._persistPrefs();
   }
 
-  /** The Rhythm & pace sheet's Default: its own four choices, and nothing else. */
+  /** The Rhythm & pace sheet's Default: its own four choices, and nothing else; Inlay keeps its word. */
   resetRhythm() {
+    const inlay = lookOf(this.config) === 'inlay';
     const { wpm, curve, chunkMode, revealMode } = createDefaultConfig();
-    Object.assign(this.config, { wpm, curve, chunkMode, revealMode });
+    Object.assign(this.config, { wpm, curve, chunkMode: inlay ? 'word' : chunkMode, revealMode });
     this.syncUIWithConfig();
     this.updateOrbitStatus('temporal');
     this._persistPrefs();
@@ -1004,37 +1005,28 @@ export class ChamberOrbital {
             <button type="button" class="modal-close" data-close="audio" aria-label="Close sound settings">${ICON_CLOSE}</button>
           </div>
           <div class="modal-body">
-            <!-- Soundscapes: living compositions, synthesized in real time -->
-            <div class="config-section">
-              <div class="config-label-row">
-                <label class="config-label">Soundscape</label>
-                <span class="config-info" tabindex="0" role="img" aria-label="Living compositions synthesized in real time — slowly evolving, never looping. Aurora: a deep just-intoned pad visited by wandering harmonics." data-tooltip="Living compositions synthesized in real time — slowly evolving, never looping. Aurora: a deep just-intoned pad visited by wandering harmonics.">?</span>
-              </div>
-              <p class="audio-bed-note">
-                A Soundscape and a Pure Tone are two ways to fill the same
-                silence, so the panel plays one at a time. Choosing either
-                clears the other.
-              </p>
+            <!-- One sound list (RDR-024): Silence, the soundscapes and the
+                 tones. One choice; choosing any sound rests the others. -->
+            ${SOUND_GROUPS.map(group => `
+            <div class="config-section" data-sound-group="${group.id}">
+              ${group.id === 'silence' ? '' : `<div class="config-label-row">
+                <span class="config-label">${group.label}</span>
+                ${group.id === 'tones' ? `<span class="config-info" tabindex="0" role="img" aria-label="Presets target specific brainwave frequencies. Focus (Alpha 10Hz) enhances concentration. Deep (Theta 6Hz) promotes meditation. Gateway (Delta 2Hz) yields deep flow states." data-tooltip="Presets target specific brainwave frequencies. Focus (Alpha 10Hz) enhances concentration. Deep (Theta 6Hz) promotes meditation. Gateway (Delta 2Hz) yields deep flow states.">?</span>` : ''}
+              </div>`}
               <div class="audio-preset-options soundscape-options">
-                <button class="audio-preset-option ${this.config.soundscape === 'none' ? 'active' : ''}" data-soundscape="none">
-                  <span class="preset-label">None</span>
-                </button>
-                <button class="audio-preset-option ${this.config.soundscape === 'aurora' ? 'active' : ''}" data-soundscape="aurora">
-                  <span class="preset-label">Aurora</span>
-                </button>
-                <button class="audio-preset-option ${this.config.soundscape === 'faded-signal' ? 'active' : ''}" data-soundscape="faded-signal">
-                  <span class="preset-label">Faded Signal</span>
-                </button>
-                <button class="audio-preset-option ${this.config.soundscape === 'soft-rain' ? 'active' : ''}" data-soundscape="soft-rain">
-                  <span class="preset-label">Soft Rain</span>
-                </button>
-                <!-- Chant is Chapel-exclusive: recorded sacred music
-                     belongs to the room built for it, not to ambient
-                     texture under arbitrary text — the same scoping
-                     contract as chapel-* imagery. Rendered always,
-                     shown only for Chapel launches (loadText sets
-                     provenance after the first render; syncUIWithConfig
-                     keeps the hidden state honest). -->
+                ${group.entries.map(sound => this.renderSoundChoice(sound)).join('')}
+              </div>
+            </div>`).join('')}
+            <!-- Chant is Chapel-exclusive: recorded sacred music
+                 belongs to the room built for it, not to ambient
+                 texture under arbitrary text — the same scoping
+                 contract as chapel-* imagery. Rendered always,
+                 shown only for Chapel launches (loadText sets
+                 provenance after the first render; syncUIWithConfig
+                 keeps the hidden state honest). -->
+            <div class="config-section chant-only" ${this.isChapelSession() ? '' : 'hidden'}>
+              <span class="config-label">Chant</span>
+              <div class="audio-preset-options soundscape-options">
                 <button class="audio-preset-option chant-only ${this.config.soundscape === 'chant-gregorian' ? 'active' : ''}" data-soundscape="chant-gregorian"
                   ${this.isChapelSession() ? '' : 'hidden'}
                   title="Recorded Gregorian chant with long breaths of silence between pieces">
@@ -1047,103 +1039,30 @@ export class ChamberOrbital {
                 </button>
               </div>
             </div>
-
-            <!-- Pure Tones (brainwave presets) -->
-            <div class="config-section">
-              <div class="config-label-row">
-                <label class="config-label">Pure Tones</label>
-                <span class="config-info" tabindex="0" role="img" aria-label="Presets target specific brainwave frequencies. Focus (Alpha 10Hz) enhances concentration. Deep (Theta 6Hz) promotes meditation. Gateway (Delta 2Hz) yields deep flow states." data-tooltip="Presets target specific brainwave frequencies. Focus (Alpha 10Hz) enhances concentration. Deep (Theta 6Hz) promotes meditation. Gateway (Delta 2Hz) yields deep flow states.">?</span>
-              </div>
-              <div class="audio-preset-options">
-                <button class="audio-preset-option ${this.config.audioPreset === 'silent' ? 'active' : ''}" data-audio-preset="silent">
-                  <span class="preset-label">Silent</span>
-                </button>
-                <button class="audio-preset-option ${this.config.audioPreset === 'focus' ? 'active' : ''}" data-audio-preset="focus">
-                  <span class="preset-label">Focus</span>
-                </button>
-                <button class="audio-preset-option ${this.config.audioPreset === 'deep' ? 'active' : ''}" data-audio-preset="deep">
-                  <span class="preset-label">Deep</span>
-                </button>
-                <button class="audio-preset-option ${this.config.audioPreset === 'gateway' ? 'active' : ''}" data-audio-preset="gateway">
-                  <span class="preset-label">Gateway</span>
-                </button>
-              </div>
-              <div class="pure-tone-controls" id="pure-tone-controls"
-                ${this.config.audioPreset === 'silent' ? 'hidden' : ''}>
-
-            <!-- These parameters belong to the selected Pure Tone. -->
-            <div class="config-subsection">
-              <div class="config-label-row">
-                <label class="config-label">Entrainment Type</label>
-                <span class="config-info" tabindex="0" role="img" aria-label="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head." data-tooltip="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head.">?</span>
-              </div>
-              <div class="audio-mode-options">
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'binaural' ? 'active' : ''}" data-entrainment="binaural">Binaural</button>
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'monaural' ? 'active' : ''}" data-entrainment="monaural">Monaural</button>
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'isochronic' ? 'active' : ''}" data-entrainment="isochronic">Isochronic</button>
-                <button class="audio-mode-option ${this.config.entrainmentMode === 'spatial' ? 'active' : ''}" data-entrainment="spatial">Spatial</button>
-              </div>
-            </div>
-
-            <!-- Waveform -->
-            <div class="config-subsection">
-              <div class="config-label-row">
-                <label class="config-label">Waveform</label>
-                <span class="config-info" tabindex="0" role="img" aria-label="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present." data-tooltip="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present.">?</span>
-              </div>
-              <div class="audio-waveform-options">
-                <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sine' ? 'active' : ''}" data-waveform="sine">Sine</button>
-                <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'triangle' ? 'active' : ''}" data-waveform="triangle">Triangle</button>
-                <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sawtooth' ? 'active' : ''}" data-waveform="sawtooth">Saw</button>
-              </div>
-            </div>
-              </div>
-            </div>
             <!-- Recitation (RECITATION-SPEC): static voice packs, not speechSynthesis. -->
             <div class="config-section" data-recitation-capability
               ${recitationAvailable ? '' : 'hidden'}>
-              <label class="config-label">Recitation</label>
+              <label class="config-label">Voice</label>
               <div class="chunk-options">
                 <button class="chunk-option ${!recitationEnabled ? 'active' : ''}"
-                  data-recitation="off">Off</button>
+                  data-recitation="off">None</button>
                 <button class="chunk-option ${recitationEnabled ? 'active' : ''}"
                   data-recitation="on" ${recitationAvailable ? '' : 'disabled'}
-                  title="${recitationAvailable ? 'Use a bundled static voice pack' : 'No static voice pack is installed in this build'}">Spoken</button>
+                  title="${recitationAvailable ? 'Use a bundled static voice pack' : 'No static voice pack is installed in this build'}">Recited</button>
               </div>
-              <p class="config-note text-mist" data-recitation-note ${recitationEnabled || !recitationAvailable ? '' : 'hidden'}>
-                ${recitationAvailable
-                  ? `The reading uses pre-generated audio from this RISE build.
-                     No model, account, or API is used. An unpacked reading
-                     continues silently. Static Recitation uses Phrase chunking.`
-                  : `No static Recitation pack is installed in this build.
-                     Ordinary silent reading remains available.`}
+              <p class="config-note text-mist" data-recitation-note ${recitationEnabled ? '' : 'hidden'}>
+                Rhythm: Phrase (recited). The voice is recorded one phrase at a
+                time, built into this release, so the reading is cut in phrases.
+                Turn the voice off to read by word or by sentence.
               </p>
             </div>
 
             <!-- Only voice packs actually present in this deployment. -->
             <div class="config-section" id="voice-select-section" ${recitationEnabled ? '' : 'hidden'}>
-              <label class="config-label">Voice</label>
+              <label class="config-label" for="voice-select">Voice pack</label>
               <select id="voice-select" class="voice-select" ${recitationAvailable ? '' : 'disabled'}>
                 ${voiceOptions || '<option value="">No voice pack installed</option>'}
               </select>
-            </div>
-
-            <!-- Personal Swell Pool -->
-            <div class="config-section">
-              <div class="section-header-row">
-                <label class="config-label">Personal Swell Pool</label>
-                <div class="pool-actions">
-                  <label class="pool-upload-btn" title="Upload MP3 Swell">
-                    <span>+</span>
-                    <input type="file" id="swell-upload" accept="audio/mpeg,audio/mp3" hidden>
-                  </label>
-                </div>
-              </div>
-              <div id="personal-swell-list" class="personal-swell-list">
-                <!-- Swells rendered dynamically -->
-                <div class="pool-empty">No personal swells uploaded.</div>
-              </div>
-              <p class="config-note">Upload high-quality MP3 swells. The selected swell opens the session; with none selected, one plays at random.</p>
             </div>
           </div>
         </div>
@@ -1174,13 +1093,7 @@ export class ChamberOrbital {
                 <button class="chunk-option ${this.config.chunkMode === 'word' ? 'active' : ''} ${recitationEnabled ? 'is-locked' : ''}" data-chunk="word"
                   ${recitationEnabled ? 'disabled title="Recitation is spoken in phrases"' : ''}>${recitationEnabled ? LOCK_MARK : ''}Word</button>
               </div>
-              <p class="config-note text-mist" data-chunk-lock-note ${recitationEnabled ? '' : 'hidden'}>
-                Recitation locks Word and Sentence. The voice is a pack of
-                pre-recorded phrases built into this release — one audio
-                file per phrase — so a reading cut any other way has no
-                recording to play and would run silent. Turn Recitation
-                off to read by word or by sentence.
-              </p>
+              <p class="config-note text-mist" data-chunk-lock-note ${recitationEnabled ? '' : 'hidden'}>${RECITATION_LOCK_NOTE}</p>
             </div>
 
             <!-- Pacing -->
@@ -1322,6 +1235,8 @@ export class ChamberOrbital {
       return `Genesis · ${this.capitalizeFirst(vi.genesis?.preset || 'random')}`;
     }
 
+    if (mode === 'living-flame') return 'Living Flame';
+
     if (mode === 'interlocution') {
       // ONE ENGINE HAS A NAME; A SHELF FULL OF THEM HAS A FAMILY.
       //
@@ -1343,31 +1258,35 @@ export class ChamberOrbital {
     return 'Off';
   }
 
-  getAudioStatus() {
-    const preset = this.capitalizeFirst(this.config.audioPreset);
-    const hasSwell = !!this.config.selectedSwellId;
-    const hasPreset = this.config.audioPreset !== 'silent';
-    const hasSoundscape = this.config.soundscape && this.config.soundscape !== 'none';
+  /** The one sound this reading plays: its soundscape, else its tone, else `none`. */
+  _soundId() {
+    const { soundscape, audioPreset } = this.config;
+    if (soundscape && soundscape !== 'none') return soundscape;
+    return audioPreset && audioPreset !== 'silent' ? audioPreset : 'none';
+  }
 
-    if (hasSoundscape) {
-      const labels = {
-        aurora: 'Aurora', 'faded-signal': 'Faded Signal', 'soft-rain': 'Soft Rain',
-        'chant-gregorian': 'Gregorian', 'chant-znamenny': 'Znamenny'
-      };
-      const scape = labels[this.config.soundscape] || this.capitalizeFirst(this.config.soundscape);
-      return (hasPreset || hasSwell) ? `${scape} +` : scape;
-    }
-    if (hasSwell && hasPreset) {
-      return 'Mixed';
-    }
-    if (hasSwell) {
-      return 'Personal';
-    }
-    return preset;
+  /** One choice in the Sound panel; a tone sets the tone, anything else the soundscape. */
+  renderSoundChoice(sound) {
+    const key = sound.kind === 'tone' ? 'data-audio-preset' : 'data-soundscape';
+    return `
+      <button type="button" class="audio-preset-option ${this._soundId() === sound.id ? 'active' : ''}" ${key}="${sound.id}">
+        <span class="preset-label">${escapeHtml(sound.name)}</span>
+      </button>`;
+  }
+
+  getAudioStatus() {
+    const chant = { 'chant-gregorian': 'Gregorian', 'chant-znamenny': 'Znamenny' };
+    const id = this._soundId();
+    return soundOf(id)?.name || chant[id] || this.capitalizeFirst(id);
   }
 
   getTemporalStatus() {
-    return `${CHUNK_LABELS[this.config.chunkMode] || CHUNK_LABELS.phrase} · ${this.config.wpm} wpm`;
+    // A recitation is recorded phrase by phrase; the row says so rather than
+    // showing a Phrase the reader did not choose.
+    const rhythm = this.config.recitation?.enabled === true
+      ? 'Phrase (recited)'
+      : CHUNK_LABELS[this.config.chunkMode] || CHUNK_LABELS.phrase;
+    return `${rhythm} · ${this.config.wpm} wpm`;
   }
 
   getWordCount() {
@@ -1530,187 +1449,58 @@ export class ChamberOrbital {
     // VI Panel handles its own events
   }
 
-  async renderPersonalPool() {
-    const listEl = this.container.querySelector('#personal-swell-list');
-    if (!listEl) return;
-
-    const swells = await PersonalSwells.getAll();
-    // The shared Chamber container may have changed owners while IndexedDB
-    // resolved. Never let a retired Orbital bind into the successor's DOM.
-    if (this._destroyed || !this.container.contains(listEl)) return;
-
-    // The pool can shrink elsewhere (Workshop deletes, cleared data);
-    // a selection pointing at a missing swell would silently degrade
-    // to random playback, so reconcile it where the truth is in hand
-    if (this.config.selectedSwellId && !swells.some(s => s.id === this.config.selectedSwellId)) {
-      this.config.selectedSwellId = null;
-      this.updateOrbitStatus('audio');
-    }
-
-    if (swells.length === 0) {
-      listEl.innerHTML = '<div class="pool-empty">No personal swells uploaded.</div>';
-      return;
-    }
-
-    listEl.innerHTML = swells.map(swell => {
-      const isSelected = this.config.selectedSwellId === swell.id;
-      return `
-        <div class="swell-item ${isSelected ? 'selected' : ''}" data-id="${swell.id}">
-          <button type="button" class="swell-name" title="${escapeHtml(swell.name)}"
-            aria-pressed="${isSelected}">${escapeHtml(swell.name)}</button>
-          <div class="swell-actions">
-            <button type="button" class="swell-btn preview-btn" data-action="preview" title="Preview swell" aria-label="Preview ${escapeHtml(swell.name)}">${ICON_PLAY}</button>
-            <button type="button" class="swell-btn delete-btn" data-action="delete" title="Delete swell" aria-label="Delete ${escapeHtml(swell.name)}">${ICON_CLOSE}</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    // Attach row events (Selection)
-    listEl.querySelectorAll('.swell-item').forEach(row => {
-      this._listen(row, 'click', (e) => {
-        // Only select if we didn't click a button
-        if (e.target.closest('.swell-btn')) return;
-        
-        const id = row.dataset.id;
-        if (this.config.selectedSwellId === id) {
-          this.config.selectedSwellId = null; // Deselect if already selected
-        } else {
-          this.config.selectedSwellId = id;
-        }
-        
-        this.getAudioEngine()?.playClick();
-        this.renderPersonalPool();
-        this.updateOrbitStatus('audio');
-      });
-    });
-
-    // Attach button events (Delete / Preview)
-    listEl.querySelectorAll('.swell-btn').forEach(btn => {
-      this._listen(btn, 'click', async (e) => {
-        e.stopPropagation(); // Prevent row selection
-        const id = btn.closest('.swell-item').dataset.id;
-        const action = btn.dataset.action;
-
-        if (action === 'delete') {
-          this.getAudioEngine()?.playHiss();
-          await PersonalSwells.removeSwell(id);
-          if (this.config.selectedSwellId === id) this.config.selectedSwellId = null;
-          await this.getAudioEngine()?.reloadPersonalSwells();
-          this.renderPersonalPool();
-          this.updateOrbitStatus('audio');
-        } else if (action === 'preview') {
-          // Targeted preview!
-          this.getAudioEngine()?.playSwell(id);
-        }
-      });
-    });
-  }
-
   attachAudioModalEvents() {
-    // Soundscapes and pure tones are mutually exclusive beds: a
-    // soundscape is a finished mix and never shares the room with the
-    // tone stack (steady tones at the same carrier simply mask it).
-    // Auto-switch rather than disable — the selection visibly moving
-    // teaches the rule, and one tap undoes it.
-    const soundscapeOptions = this.container.querySelectorAll('[data-soundscape]');
-    const presetOptions = this.container.querySelectorAll('[data-audio-preset]');
-    const pureToneControls = this.container.querySelector('#pure-tone-controls');
-
-    soundscapeOptions.forEach(opt => {
+    // One sound at a time: a soundscape is a finished mix and never shares
+    // the room with the tone stack (steady tones at the same carrier simply
+    // mask it), so every choice sets both fields.
+    this.container.querySelectorAll('#modal-audio [data-soundscape], #modal-audio [data-audio-preset]').forEach(opt => {
       this._listen(opt, 'click', () => {
         this.getAudioEngine()?.playHiss();
-        this.config.soundscape = opt.dataset.soundscape;
-        if (opt.dataset.soundscape !== 'none' && this.config.audioPreset !== 'silent') {
-          this.config.audioPreset = 'silent';
-          presetOptions.forEach(o => o.classList.toggle('active', o.dataset.audioPreset === 'silent'));
-          if (pureToneControls) pureToneControls.hidden = true;
-        }
+        this.config.soundscape = opt.dataset.soundscape || 'none';
+        this.config.audioPreset = opt.dataset.audioPreset || 'silent';
+        this._paintSound();
         this.updateOrbitStatus('audio');
-        soundscapeOptions.forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
         this._syncLookRow();
       });
-    });
-
-    presetOptions.forEach(opt => {
-      this._listen(opt, 'click', () => {
-        this.getAudioEngine()?.playHiss();
-        this.config.audioPreset = opt.dataset.audioPreset;
-        if (pureToneControls) pureToneControls.hidden = opt.dataset.audioPreset === 'silent';
-        if (opt.dataset.audioPreset !== 'silent' && this.config.soundscape !== 'none') {
-          this.config.soundscape = 'none';
-          soundscapeOptions.forEach(o => o.classList.toggle('active', o.dataset.soundscape === 'none'));
-        }
-        this.updateOrbitStatus('audio');
-        presetOptions.forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
-        this._syncLookRow();
-      });
-    });
-
-
-    // Entrainment mode
-    const entrainmentOptions = this.container.querySelectorAll('[data-entrainment]');
-    entrainmentOptions.forEach(opt => {
-      this._listen(opt, 'click', () => {
-        this.getAudioEngine()?.playHiss();
-        this.config.entrainmentMode = opt.dataset.entrainment;
-        this.updateOrbitStatus('audio');
-        entrainmentOptions.forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
-      });
-    });
-
-    // Waveform
-    const waveformOptions = this.container.querySelectorAll('[data-waveform]');
-    waveformOptions.forEach(opt => {
-      this._listen(opt, 'click', () => {
-        this.getAudioEngine()?.playClick();
-        this.config.entrainmentWaveform = opt.dataset.waveform;
-        this.updateOrbitStatus('audio');
-        waveformOptions.forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
-      });
-    });
-
-
-    this.container.querySelectorAll('[data-entrainment]').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.entrainment === this.config.entrainmentMode);
-    });
-    this.container.querySelectorAll('[data-waveform]').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.waveform === this.config.entrainmentWaveform);
     });
 
     // Static voice-pack controls are bound with the rest of Recitation
     // in attachConfigEvents.
+  }
 
-    // Personal Pool Upload
-    const swellUpload = this.container.querySelector('#swell-upload');
-    this._listen(swellUpload, 'change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      this.getAudioEngine()?.playHiss();
-      
-      const displayName = await namingModal.show(file.name, 'Name Swell', 'Atmospheric Metadata');
-      if (!displayName) {
-        swellUpload.value = '';
-        return;
-      }
-      
-      try {
-        await PersonalSwells.addSwell(file, displayName);
-        await this.getAudioEngine()?.reloadPersonalSwells();
-        this.renderPersonalPool();
-      } catch (err) {
-        console.error('[Orbital] Upload failed:', err);
-      }
-
-      swellUpload.value = '';
+  /**
+   * The rhythms the reading cannot take, locked where the reader finds them dead and named: a recitation is
+   * recorded phrase by phrase, and Inlay paints one word at a time. The lock is drawn on the button, in the
+   * Rhythm sheet, not in the panel that caused it; its mark is its own element (a text node for the gap would
+   * have taken the label with it when removed).
+   */
+  _paintRhythmLocks() {
+    const recited = this.config.recitation?.enabled === true;
+    const inlay = !recited && lookOf(this.config) === 'inlay';
+    const keep = recited ? 'phrase' : inlay ? 'word' : null;
+    const reason = recited ? 'Recitation is spoken in phrases' : 'Inlay paints one word at a time';
+    this.container.querySelectorAll('[data-chunk]').forEach(chunk => {
+      chunk.classList.toggle('active', chunk.dataset.chunk === this.config.chunkMode);
+      const locked = keep !== null && chunk.dataset.chunk !== keep;
+      chunk.disabled = locked;
+      chunk.classList.toggle('is-locked', locked);
+      chunk.title = locked ? reason : '';
+      const mark = chunk.querySelector('.chunk-lock');
+      if (locked && !mark) chunk.insertAdjacentHTML('afterbegin', LOCK_MARK);
+      else if (!locked && mark) mark.remove();
     });
+    const note = this.container.querySelector('[data-chunk-lock-note]');
+    if (!note) return;
+    note.hidden = keep === null;
+    if (keep !== null) note.textContent = recited ? RECITATION_LOCK_NOTE : INLAY_LOCK_NOTE;
+  }
 
-    this.renderPersonalPool();
+  /** Mark the one sound chosen. A tone's delivery and waveform are shaped in the Workshop. */
+  _paintSound() {
+    const id = this._soundId();
+    this.container.querySelectorAll('#modal-audio [data-soundscape], #modal-audio [data-audio-preset]').forEach(opt => {
+      opt.classList.toggle('active', (opt.dataset.soundscape || opt.dataset.audioPreset) === id);
+    });
   }
 
   attachTemporalModalEvents() {
@@ -1764,7 +1554,6 @@ export class ChamberOrbital {
     // phrase mode is the asset identity used by the installed pack.
     const recitationOptions = this.container.querySelectorAll('[data-recitation]');
     const recitationNote = this.container.querySelector('[data-recitation-note]');
-    const chunkLockNote = this.container.querySelector('[data-chunk-lock-note]');
     const voiceSection = this.container.querySelector('#voice-select-section');
     recitationOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
@@ -1775,28 +1564,9 @@ export class ChamberOrbital {
         if (enabled) this.config.chunkMode = 'phrase';
         recitationOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
-        chunkOptions.forEach(chunk => {
-          chunk.classList.toggle('active', chunk.dataset.chunk === this.config.chunkMode);
-          const locked = enabled && chunk.dataset.chunk !== 'phrase';
-          chunk.disabled = locked;
-          // The lock is drawn where the reader is looking when they
-          // find the button dead — in the Temporal panel, on the
-          // button itself, not in the Audio panel behind another orb.
-          chunk.classList.toggle('is-locked', locked);
-          chunk.title = locked ? 'Recitation is spoken in phrases' : '';
-          // The mark is its own element and the gap after it is CSS.
-          // A text node for the space would have made the span's
-          // nextSibling " Word", and removing the mark would have
-          // taken the label with it.
-          const mark = chunk.querySelector('.chunk-lock');
-          if (locked && !mark) {
-            chunk.insertAdjacentHTML('afterbegin', LOCK_MARK);
-          } else if (!locked && mark) {
-            mark.remove();
-          }
-        });
+        this._paintRhythmLocks();
         if (recitationNote) recitationNote.hidden = !enabled;
-        if (chunkLockNote) chunkLockNote.hidden = !enabled;
+        this.updateOrbitStatus('temporal');
         // The voice picker is meaningless without a voice to pick for.
         if (voiceSection) voiceSection.hidden = !enabled;
       });
@@ -1919,28 +1689,13 @@ export class ChamberOrbital {
       opt.classList.toggle('active', opt.dataset.curve === this.config.curve);
     });
 
-    const chunkOptions = this.container.querySelectorAll('[data-chunk]');
-    chunkOptions.forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.chunk === this.config.chunkMode);
-      opt.disabled = enabled && opt.dataset.chunk !== 'phrase';
-    });
+    this._paintRhythmLocks();
     this.container.querySelectorAll('[data-reveal]').forEach(opt => {
       const selected = this.config.revealMode === 'progressive' ? 'progressive' : 'instant';
       opt.classList.toggle('active', opt.dataset.reveal === selected);
     });
 
-    // Audio Modal
-    const soundscapeOptions = this.container.querySelectorAll('[data-soundscape]');
-    soundscapeOptions.forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.soundscape === (this.config.soundscape || 'none'));
-    });
-
-    const presetOptions = this.container.querySelectorAll('[data-audio-preset]');
-    presetOptions.forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.audioPreset === this.config.audioPreset);
-    });
-    const pureToneControls = this.container.querySelector('#pure-tone-controls');
-    if (pureToneControls) pureToneControls.hidden = this.config.audioPreset === 'silent';
+    this._paintSound();
 
     // Recitation, and the voice picker that only matters when it is on.
     const recitationSection = this.container.querySelector('[data-recitation-capability]');
@@ -2160,9 +1915,6 @@ export class ChamberOrbital {
       beginBtn.disabled = false;
       console.log('[ChamberOrbital] Begin button enabled');
     }
-
-    // Refresh personal pool to sync with any changes made in Workshop
-    this.renderPersonalPool();
   }
 
   /**

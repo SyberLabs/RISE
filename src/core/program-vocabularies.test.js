@@ -31,6 +31,7 @@ import {
   validateDiveAnchor
 } from './rise-current.js';
 import { PORTABLE_SEQUENCE_MAX_BYTES, inspectPortableSequence } from './portable-sequence.js';
+import { BEAT_LIMITS } from './beats.js';
 
 const EP = EXPERIENCE_PROGRAM_LIMITS;
 const WORKSHOP = WORKSHOP_PROJECT_LIMITS;
@@ -146,7 +147,8 @@ describe('rise.current.v1 is an adapter: its bounds never exceed the centre', ()
 
   /** The rows where the adapter was written to the centre's number exactly. */
   const identical = [
-    ['segments -> movement clips', CURRENT.segments, EP.maxMovements],
+    // A v2 Current lowers one movement per beat: the beat cap is the centre's number, and v1's sixteen sits under it.
+    ['beats -> movement clips', BEAT_LIMITS.beats, EP.maxMovements],
     ['dive text -> gloss text', CURRENT.diveText, EP.maxThreadTextLength],
     ['title -> a title', CURRENT.title, TITLE_CEILING]
   ];

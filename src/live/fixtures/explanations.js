@@ -1,6 +1,6 @@
 /**
  * Two Composer explanations beside the black-hole one (BLACK_HOLES_CURRENT, src/test/sealed-current.js),
- * each with its own presentation demand, written the way the guide (src/live/adapters/current-guide.js)
+ * each with its own presentation demand, written the way the guide (src/live/guide/)
  * asks a host model to write one. The first passage is short. There are no Dive notes, because a
  * Composer presentation offers no Dive, and no sources, because a Current carries none. What each instrument is for is in docs/plans/COMPOSER-INSTRUMENTS.md.
  *

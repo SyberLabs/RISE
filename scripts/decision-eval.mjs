@@ -74,7 +74,7 @@ export function connectionFor(mode, { origin, env = process.env, fetchImpl = fet
   fail(`Unknown mode ${mode}; use ${MODES.join(', ')}.`);
 }
 
-async function fixtures(casesPath, optionsPath) {
+export async function fixtures(casesPath, optionsPath) {
   if (!casesPath || !optionsPath) fail('Both --cases and --options are required.');
   const [casesText, optionsText] = await Promise.all([readFile(casesPath, 'utf8'), readFile(optionsPath, 'utf8')]);
   const cases = JSON.parse(casesText);

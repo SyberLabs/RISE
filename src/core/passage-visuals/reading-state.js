@@ -6,6 +6,7 @@
  * never serialized with the session. Nothing here performs network work.
  */
 
+import { jevColors } from '../jev-palette.js';
 import { sessionColorTheme } from '../session-presentation.js';
 import { themedFlameLookup } from '../theme-engine-map.js';
 import { isContinuousPresentation } from '../visual-presence.js';
@@ -21,11 +22,35 @@ const DEFAULT_SHELVES = new Set(['', 'turrell']);
 
 const states = new WeakMap();
 
+// Museum collections only: science imagery is a photograph of the world, not a painting (art-of, not witness-of).
+const MUSEUM_SOURCE = /^aic-/u;
+
 /**
- * Whether Follow text can run in this reading, and whether it should be the
- * default. Authored programs and explicit visual choices are preserved.
+ * What Follow text draws (R6): museum works for the Gallery look's Turrell
+ * shelf or a shelf of museum collections, flames otherwise,
+ * and always where the words themselves draw imagery from the room.
+ */
+function followFamily(visual = {}) {
+  if (visual.visualMode !== 'interlocution') return 'flame';
+  // Words that draw imagery from the room (a declared word fill) keep it: museum cues would change what fills them.
+  if (visual.interlocution?.wordFillDeclared === true) return 'flame';
+  const procedural = (visual.interlocution?.procedural || []).filter(Boolean);
+  const sourced = (visual.interlocution?.sourced || []).filter(Boolean);
+  const museum = sourced.length > 0 && sourced.every(id => MUSEUM_SOURCE.test(id));
+  if (procedural.length === 1 && procedural[0] === 'turrell' && (!sourced.length || museum)) return 'gallery';
+  return procedural.length === 0 && museum ? 'gallery' : 'flame';
+}
+
+/**
+ * Whether Follow text can run in this reading, whether it should be the
+ * default, and what it draws. Authored programs and explicit visual choices
+ * are preserved.
  */
 export function directionEligibility(session) {
+  return { ...eligibility(session), family: followFamily(session?.visualConfig) };
+}
+
+function eligibility(session) {
   if (!session || !(session.sourceTexts instanceof Map)) {
     return { canFollow: false, defaultMode: 'hold', reason: 'no-source-text' };
   }
@@ -41,6 +66,8 @@ export function directionEligibility(session) {
     }
     return { canFollow: false, defaultMode: 'hold', reason: 'authored-program' };
   }
+  // Living Flame holds one composition until Follow text moves it by passage.
+  if (visual.visualMode === 'living-flame') return { canFollow: true, defaultMode: 'follow', reason: 'living-flame' };
   const interlocution = visual.interlocution || {};
   const gallery = visual.visualMode === 'interlocution' && isContinuousPresentation(interlocution.presentation);
   if (!gallery) return { canFollow: false, defaultMode: 'hold', reason: 'no-gallery' };
@@ -104,9 +131,12 @@ export function ensureDirector(session, state = directionStateFor(session)) {
         chunkProfile: source.chunkProfile ?? null
       }))
       .filter(source => typeof source.text === 'string');
-    // The theme is lowered where the cue is built, so a saved cue draws as saved.
-    const flameRecipe = themedFlameLookup(flamePreset, sessionColorTheme(session));
-    const director = new PassageDirector({ sources, atoms: session.atoms || [], flameRecipe });
+    // The theme is lowered where the cue is built, so a saved cue draws as saved. A reading with no theme
+    // takes classic's, the Gallery look's, so its passages keep one colour too (R6).
+    const flameRecipe = themedFlameLookup(flamePreset, sessionColorTheme(session) || jevColors('classic'));
+    const director = new PassageDirector({
+      sources, atoms: session.atoms || [], flameRecipe, family: state.eligibility?.family || 'flame'
+    });
     if (!director.ready) throw new Error('No directable source text');
     state.director = director;
   } catch (error) {

@@ -120,7 +120,7 @@ export const textMethods = {
           fontSize,
           wordFill: this.selection.wordFill,
           temporal: { chunkMode: 'word', recitation: false },
-          settings: { chamberFace: settings.face, fontSize, chamberMask: false }
+          settings: { chamberFace: settings.face, fontSize }
         });
         this.closeDialog();
       }
@@ -241,7 +241,7 @@ export const textMethods = {
         fontSize: persist,
         wordFill: this.selection.wordFill,
         temporal: { chunkMode: 'word', recitation: false },
-        settings: { chamberFace: settings.face, fontSize: persist, chamberMask: false }
+        settings: { chamberFace: settings.face, fontSize: persist }
       });
     } else {
       this.writeSetting('fontSize', persist);
@@ -306,19 +306,6 @@ export const textMethods = {
 
   toggleInkBranch() {
     this._inkBranchOpen = this._inkBranchOpen === false;
-    this.render();
-  },
-
-  setLivingText(enabled) {
-    if (this.locked || this.programInfo) return;
-    this.selection.livingText = {
-      ...this.selection.livingText,
-      enabled: enabled === true
-    };
-    this.emit();
-    // Its siblings render; this one did not, and nothing showed it while the
-    // native checkbox WAS the picture. Now the lit state is the row's, so a
-    // missing redraw leaves the switch saying the opposite of the setting.
     this.render();
   },
 

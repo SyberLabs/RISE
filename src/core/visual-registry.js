@@ -30,44 +30,44 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
       + 'rather than atmospheric; reads as a made mark.'
   }),
   Object.freeze({
-    id: 'fractal', name: 'Fractal Flames', icon: '✧', listed: true, category: 'gallery', composer: false,
+    id: 'fractal', name: 'Fractal Flames', icon: '✧', listed: true, category: 'gallery', composer: true,
     description: 'Iterated-function flames: dense filamentary structures of light on black, '
       + 'symmetrical and self-similar, closer to smoke or a nebula than to drawing. The '
       + 'busiest of these surfaces.'
   }),
   Object.freeze({
-    id: 'turrell', name: 'Turrell Fields', icon: '◈', listed: true, category: 'gallery', composer: false,
+    id: 'turrell', name: 'Turrell Fields', icon: '◈', listed: true, category: 'gallery', composer: true,
     description: 'A bounded aperture of soft light held inside a near-black chamber, its '
       + 'edge diffuse enough that the eye cannot decide whether it is an opening, a surface '
       + 'or a solid. Almost still, no line work, entirely atmosphere.'
   }),
   Object.freeze({
     id: 'neural', name: 'Neural Networks', icon: '◉', wordFillCapable: false,
-    listed: true, category: 'gallery', composer: false,
+    listed: true, category: 'gallery', composer: true,
     description: 'Layered nodes joined by weighted, glowing connections, with pulses passing '
       + 'along them. Diagrammatic and regular — a legible structure rather than a texture.'
   }),
   Object.freeze({
     id: 'rockgarden', name: 'Rock Garden', icon: '◯', wordFillCapable: false,
-    listed: true, category: 'gallery', composer: false,
+    listed: true, category: 'gallery', composer: true,
     description: 'A few overlapping stone-like forms — ellipses, blobs, irregular polygons — '
       + 'placed asymmetrically in greyscale, after karesansui. Sparse, quiet and mostly '
       + 'empty space.'
   }),
   Object.freeze({
-    id: 'harmonograph', name: 'Harmonograph', icon: '∿', listed: true, category: 'dynamic', composer: false,
+    id: 'harmonograph', name: 'Harmonograph', icon: '∿', listed: true, category: 'dynamic', composer: true,
     description: 'A single continuous line traced by two damped pendulums tuned to a musical '
       + 'interval, winding into a lattice and decaying into stillness. Thin, precise, and '
       + 'visibly losing energy as it draws.'
   }),
   Object.freeze({
-    id: 'ostensoria', name: 'Iris Plates', icon: '◍', listed: true, category: 'dynamic', composer: false,
+    id: 'ostensoria', name: 'Iris Plates', icon: '◍', listed: true, category: 'dynamic', composer: true,
     description: 'A square plate grown from strange-attractor density — radial vessels, '
       + 'spectral bands, and a dark halo on the chamber void. One seed, one plate, drawn once.'
   }),
   Object.freeze({
     id: 'apparitio', name: 'Spectral Plates', icon: '☾', wordFillCapable: false,
-    listed: true, category: 'dynamic', composer: false,
+    listed: true, category: 'dynamic', composer: true,
     description: 'An upright apparition on a single mirror axis: swept spectral wings, a '
       + 'filigree spine, a crowning halo on the chamber void. Each seed appears once.'
   })
@@ -81,7 +81,8 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
  * a Storm of Steel work-engine.
  *
  * Living Flame and night streaks are fields of their own, not procedural
- * patterns, so neither reaches PROCEDURAL_PATTERN_IDS.
+ * patterns, so neither reaches PROCEDURAL_PATTERN_IDS. Living Flame is listed
+ * and takes the room through its own mode (DEDICATED_MODE).
  */
 export const ENGINE_CATALOG = Object.freeze([
   Object.freeze({
@@ -91,7 +92,7 @@ export const ENGINE_CATALOG = Object.freeze([
   }),
   ...PROCEDURAL_PATTERNS,
   Object.freeze({
-    id: 'living-flame', name: 'Living Flame', listed: false, composer: false,
+    id: 'living-flame', name: 'Living Flame', icon: '♨', listed: true, category: 'dynamic', composer: true,
     description: 'An iterated-function flame drawn by many thousands of glowing particles: '
       + 'one composition at a time, drifting and breathing slowly on a dark ground. '
       + 'Dense and luminous; reads as atmosphere, not as a made mark.'
@@ -104,9 +105,16 @@ export const ENGINE_CATALOG = Object.freeze([
   })
 ]);
 
-/** Gallery / PREP listing: the engines Reader setup offers. */
+/** Every engine Reader setup offers, in navigator order. */
+export const LISTED_ENGINES = Object.freeze(ENGINE_CATALOG.filter(item => item.listed));
+
+/**
+ * The listed engines the cortex draws: the procedural patterns and Attractor.
+ * Living Flame is listed but is a field of its own, so word fill, a Gallery
+ * shelf and the specimen catalog never take it.
+ */
 export const LISTED_PROCEDURAL_PATTERNS = Object.freeze(
-  ENGINE_CATALOG.filter(pattern => pattern.listed)
+  LISTED_ENGINES.filter(item => item.id === 'attractor' || PROCEDURAL_PATTERNS.includes(item))
 );
 
 /** Engines suitable for authoring inside letterforms. Runtime support is broader for legacy data. */

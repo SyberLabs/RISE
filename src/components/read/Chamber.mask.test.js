@@ -165,7 +165,7 @@ describe('Chamber Mask', () => {
     it('does not add is-mask when Mask is on and the session is phrase', () => {
         const { chamber, container, settings } = makeChamber(
             { chunkMode: 'phrase' },
-            { chamberMask: true }
+            {}
         );
         const el = atomDisplay(container);
         expect(el.classList.contains('is-mask')).toBe(false);
@@ -177,7 +177,7 @@ describe('Chamber Mask', () => {
         for (const chunkMode of ['sentence', 'paragraph']) {
             const { chamber, container } = makeChamber(
                 { chunkMode },
-                { chamberMask: true }
+                {}
             );
             expect(atomDisplay(container).classList.contains('is-mask'), chunkMode).toBe(false);
             chamber.destroy();
@@ -185,7 +185,7 @@ describe('Chamber Mask', () => {
     });
 
     it('does not add is-mask when chunkMode is missing, even if Mask is on', () => {
-        const { chamber, container } = makeChamber({}, { chamberMask: true });
+        const { chamber, container } = makeChamber({}, {});
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
         chamber.destroy();
     });
@@ -199,7 +199,7 @@ describe('Chamber Mask', () => {
                     interlocution: { presentation: 'continuous', wordFill: { mode: 'same' } }
                 }
             },
-            { chamberMask: true }
+            {}
         );
         const el = atomDisplay(container);
         expect(el.classList.contains('is-mask')).toBe(true);
@@ -210,7 +210,7 @@ describe('Chamber Mask', () => {
     it('does not add is-mask when Mask is off, even if the session is Word', () => {
         const { chamber, container } = makeChamber(
             { chunkMode: 'word' },
-            { chamberMask: false }
+            {}
         );
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
         chamber.destroy();
@@ -233,7 +233,7 @@ describe('Chamber Mask', () => {
 
         const { chamber, container } = makeChamber(
             session,
-            { chamberFace: 'thick', fontSize: 'fit', chamberMask: false }
+            { chamberFace: 'thick', fontSize: 'fit' }
         );
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
         chamber.destroy();
@@ -243,7 +243,7 @@ describe('Chamber Mask', () => {
         for (const chamberFace of ['jp', 'sans', 'book']) {
             const { chamber, container } = makeChamber(
                 { chunkMode: 'word' },
-                { chamberMask: true, chamberFace }
+                { chamberFace }
             );
             expect(atomDisplay(container).dataset.chamberFace).toBe(chamberFace);
             chamber.destroy();
@@ -253,7 +253,7 @@ describe('Chamber Mask', () => {
     it('adds is-mask from PREP Gallery-in-the-word without requiring Settings Mask', () => {
         const { chamber, container } = makeChamber(
             wordGallerySession(),
-            { chamberMask: false }
+            {}
         );
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(true);
         expect(atomDisplay(container).dataset.chamberFace).toBe('thick');
@@ -263,7 +263,7 @@ describe('Chamber Mask', () => {
     it('adds is-mask for canonical Fit Gallery without the legacy Mask setting', () => {
         const { chamber, container } = makeChamber(
             wordGallerySession('continuous'),
-            { chamberMask: false, fontSize: 'fit' }
+            { fontSize: 'fit' }
         );
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(true);
         chamber.destroy();
@@ -278,7 +278,7 @@ describe('Chamber Mask', () => {
                     interlocution: { presentation: 'continuous' }
                 }
             },
-            { chamberMask: false, fontSize: 'fit' }
+            { fontSize: 'fit' }
         );
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
         chamber.destroy();
@@ -287,7 +287,7 @@ describe('Chamber Mask', () => {
     it('keeps continuous Gallery mounted without a mask at Medium', () => {
         const { chamber, container } = makeChamber(
             wordGallerySession('continuous'),
-            { chamberMask: false, fontSize: 'medium' }
+            { fontSize: 'medium' }
         );
         expect(galleryHost(container)).toBeTruthy();
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
@@ -314,7 +314,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
     it('uses one ContinuousField instance on two mounts with the same url after a dissolve', async () => {
         const { chamber, container } = makeChamber(
             wordGallerySession(),
-            { chamberMask: true }
+            {}
         );
         armGalleryField();
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
@@ -378,7 +378,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
                     }
                 }
             },
-            { chamberMask: true }
+            {}
         );
         visualCortex._poolFor('aic-landscapes').images = [
             { url: 'https://example.test/room-a.jpg', name: 'room-a' },
@@ -433,7 +433,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
                     }
                 }
             },
-            { chamberMask: true }
+            {}
         );
         visualCortex._poolFor('aic-landscapes').images = [
             { url: 'https://example.test/room-a.jpg', name: 'room-a' },
@@ -484,7 +484,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
                     }
                 }
             },
-            { chamberMask: true }
+            {}
         );
         visualCortex._poolFor('aic-postimpressionism').images = [
             { url: 'https://example.test/fill-x.jpg', name: 'fill-x' },
@@ -520,7 +520,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
                     interlocution: { presentation: 'continuous-word' }
                 }
             },
-            { chamberMask: true }
+            {}
         );
         chamber.displayAtom({ content: 'a phrase', duration: 500 }, 0);
         await flushFillMask();
@@ -533,7 +533,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
     it('Page tears the projection host and does not clone the gallery', async () => {
         const { chamber, container } = makeChamber(
             wordGallerySession(),
-            { chamberMask: true }
+            {}
         );
         armGalleryField();
         chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
@@ -553,7 +553,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
     it('default path never mounts a second video in the fill host', async () => {
         const { chamber, container } = makeChamber(
             { ...wordGallerySession(), sequenceVisualAssets: [STILL, MP4] },
-            { chamberMask: true }
+            {}
         );
         armGalleryField();
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
@@ -578,7 +578,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
 
         const { chamber, container } = makeChamber(
             wordGallerySession(),
-            { chamberMask: true }
+            {}
         );
         const pending = atomDisplay(container);
         pending.textContent = 'O';
@@ -633,7 +633,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
 
         const { chamber, container } = makeChamber(
             wordGallerySession(),
-            { chamberMask: true }
+            {}
         );
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
 
@@ -673,7 +673,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
             });
             const { chamber, container } = makeChamber(
                 wordGallerySession(),
-                { chamberMask: true }
+                {}
             );
             const atom = atomDisplay(container);
             atom.textContent = 'O';
@@ -700,7 +700,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         restoreEnv = installFillMaskEnv({ projectionReady });
         const { chamber, container } = makeChamber(
             wordGallerySession(),
-            { chamberMask: true }
+            {}
         );
         const atom = atomDisplay(container);
         atom.textContent = 'O';
@@ -722,7 +722,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
 
         const { chamber, container } = makeChamber(
             wordGallerySession(),
-            { chamberMask: true }
+            {}
         );
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
         await flushFillMask();
@@ -737,20 +737,16 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         chamber.destroy();
     });
 
-    it('destroys the projection when Mask is turned off', async () => {
+    it('destroys the projection when the word fill stops asking for imagery', async () => {
         const session = wordGallerySession('continuous');
-        delete session.visualConfig.interlocution.wordFill;
-        const { chamber, container, settings } = makeChamber(
-            session,
-            { chamberMask: true }
-        );
+        session.visualConfig.interlocution.wordFill = { mode: 'same' };
+        const { chamber, container } = makeChamber(session);
         armGalleryField('continuous');
         chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
         await flushFillMask();
         expect(fillHost(container)).toBeTruthy();
 
-        settings.chamberMask = false;
-        chamber.session.visualConfig.interlocution.presentation = 'continuous';
+        chamber.session.visualConfig.interlocution.wordFill = { mode: 'accent' };
         chamber.applyChamberMask();
         await flushFillMask();
         expect(fillHost(container)).toBeNull();
@@ -814,7 +810,7 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
                     }
                 }
             },
-            { chamberMask: true }
+            {}
         );
         visualCortex._poolFor('sci-astronomy').images = [
             { url: 'https://example.test/astro-a.jpg', name: 'astro-a' },
@@ -841,45 +837,6 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         chamber.destroy();
     });
 
-    it('undefined wordFill on Astronomy × Fractal still yields Light cream (cold start)', async () => {
-        const { chamber, container } = makeChamber(
-            {
-                chunkMode: 'word',
-                visualConfig: {
-                    visualMode: 'interlocution',
-                    interlocution: {
-                        presentation: 'continuous',
-                        sourced: ['sci-astronomy'],
-                        procedural: ['fractal']
-                    }
-                }
-            },
-            { chamberMask: true }
-        );
-        visualCortex._poolFor('sci-astronomy').images = [
-            { url: 'https://example.test/astro-a.jpg', name: 'astro-a' }
-        ];
-        // Cortex leftover is `same` (or a prior Attractor pick). The
-        // session pair is Astronomy × Fractal and must reach combine()
-        // as a Fractal pick even when wordFill was never declared.
-        visualCortex.updateConfig({
-            enabled: true,
-            presentation: 'continuous',
-            activeTypes: ['sci-astronomy'],
-            wordFill: { mode: 'same' }
-        });
-        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
-        await flushFillMask();
-        chamber.syncMaskGroundPlate();
-
-        const { wrapper, understudy } = assertFillUnderstudy(container, 'light');
-        expect(understudy.dataset.ground).toBe('light');
-        expect(wrapper.contains(understudy)).toBe(true);
-        expect(galleryHost(container).contains(understudy)).toBe(false);
-        expect(chamber.session.visualConfig.interlocution.wordFill).toBeUndefined();
-        chamber.destroy();
-    });
-
     it('Astronomy room + Fractal fill puts Light cream plate inside the glyph wrapper', async () => {
         const { chamber, container } = makeChamber(
             {
@@ -893,7 +850,7 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
                     }
                 }
             },
-            { chamberMask: true }
+            {}
         );
         visualCortex._poolFor('sci-astronomy').images = [
             { url: 'https://example.test/astro-a.jpg', name: 'astro-a' }
@@ -930,7 +887,7 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
                     }
                 }
             },
-            { chamberMask: true }
+            {}
         );
         visualCortex.updateConfig({
             enabled: true,
@@ -962,7 +919,7 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
                     }
                 }
             },
-            { chamberMask: true }
+            {}
         );
         visualCortex._poolFor('aic-landscapes').images = [
             { url: 'https://example.test/room-a.jpg', name: 'room-a' }
@@ -1224,7 +1181,7 @@ describe('Chamber Fit playback admission', () => {
             };
             const { chamber, container } = makeChamber(
                 wordGallerySession(),
-                { chamberMask: true },
+                {},
                 { player }
             );
             visualCortex._continuousField?.stop();

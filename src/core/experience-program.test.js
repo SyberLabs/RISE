@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  EXPERIENCE_PROGRAM_LIMITS,
   EXPERIENCE_PROGRAM_SCHEMA,
   ExperienceProgramValidationError,
   createExperienceProgram,
@@ -185,6 +186,27 @@ describe('rise.experience-program.v1', () => {
     }));
   });
 
+  it('validates and lowers a generated scene by its id and code, and nothing more', () => {
+    const value = score();
+    const cue = { kind: 'scene', sceneId: 'vector', code: 'export default function scene(rise) { return { frame() {} }; }' };
+    value.tracks[2].clips[0].cue = cue;
+    expect(validateExperienceProgram(value).tracks[2].clips[0].cue).toEqual(cue);
+    expect(lowerExperienceProgram(value).visualProgram.segments[0].cue).toEqual(cue);
+
+    const refuses = (patch, code) => {
+      const bad = score();
+      bad.tracks[2].clips[0].cue = { ...cue, ...patch };
+      expect(() => validateExperienceProgram(bad)).toThrow(expect.objectContaining({ code }));
+    };
+    refuses({ renderer: 'attractor' }, 'PROGRAM_UNKNOWN_FIELD');
+    refuses({ sceneId: '' }, 'PROGRAM_INVALID_ID');
+    refuses({ sceneId: 'x'.repeat(121) }, 'PROGRAM_ID_TOO_LONG');
+    refuses({ code: 42 }, 'PROGRAM_SCENE_CODE');
+    refuses({ code: '' }, 'PROGRAM_SCENE_CODE');
+    // Bytes, not characters: 8,193 three-byte characters are 24,579 bytes.
+    refuses({ code: '界'.repeat(8_193) }, 'PROGRAM_SCENE_CODE');
+  });
+
   it('rejects unknown fields rather than dropping a likely misspelling', () => {
     const value = score();
     value.tracks[2].clips[0].synchGroup = 'descent-1';
@@ -211,7 +233,7 @@ describe('rise.experience-program.v1', () => {
   it('rejects overflow instead of truncating authored clips', () => {
     const value = score();
     const movementTrack = value.tracks[0];
-    movementTrack.clips = Array.from({ length: 17 }, (_, index) => ({
+    movementTrack.clips = Array.from({ length: EXPERIENCE_PROGRAM_LIMITS.maxMovements + 1 }, (_, index) => ({
       id: `m-${index}`,
       anchor: { sourceIds: [`p-${index}`] },
       data: { index, title: `Movement ${index}` }

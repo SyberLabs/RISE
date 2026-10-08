@@ -19,8 +19,10 @@ import { defineConfig } from '@playwright/test';
  * 30-minute cap with no assertion, and the answer was to raise the cap.
  * Raising a cap does not make a slow gate safe, it makes it slower.
  *
- * Measured on this suite, one worker, production build: 502 seconds of
- * test time across 18 spec files, of which `mobile.spec.js` alone is 200.
+ * Measured when the corridor was chosen (August 2026), one worker,
+ * production build: 502 seconds of test time across the 18 spec files of
+ * the day, of which `mobile.spec.js` alone was 200. The suite has grown
+ * since.
  * The list below is 134 seconds of that — the corridor a reader actually
  * walks, plus the two things that must never silently break.
  *
@@ -47,6 +49,7 @@ import { defineConfig } from '@playwright/test';
 const ADMISSION = '**/audio-admission.spec.js';
 
 const GATE = [
+    '**/arena-replay.spec.js',
     '**/curation.spec.js',
     '**/journeys.spec.js',
     '**/keystones.spec.js',
@@ -74,7 +77,14 @@ export default defineConfig({
         viewport: { width: 1280, height: 800 },
         // Web Audio must start without a physical click's blessing
         launchOptions: {
-            args: ['--autoplay-policy=no-user-gesture-required']
+            args: [
+                '--autoplay-policy=no-user-gesture-required',
+                // The self-contained card (e2e/live-mcp.spec.js) is an opaque-origin frame loading RISE
+                // from the loopback preview. Chrome's Local Network Access treats that as a public page
+                // reaching the local network and denies it without a prompt, which a sandboxed frame
+                // cannot show. Production is public to public, so the policy never applies there.
+                '--disable-features=LocalNetworkAccessChecks,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults'
+            ]
         }
     },
     // Two projects that partition the suite rather than overlapping it, so

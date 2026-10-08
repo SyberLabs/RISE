@@ -574,7 +574,7 @@ The plugin is the ChatGPT presentation. The host model composes one sealed Curre
 
 ### What exists today (report §8)
 
-1. The host model writes one `rise.current.v1`: up to 16 segments, each with text, a visual (`still`, `attractor` or `genesis`) and one of the nine themes. The model's guide is generated from the same constants (`src/live/adapters/current-guide.js`).
+1. The host model writes one `rise.current.v1`: up to 16 segments, each with text, a visual (`still`, `attractor` or `genesis`) and one of the nine themes. The model's guide is generated from the same constants (`src/live/guide/`).
 2. The Worker admits it through the `rise_present` tool (`worker/mcp-server.mjs`), validated by the same code and switched off unless `MCP_ENABLED` is set.
 3. RISE lowers the Current to a `rise.experience-program.v1` program (`rise-current.js:217-271`).
 4. The compiler turns it into a Session, always in sentence chunks (`rise-current.js:284-297`).

@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, revealChamberControls } from './fixtures.js';
 
 /**
  * The wormhole is a second skin over the same roll: a page of its own,
@@ -60,7 +60,7 @@ test('DOCK plays the destination, and leaving the reading returns to Home', asyn
   expect(await page.evaluate(() => sessionStorage.getItem('rise:invocation-handoff:v1'))).toBeNull();
 
   await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
-  await page.locator('#chamber-display').hover();
+  await revealChamberControls(page);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');
@@ -82,7 +82,7 @@ test('ADJUST COURSE opens Reader Setup with the destination set, and leaving a r
   await page.locator('#begin-btn').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 30_000 });
   await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
-  await page.locator('#chamber-display').hover();
+  await revealChamberControls(page);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('read/setup');

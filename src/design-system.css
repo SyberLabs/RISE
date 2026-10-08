@@ -115,16 +115,15 @@
 
   /* ═══ ACCENTS ═══ */
   --color-threshold: #E4D2AE;
-  /* RISE identity marker. [data-accent] retints both this and --color-accent. */
+  /* RISE identity marker. A themed reading retints it and --color-accent on the root (src/core/chrome-theme.js). */
   --color-accent: #E4D2AE;
   --color-accent-rgb: 228, 210, 174;
   /* The contrast partner: the ink that stays legible ON a full accent fill.
-     Default (ivory) is a light ground, so it takes void ink; each [data-accent]
-     block overrides only where the accent is dark enough for light ink. A
+     The ground accent (ivory) and every theme accent are light, so it takes void ink. A
      control that fills with the accent pairs background:var(--color-accent)
      with color:var(--color-on-accent) and can never strand its own text. */
   --color-on-accent: #05060A;
-  /* Chrome accent family. Swaps with [data-accent] (FM-UI-7). Status hues
+  /* Chrome accent family (FM-UI-7). Status hues
      are the SyberLabs status tokens. */
   --color-chamber: var(--sy-brand);
   /* Secondary accent (brand blue) */
@@ -194,78 +193,6 @@
 
   /* ═══ ICON SIZES ═══ */
   --icon-md: 20px;
-}
-
-/* Slate is a HUE here, not the ground state: this sitting swaps the cream
-   accent for the blue-grey the name actually names. */
-:root[data-accent="slate"] {
-  --color-accent: #7C8B9E;
-  --color-accent-rgb: 124, 139, 158;
-  --color-threshold: #7C8B9E;
-  --color-on-accent: #0A0A0C;
-}
-
-:root[data-accent="ivory"] {
-  --color-accent: #E4D2AE;
-  --color-accent-rgb: 228, 210, 174;
-  --color-threshold: #E4D2AE;
-  --color-on-accent: #0A0A0C;
-}
-
-:root[data-accent="purple"] {
-  --color-accent: #9C86DB;
-  --color-accent-rgb: 156, 134, 219;
-  --color-threshold: #9C86DB;
-  --color-on-accent: #0A0A0C;
-}
-
-:root[data-accent="cobalt"] {
-  --color-accent: #3C61AA;
-  --color-accent-rgb: 60, 97, 170;
-  --color-threshold: #3C61AA;
-  --color-on-accent: #E8E8EC;
-}
-
-:root[data-accent="amber"] {
-  --color-accent: #D2A64F;
-  --color-accent-rgb: 210, 166, 79;
-  --color-threshold: #D2A64F;
-  --color-on-accent: #0A0A0C;
-}
-
-:root[data-accent="sunset"] {
-  --color-accent: #D9793F;
-  --color-accent-rgb: 217, 121, 63;
-  --color-threshold: #D9793F;
-  --color-on-accent: #0A0A0C;
-}
-
-:root[data-accent="gecko"] {
-  --color-accent: #57A46E;
-  --color-accent-rgb: 87, 164, 110;
-  --color-threshold: #57A46E;
-  --color-on-accent: #0A0A0C;
-}
-
-:root[data-accent="garnet"] {
-  --color-accent: #C56A7B;
-  --color-accent-rgb: 197, 106, 123;
-  --color-threshold: #C56A7B;
-  --color-on-accent: #0A0A0C;
-}
-
-:root[data-accent="teal"] {
-  --color-accent: #3E9C93;
-  --color-accent-rgb: 62, 156, 147;
-  --color-threshold: #3E9C93;
-  --color-on-accent: #0A0A0C;
-}
-
-:root[data-accent="orchid"] {
-  --color-accent: #BE7ACB;
-  --color-accent-rgb: 190, 122, 203;
-  --color-threshold: #BE7ACB;
-  --color-on-accent: #0A0A0C;
 }
 
 /* Phone density step: scale chrome tokens once at ≤640px so every view

@@ -102,6 +102,8 @@ describe('visual score response', () => {
     ['an unknown block', req => ({ choices: [req.blocks[0], { id: 'b-other' }].map(block => ({ blockId: block.id, treatmentId: 'solar-bloom', intensityBand: 'quiet' })) })],
     ['an extra choice', req => ({ choices: [...req.blocks, { id: 'b-extra' }].map(block => ({ blockId: block.id, treatmentId: 'solar-bloom', intensityBand: 'quiet' })) })],
     ['an unknown treatment', req => ({ choices: req.blocks.map(block => ({ blockId: block.id, treatmentId: 'shader', intensityBand: 'quiet' })) })],
+    ['another engine, outside Follow text', req => ({ choices: req.blocks.map(block => ({ blockId: block.id, treatmentId: 'klee-harmonic', intensityBand: 'quiet' })) })],
+    ['the spectrum, which no theme colours', req => ({ choices: req.blocks.map(block => ({ blockId: block.id, treatmentId: 'prismatic-knot', intensityBand: 'quiet' })) })],
     ['an unknown band', req => ({ choices: req.blocks.map(block => ({ blockId: block.id, treatmentId: 'solar-bloom', intensityBand: 'max' })) })],
     ['executable data', req => ({ choices: req.blocks.map(block => ({ blockId: block.id, treatmentId: 'solar-bloom', intensityBand: 'quiet', code: 'x' })) })],
     ['a mismatched source digest', () => ({ sourceDigest: hex('c') })],

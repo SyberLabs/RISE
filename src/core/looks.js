@@ -21,8 +21,8 @@
  *   Gallery field writes them, only those the shelf admits: into an empty
  *   shelf, or in place of procedural engines that are not the look's. Sourced
  *   and personal works stay, and a shelf of only those gets no engine. Living
- *   Flame is not a shelf engine: Follow text draws it over a continuous
- *   Gallery whose shelf holds no engine (passage-visuals/reading-state.js).
+ *   Flame is not a shelf engine: it has a mode of its own, whose composition
+ *   Follow text moves by passage (passage-visuals/reading-state.js).
  *
  * WHICH LOOK A CONFIGURATION IS IN is derived by `lookOf`, never stored. A look
  * holds when every field its `config` writes has that value and, for a Gallery
@@ -94,7 +94,7 @@ export const LOOKS = Object.freeze([
         presentation: presentation('literary', 'medium', 'jade')
     }, ['klee']),
     look('flame', 'Flame', 'A living flame behind the text, breathing with it.', {
-        visualInterlocution: gallery({}),
+        visualInterlocution: Object.freeze({ visualMode: 'living-flame' }),
         soundscape: 'wonder',
         presentation: presentation('display', 'large', 'ember')
     }, ['living-flame']),

@@ -26,9 +26,11 @@
  */
 
 import { compileRiseCurrent } from '../core/rise-current.js';
+import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
+import { createBeatConductor } from './beat-conductor.js';
 import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
@@ -46,7 +48,9 @@ export class LiveRuntimeError extends Error {
 const clip = (text, length) => (text.length <= length ? text : text.slice(0, length));
 
 export function createLiveRuntime({
-    adapter, createPlayer, host = {}, voices = null, clock = createRealClock(), graceMs, reconnects = RUNTIME_LIMITS.reconnects
+    adapter, createPlayer, host = {}, voices = null, clock = createRealClock(), graceMs, reconnects = RUNTIME_LIMITS.reconnects,
+    // Told every journal entry as it is written, so a host can show the voice's trace where a reader can copy it.
+    onNote = null
 }) {
     assertAdapter(adapter);
     if (typeof createPlayer !== 'function') throw new TypeError('A runtime is handed the host’s Player factory');
@@ -62,8 +66,10 @@ export function createLiveRuntime({
     // ─── what the host can see ──────────────────────────────────────────
 
     function note(type, body = {}) {
-        journal.push({ at: clock.now(), type, ...body });
+        const entry = { at: clock.now(), type, ...body };
+        journal.push(entry);
         if (journal.length > RUNTIME_LIMITS.journal) journal.shift();
+        if (onNote) { try { onNote({ ...entry }); } catch { /* a listener may not break the runtime */ } }
     }
 
     function summary(run) {
@@ -121,9 +127,17 @@ export function createLiveRuntime({
         }
     }
 
+    /** A beat's cue, as the running engine's commands the compiler lowered it to, each through controlVisual. */
+    function cueScene(commands) {
+        for (const command of commands) controlVisual(command);
+    }
+
     function controlVisual(command) {
         const run = visualRun();
-        const checked = validateVisualCommand(command);
+        // The running engine's own manifest bounds the command; the attractor's stands in before anything is shown.
+        const discovered = discoverVisual()?.manifest;
+        const manifest = discovered?.parameters ? discovered : ATTRACTOR_VISUAL_MANIFEST;
+        const checked = validateVisualCommand(command, manifest);
         if (!checked.ok) return recordVisualReceipt(run, visualRefusal(checked.code));
         if (!visualRunIsActive(run)) return recordVisualReceipt(run, visualRefusal('NOT_LIVE'));
         if (!run.presented) return recordVisualReceipt(run, visualRefusal());
@@ -135,9 +149,11 @@ export function createLiveRuntime({
         } catch {
             response = visualRefusal();
         }
-        const bounds = ATTRACTOR_VISUAL_MANIFEST.parameters.intensity;
-        const receipt = response?.status === 'accepted' && Number.isFinite(response.effective)
-            && response.effective >= bounds.minimum && response.effective <= bounds.maximum
+        const spec = manifest.parameters[checked.command.parameter];
+        const kept = spec.type === 'enum' || spec.type === 'name'
+            ? response?.effective === checked.command.value
+            : Number.isFinite(response?.effective) && response.effective >= spec.minimum && response.effective <= spec.maximum;
+        const receipt = response?.status === 'accepted' && kept
             ? Object.freeze({ status: 'accepted', surface: checked.command.surface, parameter: checked.command.parameter,
                 requested: checked.requested, effective: response.effective })
             : visualRefusal(response?.code || 'NO_ACTIVE_VISUAL');
@@ -172,14 +188,16 @@ export function createLiveRuntime({
         const fresh = ended.slice(run.lowered);
         let session;
         try {
-            let current = run.stream.toCurrent();
+            // A sealed Current is compiled whole (its beats never pass through the stream); a streamed one is rebuilt.
+            let current = run.connection?.sealed ?? run.stream.toCurrent();
             // A Dive keeps the colors of the answer it comes from, whatever it said of itself.
             if (run.role === 'side') {
                 const { theme: _own, ...rest } = current;
-                const theme = main.stream.snapshot().theme;
+                const answer = main.stream.snapshot();
+                const theme = answer.theme ?? lookTheme(answer.look);
                 current = theme === null ? rest : { ...rest, theme };
             }
-            session = compileRiseCurrent(current);
+            session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook });
         } catch (caught) {
             failRun(run, caught);
             return;
@@ -190,6 +208,10 @@ export function createLiveRuntime({
         session.visualProgram = withExperientialState(session.visualProgram, id => conditions.get(id));
         const segments = ended.map(({ id, text }) => ({ id, text }));
         run.governor.update({ atoms: session.atoms, segments });
+        // Passages no voice says: a hold, or a beat shown for a while (rise-current.js).
+        run.unspokenIds = session.unspokenIds ?? null;
+        // Spoken passages that follow one of those: each is given to the voice when the reading reaches it (see speak).
+        run.voiceWaitsFor = session.voiceWaitsFor ?? null;
         // Words are given to the voice once the reading is on screen (see speak): a voice
         // that began while the host was still mounting would say the first words unseen.
         run.unspoken.push(...fresh);
@@ -202,7 +224,11 @@ export function createLiveRuntime({
             run.player.setLive(true);
             watchPlayer(run);
             // With no voice there is no clock but the Player’s own.
-            if (run.voice) run.governor.install(run.player);
+            // With a voice, the conductor is asked first: it times what no voice says, and declines the rest to the governor.
+            if (run.voice) {
+                run.conductor.install(run.player);
+                run.governor.install(run.player);
+            }
             if (run.role === 'main') set('live');
             // The host may need a moment to put the Player on screen; the reading starts when it has.
             run.presenting = Promise.resolve(host.present?.({ role: run.role, session, player: run.player, run: summary(run) }))
@@ -222,11 +248,16 @@ export function createLiveRuntime({
         if (run.stream.terminal) run.player.setLive(false);
     }
 
-    /** Give the voice what has been committed and not yet handed to it. */
+    /**
+     * Give the voice what has been committed and not yet handed to it. A passage after one no voice says
+     * waits, with all after it, until the reading reaches it: a voice given it at once would say it during the hold.
+     */
     function speak(run) {
-        const fresh = run.unspoken.splice(0);
+        const waits = run.unspoken.findIndex(segment => run.voiceWaitsFor?.has(segment.id) && segment.id !== run.segmentId);
+        const fresh = run.unspoken.splice(0, waits < 0 ? run.unspoken.length : waits);
         if (!run.voice) return;
         for (const segment of fresh) {
+            if (run.unspokenIds?.has(segment.id)) continue;
             try {
                 run.voice.enqueue({ id: segment.id, text: segment.text });
             } catch (caught) {
@@ -244,13 +275,14 @@ export function createLiveRuntime({
             const at = run.governor.positionOf(index);
             if (at && at.segmentId !== run.segmentId) {
                 run.segmentId = at.segmentId;
+                if (run.unspoken.length > 0) speak(run);
                 set(status);
             }
         });
         run.player.on('state', ({ state }) => {
             if (run.closed) return;
-            if (state === 'paused') run.voice?.hold();
-            else if (state === 'playing') run.voice?.release();
+            if (state === 'paused') holdVoice(run);
+            else if (state === 'playing') { if (run.voice) note('voice.released', { role: run.role, segmentId: run.speaking ?? null }); run.voice?.release(); }
             else if (state === 'complete') {
                 run.finished = true;
                 note('run.finished', { role: run.role });
@@ -295,7 +327,8 @@ export function createLiveRuntime({
             }
             if (run.stream.phase === 'failed') throw new AdapterError(run.stream.snapshot().error?.code ?? 'FAILED', run.stream.snapshot().error?.message ?? 'The Current failed');
             run.player?.setLive(false);
-            if (!run.player) {
+            // A run that already failed (the compiler refused what the validator accepted) keeps its own reason.
+            if (!run.player && !run.error) {
                 if (run.role === 'main') set(run.stream.phase === 'cancelled' ? 'stopped' : 'failed', run.stream.phase === 'cancelled' ? null : { code: 'EMPTY_CURRENT', message: 'Nothing was said' });
                 else set(status, { code: 'EMPTY_CURRENT', message: 'The Dive said nothing' });
             }
@@ -312,7 +345,7 @@ export function createLiveRuntime({
      */
     async function openRun(request, role) {
         const run = {
-            role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null,
+            role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null
         };
         if (role === 'main') main = run;
@@ -337,6 +370,19 @@ export function createLiveRuntime({
             graceMs,
             onDegrade: ({ reason }) => note('voice.degraded', { role, reason })
         });
+        run.conductor = createBeatConductor({
+            clock,
+            onCue: ({ commands }) => cueScene(commands),
+            // A hold the running scene may end early is the host's to ask of the scene (Chamber.holdScene).
+            onHold: atom => {
+                if (run.closed || typeof host.holdScene !== 'function') return null;
+                try {
+                    return host.holdScene({ role: run.role, player: run.player, atom }) ?? null;
+                } catch {
+                    return null;
+                }
+            }
+        });
         return run;
     }
 
@@ -348,6 +394,7 @@ export function createLiveRuntime({
         if (!run || run.closed) return;
         run.closed = true;
         run.abort.abort();
+        run.conductor?.dispose();
         run.governor?.dispose();
         run.voice?.close?.();
         run.player?.destroy();
@@ -442,7 +489,7 @@ export function createLiveRuntime({
             // Something else is about to speak, and a device speaks one thing at a time. A voice that will
             // take up at the start of the phrase is decided here, once, so that every way back (Surface, a
             // Dive that fails to open, a resume after one) shows that phrase again and times it by the voice.
-            if (main.voice?.hold({ exclusive: true, ...(phrase ? { resumeAt: phrase } : {}) }) === true) main.player.restartCurrentAtom();
+            if (main.voice?.hold(phrase ? { resumeAt: phrase } : undefined) === true) main.player.restartCurrentAtom();
             const view = main.stream.snapshot();
             const index = view.segments.findIndex(segment => segment.id === position.segmentId);
             const context = view.segments.slice(Math.max(0, index - 1), index + 1)
@@ -492,6 +539,19 @@ export function createLiveRuntime({
     };
 
     // ─── helpers that need the runs above ───────────────────────────────
+
+    /**
+     * Hold a run's voice where its words are. A held voice is silenced, not paused (voices/browser.js), and is
+     * told where the phrase on screen begins; when it takes up there, that phrase is shown again from its start,
+     * so after a pause or a hidden page the voice and the words begin it together.
+     */
+    function holdVoice(run) {
+        if (!run.voice) return;
+        const phrase = run.player.betweenPhrases ? null : run.governor?.restartPoint(run.player.sessionState.currentIndex) ?? null;
+        const takenUp = run.voice.hold(phrase ? { resumeAt: phrase } : undefined) === true;
+        note('voice.held', { role: run.role, segmentId: run.speaking ?? null, ...(phrase ? { resumeAt: phrase.charIndex } : {}), restarts: takenUp });
+        if (takenUp) run.player.restartCurrentAtom();
+    }
 
     function attachVoice(run) {
         if (!run.voice) return;

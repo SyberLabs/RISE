@@ -13,7 +13,7 @@ import { Player } from '../core/player.js';
 import { createRealClock } from './clock.js';
 import { BLACK_HOLES } from './fixtures/black-holes.js';
 import { mapAtoms } from './atom-map.js';
-import { createSpeechGovernor } from './speech-governor.js';
+import { createSpeechGovernor, GOVERNOR_LIMITS } from './speech-governor.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
 
 const MS_PER_CHAR = 40;
@@ -147,7 +147,8 @@ describe('when the voice cannot be the clock', () => {
         const done = [];
         player.on('complete', () => done.push(now()));
         player.play();
-        await tick(1_400);
+        // The first utterance has the cold-engine grace, longer than the rest.
+        await tick(GOVERNOR_LIMITS.firstGraceMs - 100);
         expect(degraded).toEqual([]);
         await tick(300);
         expect(degraded).toEqual([{ reason: 'voice-did-not-start' }]);
@@ -163,11 +164,11 @@ describe('when the voice cannot be the clock', () => {
         const done = [];
         player.on('complete', () => done.push(now()));
         player.play();
-        await tick(1_600);
+        await tick(GOVERNOR_LIMITS.firstGraceMs + 100);
         const at = now();
         await tick(60_000);
         // The rest ran at its own pace (plus the Player's ~300 ms transition per atom), not
-        // with 1.5 s of grace waited out on top of every atom.
+        // with a grace waited out on top of every atom.
         const atoms = player.sessionState.session.atoms;
         const ownPace = atoms.reduce((sum, a) => sum + a.duration, 0) + atoms.length * 300;
         expect(done[0] - at).toBeLessThan(ownPace);

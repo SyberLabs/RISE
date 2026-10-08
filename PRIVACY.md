@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 28 September 2026**
+**Last updated: 8 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -20,6 +20,8 @@ RISE. An OpenRouter key stays in this tab's memory and is never sent to RISE's
 servers.
 If you press **Speak**, your browser may use its speech service to turn your
 voice into editable text. RISE does not receive the microphone audio.
+Inside ChatGPT or Claude, RISE receives only the reading your assistant writes
+for it, plays it, and keeps nothing.
 
 Create's hosted writing service has been retired and is unavailable. RISE no
 longer sends thoughts or revision instructions to any writer.
@@ -153,13 +155,73 @@ What each feature sends, and only when you use it:
 - **Visual direction** while you read: sections of the reading's text, one at
   a time as you read. For a released RISE text this happens automatically
   while you are connected; for text you brought, only after you press **Send
-  this reading to Jev** in the reading's visual panel, and it stops when you
-  press **Stop sending**. Text already sent cannot be recalled.
+  this reading to Jev** (or **to Kev**, when you run RISE locally) in the
+  reading's visual panel, and it stops when you press **Stop sending**. Text
+  already sent cannot be recalled.
 
 RISE's server publishes the public reading catalog (released editions,
 sounds, and type options, as a static file). It does
 not receive your requests or your key. Former server-side AI routes remain
-only to tell older tabs they are retired.
+only to tell older tabs they are retired. The one exception is the optional
+OpenAI Live answer below, which is switched off on this site.
+
+### Live answers (experimental)
+
+The Live Current page (`/live`) answers a typed question as a spoken, timed
+reading. By default it uses a built-in demonstration that makes no network
+request. Two providers can be chosen instead, each with a key you type into the
+page. The key is held only in that page's memory and forgotten when the session
+ends, is refused, or the page closes; it is not stored in your browser. What the
+provider receives is your prompt (up to 2,000 characters), RISE's fixed
+instructions, and, if you stop an answer to ask about a place in it, the
+new question you type (up to 2,000 characters) together with the passages of
+that answer you stopped in. Each provider bills your key and
+processes the request under its own policy.
+
+- **Google Gemini.** Your browser sends the request, with your Gemini API key
+  in a request header, directly to Google at
+  `generativelanguage.googleapis.com`. RISE's servers do not see the key or the
+  request. See <https://policies.google.com/privacy>.
+- **OpenAI Realtime.** This route is switched off on rise.syberlabs.io
+  (`LIVE_REALTIME_ENABLED` is `false`), so today it refuses every request.
+  When it is switched on, your browser sends your OpenAI key, in a request
+  header, and a WebRTC session description (connection details, not your
+  prompt) once to RISE's server at `/api/live/realtime`. The server uses the
+  key for one request to OpenAI to open the session, with RISE's fixed
+  instructions, and returns OpenAI's answer to your browser. It does not store
+  or log the key, does not put it in a URL, and does not pass on OpenAI's error
+  text, which could contain it. Your prompt and the answer then travel
+  directly between your browser and OpenAI and never reach RISE's server.
+  Session starts are counted per IP address for one minute, by Cloudflare's
+  rate limiter, to stop abuse; RISE keeps no record of them. See
+  <https://openai.com/policies/privacy-policy/>.
+
+### RISE inside ChatGPT or Claude
+
+If you add RISE to ChatGPT or Claude, your assistant can present an answer
+through RISE. When it does, it calls RISE's tool (`rise_present`) at
+`https://rise.syberlabs.io/api/mcp` with the reading it wrote: a title, the
+text of its passages, and optionally a theme, a look, and short notes.
+
+- RISE's server checks that reading and hands it back to your assistant's app
+  to play. It does not store it, does not log its text, and sends it nowhere
+  else.
+- RISE receives only what your assistant puts in that call. It never receives
+  your conversation, your other messages, your assistant's memory, or your
+  files.
+- The player runs inside your assistant's app, in a sandbox your assistant
+  controls, and loads RISE's code, fonts, and content from
+  `rise.syberlabs.io`, like any page of this site (see **Hosting requests**).
+- The reading is spoken by your device's own speech voice. RISE's server does
+  not produce or receive audio. Some operating systems use an online speech
+  service of their own, under that provider's policy.
+- Settings you change in the player (theme, text size, how vivid the imagery
+  is) are kept in your browser's storage for the player.
+- Requests to the tool are counted per IP address for one minute, by
+  Cloudflare's rate limiter, to stop abuse. RISE keeps no record of them.
+
+Your assistant's own provider (OpenAI or Anthropic) governs your conversation
+under its own privacy policy.
 
 ### Optional voice dictation
 
@@ -336,8 +398,11 @@ ask first.
 
 ## 11. Retention
 
-RISE does not receive or persist AI requests. An OpenRouter key is held only in
-the tab's memory and never stored. Cloudflare and Netlify handle hosting and
+RISE does not receive or persist AI requests. An OpenRouter, Gemini, or OpenAI
+key is held only in the page's memory and never stored. If the OpenAI Live route
+is switched on, RISE's server uses the reader's OpenAI key for one request to
+open a session and keeps neither the key nor the request; see section 4. Google
+and OpenAI process Live requests under their own policies. Cloudflare and Netlify handle hosting and
 API request data under their own policies. OpenRouter processes the requests
 you send it under its own policy; see section 4. No provider-side retention
 guarantee is made here.

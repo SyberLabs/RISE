@@ -14,7 +14,7 @@
  */
 
 import { canonicalSectionDigest } from './segmentation.js';
-import { INTENSITY_BANDS, TREATMENT_CATALOG_VERSION, TREATMENT_IDS } from './treatments.js';
+import { FOLLOW_TREATMENT_IDS, INTENSITY_BANDS, TREATMENT_CATALOG_VERSION, TREATMENT_IDS } from './treatments.js';
 
 export const VISUAL_SCORE_SCHEMA_VERSION = 1;
 export const VISUAL_SCORE_PROMPT_VERSION = 1;
@@ -35,7 +35,9 @@ const REQUEST_KEYS = new Set(['schemaVersion', 'sourceDigest', 'sectionDigest',
   'treatmentCatalogVersion', 'blocks', 'previousTreatmentId']);
 const RESPONSE_KEYS = new Set(['schemaVersion', 'sourceDigest', 'sectionDigest',
   'treatmentCatalogVersion', 'model', 'choices']);
+// A previous block may hold any treatment a saved reading kept; a new choice is only what Follow text draws.
 const TREATMENTS = new Set(TREATMENT_IDS);
+const CHOOSABLE = new Set(FOLLOW_TREATMENT_IDS);
 
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const refuse = code => ({ ok: false, code });
@@ -93,7 +95,7 @@ export function validateScoreResponse(value, request) {
   for (const choice of choices) {
     if (!plain(choice) || Object.keys(choice).length !== 3
       || typeof choice.blockId !== 'string' || byBlock.has(choice.blockId)
-      || !TREATMENTS.has(choice.treatmentId)
+      || !CHOOSABLE.has(choice.treatmentId)
       || !Object.hasOwn(INTENSITY_BANDS, choice.intensityBand)) return refuse('CHOICE');
     byBlock.set(choice.blockId, choice);
   }

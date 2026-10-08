@@ -48,7 +48,7 @@ describe('visual catalog metadata', () => {
     expect(VISUAL_CATALOG.find(({ id }) => id === 'attractor').parameters)
       .toBe(ATTRACTOR_VISUAL_MANIFEST.parameters);
     expect(VISUAL_CATALOG.find(({ id }) => id === 'attractor').parameters.intensity)
-      .toEqual({ type: 'number', minimum: 0.4, maximum: 0.75, default: 0.65 });
+      .toEqual({ type: 'number', minimum: 0.4, maximum: 0.75, default: 0.65, cueable: true });
     expect(renderSupportFor('visual:field:attractor').render).toBe('native');
     expect(renderSupportFor('visual:field:genesis').render).toBe('native');
   });

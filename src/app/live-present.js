@@ -9,6 +9,7 @@
  */
 
 import { offerLivePlayer } from './live-handoff.js';
+import { appLocation } from '../core/embed-address.js';
 import { LIVE_PATH } from '../core/route-url.js';
 
 export async function presentLive(router, session, player) {
@@ -16,7 +17,7 @@ export async function presentLive(router, session, player) {
     // The reading is the live room's, so it keeps the room's address, query and
     // all: the query is how the room was opened (an MCP embed, a provider, a
     // voice), and a reload of the frame must open the same room.
-    const here = globalThis.location;
+    const here = appLocation();
     session.publicPath = here?.pathname === LIVE_PATH ? `${LIVE_PATH}${here.search}` : LIVE_PATH;
     const mounted = offerLivePlayer(session, player);
     // The Chamber that was showing goes first, and lets go of its Player as

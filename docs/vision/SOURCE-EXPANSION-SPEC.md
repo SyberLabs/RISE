@@ -630,9 +630,11 @@ check. `CARRIES_SECRET` rejects any candidate whose delivery URL contains
 `netlify.toml` already enforces the arrangement from the other side:
 `connect-src` is an allowlist and **does not include `api.si.edu`**, so
 the browser could not reach the search API even if something asked it to,
-while `img-src ... https:` already permits `ids.si.edu` to deliver
-pixels. No CSP change is required to serve Smithsonian imagery — which is
-the tell that the design is right.
+while `img-src` is an allowlist of picture hosts, so serving Smithsonian
+imagery adds exactly one entry, `https://ids.si.edu`, to `img-src` (and
+`src/core/csp-image-hosts.test.js` will insist on it once the catalogue
+carries that host). The API stays unreachable either way — which is the
+tell that the design is right.
 
 **One real consequence, and it is not cosmetic.** `museum-pins.js`
 records that the Cleveland and Rijksmuseum adapters *re-verify rights per

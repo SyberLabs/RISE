@@ -7,7 +7,7 @@
  * tolerant of rendering differences: nonblank, structured, and moving, never
  * an exact pixel hash.
  */
-import { test, expect, openHomeNav, connectTestOpenRouter } from './fixtures.js';
+import { test, expect, openHomeNav, connectTestOpenRouter, revealChamberControls } from './fixtures.js';
 
 const EMPTY_TREATMENT = 'violet-nebula';
 
@@ -32,8 +32,8 @@ async function mockScoring(page, { delayMs = 0, treatmentId = EMPTY_TREATMENT, s
   return requests;
 }
 
-/** Library → Middlemarch → first chapter → Gallery → Begin. */
-async function beginChapter(page, { wpm = 1000, text = null, connectAI = false } = {}) {
+/** Library → Middlemarch → first chapter → Flame → Begin. */
+async function beginChapter(page, { wpm = 1000, text = null, connectAI = false, look = 'flame' } = {}) {
   await page.goto('/');
   await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
   if (connectAI) await connectTestOpenRouter(page);
@@ -46,13 +46,20 @@ async function beginChapter(page, { wpm = 1000, text = null, connectAI = false }
     await page.locator('.toc-entry').first().click();
   }
   await page.waitForFunction(() => !!window.__RISE_TEST__?.getView('read')?.paneInstance('setup')?.config?.text, null, { timeout: 20_000 });
-  await page.locator('[data-look="gallery"]').click();
+  // The Flame look follows its text with flames, and Jev may direct them; the Gallery look follows with museum works.
+  await page.evaluate(id => window.__RISE_TEST__.getView('read').paneInstance('setup').chooseLook(id), look);
   await page.evaluate((value) => {
     window.__RISE_TEST__.getView('read').paneInstance('setup').config.wpm = value;
   }, wpm);
   await page.locator('#begin-btn').click();
   await page.waitForFunction(() => window.__RISE_TEST__?.getView('read')?.paneInstance('chamber')?._direction,
     null, { timeout: 30_000 });
+}
+
+/** Open the Look sheet once the controls are shown. */
+async function openLook(page) {
+  await revealChamberControls(page);
+  await page.locator('#look-btn').click();
 }
 
 const direction = page => page.evaluate(() => {
@@ -132,6 +139,16 @@ test.describe('passage-directed visuals', () => {
     expect(later.admitted[1]).toBe(`${EMPTY_TREATMENT}:jev`);
   });
 
+  test('the Gallery look follows its text with museum works and sends nothing to Jev', async ({ page }) => {
+    const requests = await mockScoring(page);
+    await beginChapter(page, { connectAI: true, look: 'gallery' });
+    await expect.poll(async () => (await direction(page)).admitted.find(Boolean) ?? '', { timeout: 15_000 }).toMatch(/^gallery-/u);
+    await page.waitForTimeout(3000);
+    const state = await direction(page);
+    expect(state.admitted.filter(Boolean).every(entry => entry.startsWith('gallery-'))).toBe(true);
+    expect(requests).toHaveLength(0);
+  });
+
   test('Off stays off: a pending reply never reactivates visuals', async ({ page }) => {
     await mockScoring(page, { delayMs: 4000 });
     await beginChapter(page, { connectAI: true });
@@ -147,21 +164,19 @@ test.describe('passage-directed visuals', () => {
     await mockScoring(page);
     await beginChapter(page, { connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
-    await page.mouse.move(640, 700);
-    await page.locator('#visual-direction-btn').click();
-    await page.locator('[name="vd-hue"]').evaluate((input) => {
-      input.value = '120';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    const held = await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber')._currentFlameConfig().recipe);
-    expect(held.macros.hue).toBe(120);
+    await openLook(page);
+    const hold = page.locator('[data-look-visuals="hold"]');
+    await hold.click();
+    await expect(hold).toHaveAttribute('aria-pressed', 'true');
+    const scene = () => page.evaluate(() =>
+      JSON.stringify(window.__RISE_TEST__.getView('read').paneInstance('chamber')._currentFlameConfig()?.recipe ?? null));
+    const held = await scene();
+    expect(held).not.toBe('null');
     await expect(page.locator('#vd-provenance')).toHaveText(/Manual/);
     await page.waitForTimeout(15_000);
-    const after = await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('chamber')._currentFlameConfig()?.recipe);
     expect((await direction(page)).mode).toBe('hold');
-    expect(after?.macros.hue).toBe(120);
-    await page.locator('[name="vd-mode"][value="follow"]').check();
+    expect(await scene()).toBe(held);
+    await hold.click();
     expect((await direction(page)).mode).toBe('follow');
   });
 
@@ -176,8 +191,7 @@ test.describe('passage-directed visuals', () => {
     expect((await direction(page)).catalog).toBe(false);
     expect(requests).toHaveLength(0);
 
-    await page.mouse.move(640, 700);
-    await page.locator('#visual-direction-btn').click();
+    await openLook(page);
     await page.getByRole('button', { name: 'Send this reading to Jev to direct its visuals.' }).click();
     await expect.poll(() => requests.length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
     await page.getByRole('button', { name: 'Stop sending' }).click();
@@ -201,8 +215,7 @@ test.describe('passage-directed visuals', () => {
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
-    await page.mouse.move(640, 700);
-    await page.locator('#visual-direction-btn').click();
+    await openLook(page);
     await page.locator('[data-vd="lab"]').click();
     await expect(page.locator('.visual-lab.is-overlay .living-flame-canvas')).toBeVisible({ timeout: 15_000 });
     await page.keyboard.press('Escape');
@@ -217,8 +230,7 @@ test.describe('passage-directed visuals', () => {
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
-    await page.mouse.move(640, 700);
-    await page.locator('#visual-direction-btn').click();
+    await openLook(page);
     await page.locator('[data-vd="lab"]').click();
     await expect(page.locator('.visual-lab.is-overlay .living-flame-canvas')).toBeVisible({ timeout: 15_000 });
     expect((await direction(page)).playing).toBe('paused');
@@ -243,8 +255,7 @@ test.describe('passage-directed visuals', () => {
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
-    await page.mouse.move(640, 700);
-    await page.locator('#visual-direction-btn').click();
+    await openLook(page);
     await page.locator('[data-vd="workshop"]').click();
     await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'make'
       && window.__RISE_TEST__.getView('make').activeTab === 'workshop', null, { timeout: 20_000 });

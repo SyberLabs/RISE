@@ -206,6 +206,22 @@ describe('the Living Flame under a theme', () => {
     expect(sampleLivingFlame.mock.calls[0][0]).toEqual(themedPreset('verdant-current'));
   });
 
+  it('opens a Living Flame reading on its theme’s composition, in the theme’s colours', async () => {
+    makeChamber({ ...themed('jade'), visualConfig: { visualMode: 'living-flame' } });
+    await vi.waitFor(() => expect(createLivingFlameField).toHaveBeenCalled());
+    expect(createLivingFlameField.mock.calls.at(-1)[1].recipe).toEqual(themedPreset('verdant-current'));
+    createLivingFlameField.mockClear();
+  });
+
+  it('opens a Living Flame reading with no theme on classic’s flame, as Follow text lowers it', async () => {
+    createLivingFlameField.mockClear();
+    makeChamber({ visualConfig: { visualMode: 'living-flame' } });
+    await vi.waitFor(() => expect(createLivingFlameField).toHaveBeenCalled());
+    expect(createLivingFlameField.mock.calls.at(-1)[1].recipe)
+      .toEqual(themedFlameRecipe(flamePreset('ember-cathedral'), jevColors('classic')));
+    createLivingFlameField.mockClear();
+  });
+
   it('mounts a saved cue as saved', async () => {
     const recipe = flamePreset('verdant-current');
     makeChamber(themed('jade')).mountVisualFieldCue({ kind: 'field', renderer: 'living-flame', config: { recipe, intensity: 0.35 } });

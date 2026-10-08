@@ -5,6 +5,8 @@
  *
  * Built by scripts/build-engine-stills.mjs from the engines' own output.
  */
+import { siteUrl } from '../core/embed-address.js';
+
 export const SHIPPED_STILLS = new Map([
     ['fractal', 'fractal.webp'],
     ['ostensoria', 'ostensoria.webp'],
@@ -12,11 +14,14 @@ export const SHIPPED_STILLS = new Map([
     ['attractor', 'attractor.webp']
 ]);
 
-/** Same-origin and absolute, because safeUrl admits no relative path. */
+/**
+ * Absolute, because safeUrl admits no relative path, and RISE's own address
+ * even inside a host's card, where the document's base is the host's (siteUrl).
+ */
 export function shippedStill(file) {
     if (typeof location === 'undefined') return null;
     try {
-        return new URL(`engine-stills/${file}`, location.origin + '/').href;
+        return new URL(siteUrl(`/engine-stills/${file}`), location.origin + '/').href;
     } catch {
         return null;
     }

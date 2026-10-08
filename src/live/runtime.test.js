@@ -163,7 +163,8 @@ describe('local visual control', () => {
         expect(runtime.discoverVisual()).toMatchObject({ current: { intensity: 0.65 } });
         expect(runtime.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 }))
             .toMatchObject({ status: 'accepted', effective: 0.75 });
-        expect(calls.map(call => call.slice(0, 2))).toEqual([['discover', 'main'], ['control', 'main']]);
+        // A control asks the host which engine is running first, so the command is bounded by that engine's manifest.
+        expect(calls.map(call => call.slice(0, 2))).toEqual([['discover', 'main'], ['discover', 'main'], ['control', 'main']]);
         expect(calls.every(call => call[2] === player)).toBe(true);
         expect(runtime.playerFor()).toBe(player);
         expect(playerCreated).toHaveBeenCalledTimes(1);

@@ -1,0 +1,77 @@
+{
+  "prompt": "Create your own RISE reading about the sea at night.",
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "the-sea-at-night",
+    "title": "The sea at night",
+    "theme": "cobalt",
+    "look": "nocturne",
+    "style": "open-field",
+    "origin": {
+      "kind": "model",
+      "name": "Your name",
+      "provider": "Who runs you"
+    },
+    "scenes": [
+      {
+        "id": "swell",
+        "engine": "attractor",
+        "params": {
+          "system": "thomas",
+          "palette": "blue",
+          "speed": 0.5
+        }
+      },
+      {
+        "id": "deep",
+        "engine": "living-flame",
+        "params": {
+          "preset": "glacial-silk",
+          "energy": 0.3
+        }
+      }
+    ],
+    "beats": [
+      {
+        "say": "At night the sea forgets its colour.",
+        "scene": "swell",
+        "sound": "soft-rain"
+      },
+      {
+        "hold": {
+          "ms": 3000
+        }
+      },
+      {
+        "say": "It keeps only its motion, a long breath that never quite finishes.",
+        "cue": "calm"
+      },
+      {
+        "show": "listen",
+        "hold": {
+          "ms": 2000
+        },
+        "size": "display",
+        "type": "display"
+      },
+      {
+        "say": "Under the surface, slower still, something like a fire burns cold.",
+        "scene": "deep",
+        "transition": {
+          "ms": 1500
+        }
+      },
+      {
+        "hold": {
+          "ms": 3500
+        },
+        "cue": "surge"
+      },
+      {
+        "say": "By morning it will be blue again, and pretend it was always so.",
+        "place": "caption",
+        "cue": "calm"
+      }
+    ]
+  }
+}

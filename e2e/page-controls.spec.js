@@ -1,6 +1,5 @@
 import { test, expect, openHomeNav } from './fixtures.js';
 import { acceptFlashWarningIfShown } from './page-helpers.js';
-import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 const SEED = { text: 'The pendulum draws the chord it hears. '.repeat(60).trim(), textSource: 'Seed', origin: null };
 const PREFS = {
   visualInterlocution: {
@@ -32,7 +31,7 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
     };
     return {
       play: vis('#play-pause-btn'), time: vis('#time-display'),
-      visuals: vis('#visuals-toggle-btn'), settings: vis('#chamber-settings-btn'),
+      look: vis('#look-btn'), pace: vis('#pace-btn'), settings: vis('#chamber-settings-btn'),
       pageBtn: vis('#page-mode-btn'), exit: vis('#exit-btn'),
       elongate: vis('#page-elongate')
     };
@@ -58,12 +57,10 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
   // on this bar just because the hidden attribute lost the cascade.
   expect(inStream.play).toBe(true);
   expect(inStream.time).toBe(true);
-  // The Visuals button is the session-local kill switch for FLASHING
-  // interlocution, and the bar only offers it when the presentation
-  // flashes. With flashing disabled in production this seed's saved
-  // 'behind-stream' normalises to Gallery, so there is no flash to kill
-  // and no button — which is the point, not a regression.
-  expect(inStream.visuals).toBe(FLASHING_ENABLED);
+  // Everything that changes the picture, the flash kill switch included,
+  // is in the Look sheet, so Look is on the bar in both projections.
+  expect(inStream.look).toBe(true);
+  expect(inStream.pace).toBe(true);
   expect(inStream.elongate, 'Elongate belongs to the Page').toBe(false);
 
   // Page: only what a reader needs — page toggle, sound, exit. Sound used to
@@ -71,7 +68,9 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
   // door is what has to survive the Page.
   expect(inPage.play).toBe(false);
   expect(inPage.time).toBe(false);
-  expect(inPage.visuals).toBe(false);
+  // A page is read at the reader's own pace.
+  expect(inPage.pace).toBe(false);
+  expect(inPage.look).toBe(true);
   expect(inPage.settings, 'Sound is reachable in the Page').toBe(true);
   expect(inPage.pageBtn).toBe(true);
   expect(inPage.exit).toBe(true);

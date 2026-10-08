@@ -24,7 +24,7 @@ describe('Cloudflare static headers', () => {
         const common = rule('/*', readFileSync(output, 'utf8'));
         const names = [
             'X-Frame-Options', 'X-Content-Type-Options', 'Referrer-Policy',
-            'Permissions-Policy', 'Content-Security-Policy'
+            'Permissions-Policy', 'Content-Security-Policy', 'Strict-Transport-Security'
         ];
         for (const name of names) {
             const escaped = name.replace(/[-]/gu, '\\-');
@@ -46,15 +46,15 @@ describe('Cloudflare static headers', () => {
             .toBe('public, max-age=0, must-revalidate');
         expect(rule('/content/manifest.json', headers).get('Cache-Control'))
             .toBe('public, max-age=0, must-revalidate');
-        // Unhashed, so a cached copy must never outlive a release.
-        expect(rule('/accent-boot.js', headers).get('Cache-Control'))
+        expect(rule('/content/arena/index.json', headers).get('Cache-Control'))
             .toBe('public, max-age=0, must-revalidate');
     });
 
     it('keeps content-addressed assets immutable with the right media types', () => {
         expect(existsSync(output)).toBe(true);
         const headers = readFileSync(output, 'utf8');
-        for (const path of ['/assets/*', '/fonts/*.woff2', '/audio/recitation/*', '/content/works/*']) {
+        for (const path of ['/assets/*', '/fonts/*.woff2', '/audio/recitation/*', '/content/works/*',
+            '/content/arena/run-*.json', '/content/arena/replay-*.json']) {
             expect(rule(path, headers).get('Cache-Control'), path)
                 .toBe('public, max-age=31536000, immutable');
         }

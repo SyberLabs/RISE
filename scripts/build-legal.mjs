@@ -28,7 +28,8 @@ const ROOT = resolve(import.meta.dirname, '..');
 
 const DOCUMENTS = [
     { source: 'PRIVACY.md', out: 'privacy.html', title: 'Privacy Policy' },
-    { source: 'TERMS.md', out: 'terms.html', title: 'Terms of Use' }
+    { source: 'TERMS.md', out: 'terms.html', title: 'Terms of Use' },
+    { source: 'APPS.md', out: 'apps.html', title: 'RISE in ChatGPT and Claude' }
 ];
 
 const escapeHtml = (text) => text

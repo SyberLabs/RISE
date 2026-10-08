@@ -1,4 +1,6 @@
-# RISE
+<p align="center"><img src="docs/assets/rise-logo.jpg" width="120" alt="RISE logo: a chrome, iridescent letter R on black"></p>
+
+<h1 align="center">RISE</h1>
 
 **A browser-based audiovisual reader.** RISE presents text through time, image, sound, and procedural visuals, so a book can be read as a timed stream or a typeset page.
 
@@ -18,14 +20,14 @@
 - **AI reading request** (optional) – describe what you want to read and a bounded decision model picks a book and presentation from the held catalog. Bring your own model: **Connect OpenRouter** (hosted Jev, billed to your OpenRouter account) or **Run locally** (`npm run local`: RISE and pinned Kev-4B on your GPU, no hosted bill). See [docs/USER-OWNED-AI.md](docs/USER-OWNED-AI.md) and [docs/LOCAL-RISE.md](docs/LOCAL-RISE.md).
 - **Journeys (unpublished draft)** – [Heaven and Household](docs/journey-editorial/editorial-work.md) is source-bound against Milton and Bryant and remains outside the public catalog.
 
-Reading runs entirely in the browser. Your files and saved work stay in browser storage. See [Privacy](PRIVACY.md).
+Reading runs entirely in the browser, except optional visual direction, which sends sections of the text to your own AI connection (OpenRouter or Kev on your computer). Your files and saved work stay in browser storage. See [Privacy](PRIVACY.md).
 
 ## Engineering highlights
 
 - **Vanilla JavaScript single-page app** built with Vite; one-way pipeline from source text → timed units → pacing → compiled session → clock-driven player.
 - **Content-addressed data plane:** book text is served as SHA-256-named JSON and verified on every read, which removed 15.4 MB from the JavaScript bundle.
-- **First load of ~59 KB (brotli, 3 requests)**, held under a 64 KB budget enforced in CI.
-- **~2,800 Vitest unit and integration tests** plus Playwright browser tests, including real `ffmpeg` encoding and live Chromium rendering.
+- **First load held under a 64 KB brotli budget** enforced in CI; `npm run measure:first-load` prints today's size and request count.
+- **Thousands of Vitest unit and integration tests** plus Playwright browser tests, including real `ffmpeg` encoding and live Chromium rendering.
 - **Generated architecture diagram** and tested design contracts, so documentation cannot drift from the code.
 - **Edge backend:** Cloudflare Workers serve the app and a static public decision catalog. The backend runs no AI model and holds no model credential; decisions run on the reader's own connection. A GitHub Actions job runs for each push to `main`; it rebuilds, deploys and checks the live site only when its commit is still the tip of `main` at the deploy step, so superseded pushes are skipped and the newest deploys.
 
@@ -64,7 +66,7 @@ Pull requests must pass the same checks CI runs:
 
 ```bash
 npm run test:run                              # unit and integration tests
-npm run test:e2e:gate                         # fast browser pass (~2 min)
+npm run test:e2e:gate                         # fast browser pass (a few minutes)
 node scripts/ci-hygiene.mjs                   # licenses, credits, reader-facing names
 npm run security:audit && npm run security:compat
 npm run build && npm run measure:first-load   # first-load size budget

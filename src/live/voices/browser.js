@@ -7,33 +7,73 @@
  * corrected only at each segment's start and end, which is what the speech
  * clock is built to tolerate.
  *
- * Holding is the hard part, and it has two kinds:
- *  - a hold (the reader paused): `pause()`, which keeps the utterance where it
- *    was, and `resume()` carries on from the same sample;
- *  - an exclusive hold (a Dive is about to speak): the device can only speak
- *    one thing at a time, so the held utterance is cancelled and remembered at
- *    the last word boundary heard, and on release it is spoken again from that
- *    word. A voice with no boundaries restarts its segment, which is the one
- *    place this can say something twice, and it is a limit of the platform.
- *    The hold can be told where to take up instead (`resumeAt`: the segment, a
- *    character, and the time at that character), which is what the reading on
- *    screen knows and the voice does not: it lets the voice begin again exactly
- *    where the phrase the reader is looking at begins, whether or not it ever
- *    reported a boundary.
+ * Holding is the hard part. A hold never calls `pause()`: the engine behind
+ * `speechSynthesis` is the whole browser's, and in Chromium its paused flag is
+ * one for every page (TtsControllerImpl). It is cleared only by `resume()` from
+ * a page that still has something to say, or by `cancel()`, so a page taken
+ * away while paused (a closed tab, an assistant's card unmounted, which goes
+ * hidden on its way out and is paused by the Player) leaves every later page
+ * silent. So a held utterance is cancelled and remembered at the last word
+ * boundary heard, and on release it is spoken again from that word. A voice
+ * with no boundaries restarts its segment, which is the one place this can say
+ * something twice, and it is a limit of the platform. The hold can be told
+ * where to take up instead (`resumeAt`: the segment, a character, and the time
+ * at that character), which is what the reading on screen knows and the voice
+ * does not: it lets the voice begin again exactly where the phrase the reader
+ * is looking at begins, whether or not it ever reported a boundary. For the
+ * same reason a voice clears the engine with `cancel()` when it is made: some
+ * other page may have left it paused.
  *
  * Time is `playedMs`: speaking time only, so a hold takes none of it.
+ *
+ * Chrome's Google voices are network voices that stop after about fourteen
+ * seconds of one utterance without reporting an end, so a segment said in one
+ * of them is said a sentence at a time (a long sentence is cut at a pause, or
+ * else between words), and is still one utterance to whoever listens: one
+ * start, one end, and a mark where each later sentence begins, which is the
+ * only place such a voice says where it is. A voice on the device reports its
+ * word boundaries (`capabilities.wordMarks`); a network voice may not.
  */
 
 import { createRealClock } from '../clock.js';
 
+export const BROWSER_VOICE_LIMITS = Object.freeze({ utteranceChars: 180 });
+
+const GOOGLE = /^Google\b/u;
+
+/**
+ * Where an utterance begun at `from` ends: just after the sentence's closing mark
+ * and the space after it; for a sentence longer than `limit`, just after the last
+ * pause (a comma, semicolon or colon) within it, else the last space, else at the
+ * limit itself.
+ */
+export function utteranceEnd(text, from, limit = BROWSER_VOICE_LIMITS.utteranceChars) {
+    const sentence = /[.!?…]["'”’)\]]*\s+/gu;
+    sentence.lastIndex = from;
+    const found = sentence.exec(text);
+    const end = found ? found.index + found[0].length : text.length;
+    if (end - from <= limit) return end;
+    const window = text.slice(from, from + limit);
+    const lastEnd = pattern => {
+        let at = -1;
+        for (const match of window.matchAll(pattern)) at = match.index + match[0].length;
+        return at;
+    };
+    const pause = lastEnd(/[,;:]\s+/gu);
+    if (pause > 0) return from + pause;
+    const space = lastEnd(/\s+/gu);
+    return from + (space > 0 ? space : limit);
+}
+
 export function createBrowserVoice({ speech, clock = createRealClock(), lang = 'en', rate = 1, voice = null } = {}) {
     const { synth, Utterance } = speech ?? {};
     if (!synth || typeof Utterance !== 'function') throw new TypeError('A browser voice needs speechSynthesis and its utterance');
+    synth.cancel();
+    const inSentences = GOOGLE.test(voice?.name ?? '');
 
     let report = { start() {}, mark() {}, end() {}, fail() {} };
     let closed = false;
     let held = false;
-    let exclusive = false;
     const queue = [];
     const seen = new Set();
     const finished = new Map();
@@ -46,7 +86,8 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     const playedNow = item => item.played + (item.startedAt === null ? 0 : clock.now() - item.startedAt);
 
     function speakFrom(item, offset) {
-        const utterance = new Utterance(item.text.slice(offset));
+        const end = inSentences ? utteranceEnd(item.text, offset) : item.text.length;
+        const utterance = new Utterance(item.text.slice(offset, end));
         utterance.lang = lang;
         utterance.rate = rate;
         if (voice) utterance.voice = voice;
@@ -72,6 +113,18 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         };
         utterance.onend = () => {
             if (item.utterance !== utterance) return;
+            if (end < item.text.length) {
+                // A sentence of the segment is said; the next one is taken up where it begins.
+                item.played = playedNow(item);
+                item.startedAt = null;
+                if (end > item.lastMark) {
+                    item.lastMark = end;
+                    item.lastMarkAt = Math.round(item.played);
+                    safely(report.mark, item.id, end, item.lastMarkAt);
+                }
+                speakFrom(item, end);
+                return;
+            }
             const duration = Math.max(item.lastMarkAt, Math.round(playedNow(item)));
             item.utterance = null;
             finished.set(item.id, duration);
@@ -91,7 +144,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     }
 
     function next() {
-        if (closed || current || exclusive) return;
+        if (closed || current || held) return;
         const item = queue.shift();
         if (!item) return;
         current = item;
@@ -100,7 +153,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
 
     return {
         id: 'browser',
-        capabilities: Object.freeze({ audible: true }),
+        capabilities: Object.freeze({ audible: true, wordMarks: voice?.localService === true }),
 
         attach(callbacks) {
             report = { start() {}, mark() {}, end() {}, fail() {}, ...callbacks };
@@ -119,54 +172,38 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         },
 
         /**
-         * @param {{exclusive?: boolean, resumeAt?: {segmentId: string, charIndex: number, tMs: number}}} [how]
-         *   exclusive: something else is about to speak. resumeAt: where to take up again, which an exclusive
-         *   hold uses in place of the last word heard.
+         * Silence it and remember where it was; a later hold may still say where to take up.
+         * @param {{resumeAt?: {segmentId: string, charIndex: number, tMs: number}}} [how]
+         *   resumeAt: where to take up again, in place of the last word heard.
          * @returns {boolean} whether it will take up at the place it was told, so that whatever shows the words
          *   can begin that phrase again too
          */
-        hold({ exclusive: wantsExclusive = false, resumeAt } = {}) {
+        hold({ resumeAt } = {}) {
             if (closed) return false;
-            let tookPlace = false;
             if (!held) {
                 held = true;
-                if (current?.started) {
-                    current.played = playedNow(current);
-                    current.startedAt = null;
-                }
-                synth.pause();
-            }
-            if (wantsExclusive && !exclusive) {
-                exclusive = true;
                 if (current) {
                     // Spoken again from the last word heard; time is what it was there.
+                    const speaking = current.utterance;
                     current.utterance = null;
-                    // Only a place in the segment being held is one to take up at.
-                    if (resumeAt?.segmentId === current.id) {
-                        current.lastMark = resumeAt.charIndex;
-                        current.lastMarkAt = resumeAt.tMs;
-                        tookPlace = true;
-                    }
                     current.played = current.lastMarkAt;
                     current.startedAt = null;
+                    if (speaking) synth.cancel();
                 }
-                synth.cancel();
-                synth.resume();
             }
-            return tookPlace;
+            // Only a place in the segment being held is one to take up at.
+            if (!current || resumeAt?.segmentId !== current.id) return false;
+            current.lastMark = resumeAt.charIndex;
+            current.lastMarkAt = resumeAt.tMs;
+            current.played = resumeAt.tMs;
+            return true;
         },
 
         release() {
             if (!held || closed) return;
             held = false;
-            if (exclusive) {
-                exclusive = false;
-                if (current) speakFrom(current, current.lastMark);
-                else next();
-                return;
-            }
-            if (current?.started) current.startedAt = clock.now();
-            synth.resume();
+            if (current) speakFrom(current, current.lastMark);
+            else next();
         },
 
         /** What has been spoken of an utterance, or undefined if it has not begun. */
@@ -181,10 +218,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             queue.length = 0;
             if (current) current.utterance = null;
             current = null;
-            if (speaking || held) {
-                synth.cancel();
-                synth.resume();
-            }
+            if (speaking) synth.cancel();
         },
 
         close() {
@@ -201,11 +235,12 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
  * when any voice has it, else its base language. Among those, a natural voice
  * ("(Natural)" in the name, as Edge and Chrome OS name them), single-language
  * before multilingual, because Edge's multilingual voices stop at an "&"; else
- * the one voice marked default, and none when several claim it, as every voice
- * does in Safari. Edge's natural voices are network voices that report no word
- * boundaries, which the speech clock tolerates. Chrome's own Google voices carry
- * no marker, so they are never taken over the default: they stop after 14
- * seconds without reporting an end.
+ * Chrome's own Google voice; else the one voice marked default, and none when
+ * several claim it, as every voice does in Safari. Edge's natural voices are
+ * network voices that report no word boundaries, which the speech clock
+ * tolerates. Chrome's Google voices stop after about fourteen seconds of one
+ * utterance, which a voice made here never asks of them (it speaks them a
+ * sentence at a time).
  */
 export function chooseVoice(voices, lang) {
     const tag = value => String(value ?? '').replace(/_/gu, '-').toLowerCase();
@@ -215,6 +250,8 @@ export function chooseVoice(voices, lang) {
     const same = exact.length > 0 ? exact : voices.filter(voice => tag(voice.lang).split('-')[0] === base);
     const natural = same.filter(voice => /\(Natural\)/u.test(voice.name));
     if (natural.length > 0) return natural.find(voice => !/Multilingual/u.test(voice.name)) ?? natural[0];
+    const google = same.find(voice => GOOGLE.test(voice.name));
+    if (google) return google;
     const defaults = same.filter(voice => voice.default === true);
     return defaults.length === 1 ? defaults[0] : null;
 }
@@ -223,8 +260,10 @@ export function chooseVoice(voices, lang) {
  * Voices load late in some browsers: `getVoices()` is empty until
  * `voiceschanged`. Resolves with the voice list once there is one, or with an
  * empty list after `timeoutMs`, so a host never waits on a browser that has none.
+ * A fresh frame in a host's sandbox takes well over a second to list its first
+ * voice; the wait allows for that, and is paid in full only where there are none.
  */
-export function whenVoicesAvailable(synth, { timeoutMs = 800, clock = createRealClock() } = {}) {
+export function whenVoicesAvailable(synth, { timeoutMs = 2500, clock = createRealClock() } = {}) {
     const now = synth.getVoices?.() ?? [];
     if (now.length > 0 || typeof synth.addEventListener !== 'function') return Promise.resolve(now);
     return new Promise(resolve => {

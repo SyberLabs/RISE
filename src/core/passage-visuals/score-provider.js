@@ -14,16 +14,17 @@ import {
   verifyScoreRequestDigest
 } from './score-protocol.js';
 import {
+  FOLLOW_TREATMENT_IDS,
   INTENSITY_BAND_IDS,
   TREATMENT_CATALOG_VERSION,
-  VISUAL_TREATMENTS,
   visualTreatment
 } from './treatments.js';
 
 // The coordinator (scoring-client.js) bounds the whole request at 12 s; this is the same budget.
 const PROVIDER_DEADLINE_MS = 12_000;
-const TREATMENT_CRITERIA = Object.freeze(Object.fromEntries(
-  VISUAL_TREATMENTS.map(item => [item.id, `${item.label}. ${item.criterion}`])));
+// Only what Follow text will admit: a model is never offered what the director refuses.
+const TREATMENT_CRITERIA = Object.freeze(Object.fromEntries(FOLLOW_TREATMENT_IDS
+  .map(visualTreatment).map(item => [item.id, `${item.label}. ${item.criterion}`])));
 const INTENSITY_CRITERIA = Object.freeze({
   quiet: 'Restrained and slow: stillness, reflection, calm, or a passage that should recede.',
   balanced: 'Present and steady: ordinary engagement with the passage.',
