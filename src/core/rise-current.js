@@ -1,7 +1,7 @@
 import { compileSession } from './session-compiler.js';
 import { RiseCurrentError, fail, hasLiteralForbidden, hasReservedMarker, id as trimmedId, keys, label, object } from './current-validation.js';
 import { BEAT_TYPES, lowerBeats, validateBeats, validateScenes } from './beats.js';
-import { hasMath } from './math-typeset.js';
+import { hasMath } from './math-text.js';
 import { STYLES, styleOf } from './styles.js';
 import { cueCommands, sceneCue } from '../scenes/manifests.js';
 
