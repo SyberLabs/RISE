@@ -169,7 +169,8 @@ export async function captureRun({ cases, options, casesHash, optionsHash, catal
 
 /** Writes the run under its own hash (never overwriting) and adds it to the index. */
 export async function writeRun(run, dir) {
-  const text = `${JSON.stringify(run, null, 2)}\n`;
+  // Compact: a run is read by code, and pretty-printing nearly doubles it.
+  const text = `${JSON.stringify(run)}\n`;
   const sha256 = digest(text);
   const file = `run-${sha256.slice(0, 12)}.json`;
   await mkdir(dir, { recursive: true });
