@@ -1023,7 +1023,7 @@ class App {
                     : defaultSettings.defaultAudioPreset,
                 // Checked where it is used (plusVoiceSlug, src/app/plus.js).
                 plusVoiceSlug: typeof merged.plusVoiceSlug === 'string'
-                    ? merged.plusVoiceSlug.slice(0, 40)
+                    ? merged.plusVoiceSlug.slice(0, 32)
                     : defaultSettings.plusVoiceSlug
             };
             for (const key of booleanKeys) this.settings[key] = merged[key] === true;

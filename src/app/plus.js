@@ -8,7 +8,7 @@ const PLUS_KEY = 'rise.plus';
 const PLUS_CLAIM_ROUTE = '/api/plus/claim';
 const PLUS_FORGET_ROUTE = '/api/plus/forget';
 const PLUS_VOICES_ROUTE = '/api/plus/voices';
-const VOICE_SLUG = /^[a-z0-9_-]{1,40}$/u;
+const VOICE_SLUG = /^[a-z0-9_-]{1,32}$/u; // worker/plus.mjs voices()
 
 /** The voice the Worker reads in when the reader has chosen none, or the list cannot be had. */
 export const PLUS_DEFAULT_VOICE = Object.freeze({ slug: 'default', label: 'Default' });
