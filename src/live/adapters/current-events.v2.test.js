@@ -36,9 +36,9 @@ describe('a v2 Current as events', () => {
     expect(events.at(-1)).toEqual({ type: 'current.complete', body: {} });
   });
 
-  it('names a scene’s visual on the stream only where the stream’s vocabulary has it: a generated scene or a Living Flame rides on the sealed Current alone', () => {
-    const scenes = [{ id: 'vector', code: 'export default () => ({ frame() {} })' }, { id: 'flame', engine: 'living-flame' }];
-    const events = currentToEvents({ ...V2, scenes, beats: [{ say: 'A vector.', scene: 'vector' }, { say: 'A flame.', scene: 'flame' }] });
+  it('names a scene’s visual on the stream only where the stream’s vocabulary has it: a Living Flame rides on the sealed Current alone', () => {
+    const scenes = [{ id: 'flame', engine: 'living-flame' }, { id: 'plate', engine: 'ostensoria' }];
+    const events = currentToEvents({ ...V2, scenes, beats: [{ say: 'A flame.', scene: 'flame' }, { say: 'A plate.', scene: 'plate' }] });
     const begins = events.filter(event => event.type === 'segment.begin').map(event => event.body);
     expect(begins).toEqual([{ segmentId: 'beat-0' }, { segmentId: 'beat-1' }]);
   });
