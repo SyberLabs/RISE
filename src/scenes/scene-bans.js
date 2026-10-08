@@ -23,3 +23,6 @@ export const SHADOWED_GLOBALS = Object.freeze([
 
 /** Names the parse refuses but the scope cannot shadow: the worker itself, or a way to reach every global. */
 export const STATIC_ONLY_NAMES = Object.freeze(['eval', 'Function', 'self', 'globalThis', 'window']);
+
+/** Every name the admission refuses and the guide names: the shadowed globals and the static-only names. */
+export const BANNED_SCENE_NAMES = Object.freeze([...SHADOWED_GLOBALS, ...STATIC_ONLY_NAMES]);

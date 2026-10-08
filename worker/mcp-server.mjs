@@ -1,6 +1,6 @@
 import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_SCHEMA_V2, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
-import { CURRENT_GUIDE, TOOL_NAME } from '../src/live/adapters/current-guide.js';
+import { CURRENT_GUIDE, STYLE_LINES, TOOL_NAME, styleGuide } from '../src/live/guide/index.js';
 import { BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES } from '../src/core/beats.js';
 import { SOUND_IDS } from '../src/audio/sound-ids.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
@@ -38,6 +38,10 @@ import { admitSceneCode, describeDiagnostic } from './scene-admission.mjs';
 export const MCP_PATH = '/api/mcp';
 export const APP_URI = 'ui://rise/current';
 export const APP_MIME = 'text/html;profile=mcp-app';
+/** Each style's full guidance, as a resource: ui://rise/guide/<style>. */
+const GUIDE_PREFIX = 'ui://rise/guide/';
+const GUIDE_MIME = 'text/markdown';
+const GUIDE_URIS = new Map(RISE_CURRENT_STYLES.map(id => [`${GUIDE_PREFIX}${id}`, id]));
 export const SERVER_INFO = Object.freeze({ name: 'rise', title: 'RISE', version: '1.0.0' });
 /** Newest first. A client's version is answered with itself if it is here, and otherwise with the newest. */
 export const PROTOCOL_VERSIONS = Object.freeze(['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
@@ -244,7 +248,14 @@ const CURRENT = { oneOf: [currentJsonSchema(), currentJsonSchemaV2()] };
 export const TOOL = Object.freeze({
   name: TOOL_NAME,
   title: 'Present a reading in RISE',
-  description: `Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer and shows the words as they are spoken; the reader presses Play, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.\n\n${CURRENT_GUIDE}`,
+  description: [
+    'Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer and shows the words as they are spoken; the reader presses Play, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.',
+    '',
+    CURRENT_GUIDE,
+    '',
+    `Styles, for "style" on a v2 Current. The full guidance for a style, with two worked Currents, is the resource ${GUIDE_PREFIX}<style>; read it before writing in that style if you can.`,
+    ...STYLE_LINES
+  ].join('\n'),
   inputSchema: {
     type: 'object',
     properties: { current: CURRENT },
@@ -324,6 +335,8 @@ function call(id, params) {
 }
 
 function read(id, params, origin, witness, card) {
+  const style = GUIDE_URIS.get(params?.uri);
+  if (style !== undefined) return result(id, { contents: [{ uri: params.uri, mimeType: GUIDE_MIME, text: styleGuide(style) }] });
   if (params?.uri !== APP_URI) return failure(id, -32002, 'Resource not found', { uri: typeof params?.uri === 'string' ? clip(params.uri, 200) : null });
   return result(id, {
     contents: [{
@@ -381,7 +394,15 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
       return result(id, probe.result);
     }
     case 'resources/list':
-      return result(id, { resources: [{ uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME }] });
+      return result(id, {
+        resources: [
+          { uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME },
+          ...[...GUIDE_URIS].map(([uri, style]) => ({
+            uri, name: `rise-guide-${style}`, title: `RISE style: ${style}`,
+            description: `How to write a Current in the ${style} style, with two worked Currents.`, mimeType: GUIDE_MIME
+          }))
+        ]
+      });
     case 'resources/read': return read(id, params, origin, witness, card);
     default: return failure(id, -32601, 'Method not found');
   }
@@ -434,7 +455,7 @@ export async function handleMcp(request, env) {
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
   // The self-contained card is the deployed page itself, read when the host asks for the app.
   let card = null;
-  if (env.MCP_SELF_CONTAINED === 'true' && message?.method === 'resources/read' && typeof env.ASSETS?.fetch === 'function') {
+  if (env.MCP_SELF_CONTAINED === 'true' && message?.method === 'resources/read' && message.params?.uri === APP_URI && typeof env.ASSETS?.fetch === 'function') {
     try {
       const page = await env.ASSETS.fetch(new Request(`${origin}/index.html`));
       if (page.ok) card = await page.text();

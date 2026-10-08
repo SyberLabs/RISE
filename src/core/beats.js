@@ -52,6 +52,10 @@ export const BEAT_TYPES = TYPE_NAMES;
 export const SCENE_ENGINES = ENGINES;
 /** The guide's account of the engines, re-exported here so the live layer reaches it through the core. */
 export { describeManifests } from '../scenes/manifests.js';
+/** A generated scene's frame budget, for the guide, by the same route. */
+export { SCENE_LIMITS } from '../scenes/scene-protocol.js';
+/** The names a scene may not use, declared once in scene-bans.js; the guide names them by this route. */
+export { BANNED_SCENE_NAMES } from '../scenes/scene-bans.js';
 /** The one source text that chunks to a single silent, timed atom (chunker.js PAUSE_DURATIONS). */
 export const HOLD_MARKER = '[HOLD]';
 

@@ -10,15 +10,17 @@
  * only while switched on.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
+import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
-import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE } from '../src/live/adapters/current-guide.js';
+import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, STYLE_LINES, styleGuide } from '../src/live/guide/index.js';
 import { BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
 import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
 
 const SITE = 'https://rise.example';
+/** The most the tool's description may say, in characters. */
+const DESCRIPTION_BUDGET = 12_000;
 const ON = { MCP_ENABLED: 'true' };
 
 function post(body, { headers = {}, env = ON, url = `${SITE}${MCP_PATH}`, raw } = {}) {
@@ -196,7 +198,21 @@ describe('the tool', () => {
     expect(tool.description).toMatch(/Do not use it for/u);
     // The embed takes no question, so the description promises none.
     expect(tool.description).not.toMatch(/ask about/u);
-    expect(tool.description.endsWith(CURRENT_GUIDE)).toBe(true);
+    expect(tool.description).toContain(`\n\n${CURRENT_GUIDE}\n\n`);
+  });
+
+  it('ends with one line per style, and says where each style’s full guidance is', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    const [tool] = result.tools;
+    expect(tool.description.endsWith(STYLE_LINES.join('\n'))).toBe(true);
+    expect(tool.description).toContain('ui://rise/guide/<style>');
+    for (const id of RISE_CURRENT_STYLES) expect(tool.description).toContain(`- ${id}: `);
+  });
+
+  it('keeps the description within its budget: the worked examples are resources, not description', () => {
+    // A host reads the whole description on every turn; ~12k characters is about 3k tokens.
+    expect(TOOL.description.length).toBeLessThanOrEqual(DESCRIPTION_BUDGET);
+    for (const id of RISE_CURRENT_STYLES) expect(TOOL.description).not.toContain(styleGuide(id));
   });
 
   it('points at the app in the extension’s key and in its older spelling, and gives the host short words for while it runs and once it is done', async () => {
@@ -480,10 +496,45 @@ describe('the shape of a Current, as the host’s model is told it', () => {
   });
 });
 
-describe('the app', () => {
-  it('is listed as one resource with the extension’s type', async () => {
+describe('the guides to the styles', () => {
+  const GUIDE_URIS = RISE_CURRENT_STYLES.map(id => `ui://rise/guide/${id}`);
+
+  it('are listed after the app, one Markdown resource per style, each named and described in one line', async () => {
     const { result } = await json(await post(rpc('resources/list')));
-    expect(result.resources).toEqual([expect.objectContaining({ uri: APP_URI, mimeType: APP_MIME })]);
+    expect(result.resources.map(resource => resource.uri)).toEqual([APP_URI, ...GUIDE_URIS]);
+    for (const resource of result.resources.slice(1)) {
+      expect(resource.mimeType).toBe('text/markdown');
+      expect(resource.name).toMatch(/^rise-guide-[a-z-]+$/u);
+      for (const key of ['title', 'description']) expect(resource[key], key).toMatch(/^[^\n]+$/u);
+    }
+  });
+
+  it('are read as the style’s full guidance, with its worked Currents', async () => {
+    for (const id of RISE_CURRENT_STYLES) {
+      const { result } = await json(await post(rpc('resources/read', { uri: `ui://rise/guide/${id}` })));
+      expect(result.contents).toEqual([{ uri: `ui://rise/guide/${id}`, mimeType: 'text/markdown', text: styleGuide(id) }]);
+    }
+  });
+
+  it('are not found for a style RISE does not have', async () => {
+    for (const uri of ['ui://rise/guide/', 'ui://rise/guide/baroque', 'ui://rise/guide/constructor', 'ui://rise/guide/open-field/x', 'ui://rise/guide/Open-Field']) {
+      const { error } = await json(await post(rpc('resources/read', { uri })));
+      expect(error, uri).toMatchObject({ code: -32002, message: 'Resource not found' });
+    }
+  });
+
+  it('are served without reading the deployed page, even with the self-contained card switched on', async () => {
+    const ASSETS = { asked: null, fetch: async request => { ASSETS.asked = request.url; return new Response('<!doctype html>'); } };
+    const response = await post(rpc('resources/read', { uri: GUIDE_URIS[0] }), { env: { ...ON, MCP_SELF_CONTAINED: 'true', ASSETS } });
+    expect((await json(response)).result.contents[0].mimeType).toBe('text/markdown');
+    expect(ASSETS.asked).toBeNull();
+  });
+});
+
+describe('the app', () => {
+  it('is listed as a resource with the extension’s type, first', async () => {
+    const { result } = await json(await post(rpc('resources/list')));
+    expect(result.resources[0]).toEqual(expect.objectContaining({ uri: APP_URI, mimeType: APP_MIME }));
   });
 
   it('is served as an HTML document that frames RISE’s own page at this origin, asks the host for that frame only, and says in one sentence what it shows', async () => {
