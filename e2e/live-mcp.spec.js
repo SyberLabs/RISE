@@ -771,6 +771,11 @@ for (const [look, field] of Object.entries(LOOK_FIELDS)) {
     else await expect(app.locator('.chamber-continuous-field :is(canvas, img), .chamber-genesis, .chamber-attractor, .chamber-living-flame, .chamber-focal')).toHaveCount(0);
     // Inlay keeps its imagery and face but never masks the spoken sentence inside one word.
     if (look === 'inlay') await expect(app.locator('#atom-display.is-mask')).toHaveCount(0);
+    // Intensity is offered only where the field has a verified mutable control: the attractor (SCR-003).
+    await app.getByRole('button', { name: 'Settings', exact: true }).click();
+    const slider = app.getByRole('slider', { name: 'Intensity' });
+    if (look === 'signal') await expect(slider).toBeVisible();
+    else await expect(slider).toBeHidden();
     expect(errors).toEqual([]);
   });
 }

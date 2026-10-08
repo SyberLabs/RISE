@@ -309,13 +309,11 @@ describe('the Settings sheet', () => {
         expect($('#rise-stage-controls').dataset.intensity).toBeUndefined();
     });
 
-    it('is disabled, with a hidden reason, on a passage with no adjustable visual', () => {
+    it('hides its row on a passage with no adjustable visual, as most looks draw (SCR-003)', () => {
         stage = createStageControls({ runtime: fakeRuntime('live', { visual: false }), onPlayAgain: () => {} });
         settings().click();
         expect(intensity().disabled).toBe(true);
-        const note = document.getElementById(intensity().getAttribute('aria-describedby'));
-        expect(note.textContent).toBe('Not on this passage');
-        expect(note.hidden).toBe(true);
+        expect(intensity().closest('.rise-settings__row').hidden).toBe(true);
         expect(intensity().getAttribute('title')).toBeNull();
         // The sheet still opened with its first enabled control focused: the Theme select.
         expect(document.activeElement).toBe(theme());
