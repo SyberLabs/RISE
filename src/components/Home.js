@@ -360,12 +360,14 @@ export class Home {
   /** A frozen Decision Arena result (src/app/arena-replay.js); plain Home when there is none. */
   async mountArena(arena) {
     const section = this.container.querySelector('[data-arena]');
+    const path = window.location.pathname;
     const { mountArenaReplay } = await import('../app/arena-replay.js');
     await mountArenaReplay(section, {
       ...arena,
       launch: (decision, publicPath) => this.onLaunchJevReading(decision, { publicPath }),
       fallback: () => {
-        if (!section.isConnected) return;
+        // The reader may have moved on while the files loaded; their address stays theirs.
+        if (!section.isConnected || window.location.pathname !== path) return;
         window.history.replaceState({}, '', '/');
         this.update();
       }
