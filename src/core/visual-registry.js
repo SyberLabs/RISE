@@ -81,7 +81,8 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
  * a Storm of Steel work-engine.
  *
  * Living Flame and night streaks are fields of their own, not procedural
- * patterns, so neither reaches PROCEDURAL_PATTERN_IDS.
+ * patterns, so neither reaches PROCEDURAL_PATTERN_IDS. Living Flame is listed
+ * and takes the room through its own mode (DEDICATED_MODE).
  */
 export const ENGINE_CATALOG = Object.freeze([
   Object.freeze({
@@ -91,7 +92,7 @@ export const ENGINE_CATALOG = Object.freeze([
   }),
   ...PROCEDURAL_PATTERNS,
   Object.freeze({
-    id: 'living-flame', name: 'Living Flame', listed: false, composer: false,
+    id: 'living-flame', name: 'Living Flame', icon: '♨', listed: true, category: 'dynamic', composer: false,
     description: 'An iterated-function flame drawn by many thousands of glowing particles: '
       + 'one composition at a time, drifting and breathing slowly on a dark ground. '
       + 'Dense and luminous; reads as atmosphere, not as a made mark.'
@@ -104,9 +105,16 @@ export const ENGINE_CATALOG = Object.freeze([
   })
 ]);
 
-/** Gallery / PREP listing: the engines Reader setup offers. */
+/** Every engine Reader setup offers, in navigator order. */
+export const LISTED_ENGINES = Object.freeze(ENGINE_CATALOG.filter(item => item.listed));
+
+/**
+ * The listed engines the cortex draws: the procedural patterns and Attractor.
+ * Living Flame is listed but is a field of its own, so word fill, a Gallery
+ * shelf and the specimen catalog never take it.
+ */
 export const LISTED_PROCEDURAL_PATTERNS = Object.freeze(
-  ENGINE_CATALOG.filter(pattern => pattern.listed)
+  LISTED_ENGINES.filter(item => item.id === 'attractor' || PROCEDURAL_PATTERNS.includes(item))
 );
 
 /** Engines suitable for authoring inside letterforms. Runtime support is broader for legacy data. */

@@ -193,13 +193,13 @@ flowchart LR
     core --> |8| audio
     core --> |15| content
     core --> |4| sources
-    core --> |5| visuals
+    core --> |6| visuals
     live -.-> |3 lazy| app
     live -.-> |2 lazy| components
     live --> |11| core
     live -.-> |1 lazy| visuals
-    page --> |2| core
-    page --> |3| visuals
+    page --> |4| core
+    page --> |4| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
     visuals --> |23| core

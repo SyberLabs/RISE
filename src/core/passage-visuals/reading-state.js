@@ -42,6 +42,8 @@ export function directionEligibility(session) {
     }
     return { canFollow: false, defaultMode: 'hold', reason: 'authored-program' };
   }
+  // Living Flame holds one composition until Follow text moves it by passage.
+  if (visual.visualMode === 'living-flame') return { canFollow: true, defaultMode: 'follow', reason: 'living-flame' };
   const interlocution = visual.interlocution || {};
   const gallery = visual.visualMode === 'interlocution' && isContinuousPresentation(interlocution.presentation);
   if (!gallery) return { canFollow: false, defaultMode: 'hold', reason: 'no-gallery' };

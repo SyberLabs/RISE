@@ -266,8 +266,9 @@ describe('which look a configuration is in', () => {
     /** A gallery reading drawing `procedural`, in every other respect `id`'s look. */
     const galleryOf = (id, procedural) => {
         const config = applyLook(createDefaultConfig(), id);
+        config.visualInterlocution.visualMode = 'interlocution';
         config.visualInterlocution.interlocution = {
-            ...config.visualInterlocution.interlocution, sourceFamily: 'procedural', procedural, sourced: []
+            ...config.visualInterlocution.interlocution, sourceFamily: 'procedural', procedural, sourced: [], presentation: 'continuous'
         };
         return config;
     };

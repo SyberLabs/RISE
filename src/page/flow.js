@@ -9,6 +9,9 @@
 import { cueForAtom } from '../core/visual-scheduler.js';
 import { pageCollectionId } from '../visuals/work-engines.js';
 import { livingFlameConfigKey } from '../core/flame-recipe.js';
+import { sessionColorThemeId } from '../core/session-presentation.js';
+import { flameComposition } from '../core/theme-engine-map.js';
+import { flamePreset } from '../visuals/living-flame/flame-presets.js';
 
 /** Block kinds the compositor understands. */
 export const BLOCK = Object.freeze({
@@ -413,6 +416,11 @@ function sourcedCollectionsOf(session) {
 
     if (mode === 'genesis') return ['genesis'];
     if (mode === 'attractor') return ['attractor'];
+    // The theme's composition; the Chamber draws each still in the reading's colours.
+    if (mode === 'living-flame') {
+        const recipe = flamePreset(flameComposition(sessionColorThemeId(session)));
+        return recipe ? [`${LIVING_FLAME_PAGE_PREFIX}${livingFlameConfigKey({ recipe })}`] : [];
+    }
     // Focal: shown once at head (focalOf), never placed through the body.
     if (mode === 'focals') return [];
 

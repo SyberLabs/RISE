@@ -4,7 +4,7 @@ import { jevColors } from '../jev-palette.js';
 import { compileSession } from '../session-compiler.js';
 import { themedFlameRecipe } from '../theme-engine-map.js';
 import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
-import { ensureDirector, permittedSourceDigests } from './reading-state.js';
+import { directionEligibility, ensureDirector, permittedSourceDigests } from './reading-state.js';
 
 describe('the director\'s flame recipes', () => {
   const gallery = { visualMode: 'interlocution', interlocution: { sourceFamily: 'procedural', procedural: [], sourced: [], presentation: 'continuous' } };
@@ -28,6 +28,16 @@ describe('the director\'s flame recipes', () => {
     for (const id of ['ember-cathedral', 'violet-nebula', 'glacial-silk', 'solar-bloom', 'verdant-current']) {
       expect(director.flameRecipe(id).macros.hue, id).toBe(themedFlameRecipe(flamePreset(id), classic).macros.hue);
     }
+  });
+});
+
+describe('a Living Flame reading', () => {
+  const text = Array.from({ length: 12 }, () => 'The quiet garden rests in gentle peace and the still water holds the soft light of evening.').join(' ');
+
+  it('keeps its mode and follows the text by default, so the flame changes composition by passage', () => {
+    const session = compileSession({ title: 'Flame', text, wpm: 300, chunkMode: 'phrase', visualConfig: { visualMode: 'living-flame' } });
+    expect(session.visualConfig.visualMode).toBe('living-flame');
+    expect(directionEligibility(session)).toMatchObject({ canFollow: true, defaultMode: 'follow' });
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { compileFlow, flowCollections, focalOf, BLOCK, MARK } from './flow.js';
+import { jevColors } from '../core/jev-palette.js';
 
 /**
  * The Flow compiler (PAGE-MODE-SPEC §3.1). Pure: fake atoms, a fake
@@ -293,6 +294,26 @@ describe('compileFlow', () => {
         });
         const figs = flow.blocks.filter(b => b.kind === BLOCK.IMAGE);
         expect(figs.every(f => f.collections[0] === 'attractor')).toBe(true);
+    });
+
+    it('a LIVING FLAME reading shows the flame of its theme', () => {
+        const atoms = [];
+        for (let i = 0; i < 40; i++) {
+            atoms.push(atom(`Paragraph ${i} of a reading long enough to carry imagery here.`));
+            atoms.push(silence());
+        }
+        const flow = compileFlow({
+            atoms,
+            visualProgram: null,
+            presentation: { colorTheme: 'jade', colors: jevColors('jade') },
+            visualConfig: {
+                visualMode: 'living-flame',
+                interlocution: { sourced: [], procedural: ['fractal'] }
+            }
+        });
+        const figs = flow.blocks.filter(b => b.kind === BLOCK.IMAGE);
+        expect(figs.length).toBeGreaterThan(0);
+        expect(figs.every(f => f.collections[0].startsWith('living-flame:verdant-current~'))).toBe(true);
     });
 
     it('derived figures VARY in weight — a page is not all whispers', () => {

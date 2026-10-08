@@ -55,6 +55,21 @@ async function beginChapter(page, { wpm = 1000, text = null, connectAI = false }
     null, { timeout: 30_000 });
 }
 
+/**
+ * Open the Look sheet. The controls fade 3 s after the last mousemove over the
+ * reading and take no pointer while faded. Under a busy software-rendered flame a
+ * move can be handled late, so it moves until the bar is shown, then clicks.
+ */
+async function openLook(page) {
+  const controls = page.locator('#chamber-controls');
+  await expect.poll(async () => {
+    await page.mouse.move(640, 360);
+    await page.mouse.move(640, 700);
+    return controls.getAttribute('style');
+  }, { timeout: 15_000 }).toContain('opacity: 1');
+  await page.locator('#look-btn').click();
+}
+
 const direction = page => page.evaluate(() => {
   const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
   const state = chamber?._direction;
@@ -147,8 +162,7 @@ test.describe('passage-directed visuals', () => {
     await mockScoring(page);
     await beginChapter(page, { connectAI: true });
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
-    await page.mouse.move(640, 700);
-    await page.locator('#look-btn').click();
+    await openLook(page);
     const hold = page.locator('[data-look-visuals="hold"]');
     await hold.click();
     await expect(hold).toHaveAttribute('aria-pressed', 'true');
@@ -175,8 +189,7 @@ test.describe('passage-directed visuals', () => {
     expect((await direction(page)).catalog).toBe(false);
     expect(requests).toHaveLength(0);
 
-    await page.mouse.move(640, 700);
-    await page.locator('#look-btn').click();
+    await openLook(page);
     await page.getByRole('button', { name: 'Send this reading to Jev to direct its visuals.' }).click();
     await expect.poll(() => requests.length, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
     await page.getByRole('button', { name: 'Stop sending' }).click();
@@ -200,8 +213,7 @@ test.describe('passage-directed visuals', () => {
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
-    await page.mouse.move(640, 700);
-    await page.locator('#look-btn').click();
+    await openLook(page);
     await page.locator('[data-vd="lab"]').click();
     await expect(page.locator('.visual-lab.is-overlay .living-flame-canvas')).toBeVisible({ timeout: 15_000 });
     await page.keyboard.press('Escape');
@@ -216,8 +228,7 @@ test.describe('passage-directed visuals', () => {
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
-    await page.mouse.move(640, 700);
-    await page.locator('#look-btn').click();
+    await openLook(page);
     await page.locator('[data-vd="lab"]').click();
     await expect(page.locator('.visual-lab.is-overlay .living-flame-canvas')).toBeVisible({ timeout: 15_000 });
     expect((await direction(page)).playing).toBe('paused');
@@ -242,8 +253,7 @@ test.describe('passage-directed visuals', () => {
     await mockScoring(page);
     await beginChapter(page);
     await expect.poll(async () => (await direction(page)).flame, { timeout: 15_000 }).toBe(true);
-    await page.mouse.move(640, 700);
-    await page.locator('#look-btn').click();
+    await openLook(page);
     await page.locator('[data-vd="workshop"]').click();
     await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'make'
       && window.__RISE_TEST__.getView('make').activeTab === 'workshop', null, { timeout: 20_000 });
