@@ -124,6 +124,7 @@ for (const file of files) {
         if (!target) continue;
         const to = subsystemOf(target);
         if (to === from || NOT_SHIPPED.has(to)) continue;  // inside a subsystem is its own business
+        if (to === '..') continue;                          // data outside src/ (the arena's case list) is no subsystem
         const key = `${from}→${to}`;
         const edge = edges.get(key) || { from, to, static: 0, dynamic: 0 };
         edge[kind] += 1;

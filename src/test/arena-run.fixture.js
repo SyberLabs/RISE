@@ -9,7 +9,7 @@
  */
 import { sampleJevSceneDecision } from '../app/jev-scene-demo.js';
 
-export const ARENA_CASE = 'quiet-evening';
+export const ARENA_CASE = 'rest-slow';
 const HASH = '0123456789ab';
 export const ARENA_REPLAY_FILE = `replay-${HASH}.json`;
 const CREATED_AT = '2026-10-07T12:00:00.000Z';

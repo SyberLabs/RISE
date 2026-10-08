@@ -333,6 +333,8 @@ test('every committed arena run is valid, not a mock, and its replay is the one 
     const text = readFileSync(file, 'utf8');
     const run = readArenaRun(text, basename(file));
     assert.equal(run.harness.mock, false, `${relative(ROOT, file)} is a mock run`);
+    // /arena names each case by its request in scripts/jev-eval-cases.json: the file the run was asked from.
+    assert.equal(run.inputs.cases.sha256, fixture.casesHash, `${relative(ROOT, file)} was asked other cases than scripts/jev-eval-cases.json`);
     const replay = join(ROOT, ARENA_DIR, replayName(basename(file)));
     readArenaReplay(readFileSync(replay, 'utf8'), basename(replay), text, basename(file));
   }

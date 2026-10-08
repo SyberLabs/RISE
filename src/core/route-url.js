@@ -125,9 +125,9 @@ const ROUTES = [
     fixed('home', '/'),
     { id: 'home', pattern: '/jev-scene-demo', build: null, own: true, parse: () => ({ demoMode: true }) },
     { id: 'home', pattern: '/night-drive', build: null, own: true, parse: () => ({ demoMode: true }) },
-    // A frozen Decision Arena result, replayed (src/app/arena-replay.js).
-    { id: 'home', pattern: '/arena/:caseId/:decider', build: null, own: true,
-        parse: ({ decider }) => (ARENA_DECIDERS.includes(decider) ? { demoMode: true } : null) },
+    // A frozen Decision Arena result: its cases, one case, one decider (src/app/arena-replay.js).
+    { id: 'home', pattern: '/arena/:caseId?/:decider?', build: null, own: true,
+        parse: ({ decider }) => (decider === undefined || ARENA_DECIDERS.includes(decider) ? { demoMode: true } : null) },
 
     pane('keystones', { pattern: TRY_RISE_PATH, build: () => TRY_RISE_PATH }),
     pane('keystones', {
