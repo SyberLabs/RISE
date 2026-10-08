@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "Creative Control",
   "status": "in_review",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -23,16 +23,38 @@
       "ref": "docs/superpowers/specs/2026-10-08-creative-control-design.md",
       "note": "The Creative Control design; §10 typography, placement and maths.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/518",
+      "note": "Merged to main. Full-validation run and known flakes are recorded in the pull request comments.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/04aa8d54",
+      "note": "Merge commit 04aa8d54. Its own production deploy failed (the Worker bundle reached KaTeX's stylesheet through math-typeset.js); the change went live in release eceed084 after #524.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/eceed084",
+      "note": "Release eceed084 (#524) verified live 2026-10-08: POST /api/mcp tools/list answered rise_present and rise_guide, resources/list answered ui://rise/current and ui://rise/guide/<style>, and a rise_guide call returned the premium-educational guide. Deployment only; not owner acceptance.",
+      "date": "2026-10-08"
     }
   ],
   "activity": [
     {
       "date": "2026-10-08T14:00:00.000Z",
       "summary": "Opened after CC-002 merged; built directly against the design."
+    },
+    {
+      "date": "2026-10-08T14:49:04.216Z",
+      "summary": "Merged as 04aa8d54 (#518). Deployed in release eceed084 on 2026-10-08 after #524 restored production deploys."
     }
   ],
-  "updatedAt": "2026-10-08T14:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-08T14:49:04.216Z",
+  "revision": 2,
   "summary": "Beats render their typography: place, size, face and emphasis on the atom display, with maths typeset by KaTeX loaded on demand, and two faces added to the self-hosted set.",
   "blocker": null
 }
