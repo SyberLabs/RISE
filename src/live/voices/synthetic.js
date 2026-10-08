@@ -14,7 +14,7 @@
  *
  * A voice, of any kind, is
  *   { attach({start, mark, end}), enqueue({id, text}), hold(), release(),
- *     cancel(), close(), playedMs(id) }
+ *     seek(id), setRate(rate), cancel(), close(), playedMs(id) }
  */
 
 import { createRealClock } from '../clock.js';
@@ -30,6 +30,7 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
     let report = { start() {}, mark() {}, end() {} };
     let closed = false;
     let held = false;
+    let rate = 1;
     const queue = [];
     const seen = new Set();
     const finished = new Map();
@@ -60,20 +61,21 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
     }
 
     /** Make `next` the current phase. Whoever is running the clock schedules it. */
+    /** Each event reports the played time it falls due at, which a change of pace moves. */
     function begin(next) {
         if (!next) { phase = null; return; }
-        const duration = next.text.length * msPerChar;
+        const perChar = msPerChar / rate;
         const events = [
             { at: 0, run: () => safely(report.start, next.id) },
             ...markPoints(next.text).map(charIndex => ({
-                at: charIndex * msPerChar,
-                run: () => safely(report.mark, next.id, charIndex, charIndex * msPerChar)
+                at: charIndex * perChar,
+                run() { safely(report.mark, next.id, charIndex, this.at); }
             })),
             {
-                at: duration,
-                run: () => {
-                    finished.set(next.id, duration);
-                    safely(report.end, next.id, duration);
+                at: next.text.length * perChar,
+                run() {
+                    finished.set(next.id, this.at);
+                    safely(report.end, next.id, this.at);
                     breathe();
                 }
             }
@@ -86,7 +88,7 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
         const done = phase;
         phase = {
             id: done.id, played: 0, since: null, cancel: null, index: 0, speaking: false,
-            events: [{ at: breathMs, run: () => begin(queue.shift()) }]
+            events: [{ at: breathMs / rate, run: () => begin(queue.shift()) }]
         };
     }
 
@@ -135,6 +137,34 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
             if (finished.has(id)) return finished.get(id);
             if (phase && phase.speaking && phase.id === id) return played();
             return undefined;
+        },
+
+        /**
+         * The reader moved the reading: stop, and forget `segmentId` and every utterance given after it, so each can
+         * be given again and is said from its start. One never given forgets nothing. A held voice stays held.
+         */
+        seek(segmentId) {
+            if (closed) return;
+            this.cancel();
+            let after = false;
+            for (const id of seen) {
+                after ||= id === segmentId;
+                if (after) { seen.delete(id); finished.delete(id); }
+            }
+        },
+
+        /** Say from now at `next` times the normal rate: the rest of what it is saying, and everything after. */
+        setRate(next) {
+            const ratio = rate / next;
+            rate = next;
+            if (!phase) return;
+            const now = played();
+            phase.cancel?.();
+            phase.cancel = null;
+            phase.played = now;
+            phase.since = null;
+            for (const event of phase.events.slice(phase.index)) event.at = now + (event.at - now) * ratio;
+            schedule();
         },
 
         /** Stop, forget what was queued, and take nothing more that was already said as still to come. */

@@ -212,6 +212,52 @@ describe('being held', () => {
     });
 });
 
+describe('a seek', () => {
+    it('stops, forgets the passage sent to and every one after it, and says them again from their starts', async () => {
+        const { clock, voice, log } = setup();
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: 'second words' });
+        await clock.runAll();
+        voice.seek('a');
+        expect(voice.playedMs('a')).toBeUndefined();
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.runAll();
+        expect(log.filter(e => e[1] === 'start').map(e => e[2])).toEqual(['a', 'b', 'a']);
+        expect(voice.playedMs('a')).toBe(TEXT.length * 10);
+    });
+
+    it('stays held, and says the passage sent to once released', async () => {
+        const { clock, voice, log } = setup();
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: 'second words' });
+        await clock.advance(50);
+        voice.hold();
+        voice.seek('b');
+        voice.enqueue({ id: 'b', text: 'second words' });
+        await clock.advance(5_000);
+        expect(log.filter(e => e[1] === 'start').map(e => e[2])).toEqual(['a']);
+        voice.release();
+        await clock.runAll();
+        expect(log.filter(e => e[1] === 'end').map(e => e[2])).toEqual(['b']);
+    });
+});
+
+describe('a change of pace', () => {
+    it('says the rest of what it is saying, and everything after, at the new rate', async () => {
+        const { clock, voice, log } = setup();
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: 'second words' });
+        await clock.advance(80);
+        voice.setRate(2);
+        await clock.runAll();
+        const end = id => log.find(e => e[1] === 'end' && e[2] === id);
+        expect(end('a')[3]).toBe(80 + (TEXT.length * 10 - 80) / 2);
+        expect(end('b')[3]).toBe('second words'.length * 5);
+        // Every mark says the played time it was reached at.
+        for (const [at, , id, , tMs] of log.filter(e => e[1] === 'mark' && e[2] === 'a')) expect(at).toBe(tMs);
+    });
+});
+
 describe('stopping', () => {
     it('cancels what remains: no more reports, no timers, and a fresh queue afterwards', async () => {
         const { clock, voice, log } = setup();

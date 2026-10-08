@@ -2798,11 +2798,11 @@ export class Chamber {
       resume: () => runtime.play(),
       discoverVisual: () => (destroyed || !layer.node.isConnected ? null
         : Object.freeze({ manifest: SCENE_VISUAL_MANIFEST, current: Object.freeze({}), target: Object.freeze({}) })),
-      controlVisual: command => {
+      controlVisual: (command, { instant = false } = {}) => {
         const validated = validateVisualCommand(command, SCENE_VISUAL_MANIFEST);
         if (!validated.ok) return { status: 'refused', code: validated.code };
         if (destroyed) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
-        runtime.cue(validated.command.value);
+        runtime.cue(validated.command.value, { instant });
         return { status: 'accepted', surface: 'scene', parameter: 'cue', requested: validated.requested, effective: validated.effective };
       },
       hold: ({ ms, maxMs }) => runtime.hold({ ms, maxMs }),
@@ -3063,11 +3063,12 @@ export class Chamber {
     return this._visualFieldDirector?.discoverVisual() || null;
   }
 
-  controlVisual(command) {
+  /** `instant`: a cue landed at once after a seek past its beat (beat-conductor.js), which a scene takes to its end state. */
+  controlVisual(command, { instant = false } = {}) {
     if (!this.visualShown()) {
       return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
     }
-    return this._visualFieldDirector?.controlVisual(command)
+    return this._visualFieldDirector?.controlVisual(command, { instant })
       || { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
   }
 

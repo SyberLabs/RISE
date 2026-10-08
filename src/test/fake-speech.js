@@ -7,7 +7,7 @@
  * that do not report them); `pause` freezes it and `resume` carries on;
  * `cancel` stops the current utterance and drops the queue, and the cancelled
  * utterance reports `onerror` (`interrupted` once begun, `canceled` before), or
- * `onend`, as browsers differ. A cancel is the whole device's: a test that calls
+ * `onend`, as browsers differ; an utterance's `rate` divides its time. A cancel is the whole device's: a test that calls
  * it directly is another page, or anything else on the device, taking it.
  *
  * Paused is the engine's, not the page's: Chromium keeps one paused flag for the
@@ -51,11 +51,13 @@ export function createFakeSpeech(clock, {
     function begin(utterance) {
         const latency = cold ? latencyAfterCancelMs : latencyMs;
         cold = false;
-        const total = utterance.text.length * msPerChar;
+        // A rate of 2 says it in half the time, as the browser's does.
+        const perChar = msPerChar / (utterance.rate || 1);
+        const total = utterance.text.length * perChar;
         const events = [{ at: latency, run: () => utterance.onstart?.({}) }];
         if (boundaries) {
             for (const charIndex of words(utterance.text)) {
-                events.push({ at: latency + charIndex * msPerChar, run: () => utterance.onboundary?.({ name: 'word', charIndex }) });
+                events.push({ at: latency + charIndex * perChar, run: () => utterance.onboundary?.({ name: 'word', charIndex }) });
             }
         }
         events.push({ at: latency + total, run: () => { current = null; utterance.onend?.({}); next(); } });

@@ -159,6 +159,9 @@
   html[data-embed="mcp"] .chamber-field { padding-bottom: 64px; }
 }
 
+/* The full transport adds the beat line over the objects: the words clear it too. */
+html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { padding-bottom: 88px; }
+
 /* The poster: the words' own face for the title, clamped to three lines (the whole title is its label). */
 .live-host--poster { gap: 24px; }
 
@@ -216,9 +219,10 @@
 .rise-settings button:focus-visible,
 .rise-settings input:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
 
-/* The stage: the two objects over the Chamber, 16 px in from the card's edges
-   (12 px on a phone) plus the host's safe area; the sheet above the right one.
-   The layer itself takes no presses, so the reading underneath keeps them. */
+/* The stage: a row of objects over the Chamber, 16 px in from the card's edges
+   (12 px on a phone) plus the host's safe area, Settings at the right and the
+   sheet above it; in the full transport, the beat line above the row. The
+   layer itself takes no presses, so the reading underneath keeps them. */
 
 .rise-stage {
   position: fixed;
@@ -234,15 +238,81 @@
   .rise-stage { --stage-inset: 12px; }
 }
 
-.rise-stage__object {
+.rise-stage__bar {
   position: absolute;
+  left: calc(var(--stage-inset) + var(--safe-left, 0px));
+  right: calc(var(--stage-inset) + var(--safe-right, 0px));
   bottom: calc(var(--stage-inset) + var(--safe-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rise-stage__row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.rise-stage__object {
+  position: relative;
+  flex: none;
   pointer-events: auto;
 }
 
-.rise-stage__play { left: calc(var(--stage-inset) + var(--safe-left, 0px)); }
-.rise-stage__settings { right: calc(var(--stage-inset) + var(--safe-right, 0px)); }
+.rise-stage__settings { margin-left: auto; }
 .rise-stage__object[hidden] { display: none; }
+/* Still there and still named, so a reader knows it exists; it says it cannot act now. */
+.rise-stage__object[aria-disabled="true"] { opacity: 0.4; cursor: default; }
+.rise-stage__pace { font: 600 12px/1 var(--font-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif); font-variant-numeric: tabular-nums; }
+
+/* The beat line: one tick per passage, the theme's ink; the reader's passage lit, those passed half, the rest
+   faint; a passage no voice says (a hold, a shown line) thinner and dimmer. A tap goes to the passage. */
+.rise-stage__beats {
+  display: flex;
+  gap: 2px;
+  height: 16px;
+  pointer-events: auto;
+}
+
+.rise-stage__beats[hidden] { display: none; }
+
+.rise-stage__beat {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-light);
+  cursor: pointer;
+}
+
+.rise-stage__beat::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 6.5px;
+  height: 3px;
+  border-radius: 1.5px;
+  background: currentColor;
+  opacity: 0.22;
+}
+
+.rise-stage__beat[data-state="passed"]::before { opacity: 0.55; }
+.rise-stage__beat[data-state="current"]::before { opacity: 1; }
+.rise-stage__beat[data-spoken="false"]::before { top: 7.25px; height: 1.5px; opacity: 0.12; }
+.rise-stage__beat[data-spoken="false"][data-state="passed"]::before { opacity: 0.3; }
+.rise-stage__beat[data-spoken="false"][data-state="current"]::before { opacity: 0.7; }
+
+/* A phone: seven objects fit in 320 px without wrapping. */
+@media (max-width: 399px) {
+  .rise-stage__object { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
+  .rise-stage__row { gap: 4px; }
+}
 
 /* No voice on this device: a small slashed speaker at the object's top right. */
 .rise-stage__novoice { position: absolute; top: -2px; right: -2px; }
@@ -260,6 +330,10 @@
 }
 
 .rise-stage__alert[hidden] { display: none; }
+
+/* Above the beat line too, in the full transport. */
+.rise-stage[data-transport="full"] .rise-stage__alert { bottom: calc(var(--stage-inset) + var(--safe-bottom, 0px) + 76px); }
+.rise-stage[data-transport="full"] .rise-settings { bottom: calc(var(--stage-inset) + var(--safe-bottom, 0px) + 72px); }
 
 /* The Settings sheet: inside the stage, 8 px above the Settings object, one 44 px row per setting. */
 .rise-settings {

@@ -6,7 +6,7 @@
  * says which entries are the voice's and how each reads as a line.
  */
 
-const VOICE_NOTE = /^(voice|speech)\.|^(hold|interrupt|resume)$|^run\.(failed|finished)$/u;
+const VOICE_NOTE = /^(voice|speech)\.|^(hold|interrupt|resume|seek|replay|pace)$|^run\.(failed|finished)$/u;
 
 /** Whether a journal entry is part of the voice's trace. */
 export function isVoiceNote(type) {

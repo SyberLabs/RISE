@@ -3,7 +3,7 @@ import { isVoiceNote, voiceLine } from './voice-trace.js';
 
 describe('the voice trace', () => {
   it('keeps the entries that concern the voice and leaves the rest', () => {
-    for (const type of ['speech.start', 'speech.end', 'voice.degraded', 'voice.held', 'voice.released', 'voice.failed', 'hold', 'interrupt', 'run.failed', 'run.finished']) {
+    for (const type of ['speech.start', 'speech.end', 'voice.degraded', 'voice.held', 'voice.released', 'voice.failed', 'hold', 'interrupt', 'run.failed', 'run.finished', 'seek', 'replay', 'pace', 'voice.recovered']) {
       expect(isVoiceNote(type), type).toBe(true);
     }
     for (const type of ['start', 'connection.lost', 'branch.open', 'scene.failed', '', undefined]) {

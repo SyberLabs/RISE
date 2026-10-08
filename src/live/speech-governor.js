@@ -37,9 +37,9 @@
  * a pause) is owed the time that passage is expected to take before the grace
  * for the next one begins.
  *
- * Degrading is quiet and one way. If the voice does not begin what it was
- * asked to say within its grace, the governor stands down for the rest of the
- * Current and the Player's own timer carries on, at the pace the voice was
+ * Degrading is quiet and one way, until the reader seeks (`forget`). If the
+ * voice does not begin what it was asked to say within its grace, the governor
+ * stands down and the Player's own timer carries on, at the pace the voice was
  * measured at, because a reading that stops is worse than a reading that is not
  * synchronised. The host is told, so it can show that the voice is not being
  * heard.
@@ -65,6 +65,8 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
     const timing = new Map();
     /** What every segment heard so far says about how fast this voice goes: characters, and the time they took. */
     const learned = { chars: 0, ms: 0 };
+    /** id -> { c, t, rate }: where a segment part way through was when the pace changed, and its pace from there. */
+    const paced = new Map();
     let degraded = false;
     /** Whether atoms wait for the voice's own word reports: it claims them, and has not been found without them. */
     let followMarks = voice?.capabilities?.wordMarks === true;
@@ -99,8 +101,14 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
             }
         }
         const [lastC, lastT] = points.at(-1);
-        const rate = lastC > 0 ? lastT / lastC : speed();
-        return lastT + (charIndex - lastC) * rate;
+        return lastT + (charIndex - lastC) * paceAfter(id, lastC, lastT);
+    }
+
+    /** Milliseconds per character beyond the last place heard: the pace heard since the pace last changed, if it has. */
+    function paceAfter(id, lastC, lastT) {
+        const pivot = paced.get(id);
+        if (pivot) return lastC > pivot.c ? (lastT - pivot.t) / (lastC - pivot.c) : pivot.rate;
+        return lastC > 0 ? lastT / lastC : speed();
     }
 
     function cancelWait() {
@@ -227,6 +235,38 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
 
         /** The host found the voice unusable (it threw, or is gone). The reading carries on by its own timer. */
         standDown(reason) { degrade(reason); },
+
+        /**
+         * The reader moved the reading: the voice will say this segment and every one after it again, from their
+         * starts. What was heard of them goes, the speed learned stays. A seek is the reader's act, not the voice
+         * failing, so a stand-down is lifted and the next start has the cold engine's grace.
+         */
+        forget(fromSegmentId) {
+            cancelWait();
+            const from = map.findIndex(entry => entry.segmentId === fromSegmentId);
+            if (from >= 0) {
+                for (const entry of map.slice(from)) {
+                    timing.delete(entry.segmentId);
+                    paced.delete(entry.segmentId);
+                }
+            }
+            degraded = false;
+            begun = false;
+        },
+
+        /**
+         * The voice's pace changed: every time measured or assumed per character is `ratio` times what it was. A
+         * segment part way through keeps the times it was heard at, and goes on at the new pace from its last mark.
+         */
+        rescale(ratio) {
+            learned.ms *= ratio;
+            defaultMsPerChar *= ratio;
+            for (const [id, { marks, durationMs }] of timing) {
+                if (durationMs !== null || marks.length === 0) continue;
+                const [c, t] = marks.at(-1);
+                paced.set(id, { c, t, rate: paceAfter(id, c, t) * ratio });
+            }
+        },
 
         /** Where in a segment the reader is when the head is on this atom: its first character. */
         positionOf(index) {

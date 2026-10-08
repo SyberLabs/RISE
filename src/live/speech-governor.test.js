@@ -383,6 +383,81 @@ describe('learning how fast the voice goes', () => {
     });
 });
 
+describe('a seek: passages said again from the start', () => {
+    const [a, b] = [BLACK_HOLES.segments[0], BLACK_HOLES.segments[1]];
+    const lastOf = (map, id) => map.filter(entry => !entry.seam && entry.segmentId === id).at(-1);
+
+    it('forgets what it heard of the passage it is told and every one after it, and keeps the speed it learned', () => {
+        const { map } = setup({ count: 2, speak: false });
+        const firstOfA = map.find(entry => !entry.seam && entry.segmentId === a.id);
+        governor.observe('mark', a.id, 10, 10 * 90);
+        governor.observe('end', a.id, a.text.length * 40);
+        governor.observe('mark', b.id, 10, 10 * 90);
+        const heardA = governor.endsAtMs(firstOfA.index);
+        governor.forget(b.id);
+        // b is expected at the learned speed, not at its own forgotten marks; a keeps everything it said.
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(b.text.length * 40);
+        expect(governor.endsAtMs(firstOfA.index)).toBe(heardA);
+        governor.forget(a.id);
+        expect(governor.endsAtMs(firstOfA.index)).toBe(firstOfA.end * 40);
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(b.text.length * 40);
+    });
+
+    it('times a passage said again afresh: its marks from the start are heard again', () => {
+        const { map } = setup({ count: 1, speak: false });
+        governor.observe('mark', a.id, 30, 30 * 90);
+        governor.forget(a.id);
+        governor.observe('mark', a.id, 10, 10 * 50);
+        expect(governor.endsAtMs(lastOf(map, a.id).index)).toBe(a.text.length * 50);
+    });
+
+    it('comes back from a stand-down, because a seek is a reader’s act: the clock is the voice again, and a phrase has a place to start', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.observe('end', a.id, a.text.length * 40);
+        governor.standDown('test');
+        const first = map.find(entry => !entry.seam && entry.segmentId === b.id);
+        expect(governor.restartPoint(first.index)).toBeNull();
+        governor.forget(b.id);
+        expect(governor.degraded).toBe(false);
+        expect(governor.restartPoint(first.index)).toEqual({ segmentId: b.id, charIndex: 0, tMs: 0 });
+    });
+
+    it('drops the wait it was on, for a passage the voice may now never say', async () => {
+        const { degraded } = setup({ speak: false });
+        player.play();
+        await tick(1_000);
+        governor.forget(BLACK_HOLES.segments[0].id);
+        // Untouched, the wait for the first passage would give up on the voice at the first start's grace.
+        await tick(GOVERNOR_LIMITS.firstGraceMs - 1_000 + 100);
+        expect(degraded).toEqual([]);
+    });
+});
+
+describe('a change of pace', () => {
+    const [a, b] = [BLACK_HOLES.segments[0], BLACK_HOLES.segments[1]];
+    const lastOf = (map, id) => map.filter(entry => !entry.seam && entry.segmentId === id).at(-1);
+
+    it('expects a passage it has not heard at the new pace, whether it knows the voice’s speed or only the default', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.rescale(0.5);
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(b.text.length * 65 * 0.5);
+        governor.observe('end', a.id, a.text.length * 40);
+        governor.rescale(2);
+        // 40 ms a character heard at the old pace is 80 at the new.
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBeCloseTo(b.text.length * 80, 5);
+    });
+
+    it('takes a passage it is part way through on at the new pace from the last place it heard', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.observe('mark', b.id, 10, 10 * 90);
+        governor.rescale(0.5);
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(10 * 90 + (b.text.length - 10) * 45);
+        // Heard again at the new pace: what is left goes at the pace heard since the change, not the passage's average.
+        governor.observe('mark', b.id, 20, 10 * 90 + 10 * 45);
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(10 * 90 + 10 * 45 + (b.text.length - 20) * 45);
+    });
+});
+
 describe('expected times', () => {
     it('reports where an atom is expected to end, first by estimate and then exactly', async () => {
         const { map } = setup({ count: 1 });

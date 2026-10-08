@@ -194,6 +194,8 @@ export class Player {
         // prepared, resuming must advance past the completed atom — never
         // replay it. Open when a roll wins, closed on normal completion.
         this._boundaryFlash = null;
+        // A seek while paused showed the atom on screen; play begins it without showing it again (seekTo).
+        this._shownBySeek = false;
 
         // Authored reading position (prefix ms) at the last hazard roll:
         // flash chance accrues over the reading time since then, so the
@@ -471,6 +473,14 @@ export class Player {
             this.sessionState.advance();
         }
 
+        // An atom a seek showed while paused begins now, with all its time, without being shown again.
+        if (this._shownBySeek && this.sessionState.currentAtom) {
+            this._shownBySeek = false;
+            this.currentAtomRemainingTime = this._atomDisplayMs(this.sessionState.currentAtom);
+            this.currentAtomDisplayTime = this.currentAtomRemainingTime;
+            this.scheduleNextAtom(false, { alreadyPrepared: true });
+            return;
+        }
         const isResuming = (previousState === 'paused' && this.currentAtomRemainingTime !== null);
         this.scheduleNextAtom(isResuming);
     }
@@ -568,6 +578,7 @@ export class Player {
         this._autoPausedByVisibility = false;
         this._awaitingAtoms = false;
         this._boundaryFlash = null;
+        this._shownBySeek = false;
         this._hazardRolledMs = 0;
         this.interlocutionStats = createInterlocutionStats();
         this.sessionState.reset();
@@ -756,6 +767,55 @@ export class Player {
     }
 
     /**
+     * Move the reading to an atom, taken up from its start and timed afresh. Nothing owed to the atom left (its
+     * timer, its watchdog, a governed end, a flash between phrases) can move the reading again. A playing reading
+     * shows the atom and times it at once; a paused or finished one shows it now, stays where it is, and times
+     * it from its start when played.
+     * @param {number} index
+     */
+    seekTo(index) {
+        if (!Number.isInteger(index) || index < 0 || index >= this.sessionState.session.atoms.length) {
+            throw new RangeError(`There is no atom ${index}`);
+        }
+        this._playbackEpoch++;
+        this._clearSpeechWatchdog();
+        if (this.timerId) {
+            cancelAnimationFrame(this.timerId);
+            this.timerId = null;
+        }
+        if (this.sessionState.state === 'interlocuting') {
+            try {
+                this.interlocutionCancelHandler?.('aborted');
+            } catch (error) {
+                console.warn('[Player] Interlocution cancellation failed:', error);
+            }
+            this.sessionState.state = 'playing';
+            this.sessionState.pausedAt = null;
+            this._readingResume();
+            this.emit('state', { state: 'playing' });
+            this.startProgressAnimation();
+        }
+        this._boundaryFlash = null;
+        this._awaitingAtoms = false;
+        this.atomStartTime = null;
+        this.currentAtomRemainingTime = null;
+        this.currentAtomDisplayTime = null;
+        this.sessionState.currentIndex = index;
+        this._shownBySeek = false;
+        if (this.sessionState.state === 'playing') {
+            this.scheduleNextAtom();
+            return;
+        }
+        if (this.sessionState.state === 'paused' || this.sessionState.state === 'complete') {
+            // The reader lands on the atom: shown now, timed afresh (and not shown again) when played.
+            this._prepareCurrentAtom();
+            this.currentAtomRemainingTime = null;
+            this.currentAtomDisplayTime = null;
+            this._shownBySeek = true;
+        }
+    }
+
+    /**
      * Attempt one boundary-locked interlocution opportunity without advancing
      * the text. The caller owns the completed-atom -> presence -> next-atom
      * sequence.
@@ -917,7 +977,8 @@ export class Player {
                     preparedNextAtom = this._prepareCurrentAtom({ concealed: true });
                 }
             });
-            if (this.sessionState.state !== 'playing') return;
+            // A seek during the flash has already moved the reading.
+            if (this.sessionState.state !== 'playing' || playbackEpoch !== this._playbackEpoch) return;
             if (preparedNextAtom) {
                 // The next atom is already stable behind the fully opaque
                 // visual. Start its full reading duration only after reveal.
@@ -1095,8 +1156,9 @@ export class Player {
 
             Promise.resolve(completion)
                 .then(result => {
-                    this._clearSpeechWatchdog();
+                    // A late end for an atom already left must not disarm the watchdog of the one on screen.
                     if (this.speechSyncId !== currentSyncId) return;
+                    this._clearSpeechWatchdog();
                     if (this.sessionState.state !== 'playing') return;
                     if (result?.reason !== 'ended') {
                         // Playback failed after speak() returned. Degrade
@@ -1115,8 +1177,8 @@ export class Player {
                     this._advance();
                 })
                 .catch(() => {
-                    this._clearSpeechWatchdog();
                     if (this.speechSyncId !== currentSyncId) return;
+                    this._clearSpeechWatchdog();
                     if (this.sessionState.state !== 'playing') return;
                     this.scheduleNextAtom(true);
                 });

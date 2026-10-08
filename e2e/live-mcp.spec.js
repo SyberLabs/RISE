@@ -26,7 +26,7 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin' }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     // A product host's sandbox refuses a <base> (Claude's policy carries base-uri 'self'); the frame inherits this page's policy.
     return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="base-uri 'self'"><title>fake host</title>
@@ -38,8 +38,12 @@ const DIVE = ${JSON.stringify(dive)};
 const SAMPLING = ${JSON.stringify(sampling)};
 const RESULT_ONLY = ${JSON.stringify(resultOnly)};
 const DEFER_TOOL_RESULT = ${JSON.stringify(deferToolResult)};
+// The display modes this host offers, as an MCP Apps host says at hello (null: it says nothing of them, as before).
+const DISPLAY_MODES = ${JSON.stringify(displayModes)};
 const log = [];
-window.__host = { log, send: null, workerResult: null, releaseToolResult: null };
+// What the app asked of the host beyond the handshake: each request to change its display mode.
+const hostRequests = [];
+window.__host = { log, hostRequests, send: null, workerResult: null, releaseToolResult: null };
 const view = document.getElementById('view');
 // The relay's frame holds the app; messages from the relay's frame are the app's.
 function reply(id, body) { view.contentWindow.postMessage({ jsonrpc: '2.0', id, ...body }, '*'); }
@@ -53,7 +57,7 @@ window.addEventListener('message', event => {
   log.push({ method: message.method, id: message.id, params: message.params, result: message.result });
   if (message.method === 'ui/initialize') {
     reply(message.id, { result: { protocolVersion: '2026-01-26', hostInfo: { name: 'fake host', version: '1' },
-      hostCapabilities: SAMPLING ? { sampling: {} } : {}, hostContext: {} } });
+      hostCapabilities: SAMPLING ? { sampling: {} } : {}, hostContext: DISPLAY_MODES ? { displayMode: 'inline', availableDisplayModes: DISPLAY_MODES } : {} } });
   } else if (message.method === 'ui/notifications/initialized') {
     if (!RESULT_ONLY) tell('ui/notifications/tool-input', { arguments: { current: CURRENT } });
     fetch('/api/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -67,6 +71,11 @@ window.addEventListener('message', event => {
     setTimeout(() => reply(message.id, { result: { role: 'assistant', model: 'fake', stopReason: 'endTurn', content: { type: 'text', text: JSON.stringify(DIVE) } } }), 300);
   } else if (message.method === 'ping') {
     reply(message.id, { result: {} });
+  } else if (message.method === 'ui/request-display-mode') {
+    hostRequests.push({ method: message.method, params: message.params });
+    const mode = DISPLAY_MODES && DISPLAY_MODES.includes(message.params.mode) ? message.params.mode : 'inline';
+    reply(message.id, { result: { mode } });
+    tell('ui/notifications/host-context-changed', { displayMode: mode });
   }
 });
 </script>`;
@@ -85,7 +94,8 @@ async function openHost(page, baseURL, options = {}) {
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
   });
   // `appOrigin` frames RISE from another site than the host page's, as a product host does.
-  const path = `/live?embed=mcp&voice=${options.voice ?? 'paced'}`;
+  // `measure`: the card keeps when each atom was shown (window.__riseLive.atoms()).
+  const path = `/live?embed=mcp&voice=${options.voice ?? 'paced'}${options.measure ? '&measure=1' : ''}`;
   // `selfContained`: the frame holds RISE's own page, its addresses at `appOrigin` (mcp-card.js), as Claude requires.
   const relay = options.selfContained
     ? cardHtml({ origin: options.appOrigin ?? origin, indexHtml: await (await fetch(`${origin}/index.html`)).text(), path })
@@ -93,7 +103,7 @@ async function openHost(page, baseURL, options = {}) {
   // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
   // frame keeps it because the relay frames RISE's real page.
   const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, displayModes: options.displayModes ?? null, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
   return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
@@ -512,6 +522,11 @@ test('from the keyboard alone: Play, Pause, the sheet and Play again, with the f
   await expect(status).toContainText('Paused.');
   await expect(object).toBeFocused();
 
+  // Along the row: forward, say again and the pace, then Settings at the right.
+  for (const name of ['Forward a passage', 'Say this passage again', 'Pace, 1 times']) {
+    await page.keyboard.press('Tab');
+    await expect(app.getByRole('button', { name, exact: true })).toBeFocused();
+  }
   await page.keyboard.press('Tab');
   await expect(settings).toBeFocused();
   await page.keyboard.press('Enter');
@@ -520,7 +535,7 @@ test('from the keyboard alone: Play, Pause, the sheet and Play again, with the f
   await expect(app.locator('#rise-settings')).toBeHidden();
   await expect(settings).toBeFocused();
 
-  await page.keyboard.press('Shift+Tab');
+  for (let i = 0; i < 4; i += 1) await page.keyboard.press('Shift+Tab');
   await expect(object).toBeFocused();
   await page.keyboard.press('Space');
   await expect(status).toContainText('Finished', { timeout: 20_000 });
@@ -960,4 +975,122 @@ test('a reading a model actually wrote, seventeen beats over one scene, plays in
   await expect(app.locator('canvas.chamber-scene')).toBeAttached({ timeout: 15_000 });
   await expectShown(app, 'Each colour is a wave', 30_000);
   expect(errors).toEqual([]);
+});
+
+// ─── the stage bar (PLY-001): the reader moves the reading, and the voice moves first ───
+
+/** The voice's trace lines the card writes to its console, for what the voice began and when. */
+function voiceTrace(page) {
+  const lines = [];
+  page.on('console', message => { if (message.text().startsWith('[RISE voice]')) lines.push(message.text()); });
+  return { lines, began: id => lines.filter(line => line.includes(' speech.start ') && line.includes(`segmentId=${id}`)).length };
+}
+
+async function fieldCard(page, baseURL, options = {}) {
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: SKY_PREMIUM_EDUCATIONAL, ...options });
+  await expect(posterTitle(app)).toHaveText(SKY_PREMIUM_EDUCATIONAL.title);
+  await begin(app);
+  await expectShown(app, 'Sunlight looks white');
+  return app;
+}
+
+test('the stage bar: forward and back show the passage sought from its first words, and the voice begins it there', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const trace = voiceTrace(page);
+  const app = await fieldCard(page, baseURL);
+  const forward = app.getByRole('button', { name: 'Forward a passage', exact: true });
+  const back = app.getByRole('button', { name: 'Back a passage', exact: true });
+  // One on is the hold after the first line; two on is the next passage the voice says.
+  await forward.click();
+  await forward.click();
+  await expectShown(app, 'Each colour is a wave');
+  await expect(app.locator('.rise-stage__status')).toContainText('Passage 3 of 17.');
+  await expect.poll(() => trace.began('beat-2')).toBe(1);
+  await back.click();
+  await back.click();
+  await expectShown(app, 'Sunlight looks white');
+  await expect.poll(() => trace.began('beat-0')).toBe(2);
+  await expect(back).toHaveAttribute('aria-disabled', 'true');
+  expect(trace.lines.filter(line => line.includes(' voice.degraded '))).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test('the stage bar: say this passage again shows it again from its start', async ({ page, baseURL }) => {
+  const app = await fieldCard(page, baseURL);
+  await app.getByRole('button', { name: 'Forward a passage', exact: true }).click();
+  await app.getByRole('button', { name: 'Forward a passage', exact: true }).click();
+  await expectShown(app, 'Each colour is a wave');
+  await expectShown(app, 'Violet is short', 20_000);
+  await app.getByRole('button', { name: 'Say this passage again', exact: true }).click();
+  await expectShown(app, 'Each colour is a wave');
+});
+
+test('the stage bar: ArrowRight on the stage goes on a passage', async ({ page, baseURL }) => {
+  const app = await fieldCard(page, baseURL);
+  await app.getByRole('button', { name: 'Pause', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(app.locator('.rise-stage__status')).toContainText('Passage 2 of 17.');
+  await page.keyboard.press('ArrowRight');
+  await expectShown(app, 'Each colour is a wave');
+});
+
+/** How long the beats' shown line was on screen, at a pace, by the card's own record of when each atom was shown. */
+async function shownLineMs(page, baseURL, presses) {
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: SKY_BEATS, measure: true });
+  await begin(app);
+  const pace = app.locator('#rise-stage-controls [data-stage="pace"]');
+  for (let i = 0; i < presses; i += 1) await pace.click();
+  const live = () => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__riseLive.atoms());
+  await expectShown(app, 'A line nobody says', 20_000);
+  const { index } = (await live()).at(-1);
+  await expect.poll(async () => (await live()).some(entry => entry.index === index + 1), { timeout: 20_000 }).toBe(true);
+  const atoms = await live();
+  return Math.round(atoms.find(entry => entry.index === index + 1).at - atoms.find(entry => entry.index === index).at);
+}
+
+test('the stage bar: a pace of 1.5 shortens a shown line measurably', async ({ page, baseURL }) => {
+  const atOne = await shownLineMs(page, baseURL, 0);
+  // 1 → 1.25 → 1.5.
+  const atOneAndAHalf = await shownLineMs(page, baseURL, 2);
+  console.log(`[pace] shown line ${atOne} ms at 1x, ${atOneAndAHalf} ms at 1.5x`);
+  // The line is held 1200 ms at 1x and 800 ms at 1.5x, each plus the Player's own transition.
+  expect(atOne - atOneAndAHalf).toBeGreaterThan(300);
+  expect(atOneAndAHalf).toBeLessThan(atOne * 0.8);
+});
+
+test('full screen: absent where the host shows the card inline only, and asked of a host that offers it', async ({ page, baseURL }) => {
+  let app = await fieldCard(page, baseURL);
+  await expect(app.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+  await expect(app.locator('#rise-stage-controls [data-stage="fullscreen"]')).toBeHidden();
+
+  app = await fieldCard(page, baseURL, { displayModes: ['inline', 'fullscreen'] });
+  const fullscreen = app.getByRole('button', { name: 'Full screen', exact: true });
+  await expect(fullscreen).toBeVisible();
+  await expect(fullscreen).toHaveAttribute('aria-pressed', 'false');
+  await fullscreen.click();
+  await expect.poll(() => page.evaluate(() => window.__host.hostRequests)).toEqual([{ method: 'ui/request-display-mode', params: { mode: 'fullscreen' } }]);
+  await expect(fullscreen).toHaveAttribute('aria-pressed', 'true');
+  await fullscreen.click();
+  await expect.poll(() => page.evaluate(() => window.__host.hostRequests.map(request => request.params.mode))).toEqual(['fullscreen', 'inline']);
+
+  // Seven objects in one row on a 320 px phone: none wraps, none leaves the card, nothing scrolls.
+  await page.setViewportSize({ width: 320, height: 640 });
+  await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerWidth)).toBe(320);
+  const row = await app.locator('.rise-stage__row').evaluate(node => ({
+    tops: [...new Set([...node.children].filter(child => !child.hidden).map(child => Math.round(child.getBoundingClientRect().top)))],
+    count: [...node.children].filter(child => !child.hidden).length,
+    overflow: node.scrollWidth - node.clientWidth,
+    right: Math.max(...[...node.children].filter(child => !child.hidden).map(child => child.getBoundingClientRect().right)),
+    width: node.ownerDocument.defaultView.innerWidth
+  }));
+  expect(row.count).toBe(7);
+  expect(row.tops).toHaveLength(1);
+  expect(row.overflow).toBe(0);
+  expect(row.right).toBeLessThanOrEqual(row.width);
+  const beats = await app.locator('.rise-stage__beats').evaluate(node => ({ ticks: node.children.length, left: node.getBoundingClientRect().left }));
+  expect(beats.ticks).toBe(17);
+  expect(beats.left).toBeGreaterThanOrEqual(12);
 });

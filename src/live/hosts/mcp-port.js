@@ -47,8 +47,12 @@ export const METHODS = Object.freeze({
     toolCancelled: 'ui/notifications/tool-cancelled',
     ping: 'ping',
     teardown: 'ui/resource-teardown',
-    updateModelContext: 'ui/update-model-context'
+    updateModelContext: 'ui/update-model-context',
+    requestDisplayMode: 'ui/request-display-mode'
 });
+
+/** The display modes the extension defines; the app declares each at hello, so a host may move it to any it offers. */
+export const DISPLAY_MODES = Object.freeze(['inline', 'fullscreen', 'pip']);
 
 /** The extension's protocol version this was written against (ext-apps `LATEST_PROTOCOL_VERSION`). */
 export const PROTOCOL_VERSION = '2026-01-26';
@@ -226,7 +230,7 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
     return {
         /** Say hello. Resolves with what the host says about itself, then the app is ready. */
         async connect() {
-            const result = await request(METHODS.initialize, { appInfo: { name: appName, version: '1' }, appCapabilities: { availableDisplayModes: ['inline'] }, protocolVersion: PROTOCOL_VERSION });
+            const result = await request(METHODS.initialize, { appInfo: { name: appName, version: '1' }, appCapabilities: { availableDisplayModes: [...DISPLAY_MODES] }, protocolVersion: PROTOCOL_VERSION });
             sampling = Boolean(result?.hostCapabilities?.sampling);
             // Only text is ever sent, so only a host that names text among the modalities it takes is sent any.
             modelContext = isPlainObject(result?.hostCapabilities?.updateModelContext) && isPlainObject(result.hostCapabilities.updateModelContext.text);
@@ -303,6 +307,17 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             // A host that refuses or does not answer costs nothing: the reader already sees the fallback.
             request(METHODS.updateModelContext, { content: [{ type: 'text', text }] }).catch(() => {});
             return true;
+        },
+
+        /**
+         * Ask the host to show the app in another display mode. Resolves with the mode the host set, which becomes
+         * the context's `displayMode`; a host that names none leaves the app where it was.
+         */
+        async requestDisplayMode(mode) {
+            if (!DISPLAY_MODES.includes(mode)) throw new RangeError(`There is no display mode ${String(mode).slice(0, 20)}`);
+            const result = await request(METHODS.requestDisplayMode, { mode });
+            if (DISPLAY_MODES.includes(result?.mode)) hostContext = { ...hostContext, displayMode: result.mode };
+            return hostContext.displayMode ?? 'inline';
         },
 
         /** Whether the host said, when the app said hello, that it will put a question to its model. */

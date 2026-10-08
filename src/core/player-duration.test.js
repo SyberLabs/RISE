@@ -137,7 +137,7 @@ describe('event-governed atom completion', () => {
         player.atomDurationOverride = () => 2000;
         let finish;
         player.atomCompletionOverride = () => new Promise(resolve => { finish = resolve; });
-        player.processNextNode = vi.fn();
+        player.processNextNode = vi.fn(() => Promise.resolve());
         const onward = vi.spyOn(player, 'scheduleNextAtom');
 
         player.scheduleNextAtom();
