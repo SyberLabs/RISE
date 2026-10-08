@@ -1,0 +1,62 @@
+{
+  "id": "PLY-001",
+  "title": "Playback as a real instrument",
+  "lane": "live-sdk",
+  "milestone": "M2 control and replay",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-005"
+  ],
+  "acceptance": [
+    "The voice is the clock under every reader control: a seek re-anchors the voice at the start of a passage and the words follow it there; replay is a seek to the passage on screen; the pace is the voice's rate, the Player's timers following for what no voice says. No second clock.",
+    "The runtime offers position(), passages(), seek({ segmentId } | { delta }), replay() and setPace(rate in 0.5 to 2), each journaled (seek, replay, pace, voice.recovered); the snapshot carries pace and position. A seek while held lands on the passage's first words, shown, with nothing said; a seek from the end plays again.",
+    "The voices (browser, synthetic) seek and set their rate; the speech governor forgets passages said again and rescales to a new pace; a seek lifts a stand-down; the conductor lands the running scene's earlier cues at once (instant), which reaches a generated scene's worker.",
+    "In the card, the full transport: back, Play/Pause, forward, replay, pace (0.8x, 1x, 1.25x, 1.5x), full screen where the host or browser offers it, Settings, and a beat line of one tick per passage that seeks and shows progress; Passage N of M in the hidden status; keys on the stage (Space, arrows, R, F, minus/equals, brackets) described to assistive technology; fits 320 px in one row. transport 'minimal' keeps the two objects of the 2026-10-05 decision for ChatGPT.",
+    "Full screen asks a host card through ui/request-display-mode for a mode its host offers, the app declaring inline, fullscreen and pip at hello; the Worker's ChatGPT metadata stays inline only."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.seek.test.js",
+      "note": "Branch playback-instrument: 16 tests on the field's 17-beat Current with the synthetic voice (forward and back seeks, instant cues, seek from the end, seek while held, ten seeded seeks with no voice.degraded, recovery after a stand-down, replay, pace 2 and 0.5, holds following the pace, passages()).",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/voice-sync.sweep.test.js",
+      "note": "Seek sweep: 3 voices x 8 points, one to three passages on or back, through the first 12 s; 0 stand-downs; every run ends with the voice 4063 ms before the words (the closing shown line), as the pause sweep does.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/stage-controls.test.js",
+      "note": "Every transport control and key, disabled states, the live region's Passage N of M, the pace cycle, both transports, full screen under an inline-only host, a host offering full screen, one offering pip, and no host card with and without the browser's full screen.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Local Chromium, one worker, whole file: 45 passed. New: forward and back in the self-contained card show the passage's first words and the voice begins it there; replay; pace 1.5 holds the shown line about 840 ms against about 1250 ms; ArrowRight on the stage; full screen absent inline-only and requested of a host that offers it; seven objects in one row at 320 px. Fake host, not a product host.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-05-embed-stage-decision.md",
+      "note": "Amended 2026-10-08: the two-control rule was ChatGPT's two-action guideline; the Claude card carries the transport bar; transport 'minimal' keeps the two objects.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T23:30:00.000Z",
+      "summary": "Built on branch playback-instrument: runtime seek, replay and pace with the voice moving first, and the stage bar in the card; not merged, not deployed, no host witness."
+    }
+  ],
+  "updatedAt": "2026-10-08T23:30:00.000Z",
+  "revision": 1,
+  "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
+  "blocker": "Branch only: review, merge and a real-host witness (owner's witness pass, 2026-10-07) remain."
+}
