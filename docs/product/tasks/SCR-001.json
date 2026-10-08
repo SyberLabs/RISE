@@ -3,7 +3,7 @@
   "title": "Design the v2 Current: looks, collections, sound, pace, and stage 2",
   "lane": "live-sdk",
   "milestone": "Score stage 1",
-  "status": "in_review",
+  "status": "done",
   "delivery": "not_shipped",
   "owner": "Claude coordinator",
   "priority": "next",
@@ -29,6 +29,12 @@
       "ref": "docs/product/discussions/2026-10-07-current-with-a-look.md",
       "note": "The design record: look on the Current (1a), admitted only from the Composer view (Plain, Garden, Signal today) and lowered through the look's partial; 1b fields with gates and prerequisites; stage 2's program reserved; the guide generated from LOOKS. Class C: in review until the owner signs off the four defaults.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-07-current-with-a-look.md",
+      "note": "§6 records the owner’s answers (2026-10-07).",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -39,10 +45,14 @@
     {
       "date": "2026-10-07T21:24:59.784Z",
       "summary": "Design record written; awaiting the owner's sign-off on four defaults"
+    },
+    {
+      "date": "2026-10-08T04:01:48.609Z",
+      "summary": "Owner answers recorded: all ten looks, build now"
     }
   ],
-  "updatedAt": "2026-10-07T21:24:59.784Z",
-  "revision": 2,
-  "summary": "Score stage 1 as decided on 2026-10-06, in two halves: 1a adds look and nothing else; 1b adds collection, sound and pace, each with its own witness. Approach C over B, reasons recorded.",
+  "updatedAt": "2026-10-08T04:01:48.609Z",
+  "revision": 3,
+  "summary": "The Current with a look, score stage 1, designed; the owner answered on 2026-10-07: all ten looks admitted and properly lowered (Inlay without its word mask in the card), an explicit theme beats the look’s, no schema bump, and SCR-002 built now rather than after V1. Stage 1b fields and stage 2’s program stay as designed.",
   "blocker": "Class C: the owner signs off the record's four defaults (verified looks only, explicit theme wins, no schema bump, 1a after V1)."
 }
