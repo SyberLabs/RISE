@@ -63,3 +63,5 @@ An optional `program`: a full `rise.experience-program.v1` whose sources are the
 2. **An explicit `theme` beats the look's.** Default: yes.
 3. **No schema bump** (`look` is additive under v1). Default: yes.
 4. **Stage 1a after V1** (the roadmap's default): unchanged; SCR-002 waits for the reader observations unless the owner moves it.
+
+**Answers (Mateo, 2026-10-07).** 1: "all ten looks properly and safely integrated": every look is admitted, each lowered through its own field, not approximated (the card frames RISE's own page, so its renderers and policy apply). Inlay in the card keeps its imagery, colours and heavy face but shows the spoken sentence as ordinary text, without its word mask, since the card is always voiced. 2 and 3 stand. 4: build now; SCR-002 does not wait for V1. Built in SCR-002: the Worker admits the ten ids (`RISE_CURRENT_LOOKS`), the card lowers them (`src/core/current-look.js`), and the guide names each look with a hint that promises no sound.

@@ -31,6 +31,7 @@ import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
 import { admitCatalogVisual } from '../../core/visual-catalog.js';
 import { jevColors } from '../../core/jev-palette.js';
+import { lookTheme } from '../../core/current-look.js';
 import { createLiveControls } from './controls.js';
 import { createStageControls } from './stage-controls.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
@@ -661,7 +662,8 @@ export class LiveHost {
             const { containerDimensions, safeAreaInsets, styles } = this.port.hostContext();
             for (const side of SAFE_SIDES) root.style.setProperty(`--safe-${side}`, `${Number(safeAreaInsets?.[side]) || 0}px`);
             const sans = styles?.variables?.['--font-sans'];
-            if (typeof sans === 'string' && sans) root.style.setProperty('--font-sans', sans);
+            // A font stack is a short list of names; anything longer is not one the page should take from its host.
+            if (typeof sans === 'string' && sans && sans.length <= 200) root.style.setProperty('--font-sans', sans);
             else root.style.removeProperty('--font-sans');
             const height = embedHeight(frame.innerWidth, containerDimensions?.maxHeight);
             if (height === reported) return;
@@ -793,8 +795,9 @@ export class LiveHost {
      * The answer, ready: its title over Play, in its theme's colors, and no other word. The title is
      * text, never markup; the heading is clamped to three lines, so the whole title is its label too.
      */
-    showPoster({ title, theme }) {
-        // The answer's own theme: what the stage's Theme row calls "As written".
+    showPoster({ title, theme: own, look }) {
+        // The answer's own theme, or its look's: what the stage's Theme row calls "As written".
+        const theme = own ?? lookTheme(look) ?? undefined;
         this.embeddedTheme = theme ?? null;
         this.paintEmbedTheme(theme);
         const main = this.container.querySelector('.live-host--embedded');

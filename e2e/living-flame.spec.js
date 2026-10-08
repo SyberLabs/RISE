@@ -7,7 +7,7 @@
  * tolerant of rendering differences: nonblank, structured, and moving, never
  * an exact pixel hash.
  */
-import { test, expect, openHomeNav, connectTestOpenRouter } from './fixtures.js';
+import { test, expect, openHomeNav, connectTestOpenRouter, revealChamberControls } from './fixtures.js';
 
 const EMPTY_TREATMENT = 'violet-nebula';
 
@@ -32,8 +32,8 @@ async function mockScoring(page, { delayMs = 0, treatmentId = EMPTY_TREATMENT, s
   return requests;
 }
 
-/** Library → Middlemarch → first chapter → Gallery → Begin. */
-async function beginChapter(page, { wpm = 1000, text = null, connectAI = false } = {}) {
+/** Library → Middlemarch → first chapter → Flame → Begin. */
+async function beginChapter(page, { wpm = 1000, text = null, connectAI = false, look = 'flame' } = {}) {
   await page.goto('/');
   await expect(page.locator('.portal h1').first()).toBeVisible({ timeout: 15_000 });
   if (connectAI) await connectTestOpenRouter(page);
@@ -46,7 +46,8 @@ async function beginChapter(page, { wpm = 1000, text = null, connectAI = false }
     await page.locator('.toc-entry').first().click();
   }
   await page.waitForFunction(() => !!window.__RISE_TEST__?.getView('read')?.paneInstance('setup')?.config?.text, null, { timeout: 20_000 });
-  await page.locator('[data-look="gallery"]').click();
+  // The Flame look follows its text with flames, and Jev may direct them; the Gallery look follows with museum works.
+  await page.evaluate(id => window.__RISE_TEST__.getView('read').paneInstance('setup').chooseLook(id), look);
   await page.evaluate((value) => {
     window.__RISE_TEST__.getView('read').paneInstance('setup').config.wpm = value;
   }, wpm);
@@ -55,18 +56,9 @@ async function beginChapter(page, { wpm = 1000, text = null, connectAI = false }
     null, { timeout: 30_000 });
 }
 
-/**
- * Open the Look sheet. The controls fade 3 s after the last mousemove over the
- * reading and take no pointer while faded. Under a busy software-rendered flame a
- * move can be handled late, so it moves until the bar is shown, then clicks.
- */
+/** Open the Look sheet once the controls are shown. */
 async function openLook(page) {
-  const controls = page.locator('#chamber-controls');
-  await expect.poll(async () => {
-    await page.mouse.move(640, 360);
-    await page.mouse.move(640, 700);
-    return controls.getAttribute('style');
-  }, { timeout: 15_000 }).toContain('opacity: 1');
+  await revealChamberControls(page);
   await page.locator('#look-btn').click();
 }
 
@@ -145,6 +137,16 @@ test.describe('passage-directed visuals', () => {
       { timeout: 60_000 }).toBeGreaterThanOrEqual(2);
     const later = await direction(page);
     expect(later.admitted[1]).toBe(`${EMPTY_TREATMENT}:jev`);
+  });
+
+  test('the Gallery look follows its text with museum works and sends nothing to Jev', async ({ page }) => {
+    const requests = await mockScoring(page);
+    await beginChapter(page, { connectAI: true, look: 'gallery' });
+    await expect.poll(async () => (await direction(page)).admitted.find(Boolean) ?? '', { timeout: 15_000 }).toMatch(/^gallery-/u);
+    await page.waitForTimeout(3000);
+    const state = await direction(page);
+    expect(state.admitted.filter(Boolean).every(entry => entry.startsWith('gallery-'))).toBe(true);
+    expect(requests).toHaveLength(0);
   });
 
   test('Off stays off: a pending reply never reactivates visuals', async ({ page }) => {

@@ -12,7 +12,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { test, expect, openHomeNav } from './fixtures.js';
+import { test, expect, openHomeNav, revealChamberControls } from './fixtures.js';
 import { FLASHING_ENABLED } from '../src/core/visual-presence.js';
 
 
@@ -288,7 +288,7 @@ test('9 - in-session Visuals control kills a live presence and keeps safety laye
     const cortex = page.locator('#visual-cortex');
     const toggle = page.locator('#look-sheet [data-look-visuals="off"]');
     await expect(cortex).toBeVisible({ timeout: 15_000 });
-    await page.locator('#chamber-display').hover();
+    await revealChamberControls(page);
     await page.locator('#look-btn').click();
     await expect(toggle).toBeVisible();
 

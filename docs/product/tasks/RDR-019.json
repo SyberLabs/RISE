@@ -79,6 +79,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/453",
       "note": "PR 4c: Continue leads when a reading is in memory. Merged.",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/501",
+      "note": "PR 8: the owner’s line on what RISE is, first visit only, one line at 360 px (Home §11 question 1, answered 2026-10-07).",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -101,10 +107,14 @@
     {
       "date": "2026-10-05T23:23:01.857Z",
       "summary": "PR 4c merged as #453."
+    },
+    {
+      "date": "2026-10-08T03:32:35.303Z",
+      "summary": "PR 8: Home says what RISE is, once"
     }
   ],
-  "updatedAt": "2026-10-05T23:23:01.857Z",
-  "revision": 5,
+  "updatedAt": "2026-10-08T03:32:35.303Z",
+  "revision": 6,
   "summary": "The canonical Home, 'a home with a window': the featured reading's field full screen, an epigraph set still, Begin as the only primary action, Continue when there is a reading to resume, Adjust into Read, the rooms as header links. Build authorized by Mateo on 2026-10-05 with Seth's full agreement; Seth reviews. Uses the existing backdrop renderer; D1 replaces it later.",
   "blocker": null
 }

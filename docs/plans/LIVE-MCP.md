@@ -63,7 +63,9 @@ The two reference checks are one-off local runs, not part of the test suite, bec
 
 ## Turning it on (the creator's decision)
 
-It is **off**. `MCP_ENABLED` is `"false"` in `wrangler.production.jsonc` and absent in staging. Nothing about the deployed site changes until both of these are done:
+Amended 2026-10-08: it is **on** in production, with the self-contained card (`MCP_ENABLED` and `MCP_SELF_CONTAINED` both `"true"` in `wrangler.production.jsonc`; absent in staging). The card is RISE's page served as the host's resource, so nothing frames `/live?embed=mcp` and it keeps `X-Frame-Options: DENY`; `worker/production-config.test.js` refuses MCP on without the card. What follows is the history of the relay card.
+
+It was **off**. `MCP_ENABLED` was `"false"` in `wrangler.production.jsonc` and absent in staging. Nothing about the deployed site changed until both of these were done:
 
 1. Set `MCP_ENABLED` to `"true"`.
 2. Add `"/live"` to `assets.run_worker_first` in that Wrangler config, so the Worker sees `/live?embed=mcp` and can serve it framable. **This is a change to the site's framing posture**: every response says `X-Frame-Options: DENY` and `frame-ancestors 'none'`, and a test holds that. With MCP on, exactly one request shape, `GET/HEAD /live?embed=mcp`, is served without `X-Frame-Options` and with `frame-ancestors *`, because a host's sandbox is on an origin RISE cannot know. Every other request is the asset, untouched. What that page can do when framed by a stranger is display a Current it is handed, and offer the microphone button, which needs the reader's own press and the browser's own permission. That is a judgment for the creator, not for me. Amended 2026-10-05: #423 adds `"/live"` to `run_worker_first`, guarded by `worker/production-config.test.js`; with `MCP_ENABLED` off the page is served exactly as before, so only step 1 remains ([embed stage decision](../product/discussions/2026-10-05-embed-stage-decision.md) §6).

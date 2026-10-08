@@ -4,6 +4,7 @@
  * Begin opens it; Another reading rolls a vivid one in its place. Every
  * room is one Menu away.
  */
+import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -639,6 +640,41 @@ describe('Continue', () => {
         vi.advanceTimersByTime(60_000);
         await vi.waitFor(() => expect(words(line(container))).toContain(today(new Date(2026, 9, 4)).title));
         expect(label(container)).toBe('Continue');
+        portal.destroy();
+    });
+});
+
+describe('the line on what RISE is', () => {
+    const LINE = 'Texts read to you, with light and sound made for them.';
+    const about = container => container.querySelector('.home-about');
+    beforeEach(() => localStorage.clear());
+
+    it('says what RISE is on a first visit, in one short line', () => {
+        const { portal, container } = makePortal();
+        expect(words(about(container))).toBe(LINE);
+        expect(LINE.length).toBeLessThanOrEqual(60);
+        expect(about(container).hidden).toBe(false);
+        portal.destroy();
+    });
+
+    it('is seen once: showing Home records it, and the next visit leaves it out', () => {
+        const first = makePortal();
+        first.portal.activate();
+        expect(localStorage.getItem(USER_DATA_KEYS.homeSeen)).toBe('1');
+        first.portal.destroy();
+        const second = makePortal();
+        expect(about(second.container).hidden).toBe(true);
+        second.portal.destroy();
+    });
+
+    it('still renders when storage refuses, and shows the line', () => {
+        const read = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+        const write = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+        const { portal, container } = makePortal();
+        expect(() => portal.activate()).not.toThrow();
+        expect(about(container).hidden).toBe(false);
+        read.mockRestore();
+        write.mockRestore();
         portal.destroy();
     });
 });

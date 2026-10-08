@@ -76,7 +76,14 @@ export default defineConfig({
         viewport: { width: 1280, height: 800 },
         // Web Audio must start without a physical click's blessing
         launchOptions: {
-            args: ['--autoplay-policy=no-user-gesture-required']
+            args: [
+                '--autoplay-policy=no-user-gesture-required',
+                // The self-contained card (e2e/live-mcp.spec.js) is an opaque-origin frame loading RISE
+                // from the loopback preview. Chrome's Local Network Access treats that as a public page
+                // reaching the local network and denies it without a prompt, which a sandboxed frame
+                // cannot show. Production is public to public, so the policy never applies there.
+                '--disable-features=LocalNetworkAccessChecks,PrivateNetworkAccessSendPreflights,PrivateNetworkAccessRespectPreflightResults'
+            ]
         }
     },
     // Two projects that partition the suite rather than overlapping it, so

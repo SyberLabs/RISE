@@ -264,6 +264,8 @@ As written before the fixes. Everything in it is done except R-1's separate orig
 2. R-1: serve the embed from an origin with no first-party state, and show the host's origin to the reader.
 3. Experiment U-5.
 
+Amended 2026-10-08, MCP enabled: F-7 is done. R-1 is closed by the self-contained card (LIVE-010, LIVE-012): the card runs in the host's sandbox, an opaque origin holding no RISE state, and nothing frames `/live?embed=mcp`, which keeps `frame-ancestors 'none'`. U-5 is the owner's witness in ChatGPT and Claude; its microphone and sampling parts are outside Composer v1.
+
 **Fix soon (generic streaming):** F-5 and F-6 (coalesce text and apply back-pressure), F-8 (cap the header line), F-10 and F-11 (parser edge cases), F-12 (refuse metadata on ended segments).
 
 **Architecture before plugins:** F-9 (snapshot input once), R-3 (runtime ignores callbacks for closed runs), and the capability contract in §E. R-4 only when something first keys on atom ids.

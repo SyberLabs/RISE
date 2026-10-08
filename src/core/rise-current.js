@@ -22,6 +22,13 @@ export const RISE_CURRENT_LIMITS = Object.freeze({
 /** The closed visual catalog. A Current names one of these and nothing else. */
 export const RISE_CURRENT_VISUALS = Object.freeze(['still', 'attractor', 'genesis']);
 
+/**
+ * The looks a Current may name, by id (looks.js, in its order). The Worker
+ * admits the id and learns nothing else; the card lowers the look through its
+ * own field, typeface, size and theme (current-look.js).
+ */
+export const RISE_CURRENT_LOOKS = Object.freeze(['plain', 'gallery', 'nocturne', 'garden', 'flame', 'signal', 'iris', 'revel', 'vigil', 'inlay']);
+
 /** The closed theme choice: the shipped color themes, so RISE has one color vocabulary. */
 export const RISE_CURRENT_THEME_IDS = JEV_COLOR_THEMES;
 
@@ -47,7 +54,8 @@ function object(value, path) {
 function keys(value, allowed, path) {
   for (const key of Object.keys(value)) {
     if (!allowed.includes(key) || ['__proto__', 'constructor', 'prototype'].includes(key)) {
-      fail('CURRENT_UNKNOWN_FIELD', `${path}.${key}`, `Unknown field: ${key}`);
+      // The name is the author's: bounded before it is echoed back to them.
+      fail('CURRENT_UNKNOWN_FIELD', `${path}.${key.slice(0, 40)}`, `Unknown field: ${key.slice(0, 40)}`);
     }
   }
 }
@@ -134,13 +142,17 @@ export const RISE_CURRENT_THEMES = freeze({
 /** Strict, detached input from an author or model. No runtime objects are accepted. */
 export function validateRiseCurrent(input) {
   const source = object(input, '$');
-  keys(source, ['schema', 'id', 'title', 'theme', 'origin', 'segments'], '$');
+  keys(source, ['schema', 'id', 'title', 'theme', 'look', 'origin', 'segments'], '$');
   if (source.schema !== RISE_CURRENT_SCHEMA) fail('CURRENT_SCHEMA', '$.schema', 'Unknown Current schema');
   const currentId = id(source.id, '$.id');
   const title = label(source.title, RISE_CURRENT_LIMITS.title, '$.title');
   const theme = source.theme;
   if (theme !== undefined && !RISE_CURRENT_THEME_IDS.includes(theme)) {
     fail('CURRENT_THEME', '$.theme', `Unknown theme; use one of ${RISE_CURRENT_THEME_IDS.join(', ')}`);
+  }
+  const look = source.look;
+  if (look !== undefined && !RISE_CURRENT_LOOKS.includes(look)) {
+    fail('CURRENT_LOOK', '$.look', `Unknown look; use one of ${RISE_CURRENT_LOOKS.join(', ')}`);
   }
 
   const origin = object(source.origin, '$.origin');
@@ -182,8 +194,9 @@ export function validateRiseCurrent(input) {
     if (total > RISE_CURRENT_LIMITS.totalText) {
       fail('CURRENT_TOTAL_TEXT', '$.segments', `Current exceeds ${RISE_CURRENT_LIMITS.totalText.toLocaleString('en-US')} characters`);
     }
-    const visual = segment.visual === undefined ? 'still' : segment.visual;
-    if (!RISE_CURRENT_VISUALS.includes(visual)) {
+    // Under a look, a passage that names no visual draws the look's field.
+    const visual = segment.visual === undefined && look === undefined ? 'still' : segment.visual;
+    if (visual !== undefined && !RISE_CURRENT_VISUALS.includes(visual)) {
       fail('CURRENT_VISUAL', `${path}.visual`, 'Unknown visual selection');
     }
     const rawDives = segment.dives === undefined ? [] : segment.dives;
@@ -204,17 +217,20 @@ export function validateRiseCurrent(input) {
         anchor: anchor(dive.anchor, text, `${divePath}.anchor`)
       };
     });
-    return { id: segmentId, text, visual, dives, ...(literal ? { literal: true } : {}) };
+    return { id: segmentId, text, ...(visual === undefined ? {} : { visual }), dives, ...(literal ? { literal: true } : {}) };
   });
   return freeze({
     schema: RISE_CURRENT_SCHEMA, id: currentId, title, ...(theme === undefined ? {} : { theme }),
+    ...(look === undefined ? {} : { look }),
     origin: cleanOrigin, segments
   });
 }
 
 /** Map validated Current data once for the durable pair and Session wrapper. */
-function materializeValidatedRiseCurrent(current) {
-  const look = current.theme === undefined ? null : RISE_CURRENT_THEMES[current.theme];
+function materializeValidatedRiseCurrent(current, lowered = null) {
+  // A look lowered for the card brings its theme when the Current names none.
+  const themeId = current.theme ?? lowered?.theme;
+  const look = themeId === undefined ? null : RISE_CURRENT_THEMES[themeId];
   const program = createExperienceProgram({
     schema: EXPERIENCE_PROGRAM_SCHEMA,
     id: current.id,
@@ -230,13 +246,20 @@ function materializeValidatedRiseCurrent(current) {
       },
       {
         id: 'current-visuals', kind: 'visual',
-        clips: current.segments.map((segment, index) => ({
-          id: `visual-${index}`, anchor: { sourceIds: [segment.id] },
-          cue: segment.visual === 'still'
-            ? { kind: 'still' }
-            : { kind: 'field', renderer: segment.visual, config: look ? { ...look[segment.visual] } : {} }
-        })),
-        fallback: { kind: 'still' }
+        // Every passage has a clip: one that names no visual takes the look's, since the reader
+        // schedules a program only when it has passages, and the fallback alone would draw nothing.
+        clips: current.segments.flatMap((segment, index) => {
+          if (segment.visual === undefined) {
+            return lowered ? [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: lowered.fallbackCue }] : [];
+          }
+          return [{
+            id: `visual-${index}`, anchor: { sourceIds: [segment.id] },
+            cue: segment.visual === 'still'
+              ? { kind: 'still' }
+              : { kind: 'field', renderer: segment.visual, config: look ? { ...look[segment.visual] } : {} }
+          }];
+        }),
+        fallback: lowered?.fallbackCue ?? { kind: 'still' }
       },
       {
         id: 'current-dives', kind: 'thread',
@@ -264,10 +287,11 @@ function materializeValidatedRiseCurrent(current) {
     title: current.title,
     provenance: { origin: current.origin, currentId: current.id },
     visualConfig: {
-      visualMode: current.segments.some(segment => segment.visual !== 'still') ? 'interlocution' : 'off',
-      interlocution: { presentation: 'continuous', procedural: [], sourced: [] }
+      visualMode: current.segments.some(segment => segment.visual !== undefined && segment.visual !== 'still')
+        || (lowered !== null && lowered.fallbackCue.kind !== 'still') ? 'interlocution' : 'off',
+      interlocution: lowered?.shelf ?? { presentation: 'continuous', procedural: [], sourced: [] }
     },
-    ...(look ? { presentation: { colorTheme: current.theme, colors: jevColors(current.theme) } } : {})
+    ...(look ? { presentation: { colorTheme: themeId, colors: jevColors(themeId), ...lowered?.type } } : {})
   };
 }
 
@@ -277,13 +301,18 @@ export function materializeRiseCurrent(input) {
   return { program, sources };
 }
 
-/** Lower a sealed external answer into the existing Session playback path. */
-export function compileRiseCurrent(input, { projection = 'stream' } = {}) {
+/**
+ * Lower a sealed external answer into the existing Session playback path.
+ * `lowerLook` (current-look.js) turns a named look into its field, typeface,
+ * size and theme; without it a look is carried and not drawn.
+ */
+export function compileRiseCurrent(input, { projection = 'stream', lowerLook = null } = {}) {
   if (!['stream', 'page'].includes(projection)) {
     fail('CURRENT_PROJECTION', '$.projection', 'Unknown projection');
   }
   const current = validateRiseCurrent(input);
-  const { program, sources, title, provenance, visualConfig, ...presentation } = materializeValidatedRiseCurrent(current);
+  const lowered = current.look !== undefined && typeof lowerLook === 'function' ? lowerLook(current) : null;
+  const { program, sources, title, provenance, visualConfig, ...presentation } = materializeValidatedRiseCurrent(current, lowered);
   return compileSession({
     title,
     sources,

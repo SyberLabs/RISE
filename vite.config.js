@@ -68,6 +68,9 @@ const coreCeiling = Math.floor(cpus().length / 2);
 const memoryCeiling = Math.floor(totalmem() / (WORKER_HEAP_MB * 1024 ** 2));
 
 export default defineConfig({
+  // The browser tests' preview server answers cross-origin reads as production's `_headers` does
+  // (Access-Control-Allow-Origin: *), so a host card on another origin can load RISE from it.
+  preview: { cors: true },
   // Curia / Export MP4: apply:'serve' means the endpoints exist only on
   // the dev server; production builds carry no write path.
   // drop-unfetched-wasm: the embed worker supplies its own runtime binary,

@@ -158,9 +158,9 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>12 modules"]
     components["components<br/>routed views<br/>51 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>160 modules"]
+    core["core<br/>session, player, router<br/>162 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>42 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>43 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
@@ -171,7 +171,7 @@ flowchart LR
     app --> |1| audio
     app -.-> |8 lazy| components
     app --> |3| content
-    app --> |43| core
+    app --> |46| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
@@ -181,7 +181,7 @@ flowchart LR
     components -.-> |2 lazy| app
     components --> |5| audio
     components --> |23| content
-    components --> |182| core
+    components --> |183| core
     components -.-> |1 lazy| page
     components --> |4| sources
     components -.-> |2 lazy| vendor
@@ -193,10 +193,10 @@ flowchart LR
     core --> |8| audio
     core --> |15| content
     core --> |4| sources
-    core --> |6| visuals
+    core --> |7| visuals
     live -.-> |3 lazy| app
     live -.-> |2 lazy| components
-    live --> |11| core
+    live --> |13| core
     live -.-> |1 lazy| visuals
     page --> |4| core
     page --> |4| visuals

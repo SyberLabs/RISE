@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { test, expect, openHomeNav } from './fixtures.js';
+import { test, expect, openHomeNav, revealChamberControls } from './fixtures.js';
 
 // Screenshots are evidence for a human reviewer, not assertions.
 const shot = (page, name) => page.screenshot({ path: test.info().outputPath(`${name}.png`), fullPage: true });
@@ -96,7 +96,7 @@ test('a recipient remixes one passage, keeps it as a child, and it plays in a cl
   await expectPlaying(page, heardA, { sound: 'soft-rain', visual: 'fractal' });
   await shot(page, '3-preview-chamber');
   expect(await stored(page)).toHaveLength(1);
-  await page.mouse.move(640, 700);
+  await revealChamberControls(page);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => page.evaluate(() => !!window.__RISE_TEST__?.getAudioEngine()?.sessionActive)).toBe(false);

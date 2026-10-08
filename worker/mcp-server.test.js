@@ -10,7 +10,7 @@
  * only while switched on.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { RISE_CURRENT_LIMITS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
+import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
 import { CURRENT_EXAMPLE, CURRENT_GUIDE } from '../src/live/adapters/current-guide.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
@@ -121,6 +121,7 @@ describe('who may ask, and how', () => {
     expect(response.headers.get('Content-Type')).toMatch(/^application\/json/u);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
   });
 
   it('carries the request’s id back, a string or a number', async () => {
@@ -338,7 +339,8 @@ describe('the shape of a Current, as the host’s model is told it', () => {
 
   it('requires what the validator requires, and allows no field it does not know', () => {
     expect(schema).toMatchObject({ type: 'object', required: ['schema', 'id', 'title', 'origin', 'segments'], additionalProperties: false });
-    expect(Object.keys(schema.properties)).toEqual(['schema', 'id', 'title', 'theme', 'origin', 'segments']);
+    expect(Object.keys(schema.properties)).toEqual(['schema', 'id', 'title', 'theme', 'look', 'origin', 'segments']);
+    expect(schema.properties.look).toEqual({ type: 'string', enum: [...RISE_CURRENT_LOOKS] });
     expect(schema.properties.origin).toMatchObject({ required: ['kind', 'name'], additionalProperties: false });
     expect(Object.keys(schema.properties.origin.properties)).toEqual(['kind', 'name', 'provider']);
     expect(schema.properties.segments.minItems).toBe(1);
@@ -409,6 +411,37 @@ describe('the app', () => {
     expect(content._meta['openai/widgetDescription']).toMatch(/^[^.]*Play[^.]*\.$/u);
   });
 
+  describe('self-contained, with MCP_SELF_CONTAINED (LIVE-010)', () => {
+    const PAGE = '<!doctype html><html><head><meta charset="utf-8"><script type="module" crossorigin src="/assets/main-x.js"></script></head><body><div id="app"></div></body></html>';
+    const assets = (page = PAGE, ok = true) => {
+      const binding = { asked: null, fetch: async request => { binding.asked = request.url; return new Response(page, { status: ok ? 200 : 404 }); } };
+      return binding;
+    };
+    const read = async env => (await json(await post(rpc('resources/read', { uri: APP_URI }), { env: { ...ON, ...env } }))).result.contents[0];
+
+    it('is RISE’s deployed page itself, its addresses at RISE, framing nothing and reaching only this origin', async () => {
+      const ASSETS = assets();
+      const content = await read({ MCP_SELF_CONTAINED: 'true', ASSETS });
+      expect(ASSETS.asked).toBe(`${SITE}/index.html`);
+      expect(content.text).toContain(`<base href="${SITE}/">`);
+      expect(content.text).toContain('<meta name="rise-embed" content="/live?embed=mcp">');
+      expect(content.text).toContain('src="/assets/main-x.js"');
+      expect(content.text).not.toContain('<iframe');
+      expect(content._meta.ui.csp).toEqual({ connectDomains: [SITE], resourceDomains: [SITE], baseUriDomains: [SITE], frameDomains: [] });
+    });
+
+    it('serves the framed card while the switch is off, or when the deployed page cannot be read', async () => {
+      expect((await read({ ASSETS: assets() })).text).toContain(`src="${SITE}/live?embed=mcp"`);
+      expect((await read({ MCP_SELF_CONTAINED: 'true', ASSETS: assets('', false) })).text).toContain('<iframe');
+    });
+  });
+
+  it('names RISE’s own origin as ChatGPT’s dedicated domain, under ChatGPT’s key so Claude’s ui.domain check never sees it', async () => {
+    const [content] = (await json(await post(rpc('resources/read', { uri: APP_URI })))).result.contents;
+    expect(content._meta['openai/widgetDomain']).toBe(SITE);
+    expect(content._meta.ui.domain).toBeUndefined();
+  });
+
   it('tells ChatGPT on the resource that it is shown inline only, so the host picks the mode before loading it', async () => {
     const { result } = await json(await post(rpc('resources/read', { uri: APP_URI })));
     expect(result.contents[0]._meta['openai/ui']).toEqual({ availableDisplayModes: ['inline'] });
@@ -457,6 +490,12 @@ describe('the one page that may be framed', () => {
     const ASSETS = { fetch: vi.fn(async () => response) };
     return handleLive(new Request(`${SITE}${path}`, { method }), { ...env, ASSETS }).then(result => ({ result, ASSETS }));
   };
+
+  it('keeps its framing headers while the self-contained card is on: nothing frames it then', async () => {
+    const { result } = await ask('/live?embed=mcp', { env: { ...ON, MCP_SELF_CONTAINED: 'true' } });
+    expect(result.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(result.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
+  });
 
   it('may be framed by any site when it is asked for as the embedded page, and only then', async () => {
     const { result, ASSETS } = await ask('/live?embed=mcp');

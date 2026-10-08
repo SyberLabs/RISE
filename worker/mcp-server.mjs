@@ -1,7 +1,8 @@
-import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
+import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_GUIDE, TOOL_NAME } from '../src/live/adapters/current-guide.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
+import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
 import { readText } from './live-realtime.mjs';
 import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
 
@@ -43,12 +44,15 @@ const MAX_MESSAGE = 300;
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store',
-  'X-Content-Type-Options': 'nosniff'
+  'X-Content-Type-Options': 'nosniff',
+  // The site is https only; every response of the host says so, the static ones through _headers.
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
 };
 
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
 
-const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. To answer with it, call ${TOOL_NAME} with a Current.`;
+// Conditional on the reader's request, as the directory's review asks: a server must not tell the model to call a tool the reader did not ask for.
+const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. When the reader asks for a reading, a spoken or visual explanation, or names RISE, answer by calling ${TOOL_NAME} with a Current.`;
 
 const shortText = max => ({ type: 'string', minLength: 1, maxLength: max });
 
@@ -68,6 +72,7 @@ export function currentJsonSchema() {
       id,
       title: shortText(LIMITS.title),
       theme: { type: 'string', enum: RISE_CURRENT_THEME_IDS },
+      look: { type: 'string', enum: RISE_CURRENT_LOOKS },
       origin: {
         type: 'object',
         properties: {
@@ -192,20 +197,26 @@ function call(id, params) {
   });
 }
 
-function read(id, params, origin, witness) {
+function read(id, params, origin, witness, card) {
   if (params?.uri !== APP_URI) return failure(id, -32002, 'Resource not found', { uri: typeof params?.uri === 'string' ? clip(params.uri, 200) : null });
   return result(id, {
     contents: [{
       uri: APP_URI,
       mimeType: APP_MIME,
       // The witness log (docs/plans/EMBED-WITNESS.md) is switched on by the demo config for one session; production never sets it.
-      text: relayHtml({ origin, path: witness ? `${EMBED_PATH}&log=host` : EMBED_PATH }),
+      // The self-contained card (mcp-card.js) when the deployed page was given; the relay otherwise.
+      text: card === null
+        ? relayHtml({ origin, path: witness ? `${EMBED_PATH}&log=host` : EMBED_PATH })
+        : cardHtml({ origin, indexHtml: card, path: witness ? `${EMBED_PATH}&log=host` : EMBED_PATH }),
       _meta: {
         ui: {
           // The app frames RISE's own page and nothing else, fetches nothing itself, and asks for no device.
-          csp: { frameDomains: [origin], connectDomains: [], resourceDomains: [] },
+          csp: card === null ? { frameDomains: [origin], connectDomains: [], resourceDomains: [] } : cardCsp(origin),
           prefersBorder: false
         },
+        // ChatGPT's dedicated origin for the app (required to submit), under ChatGPT's own key: Claude validates
+        // ui.domain against its own format and would refuse RISE's origin there.
+        'openai/widgetDomain': origin,
         // Read by ChatGPT before the app loads, so that it picks the mode first; inline is the only one, and the app says the same at ui/initialize.
         'openai/ui': { availableDisplayModes: ['inline'] },
         // Read by the host's model when the app loads, so that it need not describe the app itself.
@@ -216,7 +227,7 @@ function read(id, params, origin, witness) {
 }
 
 /** One JSON-RPC message, answered. `null` for one that is not answered (a notification or a response). */
-export function dispatch(message, origin, { gate0 = false, witness = false } = {}) {
+export function dispatch(message, origin, { gate0 = false, witness = false, card = null } = {}) {
   if (!message || typeof message !== 'object' || Array.isArray(message) || message.jsonrpc !== '2.0') {
     return failure(null, -32600, 'Invalid request');
   }
@@ -245,7 +256,7 @@ export function dispatch(message, origin, { gate0 = false, witness = false } = {
     }
     case 'resources/list':
       return result(id, { resources: [{ uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME }] });
-    case 'resources/read': return read(id, params, origin, witness);
+    case 'resources/read': return read(id, params, origin, witness, card);
     default: return failure(id, -32601, 'Method not found');
   }
 }
@@ -295,7 +306,17 @@ export async function handleMcp(request, env) {
     return failure(null, -32700, 'Parse error');
   }
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
-  return dispatch(message, origin, { gate0: env.MCP_GATE0 === 'true', witness: env.MCP_WITNESS === 'true' });
+  // The self-contained card is the deployed page itself, read when the host asks for the app.
+  let card = null;
+  if (env.MCP_SELF_CONTAINED === 'true' && message?.method === 'resources/read' && typeof env.ASSETS?.fetch === 'function') {
+    try {
+      const page = await env.ASSETS.fetch(new Request(`${origin}/index.html`));
+      if (page.ok) card = await page.text();
+    } catch {
+      /* the relay card is served instead */
+    }
+  }
+  return dispatch(message, origin, { gate0: env.MCP_GATE0 === 'true', witness: env.MCP_WITNESS === 'true', card });
 }
 
 /**
@@ -307,7 +328,8 @@ export async function handleMcp(request, env) {
 export async function handleLive(request, env) {
   if (typeof env?.ASSETS?.fetch !== 'function') return http(503, { error: { code: 'ASSETS_UNAVAILABLE', message: 'The site is not available.' } });
   const response = await env.ASSETS.fetch(request);
-  const embedded = env.MCP_ENABLED === 'true' && (request.method === 'GET' || request.method === 'HEAD')
+  // With the self-contained card (MCP_SELF_CONTAINED) nothing legitimately frames this page, so it keeps RISE's framing headers.
+  const embedded = env.MCP_ENABLED === 'true' && env.MCP_SELF_CONTAINED !== 'true' && (request.method === 'GET' || request.method === 'HEAD')
     && new URL(request.url).searchParams.get('embed') === 'mcp';
   if (!embedded) return response;
   const headers = new Headers(response.headers);

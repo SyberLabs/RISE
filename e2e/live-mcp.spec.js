@@ -17,6 +17,7 @@
 import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../src/test/sealed-current.js';
 import { HORIZON_DIVE } from '../src/live/fixtures/black-holes.js';
 import { relayHtml } from '../src/live/hosts/mcp-relay.js';
+import { cardHtml } from '../src/live/hosts/mcp-card.js';
 import { serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { handleMcp } from '../worker/mcp-server.mjs';
 import { expect, test } from './fixtures.js';
@@ -24,11 +25,11 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640 }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin' }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     return `<!doctype html><meta charset="utf-8"><title>fake host</title>
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:${height}px}</style>
-<iframe id="view" sandbox="allow-scripts allow-same-origin" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
+<iframe id="view" sandbox="${sandbox}" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
 <script>
 const CURRENT = ${JSON.stringify(current)};
 const DIVE = ${JSON.stringify(dive)};
@@ -77,11 +78,18 @@ async function openHost(page, baseURL, options = {}) {
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
   });
   // `appOrigin` frames RISE from another site than the host page's, as a product host does.
-  const relay = relayHtml({ origin: options.appOrigin ?? origin, path: `/live?embed=mcp&voice=${options.voice ?? 'paced'}` });
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  const path = `/live?embed=mcp&voice=${options.voice ?? 'paced'}`;
+  // `selfContained`: the frame holds RISE's own page, its addresses at `appOrigin` (mcp-card.js), as Claude requires.
+  const relay = options.selfContained
+    ? cardHtml({ origin: options.appOrigin ?? origin, indexHtml: await (await fetch(`${origin}/index.html`)).text(), path })
+    : relayHtml({ origin: options.appOrigin ?? origin, path });
+  // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
+  // frame keeps it because the relay frames RISE's real page.
+  const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
-  // The app is a page in a frame in the relay's frame.
-  return page.frameLocator('#view').frameLocator('#app');
+  // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
+  return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
 }
 
 const log = page => page.evaluate(() => window.__host.log);
@@ -742,4 +750,66 @@ test('an answer without a theme keeps RISE ink and still shows its title over Pl
   const [title, button] = [await posterTitle(app).boundingBox(), await beginButton.boundingBox()];
   expect(title.y + title.height).toBeLessThanOrEqual(button.y);
   await expect.poll(() => backgroundOf(app.locator('body'))).toBe('rgb(6, 5, 26)');
+});
+
+// SCR-002: a Current may name any of the ten looks; the card draws each through its own field.
+const LOOK_FIELDS = {
+  plain: null,
+  gallery: '.chamber-continuous-field :is(canvas, img)',
+  nocturne: '.chamber-continuous-field :is(canvas, img)',
+  garden: '.chamber-genesis',
+  flame: '.chamber-living-flame',
+  signal: '.chamber-attractor',
+  iris: '.chamber-continuous-field :is(canvas, img)',
+  revel: '.chamber-continuous-field :is(canvas, img)',
+  vigil: '.chamber-focal',
+  inlay: '.chamber-continuous-field :is(canvas, img)'
+};
+for (const [look, field] of Object.entries(LOOK_FIELDS)) {
+  test(`a Current in the ${look} look plays in the card with that look's imagery`, async ({ page, baseURL }) => {
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    const { theme: _theme, ...answer } = BLACK_HOLES_CURRENT;
+    const current = { ...answer, look, segments: answer.segments.map(({ visual: _visual, ...segment }) => segment) };
+    const app = await openHost(page, baseURL, { current });
+    await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
+    await begin(app);
+    await expectShown(app, 'A black hole is a region of space');
+    if (field) await expect(app.locator(field).first()).toBeAttached({ timeout: 15_000 });
+    else await expect(app.locator('.chamber-continuous-field :is(canvas, img), .chamber-genesis, .chamber-attractor, .chamber-living-flame, .chamber-focal')).toHaveCount(0);
+    // Inlay keeps its imagery and face but never masks the spoken sentence inside one word.
+    if (look === 'inlay') await expect(app.locator('#atom-display.is-mask')).toHaveCount(0);
+    // Intensity is offered only where the field has a verified mutable control: the attractor (SCR-003).
+    await app.getByRole('button', { name: 'Settings', exact: true }).click();
+    const slider = app.getByRole('slider', { name: 'Intensity' });
+    if (look === 'signal') await expect(slider).toBeVisible();
+    else await expect(slider).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+}
+
+// LIVE-010: the self-contained card. RISE's own page is the host's frame, its addresses at another origin
+// (localhost against the host's 127.0.0.1), so modules, styles and content cross origins as in a product host.
+test('the self-contained card plays a Current from another origin, framing nothing', async ({ page, baseURL }) => {
+  const errors = [];
+  const seen = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (['error', 'warning'].includes(message.type())) seen.push(`console.${message.type()}: ${message.text().slice(0, 300)}`); });
+  page.on('requestfailed', request => seen.push(`failed: ${request.url()} ${request.failure()?.errorText ?? ''}`));
+  page.on('response', response => { if (response.status() >= 400) seen.push(`${response.status()}: ${response.url()}`); });
+  const appOrigin = new URL(baseURL).origin.replace('127.0.0.1', 'localhost');
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: { ...BLACK_HOLES_CURRENT, look: 'signal' } });
+  // What the card did in its sandbox, printed before the first assertion so a failure explains itself.
+  await posterTitle(app).waitFor({ timeout: 15_000 }).catch(() => {});
+  console.log(`[self-contained] errors=${JSON.stringify(errors)} seen=${JSON.stringify(seen.slice(0, 20))} log=${JSON.stringify((await page.evaluate(() => window.__host.log.map(entry => entry.method ?? (entry.ignored ? 'ignored' : 'reply')))).slice(0, 12))}`);
+  await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
+  await begin(app);
+  await expectShown(app, 'A black hole is a region of space');
+  await expect(app.locator('.chamber-attractor').first()).toBeAttached({ timeout: 15_000 });
+  expect(await app.locator('iframe').count()).toBe(0);
+  // Its code came from RISE's origin, not the host's.
+  const scripts = await page.frameLocator('#view').locator('script[type="module"]').evaluateAll(nodes => nodes.map(node => node.src));
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const src of scripts) expect(src.startsWith(appOrigin)).toBe(true);
+  expect(errors).toEqual([]);
 });

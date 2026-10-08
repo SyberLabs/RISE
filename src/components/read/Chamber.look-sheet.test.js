@@ -676,3 +676,12 @@ describe('a host that draws its own controls', () => {
     chamber.destroy();
   });
 });
+
+describe('Jev and a Gallery reading', () => {
+  it('sends nothing for a reading whose visuals follow by museum works, which Jev cannot choose', async () => {
+    const director = { family: 'gallery', sources: [{ id: 'primary', text: 'The quiet garden rests.' }], blockIndexForAtom: () => -1 };
+    const state = { director };
+    await Chamber.prototype._startVisualScoring.call({ _direction: state, _destroyed: false, session: { atoms: [] } });
+    expect(state.scoring).toBeUndefined();
+  });
+});
