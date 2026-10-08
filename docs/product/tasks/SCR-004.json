@@ -6,7 +6,7 @@
   "status": "planned",
   "delivery": "not_shipped",
   "owner": null,
-  "priority": "next",
+  "priority": "later",
   "dependencies": [
     "RDR-020",
     "SCR-001"
@@ -27,10 +27,14 @@
     {
       "date": "2026-10-06T01:30:00.000Z",
       "summary": "Seeded from the 2026-10-06 roadmap record."
+    },
+    {
+      "date": "2026-10-08T05:56:21.573Z",
+      "summary": "Deferred by the owner: Ask's menus serve almost no one yet"
     }
   ],
-  "updatedAt": "2026-10-06T01:30:00.000Z",
-  "revision": 1,
-  "summary": "The in-app model and the Composer share one vocabulary; built as RDR-020's third pull request, not a separate lane.",
+  "updatedAt": "2026-10-08T05:56:21.573Z",
+  "revision": 2,
+  "summary": "Deferred (owner, 2026-10-08). Ask on rise.syberlabs.io needs a reader-owned key (OpenRouter) that few readers will configure, and local Kev scored poorly on the evaluations, so teaching its menus the looks serves almost no one; inside ChatGPT and Claude the host’s own model already chooses the look (SCR-002). A reader TypeSafe connection is also out: TypeSafe’s API answers browsers only from its own console. Reopen when Ask sees real use, or if RISE decides to pay for inference (which reverses #294); the TypeSafe evaluation branch typesafe-direct is kept for that.",
   "blocker": null
 }
