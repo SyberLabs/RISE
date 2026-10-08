@@ -37,6 +37,16 @@ describe('the production Worker', () => {
     expect(Number(config.vars.PLUS_DAILY_CHAR_CAP)).toBeGreaterThan(0);
   });
 
+  // The vendor id of a voice comes only from this list; "default" is the PLUS_VOICE_ID secret.
+  it('offers a default voice and an id for every other one', () => {
+    const voices = config.vars.PLUS_VOICES;
+    expect(voices.filter(v => v.slug === 'default')).toEqual([{ slug: 'default', label: expect.any(String) }]);
+    for (const voice of voices.filter(v => v.slug !== 'default')) {
+      expect(voice).toEqual({ slug: expect.stringMatching(/^[a-z0-9_-]{1,32}$/u), label: expect.any(String), id: expect.stringMatching(/^[A-Za-z0-9]+$/u) });
+    }
+    expect(new Set(voices.map(v => v.slug)).size).toBe(voices.length);
+  });
+
   it('ships live realtime off, and the MCP server on only with the self-contained card', () => {
     expect(config.vars.LIVE_REALTIME_ENABLED).toBe('false');
     expect(['true', 'false']).toContain(config.vars.MCP_ENABLED);

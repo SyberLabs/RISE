@@ -12,7 +12,10 @@
   "compatibility_date": "2026-09-26",
   "workers_dev": true,
   "preview_urls": false,
-  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false", "PLUS_VOICE_SLUG": "el_plus", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_DAILY_CHAR_CAP": "20000" },
+  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_DAILY_CHAR_CAP": "20000",
+    // The voices a reader may choose (worker/plus.mjs). ElevenLabs premade voice ids, not secret;
+    // "default" takes its id from the PLUS_VOICE_ID secret. GET /api/plus/voices lists slugs and labels only.
+    "PLUS_VOICES": [{ "slug": "default", "label": "Default" }, { "slug": "george", "label": "George — warm British narrator", "id": "JBFqnCBsd6RMkjVDRZzb" }, { "slug": "rachel", "label": "Rachel — calm American", "id": "21m00Tcm4TlvDq8ikWAM" }, { "slug": "daniel", "label": "Daniel — deep British", "id": "onwK4e9ZLuTAKqWW03F9" }, { "slug": "charlotte", "label": "Charlotte — soft, measured", "id": "XB0fDUnXU5powFXDhCwa" }] },
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",

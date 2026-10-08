@@ -22,6 +22,12 @@ const NOW = 1_800_000_000;
 const { sign, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S, MAX_BODY_BYTES } = PLUS_INTERNALS;
 const PRICE = 'price_plus';
 const EXP = NOW + 20 * DAY_S;
+/** The allow-list as wrangler hands a JSON var over: parsed. */
+const VOICES = [
+  { slug: 'default', label: 'Default' },
+  { slug: 'george', label: 'George', id: 'JBFqnCBsd6RMkjVDRZzb' },
+  { slug: 'rachel', label: 'Rachel', id: '21m00Tcm4TlvDq8ikWAM' }
+];
 
 /** A subscription as Stripe 2025-03-31.basil returns it: the billing period is on the item. */
 const subscription = ({ current_period_end = EXP, price = PRICE, ...overrides } = {}) => ({
@@ -64,7 +70,7 @@ function environment(overrides = {}) {
     PLUS_PRICE_ID: PRICE,
     ELEVENLABS_API_KEY: 'el-secret',
     PLUS_VOICE_ID: 'voice-1',
-    PLUS_VOICE_SLUG: 'el_plus',
+    PLUS_VOICES: VOICES,
     PLUS_DAILY_CHAR_CAP: '1000000',
     PLUS_METER: meterNamespace(),
     DECISION_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
@@ -130,9 +136,10 @@ const POST_HEADERS = { Origin: SITE, 'Content-Type': 'application/json', 'CF-Con
 const claimRequest = (body = { session_id: 'cs_test_1' }, headers = {}) => new Request(`${SITE}/api/plus/claim`, {
   method: 'POST', headers: { ...POST_HEADERS, ...headers }, body: JSON.stringify(body)
 });
-const voiceRequest = (cookie, atoms, headers = {}) => new Request(`${SITE}/api/plus/voice`, {
-  method: 'POST', headers: { ...POST_HEADERS, ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: JSON.stringify({ atoms })
+const voiceRequest = (cookie, atoms, headers = {}, extra = {}) => new Request(`${SITE}/api/plus/voice`, {
+  method: 'POST', headers: { ...POST_HEADERS, ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: JSON.stringify({ atoms, ...extra })
 });
+const vendorVoiceOf = call => decodeURIComponent(new URL(call[0]).pathname.split('/')[3]);
 const setCookieOf = response => response.headers.get('Set-Cookie');
 const cookiePart = response => setCookieOf(response)?.split(';')[0] ?? null;
 const codeOf = async response => (await response.json()).error.code;
@@ -147,6 +154,7 @@ describe('Plus routes', () => {
     expect(isPlusRoute('/api/plus/claim')).toBe(true);
     expect(isPlusRoute('/api/plus/voice')).toBe(true);
     expect(isPlusRoute('/api/plus/forget')).toBe(true);
+    expect(isPlusRoute('/api/plus/voices')).toBe(true);
     expect(isPlusRoute(`/api/plus/audio/voiced/${'a'.repeat(64)}/pack.json`)).toBe(false);
     expect(isPlusRoute('/api/plus/audio/el_a/the-iliad/3/pack.json')).toBe(false);
     expect(isPlusRoute('/api/plus')).toBe(false);
@@ -279,8 +287,10 @@ describe('voice', () => {
     expect(body.allowance).toEqual({ used: TEXT.length, limit: VOICE_ALLOWANCE, periodEnd: EXP });
     const { pack } = body;
     expect(pack.schema).toBe('rise.recitation-voice-pack.v1');
-    expect(pack.voiced).toEqual({ hash: expect.stringMatching(/^[0-9a-f]{64}$/u), characters: TEXT.length, model: 'elevenlabs/eleven_flash_v2_5' });
-    const entries = Object.values(pack.voices.el_plus.entries);
+    expect(pack.voiced).toEqual({ hash: expect.stringMatching(/^[0-9a-f]{64}$/u), voice: 'default', characters: TEXT.length, model: 'elevenlabs/eleven_flash_v2_5' });
+    expect(Object.keys(pack.voices)).toEqual(['default']);
+    expect(pack.voices.default.label).toBe('Default');
+    const entries = Object.values(pack.voices.default.entries);
     expect(entries.map(e => e.text)).toEqual(ATOMS);
     expect(new Set(entries.map(e => e.asset))).toEqual(new Set([`voiced:${pack.voiced.hash}`]));
     expect(entries[0].mimeType).toBe('audio/mpeg');
@@ -290,6 +300,7 @@ describe('voice', () => {
     // The vendor was asked once, with the key and the joined text; Stripe was asked first, with the pinned version.
     const vendorCall = fetcher.mock.calls.find(([url]) => String(url).includes('elevenlabs'));
     expect(vendorCall[1].headers['xi-api-key']).toBe('el-secret');
+    expect(vendorVoiceOf(vendorCall)).toBe('voice-1'); // no voice named: the default, PLUS_VOICE_ID
     expect(JSON.parse(vendorCall[1].body)).toEqual({ text: TEXT, model_id: 'eleven_flash_v2_5' });
     const stripeCall = fetcher.mock.calls.find(([url]) => String(url) === 'https://api.stripe.com/v1/subscriptions/sub_1');
     expect(stripeCall[1].headers['Stripe-Version']).toBe(STRIPE_VERSION);
@@ -355,6 +366,11 @@ describe('voice', () => {
   it.each([
     ['ELEVENLABS_API_KEY', { ELEVENLABS_API_KEY: undefined }],
     ['PLUS_VOICE_ID', { PLUS_VOICE_ID: undefined }],
+    ['PLUS_VOICES', { PLUS_VOICES: undefined }],
+    ['PLUS_VOICES', { PLUS_VOICES: 'not json' }],
+    ['PLUS_VOICES', { PLUS_VOICES: [{ slug: 'george', label: 'George', id: 'x' }] }],
+    ['PLUS_VOICES', { PLUS_VOICES: [...VOICES, { slug: 'nobody', label: 'No id' }] }],
+    ['PLUS_VOICES', { PLUS_VOICES: [...VOICES, { slug: 'george', label: 'Twice', id: 'y' }] }],
     ['PLUS_DAILY_CHAR_CAP', { PLUS_DAILY_CHAR_CAP: undefined }],
     ['PLUS_DAILY_CHAR_CAP', { PLUS_DAILY_CHAR_CAP: 'lots' }],
     ['PLUS_DAILY_CHAR_CAP', { PLUS_DAILY_CHAR_CAP: '0' }],
@@ -696,5 +712,90 @@ describe('PlusMeter', () => {
     const m = meter();
     expect((await m.fetch(new Request('https://plus-meter/reserve', { method: 'POST', body: JSON.stringify({ period: 1, n: -5, limit: 100 }) }))).status).toBe(400);
     expect((await m.fetch(new Request('https://plus-meter/other', { method: 'POST', body: JSON.stringify({ period: 1, n: 1 }) }))).status).toBe(404);
+  });
+});
+
+describe('choosing a voice', () => {
+  it('maps each slug to its own vendor id, and names the slug in the pack', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { fetcher } = world();
+    const cookie = await cookieFor(env);
+    const hashes = new Set();
+    for (const [slug, id] of [['default', 'voice-1'], ['george', 'JBFqnCBsd6RMkjVDRZzb'], ['rachel', '21m00Tcm4TlvDq8ikWAM']]) {
+      fetcher.mockClear();
+      const response = await worker.fetch(voiceRequest(cookie, ['hello there'], {}, { voice: slug }), env);
+      expect(response.status).toBe(200);
+      const { pack } = await response.json();
+      expect(pack.voiced.voice).toBe(slug);
+      expect(Object.keys(pack.voices)).toEqual([slug]);
+      hashes.add(pack.voiced.hash);
+      expect(vendorVoiceOf(fetcher.mock.calls.find(([url]) => String(url).includes('elevenlabs')))).toBe(id);
+    }
+    expect(hashes.size).toBe(3); // the same text in another voice is another performance
+  });
+
+  it('accepts the allow-list as text too, as a dashboard or secret value arrives', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment({ PLUS_VOICES: JSON.stringify(VOICES) });
+    world();
+    expect((await worker.fetch(voiceRequest(await cookieFor(env), ['hello there'], {}, { voice: 'george' }), env)).status).toBe(200);
+  });
+
+  it.each([
+    ['an unknown slug', 'brian'],
+    ['a raw vendor id', 'JBFqnCBsd6RMkjVDRZzb'],
+    ['a raw id of the default voice', 'voice-1'],
+    ['an object', { id: 'JBFqnCBsd6RMkjVDRZzb' }],
+    ['a list', ['george']],
+    ['a property of every object', '__proto__']
+  ])('refuses %s with 400 before Stripe, the meter or the vendor', async (_, voice) => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { fetcher } = world();
+    const response = await worker.fetch(voiceRequest(await cookieFor(env), ['hello there'], {}, { voice }), env);
+    expect([response.status, await codeOf(response)]).toEqual([400, 'UNKNOWN_VOICE']);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(await usedIn(env, 'sub:sub_1', EXP)).toBe(0);
+  });
+
+  it('cannot reach the vendor with an id smuggled in elsewhere in the body', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { fetcher } = world();
+    const response = await worker.fetch(voiceRequest(await cookieFor(env), ['hello there'], {}, { voice: 'george', voice_id: 'attacker-voice', id: 'attacker-voice', model_id: 'eleven_v3' }), env);
+    expect(response.status).toBe(200);
+    const vendorCall = fetcher.mock.calls.find(([url]) => String(url).includes('elevenlabs'));
+    expect(vendorVoiceOf(vendorCall)).toBe('JBFqnCBsd6RMkjVDRZzb');
+    expect(JSON.parse(vendorCall[1].body)).toEqual({ text: 'hello there', model_id: 'eleven_flash_v2_5' });
+  });
+
+  it('meters per subscription whatever the voice', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    let ok = 0;
+    for (let i = 0; i < 12; i++) {
+      const voice = VOICES[i % VOICES.length].slug;
+      if ((await worker.fetch(voiceRequest(cookie, [textOf(10_000, i)], {}, { voice }), env)).status === 200) ok++;
+    }
+    expect(ok).toBe(10);
+    expect(state.vendorChars).toBe(100_000);
+    expect(await usedIn(env, 'sub:sub_1', EXP)).toBe(100_000);
+  });
+
+  it('lists slugs and labels without a cookie, and never a vendor id', async () => {
+    const env = environment();
+    const { fetcher } = world();
+    const response = await worker.fetch(new Request(`${SITE}/api/plus/voices`), env);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual(VOICES.map(({ slug, label }) => ({ slug, label })));
+    const text = JSON.stringify(body);
+    for (const id of ['voice-1', 'JBFqnCBsd6RMkjVDRZzb', '21m00Tcm4TlvDq8ikWAM']) expect(text).not.toContain(id);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect((await worker.fetch(new Request(`${SITE}/api/plus/voices`, { method: 'POST', headers: { Origin: SITE } }), env)).status).toBe(405);
+    expect((await worker.fetch(new Request(`${SITE}/api/plus/voices`), environment({ PLUS_VOICES: 'nope' }))).status).toBe(503);
   });
 });

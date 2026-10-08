@@ -8,17 +8,20 @@
  *   POST /api/plus/claim   { session_id }   the Checkout success page; 204 and the cookie once Stripe confirms
  *   POST /api/plus/voice   { atoms }        voices one short reading on the lab's key (contract below)
  *   POST /api/plus/forget                   clears the cookie in this browser
+ *   GET  /api/plus/voices                   the voices a reader may choose: [{ slug, label }], never a vendor id; no cookie needed
  *
  * Every POST must carry `Origin` equal to the request's own origin (403 FORBIDDEN_ORIGIN);
  * claim and voice must send `Content-Type: application/json` (415 BAD_CONTENT_TYPE) and a
  * body of at most 64 KiB (413 TOO_LARGE).
  *
  * POST /api/plus/voice contract (the client, src/audio/plus-voice.js, is built against it):
- *   request  { "atoms": ["phrase", ...] }   1..400 phrases, each with a letter or digit and
- *            no line break; joined by one space, at most 10,000 characters.
+ *   request  { "atoms": ["phrase", ...], "voice"?: <slug> }   1..400 phrases, each with a letter
+ *            or digit and no line break; joined by one space, at most 10,000 characters. `voice`
+ *            is a slug from GET /api/plus/voices, "default" when absent; the vendor's voice id
+ *            comes only from the server's allow-list (PLUS_VOICES), never from the request.
  *   200 application/json
  *     { "pack": { "schema": "rise.recitation-voice-pack.v1",
- *                 "voiced": { "hash": <sha256 hex of voice, model, slug and text>, "characters": n, "model": "elevenlabs/<model>" },
+ *                 "voiced": { "hash": <sha256 hex of voice id, model, slug and text>, "voice": <slug>, "characters": n, "model": "elevenlabs/<model>" },
  *                 "voices": { <slug>: { "label", "model", "format": "mp3",
  *                   "entries": { <voiceAssetKey(text)>: { "text", "asset": "voiced:<hash>", "mimeType": "audio/mpeg",
  *                                                       "fromMs", "toMs", "durationMs", "onsetsMs": [...] } } } } },
@@ -30,7 +33,7 @@
  *     answers that id itself. Nothing is cached server-side; the same text sent twice is
  *     voiced, and metered, twice. The response re-signs the cookie.
  *   errors   { "error": { "code", "message" } }
- *     400 BAD_REQUEST, 413 TOO_LONG | TOO_LARGE, 415 BAD_CONTENT_TYPE, 403 FORBIDDEN_ORIGIN,
+ *     400 BAD_REQUEST, 400 UNKNOWN_VOICE (a slug not in the allow-list), 413 TOO_LONG | TOO_LARGE, 415 BAD_CONTENT_TYPE, 403 FORBIDDEN_ORIGIN,
  *     402 PLUS_REQUIRED (no valid cookie, or Stripe no longer has an active Plus subscription;
  *         the cookie is cleared), 402 PLUS_LAPSED (cookie past its period and grace),
  *     402 PLUS_ALLOWANCE (this period's characters are used up), 429 RATE_LIMITED,
@@ -49,8 +52,9 @@
  * Secrets: STRIPE_SECRET_KEY, PLUS_COOKIE_SECRET (and PLUS_COOKIE_SECRET_PREVIOUS while
  * rotating; every configuration has its own), ELEVENLABS_API_KEY, PLUS_PRICE_ID (the Stripe
  * price of RISE Plus, test and live differ; unset, every claim and voicing is refused),
- * PLUS_VOICE_ID (the vendor's voice). Vars in config: PLUS_VOICE_SLUG, PLUS_VOICE_MODEL,
- * PLUS_DAILY_CHAR_CAP. Binding: PLUS_METER, the PlusMeter Durable Object namespace.
+ * PLUS_VOICE_ID (the vendor's id of the "default" voice). Vars in config: PLUS_VOICES (the
+ * allow-list, a JSON array of { slug, label, id }; the "default" entry takes its id from
+ * PLUS_VOICE_ID), PLUS_VOICE_MODEL, PLUS_DAILY_CHAR_CAP. Binding: PLUS_METER, the PlusMeter Durable Object namespace.
  */
 import { mapAlignment } from '../src/audio/poem-alignment.js';
 import { VOICE_PACK_SCHEMA, voiceAssetKey } from '../src/audio/voice-pack-key.js';
@@ -85,7 +89,30 @@ const JSON_HEADERS = {
 };
 
 export function isPlusRoute(path) {
-  return path === '/api/plus/claim' || path === '/api/plus/voice' || path === '/api/plus/forget';
+  return path === '/api/plus/claim' || path === '/api/plus/voice' || path === '/api/plus/forget' || path === '/api/plus/voices';
+}
+
+/**
+ * The voice allow-list: slug to label and vendor id, or null when PLUS_VOICES is not a
+ * usable list (and the voice is off). Wrangler hands a JSON var over parsed; a dashboard
+ * or secret value arrives as text. The "default" voice's id is the PLUS_VOICE_ID secret.
+ */
+function voices(env) {
+  let list = env.PLUS_VOICES;
+  try {
+    if (typeof list === 'string') list = JSON.parse(list);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(list) || !list.length) return null;
+  const bySlug = new Map();
+  for (const voice of list) {
+    const id = voice?.slug === 'default' ? env.PLUS_VOICE_ID : voice?.id;
+    if (typeof voice?.slug !== 'string' || !/^[a-z0-9_-]{1,32}$/u.test(voice.slug) || bySlug.has(voice.slug)
+      || typeof voice.label !== 'string' || !voice.label || (voice.slug !== 'default' && (typeof id !== 'string' || !id))) return null;
+    bySlug.set(voice.slug, { label: voice.label, id });
+  }
+  return bySlug.has('default') ? bySlug : null;
 }
 
 function reply(status, body, headers = {}) {
@@ -282,8 +309,9 @@ async function meter(env, name, op, body) {
  * every phrase at one audio file with its own time range; the Voice slices it.
  */
 async function voice(request, env, now) {
-  const missing = ['ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICE_SLUG', 'PLUS_PRICE_ID', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER']
-    .filter(name => (name === 'PLUS_DAILY_CHAR_CAP' ? dailyCap(env) === null : !env[name]));
+  const allowed = voices(env);
+  const missing = ['ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_PRICE_ID', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER']
+    .filter(name => (name === 'PLUS_DAILY_CHAR_CAP' ? dailyCap(env) === null : name === 'PLUS_VOICES' ? !allowed : !env[name]));
   if (missing.length) {
     return refuse(503, 'PLUS_UNAVAILABLE', `The Plus voice is not switched on in this deployment (${missing.join(', ')} not set).`);
   }
@@ -299,6 +327,11 @@ async function voice(request, env, now) {
     || !atoms.every(atom => typeof atom === 'string' && /[\p{L}\p{N}]/u.test(atom) && !/\n/u.test(atom))) {
     return refuse(400, 'BAD_REQUEST', `Send between 1 and ${VOICE_MAX_ATOMS} spoken phrases, each with at least one letter.`);
   }
+  const slug = body.voice ?? 'default';
+  if (typeof slug !== 'string' || !allowed.has(slug)) {
+    return refuse(400, 'UNKNOWN_VOICE', 'Choose a voice from /api/plus/voices.');
+  }
+  const voiceId = allowed.get(slug).id;
   const text = atoms.join(' ');
   if (text.length > VOICE_MAX_CHARS) return refuse(413, 'TOO_LONG', `A voicing is at most ${VOICE_MAX_CHARS.toLocaleString('en')} characters.`);
 
@@ -331,7 +364,7 @@ async function voice(request, env, now) {
   const model = env.PLUS_VOICE_MODEL || 'eleven_flash_v2_5';
   let response;
   try {
-    response = await fetch(`${ELEVENLABS}/v1/text-to-speech/${encodeURIComponent(env.PLUS_VOICE_ID)}/with-timestamps?output_format=mp3_44100_64`, {
+    response = await fetch(`${ELEVENLABS}/v1/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=mp3_44100_64`, {
       method: 'POST',
       headers: { 'xi-api-key': env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, model_id: model })
@@ -360,8 +393,7 @@ async function voice(request, env, now) {
   const mapped = mapAlignment({ atoms, alignment: rendered.alignment ?? {} });
   if (!mapped.ok) return refuse(502, 'VOICE_REFUSED', `The performance did not match the text (${mapped.reason}).`);
 
-  const slug = env.PLUS_VOICE_SLUG;
-  const hash = await sha256(`${env.PLUS_VOICE_ID}\n${model}\n${slug}\n${text}`);
+  const hash = await sha256(`${voiceId}\n${model}\n${slug}\n${text}`);
   const asset = `voiced:${hash}`;
   const entries = {};
   for (const atom of mapped.atoms) {
@@ -379,14 +411,20 @@ async function voice(request, env, now) {
   }
   const pack = {
     schema: VOICE_PACK_SCHEMA,
-    voiced: { hash, characters: n, model: `elevenlabs/${model}` },
-    voices: { [slug]: { label: slug, model: `elevenlabs/${model}`, format: 'mp3', entries } }
+    voiced: { hash, voice: slug, characters: n, model: `elevenlabs/${model}` },
+    voices: { [slug]: { label: allowed.get(slug).label, model: `elevenlabs/${model}`, format: 'mp3', entries } }
   };
   return reply(200, { pack, audio: rendered.audio_base64, allowance }, { 'Set-Cookie': await setCookie({ ...standing, iat: now }, env, now) });
 }
 
 export async function handlePlus(request, env) {
   const path = new URL(request.url).pathname;
+  if (path === '/api/plus/voices') {
+    if (request.method !== 'GET') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
+    const allowed = voices(env);
+    if (!allowed) return refuse(503, 'PLUS_UNAVAILABLE', 'The Plus voices are not set in this deployment (PLUS_VOICES).');
+    return reply(200, [...allowed].map(([slug, { label }]) => ({ slug, label })));
+  }
   if (request.method !== 'POST') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use POST.');
   if (request.headers.get('Origin') !== new URL(request.url).origin) {
     return refuse(403, 'FORBIDDEN_ORIGIN', 'Plus answers only the page it serves.');
