@@ -803,7 +803,8 @@ test('the self-contained card plays a Current from another origin, framing nothi
   page.on('console', message => { if (['error', 'warning'].includes(message.type())) seen.push(`console.${message.type()}: ${message.text().slice(0, 300)}`); });
   page.on('requestfailed', request => seen.push(`failed: ${request.url()} ${request.failure()?.errorText ?? ''}`));
   page.on('response', response => { if (response.status() >= 400) seen.push(`${response.status()}: ${response.url()}`); });
-  const appOrigin = new URL(baseURL).origin.replace('127.0.0.1', 'localhost');
+  // RISE at 127.0.0.1 and the host at localhost: two origins on the one preview server.
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
   // Everything the card asks of the host's origin, which in a product host is the sandbox and holds nothing of RISE's.
   const hostRequests = [];
   page.on('request', request => { const url = new URL(request.url()); if (url.origin === new URL(baseURL).origin && url.pathname !== HOST && url.pathname !== '/api/mcp') hostRequests.push(url.pathname); });
