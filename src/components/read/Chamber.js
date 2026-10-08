@@ -2758,9 +2758,13 @@ export class Chamber {
     return fallback && fallback.kind !== 'scene' ? fallback : { kind: 'still' };
   }
 
-  /** A diagnostic of a generated scene, kept for the runtime report (creative-control design §12); the last 20. */
+  /**
+   * A diagnostic of a generated scene, kept for the runtime report (creative-control design §12); the last 20.
+   * The page is told too, so a live host can report it (LiveHost.reportScene) without the Chamber knowing one exists.
+   */
   _noteScene(diagnostic) {
     this.sceneDiagnostics = [...(this.sceneDiagnostics ?? []), diagnostic].slice(-20);
+    this.container.ownerDocument.defaultView?.dispatchEvent(new CustomEvent('rise-scene-diagnostic', { detail: { ...diagnostic } }));
   }
 
   /**

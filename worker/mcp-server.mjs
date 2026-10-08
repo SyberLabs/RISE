@@ -7,6 +7,7 @@ import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
 import { readText } from './live-realtime.mjs';
 import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
+import { admitSceneCode, describeDiagnostic } from './scene-admission.mjs';
 
 /**
  * RISE as an MCP server: one tool that presents a Current, and the app that shows it.
@@ -26,8 +27,8 @@ import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
  * another site must not be able to make a browser talk to it), refuses a
  * protocol version it does not speak before reading anything, holds each client
  * address to the site's rate limiter where the platform offers one, reads a
- * bounded body, and returns nothing it was sent except a validator's message or
- * an argument's name, clipped.
+ * bounded body, and returns nothing it was sent except a validator's message, a
+ * scene parser's diagnostic (scene-admission.mjs) or an argument's name, clipped.
  *
  * CHECKED AGAINST THE REFERENCE, NOT AGAINST A PRODUCT: the shapes below were
  * compared with @modelcontextprotocol/ext-apps 2.0.3 and the SDK's own client
@@ -42,6 +43,8 @@ export const SERVER_INFO = Object.freeze({ name: 'rise', title: 'RISE', version:
 export const PROTOCOL_VERSIONS = Object.freeze(['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
 const MAX_BODY_BYTES = 262_144;
 const MAX_MESSAGE = 300;
+/** Lines of scene refusals in one answer, across every scene. */
+const MAX_SCENE_LINES = 10;
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -110,14 +113,30 @@ export function currentJsonSchemaV2() {
         description: 'The pictures a beat may start; a scene keeps running under the beats that follow until another starts.',
         maxItems: BEAT_LIMITS.scenes,
         items: {
-          type: 'object',
-          properties: {
-            id,
-            engine: { type: 'string', enum: SCENE_ENGINES },
-            params: { type: 'object', description: 'The engine\u2019s parameters, by the guide\u2019s list for that engine; each within its bounds.' }
-          },
-          required: ['id', 'engine'],
-          additionalProperties: false
+          oneOf: [{
+            type: 'object',
+            properties: {
+              id,
+              engine: { type: 'string', enum: SCENE_ENGINES },
+              params: { type: 'object', description: 'The engine\u2019s parameters, by the guide\u2019s list for that engine; each within its bounds.' }
+            },
+            required: ['id', 'engine'],
+            additionalProperties: false
+          }, {
+            type: 'object',
+            properties: {
+              id,
+              code: {
+                type: 'string',
+                minLength: 1,
+                // maxLength counts characters, never more than the bytes the validator counts: looser, never stricter.
+                maxLength: BEAT_LIMITS.code,
+                description: `A picture you write: the text of an ES module of at most ${BEAT_LIMITS.code.toLocaleString('en-US')} bytes whose one default export function receives \`rise\` and returns { frame(t, dt), cue(name, { instant }) }. No imports, no network, no timers: time comes from \`frame\`. Draw with rise.ctx and rise.lib.`
+              }
+            },
+            required: ['id', 'code'],
+            additionalProperties: false
+          }]
         }
       },
       beats: {
@@ -254,10 +273,23 @@ function http(status, body, headers = {}) {
 const result = (id, value) => http(200, { jsonrpc: '2.0', id, result: value });
 const failure = (id, code, message, data) => http(200, { jsonrpc: '2.0', id: id ?? null, error: { code, message, ...(data === undefined ? {} : { data }) } });
 
+/** Text that came from what the model sent, fit to be echoed: no control characters, clipped. */
+const clean = (text, length = MAX_MESSAGE) => clip(String(text).replace(/[\u0000-\u001F\u007F]/gu, ' '), length);
+
 /** The text of a refusal a model can act on: what was wrong and where. */
 function refusal(error) {
-  const message = String(error?.message ?? 'The Current was not valid').replace(/[\u0000-\u001F\u007F]/gu, ' ');
-  return `RISE refused this Current: ${clip(message, MAX_MESSAGE)}. Correct it and call ${TOOL_NAME} again.`;
+  return `RISE refused this Current: ${clean(error?.message ?? 'The Current was not valid')}. Correct it and call ${TOOL_NAME} again.`;
+}
+
+/** Every generated scene's code, parsed and held to the scene rules (scene-admission.mjs); the refusal's lines, or none. */
+function sceneRefusals(current) {
+  const lines = [];
+  for (const scene of Array.isArray(current.scenes) ? current.scenes : []) {
+    if (scene?.code === undefined) continue;
+    const verdict = admitSceneCode(scene.code);
+    if (!verdict.ok) for (const diagnostic of verdict.diagnostics) lines.push(clean(`Scene "${scene.id}" was refused: ${describeDiagnostic(diagnostic)}`));
+  }
+  return lines.slice(0, MAX_SCENE_LINES);
 }
 
 function call(id, params) {
@@ -279,6 +311,11 @@ function call(id, params) {
     validateRiseCurrent(args.current);
   } catch (error) {
     return result(id, { content: [{ type: 'text', text: refusal(error) }], isError: true });
+  }
+  const refused = sceneRefusals(args.current);
+  if (refused.length) {
+    const text = [...refused, `Repair the scene’s code and call ${TOOL_NAME} again with the whole Current.`].join('\n');
+    return result(id, { content: [{ type: 'text', text }], isError: true });
   }
   return result(id, {
     content: [{ type: 'text', text: 'RISE accepted this Current for presentation to the reader.' }],

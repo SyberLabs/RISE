@@ -112,6 +112,17 @@ describe('a generated scene in the Chamber', () => {
     chamber.destroy();
   });
 
+  it('tells the page of each diagnostic it keeps, so a host can report it (CC-006)', async () => {
+    const heard = [];
+    const listen = event => heard.push(event.detail);
+    window.addEventListener('rise-scene-diagnostic', listen);
+    const { chamber, worker } = await mounted();
+    worker.say({ type: TO_HOST.error, phase: 'init', message: 'Error: no', where: null });
+    expect(heard).toEqual([{ sceneId: 'vector', phase: 'init', message: 'Error: no', where: null }]);
+    window.removeEventListener('rise-scene-diagnostic', listen);
+    chamber.destroy();
+  });
+
   it('freezes a scene that would flash, and says so', async () => {
     const { chamber, worker } = await mounted();
     chamber._visualFieldDirector.active.resume();
