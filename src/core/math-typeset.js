@@ -10,35 +10,16 @@
  * `trust: false` and `throwOnError: false`: KaTeX emits no link, no script
  * and no error; a wrong formula shows as its source in red, which is the
  * model's to repair.
+ *
+ * Only the card imports this module. Finding the maths in a text is
+ * math-text.js, which the Worker's validator reaches: wrangler bundles every
+ * import below it, and KaTeX's stylesheet names font files it cannot load.
  */
 
-const MATH = /\$\$([^$]+?)\$\$|\$([^$\n]+?)\$/gu;
+export { hasMath, splitMath } from './math-text.js';
 
 let katex = null;
 let loading = null;
-
-/** Whether a text has maths to typeset. */
-export function hasMath(text) {
-  return typeof text === 'string' && /\$[^$\n]+\$/u.test(text);
-}
-
-/**
- * A text as its words and its maths, in order: `{ kind: 'text', value }` runs
- * and `{ kind: 'math', value, display }` formulas (the TeX without its dollars).
- */
-export function splitMath(text) {
-  const parts = [];
-  if (typeof text !== 'string' || !text) return parts;
-  let cursor = 0;
-  MATH.lastIndex = 0;
-  for (let match = MATH.exec(text); match !== null; match = MATH.exec(text)) {
-    if (match.index > cursor) parts.push({ kind: 'text', value: text.slice(cursor, match.index) });
-    parts.push({ kind: 'math', value: (match[1] ?? match[2]).trim(), display: match[1] !== undefined });
-    cursor = match.index + match[0].length;
-  }
-  if (cursor < text.length) parts.push({ kind: 'text', value: text.slice(cursor) });
-  return parts;
-}
 
 /** Fetch KaTeX (its code, its stylesheet, its fonts) once. Resolves when maths can be typeset. */
 export function loadMath() {

@@ -77,6 +77,10 @@ jobs:
           tests=$!
           npx vite build
           npm run measure:first-load
+          # The Worker is bundled by wrangler, not Vite: an import the validator reaches that
+          # Vite accepts (a stylesheet, a font) fails only at deploy. #518 broke every deploy
+          # of main for four merges this way; the dry run fails the pull request instead.
+          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --dry-run --outdir "$RUNNER_TEMP/worker-bundle"
           wait "$tests"
           wait "$audit"
       # Layout, hit-testing and the reading path only show in a browser: #373
