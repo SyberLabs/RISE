@@ -10,7 +10,7 @@
  * only while switched on.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { RISE_CURRENT_LIMITS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
+import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
 import { CURRENT_EXAMPLE, CURRENT_GUIDE } from '../src/live/adapters/current-guide.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
@@ -338,7 +338,8 @@ describe('the shape of a Current, as the host’s model is told it', () => {
 
   it('requires what the validator requires, and allows no field it does not know', () => {
     expect(schema).toMatchObject({ type: 'object', required: ['schema', 'id', 'title', 'origin', 'segments'], additionalProperties: false });
-    expect(Object.keys(schema.properties)).toEqual(['schema', 'id', 'title', 'theme', 'origin', 'segments']);
+    expect(Object.keys(schema.properties)).toEqual(['schema', 'id', 'title', 'theme', 'look', 'origin', 'segments']);
+    expect(schema.properties.look).toEqual({ type: 'string', enum: [...RISE_CURRENT_LOOKS] });
     expect(schema.properties.origin).toMatchObject({ required: ['kind', 'name'], additionalProperties: false });
     expect(Object.keys(schema.properties.origin.properties)).toEqual(['kind', 'name', 'provider']);
     expect(schema.properties.segments.minItems).toBe(1);

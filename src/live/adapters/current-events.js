@@ -19,10 +19,13 @@ import { EVENT_LIMITS } from '../protocol.js';
  */
 export function currentToEvents(input) {
     const current = validateRiseCurrent(input);
-    const events = [{ type: 'current.open', body: { title: current.title, origin: current.origin, ...(current.theme ? { theme: current.theme } : {}) } }];
+    const events = [{ type: 'current.open', body: {
+        title: current.title, origin: current.origin,
+        ...(current.theme ? { theme: current.theme } : {}), ...(current.look ? { look: current.look } : {})
+    } }];
     for (const segment of current.segments) {
         const literal = segment.literal ? { literal: true } : {};
-        events.push({ type: 'segment.begin', body: { segmentId: segment.id, visual: segment.visual, ...literal } });
+        events.push({ type: 'segment.begin', body: { segmentId: segment.id, ...(segment.visual === undefined ? {} : { visual: segment.visual }), ...literal } });
         for (let offset = 0; offset < segment.text.length;) {
             // A chunk is never blank, however the whitespace in the text falls.
             let end = Math.min(segment.text.length, offset + EVENT_LIMITS.textChunk);

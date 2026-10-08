@@ -8,8 +8,8 @@
  * ones that are hard rules is shown to be refused.
  */
 import { describe, expect, it } from 'vitest';
-import { RISE_CURRENT_LIMITS, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../../core/rise-current.js';
-import { CURRENT_EXAMPLE, CURRENT_GUIDE, DIVE_INSTRUCTIONS, THEME_HINTS, TOOL_NAME } from './current-guide.js';
+import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../../core/rise-current.js';
+import { CURRENT_EXAMPLE, CURRENT_GUIDE, DIVE_INSTRUCTIONS, LOOK_HINTS, THEME_HINTS, TOOL_NAME } from './current-guide.js';
 
 describe('the example', () => {
     it('is a Current the strict validator accepts', () => {
@@ -51,7 +51,17 @@ describe('the numbers it states are the validator’s', () => {
         for (const id of RISE_CURRENT_THEME_IDS) expect(CURRENT_GUIDE).toContain(`${id} (${THEME_HINTS[id]})`);
         const lines = CURRENT_GUIDE.split('\n');
         const visual = lines.findIndex(line => line.startsWith('- "visual"'));
-        expect(lines[visual + 1]).toBe('- "theme" colors the whole answer: its page, its moving light and its drawings. Choose the one that suits the subject: classic (ivory and gold, for history, literature and ideas), amethyst (violet, for the mind, dreams and music), prism (magenta and cyan, for technology, cities and speed), ember (fire red, for warmth, conflict and passion), cobalt (deep blue, for space, the sea and physics), jade (green, for nature, life and health), rose (rose pink, for love, family, poetry and art), citrine (lemon yellow, for food, travel and play), silver (silver grey, for money, law, mathematics and the news). Leave it out only if none suits.');
+        expect(lines[visual + 1]).toBe('- "theme" colors the whole answer: its page, its moving light and its drawings. Choose the one that suits the subject: classic (ivory and gold, for history, literature and ideas), amethyst (violet, for the mind, dreams and music), prism (magenta and cyan, for technology, cities and speed), ember (fire red, for warmth, conflict and passion), cobalt (deep blue, for space, the sea and physics), jade (green, for nature, life and health), rose (rose pink, for love, family, poetry and art), citrine (lemon yellow, for food, travel and play), silver (silver grey, for money, law, mathematics and the news). Leave it out only if none suits; a "look" then brings its own.');
+    });
+
+    it('offers every look, each with a hint that promises no sound, since the card plays none (SCR-002)', () => {
+        expect(Object.keys(LOOK_HINTS)).toEqual([...RISE_CURRENT_LOOKS]);
+        expect(Object.isFrozen(LOOK_HINTS)).toBe(true);
+        for (const id of RISE_CURRENT_LOOKS) {
+            expect(CURRENT_GUIDE).toContain(`${id} (${LOOK_HINTS[id]})`);
+            expect(LOOK_HINTS[id], id).not.toMatch(/sound|music|piano|rain|chase|song|theme tune/iu);
+        }
+        expect(validateRiseCurrent(CURRENT_EXAMPLE).look).toBe('signal');
     });
 
     it('names the tool the server offers, once, in one place', () => {

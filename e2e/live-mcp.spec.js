@@ -743,3 +743,34 @@ test('an answer without a theme keeps RISE ink and still shows its title over Pl
   expect(title.y + title.height).toBeLessThanOrEqual(button.y);
   await expect.poll(() => backgroundOf(app.locator('body'))).toBe('rgb(6, 5, 26)');
 });
+
+// SCR-002: a Current may name any of the ten looks; the card draws each through its own field.
+const LOOK_FIELDS = {
+  plain: null,
+  gallery: '.chamber-continuous-field :is(canvas, img)',
+  nocturne: '.chamber-continuous-field :is(canvas, img)',
+  garden: '.chamber-genesis',
+  flame: '.chamber-living-flame',
+  signal: '.chamber-attractor',
+  iris: '.chamber-continuous-field :is(canvas, img)',
+  revel: '.chamber-continuous-field :is(canvas, img)',
+  vigil: '.chamber-focal',
+  inlay: '.chamber-continuous-field :is(canvas, img)'
+};
+for (const [look, field] of Object.entries(LOOK_FIELDS)) {
+  test(`a Current in the ${look} look plays in the card with that look's imagery`, async ({ page, baseURL }) => {
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    const { theme: _theme, ...answer } = BLACK_HOLES_CURRENT;
+    const current = { ...answer, look, segments: answer.segments.map(({ visual: _visual, ...segment }) => segment) };
+    const app = await openHost(page, baseURL, { current });
+    await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
+    await begin(app);
+    await expectShown(app, 'A black hole is a region of space');
+    if (field) await expect(app.locator(field).first()).toBeAttached({ timeout: 15_000 });
+    else await expect(app.locator('.chamber-continuous-field :is(canvas, img), .chamber-genesis, .chamber-attractor, .chamber-living-flame, .chamber-focal')).toHaveCount(0);
+    // Inlay keeps its imagery and face but never masks the spoken sentence inside one word.
+    if (look === 'inlay') await expect(app.locator('#atom-display.is-mask')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+}
