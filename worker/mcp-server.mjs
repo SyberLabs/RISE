@@ -42,6 +42,8 @@ export const APP_MIME = 'text/html;profile=mcp-app';
 const GUIDE_PREFIX = 'ui://rise/guide/';
 const GUIDE_MIME = 'text/markdown';
 const GUIDE_URIS = new Map(RISE_CURRENT_STYLES.map(id => [`${GUIDE_PREFIX}${id}`, id]));
+/** The same guidance as a tool, for hosts whose model cannot read resources. */
+export const GUIDE_TOOL_NAME = 'rise_guide';
 export const SERVER_INFO = Object.freeze({ name: 'rise', title: 'RISE', version: '1.0.0' });
 /** Newest first. A client's version is answered with itself if it is here, and otherwise with the newest. */
 export const PROTOCOL_VERSIONS = Object.freeze(['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
@@ -61,7 +63,7 @@ const JSON_HEADERS = {
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
 
 // Conditional on the reader's request, as the directory's review asks: a server must not tell the model to call a tool the reader did not ask for.
-const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. When the reader asks for a reading, a spoken or visual explanation, or names RISE, answer by calling ${TOOL_NAME} with a Current.`;
+const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. When the reader asks for a reading, a spoken or visual explanation, or names RISE, answer by calling ${TOOL_NAME} with a Current. Before writing a Current in a named style, call ${GUIDE_TOOL_NAME} with that style to read how.`;
 
 const shortText = max => ({ type: 'string', minLength: 1, maxLength: max });
 
@@ -253,7 +255,7 @@ export const TOOL = Object.freeze({
     '',
     CURRENT_GUIDE,
     '',
-    `Styles, for "style" on a v2 Current. The full guidance for a style, with two worked Currents, is the resource ${GUIDE_PREFIX}<style>; read it before writing in that style if you can.`,
+    `Styles, for "style" on a v2 Current. Before writing in a style, call ${GUIDE_TOOL_NAME} with {"style": "<style>"} for its full guidance and two worked Currents.`,
     ...STYLE_LINES
   ].join('\n'),
   inputSchema: {
@@ -275,6 +277,24 @@ export const TOOL = Object.freeze({
     'openai/toolInvocation/invoking': 'Preparing the reading',
     'openai/toolInvocation/invoked': 'The reading is ready to play'
   }
+});
+
+/**
+ * A style's full guidance, as a tool: a host such as claude.ai lets the reader attach resources and
+ * lets its model only call tools, so the guide resources alone would never reach the model.
+ */
+export const GUIDE_TOOL = Object.freeze({
+  name: GUIDE_TOOL_NAME,
+  title: 'Read a RISE style',
+  description: `Read how to write a RISE Current in a named style, with worked examples, before calling ${TOOL_NAME} in that style.`,
+  inputSchema: {
+    type: 'object',
+    properties: { style: { type: 'string', enum: RISE_CURRENT_STYLES } },
+    required: ['style'],
+    additionalProperties: false
+  },
+  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  securitySchemes: [{ type: 'noauth' }]
 });
 
 function http(status, body, headers = {}) {
@@ -334,6 +354,17 @@ function call(id, params) {
   });
 }
 
+/** rise_guide: one style's full guidance, or a refusal that names the styles and echoes nothing it was sent. */
+function guide(id, params) {
+  const args = params.arguments;
+  const keys = args && typeof args === 'object' && !Array.isArray(args) ? Object.keys(args) : null;
+  const style = keys?.length === 1 && keys[0] === 'style' && typeof args.style === 'string' && RISE_CURRENT_STYLES.includes(args.style) ? args.style : null;
+  if (style === null) {
+    return result(id, { content: [{ type: 'text', text: `Call ${GUIDE_TOOL_NAME} with {"style": <a style>} only; the styles are ${RISE_CURRENT_STYLES.join(', ')}.` }], isError: true });
+  }
+  return result(id, { content: [{ type: 'text', text: styleGuide(style) }] });
+}
+
 function read(id, params, origin, witness, card) {
   const style = GUIDE_URIS.get(params?.uri);
   if (style !== undefined) return result(id, { contents: [{ uri: params.uri, mimeType: GUIDE_MIME, text: styleGuide(style) }] });
@@ -386,8 +417,9 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
       });
     }
     case 'ping': return result(id, {});
-    case 'tools/list': return result(id, { tools: gate0 ? [TOOL, GATE0_TOOL] : [TOOL] });
+    case 'tools/list': return result(id, { tools: gate0 ? [TOOL, GUIDE_TOOL, GATE0_TOOL] : [TOOL, GUIDE_TOOL] });
     case 'tools/call': {
+      if (params?.name === GUIDE_TOOL_NAME) return guide(id, params);
       if (!gate0 || params?.name !== GATE0_TOOL_NAME) return call(id, params);
       const probe = callGate0(params.arguments, Date.now());
       if (probe.log) console.log(probe.log);

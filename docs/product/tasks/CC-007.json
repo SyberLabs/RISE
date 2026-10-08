@@ -17,9 +17,10 @@
     "A v2 beat that shows text and sets no place or size takes its style's, a hold takes none, and the style's faces sit under the Current's own role by role on the presentation; a Current with no style lowers as before; tested in src/core/rise-current.v2.test.js.",
     "The style's library defaults reach a generated scene: the Chamber passes them to the scene runtime, the runtime sends them in the worker's init message, and createSceneLibrary applies them, ignoring an unknown key or a value of another kind; tested in scene-library, scene-runtime, scene-worker and Chamber.scene tests.",
     "The Composer guide lives in src/live/guide/ (contract, looks, beats with code scenes, one file per style) and imports only the core; the old src/live/adapters/current-guide.js is gone. The beats guide teaches the scene module shape, every rise.lib function in one line (held to exactly the library's), reportsCompletion and rise.done(), every refused name (one list in src/core/beats.js shared with the admission), the frame budget and the repair loop; each style has guidance and two worked Currents the validator accepts and whose scenes the admission admits; tested in src/live/guide/index.test.js.",
-    "The Worker lists ui://rise/guide/premium-educational and ui://rise/guide/open-field as text/markdown resources and serves each style's full guidance from them; any other guide address is -32002; the self-contained card reads the deployed page only for ui://rise/current; the tool's description names each style in one line, points at the resources, and stays within 12,000 characters; tested in worker/mcp-server.test.js.",
+    "The Worker offers a second read-only tool, rise_guide, taking { style } from the styles' enum and returning that style's full guidance as one text block, refusing any other input with isError and the list of styles; it lists ui://rise/guide/premium-educational and ui://rise/guide/open-field as text/markdown resources with the same text; any other guide address is -32002; the self-contained card reads the deployed page only for ui://rise/current; rise_present's description names each style in one line, points at rise_guide, and stays within 12,000 characters; INSTRUCTIONS mention rise_guide; tested in worker/mcp-server.test.js and worker/mcp-gate0.test.js.",
     "docs/evals/creative-control/ holds at least three cases per style (the worked Currents unchanged, and one code scene drawn with rise.lib axes, plot, vector and tweens), and npm run eval:creative sends each through the Worker's rise_present door and runs every code scene headless (played, seeked with instant cues, reduced motion), reports cues answered, frames, the slowest frame and frames over the soft budget as a Node proxy, and exits non-zero on any refusal, exception or tween left moving; on demand, not in CI; tested in src/test/eval-creative.test.js.",
-    "Not yet seen: a host model reading a style's guide resource, and a Premium Educational reading composed from a one-line prompt in Claude (the stage's acceptance)."
+    "The v2 input schema's cue pattern is the validator's own (BEAT_CUE_PATTERN in src/core/beats.js), so set:<parameter>=<value> cues pass both; tested in worker/mcp-server.test.js.",
+    "Not yet seen: a host model calling rise_guide, and a Premium Educational reading composed from a one-line prompt in Claude (the stage's acceptance)."
   ],
   "evidence": [
     {
@@ -69,10 +70,14 @@
     {
       "date": "2026-10-08T13:33:02.000Z",
       "summary": "Built on cc-006-admission: styles as data and their application to beats and the scene library, the guide split into src/live/guide/ with code-scene teaching and two worked Currents per style, the guide resources in the Worker, and the evaluation corpus and script. Not pushed; not yet seen in a host."
+    },
+    {
+      "date": "2026-10-08T13:39:46.937Z",
+      "summary": "Rebased onto the CC-006 sandbox work (one declaration of the banned names, in src/scenes/scene-bans.js). Added rise_guide, a read-only tool that returns a style's full guidance, because in claude.ai the reader attaches resources and the model only calls tools, so the guide resources alone would never reach it; the resources stay. The schema's cue pattern is now the validator's own. Not pushed; not yet seen in a host."
     }
   ],
-  "updatedAt": "2026-10-08T13:33:02.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-08T13:39:46.937Z",
+  "revision": 2,
   "summary": "A Current names a style and gets its typography and drawing defaults; a model is taught to write code scenes and given each style's full guidance as a resource; and the guidance is measured by a corpus every case of which is accepted and runs.",
   "blocker": null
 }

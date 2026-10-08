@@ -16,7 +16,7 @@ import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, STYLE_LINES, styleG
 import { BEAT_CUE_PATTERN, BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
-import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
+import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, GUIDE_TOOL, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
 
 const SITE = 'https://rise.example';
 /** The most the tool's description may say, in characters. */
@@ -172,13 +172,51 @@ describe('saying hello', () => {
     expect(Object.keys(result.capabilities).sort()).toEqual(['resources', 'tools']);
     expect(result.serverInfo).toMatchObject({ name: 'rise' });
     expect(result.instructions).toContain('rise_present');
+    expect(result.instructions).toContain('rise_guide');
+  });
+});
+
+describe('the guide tool', () => {
+  const callGuide = async args => (await json(await post(rpc('tools/call', { name: 'rise_guide', arguments: args })))).result;
+
+  it('is listed after rise_present: read-only, no sign-in, one sentence, a style from the enum, and no app', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    expect(result.tools.map(tool => tool.name)).toEqual(['rise_present', 'rise_guide']);
+    const guide = result.tools[1];
+    expect(guide).toEqual(GUIDE_TOOL);
+    expect(guide.description).toBe('Read how to write a RISE Current in a named style, with worked examples, before calling rise_present in that style.');
+    expect(guide.inputSchema).toEqual({
+      type: 'object', properties: { style: { type: 'string', enum: [...RISE_CURRENT_STYLES] } }, required: ['style'], additionalProperties: false
+    });
+    expect(guide.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false, openWorldHint: false });
+    expect(guide.securitySchemes).toEqual([{ type: 'noauth' }]);
+    expect(guide._meta).toBeUndefined();
+  });
+
+  it('gives each style’s full guidance as one text block, the same text as the resource', async () => {
+    for (const id of RISE_CURRENT_STYLES) {
+      const result = await callGuide({ style: id });
+      expect(result.isError).toBeUndefined();
+      const { result: read } = await json(await post(rpc('resources/read', { uri: `ui://rise/guide/${id}` })));
+      expect(result.content).toEqual([{ type: 'text', text: read.contents[0].text }]);
+      expect(result.content[0].text).toBe(styleGuide(id));
+    }
+  });
+
+  it('refuses a style RISE does not have, or anything beside the style, and names the styles', async () => {
+    for (const args of [{ style: 'baroque' }, { style: 'constructor' }, { style: 5 }, {}, { style: 'open-field', theme: 'jade' }, undefined, []]) {
+      const result = await callGuide(args);
+      expect(result.isError, JSON.stringify(args)).toBe(true);
+      expect(result.content[0].text).toContain(RISE_CURRENT_STYLES.join(', '));
+      expect(result.content[0].text).not.toContain('baroque');
+    }
   });
 });
 
 describe('the tool', () => {
-  it('is one tool, read-only, callable with no sign-in, with the guide to writing a Current', async () => {
+  it('is one tool to present, read-only, callable with no sign-in, with the guide to writing a Current', async () => {
     const { result } = await json(await post(rpc('tools/list')));
-    expect(result.tools).toHaveLength(1);
+    expect(result.tools.filter(tool => tool.name === 'rise_present')).toHaveLength(1);
     const [tool] = result.tools;
     expect(tool.name).toBe('rise_present');
     expect(tool.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false, openWorldHint: false });
@@ -201,11 +239,12 @@ describe('the tool', () => {
     expect(tool.description).toContain(`\n\n${CURRENT_GUIDE}\n\n`);
   });
 
-  it('ends with one line per style, and says where each style’s full guidance is', async () => {
+  it('ends with one line per style, and says the guide tool gives each style’s full guidance', async () => {
     const { result } = await json(await post(rpc('tools/list')));
     const [tool] = result.tools;
     expect(tool.description.endsWith(STYLE_LINES.join('\n'))).toBe(true);
-    expect(tool.description).toContain('ui://rise/guide/<style>');
+    expect(tool.description).toContain('call rise_guide with {"style": "<style>"}');
+    expect(tool.description).not.toContain('ui://rise/guide');
     for (const id of RISE_CURRENT_STYLES) expect(tool.description).toContain(`- ${id}: `);
   });
 
