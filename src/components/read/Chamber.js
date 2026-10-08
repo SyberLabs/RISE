@@ -2272,17 +2272,18 @@ export class Chamber {
     let consent = '';
     const ai = connectionState();
     const who = ai.kind === 'local' ? 'Kev on this computer' : 'Jev, through your OpenRouter account (billed to you),';
+    const name = ai.kind === 'local' ? 'Kev' : 'Jev';
     if (state.mode === 'follow' && state.director && state.scoring?.prepared && ai.kind === 'none') {
       consent = '<p class="vd-note">Visuals follow this text locally. Connect OpenRouter on Home, or run RISE locally, to let a decision model direct them.</p>';
     } else if (state.mode === 'follow' && state.director && state.scoring?.prepared) {
       if (state.catalogVerified) {
         consent = `<p class="vd-note">${who} directs this released text automatically, one section ahead of you.</p>`;
       } else if (state.consent) {
-        consent = `<div class="vd-consent"><p>Jev is directing these visuals. Sections of this reading are sent as you read; text already sent cannot be recalled.</p>
+        consent = `<div class="vd-consent"><p>${name} is directing these visuals. Sections of this reading are sent as you read; text already sent cannot be recalled.</p>
           <button type="button" data-vd="revoke">Stop sending</button></div>`;
       } else {
-        consent = `<div class="vd-consent"><p>This reading stays on your device, and visuals follow it locally. Jev can direct them more closely if the reading is sent to it, one section at a time as you read.</p>
-          <button type="button" class="vd-primary" data-vd="consent">Send this reading to Jev to direct its visuals.</button></div>`;
+        consent = `<div class="vd-consent"><p>This reading stays on your device, and visuals follow it locally. ${who} can direct them more closely if the reading is sent to it, one section at a time as you read.</p>
+          <button type="button" class="vd-primary" data-vd="consent">Send this reading to ${name} to direct its visuals.</button></div>`;
       }
     }
     host.innerHTML = `

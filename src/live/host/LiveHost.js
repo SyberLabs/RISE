@@ -34,6 +34,7 @@ import { jevColors } from '../../core/jev-palette.js';
 import { lookTheme } from '../../core/current-look.js';
 import { createLiveControls } from './controls.js';
 import { createStageControls } from './stage-controls.js';
+import { isVoiceNote, voiceLine } from '../voice-trace.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
 
@@ -417,6 +418,9 @@ export class LiveHost {
         const runtime = createLiveRuntime({
             adapter: await this.buildAdapter(clock, createMockAdapter),
             clock,
+            // The voice's trace in DevTools, always: a reader who sees the words and the voice part can copy
+            // what the clock saw (voice-trace.js), as a failed scene is reported.
+            onNote: entry => { if (isVoiceNote(entry.type)) console.info('[RISE voice]', voiceLine(entry)); },
             createPlayer: session => createSessionPlayer(session),
             voices,
             host: {

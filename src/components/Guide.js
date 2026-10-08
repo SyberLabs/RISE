@@ -42,7 +42,7 @@ export class Guide {
               <dl class="workflow-steps">
                 <div class="step">
                   <dt>Home</dt>
-                  <dd>Ask Jev for a reading, or continue the last one when there is one.</dd>
+                  <dd>Ask your AI connection for a reading, or continue the last one when there is one.</dd>
                 </div>
                 <div class="step">
                   <dt>Library</dt>
