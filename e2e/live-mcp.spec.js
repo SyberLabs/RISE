@@ -792,9 +792,16 @@ for (const [look, field] of Object.entries(LOOK_FIELDS)) {
 // (localhost against the host's 127.0.0.1), so modules, styles and content cross origins as in a product host.
 test('the self-contained card plays a Current from another origin, framing nothing', async ({ page, baseURL }) => {
   const errors = [];
+  const seen = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (['error', 'warning'].includes(message.type())) seen.push(`console.${message.type()}: ${message.text().slice(0, 300)}`); });
+  page.on('requestfailed', request => seen.push(`failed: ${request.url()} ${request.failure()?.errorText ?? ''}`));
+  page.on('response', response => { if (response.status() >= 400) seen.push(`${response.status()}: ${response.url()}`); });
   const appOrigin = new URL(baseURL).origin.replace('127.0.0.1', 'localhost');
   const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: { ...BLACK_HOLES_CURRENT, look: 'signal' } });
+  // What the card did in its sandbox, printed before the first assertion so a failure explains itself.
+  await posterTitle(app).waitFor({ timeout: 15_000 }).catch(() => {});
+  console.log(`[self-contained] errors=${JSON.stringify(errors)} seen=${JSON.stringify(seen.slice(0, 20))} log=${JSON.stringify((await page.evaluate(() => window.__host.log.map(entry => entry.method ?? (entry.ignored ? 'ignored' : 'reply')))).slice(0, 12))}`);
   await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
