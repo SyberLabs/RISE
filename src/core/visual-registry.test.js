@@ -7,13 +7,14 @@
 import { describe, expect, it } from 'vitest';
 import { RISE_CURRENT_VISUALS } from './rise-current.js';
 import { ENGINE_CATALOG, LISTED_ENGINES, LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERNS } from './visual-registry.js';
+import { SCENE_ENGINES } from '../scenes/manifests.js';
 import { DEDICATED_MODE, FIELD, taxonomyLeaves } from './visual-taxonomy.js';
 
 const entry = id => ENGINE_CATALOG.find(item => item.id === id);
 
 describe('the engine catalog', () => {
-  it('lists Living Flame in Reader setup only, and night streaks nowhere (RDR-023)', () => {
-    expect(entry('living-flame')).toMatchObject({ name: 'Living Flame', listed: true, category: 'dynamic', composer: false });
+  it('lists Living Flame for Reader setup and the Composer (Creative Control widened RDR-023), and night streaks nowhere', () => {
+    expect(entry('living-flame')).toMatchObject({ name: 'Living Flame', listed: true, category: 'dynamic', composer: true });
     expect(entry('night-streaks')).toMatchObject({ name: 'Night Streaks', listed: false, composer: false });
   });
 
@@ -49,7 +50,7 @@ describe('the engine catalog', () => {
     expect(expected).toHaveLength(listed.length);
   });
 
-  it('presents in the Composer exactly the visuals a Current may name', () => {
+  it('presents in the Composer exactly the engines a Current’s scene may name', () => {
     // `still` is the floor: a Current passage with no field, drawn by no engine.
     const STILL = 'still';
     // Klee reaches the room as Genesis, the name a Current uses for it.
@@ -60,6 +61,8 @@ describe('the engine catalog', () => {
       STILL,
       ...ENGINE_CATALOG.filter(item => item.composer).map(item => CURRENT_NAME[item.id] ?? item.id)
     ];
-    expect(composerView.sort()).toEqual([...RISE_CURRENT_VISUALS].sort());
+    expect(composerView.sort()).toEqual([...SCENE_ENGINES].sort());
+    // A v1 passage's visuals are the first three of them.
+    for (const visual of RISE_CURRENT_VISUALS) expect(SCENE_ENGINES).toContain(visual);
   });
 });

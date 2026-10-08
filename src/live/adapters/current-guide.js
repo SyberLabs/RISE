@@ -11,7 +11,7 @@
  */
 
 import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS } from '../../core/rise-current.js';
-import { BEAT_LIMITS } from '../../core/beats.js';
+import { BEAT_LIMITS, describeManifests } from '../../core/beats.js';
 
 export const TOOL_NAME = 'rise_present';
 
@@ -89,7 +89,10 @@ export const CURRENT_GUIDE_V2 = [
     '- "place" (centre, caption, top, left, right, none), "size" (smaller, as-set, larger, display), "type" (a face by role: book-serif, humanist-sans, mono, display…) and "emphasis" (words to set apart) shape the text of a beat.',
     '- "sound" names one of RISE’s sounds: an atmosphere or music bed that stays (aurora, starlight, piano, nocturne…), a tone (focus, deep, gateway), or none.',
     `- At most ${BEAT_LIMITS.beats} beats and ${BEAT_LIMITS.scenes} scenes; ${BEAT_LIMITS.text} characters per sentence and ${BEAT_LIMITS.totalText} in all. The same text rules as passages apply.`,
-    '- Prefer v2 when the reader asks for a lesson, a walkthrough, or an animation; v1 (passages) is fine for a plain spoken reading.'
+    '- Prefer v2 when the reader asks for a lesson, a walkthrough, or an animation; v1 (passages) is fine for a plain spoken reading.',
+    '',
+    'Scenes, their parameters ("params", each within its bounds) and their cues ("cue" on a later beat: a named cue, or set:<parameter>=<value> on a cueable one):',
+    describeManifests()
 ].join('\n');
 
 export const CURRENT_GUIDE = [

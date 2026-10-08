@@ -87,9 +87,11 @@ export class VisualFieldDirector {
   }
 
   controlVisual(command) {
-    const validated = validateVisualCommand(command);
-    if (!validated.ok) return { status: 'refused', code: validated.code };
     const record = this.active;
+    // The active field's own manifest bounds the command; a record that names none is held to the attractor's.
+    const manifest = typeof record?.discoverVisual === 'function' ? record.discoverVisual()?.manifest : null;
+    const validated = validateVisualCommand(command, manifest?.parameters ? manifest : undefined);
+    if (!validated.ok) return { status: 'refused', code: validated.code };
     if (this.destroyed || !record || record.generation !== this.generation
       || record.node?.isConnected === false) {
       return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };

@@ -123,7 +123,8 @@ import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
 import { SOUND_GROUPS, soundOf } from '../../audio/sound-list.js';
 import { connectionState } from '../../core/ai-connection.js';
 import { LOOKS, applyLook, lookOfSession } from '../../core/looks.js';
-import { ATTRACTOR_VISUAL_MANIFEST } from '../../core/visual-control-contract.js';
+import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../../core/visual-control-contract.js';
+import { manifestFor } from '../../scenes/manifests.js';
 import './Chamber.css';
 
 const RHYTHMS = Object.freeze([['phrase', 'Phrase'], ['sentence', 'Sentence'], ['word', 'Word']]);
@@ -2844,12 +2845,28 @@ export class Chamber {
         if (paused) controller.pause();
         this.livingFlameField = controller;
       }).catch(error => console.warn('[Chamber] Living Flame unavailable:', error));
+      // The flame's macros as a cue may move them while it runs (src/scenes/manifests.js).
+      let macros = { ...(flame.recipe.macros ?? {}) };
+      const FLAME_MANIFEST = manifestFor('living-flame');
       return {
         node: host,
         renderer: 'living-flame',
         pause: () => { paused = true; controller?.pause?.(); },
         resume: () => { paused = false; controller?.resume?.(); },
         setEnergy: () => controller?.setEnergy?.(this._effectiveFlameEnergy(intensity)),
+        discoverVisual: () => (destroyed || !host.isConnected ? null : Object.freeze({
+          manifest: FLAME_MANIFEST, current: Object.freeze({ ...macros }), target: Object.freeze({ ...macros })
+        })),
+        controlVisual: command => {
+          const validated = validateVisualCommand(command, FLAME_MANIFEST);
+          if (!validated.ok) return { status: 'refused', code: validated.code };
+          if (destroyed || !controller || !host.isConnected) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+          const { parameter, value } = validated.command;
+          macros = { ...macros, [parameter]: value };
+          if (parameter === 'energy') controller.setEnergy(value);
+          else controller.setRecipe({ ...flame.recipe, macros }, { transitionMs: reducedMotion ? 0 : 800 });
+          return { status: 'accepted', surface: 'living-flame', parameter, requested: validated.requested, effective: value };
+        },
         morph: (next, { transitionMs } = {}) => {
           const nextFlame = normalizeLivingFlameConfig(next?.config);
           if (!nextFlame || !controller?.canMorphTo?.(nextFlame.recipe)) return false;

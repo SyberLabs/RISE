@@ -123,9 +123,17 @@ export function createLiveRuntime({
         }
     }
 
+    /** A beat's cue, as the running engine's commands the compiler lowered it to, each through controlVisual. */
+    function cueScene(commands) {
+        for (const command of commands) controlVisual(command);
+    }
+
     function controlVisual(command) {
         const run = visualRun();
-        const checked = validateVisualCommand(command);
+        // The running engine's own manifest bounds the command; the attractor's stands in before anything is shown.
+        const discovered = discoverVisual()?.manifest;
+        const manifest = discovered?.parameters ? discovered : ATTRACTOR_VISUAL_MANIFEST;
+        const checked = validateVisualCommand(command, manifest);
         if (!checked.ok) return recordVisualReceipt(run, visualRefusal(checked.code));
         if (!visualRunIsActive(run)) return recordVisualReceipt(run, visualRefusal('NOT_LIVE'));
         if (!run.presented) return recordVisualReceipt(run, visualRefusal());
@@ -137,9 +145,11 @@ export function createLiveRuntime({
         } catch {
             response = visualRefusal();
         }
-        const bounds = ATTRACTOR_VISUAL_MANIFEST.parameters.intensity;
-        const receipt = response?.status === 'accepted' && Number.isFinite(response.effective)
-            && response.effective >= bounds.minimum && response.effective <= bounds.maximum
+        const spec = manifest.parameters[checked.command.parameter];
+        const kept = spec.type === 'enum'
+            ? response?.effective === checked.command.value
+            : Number.isFinite(response?.effective) && response.effective >= spec.minimum && response.effective <= spec.maximum;
+        const receipt = response?.status === 'accepted' && kept
             ? Object.freeze({ status: 'accepted', surface: checked.command.surface, parameter: checked.command.parameter,
                 requested: checked.requested, effective: response.effective })
             : visualRefusal(response?.code || 'NO_ACTIVE_VISUAL');
@@ -348,7 +358,7 @@ export function createLiveRuntime({
             graceMs,
             onDegrade: ({ reason }) => note('voice.degraded', { role, reason })
         });
-        run.conductor = createBeatConductor({ clock });
+        run.conductor = createBeatConductor({ clock, onCue: ({ commands }) => cueScene(commands) });
         return run;
     }
 

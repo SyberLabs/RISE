@@ -2,6 +2,7 @@ import { compileSession } from './session-compiler.js';
 import { RiseCurrentError, fail, hasLiteralForbidden, hasReservedMarker, id as trimmedId, keys, label, object } from './current-validation.js';
 import { BEAT_TYPES, lowerBeats, validateBeats, validateScenes } from './beats.js';
 import { hasMath } from './math-typeset.js';
+import { cueCommands, sceneCue } from '../scenes/manifests.js';
 
 export { RiseCurrentError, hasLiteralForbidden, hasReservedMarker };
 
@@ -218,7 +219,7 @@ function validateRiseCurrentV2(source) {
     }
   }
   const scenes = validateScenes(source.scenes, '$.scenes');
-  const beats = validateBeats(source.beats, '$.beats', { sceneIds: new Set(scenes.map(scene => scene.id)) });
+  const beats = validateBeats(source.beats, '$.beats', { scenes });
   const lowered = lowerBeats({ scenes, beats });
   const segments = lowered.segments.map(segment => ({ ...segment, dives: [] }));
   return freeze({
@@ -240,6 +241,14 @@ function timeBeats(session, current) {
     const atoms = session.atoms.filter(atom => atom.sourceId === segment.id);
     // The beat's typography and cue ride on its atoms for the layers that render them.
     if (Object.keys(segment.beat).length > 0) for (const atom of atoms) atom.beat = segment.beat;
+    if (segment.scene) {
+      // The beat's cue as the running engine's commands, for the conductor to deliver when the beat begins.
+      const commands = segment.beat.cue ? cueCommands(segment.scene.engine, segment.beat.cue) ?? [] : null;
+      for (const atom of atoms) {
+        atom.scene = segment.scene.id;
+        if (commands) atom.cueCommands = commands;
+      }
+    }
     if (segment.hold) {
       for (const atom of atoms) {
         atom.duration = segment.hold.ms;
@@ -291,6 +300,10 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
         // Every passage has a clip: one that names no visual takes the look's, since the reader
         // schedules a program only when it has passages, and the fallback alone would draw nothing.
         clips: current.segments.flatMap((segment, index) => {
+          // A v2 passage under a scene draws that scene, by its engine's manifest.
+          if (segment.scene) {
+            return [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: sceneCue(segment.scene, look?.[segment.scene.engine] ?? null) }];
+          }
           if (segment.visual === undefined) {
             return lowered ? [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: lowered.fallbackCue }] : [];
           }
@@ -336,7 +349,12 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
     visualConfig: {
       visualMode: current.segments.some(segment => segment.visual !== undefined && segment.visual !== 'still')
         || (lowered !== null && lowered.fallbackCue.kind !== 'still') ? 'interlocution' : 'off',
-      interlocution: lowered?.shelf ?? { presentation: 'continuous', procedural: [], sourced: [] }
+      interlocution: lowered?.shelf ?? {
+        presentation: 'continuous',
+        // The pattern engines the scenes draw with, so the gallery field admits them.
+        procedural: [...new Set(current.segments.map(segment => segment.scene).filter(scene => scene && sceneCue(scene).kind === 'procedural').map(scene => scene.engine))],
+        sourced: []
+      }
     },
     ...(look || current.type ? {
       presentation: {
