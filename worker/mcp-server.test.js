@@ -435,6 +435,12 @@ describe('the app', () => {
     });
   });
 
+  it('names RISE’s own origin as ChatGPT’s dedicated domain, under ChatGPT’s key so Claude’s ui.domain check never sees it', async () => {
+    const [content] = (await json(await post(rpc('resources/read', { uri: APP_URI })))).result.contents;
+    expect(content._meta['openai/widgetDomain']).toBe(SITE);
+    expect(content._meta.ui.domain).toBeUndefined();
+  });
+
   it('tells ChatGPT on the resource that it is shown inline only, so the host picks the mode before loading it', async () => {
     const { result } = await json(await post(rpc('resources/read', { uri: APP_URI })));
     expect(result.contents[0]._meta['openai/ui']).toEqual({ availableDisplayModes: ['inline'] });

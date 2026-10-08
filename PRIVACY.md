@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 28 September 2026**
+**Last updated: 8 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -20,6 +20,8 @@ RISE. An OpenRouter key stays in this tab's memory and is never sent to RISE's
 servers.
 If you press **Speak**, your browser may use its speech service to turn your
 voice into editable text. RISE does not receive the microphone audio.
+Inside ChatGPT or Claude, RISE receives only the reading your assistant writes
+for it, plays it, and keeps nothing.
 
 Create's hosted writing service has been retired and is unavailable. RISE no
 longer sends thoughts or revision instructions to any writer.
@@ -160,6 +162,33 @@ RISE's server publishes the public reading catalog (released editions,
 sounds, and type options, as a static file). It does
 not receive your requests or your key. Former server-side AI routes remain
 only to tell older tabs they are retired.
+
+### RISE inside ChatGPT or Claude
+
+If you add RISE to ChatGPT or Claude, your assistant can present an answer
+through RISE. When it does, it calls RISE's tool (`rise_present`) at
+`https://rise.syberlabs.io/api/mcp` with the reading it wrote: a title, the
+text of its passages, and optionally a theme, a look, and short notes.
+
+- RISE's server checks that reading and hands it back to your assistant's app
+  to play. It does not store it, does not log its text, and sends it nowhere
+  else.
+- RISE receives only what your assistant puts in that call. It never receives
+  your conversation, your other messages, your assistant's memory, or your
+  files.
+- The player runs inside your assistant's app, in a sandbox your assistant
+  controls, and loads RISE's code, fonts, and content from
+  `rise.syberlabs.io`, like any page of this site (see **Hosting requests**).
+- The reading is spoken by your device's own speech voice. RISE's server does
+  not produce or receive audio. Some operating systems use an online speech
+  service of their own, under that provider's policy.
+- Settings you change in the player (theme, text size, how vivid the imagery
+  is) are kept in your browser's storage for the player.
+- Requests to the tool are counted per IP address for one minute, by
+  Cloudflare's rate limiter, to stop abuse. RISE keeps no record of them.
+
+Your assistant's own provider (OpenAI or Anthropic) governs your conversation
+under its own privacy policy.
 
 ### Optional voice dictation
 
