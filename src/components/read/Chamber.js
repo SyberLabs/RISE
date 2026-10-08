@@ -2509,7 +2509,8 @@ export class Chamber {
    */
   async _startVisualScoring() {
     const state = this._direction;
-    if (!state?.director) return;
+    // Jev chooses among flames only; a Gallery reading follows its text locally and sends nothing.
+    if (!state?.director || state.director.family !== 'flame') return;
     try {
       if (!state.scoring) {
         const [{ VisualScoreCoordinator, VisualScoreCache }, { verifyCatalogReading }] = await Promise.all([

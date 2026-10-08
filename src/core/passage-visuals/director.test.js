@@ -9,6 +9,8 @@ import {
   compileTreatmentCue,
   effectiveEnergy,
   FOLLOW_TREATMENT_IDS,
+  followTreatmentIds,
+  isFollowChoice,
   localDirection
 } from './treatments.js';
 import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
@@ -54,6 +56,35 @@ describe('local direction mapping', () => {
     }
   });
 
+  it('follows a Gallery reading with museum works by mood: calm open land, ordinary light, agitation, grief', () => {
+    const gallery = signal => localDirection(signal, 'gallery');
+    expect(gallery({ valence: 0.9, arousal: 0.9, confidence: 0.1 })).toEqual({ treatmentId: 'gallery-landscapes', intensityBand: 'quiet' });
+    expect(gallery({ valence: 0.5, arousal: 0.2, confidence: 1 })).toEqual({ treatmentId: 'gallery-landscapes', intensityBand: 'quiet' });
+    expect(gallery({ valence: 0, arousal: 0.5, confidence: 1 })).toEqual({ treatmentId: 'gallery-impressionism', intensityBand: 'balanced' });
+    expect(gallery({ valence: 0.5, arousal: 0.8, confidence: 1 })).toEqual({ treatmentId: 'gallery-impressionism', intensityBand: 'intense' });
+    expect(gallery({ valence: -0.5, arousal: 0.8, confidence: 1 })).toEqual({ treatmentId: 'gallery-postimpressionism', intensityBand: 'intense' });
+    expect(gallery({ valence: -0.5, arousal: 0.2, confidence: 1 })).toEqual({ treatmentId: 'gallery-oldmasters', intensityBand: 'quiet' });
+  });
+
+  it('keeps a Gallery reading in museum works, one collection a passage, and never offers it a flame', () => {
+    const works = followTreatmentIds('gallery');
+    expect(works).toEqual(['gallery-landscapes', 'gallery-impressionism', 'gallery-postimpressionism', 'gallery-oldmasters']);
+    for (let valence = -1; valence <= 1; valence += 0.25) {
+      for (let arousal = 0; arousal <= 1; arousal += 0.25) {
+        expect(works).toContain(localDirection({ valence, arousal, confidence: 1 }, 'gallery').treatmentId);
+      }
+    }
+    for (const id of works) {
+      const cue = compileTreatmentCue(id, 'balanced');
+      expect(cue.kind, id).toBe('sourced');
+      expect(cue.collections, id).toHaveLength(1);
+      expect(cue.collections[0], id).toMatch(/^aic-/);
+    }
+    expect(isFollowChoice('violet-nebula', 'quiet', 'gallery')).toBe(false);
+    expect(isFollowChoice('gallery-oldmasters', 'quiet', 'flame')).toBe(false);
+    expect(followTreatmentIds('flame')).toEqual(FOLLOW_TREATMENT_IDS);
+  });
+
   it('treats unsupported-language text as low confidence without claiming to read it', () => {
     const signal = blockSignal('夏の夜は月のころはさらなり闇もなほ蛍の多く飛びちがひたる');
     expect(signal).toMatchObject({ confidence: 0, supported: false });
@@ -72,7 +103,7 @@ describe('treatment cues', () => {
   it('compiles every treatment to a supported renderer with bounded data', () => {
     for (const id of TREATMENT_IDS) {
       const cue = compileTreatmentCue(id, 'balanced', flamePreset(id));
-      expect(['field', 'procedural', 'still']).toContain(cue.kind);
+      expect(['field', 'procedural', 'sourced', 'still']).toContain(cue.kind);
       if (cue.renderer === 'living-flame') {
         expect(cue.config.recipe.id).toBe(id);
         expect(cue.config.intensity).toBe(INTENSITY_BANDS.balanced);

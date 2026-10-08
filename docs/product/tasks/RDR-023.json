@@ -3,7 +3,7 @@
   "title": "Keep Follow text inside one look",
   "lane": "reader",
   "milestone": "Reader consolidation",
-  "status": "in_progress",
+  "status": "done",
   "delivery": "not_shipped",
   "owner": "Claude coordinator",
   "priority": "next",
@@ -47,6 +47,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/494",
       "note": "Part 3: Living Flame as a dedicated setup mode (DEDICATED_MODE) understood by directionEligibility, src/page/flow.js, visualFallbackCueFromConfig, the Workshop project and the Chamber; the Flame look lowers into it.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/502",
+      "note": "Part 2: the follow family (gallery or flame), four museum treatments by mood, no Jev scoring for the gallery; record docs/product/discussions/2026-10-07-gallery-follows-with-works.md.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -65,10 +71,18 @@
     {
       "date": "2026-10-07T22:18:31.945Z",
       "summary": "Part 3: Living Flame is a listed Dynamic engine with a mode of its own"
+    },
+    {
+      "date": "2026-10-08T03:40:12.490Z",
+      "summary": "Part 2: the Gallery look follows with museum works (in review)"
+    },
+    {
+      "date": "2026-10-08T05:20:55.594Z",
+      "summary": "Part 2 approved by the owner; RDR-023 done"
     }
   ],
-  "updatedAt": "2026-10-07T22:18:31.945Z",
-  "revision": 4,
-  "summary": "Follow text varies intensity and composition within the reading’s own engines and theme. Part 1 (#491): Follow chooses only the five flame compositions a theme can colour, lowered through classic when a reading names no theme. Part 3 (#494): Living Flame is a listed Dynamic engine with a dedicated mode, visualMode living-flame, in the theme’s composition and colours; Follow text, the Page, the Workshop fallback and project, the Chamber and setup all know it, and the Flame look lowers into it. Remaining: part 2, the Gallery look follows the text with sourced works, which waits on the owner’s choice of collections and mood matching.",
+  "updatedAt": "2026-10-08T05:20:55.594Z",
+  "revision": 6,
+  "summary": "Follow text varies intensity and composition within the reading’s own family and theme (R6). Part 1 (#491): flame readings choose only the five flame compositions a theme can colour. Part 3 (#494): Living Flame is a listed Dynamic engine with its own mode, and the Flame look lowers into it. Part 2 (#502): the Gallery look and museum shelves follow with one museum collection a passage, by mood, locally and never sent to Jev; the owner approved the mood lines (2026-10-08); science shelves keep flames, an Astronomy family deferred.",
   "blocker": null
 }
