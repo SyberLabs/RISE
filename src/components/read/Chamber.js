@@ -4795,6 +4795,8 @@ export class Chamber {
         this.setBandMovable(true);
         return;
       }
+      // The press is the move's, not a selection's.
+      event.preventDefault();
       pointerId = event.pointerId;
       startY = event.clientY;
       startFraction = this._bandOffsetFraction;

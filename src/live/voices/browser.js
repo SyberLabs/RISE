@@ -71,9 +71,11 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     synth.cancel();
     const inSentences = GOOGLE.test(voice?.name ?? '');
 
-    let report = { start() {}, mark() {}, end() {}, fail() {} };
+    let report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {} };
     let closed = false;
     let held = false;
+    /** When it was last let go of, until it is heard again. */
+    let releasedAt = null;
     const queue = [];
     const seen = new Set();
     const finished = new Map();
@@ -101,6 +103,11 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             if (!item.started) {
                 item.started = true;
                 safely(report.start, item.id);
+            }
+            if (releasedAt !== null) {
+                const afterMs = Math.round(clock.now() - releasedAt);
+                releasedAt = null;
+                safely(report.restarted, item.id, afterMs);
             }
         };
         utterance.onboundary = event => {
@@ -134,7 +141,16 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         };
         utterance.onerror = event => {
             if (item.utterance !== utterance) return;
-            if (event?.error === 'canceled' || event?.error === 'interrupted') return;
+            if (event?.error === 'canceled' || event?.error === 'interrupted') {
+                // This voice lets go of an utterance before it cancels one, so this one was stopped from outside
+                // (any page's cancel, or another speaker, is the whole device's). It is said again from the last
+                // place heard once it is taken up; until then it is silent and takes no time.
+                item.utterance = null;
+                item.played = item.lastMarkAt;
+                item.startedAt = null;
+                safely(report.taken, item.id, event.error);
+                return;
+            }
             item.utterance = null;
             current = null;
             safely(report.fail, item.id, event?.error ?? 'error');
@@ -154,9 +170,11 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     return {
         id: 'browser',
         capabilities: Object.freeze({ audible: true, wordMarks: voice?.localService === true }),
+        /** The installed voice it speaks with, for the trace: null names the browser's own default. */
+        chosen: Object.freeze({ name: voice?.name ?? null, local: voice ? voice.localService === true : null }),
 
         attach(callbacks) {
-            report = { start() {}, mark() {}, end() {}, fail() {}, ...callbacks };
+            report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, ...callbacks };
         },
 
         enqueue({ id, text }) {
@@ -202,6 +220,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         release() {
             if (!held || closed) return;
             held = false;
+            releasedAt = current || queue.length > 0 ? clock.now() : null;
             if (current) speakFrom(current, current.lastMark);
             else next();
         },
@@ -221,6 +240,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         cancel() {
             const speaking = current?.utterance;
             queue.length = 0;
+            releasedAt = null;
             if (current) current.utterance = null;
             current = null;
             if (speaking) synth.cancel();

@@ -188,6 +188,38 @@ for (const boundaries of [true, false]) {
     });
 }
 
+for (const boundaries of [true, false]) {
+    describe(`${boundaries ? 'a voice that reports word boundaries' : 'a voice that reports none'}, taken from outside`, () => {
+        it('holds the reading where it is, says so, and takes up the phrase on screen with the voice on Play', async () => {
+            const built = build({ boundaries });
+            await runtime.start('Explain black holes.');
+            const at = await readUntilMidPassage(built.atoms, { afterFirst: true });
+            // Another page, or anything else on the device, cancels speech: the whole browser's (P9 in the findings).
+            built.synth.cancel();
+            await tick(50);
+            expect(runtime.snapshot().status).toBe('interrupted');
+            expect(built.players[0].sessionState.state).toBe('paused');
+            expect(runtime.journal().filter(entry => entry.type === 'voice.taken')).toEqual([
+                expect.objectContaining({ role: 'main', segmentId: at.segment, reason: 'interrupted' })
+            ]);
+            // Held, the words do not move on in silence.
+            const shownWhileTaken = main(built.atoms).length;
+            await tick(3_000);
+            expect(main(built.atoms).length).toBe(shownWhileTaken);
+            const before = { spoken: built.spoken.length, atoms: main(built.atoms).length };
+            runtime.resume();
+            await tick(200);
+            expectTakenUpTogether(built, before, at);
+            // Heard again after the device's own latency, and the trace says how long that took.
+            expect(runtime.journal().filter(entry => entry.type === 'voice.restarted')).toEqual([
+                expect.objectContaining({ role: 'main', segmentId: at.segment, afterMs: 30 })
+            ]);
+            await tick(30_000);
+            expect(runtime.journal().filter(entry => entry.type === 'voice.degraded')).toEqual([]);
+        });
+    });
+}
+
 describe('held in the moment between two passages', () => {
     it('shows the next passage when the voice begins it again, not before, however slowly the voice starts', async () => {
         // The first utterance after the hold's cancel starts 2 s late, as a network voice's engine can.

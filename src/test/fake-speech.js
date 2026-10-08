@@ -6,7 +6,9 @@
  * after a latency; `onboundary` fires at each word (or never, for the voices
  * that do not report them); `pause` freezes it and `resume` carries on;
  * `cancel` stops the current utterance and drops the queue, and the cancelled
- * utterance reports `onerror` with `canceled`, or `onend`, as browsers differ.
+ * utterance reports `onerror` (`interrupted` once begun, `canceled` before), or
+ * `onend`, as browsers differ. A cancel is the whole device's: a test that calls
+ * it directly is another page, or anything else on the device, taking it.
  *
  * Paused is the engine's, not the page's: Chromium keeps one paused flag for the
  * whole browser (TtsControllerImpl), which only `resume` or `cancel` clears, and
@@ -122,8 +124,10 @@ export function createFakeSpeech(clock, {
             if (stopped) {
                 stopped.cancel?.();
                 cold = latencyAfterCancelMs !== null;
+                // As the spec names them: `interrupted` once it has begun, `canceled` before.
+                const error = stopped.index > 0 ? 'interrupted' : 'canceled';
                 clock.setTimer(() => {
-                    if (cancelReportsError()) stopped.utterance.onerror?.({ error: 'canceled' });
+                    if (cancelReportsError()) stopped.utterance.onerror?.({ error });
                     else stopped.utterance.onend?.({});
                 }, 0);
             }

@@ -11,6 +11,8 @@ import { createFakeMcpPort } from '../test/fake-mcp-port.js';
 import { createMcpAppAdapter } from './adapters/mcp-app.js';
 import { createLiveRuntime } from './runtime.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
+import { createBrowserVoice } from './voices/browser.js';
+import { createFakeSpeech } from '../test/fake-speech.js';
 
 const V2 = {
   schema: 'rise.current.v2',
@@ -63,5 +65,26 @@ describe('the journal as it is written', () => {
     // What a listener is given is its own copy: the journal is not written through it.
     held.type = 'tampered';
     expect(runtime.journal().some(entry => entry.type === 'tampered')).toBe(false);
+  });
+
+  it('says once which voice the reading is spoken in, before it says anything', async () => {
+    const clock = createRealClock();
+    const port = createFakeMcpPort({ clock, answerAfterMs: 10 });
+    const adapter = createMcpAppAdapter({ port, clock, host: 'https://host.example' });
+    const synth = createFakeSpeech(clock, { msPerChar: 10, boundaries: false });
+    const google = { name: 'Google US English', lang: 'en-US', localService: false };
+    runtime = createLiveRuntime({
+      adapter, clock, voices: { create: () => createBrowserVoice({ speech: { synth, Utterance: synth.Utterance }, clock, voice: google }) },
+      createPlayer: session => new Player(session),
+      host: { present() {}, dismiss() {} }
+    });
+    const started = runtime.start('Why is the sky blue?');
+    port.answer(V2, 10);
+    await vi.advanceTimersByTimeAsync(600);
+    await started;
+    const journal = runtime.journal();
+    const chosen = journal.filter(entry => entry.type === 'voice.chosen');
+    expect(chosen).toEqual([expect.objectContaining({ role: 'main', kind: 'browser', name: 'Google US English', local: false })]);
+    expect(journal.indexOf(chosen[0])).toBeLessThan(journal.findIndex(entry => entry.type === 'speech.start'));
   });
 });

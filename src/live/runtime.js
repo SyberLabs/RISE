@@ -556,6 +556,7 @@ export function createLiveRuntime({
 
     function attachVoice(run) {
         if (!run.voice) return;
+        note('voice.chosen', { role: run.role, kind: run.voice.id, name: run.voice.chosen?.name ?? null, local: run.voice.chosen?.local ?? null });
         // A renderer is not trusted to stop calling once its run has closed.
         run.voice.attach({
             start: id => {
@@ -563,6 +564,17 @@ export function createLiveRuntime({
                 run.speaking = id; note('speech.start', { role: run.role, segmentId: id }); set(status);
             },
             mark: (id, charIndex, tMs) => { if (!run.closed) run.governor.observe('mark', id, charIndex, tMs); },
+            // Something else on the device stopped the voice. The reading is held where it is, as a reader's Pause
+            // holds it, rather than going on in silence; Play takes up the phrase on screen with the voice.
+            taken: (id, reason) => {
+                if (run.closed) return;
+                note('voice.taken', { role: run.role, segmentId: id, reason });
+                if (run.role === 'main' && status === 'live') {
+                    run.player.pause();
+                    set('interrupted');
+                }
+            },
+            restarted: (id, afterMs) => { if (!run.closed) note('voice.restarted', { role: run.role, segmentId: id, afterMs }); },
             fail: (id, reason) => {
                 if (run.closed) return;
                 run.governor.standDown('voice-failed');

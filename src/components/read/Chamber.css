@@ -376,12 +376,16 @@
 }
 
 /* Selected for moving. An outline rather than a border so the frame
-   costs no layout and cannot shift the text it is drawn around. */
+   costs no layout and cannot shift the text it is drawn around. A drag
+   on it moves the band and selects nothing: a selection is the browser's
+   to act on, and whatever reads one aloud stops the reading's voice. */
 .atom-display.is-band-movable {
   outline: 2px solid rgba(122, 178, 255, 0.55);
   outline-offset: 14px;
   border-radius: 4px;
   cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .atom-display.is-band-moving {
