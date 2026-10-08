@@ -752,11 +752,11 @@ describe('PlusMeter', () => {
     const map = new Map();
     const m = new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); } } } });
     for (const period of [100, 200, 300]) await call(m, 'reserve', { period, n: 10, limit: 100 });
-    expect([...map.keys()].sort()).toEqual(['period', 'used']);
-    expect([map.get('period'), map.get('used')]).toEqual([300, 10]);
+    expect([...map.keys()].sort()).toEqual(['since', 'used']);
+    expect([map.get('since'), map.get('used')]).toEqual([300, 10]);
     expect(await call(m, 'reserve', { period: 200, n: 1, limit: 100 })).toEqual({ ok: false, used: 0 });
     expect(await call(m, 'release', { period: 200, n: 10 })).toEqual({ ok: true, used: 0 });
-    expect([map.get('period'), map.get('used')]).toEqual([300, 10]);
+    expect([map.get('since'), map.get('used')]).toEqual([300, 10]);
   });
 
   it('refuses a malformed request', async () => {

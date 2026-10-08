@@ -642,6 +642,7 @@ export async function handlePlus(request, env) {
  *        Every event forgets the kept standing.
  *
  * One period and one count, never a history: a newer period overwrites the old count.
+ * (Stored as `since`: the earlier `period` held a period end and is ignored.)
  * Everything an instance keeps is listed in PRIVACY.md ("What the server keeps").
  */
 export class PlusMeter {
@@ -651,7 +652,7 @@ export class PlusMeter {
 
   /** What is used in `period`: 0 for a newer period, and `stale` for an older one. */
   usage(period) {
-    const current = this.kv.get('period');
+    const current = this.kv.get('since');
     return { stale: current !== undefined && period < current, used: current === period ? this.kv.get('used') ?? 0 : 0 };
   }
 
@@ -675,12 +676,12 @@ export class PlusMeter {
     if (op === '/reserve') {
       if (this.kv.get('revoked')) return Response.json({ ok: false, used, revoked: true });
       if (stale || !(used + n <= limit)) return Response.json({ ok: false, used });
-      this.kv.put('period', period);
+      this.kv.put('since', period);
       this.kv.put('used', used + n);
       return Response.json({ ok: true, used: used + n });
     }
     if (op === '/release') {
-      if (stale || this.kv.get('period') !== period) return Response.json({ ok: true, used });
+      if (stale || this.kv.get('since') !== period) return Response.json({ ok: true, used });
       this.kv.put('used', Math.max(0, used - n));
       return Response.json({ ok: true, used: Math.max(0, used - n) });
     }
