@@ -27,7 +27,8 @@ const HOST = '/__mcp-host';
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
 function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin' }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
-    return `<!doctype html><meta charset="utf-8"><title>fake host</title>
+    // A product host's sandbox refuses a <base> (Claude's policy carries base-uri 'self'); the frame inherits this page's policy.
+    return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="base-uri 'self'"><title>fake host</title>
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:${height}px}</style>
 <iframe id="view" sandbox="${sandbox}" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
 <script>
@@ -72,6 +73,11 @@ window.addEventListener('message', event => {
 
 async function openHost(page, baseURL, options = {}) {
   const origin = new URL(baseURL).origin;
+  // A product host's origin serves nothing of RISE's: an address the self-contained card still forms root-relative
+  // resolves to the host's sandbox and fails there, as it does in Claude.
+  if (options.selfContained) {
+    await page.route(url => url.origin === origin && url.pathname !== HOST && url.pathname !== '/api/mcp', route => route.fulfill({ status: 404, body: '' }));
+  }
   await page.route('**/api/mcp', async route => {
     const request = route.request();
     const response = await handleMcp(new Request(request.url(), { method: request.method(), headers: request.headers(), body: request.postData() }), { MCP_ENABLED: 'true' });
@@ -798,10 +804,13 @@ test('the self-contained card plays a Current from another origin, framing nothi
   page.on('requestfailed', request => seen.push(`failed: ${request.url()} ${request.failure()?.errorText ?? ''}`));
   page.on('response', response => { if (response.status() >= 400) seen.push(`${response.status()}: ${response.url()}`); });
   const appOrigin = new URL(baseURL).origin.replace('127.0.0.1', 'localhost');
+  // Everything the card asks of the host's origin, which in a product host is the sandbox and holds nothing of RISE's.
+  const hostRequests = [];
+  page.on('request', request => { const url = new URL(request.url()); if (url.origin === new URL(baseURL).origin && url.pathname !== HOST && url.pathname !== '/api/mcp') hostRequests.push(url.pathname); });
   const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: { ...BLACK_HOLES_CURRENT, look: 'signal' } });
   // What the card did in its sandbox, printed before the first assertion so a failure explains itself.
   await posterTitle(app).waitFor({ timeout: 15_000 }).catch(() => {});
-  console.log(`[self-contained] errors=${JSON.stringify(errors)} seen=${JSON.stringify(seen.slice(0, 20))} log=${JSON.stringify((await page.evaluate(() => window.__host.log.map(entry => entry.method ?? (entry.ignored ? 'ignored' : 'reply')))).slice(0, 12))}`);
+  console.log(`[self-contained] errors=${JSON.stringify(errors)} hostRequests=${JSON.stringify(hostRequests)} seen=${JSON.stringify(seen.slice(0, 20))} log=${JSON.stringify((await page.evaluate(() => window.__host.log.map(entry => entry.method ?? (entry.ignored ? 'ignored' : 'reply')))).slice(0, 12))}`);
   await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');
@@ -811,5 +820,7 @@ test('the self-contained card plays a Current from another origin, framing nothi
   const scripts = await page.frameLocator('#view').locator('script[type="module"]').evaluateAll(nodes => nodes.map(node => node.src));
   expect(scripts.length).toBeGreaterThan(0);
   for (const src of scripts) expect(src.startsWith(appOrigin)).toBe(true);
+  // Nothing of RISE's was asked of the host's origin.
+  expect(hostRequests).toEqual([]);
   expect(errors).toEqual([]);
 });

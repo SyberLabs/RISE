@@ -423,11 +423,12 @@ describe('the app', () => {
       const ASSETS = assets();
       const content = await read({ MCP_SELF_CONTAINED: 'true', ASSETS });
       expect(ASSETS.asked).toBe(`${SITE}/index.html`);
-      expect(content.text).toContain(`<base href="${SITE}/">`);
+      // No <base>: a host's sandbox refuses one. The page's addresses are RISE's outright.
+      expect(content.text).not.toContain('<base');
       expect(content.text).toContain('<meta name="rise-embed" content="/live?embed=mcp">');
-      expect(content.text).toContain('src="/assets/main-x.js"');
+      expect(content.text).toContain(`src="${SITE}/assets/main-x.js"`);
       expect(content.text).not.toContain('<iframe');
-      expect(content._meta.ui.csp).toEqual({ connectDomains: [SITE], resourceDomains: [SITE], baseUriDomains: [SITE], frameDomains: [] });
+      expect(content._meta.ui.csp).toEqual({ connectDomains: [SITE], resourceDomains: [SITE], frameDomains: [] });
     });
 
     it('serves the framed card while the switch is off, or when the deployed page cannot be read', async () => {
