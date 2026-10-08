@@ -26,6 +26,7 @@
  */
 
 import { compileRiseCurrent } from '../core/rise-current.js';
+import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
@@ -176,10 +177,11 @@ export function createLiveRuntime({
             // A Dive keeps the colors of the answer it comes from, whatever it said of itself.
             if (run.role === 'side') {
                 const { theme: _own, ...rest } = current;
-                const theme = main.stream.snapshot().theme;
+                const answer = main.stream.snapshot();
+                const theme = answer.theme ?? lookTheme(answer.look);
                 current = theme === null ? rest : { ...rest, theme };
             }
-            session = compileRiseCurrent(current);
+            session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook });
         } catch (caught) {
             failRun(run, caught);
             return;

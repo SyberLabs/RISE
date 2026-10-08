@@ -1,4 +1,4 @@
-import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
+import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_GUIDE, TOOL_NAME } from '../src/live/adapters/current-guide.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
@@ -68,6 +68,7 @@ export function currentJsonSchema() {
       id,
       title: shortText(LIMITS.title),
       theme: { type: 'string', enum: RISE_CURRENT_THEME_IDS },
+      look: { type: 'string', enum: RISE_CURRENT_LOOKS },
       origin: {
         type: 'object',
         properties: {
