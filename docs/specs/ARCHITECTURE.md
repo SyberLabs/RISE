@@ -155,12 +155,12 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
     app["app<br/>composition root<br/>13 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>12 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>13 modules"]
     components["components<br/>routed views<br/>51 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>162 modules"]
+    core["core<br/>session, player, router<br/>164 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>43 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>44 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
@@ -176,7 +176,7 @@ flowchart LR
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
-    audio --> |7| core
+    audio --> |8| core
     components --> |3| affect
     components -.-> |2 lazy| app
     components --> |5| audio
@@ -190,19 +190,19 @@ flowchart LR
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
-    core --> |8| audio
+    core --> |9| audio
     core --> |15| content
     core --> |4| sources
     core --> |7| visuals
     live -.-> |3 lazy| app
     live -.-> |2 lazy| components
-    live --> |13| core
+    live --> |14| core
     live -.-> |1 lazy| visuals
     page --> |4| core
     page --> |4| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
-    visuals --> |23| core
+    visuals --> |25| core
     visuals --> |4| sources
     wormhole --> |1| app
     wormhole --> |2| core

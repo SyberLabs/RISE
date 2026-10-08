@@ -1,0 +1,36 @@
+{
+  "id": "CC-002",
+  "title": "Beats: the time a model composes (rise.current.v2)",
+  "lane": "live-sdk",
+  "milestone": "Creative Control",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A rise.current.v2 Current (beats over scenes: say, hold, show; scene, cue, transition, place, size, type, emphasis, sound) is validated with a code and a path, lowered onto the Experience Program (movement, visual, audio tracks), and compiled so a hold is one silent atom of its own duration and a shown beat's atoms share theirs; unit-tested.",
+    "In the card the sealed Current is compiled whole; the stream carries the spoken beats; the voice is given only what is spoken; a beat conductor ahead of the speech governor times holds and shown beats; unit-tested at the runtime.",
+    "The Worker admits v2 beside v1: the tool's schema is the oneOf of both, the guide carries a v2 example and rules; unit-tested.",
+    "In the self-contained card a v2 reading plays a hold and a shown line and the voice goes on after (browser test).",
+    "Owner witnesses a v2 reading in Claude: a hold with the scene playing, a shown line, speech after."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-08-creative-control-design.md",
+      "note": "The Creative Control design; §5 the Current v2, §6 its compilation, §7 the runtime. Approved by the owner 2026-10-08.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T12:00:00.000Z",
+      "summary": "Opened from the approved design; built directly against it at the owner's instruction (no per-piece plan)."
+    }
+  ],
+  "updatedAt": "2026-10-08T12:00:00.000Z",
+  "revision": 1,
+  "summary": "The first Creative Control sub-project: a Current of beats over scenes, compiled onto the existing score, timed by a conductor beside the voice. Native scenes without parameters; typography, manifests and generated scenes follow in CC-003..005.",
+  "blocker": null
+}

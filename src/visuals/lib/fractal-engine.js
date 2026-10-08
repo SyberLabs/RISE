@@ -64,6 +64,8 @@ function boxBlur(data, scratch, width, height) {
     }
 }
 
+import { siteUrl } from '../../core/embed-address.js';
+
 export class FractalFlameGenerator {
     /**
      * @param {{ random?: () => number }} [options] A seeded source makes the
@@ -428,7 +430,7 @@ export class FractalFlameGenerator {
 
         for (let i = 0; i < workerCount; i++) {
             try {
-                const worker = new Worker('/fractal-flame-worker.js');
+                const worker = new Worker(siteUrl('/fractal-flame-worker.js'));
 
                 await new Promise((resolve, reject) => {
                     const timeoutId = setTimeout(() => {

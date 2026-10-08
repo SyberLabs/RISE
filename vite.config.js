@@ -71,6 +71,15 @@ export default defineConfig({
   // The browser tests' preview server answers cross-origin reads as production's `_headers` does
   // (Access-Control-Allow-Origin: *), so a host card on another origin can load RISE from it.
   preview: { cors: true },
+  // A built module addresses its chunks and assets from itself (new URL(dep, import.meta.url)), not from the document
+  // root: in a host's app card (src/live/hosts/mcp-card.js) the document's base is the host's sandbox, so a root-relative
+  // address there is the sandbox's, while a module's own address is RISE's. The page's addresses stay root-relative; the
+  // card makes those absolute itself.
+  experimental: {
+    renderBuiltUrl(filename, { hostType }) {
+      return hostType === 'html' ? undefined : { relative: true };
+    }
+  },
   // Curia / Export MP4: apply:'serve' means the endpoints exist only on
   // the dev server; production builds carry no write path.
   // drop-unfetched-wasm: the embed worker supplies its own runtime binary,

@@ -1,6 +1,8 @@
-import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
+import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_SCHEMA_V2, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_GUIDE, TOOL_NAME } from '../src/live/adapters/current-guide.js';
+import { BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES } from '../src/core/beats.js';
+import { SOUND_IDS } from '../src/audio/sound-ids.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
 import { readText } from './live-realtime.mjs';
@@ -62,6 +64,88 @@ const shortText = max => ({ type: 'string', minLength: 1, maxLength: max });
  * (trimmed ids, unique ids, the total text, an anchor inside its text) the schema is looser, never
  * stricter: the validator judges, and this is what the model is told first.
  */
+/** The v2 Current: beats over scenes (src/core/beats.js), beside the v1 passages. */
+export function currentJsonSchemaV2() {
+  const id = shortText(LIMITS.id);
+  const text = shortText(BEAT_LIMITS.text);
+  const hold = {
+    type: 'object',
+    description: 'How long the beat lasts with nothing said, in milliseconds; maxMs is the most a scene that knows it has finished may stretch it to.',
+    properties: {
+      ms: { type: 'integer', minimum: BEAT_LIMITS.holdMinMs, maximum: BEAT_LIMITS.holdMaxMs },
+      maxMs: { type: 'integer', minimum: BEAT_LIMITS.holdMinMs, maximum: BEAT_LIMITS.holdMaxMs }
+    },
+    required: ['ms'],
+    additionalProperties: false
+  };
+  const face = { type: 'string', enum: BEAT_TYPES };
+  return {
+    type: 'object',
+    description: 'The whole answer as a Current of beats over scenes: say and show a sentence, hold while the picture plays, or show a line for a while.',
+    properties: {
+      schema: { const: RISE_CURRENT_SCHEMA_V2 },
+      id,
+      title: shortText(LIMITS.title),
+      theme: { type: 'string', enum: RISE_CURRENT_THEME_IDS },
+      look: { type: 'string', enum: RISE_CURRENT_LOOKS },
+      style: { type: 'string', enum: RISE_CURRENT_STYLES },
+      type: {
+        type: 'object',
+        description: 'The faces of the reading: for its text, and for its captions.',
+        properties: { text: face, caption: face },
+        additionalProperties: false
+      },
+      origin: {
+        type: 'object',
+        properties: {
+          kind: { type: 'string', enum: ['model', 'human'] },
+          name: shortText(LIMITS.name),
+          provider: { ...shortText(LIMITS.name), description: 'Who runs the model; given with "kind": "model" and only then.' }
+        },
+        required: ['kind', 'name'],
+        additionalProperties: false
+      },
+      scenes: {
+        type: 'array',
+        description: 'The pictures a beat may start; a scene keeps running under the beats that follow until another starts.',
+        maxItems: BEAT_LIMITS.scenes,
+        items: {
+          type: 'object',
+          properties: { id, engine: { type: 'string', enum: SCENE_ENGINES } },
+          required: ['id', 'engine'],
+          additionalProperties: false
+        }
+      },
+      beats: {
+        type: 'array',
+        description: `In order; at most ${BEAT_LIMITS.totalText} characters of text in all. A beat has "say" (with "show" when what is shown differs), or "hold", or "show" with "hold".`,
+        minItems: 1,
+        maxItems: BEAT_LIMITS.beats,
+        items: {
+          type: 'object',
+          properties: {
+            say: { ...text, description: 'What the voice says; shown too unless "show" is given or "place" is "none".' },
+            show: { ...text, description: 'What is shown, when it differs from what is said, or with "hold" and no "say": a line shown for a while.' },
+            hold,
+            scene: { ...id, description: 'Start this scene at this beat.' },
+            cue: { type: 'string', pattern: '^[A-Za-z0-9_-]+$', maxLength: BEAT_LIMITS.cue, description: 'A signal to the running scene.' },
+            transition: { type: 'object', properties: { ms: { type: 'integer', minimum: 0, maximum: BEAT_LIMITS.transitionMaxMs } }, required: ['ms'], additionalProperties: false },
+            place: { type: 'string', enum: BEAT_PLACES },
+            size: { type: 'string', enum: BEAT_SIZES },
+            type: face,
+            emphasis: { type: 'array', maxItems: BEAT_LIMITS.emphasis, items: { type: 'string', maxLength: BEAT_LIMITS.emphasisLength } },
+            sound: { type: 'string', enum: [...SOUND_IDS.soundscape, ...SOUND_IDS.tone, ...SOUND_IDS.silence] }
+          },
+          additionalProperties: false
+        }
+      }
+    },
+    required: ['schema', 'id', 'title', 'origin', 'beats'],
+    additionalProperties: false
+  };
+}
+
+/** The v1 Current: passages. */
 export function currentJsonSchema() {
   const id = shortText(LIMITS.id);
   return {
@@ -131,7 +215,8 @@ export function currentJsonSchema() {
   };
 }
 
-const CURRENT = currentJsonSchema();
+/** Either Current: the v1 passages, or the v2 beats. */
+const CURRENT = { oneOf: [currentJsonSchema(), currentJsonSchemaV2()] };
 
 export const TOOL = Object.freeze({
   name: TOOL_NAME,

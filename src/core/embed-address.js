@@ -3,7 +3,7 @@
  *
  * On RISE's own pages that is the window's address. In a host's app card (an
  * MCP App in ChatGPT or Claude) RISE runs inside the host's sandbox: the
- * document's address is the host's and its base is RISE's origin, so the card
+ * document's address, and its base, are the host's, so the card
  * names the route it opens in `<meta name="rise-embed" content="/live?...">`
  * (src/live/hosts/mcp-card.js) and the app keeps its address in memory. Writing
  * the host's history would throw (a cross-origin URL under the base) and would
@@ -47,4 +47,15 @@ export function appLocation() {
 /** The history the router writes the address to. */
 export function appHistory() {
   return card?.history ?? globalThis.history;
+}
+
+/**
+ * The address of one of RISE's own files, given root-relative. Inside a host's
+ * card the document's base is the host's sandbox, which refuses a <base> of
+ * RISE's (Claude's policy carries base-uri 'self'), so there the address is
+ * taken from this module, which is RISE's. Elsewhere the path is the window's
+ * own and is returned as given.
+ */
+export function siteUrl(path) {
+  return IN_HOST_CARD ? new URL(path, import.meta.url).href : path;
 }

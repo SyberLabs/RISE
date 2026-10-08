@@ -1,0 +1,37 @@
+{
+  "id": "SPK-004",
+  "title": "Voice hardening: words never ahead of the voice; Chrome's Google voices",
+  "lane": "live-sdk",
+  "milestone": "Speech",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "SPK-001"
+  ],
+  "acceptance": [
+    "For a voice that reports word boundaries, an atom leaves the screen only once the voice has begun the next atom's first word or ended the segment; a voice that claims boundaries and goes quiet is waited on for at most a bounded patience, then estimated; unit-tested.",
+    "The first utterance of a reading has a longer grace to begin than later ones, so a cold speech engine does not stand the speech clock down for the whole reading; unit-tested.",
+    "Chrome's Google voices are chosen after natural voices and before the default, and are spoken a sentence at a time so the fourteen-second cutoff never applies; one start, one end and sentence marks to listeners; unit-tested.",
+    "Owner or a second reader on Chrome on Windows hears a Google voice, and sees no phrase pass faster than it is spoken, on the live release."
+  ],
+  "evidence": [
+    {
+      "kind": "observation",
+      "ref": "docs/product/tasks/SPK-004.json",
+      "note": "Owner, 2026-10-08, on a friend's Chrome PC in Claude: some phrases flashed past faster than the voice, which then caught up; and the voice fell back to the default browser voice.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T10:00:00.000Z",
+      "summary": "Opened from the owner's second-PC witness in Claude; design approved by the owner the same day."
+    }
+  ],
+  "updatedAt": "2026-10-08T10:00:00.000Z",
+  "revision": 1,
+  "summary": "Hardens the browser voice as the reading's clock: the words on screen wait for the word spoken, a cold engine gets a longer first grace, and Chrome readers get a Google voice spoken a sentence at a time.",
+  "blocker": null
+}

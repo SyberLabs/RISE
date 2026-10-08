@@ -19,6 +19,20 @@
  *
  * A seam between segments ends when the voice begins the next segment.
  *
+ * The words on screen never run ahead of the words spoken. A voice that
+ * reports its word boundaries (`capabilities.wordMarks`) says exactly where it
+ * is, while the clock it is measured by can start before any sound does (a
+ * cold speech engine reports its start early). So for such a voice an atom is
+ * over only when the voice has begun the next atom's first word, or ended the
+ * segment. A voice that claims marks and then goes quiet is not waited on for
+ * ever: once `markPatienceMs` has passed since both the estimate fell due and
+ * the voice last reported anything, the estimate stands again, for the rest of
+ * the Current. A voice that is slow but still reporting is never cut off.
+ *
+ * The first utterance of a reading has `firstGraceMs` to begin, because a speech
+ * engine that has not yet spoken in this page starts slowly; later ones have
+ * `graceMs`.
+ *
  * Degrading is quiet and one way. If the voice does not begin what it was
  * asked to say within `graceMs`, the governor stands down for the rest of the
  * Current and the Player's own timer carries on, because a reading that stops
@@ -37,6 +51,8 @@ const POLL_MS = 20;
 const LONGEST_WAIT_MS = 250;
 const SHORTEST_ATOM_MS = 50;
 
+export const GOVERNOR_LIMITS = Object.freeze({ firstGraceMs: 4000, markPatienceMs: 1500 });
+
 export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPerChar = 65, onDegrade = () => {} }) {
     let map = [];
     let segments = new Map();
@@ -45,6 +61,12 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
     /** What every segment heard so far says about how fast this voice goes: characters, and the time they took. */
     const learned = { chars: 0, ms: 0 };
     let degraded = false;
+    /** Whether atoms wait for the voice's own word reports: it claims them, and has not been found without them. */
+    let followMarks = voice?.capabilities?.wordMarks === true;
+    /** Whether any utterance of this reading has begun: until then the engine may be cold. */
+    let begun = false;
+    /** When the voice last reported anything (a start, a mark, an end), on the governor's clock. */
+    let lastHeardAt = -Infinity;
     let player = null;
     let releaseGovernor = null;
     let waiting = null;
@@ -86,6 +108,12 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
         return Math.max(SHORTEST_ATOM_MS, charTime(entry.segmentId, entry.end) - charTime(entry.segmentId, entry.start));
     }
 
+    /** Whether the voice has said all of an atom: begun the next atom's first word, or ended the segment. */
+    function heardPast(entry) {
+        const { marks, durationMs } = model(entry.segmentId);
+        return durationMs !== null || (marks.length > 0 && marks.at(-1)[0] >= entry.end);
+    }
+
     function complete(atom, index) {
         const entry = map[index];
         if (degraded || !entry?.segmentId) return null;
@@ -93,6 +121,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
         const mine = { dead: false, cancel: null };
         waiting = mine;
         const beganAt = clock.now();
+        const grace = begun ? graceMs : Math.max(graceMs, GOVERNOR_LIMITS.firstGraceMs);
 
         return new Promise(resolve => {
             const finish = result => {
@@ -104,7 +133,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
                 if (mine.dead) return;
                 const played = voice.playedMs(entry.segmentId);
                 if (played === undefined) {
-                    if (clock.now() - beganAt >= graceMs) {
+                    if (clock.now() - beganAt >= grace) {
                         degrade('voice-did-not-start');
                         finish({ reason: 'timeout' });
                         return;
@@ -112,8 +141,18 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
                     mine.cancel = clock.setTimer(check, POLL_MS);
                     return;
                 }
+                if (!begun) { begun = true; lastHeardAt = Math.max(lastHeardAt, clock.now()); }
                 if (entry.seam) { finish({ reason: 'ended' }); return; }
                 const remaining = charTime(entry.segmentId, entry.end) - played;
+                if (remaining <= 0 && followMarks && !heardPast(entry)) {
+                    mine.dueAt ??= clock.now();
+                    if (clock.now() - Math.max(mine.dueAt, lastHeardAt) < GOVERNOR_LIMITS.markPatienceMs) {
+                        mine.cancel = clock.setTimer(check, POLL_MS);
+                        return;
+                    }
+                    // It claimed its words and has not said them: from here the estimate is all there is.
+                    followMarks = false;
+                }
                 if (remaining <= 0) { finish({ reason: 'ended' }); return; }
                 mine.cancel = clock.setTimer(check, Math.min(Math.max(remaining, 1), LONGEST_WAIT_MS));
             };
@@ -136,6 +175,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
 
         /** What the voice reports: 'mark' (id, charIndex, tMs) and 'end' (id, durationMs). */
         observe(kind, id, a, b) {
+            lastHeardAt = clock.now();
             if (kind === 'mark') {
                 const { marks } = model(id);
                 if (!marks.length || marks.at(-1)[0] < a) marks.push([a, b]);

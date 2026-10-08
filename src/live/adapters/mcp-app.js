@@ -99,6 +99,8 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             const writer = createEventWriter(currentId);
             const log = [];
             let channel = createChannel({ capacity });
+            /** The Current as it was handed over, whole: what the runtime compiles (beats ride here, not in events). */
+            let sealed = null;
             let closed = false;
             let finished = false;
             let stopWaiting = () => {};
@@ -135,7 +137,9 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             const accept = ({ current }) => {
                 if (finished || closed) return false;
                 try {
-                    return acceptEvents(currentToEvents(current));
+                    const events = currentToEvents(current);
+                    sealed = current;
+                    return acceptEvents(events);
                 } catch (error) {
                     fail('INVALID_CURRENT', `The Current was refused: ${String(error?.message ?? error)}`);
                     return true;
@@ -168,6 +172,7 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             return {
                 currentId,
                 get events() { return channel; },
+                get sealed() { return sealed; },
 
                 record(type, body = {}) {
                     if (closed || finished) throw new AdapterError('CLOSED', 'The connection is closed');
