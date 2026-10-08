@@ -756,6 +756,43 @@ export class Player {
     }
 
     /**
+     * Move the reading to an atom, taken up from its start and timed afresh. Nothing owed to the atom left (its
+     * timer, its watchdog, a governed end, a flash between phrases) can move the reading again. A playing reading
+     * shows the atom at once; a paused one stays paused and shows it when played, as does a finished one.
+     * @param {number} index
+     */
+    seekTo(index) {
+        if (!Number.isInteger(index) || index < 0 || index >= this.sessionState.session.atoms.length) {
+            throw new RangeError(`There is no atom ${index}`);
+        }
+        this._playbackEpoch++;
+        this._clearSpeechWatchdog();
+        if (this.timerId) {
+            cancelAnimationFrame(this.timerId);
+            this.timerId = null;
+        }
+        if (this.sessionState.state === 'interlocuting') {
+            try {
+                this.interlocutionCancelHandler?.('aborted');
+            } catch (error) {
+                console.warn('[Player] Interlocution cancellation failed:', error);
+            }
+            this.sessionState.state = 'playing';
+            this.sessionState.pausedAt = null;
+            this._readingResume();
+            this.emit('state', { state: 'playing' });
+            this.startProgressAnimation();
+        }
+        this._boundaryFlash = null;
+        this._awaitingAtoms = false;
+        this.atomStartTime = null;
+        this.currentAtomRemainingTime = null;
+        this.currentAtomDisplayTime = null;
+        this.sessionState.currentIndex = index;
+        this.scheduleNextAtom();
+    }
+
+    /**
      * Attempt one boundary-locked interlocution opportunity without advancing
      * the text. The caller owns the completed-atom -> presence -> next-atom
      * sequence.
@@ -917,7 +954,8 @@ export class Player {
                     preparedNextAtom = this._prepareCurrentAtom({ concealed: true });
                 }
             });
-            if (this.sessionState.state !== 'playing') return;
+            // A seek during the flash has already moved the reading.
+            if (this.sessionState.state !== 'playing' || playbackEpoch !== this._playbackEpoch) return;
             if (preparedNextAtom) {
                 // The next atom is already stable behind the fully opaque
                 // visual. Start its full reading duration only after reveal.
@@ -1095,8 +1133,9 @@ export class Player {
 
             Promise.resolve(completion)
                 .then(result => {
-                    this._clearSpeechWatchdog();
+                    // A late end for an atom already left must not disarm the watchdog of the one on screen.
                     if (this.speechSyncId !== currentSyncId) return;
+                    this._clearSpeechWatchdog();
                     if (this.sessionState.state !== 'playing') return;
                     if (result?.reason !== 'ended') {
                         // Playback failed after speak() returned. Degrade
@@ -1115,8 +1154,8 @@ export class Player {
                     this._advance();
                 })
                 .catch(() => {
-                    this._clearSpeechWatchdog();
                     if (this.speechSyncId !== currentSyncId) return;
+                    this._clearSpeechWatchdog();
                     if (this.sessionState.state !== 'playing') return;
                     this.scheduleNextAtom(true);
                 });
