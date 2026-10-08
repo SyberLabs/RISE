@@ -231,3 +231,157 @@ describe('forget', () => {
     expect(setCookieOf(response)).toMatch(/^rise_plus=; Max-Age=0; HttpOnly; Secure; SameSite=Lax; Path=\/api\/plus$/u);
   });
 });
+
+describe('voice', () => {
+  const ATOMS = ['The sun had not yet risen.', 'The sea was indistinguishable from the sky,', 'except that the sea was slightly creased.'];
+  const TEXT = ATOMS.join(' ');
+
+  /** A vendor-shaped answer: 60 ms a character, mp3 bytes that spell their own name. */
+  function vendorAnswer(text) {
+    const characters = [...text];
+    const starts = characters.map((_, i) => 0.1 + i * 0.06);
+    const ends = starts.map(t => t + 0.06);
+    return { audio_base64: btoa('mp3-bytes'), alignment: { characters, character_start_times_seconds: starts, character_end_times_seconds: ends } };
+  }
+
+  function voiceEnvironment(overrides = {}) {
+    const stored = {};
+    const env = environment({
+      ELEVENLABS_API_KEY: 'el-secret',
+      PLUS_VOICE_ID: 'voice-1',
+      PLUS_VOICE_SLUG: 'el_plus',
+      PLUS_AUDIO: {
+        get: vi.fn(async key => stored[key] ? { body: stored[key], httpEtag: `"${key}"` } : null),
+        put: vi.fn(async (key, value) => { stored[key] = value; })
+      },
+      ...overrides
+    });
+    return { env, stored };
+  }
+
+  /** Vendor and Stripe behind one fetch. */
+  function upstream({ vendor = vendorAnswer(TEXT), vendorStatus = 200 } = {}) {
+    const fetcher = vi.fn(async (url, init) => {
+      if (String(url).startsWith('https://api.elevenlabs.io/')) {
+        return vendorStatus === 200 ? Response.json(vendor) : new Response('', { status: vendorStatus });
+      }
+      if (String(url).includes('/v1/subscriptions/')) return Response.json(subscription({ metadata: {} }));
+      return new Response('', { status: 500 });
+    });
+    vi.stubGlobal('fetch', fetcher);
+    return fetcher;
+  }
+
+  const voiceRequest = (cookie, body = { atoms: ATOMS }) => new Request(`${SITE}/api/plus/voice`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '192.0.2.1', ...(cookie ? { Cookie: cookie } : {}) }, body: JSON.stringify(body)
+  });
+
+  it('voices a reading once, stores it, meters the cookie and tells Stripe', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { env, stored } = voiceEnvironment();
+    const fetcher = upstream();
+    const response = await worker.fetch(voiceRequest(await cookieFor(env)), env);
+    expect(response.status).toBe(200);
+    const pack = await response.json();
+    expect(pack.schema).toBe('rise.recitation-voice-pack.v1');
+    const entries = Object.values(pack.voices.el_plus.entries);
+    expect(entries.map(e => e.text)).toEqual(ATOMS);
+    expect(new Set(entries.map(e => e.asset)).size).toBe(1);
+    expect(entries[0].asset).toMatch(/^\/api\/plus\/audio\/voiced\/[0-9a-f]{64}\/audio\.mp3$/u);
+    expect(entries[1].fromMs).toBeGreaterThan(entries[0].toMs - 1);
+    expect(entries[1].onsetsMs[0]).toBe(0);
+    expect(entries[1].durationMs).toBe(entries[1].toMs - entries[1].fromMs);
+    // The vendor was asked once, with the key and the joined text.
+    const vendorCall = fetcher.mock.calls.find(([url]) => String(url).includes('elevenlabs'));
+    expect(vendorCall[1].headers['xi-api-key']).toBe('el-secret');
+    expect(JSON.parse(vendorCall[1].body)).toEqual({ text: TEXT, model_id: 'eleven_flash_v2_5' });
+    // Stored under the hash: the audio and the pack.
+    expect(Object.keys(stored).sort()).toEqual([`voiced/${pack.voiced.hash}/audio.mp3`, `voiced/${pack.voiced.hash}/pack.json`]);
+    expect(new TextDecoder().decode(stored[`voiced/${pack.voiced.hash}/audio.mp3`])).toBe('mp3-bytes');
+    // Metered: Stripe told, cookie re-signed with the count.
+    const stripeCall = fetcher.mock.calls.find(([url]) => String(url).includes('/v1/subscriptions/sub_1'));
+    expect(stripeCall[1].method).toBe('POST');
+    expect(stripeCall[1].body).toBe(`metadata%5Bplus_used_${NOW + 20 * DAY_S}%5D=${TEXT.length}`);
+    const cookie = setCookieOf(response).split(';')[0];
+    expect(cookie).toMatch(/^rise_plus=v1\./u);
+    // The voiced file and pack are served to the cookie.
+    const audio = await worker.fetch(new Request(`${SITE}${entries[0].asset}`, { headers: { Cookie: cookie } }), env);
+    expect(audio.status).toBe(200);
+    expect(audio.headers.get('Content-Type')).toBe('audio/mpeg');
+    const served = await worker.fetch(new Request(`${SITE}/api/plus/audio/voiced/${pack.voiced.hash}/pack.json`, { headers: { Cookie: cookie } }), env);
+    expect(served.status).toBe(200);
+  });
+
+  it('serves a text said before from storage: no vendor call, no allowance spent', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { env } = voiceEnvironment();
+    const fetcher = upstream();
+    const first = await worker.fetch(voiceRequest(await cookieFor(env)), env);
+    const pack = await first.json();
+    const again = await worker.fetch(voiceRequest(await cookieFor(env)), env);
+    expect(again.status).toBe(200);
+    expect((await again.json()).voiced.hash).toBe(pack.voiced.hash);
+    expect(fetcher.mock.calls.filter(([url]) => String(url).includes('elevenlabs'))).toHaveLength(1);
+    expect(setCookieOf(again)).toBeNull();
+  });
+
+  it('refuses past the allowance before asking the vendor', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { env } = voiceEnvironment();
+    const fetcher = upstream();
+    const nearlyUsed = await cookieFor(env, { u: 105_000 - TEXT.length + 1 });
+    const response = await worker.fetch(voiceRequest(nearlyUsed), env);
+    expect(response.status).toBe(402);
+    expect((await response.json()).error.code).toBe('PLUS_ALLOWANCE');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('seeds the count from Stripe at claim time, so a cleared browser keeps its meter', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    stripeAnswering({ session: { payment_status: 'paid', subscription: subscription({ metadata: { [`plus_used_${NOW + 20 * DAY_S}`]: '100000' } }) } });
+    const claimed = await worker.fetch(claimRequest(), env);
+    const cookie = setCookieOf(claimed).split(';')[0];
+    const { env: voiced } = voiceEnvironment();
+    const fetcher = upstream();
+    const response = await worker.fetch(voiceRequest(cookie, { atoms: ['x'.repeat(5_990) + ' and more'] }), voiced);
+    expect(response.status).toBe(402);
+    expect((await response.json()).error.code).toBe('PLUS_ALLOWANCE');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['no phrases', { atoms: [] }, 400],
+    ['a phrase with no letters', { atoms: ['...'] }, 400],
+    ['a phrase with a line break', { atoms: ['one\ntwo'] }, 400],
+    ['more than one request of text', { atoms: ['x'.repeat(6_000), 'y'.repeat(6_000)] }, 413]
+  ])('refuses %s without asking the vendor', async (_, body, status) => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { env } = voiceEnvironment();
+    const fetcher = upstream();
+    const response = await worker.fetch(voiceRequest(await cookieFor(env), body), env);
+    expect(response.status).toBe(status);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('needs the cookie, and is switched off without the vendor key', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { env } = voiceEnvironment();
+    upstream();
+    expect((await worker.fetch(voiceRequest(null), env)).status).toBe(402);
+    const { env: off } = voiceEnvironment({ ELEVENLABS_API_KEY: undefined });
+    expect((await worker.fetch(voiceRequest(await cookieFor(off)), off)).status).toBe(503);
+  });
+
+  it('answers 502 when the vendor fails or the performance does not match the text, storing nothing', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { env, stored } = voiceEnvironment();
+    upstream({ vendorStatus: 500 });
+    expect((await worker.fetch(voiceRequest(await cookieFor(env)), env)).status).toBe(502);
+    upstream({ vendor: vendorAnswer('Something else entirely was said.') });
+    const refused = await worker.fetch(voiceRequest(await cookieFor(env)), env);
+    expect(refused.status).toBe(502);
+    expect((await refused.json()).error.code).toBe('VOICE_REFUSED');
+    expect(Object.keys(stored)).toEqual([]);
+  });
+});

@@ -56,6 +56,7 @@ export class Voice {
         this._readerIndex = 0;
         this._cache = new Map();
         this._loads = new Map();
+        this._shared = new Map();
         this._missing = new Set();
         // A fetch that failed is not the same fact as a phrase the pack
         // does not have. Counted, so the first is retried and the second
@@ -361,16 +362,28 @@ export class Voice {
 
         const load = (async () => {
             try {
-                const response = await this._fetch(manifestEntry.asset, {
-                    signal: controller?.signal
-                });
-                if (!response?.ok) {
-                    throw new Error(`asset returned HTTP ${response?.status ?? 'unknown'}`);
+                let blob = null;
+                let audioBuffer = null;
+                if (Number.isFinite(manifestEntry.fromMs) && Number.isFinite(manifestEntry.toMs)) {
+                    // One performance, many phrases (a voiced reading from
+                    // /api/plus/voice): the file is fetched and decoded once,
+                    // and each phrase is its own slice of that buffer. No
+                    // media-element fallback: a slice needs the graph.
+                    const whole = await this._sharedBuffer(manifestEntry.asset);
+                    if (!whole) throw new Error('shared asset could not be decoded');
+                    audioBuffer = this._slice(whole, manifestEntry.fromMs, manifestEntry.toMs);
+                } else {
+                    const response = await this._fetch(manifestEntry.asset, {
+                        signal: controller?.signal
+                    });
+                    if (!response?.ok) {
+                        throw new Error(`asset returned HTTP ${response?.status ?? 'unknown'}`);
+                    }
+                    const bytes = await response.arrayBuffer();
+                    const mimeType = manifestEntry.mimeType || 'audio/wav';
+                    blob = new Blob([bytes], { type: mimeType });
+                    audioBuffer = await this._decode(bytes);
                 }
-                const bytes = await response.arrayBuffer();
-                const mimeType = manifestEntry.mimeType || 'audio/wav';
-                const blob = new Blob([bytes], { type: mimeType });
-                const audioBuffer = await this._decode(bytes);
                 const sampleRate = audioBuffer?.sampleRate
                     || Number(manifestEntry.sampleRate)
                     || 24000;
@@ -426,6 +439,38 @@ export class Voice {
 
         this._loads.set(index, load);
         return load;
+    }
+
+    /** The decoded whole of a shared asset, fetched and decoded once per URL. */
+    _sharedBuffer(asset) {
+        if (!this._shared.has(asset)) {
+            const load = (async () => {
+                const response = await this._fetch(asset);
+                if (!response?.ok) {
+                    throw new Error(`asset returned HTTP ${response?.status ?? 'unknown'}`);
+                }
+                return this._decode(await response.arrayBuffer());
+            })().catch(error => {
+                this._shared.delete(asset);
+                throw error;
+            });
+            this._shared.set(asset, load);
+        }
+        return this._shared.get(asset);
+    }
+
+    /** The samples of one phrase, cut from a decoded performance by its time range. */
+    _slice(whole, fromMs, toMs) {
+        const context = this.audioEngine?.context;
+        const rate = whole.sampleRate;
+        const from = Math.max(0, Math.floor(fromMs * rate / 1000));
+        const to = Math.min(whole.length, Math.ceil(toMs * rate / 1000));
+        const channels = whole.numberOfChannels || 1;
+        const clip = context.createBuffer(channels, Math.max(1, to - from), rate);
+        for (let channel = 0; channel < channels; channel++) {
+            clip.copyToChannel(whole.getChannelData(channel).subarray(from, to), channel);
+        }
+        return clip;
     }
 
     /** Whether an AudioContext exists that could decode a clip right now. */

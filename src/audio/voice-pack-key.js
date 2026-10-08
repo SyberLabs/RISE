@@ -2,6 +2,9 @@ export const VOICE_PACK_SCHEMA = 'rise.recitation-voice-pack.v1';
 export const DEFAULT_VOICE_ID = 'af_heart';
 
 const PACK_URL = /^\/audio\/recitation\/[a-z0-9_]+\/[0-9a-f]{16}\.json$/u;
+// A Plus pack: a rendered division of the canon, or one voiced reading, both
+// served same-origin by the Worker to a subscriber's cookie (worker/plus.mjs).
+const PLUS_PACK_URL = /^\/api\/plus\/audio\/(?:[a-z0-9_]+\/[a-z0-9-]+\/\d{1,4}|voiced\/[0-9a-f]{64})\/pack\.json$/u;
 
 /**
  * A reading's own voice pack (today's poem), named by the hash of its bytes
@@ -10,7 +13,7 @@ const PACK_URL = /^\/audio\/recitation\/[a-z0-9_]+\/[0-9a-f]{16}\.json$/u;
  * point the reader somewhere else.
  */
 export function recitationPackUrl(value) {
-  return typeof value === 'string' && PACK_URL.test(value) ? value : null;
+  return typeof value === 'string' && (PACK_URL.test(value) || PLUS_PACK_URL.test(value)) ? value : null;
 }
 
 /**

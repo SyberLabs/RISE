@@ -6,18 +6,36 @@
  * Stripe whether the subscription still stands and re-signs or clears it.
  *
  *   POST /api/plus/claim  { session_id }      the Checkout success page; mints the cookie after Stripe confirms
- *   GET  /api/plus/audio/<voice>/<work>/<division>/pack.json | <sha16>.m4a
+ *   POST /api/plus/voice  { atoms }           voices one short reading (a Composer Current) on the lab's key, once per text
+ *   GET  /api/plus/audio/<voice>/<work>/<division>/pack.json | <sha16>.m4a      the rendered canon
+ *   GET  /api/plus/audio/voiced/<sha256>/pack.json | audio.mp3                  a voiced reading
  *   POST /api/plus/forget                     clears the cookie in this browser
  *
+ * The voice allowance is metered without a table: the characters voiced this
+ * period ride inside the cookie and are mirrored to the Stripe subscription's
+ * metadata on every paid voicing, so a cleared browser recovers its count at
+ * the next claim and a reused success link cannot reset it. The same text is
+ * never paid for twice: a voicing is cached by the hash of what was said.
+ *
  * Secrets: STRIPE_SECRET_KEY, PLUS_COOKIE_SECRET (and PLUS_COOKIE_SECRET_PREVIOUS
- * while rotating). Binding: PLUS_AUDIO, the private bucket the render script fills.
+ * while rotating), ELEVENLABS_API_KEY (voice only). Vars: PLUS_VOICE_ID (the
+ * vendor's voice), PLUS_VOICE_SLUG (its name in RISE), PLUS_VOICE_MODEL.
+ * Binding: PLUS_AUDIO, the private bucket the render script and the voice route fill.
  */
+import { mapAlignment } from '../src/audio/poem-alignment.js';
+import { VOICE_PACK_SCHEMA, voiceAssetKey } from '../src/audio/voice-pack-key.js';
 
 const COOKIE = 'rise_plus';
 const KEY_ID = 'v1';
 const DAY_S = 24 * 60 * 60;
 const GRACE_S = 3 * DAY_S;
 const STRIPE = 'https://api.stripe.com';
+const ELEVENLABS = 'https://api.elevenlabs.io';
+/** Characters a subscriber may have voiced per billing period (RFC 0001 revision 5; about half of $8.99 at Flash pricing). */
+export const VOICE_ALLOWANCE = 105_000;
+/** One voicing is one vendor request: a Current, not a chapter. */
+const VOICE_MAX_CHARS = 10_000;
+const VOICE_MAX_ATOMS = 400;
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -26,9 +44,11 @@ const JSON_HEADERS = {
 };
 
 const AUDIO_PATH = /^\/api\/plus\/audio\/([a-z0-9_]+)\/([a-z0-9-]+)\/(\d{1,4})\/(pack\.json|[0-9a-f]{16}\.m4a)$/u;
+const VOICED_PATH = /^\/api\/plus\/audio\/voiced\/([0-9a-f]{64})\/(pack\.json|audio\.mp3)$/u;
 
 export function isPlusRoute(path) {
-  return path === '/api/plus/claim' || path === '/api/plus/forget' || AUDIO_PATH.test(path);
+  return path === '/api/plus/claim' || path === '/api/plus/voice' || path === '/api/plus/forget'
+    || AUDIO_PATH.test(path) || VOICED_PATH.test(path);
 }
 
 function reply(status, body, headers = {}) {
@@ -68,7 +88,9 @@ async function verify(value, env) {
     if (!ok) continue;
     try {
       const claim = JSON.parse(new TextDecoder().decode(fromB64url(payload)));
-      if (typeof claim.c === 'string' && typeof claim.s === 'string' && Number.isFinite(claim.exp) && Number.isFinite(claim.iat)) return claim;
+      if (typeof claim.c === 'string' && typeof claim.s === 'string' && Number.isFinite(claim.exp) && Number.isFinite(claim.iat)) {
+        return { ...claim, u: Number.isFinite(claim.u) ? claim.u : 0 };
+      }
     } catch {
       /* not ours */
     }
@@ -95,11 +117,21 @@ async function setCookie(claim, env, now) {
 
 const CLEAR_COOKIE = `${COOKIE}=; Max-Age=0; ${ATTRIBUTES}`;
 
-async function stripe(path, env) {
-  const response = await fetch(`${STRIPE}${path}`, { headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } });
+async function stripe(path, env, form = null) {
+  const response = await fetch(`${STRIPE}${path}`, {
+    method: form ? 'POST' : 'GET',
+    headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, ...(form ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
+    ...(form ? { body: new URLSearchParams(form).toString() } : {})
+  });
   if (!response.ok) throw new Error(`Stripe answered ${response.status}`);
   return response.json();
 }
+
+/** The characters voiced this period, as Stripe remembers them for this subscription. */
+const usedFrom = (subscription, exp) => {
+  const value = Number(subscription?.metadata?.[`plus_used_${exp}`]);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+};
 
 const ACTIVE = new Set(['active', 'trialing']);
 
@@ -108,7 +140,8 @@ function claimFor(subscription) {
   if (!subscription || !ACTIVE.has(subscription.status)) return null;
   const customer = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
   if (!customer || typeof subscription.id !== 'string' || !Number.isFinite(subscription.current_period_end)) return null;
-  return { c: customer, s: subscription.id, exp: subscription.current_period_end };
+  const exp = subscription.current_period_end;
+  return { c: customer, s: subscription.id, exp, u: usedFrom(subscription, exp) };
 }
 
 async function limited(request, env, key) {
@@ -158,9 +191,107 @@ async function renewed(current, env, now) {
   return { claim: { ...next, iat: now }, cookie: await setCookie({ ...next, iat: now }, env, now) };
 }
 
+const sha256 = async text => [...new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(text)))].map(b => b.toString(16).padStart(2, '0')).join('');
+
+/**
+ * Voice one short reading. The atoms are the reader's own phrases, exactly as
+ * the Chamber will cut them, joined by one space for the vendor so the letter
+ * check (src/audio/poem-alignment.js) holds by construction. The pack points
+ * every phrase at one audio file with its own time range; the Voice slices it.
+ */
+async function voice(request, env, now) {
+  if (request.method !== 'POST') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use POST.');
+  if (!env.ELEVENLABS_API_KEY || !env.PLUS_VOICE_ID || !env.PLUS_VOICE_SLUG) {
+    return refuse(503, 'PLUS_UNAVAILABLE', 'The Plus voice is not switched on in this deployment.');
+  }
+  const current = await verify(cookieValue(request), env);
+  if (!current) return refuse(402, 'PLUS_REQUIRED', 'A Plus subscription is needed for this voice.', { 'Set-Cookie': CLEAR_COOKIE });
+  if (now > current.exp + GRACE_S) return refuse(402, 'PLUS_LAPSED', 'Your Plus subscription has lapsed.', { 'Set-Cookie': CLEAR_COOKIE });
+  if (await limited(request, env, 'plus-voice')) return refuse(429, 'RATE_LIMITED', 'Too many requests were sent. Try again in a minute.');
+
+  let atoms;
+  try {
+    atoms = (await request.json())?.atoms;
+  } catch {
+    atoms = undefined;
+  }
+  if (!Array.isArray(atoms) || !atoms.length || atoms.length > VOICE_MAX_ATOMS
+    || !atoms.every(atom => typeof atom === 'string' && /[\p{L}\p{N}]/u.test(atom) && !/\n/u.test(atom))) {
+    return refuse(400, 'BAD_REQUEST', `Send between 1 and ${VOICE_MAX_ATOMS} spoken phrases, each with at least one letter.`);
+  }
+  const text = atoms.join(' ');
+  if (text.length > VOICE_MAX_CHARS) return refuse(413, 'TOO_LONG', `A voicing is at most ${VOICE_MAX_CHARS.toLocaleString('en')} characters.`);
+
+  const model = env.PLUS_VOICE_MODEL || 'eleven_flash_v2_5';
+  const slug = env.PLUS_VOICE_SLUG;
+  const hash = await sha256(`${env.PLUS_VOICE_ID}\n${model}\n${slug}\n${text}`);
+  const packKey = `voiced/${hash}/pack.json`;
+  const cached = await env.PLUS_AUDIO.get(packKey);
+  if (cached) {
+    // Said before: nobody pays again, and the allowance is untouched.
+    return new Response(cached.body, { status: 200, headers: { ...JSON_HEADERS, 'Cache-Control': 'private, max-age=31536000, immutable' } });
+  }
+
+  if (current.u + text.length > VOICE_ALLOWANCE) {
+    return refuse(402, 'PLUS_ALLOWANCE', `This month's voice allowance is used up (${VOICE_ALLOWANCE.toLocaleString('en')} characters). It resets with your next billing period.`);
+  }
+
+  let rendered;
+  try {
+    const response = await fetch(`${ELEVENLABS}/v1/text-to-speech/${encodeURIComponent(env.PLUS_VOICE_ID)}/with-timestamps?output_format=mp3_44100_64`, {
+      method: 'POST',
+      headers: { 'xi-api-key': env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, model_id: model })
+    });
+    if (!response.ok) throw new Error(`vendor answered ${response.status}`);
+    rendered = await response.json();
+  } catch {
+    return refuse(502, 'UPSTREAM', 'The voice could not be rendered. Try again in a moment.');
+  }
+  // The raw alignment names the characters sent; normalized_alignment names what the voice said instead and would fail the letter check.
+  const mapped = mapAlignment({ atoms, alignment: rendered.alignment ?? {} });
+  if (!mapped.ok) return refuse(502, 'VOICE_REFUSED', `The performance did not match the text (${mapped.reason}).`);
+
+  const asset = `/api/plus/audio/voiced/${hash}/audio.mp3`;
+  const entries = {};
+  for (const atom of mapped.atoms) {
+    const key = voiceAssetKey(atom.text);
+    if (entries[key]) continue;
+    entries[key] = {
+      text: atom.text,
+      asset,
+      mimeType: 'audio/mpeg',
+      fromMs: Math.round(atom.startMs),
+      toMs: Math.round(atom.endMs),
+      durationMs: Math.round(atom.endMs - atom.startMs),
+      onsetsMs: atom.onsetsMs.map(t => Math.max(0, Math.round(t - atom.startMs)))
+    };
+  }
+  const pack = JSON.stringify({
+    schema: VOICE_PACK_SCHEMA,
+    voiced: { hash, characters: text.length, model: `elevenlabs/${model}` },
+    voices: { [slug]: { label: slug, model: `elevenlabs/${model}`, format: 'mp3', entries } }
+  });
+  await env.PLUS_AUDIO.put(`voiced/${hash}/audio.mp3`, Uint8Array.from(atob(rendered.audio_base64 ?? ''), c => c.charCodeAt(0)), { httpMetadata: { contentType: 'audio/mpeg' } });
+  await env.PLUS_AUDIO.put(packKey, pack, { httpMetadata: { contentType: 'application/json' } });
+
+  const used = current.u + text.length;
+  try {
+    await stripe(`/v1/subscriptions/${encodeURIComponent(current.s)}`, env, { [`metadata[plus_used_${current.exp}]`]: String(used) });
+  } catch {
+    /* the cookie still carries the count; Stripe catches up on the next voicing */
+  }
+  return new Response(pack, {
+    status: 200,
+    headers: { ...JSON_HEADERS, 'Set-Cookie': await setCookie({ ...current, u: used, iat: current.iat }, env, now) }
+  });
+}
+
 async function audio(request, env, now) {
   if (request.method !== 'GET') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
-  const [, voice, work, division, file] = new URL(request.url).pathname.match(AUDIO_PATH);
+  const path = new URL(request.url).pathname;
+  const voiced = path.match(VOICED_PATH);
+  const [, voice, work, division, file] = voiced ? [null, 'voiced', voiced[1], null, voiced[2]] : path.match(AUDIO_PATH);
   const current = await verify(cookieValue(request), env);
   if (!current) return refuse(402, 'PLUS_REQUIRED', 'A Plus subscription is needed for this voice.', { 'Set-Cookie': CLEAR_COOKIE });
   if (now > current.exp + GRACE_S) return refuse(402, 'PLUS_LAPSED', 'Your Plus subscription has lapsed.', { 'Set-Cookie': CLEAR_COOKIE });
@@ -170,10 +301,10 @@ async function audio(request, env, now) {
     if (!result.claim) return refuse(402, 'PLUS_LAPSED', 'Your Plus subscription has lapsed.', { 'Set-Cookie': CLEAR_COOKIE });
     cookie = result.cookie ?? null;
   }
-  const object = await env.PLUS_AUDIO.get(`${voice}/${work}/${division}/${file}`);
+  const object = await env.PLUS_AUDIO.get(voiced ? `voiced/${work}/${file}` : `${voice}/${work}/${division}/${file}`);
   if (!object) return refuse(404, 'NOT_FOUND', 'No such clip.');
   const headers = new Headers({
-    'Content-Type': file === 'pack.json' ? 'application/json; charset=utf-8' : 'audio/mp4',
+    'Content-Type': file === 'pack.json' ? 'application/json; charset=utf-8' : file === 'audio.mp3' ? 'audio/mpeg' : 'audio/mp4',
     'Cache-Control': 'private, max-age=31536000, immutable',
     'X-Content-Type-Options': 'nosniff',
     ...(object.httpEtag ? { ETag: object.httpEtag } : {})
@@ -189,6 +320,7 @@ export async function handlePlus(request, env) {
   }
   const now = Math.floor(Date.now() / 1000);
   if (path === '/api/plus/claim') return claim(request, env, now);
+  if (path === '/api/plus/voice') return voice(request, env, now);
   if (path === '/api/plus/forget') return reply(204, null, { 'Set-Cookie': CLEAR_COOKIE });
   return audio(request, env, now);
 }
