@@ -135,6 +135,7 @@ import { PERSONAL_BED_PREFIX } from '../core/workshop-audio.js';
 import { createSoundscape } from './soundscapes.js';
 import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
+import { siteUrl } from '../core/embed-address.js';
 import { AudioLifecycle, AUDIO_STATUS } from './lifecycle.js';
 
 /**
@@ -274,10 +275,10 @@ export class AudioEngine {
 
             // Asset paths
             paths: {
-                typingConfig: '/audio/typing-config.json',
-                typingSprite: '/audio/typing-sprite.ogg',
-                click: '/audio/click.wav',
-                hiss: '/audio/hiss.wav',
+                typingConfig: siteUrl('/audio/typing-config.json'),
+                typingSprite: siteUrl('/audio/typing-sprite.ogg'),
+                click: siteUrl('/audio/click.wav'),
+                hiss: siteUrl('/audio/hiss.wav'),
                 // No built-in swells ship today. The two HQ files these
                 // paths named were never added to public/, so every boot
                 // fetched them, hit the SPA catch-all, and got index.html

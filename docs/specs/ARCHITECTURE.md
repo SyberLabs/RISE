@@ -176,7 +176,7 @@ flowchart LR
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
-    audio --> |7| core
+    audio --> |8| core
     components --> |3| affect
     components -.-> |2 lazy| app
     components --> |5| audio
@@ -202,7 +202,7 @@ flowchart LR
     page --> |4| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
-    visuals --> |23| core
+    visuals --> |25| core
     visuals --> |4| sources
     wormhole --> |1| app
     wormhole --> |2| core

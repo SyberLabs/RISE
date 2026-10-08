@@ -5,6 +5,8 @@
  *
  * Built by scripts/build-engine-stills.mjs from the engines' own output.
  */
+import { siteUrl } from '../core/embed-address.js';
+
 export const SHIPPED_STILLS = new Map([
     ['fractal', 'fractal.webp'],
     ['ostensoria', 'ostensoria.webp'],
@@ -13,14 +15,13 @@ export const SHIPPED_STILLS = new Map([
 ]);
 
 /**
- * Absolute, because safeUrl admits no relative path, and resolved against the
- * document's base rather than the window's origin: inside a host's card the
- * window's origin is opaque ("null") while the base is RISE's (mcp-card.js).
+ * Absolute, because safeUrl admits no relative path, and RISE's own address
+ * even inside a host's card, where the document's base is the host's (siteUrl).
  */
 export function shippedStill(file) {
-    if (typeof document === 'undefined') return null;
+    if (typeof location === 'undefined') return null;
     try {
-        return new URL(`engine-stills/${file}`, document.baseURI).href;
+        return new URL(siteUrl(`/engine-stills/${file}`), location.origin + '/').href;
     } catch {
         return null;
     }
