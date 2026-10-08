@@ -872,6 +872,16 @@ describe('inside an MCP host', () => {
         await vi.waitFor(() => expect(line().textContent).toBe('Waiting for the answer…'));
     });
 
+    it('asks the browser for its voices as soon as it opens, so they are listed by the Play press', async () => {
+        const { environment, sent } = framed();
+        // A fresh frame lists no voices until asked; the host asks at once, not at Play.
+        environment.speechSynthesis = { getVoices: vi.fn(() => []) };
+        mount('?embed=mcp', environment);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(environment.speechSynthesis.getVoices).toHaveBeenCalled();
+        await host.stop();
+    });
+
     it('bounds the initial answer wait and still accepts a later corrected Current', async () => {
         const { environment, sent, hostSays } = framed();
         mount('?embed=mcp&voice=paced', environment);
@@ -879,7 +889,7 @@ describe('inside an MCP host', () => {
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });
 
-        await vi.waitFor(() => expect(line().textContent).toContain('No Current arrived in time'));
+        await vi.waitFor(() => expect(line().textContent).toContain('Still waiting for the assistant'));
         expect(line().getAttribute('role')).toBe('alert');
         expect(container.querySelector('.live-start')).toBeNull();
 
@@ -902,7 +912,7 @@ describe('inside an MCP host', () => {
             params: { isError: true, content: [{ type: 'text', text: 'refused' }] }
         });
         await vi.waitFor(() => expect(line().textContent).toContain('Current was refused'));
-        await vi.waitFor(() => expect(line().textContent).toContain('No Current arrived in time'));
+        await vi.waitFor(() => expect(line().textContent).toContain('Still waiting for the assistant'));
         expect(container.querySelector('.live-start')).toBeNull();
         await host.stop();
     });
