@@ -160,7 +160,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>13 modules"]
     components["components<br/>routed views<br/>52 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>182 modules"]
+    core["core<br/>session, player, router<br/>181 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>51 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -1410,9 +1410,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   operator's own keys, under a spending cap; it refuses to run in CI or
   without an explicit billing flag. The capture is frozen into one file named
   by the hash of its bytes, served immutable beside an index that revalidates.
-  `src/core/decision/arena-file.js` refuses a file whose bytes do not match its
-  name, whose schema is unknown, or whose harness had uncommitted changes.
-  Every decider's answers pass through the same `admitAnswers` the browser
+  `scripts/arena/arena-file.mjs` refuses a file whose bytes do not match its
+  name, whose schema is unknown, or whose harness had uncommitted changes
+  (a mock run, a pipeline check never committed, is exempt). Every decider's answers pass through the same `admitAnswers` the browser
   uses, and both the raw and the admitted decision are kept.
 - **Rejected:** live side-by-side calls from the reader's page, a shared
   SyberLabs key for comparisons, and a reader pasting a third-party key into

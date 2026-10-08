@@ -2,37 +2,47 @@
 // into one content-addressed file. Operator-paid offline research, run by a
 // person; a reader's live recommendations never come from here.
 //
-//   capture  asks every decider every case --runs times and writes
-//            public/content/arena/run-<sha12>.json plus index.json.
-//            Billed deciders need --bill-operator, refuse under CI, and stop
-//            before cumulative cost would pass --max-usd (default 20).
+//   capture  asks every decider every case, and every control in
+//            scripts/arena/controls.json when it exists, --runs times and
+//            writes public/content/arena/run-<sha12>.json plus index.json.
+//            Billed deciders need --bill-operator and refuse under CI.
+//            --max-usd (default 20) is checked before each call against the
+//            spend so far plus that call's reserve (its estimate, or the
+//            dearest call yet). A call that costs more than its reserve can
+//            pass the cap; the capture stops after the first call over and
+//            writes what it has, marked partial.
 //            --mock answers every network decider from a local stand-in.
 //   report   re-derives the scores of one run file, deterministically.
+//            With --reveal-seed-file, it also scores the controls' calibration
+//            against the labels the revealed seed draws; without it they are
+//            sealed.
 //
 // Deciders: openai (OPENAI_API_KEY), jev (READER_OPENROUTER_KEY), kev (local
 // RISE at --origin), rules, rules-floor. Keys are read from the environment and
 // never written or printed.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { committedCatalog } from '../../local/catalog.mjs';
 import { admitAnswers, buildRecommendRequest } from '../../src/core/decision/recommend.js';
-import { ARENA_SCHEMA, readArenaRun } from '../../src/core/decision/arena-file.js';
 import { KEV } from '../../src/core/decision/providers.js';
 import { fixtures } from '../decision-eval.mjs';
 import { jevDecider } from './adapters/jev.mjs';
 import { kevDecider } from './adapters/kev.mjs';
 import { OPENAI_MODEL, openaiDecider } from './adapters/openai.mjs';
 import { rulesDecider, rulesFloorDecider } from './adapters/rules.mjs';
-import { scoreRun } from './report.mjs';
+import { ARENA_SCHEMA, readArenaRun } from './arena-file.mjs';
+import { CALIBRATION_VERSION, calibration, calibrationRows, scoreRun } from './report.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 export const ARENA_DIR = 'public/content/arena';
 export const DECIDERS = Object.freeze(['openai', 'jev', 'kev', 'rules', 'rules-floor']);
 const DEFAULT_CASES = 'scripts/jev-eval-cases.json';
 const DEFAULT_OPTIONS = 'scripts/jev-eval-options-candidate.json';
+const DEFAULT_CONTROLS = 'scripts/arena/controls.json';
 
 function fail(message) { throw new Error(message); }
 function argument(args, flag, fallback) {
@@ -95,10 +105,18 @@ function rejectCodeOf(answers, questions) {
     || !Object.hasOwn(question.criteria, answers[name].choice)) ? 'OUT_OF_MENU' : 'NOT_ADMITTED';
 }
 
-/** Asks every decider every case, in memory. Returns the run object (unwritten). */
-export async function captureRun({ cases, options, casesHash, optionsHash, catalog, deciders, runs,
-  maxUsd, harness, now = () => new Date() }) {
-  const requests = cases.map(item => ({ item,
+/** controls.json when it exists: its cases and the hash of its bytes. */
+async function readControls(path) {
+  if (!existsSync(path)) return { controls: [], controlsHash: null, file: null };
+  const text = await readFile(path, 'utf8');
+  const file = JSON.parse(text);
+  return { controls: file.cases, controlsHash: digest(text), file };
+}
+
+/** Asks every decider every case and control, in memory. Returns the run object (unwritten). */
+export async function captureRun({ cases, controls = [], options, casesHash, optionsHash, controlsHash = null,
+  catalog, deciders, runs, maxUsd, harness, now = () => new Date() }) {
+  const requests = [...cases, ...controls].map(item => ({ item,
     ...buildRecommendRequest({ intent: item.intent, catalog, turn: 0, nightDrive: false }) }));
   const estimate = deciders.reduce((sum, decider) => sum
     + requests.reduce((total, { body }) => total + decider.estimateUsd(body), 0) * runs, 0);
@@ -107,13 +125,17 @@ export async function captureRun({ cases, options, casesHash, optionsHash, catal
     served: new Set(), from: null, to: null, maxCost: 0 }]));
   const results = [];
   let spent = 0;
-  for (let run = 1; run <= runs; run++) {
+  let stopped = false;
+  capture: for (let run = 1; run <= runs; run++) {
     for (const { item, body, hints, choices } of requests) {
       for (const decider of deciders) {
         const status = state.get(decider.id);
         if (status.notRun) continue;
         const reserve = Math.max(decider.estimateUsd(body), status.maxCost);
-        if (spent + reserve > maxUsd) fail(`Stopped: the next ${decider.id} call could pass --max-usd ${maxUsd} (spent $${spent.toFixed(4)}).`);
+        if (spent + reserve > maxUsd) {
+          stopped = true;
+          break capture;
+        }
         status.from ??= now().toISOString();
         const started = performance.now();
         let row;
@@ -142,28 +164,29 @@ export async function captureRun({ cases, options, casesHash, optionsHash, catal
       }
     }
   }
-  const caseOrder = new Map(cases.map((item, index) => [item.id, index]));
+  const caseOrder = new Map(requests.map(({ item }, index) => [item.id, index]));
   const providerOrder = new Map(deciders.map((decider, index) => [decider.id, index]));
   results.sort((a, b) => caseOrder.get(a.caseId) - caseOrder.get(b.caseId)
     || providerOrder.get(a.providerId) - providerOrder.get(b.providerId) || a.run - b.run);
   const notes = [];
   if (harness.mock) notes.push('MOCK: network deciders answered by a local stand-in. Pipeline check only; says nothing about any model.');
+  if (stopped) notes.push(`partial: stopped at cost cap $${maxUsd}`);
   const providers = deciders.map(decider => {
     const status = state.get(decider.id);
     if (status.notRun) notes.push(`${decider.id}: ${status.notRun}.`);
-    const split = decider.questionsPerCall;
-    if (split && split < 28) notes.push(`${decider.id}: 28 questions in one call were refused; each case was split into calls of ${split}.`);
     return { id: decider.id, requestedModel: decider.requestedModel, servedModels: [...status.served].sort(),
       revision: decider.revision, ranFrom: status.from, ranTo: status.to, pricing: decider.pricing,
-      status: status.notRun || 'ran', ...(split !== undefined ? { questionsPerCall: split } : {}) };
+      status: status.notRun || 'ran' };
   });
   const createdAt = now().toISOString();
   const run = { schema: ARENA_SCHEMA, runId: `arena-${createdAt.replace(/[-:.]/gu, '').slice(0, 15)}-${harness.commit.slice(0, 7)}`,
-    createdAt, harness,
+    createdAt, harness, ...(stopped ? { partial: true } : {}),
+    ...(CALIBRATION_VERSION ? { calibrationVersion: CALIBRATION_VERSION } : {}),
     inputs: { cases: { sha256: casesHash, count: cases.length }, options: { sha256: optionsHash },
-      catalog: { sha256: digest(JSON.stringify(catalog)) } },
+      catalog: { sha256: digest(JSON.stringify(catalog)) },
+      ...(controls.length ? { controls: { sha256: controlsHash, count: controls.length } } : {}) },
     providers, results, scores: null, notes };
-  run.scores = await scoreRun(run, { cases, options, catalog });
+  run.scores = scoreRun(run, { cases, controls, options, catalog });
   return { run, spent };
 }
 
@@ -179,7 +202,7 @@ export async function writeRun(run, dir) {
   let index = { schema: 'syberlabs.decision-arena-index/v1', runs: [] };
   try { index = JSON.parse(await readFile(indexPath, 'utf8')); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   index.runs = [...index.runs.filter(entry => entry.file !== file),
-    { file, sha256, runId: run.runId, createdAt: run.createdAt, mock: run.harness.mock }]
+    { file, sha256, runId: run.runId, createdAt: run.createdAt, mock: run.harness.mock, partial: run.partial === true }]
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   await writeFile(indexPath, `${JSON.stringify(index, null, 2)}\n`);
   return join(dir, file);
@@ -196,13 +219,19 @@ export async function capture(args, { env = process.env, fetchImpl = fetch, log 
   if (!mock && harness.dirty) fail('Commit the harness first: a run from uncommitted code cannot be published.');
   const { cases, options, casesHash, optionsHash } = await fixtures(
     resolve(ROOT, argument(args, '--cases', DEFAULT_CASES)), resolve(ROOT, argument(args, '--options', DEFAULT_OPTIONS)));
+  const { controls, controlsHash, file: controlsFile } = await readControls(
+    resolve(ROOT, argument(args, '--controls', DEFAULT_CONTROLS)));
+  if (!mock && controls.length && !controlsFile.seedCommitment) {
+    fail('Commit the controls seed first: node scripts/arena/controls.mjs commit.');
+  }
   const deciders = decidersFor(argument(args, '--deciders', DECIDERS.join(',')).split(','), {
     env: mock ? MOCK_ENV : env, fetchImpl: mock ? mockFetch : fetchImpl,
     origin: argument(args, '--origin', 'http://127.0.0.1:5780') });
   const catalog = await committedCatalog();
-  const { run, spent } = await captureRun({ cases, options, casesHash, optionsHash, catalog, deciders, runs, maxUsd, harness });
+  const { run, spent } = await captureRun({ cases, controls, options, casesHash, optionsHash, controlsHash,
+    catalog, deciders, runs, maxUsd, harness });
   const path = await writeRun(run, resolve(ROOT, argument(args, '--out-dir', ARENA_DIR)));
-  log(`Wrote ${path}: ${run.results.length} results, $${spent.toFixed(4)} estimated spend.${mock ? ' MOCK: pipeline check only.' : ''}`);
+  log(`Wrote ${path}: ${run.results.length} results, $${spent.toFixed(4)} estimated spend.${mock ? ' MOCK: pipeline check only.' : ''}${run.partial ? ` PARTIAL: stopped at the $${maxUsd} cap.` : ''}`);
   return path;
 }
 
@@ -210,17 +239,33 @@ export async function capture(args, { env = process.env, fetchImpl = fetch, log 
 export async function report(args) {
   const path = argument(args, '--run');
   if (!path) fail('Set --run public/content/arena/run-<sha12>.json.');
-  const run = await readArenaRun(await readFile(path, 'utf8'), basename(path));
+  const text = await readFile(path, 'utf8');
+  const run = readArenaRun(text, basename(path));
   const { cases, options, casesHash, optionsHash } = await fixtures(
     resolve(ROOT, argument(args, '--cases', DEFAULT_CASES)), resolve(ROOT, argument(args, '--options', DEFAULT_OPTIONS)));
+  const { controls, controlsHash, file: controlsFile } = run.inputs.controls
+    ? await readControls(resolve(ROOT, argument(args, '--controls', DEFAULT_CONTROLS))) : { controls: [] };
   const catalog = await committedCatalog();
   if (run.inputs.cases.sha256 !== casesHash || run.inputs.options.sha256 !== optionsHash
-    || run.inputs.catalog.sha256 !== digest(JSON.stringify(catalog))) {
-    fail('The run was captured against different cases, options or catalog; check out its harness commit.');
+    || run.inputs.catalog.sha256 !== digest(JSON.stringify(catalog))
+    || (run.inputs.controls && run.inputs.controls.sha256 !== controlsHash)) {
+    fail('The run was captured against different cases, options, controls or catalog; check out its harness commit.');
   }
-  const scores = await scoreRun(run, { cases, options, catalog });
+  const scores = scoreRun(run, { cases, controls, options, catalog });
+  const seedFile = argument(args, '--reveal-seed-file');
+  let controlScores = controls.length ? 'sealed' : null;
+  if (controls.length && seedFile) {
+    if (!calibration) fail('Calibration is not in this harness; check out a commit with scripts/arena/calibration.mjs.');
+    const { revealLabels } = await import('./controls.mjs');
+    const labels = revealLabels(controlsFile, (await readFile(seedFile, 'utf8')).trim(), text);
+    const fields = new Map(controls.map(item => [item.id, item.field]));
+    controlScores = calibration(calibrationRows(run.results,
+      id => fields.has(id) ? { [fields.get(id)]: [labels[id]] } : null));
+  }
   return `${JSON.stringify({ schema: 'syberlabs.decision-arena-report/v1', runId: run.runId,
-    file: basename(path), matchesRecorded: JSON.stringify(scores) === JSON.stringify(run.scores), scores }, null, 2)}\n`;
+    file: basename(path), partial: run.partial === true,
+    matchesRecorded: JSON.stringify(scores) === JSON.stringify(run.scores), scores,
+    ...(controlScores ? { controls: controlScores } : {}) }, null, 2)}\n`;
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
@@ -228,7 +273,8 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   try {
     if (command === 'capture') await capture(args);
     else if (command === 'report') process.stdout.write(await report(args));
-    else fail('Usage: arena.mjs capture (--bill-operator | --mock) [--deciders a,b] [--runs 3] [--max-usd 20] | report --run FILE');
+    else fail('Usage: arena.mjs capture (--bill-operator | --mock) [--deciders a,b] [--runs 3] [--max-usd 20]'
+      + ' | report --run FILE [--reveal-seed-file PATH]. --max-usd stops after the first call over the cap; see the header.');
   } catch (error) {
     console.error(`Arena failed: ${error.message}`);
     process.exitCode = 1;

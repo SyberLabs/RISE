@@ -1,21 +1,49 @@
 // Scores re-derived from a run's results, deterministically: the same run file
 // and the same fixtures always print the same bytes. Scores are "agreement with
 // author-written expectations", not accuracy; the cases were tuned on Jev.
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildRecommendRequest } from '../../src/core/decision/recommend.js';
 import { scoreDecisions } from '../jev-eval.mjs';
+import { sha256Hex } from './arena-file.mjs';
 
 // Option fields in the fixtures that name a different question.
 const QUESTION_OF = Object.freeze({ visualMode: 'visual', chunkMode: 'chunk', revealMode: 'reveal' });
 
-// Lane C fills scripts/arena/calibration.mjs with `calibration(rows)`: pure
-// functions over one decider's result rows (those with `probabilities`). Until
-// that file exists, scores carry no calibration.
-const CALIBRATION = new URL('./calibration.mjs', import.meta.url);
-async function calibrationHook() {
-  return existsSync(fileURLToPath(CALIBRATION)) ? (await import(CALIBRATION.href)).calibration : null;
+// calibration.mjs arrives with #531. A run records the version of it that
+// scored the run (the first twelve hex digits of its bytes' SHA-256); a run
+// without one is never given calibration, so older runs still reproduce.
+const CALIBRATION = fileURLToPath(new URL('./calibration.mjs', import.meta.url));
+const calibrationModule = existsSync(CALIBRATION) ? await import(CALIBRATION) : null;
+export const CALIBRATION_VERSION = calibrationModule ? sha256Hex(readFileSync(CALIBRATION)).slice(0, 12) : null;
+export const calibration = calibrationModule?.calibration;
+
+/** Each fixture case's `expect` as {question: acceptable choices}. */
+export const expectedChoices = item => Object.fromEntries(Object.entries(item.expect || {})
+  .map(([field, acceptable]) => [QUESTION_OF[field] || field, acceptable]));
+
+/**
+ * calibration()'s rows: one per result and question that has an acceptable
+ * set, carrying the decider's raw choice, its probabilities and confidence.
+ * @param acceptableOf caseId → {question: acceptable choices}
+ */
+export function calibrationRows(results, acceptableOf) {
+  const rows = [];
+  for (const row of results) {
+    if (!row.rawAnswers) continue;
+    for (const [question, acceptable] of Object.entries(acceptableOf(row.caseId) || {})) {
+      const answer = row.rawAnswers[question];
+      rows.push({ caseId: row.caseId, providerId: row.providerId, run: row.run, question,
+        probabilities: row.probabilities?.[question] ?? null, confidence: answer?.confidence ?? null,
+        choice: answer?.type === 'choice' ? answer.choice : null, acceptable });
+    }
+  }
+  return rows;
 }
+
+/** The choice made for each question, or the answer's type when it is not a choice. */
+const choices = row => row.rawAnswers && Object.fromEntries(Object.keys(row.rawAnswers).sort()
+  .map(name => [name, row.rawAnswers[name].type === 'choice' ? row.rawAnswers[name].choice : row.rawAnswers[name].type]));
 
 const round = (value, places = 6) => Math.round(value * 10 ** places) / 10 ** places;
 
@@ -48,10 +76,12 @@ function admittedDecision(row, options) {
 }
 
 /** @returns scores keyed by provider id, in the run's provider order */
-export async function scoreRun(run, { cases, options, catalog }) {
-  const questions = new Map(cases.map(item => [item.id, buildRecommendRequest({
+export function scoreRun(run, { cases, controls = [], options, catalog }) {
+  const questions = new Map([...cases, ...controls].map(item => [item.id, buildRecommendRequest({
     intent: item.intent, catalog, turn: 0, nightDrive: false }).body.questions]));
-  const calibration = await calibrationHook();
+  const expected = new Map(cases.map(item => [item.id, expectedChoices(item)]));
+  const calibrated = run.calibrationVersion && calibration
+    ? calibration(calibrationRows(run.results, id => expected.get(id))) : null;
   const scores = {};
   for (const { id } of run.providers) {
     const rows = run.results.filter(row => row.providerId === id)
@@ -87,13 +117,13 @@ export async function scoreRun(run, { cases, options, catalog }) {
       contrast: { raw: raw.contrast, admitted: admitted.contrast },
       stability: {
         cases: repeated.length,
-        identicalRaw: repeated.filter(group => same(group, row => row.rawAnswers)).length,
+        identicalRaw: repeated.filter(group => same(group, choices)).length,
         identicalAdmitted: repeated.filter(group => same(group, row => row.admitted)).length
       },
       latencyMs: { p50: percentile(latencies, 0.5), p95: percentile(latencies, 0.95) },
       cost: { totalUsd: round(total), per1kUsd: costs.length ? round(total / costs.length * 1000) : null,
         unreported: rows.length - costs.length },
-      ...(calibration ? { calibration: await calibration(rows) } : {})
+      ...(calibrated ? { calibration: calibrated[id] ?? null } : {})
     };
   }
   return scores;

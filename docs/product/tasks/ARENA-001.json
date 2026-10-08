@@ -10,9 +10,9 @@
   "dependencies": [],
   "acceptance": [
     "scripts/arena/arena.mjs capture asks openai (Decisions API), jev, kev, rules and rules-floor the 39 fixed cases through the browser's own request and admitAnswers, keeping raw and admitted decisions; tested with mocked fetch only.",
-    "A billed capture refuses under CI, without --bill-operator, from a dirty harness, and before cumulative cost would pass --max-usd (at most 20); keys are never written, printed or thrown; tested.",
-    "The run is written once (wx) as public/content/arena/run-<sha12>.json with index.json, schema syberlabs.decision-arena/v1; src/core/decision/arena-file.js refuses an unknown schema, a dirty harness and a hash/name mismatch; tested.",
-    "report re-derives scores (valid, out-of-menu, explicit and contrast agreement raw and admitted, stability, latency, cost per 1k) byte-identically, and calls lane C's calibration(rows) when scripts/arena/calibration.mjs exists.",
+    "A billed capture refuses under CI, without --bill-operator, from a dirty harness, and before any call if the estimate passes --max-usd (at most 20); at the cap it stops, keeps what was paid for and writes the run marked partial; keys are never written, printed or thrown; tested.",
+    "The run is written once (wx) as public/content/arena/run-<sha12>.json with index.json, schema syberlabs.decision-arena/v1; scripts/arena/arena-file.mjs refuses an unknown schema, a dirty non-mock harness and a hash/name mismatch; tested.",
+    "report re-derives scores (valid, out-of-menu, explicit and contrast agreement raw and admitted, stability of choices, latency, cost per 1k) byte-identically; calibration from #531 per expected question only when the run records calibrationVersion; controls stay sealed until report --reveal-seed-file.",
     "Nothing under src/ imports the harness, and the app and dist/ never name api.openai.com or gpt-6-luna; tested."
   ],
   "evidence": [
@@ -24,14 +24,20 @@
     },
     {
       "kind": "test",
-      "ref": "src/core/decision/arena-file.test.js",
-      "note": "npx vitest run src/core/decision src/core/system-design.test.js src/core/csp.test.js src/core/cloudflare-headers.test.js: 126/126 pass, including admitAnswers equivalence with validDecision in recommend.test.js.",
+      "ref": "scripts/arena/arena-file.test.mjs",
+      "note": "arena-file moved from src/core/decision to scripts/arena (node:crypto, node:test); nothing in src/ imports it.",
       "date": "2026-10-08"
     },
     {
       "kind": "observation",
       "ref": "scripts/arena/arena.mjs",
       "note": "Agent run, 2026-10-08: a --mock capture from a clean commit wrote a 3.0 MB run (585 results), readArenaRun accepted it, report printed byte-identical output twice with matchesRecorded true; the mock output was deleted, not committed. Not merged, not deployed, no billed run.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/arena/arena.test.mjs",
+      "note": "Review fixes: node --test scripts/arena/arena.test.mjs scripts/arena/arena-file.test.mjs: 20 pass, 1 skipped (controls reveal needs #531's controls.mjs); with #531's files present, 37/37 pass including calibration.test.mjs. Both files now run in the CI Fast release checks.",
       "date": "2026-10-08"
     }
   ],
@@ -47,10 +53,14 @@
     {
       "date": "2026-10-08T18:51:50.636Z",
       "summary": "Harness built and verified with mocks; pull request open for review"
+    },
+    {
+      "date": "2026-10-08T19:04:51.564Z",
+      "summary": "Review fixes: fail closed at the cap, compare choices only, wire calibration and controls"
     }
   ],
-  "updatedAt": "2026-10-08T18:51:50.636Z",
-  "revision": 3,
+  "updatedAt": "2026-10-08T19:04:51.564Z",
+  "revision": 4,
   "summary": "The benchmark harness for the Decision Arena: an operator-paid, offline capture frozen into a content-addressed file, scored deterministically. No billed run is part of this task.",
   "blocker": null
 }
