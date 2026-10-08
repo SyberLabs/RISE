@@ -1,0 +1,78 @@
+{
+  "id": "CC-007",
+  "title": "Styles and guidance",
+  "lane": "live-sdk",
+  "milestone": "Creative Control",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "CC-003",
+    "CC-004",
+    "CC-005"
+  ],
+  "acceptance": [
+    "Each style a v2 Current may name (premium-educational, open-field) is one frozen record in src/core/styles.js with a one-line description, typography defaults (place, size, faces for text and captions) and rise.lib defaults (easing, stroke, grid alpha, label font) that name only values the beats and the library read; RISE_CURRENT_STYLES comes from those records; tested in src/core/styles.test.js.",
+    "A v2 beat that shows text and sets no place or size takes its style's, a hold takes none, and the style's faces sit under the Current's own role by role on the presentation; a Current with no style lowers as before; tested in src/core/rise-current.v2.test.js.",
+    "The style's library defaults reach a generated scene: the Chamber passes them to the scene runtime, the runtime sends them in the worker's init message, and createSceneLibrary applies them, ignoring an unknown key or a value of another kind; tested in scene-library, scene-runtime, scene-worker and Chamber.scene tests.",
+    "The Composer guide lives in src/live/guide/ (contract, looks, beats with code scenes, one file per style) and imports only the core; the old src/live/adapters/current-guide.js is gone. The beats guide teaches the scene module shape, every rise.lib function in one line (held to exactly the library's), reportsCompletion and rise.done(), every refused name (one list in src/core/beats.js shared with the admission), the frame budget and the repair loop; each style has guidance and two worked Currents the validator accepts and whose scenes the admission admits; tested in src/live/guide/index.test.js.",
+    "The Worker lists ui://rise/guide/premium-educational and ui://rise/guide/open-field as text/markdown resources and serves each style's full guidance from them; any other guide address is -32002; the self-contained card reads the deployed page only for ui://rise/current; the tool's description names each style in one line, points at the resources, and stays within 12,000 characters; tested in worker/mcp-server.test.js.",
+    "docs/evals/creative-control/ holds at least three cases per style (the worked Currents unchanged, and one code scene drawn with rise.lib axes, plot, vector and tweens), and npm run eval:creative sends each through the Worker's rise_present door and runs every code scene headless (played, seeked with instant cues, reduced motion), reports cues answered, frames, the slowest frame and frames over the soft budget as a Node proxy, and exits non-zero on any refusal, exception or tween left moving; on demand, not in CI; tested in src/test/eval-creative.test.js.",
+    "Not yet seen: a host model reading a style's guide resource, and a Premium Educational reading composed from a one-line prompt in Claude (the stage's acceptance)."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-08-creative-control-design.md",
+      "note": "The Creative Control design; §11 styles, guidance and evaluation; §15 row CC-007.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "041e65e7",
+      "note": "Styles as data, applied to beats and to rise.lib.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "99445567",
+      "note": "The guide split by concern, and each style's guidance as a resource.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "ae0e209d",
+      "note": "The evaluation corpus and npm run eval:creative.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/guide/index.test.js",
+      "note": "With src/core/styles.test.js, src/core/rise-current.v2.test.js, worker/mcp-server.test.js and src/test/eval-creative.test.js, run as npx vitest run src/core src/live src/scenes worker/mcp-server.test.js worker/scene-admission.test.js src/test/eval-creative.test.js src/components/read/Chamber.scene.test.js on the branch, 2026-10-08: 3,815 passed, 4 skipped, 2 failed in src/core/render/audio-mix.test.js for recitation audio not hydrated in that checkout (Missing recitation bytes), a file this task does not touch.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/eval-creative.mjs",
+      "note": "npm run eval:creative on the branch, 2026-10-08: 6 Currents, 6 accepted, 4 code scenes run, 0 with errors, 0 over the budget, slowest frame under 4 ms measured in Node; exits 1 when a scene throws (checked with a temporary broken case).",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/measure-first-load.mjs",
+      "note": "npm run measure:first-load after npx vite build on the branch, 2026-10-08: 57.3 KB br of a 64 KB budget, the same total as the base commit cc41b441; the guide text is only in the lazily loaded mcp-app chunk.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T13:33:02.000Z",
+      "summary": "Built on cc-006-admission: styles as data and their application to beats and the scene library, the guide split into src/live/guide/ with code-scene teaching and two worked Currents per style, the guide resources in the Worker, and the evaluation corpus and script. Not pushed; not yet seen in a host."
+    }
+  ],
+  "updatedAt": "2026-10-08T13:33:02.000Z",
+  "revision": 1,
+  "summary": "A Current names a style and gets its typography and drawing defaults; a model is taught to write code scenes and given each style's full guidance as a resource; and the guidance is measured by a corpus every case of which is accepted and runs.",
+  "blocker": null
+}
