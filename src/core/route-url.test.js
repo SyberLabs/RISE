@@ -87,13 +87,12 @@ describe('route urls', () => {
         expect(routeFromPath('/night-drive').data).toEqual({ demoMode: true });
     });
 
-    it('opens a frozen arena replay at /arena/<case>/<decider> on Home, for the four deciders only', () => {
-        for (const decider of ['openai', 'jev', 'kev', 'rules']) {
-            expect(routeFromPath(`/arena/quiet-evening/${decider}`)).toEqual({ id: 'home', data: { demoMode: true } });
+    it('opens the arena, one case, and one of the four deciders on Home, at their own addresses', () => {
+        for (const path of ['/arena', '/arena/quiet-evening', ...['openai', 'jev', 'kev', 'rules'].map(id => `/arena/quiet-evening/${id}`)]) {
+            expect(routeFromPath(path)).toEqual({ id: 'home', data: { demoMode: true } });
+            expect(addressIsOwnTo('home', path)).toBe(true);
         }
-        expect(addressIsOwnTo('home', '/arena/quiet-evening/jev')).toBe(true);
         expect(routeFromPath('/arena/quiet-evening/claude')).toBeNull();
-        expect(routeFromPath('/arena/quiet-evening')).toBeNull();
         expect(routeFromPath('/arena/quiet-evening/jev/more')).toBeNull();
     });
 

@@ -357,18 +357,15 @@ export class Home {
     </section>`;
   }
 
-  /** A frozen Decision Arena result (src/app/arena-replay.js); plain Home when there is none. */
+  /** A frozen Decision Arena result (src/app/arena-replay.js); its links move in place. */
   async mountArena(arena) {
     const section = this.container.querySelector('[data-arena]');
-    const path = window.location.pathname;
     const { mountArenaReplay } = await import('../app/arena-replay.js');
     await mountArenaReplay(section, {
       ...arena,
       launch: (decision, publicPath) => this.onLaunchJevReading(decision, { publicPath }),
-      fallback: () => {
-        // The reader may have moved on while the files loaded; their address stays theirs.
-        if (!section.isConnected || window.location.pathname !== path) return;
-        window.history.replaceState({}, '', '/');
+      go: path => {
+        window.history.pushState({}, '', path);
         this.update();
       }
     });

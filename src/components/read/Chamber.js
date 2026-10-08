@@ -1895,7 +1895,7 @@ export class Chamber {
     return reduced ? 0 : 1200;
   }
 
-  /** Where the scene on screen comes from: Jev, Local, Saved, or Manual. */
+  /** Where the scene on screen comes from: Jev, Kev, Local, Saved, or Manual. */
   _visualProvenanceLabel() {
     const state = this._direction;
     if (!state) return '';
@@ -1906,10 +1906,11 @@ export class Chamber {
     }
     if (state.cueSource === 'saved') return 'Direction: Saved';
     const record = state.director?.blocks[state.currentBlock]?.admitted;
-    const label = { jev: 'Jev', local: 'Local', saved: 'Saved' }[record?.provenance] || 'Local';
+    const label = { jev: 'Jev', kev: 'Kev', local: 'Local', saved: 'Saved' }[record?.provenance] || 'Local';
     const unavailable = label === 'Local' && state.lastScoring?.kind === 'failed'
       && (state.catalogVerified || state.consent);
-    return `Direction: ${label}${unavailable ? ' — Jev is unavailable, so visuals follow the text locally' : ''}`;
+    const model = connectionState().kind === 'local' ? 'Kev' : 'Jev';
+    return `Direction: ${label}${unavailable ? ` — ${model} is unavailable, so visuals follow the text locally` : ''}`;
   }
 
   attachLookSheet() {
