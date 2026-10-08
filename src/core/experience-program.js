@@ -21,7 +21,9 @@ export const EXPERIENCE_PROGRAM_SCHEMA = 'rise.experience-program.v1';
 export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
   maxIdLength: 160,
   maxTracks: 8,
-  maxMovements: 16,
+  // A v2 Current lowers one movement per beat, so this holds at or above BEAT_LIMITS.beats
+  // (beats.js): rise-current.limits.test.js fails a build where the two drift apart.
+  maxMovements: 64,
   maxTransitions: 32,
   maxClipsPerTrack: 512,
   maxSourceIds: 64,

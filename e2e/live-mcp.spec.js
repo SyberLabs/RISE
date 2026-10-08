@@ -16,6 +16,7 @@
  */
 import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../src/test/sealed-current.js';
 import { HORIZON_DIVE } from '../src/live/fixtures/black-holes.js';
+import { SKY_PREMIUM_EDUCATIONAL } from '../src/live/fixtures/sky-premium-educational.js';
 import { relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { cardHtml } from '../src/live/hosts/mcp-card.js';
 import { serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
@@ -942,5 +943,21 @@ test('a generated scene that throws gives way to the look’s field, and its hol
   // The signal look's field stands in for the scene, whose canvas is gone.
   await expect(app.locator('.chamber-attractor').first()).toBeAttached({ timeout: 15_000 });
   await expect(app.locator('canvas.chamber-scene')).toHaveCount(0, { timeout: 5_000 });
+  expect(errors).toEqual([]);
+});
+
+test('a reading a model actually wrote, seventeen beats over one scene, plays in the self-contained card', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const current = SKY_PREMIUM_EDUCATIONAL;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await begin(app);
+  // Pressing Play once failed here with "Nothing was said": the beats outgrew the score's movement cap.
+  await expectShown(app, 'Sunlight looks white');
+  await expect(app.locator('.live-embed[role="alert"]')).toHaveCount(0);
+  await expect(app.locator('canvas.chamber-scene')).toBeAttached({ timeout: 15_000 });
+  await expectShown(app, 'Each colour is a wave', 30_000);
   expect(errors).toEqual([]);
 });

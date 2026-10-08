@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  EXPERIENCE_PROGRAM_LIMITS,
   EXPERIENCE_PROGRAM_SCHEMA,
   ExperienceProgramValidationError,
   createExperienceProgram,
@@ -232,7 +233,7 @@ describe('rise.experience-program.v1', () => {
   it('rejects overflow instead of truncating authored clips', () => {
     const value = score();
     const movementTrack = value.tracks[0];
-    movementTrack.clips = Array.from({ length: 17 }, (_, index) => ({
+    movementTrack.clips = Array.from({ length: EXPERIENCE_PROGRAM_LIMITS.maxMovements + 1 }, (_, index) => ({
       id: `m-${index}`,
       anchor: { sourceIds: [`p-${index}`] },
       data: { index, title: `Movement ${index}` }
