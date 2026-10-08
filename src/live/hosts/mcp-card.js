@@ -42,7 +42,9 @@ export function cardHtml({ origin, indexHtml, path = CARD_PATH }) {
   const page = String(indexHtml);
   if (/<base[\s>]/iu.test(page)) throw new TypeError('The page has a base of its own');
   // Every root-relative address of the page's own becomes RISE's; a protocol-relative `//` is not one.
-  const html = page.replace(/\b(src|href)="\/(?!\/)/gu, `$1="${origin}/`);
+  // The web app manifest goes: a host's policy has no manifest-src for RISE (it only reports the
+  // blocked fetch), and a card is never installed.
+  const html = page.replace(/\s*<link\b[^>]*\brel="manifest"[^>]*>/iu, '').replace(/\b(src|href)="\/(?!\/)/gu, `$1="${origin}/`);
   const head = /<head(?:\s[^>]*)?>/iu.exec(html);
   if (!head) throw new TypeError('The page has no head');
   const at = head.index + head[0].length;

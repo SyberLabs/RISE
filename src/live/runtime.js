@@ -323,7 +323,8 @@ export function createLiveRuntime({
             }
             if (run.stream.phase === 'failed') throw new AdapterError(run.stream.snapshot().error?.code ?? 'FAILED', run.stream.snapshot().error?.message ?? 'The Current failed');
             run.player?.setLive(false);
-            if (!run.player) {
+            // A run that already failed (the compiler refused what the validator accepted) keeps its own reason.
+            if (!run.player && !run.error) {
                 if (run.role === 'main') set(run.stream.phase === 'cancelled' ? 'stopped' : 'failed', run.stream.phase === 'cancelled' ? null : { code: 'EMPTY_CURRENT', message: 'Nothing was said' });
                 else set(status, { code: 'EMPTY_CURRENT', message: 'The Dive said nothing' });
             }
