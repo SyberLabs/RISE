@@ -63,10 +63,19 @@ export function createBeatConductor({ clock, onCue = null, onHold = null }) {
         }
     }
 
+    /** The holds a scene holds: real time on the scene's clock, remembered past a pause, which drops the wait. */
+    const sceneHeld = new WeakSet();
+
+    /** Whether an atom's time is the scene's, not the pace's: a hold the scene may end keeps its remainder whatever the pace. */
+    function fixed(atom) {
+        return sceneHeld.has(atom);
+    }
+
     function completion(atom) {
         if (!timed(atom)) return null;
         cancelWait();
         const held = sceneHold(atom);
+        if (held) sceneHeld.add(atom);
         const mine = { cancel: null, atom, held: held !== null };
         waiting = mine;
         return new Promise(resolve => {
@@ -105,7 +114,7 @@ export function createBeatConductor({ clock, onCue = null, onHold = null }) {
         install(target) {
             if (player) return;
             player = target;
-            release = player.govern({ duration, completion });
+            release = player.govern({ duration, completion, fixed });
             stopWatching = player.on('state', ({ state }) => {
                 if (state === 'paused' || state === 'idle' || state === 'complete') cancelWait();
             });

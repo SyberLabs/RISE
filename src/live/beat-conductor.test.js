@@ -260,6 +260,20 @@ describe('a hold the scene may end', () => {
     expect(state.done).toEqual({ reason: 'ended' });
   });
 
+  it('calls a hold a scene holds fixed, so a pace change while paused leaves its time alone, and a hold on its own clock not', async () => {
+    const running = scene();
+    const { clock, player } = setup({ onHold: running.onHold });
+    void player.governor.completion(SCENE_HOLD, 0);
+    expect(player.governor.fixed(SCENE_HOLD)).toBe(true);
+    // Paused: the wait is dropped, and the hold is still the scene's.
+    player.set('paused');
+    expect(player.governor.fixed(SCENE_HOLD)).toBe(true);
+    const plain = { ...SCENE_HOLD, hold: { ms: 3000 } };
+    void player.governor.completion(plain, 1);
+    expect(player.governor.fixed(plain)).toBe(false);
+    await clock.advance(0);
+  });
+
   it('keeps its own clock when there is no scene to ask, or the hold has no maxMs', async () => {
     const asked = [];
     const { clock, player } = setup({ onHold: atom => { asked.push(atom); return null; } });
