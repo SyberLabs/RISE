@@ -211,6 +211,12 @@ test('agreement is stated per run, never pooled: repeats of a deterministic deci
   const varied = agreementReport(changed, fixture).deciders.rules;
   assert.deepEqual(varied.explicit, explicit);
   assert.deepEqual(varied.acrossRuns.explicitRate, { min: 0, max: explicit.rate });
+  // A decider that ran but reached no case before a cost cap is named, never silently dropped.
+  const capped = { ...once, partial: true, providers: [...once.providers, { id: 'late', status: 'ran' }] };
+  const cappedReport = agreementReport(capped, fixture);
+  assert.deepEqual(cappedReport.notReached, ['late']);
+  assert.deepEqual(Object.keys(cappedReport.deciders), names);
+  assert.equal(one.notReached, undefined);
 });
 
 test('calibration rows: one per expected question, with the raw choice, probabilities and confidence', () => {
