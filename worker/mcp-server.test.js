@@ -121,6 +121,7 @@ describe('who may ask, and how', () => {
     expect(response.headers.get('Content-Type')).toMatch(/^application\/json/u);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
   });
 
   it('carries the request’s id back, a string or a number', async () => {
@@ -489,6 +490,12 @@ describe('the one page that may be framed', () => {
     const ASSETS = { fetch: vi.fn(async () => response) };
     return handleLive(new Request(`${SITE}${path}`, { method }), { ...env, ASSETS }).then(result => ({ result, ASSETS }));
   };
+
+  it('keeps its framing headers while the self-contained card is on: nothing frames it then', async () => {
+    const { result } = await ask('/live?embed=mcp', { env: { ...ON, MCP_SELF_CONTAINED: 'true' } });
+    expect(result.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(result.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
+  });
 
   it('may be framed by any site when it is asked for as the embedded page, and only then', async () => {
     const { result, ASSETS } = await ask('/live?embed=mcp');

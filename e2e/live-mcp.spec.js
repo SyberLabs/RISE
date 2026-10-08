@@ -25,11 +25,11 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640 }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin' }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     return `<!doctype html><meta charset="utf-8"><title>fake host</title>
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:${height}px}</style>
-<iframe id="view" sandbox="allow-scripts allow-same-origin" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
+<iframe id="view" sandbox="${sandbox}" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
 <script>
 const CURRENT = ${JSON.stringify(current)};
 const DIVE = ${JSON.stringify(dive)};
@@ -83,7 +83,10 @@ async function openHost(page, baseURL, options = {}) {
   const relay = options.selfContained
     ? cardHtml({ origin: options.appOrigin ?? origin, indexHtml: await (await fetch(`${origin}/index.html`)).text(), path })
     : relayHtml({ origin: options.appOrigin ?? origin, path });
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
+  // frame keeps it because the relay frames RISE's real page.
+  const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
   return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
@@ -789,9 +792,16 @@ for (const [look, field] of Object.entries(LOOK_FIELDS)) {
 // (localhost against the host's 127.0.0.1), so modules, styles and content cross origins as in a product host.
 test('the self-contained card plays a Current from another origin, framing nothing', async ({ page, baseURL }) => {
   const errors = [];
+  const seen = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (['error', 'warning'].includes(message.type())) seen.push(`console.${message.type()}: ${message.text().slice(0, 300)}`); });
+  page.on('requestfailed', request => seen.push(`failed: ${request.url()} ${request.failure()?.errorText ?? ''}`));
+  page.on('response', response => { if (response.status() >= 400) seen.push(`${response.status()}: ${response.url()}`); });
   const appOrigin = new URL(baseURL).origin.replace('127.0.0.1', 'localhost');
   const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: { ...BLACK_HOLES_CURRENT, look: 'signal' } });
+  // What the card did in its sandbox, printed before the first assertion so a failure explains itself.
+  await posterTitle(app).waitFor({ timeout: 15_000 }).catch(() => {});
+  console.log(`[self-contained] errors=${JSON.stringify(errors)} seen=${JSON.stringify(seen.slice(0, 20))} log=${JSON.stringify((await page.evaluate(() => window.__host.log.map(entry => entry.method ?? (entry.ignored ? 'ignored' : 'reply')))).slice(0, 12))}`);
   await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
   await begin(app);
   await expectShown(app, 'A black hole is a region of space');

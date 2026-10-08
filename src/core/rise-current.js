@@ -54,7 +54,8 @@ function object(value, path) {
 function keys(value, allowed, path) {
   for (const key of Object.keys(value)) {
     if (!allowed.includes(key) || ['__proto__', 'constructor', 'prototype'].includes(key)) {
-      fail('CURRENT_UNKNOWN_FIELD', `${path}.${key}`, `Unknown field: ${key}`);
+      // The name is the author's: bounded before it is echoed back to them.
+      fail('CURRENT_UNKNOWN_FIELD', `${path}.${key.slice(0, 40)}`, `Unknown field: ${key.slice(0, 40)}`);
     }
   }
 }

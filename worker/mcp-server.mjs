@@ -44,12 +44,15 @@ const MAX_MESSAGE = 300;
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store',
-  'X-Content-Type-Options': 'nosniff'
+  'X-Content-Type-Options': 'nosniff',
+  // The site is https only; every response of the host says so, the static ones through _headers.
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
 };
 
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
 
-const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. To answer with it, call ${TOOL_NAME} with a Current.`;
+// Conditional on the reader's request, as the directory's review asks: a server must not tell the model to call a tool the reader did not ask for.
+const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. When the reader asks for a reading, a spoken or visual explanation, or names RISE, answer by calling ${TOOL_NAME} with a Current.`;
 
 const shortText = max => ({ type: 'string', minLength: 1, maxLength: max });
 
@@ -325,7 +328,8 @@ export async function handleMcp(request, env) {
 export async function handleLive(request, env) {
   if (typeof env?.ASSETS?.fetch !== 'function') return http(503, { error: { code: 'ASSETS_UNAVAILABLE', message: 'The site is not available.' } });
   const response = await env.ASSETS.fetch(request);
-  const embedded = env.MCP_ENABLED === 'true' && (request.method === 'GET' || request.method === 'HEAD')
+  // With the self-contained card (MCP_SELF_CONTAINED) nothing legitimately frames this page, so it keeps RISE's framing headers.
+  const embedded = env.MCP_ENABLED === 'true' && env.MCP_SELF_CONTAINED !== 'true' && (request.method === 'GET' || request.method === 'HEAD')
     && new URL(request.url).searchParams.get('embed') === 'mcp';
   if (!embedded) return response;
   const headers = new Headers(response.headers);
