@@ -233,6 +233,34 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             else next();
         },
 
+        /**
+         * The reader moved the reading: stop, and forget `segmentId` and every utterance given after it, so each can
+         * be given again and is said from its start. One never given forgets nothing. A held voice stays held.
+         */
+        seek(segmentId) {
+            if (closed) return;
+            this.cancel();
+            let after = false;
+            for (const id of seen) {
+                after ||= id === segmentId;
+                if (after) { seen.delete(id); finished.delete(id); }
+            }
+        },
+
+        /**
+         * Say from now at `next` times the normal rate. What it is saying is said again from the last word heard at
+         * the new rate, at once; a held voice takes it up at the new rate when released.
+         */
+        setRate(next) {
+            rate = next;
+            if (closed || held || !current?.utterance) return;
+            current.utterance = null;
+            current.played = current.lastMarkAt;
+            current.startedAt = null;
+            synth.cancel();
+            speakFrom(current, current.lastMark);
+        },
+
         /** The utterance it has begun and not yet ended, or null. */
         speakingId() {
             return current?.started ? current.id : null;
