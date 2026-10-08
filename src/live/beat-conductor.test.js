@@ -113,6 +113,85 @@ describe('what the conductor times', () => {
     await clock.advance(4000);
     expect(state.done).toBeNull();
   });
+
+  it('times holds and shown lines at the Player’s pace, which follows the voice’s', async () => {
+    const { clock, player } = setup();
+    player.speedFactor = 0.5;
+    expect(player.governor.duration(HOLD, 0)).toBe(1500);
+    expect(player.governor.duration(SHOWN, 1)).toBe(750);
+    const state = { done: null };
+    player.governor.completion(HOLD, 0).then(result => { state.done = result; });
+    await clock.advance(1400);
+    expect(state.done).toBeNull();
+    await clock.advance(200);
+    expect(state.done).toEqual({ reason: 'ended' });
+  });
+});
+
+describe('a seek', () => {
+  const cueOf = cue => [{ surface: 'scene', parameter: 'cue', value: cue }];
+  const said = (sourceId, extra = {}) => ({ content: `Words of ${sourceId}.`, sourceId, scene: 'sky', ...extra });
+  const ATOMS = [
+    said('beat-0', { beat: { scene: 'sky', cue: 'strip' }, cueCommands: cueOf('strip') }),
+    { content: '', seam: {} },
+    { content: '', sourceId: 'beat-1', scene: 'sky', hold: { ms: 1500, sceneId: 'sky' }, duration: 1500 },
+    { content: '', seam: {} },
+    said('beat-2'),
+    { content: '', seam: {} },
+    said('beat-3', { beat: { cue: 'curve' }, cueCommands: cueOf('curve') }),
+    said('beat-3', { beat: { cue: 'curve' }, cueCommands: cueOf('curve') }),
+    { content: '', seam: {} },
+    said('beat-4', { beat: { cue: 'pair' }, cueCommands: cueOf('pair') })
+  ];
+
+  it('lands the cues of the earlier beats of the scene running there at once, in order, and then the target’s own as it begins', async () => {
+    const cues = [];
+    const { conductor, player } = setup({ onCue: cue => cues.push(cue) });
+    player.show(ATOMS[0]);
+    await Promise.resolve();
+    conductor.seek(ATOMS, 8);
+    player.show(ATOMS[9]);
+    await Promise.resolve();
+    expect(cues.map(({ cue, instant }) => [cue, instant === true])).toEqual([
+      ['strip', false], ['strip', true], ['curve', true], ['pair', false]
+    ]);
+    expect(cues[2]).toEqual({ cue: 'curve', sceneId: 'sky', commands: cueOf('curve'), instant: true });
+  });
+
+  it('fires the cue of the beat it goes back to again, though it was the last one fired', async () => {
+    const cues = [];
+    const { conductor, player } = setup({ onCue: cue => cues.push(cue) });
+    player.show(ATOMS[6]);
+    await Promise.resolve();
+    conductor.seek(ATOMS, 6);
+    player.show(ATOMS[6]);
+    await Promise.resolve();
+    expect(cues.map(({ cue, instant }) => [cue, instant === true])).toEqual([['curve', false], ['strip', true], ['curve', false]]);
+  });
+
+  it('lands nothing from before the beat that started the scene running there', async () => {
+    const cues = [];
+    const { conductor } = setup({ onCue: cue => cues.push(cue) });
+    const atoms = [
+      said('beat-0', { beat: { scene: 'sky', cue: 'strip' }, cueCommands: cueOf('strip') }),
+      said('beat-1', { scene: 'field', beat: { scene: 'field', cue: 'calm' }, cueCommands: cueOf('calm') }),
+      said('beat-2', { scene: 'field', beat: { cue: 'bright' }, cueCommands: cueOf('bright') }),
+      said('beat-3', { scene: 'field' })
+    ];
+    conductor.seek(atoms, 3);
+    conductor.seek(atoms, 1);
+    await Promise.resolve();
+    expect(cues.map(({ cue }) => cue)).toEqual(['calm', 'bright']);
+  });
+
+  it('drops the hold it was timing', async () => {
+    const { clock, conductor, player } = setup();
+    const state = { done: null };
+    player.governor.completion(HOLD, 0).then(result => { state.done = result; });
+    conductor.seek(ATOMS, 4);
+    await clock.advance(5000);
+    expect(state.done).toBeNull();
+  });
 });
 
 describe('a hold the scene may end', () => {
