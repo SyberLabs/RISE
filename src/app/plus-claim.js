@@ -9,8 +9,8 @@ import { claimPlus } from './plus.js';
 
 export async function enterFromPlusClaim(search, { home, notify }) {
   const sessionId = new URLSearchParams(search).get('session_id');
-  window.history.replaceState({}, '', '/');
   const result = await claimPlus(sessionId);
+  if (result.ok) window.history.replaceState({}, '', '/');
   notify(result.ok ? 'Plus voice is on in this browser.' : result.message);
   await home();
 }

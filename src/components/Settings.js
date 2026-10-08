@@ -616,7 +616,12 @@ export class Settings {
     /** The Worker's voices, in place of the one option the row was drawn with. */
     async fillPlusVoices(picker) {
         const voices = await fetchPlusVoices();
-        const chosen = plusVoiceSlug(this.settings.plusVoiceSlug);
+        let chosen = plusVoiceSlug(this.settings.plusVoiceSlug);
+        if (!voices.some(({ slug }) => slug === chosen)) {
+            chosen = PLUS_DEFAULT_VOICE.slug;
+            this.settings.plusVoiceSlug = chosen;
+            this.onChange('plusVoiceSlug', chosen);
+        }
         picker.replaceChildren(...voices.map(({ slug, label }) => {
             const option = document.createElement('option');
             option.value = slug;
