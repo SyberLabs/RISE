@@ -315,6 +315,8 @@
 }
 
 .rise-settings__row + .rise-settings__row { margin-top: 4px; }
+/* A row a passage cannot use (Intensity without an adjustable field) is gone, not greyed. */
+.rise-settings__row[hidden] { display: none; }
 .rise-settings__row > label,
 .rise-settings__label { flex: 0 0 auto; min-width: 5.5rem; font-size: 0.9rem; }
 .rise-settings__row input[type="range"] { flex: 1 1 auto; min-width: 0; height: 44px; margin: 0; accent-color: var(--color-light); }

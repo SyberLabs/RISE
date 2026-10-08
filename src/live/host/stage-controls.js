@@ -65,8 +65,7 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
         </div>
         <div class="rise-settings__row">
           <label for="rise-settings-intensity">Intensity</label>
-          <input id="rise-settings-intensity" type="range" min="${INTENSITY.min}" max="${INTENSITY.max}" step="${INTENSITY.step}" value="${INTENSITY.initial}" aria-describedby="rise-settings-intensity-note">
-          <span id="rise-settings-intensity-note" hidden>Not on this passage</span>
+          <input id="rise-settings-intensity" type="range" min="${INTENSITY.min}" max="${INTENSITY.max}" step="${INTENSITY.step}" value="${INTENSITY.initial}">
         </div>
         <div class="rise-settings__row">
           <label for="rise-settings-theme">Theme</label>
@@ -149,6 +148,8 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
 
     function refreshIntensity() {
         const discovery = runtime.discoverVisual?.() ?? null;
+        // Only a field with a verified mutable control offers the row; most looks draw none.
+        intensity.closest('.rise-settings__row').hidden = !discovery;
         intensity.disabled = !discovery;
         if (!discovery) return;
         const target = chosen ?? discovery.target?.intensity ?? discovery.current?.intensity ?? INTENSITY.initial;
