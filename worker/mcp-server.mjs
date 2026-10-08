@@ -50,7 +50,7 @@ export const PROTOCOL_VERSIONS = Object.freeze(['2025-11-25', '2025-06-18', '202
 const MAX_BODY_BYTES = 262_144;
 const MAX_MESSAGE = 300;
 /** Lines of scene refusals in one answer, across every scene. */
-const MAX_SCENE_LINES = 10;
+export const MAX_SCENE_LINES = 10;
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',

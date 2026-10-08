@@ -1,0 +1,57 @@
+{
+  "id": "CC-008",
+  "title": "RiseSDK renderer contract",
+  "lane": "live-sdk",
+  "milestone": "Creative Control",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "CC-005",
+    "CC-007"
+  ],
+  "acceptance": [
+    "docs/specs/RISE-SDK.md is the renderer contract a third party builds against, written for an engineer who has never seen RISE: purpose and status (PROVISIONAL v1, frozen after the owner's Live Run, and what frozen means: additive changes only in 1.x, a major version for anything else), the Current v2 (fields, beat kinds, hold timing, scenes, limits, catalogs, refusal codes, v1 still valid), styles, typography (places, sizes, faces by role), native manifests (shape, engines, parameters, named and set:<parameter>=<value> cues, the command shape), generated scenes (the module, reportsCompletion, the rise object, every rise.lib call, the clock, reduced motion, the banned names and why, admission rules and the refusal line, budgets and failure, photosensitivity, how the worker is started, the worker protocol), the MCP host protocol (rise_present, rise_guide, resources, the updateModelContext report and its limits), versioning and what is not promised (no pixels, moderation is the host model's, ChatGPT unmeasured until CC-001).",
+    "src/core/rise-sdk.js exports RISE_SDK_VERSION = '1.0.0-provisional' and re-exports the contract's constants (schema ids, limits, catalogs, styles, faces, cue pattern, manifests, protocol version and messages, scene limits, banned names, library defaults) as data only, importing only the core and the scenes.",
+    "src/core/rise-sdk.test.js fails when any value in the document's constants tables differs from the code, when a key of BEAT_LIMITS, RISE_CURRENT_LIMITS, SCENE_LIMITS or LIBRARY_DEFAULTS or an export of the SDK module is missing from the document, when the field tables differ from the tool's input schema or the refusal codes from the validators', when the style, face, engine, parameter or cue tables differ from STYLES, TYPE_FACES or SCENE_MANIFESTS (and the engines from describeManifests()), when the rise.lib table differs from createSceneLibrary's keys, the message table from TO_WORKER and TO_HOST, or the banned lists from the two locks, when the example module, the admission refusal line or the runtime report lines differ from what the guide, server and card produce, and when the SDK module exports a function or imports outside the core and scenes.",
+    "The contract is linked from docs/specs/ARCHITECTURE.md §7, docs/plans/LIVE-MCP.md, the Creative Control design's §15 CC-008 row and the documentation index; the regenerated import graph is committed and src/core/system-design.test.js passes.",
+    "Not yet: the freeze itself, which waits on the owner's Live Run; and an outside integrator building against the contract."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/specs/RISE-SDK.md",
+      "note": "The renderer contract, provisional v1 (1.0.0-provisional).",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "6acadf9a",
+      "note": "The contract, the SDK module and the conformance test; MAX_SCENE_LINES exported from worker/mcp-server.mjs so the document can name it.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "a600ff22",
+      "note": "How the scene worker is started (classic blob worker in a host's card, module worker on RISE's pages), after the base moved to a6013917.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/rise-sdk.test.js",
+      "note": "21 tests. Run as npx vitest run src/core/rise-sdk.test.js src/core/system-design.test.js src/live/boundary.test.js src/scenes worker/mcp-server.test.js src/live/guide/index.test.js worker/scene-admission.test.js on the branch over a6013917, 2026-10-08: 11 files, 219 passed. Thirteen mutations (a doc limit, a dropped lib row, a manifest default, a new scene limit, message, banned name, refusal code, lib call, style default, report wording, beat field, and a function export from the SDK module) each failed the test.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T14:05:00.000Z",
+      "summary": "Built on cc-007-styles: the contract document, src/core/rise-sdk.js and its conformance test, and the links to it. The freeze is provisional until the owner's Live Run; until then the contract may change, only together with the document. Not pushed."
+    }
+  ],
+  "updatedAt": "2026-10-08T14:05:00.000Z",
+  "revision": 1,
+  "summary": "The renderer contract (the Current v2, manifests and cues, generated scenes and their protocol, the MCP tools) written down as docs/specs/RISE-SDK.md and held to the code by a test, so a contract change fails until the document moves; provisional until the owner's Live Run.",
+  "blocker": null
+}

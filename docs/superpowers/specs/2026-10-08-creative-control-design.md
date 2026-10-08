@@ -313,7 +313,7 @@ Tracker lane `live-sdk`, milestone "Creative Control", tasks CC-001 … CC-008, 
 | CC-005 | Scene runtime and library: worker, protocol, OffscreenCanvas layer, budgets, flash gate, seek, library v0, fixtures, e2e | CC-002, CC-001 | generated scenes (Claude; ChatGPT per CC-001) |
 | CC-006 | Admission and diagnostics: server static admission, dry frame, runtime report, raised Current size if needed | CC-005 | repair loop |
 | CC-007 | Styles and guidance: premium-educational and open-field, guide split, `ui://rise/guide/<style>`, eval corpus and `npm run eval:creative` | CC-003, CC-004, CC-005 | quality |
-| CC-008 | RiseSDK contract freeze: manifest + scene protocol versioned and documented as the renderer contract, after CC-004/005 have run against real readings | CC-005, CC-007 | the SDK |
+| CC-008 | RiseSDK contract freeze: manifest + scene protocol versioned and documented as the renderer contract, after CC-004/005 have run against real readings; see [docs/specs/RISE-SDK.md](../../specs/RISE-SDK.md) | CC-005, CC-007 | the SDK |
 
 Sequencing: CC-001 and CC-002 start together (CC-001 is a measurement, a day). CC-003 and CC-004 follow CC-002 in parallel, one owner each. CC-005 is the long pole and starts as soon as CC-002's conductor exists. CC-006 lands with or right after CC-005. CC-007 runs alongside from CC-003 onward and is the gate for calling the stage done. CC-008 is deliberately last.
 

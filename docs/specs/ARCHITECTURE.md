@@ -158,7 +158,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>13 modules"]
     components["components<br/>routed views<br/>52 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>180 modules"]
+    core["core<br/>session, player, router<br/>181 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>49 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -194,7 +194,7 @@ flowchart LR
     content --> |1| visuals
     core --> |9| audio
     core --> |15| content
-    core --> |5| scenes
+    core --> |9| scenes
     core --> |4| sources
     core --> |22| visuals
     live -.-> |3 lazy| app
@@ -471,6 +471,10 @@ owning the glyph-mask state machine.
 - **A new personal store is added to `src/core/user-data.js` in the same change
   that introduces it.** A store missing from that inventory is data export
   cannot carry out and erase cannot clear.
+- **The renderer contract moves with its document.** What a third party builds
+  against (the Current v2, manifests and cues, generated scenes and their
+  worker protocol, the MCP tools) is `docs/specs/RISE-SDK.md`, held to the code
+  by `src/core/rise-sdk.test.js`.
 
 ---
 
