@@ -1360,7 +1360,7 @@ describe('inside an MCP host', () => {
         const { environment, sent } = framed();
         mount('?embed=mcp', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
-        expect(sent[0]).toMatchObject({ jsonrpc: '2.0', method: 'ui/initialize', params: { appInfo: { name: 'RISE' }, appCapabilities: { availableDisplayModes: ['inline'] }, protocolVersion: '2026-01-26' } });
+        expect(sent[0]).toMatchObject({ jsonrpc: '2.0', method: 'ui/initialize', params: { appInfo: { name: 'RISE' }, appCapabilities: { availableDisplayModes: ['inline', 'fullscreen', 'pip'] }, protocolVersion: '2026-01-26' } });
         expect(JSON.stringify(sent[0])).not.toMatch(/key|prompt/iu);
     });
 
