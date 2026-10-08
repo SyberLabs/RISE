@@ -72,6 +72,7 @@ const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]:not([tab
 const previewEngine = visual => {
   if (visual.visualMode === 'attractor') return 'attractor';
   if (visual.visualMode === 'genesis') return 'klee';
+  if (visual.visualMode === 'living-flame') return 'living-flame';
   if (visual.visualMode === 'interlocution') {
     return normalizeVisualSelection(visual.interlocution || {}).procedural[0] || null;
   }
@@ -156,7 +157,7 @@ export function createDefaultConfig() {
 
     // Visual orbit
     visualInterlocution: {
-      // Top-level mode: 'off' | 'focals' | 'attractor' | 'genesis' | 'interlocution'
+      // Top-level mode: 'off' | 'focals' | 'attractor' | 'genesis' | 'living-flame' | 'interlocution'
       visualMode: 'off',
 
       // Focals config (persistent gentle focal point)
@@ -1233,6 +1234,8 @@ export class ChamberOrbital {
     if (mode === 'genesis') {
       return `Genesis · ${this.capitalizeFirst(vi.genesis?.preset || 'random')}`;
     }
+
+    if (mode === 'living-flame') return 'Living Flame';
 
     if (mode === 'interlocution') {
       // ONE ENGINE HAS A NAME; A SHELF FULL OF THEM HAS A FAMILY.

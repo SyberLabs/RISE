@@ -45,6 +45,14 @@ describe('the exclusive fields map to their modes', () => {
     expect(back.visualMode).toBe('genesis');
     expect(back.genesis).toMatchObject({ preset: 'gravitational', glass: false });
   });
+
+  // Living Flame holds the room as one composition, as Genesis does, so it
+  // keeps a mode of its own; its colours and composition are the reading's theme.
+  it('Living Flame is a dedicated mode, chosen and reopened as itself', () => {
+    const sel = selectionFromConfig({ visualMode: 'living-flame' });
+    expect([...sel.enabled]).toEqual(['living-flame']);
+    expect(configPatch(sel).visualMode).toBe('living-flame');
+  });
 });
 
 describe('drawn-in-time engines take the procedural path, exclusively', () => {

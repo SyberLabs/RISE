@@ -109,7 +109,7 @@ import { resolveTextMaterialCapability } from '../../core/chamber-text-material.
 import { FitMaskRuntime } from '../../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../../core/visual-selection.js';
 import { sessionColorTheme, sessionColorThemeId } from '../../core/session-presentation.js';
-import { themeEngine, themedFlameLookup } from '../../core/theme-engine-map.js';
+import { flameComposition, themeEngine, themedFlameLookup } from '../../core/theme-engine-map.js';
 import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
@@ -968,9 +968,9 @@ export class Chamber {
     return !look.config.chunkMode || look.config.chunkMode === this.session?.chunkMode;
   }
 
-  /** Whether a look's field is a Gallery pool, which only the cortex can hold. Living Flame is drawn as a field. */
+  /** Whether a look's field is a Gallery pool, which only the cortex can hold. */
   _lookDrawsGallery(look) {
-    return look.config.visualInterlocution.visualMode === 'interlocution' && !look.engines.includes('living-flame');
+    return look.config.visualInterlocution.visualMode === 'interlocution';
   }
 
   /** A Gallery look in a reading that opened without one would need the reading reopened, which no path does yet. */
@@ -1739,6 +1739,8 @@ export class Chamber {
     // Initialize the growing Klee field if in genesis mode
     this.initializeGenesis();
 
+    this.initializeLivingFlame();
+
     // Behind-stream rhythmic: imagery presents beneath the reading text,
     // so the text keeps a glass tile for legibility over the imagery
     // (the same pane Genesis uses — one grammar, one implementation).
@@ -2092,9 +2094,10 @@ export class Chamber {
     if (visual.visualMode === 'genesis') return { kind: 'field', renderer: 'genesis', config: visual.genesis || {} };
     if (visual.visualMode === 'attractor') return { kind: 'field', renderer: 'attractor', config: visual.attractor || {} };
     if (visual.visualMode === 'focals') return { kind: 'field', renderer: 'focal', config: visual.focals || {} };
-    // The flame's composition is the theme's, and its hue the accent's, as Follow text themes it.
-    const composition = themeEngine(sessionColorThemeId(this.session), 'livingFlame')?.composition;
-    const recipe = themedFlameLookup(flamePreset, sessionColorTheme(this.session))(composition);
+    // The flame's composition is the theme's, and its hue the accent's, as Follow text themes it:
+    // classic's for a reading that names no theme (R6).
+    const composition = flameComposition(sessionColorThemeId(this.session));
+    const recipe = themedFlameLookup(flamePreset, sessionColorTheme(this.session) || jevColors('classic'))(composition);
     return recipe ? this._flameCue(recipe) : { kind: 'still' };
   }
 
@@ -2333,6 +2336,7 @@ export class Chamber {
     if (mode === 'genesis') this.initializeGenesis();
     else if (mode === 'attractor') this.initializeAttractor();
     else if (mode === 'focals') this.initializeFocal();
+    else if (mode === 'living-flame') this.initializeLivingFlame();
     else if (mode === 'interlocution') {
       visualCortex.updateConfig({ activeTypes: [...this._ownActiveTypes] }, { preservePresentation: true });
     }
@@ -2992,6 +2996,12 @@ export class Chamber {
     this._visualFieldDirector?.applyCue({
       kind: 'field', renderer: 'attractor', config: visualConfig.attractor || {}
     });
+  }
+
+  /** Living Flame: the theme's composition breathing behind the words; Follow text moves it by passage. */
+  initializeLivingFlame() {
+    if (this.session?.visualConfig?.visualMode !== 'living-flame') return;
+    this._visualFieldDirector?.applyCue(this._lookFieldCue());
   }
 
   /**

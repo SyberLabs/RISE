@@ -2561,7 +2561,7 @@ export class Workshop {
     const mode = this.sessionData.visualConfig?.visualMode;
     if (mode === 'focals') return 'focal';
     if (mode === 'interlocution') return 'scored';
-    return ['off', 'attractor', 'genesis'].includes(mode) ? mode : 'off';
+    return ['off', 'attractor', 'genesis', 'living-flame'].includes(mode) ? mode : 'off';
   }
 
   isVisualAssetDefault(entry) {

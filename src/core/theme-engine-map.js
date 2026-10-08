@@ -39,6 +39,11 @@ export function themeEngine(themeId, engine) {
   return entry && Object.hasOwn(entry, engine) ? entry[engine] : null;
 }
 
+/** The Living Flame composition a theme draws; classic's for a reading that names no theme (R6). */
+export function flameComposition(themeId) {
+  return (themeEngine(themeId, 'livingFlame') || THEME_ENGINE_MAP.classic.livingFlame).composition;
+}
+
 function hexRgb(value) {
   const match = /^#([0-9a-f]{6})$/i.exec(String(value || ''));
   if (!match) return null;

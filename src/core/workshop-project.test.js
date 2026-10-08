@@ -84,6 +84,17 @@ describe('Workshop Project v1', () => {
     }
   });
 
+  it('keeps a Living Flame reading as itself through the project and back, with its flame as the fallback (RDR-023)', () => {
+    const editor = legacyBlueprint({ visualConfig: { visualMode: 'living-flame' } });
+    const project = workshopEditorDataToProject(editor, { id: editor.id });
+    expect(project.defaults.visual.surface).toBe('living-flame');
+    expect(workshopProjectToSessionConfig(project).visualConfig.visualMode).toBe('living-flame');
+    const migrated = migrateWorkshopBlueprint(editor);
+    expect(migrated.defaults.visual.surface).toBe('living-flame');
+    expect(migrated.experienceProgram.tracks.find(track => track.kind === 'visual').fallback)
+      .toMatchObject({ kind: 'field', renderer: 'living-flame' });
+  });
+
   it('migrates the historical pacing contract exactly once', () => {
     const migrated = migrateWorkshopBlueprint(legacyBlueprint({ wpm: 200, paceV2: false }));
     expect(migrated.defaults.reading.wpm).toBe(290);

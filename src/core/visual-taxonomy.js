@@ -25,7 +25,7 @@ import {
   HARMONOGRAPH_CLIMATES,
   KLEE_PRESETS
 } from './visual-style-definitions.js';
-import { LISTED_PROCEDURAL_PATTERNS } from './visual-registry.js';
+import { LISTED_ENGINES } from './visual-registry.js';
 
 /**
  * The four kinds of field, and the one rule that separates them.
@@ -56,9 +56,11 @@ export const FIELD = Object.freeze({
  * continuous field host, and a dedicated mode mounts its own instead.
  *
  * Genesis keeps its mode. It is a composition that grows over ~28 seconds and
- * holds the room as one drawing gesture; it is not a gallery of plates.
+ * holds the room as one drawing gesture; it is not a gallery of plates. Living
+ * Flame is one composition breathing in the room, so it has a mode too; Follow
+ * text changes its composition by passage (RDR-023).
  */
-export const DEDICATED_MODE = Object.freeze({ klee: 'genesis' });
+export const DEDICATED_MODE = Object.freeze({ klee: 'genesis', 'living-flame': 'living-flame' });
 
 /**
  * A leaf's substyle benches — the SAME objects the current panel renders,
@@ -97,7 +99,7 @@ export function substylesFor(engineId) {
  * `category`, in catalog order. A listed entry without a category is not
  * shown, and the registry test fails.
  */
-const engineLeavesIn = category => LISTED_PROCEDURAL_PATTERNS
+const engineLeavesIn = category => LISTED_ENGINES
   .filter(pattern => pattern.category === category)
   .map(pattern => Object.freeze({
     id: pattern.id,

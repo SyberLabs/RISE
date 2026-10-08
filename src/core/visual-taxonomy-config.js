@@ -122,6 +122,7 @@ export function selectionFromConfig(visualConfig = {}) {
   if (mode === 'focals') { sel.enabled.add('focal'); return sel; }
   if (mode === 'attractor') { sel.enabled.add('attractor'); return sel; }
   if (mode === 'genesis') { sel.enabled.add('klee'); return sel; }
+  if (mode === 'living-flame') { sel.enabled.add('living-flame'); return sel; }
 
   // interlocution — the shared procedural + sourced pool.
   const inter = normalizeVisualSelection(cfg.interlocution || {});
@@ -188,6 +189,7 @@ function fieldPatch(selection) {
     };
   }
   if (enabled.has('klee')) return { visualMode: 'genesis', genesis: { ...style.klee } };
+  if (enabled.has('living-flame')) return { visualMode: 'living-flame' };
 
   // A single drawn-in-time engine, or a Gallery of held sources.
   const dynamic = on.find(id => DYNAMIC_PROCEDURAL.has(id));
