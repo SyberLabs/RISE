@@ -8,8 +8,12 @@ const PLUS_KEY = 'rise.plus';
 const PLUS_CLAIM_ROUTE = '/api/plus/claim';
 const PLUS_FORGET_ROUTE = '/api/plus/forget';
 
-/** The Stripe payment link for Plus. The owner sets it from the Stripe dashboard (Payment links). */
-export const PLUS_PAYMENT_LINK = 'https://buy.stripe.com/REPLACE_ME';
+/**
+ * The Stripe payment link for Plus, from the Stripe dashboard (Payment links).
+ * This is the TEST-mode link; swap it for the live one at go-live. Stripe
+ * returns the buyer to /plus/claim?session_id={CHECKOUT_SESSION_ID}.
+ */
+export const PLUS_PAYMENT_LINK = 'https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00';
 export const PLUS_PRICE = '$8.99 a month';
 /** One voicing is one vendor request (worker/plus.mjs VOICE_MAX_CHARS). */
 export const PLUS_VOICE_MAX_CHARS = 10_000;

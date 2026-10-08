@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exportUserData } from '../core/user-data.js';
 import { Settings } from './Settings.js';
-import { notePlusAllowance } from '../app/plus.js';
+import { PLUS_PAYMENT_LINK, notePlusAllowance } from '../app/plus.js';
 
 vi.mock('../core/user-data.js', () => ({
     clearUserData: vi.fn(),
@@ -404,7 +404,7 @@ describe('Settings Plus voice', () => {
     it('offers the payment link until Plus is claimed in this browser', () => {
         const settings = mount();
         const link = settings.container.querySelector('a[href^="https://buy.stripe.com/"]');
-        expect(link).toBeTruthy();
+        expect(link?.getAttribute('href')).toBe(PLUS_PAYMENT_LINK);
         expect(settings.container.textContent).toContain('$8.99 a month');
         expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
         expect(settings.container.querySelector('.settings-fail[hidden]')).toBeTruthy();
