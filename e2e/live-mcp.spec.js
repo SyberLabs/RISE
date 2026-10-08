@@ -825,3 +825,33 @@ test('the self-contained card plays a Current from another origin, framing nothi
   expect(hostRequests).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+// A Current of beats (rise.current.v2): a hold passes on its own clock, a shown line is said by no one, and the voice goes on after.
+const SKY_BEATS = {
+  schema: 'rise.current.v2',
+  id: 'sky-beats',
+  title: 'Why the sky is blue',
+  origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
+  look: 'signal',
+  scenes: [{ id: 'field', engine: 'attractor' }],
+  beats: [
+    { say: 'Sunlight carries every colour at once.', scene: 'field' },
+    { hold: { ms: 1500 } },
+    { show: 'A line nobody says.', hold: { ms: 1200 }, place: 'top' },
+    { say: 'So blue reaches your eye from every part of the sky.' }
+  ]
+};
+
+test('a Current of beats plays in the self-contained card: a hold, a shown line, then the voice again', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: SKY_BEATS });
+  await expect(posterTitle(app)).toHaveText(SKY_BEATS.title);
+  await begin(app);
+  await expectShown(app, 'Sunlight carries every colour');
+  // Through the hold and the shown line to the last spoken beat, in the time the beats ask for.
+  await expectShown(app, 'A line nobody says');
+  await expectShown(app, 'So blue reaches your eye');
+  expect(errors).toEqual([]);
+});

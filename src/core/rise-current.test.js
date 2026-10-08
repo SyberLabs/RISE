@@ -63,7 +63,7 @@ describe('external Current validation', () => {
   });
 
   it.each([
-    ['wrong schema', { schema: 'rise.current.v2' }, 'CURRENT_SCHEMA', '$.schema'],
+    ['wrong schema', { schema: 'rise.current.v0' }, 'CURRENT_SCHEMA', '$.schema'],
     ['unknown visual', { segments: [{ id: 'a', text: 'Text', visual: 'eval-js' }] }, 'CURRENT_VISUAL', '$.segments[0].visual'],
     ['executable field', { segments: [{ id: 'a', text: 'Text', javascript: 'alert(1)' }] }, 'CURRENT_UNKNOWN_FIELD', '$.segments[0].javascript'],
     ['duplicate segment', { segments: [{ id: 'a', text: 'First' }, { id: 'a', text: 'Second' }] }, 'CURRENT_DUPLICATE_ID', '$.segments[1].id'],
