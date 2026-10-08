@@ -34,6 +34,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/490",
       "note": "Settings: Living Text row, S/M/L in both panels, mask switch and Ambient sound removed. App: livingText setting pushed live to the open Chamber; chamberMask and enableAmbient dropped. Chamber: Living Text gated by Settings, applyLivingTextSetting; legacy mask path removed (chamber-text-material loses legacyMask). Engine: stopSession no longer resumes the drone (it did by default after every reading). Navigator: Living Text switch removed. Setup: always asks for Living Text.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/495",
+      "note": "The lobby drone's playlist, its hidden-page re-arm and the three drone MP3s (2.5 MB fetched on every audio start) are removed.",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -44,10 +50,14 @@
     {
       "date": "2026-10-07T21:22:51.364Z",
       "summary": "Settings consolidated: S/M/L, typeface, Living Text, safety, volume, labels; mask switch and drone removed"
+    },
+    {
+      "date": "2026-10-08T01:48:36.731Z",
+      "summary": "The lobby drone's playlist and recordings are gone (#495)"
     }
   ],
-  "updatedAt": "2026-10-07T21:22:51.364Z",
-  "revision": 2,
-  "summary": "Settings holds what is true for every reading: text size S/M/L (a saved XL or Fit stays shown until another is picked), the typeface override, Living Text (on unless turned off; it gates every reading that asks, live), photosensitivity, reduced motion, volume and labels. The accent (B2b), the imagery-through-words switch (Inlay declares the word fill) and the lobby drone are gone; the drone can no longer start, and the audio engine's now-unused playlist is a follow-up.",
+  "updatedAt": "2026-10-08T01:48:36.731Z",
+  "revision": 3,
+  "summary": "Settings holds what is true for every reading: text size S/M/L (a saved XL or Fit stays shown until another is picked), the typeface override, Living Text (on unless turned off; it gates every reading that asks, live), photosensitivity, reduced motion, volume and labels. The accent (B2b), the imagery-through-words switch (Inlay declares the word fill) and the lobby drone are gone, the drone's playlist and its three recordings with it (#495).",
   "blocker": null
 }
