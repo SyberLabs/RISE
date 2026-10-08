@@ -507,3 +507,14 @@
 .settings--bar .settings-hint {
   font-size: 12px;
 }
+
+/* The Plus voice picker: the one select in Settings. */
+.settings-row select {
+    font: inherit;
+    color: var(--sy-text);
+    background: var(--sy-bg);
+    border: 1px solid var(--sy-line);
+    border-radius: 6px;
+    padding: var(--space-xs) var(--space-sm);
+    max-width: 50%;
+}

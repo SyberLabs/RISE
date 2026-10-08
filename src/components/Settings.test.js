@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exportUserData } from '../core/user-data.js';
 import { Settings } from './Settings.js';
+import { PLUS_PAYMENT_LINK, notePlusAllowance } from '../app/plus.js';
 
 vi.mock('../core/user-data.js', () => ({
     clearUserData: vi.fn(),
@@ -383,6 +384,97 @@ describe('Settings affect section', () => {
         document.body.appendChild(container);
         const settings = new Settings(container, { scope: 'session' });
         expect(container.querySelector('[data-section="affect"]')).toBeNull();
+        settings.destroy();
+    });
+});
+
+describe('Settings Plus voice', () => {
+    afterEach(() => {
+        localStorage.clear();
+        vi.unstubAllGlobals();
+        document.body.replaceChildren();
+    });
+
+    const mount = (settings = {}) => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        return new Settings(container, { settings, onChange: vi.fn() });
+    };
+
+    it('offers the payment link until Plus is claimed in this browser', () => {
+        const settings = mount();
+        const link = settings.container.querySelector('a[href^="https://buy.stripe.com/"]');
+        expect(link?.getAttribute('href')).toBe(PLUS_PAYMENT_LINK);
+        expect(settings.container.textContent).toContain('$8.99 a month');
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        expect(settings.container.querySelector('.settings-fail[hidden]')).toBeTruthy();
+        settings.destroy();
+    });
+
+    it('shows the switch, on by default, and forgets the claim on request', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        const fetchImpl = vi.fn(async () => new Response(null, { status: 204 }));
+        vi.stubGlobal('fetch', fetchImpl);
+        const settings = mount();
+        const toggle = settings.container.querySelector('[data-setting="plusVoice"]');
+        expect(toggle.checked).toBe(true);
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        expect(settings.onChange).toHaveBeenCalledWith('plusVoice', false);
+
+        await settings.forgetPlus();
+        expect(fetchImpl).toHaveBeenCalledWith('/api/plus/forget', { method: 'POST' });
+        expect(localStorage.getItem('rise.plus')).toBeNull();
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        expect(settings.container.querySelector('a[href^="https://buy.stripe.com/"]')).toBeTruthy();
+        settings.destroy();
+    });
+
+    it('shows what the Worker last said of the allowance, once it has voiced something here', () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        let settings = mount();
+        expect(settings.container.textContent).not.toContain('characters used');
+        settings.destroy();
+        document.body.replaceChildren();
+
+        notePlusAllowance({ used: 12345, limit: 105000, periodEnd: 1 });
+        settings = mount();
+        expect(settings.container.textContent).toContain('12,345 of 105,000 characters used this month.');
+        settings.destroy();
+    });
+
+    it('offers the Worker\'s voices, says that a change costs allowance, and keeps the choice', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        vi.stubGlobal('fetch', vi.fn(async () => Response.json([{ slug: 'default', label: 'Default' }, { slug: 'river', label: 'River' }])));
+        const settings = mount({ plusVoiceSlug: 'river' });
+        await settings.plusVoicesLoaded;
+        const picker = settings.container.querySelector('[data-plus-voice]');
+        expect([...picker.options].map(option => [option.value, option.textContent])).toEqual([['default', 'Default'], ['river', 'River']]);
+        expect(picker.value).toBe('river');
+        expect(settings.container.textContent).toContain('Changing voice voices your readings again and uses allowance.');
+
+        picker.value = 'default';
+        picker.dispatchEvent(new Event('change'));
+        expect(settings.onChange).toHaveBeenCalledWith('plusVoiceSlug', 'default');
+        settings.destroy();
+    });
+
+    it('offers Default alone when the voices cannot be listed', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+        const settings = mount();
+        await settings.plusVoicesLoaded;
+        const picker = settings.container.querySelector('[data-plus-voice]');
+        expect([...picker.options].map(option => option.value)).toEqual(['default']);
+        settings.destroy();
+    });
+
+    it('says when the Worker reported a lapse', () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1, lapsed: true }));
+        const settings = mount();
+        const fail = settings.container.querySelector('.settings-fail:not([hidden])');
+        expect(fail?.textContent).toBe('Plus voice has lapsed.');
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
         settings.destroy();
     });
 });

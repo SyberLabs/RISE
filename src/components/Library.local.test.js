@@ -74,7 +74,7 @@ describe('dropping a file', () => {
         // addition to what a dropped file could do, not a toll on it.
         await library.handleFileUpload(dropped());
         click('[data-action="read"]');
-        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'Local: poems');
+        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'Local: poems', { provenance: { kind: 'local-text' } });
     });
 
     it('refuses a file the picker should not have offered', async () => {
@@ -111,7 +111,7 @@ describe('admitting a work', () => {
 
         const id = library.localWorks[0].id;
         await library.handleLocalWork('open-local', id);
-        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'poems');
+        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'poems', { provenance: { kind: 'local-text' } });
     });
 
     it('reopens a shelved work on the joints its reader placed', async () => {
@@ -151,7 +151,7 @@ describe('when the shelf is unavailable', () => {
         await library.handleFileUpload(dropped());
         click('[data-action="admit"]');
         await settled();
-        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'Local: poems');
+        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'Local: poems', { provenance: { kind: 'local-text' } });
         vi.restoreAllMocks();
     });
 });
@@ -221,6 +221,6 @@ describe('reading a work the reader divided', () => {
 
         await library.handleLocalWork('open-local', library.localWorks[0].id);
         expect(document.querySelector('.toc-scrim')).toBeNull();
-        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'poems');
+        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'poems', { provenance: { kind: 'local-text' } });
     });
 });

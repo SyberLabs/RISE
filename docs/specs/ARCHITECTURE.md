@@ -156,8 +156,8 @@ it, and CI fails when the committed copy is not what `src/` produces.
 ```mermaid
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
-    app["app<br/>composition root<br/>14 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>14 modules"]
+    app["app<br/>composition root<br/>16 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>15 modules"]
     components["components<br/>routed views<br/>52 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>181 modules"]
@@ -174,14 +174,14 @@ flowchart LR
     app --> |1| audio
     app -.-> |8 lazy| components
     app --> |4| content
-    app --> |48| core
+    app --> |49| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
     audio --> |8| core
     components --> |3| affect
-    components -.-> |3 lazy| app
+    components --> |1| app
     components --> |5| audio
     components --> |23| content
     components --> |187| core
@@ -194,7 +194,7 @@ flowchart LR
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
-    core --> |9| audio
+    core --> |10| audio
     core --> |15| content
     core --> |9| scenes
     core --> |4| sources

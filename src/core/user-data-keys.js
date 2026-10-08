@@ -51,7 +51,13 @@ export const USER_DATA_KEYS = Object.freeze({
  * wrong, not that clearing it was forgotten, and the test prints this text
  * when a key arrives without one.
  */
-export const UNREGISTERED_LOCAL_KEYS = Object.freeze({});
+export const UNREGISTERED_LOCAL_KEYS = Object.freeze({
+    // src/app/plus.js. A paid subscription's marker, not reading data: the
+    // receipt is an HttpOnly cookie an erase cannot reach, so clearing this
+    // would only hide a voice the reader still pays for. Settings' "Forget
+    // Plus on this browser" removes it, with the cookie.
+    'rise.plus': 'Plus receipt marker; forgotten by Settings > Forget Plus, with its cookie'
+});
 
 /** Every key an erase is expected to remove. */
 export const ERASABLE_LOCAL_KEYS = Object.freeze(Object.values(USER_DATA_KEYS));
