@@ -22,14 +22,15 @@ describe('the production Worker', () => {
     expect(config.assets.run_worker_first).toEqual(expect.arrayContaining(['/api/*', '/live']));
   });
 
-  // docs/plans/LIVE-MCP.md §"Turning it on" and AGENTS.md say both routes are
-  // off in production. The Worker turns either on only for the exact text "true"
-  // (live-realtime.mjs, mcp-server.mjs), so the committed config must say "false"
-  // in so many words: switching one on is then a visible one-line diff, never a
-  // missing or mistyped var.
-  it('ships with live realtime and the MCP server switched off, explicitly', () => {
+  // The Worker turns a route on only for the exact text "true" (live-realtime.mjs,
+  // mcp-server.mjs), so each switch is stated in so many words: a change is a
+  // visible one-line diff, never a missing or mistyped var. Live realtime is off.
+  // The MCP server is on only with the self-contained card: without it the
+  // embedded page drops its framing headers for any site (LIVE-RED-TEAM.md R-1).
+  it('ships live realtime off, and the MCP server on only with the self-contained card', () => {
     expect(config.vars.LIVE_REALTIME_ENABLED).toBe('false');
-    expect(config.vars.MCP_ENABLED).toBe('false');
+    expect(['true', 'false']).toContain(config.vars.MCP_ENABLED);
+    if (config.vars.MCP_ENABLED === 'true') expect(config.vars.MCP_SELF_CONTAINED).toBe('true');
   });
 });
 
