@@ -124,6 +124,7 @@ Session storage is discarded when you close the tab.
 | `rise-personal-assets` | Audio and imagery you have added to your own compositions |
 | `rise-workshop-media` | Media belonging to projects you are building |
 | `rise-source-cache` | A cache of texts and catalogue responses, so the same request is not repeated |
+| `rise-plus-voice` | Plus only: the audio voiced for your own readings, so playing it again costs nothing |
 
 If you use the Plus voice, the audio voiced for your readings is stored only in
 this browser's IndexedDB. Erase clears it. Voicing the same text again on
@@ -188,7 +189,7 @@ your own material when the Plus voice is on. There is no RISE account.
 
 - **Payment.** Stripe processes the payment and holds the details you give it,
   under its own policy (<https://stripe.com/privacy>). RISE's server then sets
-  one signed, HttpOnly cookie, `rise_plus`, sent only to `/api/plus`, that
+  one signed, HttpOnly cookie, `__Secure-rise_plus`, sent only to `/api/plus`, that
   carries your Stripe subscription number.
 - **Voicing.** To voice a reading, your browser sends its text to RISE's
   server, which sends it to ElevenLabs on SyberLabs' account and returns the
@@ -339,7 +340,7 @@ transfer no longer happens.
 
 We state these plainly because the absence is the point.
 
-- **One cookie, for Plus only.** The Worker sets `rise_plus` when you claim a
+- **One cookie, for Plus only.** The Worker sets `__Secure-rise_plus` when you claim a
   purchase; it is HttpOnly, read only by `/api/plus/*`, and never by page
   script. There is no `document.cookie` call anywhere in the application.
 - **The Plus voice.** With RISE Plus and its voice on, the text of readings
