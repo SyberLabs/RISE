@@ -146,7 +146,7 @@ describe('seeking while playing', () => {
 });
 
 describe('seeking while paused', () => {
-    it('stays paused, shows nothing, and takes up the atom sought from its start when played', async () => {
+    it('stays paused on the atom sought, shown, and takes it up from its start, once, when played', async () => {
         player = new Player(session());
         const shown = watch(player);
         const clock = governed(player);
@@ -154,25 +154,48 @@ describe('seeking while paused', () => {
         await tick(100);
         player.pause();
         player.seekTo(3);
+        expect(shown).toEqual([0, 3]);
         await tick(5_000);
         expect(player.sessionState.state).toBe('paused');
-        expect(shown).toEqual([0]);
-        player.play();
         expect(shown).toEqual([0, 3]);
-        // Asked afresh, not resumed on what remained of the atom it left.
+        expect(clock.asked).toEqual([0]);
+        player.play();
+        // Not shown a second time, and asked afresh, not resumed on what remained of the atom it left.
+        expect(shown).toEqual([0, 3]);
         expect(clock.asked).toEqual([0, 3]);
+        clock.end(3);
+        await tick(10);
+        expect(shown).toEqual([0, 3, 4]);
     });
 
-    it('takes up a reading that had finished, from the atom sought, when played', async () => {
+    it('gives the atom sought its whole time when played, on the Player’s own timer', async () => {
+        player = new Player(session());
+        const shown = [];
+        player.on('atom', ({ index }) => shown.push({ index, at: performance.now() }));
+        player.play();
+        await tick(100);
+        player.pause();
+        player.seekTo(2);
+        await tick(1_000);
+        const at = performance.now();
+        player.play();
+        await tick(atoms(player)[2].duration + 100);
+        expect(shown.map(entry => entry.index)).toEqual([0, 2, 3]);
+        expect(shown[2].at - at).toBeGreaterThanOrEqual(atoms(player)[2].duration);
+    });
+
+    it('shows the atom sought in a reading that had finished, and takes it up from there when played', async () => {
         player = new Player(session());
         const shown = watch(player);
         player.play();
         await tick(120_000);
         expect(player.sessionState.state).toBe('complete');
+        const before = shown.length;
         player.seekTo(2);
+        expect(shown.slice(before)).toEqual([2]);
         player.play();
         expect(player.sessionState.state).toBe('playing');
-        expect(shown.at(-1)).toBe(2);
+        expect(shown.slice(before)).toEqual([2]);
     });
 
     it('refuses an atom that is not there', () => {

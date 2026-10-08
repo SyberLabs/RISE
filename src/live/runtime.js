@@ -100,8 +100,9 @@ export function createLiveRuntime({
     }
 
     /**
-     * The passages of a run's reading in order, each with the atom a seek takes it up at: the seam before it when
-     * the voice opens that seam (the words then begin when the voice does), else its first atom.
+     * The passages of a run's reading in order, each with its first words (`words`) and the atom a playing seek
+     * takes it up at (`first`): the seam before it when the voice opens that seam (the words then begin when the
+     * voice does), else its first words.
      */
     function passagesOf(run) {
         const { session } = run.player.sessionState;
@@ -110,7 +111,7 @@ export function createLiveRuntime({
         session.atoms.forEach((atom, index) => {
             if (atom.seam || !atom.sourceId || atom.sourceId === list.at(-1)?.id) return;
             const seam = session.atoms[index - 1];
-            list.push({ id: atom.sourceId, first: seam?.seam && !seam.beatTimed ? index - 1 : index });
+            list.push({ id: atom.sourceId, words: index, first: seam?.seam && !seam.beatTimed ? index - 1 : index });
         });
         run.passages = { session, list };
         return list;
@@ -701,15 +702,18 @@ export function createLiveRuntime({
             .filter(segment => order.get(segment.id) >= at);
         if (run.presented) speak(run);
 
-        run.conductor.seek(run.player.sessionState.session.atoms, list[at].first);
         const ended = status === 'ended';
+        // A held reading lands on the passage's first words, shown while it is held; a playing one on the seam the voice opens.
+        const held = !ended && ['paused', 'complete'].includes(run.player.sessionState.state);
+        const landing = held ? list[at].words : list[at].first;
+        run.conductor.seek(run.player.sessionState.session.atoms, landing);
         run.tail?.();
         run.tail = null;
         run.finished = false;
         run.ended = false;
         run.completedAt = null;
         if (ended) set('live');
-        run.player.seekTo(list[at].first);
+        run.player.seekTo(landing);
         if (ended) run.player.play();
         set(status);
     }

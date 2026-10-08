@@ -194,6 +194,8 @@ export class Player {
         // prepared, resuming must advance past the completed atom — never
         // replay it. Open when a roll wins, closed on normal completion.
         this._boundaryFlash = null;
+        // A seek while paused showed the atom on screen; play begins it without showing it again (seekTo).
+        this._shownBySeek = false;
 
         // Authored reading position (prefix ms) at the last hazard roll:
         // flash chance accrues over the reading time since then, so the
@@ -471,6 +473,14 @@ export class Player {
             this.sessionState.advance();
         }
 
+        // An atom a seek showed while paused begins now, with all its time, without being shown again.
+        if (this._shownBySeek && this.sessionState.currentAtom) {
+            this._shownBySeek = false;
+            this.currentAtomRemainingTime = this._atomDisplayMs(this.sessionState.currentAtom);
+            this.currentAtomDisplayTime = this.currentAtomRemainingTime;
+            this.scheduleNextAtom(false, { alreadyPrepared: true });
+            return;
+        }
         const isResuming = (previousState === 'paused' && this.currentAtomRemainingTime !== null);
         this.scheduleNextAtom(isResuming);
     }
@@ -568,6 +578,7 @@ export class Player {
         this._autoPausedByVisibility = false;
         this._awaitingAtoms = false;
         this._boundaryFlash = null;
+        this._shownBySeek = false;
         this._hazardRolledMs = 0;
         this.interlocutionStats = createInterlocutionStats();
         this.sessionState.reset();
@@ -758,7 +769,8 @@ export class Player {
     /**
      * Move the reading to an atom, taken up from its start and timed afresh. Nothing owed to the atom left (its
      * timer, its watchdog, a governed end, a flash between phrases) can move the reading again. A playing reading
-     * shows the atom at once; a paused one stays paused and shows it when played, as does a finished one.
+     * shows the atom and times it at once; a paused or finished one shows it now, stays where it is, and times
+     * it from its start when played.
      * @param {number} index
      */
     seekTo(index) {
@@ -789,7 +801,18 @@ export class Player {
         this.currentAtomRemainingTime = null;
         this.currentAtomDisplayTime = null;
         this.sessionState.currentIndex = index;
-        this.scheduleNextAtom();
+        this._shownBySeek = false;
+        if (this.sessionState.state === 'playing') {
+            this.scheduleNextAtom();
+            return;
+        }
+        if (this.sessionState.state === 'paused' || this.sessionState.state === 'complete') {
+            // The reader lands on the atom: shown now, timed afresh (and not shown again) when played.
+            this._prepareCurrentAtom();
+            this.currentAtomRemainingTime = null;
+            this.currentAtomDisplayTime = null;
+            this._shownBySeek = true;
+        }
     }
 
     /**

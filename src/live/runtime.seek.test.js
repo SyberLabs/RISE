@@ -213,7 +213,7 @@ describe('a seek', () => {
         expect(after(run.said, at).filter(entry => entry.kind === 'end').map(entry => entry.id)).toEqual(['beat-13', 'beat-14', 'beat-15']);
     });
 
-    it('while held: it stays held, says and shows nothing, and Play takes up at the passage sought', async () => {
+    it('while held: it stays held on the passage sought, its first words shown and nothing said, and Play takes up there', async () => {
         const run = await open();
         await tick(1_000);
         await runtime.interrupt();
@@ -221,16 +221,21 @@ describe('a seek', () => {
         runtime.seek({ segmentId: 'beat-4' });
         expect(runtime.status).toBe('interrupted');
         expect(run.player().sessionState.state).toBe('paused');
+        const first = run.player().sessionState.session.atoms.findIndex(atom => atom.sourceId === 'beat-4' && !atom.seam);
+        expect(after(run.shown, at)).toEqual([expect.objectContaining({ index: first, sourceId: 'beat-4' })]);
+        expect(runtime.position()).toMatchObject({ segmentId: 'beat-4', atomIndex: first });
         await tick(5_000);
         expect(after(run.said, at)).toEqual([]);
-        expect(after(run.shown, at)).toEqual([]);
+        expect(after(run.shown, at)).toHaveLength(1);
         const played = now();
         runtime.resume();
         await tick(3_000);
         expect(after(run.said, played)[0]).toMatchObject({ kind: 'start', id: 'beat-4' });
-        expect(after(run.shown, played).find(entry => entry.sourceId).sourceId).toBe('beat-4');
+        // Taken up where it is, not shown again: the next words follow the voice.
+        expect(after(run.shown, played).every(entry => entry.index > first)).toBe(true);
         await playOut();
         expect(run.journal('voice.degraded')).toEqual([]);
+        expectTogether(run);
     });
 
     it('never gives up on the voice across ten seeks anywhere, and the reading still ends with it', async () => {
