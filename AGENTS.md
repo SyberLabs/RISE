@@ -146,6 +146,19 @@ current scope; the live Realtime page stays switched off by default. See
   them under the Reviewer findings contract above. It is not required and
   must never be.
 
+## Public dependency lookup (GitHits)
+
+- `.mcp.json` registers the hosted GitHits MCP server
+  (`https://mcp.githits.com`, OAuth on first use via `/mcp`). Headless
+  agents set `GITHITS_API_TOKEN` in the environment; never write a token to
+  a file.
+- Use it for the exact source and docs of the dependency version in
+  `package-lock.json`, and for vulnerability, changelog, and upgrade checks
+  before bumping a dependency.
+- It indexes public open-source code only. Never send it private RISE code,
+  tokens, secrets, or personal data; it cannot answer questions about this
+  repository.
+
 ## Product roadmap and task tracking
 
 - Before selecting work, read [the product library and tracker](docs/product/README.md) and the applicable Reader or Composer + RiseSDK direction. Shared foundation work has its own lane.
