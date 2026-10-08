@@ -144,6 +144,10 @@ current scope; the live Realtime page stays switched off by default. See
   no review ran; with one it blocks on concrete correctness or security
   defects. Never make a check that only runs after merge required; it blocks
   pull requests forever.
+- `Codex feedback` (`.github/workflows/codex-feedback.yml`) is not a check.
+  It runs when Codex submits a review with unresolved findings and answers
+  them under the Reviewer findings contract above. It is not required and
+  must never be.
 
 ## Product roadmap and task tracking
 
@@ -164,6 +168,23 @@ current scope; the live Realtime page stays switched off by default. See
   integration, and production verification with the coordinating agent.
 - Merge through the required `CI` check, then verify the exact live release.
   Do not add an agent service or another required check for fan-out.
+
+## Reviewer findings
+
+Codex reviews every pull request and opens a review thread per finding. The
+author agent, not a human, answers every thread, with exactly one of two
+replies, then resolves it:
+
+- `Fixed in <short sha>: <one line>` after the smallest correct change and the
+  narrowest test that proves it. Commit as `Codex: <what changed>`.
+- `Not a defect: <one-line reason>` when the finding is style, naming,
+  preference, or speculative hardening. A defect is something that would ship
+  a bug, a security hole, data loss, a broken build, or a failing test.
+
+A thread left unanswered is a merge blocker, not an opinion. When the author
+session is gone, `.github/workflows/codex-feedback.yml` answers in its place
+(Sonnet, bounded turns, two rounds per pull request) and arms auto-merge.
+Humans review the product at the live site, not the pull request.
 
 ## Running / manual testing
 
