@@ -269,6 +269,18 @@ const COMPOSITION_LADDER = Object.freeze([
 const ladderWords = (minutes) => minutes * READING_PACE.default;
 
 /**
+ * The curator's own ceiling on pieces named to the reader one by one. The
+ * score admits more movements (EXPERIENCE_PROGRAM_LIMITS.maxMovements, raised
+ * for Currents of beats); the curator's ladder, shelf and prompt were measured
+ * at this number, so it stays theirs, never above the score's.
+ */
+export const CURATOR_MOVEMENTS = 16;
+
+export function curatorMovementCeiling() {
+  return Math.min(CURATOR_MOVEMENTS, EXPERIENCE_PROGRAM_LIMITS.maxMovements);
+}
+
+/**
  * The example's piece count for this budget — the ladder, held under the
  * ceiling on movements, which is the real bound on individually-named pieces.
  */
@@ -277,7 +289,7 @@ function piecesForLength(budget) {
     .reverse()
     .find(step => (budget || 0) >= ladderWords(step.minutes))
     || COMPOSITION_LADDER[0];
-  return Math.min(Math.round(rung.pieces), EXPERIENCE_PROGRAM_LIMITS.maxMovements);
+  return Math.min(Math.round(rung.pieces), curatorMovementCeiling());
 }
 
 /**
@@ -657,8 +669,8 @@ function compositionLines(ctx, picked) {
     'visual track listed before the movements does not reverse the reading.',
     '',
     `THE CEILINGS — ${number(READING_LIMITS.maxSources)} sources and `
-    + `${number(EXPERIENCE_PROGRAM_LIMITS.maxMovements)} movements in one reading.`,
-    `Because \`data.title\` lives on the movement clip, ${number(EXPERIENCE_PROGRAM_LIMITS.maxMovements)} is the real`,
+    + `${number(curatorMovementCeiling())} movements in one reading.`,
+    `Because \`data.title\` lives on the movement clip, ${number(curatorMovementCeiling())} is the real`,
     'bound on pieces you can name to the reader one by one — a Spoon River',
     'reading reaches it at about eleven minutes. Past that, a movement may own',
     'SEVERAL sourceIds: group the neighbours under one movement and title the',
