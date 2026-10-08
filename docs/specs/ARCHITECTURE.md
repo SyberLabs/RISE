@@ -194,7 +194,7 @@ flowchart LR
     content --> |1| visuals
     core --> |9| audio
     core --> |15| content
-    core --> |4| scenes
+    core --> |5| scenes
     core --> |4| sources
     core --> |22| visuals
     live -.-> |3 lazy| app
