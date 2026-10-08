@@ -27,6 +27,10 @@ describe('the production Worker', () => {
   // visible one-line diff, never a missing or mistyped var. Live realtime is off.
   // The MCP server is on only with the self-contained card: without it the
   // embedded page drops its framing headers for any site (LIVE-RED-TEAM.md R-1).
+  it('binds the private bucket the paid voice is served from', () => {
+    expect(config.r2_buckets).toContainEqual(expect.objectContaining({ binding: 'PLUS_AUDIO' }));
+  });
+
   it('ships live realtime off, and the MCP server on only with the self-contained card', () => {
     expect(config.vars.LIVE_REALTIME_ENABLED).toBe('false');
     expect(['true', 'false']).toContain(config.vars.MCP_ENABLED);

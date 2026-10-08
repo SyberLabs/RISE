@@ -20,6 +20,9 @@
     "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*"]
   },
   // Serves the live Realtime route (worker/live-realtime.mjs); off by default.
+  // The paid voice's clips (worker/plus.mjs), filled by scripts/build-canon-recitation.mjs.
+  // Secrets STRIPE_SECRET_KEY and PLUS_COOKIE_SECRET switch the routes on; without them they answer 503.
+  "r2_buckets": [{ "binding": "PLUS_AUDIO", "bucket_name": "rise-plus-audio" }],
   "ratelimits": [{
     "name": "DECISION_LIMITER",
     "namespace_id": "2026092602",
