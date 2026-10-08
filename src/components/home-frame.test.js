@@ -37,6 +37,7 @@ const REGIONS = [
   ['note', '.home-featured > p.home-note[role="note"]'],
   ['epigraph', '.home-featured > p.home-epigraph'],
   ['actions', 'main .home > .home-actions'],
+  ['aside', '.home > .home-about'],
   ['legal', '.portal-footer .portal-legal']
 ];
 
@@ -74,11 +75,8 @@ const primary = container => [...container.querySelectorAll('.home .btn-primary'
 describe('the frame', () => {
   it('is the field, the header rooms and the Menu, the window, the slot, the actions and the legal line, in that order', () => {
     const { portal, container } = mount();
-    expect(regions(container)).toEqual(['field', 'rooms', 'menu', 'window', 'label', 'title', 'meta', 'note', 'epigraph', 'actions', 'legal']);
+    expect(regions(container)).toEqual(['field', 'rooms', 'menu', 'window', 'label', 'title', 'meta', 'note', 'epigraph', 'actions', 'aside', 'legal']);
     expect(container.querySelectorAll('.home-featured > *')).toHaveLength(5);
-    // The Aside (p.home-about, the owners' one line) is reserved between the actions and the
-    // legal line for PR 8; it joins the list above when it lands.
-    expect(container.querySelector('.home-about')).toBeNull();
     portal.destroy();
   });
 
@@ -113,7 +111,7 @@ describe('the frame', () => {
     expect(primary(container)).toEqual(['continue']);
     expect(container.querySelector('.home-actions [data-home="adjust"]').hidden).toBe(true);
     expect(container.querySelector('.home-actions [data-home="enter"]').classList.contains('home-line')).toBe(true);
-    expect(regions(container)).toEqual(['field', 'rooms', 'menu', 'window', 'label', 'title', 'meta', 'note', 'epigraph', 'actions', 'legal']);
+    expect(regions(container)).toEqual(['field', 'rooms', 'menu', 'window', 'label', 'title', 'meta', 'note', 'epigraph', 'actions', 'aside', 'legal']);
     portal.destroy();
   });
 });

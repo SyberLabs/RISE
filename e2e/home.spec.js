@@ -55,6 +55,12 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }
     for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="adjust"]', '.portal-legal-link']) {
       expect(await bottom(page, selector), selector).toBeLessThanOrEqual(viewport.height);
     }
+    // A first visit says what RISE is in one line: on the first screen, one line high, nothing cut.
+    const about = page.locator('.home-about');
+    await expect(about).toBeVisible();
+    expect(await bottom(page, '.home-about')).toBeLessThanOrEqual(viewport.height);
+    expect(await about.evaluate(node => ({ high: node.getBoundingClientRect().height <= 24, whole: node.scrollWidth <= node.clientWidth })))
+      .toEqual({ high: true, whole: true });
     // One solid key, and no word moving.
     await expect(page.locator('.home .btn-primary')).toHaveText('Begin');
     await expect(page.locator('.reading-stream-current')).toHaveCount(0);
