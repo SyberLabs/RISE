@@ -1,0 +1,38 @@
+{
+  "id": "CC-006",
+  "title": "Admission and diagnostics for generated scenes",
+  "lane": "live-sdk",
+  "milestone": "Creative Control",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "CC-005"
+  ],
+  "acceptance": [
+    "The Worker parses every generated scene's code with acorn (ecmaVersion 2022, module) and never runs it; it refuses code over 24,576 bytes, code that does not parse (with the parse's line and column), a module without exactly one plain default export function, any import or import(), debugger, any banned name used as a name (a local one included), and a reportsCompletion that is not a boolean literal; at most ten diagnostics; unit-tested against an accepted and refused corpus (worker/scene-admission.test.js).",
+    "A refused scene refuses the whole rise_present call with isError and one line per problem, 'Scene \"<id>\" was refused: line L, column C: <rule>.', each cleaned of control characters and clipped like every other refusal, then a line telling the model to repair and call again; tested end to end through tools/call.",
+    "The v2 input schema describes a scene as oneOf a native engine with params or { id, code }, with the code's contract in its description, and the schema conformance tests check oneOf.",
+    "In the card, a scene that fails at run time is told to the host's model with ui/update-model-context only where the host's ui/initialize answer offers updateModelContext with text, at most five times per Current and 2,000 characters each, in RISE's words with the scene's own message clipped, flattened and quoted as data; the same line goes to DevTools as [RISE scene] and to window.__riseLive.scenes() under ?measure=1; unit-tested at the port, the Chamber and the live host.",
+    "acorn is a production dependency, argued in ARCHITECTURE.md 8.10 and pinned by src/core/system-design.test.js; npm run security:audit and security:compat stay clean."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-08-creative-control-design.md",
+      "note": "The Creative Control design; §8 what a scene may not reference, §12 admission and diagnostics, §13 security.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T22:00:00.000Z",
+      "summary": "Built on cc-005-scenes: static admission in the Worker, the refusal text, the v2 scene schema, the port's report to the model's context and its wiring from the Chamber through the live host. The dry frame was already built in CC-005; the Current's MCP size limit is unchanged. Not yet seen in Claude: the report's delivery to the model is unwitnessed."
+    }
+  ],
+  "updatedAt": "2026-10-08T22:00:00.000Z",
+  "revision": 1,
+  "summary": "A scene a model writes is parsed and held to the scene rules before its Current is accepted, refused with lines the model can repair from, and a scene that still fails in the card is reported to the model in RISE's words.",
+  "blocker": null
+}

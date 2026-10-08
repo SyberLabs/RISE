@@ -282,6 +282,59 @@ describe('the tool', () => {
     }
   });
 
+  describe('a generated scene, admitted by its parse (CC-006)', () => {
+    const GOOD_SCENE = 'export default function scene(rise) {\n  return { frame(t) { rise.lib.clear(); } };\n}\n';
+    const withScene = (code, id = 'vector') => {
+      const current = structuredClone(CURRENT_EXAMPLE_V2);
+      current.scenes.push({ id, code });
+      return current;
+    };
+    const present = async current => (await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current } })))).result;
+
+    it('takes a Current whose scene parses and keeps to the rules', async () => {
+      const current = withScene(GOOD_SCENE);
+      const result = await present(current);
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toEqual({ current });
+    });
+
+    it('refuses the whole call for one bad scene, one line per problem with the scene named, then how to go on', async () => {
+      const result = await present(withScene("export default function scene(rise) {\n  fetch('https://evil.example');\n  debugger;\n  return { frame() {} };\n}\n"));
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent).toBeUndefined();
+      expect(result.content[0].text.split('\n')).toEqual([
+        'Scene "vector" was refused: line 2, column 3: `fetch` is not available to a scene, and the name is refused even as a local name.',
+        'Scene "vector" was refused: line 3, column 3: `debugger` is not available to a scene.',
+        'Repair the scene’s code and call rise_present again with the whole Current.'
+      ]);
+    });
+
+    it('names each refused scene, and says a missing default export without a line', async () => {
+      // The validator's shape check sees "export default" in the comment; only the parse sees there is none.
+      const current = withScene('// export default\nexport const x = 1;', 'first');
+      current.scenes.push({ id: 'second', code: 'import x from "y";\nexport default () => ({ frame() {} });' });
+      const lines = (await present(current)).content[0].text.split('\n');
+      expect(lines[0]).toBe('Scene "first" was refused: a scene is an ES module with one default export function, export default function scene(rise) { return { frame(t, dt) {} }; }.');
+      expect(lines[1]).toMatch(/^Scene "second" was refused: line 1, column 1: a scene imports nothing/u);
+      expect(lines).toHaveLength(3);
+    });
+
+    it('clips what the parse echoes from the code, and strips control characters from it', async () => {
+      const name = `a${'b'.repeat(2_000)}`;
+      const text = (await present(withScene(`let ${name};\nlet ${name};\nexport default () => ({ frame() {} });`))).content[0].text;
+      const [line] = text.split('\n');
+      expect(line.startsWith('Scene "vector" was refused: line 2, column 5: the code does not parse as a module: Identifier')).toBe(true);
+      expect(line.length).toBeLessThanOrEqual(300);
+      expect(text).not.toMatch(/[\u0000-\u0009\u000B-\u001F\u007F]/u);
+    });
+
+    it('refuses an oversize scene before reading it, as the validator does', async () => {
+      const result = await present(withScene(`export default () => ({ frame() {} });\n//${'x'.repeat(30_000)}`));
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/^RISE refused this Current: /u);
+    });
+  });
+
   it('keeps nothing between calls: the same call answers the same, in any order', async () => {
     const a = await (await post(rpc('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } }))).text();
     await post(rpc('tools/call', { name: 'rise_present', arguments: { current: { schema: 'x' } } }));
@@ -293,6 +346,10 @@ describe('the shape of a Current, as the host’s model is told it', () => {
   /** Enough of JSON Schema for the keywords the Current’s schema uses: the problems found, in words. */
   function conforms(schema, value, path = '$') {
     const problems = [];
+    if (schema.oneOf) {
+      const matching = schema.oneOf.filter(branch => conforms(branch, value, path).length === 0).length;
+      if (matching !== 1) problems.push(`${path}: matches ${matching} of oneOf, not exactly one`);
+    }
     const type = Array.isArray(value) ? 'array' : value === null ? 'null' : typeof value;
     if ('const' in schema && value !== schema.const) problems.push(`${path}: not ${schema.const}`);
     if (schema.enum && !schema.enum.includes(value)) problems.push(`${path}: not one of ${schema.enum.join(', ')}`);
@@ -369,11 +426,20 @@ describe('the shape of a Current, as the host’s model is told it', () => {
     expect(conforms(v2, CURRENT_EXAMPLE_V2)).toEqual([]);
     expect(() => validateRiseCurrent(CURRENT_EXAMPLE_V2)).not.toThrow();
     expect(v2.properties.beats.maxItems).toBe(BEAT_LIMITS.beats);
-    expect(v2.properties.scenes.items.properties.engine.enum).toBe(SCENE_ENGINES);
+    const [native, generated] = v2.properties.scenes.items.oneOf;
+    expect(native.properties.engine.enum).toBe(SCENE_ENGINES);
+    expect(generated).toMatchObject({ required: ['id', 'code'], additionalProperties: false });
+    expect(generated.properties.code.maxLength).toBe(BEAT_LIMITS.code);
+    expect(generated.properties.code.description).toMatch(/default export function.*rise.*no imports.*no network.*no timers.*frame/isu);
+    const coded = structuredClone(CURRENT_EXAMPLE_V2);
+    coded.scenes.push({ id: 'vector', code: 'export default () => ({ frame() {} });' });
+    expect(() => validateRiseCurrent(coded)).not.toThrow();
+    expect(conforms(v2, coded)).toEqual([]);
     for (const mutate of [
       c => { c.beats[0].extra = 1; },
       c => { c.beats[0].place = 'margin'; },
       c => { c.scenes[0].engine = 'shader'; },
+      c => { c.scenes[0].code = 'export default () => ({ frame() {} });'; },
       c => { c.beats = []; }
     ]) {
       const current = structuredClone(CURRENT_EXAMPLE_V2);

@@ -14,12 +14,10 @@
  */
 import { SCENE_LIMITS, TO_HOST, TO_WORKER, knownMessage } from './scene-protocol.js';
 import { createSceneLibrary } from './scene-library.js';
+import { SHADOWED_GLOBALS } from './scene-bans.js';
 
 /** Names a scene may not reach (§8); postMessage too, so a scene cannot speak for the worker. */
-export const BANNED_GLOBALS = Object.freeze([
-  'fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'WebTransport', 'BroadcastChannel', 'Worker', 'SharedWorker',
-  'importScripts', 'indexedDB', 'caches', 'navigator', 'setTimeout', 'setInterval', 'requestAnimationFrame', 'postMessage'
-]);
+export const BANNED_GLOBALS = SHADOWED_GLOBALS;
 
 const MESSAGE_LIMIT = 300;
 const PHASES = ['load', 'init', 'frame', 'cue'];
@@ -46,16 +44,45 @@ function shadow(scope) {
   return sealed;
 }
 
+/** The prototypes whose `constructor` is Function, AsyncFunction, GeneratorFunction or AsyncGeneratorFunction. */
+export const realmFunctionPrototypes = () => [
+  Function.prototype,
+  Object.getPrototypeOf(async function () {}),
+  Object.getPrototypeOf(function* () {}),
+  Object.getPrototypeOf(async function* () {})
+];
+
+const sealedPrototypes = new WeakSet();
+
+/**
+ * Make `[].constructor.constructor(...)`, `(async () => {}).constructor(...)` and their kin throw: the
+ * parse cannot see a route to Function that names nothing. Each prototype's own `constructor` becomes a
+ * stub that throws and cannot be put back. Neither the worker nor the scene library reads a function's
+ * `.constructor`. Sealing is once per prototype; true only if every one is sealed.
+ */
+export function sealFunctionConstructors(prototypes) {
+  let sealed = true;
+  for (const proto of prototypes) {
+    if (sealedPrototypes.has(proto)) continue;
+    const refuse = () => { throw new ReferenceError('Function is not available to a scene'); };
+    try {
+      Object.defineProperty(proto, 'constructor', { value: refuse, writable: false, configurable: false });
+      sealedPrototypes.add(proto);
+    } catch { sealed = false; }
+  }
+  return sealed;
+}
+
 const defaultUrl = code => URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
 const defaultLoad = url => import(/* @vite-ignore */ url);
 
 /**
  * Install the scene protocol on a worker scope.
  * @param {object} scope the worker's global scope (a fake in tests)
- * @param {{toUrl?: (code: string) => string, load?: (url: string) => Promise<object>}} [options]
+ * @param {{toUrl?: (code: string) => string, load?: (url: string) => Promise<object>, functionPrototypes?: object[]}} [options]
  * @returns {{handle: (data: unknown) => Promise<void>}}
  */
-export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoad } = {}) {
+export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoad, functionPrototypes = realmFunctionPrototypes() } = {}) {
   const post = scope.postMessage.bind(scope);
   let canvas = null;
   let size = null;
@@ -135,7 +162,7 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
     let module;
     try {
       // A name the scope will not let go of stays reachable, so the code is not run at all.
-      if (!shadow(scope)) throw new Error('The scene could not be isolated in this browser');
+      if (!shadow(scope) || !sealFunctionConstructors(functionPrototypes)) throw new Error('The scene could not be isolated in this browser');
       url = toUrl(String(data.code));
       module = await load(url);
     } catch (error) {

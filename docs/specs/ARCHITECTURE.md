@@ -162,7 +162,7 @@ flowchart LR
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>44 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
-    scenes["scenes<br/>engine manifests, cues; scene runtime<br/>6 modules"]
+    scenes["scenes<br/>engine manifests, cues; scene runtime<br/>7 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>59 modules"]
@@ -657,12 +657,16 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, five production dependencies: `sql.js` for browser-local work;
+  per room, six production dependencies: `sql.js` for browser-local work;
   `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
   for on-device Kev, imported only by the EnterpRise worker that runs it
-  (§8.32); and `katex` for maths in what a reading shows, fetched only when
+  (§8.32); `katex` for maths in what a reading shows, fetched only when
   a reading has a formula (docs/superpowers/specs/2026-10-08-creative-control-design.md
-  §10). The tokenizer already shipped inside
+  §10); and `acorn`, which runs only in the Cloudflare Worker, to parse a
+  scene a model wrote before it is admitted (same design, §12): a Worker
+  has no `eval`, and admission must read the code without running it, so a
+  real parser is the smallest correct tool and a pattern match is not. It
+  has no dependencies of its own and reaches no page. The tokenizer already shipped inside
   kev.js; it is named because the worker builds Kev's session itself.
 - **Rejected:** React, Vue, Svelte or any virtual-DOM library.
 - **Why:** the tradeoff is real in both directions. A framework would give
