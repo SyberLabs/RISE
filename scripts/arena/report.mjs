@@ -72,7 +72,11 @@ function admittedDecision(row, options) {
     [field, field === 'pace' ? String(config.wpm) : config[field]]));
 }
 
-/** @returns scores keyed by provider id, in the run's provider order */
+/**
+ * @returns scores keyed by provider id, in the run's provider order. A
+ * decider that did not run gets only its status, never zeros. In a partial
+ * run each decider is scored over the cases it reached, marked partial.
+ */
 export function scoreRun(run, { cases, controls = [], options, catalog }) {
   const questions = new Map([...cases, ...controls].map(item => [item.id, buildRecommendRequest({
     intent: item.intent, catalog, turn: 0, nightDrive: false }).body.questions]));
@@ -80,9 +84,14 @@ export function scoreRun(run, { cases, controls = [], options, catalog }) {
   const calibrated = run.calibrationVersion
     ? calibration(calibrationRows(run.results, id => expected.get(id))) : null;
   const scores = {};
-  for (const { id } of run.providers) {
+  for (const { id, status } of run.providers) {
+    if (status !== 'ran') {
+      scores[id] = { status };
+      continue;
+    }
     const rows = run.results.filter(row => row.providerId === id)
       .sort((a, b) => a.run - b.run);
+    const reached = run.partial ? cases.filter(item => rows.some(row => row.caseId === item.id)) : cases;
     const counts = { outOfMenu: 0, missing: 0, refusals: 0 };
     const rawRows = [];
     const admittedRows = [];
@@ -96,8 +105,8 @@ export function scoreRun(run, { cases, controls = [], options, catalog }) {
       admittedRows.push(row.admitted ? { id: row.caseId, decision: admittedDecision(row, options),
         workId: row.admitted.workId } : { id: row.caseId });
     }
-    const raw = scoreDecisions(cases, rawRows, options);
-    const admitted = scoreDecisions(cases, admittedRows, options);
+    const raw = scoreDecisions(reached, rawRows, options);
+    const admitted = scoreDecisions(reached, admittedRows, options);
     const byCase = new Map();
     for (const row of rows) byCase.set(row.caseId, [...(byCase.get(row.caseId) || []), row]);
     const repeated = [...byCase.values()].filter(group => group.length > 1);
@@ -106,6 +115,7 @@ export function scoreRun(run, { cases, controls = [], options, catalog }) {
     const costs = rows.map(row => row.costUsd).filter(Number.isFinite);
     const total = costs.reduce((sum, value) => sum + value, 0);
     scores[id] = {
+      ...(run.partial ? { partial: true, casesReached: reached.length } : {}),
       results: rows.length,
       errors: rows.filter(row => !row.rawAnswers).length,
       valid: { raw: rawValid, admitted: rows.filter(row => row.admitted).length },

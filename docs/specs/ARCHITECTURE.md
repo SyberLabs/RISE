@@ -1413,7 +1413,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   replay. The capture is frozen into one file named
   by the hash of its bytes, served immutable beside an index that revalidates.
   `scripts/arena/arena-file.mjs` refuses a file whose bytes do not match its
-  name, whose schema is unknown, or whose harness had uncommitted changes
+  name or are not the one canonical encoding, whose schema is unknown, or whose harness had uncommitted changes
   (a mock run, a pipeline check never committed, is exempt). Every decider's answers pass through the same `admitAnswers` the browser
   uses, and both the raw and the admitted decision are kept. Beside each run
   sits a slim `replay-<sha12>.json` under the same digits: run 1 of the fixed

@@ -172,17 +172,19 @@ test('controls: about fifty cases over real RISE options, with odds that sum to 
   assert.equal(controls.cases.filter(c => Object.keys(c.odds).length === 3).length, 10);
 });
 
-test('commit-reveal: the commitment is sha256, labels follow the odds and the run file, and a wrong seed is refused', () => {
+test('commit-reveal: the commitment is sha256, labels follow the odds and the captured answers, and a wrong seed is refused', () => {
   const seed = 'f'.repeat(64);
   const runFile = '{"results":[]}\n';
-  const digest = createHash('sha256').update(runFile).digest('hex');
+  const digest = createHash('sha256').update('[]').digest('hex');
   assert.equal(commitment(seed), createHash('sha256').update(seed).digest('hex'));
   const labels = drawLabels(controls.cases, seed, digest);
   assert.deepEqual(drawLabels(controls.cases, seed, digest), labels);
   for (const c of controls.cases) assert.ok(Object.hasOwn(c.odds, labels[c.id]));
   const committed = { ...controls, seedCommitment: commitment(seed) };
   assert.deepEqual(revealLabels(committed, seed, runFile), labels);
-  assert.notDeepEqual(revealLabels(committed, seed, runFile + ' '), labels);
+  // Re-encoding the file cannot re-roll the labels; different answers do.
+  assert.deepEqual(revealLabels(committed, seed, '{ "note": "x",  "results": [] }\n\n'), labels);
+  assert.notDeepEqual(revealLabels(committed, seed, '{"results":[{"caseId":"a"}]}\n'), labels);
   assert.throws(() => revealLabels(committed, 'e'.repeat(64), runFile), /does not match/u);
   assert.throws(() => revealLabels({ ...controls, seedCommitment: null }, seed, runFile), /no seedCommitment/u);
   // Over many cases the draw lands at the stated rate.
