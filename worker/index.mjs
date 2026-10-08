@@ -22,6 +22,7 @@ async function serveArenaFile(request, env) {
   const path = new URL(request.url).pathname;
   const asset = await env.ASSETS.fetch(request);
   const type = asset.headers.get('Content-Type') ?? '';
+  if (asset.status === 304) return asset;
   if (!asset.ok || type.includes('text/html')) return error(404, 'NOT_FOUND', 'No such arena file.');
   const headers = new Headers(asset.headers);
   headers.set('Content-Type', 'application/json');

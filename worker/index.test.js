@@ -95,6 +95,12 @@ describe('no shared inference credential in server code', () => {
       expect(response.headers.get('cache-control')).toBe('no-store');
     });
 
+    it('passes a conditional revalidation through as 304', async () => {
+      const env = { ASSETS: { fetch: vi.fn(async () => new Response(null, { status: 304 })) } };
+      const response = await worker.fetch(new Request(`${SITE}/content/arena/index.json`, { headers: { 'If-None-Match': '"x"' } }), env);
+      expect(response.status).toBe(304);
+    });
+
     it('serves a run file as immutable JSON and the index as must-revalidate', async () => {
       const env = { ASSETS: { fetch: vi.fn(async () => json()) } };
       const run = await worker.fetch(new Request(`${SITE}/content/arena/run-0123456789ab.json`), env);
