@@ -8,7 +8,8 @@ written, and tuned, by RISE's authors.
    expectations". Never "accuracy", "correct", or "right answers" for the 39
    authored cases: the expectations are one author's taste, not ground truth.
 2. **No ranking inside the noise.** When a paired bootstrap interval
-   includes zero (`withinNoise: true` from `scripts/arena/calibration.mjs`),
+   includes zero, is undefined, or rests on fewer than five shared cases
+   (`withinNoise: true` from `scripts/arena/calibration.mjs`),
    do not order the deciders, name a winner, or use "better", "beats", or
    "leads". Say "no difference detectable at n = …".
 3. **Calibration v1 tests stated-odds mechanics, not taste.** The

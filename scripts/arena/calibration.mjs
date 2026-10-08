@@ -6,9 +6,12 @@
  * Two row shapes:
  * - Arena rows (the contract with scripts/arena/arena.mjs), one per
  *   case × decider × run × question:
- *     { caseId, providerId, run, question, probabilities: {[option]: p} | null,
+ *     { caseId, providerId, run, question,
+ *       probabilities: {[option]: p} | [{ value, probability }] | null,
  *       confidence: number | null, choice, correct: boolean | acceptable: string[],
  *       explicit?: boolean }
+ *   Every probability and confidence must lie in [0, 1]; a row with one
+ *   outside it (percent scale, say) is counted in `skipped`, never scored.
  * - Forecast rows, which the metric functions take: { p, y, caseId }, where
  *   p is the stated probability that the decider's choice is right and y is
  *   1 when it was. `calibration()` turns arena rows into forecast rows twice:
@@ -18,9 +21,9 @@
 
 const Z95 = 1.959963984540054;
 
-/** Seeded 32-bit generator. A string seed is hashed (FNV-1a) first. */
+/** Seeded 32-bit generator. */
 export function mulberry32(seed = 0) {
-  let a = typeof seed === 'string' ? fnv1a(seed) : seed >>> 0;
+  let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
     let t = a;
@@ -30,16 +33,10 @@ export function mulberry32(seed = 0) {
   };
 }
 
-function fnv1a(text) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193);
-  return h >>> 0;
-}
-
 const mean = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length;
 
 /** Linear-interpolated quantile of an unsorted array. */
-export function quantile(xs, q) {
+function quantile(xs, q) {
   const s = [...xs].sort((a, b) => a - b);
   const i = (s.length - 1) * q;
   const lo = Math.floor(i);
@@ -62,11 +59,6 @@ export function brierMulticlass(rows) {
     for (const [option, p] of Object.entries(probabilities)) sum += (p - (option === label ? 1 : 0)) ** 2;
     return sum;
   }));
-}
-
-/** 1 − score/baseline. Positive beats the baseline, 0 ties, negative loses. */
-export function brierSkill(score, baseline) {
-  return 1 - score / baseline;
 }
 
 /** Brier of always forecasting the observed rate: the no-skill baseline. */
@@ -113,8 +105,9 @@ export function noiseFloorECE(rows, { sims = 2000, seed = 1, bins = 10 } = {}) {
   return quantile(eces, 0.95);
 }
 
-/** Wilson score interval for k successes in n trials (95% by default). */
-export function wilson(k, n, z = Z95) {
+/** 95% Wilson score interval for k successes in n trials. */
+export function wilson(k, n) {
+  const z = Z95;
   if (!n) return { lo: NaN, hi: NaN };
   const phat = k / n;
   const denom = 1 + z * z / n;
@@ -139,8 +132,8 @@ export function reliabilityTable(rows, bins = 10) {
 }
 
 /** Agreement among rows whose forecast is at or above each threshold. */
-export function selectiveAccuracy(rows, thresholds = [0.5, 0.7, 0.9, 0.95]) {
-  return thresholds.map(threshold => {
+export function selectiveAgreement(rows) {
+  return [0.5, 0.7, 0.9, 0.95].map(threshold => {
     const kept = rows.filter(r => r.p >= threshold);
     return { threshold, n: kept.length, coverage: rows.length ? kept.length / rows.length : NaN,
       agreement: kept.length ? mean(kept.map(r => r.y)) : NaN };
@@ -165,8 +158,8 @@ function interval(estimate, stats) {
  * Percentile bootstrap that resamples whole clusters (cases), because runs
  * and questions of one case are not independent.
  */
-export function clusterBootstrap(rows, statFn, { reps = 2000, seed = 1, clusterKey = 'caseId' } = {}) {
-  const clusters = [...groupBy(rows, clusterKey).values()];
+export function clusterBootstrap(rows, statFn, { reps = 2000, seed = 1 } = {}) {
+  const clusters = [...groupBy(rows, 'caseId').values()];
   const rand = mulberry32(seed);
   const stats = [];
   for (let i = 0; i < reps; i++) {
@@ -178,11 +171,12 @@ export function clusterBootstrap(rows, statFn, { reps = 2000, seed = 1, clusterK
 /**
  * Bootstrap of stat(A) − stat(B), resampling the clusters both share, so
  * the two deciders are always compared on the same cases. `withinNoise` is
- * true when the 95% interval includes 0: no ranking may then be stated.
+ * true, and no ranking may then be stated, when the 95% interval includes 0,
+ * when it is undefined (NaN), or when fewer than 5 cases are shared.
  */
-export function pairedBootstrapDiff(rowsA, rowsB, statFn, { reps = 2000, seed = 1, clusterKey = 'caseId' } = {}) {
-  const a = groupBy(rowsA, clusterKey);
-  const b = groupBy(rowsB, clusterKey);
+export function pairedBootstrapDiff(rowsA, rowsB, statFn, { reps = 2000, seed = 1 } = {}) {
+  const a = groupBy(rowsA, 'caseId');
+  const b = groupBy(rowsB, 'caseId');
   const ids = [...a.keys()].filter(id => b.has(id));
   const pick = (groups, chosen) => chosen.flatMap(id => groups.get(id));
   const rand = mulberry32(seed);
@@ -192,27 +186,35 @@ export function pairedBootstrapDiff(rowsA, rowsB, statFn, { reps = 2000, seed = 
     stats.push(statFn(pick(a, chosen)) - statFn(pick(b, chosen)));
   }
   const result = interval(statFn(pick(a, ids)) - statFn(pick(b, ids)), stats);
-  return { ...result, clusters: ids.length, withinNoise: result.lo <= 0 && result.hi >= 0 };
+  return { ...result, clusters: ids.length, withinNoise: !(result.lo > 0 || result.hi < 0) || ids.length < 5 };
 }
 
 /** 1 when the arena row's choice is right, from `correct` or `acceptable`. */
-export function outcome(row) {
-  return (typeof row.correct === 'boolean' ? row.correct : (row.acceptable || []).includes(row.choice)) ? 1 : 0;
+function outcome(row) {
+  return (typeof row.correct === 'boolean' ? row.correct : row.acceptable.includes(row.choice)) ? 1 : 0;
 }
+
+const inUnit = (p) => Number.isFinite(p) && p >= 0 && p <= 1;
+
+/** A row's probabilities as an {option: p} map, from either accepted form. */
+const probabilityMap = (probabilities) => Array.isArray(probabilities)
+  ? Object.fromEntries(probabilities.map(({ value, probability }) => [value, probability]))
+  : probabilities;
 
 /** Every metric for one set of forecast rows. */
 function summarize(rows, { seed, reps, sims, bins }) {
   if (!rows.length) return { n: 0 };
-  const brier = brierBinary(rows);
+  const baseline = climatologyBrier(rows);
   return {
     n: rows.length,
     cases: groupBy(rows, 'caseId').size,
     brier: clusterBootstrap(rows, brierBinary, { reps, seed }),
-    brierSkill: brierSkill(brier, climatologyBrier(rows)),
+    // 1 − Brier/baseline; undefined when every outcome is the same.
+    brierSkill: baseline === 0 ? NaN : 1 - brierBinary(rows) / baseline,
     ece: eceEqualMass(rows, bins),
     eceNoiseFloor: noiseFloorECE(rows, { sims, seed, bins }),
     reliability: reliabilityTable(rows, bins),
-    selective: selectiveAccuracy(rows)
+    selective: selectiveAgreement(rows)
   };
 }
 
@@ -224,18 +226,24 @@ function summarize(rows, { seed, reps, sims, bins }) {
  * secondary.probabilities — every metric from the per-option probabilities,
  * plus multi-class Brier on rows whose answer is a single known option.
  * secondary.confidence — the same metrics from the separate `confidence`.
- * skipped — rows that carried no probabilities or no confidence.
+ * skipped — rows with no outcome (no choice, or neither `correct` nor
+ * `acceptable`), and rows whose probabilities or confidence were missing or
+ * outside [0, 1].
  */
 export function calibration(rows, { seed = 1, reps = 2000, sims = 2000, bins = 10 } = {}) {
   const opts = { seed, reps, sims, bins };
   const report = {};
   for (const [providerId, mine] of groupBy(rows, 'providerId')) {
-    const withP = mine.filter(r => r.probabilities);
+    const scorable = mine.filter(r => r.choice != null && (typeof r.correct === 'boolean' || Array.isArray(r.acceptable)))
+      .map(r => ({ ...r, probabilities: probabilityMap(r.probabilities) }));
+    const withP = scorable.filter(r => r.probabilities && Object.values(r.probabilities).every(inUnit));
     const fromP = withP.map(r => ({ caseId: r.caseId, p: r.probabilities[r.choice] ?? 0, y: outcome(r), explicit: r.explicit !== false }));
-    const fromConfidence = mine.filter(r => Number.isFinite(r.confidence))
-      .map(r => ({ caseId: r.caseId, p: r.confidence, y: outcome(r) }));
-    const single = withP.filter(r => typeof r.correct !== 'boolean' && r.acceptable?.length === 1)
+    const withConfidence = scorable.filter(r => inUnit(r.confidence));
+    const fromConfidence = withConfidence.map(r => ({ caseId: r.caseId, p: r.confidence, y: outcome(r) }));
+    const single = withP.filter(r => typeof r.correct !== 'boolean' && r.acceptable.length === 1)
       .map(r => ({ probabilities: r.probabilities, label: r.acceptable[0] }));
+    const noP = scorable.filter(r => !r.probabilities).length;
+    const noConfidence = scorable.filter(r => r.confidence == null).length;
     const primary = fromP.filter(r => r.explicit);
     report[providerId] = {
       primary: primary.length
@@ -245,7 +253,9 @@ export function calibration(rows, { seed = 1, reps = 2000, sims = 2000, bins = 1
         probabilities: { ...summarize(fromP, opts), multiclassBrier: { n: single.length, value: brierMulticlass(single) } },
         confidence: summarize(fromConfidence, opts)
       },
-      skipped: { noProbabilities: mine.length - withP.length, noConfidence: mine.length - fromConfidence.length }
+      skipped: { noOutcome: mine.length - scorable.length,
+        noProbabilities: noP, outOfRangeProbabilities: scorable.length - noP - withP.length,
+        noConfidence, outOfRangeConfidence: scorable.length - noConfidence - withConfidence.length }
     };
   }
   return report;
