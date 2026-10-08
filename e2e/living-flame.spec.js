@@ -57,11 +57,16 @@ async function beginChapter(page, { wpm = 1000, text = null, connectAI = false }
 
 /**
  * Open the Look sheet. The controls fade 3 s after the last mousemove over the
- * reading, and a move to where the pointer already is sends none, so it moves twice.
+ * reading and take no pointer while faded. Under a busy software-rendered flame a
+ * move can be handled late, so it moves until the bar is shown, then clicks.
  */
 async function openLook(page) {
-  await page.mouse.move(640, 360);
-  await page.mouse.move(640, 700);
+  const controls = page.locator('#chamber-controls');
+  await expect.poll(async () => {
+    await page.mouse.move(640, 360);
+    await page.mouse.move(640, 700);
+    return controls.getAttribute('style');
+  }, { timeout: 15_000 }).toContain('opacity: 1');
   await page.locator('#look-btn').click();
 }
 
