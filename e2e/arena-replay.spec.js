@@ -41,7 +41,7 @@ test('an arena address replays each decider\'s frozen decision as a reading, one
   const panel = page.locator('#arena-replay');
   await expect(panel).toContainText('Frozen result captured 2026-10-07. Independent comparison; no partnership with OpenAI or TypeSafe.', { timeout: 15_000 });
   await expect(panel).toContainText('C · Kev: not run');
-  await expect(panel).toContainText('D · rules, no model: rejected: NO_BOOK');
+  await expect(panel).toContainText('D · rules, no model: rejected: OUT_OF_MENU');
   await expect(panel.getByRole('button', { name: 'B · TypeSafe Jev' })).toHaveAttribute('aria-current', 'true');
 
   await panel.getByRole('button', { name: 'B · TypeSafe Jev' }).click();

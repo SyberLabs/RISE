@@ -11,6 +11,7 @@
 import { ARENA_DECIDERS } from '../core/jev-demo-path.js';
 
 const SCHEMA = 'syberlabs.decision-arena/v1';
+const INDEX_SCHEMA = 'syberlabs.decision-arena-index/v1';
 const RUN_FILE = /^run-[0-9a-f]{12}\.json$/u;
 
 export const ARENA_LABELS = Object.freeze({
@@ -26,31 +27,47 @@ async function fetchJson(path) {
   return response.json();
 }
 
-/** A frozen decision, under RISE's replay label, keeping the model that made it. */
-export function arenaReplayDecision(admitted) {
-  return { ...admitted, model: 'rise/arena-replay-1', provider: 'RISE', sourceModel: admitted.model };
+/**
+ * The reading envelope for a frozen decision. The run keeps only what was
+ * admitted (book and choices); it plays under RISE's replay label, naming the
+ * model that made it: the one the provider served, else the one asked for,
+ * else the decider itself (rules call no model).
+ */
+export function arenaReplayDecision(run, provider, admitted) {
+  const { workId, editionId, sourceRevision, reason, config } = admitted;
+  return {
+    schemaVersion: 2, requestId: run.runId, model: 'rise/arena-replay-1', provider: 'RISE',
+    sourceModel: provider.servedModels?.[0] || provider.requestedModel || provider.id,
+    workId, editionId, sourceRevision, reason, config
+  };
 }
 
 /**
- * One case from the latest frozen run: when it was captured, and for each
- * decider either its first run's admitted decision or why there is none.
- * Throws when the files are missing or malformed, or the run lacks the case.
+ * One case from the latest real (not mock) run in the index: when it was
+ * captured, and for each decider either its first run's admitted decision or
+ * why there is none. Throws when the files are missing or malformed, or the
+ * run lacks the case. The file's name is its content hash; that is checked
+ * where runs are written (scripts/arena), not here.
  */
 export async function loadArenaCase(caseId, load = fetchJson) {
   const index = await load('/content/arena/index.json');
-  if (!RUN_FILE.test(index?.latest)) throw new Error('The arena index names no run.');
-  const run = await load(`/content/arena/${index.latest}`);
-  if (run?.schema !== SCHEMA || !Array.isArray(run.results)) throw new Error('The arena run is not readable.');
+  const latest = index?.schema === INDEX_SCHEMA && Array.isArray(index.runs)
+    ? index.runs.filter(entry => entry?.mock === false).at(-1)?.file : null;
+  if (!RUN_FILE.test(latest)) throw new Error('The arena index names no run.');
+  const run = await load(`/content/arena/${latest}`);
+  if (run?.schema !== SCHEMA || run.harness?.mock !== false
+    || !Array.isArray(run.providers) || !Array.isArray(run.results)) throw new Error('The arena run is not readable.');
   const rows = run.results.filter(row => row?.caseId === caseId && row.run === 1);
   if (!rows.length) throw new Error(`The arena run has no case ${caseId}.`);
   const deciders = {};
   for (const id of ARENA_DECIDERS) {
-    const row = rows.find(item => item.providerId === id);
+    const provider = run.providers.find(item => item?.id === id);
+    const row = provider && rows.find(item => item.providerId === id);
     deciders[id] = !row ? { status: 'not run' }
-      : row.admitted ? { decision: arenaReplayDecision(row.admitted) }
-        : { status: `rejected: ${row.error?.code || row.error || 'invalid'}` };
+      : row.admitted ? { decision: arenaReplayDecision(run, provider, row.admitted) }
+        : { status: `rejected: ${row.rejectCode || 'invalid'}` };
   }
-  return { capturedAt: typeof run.capturedAt === 'string' ? run.capturedAt.slice(0, 10) : 'unknown', deciders };
+  return { createdAt: typeof run.createdAt === 'string' ? run.createdAt.slice(0, 10) : 'unknown', deciders };
 }
 
 const escape = value => String(value).replace(/[&<>"']/gu, c => `&#${c.charCodeAt(0)};`);
@@ -70,7 +87,7 @@ export async function mountArenaReplay(section, { caseId, decider, launch, fallb
     fallback();
     return;
   }
-  const { capturedAt, deciders } = found;
+  const { createdAt, deciders } = found;
   section.innerHTML = `
     <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>Decision Arena replay</p>
     <h1 class="portal-title" id="portal-ask-title">${escape(caseId)}</h1>
@@ -82,7 +99,7 @@ export async function mountArenaReplay(section, { caseId, decider, launch, fallb
           : `<p class="portal-help" data-arena-decider="${id}">${ARENA_LABELS[id]}: ${escape(deciders[id].status)}</p>`)).join('')}
       </div>
       <p class="portal-status" id="arena-replay-status" role="status" aria-live="polite"></p>
-      <p class="portal-help">Frozen result captured ${escape(capturedAt)}. Independent comparison; no partnership with OpenAI or TypeSafe.</p>
+      <p class="portal-help">Frozen result captured ${escape(createdAt)}. Independent comparison; no partnership with OpenAI or TypeSafe.</p>
     </div>`;
   const status = section.querySelector('#arena-replay-status');
   section.querySelector('.portal-actions').addEventListener('click', async event => {

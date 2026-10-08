@@ -27,16 +27,26 @@
       "ref": "src/app/arena-replay.test.js",
       "note": "Branch arena/replay: loader, fallback and switcher unit tests, plus the replay label in src/app/jev-reading.test.js and the route row in src/core/route-url.test.js, passed 2026-10-08.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/arena-replay.spec.js",
+      "note": "Branch arena/replay, after aligning with lane H's run file (PR #532): arena-replay.spec.js 3 passed and test:e2e:gate 45 passed, 3 skipped on a private port; vitest arena-replay, jev-reading, route-url 34 passed; first load 57.5 KB br of 64 KB. Still a fixture run, not a real capture.",
+      "date": "2026-10-08"
     }
   ],
   "activity": [
     {
       "date": "2026-10-08T18:55:00.000Z",
       "summary": "Claimed for lane R and built on branch arena/replay against a fixture run; waiting on lane H's real run file and a human look."
+    },
+    {
+      "date": "2026-10-08T18:59:43.086Z",
+      "summary": "Aligned with lane H's run-file schema (PR #532)"
     }
   ],
-  "updatedAt": "2026-10-08T18:55:00.000Z",
-  "revision": 1,
-  "summary": "Replays frozen Decision Arena results as real readings, one decider at a time. Built against a test fixture; the run-file field names (latest, schema, capturedAt, results[].error.code) are assumed until lane H's harness lands.",
+  "updatedAt": "2026-10-08T18:59:43.086Z",
+  "revision": 2,
+  "summary": "Replays frozen Decision Arena results as real readings, one decider at a time. Reads lane H's run-file fields (PR #532): index runs[] (latest non-mock entry), run createdAt, providers[].servedModels/requestedModel, results[].admitted and rejectCode. The fixture src/test/arena-run.fixture.js is the contract; the content hash in the file name is checked by the harness, not the browser.",
   "blocker": null
 }
