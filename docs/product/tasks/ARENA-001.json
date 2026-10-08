@@ -3,7 +3,7 @@
   "title": "Decision Arena harness: frozen, operator-paid capture of RISE's cases across deciders",
   "lane": "shared",
   "milestone": "Decision Arena",
-  "status": "in_progress",
+  "status": "in_review",
   "delivery": "branch",
   "owner": "Claude (lane H)",
   "priority": "now",
@@ -15,7 +15,26 @@
     "report re-derives scores (valid, out-of-menu, explicit and contrast agreement raw and admitted, stability, latency, cost per 1k) byte-identically, and calls lane C's calibration(rows) when scripts/arena/calibration.mjs exists.",
     "Nothing under src/ imports the harness, and the app and dist/ never name api.openai.com or gpt-6-luna; tested."
   ],
-  "evidence": [],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "scripts/arena/arena.test.mjs",
+      "note": "node --test scripts/arena/arena.test.mjs: 13/13 pass on branch arena/harness (guards, split probe, refusal, keys never logged, budget, Kev not run, Jev cost, rules, mock run accepted and report byte-identical, src import guard, no OpenAI endpoint in src/public/dist). Mocked fetch only; no paid call.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/decision/arena-file.test.js",
+      "note": "npx vitest run src/core/decision src/core/system-design.test.js src/core/csp.test.js src/core/cloudflare-headers.test.js: 126/126 pass, including admitAnswers equivalence with validDecision in recommend.test.js.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "observation",
+      "ref": "scripts/arena/arena.mjs",
+      "note": "Agent run, 2026-10-08: a --mock capture from a clean commit wrote a 3.0 MB run (585 results), readArenaRun accepted it, report printed byte-identical output twice with matchesRecorded true; the mock output was deleted, not committed. Not merged, not deployed, no billed run.",
+      "date": "2026-10-08"
+    }
+  ],
   "activity": [
     {
       "date": "2026-10-08T18:00:00.000Z",
@@ -24,10 +43,14 @@
     {
       "date": "2026-10-08T18:50:19.082Z",
       "summary": "Claimed by lane H on branch arena/harness"
+    },
+    {
+      "date": "2026-10-08T18:51:50.636Z",
+      "summary": "Harness built and verified with mocks; pull request open for review"
     }
   ],
-  "updatedAt": "2026-10-08T18:50:19.082Z",
-  "revision": 2,
+  "updatedAt": "2026-10-08T18:51:50.636Z",
+  "revision": 3,
   "summary": "The benchmark harness for the Decision Arena: an operator-paid, offline capture frozen into a content-addressed file, scored deterministically. No billed run is part of this task.",
   "blocker": null
 }
