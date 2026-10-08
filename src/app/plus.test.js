@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { claimPlus, fetchPlusVoices, forgetPlus, markPlusLapsed, notePlusAllowance, plusAllowance, plusNotice, plusState, plusVoiceSlug } from './plus.js';
+import { claimPlus, fetchPlusPaymentLink, fetchPlusVoices, forgetPlus, markPlusLapsed, notePlusAllowance, plusAllowance, plusNotice, plusState, plusVoiceSlug } from './plus.js';
 import { enterFromPlusClaim } from './plus-claim.js';
 
 afterEach(() => {
@@ -36,6 +36,18 @@ describe('Plus on this browser', () => {
     notePlusAllowance({ used: 900, limit: 105000, periodEnd: 2 });
     expect(plusAllowance()).toEqual({ used: 900, limit: 105000, periodEnd: 2 });
     expect(plusState()).toEqual({ claimed: true, lapsed: false });
+  });
+
+  it('reads the payment link from the deployment, and only a Stripe Payment Link', async () => {
+    const answer = paymentLink => async () => Response.json({ paymentLink });
+    const asked = vi.fn(answer('https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00'));
+    expect(await fetchPlusPaymentLink({ fetchImpl: asked })).toBe('https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00');
+    expect(asked).toHaveBeenCalledWith('/api/plus/config');
+    for (const bad of [null, '', 'javascript:alert(1)', 'http://buy.stripe.com/x', 'https://buy.stripe.com.evil.example/x', 42]) {
+      expect(await fetchPlusPaymentLink({ fetchImpl: answer(bad) })).toBeNull();
+    }
+    expect(await fetchPlusPaymentLink({ fetchImpl: async () => new Response('nope', { status: 404 }) })).toBeNull();
+    expect(await fetchPlusPaymentLink({ fetchImpl: async () => { throw new Error('offline'); } })).toBeNull();
   });
 
   it('lists the Worker\'s voices, and Default alone when the list cannot be had', async () => {

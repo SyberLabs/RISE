@@ -1,5 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
-import { PLUS_DEFAULT_VOICE, PLUS_PAYMENT_LINK, PLUS_PRICE, fetchPlusVoices, forgetPlus, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
+import { PLUS_DEFAULT_VOICE, PLUS_PRICE, fetchPlusPaymentLink, fetchPlusVoices, forgetPlus, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
@@ -279,7 +279,7 @@ export class Settings {
                 <p class="settings-hint">A reading of your own, read aloud. ${PLUS_PRICE}.</p>
                 <p class="settings-fail" ${plus.lapsed ? '' : 'hidden'}>Plus voice has lapsed.</p>
               </div>
-              <a class="btn-secondary" href="${PLUS_PAYMENT_LINK}" rel="noopener">Subscribe</a>
+              <a class="btn-secondary" data-plus-subscribe rel="noopener" hidden>Subscribe</a>
             </div>`;
         }
         const allowance = plusAllowance();
@@ -502,6 +502,9 @@ export class Settings {
             void this.forgetPlus();
         });
 
+        const subscribe = this.container.querySelector('[data-plus-subscribe]');
+        if (subscribe) this.plusLinkLoaded = this.fillPlusLink(subscribe);
+
         const voicePicker = this.container.querySelector('[data-plus-voice]');
         if (voicePicker) {
             voicePicker.addEventListener('change', () => {
@@ -611,6 +614,14 @@ export class Settings {
             console.error('[Settings] Clear data failed:', e);
             this.showToast('Some browser data could not be cleared');
         }
+    }
+
+    /** The deployment's payment link on the Subscribe button, which stays hidden without one. */
+    async fillPlusLink(subscribe) {
+        const link = await fetchPlusPaymentLink();
+        if (!link) return;
+        subscribe.href = link;
+        subscribe.hidden = false;
     }
 
     /** The Worker's voices, in place of the one option the row was drawn with. */

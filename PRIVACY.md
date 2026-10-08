@@ -193,15 +193,19 @@ your own material when the Plus voice is on. There is no RISE account.
   carries your Stripe subscription number.
 - **Voicing.** To voice a reading, your browser sends its text to RISE's
   server, which sends it to ElevenLabs on SyberLabs' account and returns the
-  audio to your browser. On each voicing the server checks with Stripe that the
-  subscription is active. RISE's server keeps no copy of your text or of the
-  audio.
+  audio to your browser. Before voicing, the server checks with Stripe that the
+  subscription is active, at most once a minute, and Stripe tells it when a
+  subscription ends or its payment is refunded or disputed. RISE's server
+  keeps no copy of your text or of the audio.
 - **Where the audio is kept.** Only in your browser's IndexedDB (section 3).
   Erase clears it. Voicing the same text again on another device, or after
   Erase, uses your allowance again.
-- **What the server keeps.** For each Stripe subscription, one number: the
-  characters voiced in the current billing period, held in a Cloudflare Durable
-  Object. The allowance is 105,000 characters per billing period. If the
+- **What the server keeps.** For each Stripe subscription, in a Cloudflare
+  Durable Object: the characters voiced in the current billing period; what
+  Stripe last said of the subscription (whether it is active, its customer
+  number and its billing period), for one minute of use; how many voicing
+  requests it made this minute; whether it was ended, refunded or disputed;
+  and the ids of the last 50 Stripe events about it. The allowance is 105,000 characters per billing period. If the
   subscription lapses, reading continues without the voice.
 - **What ElevenLabs keeps.** ElevenLabs processes the text and returns the
   audio under its own policy (<https://elevenlabs.io/privacy-policy>). By
