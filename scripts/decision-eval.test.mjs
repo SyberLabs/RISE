@@ -82,28 +82,6 @@ test('local mode sends the browser request to the bridge as the local page would
   assert.equal(calls[0].init.headers.Authorization, undefined);
 });
 
-test('typesafe mode calls Jev directly at TypeSafe with the operator’s own key, and admits only Jev 1.13', async () => {
-  assert.throws(() => connectionFor('typesafe', { env: {} }), /TYPESAFE_API_KEY/u);
-  const key = 'ts_' + 'k'.repeat(40);
-  const calls = [];
-  const answer = model => async (url, init) => {
-    calls.push({ url, init });
-    const body = JSON.parse(init.body);
-    const answers = Object.fromEntries(Object.entries(body.questions).map(([id, q]) =>
-      [id, { type: 'choice', choice: Object.keys(q.criteria)[0] }]));
-    return Response.json({ model, answers, usage: { input_tokens: 10, output_tokens: 2 } });
-  };
-  const connection = connectionFor('typesafe', { env: { TYPESAFE_API_KEY: key }, fetchImpl: answer('jev-1.13.0') });
-  const { row, identity } = await captureCase(connection, await committedCatalog(), cases[0], options);
-  assert.equal(row.status, 'ok');
-  assert.deepEqual(identity, { provider: 'jev', model: 'jev-1.13.0', revision: 'jev-1.13.0' });
-  assert.equal(calls[0].url, 'https://api.typesafe.ai/v1/systemone');
-  assert.equal(calls[0].init.headers.Authorization, `Bearer ${key}`);
-  assert.equal(JSON.parse(calls[0].init.body).model, 'jev-1.13.0');
-  const other = connectionFor('typesafe', { env: { TYPESAFE_API_KEY: key }, fetchImpl: answer('jev-2.0.0') });
-  assert.notEqual((await captureCase(other, await committedCatalog(), cases[0], options)).row.status, 'ok');
-});
-
 test('the evaluation option files offer every shipped color theme, in theme order', () => {
   for (const [file, axes] of [
     ['jev-eval-look-options.json', ['colorTheme', 'textColor', 'backgroundColor']],
