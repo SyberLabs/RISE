@@ -1,6 +1,7 @@
 import { compileSession } from './session-compiler.js';
 import { RiseCurrentError, fail, hasLiteralForbidden, hasReservedMarker, id as trimmedId, keys, label, object } from './current-validation.js';
 import { BEAT_TYPES, lowerBeats, validateBeats, validateScenes } from './beats.js';
+import { hasMath } from './math-typeset.js';
 
 export { RiseCurrentError, hasLiteralForbidden, hasReservedMarker };
 
@@ -237,6 +238,8 @@ function validateRiseCurrentV2(source) {
 function timeBeats(session, current) {
   for (const segment of current.segments) {
     const atoms = session.atoms.filter(atom => atom.sourceId === segment.id);
+    // The beat's typography and cue ride on its atoms for the layers that render them.
+    if (Object.keys(segment.beat).length > 0) for (const atom of atoms) atom.beat = segment.beat;
     if (segment.hold) {
       for (const atom of atoms) {
         atom.duration = segment.hold.ms;
@@ -260,6 +263,8 @@ function timeBeats(session, current) {
   session.spokenText = new Map(current.segments.filter(segment => segment.spoken !== null).map(segment => [segment.id, segment.spoken]));
   session.beats = current.beats;
   session.scenes = current.scenes;
+  // Maths in what is shown: the Chamber fetches the typesetter as the reading opens, not at its first formula.
+  session.hasMath = current.segments.some(segment => hasMath(segment.text));
   return session;
 }
 
@@ -333,7 +338,13 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
         || (lowered !== null && lowered.fallbackCue.kind !== 'still') ? 'interlocution' : 'off',
       interlocution: lowered?.shelf ?? { presentation: 'continuous', procedural: [], sourced: [] }
     },
-    ...(look ? { presentation: { colorTheme: themeId, colors: jevColors(themeId), ...lowered?.type } } : {})
+    ...(look || current.type ? {
+      presentation: {
+        ...(look ? { colorTheme: themeId, colors: jevColors(themeId), ...lowered?.type } : {}),
+        // The faces a v2 Current asks for, by role or id, for its text and its captions (typography.js).
+        ...(current.type ? { typeFaces: { ...current.type } } : {})
+      }
+    } : {})
   };
 }
 

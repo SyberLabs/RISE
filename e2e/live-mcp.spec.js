@@ -835,9 +835,10 @@ const SKY_BEATS = {
   look: 'signal',
   scenes: [{ id: 'field', engine: 'attractor' }],
   beats: [
-    { say: 'Sunlight carries every colour at once.', scene: 'field' },
+    { say: 'Sunlight carries every colour at once.', scene: 'field', emphasis: ['colour'] },
     { hold: { ms: 1500 } },
-    { show: 'A line nobody says.', hold: { ms: 1200 }, place: 'top' },
+    { show: 'A line nobody says.', hold: { ms: 1200 }, place: 'top', type: 'handwritten' },
+    { say: 'Scattering goes as one over lambda to the fourth.', show: 'Scattering goes as $1/\lambda^4$.', place: 'caption' },
     { say: 'So blue reaches your eye from every part of the sky.' }
   ]
 };
@@ -850,8 +851,18 @@ test('a Current of beats plays in the self-contained card: a hold, a shown line,
   await expect(posterTitle(app)).toHaveText(SKY_BEATS.title);
   await begin(app);
   await expectShown(app, 'Sunlight carries every colour');
+  // The beat's emphasis is set on the word it names.
+  await expect(app.locator('#atom-display .is-emphasised')).toHaveText('colour');
   // Through the hold and the shown line to the last spoken beat, in the time the beats ask for.
   await expectShown(app, 'A line nobody says');
+  // Placed at the top, in the handwritten face the beat asked for.
+  await expect(app.locator('#atom-display')).toHaveAttribute('data-place', 'top');
+  await expect(app.locator('#atom-display')).toHaveCSS('font-family', /Caveat/u);
+  await expectShown(app, 'Scattering goes as');
+  // Maths typeset by KaTeX, as a caption.
+  await expect(app.locator('#atom-display .katex')).toHaveCount(1);
+  await expect(app.locator('#atom-display')).toHaveAttribute('data-place', 'caption');
   await expectShown(app, 'So blue reaches your eye');
+  await expect(app.locator('#atom-display')).not.toHaveAttribute('data-place', /./u);
   expect(errors).toEqual([]);
 });

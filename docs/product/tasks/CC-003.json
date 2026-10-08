@@ -1,0 +1,38 @@
+{
+  "id": "CC-003",
+  "title": "Typography, placement and maths for beats",
+  "lane": "live-sdk",
+  "milestone": "Creative Control",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "CC-002"
+  ],
+  "acceptance": [
+    "A beat's place (centre, caption, top, left, right, none), size (a step from the reader's own), face (by role or id, from faces RISE hosts) and emphasis render on the atom display; a Current's own faces for text and captions apply where a beat names none; unit-tested in the pure modules and witnessed in the browser test.",
+    "Maths in what is shown ($…$, $$…$$) is typeset by self-hosted KaTeX, fetched only when a reading has maths, never on first load; a formula is one word of the phrase; until KaTeX loads the source shows; unit-tested.",
+    "Two faces added through the font pipeline (Caveat, Barlow Condensed) with their licence rows; every face a model may name is one RISE hosts.",
+    "On a phone a left or right column renders as a caption.",
+    "First-load budget unchanged (measure:first-load)."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-08-creative-control-design.md",
+      "note": "The Creative Control design; §10 typography, placement and maths.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T14:00:00.000Z",
+      "summary": "Opened after CC-002 merged; built directly against the design."
+    }
+  ],
+  "updatedAt": "2026-10-08T14:00:00.000Z",
+  "revision": 1,
+  "summary": "Beats render their typography: place, size, face and emphasis on the atom display, with maths typeset by KaTeX loaded on demand, and two faces added to the self-hosted set.",
+  "blocker": null
+}

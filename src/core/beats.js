@@ -21,6 +21,7 @@
  */
 import { soundKind } from '../audio/sound-ids.js';
 import { fail, id, keys, object, spokenText } from './current-validation.js';
+import { TYPE_NAMES } from './typography.js';
 
 export const BEAT_LIMITS = Object.freeze({
   beats: 64,
@@ -39,11 +40,8 @@ export const BEAT_LIMITS = Object.freeze({
 
 export const BEAT_PLACES = Object.freeze(['centre', 'caption', 'top', 'left', 'right', 'none']);
 export const BEAT_SIZES = Object.freeze(['smaller', 'as-set', 'larger', 'display']);
-/** Faces by role, and the faces RISE hosts by id (public/fonts); the caption layer maps roles to faces. */
-export const BEAT_TYPES = Object.freeze([
-  'book-serif', 'display-serif', 'humanist-sans', 'geometric-sans', 'mono', 'display', 'handwritten', 'condensed',
-  'crimson-pro', 'instrument-serif', 'instrument-sans', 'inter', 'space-grotesk', 'jetbrains-mono', 'marcellus'
-]);
+/** Faces by role, and the faces RISE hosts by id (typography.js). */
+export const BEAT_TYPES = TYPE_NAMES;
 /** The engines a native scene may name now: the Current's own visuals. Manifests widen this. */
 export const SCENE_ENGINES = Object.freeze(['still', 'attractor', 'genesis']);
 /** The one source text that chunks to a single silent, timed atom (chunker.js PAUSE_DURATIONS). */

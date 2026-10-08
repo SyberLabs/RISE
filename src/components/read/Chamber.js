@@ -9,6 +9,8 @@ import { parsePageCollectionId, sampleWorkEngine } from '../../visuals/work-engi
 import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../../visuals/work-engine-field.js';
 import { MemoryCore } from '../../core/memory.js';
 import { AttractorField } from '../../visuals/attractor.js';
+import { resolveTypeFace, stepFontSize } from '../../core/typography.js';
+import { loadMath, renderMath, splitMath } from '../../core/math-typeset.js';
 import { NightStreaks } from '../../visuals/night-streaks.js';
 import { KleeField } from '../../visuals/klee-field.js';
 import { VisualFieldDirector } from '../../visuals/visual-field-director.js';
@@ -176,10 +178,27 @@ const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
   + `rgb(0, 0, 0) calc(100% - ${PROGRESSIVE_GLASS_FEATHER}px), `
   + 'rgba(0, 0, 0, 0) 100%)';
 
+/**
+ * The words of what is shown, with its formulas each as one word (math-typeset.js) and a beat's
+ * emphasis marked on the words it names, whatever their punctuation or case.
+ */
+function shownWords(content, emphasis) {
+  const wanted = new Set((emphasis ?? []).map(word => word.toLowerCase()));
+  const bare = word => word.toLowerCase().replace(/^[^p{L}p{N}]+|[^p{L}p{N}]+$/gu, '');
+  const words = [];
+  for (const part of splitMath(content)) {
+    if (part.kind === 'math') words.push({ text: part.value, emphasised: false, math: true, display: part.display });
+    else for (const word of splitWords(part.value)) words.push(wanted.has(bare(word.text)) ? { ...word, emphasised: true } : word);
+  }
+  return words;
+}
+
 export class Chamber {
   constructor(container, options = {}) {
     this.container = container;
     this.session = options.session;
+    // A reading that shows maths fetches its typesetter as it opens, not at its first formula (math-typeset.js).
+    if (this.session?.hasMath) void loadMath().catch(() => {});
     this.player = options.player;
     // A host that runs the reading itself (a live Current, whose Player is
     // started by the runtime once this view is up) wants the reading shown
@@ -3138,21 +3157,47 @@ export class Chamber {
     }
   }
 
-  paintAtomText(atomDisplay, content, { reveal = false } = {}) {
-    const words = splitWords(content);
+  paintAtomText(atomDisplay, content, { reveal = false, emphasis = null } = {}) {
+    const words = shownWords(content, emphasis);
     const marked = words.some(w => w.emphasised);
+    const maths = words.some(w => w.math);
 
-    if (!reveal && !marked) {
+    if (!reveal && !marked && !maths) {
       atomDisplay.textContent = stripEmphasis(content);
       return null;
     }
 
     atomDisplay.innerHTML = words.map(w =>
-      `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}"` +
-      `${reveal ? ' data-pending=""' : ''}>${escapeHtml(w.text)}</span>`
+      `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}${w.math ? ' atom-math' : ''}"` +
+      `${reveal ? ' data-pending=""' : ''}>${w.math ? renderMath(w.text, { display: w.display }) : escapeHtml(w.text)}</span>`
     ).join(' ');
 
     return reveal ? Array.from(atomDisplay.querySelectorAll('.atom-word')) : null;
+  }
+
+  /**
+   * The typography a beat asks for (src/core/beats.js): its place on the field, its size as a step
+   * from the reader's own, its face by role or id, else the Current's faces for text and captions
+   * (typography.js). Returns false when the beat shows nothing ("place": "none").
+   */
+  applyBeatTypography(atomDisplay, atom) {
+    const beat = atom?.beat ?? null;
+    const place = beat?.place && beat.place !== 'centre' ? beat.place : null;
+    if (place && place !== 'none') atomDisplay.dataset.place = place;
+    else delete atomDisplay.dataset.place;
+    const base = this.effectiveFontSize();
+    atomDisplay.dataset.fontSize = resolveFontSize(beat?.size ? stepFontSize(base, beat.size) : base);
+    const faces = this.session?.presentation?.typeFaces ?? null;
+    const named = beat?.type ?? (place && place !== 'none' ? faces?.caption : faces?.text) ?? null;
+    const face = resolveTypeFace(named);
+    if (face) {
+      atomDisplay.style.setProperty('--font-stream-face', face.family);
+      atomDisplay.style.setProperty('--font-stream-weight', String(face.weight));
+    } else {
+      atomDisplay.style.removeProperty('--font-stream-face');
+      atomDisplay.style.removeProperty('--font-stream-weight');
+    }
+    return place !== 'none';
   }
 
   /**
@@ -3631,6 +3676,13 @@ export class Chamber {
     // a word while it is being read. The next atom sees the next artwork.
     this._fitBoxSnapshot = this._resolveWordFitBox();
     this.applyChamberMask();
+    // A beat's place, size and face (Creative Control); a beat placed nowhere is heard and not seen.
+    if (!this.applyBeatTypography(atomDisplay, atom)) {
+      this.cancelReveal();
+      atomDisplay.style.opacity = '0';
+      atomDisplay.textContent = '';
+      return;
+    }
 
     // Genesis field follows the passage's mood when Living Text has a track
     if (this.kleeField && this.semanticTrack) {
@@ -3707,7 +3759,7 @@ export class Chamber {
           ? spoken.durationMs
           : revealBudget(atom.duration, { reducedMotion }))
         : 0;
-      const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0 });
+      const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0, emphasis: atom.beat?.emphasis });
 
       this.sizeAtomText(atomDisplay, atom.content);
 
