@@ -1,0 +1,52 @@
+{
+  "id": "FND-011",
+  "title": "Make public copy and the Privacy Policy match what the AI paths do",
+  "lane": "shared",
+  "milestone": "Release reliability",
+  "status": "in_progress",
+  "delivery": "not_shipped",
+  "owner": "Claude truth pass (T2)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Visual-direction consent in the Chamber names the reader's actual connection (Jev through OpenRouter, or Kev on this computer).",
+    "Guide and Home name the reader's own AI connection instead of implying RISE runs a model for them.",
+    "README states the one exception to browser-only reading: optional visual direction sends sections of the text to the reader's own AI connection.",
+    "PRIVACY.md sections 4 and 11 disclose the Live Gemini path (key and prompt sent from the browser straight to Google) and the OpenAI Realtime path (key relayed once through the Worker, not stored or logged; off by default), checked against the code; public/privacy.html regenerated from it.",
+    "Copy only: no behaviour changes."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "PRIVACY.md",
+      "note": "Section 4 'Live answers (experimental)' and section 11 Retention, checked against worker/live-realtime.mjs, src/live/adapters/gemini-fetch.js, src/live/adapters/openai-webrtc.js, src/live/host/LiveHost.js and wrangler.production.jsonc (LIVE_REALTIME_ENABLED false).",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/read",
+      "note": "npx vitest run on Guide, Home*, home-*, read/Chamber.* and core/system-design tests: 38 files, 425 tests passed on branch truth/reader-ai-copy. ci-hygiene, vite build and measure:first-load also passed.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/530",
+      "note": "Copy-only truth pass; open, not merged.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T18:45:00.000Z",
+      "summary": "Claimed and implemented on branch truth/reader-ai-copy; not merged."
+    },
+    {
+      "date": "2026-10-08T18:43:17.175Z",
+      "summary": "Opened PR 530; not merged."
+    }
+  ],
+  "updatedAt": "2026-10-08T18:43:17.175Z",
+  "revision": 2,
+  "summary": "A truth pass so readers are told which AI connection receives their text and what RISE's server sees.",
+  "blocker": null
+}

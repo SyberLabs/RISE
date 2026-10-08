@@ -335,7 +335,7 @@ export class Home {
           <button class="portal-primary" id="jev-scene-demo-start" type="button">Start Night Drive</button>
           <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
         </div>
-        <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
+        <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask for a personal reading with your OpenRouter account or local RISE</a></p>
       </div>` : `<h1 class="portal-title" id="portal-ask-title">Make the scene respond.</h1>
       <div class="portal-jev-form" id="portal-jev-demo">
         <p class="portal-help">Read a released passage from Middlemarch, then bring its next visual scene forward while the words keep moving.</p>
@@ -346,7 +346,7 @@ export class Home {
           <button class="portal-primary" id="jev-scene-demo-start" type="button">Start sample reading</button>
           <p class="portal-status" id="jev-scene-demo-status" role="status" aria-live="polite"></p>
         </div>
-        <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
+        <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask for a personal reading with your OpenRouter account or local RISE</a></p>
       </div>`}
     </section>`;
   }
