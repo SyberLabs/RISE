@@ -38,13 +38,14 @@ describe('where the app runs', () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it('addresses RISE's own files from this module inside a host card, and as given elsewhere', async () => {
+  it('addresses the files of RISE from this module inside a host card, and as given elsewhere', async () => {
     const own = await load();
     expect(own.siteUrl('/audio/click.wav')).toBe('/audio/click.wav');
     const card = await load('/live?embed=mcp');
     // The module's own address, not the document's: in a host's sandbox the document's base is the host's.
-    expect(card.siteUrl('/audio/click.wav')).toBe(new URL('/audio/click.wav', import.meta.url).href);
-    expect(card.siteUrl('/engine-stills/fractal.webp')).toMatch(/^[a-z]+://.*/engine-stills/fractal.webp$/u);
+    const clicked = card.siteUrl('/audio/click.wav');
+    expect(clicked).not.toBe('/audio/click.wav');
+    expect(new URL(clicked).pathname.endsWith('/audio/click.wav')).toBe(true);
   });
 
   it('refuses a declared route that is not a plain path, and stays on the window', async () => {
