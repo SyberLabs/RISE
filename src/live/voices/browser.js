@@ -25,14 +25,51 @@
  * other page may have left it paused.
  *
  * Time is `playedMs`: speaking time only, so a hold takes none of it.
+ *
+ * Chrome's Google voices are network voices that stop after about fourteen
+ * seconds of one utterance without reporting an end, so a segment said in one
+ * of them is said a sentence at a time (a long sentence is cut at a pause, or
+ * else between words), and is still one utterance to whoever listens: one
+ * start, one end, and a mark where each later sentence begins, which is the
+ * only place such a voice says where it is. A voice on the device reports its
+ * word boundaries (`capabilities.wordMarks`); a network voice may not.
  */
 
 import { createRealClock } from '../clock.js';
+
+export const BROWSER_VOICE_LIMITS = Object.freeze({ utteranceChars: 180 });
+
+const GOOGLE = /^Google\b/u;
+
+/**
+ * Where an utterance begun at `from` ends: just after the sentence's closing mark
+ * and the space after it; for a sentence longer than `limit`, just after the last
+ * pause (a comma, semicolon or colon) within it, else the last space, else at the
+ * limit itself.
+ */
+export function utteranceEnd(text, from, limit = BROWSER_VOICE_LIMITS.utteranceChars) {
+    const sentence = /[.!?…]["'”’)\]]*\s+/gu;
+    sentence.lastIndex = from;
+    const found = sentence.exec(text);
+    const end = found ? found.index + found[0].length : text.length;
+    if (end - from <= limit) return end;
+    const window = text.slice(from, from + limit);
+    const lastEnd = pattern => {
+        let at = -1;
+        for (const match of window.matchAll(pattern)) at = match.index + match[0].length;
+        return at;
+    };
+    const pause = lastEnd(/[,;:]\s+/gu);
+    if (pause > 0) return from + pause;
+    const space = lastEnd(/\s+/gu);
+    return from + (space > 0 ? space : limit);
+}
 
 export function createBrowserVoice({ speech, clock = createRealClock(), lang = 'en', rate = 1, voice = null } = {}) {
     const { synth, Utterance } = speech ?? {};
     if (!synth || typeof Utterance !== 'function') throw new TypeError('A browser voice needs speechSynthesis and its utterance');
     synth.cancel();
+    const inSentences = GOOGLE.test(voice?.name ?? '');
 
     let report = { start() {}, mark() {}, end() {}, fail() {} };
     let closed = false;
@@ -49,7 +86,8 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     const playedNow = item => item.played + (item.startedAt === null ? 0 : clock.now() - item.startedAt);
 
     function speakFrom(item, offset) {
-        const utterance = new Utterance(item.text.slice(offset));
+        const end = inSentences ? utteranceEnd(item.text, offset) : item.text.length;
+        const utterance = new Utterance(item.text.slice(offset, end));
         utterance.lang = lang;
         utterance.rate = rate;
         if (voice) utterance.voice = voice;
@@ -75,6 +113,18 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         };
         utterance.onend = () => {
             if (item.utterance !== utterance) return;
+            if (end < item.text.length) {
+                // A sentence of the segment is said; the next one is taken up where it begins.
+                item.played = playedNow(item);
+                item.startedAt = null;
+                if (end > item.lastMark) {
+                    item.lastMark = end;
+                    item.lastMarkAt = Math.round(item.played);
+                    safely(report.mark, item.id, end, item.lastMarkAt);
+                }
+                speakFrom(item, end);
+                return;
+            }
             const duration = Math.max(item.lastMarkAt, Math.round(playedNow(item)));
             item.utterance = null;
             finished.set(item.id, duration);
@@ -103,7 +153,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
 
     return {
         id: 'browser',
-        capabilities: Object.freeze({ audible: true }),
+        capabilities: Object.freeze({ audible: true, wordMarks: voice?.localService === true }),
 
         attach(callbacks) {
             report = { start() {}, mark() {}, end() {}, fail() {}, ...callbacks };
@@ -185,11 +235,12 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
  * when any voice has it, else its base language. Among those, a natural voice
  * ("(Natural)" in the name, as Edge and Chrome OS name them), single-language
  * before multilingual, because Edge's multilingual voices stop at an "&"; else
- * the one voice marked default, and none when several claim it, as every voice
- * does in Safari. Edge's natural voices are network voices that report no word
- * boundaries, which the speech clock tolerates. Chrome's own Google voices carry
- * no marker, so they are never taken over the default: they stop after 14
- * seconds without reporting an end.
+ * Chrome's own Google voice; else the one voice marked default, and none when
+ * several claim it, as every voice does in Safari. Edge's natural voices are
+ * network voices that report no word boundaries, which the speech clock
+ * tolerates. Chrome's Google voices stop after about fourteen seconds of one
+ * utterance, which a voice made here never asks of them (it speaks them a
+ * sentence at a time).
  */
 export function chooseVoice(voices, lang) {
     const tag = value => String(value ?? '').replace(/_/gu, '-').toLowerCase();
@@ -199,6 +250,8 @@ export function chooseVoice(voices, lang) {
     const same = exact.length > 0 ? exact : voices.filter(voice => tag(voice.lang).split('-')[0] === base);
     const natural = same.filter(voice => /\(Natural\)/u.test(voice.name));
     if (natural.length > 0) return natural.find(voice => !/Multilingual/u.test(voice.name)) ?? natural[0];
+    const google = same.find(voice => GOOGLE.test(voice.name));
+    if (google) return google;
     const defaults = same.filter(voice => voice.default === true);
     return defaults.length === 1 ? defaults[0] : null;
 }

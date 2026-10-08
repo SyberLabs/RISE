@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { createVirtualClock } from '../clock.js';
 import { createFakeSpeech, createFakeSpeechEngine } from '../../test/fake-speech.js';
-import { chooseVoice, createBrowserVoice, whenVoicesAvailable } from './browser.js';
+import { BROWSER_VOICE_LIMITS, chooseVoice, createBrowserVoice, whenVoicesAvailable } from './browser.js';
 
 const TEXT = 'one two three four five six seven';
 const MS = 50;
@@ -419,6 +419,68 @@ const CHROME = [
 ];
 const nameOf = chosen => chosen?.name ?? null;
 
+describe('speaking in sentences', () => {
+    const GOOGLE = { name: 'Google US English', lang: 'en-US', localService: false };
+    const TWO = 'First sentence here. Second one now.';
+
+    function spoken(synth) {
+        const said = [];
+        const speak = synth.speak.bind(synth);
+        synth.speak = utterance => { said.push(utterance.text); speak(utterance); };
+        return said;
+    }
+
+    it('says a Google voice’s segment a sentence at a time, as one utterance to whoever listens', async () => {
+        const { clock, synth, voice, log } = setup({ boundaries: false }, { voice: GOOGLE });
+        const said = spoken(synth);
+        voice.enqueue({ id: 'a', text: TWO });
+        await clock.runAll();
+        expect(said).toEqual(['First sentence here. ', 'Second one now.']);
+        expect(kinds(log, 'start', 'a')).toHaveLength(1);
+        expect(kinds(log, 'end', 'a')).toHaveLength(1);
+        // Where the second sentence begins is heard, even from a voice that reports no words.
+        expect(kinds(log, 'mark', 'a').map(m => m[3])).toEqual([21]);
+        expect(kinds(log, 'end', 'a')[0][3]).toBe(TWO.length * MS);
+    });
+
+    it('cuts a sentence too long for one utterance at a pause, or else between words', async () => {
+        const { clock, synth, voice } = setup({ boundaries: false }, { voice: GOOGLE });
+        const said = spoken(synth);
+        const long = `${'word '.repeat(30)}and then, ${'more '.repeat(30)}end.`;
+        voice.enqueue({ id: 'a', text: long });
+        await clock.runAll();
+        expect(said.join('')).toBe(long);
+        for (const part of said) expect(part.length).toBeLessThanOrEqual(BROWSER_VOICE_LIMITS.utteranceChars);
+        expect(said.length).toBeGreaterThan(1);
+    });
+
+    it('says a held Google voice again from the sentence it was in, not from the segment’s start', async () => {
+        const { clock, synth, voice } = setup({ boundaries: false }, { voice: GOOGLE });
+        const said = spoken(synth);
+        voice.enqueue({ id: 'a', text: TWO });
+        await clock.advance(30 + 25 * MS);
+        voice.hold();
+        voice.release();
+        await clock.runAll();
+        expect(said.at(-1)).toBe('Second one now.');
+    });
+
+    it('says any other voice’s segment whole', async () => {
+        const { clock, synth, voice } = setup({}, { voice: { name: 'Microsoft David', lang: 'en-US', localService: true } });
+        const said = spoken(synth);
+        voice.enqueue({ id: 'a', text: TWO });
+        await clock.runAll();
+        expect(said).toEqual([TWO]);
+    });
+
+    it('claims to report its words only for a voice on the device, which does', () => {
+        expect(setup({}, { voice: { name: 'Microsoft David', lang: 'en-US', localService: true } }).voice.capabilities.wordMarks).toBe(true);
+        expect(setup({}, { voice: GOOGLE }).voice.capabilities.wordMarks).toBe(false);
+        expect(setup({}, { voice: { name: 'Microsoft Aria Online (Natural)', lang: 'en-US', localService: false } }).voice.capabilities.wordMarks).toBe(false);
+        expect(setup().voice.capabilities.wordMarks).toBe(false);
+    });
+});
+
 describe('choosing the voice', () => {
     it('takes a natural voice in the page’s own locale over the default, and a single-language one over a multilingual one', () => {
         expect(nameOf(chooseVoice(EDGE, 'en-US'))).toBe('Microsoft Aria Online (Natural) - English (United States)');
@@ -434,15 +496,20 @@ describe('choosing the voice', () => {
     it('falls back to the base language when no voice has the page’s locale', () => {
         expect(nameOf(chooseVoice(EDGE, 'fr-CA'))).toBe('Microsoft Denise Online (Natural) - French (France)');
         expect(nameOf(chooseVoice(EDGE, 'en'))).toBe('Microsoft Aria Online (Natural) - English (United States)');
-        expect(nameOf(chooseVoice(CHROME, 'en-AU'))).toBe('Microsoft David - English (United States)');
+        expect(nameOf(chooseVoice(CHROME, 'en-AU'))).toBe('Google US English');
     });
 
     it('reads a language written with an underscore or in another case, as Android writes it', () => {
         expect(nameOf(chooseVoice([voice('Android voice', 'en_us', { isDefault: true })], 'en-US'))).toBe('Android voice');
     });
 
-    it('takes the one default voice where there is no natural one, and never a Google network voice over it', () => {
-        expect(nameOf(chooseVoice(CHROME, 'en-US'))).toBe('Microsoft David - English (United States)');
+    it('takes Chrome’s Google voice where there is no natural one, in the page’s own locale first', () => {
+        expect(nameOf(chooseVoice(CHROME, 'en-US'))).toBe('Google US English');
+        expect(nameOf(chooseVoice(CHROME, 'en-GB'))).toBe('Google UK English Female');
+    });
+
+    it('takes the one default voice where there is neither a natural voice nor a Google one', () => {
+        expect(nameOf(chooseVoice(CHROME.filter(v => !v.name.startsWith('Google')), 'en-US'))).toBe('Microsoft David - English (United States)');
     });
 
     it('leaves the browser to choose when it cannot tell which voice is the default, as in Safari', () => {
@@ -452,7 +519,7 @@ describe('choosing the voice', () => {
 
     it('leaves the browser to choose when there is nothing in the page’s language, or nothing at all', () => {
         expect(chooseVoice(CHROME, 'de-DE')).toBeNull();
-        expect(chooseVoice(CHROME.filter(v => !v.default), 'en-GB')).toBeNull();
+        expect(chooseVoice(CHROME.filter(v => !v.default && !v.name.startsWith('Google')), 'en-US')).toBeNull();
         expect(chooseVoice([], 'en-US')).toBeNull();
     });
 
