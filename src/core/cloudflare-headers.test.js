@@ -39,6 +39,11 @@ describe('Cloudflare static headers', () => {
         }
     });
 
+    it('leaves /content/arena/* to the Worker, so the app shell is never labelled a run file', () => {
+        // worker/index.mjs serveArenaFile sets these headers and 404s the app shell by its text/html type.
+        expect(readFileSync(output, 'utf8')).not.toMatch(/^\/content\/arena/mu);
+    });
+
     it('revalidates the app shell and mutable content pointer', () => {
         expect(existsSync(output)).toBe(true);
         const headers = readFileSync(output, 'utf8');
@@ -46,15 +51,12 @@ describe('Cloudflare static headers', () => {
             .toBe('public, max-age=0, must-revalidate');
         expect(rule('/content/manifest.json', headers).get('Cache-Control'))
             .toBe('public, max-age=0, must-revalidate');
-        expect(rule('/content/arena/index.json', headers).get('Cache-Control'))
-            .toBe('public, max-age=0, must-revalidate');
     });
 
     it('keeps content-addressed assets immutable with the right media types', () => {
         expect(existsSync(output)).toBe(true);
         const headers = readFileSync(output, 'utf8');
-        for (const path of ['/assets/*', '/fonts/*.woff2', '/audio/recitation/*', '/content/works/*',
-            '/content/arena/run-*.json', '/content/arena/replay-*.json']) {
+        for (const path of ['/assets/*', '/fonts/*.woff2', '/audio/recitation/*', '/content/works/*']) {
             expect(rule(path, headers).get('Cache-Control'), path)
                 .toBe('public, max-age=31536000, immutable');
         }

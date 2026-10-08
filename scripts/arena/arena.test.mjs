@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -13,7 +14,7 @@ import { kevDecider } from './adapters/kev.mjs';
 import { openaiDecider, toOpenAI } from './adapters/openai.mjs';
 import { rulesAnswers } from './adapters/rules.mjs';
 import { readArenaReplay, readArenaRun, replayName, sha256Hex } from './arena-file.mjs';
-import { ARENA_DIR, capture, captureRun, decidersFor, guard, mockFetch, report, writeRun } from './arena.mjs';
+import { ARENA_DIR, capture, captureRun, decidersFor, guard, mockFetch, notRunFor, report, writeRun } from './arena.mjs';
 import { calibrationRows, expectedChoices, scoreRun } from './report.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -44,6 +45,40 @@ test('billing guard: never from CI, never without --bill-operator, mock always a
   await assert.rejects(capture(['--bill-operator'], { env: { CI: '1', OPENAI_API_KEY: OPENAI_KEY }, fetchImpl }), /CI/u);
   await assert.rejects(capture([], { env: { OPENAI_API_KEY: OPENAI_KEY }, fetchImpl }), /--bill-operator/u);
   assert.equal(called, false);
+});
+
+test('a capture that asks only free deciders needs no billing flag, but still never runs from CI', () => {
+  assert.doesNotThrow(() => guard(['--deciders', 'rules,rules-floor,kev'], {}));
+  assert.throws(() => guard(['--deciders', 'rules,jev'], {}), /--bill-operator/u);
+  assert.throws(() => guard(['--deciders', 'openai'], {}), /--bill-operator/u);
+  assert.throws(() => guard(['--deciders', 'rules'], { CI: 'true' }), /never bills from CI/u);
+});
+
+test('each decider left out is recorded as not run, with its reason, in the run and its replay', async () => {
+  const names = ['rules', 'rules-floor'];
+  const notRun = notRunFor(names, 'openai=no key, jev=no key,kev=hardware/setup');
+  assert.deepEqual(notRun, [{ id: 'openai', status: 'not run: no key' }, { id: 'jev', status: 'not run: no key' },
+    { id: 'kev', status: 'not run: hardware/setup' }]);
+  assert.deepEqual(notRunFor(['openai', 'jev', 'kev', 'rules']), [{ id: 'rules-floor', status: 'not run: not selected' }]);
+  assert.throws(() => notRunFor(names, 'rules=busy'), /--not-run/u);
+  assert.throws(() => notRunFor(names, 'gpt=no key'), /--not-run/u);
+  assert.throws(() => notRunFor(names, 'kev='), /--not-run/u);
+  const { run } = await captureRun({ ...fixture, catalog, deciders: decidersFor(names, {}), notRun,
+    runs: 1, maxUsd: 0, harness });
+  assert.deepEqual(run.providers.map(item => [item.id, item.status]), [['rules', 'ran'], ['rules-floor', 'ran'],
+    ['openai', 'not run: no key'], ['jev', 'not run: no key'], ['kev', 'not run: hardware/setup']]);
+  assert.ok(run.notes.includes('kev: not run: hardware/setup.'));
+  // A decider that never ran is given its status, never a score of zero.
+  assert.deepEqual(run.scores.kev, { status: 'not run: hardware/setup' });
+  assert.equal(run.scores.rules.explicit.raw.total, run.scores['rules-floor'].explicit.raw.total);
+  const path = await writeRun(run, join(dir, 'not-run'));
+  const text = await readFile(path, 'utf8');
+  readArenaRun(text, basename(path));
+  const replayPath = join(dir, 'not-run', replayName(basename(path)));
+  const replay = readArenaReplay(await readFile(replayPath, 'utf8'), basename(replayPath), text, basename(path));
+  assert.equal(replay.providers.find(item => item.id === 'openai').status, 'not run: no key');
+  assert.deepEqual(Object.keys(Object.values(replay.decisions)[0]), names);
+  assert.equal(JSON.parse(await report(['--run', path])).matchesRecorded, true);
 });
 
 test('the OpenAI request carries every RISE question as a choice with its offered values', () => {
@@ -120,6 +155,11 @@ test('the budget is checked before any call; at the cap the paid results are kep
   assert.equal(run.partial, true);
   assert.equal(run.results.length, 1);
   assert.ok(run.notes.includes('partial: stopped at cost cap $1'));
+  // Scored over the one case it reached, not as misses on the case it never asked.
+  const reached = scoreRun(run, { ...oneCase(fixture.cases.slice(0, 1)), catalog }).pricey;
+  assert.deepEqual(run.scores.pricey, reached);
+  assert.equal(run.scores.pricey.partial, true);
+  assert.equal(run.scores.pricey.casesReached, 1);
   const path = await writeRun(run, join(dir, 'partial'));
   assert.equal(readArenaRun(await readFile(path, 'utf8'), basename(path)).partial, true);
   const index = JSON.parse(await readFile(join(dir, 'partial/index.json'), 'utf8'));
@@ -158,6 +198,13 @@ test('calibration rows: one per expected question, with the raw choice, probabil
     question: 'visual', probabilities: result.probabilities.visual, confidence: 0.8,
     choice: item.expect.visualMode[0], acceptable: item.expect.visualMode });
   assert.equal(rows.find(row => row.question === 'visualStyle').choice, null);
+});
+
+test('a provider written before statuses existed is scored as having run', async () => {
+  const deciders = [openaiDecider({ env: { OPENAI_API_KEY: OPENAI_KEY }, fetchImpl: mockFetch })];
+  const { run } = await captureRun({ ...oneCase(), catalog, deciders, runs: 1, maxUsd: 1, harness });
+  const old = { ...run, providers: run.providers.map(({ status, ...provider }) => provider) };
+  assert.deepEqual(scoreRun(old, { ...oneCase(), catalog }).openai, scoreRun(run, { ...oneCase(), catalog }).openai);
 });
 
 test('a run without calibrationVersion is scored without calibration, so older runs still match', async () => {
@@ -208,6 +255,7 @@ test('an unreachable Kev is recorded as not run', async () => {
   const { run } = await captureRun({ ...oneCase(), catalog, deciders: [kevDecider({ fetchImpl })], runs: 2, maxUsd: 1, harness });
   assert.equal(run.results.length, 0);
   assert.equal(run.providers[0].status, 'not run: unreachable');
+  assert.deepEqual(run.scores.kev, { status: 'not run: unreachable' });
   assert.equal(run.providers[0].revision, '139fdd94f1b6a6ad80cc15e08fcb99cac885a101');
 });
 
@@ -290,4 +338,92 @@ test('every committed arena run is valid, not a mock, and its replay is the one 
     const replay = join(ROOT, ARENA_DIR, replayName(basename(file)));
     readArenaReplay(readFileSync(replay, 'utf8'), basename(replay), text, basename(file));
   }
+});
+
+/**
+ * Throws unless every index.json entry in `dir` names a run and replay that
+ * exist and match their names, none is a mock, and every entry of `before`
+ * (origin/main's index, when known) is still there unchanged.
+ */
+function checkPublished(dir, before = null) {
+  const path = join(dir, 'index.json');
+  if (!existsSync(path)) {
+    assert.equal(before, null, 'index.json was deleted');
+    return;
+  }
+  const index = JSON.parse(readFileSync(path, 'utf8'));
+  assert.equal(index.schema, 'syberlabs.decision-arena-index/v1');
+  for (const entry of index.runs) {
+    const text = readFileSync(join(dir, entry.file), 'utf8');
+    const run = readArenaRun(text, entry.file);
+    assert.equal(entry.sha256, sha256Hex(text), `${entry.file}: index hash`);
+    assert.equal(entry.replay, replayName(entry.file));
+    readArenaReplay(readFileSync(join(dir, entry.replay), 'utf8'), entry.replay, text, entry.file);
+    // The replay route picks the latest non-mock entry; a mock is never committed at all.
+    assert.equal(entry.mock, false, `${entry.file} is a mock run`);
+    assert.deepEqual([entry.runId, entry.createdAt, entry.partial], [run.runId, run.createdAt, run.partial === true]);
+  }
+  for (const entry of before?.runs || []) {
+    assert.deepEqual(index.runs.find(item => item.file === entry.file), entry, `${entry.file} was removed or changed`);
+  }
+}
+
+/**
+ * origin/main's arena index, or null when origin/main has not published one.
+ * CI checks out a single commit, so origin/main is fetched when missing; a
+ * failed fetch fails the test rather than skipping the append-only check.
+ */
+function mainIndex() {
+  const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  try {
+    git('rev-parse', '--verify', '-q', 'origin/main');
+  } catch {
+    git('fetch', '--depth=1', 'origin', 'main:refs/remotes/origin/main');
+  }
+  try {
+    return JSON.parse(git('show', `origin/main:${ARENA_DIR}/index.json`));
+  } catch {
+    return null;
+  }
+}
+
+test('the committed arena index names real, non-mock runs and keeps every entry origin/main has', () => {
+  checkPublished(join(ROOT, ARENA_DIR), mainIndex());
+});
+
+test('the published-files check refuses a missing file, a hash mismatch, a mock and a removed entry', async () => {
+  const runs = [];
+  for (const name of ['first', 'second']) {
+    const { run } = await captureRun({ ...fixture, catalog, deciders: decidersFor(['rules'], {}), runs: 1, maxUsd: 0,
+      harness: { ...harness, mock: false }, now: () => new Date(name === 'first' ? '2026-10-08T00:00:00Z' : '2026-10-09T00:00:00Z') });
+    runs.push(run);
+  }
+  const good = join(dir, 'published');
+  for (const run of runs) await writeRun(run, good);
+  const index = JSON.parse(await readFile(join(good, 'index.json'), 'utf8'));
+  checkPublished(good, { ...index, runs: index.runs.slice(0, 1) });
+  const tampered = async (name, change) => {
+    const copy = join(dir, `published-${name}`);
+    await mkdir(copy, { recursive: true });
+    for (const file of readdirSync(good)) await writeFile(join(copy, file), readFileSync(join(good, file)));
+    await change(copy);
+    return copy;
+  };
+  const indexed = async (copy, edit) => writeFile(join(copy, 'index.json'),
+    JSON.stringify(edit(JSON.parse(readFileSync(join(copy, 'index.json'), 'utf8')))));
+  assert.throws(() => checkPublished(join(dir, 'nowhere'), index), /deleted/u);
+  const missing = await tampered('missing', copy => rm(join(copy, index.runs[1].replay)));
+  assert.throws(() => checkPublished(missing), { code: 'ENOENT' });
+  const hash = await tampered('hash', copy => indexed(copy, value => {
+    value.runs[0].sha256 = 'f'.repeat(64);
+    return value;
+  }));
+  assert.throws(() => checkPublished(hash), /index hash/u);
+  const mock = await tampered('mock', copy => indexed(copy, value => {
+    value.runs[1].mock = true;
+    return value;
+  }));
+  assert.throws(() => checkPublished(mock), /mock run/u);
+  const removed = await tampered('removed', copy => indexed(copy, value => ({ ...value, runs: value.runs.slice(1) })));
+  assert.throws(() => checkPublished(removed, index), /removed or changed/u);
 });

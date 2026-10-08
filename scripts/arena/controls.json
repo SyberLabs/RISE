@@ -1,6 +1,6 @@
 {
   "kind": "rise.decision-arena.controls.v1",
-  "seedCommitment": null,
+  "seedCommitment": "321341926fba4652fe4f9a30564b446daed3f2146e8467d0cd523f0eb2cc35b0",
   "cases": [
     {
       "id": "odds-50-1",

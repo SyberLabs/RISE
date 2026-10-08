@@ -19,7 +19,7 @@ const config = load('wrangler.production.jsonc');
 
 describe('the production Worker', () => {
   it('runs first for the API and for the page an MCP app frames', () => {
-    expect(config.assets.run_worker_first).toEqual(expect.arrayContaining(['/api/*', '/live']));
+    expect(config.assets.run_worker_first).toEqual(expect.arrayContaining(['/api/*', '/live', '/content/arena/*']));
   });
 
   // The Worker turns a route on only for the exact text "true" (live-realtime.mjs,

@@ -3,14 +3,16 @@
  *
  * `run-<sha12>.json` is named by the first twelve hex digits of the SHA-256 of
  * its own bytes, so a file that was edited after capture no longer matches its
- * name. A run captured from a harness with uncommitted changes cannot be
+ * name. Its bytes must be the one canonical form writeRun emits,
+ * JSON.stringify(run) and a newline, so the same run has exactly one name. A run captured from a harness with uncommitted changes cannot be
  * reproduced from its commit and is refused, unless it is a mock run (a
  * pipeline check, never published). A run stopped at the cost cap says
  * `partial: true`.
  *
  * `replay-<sha12>.json`, beside it under the same twelve digits, is the slim
  * file the replay route reads: run 1 of the fixed cases only, each decider's
- * admitted decision or its reject code. No controls and no raw answers; the
+ * admitted decision or its reject code, and each decider's status ("ran" or
+ * "not run: <reason>"). No controls and no raw answers; the
  * controls stay in the run file. It is derived from the run file alone, so
  * replayText regenerates it byte for byte and readArenaReplay checks that.
  */
@@ -37,6 +39,7 @@ export function readArenaRun(text, fileName) {
   if (sha256Hex(text).slice(0, 12) !== named[1]) throw new Error('The run file does not match the hash in its name.');
   let run;
   try { run = JSON.parse(text); } catch { throw new Error('The run file is not JSON.'); }
+  if (text !== `${JSON.stringify(run)}\n`) throw new Error('The run file is not in canonical form: JSON.stringify(run) and a newline.');
   if (run?.schema !== ARENA_SCHEMA) throw new Error(`Unknown arena schema; expected ${ARENA_SCHEMA}.`);
   const { harness, inputs, providers, results } = run;
   if (!isObject(harness) || !/^[0-9a-f]{40}$/u.test(harness.commit) || typeof harness.node !== 'string') {
@@ -83,7 +86,7 @@ export function replayText(run, runFile) {
     }
   }
   return `${JSON.stringify({ schema: REPLAY_SCHEMA, runFile, createdAt: run.createdAt,
-    providers: run.providers.map(({ id, requestedModel, servedModels }) => ({ id, requestedModel, servedModels })),
+    providers: run.providers.map(({ id, requestedModel, servedModels, status }) => ({ id, requestedModel, servedModels, status })),
     decisions })}\n`;
 }
 

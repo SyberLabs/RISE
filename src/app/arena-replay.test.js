@@ -36,7 +36,7 @@ describe('arena replay', () => {
     const deciders = arenaCase(run, ARENA_CASE);
     expect(deciders.openai.decision).toMatchObject({ model: 'rise/arena-replay-1', provider: 'RISE', sourceModel: 'gpt-6-luna-2026-09-01', requestId: 'run-0123456789ab.json' });
     expect(deciders.jev.decision.sourceModel).toBe('typesafe/jev-1.13');
-    expect(deciders.kev).toEqual({ status: 'not run' });
+    expect(deciders.kev).toEqual({ status: 'not run: hardware/setup' });
     expect(deciders.rules).toEqual({ status: 'rejected: OUT_OF_MENU' });
     const [a, b] = await Promise.all([resolveJevReading(deciders.openai.decision), resolveJevReading(deciders.jev.decision)]);
     expect(a.text).not.toBe(b.text);
@@ -46,10 +46,28 @@ describe('arena replay', () => {
     const run = await loadArenaRun(files());
     expect(() => arenaCase(run, 'nope')).toThrow('no case');
     expect(() => arenaCase(run, '__proto__')).toThrow('no case');
+    // A decider absent from the run, or one with no stated reason, is plainly "not run".
+    const replay = arenaReplayFixture();
+    replay.providers = replay.providers.filter(item => item.id !== 'kev').map(item => ({ ...item, status: undefined }));
+    replay.decisions[ARENA_CASE] = {};
+    const bare = arenaCase(await loadArenaRun(files(undefined, replay)), ARENA_CASE);
+    expect(Object.values(bare)).toEqual(Array(4).fill({ status: 'not run' }));
     const index = arenaIndexFixture();
     await expect(loadArenaRun(files({ ...index, runs: [{ replay: '../secrets.json', mock: false }] }))).rejects.toThrow('names no run');
     // A mock run says nothing about any model: never replayed.
     await expect(loadArenaRun(files({ ...index, runs: index.runs.filter(entry => entry.mock) }))).rejects.toThrow('names no run');
+    // A later partial run (stopped at its cost cap) is passed over while a complete one exists, and used when none does.
+    const partial = { file: 'run-eeeeeeeeeeee.json', replay: 'replay-eeeeeeeeeeee.json', sha256: 'e'.repeat(64),
+      runId: 'arena-20261009T120000-0123456', createdAt: '2026-10-09T12:00:00.000Z', mock: false, partial: true };
+    const seen = [];
+    const record = (indexValue) => async path => {
+      seen.push(path);
+      return files(indexValue, arenaReplayFixture())(path.replace('replay-eeeeeeeeeeee', ARENA_REPLAY_FILE.slice(0, -5)));
+    };
+    await loadArenaRun(record({ ...index, runs: [...index.runs, partial] }));
+    expect(seen.at(-1)).toBe(`/content/arena/${ARENA_REPLAY_FILE}`);
+    await loadArenaRun(record({ ...index, runs: [partial] }));
+    expect(seen.at(-1)).toBe('/content/arena/replay-eeeeeeeeeeee.json');
     await expect(loadArenaRun(files(undefined, { ...arenaReplayFixture(), schema: 'other/v2' }))).rejects.toThrow('not readable');
     await expect(loadArenaRun(async () => { throw new Error('404'); })).rejects.toThrow('404');
     // A host that answers every path with the app's own page has no JSON to give.
@@ -81,7 +99,7 @@ describe('arena replay', () => {
       Pace: 'steady words'
     });
     expect(choices('jev').Book).toBe('Middlemarch, by George Eliot · opening section');
-    expect(section.querySelector('[data-arena-decider="kev"]').textContent).toContain('not run');
+    expect(section.querySelector('[data-arena-decider="kev"]').textContent).toContain('not run: hardware/setup');
     expect(section.querySelector('[data-arena-decider="rules"]').textContent).toContain('rejected: OUT_OF_MENU');
     expect(section.querySelectorAll('button[data-arena-play]')).toHaveLength(2);
     expect(section.textContent).toContain('Frozen result captured 2026-10-07. Independent comparison; no partnership with OpenAI or TypeSafe.');
