@@ -1,0 +1,14 @@
+{
+  "schema": "syberlabs.decision-arena-index/v1",
+  "runs": [
+    {
+      "file": "run-1c8b7b636f83.json",
+      "replay": "replay-1c8b7b636f83.json",
+      "sha256": "1c8b7b636f83ce01022c8ed079863f8b6cbde914505f4a892b3b64941f896f16",
+      "runId": "arena-20261008T194257-ee72038",
+      "createdAt": "2026-10-08T19:42:57.863Z",
+      "mock": false,
+      "partial": false
+    }
+  ]
+}
