@@ -914,7 +914,7 @@ export class LiveHost {
                 return;
             }
             this.runtime = runtime;
-            // The stage: Play/Pause and Settings, no microphone, no notice, no notes, no question. What
+            // The stage: the transport and Settings, no microphone, no notice, no notes, no question. What
             // this device cannot do goes into the hidden status, which already says a silent reading is paced.
             this.controls = createStageControls({
                 runtime,
@@ -923,7 +923,9 @@ export class LiveHost {
                 paintTheme: theme => this.paintEmbedTheme(theme ?? this.embeddedTheme),
                 audible: this.voiceKind === 'browser',
                 degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability)),
-                takeFocus
+                takeFocus,
+                // The host card: whether its host will show the card full screen, or floating.
+                port: this.port
             });
             await runtime.start('The answer the assistant presents');
         } catch (error) {

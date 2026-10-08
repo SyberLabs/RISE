@@ -17,7 +17,8 @@ import { ATTRACTOR_VISUAL_MANIFEST } from '../../core/visual-control-contract.js
 import { manifestFor } from '../../scenes/manifests.js';
 
 const snapshot = (status, extra = {}) => ({
-    status, error: null, main: { voiceDegraded: false, speaking: null, segmentId: 's1', ...extra.main }, side: null, ...(extra.error ? { error: extra.error } : {})
+    status, error: null, main: { voiceDegraded: false, speaking: null, segmentId: 's1', ...extra.main }, side: null, ...(extra.error ? { error: extra.error } : {}),
+    pace: extra.pace ?? 1, position: extra.position ?? null
 });
 
 const SEGMENTS = [{ text: 'first line', ended: true }, { text: 'second line', ended: true }, { text: 'still being written', ended: false }];
@@ -37,6 +38,10 @@ function fakeRuntime(initial = 'live', { visual = true, discovery = ATTRACTOR_DI
         resume: vi.fn(() => { calls.push(['resume']); runtime.set('live'); }),
         discoverVisual: vi.fn(() => (visual ? discovery : null)),
         controlVisual: vi.fn(command => { calls.push(['controlVisual', command]); return { status: 'accepted', surface: 'attractor', parameter: 'intensity', requested: command.value, effective: command.value }; }),
+        seek: vi.fn(target => { calls.push(['seek', target]); }),
+        replay: vi.fn(() => { calls.push(['replay']); }),
+        setPace: vi.fn(rate => { calls.push(['setPace', rate]); runtime.set(state.status, { position: state.position, pace: rate }); }),
+        passages: vi.fn(() => []),
         set(status, extra) { state = snapshot(status, extra); for (const fn of [...listeners]) fn(state); },
         calls
     };
@@ -492,5 +497,256 @@ describe('the stage as a card', () => {
         stage.destroy();
         expect($('#rise-stage-controls')).toBeNull();
         runtime.set('interrupted');
+    });
+});
+
+// ─── the transport (Playback as a real instrument, PLY-001) ─────────────
+
+const PASSAGES = [
+    { segmentId: 'beat-0', spoken: true },
+    { segmentId: 'beat-1', spoken: false },
+    { segmentId: 'beat-2', spoken: true },
+    { segmentId: 'beat-3', spoken: true },
+    { segmentId: 'beat-4', spoken: false }
+];
+const at = index => ({ segmentId: PASSAGES[index].segmentId, segmentIndex: index, segmentCount: PASSAGES.length, atomIndex: index * 2, atomCount: 10, spoken: PASSAGES[index].spoken });
+
+/** A runtime with a reading of five passages, at `index`. */
+function reading(status = 'live', index = 1, extra = {}) {
+    const runtime = fakeRuntime(status);
+    runtime.passages.mockReturnValue(PASSAGES);
+    runtime.set(status, { position: at(index), ...extra });
+    return runtime;
+}
+
+const object = name => $(`#rise-stage-controls [data-stage="${name}"]`);
+const objects = () => [...document.querySelectorAll('#rise-stage-controls .rise-stage__object')].filter(node => !node.hidden).map(node => node.dataset.stage);
+const ticks = () => [...document.querySelectorAll('#rise-stage-controls .rise-stage__beat')];
+const press = (key, target = play()) => target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+
+describe('the transport', () => {
+    it('sets back, forward, replay and pace beside Play/Pause, Settings at the right, each named and showing no words but the pace', () => {
+        stage = createStageControls({ runtime: reading(), onPlayAgain: () => {} });
+        expect(objects()).toEqual(['back', 'play', 'forward', 'replay', 'pace', 'settings']);
+        expect(object('back').getAttribute('aria-label')).toBe('Back a passage');
+        expect(object('forward').getAttribute('aria-label')).toBe('Forward a passage');
+        expect(object('replay').getAttribute('aria-label')).toBe('Say this passage again');
+        expect(object('pace').getAttribute('aria-label')).toBe('Pace, 1 times');
+        for (const name of ['back', 'forward', 'replay']) expect(object(name).textContent, name).toBe('');
+        expect(object('pace').textContent).toBe('1×');
+        for (const name of ['back', 'play', 'forward', 'replay', 'pace', 'settings']) expect(object(name).getAttribute('type'), name).toBe('button');
+    });
+
+    it('goes back and forward a passage, and says this one again, through the runtime', () => {
+        const runtime = reading();
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        object('back').click();
+        object('forward').click();
+        object('replay').click();
+        expect(runtime.calls).toEqual([['seek', { delta: -1 }], ['seek', { delta: 1 }], ['replay']]);
+    });
+
+    it('cannot go back from the first passage nor on from the last, and says so without hiding the object', () => {
+        const runtime = reading('live', 0);
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        expect(object('back').getAttribute('aria-disabled')).toBe('true');
+        expect(object('forward').getAttribute('aria-disabled')).toBe('false');
+        object('back').click();
+        expect(runtime.seek).not.toHaveBeenCalled();
+        runtime.set('live', { position: at(4) });
+        expect(object('back').getAttribute('aria-disabled')).toBe('false');
+        expect(object('forward').getAttribute('aria-disabled')).toBe('true');
+        object('forward').click();
+        expect(runtime.seek).not.toHaveBeenCalled();
+    });
+
+    it('cannot say a passage again, or move, before the reading has begun', () => {
+        const runtime = fakeRuntime('starting');
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        for (const name of ['back', 'forward', 'replay']) expect(object(name).getAttribute('aria-disabled'), name).toBe('true');
+        object('replay').click();
+        expect(runtime.replay).not.toHaveBeenCalled();
+        runtime.passages.mockReturnValue(PASSAGES);
+        runtime.set('live', { position: at(2) });
+        expect(object('replay').getAttribute('aria-disabled')).toBe('false');
+    });
+
+    it('cycles the pace 0.8, 1, 1.25, 1.5 and round again, each press setting the voice’s rate and the object showing it', () => {
+        const runtime = reading();
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        const shown = [];
+        for (let i = 0; i < 4; i += 1) {
+            object('pace').click();
+            shown.push([object('pace').textContent, object('pace').getAttribute('aria-label')]);
+        }
+        expect(runtime.setPace.mock.calls.map(([rate]) => rate)).toEqual([1.25, 1.5, 0.8, 1]);
+        expect(shown).toEqual([['1.25×', 'Pace, 1.25 times'], ['1.5×', 'Pace, 1.5 times'], ['0.8×', 'Pace, 0.8 times'], ['1×', 'Pace, 1 times']]);
+    });
+
+    it('draws one tick per passage above the objects, the current lit, those before it passed, the unspoken dimmer, and a tap goes there', () => {
+        const runtime = reading('live', 2);
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        expect(ticks()).toHaveLength(5);
+        expect(ticks().map(tick => tick.dataset.spoken)).toEqual(['true', 'false', 'true', 'true', 'false']);
+        expect(ticks().map(tick => tick.dataset.state)).toEqual(['passed', 'passed', 'current', 'ahead', 'ahead']);
+        // A pointer's way to a passage: the keyboard has the arrows, so the line is not in the tab order.
+        expect($('.rise-stage__beats').getAttribute('aria-hidden')).toBe('true');
+        for (const tick of ticks()) expect(tick.tabIndex).toBe(-1);
+        ticks()[3].click();
+        expect(runtime.seek).toHaveBeenLastCalledWith({ segmentId: 'beat-3' });
+        runtime.set('live', { position: at(3) });
+        expect(ticks().map(tick => tick.dataset.state)).toEqual(['passed', 'passed', 'passed', 'current', 'ahead']);
+    });
+
+    it('says in the hidden status which passage it is, of how many, as it changes', () => {
+        const runtime = reading('interrupted', 1);
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        expect(status().textContent).toBe('Paused. Passage 2 of 5.');
+        runtime.set('interrupted', { position: at(4) });
+        expect(status().textContent).toBe('Paused. Passage 5 of 5.');
+    });
+});
+
+describe('the keys, heard on the stage', () => {
+    it('ArrowLeft and ArrowRight move a passage, R says it again, minus and equals (and the brackets) step the pace', () => {
+        const runtime = reading('live', 2);
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        for (const key of ['ArrowLeft', 'ArrowRight', 'r', 'R', '=', '+', ']', '-', '[']) expect(press(key), key).toBe(false);
+        expect(runtime.calls).toEqual([
+            ['seek', { delta: -1 }], ['seek', { delta: 1 }], ['replay'], ['replay'],
+            ['setPace', 1.25], ['setPace', 1.5], ['setPace', 1.25], ['setPace', 1]
+        ]);
+        expect(object('back').getAttribute('aria-keyshortcuts')).toBe('ArrowLeft');
+        expect(object('forward').getAttribute('aria-keyshortcuts')).toBe('ArrowRight');
+        expect(object('replay').getAttribute('aria-keyshortcuts')).toBe('R');
+    });
+
+    it('steps the pace no further than its ends', () => {
+        const runtime = reading('live', 2, { pace: 0.8 });
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        press('-');
+        expect(runtime.setPace).not.toHaveBeenCalled();
+        runtime.set('live', { position: at(2), pace: 1.5 });
+        press('=');
+        expect(runtime.setPace).not.toHaveBeenCalled();
+    });
+
+    it('Space plays and pauses from the stage itself; on a focused object it is that object’s own press', () => {
+        const runtime = reading('live', 2);
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        expect(press(' ', stage.element)).toBe(false);
+        expect(runtime.interrupt).toHaveBeenCalledTimes(1);
+        expect(press(' ', object('forward'))).toBe(true);
+        expect(runtime.interrupt).toHaveBeenCalledTimes(1);
+    });
+
+    it('is not heard from inside the Settings sheet or a field for words, nor with a modifier held', () => {
+        const runtime = reading('live', 2);
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        settings().click();
+        press('ArrowRight', intensity());
+        press('r', theme());
+        const field = document.createElement('textarea');
+        stage.element.appendChild(field);
+        press('ArrowLeft', field);
+        play().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', ctrlKey: true, bubbles: true, cancelable: true }));
+        expect(runtime.calls).toEqual([]);
+    });
+
+    it('is described, hidden, to assistive technology in the Settings sheet', () => {
+        stage = createStageControls({ runtime: reading(), onPlayAgain: () => {} });
+        const described = document.getElementById(sheet().getAttribute('aria-describedby'));
+        expect(described.classList.contains('rise-stage__sr')).toBe(true);
+        expect(described.textContent).toMatch(/Left and Right arrows/u);
+        expect(described.textContent).toMatch(/F/u);
+    });
+});
+
+describe('filling the screen', () => {
+    /** A host card's port whose host offers `modes`, and answers a request with the mode it is asked for. */
+    function fakePort(modes, displayMode = 'inline') {
+        const context = { availableDisplayModes: modes, displayMode };
+        return {
+            hostContext: () => context,
+            onHostContext: () => () => {},
+            requestDisplayMode: vi.fn(async mode => { context.displayMode = mode; return mode; })
+        };
+    }
+
+    it('is not offered by a host card that shows the app inline only', () => {
+        stage = createStageControls({ runtime: reading(), onPlayAgain: () => {}, port: fakePort(['inline']) });
+        expect(object('fullscreen').hidden).toBe(true);
+    });
+
+    it('asks a host card that offers it for the full screen, and for inline on the second press', async () => {
+        const port = fakePort(['inline', 'fullscreen']);
+        stage = createStageControls({ runtime: reading(), onPlayAgain: () => {}, port });
+        expect(objects()).toEqual(['back', 'play', 'forward', 'replay', 'pace', 'fullscreen', 'settings']);
+        expect(object('fullscreen').getAttribute('aria-label')).toBe('Full screen');
+        expect(object('fullscreen').getAttribute('aria-pressed')).toBe('false');
+        object('fullscreen').click();
+        await vi.waitFor(() => expect(object('fullscreen').getAttribute('aria-pressed')).toBe('true'));
+        expect(port.requestDisplayMode).toHaveBeenLastCalledWith('fullscreen');
+        press('f');
+        await vi.waitFor(() => expect(object('fullscreen').getAttribute('aria-pressed')).toBe('false'));
+        expect(port.requestDisplayMode).toHaveBeenLastCalledWith('inline');
+    });
+
+    it('pops out where the host floats the app instead', () => {
+        const port = fakePort(['inline', 'pip']);
+        stage = createStageControls({ runtime: reading(), onPlayAgain: () => {}, port });
+        expect(object('fullscreen').getAttribute('aria-label')).toBe('Pop out');
+        object('fullscreen').click();
+        expect(port.requestDisplayMode).toHaveBeenCalledWith('pip');
+    });
+
+    it('outside a host card, fills the screen with the page where the browser allows it, and is not offered where it does not', () => {
+        const enabled = Object.getOwnPropertyDescriptor(Document.prototype, 'fullscreenEnabled');
+        try {
+            Object.defineProperty(document, 'fullscreenEnabled', { value: false, configurable: true });
+            stage = createStageControls({ runtime: reading(), onPlayAgain: () => {} });
+            expect(object('fullscreen').hidden).toBe(true);
+            stage.destroy();
+
+            Object.defineProperty(document, 'fullscreenEnabled', { value: true, configurable: true });
+            document.documentElement.requestFullscreen = vi.fn(async () => {});
+            stage = createStageControls({ runtime: reading(), onPlayAgain: () => {} });
+            expect(object('fullscreen').hidden).toBe(false);
+            object('fullscreen').click();
+            expect(document.documentElement.requestFullscreen).toHaveBeenCalledTimes(1);
+        } finally {
+            delete document.fullscreenEnabled;
+            delete document.documentElement.requestFullscreen;
+            if (enabled) Object.defineProperty(Document.prototype, 'fullscreenEnabled', enabled);
+        }
+    });
+});
+
+describe('the two transports', () => {
+    it('minimal is the two objects of the 2026-10-05 decision and nothing more: no line, no passage sentence, no keys but their own', () => {
+        const runtime = reading('interrupted', 1);
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, transport: 'minimal' });
+        expect(objects()).toEqual(['play', 'settings']);
+        expect([...document.querySelectorAll('#rise-stage-controls button[data-stage]')].map(node => node.dataset.stage)).toEqual(['play', 'settings']);
+        expect($('.rise-stage__beats')).toBeNull();
+        expect(status().textContent).toBe('Paused.');
+        press('ArrowRight');
+        press('r');
+        expect(runtime.calls).toEqual([]);
+        expect(sheet().hasAttribute('aria-describedby')).toBe(false);
+    });
+
+    it('full is the default', () => {
+        stage = createStageControls({ runtime: reading(), onPlayAgain: () => {} });
+        expect(stage.element.dataset.transport).toBe('full');
+    });
+});
+
+describe('the row on a phone', () => {
+    it('shrinks its objects to 36 px below 400 px, so seven fit in 320 without wrapping', () => {
+        const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'LiveHost.css'), 'utf8');
+        const narrow = css.match(/@media \(max-width: 399px\) \{([\s\S]*?)\n\}/u)?.[1] ?? '';
+        expect(narrow).toMatch(/\.rise-stage__object\s*\{[^}]*width:\s*36px/u);
+        expect(css).toMatch(/\.rise-stage__row\s*\{[^}]*flex-wrap:\s*nowrap/u);
     });
 });
