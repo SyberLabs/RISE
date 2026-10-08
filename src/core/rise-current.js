@@ -245,12 +245,19 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
       },
       {
         id: 'current-visuals', kind: 'visual',
-        clips: current.segments.flatMap((segment, index) => segment.visual === undefined ? [] : [{
-          id: `visual-${index}`, anchor: { sourceIds: [segment.id] },
-          cue: segment.visual === 'still'
-            ? { kind: 'still' }
-            : { kind: 'field', renderer: segment.visual, config: look ? { ...look[segment.visual] } : {} }
-        }]),
+        // Every passage has a clip: one that names no visual takes the look's, since the reader
+        // schedules a program only when it has passages, and the fallback alone would draw nothing.
+        clips: current.segments.flatMap((segment, index) => {
+          if (segment.visual === undefined) {
+            return lowered ? [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: lowered.fallbackCue }] : [];
+          }
+          return [{
+            id: `visual-${index}`, anchor: { sourceIds: [segment.id] },
+            cue: segment.visual === 'still'
+              ? { kind: 'still' }
+              : { kind: 'field', renderer: segment.visual, config: look ? { ...look[segment.visual] } : {} }
+          }];
+        }),
         fallback: lowered?.fallbackCue ?? { kind: 'still' }
       },
       {

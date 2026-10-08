@@ -65,10 +65,17 @@ describe('a look in the card', () => {
       .toEqual({ kind: 'focal', focal: expect.objectContaining({ type: 'standard', standardGlyph: 'breath' }) });
   });
 
-  it('keeps a passage that names its own visual', () => {
+  it('keeps a passage that names its own visual, and gives every other passage the look of the answer', () => {
     const clips = visualTrack(compile({ look: 'revel' })).clips;
-    expect(clips).toHaveLength(1);
+    expect(clips).toHaveLength(2);
     expect(clips[0]).toMatchObject({ anchor: { sourceIds: ['named'] }, cue: { kind: 'field', renderer: 'attractor' } });
+    expect(clips[1]).toMatchObject({ anchor: { sourceIds: ['unnamed'] }, cue: { kind: 'procedural', collections: ['fractal'] } });
+  });
+
+  it('draws the look when no passage names a visual: the reader schedules only a program with passages', () => {
+    const unnamed = current({ look: 'garden', segments: [{ id: 'a', text: 'One passage.' }, { id: 'b', text: 'Another passage.' }] });
+    const session = compileRiseCurrent(unnamed, { lowerLook: lowerCurrentLook });
+    expect(session.visualProgram.segments.map(segment => segment.cue.renderer)).toEqual(['genesis', 'genesis']);
   });
 
   it('sets the look\'s theme, typeface and size; an explicit theme wins', () => {
