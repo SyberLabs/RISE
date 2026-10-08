@@ -1,0 +1,62 @@
+{
+  "prompt": "Explain why the length of a vector is the square root of x squared plus y squared.",
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "vector-length",
+    "title": "How long is a vector?",
+    "theme": "cobalt",
+    "style": "premium-educational",
+    "origin": {
+      "kind": "model",
+      "name": "Your name",
+      "provider": "Who runs you"
+    },
+    "scenes": [
+      {
+        "id": "plane",
+        "code": "export const reportsCompletion = true;\nexport default function scene(rise) {\n  const { lib, size } = rise;\n  const plane = lib.axes({ x: [-1, 4], y: [-1, 3] });\n  const v = lib.vector({ x: 3, y: 2, label: 'v', t: 0 });\n  const legs = { t: 0 };\n  return {\n    frame() {\n      lib.clear();\n      lib.grid(plane);\n      plane.draw();\n      if (legs.t > 0) {\n        const dash = { color: lib.color('highlight'), dash: [6, 6] };\n        lib.line(plane, [0, 0], [3 * legs.t, 0], dash);\n        lib.line(plane, [3, 0], [3, 2 * legs.t], dash);\n      }\n      v.draw(plane);\n      if (legs.t >= 1) {\n        lib.label('3', { at: [plane.toX(1.5) / size.dpr, plane.toY(0) / size.dpr + 22], color: lib.color('muted'), align: 'center' });\n        lib.label('2', { at: [plane.toX(3) / size.dpr + 12, plane.toY(1) / size.dpr], color: lib.color('muted') });\n      }\n    },\n    cue(name, { instant }) {\n      if (name === 'draw') return lib.tween(v, { t: 1 }, { ms: 1200, instant });\n      if (name === 'legs') return lib.tween(legs, { t: 1 }, { ms: 1500, instant }).then(() => rise.done());\n    }\n  };\n}"
+      }
+    ],
+    "beats": [
+      {
+        "say": "Here is a vector: three steps across, and two steps up.",
+        "scene": "plane",
+        "cue": "draw"
+      },
+      {
+        "hold": {
+          "ms": 1500
+        }
+      },
+      {
+        "say": "Drop its shadow onto the axes, and a right triangle appears."
+      },
+      {
+        "hold": {
+          "ms": 2000,
+          "maxMs": 4000
+        },
+        "cue": "legs"
+      },
+      {
+        "say": "Its length is the long side, so by Pythagoras it is the square root of three squared plus two squared.",
+        "show": "Its length is $\\sqrt{3^2 + 2^2}$."
+      },
+      {
+        "say": "That is the square root of thirteen, a little over three and a half.",
+        "show": "$\\sqrt{13} \\approx 3.61$",
+        "emphasis": [
+          "thirteen"
+        ]
+      },
+      {
+        "show": "In general, the length of (x, y) is $\\sqrt{x^2 + y^2}$.",
+        "hold": {
+          "ms": 3000
+        },
+        "place": "centre",
+        "size": "larger"
+      }
+    ]
+  }
+}

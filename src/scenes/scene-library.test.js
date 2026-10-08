@@ -1,22 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createSceneLibrary, EASE, LIBRARY_DEFAULTS } from './scene-library.js';
-
-/** A context that records what was asked of it. */
-function fakeContext() {
-  const calls = [];
-  const record = name => (...args) => calls.push([name, ...args]);
-  const ctx = {
-    calls,
-    fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '', globalAlpha: 1, lineCap: '', lineJoin: '',
-    save: record('save'), restore: record('restore'), setTransform: record('setTransform'), fillRect: record('fillRect'),
-    beginPath: record('beginPath'), moveTo: record('moveTo'), lineTo: record('lineTo'), stroke: record('stroke'), fill: record('fill'),
-    arc: record('arc'), closePath: record('closePath'), fillText: record('fillText'), setLineDash: record('setLineDash')
-  };
-  return ctx;
-}
+import { fakeCanvasContext } from '../test/fake-canvas-context.js';
 
 const setup = options => {
-  const ctx = fakeContext();
+  const ctx = fakeCanvasContext();
   const lib = createSceneLibrary({ ctx, size: { width: 400, height: 300, dpr: 2 }, theme: { accent: '#ff0000' }, ...options });
   return { ctx, lib };
 };
