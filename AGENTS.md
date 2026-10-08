@@ -108,7 +108,7 @@ current scope; the live Realtime page stays switched off by default. See
 
 ## Testing / build gotchas
 
-- The full unit suite (`npm run test:run`) is large (~2 min). Two paths need
+- The full unit suite (`npm run test:run`) runs for minutes. Two paths need
   the system tools above: `src/core/render/encode-mp4.test.js` hands real bytes
   to `ffmpeg`, and `src/core/render/chamber-paint.test.js` launches Playwright
   Chromium against a live Chamber stage.

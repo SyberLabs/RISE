@@ -77,24 +77,26 @@ describe('Chamber rhythmic visual safety controls', () => {
     const cancel = vi.spyOn(visualCortex, 'cancelPresentation').mockReturnValue(true);
     localStorage.setItem('unrelated-pref', 'preserved');
     const { chamber, container, player } = mount();
-    const button = container.querySelector('#visuals-toggle-btn');
+    container.querySelector('#look-btn').click();
+    const button = container.querySelector('#look-sheet [data-look-visuals="off"]');
 
     expect(button).not.toBeNull();
-    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(button.getAttribute('aria-pressed')).toBe('false');
 
     button.click();
     expect(cancel).toHaveBeenCalledWith('user-disabled');
     expect(chamber.session.visualConfig.visualMode).toBe('off');
-    expect(button.getAttribute('aria-pressed')).toBe('false');
+    expect(button.getAttribute('aria-pressed')).toBe('true');
     await expect(player.handler(700, null, {})).resolves.toMatchObject({
       presented: false,
       reason: 'user-disabled'
     });
 
+    const cancelled = cancel.mock.calls.length;
     button.click();
     expect(chamber.session.visualConfig.visualMode).toBe('interlocution');
-    expect(button.getAttribute('aria-pressed')).toBe('true');
-    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+    expect(cancel).toHaveBeenCalledTimes(cancelled);
     expect(localStorage.getItem('unrelated-pref')).toBe('preserved');
 
     chamber.destroy();
@@ -113,7 +115,7 @@ describe('Chamber rhythmic visual safety controls', () => {
     chamber.destroy();
   });
 
-  it('does not expose the rhythmic kill switch for persistent visual modes', () => {
+  it('does not reach the rhythmic kill switch for persistent visual modes', () => {
     const session = rhythmicSession();
     session.visualConfig = { visualMode: 'focals', focals: { type: 'standard' } };
     const container = document.createElement('div');
@@ -121,6 +123,10 @@ describe('Chamber rhythmic visual safety controls', () => {
     const chamber = new Chamber(container, { session, player: fakePlayer(), autoStart: false });
 
     expect(container.querySelector('#visuals-toggle-btn')).toBeNull();
+    container.querySelector('#look-btn').click();
+    container.querySelector('#look-sheet [data-look-visuals="off"]').click();
+    expect(chamber._direction.mode).toBe('off');
+    expect(chamber.session.visualConfig.visualMode).toBe('focals');
     chamber.destroy();
   });
 });

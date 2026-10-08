@@ -3,8 +3,8 @@
   "title": "Choose the best installed browser voice",
   "lane": "live-sdk",
   "milestone": "Speech",
-  "status": "in_review",
-  "delivery": "merged",
+  "status": "done",
+  "delivery": "accepted",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
@@ -25,6 +25,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/464",
       "note": "chooseVoice in the live voice adapter; LiveHost passes it; __riseLive.voice() under ?measure=1.",
       "date": "2026-10-06"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/product/discussions/2026-10-06-score-speech-service-roadmap.md",
+      "note": "Owner listening on the live release, 2026-10-07: \"the voice is much better\"; \"voice is acceptable\".",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -35,10 +41,14 @@
     {
       "date": "2026-10-06T04:39:32.876Z",
       "summary": "Built and opened as #464; awaiting RDR-008's listen."
+    },
+    {
+      "date": "2026-10-07T12:08:38.212Z",
+      "summary": "Accepted by the owner by ear: the voice is much better, and acceptable."
     }
   ],
-  "updatedAt": "2026-10-06T04:39:32.876Z",
-  "revision": 2,
-  "summary": "The browser voice chooses the best installed voice (natural voices on Edge; Safari keeps its default). Merged with #464; the audible check is RDR-008.",
+  "updatedAt": "2026-10-07T12:08:38.212Z",
+  "revision": 3,
+  "summary": "The browser voice chooses the best installed voice (natural voices on Edge; Safari keeps its default). Accepted by the owner by ear on 2026-10-07: \"voice is acceptable\".",
   "blocker": null
 }

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { test, expect, openHomeNav } from './fixtures.js';
+import { test, expect, openHomeNav, revealChamberControls } from './fixtures.js';
 
 
 async function openExamples(page) {
@@ -34,15 +34,14 @@ test('quiet and energetic examples play distinct scores without saving; sound ca
   await page.waitForTimeout(250);
   await page.keyboard.press('Space');
   await expect(page.locator('#pause-icon')).toBeVisible();
-  await page.mouse.move(640, 700);
-  await expect(page.locator('#chamber-controls')).toHaveCSS('opacity', '1');
+  await revealChamberControls(page);
   await page.locator('#chamber-settings-btn').click();
   await expect(page.locator('#master-volume')).toBeVisible();
   await page.locator('#master-volume').fill('0');
   await expect(page.locator('#volume-value')).toContainText('0%');
   await expect.poll(() => page.evaluate(() => window.__RISE_TEST__?.getAudioEngine()?.config?.masterVolume)).toBe(0);
   await page.locator('#chamber-settings-btn').click();
-  await page.mouse.move(640, 700);
+  await revealChamberControls(page);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => page.evaluate(() => !!window.__RISE_TEST__?.getAudioEngine()?.sessionActive)).toBe(false);

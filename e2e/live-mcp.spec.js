@@ -17,6 +17,7 @@
 import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../src/test/sealed-current.js';
 import { HORIZON_DIVE } from '../src/live/fixtures/black-holes.js';
 import { relayHtml } from '../src/live/hosts/mcp-relay.js';
+import { cardHtml } from '../src/live/hosts/mcp-card.js';
 import { serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { handleMcp } from '../worker/mcp-server.mjs';
 import { expect, test } from './fixtures.js';
@@ -24,11 +25,12 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640 }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin' }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
-    return `<!doctype html><meta charset="utf-8"><title>fake host</title>
+    // A product host's sandbox refuses a <base> (Claude's policy carries base-uri 'self'); the frame inherits this page's policy.
+    return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="base-uri 'self'"><title>fake host</title>
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:${height}px}</style>
-<iframe id="view" sandbox="allow-scripts allow-same-origin" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
+<iframe id="view" sandbox="${sandbox}" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
 <script>
 const CURRENT = ${JSON.stringify(current)};
 const DIVE = ${JSON.stringify(dive)};
@@ -71,17 +73,29 @@ window.addEventListener('message', event => {
 
 async function openHost(page, baseURL, options = {}) {
   const origin = new URL(baseURL).origin;
+  // A product host's origin serves nothing of RISE's: an address the self-contained card still forms root-relative
+  // resolves to the host's sandbox and fails there, as it does in Claude.
+  if (options.selfContained) {
+    await page.route(url => url.origin === origin && url.pathname !== HOST && url.pathname !== '/api/mcp', route => route.fulfill({ status: 404, body: '' }));
+  }
   await page.route('**/api/mcp', async route => {
     const request = route.request();
     const response = await handleMcp(new Request(request.url(), { method: request.method(), headers: request.headers(), body: request.postData() }), { MCP_ENABLED: 'true' });
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
   });
   // `appOrigin` frames RISE from another site than the host page's, as a product host does.
-  const relay = relayHtml({ origin: options.appOrigin ?? origin, path: `/live?embed=mcp&voice=${options.voice ?? 'paced'}` });
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  const path = `/live?embed=mcp&voice=${options.voice ?? 'paced'}`;
+  // `selfContained`: the frame holds RISE's own page, its addresses at `appOrigin` (mcp-card.js), as Claude requires.
+  const relay = options.selfContained
+    ? cardHtml({ origin: options.appOrigin ?? origin, indexHtml: await (await fetch(`${origin}/index.html`)).text(), path })
+    : relayHtml({ origin: options.appOrigin ?? origin, path });
+  // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
+  // frame keeps it because the relay frames RISE's real page.
+  const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
-  // The app is a page in a frame in the relay's frame.
-  return page.frameLocator('#view').frameLocator('#app');
+  // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
+  return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
 }
 
 const log = page => page.evaluate(() => window.__host.log);
@@ -483,6 +497,39 @@ test('once the reading has ended, the display stays, its field holds one frame, 
   await expect(app.getByRole('button', { name: 'Play again', exact: true })).toBeVisible();
 });
 
+test('from the keyboard alone: Play, Pause, the sheet and Play again, with the focus kept on the stage throughout', async ({ page, baseURL }) => {
+  const app = await openHost(page, baseURL, { current: { ...TWO_FIELDS, id: 'one-field', segments: TWO_FIELDS.segments.slice(0, 1) } });
+  const object = app.locator('#rise-stage-controls [data-stage="play"]');
+  const settings = app.getByRole('button', { name: 'Settings', exact: true });
+  const status = app.locator('.rise-stage__status');
+  await app.getByRole('button', { name: 'Play', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  // The poster's Play is gone once pressed; the focus is handed to the object that replaced it.
+  await expect(object).toHaveAttribute('aria-label', 'Pause', { timeout: 10_000 });
+  await expect(object).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(status).toContainText('Paused.');
+  await expect(object).toBeFocused();
+
+  await page.keyboard.press('Tab');
+  await expect(settings).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(app.locator('#rise-settings')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(app.locator('#rise-settings')).toBeHidden();
+  await expect(settings).toBeFocused();
+
+  await page.keyboard.press('Shift+Tab');
+  await expect(object).toBeFocused();
+  await page.keyboard.press('Space');
+  await expect(status).toContainText('Finished', { timeout: 20_000 });
+  await expect(object).toHaveAttribute('aria-label', 'Play again');
+  await expect(object).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(object).toHaveAttribute('aria-label', 'Pause', { timeout: 10_000 });
+  await expect(object).toBeFocused();
+});
+
 /** The Settings sheet's own scroll: a card scrolls nothing inside it ("No nested scrolling"). */
 const sheetScroll = app => app.locator('#rise-settings').evaluate(sheet => sheet.scrollHeight - sheet.clientHeight);
 
@@ -709,4 +756,191 @@ test('an answer without a theme keeps RISE ink and still shows its title over Pl
   const [title, button] = [await posterTitle(app).boundingBox(), await beginButton.boundingBox()];
   expect(title.y + title.height).toBeLessThanOrEqual(button.y);
   await expect.poll(() => backgroundOf(app.locator('body'))).toBe('rgb(6, 5, 26)');
+});
+
+// SCR-002: a Current may name any of the ten looks; the card draws each through its own field.
+const LOOK_FIELDS = {
+  plain: null,
+  gallery: '.chamber-continuous-field :is(canvas, img)',
+  nocturne: '.chamber-continuous-field :is(canvas, img)',
+  garden: '.chamber-genesis',
+  flame: '.chamber-living-flame',
+  signal: '.chamber-attractor',
+  iris: '.chamber-continuous-field :is(canvas, img)',
+  revel: '.chamber-continuous-field :is(canvas, img)',
+  vigil: '.chamber-focal',
+  inlay: '.chamber-continuous-field :is(canvas, img)'
+};
+for (const [look, field] of Object.entries(LOOK_FIELDS)) {
+  test(`a Current in the ${look} look plays in the card with that look's imagery`, async ({ page, baseURL }) => {
+    const errors = [];
+    page.on('pageerror', error => errors.push(error.message));
+    const { theme: _theme, ...answer } = BLACK_HOLES_CURRENT;
+    const current = { ...answer, look, segments: answer.segments.map(({ visual: _visual, ...segment }) => segment) };
+    const app = await openHost(page, baseURL, { current });
+    await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
+    await begin(app);
+    await expectShown(app, 'A black hole is a region of space');
+    if (field) await expect(app.locator(field).first()).toBeAttached({ timeout: 15_000 });
+    else await expect(app.locator('.chamber-continuous-field :is(canvas, img), .chamber-genesis, .chamber-attractor, .chamber-living-flame, .chamber-focal')).toHaveCount(0);
+    // Inlay keeps its imagery and face but never masks the spoken sentence inside one word.
+    if (look === 'inlay') await expect(app.locator('#atom-display.is-mask')).toHaveCount(0);
+    // Intensity is offered only where the field has a verified mutable control: the attractor (SCR-003).
+    await app.getByRole('button', { name: 'Settings', exact: true }).click();
+    const slider = app.getByRole('slider', { name: 'Intensity' });
+    if (look === 'signal') await expect(slider).toBeVisible();
+    else await expect(slider).toBeHidden();
+    expect(errors).toEqual([]);
+  });
+}
+
+// LIVE-010: the self-contained card. RISE's own page is the host's frame, its addresses at another origin
+// (localhost against the host's 127.0.0.1), so modules, styles and content cross origins as in a product host.
+test('the self-contained card plays a Current from another origin, framing nothing', async ({ page, baseURL }) => {
+  const errors = [];
+  const seen = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (['error', 'warning'].includes(message.type())) seen.push(`console.${message.type()}: ${message.text().slice(0, 300)}`); });
+  page.on('requestfailed', request => seen.push(`failed: ${request.url()} ${request.failure()?.errorText ?? ''}`));
+  page.on('response', response => { if (response.status() >= 400) seen.push(`${response.status()}: ${response.url()}`); });
+  // RISE at 127.0.0.1 and the host at localhost: two origins on the one preview server.
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  // Everything the card asks of the host's origin, which in a product host is the sandbox and holds nothing of RISE's.
+  const hostRequests = [];
+  page.on('request', request => { const url = new URL(request.url()); if (url.origin === new URL(baseURL).origin && url.pathname !== HOST && url.pathname !== '/api/mcp') hostRequests.push(url.pathname); });
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: { ...BLACK_HOLES_CURRENT, look: 'signal' } });
+  // What the card did in its sandbox, printed before the first assertion so a failure explains itself.
+  await posterTitle(app).waitFor({ timeout: 15_000 }).catch(() => {});
+  console.log(`[self-contained] errors=${JSON.stringify(errors)} hostRequests=${JSON.stringify(hostRequests)} seen=${JSON.stringify(seen.slice(0, 20))} log=${JSON.stringify((await page.evaluate(() => window.__host.log.map(entry => entry.method ?? (entry.ignored ? 'ignored' : 'reply')))).slice(0, 12))}`);
+  await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
+  await begin(app);
+  await expectShown(app, 'A black hole is a region of space');
+  await expect(app.locator('.chamber-attractor').first()).toBeAttached({ timeout: 15_000 });
+  expect(await app.locator('iframe').count()).toBe(0);
+  // Its code came from RISE's origin, not the host's.
+  const scripts = await page.frameLocator('#view').locator('script[type="module"]').evaluateAll(nodes => nodes.map(node => node.src));
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const src of scripts) expect(src.startsWith(appOrigin)).toBe(true);
+  // Nothing of RISE's was asked of the host's origin.
+  expect(hostRequests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+// A Current of beats (rise.current.v2): a hold passes on its own clock, a shown line is said by no one, and the voice goes on after.
+const SKY_BEATS = {
+  schema: 'rise.current.v2',
+  id: 'sky-beats',
+  title: 'Why the sky is blue',
+  origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
+  look: 'signal',
+  scenes: [{ id: 'field', engine: 'attractor', params: { palette: 'jade', intensity: 0.5 } }, { id: 'flame', engine: 'living-flame', params: { preset: 'violet-nebula', energy: 0.5 } }],
+  beats: [
+    { say: 'Sunlight carries every colour at once.', scene: 'field', emphasis: ['colour'] },
+    { hold: { ms: 1500 }, cue: 'bright' },
+    { show: 'A line nobody says.', hold: { ms: 1200 }, place: 'top', type: 'handwritten' },
+    { say: 'Scattering goes as one over lambda to the fourth.', show: 'Scattering goes as $1/\lambda^4$.', place: 'caption' },
+    { say: 'So blue reaches your eye from every part of the sky.', scene: 'flame' }
+  ]
+};
+
+test('a Current of beats plays in the self-contained card: a hold, a shown line, then the voice again', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: SKY_BEATS });
+  await expect(posterTitle(app)).toHaveText(SKY_BEATS.title);
+  await begin(app);
+  await expectShown(app, 'Sunlight carries every colour');
+  // The beat's emphasis is set on the word it names.
+  await expect(app.locator('#atom-display .is-emphasised')).toHaveText('colour');
+  // Through the hold and the shown line to the last spoken beat, in the time the beats ask for.
+  await expectShown(app, 'A line nobody says');
+  // Placed at the top, in the handwritten face the beat asked for.
+  await expect(app.locator('#atom-display')).toHaveAttribute('data-place', 'top');
+  await expect(app.locator('#atom-display')).toHaveCSS('font-family', /Caveat/u);
+  await expectShown(app, 'Scattering goes as');
+  // Maths typeset by KaTeX, as a caption.
+  await expect(app.locator('#atom-display .katex')).toHaveCount(1);
+  await expect(app.locator('#atom-display')).toHaveAttribute('data-place', 'caption');
+  await expectShown(app, 'So blue reaches your eye');
+  await expect(app.locator('#atom-display')).not.toHaveAttribute('data-place', /./u);
+  // The last beat started the Living Flame scene, from its preset and the scene's macros.
+  await expect(app.locator('.chamber-living-flame')).toBeAttached({ timeout: 15_000 });
+  expect(errors).toEqual([]);
+});
+
+// CC-005: a generated scene runs in a worker the card makes from RISE's own script, and may end its hold early.
+const ORBIT_CODE = [
+  'export const reportsCompletion = true;',
+  'export default function scene(rise) {',
+  '  const { lib } = rise;',
+  '  let now = 0;',
+  '  let cuedAt = null;',
+  '  let ended = false;',
+  '  return {',
+  '    cue() { if (cuedAt === null) cuedAt = now; },',
+  '    frame(t) {',
+  '      now = t;',
+  '      lib.clear();',
+  '      const axes = lib.axes({ x: [-1, 1], y: [-1, 1] });',
+  '      lib.point(axes, [Math.cos(t / 400) * 0.7, Math.sin(t / 400) * 0.7], { radius: 14 });',
+  '      if (!ended && cuedAt !== null && t - cuedAt >= 500) { ended = true; rise.done(); }',
+  '    }',
+  '  };',
+  '}'
+].join('\n');
+
+const sceneBeats = (code, hold) => ({
+  schema: 'rise.current.v2',
+  id: 'orbit',
+  title: 'A point going round',
+  origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
+  look: 'signal',
+  scenes: [{ id: 'orbit', code }],
+  beats: [
+    { say: 'A point.', scene: 'orbit' },
+    { hold, cue: 'settle' },
+    { say: 'It came to rest.' }
+  ]
+});
+
+/** Milliseconds from the first beat on screen to the beat after the hold. */
+async function heldFor(app) {
+  await expectShown(app, 'A point.');
+  const from = Date.now();
+  await expectShown(app, 'It came to rest', 20_000);
+  return Date.now() - from;
+}
+
+test('a generated scene draws in the self-contained card and ends its hold when it says it is done', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const current = sceneBeats(ORBIT_CODE, { ms: 6000, maxMs: 8000 });
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await begin(app);
+  await expect(app.locator('canvas.chamber-scene')).toBeAttached({ timeout: 15_000 });
+  // The voice's first beat (about half a second paced) and a hold the scene ends 500 ms after its cue: far short of the 6 s it would run.
+  expect(await heldFor(app)).toBeLessThan(5000);
+  expect(errors).toEqual([]);
+});
+
+test('a generated scene that throws gives way to the look’s field, and its hold runs on its ms', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const broken = ORBIT_CODE.replace('now = t;', 'now = t; if (t >= 0) throw new TypeError("the scene broke");');
+  const current = sceneBeats(broken, { ms: 1500, maxMs: 8000 });
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await begin(app);
+  const held = await heldFor(app);
+  // At its ms (1.5 s, after a beat of about half a second), never at its maxMs (8 s).
+  expect(held).toBeGreaterThanOrEqual(1500);
+  expect(held).toBeLessThan(6000);
+  // The signal look's field stands in for the scene, whose canvas is gone.
+  await expect(app.locator('.chamber-attractor').first()).toBeAttached({ timeout: 15_000 });
+  await expect(app.locator('canvas.chamber-scene')).toHaveCount(0, { timeout: 5_000 });
+  expect(errors).toEqual([]);
 });

@@ -276,8 +276,9 @@ describe('Deployment policy allows what the adapters call', () => {
       // Fetch targets are the const endpoint/base declarations, not
       // documentation links in comments
       for (const [, host] of source.matchAll(/^const [A-Z_]+ = 'https:\/\/([a-z0-9.-]+)/gim)) {
-        // Image hosts are covered by img-src https:; only JSON APIs
-        // need connect-src. IIIF *image* bases are excluded.
+        // Image hosts belong to img-src (held by
+        // src/core/csp-image-hosts.test.js); only JSON APIs need
+        // connect-src. IIIF *image* bases are excluded.
         if (/^www\.artic\.edu$|^iiif\./.test(host)) continue;
         expect(connectSrc, `${name} calls ${host}, absent from connect-src`)
           .toContain(host);

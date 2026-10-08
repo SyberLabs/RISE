@@ -9,6 +9,8 @@ import { parsePageCollectionId, sampleWorkEngine } from '../../visuals/work-engi
 import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../../visuals/work-engine-field.js';
 import { MemoryCore } from '../../core/memory.js';
 import { AttractorField } from '../../visuals/attractor.js';
+import { resolveTypeFace, stepFontSize } from '../../core/typography.js';
+import { loadMath, renderMath, splitMath } from '../../core/math-typeset.js';
 import { NightStreaks } from '../../visuals/night-streaks.js';
 import { KleeField } from '../../visuals/klee-field.js';
 import { VisualFieldDirector } from '../../visuals/visual-field-director.js';
@@ -68,14 +70,14 @@ export const ICONS = Object.freeze({
     + 'M12 19.5l-3.2-3.2M12 19.5l3.2-3.2"/>'),
   kaleidoscope: svg('<path d="M12 3.5v17M4.64 7.75l14.72 8.5M4.64 16.25l14.72-8.5"/>'
     + '<circle cx="12" cy="12" r="2.2"/>'),
-  visuals: svg('<path d="M12 4.6 19.4 12 12 19.4 4.6 12Z"/>'),
   fullscreen: svg('<path d="M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15"/>'),
   spark: svg('<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7.1 7.1l2.1 2.1M14.8 14.8l2.1 2.1'
     + 'M16.9 7.1l-2.1 2.1M9.2 14.8l-2.1 2.1"/>'),
   check: svg('<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'),
   arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
   dive: svg('<path d="M4.5 9.5c2.5-2 5-2 7.5 0s5 2 7.5 0"/>'
-    + '<path d="M4.5 15c2.5-2 5-2 7.5 0s5 2 7.5 0"/>')
+    + '<path d="M4.5 15c2.5-2 5-2 7.5 0s5 2 7.5 0"/>'),
+  pace: svg('<path d="M4.5 17a7.5 7.5 0 1 1 15 0"/><path d="m12 17 3.6-5.2"/>')
 });
 
 import { livingTextAppearance, ensureTextContrast, scoreAtoms, planInterlocution } from '../../core/conductor.js';
@@ -95,7 +97,8 @@ import {
 import { hasNextLibraryDivision } from '../../core/reading-continuation.js';
 import { READING_PACE } from '../../core/reading-limits.js';
 import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
-import { applyChamberAccent, resolveChamberAccent } from '../../core/chamber-accent.js';
+import { beginStep } from '../../core/begin-steps.js';
+import { clearChromeTheme, paintChromeTheme } from '../../core/chrome-theme.js';
 import {
   estimateGlyphBox,
   fitWordAtomPx,
@@ -108,21 +111,29 @@ import { resolveTextMaterialCapability } from '../../core/chamber-text-material.
 import { FitMaskRuntime } from '../../core/fit-mask-runtime.js';
 import { resolveSessionWordFill } from '../../core/visual-selection.js';
 import { sessionColorTheme, sessionColorThemeId } from '../../core/session-presentation.js';
-import { themeEngine, themedFlameLookup } from '../../core/theme-engine-map.js';
+import { flameComposition, themeEngine, themedFlameLookup } from '../../core/theme-engine-map.js';
 import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
+import { styleOf } from '../../core/styles.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../../core/jev-sequence.js';
 import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig, validateFlameRecipe } from '../../core/flame-recipe.js';
-import { saveFlameScene } from '../../core/flame-scenes.js';
 import { directionStateFor, ensureDirector, followProgram, permittedSourceDigests } from '../../core/passage-visuals/reading-state.js';
-import { mutateRecipe } from '../../visuals/living-flame/flame-math.js';
-import { FLAME_PRESET_IDS, flamePreset } from '../../visuals/living-flame/flame-presets.js';
-import { JEV_COLOR_NAMES, JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
-import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
+import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
+import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
+import { SOUND_GROUPS, soundOf } from '../../audio/sound-list.js';
 import { connectionState } from '../../core/ai-connection.js';
-import { CHAMBER_STREAM_FACES } from '../../core/chamber-stream-face.js';
+import { LOOKS, applyLook, lookOfSession } from '../../core/looks.js';
+import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../../core/visual-control-contract.js';
+import { manifestFor } from '../../scenes/manifests.js';
+import { createFlashWatch, createSceneRuntime, SCENE_VISUAL_MANIFEST } from '../../scenes/scene-runtime.js';
+import { VisualFlashGate } from '../../core/visual-safety.js';
+import { mountSceneLayer } from './scene-layer.js';
 import './Chamber.css';
+
+const RHYTHMS = Object.freeze([['phrase', 'Phrase'], ['sentence', 'Sentence'], ['word', 'Word']]);
+const RHYTHM_UNAVAILABLE = 'a new rhythm recuts the text, and a reading cannot yet reopen at your place';
+const LOOK_UNAVAILABLE = 'this reading opened without a gallery, and a reading cannot yet reopen in another look at your place';
 
 /**
  * THE SEAM, AS THE CHAMBER IS WILLING TO DRAW IT.
@@ -175,10 +186,32 @@ const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
 /** What a reader is told when the Player could not go on (onPlayerError). */
 const READING_HELD_NOTICE = 'The reading could not continue here. Press play to try again.';
 
+/**
+ * The words of what is shown, with its formulas each as one word (math-typeset.js) and a beat's
+ * emphasis marked on the words it names, whatever their punctuation or case.
+ */
+/** The reader's size, stepped by a beat's `size` when it has one; the one owner of an atom's size. */
+function beatFontSize(base, beat) {
+  return resolveFontSize(beat?.size ? stepFontSize(base, beat.size) : base);
+}
+
+function shownWords(content, emphasis) {
+  const wanted = new Set((emphasis ?? []).map(word => word.toLowerCase()));
+  const bare = word => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
+  const words = [];
+  for (const part of splitMath(content)) {
+    if (part.kind === 'math') words.push({ text: part.value, emphasised: false, math: true, display: part.display });
+    else for (const word of splitWords(part.value)) words.push(wanted.has(bare(word.text)) ? { ...word, emphasised: true } : word);
+  }
+  return words;
+}
+
 export class Chamber {
   constructor(container, options = {}) {
     this.container = container;
     this.session = options.session;
+    // A reading that shows maths fetches its typesetter as it opens, not at its first formula (math-typeset.js).
+    if (this.session?.hasMath) void loadMath().catch(() => {});
     this.player = options.player;
     // A host that runs the reading itself (a live Current, whose Player is
     // started by the runtime once this view is up) wants the reading shown
@@ -268,6 +301,9 @@ export class Chamber {
      */
     this.offersVisualsToggle = this.hasRhythmicVisuals
         && !isContinuousPresentation(this.session?.visualConfig?.interlocution?.presentation);
+    // Only a reading that opened with a Gallery has the cortex identity and
+    // the host a Gallery look needs; the fields mount anywhere.
+    this.opensWithGallery = this.hasRhythmicVisuals && !this.offersVisualsToggle;
     /**
      * A dive looks under the passage the reading is at, so it is offered only
      * where something was written to lie there. An ordinary reading carries
@@ -308,7 +344,7 @@ export class Chamber {
     // object so the player shares the same track. Purely additive — a null
     // track means the raw platform behavior everywhere.
     this.semanticTrack = null;
-    const wantsLivingText = this.session?.visualConfig?.livingText?.enabled;
+    const wantsLivingText = this.livingTextWanted();
     const wantsResponsive = this.session?.visualConfig?.visualMode === 'interlocution'
       && this.session?.visualConfig?.interlocution?.responsive;
     if ((wantsLivingText || wantsResponsive) && Array.isArray(this.session?.atoms)) {
@@ -457,6 +493,7 @@ export class Chamber {
     this.bindVisualViewport();
     this.initializeDisplay();
     this.applyChamberMask();
+    beginStep('chamber:mounted');
 
     // A spatial reading opens as a page (SPATIAL-CHAMBER-SPEC §3).
     // projection === 'page' is parked in production UI; e2e/page-suspend.spec.js
@@ -469,12 +506,15 @@ export class Chamber {
         this.togglePageMode(true);
       }, 120);
     } else if (this.autoStart && !this.hostPlays) {
-      // Auto-start if requested (skip pre-session screen). Tracked and
-      // Page-aware: a reader who opens the Page inside this delay must
-      // not have a stream start underneath them when it fires.
+      // Auto-start if requested (skip pre-session screen), in a task of its
+      // own so the router has unhidden the view first; the view fades in over
+      // the field already showing. No fixed wait: Begin to first word is R2's
+      // budget (RDR-015). Tracked and Page-aware: a reader who opens the Page
+      // before it fires must not have a stream start underneath them.
       this._autoStartTimer = setTimeout(async () => {
         this._autoStartTimer = null;
         if (this._destroyed || this.pageModeActive) return;
+        beginStep('chamber:autostart');
 
         // A READING MUST NOT BEGIN INTO A CONTEXT THAT IS NOT RUNNING.
         //
@@ -517,13 +557,14 @@ export class Chamber {
         // Fullscreen is the reader's choice (the Fullscreen control), never
         // a side effect of starting.
         if (this.player) {
+          beginStep('chamber:play');
           this.player.play();
           if (this.audioEngine) {
             console.log('[Chamber] Triggering atmospheric swell (auto-start)');
             this.audioEngine.fadeInSession(1.2);
           }
         }
-      }, 500); // Relaxed timing for engine stability
+      }, 0);
     }
   }
 
@@ -617,28 +658,29 @@ export class Chamber {
               <span class="icon pause-icon hidden" id="pause-icon">${ICONS.pause}</span>
             </button>
 
-            ${this.offersVisualsToggle ? `
-              <button class="control-btn rhythmic-visuals-toggle" id="visuals-toggle-btn"
-                type="button" aria-pressed="true" aria-label="Disable rhythmic visuals"
-                title="Disable rhythmic visuals">
-                <span class="icon" aria-hidden="true">${ICONS.visuals}</span>
-                <span class="control-label">Visuals</span>
-              </button>
-            ` : ''}
+            <!-- No whitespace between these: a newline in the source is a
+                 space in the bar, and with one on each side of the slash the
+                 two halves of the clock read as three separate things. -->
+            <span class="time-display" id="time-display"><span
+              id="time-current">0:00</span><span
+              class="time-separator" aria-hidden="true">/</span><span
+              id="time-total">0:00</span></span>
 
-            ${['jev', 'jev-sample'].includes(this.session?.origin?.experience)
-              && this.session?.visualProgram?.segments?.length > 1
-              && this.session?.visualConfig?.visualMode === 'interlocution'
-              && isContinuousPresentation(this.session.visualConfig.interlocution?.presentation)
-              && this.session?.projection !== 'page' ? `
-              <button class="control-btn jev-next-scene" id="jev-next-scene" type="button" disabled
-                aria-label="Bring the next visual scene forward"
-                title="Bring the next visual scene forward">
-                <span class="icon" aria-hidden="true">${ICONS.spark}</span>
-                <span class="control-label">Next scene</span>
-              </button>
-              <span class="jev-scene-status" id="jev-scene-status" role="status"></span>
-            ` : ''}
+            <!-- Seven buttons, and Dive where the text has threads. Everything
+                 that changes the picture is in the Look sheet, and the pace
+                 in the Rhythm & pace sheet; Page view's turn and Elongate
+                 exist only in Page view. -->
+            <button class="control-btn look-btn" id="look-btn" type="button"
+              aria-label="Look" aria-haspopup="dialog" aria-expanded="false" aria-controls="look-sheet">
+              <span class="icon" aria-hidden="true">${ICONS.spark}</span>
+              <span class="control-label">Look</span>
+            </button>
+
+            <button class="control-btn pace-btn" id="pace-btn" type="button"
+              aria-label="${this._paceName()}" aria-haspopup="dialog" aria-expanded="false" aria-controls="pace-sheet">
+              <span class="icon" aria-hidden="true">${ICONS.pace}</span>
+              <span class="control-label" id="pace-label">${this._paceLabel()}</span>
+            </button>
 
             <!-- PAGE TURN, IN THE BAR THAT ALREADY EXISTS.
                  The Page Reader used to float its own pager above this
@@ -692,39 +734,6 @@ export class Chamber {
               <span class="icon" aria-hidden="true">${ICONS.fullscreen}</span>
               <span class="control-label">Fullscreen</span>
             </button>
-
-            ${this._direction && this._offersVisualDrawer() ? `
-              <button class="control-btn visual-direction-btn" id="visual-direction-btn" type="button"
-                aria-label="Visual direction" aria-expanded="false" aria-controls="visual-direction-panel"
-                title="Visuals">
-                <span class="icon" aria-hidden="true">✺</span>
-                <span class="control-label">Visuals</span>
-              </button>
-            ` : ''}
-
-            ${this.hasAttractorField ? `
-              <button class="control-btn kaleidoscope-toggle" id="kaleidoscope-btn"
-                type="button" aria-pressed="false" aria-label="Fold the field into a kaleidoscope"
-                title="Kaleidoscope (K)">
-                <span class="icon" aria-hidden="true">${ICONS.kaleidoscope}</span>
-                <span class="control-label">Kaleidoscope</span>
-              </button>
-            ` : ''}
-
-            <!-- No whitespace between these: a newline in the source is a
-                 space in the bar, and with one on each side of the slash the
-                 two halves of the clock read as three separate things. -->
-            <span class="time-display" id="time-display"><span
-              id="time-current">0:00</span><span
-              class="time-separator" aria-hidden="true">/</span><span
-              id="time-total">0:00</span></span>
-
-            ${['jev', 'jev-sample'].includes(this.session?.origin?.experience) ? `
-              <button class="control-btn jev-look-btn" id="jev-look-btn" type="button"
-                aria-label="Change Jev look and sound" aria-expanded="false" aria-controls="jev-look-panel">
-                <span class="icon" aria-hidden="true">${ICONS.spark}</span><span class="control-label">Look</span>
-              </button>
-            ` : ''}
 
             <button class="control-btn chamber-settings-btn" id="chamber-settings-btn"
               type="button" aria-label="Settings" title="Settings"
@@ -811,57 +820,8 @@ export class Chamber {
         `}
 
         <div class="chamber-settings-overlay" id="chamber-settings-overlay" hidden></div>
-        <div class="visual-direction-panel" id="visual-direction-panel" role="group"
-          aria-label="Visual direction" hidden></div>
-        ${['jev', 'jev-sample'].includes(this.session?.origin?.experience) ? `
-          <div class="jev-look-panel" id="jev-look-panel" role="group" aria-label="Jev look and sound" hidden>
-            <label>Stream face
-              <select name="jev-face">
-                <option value="authored">Generated</option>
-                ${CHAMBER_STREAM_FACES.map(face => `<option value="${face.id}">${face.label}</option>`).join('')}
-              </select>
-            </label>
-            <label>Text size
-              <select name="jev-font-size">
-                <option value="authored">Generated</option>
-                ${FONT_SIZE_CHIPS.filter(chip => chip.fontSize !== 'fit' || session?.chunkMode === 'word')
-                  .map(chip => `<option value="${chip.fontSize}">${chip.label}</option>`).join('')}
-              </select>
-            </label>
-            <label>Text
-              <span class="jev-look-choice"><span class="jev-look-swatch" id="jev-text-swatch"
-                style="background: ${sessionColorTheme(session)?.text || JEV_INKS.classic}"></span>
-                <select name="jev-text-color"><option value="authored">Generated</option>
-                  ${Object.entries(JEV_COLOR_NAMES).map(([id, name]) => `<option value="${id}">${name.ink}</option>`).join('')}
-                </select>
-              </span>
-            </label>
-            <label>Backdrop
-              <span class="jev-look-choice"><span class="jev-look-swatch" id="jev-background-swatch"
-                style="background: ${sessionColorTheme(session)?.background || JEV_PALETTES.classic.background}"></span>
-                <select name="jev-background-color"><option value="authored">Generated</option>
-                  ${Object.entries(JEV_COLOR_NAMES).map(([id, name]) => `<option value="${id}">${name.ground}</option>`).join('')}
-                </select>
-              </span>
-            </label>
-            <label>Visuals
-              <select name="jev-visual-strength">
-                <option value="authored">Generated</option><option value="soft">Soft</option>
-              </select>
-            </label>
-            <label>Sound
-              <select name="jev-soundscape">
-                <option value="authored">Generated</option><option value="none">Silence</option>
-                ${JEV_AUDIO_IDS.map(id => `<option value="${id}">${id.split('-').map(word => word[0].toUpperCase() + word.slice(1)).join(' ')}</option>`).join('')}
-              </select>
-            </label>
-            <label>Volume <output id="jev-volume-value">${Math.round((this.getSettings()?.masterVolume ?? 0.75) * 100)}%</output>
-              <input name="jev-volume" type="range" min="0" max="100" step="1"
-                value="${Math.round((this.getSettings()?.masterVolume ?? 0.75) * 100)}"
-                aria-label="Reading volume" />
-            </label>
-          </div>
-        ` : ''}
+        ${this.chromeless ? '' : this.renderLookSheet()}
+        ${this.chromeless ? '' : this.renderPaceSheet()}
 
         ${this.chromeless ? '' : `
         <!-- Custom Exit Confirmation Overlay -->
@@ -879,6 +839,176 @@ export class Chamber {
         `}
       </div>
     `;
+  }
+
+  /**
+   * THE LOOK SHEET: one dialog for everything that changes the picture, in
+   * every reading the reader started. A control appears only where a live
+   * path for it exists today; what depends on the moment (the field on
+   * screen, the direction mode) is settled when the sheet opens.
+   */
+  renderLookSheet() {
+    const session = this.session || {};
+    const capital = id => id[0].toUpperCase() + id.slice(1);
+    const volume = Math.round((this.getSettings()?.masterVolume ?? 0.75) * 100);
+    const offersHold = this._direction?.eligibility?.canFollow === true;
+    const offersOff = Boolean(this._direction && this._offersVisualDrawer()) || this.offersVisualsToggle;
+    const offersNextScene = ['jev', 'jev-sample'].includes(session.origin?.experience)
+      && session.visualProgram?.segments?.length > 1
+      && session.visualConfig?.visualMode === 'interlocution'
+      && isContinuousPresentation(session.visualConfig.interlocution?.presentation)
+      && session.projection !== 'page';
+    return `
+        <div class="look-sheet" id="look-sheet" role="dialog" aria-modal="true"
+          aria-labelledby="look-sheet-title" hidden>
+          <div class="look-sheet-head">
+            <h2 class="look-sheet-title" id="look-sheet-title">Look</h2>
+            <span class="look-sheet-name" id="look-sheet-name"></span>
+            <button type="button" class="look-sheet-close" id="look-sheet-close" aria-label="Close Look">
+              <span class="icon" aria-hidden="true">${ICONS.exit}</span>
+            </button>
+          </div>
+          <div class="look-sheet-row">
+            <div class="look-chips" role="group" aria-label="Looks">
+              ${LOOKS.filter(look => this._lookOffered(look)).map(look => `<button type="button" class="look-chip"
+                data-look-id="${look.id}" aria-pressed="false">${look.name}</button>`).join('')}
+            </div>
+            <p class="look-sheet-note" id="look-unavailable-note" hidden>Gallery looks open from Reader setup for now: a reading cannot yet reopen in another look at your place.</p>
+          </div>
+          <div class="look-sheet-row">
+            <span class="look-sheet-label" id="look-colour-label">Colour</span>
+            <div class="look-colours" role="group" aria-labelledby="look-colour-label">
+              ${Object.entries(JEV_PALETTES).map(([id, palette]) => `<button type="button" class="look-colour"
+                data-look-colour="${id}" aria-pressed="false" aria-label="${capital(id)}" title="${capital(id)}"
+                style="--swatch-bg:${palette.background};--swatch-accent:${palette.accent}"></button>`).join('')}
+            </div>
+          </div>
+          <div class="look-sheet-row">
+            <span class="look-sheet-label" id="look-size-label">Size</span>
+            <div class="look-chips" role="group" aria-labelledby="look-size-label">
+              ${FONT_SIZE_CHIPS.filter(chip => chip.fontSize !== 'fit' || session.chunkMode === 'word')
+                .map(chip => `<button type="button" class="look-chip" data-look-size="${chip.fontSize}"
+                  aria-pressed="false">${chip.label}</button>`).join('')}
+            </div>
+          </div>
+          <div class="look-sheet-row look-sheet-sound">
+            <label class="look-sheet-label" for="look-sound">Sound</label>
+            <select id="look-sound" name="look-sound">
+              <option value="authored">As written</option>
+              ${SOUND_GROUPS.map(group => {
+                const options = group.entries.map(sound => `<option value="${sound.id}">${escapeHtml(sound.name)}</option>`).join('');
+                return group.id === 'silence' ? options : `<optgroup label="${group.label}">${options}</optgroup>`;
+              }).join('')}
+            </select>
+            <label class="look-sheet-label" for="look-volume">Volume
+              <output id="look-volume-value">${volume}%</output></label>
+            <input id="look-volume" name="look-volume" type="range" min="0" max="100" step="1" value="${volume}" />
+          </div>
+          <div class="look-sheet-row" id="look-vivid-row" hidden>
+            <label class="look-sheet-label" for="look-vivid">Visuals</label>
+            <div class="look-vivid">
+              <span aria-hidden="true">Calmer</span>
+              <input id="look-vivid" name="look-vivid" type="range" min="0" max="100" step="1" value="50" />
+              <span aria-hidden="true">Vivid</span>
+            </div>
+          </div>
+          ${offersHold || offersOff ? `
+            <div class="look-chips" role="group" aria-label="Visuals">
+              ${offersHold ? '<button type="button" class="look-chip" data-look-visuals="hold" aria-pressed="false">Hold this scene</button>' : ''}
+              ${offersOff ? '<button type="button" class="look-chip" data-look-visuals="off" aria-pressed="false">Visuals off</button>' : ''}
+            </div>
+          ` : ''}
+          <div class="look-direction" id="look-direction"></div>
+          ${this.hasAttractorField ? `
+            <button type="button" class="look-chip kaleidoscope-toggle" id="kaleidoscope-btn"
+              aria-pressed="false" aria-label="Fold the field into a kaleidoscope" title="Kaleidoscope (K)">
+              <span class="icon" aria-hidden="true">${ICONS.kaleidoscope}</span><span>Kaleidoscope</span>
+            </button>
+          ` : ''}
+          ${offersNextScene ? `
+            <button type="button" class="look-chip jev-next-scene" id="jev-next-scene" disabled
+              aria-label="Bring the next visual scene forward" title="Bring the next visual scene forward">
+              <span class="icon" aria-hidden="true">${ICONS.spark}</span><span>Next scene</span>
+            </button>
+            <span class="jev-scene-status" id="jev-scene-status" role="status"></span>
+          ` : ''}
+          <button type="button" class="look-link" data-vd="lab" hidden>Edit in Visual Lab ›</button>
+        </div>`;
+  }
+
+  /**
+   * RHYTHM & PACE, IN THE READING. Pace changes live, as the arrow keys change
+   * it. A rhythm recuts the text, which a reading in progress cannot do, so
+   * the others are shown with that reason.
+   */
+  renderPaceSheet() {
+    return `
+        <div class="look-sheet pace-sheet" id="pace-sheet" role="dialog" aria-modal="true"
+          aria-labelledby="pace-sheet-title" hidden>
+          <div class="look-sheet-head">
+            <h2 class="look-sheet-title" id="pace-sheet-title">Rhythm &amp; pace</h2>
+            <button type="button" class="look-sheet-close" id="pace-sheet-close" aria-label="Close Rhythm and pace">
+              <span class="icon" aria-hidden="true">${ICONS.exit}</span>
+            </button>
+          </div>
+          <div class="look-sheet-row">
+            <span class="look-sheet-label" id="pace-rhythm-label">Rhythm</span>
+            <div class="look-chips" role="group" aria-labelledby="pace-rhythm-label">
+              ${RHYTHMS.map(([id, label]) => this.session?.chunkMode === id
+                ? `<button type="button" class="look-chip" data-rhythm="${id}" aria-pressed="true">${label}</button>`
+                : `<button type="button" class="look-chip" data-rhythm="${id}" aria-pressed="false" disabled
+                  aria-label="${label}, unavailable: ${RHYTHM_UNAVAILABLE}" title="${RHYTHM_UNAVAILABLE}">${label}</button>`).join('')}
+            </div>
+            <p class="look-sheet-note">A new rhythm recuts the text, so it is chosen in Reader setup.</p>
+          </div>
+          <div class="look-sheet-row">
+            <label class="look-sheet-label" for="pace-wpm">Pace
+              <output id="pace-wpm-value">${this.currentWpm} wpm</output></label>
+            <input id="pace-wpm" name="pace-wpm" type="range" min="${READING_PACE.min}" max="${READING_PACE.max}"
+              step="10" value="${this.currentWpm}" aria-valuetext="${this.currentWpm} words per minute" />
+          </div>
+        </div>`;
+  }
+
+  /** What the bar's pace button reads: the rhythm and the pace, or the pace alone. */
+  _paceLabel() {
+    const rhythm = RHYTHMS.find(([id]) => id === this.session?.chunkMode)?.[1];
+    return rhythm ? `${rhythm} · ${this.currentWpm}` : `${this.currentWpm} wpm`;
+  }
+
+  _paceName() {
+    const rhythm = RHYTHMS.find(([id]) => id === this.session?.chunkMode)?.[1];
+    return `Rhythm and pace: ${rhythm ? `${rhythm}, ` : ''}${this.currentWpm} words per minute`;
+  }
+
+  _syncPace() {
+    const label = this.container.querySelector('#pace-label');
+    if (label) label.textContent = this._paceLabel();
+    this.container.querySelector('#pace-btn')?.setAttribute('aria-label', this._paceName());
+    const output = this.container.querySelector('#pace-wpm-value');
+    if (output) output.textContent = `${this.currentWpm} wpm`;
+    const range = this.container.querySelector('[name="pace-wpm"]');
+    if (range) {
+      range.value = String(this.currentWpm);
+      range.setAttribute('aria-valuetext', `${this.currentWpm} words per minute`);
+    }
+  }
+
+  /** Whether this screen and this rhythm may offer a look; a look that cuts the text is offered only in its own rhythm. */
+  _lookOffered(look) {
+    const width = look.maxViewportWidth;
+    if (width && window.matchMedia?.(`(max-width: ${width}px)`)?.matches !== true) return false;
+    return !look.config.chunkMode || look.config.chunkMode === this.session?.chunkMode;
+  }
+
+  /** Whether a look's field is a Gallery pool, which only the cortex can hold. */
+  _lookDrawsGallery(look) {
+    return look.config.visualInterlocution.visualMode === 'interlocution';
+  }
+
+  /** A Gallery look in a reading that opened without one would need the reading reopened, which no path does yet. */
+  _lookNeedsReopen(look) {
+    return this._lookDrawsGallery(look) && !this.opensWithGallery;
   }
 
   applyChamberStreamFace() {
@@ -909,6 +1039,11 @@ export class Chamber {
 
   applySessionColors() {
     const colors = this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session);
+    // The page's chrome follows the theme, unless a host draws the chrome around this reading.
+    if (!this.chromeless) {
+      if (colors) paintChromeTheme(document.documentElement, colors.accent, this);
+      else clearChromeTheme(document.documentElement, this);
+    }
     if (!colors && !this._jevLook?.textColor && !this._jevLook?.backgroundColor) return;
     const accent = colors?.accent || JEV_PALETTES.classic.accent;
     const hex = accent.slice(1);
@@ -973,20 +1108,6 @@ export class Chamber {
     fail.hidden = allowlisted && atomDisplay?.dataset.chamberFace === requested;
   }
 
-  applyChamberAccent() {
-    return applyChamberAccent(
-      document.documentElement,
-      this.getSettings()?.chamberAccent
-    );
-  }
-
-  _reportAccentApply(requested) {
-    const fail = this.container.querySelector('#chamber-accent-fail');
-    if (!fail) return;
-    const took = this.applyChamberAccent();
-    fail.hidden = took && resolveChamberAccent(requested) === requested;
-  }
-
   chamberMaskApplies() {
     return this._textMaterialCapabilityContext().capability.maskActive;
   }
@@ -1019,8 +1140,7 @@ export class Chamber {
       visualMode: visualConfig?.visualMode,
       presentation,
       wordFill: visualConfig?.interlocution?.wordFill,
-      wordFillDeclared: visualConfig?.interlocution?.wordFillDeclared,
-      legacyMask: settings.chamberMask === true
+      wordFillDeclared: visualConfig?.interlocution?.wordFillDeclared
     };
     return {
       capability: resolveTextMaterialCapability(input),
@@ -1089,7 +1209,6 @@ export class Chamber {
     });
     // In-session controls
     const playPauseBtn = this.container.querySelector('#play-pause-btn');
-    const visualsToggleBtn = this.container.querySelector('#visuals-toggle-btn');
     this.container.querySelector('#jev-next-scene')?.addEventListener('click', () => {
       void this.advanceJevScene();
     });
@@ -1150,28 +1269,11 @@ export class Chamber {
       this.audioEngine?.playHiss();
       this.toggleKaleidoscope();
     });
-    visualsToggleBtn?.addEventListener('click', () => {
-      this.audioEngine?.playHiss();
-      this.toggleRhythmicVisuals();
-    });
     settingsBtn?.addEventListener('click', () => {
-      this.closeJevLook();
+      this.closeLookSheet(false);
+      this._closeSheet('pace', false);
       this.audioEngine?.playHiss();
       this.toggleSettings();
-    });
-    this.container.querySelector('#jev-look-btn')?.addEventListener('click', () => {
-      this.closeSettings();
-      this.toggleJevLook();
-    });
-    this.container.querySelectorAll('#jev-look-panel select').forEach(select => {
-      select.addEventListener('change', () => this.changeJevLook(select.name, select.value));
-    });
-    this.container.querySelector('[name="jev-volume"]')?.addEventListener('input', event => {
-      const volume = Number(event.target.value);
-      if (!Number.isInteger(volume) || volume < 0 || volume > 100) return;
-      this.setVolume(volume / 100);
-      const output = this.container.querySelector('#jev-volume-value');
-      if (output) output.textContent = `${volume}%`;
     });
     exitBtn?.addEventListener('click', () => {
       this.audioEngine?.playHiss();
@@ -1259,7 +1361,8 @@ export class Chamber {
     });
 
     this.attachBandMove();
-    this.attachVisualDrawer();
+    this.attachLookSheet();
+    this.attachPaceSheet();
 
     // Player events
     if (this.player) {
@@ -1446,6 +1549,8 @@ export class Chamber {
   handleKeyboard(e) {
     const settingsOverlay = this.container.querySelector('#chamber-settings-overlay');
     if (settingsOverlay && !settingsOverlay.hidden) return;
+    // The sheets are modal: their own controls own the keys while one is open.
+    if (this.container.querySelector('#look-sheet:not([hidden]), #pace-sheet:not([hidden])')) return;
 
     // Don't let spacebar trigger play/pause while user is typing in a field
     const tag = document.activeElement?.tagName;
@@ -1668,6 +1773,8 @@ export class Chamber {
     // Initialize the growing Klee field if in genesis mode
     this.initializeGenesis();
 
+    this.initializeLivingFlame();
+
     // Behind-stream rhythmic: imagery presents beneath the reading text,
     // so the text keeps a glass tile for legibility over the imagery
     // (the same pane Genesis uses — one grammar, one implementation).
@@ -1688,7 +1795,9 @@ export class Chamber {
     this._jevCurrentAtom = atom || null;
     const button = this.container.querySelector('#jev-next-scene');
     if (!button) return;
+    // Without its schedule (a look chosen, or the scene held) there is no next scene to bring.
     const visualsAllowed = !this.pageModeActive
+      && Boolean(this._visualSchedule)
       && this.player?.state === 'playing'
       && this.session?.jevSceneShifted !== true
       && this.session?.visualConfig?.visualMode === 'interlocution'
@@ -1803,71 +1912,368 @@ export class Chamber {
     return `Direction: ${label}${unavailable ? ' — Jev is unavailable, so visuals follow the text locally' : ''}`;
   }
 
-  attachVisualDrawer() {
-    const button = this.container.querySelector('#visual-direction-btn');
-    const panel = this.container.querySelector('#visual-direction-panel');
-    if (!button || !panel) return;
-    button.addEventListener('click', () => this.toggleVisualDrawer());
-    panel.addEventListener('change', (event) => {
-      if (event.target.name === 'vd-mode') this.setVisualDirectionMode(event.target.value);
-      if (event.target.type === 'range') this._visualSliderDragging = false;
+  attachLookSheet() {
+    const button = this.container.querySelector('#look-btn');
+    const sheet = this.container.querySelector('#look-sheet');
+    if (!button || !sheet) return;
+    button.addEventListener('click', () => this.toggleLookSheet());
+    sheet.querySelector('#look-sheet-close')?.addEventListener('click', () => this.closeLookSheet());
+    sheet.addEventListener('keydown', event => this._sheetKeydown(event, sheet, 'look'));
+    sheet.addEventListener('click', (event) => {
+      const target = event.target.closest?.('button');
+      if (!target || target.disabled) return;
+      const { lookId, lookColour, lookSize, lookVisuals, vd } = target.dataset;
+      if (lookId) this.chooseLook(lookId);
+      else if (lookColour) this.setLookColour(lookColour);
+      else if (lookSize) this.changeJevLook('jev-font-size', lookSize);
+      else if (lookVisuals === 'hold') this.toggleHoldScene();
+      else if (lookVisuals === 'off') this.setVisualsOff(!this._visualsOff());
+      else if (vd === 'lab') void this.openVisualLab();
+      else if (vd === 'workshop') void this.editPassagesInWorkshop();
+      else if (vd === 'consent') void this.grantVisualConsent();
+      else if (vd === 'revoke') this.revokeVisualConsent();
+      this._refreshLookSheet();
     });
-    panel.addEventListener('input', (event) => {
+    sheet.querySelector('[name="look-sound"]')?.addEventListener('change', (event) => {
+      this.changeJevLook('jev-soundscape', event.target.value);
+      this._refreshLookSheet();
+    });
+    sheet.querySelector('[name="look-volume"]')?.addEventListener('input', (event) => {
+      const volume = Number(event.target.value);
+      if (!Number.isInteger(volume) || volume < 0 || volume > 100) return;
+      this.setVolume(volume / 100);
+      const output = sheet.querySelector('#look-volume-value');
+      if (output) output.textContent = `${volume}%`;
+    });
+    sheet.querySelector('[name="look-vivid"]')?.addEventListener('input', (event) => {
       const value = Number(event.target.value);
-      const name = event.target.name;
-      if (name === 'vd-energy') return this.setVisualEnergy(value / 100);
-      const record = !this._visualSliderDragging;
-      this._visualSliderDragging = true;
-      if (name === 'vd-complexity') {
-        this._editHeldFlame(recipe => ({ ...recipe, macros: { ...recipe.macros, complexity: value / 100 } }), { record, transitionMs: 0 });
-      } else if (name === 'vd-hue') {
-        this._editHeldFlame(recipe => ({ ...recipe, macros: { ...recipe.macros, hue: value } }), { record, transitionMs: 0 });
-      } else if (name === 'vd-symmetry') {
-        this._editHeldFlame(recipe => ({ ...recipe, symmetry: Math.round(value) }), { record });
-      }
-      const output = panel.querySelector(`[data-vd-out="${name}"]`);
-      if (output) output.textContent = name === 'vd-hue' ? `${Math.round(value)}°`
-        : name === 'vd-symmetry' ? String(Math.round(value)) : `${Math.round(value)}%`;
+      event.target.setAttribute('aria-valuetext', `${value} percent vivid`);
+      this._vividPath()?.set(value / 100);
     });
-    panel.addEventListener('click', (event) => {
-      const action = event.target.closest?.('[data-vd]')?.dataset.vd;
-      if (!action) return;
-      if (action === 'mutate') this.mutateVisualScene();
-      else if (action === 'undo') this.undoVisualScene();
-      else if (action === 'save') this.saveVisualScene();
-      else if (action === 'lab') void this.openVisualLab();
-      else if (action === 'workshop') void this.editPassagesInWorkshop();
-      else if (action === 'consent') void this.grantVisualConsent();
-      else if (action === 'revoke') this.revokeVisualConsent();
+    this._refreshLookSheet();
+  }
+
+  attachPaceSheet() {
+    const button = this.container.querySelector('#pace-btn');
+    const sheet = this.container.querySelector('#pace-sheet');
+    if (!button || !sheet) return;
+    button.addEventListener('click', () => this._toggleSheet('pace'));
+    sheet.querySelector('#pace-sheet-close')?.addEventListener('click', () => this._closeSheet('pace'));
+    sheet.addEventListener('keydown', event => this._sheetKeydown(event, sheet, 'pace'));
+    sheet.querySelector('[name="pace-wpm"]')?.addEventListener('input', (event) => {
+      const wpm = Number(event.target.value);
+      if (Number.isFinite(wpm)) this.updateWpm(wpm - this.currentWpm);
     });
   }
 
-  toggleVisualDrawer(force) {
-    const panel = this.container.querySelector('#visual-direction-panel');
-    const button = this.container.querySelector('#visual-direction-btn');
-    if (!panel || !button) return;
-    panel.hidden = force === undefined ? !panel.hidden : !force;
-    button.setAttribute('aria-expanded', String(!panel.hidden));
-    if (!panel.hidden) this._renderVisualDrawer();
+  toggleLookSheet() {
+    this._toggleSheet('look');
+  }
+
+  openLookSheet() {
+    return this._openSheet('look');
+  }
+
+  closeLookSheet(refocus = true) {
+    return this._closeSheet('look', refocus);
+  }
+
+  _toggleSheet(name) {
+    const sheet = this.container.querySelector(`#${name}-sheet`);
+    if (!sheet) return;
+    if (sheet.hidden) this._openSheet(name);
+    else this._closeSheet(name);
+  }
+
+  /** A modal dialog over the reading, which goes on playing beneath it. One sheet is open at a time. */
+  _openSheet(name) {
+    const sheet = this.container.querySelector(`#${name}-sheet`);
+    if (!sheet || !sheet.hidden) return false;
+    this.closeSettings();
+    this._closeSheet(name === 'look' ? 'pace' : 'look', false);
+    sheet.hidden = false;
+    // The stylesheet lays the reading out beside the side sheet while this is set.
+    this.container.classList.add('is-look-open');
+    this.container.querySelector(`#${name}-btn`)?.setAttribute('aria-expanded', 'true');
+    if (name === 'look') this._refreshLookSheet();
+    else this._syncPace();
     this.showControls();
+    this._sheetReachable(sheet)[0]?.focus();
+    return true;
   }
 
-  _refreshVisualDrawer() {
-    if (this._visualSliderDragging) {
-      const line = this.container.querySelector('#vd-provenance');
-      if (line) line.textContent = this._visualProvenanceLabel();
+  _closeSheet(name, refocus = true) {
+    const sheet = this.container.querySelector(`#${name}-sheet`);
+    if (!sheet || sheet.hidden) return false;
+    sheet.hidden = true;
+    this.container.classList.remove('is-look-open');
+    const button = this.container.querySelector(`#${name}-btn`);
+    button?.setAttribute('aria-expanded', 'false');
+    if (refocus) {
+      this.showControls();
+      button?.focus();
+    }
+    return true;
+  }
+
+  _sheetReachable(sheet) {
+    return [...sheet.querySelectorAll('button, input, select')]
+      .filter(element => !element.disabled && !element.closest('[hidden]'));
+  }
+
+  /** Escape closes the sheet and goes no further; Tab and Shift+Tab wrap inside it. */
+  _sheetKeydown(event, sheet, name) {
+    if (event.key === 'Escape') {
+      if (!this._closeSheet(name)) return;
+      event.preventDefault();
+      event.stopPropagation();
       return;
     }
-    this._renderVisualDrawer();
+    if (event.key !== 'Tab') return;
+    const reachable = this._sheetReachable(sheet);
+    if (!reachable.length) return;
+    const first = reachable[0];
+    const last = reachable[reachable.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || !sheet.contains(active))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || !sheet.contains(active))) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
-  _renderVisualDrawer() {
-    const panel = this.container.querySelector('#visual-direction-panel');
+  /** The look this reading is in, with the reader's own colour, size and sound laid over it, or 'custom'. */
+  _lookId() {
+    const session = this.session || {};
+    const theme = this._jevLook.backgroundColor;
+    const fontSize = this._jevLook.fontSize;
+    const presentation = theme || fontSize ? {
+      ...(session.presentation || {}),
+      ...(theme ? { colorTheme: theme, textColor: theme, backgroundColor: theme, colors: jevColors(theme, theme, theme) } : {}),
+      ...(fontSize ? { fontSize } : {})
+    } : session.presentation;
+    const sound = this._jevSoundChoice && this._jevSoundChoice !== 'authored'
+      ? { soundscape: this._jevSoundChoice } : {};
+    return lookOfSession({ ...session, presentation, ...sound });
+  }
+
+  /**
+   * A LOOK CHOSEN IN THE READING becomes the reading's own configuration, as
+   * Begin would have handed it, and is applied through the live paths: face,
+   * colour, size and sound as the sheet's own controls apply them, and the
+   * field through the cue path an authored schedule uses. Like a scene from
+   * the Visual Lab it is a manual Hold. The player is not touched, so the
+   * reader's place and pace hold.
+   */
+  chooseLook(id) {
+    const look = LOOKS.find(entry => entry.id === id);
+    if (!look || this.pageModeActive || !this._lookOffered(look) || this._lookNeedsReopen(look)) return false;
+    const previousShelf = this.session.visualConfig?.interlocution?.procedural || [];
+    // A look never flashes: the flash economy stops for good, before its
+    // switch can write the reading's visual mode back.
+    if (this.offersVisualsToggle) {
+      this.toggleRhythmicVisuals(false);
+      this.offersVisualsToggle = false;
+    }
+    const next = applyLook({ presentation: this.session.presentation, visualInterlocution: this.session.visualConfig }, id);
+    Object.assign(this.session, {
+      visualConfig: next.visualInterlocution,
+      presentation: next.presentation,
+      soundscape: next.soundscape,
+      audioPreset: next.audioPreset
+    });
+    const { chamberFace, colorTheme, fontSize } = next.presentation;
+    this._jevLook.face = chamberFace;
+    this.applyChamberStreamFace();
+    this.applyScheduledColorTheme(colorTheme);
+    this.setLookColour(colorTheme);
+    this.changeJevLook('jev-font-size', fontSize);
+    this.changeJevLook('jev-soundscape', next.soundscape);
+    this._applyLookField(look, previousShelf);
+    this._refreshLookSheet();
+    return true;
+  }
+
+  _applyLookField(look, previousShelf) {
     const state = this._direction;
-    if (!panel || panel.hidden || !state) return;
-    const flame = this._currentFlameConfig();
-    const canFollow = state.eligibility.canFollow && !state.directorError;
-    const modes = [['follow', 'Follow text'], ['hold', 'Hold this scene'], ['off', 'Off']];
+    const visual = this.session.visualConfig;
+    const transitionMs = this._visualTransitionMs();
+    if (state?.mode === 'off') this._resumeVisualWork();
+    if (state) state.mode = 'hold';
+    this._ownSchedule = null;
+    this._visualSchedule = null;
+    const cue = this._lookDrawsGallery(look) ? null : this._lookFieldCue();
+    if (state) state.heldCue = cue;
+    if (cue) {
+      this.applyScheduledVisualCue(cue, { transitionMs });
+    } else {
+      // The pool keeps the reading's own works and takes the look's engines.
+      this._ownActiveTypes = [
+        ...(visual.interlocution?.procedural || []),
+        ...this._ownActiveTypes.filter(type => !previousShelf.includes(type))
+      ];
+      const cadence = visual.interlocution?.galleryCadence;
+      if (Number.isFinite(cadence)) visualCortex.updateConfig({ galleryCadence: cadence }, { preservePresentation: true });
+      this._restoreOwnVisuals(transitionMs);
+    }
+    this._syncScoringActivity();
+  }
+
+  /** The cue that draws a look's field, from the reading's configuration as the look left it. */
+  _lookFieldCue() {
+    const visual = this.session.visualConfig;
+    if (visual.visualMode === 'off') return { kind: 'still' };
+    if (visual.visualMode === 'genesis') return { kind: 'field', renderer: 'genesis', config: visual.genesis || {} };
+    if (visual.visualMode === 'attractor') return { kind: 'field', renderer: 'attractor', config: visual.attractor || {} };
+    if (visual.visualMode === 'focals') return { kind: 'field', renderer: 'focal', config: visual.focals || {} };
+    // The flame's composition is the theme's, and its hue the accent's, as Follow text themes it:
+    // classic's for a reading that names no theme (R6).
+    const composition = flameComposition(sessionColorThemeId(this.session));
+    const recipe = themedFlameLookup(flamePreset, sessionColorTheme(this.session) || jevColors('classic'))(composition);
+    return recipe ? this._flameCue(recipe) : { kind: 'still' };
+  }
+
+  _syncLooks() {
+    const current = this._lookId();
+    let unavailable = false;
+    this.container.querySelectorAll('[data-look-id]').forEach(chip => {
+      const look = LOOKS.find(entry => entry.id === chip.dataset.lookId);
+      const blocked = this._lookNeedsReopen(look);
+      unavailable ||= blocked;
+      chip.setAttribute('aria-pressed', String(look.id === current));
+      chip.disabled = blocked || this.pageModeActive;
+      if (blocked) {
+        chip.setAttribute('aria-label', `${look.name}, unavailable: ${LOOK_UNAVAILABLE}`);
+        chip.title = LOOK_UNAVAILABLE;
+      }
+    });
+    const note = this.container.querySelector('#look-unavailable-note');
+    if (note) note.hidden = !unavailable;
+  }
+
+  /** One of the nine themes over this reading: ink, ground and accent together, as Reader setup gives them. */
+  setLookColour(theme) {
+    if (!Object.hasOwn(JEV_PALETTES, theme)) return false;
+    this._jevLook.textColor = theme;
+    this._jevLook.backgroundColor = theme;
+    return this.setColourTheme(theme);
+  }
+
+  /**
+   * CALMER ↔ VIVID, ONE CONTROL OVER EACH ENGINE'S OWN SETTING. The attractor
+   * takes Composer's visual command, bounded by its manifest; the flame takes
+   * the reader's Energy; the Gallery takes its cadence. Anything else has no
+   * live setting, and the control is not offered.
+   */
+  _vividPath() {
+    if (this._direction?.mode === 'off') return null;
+    const discovery = this.discoverVisual();
+    if (discovery?.manifest?.surface === ATTRACTOR_VISUAL_MANIFEST.surface) {
+      const { minimum, maximum, default: initial } = ATTRACTOR_VISUAL_MANIFEST.parameters.intensity;
+      const current = discovery.target?.intensity ?? discovery.current?.intensity ?? initial;
+      return {
+        value: (current - minimum) / (maximum - minimum),
+        set: value => this.controlVisual({
+          surface: ATTRACTOR_VISUAL_MANIFEST.surface,
+          parameter: 'intensity',
+          value: Math.round((minimum + value * (maximum - minimum)) * 100) / 100
+        })
+      };
+    }
+    if (this._currentFlameConfig()) {
+      return { value: this._visualEnergy, set: value => this.setVisualEnergy(value) };
+    }
+    const visual = this.session?.visualConfig;
+    if (visual?.visualMode === 'interlocution' && isContinuousPresentation(visual.interlocution?.presentation)) {
+      return {
+        value: visualCortex.config?.galleryCadence ?? 0.5,
+        set: value => visualCortex.updateConfig({ galleryCadence: value }, { preservePresentation: true })
+      };
+    }
+    return null;
+  }
+
+  _visualsOff() {
+    return this._direction?.mode === 'off' || (this.offersVisualsToggle && !this.rhythmicVisualsEnabled);
+  }
+
+  /** Off stops the direction's work and the flashes both; on restores the mode Off left. */
+  setVisualsOff(off) {
+    const state = this._direction;
+    if (off) {
+      if (state && state.mode !== 'off' && this._offersVisualDrawer()) {
+        this._modeBeforeOff = state.mode;
+        this.setVisualDirectionMode('off');
+      }
+      if (this.offersVisualsToggle) this.toggleRhythmicVisuals(false);
+    } else {
+      if (this.offersVisualsToggle) this.toggleRhythmicVisuals(true);
+      if (state?.mode === 'off') this.setVisualDirectionMode(this._modeBeforeOff || 'hold');
+    }
+    this._refreshLookSheet();
+    return this._visualsOff();
+  }
+
+  /** Hold this scene, or let the visuals follow the text again. */
+  toggleHoldScene() {
+    const state = this._direction;
+    if (!state) return false;
+    return this.setVisualDirectionMode(state.mode === 'hold' ? 'follow' : 'hold');
+  }
+
+  _syncLookSize() {
+    const size = resolveFontSize(this.effectiveFontSize());
+    this.container.querySelectorAll('[data-look-size]').forEach(chip => {
+      chip.setAttribute('aria-pressed', String(chip.dataset.lookSize === size));
+      chip.disabled = this.pageModeActive;
+    });
+  }
+
+  _refreshLookSheet() {
+    const sheet = this.container.querySelector('#look-sheet');
+    if (!sheet) return;
+    const name = sheet.querySelector('#look-sheet-name');
+    if (name) name.textContent = LOOKS.find(look => look.id === this._lookId())?.name || 'Custom';
+    this._syncLooks();
+    const colour = this._jevLook.backgroundColor || this._colourTheme || sessionColorThemeId(this.session);
+    sheet.querySelectorAll('[data-look-colour]').forEach(swatch => {
+      swatch.setAttribute('aria-pressed', String(swatch.dataset.lookColour === colour));
+    });
+    this._syncLookSize();
+    const sound = sheet.querySelector('[name="look-sound"]');
+    if (sound) sound.value = this._jevSoundChoice || 'authored';
+    const path = this._vividPath();
+    const row = sheet.querySelector('#look-vivid-row');
+    if (row) row.hidden = !path;
+    const vivid = sheet.querySelector('[name="look-vivid"]');
+    if (path && vivid && document.activeElement !== vivid) {
+      const value = Math.round(Math.max(0, Math.min(1, path.value)) * 100);
+      vivid.value = String(value);
+      vivid.setAttribute('aria-valuetext', `${value} percent vivid`);
+    }
+    const state = this._direction;
+    const hold = sheet.querySelector('[data-look-visuals="hold"]');
+    if (hold) {
+      hold.hidden = !(state?.eligibility.canFollow && !state.directorError);
+      hold.setAttribute('aria-pressed', String(state?.mode === 'hold'));
+    }
+    sheet.querySelector('[data-look-visuals="off"]')?.setAttribute('aria-pressed', String(this._visualsOff()));
+    this._renderLookDirection();
+    const lab = sheet.querySelector('[data-vd="lab"]');
+    if (lab) lab.hidden = !(lookOfSession(this.session) === 'flame' || this._currentFlameConfig());
+  }
+
+  /** Who directs the visuals while they can follow the text, and the reader's consent to Jev. */
+  _renderLookDirection() {
+    const host = this.container.querySelector('#look-direction');
+    const state = this._direction;
+    if (!host) return;
+    if (!state?.eligibility.canFollow || state.directorError) {
+      host.replaceChildren();
+      return;
+    }
     let consent = '';
     const ai = connectionState();
     const who = ai.kind === 'local' ? 'Kev on this computer' : 'Jev, through your OpenRouter account (billed to you),';
@@ -1884,36 +2290,11 @@ export class Chamber {
           <button type="button" class="vd-primary" data-vd="consent">Send this reading to Jev to direct its visuals.</button></div>`;
       }
     }
-    const pct = value => Math.round(value * 100);
-    const controls = flame ? `
-      <label class="vd-field">Energy <output data-vd-out="vd-energy">${pct(this._visualEnergy)}%</output>
-        <input type="range" name="vd-energy" min="0" max="100" step="1" value="${pct(this._visualEnergy)}" /></label>
-      <label class="vd-field">Complexity <output data-vd-out="vd-complexity">${pct(flame.recipe.macros.complexity)}%</output>
-        <input type="range" name="vd-complexity" min="0" max="100" step="1" value="${pct(flame.recipe.macros.complexity)}" /></label>
-      <label class="vd-field">Symmetry <output data-vd-out="vd-symmetry">${flame.recipe.symmetry}</output>
-        <input type="range" name="vd-symmetry" min="1" max="8" step="1" value="${flame.recipe.symmetry}" /></label>
-      <label class="vd-field">Color <output data-vd-out="vd-hue">${Math.round(flame.recipe.macros.hue)}°</output>
-        <input type="range" name="vd-hue" min="-180" max="180" step="1" value="${Math.round(flame.recipe.macros.hue)}" /></label>
-      <div class="vd-actions">
-        <button type="button" data-vd="mutate">Mutate</button>
-        <button type="button" data-vd="undo" ${state.history.length ? '' : 'disabled'}>Undo</button>
-        <button type="button" data-vd="save">Save scene</button>
-      </div>` : '';
-    panel.innerHTML = `
-      <fieldset class="vd-modes"><legend>Visuals</legend>
-        ${modes.map(([id, label]) => `<label class="vd-mode"><input type="radio" name="vd-mode" value="${id}"
-          ${state.mode === id ? 'checked' : ''} ${id === 'follow' && !canFollow ? 'disabled' : ''}><span>${label}</span></label>`).join('')}
-      </fieldset>
+    host.innerHTML = `
       <p class="vd-provenance" id="vd-provenance" role="status">${escapeHtml(this._visualProvenanceLabel())}</p>
-      ${!canFollow && state.eligibility.reason === 'no-gallery'
-        ? '<p class="vd-note">Follow text needs Gallery visuals in this reading.</p>' : ''}
       ${consent}
-      ${state.mode === 'off' ? '' : controls}
       <p class="vd-status" id="vd-status" role="status" aria-live="polite">${escapeHtml(this._visualStatus || '')}</p>
-      <div class="vd-actions">
-        <button type="button" data-vd="lab">Open in Visual Lab</button>
-        ${state.director ? '<button type="button" data-vd="workshop">Edit passage assignments in Workshop</button>' : ''}
-      </div>`;
+      ${state.director ? '<button type="button" class="look-link" data-vd="workshop">Edit passage assignments in Workshop</button>' : ''}`;
   }
 
   /** Follow text, Hold this scene, or Off. Pending replies never change this. */
@@ -1934,7 +2315,7 @@ export class Chamber {
         state.heldCue = null;
         if (!this._startFollowText()) {
           state.mode = previous;
-          this._renderVisualDrawer();
+          this._refreshLookSheet();
           return false;
         }
       this._lastDirectedCue = null;
@@ -1958,7 +2339,7 @@ export class Chamber {
       }
     }
     this._syncScoringActivity();
-    this._renderVisualDrawer();
+    this._refreshLookSheet();
     return true;
   }
 
@@ -1989,6 +2370,7 @@ export class Chamber {
     if (mode === 'genesis') this.initializeGenesis();
     else if (mode === 'attractor') this.initializeAttractor();
     else if (mode === 'focals') this.initializeFocal();
+    else if (mode === 'living-flame') this.initializeLivingFlame();
     else if (mode === 'interlocution') {
       visualCortex.updateConfig({ activeTypes: [...this._ownActiveTypes] }, { preservePresentation: true });
     }
@@ -1999,8 +2381,6 @@ export class Chamber {
     if (this._direction) this._direction.energy = this._visualEnergy;
     // Energy alone never changes the direction mode.
     this._visualFieldDirector?.active?.setEnergy?.();
-    const output = this.container.querySelector('[data-vd-out="vd-energy"]');
-    if (output) output.textContent = `${Math.round(this._visualEnergy * 100)}%`;
   }
 
   /** Geometry, color, or mutation selects Hold: the reader has taken the scene. */
@@ -2023,49 +2403,7 @@ export class Chamber {
     this._visualSchedule = null;
     this.applyScheduledVisualCue(state.heldCue, { transitionMs });
     this._syncScoringActivity();
-    if (!this._visualSliderDragging) this._renderVisualDrawer();
-    else {
-      const radio = this.container.querySelector('[name="vd-mode"][value="hold"]');
-      if (radio) radio.checked = true;
-      const line = this.container.querySelector('#vd-provenance');
-      if (line) line.textContent = this._visualProvenanceLabel();
-    }
-    return true;
-  }
-
-  mutateVisualScene() {
-    const current = this._currentFlameConfig();
-    if (!current) return false;
-    const seed = (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
-    const next = mutateRecipe(current.recipe, seed);
-    if (!next) {
-      this._visualStatus = 'No clear variation appeared; the scene stays.';
-      this._renderVisualDrawer();
-      return false;
-    }
-    return this._editHeldFlame(() => next);
-  }
-
-  undoVisualScene() {
-    const state = this._direction;
-    const previous = state?.history.pop();
-    if (!previous) return false;
-    return this._editHeldFlame(() => previous, { record: false });
-  }
-
-  saveVisualScene() {
-    const current = this._currentFlameConfig();
-    if (!current) return false;
-    const recipe = FLAME_PRESET_IDS.includes(current.recipe.id)
-      ? { ...current.recipe, id: `scene-${Date.now().toString(36)}`, name: `${current.recipe.name} · saved`.slice(0, 64) }
-      : current.recipe;
-    try {
-      saveFlameScene(recipe);
-      this._visualStatus = `Saved “${recipe.name}” to your scenes on this device.`;
-    } catch (error) {
-      this._visualStatus = error.message;
-    }
-    this._renderVisualDrawer();
+    this._refreshLookSheet();
     return true;
   }
 
@@ -2076,7 +2414,7 @@ export class Chamber {
     state.consent = { sourceDigests: [...state.scoring.sourceDigests] };
     this._syncScoringPermission();
     this._syncScoringActivity();
-    this._renderVisualDrawer();
+    this._refreshLookSheet();
     return true;
   }
 
@@ -2086,7 +2424,7 @@ export class Chamber {
     state.consent = null;
     state.scoring?.revoke();
     this._syncScoringPermission();
-    this._renderVisualDrawer();
+    this._refreshLookSheet();
     return true;
   }
 
@@ -2096,7 +2434,7 @@ export class Chamber {
     this._labOpen = true;
     this._pauseLikePlay(true);
     this._syncScoringActivity();
-    this.toggleVisualDrawer(false);
+    this.closeLookSheet(false);
     const host = document.createElement('div');
     host.className = 'chamber-lab-host';
     this.container.appendChild(host);
@@ -2133,7 +2471,7 @@ export class Chamber {
     this._labHost = null;
     this._labOpen = false;
     this._syncScoringActivity();
-    this.container.querySelector('#visual-direction-btn')?.focus?.();
+    this.container.querySelector('#look-btn')?.focus?.();
   }
 
   _holdRecipe(recipe) {
@@ -2172,7 +2510,7 @@ export class Chamber {
     } catch (error) {
       console.warn('[Chamber] Could not open this reading in the Workshop:', error);
       this._visualStatus = 'This reading could not be opened in the Workshop.';
-      this._renderVisualDrawer();
+      this._refreshLookSheet();
       return false;
     }
   }
@@ -2205,7 +2543,8 @@ export class Chamber {
    */
   async _startVisualScoring() {
     const state = this._direction;
-    if (!state?.director) return;
+    // Jev chooses among flames only; a Gallery reading follows its text locally and sends nothing.
+    if (!state?.director || state.director.family !== 'flame') return;
     try {
       if (!state.scoring) {
         const [{ VisualScoreCoordinator, VisualScoreCache }, { verifyCatalogReading }] = await Promise.all([
@@ -2263,7 +2602,7 @@ export class Chamber {
   _onScoringEvent(event) {
     if (event?.kind === 'scored' || event?.kind === 'cached' || event?.kind === 'failed') {
       this._direction.lastScoring = event;
-      this._refreshVisualDrawer?.();
+      this._refreshLookSheet();
     }
   }
 
@@ -2291,6 +2630,8 @@ export class Chamber {
 
   /** One scheduled cue owns the complete visual presentation transition. */
   applyScheduledVisualCue(cue, meta = {}) {
+    // A generated scene that has failed once is not run again in this Chamber; its passages draw the fallback.
+    if (cue?.kind === 'scene' && this._failedScenes?.has(cue.sceneId)) cue = this._sceneFallbackCue();
     this._currentVisualCue = cue || null;
     this.applyScheduledColorTheme(cue?.colorTheme);
     const fieldCue = cue?.kind === 'focal'
@@ -2417,8 +2758,84 @@ export class Chamber {
     }
   }
 
+  /** What a passage draws when its generated scene cannot: the program's fallback, never another scene. */
+  _sceneFallbackCue() {
+    const fallback = this.session?.visualProgram?.fallback;
+    return fallback && fallback.kind !== 'scene' ? fallback : { kind: 'still' };
+  }
+
+  /**
+   * A diagnostic of a generated scene, kept for the runtime report (creative-control design §12); the last 20.
+   * The page is told too, so a live host can report it (LiveHost.reportScene) without the Chamber knowing one exists.
+   */
+  _noteScene(diagnostic) {
+    this.sceneDiagnostics = [...(this.sceneDiagnostics ?? []), diagnostic].slice(-20);
+    this.container.ownerDocument.defaultView?.dispatchEvent(new CustomEvent('rise-scene-diagnostic', { detail: { ...diagnostic } }));
+  }
+
+  /**
+   * A generated scene (src/scenes/): a canvas behind the reading, given to a
+   * worker that runs the scene's code. Its holds and cues come through the
+   * director's record; a scene that fails gives way to the fallback, and one
+   * that would flash is frozen on its last frame.
+   */
+  _mountSceneCue(field, cue) {
+    let destroyed = false;
+    let runtime = null;
+    const layer = mountSceneLayer({
+      field,
+      insertBehindReading: (host, node) => this._insertBehindReading(host, node),
+      onResize: ({ width, height }) => runtime?.resize(width, height, window.devicePixelRatio || 1)
+    });
+    const watch = createFlashWatch(new VisualFlashGate({ minIntervalMs: 0, burstWindowMs: 1000, maxBurst: 3 }));
+    const record = {
+      node: layer.node,
+      renderer: 'scene',
+      sceneId: cue.sceneId,
+      pause: () => runtime.pause(),
+      resume: () => runtime.play(),
+      discoverVisual: () => (destroyed || !layer.node.isConnected ? null
+        : Object.freeze({ manifest: SCENE_VISUAL_MANIFEST, current: Object.freeze({}), target: Object.freeze({}) })),
+      controlVisual: command => {
+        const validated = validateVisualCommand(command, SCENE_VISUAL_MANIFEST);
+        if (!validated.ok) return { status: 'refused', code: validated.code };
+        if (destroyed) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+        runtime.cue(validated.command.value);
+        return { status: 'accepted', surface: 'scene', parameter: 'cue', requested: validated.requested, effective: validated.effective };
+      },
+      hold: ({ ms, maxMs }) => runtime.hold({ ms, maxMs }),
+      destroy: () => {
+        destroyed = true;
+        runtime.dispose();
+        layer.destroy();
+      }
+    };
+    runtime = createSceneRuntime({
+      createWorker: () => import('../../scenes/create-scene-worker.js').then(module => module.createSceneWorker()),
+      canvas: layer.canvas,
+      theme: (this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session)) ?? {},
+      reducedMotion: this._prefersReducedMotion() || document.documentElement.classList.contains('photosensitivity-mode'),
+      library: styleOf(this.session?.style)?.library ?? {},
+      onFailure: diagnostic => {
+        this._noteScene(diagnostic);
+        (this._failedScenes ??= new Set()).add(cue.sceneId);
+        if (!destroyed && this._visualFieldDirector?.active === record) this.applyScheduledVisualCue(this._sceneFallbackCue(), {});
+      },
+      onLuma: (value, t) => {
+        if (!watch(value, t)) return;
+        runtime.freeze();
+        this._noteScene({ sceneId: cue.sceneId, phase: 'flash', message: 'Frozen: the scene would flash more than three times a second', where: null });
+      }
+    });
+    layer.resize();
+    void runtime.start({ id: cue.sceneId, code: cue.code });
+    if (this._visualFieldDirector?.paused !== true) runtime.play();
+    return record;
+  }
+
   mountVisualFieldCue(cue) {
     const field = this.container.querySelector('#chamber-field');
+    if (field && cue?.kind === 'scene') return this._mountSceneCue(field, cue);
     if (!field || cue?.kind !== 'field') return null;
     const config = cue.config && typeof cue.config === 'object' ? cue.config : {};
     // The reading's theme fills what the cue left to the engine: an absent
@@ -2520,12 +2937,28 @@ export class Chamber {
         if (paused) controller.pause();
         this.livingFlameField = controller;
       }).catch(error => console.warn('[Chamber] Living Flame unavailable:', error));
+      // The flame's macros as a cue may move them while it runs (src/scenes/manifests.js).
+      let macros = { ...(flame.recipe.macros ?? {}) };
+      const FLAME_MANIFEST = manifestFor('living-flame');
       return {
         node: host,
         renderer: 'living-flame',
         pause: () => { paused = true; controller?.pause?.(); },
         resume: () => { paused = false; controller?.resume?.(); },
         setEnergy: () => controller?.setEnergy?.(this._effectiveFlameEnergy(intensity)),
+        discoverVisual: () => (destroyed || !host.isConnected ? null : Object.freeze({
+          manifest: FLAME_MANIFEST, current: Object.freeze({ ...macros }), target: Object.freeze({ ...macros })
+        })),
+        controlVisual: command => {
+          const validated = validateVisualCommand(command, FLAME_MANIFEST);
+          if (!validated.ok) return { status: 'refused', code: validated.code };
+          if (destroyed || !controller || !host.isConnected) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+          const { parameter, value } = validated.command;
+          macros = { ...macros, [parameter]: value };
+          if (parameter === 'energy') controller.setEnergy(value);
+          else controller.setRecipe({ ...flame.recipe, macros }, { transitionMs: reducedMotion ? 0 : 800 });
+          return { status: 'accepted', surface: 'living-flame', parameter, requested: validated.requested, effective: value };
+        },
         morph: (next, { transitionMs } = {}) => {
           const nextFlame = normalizeLivingFlameConfig(next?.config);
           if (!nextFlame || !controller?.canMorphTo?.(nextFlame.recipe)) return false;
@@ -2636,6 +3069,13 @@ export class Chamber {
       || { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
   }
 
+  /** A hold the running generated scene may end early (beat-conductor.js), or null when that scene is not running. */
+  holdScene(atom) {
+    const record = this._visualFieldDirector?.active;
+    if (record?.renderer !== 'scene' || !atom?.hold || record.sceneId !== atom.hold.sceneId) return null;
+    return record.hold(atom.hold);
+  }
+
   /** Logical reading time for Living Flame, in milliseconds. */
   _visualClockMs() {
     const elapsed = Number(this.player?.elapsed) || 0;
@@ -2692,6 +3132,12 @@ export class Chamber {
     this._visualFieldDirector?.applyCue({
       kind: 'field', renderer: 'attractor', config: visualConfig.attractor || {}
     });
+  }
+
+  /** Living Flame: the theme's composition breathing behind the words; Follow text moves it by passage. */
+  initializeLivingFlame() {
+    if (this.session?.visualConfig?.visualMode !== 'living-flame') return;
+    this._visualFieldDirector?.applyCue(this._lookFieldCue());
   }
 
   /**
@@ -2827,21 +3273,46 @@ export class Chamber {
     }
   }
 
-  paintAtomText(atomDisplay, content, { reveal = false } = {}) {
-    const words = splitWords(content);
+  paintAtomText(atomDisplay, content, { reveal = false, emphasis = null } = {}) {
+    const words = shownWords(content, emphasis);
     const marked = words.some(w => w.emphasised);
+    const maths = words.some(w => w.math);
 
-    if (!reveal && !marked) {
+    if (!reveal && !marked && !maths) {
       atomDisplay.textContent = stripEmphasis(content);
       return null;
     }
 
     atomDisplay.innerHTML = words.map(w =>
-      `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}"` +
-      `${reveal ? ' data-pending=""' : ''}>${escapeHtml(w.text)}</span>`
+      `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}${w.math ? ' atom-math' : ''}"` +
+      `${reveal ? ' data-pending=""' : ''}>${w.math ? renderMath(w.text, { display: w.display }) : escapeHtml(w.text)}</span>`
     ).join(' ');
 
     return reveal ? Array.from(atomDisplay.querySelectorAll('.atom-word')) : null;
+  }
+
+  /**
+   * The typography a beat asks for (src/core/beats.js): its place on the field, its size as a step
+   * from the reader's own, its face by role or id, else the Current's faces for text and captions
+   * (typography.js). Returns false when the beat shows nothing ("place": "none").
+   */
+  applyBeatTypography(atomDisplay, atom) {
+    const beat = atom?.beat ?? null;
+    const place = beat?.place && beat.place !== 'centre' ? beat.place : null;
+    if (place && place !== 'none') atomDisplay.dataset.place = place;
+    else delete atomDisplay.dataset.place;
+    atomDisplay.dataset.fontSize = beatFontSize(this.effectiveFontSize(), beat);
+    const faces = this.session?.presentation?.typeFaces ?? null;
+    const named = beat?.type ?? (place && place !== 'none' ? faces?.caption : faces?.text) ?? null;
+    const face = resolveTypeFace(named);
+    if (face) {
+      atomDisplay.style.setProperty('--font-stream-face', face.family);
+      atomDisplay.style.setProperty('--font-stream-weight', String(face.weight));
+    } else {
+      atomDisplay.style.removeProperty('--font-stream-face');
+      atomDisplay.style.removeProperty('--font-stream-weight');
+    }
+    return place !== 'none';
   }
 
   /**
@@ -3098,9 +3569,9 @@ export class Chamber {
    * Sized on what is SHOWN — emphasis marks are notation and would
    * otherwise push a phrase into a smaller face than it needs.
    */
-  sizeAtomText(atomDisplay, content) {
+  sizeAtomText(atomDisplay, content, beat = null) {
     atomDisplay.style.removeProperty('font-size');
-    const fontSize = resolveFontSize(this.effectiveFontSize());
+    const fontSize = beatFontSize(this.effectiveFontSize(), beat);
     atomDisplay.dataset.fontSize = fontSize;
     atomDisplay.style.setProperty('--font-size-intent', String(threeStepIntent(fontSize)));
 
@@ -3250,6 +3721,28 @@ export class Chamber {
    * field is GENERATED in those colours instead of being covered in one.
    * That leaves the picture intact, which a wash by its nature cannot.
    */
+  /** Living Text tints a reading that asks for it, unless the reader has turned it off in Settings. */
+  livingTextWanted() {
+    return this.session?.visualConfig?.livingText?.enabled === true && this.getSettings()?.livingText !== false;
+  }
+
+  /** The Settings switch changed: the tint starts with the next words, or stops on the words on screen now. */
+  applyLivingTextSetting() {
+    if (this.livingTextWanted() && Array.isArray(this.session?.atoms)) {
+      try {
+        this.session.semanticTrack = this.session.semanticTrack || scoreAtoms(this.session.atoms);
+        this.semanticTrack = this.session.semanticTrack;
+      } catch {
+        this.semanticTrack = null;
+      }
+      return;
+    }
+    this.semanticTrack = null;
+    const atomDisplay = this.container.querySelector('#atom-display');
+    atomDisplay?.style.removeProperty('color');
+    atomDisplay?.style.removeProperty('text-shadow');
+  }
+
   applyLivingText(atomDisplay, index) {
     if (!this.semanticTrack) return;
     const sig = this.semanticTrack[index];
@@ -3298,6 +3791,13 @@ export class Chamber {
     // a word while it is being read. The next atom sees the next artwork.
     this._fitBoxSnapshot = this._resolveWordFitBox();
     this.applyChamberMask();
+    // A beat's place, size and face (Creative Control); a beat placed nowhere is heard and not seen.
+    if (!this.applyBeatTypography(atomDisplay, atom)) {
+      this.cancelReveal();
+      atomDisplay.style.opacity = '0';
+      atomDisplay.textContent = '';
+      return;
+    }
 
     // Genesis field follows the passage's mood when Living Text has a track
     if (this.kleeField && this.semanticTrack) {
@@ -3342,7 +3842,7 @@ export class Chamber {
       const spans = this.paintAtomText(
         atomDisplay,
         atom.content,
-        { reveal: deferReveal }
+        { reveal: deferReveal, emphasis: atom.beat?.emphasis }
       );
       if (spans) {
         this._concealedReveal = {
@@ -3352,7 +3852,7 @@ export class Chamber {
         };
       }
 
-      this.sizeAtomText(atomDisplay, atom.content);
+      this.sizeAtomText(atomDisplay, atom.content, atom.beat);
 
       this.applyLivingText(atomDisplay, index);
       atomDisplay.style.opacity = '1';
@@ -3374,9 +3874,9 @@ export class Chamber {
           ? spoken.durationMs
           : revealBudget(atom.duration, { reducedMotion }))
         : 0;
-      const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0 });
+      const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0, emphasis: atom.beat?.emphasis });
 
-      this.sizeAtomText(atomDisplay, atom.content);
+      this.sizeAtomText(atomDisplay, atom.content, atom.beat);
 
       this.applyLivingText(atomDisplay, index);
 
@@ -3678,19 +4178,18 @@ export class Chamber {
       onDataCleared: this.onDataCleared,
       onChange: (key, value) => {
         this.onSettingsChange(key, value);
-        if (key === 'chamberFace' || key === 'chamberMask') {
+        if (key === 'chamberFace') this._jevLook.face = null;
+        if (key === 'chamberFace') {
           this.applyChamberStreamFace();
           this.applyChamberMask();
         }
         if (key === 'fontSize') {
           this._jevLook.fontSize = null;
-          const jevSize = this.container.querySelector('[name="jev-font-size"]');
-          if (jevSize) jevSize.value = 'authored';
+          this._syncLookSize();
           this.applyChamberTypeSize();
           this.applyChamberMask();
         }
         if (key === 'chamberFace') this._reportFaceApply(value);
-        if (key === 'chamberAccent') this._reportAccentApply(value);
       }
     });
   }
@@ -3706,51 +4205,17 @@ export class Chamber {
     this._markSettingsExpanded(false);
   }
 
-  toggleJevLook() {
-    const panel = this.container.querySelector('#jev-look-panel');
-    const button = this.container.querySelector('#jev-look-btn');
-    if (!panel || !button) return;
-    panel.hidden = !panel.hidden;
-    button.setAttribute('aria-expanded', String(!panel.hidden));
-    this.showControls();
-  }
-
-  closeJevLook() {
-    const panel = this.container.querySelector('#jev-look-panel');
-    if (panel) panel.hidden = true;
-    this.container.querySelector('#jev-look-btn')?.setAttribute('aria-expanded', 'false');
-  }
-
   changeJevLook(name, value) {
-    if (name === 'jev-face') {
-      if (value !== 'authored' && !CHAMBER_STREAM_FACES.some(face => face.id === value)) return;
-      this._jevLook.face = value === 'authored' ? null : value;
-      this.applyChamberStreamFace();
-      this.applyChamberMask();
-    } else if (name === 'jev-font-size') {
+    if (name === 'jev-font-size') {
       if (value !== 'authored' && !FONT_SIZE_CHIPS.some(chip => chip.fontSize === value
           && (value !== 'fit' || this.session?.chunkMode === 'word'))) return;
       this._jevLook.fontSize = value === 'authored' ? null : value;
       this.applyChamberTypeSize();
       this.applyChamberMask();
-    } else if (name === 'jev-text-color' || name === 'jev-background-color') {
-      const text = name === 'jev-text-color';
-      if (value !== 'authored' && !Object.hasOwn(text ? JEV_INKS : JEV_PALETTES, value)) return;
-      this._jevLook[name === 'jev-text-color' ? 'textColor' : 'backgroundColor'] =
-        value === 'authored' ? null : value;
-      this.applySessionColors();
-      const swatch = this.container.querySelector(text ? '#jev-text-swatch' : '#jev-background-swatch');
-      const colors = sessionColorTheme(this.session);
-      if (swatch) swatch.style.backgroundColor = text
-        ? (value === 'authored' ? colors?.text || JEV_INKS.classic : JEV_INKS[value])
-        : (value === 'authored' ? colors?.background || JEV_PALETTES.classic.background
-          : JEV_PALETTES[value].background);
-    } else if (name === 'jev-visual-strength') {
-      if (!['authored', 'soft'].includes(value)) return;
-      if (value === 'authored') delete this.container.dataset.jevVisualStrength;
-      else this.container.dataset.jevVisualStrength = value;
+      this._syncLookSize();
     } else if (name === 'jev-soundscape') {
-      if (value !== 'authored' && value !== 'none' && !JEV_AUDIO_IDS.includes(value)) return;
+      const sound = soundOf(value);
+      if (value !== 'authored' && !sound) return;
       if (!this.audioEngine) return;
       this._jevSoundChoice = value;
       this._audioSchedule?.setEnabled(false);
@@ -3765,7 +4230,8 @@ export class Chamber {
           && (this.audioEngine.sessionActive === false
             || this.audioEngine.isInitialized === false)
           && typeof this.audioEngine.startSession === 'function') {
-        void this.audioEngine.startSession({ soundscape: value, entrySwell: false })
+        void this.audioEngine.startSession(sound.kind === 'tone'
+          ? { preset: value, entrySwell: false } : { soundscape: value, entrySwell: false })
           .then(result => {
             if (result?.cancelled || this._destroyed) return;
             if (this._jevSoundChoice === value) this.audioEngine.fadeInSession?.(0.6);
@@ -3787,7 +4253,8 @@ export class Chamber {
         } else if (this.session?.audioPreset && this.session.audioPreset !== 'silent') {
           this.audioEngine.applyPreset?.(this.session.audioPreset);
         }
-      } else if (value !== 'none') this.audioEngine.startSoundscape?.(value);
+      } else if (sound.kind === 'tone') this.audioEngine.applyPreset?.(value);
+      else if (value !== 'none') this.audioEngine.startSoundscape?.(value);
     }
   }
 
@@ -3855,10 +4322,8 @@ export class Chamber {
     if (next) this._diveApply(this._dive.surface());
     const diveButton = this.container.querySelector('#dive-btn');
     if (diveButton) diveButton.hidden = next;
-    const jevFace = this.container.querySelector('[name="jev-face"]');
-    if (jevFace) jevFace.disabled = next;
-    const jevSize = this.container.querySelector('[name="jev-font-size"]');
-    if (jevSize) jevSize.disabled = next;
+    this._syncLookSize();
+    this._syncLooks();
     this._updateJevSceneControl(this._jevCurrentAtom);
     if (!next) this._syncPageTurn();
 
@@ -3989,10 +4454,8 @@ export class Chamber {
       this.pageModeActive = false;
       const unavailableDive = this.container.querySelector('#dive-btn');
       if (unavailableDive) unavailableDive.hidden = false;
-      const jevFace = this.container.querySelector('[name="jev-face"]');
-      if (jevFace) jevFace.disabled = false;
-      const jevSize = this.container.querySelector('[name="jev-font-size"]');
-      if (jevSize) jevSize.disabled = false;
+      this._syncLookSize();
+      this._syncLooks();
       btn?.setAttribute('aria-pressed', 'false');
       btn?.classList.remove('is-on');
       display?.classList.remove('page-mode-on');
@@ -4219,16 +4682,6 @@ export class Chamber {
     this.session.visualConfig.visualMode = enabled ? 'interlocution' : 'off';
     if (!enabled) visualCortex.cancelPresentation('user-disabled');
 
-    const button = this.container.querySelector('#visuals-toggle-btn');
-    if (button) {
-      const label = enabled ? 'Disable rhythmic visuals' : 'Enable rhythmic visuals';
-      button.setAttribute('aria-pressed', String(enabled));
-      button.setAttribute('aria-label', label);
-      button.title = label;
-      button.classList.toggle('is-off', !enabled);
-      const icon = button.querySelector('.icon');
-      if (icon) icon.textContent = enabled ? '◆' : '◇';
-    }
     this.showControls();
     this._updateJevSceneControl(this._jevCurrentAtom);
     return enabled;
@@ -4466,6 +4919,7 @@ export class Chamber {
     this.player.setSpeedFactor(factor);
 
     this.showSpeedHud();
+    this._syncPace();
     
     this.audioEngine?.playClick();
   }
@@ -4579,6 +5033,7 @@ export class Chamber {
       this.closeSettings();
       return true;
     }
+    if (this.closeLookSheet() || this._closeSheet('pace')) return true;
     const overlay = this.container.querySelector('#exit-confirm-overlay');
     const overlayVisible = overlay && overlay.style.display === 'flex' && !overlay.classList.contains('hidden');
     if (overlayVisible) {
@@ -4896,6 +5351,8 @@ export class Chamber {
       '--color-accent', '--color-accent-rgb', '--color-threshold']) {
       this.container.style.removeProperty(name);
     }
+    clearChromeTheme(document.documentElement, this);
+    this.container.classList.remove('is-look-open');
     this.closeSettings();
     this.unbindVisualViewport();
     this._bandMoveCleanup?.();

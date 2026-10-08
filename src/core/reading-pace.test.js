@@ -65,8 +65,8 @@ function chunkedMs(wpm) {
 
 /**
  * The ↑/↓ keys during a live reading. Built on the prototype rather than
- * mounted, because updateWpm is the whole subject and the HUD it calls after
- * is not.
+ * mounted, because updateWpm is the whole subject and the HUD and the bar's
+ * pace label it updates after are not.
  */
 function chamberPace(wpm) {
   const chamber = Object.create(Chamber.prototype);
@@ -74,6 +74,7 @@ function chamberPace(wpm) {
   chamber.baseWpm = 200;
   chamber.currentWpm = wpm;
   chamber.showSpeedHud = () => {};
+  chamber._syncPace = () => {};
   chamber.updateWpm(0);
   return chamber.currentWpm;
 }

@@ -13,6 +13,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createStageControls } from './stage-controls.js';
+import { ATTRACTOR_VISUAL_MANIFEST } from '../../core/visual-control-contract.js';
+import { manifestFor } from '../../scenes/manifests.js';
 
 const snapshot = (status, extra = {}) => ({
     status, error: null, main: { voiceDegraded: false, speaking: null, segmentId: 's1', ...extra.main }, side: null, ...(extra.error ? { error: extra.error } : {})
@@ -20,7 +22,9 @@ const snapshot = (status, extra = {}) => ({
 
 const SEGMENTS = [{ text: 'first line', ended: true }, { text: 'second line', ended: true }, { text: 'still being written', ended: false }];
 
-function fakeRuntime(initial = 'live', { visual = true } = {}) {
+const ATTRACTOR_DISCOVERY = { manifest: ATTRACTOR_VISUAL_MANIFEST, current: { intensity: 0.65 }, target: { intensity: 0.65 } };
+
+function fakeRuntime(initial = 'live', { visual = true, discovery = ATTRACTOR_DISCOVERY } = {}) {
     const listeners = new Set();
     let state = snapshot(initial);
     const calls = [];
@@ -31,9 +35,7 @@ function fakeRuntime(initial = 'live', { visual = true } = {}) {
         composed: () => ({ segments: SEGMENTS }),
         interrupt: vi.fn(async () => { calls.push(['interrupt']); runtime.set('interrupted'); }),
         resume: vi.fn(() => { calls.push(['resume']); runtime.set('live'); }),
-        discoverVisual: vi.fn(() => (visual
-            ? { manifest: { surface: 'attractor', parameters: { intensity: { minimum: 0.4, maximum: 0.75 } } }, current: { intensity: 0.65 }, target: { intensity: 0.65 } }
-            : null)),
+        discoverVisual: vi.fn(() => (visual ? discovery : null)),
         controlVisual: vi.fn(command => { calls.push(['controlVisual', command]); return { status: 'accepted', surface: 'attractor', parameter: 'intensity', requested: command.value, effective: command.value }; }),
         set(status, extra) { state = snapshot(status, extra); for (const fn of [...listeners]) fn(state); },
         calls
@@ -66,6 +68,7 @@ afterEach(() => {
     stage?.destroy();
     stage = null;
     document.body.replaceChildren();
+    vi.restoreAllMocks();
 });
 
 describe('the one object', () => {
@@ -97,6 +100,40 @@ describe('the one object', () => {
         expect(play().disabled).toBe(false);
     });
 
+    // jsdom says a document has the focus only while one of its elements has it; a browser's frame has it with
+    // the focus on its body too, which is where it is once the pressed control is gone.
+    const frameHasFocus = has => vi.spyOn(document, 'hasFocus').mockReturnValue(has);
+
+    it('takes the focus when asked, once it can be pressed, so a keyboard reader who pressed Play is on Pause', () => {
+        frameHasFocus(true);
+        const runtime = fakeRuntime('starting');
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, takeFocus: true });
+        expect(document.activeElement).not.toBe(play());
+        runtime.set('live');
+        expect(document.activeElement).toBe(play());
+    });
+
+    it('never takes the focus from where the reader has put it, from a frame that has lost it, nor unless asked', () => {
+        const left = frameHasFocus(false);
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, takeFocus: true });
+        expect(document.activeElement).not.toBe(play());
+        stage.destroy();
+        left.mockRestore();
+
+        const elsewhere = document.createElement('button');
+        document.body.append(elsewhere);
+        const runtime = fakeRuntime('starting');
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, takeFocus: true });
+        elsewhere.focus();
+        runtime.set('live');
+        expect(document.activeElement).toBe(elsewhere);
+        stage.destroy();
+
+        elsewhere.blur();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {} });
+        expect(document.activeElement).not.toBe(play());
+    });
+
     it('is Play again once the reading has ended, and asks the host, never the finished runtime', () => {
         const runtime = fakeRuntime('ended');
         const onPlayAgain = vi.fn();
@@ -106,6 +143,16 @@ describe('the one object', () => {
         expect(onPlayAgain).toHaveBeenCalledTimes(1);
         expect(runtime.resume).not.toHaveBeenCalled();
         expect(runtime.interrupt).not.toHaveBeenCalled();
+    });
+
+    it('looks finished at the end: Play again is drawn apart from the Play of a paused reading', () => {
+        const runtime = fakeRuntime('interrupted');
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        const paused = play().innerHTML;
+        runtime.set('ended');
+        expect(play().innerHTML).not.toBe(paused);
+        runtime.set('interrupted');
+        expect(play().innerHTML).toBe(paused);
     });
 
     it('is hidden, with Settings, when the reading failed or was stopped', () => {
@@ -264,16 +311,35 @@ describe('the Settings sheet', () => {
         expect($('#rise-stage-controls').dataset.intensity).toBeUndefined();
     });
 
-    it('is disabled, with a hidden reason, on a passage with no adjustable visual', () => {
+    it('hides its row on a passage with no adjustable visual, as most looks draw (SCR-003)', () => {
         stage = createStageControls({ runtime: fakeRuntime('live', { visual: false }), onPlayAgain: () => {} });
         settings().click();
         expect(intensity().disabled).toBe(true);
-        const note = document.getElementById(intensity().getAttribute('aria-describedby'));
-        expect(note.textContent).toBe('Not on this passage');
-        expect(note.hidden).toBe(true);
+        expect(intensity().closest('.rise-settings__row').hidden).toBe(true);
         expect(intensity().getAttribute('title')).toBeNull();
         // The sheet still opened with its first enabled control focused: the Theme select.
         expect(document.activeElement).toBe(theme());
+    });
+
+    it('shows its row only for a field whose intensity changes while it runs: the attractor, not the flame', () => {
+        const row = () => intensity().closest('.rise-settings__row');
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {} });
+        settings().click();
+        expect(row().hidden).toBe(false);
+        expect(intensity().disabled).toBe(false);
+        stage.destroy();
+
+        const flame = { manifest: manifestFor('living-flame'), current: { energy: 0.35, intensity: 0.35 }, target: { energy: 0.35, intensity: 0.35 } };
+        stage = createStageControls({ runtime: fakeRuntime('live', { discovery: flame }), onPlayAgain: () => {} });
+        settings().click();
+        expect(row().hidden).toBe(true);
+        expect(intensity().disabled).toBe(true);
+        stage.destroy();
+
+        stage = createStageControls({ runtime: fakeRuntime('live', { visual: false }), onPlayAgain: () => {} });
+        settings().click();
+        expect(row().hidden).toBe(true);
+        expect(intensity().disabled).toBe(true);
     });
 
     it('sends the chosen intensity again when the reading moves to a new passage', () => {

@@ -55,6 +55,15 @@ describe('the looks', () => {
         orbital.destroy();
     });
 
+    it('lowers Flame into the Living Flame mode, and names it rather than reading Off (RDR-023)', () => {
+        const { container, orbital } = createOrbital();
+        choose(container, 'flame');
+        expect(orbital.config.visualInterlocution.visualMode).toBe('living-flame');
+        expect(orbital.getVisualPreview()).toBe('Living Flame');
+        expect(lookOf(orbital.config)).toBe('flame');
+        orbital.destroy();
+    });
+
     it('meets a reader who has chosen nothing already in Plain', () => {
         // The factory defaults ARE a named look. If they drift out of one,
         // the first thing a visitor sees is a row where nothing is chosen.
@@ -157,8 +166,7 @@ describe('choosing a look', () => {
         expect(container.querySelector('#wpm-slider').value).toBe('200');
         expect(container.querySelector('[data-soundscape="aurora"]').classList)
             .toContain('active');
-        expect(container.querySelector('[data-audio-preset="silent"]').classList)
-            .toContain('active');
+        expect(container.querySelector('#modal-audio .active[data-audio-preset]')).toBeNull();
         // The Navigator holds its own mapped selection; a look it was never
         // told about would be reverted the next time it emitted a change.
         expect(orbital.visualNavigator.getConfig().visualMode).toBe('focals');

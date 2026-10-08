@@ -1,10 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
-import {
-    CHAMBER_ACCENTS,
-    CHAMBER_ACCENT_TOKENS,
-    resolveChamberAccent
-} from '../core/chamber-accent.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
 import {
@@ -56,13 +51,14 @@ const SESSION_SCOPE = 'session';
  *            A reader who starts feeling unwell needs the graded switch, and
  *            needs it without ending the reading.
  *
- * Face and Accent are the One Type editor's and Home's: changing a
- * typeface mid-sentence is not a rescue, it is a decision made too late.
+ * Face is the One Type editor's and Home's: changing a typeface
+ * mid-sentence is not a rescue, it is a decision made too late. There is no
+ * accent: the reading's theme is the only colour a reader sees.
  */
 const BAR_SCOPE = 'bar';
 
-/** The accents the panel offers: the default and three that read as ink. */
-const OFFERED_ACCENTS = Object.freeze(['default', 'slate', 'amber', 'gecko']);
+/** The sizes Settings offers for every reading; XL is a reading's own choice, and Fit is Inlay's. */
+const SETTINGS_SIZES = Object.freeze(['small', 'medium', 'large']);
 
 const VOLUME_PRESETS = Object.freeze([
     Object.freeze({ value: 0, label: 'Mute' }),
@@ -145,20 +141,9 @@ export class Settings {
               </div>
             </div>
 
-            <div class="settings-row">
-              <div class="settings-label-group">
-                <span class="settings-label" id="chamber-accent-label">Accent</span>
-                <p class="settings-hint">The highlight colour in a reading and its setup, such as the progress bar.</p>
-              </div>
-              <div class="settings-control" role="radiogroup" aria-labelledby="chamber-accent-label">
-                ${this.renderChamberAccentRadios()}
-                <p class="settings-fail" id="chamber-accent-fail" hidden>Accent did not take.</p>
-              </div>
-            </div>
-
-            ${this.toggleRow('chamberMask', 'Show imagery through words',
-                'In a Gallery reading shown one word at a time in the Thick typeface at Fit size, each word becomes a window onto the imagery.',
-                this.settings.chamberMask === true)}
+            ${this.toggleRow('livingText', 'Living Text',
+                'The words take a tint from the feeling of the passage they are in, in every reading.',
+                this.settings.livingText !== false)}
             ${this.toggleRow('showProgress', 'Show progress',
                 'A thin bar along the bottom of a reading.',
                 Boolean(this.settings.showProgress))}
@@ -172,10 +157,6 @@ export class Settings {
 
           <section class="settings-section" aria-labelledby="audio-heading">
             <h2 id="audio-heading" class="settings-section-title">Sound</h2>
-
-            ${this.inSession ? '' : this.toggleRow('enableAmbient', 'Ambient sound',
-                'A quiet drone on Home and in the other rooms. It never plays during a reading, and is off until you turn it on.',
-                Boolean(this.settings.enableAmbient))}
 
             <div class="settings-row">
               <label class="settings-label" for="master-volume">Volume</label>
@@ -309,7 +290,7 @@ export class Settings {
         <section class="settings-bar-group" aria-labelledby="bar-size-label">
           <span class="settings-bar-label" id="bar-size-label">Size</span>
           <div class="settings-control" role="radiogroup" aria-labelledby="bar-size-label">
-            ${FONT_SIZE_CHIPS.filter(chip => chip.fontSize !== 'fit').map(chip => `
+            ${this.sizeChoices(size).map(chip => `
               <label class="radio">
                 <input type="radio" name="font-size" value="${chip.fontSize}"
                   data-font-size="${chip.id}" ${chip.fontSize === size ? 'checked' : ''} />
@@ -349,9 +330,14 @@ export class Settings {
         return sizeFitHint(Boolean((atom?.textContent || '').trim()));
     }
 
+    /** S, M and L; a size saved beyond them (XL, or Fit from before Inlay) stays shown until another is picked. */
+    sizeChoices(selected) {
+        return FONT_SIZE_CHIPS.filter(chip => SETTINGS_SIZES.includes(chip.fontSize) || chip.fontSize === selected);
+    }
+
     renderFontSizeRadios() {
         const selected = resolveFontSize(this.settings.fontSize);
-        return FONT_SIZE_CHIPS.map((chip) => `
+        return this.sizeChoices(selected).map((chip) => `
           <label class="radio">
             <input
               type="radio"
@@ -378,37 +364,6 @@ export class Settings {
             <span class="radio-label">${face.label}</span>
           </label>
         `).join('');
-    }
-
-    /**
-     * A COLOUR PICKER HAS TO SHOW THE COLOUR, and it offers few of them.
-     * The system is neutral first with one signal, so the panel offers the
-     * default and three sittings that hold 4.5:1 as text on Atlas ink
-     * (--sy-bg) (cobalt, at 3.3:1, did not). The other colourways stay on
-     * the allowlist, so a reader who chose one keeps it and sees it here
-     * until they pick another.
-     */
-    renderChamberAccentRadios() {
-        const selected = resolveChamberAccent(this.settings.chamberAccent);
-        const offered = CHAMBER_ACCENTS.filter((accent) =>
-            OFFERED_ACCENTS.includes(accent.id) || accent.id === selected);
-        return offered.map((accent) => {
-            const hue = CHAMBER_ACCENT_TOKENS[accent.id]?.['--color-accent'];
-            const swatch = hue
-                ? `--swatch: ${hue}; --swatch-far: ${hue}`
-                : '--swatch: #2A2A30; --swatch-far: #E4D2AE';
-            return `
-          <label class="radio radio-swatch" style="${swatch}">
-            <input
-              type="radio"
-              name="chamber-accent"
-              value="${accent.id}"
-              ${accent.id === selected ? 'checked' : ''}
-            />
-            <span class="radio-label">${accent.label}</span>
-          </label>
-        `;
-        }).join('');
     }
 
     leave() {
@@ -456,15 +411,6 @@ export class Settings {
                 if (resolveChamberStreamFace(requested) !== requested) return;
                 this.settings.chamberFace = requested;
                 this.onChange('chamberFace', requested);
-            });
-        });
-
-        this.container.querySelectorAll('input[name="chamber-accent"]').forEach((input) => {
-            input.addEventListener('change', (e) => {
-                const requested = e.target.value;
-                if (resolveChamberAccent(requested) !== requested) return;
-                this.settings.chamberAccent = requested;
-                this.onChange('chamberAccent', requested);
             });
         });
 

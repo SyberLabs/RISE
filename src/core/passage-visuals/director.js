@@ -15,6 +15,7 @@ import { alignSourceAtoms, normalizeQuote } from '../source-span.js';
 import { segmentSource } from './segmentation.js';
 import {
   compileTreatmentCue,
+  isFollowChoice,
   isTreatmentChoice,
   localDirection
 } from './treatments.js';
@@ -59,8 +60,9 @@ export class PassageDirector {
    * @param {object[]} options.atoms session atoms (coordinates are stamped)
    * @param {(id: string) => object|null} options.flameRecipe preset lookup
    */
-  constructor({ sources, atoms, flameRecipe }) {
+  constructor({ sources, atoms, flameRecipe, family = 'flame' }) {
     this.flameRecipe = typeof flameRecipe === 'function' ? flameRecipe : () => null;
+    this.family = family;
     this.sources = [];
     this.blocks = [];
     const bySource = new Map();
@@ -145,7 +147,7 @@ export class PassageDirector {
   localChoice(index) {
     const block = this.blocks[index];
     const source = this.sources[block.sourceIndex];
-    return localDirection(blockSignal(source.text.slice(block.from, block.to)));
+    return localDirection(blockSignal(source.text.slice(block.from, block.to)), this.family);
   }
 
   _cueFor(choice) {
@@ -188,7 +190,8 @@ export class PassageDirector {
     for (const choice of choices || []) {
       const index = this.blocks.findIndex(block => block.id && block.id === choice.blockId);
       const block = this.blocks[index];
-      if (!block || block.admitted || !isTreatmentChoice(choice.treatmentId, choice.intensityBand)) continue;
+      // A new choice keeps the reading's family and colour (R6); a saved one replays as shown (restore).
+      if (!block || block.admitted || !isFollowChoice(choice.treatmentId, choice.intensityBand, this.family)) continue;
       block.staged = Object.freeze({
         treatmentId: choice.treatmentId, intensityBand: choice.intensityBand, provenance
       });

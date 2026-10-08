@@ -220,8 +220,7 @@ Tokens: header 64 px (`src/design-system.css:87`), gutter `clamp(16px, 4vw, 56px
 
 1. **The one line on what RISE is** (first visit only; PR 8 waits for it). Proposed, theirs to replace: "RISE reads a text to you: words at a reading pace, over light and sound made for it." At or under 60 characters keeps it one line at 360 px; the proposal above is longer and would wrap.
 
-   Answer: pending.
-   Default if unanswered: PR 8 waits; Home ships without the line.
+   Answer (Mateo, 2026-10-07): "Texts read to you, with light and sound made for them." (54 characters). PR 8 builds it.
 2. **Criterion 1 on a connected desktop.** The §2 table puts Ask on Home when connected (`:81`), which makes the desktop 8. Default built: Ask shows on Home at every width when connected and criterion 1 reads "7, or 8 when the reader's own AI is connected". Alternative: Ask in the Menu only on desktop (phone keeps 5). A cold production load is never connected (the key is tab memory, `ai-connection.js:24`), so the case is rare.
 
    Answer: pending.

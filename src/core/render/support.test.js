@@ -70,8 +70,11 @@ describe('render-support registry', () => {
       'movement', 'transition', 'visual', 'audio', 'swell', 'reading', 'narration', 'thread'
     ]);
     expect(PROGRAM_VISUAL_KINDS).toEqual([
-      'still', 'focal', 'field', 'sourced', 'procedural', 'video'
+      'still', 'focal', 'field', 'sourced', 'procedural', 'video', 'scene'
     ]);
+    // A generated scene runs in a worker on the display's clock; a film has no such clock yet.
+    expect(RENDER_SUPPORT['visual:scene']).toMatchObject({ render: 'unsupported' });
+    expect(classifyCue({ kind: 'scene', sceneId: 'v', code: 'export default 1' })).toBe('visual:scene');
     expect(PROGRAM_VISUAL_FIELD_RENDERERS).toEqual(['focal', 'attractor', 'genesis', 'living-flame']);
     // Living Flame exports honestly as a deterministic still, never omitted.
     expect(RENDER_SUPPORT['visual:field:living-flame']).toMatchObject({

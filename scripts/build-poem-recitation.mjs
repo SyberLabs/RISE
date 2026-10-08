@@ -14,7 +14,7 @@
  * --render writes public/audio/recitation/<slug>/<sha16>.m4a (one clip per
  * reader line) and <sha16>.json (one pack per poem), all named by the hash of
  * their bytes, then src/audio/poem-recitation.json. Commit the audio to the
- * rise/audio-assets branch and re-pin scripts/hydrate-recitation.mjs.
+ * rise/audio-assets-opus branch and re-pin scripts/hydrate-recitation.mjs.
  *
  * The key is read from ELEVENLABS_API_KEY in the environment only and never
  * printed. Every response is cached under .cache/poem-recitation/responses,

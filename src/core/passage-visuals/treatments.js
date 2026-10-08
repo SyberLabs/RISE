@@ -7,7 +7,7 @@
  * returns is ever executed or passed through as parameters.
  */
 
-export const TREATMENT_CATALOG_VERSION = 1;
+export const TREATMENT_CATALOG_VERSION = 2;
 
 export const INTENSITY_BANDS = Object.freeze({ quiet: 0.15, balanced: 0.35, intense: 0.6 });
 export const INTENSITY_BAND_IDS = Object.freeze(Object.keys(INTENSITY_BANDS));
@@ -40,12 +40,45 @@ export const VISUAL_TREATMENTS = Object.freeze([
     criterion: 'A soft aperture of atmospheric light: contemplation, spaciousness, presence without event.' }),
   Object.freeze({ id: 'attractor', label: 'Attractor', kind: 'field',
     criterion: 'One continuous luminous filament orbiting itself: obsession, restless thought, circling, pursuit.' }),
+  // A Gallery reading's museum works (RDR-023 part 2): one collection each, chosen by the passage's mood.
+  Object.freeze({ id: 'gallery-landscapes', label: 'Landscapes', kind: 'sourced', collection: 'aic-landscapes',
+    criterion: 'Land, sea and sky with figures small or absent: calm, openness, distance, rest, reflection.' }),
+  Object.freeze({ id: 'gallery-impressionism', label: 'Monet & the Impressionists', kind: 'sourced', collection: 'aic-impressionism',
+    criterion: 'Light and weather in loose, bright brushwork: ordinary life, pleasure, the passing moment, release.' }),
+  Object.freeze({ id: 'gallery-postimpressionism', label: 'Van Gogh & Post-Impressionists', kind: 'sourced', collection: 'aic-postimpressionism',
+    criterion: 'Saturated colour and emphatic structure: agitation, conflict, longing, a mind under strain.' }),
+  Object.freeze({ id: 'gallery-oldmasters', label: 'Old Masters', kind: 'sourced', collection: 'aic-oldmasters',
+    criterion: 'Weighty, formal painting on dark grounds: grief, gravity, faith, myth, the solemn and the tragic.' }),
   Object.freeze({ id: 'stillness', label: 'Stillness', kind: 'still',
     criterion: 'No imagery at all: silence, starkness, a pause, or a passage that imagery would intrude on.' })
 ]);
 
 export const TREATMENT_IDS = Object.freeze(VISUAL_TREATMENTS.map(item => item.id));
 const BY_ID = new Map(VISUAL_TREATMENTS.map(item => [item.id, item]));
+
+/**
+ * WHAT FOLLOW TEXT MAY CHOOSE: one family, one colour (R6). A reading keeps its engine family and its
+ * colour theme while the text moves only the composition and the intensity, so Follow text draws the
+ * flame compositions and nothing else, and only those a theme can colour: Prismatic Knot is a cyclic
+ * spectrum, which theming leaves as it is (themedFlameRecipe), so it would flash every colour in a
+ * reading that has one. The other treatments stay for saved readings, which replay as they were shown.
+ */
+export const FOLLOW_TREATMENT_IDS = Object.freeze(VISUAL_TREATMENTS
+  .filter(item => item.kind === 'flame' && item.id !== 'prismatic-knot').map(item => item.id));
+/** A Gallery reading follows with museum works, never a flame: its family is the gallery of works. */
+const FOLLOW_FAMILIES = Object.freeze({
+  flame: FOLLOW_TREATMENT_IDS,
+  gallery: Object.freeze(VISUAL_TREATMENTS.filter(item => item.kind === 'sourced').map(item => item.id))
+});
+
+/** What Follow text may choose for a reading's family ('flame' or 'gallery'). */
+export function followTreatmentIds(family = 'flame') {
+  return Object.hasOwn(FOLLOW_FAMILIES, family) ? FOLLOW_FAMILIES[family] : FOLLOW_FAMILIES.flame;
+}
+
+export function isFollowChoice(treatmentId, intensityBand, family = 'flame') {
+  return followTreatmentIds(family).includes(treatmentId) && Object.hasOwn(INTENSITY_BANDS, intensityBand);
+}
 
 export function visualTreatment(id) {
   return BY_ID.get(id) || null;
@@ -78,6 +111,7 @@ export function compileTreatmentCue(treatmentId, intensityBand, flameRecipe = nu
     case 'stillness':
       return { kind: 'still' };
     default:
+      if (treatment.kind === 'sourced') return { kind: 'sourced', collections: [treatment.collection] };
       if (!flameRecipe || flameRecipe.id !== treatment.id) return { kind: 'still' };
       return { kind: 'field', renderer: 'living-flame', config: { recipe: flameRecipe, intensity } };
   }
@@ -94,19 +128,31 @@ export function effectiveEnergy(bandEnergy, userEnergy = 0.35, ceiling = 0.65) {
 }
 
 /**
- * Local direction: the fixed, deterministic mapping from the conductor's
- * signal to a treatment and band. It covers every block and never waits.
+ * What each mood draws, per family. A flame reads conflict through the intense
+ * band in the nebula's dark folds, not in another colour; the gallery gives
+ * agitation and grief their own painters.
  */
-export function localDirection(signal) {
+const MOOD_TREATMENTS = Object.freeze({
+  flame: Object.freeze({ calm: 'glacial-silk', ordinary: 'ember-cathedral', joy: 'solar-bloom', conflict: 'violet-nebula', grief: 'violet-nebula' }),
+  gallery: Object.freeze({ calm: 'gallery-landscapes', ordinary: 'gallery-impressionism', joy: 'gallery-impressionism', conflict: 'gallery-postimpressionism', grief: 'gallery-oldmasters' })
+});
+
+/**
+ * Local direction: the fixed, deterministic mapping from the conductor's
+ * signal to a treatment and band in the reading's family. It covers every
+ * block and never waits.
+ */
+export function localDirection(signal, family = 'flame') {
+  const moods = Object.hasOwn(MOOD_TREATMENTS, family) ? MOOD_TREATMENTS[family] : MOOD_TREATMENTS.flame;
   const confidence = Number(signal?.confidence);
   const valence = Number(signal?.valence) || 0;
   const arousal = Number(signal?.arousal) || 0;
-  if (!(confidence >= 0.15)) return { treatmentId: 'glacial-silk', intensityBand: 'quiet' };
+  if (!(confidence >= 0.15)) return { treatmentId: moods.calm, intensityBand: 'quiet' };
   const intensityBand = arousal >= 0.65 ? 'intense' : arousal <= 0.35 ? 'quiet' : 'balanced';
-  let treatmentId = 'ember-cathedral';
-  if (arousal >= 0.65 && valence > 0.15) treatmentId = 'solar-bloom';
-  else if (arousal >= 0.65 && valence < -0.15) treatmentId = 'prismatic-knot';
-  else if (arousal <= 0.35 && valence < -0.15) treatmentId = 'violet-nebula';
-  else if (arousal <= 0.35 && valence > 0.15) treatmentId = 'glacial-silk';
-  return { treatmentId, intensityBand };
+  let mood = 'ordinary';
+  if (arousal >= 0.65 && valence > 0.15) mood = 'joy';
+  else if (arousal >= 0.65 && valence < -0.15) mood = 'conflict';
+  else if (arousal <= 0.35 && valence < -0.15) mood = 'grief';
+  else if (arousal <= 0.35 && valence > 0.15) mood = 'calm';
+  return { treatmentId: moods[mood], intensityBand };
 }

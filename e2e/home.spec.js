@@ -1,4 +1,4 @@
-import { test, expect, connectTestOpenRouter } from './fixtures.js';
+import { test, expect, connectTestOpenRouter, revealChamberControls } from './fixtures.js';
 import { openAskDialog } from './reader-connection.js';
 
 /**
@@ -55,6 +55,12 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 640 }
     for (const selector of ['[data-home="enter"]', '[data-home="roll"]', '[data-home="adjust"]', '.portal-legal-link']) {
       expect(await bottom(page, selector), selector).toBeLessThanOrEqual(viewport.height);
     }
+    // A first visit says what RISE is: on the first screen, at most two lines, nothing cut.
+    const about = page.locator('.home-about');
+    await expect(about).toBeVisible();
+    expect(await bottom(page, '.home-about')).toBeLessThanOrEqual(viewport.height);
+    expect(await about.evaluate(node => ({ high: node.getBoundingClientRect().height <= 44, whole: node.scrollWidth <= node.clientWidth })))
+      .toEqual({ high: true, whole: true });
     // One solid key, and no word moving.
     await expect(page.locator('.home .btn-primary')).toHaveText('Begin');
     await expect(page.locator('.reading-stream-current')).toHaveCount(0);
@@ -249,7 +255,7 @@ test('Another reading rolls a vivid one, named by chance with its look; Begin pl
   });
   expect(session).toEqual({ wpm: decision.config.wpm, face: decision.config.presentation.chamberFace, experience: 'jev' });
 
-  await page.locator('#chamber-display').hover();
+  await revealChamberControls(page);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => view(page), { timeout: 15_000 }).toBe('home');

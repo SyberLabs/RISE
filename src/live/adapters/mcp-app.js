@@ -32,7 +32,7 @@
 import { AdapterError, createChannel, createEventWriter, recordHostEvent, validateOpenRequest } from '../adapter.js';
 import { createRealClock } from '../clock.js';
 import { currentToEvents } from './current-events.js';
-import { DIVE_INSTRUCTIONS, TOOL_NAME } from './current-guide.js';
+import { DIVE_INSTRUCTIONS, TOOL_NAME } from '../guide/index.js';
 
 export { TOOL_NAME };
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
@@ -71,7 +71,7 @@ export function currentFromText(text) {
  * @param {string} [options.host] the page that framed RISE, as the reader should see it: it is the host,
  *   and nothing but the page itself vouches for which host it is
  */
-export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256, host, admittedEvents = null }) {
+export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256, host, admittedEvents = null, admittedCurrent = null }) {
     if (!port || typeof port.onCurrent !== 'function') {
         throw new TypeError('The MCP adapter is given a port that delivers Currents');
     }
@@ -99,6 +99,8 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             const writer = createEventWriter(currentId);
             const log = [];
             let channel = createChannel({ capacity });
+            /** The Current as it was handed over, whole: what the runtime compiles (beats ride here, not in events). */
+            let sealed = null;
             let closed = false;
             let finished = false;
             let stopWaiting = () => {};
@@ -135,7 +137,9 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             const accept = ({ current }) => {
                 if (finished || closed) return false;
                 try {
-                    return acceptEvents(currentToEvents(current));
+                    const events = currentToEvents(current);
+                    sealed = current;
+                    return acceptEvents(events);
                 } catch (error) {
                     fail('INVALID_CURRENT', `The Current was refused: ${String(error?.message ?? error)}`);
                     return true;
@@ -146,7 +150,12 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             const off = isDive ? null : admittedEvents ? null : port.onCurrent(accept);
             const timer = clock.setTimer(() => fail('NO_ANSWER', 'The host did not answer in time'), timeoutMs);
             stopWaiting = () => { off?.(); timer(); };
-            if (!isDive && admittedEvents) acceptEvents(admittedEvents);
+            // A host that admitted the Current itself hands it over whole with its events, so the runtime compiles the
+            // sealed Current (its beats never pass through the stream) exactly as when the port delivers one.
+            if (!isDive && admittedEvents) {
+                sealed = admittedCurrent;
+                acceptEvents(admittedEvents);
+            }
             // A Current the host had already handed over was delivered as we subscribed.
             if (finished) stopWaiting();
 
@@ -168,6 +177,7 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             return {
                 currentId,
                 get events() { return channel; },
+                get sealed() { return sealed; },
 
                 record(type, body = {}) {
                     if (closed || finished) throw new AdapterError('CLOSED', 'The connection is closed');

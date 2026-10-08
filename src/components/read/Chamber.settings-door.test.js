@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { Settings } from '../Settings.js';
 import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
-import { resolveChamberAccent } from '../../core/chamber-accent.js';
+import { JEV_PALETTES, jevPalette } from '../../core/jev-palette.js';
 
 function fakePlayer(initialState = 'playing') {
   const player = {
@@ -133,7 +133,7 @@ describe('Chamber Settings door', () => {
     expect(container.querySelector('#master-volume'), 'Sound').toBeTruthy();
     expect(container.querySelectorAll('[data-volume]'), 'its presets').toHaveLength(3);
     expect([...container.querySelectorAll('input[name="font-size"]')].map(i => i.value))
-      .toEqual(['small', 'medium', 'large', 'xlarge']);
+      .toEqual(['small', 'medium', 'large']);
     expect(container.querySelector('[data-setting="photosensitivityMode"]')).toBeTruthy();
     expect(container.querySelector('[data-setting="reducedMotion"]')).toBeTruthy();
 
@@ -292,25 +292,66 @@ describe('Chamber Settings door', () => {
     chamber.destroy();
   });
 
-  it('does not show Accent fail when Default clears data-accent', () => {
-    const { chamber, container } = mount(fakePlayer(), {}, {
-      getSettings: () => ({ chamberAccent: 'default' })
-    });
-    const fail = document.createElement('p');
-    fail.id = 'chamber-accent-fail';
-    fail.hidden = true;
-    fail.textContent = 'Accent did not take.';
-    container.appendChild(fail);
-    document.documentElement.dataset.accent = 'cobalt';
-    chamber.applyChamberAccent();
-    chamber._reportAccentApply('default');
+  describe('Living Text follows the reader’s Settings', () => {
+    const asks = { visualConfig: { visualMode: 'off', livingText: { enabled: true } } };
 
-    expect(document.documentElement.dataset.accent).toBeUndefined();
-    expect(fail.hidden).toBe(true);
-    chamber.destroy();
+    it('tints a reading that asks for it only while Settings allows it, and stops at once when turned off', () => {
+      let settings = { livingText: false };
+      const { chamber, container } = mount(fakePlayer(), asks, { getSettings: () => settings });
+      expect(chamber.semanticTrack).toBeNull();
+
+      settings = { livingText: true };
+      chamber.applyLivingTextSetting();
+      expect(chamber.semanticTrack).not.toBeNull();
+
+      const atom = container.querySelector('#atom-display');
+      atom.style.color = 'rgb(1, 2, 3)';
+      atom.style.textShadow = '0 0 4px red';
+      settings = { livingText: false };
+      chamber.applyLivingTextSetting();
+      expect(chamber.semanticTrack).toBeNull();
+      expect(atom.style.color).toBe('');
+      expect(atom.style.textShadow).toBe('');
+      chamber.destroy();
+    });
+
+    it('never tints a reading that does not ask for it, whatever Settings says', () => {
+      const { chamber } = mount(fakePlayer(), {}, { getSettings: () => ({ livingText: true }) });
+      chamber.applyLivingTextSetting();
+      expect(chamber.semanticTrack).toBeNull();
+      chamber.destroy();
+    });
   });
 
-  it('auto-starts at its timer boundary without a hydration gate', async () => {
+  describe('the page chrome follows the reading’s theme', () => {
+    const rose = { presentation: { colorTheme: 'rose', colors: jevPalette('rose') } };
+    const accent = () => document.documentElement.style.getPropertyValue('--color-accent');
+
+    it('dresses the page chrome in its theme while it is on screen, and gives it back when it goes', () => {
+      const { chamber } = mount(fakePlayer(), rose);
+      expect(accent()).toBe(JEV_PALETTES.rose.accent);
+      chamber.destroy();
+      expect(accent()).toBe('');
+    });
+
+    it('lets the reader’s theme change carry the chrome with it, and As written give it back', () => {
+      const { chamber } = mount(fakePlayer());
+      expect(accent()).toBe('');
+      chamber.setColourTheme('jade');
+      expect(accent()).toBe(JEV_PALETTES.jade.accent);
+      chamber.setColourTheme(null);
+      expect(accent()).toBe('');
+      chamber.destroy();
+    });
+
+    it('leaves the page alone under a host that draws its own chrome', () => {
+      const { chamber } = mount(fakePlayer(), rose, { chrome: 'none' });
+      expect(accent()).toBe('');
+      chamber.destroy();
+    });
+  });
+
+  it('auto-starts on the next task after mounting, with no fixed wait and no hydration gate (RDR-015)', async () => {
     vi.useFakeTimers();
     try {
       const player = fakePlayer('idle');
@@ -327,7 +368,8 @@ describe('Chamber Settings door', () => {
         player,
         autoStart: true
       });
-      await vi.advanceTimersByTimeAsync(500);
+      expect(player.play).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(0);
       expect(player.play).toHaveBeenCalledOnce();
       chamber.destroy();
     } finally {

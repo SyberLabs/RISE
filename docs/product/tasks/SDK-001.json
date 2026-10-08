@@ -24,10 +24,14 @@
     {
       "date": "2026-10-03",
       "summary": "Seeded from approved Composer-first roadmap; host/release acceptance remains open."
+    },
+    {
+      "date": "2026-10-08T14:05:00.000Z",
+      "summary": "The owner reopened the SDK with the Creative Control stage (2026-10-08) without waiting for observed integration demand: CC-008 writes the renderer contract down as docs/specs/RISE-SDK.md, provisional until the owner's Live Run. This task's own acceptance (an identified external integration) is still unmet, so its status is unchanged."
     }
   ],
-  "updatedAt": "2026-10-03T23:14:43.432Z",
-  "revision": 1,
+  "updatedAt": "2026-10-08T14:05:00.000Z",
+  "revision": 2,
   "summary": "Keep renderer manifests and durable score boundary clean. Broad public SDK, scenes and additional hosts await concrete integration demand.",
   "blocker": null
 }

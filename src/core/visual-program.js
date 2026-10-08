@@ -11,6 +11,13 @@
 import { normalizeProceduralStyle } from './visual-style-definitions.js';
 import { isJevColorTheme } from './jev-color-themes.js';
 import { normalizeLivingFlameConfig } from './flame-recipe.js';
+import { flamePreset } from '../visuals/living-flame/flame-presets.js';
+import { EXPERIENCE_PROGRAM_LIMITS, sceneCodeBytes } from './experience-program.js';
+
+// Classic's composition (THEME_ENGINE_MAP), named here because the theme map
+// reaches the session compiler, which reaches this file. No theme reaches this
+// lowering, so it draws what a reading with no theme draws.
+const FALLBACK_FLAME_COMPOSITION = 'ember-cathedral';
 
 const INFINITY_TOKEN = '__rise_infinity__';
 const MAX_SEGMENTS = 512;
@@ -63,6 +70,9 @@ export function visualFallbackCueFromConfig(value = {}) {
   }
   if (config.visualMode === 'genesis') {
     return { kind: 'field', renderer: 'genesis', config: normalizeFieldConfig(config.genesis) };
+  }
+  if (config.visualMode === 'living-flame') {
+    return { kind: 'field', renderer: 'living-flame', config: { recipe: flamePreset(FALLBACK_FLAME_COMPOSITION) } };
   }
   return { kind: 'still' };
 }
@@ -139,6 +149,12 @@ export function normalizeVisualCue(value) {
       timeMode: modes.has(value.timeMode) ? value.timeMode : 'loop',
       audioPolicy: 'muted', reducedMotion: 'poster'
     };
+  }
+  if (value.kind === 'scene') {
+    const { maxSceneIdLength, maxSceneCodeBytes } = EXPERIENCE_PROGRAM_LIMITS;
+    const valid = typeof value.sceneId === 'string' && value.sceneId && value.sceneId.length <= maxSceneIdLength
+      && typeof value.code === 'string' && value.code && sceneCodeBytes(value.code) <= maxSceneCodeBytes;
+    return valid ? { kind: 'scene', sceneId: value.sceneId, code: value.code } : { kind: 'still' };
   }
   return { kind: 'still' };
 }

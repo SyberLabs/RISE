@@ -10,7 +10,7 @@
  * else happens. The key goes straight to memory (ai-connection.js).
  */
 import { acceptOpenRouterKey, postConnectionNotice } from './ai-connection.js';
-import { CALLBACK_PATH, PENDING_KEY, takeOpenRouterReturn } from './openrouter-callback.js';
+import { CALLBACK_PATH, PENDING_KEY, sessionStorageOrNull, takeOpenRouterReturn } from './openrouter-callback.js';
 
 export { CALLBACK_PATH, PENDING_KEY, takeOpenRouterReturn };
 export const AUTH_URL = 'https://openrouter.ai/auth';
@@ -47,7 +47,7 @@ export async function codeChallenge(verifier, cryptoImpl = globalThis.crypto) {
 
 /** Start the redirect. Returns the authorization URL it navigated to. */
 export async function beginOpenRouterConnect({
-  storage = globalThis.sessionStorage,
+  storage = sessionStorageOrNull(),
   origin = globalThis.location?.origin,
   navigate = url => globalThis.location.assign(url),
   cryptoImpl = globalThis.crypto,
@@ -86,7 +86,7 @@ function readPending(storage) {
 
 /** Finish a callback taken by takeOpenRouterReturn. Resolves to { code }. */
 export async function completeOpenRouterConnect(taken, {
-  storage = globalThis.sessionStorage,
+  storage = sessionStorageOrNull(),
   fetcher = fetch,
   now = Date.now,
   timeoutMs = 15000

@@ -26,8 +26,9 @@ async function directedReading(presentation) {
     flameRecipe: flamePreset
   });
   director.identify('primary', (await prepareVisualSource(text)).blocks);
-  // The reader has entered the first three blocks; Jev chose one of them.
-  director.stage([{ blockId: director.blocks[1].id, treatmentId: 'klee-architectural', intensityBand: 'balanced' }]);
+  // The reader has entered the first three blocks; a saved reading held another engine for one of them,
+  // which replays as it was shown (a new Follow choice could not be one: R6).
+  director.restore([{ blockId: director.blocks[1].id, treatmentId: 'klee-architectural', intensityBand: 'balanced' }]);
   for (const index of [0, 1, 2]) director.admit(index);
   return { session, director, text };
 }

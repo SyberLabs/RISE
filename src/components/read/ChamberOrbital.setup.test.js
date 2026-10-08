@@ -20,6 +20,8 @@ const { ChamberOrbital } = await import('./ChamberOrbital.js');
 const { LOOKS, applyLook, lookOf } = await import('../../core/looks.js');
 const { composeRoll } = await import('../../core/roll.js');
 const { jevReleasedWorkIds } = await import('../../core/jev-describe.js');
+const { SOUND_GROUPS } = await import('../../audio/sound-list.js');
+const { SOUNDSCAPES } = await import('../../audio/soundscapes.js');
 
 const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
@@ -694,6 +696,44 @@ describe('the Rhythm & pace sheet', () => {
         orbital.destroy();
     });
 
+    it('in Inlay, locks Phrase and Sentence and says why on the controls; another look gives them back', () => {
+        setWidth(820);
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('[data-look="inlay"]').click();
+        const sheet = open(container);
+        const chunk = id => sheet.querySelector(`[data-chunk="${id}"]`);
+        const note = sheet.querySelector('[data-chunk-lock-note]');
+        for (const id of ['phrase', 'sentence']) {
+            expect(chunk(id).disabled, id).toBe(true);
+            expect(chunk(id).title, id).toBe('Inlay paints one word at a time');
+            expect(chunk(id).querySelector('.chunk-lock'), id).not.toBeNull();
+        }
+        expect(chunk('word').disabled).toBe(false);
+        expect(chunk('word').classList).toContain('active');
+        expect(note.hidden).toBe(false);
+        expect(note.textContent).toMatch(/Inlay paints one word at a time/u);
+
+        container.querySelector('[data-look="plain"]').click();
+        for (const id of ['phrase', 'sentence', 'word']) {
+            expect(chunk(id).disabled, id).toBe(false);
+            expect(chunk(id).querySelector('.chunk-lock'), id).toBeNull();
+        }
+        expect(note.hidden).toBe(true);
+        orbital.destroy();
+    });
+
+    it('keeps Inlay in Inlay on Default: its rhythm is the word', () => {
+        setWidth(820);
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('[data-look="inlay"]').click();
+        open(container).querySelector('[data-action="rhythm-default"]').click();
+        expect(orbital.config.chunkMode).toBe('word');
+        expect(lookOf(orbital.config)).toBe('inlay');
+        orbital.destroy();
+    });
+
     it('closes on Escape and gives focus back to its row', () => {
         const { container, orbital } = createOrbital();
         const sheet = open(container);
@@ -702,6 +742,113 @@ describe('the Rhythm & pace sheet', () => {
             new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
         expect(sheet.hidden).toBe(true);
         expect(document.activeElement).toBe(container.querySelector('[data-orbit="temporal"]'));
+        orbital.destroy();
+    });
+});
+
+describe('the Sound panel: one sound list (RDR-024)', () => {
+    const choiceId = button => button.dataset.soundscape ?? button.dataset.audioPreset;
+    const active = container => [...container.querySelectorAll('#modal-audio .active[data-soundscape], #modal-audio .active[data-audio-preset]')]
+        .map(choiceId);
+
+    it('offers Silence, the 24 soundscapes and the 3 tones, in the five groups', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        const groups = [...container.querySelectorAll('#modal-audio [data-sound-group]')]
+            .filter(group => !group.hidden);
+
+        expect(groups.map(group => group.dataset.soundGroup)).toEqual(SOUND_GROUPS.map(group => group.id));
+        const offered = groups.map(group => [...group.querySelectorAll('[data-soundscape], [data-audio-preset]')]
+            .filter(button => !button.hidden).map(choiceId));
+        expect(offered).toEqual(SOUND_GROUPS.map(group => group.entries.map(entry => entry.id)));
+        expect(offered.flat().filter(id => Object.hasOwn(SOUNDSCAPES, id))).toHaveLength(24);
+        expect(offered.at(-1)).toEqual(['focus', 'deep', 'gateway']);
+        orbital.destroy();
+    });
+
+    it('plays one sound at a time: a tone rests the soundscape, and Silence rests both', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        const choose = id => container.querySelector(`#modal-audio [data-soundscape="${id}"], #modal-audio [data-audio-preset="${id}"]`).click();
+        const status = () => container.querySelector('.orbit-audio .orbit-status').textContent;
+
+        choose('night-drive');
+        expect(orbital.config).toMatchObject({ soundscape: 'night-drive', audioPreset: 'silent' });
+        expect(active(container)).toEqual(['night-drive']);
+        expect(status()).toBe('Night Drive');
+
+        choose('gateway');
+        expect(orbital.config).toMatchObject({ soundscape: 'none', audioPreset: 'gateway' });
+        expect(active(container)).toEqual(['gateway']);
+        expect(status()).toBe('Gateway');
+
+        choose('none');
+        expect(orbital.config).toMatchObject({ soundscape: 'none', audioPreset: 'silent' });
+        expect(active(container)).toEqual(['none']);
+        expect(status()).toBe('Silence');
+        orbital.destroy();
+    });
+
+    it('keeps personal swells out of setup: they live in the Workshop', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        const panel = container.querySelector('#modal-audio');
+        expect(panel.querySelector('#swell-upload')).toBeNull();
+        expect(panel.querySelector('#personal-swell-list')).toBeNull();
+        expect(panel.textContent).not.toMatch(/swell/i);
+        orbital.destroy();
+    });
+
+    it('forgets a swell an older setup remembered, so no choice is left that setup cannot show', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({ paceV2: true, selectedSwellId: 'swell_1' }));
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0].selectedSwellId).toBeNull();
+        expect(JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'))).not.toHaveProperty('selectedSwellId');
+        orbital.destroy();
+    });
+
+    it('keeps a tone’s delivery and waveform out of setup: they are shaped in the Workshop', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        container.querySelector('#modal-audio [data-audio-preset="focus"]').click();
+        const panel = container.querySelector('#modal-audio');
+        expect(panel.querySelector('[data-entrainment], [data-waveform]')).toBeNull();
+        expect(panel.textContent).not.toMatch(/Entrainment|Waveform/u);
+        orbital.destroy();
+    });
+
+    it('forgets a delivery and waveform an older setup remembered, so its tone plays as the Workshop would start it', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({ paceV2: true, audioPreset: 'focus', entrainmentMode: 'isochronic', entrainmentWaveform: 'sawtooth' }));
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0]).toMatchObject({ audioPreset: 'focus', entrainmentMode: 'binaural', entrainmentWaveform: 'sine' });
+        const saved = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'));
+        expect(saved).not.toHaveProperty('entrainmentMode');
+        expect(saved).not.toHaveProperty('entrainmentWaveform');
+        orbital.destroy();
+    });
+
+    it('carries the delivery and waveform of a composition opened in setup through to its reading', () => {
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations', { audioPreset: 'deep', entrainmentMode: 'monaural', entrainmentWaveform: 'triangle' });
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0]).toMatchObject({ audioPreset: 'deep', entrainmentMode: 'monaural', entrainmentWaveform: 'triangle' });
+        orbital.destroy();
+    });
+});
+
+describe('Living Text: the reader’s Setting, not setup’s', () => {
+    it('asks for it in every setup reading, whatever an older setup saved: Settings decides', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            paceV2: true, visualInterlocution: { visualMode: 'off', livingText: { enabled: false } }
+        }));
+        const { orbital, onBeginSession } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0].visualConfig.livingText).toEqual({ enabled: true });
         orbital.destroy();
     });
 });

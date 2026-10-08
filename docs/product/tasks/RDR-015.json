@@ -42,6 +42,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/459",
       "note": "PR 7 of the canonical Home (b4-begin-hold): the router keeps Home shown under the Read view until the reading has faded in, and the factory raises no overlay and does not settle for a reading begun from Home. CI measures Begin to first word in e2e/home-begin.spec.js, now without test.fail().",
       "date": "2026-10-05"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/493",
+      "note": "Each step of a Begin is stamped and printed; the Chamber auto-starts on the next task instead of after 500 ms. CI run 37693362662: today’s poem 1410 ms, signal 960, iris 1379, revel 3449 (preload 2.3 s).",
+      "date": "2026-10-07"
     }
   ],
   "activity": [
@@ -64,10 +70,14 @@
     {
       "date": "2026-10-05T23:56:45.188Z",
       "summary": "CI numbers after the hold: overlay never shown, field always up; first word 3.8-4.0 s on three cases, 1.4 s on signal; criterion 4 stays open."
+    },
+    {
+      "date": "2026-10-07T22:17:19.712Z",
+      "summary": "Begin starts the reading on mount: three of four Begins within 1.5 s"
     }
   ],
-  "updatedAt": "2026-10-05T23:56:45.188Z",
-  "revision": 5,
-  "summary": "A Gallery reading opens on two flames instead of its whole queue (and bakes no flash plates first), cutting the preparation screen from ~3.2-3.5 s to ~1.7-2.4 s on a dev build. With PR 7 (#459) the router holds Home under the Read view for a reading begun from Home and the factory raises no preparation screen and skips its settle: on CI the overlay is never shown and a field is visible on every frame. The first word is not yet within budget: CI (SwiftShader) measures today's poem at 3.9 s, a revel roll at 4.0 s, an ember roll at 3.8 s and a signal roll at 1.4 s, with long tasks up to 2.3 s on ember; removing Home's 700 ms did not move it, so the time is the Chamber's own build and start (the 500 ms autoStart, engine init), which is D1's and C3's. e2e/home-begin.spec.js reads the numbers on every run, the three red cases under test.fail().",
+  "updatedAt": "2026-10-07T22:17:19.712Z",
+  "revision": 6,
+  "summary": "A Begin from Home holds Home under the Read view (#459) and now starts the reading as soon as the Chamber is mounted; the fixed 500 ms auto-start wait is gone (#493). On CI (SwiftShader) the first word comes 1.41 s after the press for today’s poem, 0.96 s for a signal roll and 1.38 s for an iris roll, with a field on every frame and no overlay. Open: a revel roll takes 3.4 s, 2.3 s of it the Gallery preload waiting for two decoded flames, and an iris roll holds a 453 ms long task while the Chamber is built. e2e/home-begin.spec.js prints every step of a Begin on every run.",
   "blocker": null
 }

@@ -3,6 +3,21 @@ export { expect, test } from '@playwright/test';
 import { answerDecisions, connectOpenRouter, openAskDialog } from './reader-connection.js';
 
 /**
+ * Show the reading's controls before pressing one. They fade 3 s after the last
+ * mousemove over the reading and take no pointer while faded, and a move to
+ * where the pointer already is sends none; under a busy software renderer a
+ * move can also be handled late. So it moves until the bar is shown.
+ */
+export async function revealChamberControls(page) {
+  const controls = page.locator('#chamber-controls');
+  await expect.poll(async () => {
+    await page.mouse.move(640, 360);
+    await page.mouse.move(640, 700);
+    return controls.getAttribute('style');
+  }, { timeout: 15_000 }).toContain('opacity: 1');
+}
+
+/**
  * Where each room sits now: the Menu names the five rooms, and every other
  * room is a tab or program inside one of them (route-url.js ROUTE_PANES).
  */

@@ -129,7 +129,7 @@ export const directoryMethods = {
           face: settings.face,
           fontSize: 'medium',
           wordFill: this.selection.wordFill,
-          settings: { chamberFace: settings.face, fontSize: 'medium', chamberMask: false }
+          settings: { chamberFace: settings.face, fontSize: 'medium' }
         });
         this.closeDialog();
         this._onFieldCommitted?.();
@@ -390,7 +390,6 @@ export const directoryMethods = {
     // What the collapsed bar says on a phone. State first, because that is the
     // whole reason these switches were kept in sight.
     const summary = [
-      `Living Text ${this.selection.livingText.enabled ? 'on' : 'off'}`,
       `Glass ${this.glassOn() ? 'on' : 'off'}`,
       galleryContext && cadence ? cadence.label : null
     ].filter(Boolean).join(' · ');
@@ -403,15 +402,6 @@ export const directoryMethods = {
           d="${this._readerSheetOpen ? 'm6 9 6 6 6-6' : 'm6 15 6-6 6 6'}"/></svg>
       </button>
       <div class="vnav-reader-sheet" id="vnav-reader-sheet">
-      <label class="vnav-switch${this.selection.livingText.enabled ? ' is-on' : ''}${fieldLocked ? ' is-off-limits' : ''}">
-        <input type="checkbox" data-action="living-text" aria-describedby="vnav-living-note"
-          ${this.selection.livingText.enabled ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}>
-        <span class="vnav-switch-track" aria-hidden="true"><span class="vnav-switch-knob"></span></span>
-        <span class="vnav-switch-copy">
-          <span class="vnav-switch-name">Living Text</span>
-          <span class="vnav-switch-note" id="vnav-living-note">Lets the reading's own feeling colour the words as they pass.</span>
-        </span>
-      </label>
       <label class="vnav-switch${this.glassOn() ? ' is-on' : ''}${fieldLocked || maskHoldsLetters ? ' is-off-limits' : ''}">
         <input type="checkbox" data-action="glass" aria-describedby="vnav-glass-note"
           ${this.glassOn() ? 'checked' : ''}

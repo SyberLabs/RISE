@@ -1,0 +1,81 @@
+{
+  "prompt": "Write me something about patience, in RISE, however you like.",
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "on-patience",
+    "title": "On patience",
+    "theme": "jade",
+    "look": "garden",
+    "style": "open-field",
+    "type": {
+      "text": "display-serif"
+    },
+    "origin": {
+      "kind": "model",
+      "name": "Your name",
+      "provider": "Who runs you"
+    },
+    "scenes": [
+      {
+        "id": "growth",
+        "engine": "genesis",
+        "params": {
+          "preset": "gravitational"
+        }
+      },
+      {
+        "id": "pendulum",
+        "engine": "harmonograph",
+        "params": {
+          "climate": "jadeVeil"
+        }
+      }
+    ],
+    "beats": [
+      {
+        "show": "On patience",
+        "hold": {
+          "ms": 2200
+        },
+        "scene": "growth",
+        "size": "display",
+        "sound": "piano"
+      },
+      {
+        "say": "A seed does nothing you can see for a long time.",
+        "place": "caption"
+      },
+      {
+        "hold": {
+          "ms": 3000
+        }
+      },
+      {
+        "say": "Then everything at once, as if the waiting had been the work.",
+        "emphasis": [
+          "waiting"
+        ]
+      },
+      {
+        "say": "A pendulum knows it too: it never hurries, and it always arrives.",
+        "scene": "pendulum",
+        "transition": {
+          "ms": 1200
+        }
+      },
+      {
+        "hold": {
+          "ms": 4000
+        }
+      },
+      {
+        "show": "wait well",
+        "hold": {
+          "ms": 2500
+        },
+        "type": "handwritten",
+        "size": "larger"
+      }
+    ]
+  }
+}

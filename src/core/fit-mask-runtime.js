@@ -87,8 +87,10 @@ export class FitMaskRuntime {
       // word itself arrives is a separate question, and the one the dwell
       // is counted from.
       this._plainReleased = true;
-      this.chamber?.container?.querySelector('#atom-display')
-        ?.classList.remove('is-mask-settling');
+      const shown = this.chamber?.container?.querySelector('#atom-display');
+      shown?.classList.remove('is-mask-settling');
+      // A word already waiting is on screen from now, so its dwell starts now.
+      this.markPlainWordShown(shown);
     }, DRESSING_GRACE_MS);
   }
 

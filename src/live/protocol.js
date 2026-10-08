@@ -19,6 +19,7 @@
 
 import {
     RISE_CURRENT_LIMITS,
+    RISE_CURRENT_LOOKS,
     RISE_CURRENT_THEME_IDS,
     RISE_CURRENT_VISUALS,
     hasLiteralForbidden,
@@ -257,12 +258,16 @@ function chunk(value, path, literal = false) {
 /** What each type carries beyond the envelope, and how each field is checked. */
 const BODIES = {
     'current.open': {
-        fields: ['title', 'origin', 'theme'],
+        fields: ['title', 'origin', 'theme', 'look'],
         read: (e, p) => {
             const clean = { title: text(e.title, RISE_CURRENT_LIMITS.title, `${p}.title`), origin: origin(e.origin, `${p}.origin`) };
             if (given(e, 'theme')) {
                 if (!RISE_CURRENT_THEME_IDS.includes(e.theme)) fail('EVENT_THEME', `${p}.theme`, 'Unknown theme');
                 clean.theme = e.theme;
+            }
+            if (given(e, 'look')) {
+                if (!RISE_CURRENT_LOOKS.includes(e.look)) fail('EVENT_LOOK', `${p}.look`, 'Unknown look');
+                clean.look = e.look;
             }
             return clean;
         }

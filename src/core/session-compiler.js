@@ -80,7 +80,7 @@ const CURVE_STATES = {
 const CURVES = Object.freeze(Object.fromEntries(
     PACE_CURVE_IDS.map(id => [id, CURVE_STATES[id]])
 ));
-const VISUAL_MODES = new Set(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
+const VISUAL_MODES = new Set(['off', 'focals', 'attractor', 'genesis', 'living-flame', 'interlocution']);
 const ATTRACTOR_SYSTEM_IDS = new Set(['aizawa', 'thomas', 'halvorsen']);
 const ATTRACTOR_PALETTE_SET = new Set(ATTRACTOR_PALETTES.map(item => item.id));
 const ATTRACTOR_FORM_SET = new Set(['mirror', 'kaleido', 'bilateral']);

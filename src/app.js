@@ -10,6 +10,7 @@
  */
 
 import { Router, claimStaleBuildReload } from './core/router.js';
+import { appHistory, appLocation } from './core/embed-address.js';
 import { compileSession } from './core/session-compiler.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
@@ -25,7 +26,6 @@ import {
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
-import { DEFAULT_CHAMBER_ACCENT, applyChamberAccent, migrateChamberAccent, resolveChamberAccent } from './core/chamber-accent.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
@@ -101,7 +101,7 @@ window.addEventListener('vite:preloadError', (event) => {
 class App {
     constructor() {
         // Read-only measurement records (setup-preview.js) outlive the router's first navigation.
-        if (new URLSearchParams(window.location.search).has('measure')) document.documentElement.dataset.riseMeasure = '';
+        if (new URLSearchParams(appLocation().search).has('measure')) document.documentElement.dataset.riseMeasure = '';
         this.router = null;
         this.audioEngine = null;
         this.settings = null;
@@ -234,6 +234,8 @@ class App {
 
         this.router = new Router({
             build: import.meta.url,
+            history: appHistory(),
+            location: appLocation(),
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
@@ -255,7 +257,7 @@ class App {
         // exact manifest gate rather than from URL text alone.
         // resolveAddress fetches keystones.js only for a Keystone path, so a
         // reader arriving at Home does not wait for that manifest.
-        const pathname = window.location.pathname;
+        const pathname = appLocation().pathname;
         // A minted sequence is the same kind of public entry point. TWO
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
@@ -286,8 +288,8 @@ class App {
         // because the router does not own hashes.
         // A skin's page hands over one decision, admitted again by the normal
         // launch or Reader Setup resolver. The URL carries no reading data.
-        const opened = window.location.search.includes('invocation=')
-            && await (await import('./app/invocation.js')).enterFromInvocation(window.location.search, {
+        const opened = appLocation().search.includes('invocation=')
+            && await (await import('./app/invocation.js')).enterFromInvocation(appLocation().search, {
                 home: () => this.router.navigate('home'),
                 launch: decision => this.launchJevReading(decision),
                 adjust: decision => this.adjustJevReading(decision),
@@ -359,9 +361,6 @@ class App {
                 if (engine.lifecycle && !engine.audible) {
                     await engine.lifecycle.ensureLive();
                 }
-                if (this.settings?.enableAmbient) {
-                    engine.startAmbientPlaylist();
-                }
             } catch (error) {
                 console.warn('[RISE] Audio initialization unavailable:', error);
             } finally {
@@ -413,10 +412,9 @@ class App {
         // Audio errors: disable audio and continue
         errorBoundary.registerRecoveryHandler(ErrorCategory.AUDIO, (report) => {
             if (this.settings) {
-                this.settings.enableAmbient = false;
                 this.settings.enableBinaural = false;
             }
-            return this.audioEngine?.stopSession({ resumeAmbient: false, immediate: true });
+            return this.audioEngine?.stopSession({ immediate: true });
         });
 
         // Visual errors: disable visual interlocution
@@ -952,14 +950,13 @@ class App {
             // Display
             fontSize: 'medium',
             chamberFace: 'literary',
-            chamberAccent: DEFAULT_CHAMBER_ACCENT,
-            chamberMask: false,
+            // Living Text tints the words of a reading that asks for it; on unless the reader turns it off.
+            livingText: true,
             showProgress: true,
             showDuration: true,
             showArtworkLabels: true,
 
             // Audio
-            enableAmbient: false,
             masterVolume: 0.75,
             enableBinaural: false,
 
@@ -988,21 +985,15 @@ class App {
                 'showProgress',
                 'showDuration',
                 'showArtworkLabels',
-                'enableAmbient',
+                'livingText',
                 'enableBinaural',
                 'photosensitivityMode',
-                'reducedMotion',
-                'chamberMask'
+                'reducedMotion'
             ];
             this.settings = {
                 ...defaultSettings,
                 fontSize: resolveFontSize(merged.fontSize),
                 chamberFace: resolveChamberStreamFace(merged.chamberFace),
-                chamberAccent: resolveChamberAccent(
-                    migrateChamberAccent(merged.chamberAccent, merged.chamberAccentNamed)),
-                // Marks this blob as written after Slate became a hue of its
-                // own, so a stored 'slate' is never mistaken for the default.
-                chamberAccentNamed: true,
                 masterVolume: Number.isFinite(Number(merged.masterVolume))
                     ? Math.max(0, Math.min(1, Number(merged.masterVolume)))
                     : defaultSettings.masterVolume,
@@ -1045,13 +1036,9 @@ class App {
             ? clampReadingWpm(value, this.settings.defaultWpm)
             : key === 'chamberFace'
                 ? resolveChamberStreamFace(value)
-                : key === 'chamberAccent'
-                    ? resolveChamberAccent(value)
-                    : key === 'chamberMask'
-                    ? value === true
-                    : key === 'fontSize'
-                        ? resolveFontSize(value)
-                        : value;
+                : key === 'fontSize'
+                    ? resolveFontSize(value)
+                    : value;
     }
 
     handleSettingsTransaction(changes) {
@@ -1063,14 +1050,14 @@ class App {
         this.saveSettings();
 
         // Apply certain settings immediately
-        if (keys.some(key => ['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'chamberAccent', 'showProgress', 'showDuration'].includes(key))) {
+        if (keys.some(key => ['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'showProgress', 'showDuration'].includes(key))) {
             this.applyAccessibilitySettings();
         }
 
         if (Object.hasOwn(next, 'masterVolume') && this.audioEngine) {
             this.audioEngine.setMasterVolume(this.settings.masterVolume);
         }
-        if (keys.some(key => ['chamberFace', 'chamberMask', 'fontSize'].includes(key))) {
+        if (keys.some(key => ['chamberFace', 'fontSize'].includes(key))) {
             const chamber = this.router?.getViewInstance?.('read')?.paneInstance('chamber');
             chamber?.applyChamberStreamFace?.();
             chamber?.applyChamberMask?.();
@@ -1079,9 +1066,8 @@ class App {
         if (Object.hasOwn(next, 'showArtworkLabels')) {
             this._visualCortex?.setArtworkLabelsVisible(this.settings.showArtworkLabels);
         }
-        if (Object.hasOwn(next, 'enableAmbient') && this.audioEngine?.isInitialized && !this.audioEngine.sessionActive) {
-            if (this.settings.enableAmbient) this.audioEngine.startAmbientPlaylist();
-            else this.audioEngine.stopAmbient(true);
+        if (Object.hasOwn(next, 'livingText')) {
+            this.router?.getViewInstance?.('read')?.paneInstance('chamber')?.applyLivingTextSetting?.();
         }
     }
 
@@ -1131,9 +1117,6 @@ class App {
 
         root.dataset.fontSize = resolveFontSize(this.settings?.fontSize);
         root.dataset.chamberFace = resolveChamberStreamFace(this.settings?.chamberFace);
-        // The default is the bare :root, so it must CLEAR data-accent, not stamp
-        // it — applyChamberAccent owns that rule for the app and the Chamber both.
-        applyChamberAccent(root, this.settings?.chamberAccent);
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);
         this._visualCortex?.setArtworkLabelsVisible(this.settings?.showArtworkLabels !== false);
@@ -1294,7 +1277,7 @@ class App {
      * show all land somewhere real: Home, or the Chamber's setup.
      */
     async resolveAddress() {
-        const here = window.location;
+        const here = appLocation();
         let route = routeFromPath(here.pathname, here.search);
         if (route?.data?.pane === 'keystones' && route.data.slug) {
             const { keystoneSlugFromPath } = await import('./content/keystones.js');

@@ -43,6 +43,7 @@ const CAPTIONS = {
     enterprise: 'talk program, speaker rail',
     live: 'realtime Current: events, runtime, providers',
     page: 'spatial projection',
+    scenes: 'engine manifests, cues; scene runtime',
     sources: 'text and visual providers',
     vendor: 'SyberLabs design kit',
     visuals: 'procedural generation'

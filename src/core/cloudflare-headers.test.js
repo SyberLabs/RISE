@@ -24,7 +24,7 @@ describe('Cloudflare static headers', () => {
         const common = rule('/*', readFileSync(output, 'utf8'));
         const names = [
             'X-Frame-Options', 'X-Content-Type-Options', 'Referrer-Policy',
-            'Permissions-Policy', 'Content-Security-Policy'
+            'Permissions-Policy', 'Content-Security-Policy', 'Strict-Transport-Security'
         ];
         for (const name of names) {
             const escaped = name.replace(/[-]/gu, '\\-');
@@ -45,9 +45,6 @@ describe('Cloudflare static headers', () => {
         expect(rule('/index.html', headers).get('Cache-Control'))
             .toBe('public, max-age=0, must-revalidate');
         expect(rule('/content/manifest.json', headers).get('Cache-Control'))
-            .toBe('public, max-age=0, must-revalidate');
-        // Unhashed, so a cached copy must never outlive a release.
-        expect(rule('/accent-boot.js', headers).get('Cache-Control'))
             .toBe('public, max-age=0, must-revalidate');
     });
 

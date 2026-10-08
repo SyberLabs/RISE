@@ -7,13 +7,22 @@
  * that do not report them); `pause` freezes it and `resume` carries on;
  * `cancel` stops the current utterance and drops the queue, and the cancelled
  * utterance reports `onerror` with `canceled`, or `onend`, as browsers differ.
+ *
+ * Paused is the engine's, not the page's: Chromium keeps one paused flag for the
+ * whole browser (TtsControllerImpl), which only `resume` or `cancel` clears, and
+ * a page's `resume` does nothing while it has nothing of its own to say
+ * (SpeechSynthesis::resume). Pages given the same `engine` share it, so a test
+ * can leave it paused from a page that went away.
  */
+export function createFakeSpeechEngine() {
+    return { paused: false };
+}
+
 export function createFakeSpeech(clock, {
-    msPerChar = 50, latencyMs = 30, boundaries = true, cancelReports = 'error', failWith = null
+    msPerChar = 50, latencyMs = 30, boundaries = true, cancelReports = 'error', failWith = null, engine = createFakeSpeechEngine()
 } = {}) {
     const queue = [];
     let current = null;
-    let paused = false;
 
     class Utterance {
         constructor(text) {
@@ -47,7 +56,7 @@ export function createFakeSpeech(clock, {
     }
 
     function schedule() {
-        if (!current || paused) return;
+        if (!current || engine.paused) return;
         const target = current;
         const event = target.events[target.index];
         if (!event) return;
@@ -63,7 +72,7 @@ export function createFakeSpeech(clock, {
     }
 
     function next() {
-        if (current || paused) return;
+        if (current || engine.paused) return;
         const utterance = queue.shift();
         if (utterance) begin(utterance);
     }
@@ -71,7 +80,7 @@ export function createFakeSpeech(clock, {
     return {
         Utterance,
         get speaking() { return current !== null; },
-        get paused() { return paused; },
+        get paused() { return engine.paused; },
         get pending() { return queue.length; },
 
         speak(utterance) {
@@ -80,8 +89,8 @@ export function createFakeSpeech(clock, {
         },
 
         pause() {
-            if (paused) return;
-            paused = true;
+            if (engine.paused) return;
+            engine.paused = true;
             if (current) {
                 current.played += clock.now() - current.since;
                 current.since = null;
@@ -91,8 +100,8 @@ export function createFakeSpeech(clock, {
         },
 
         resume() {
-            if (!paused) return;
-            paused = false;
+            if (!engine.paused || (!current && queue.length === 0)) return;
+            engine.paused = false;
             if (current) schedule();
             else next();
         },
@@ -108,7 +117,7 @@ export function createFakeSpeech(clock, {
                     else stopped.utterance.onend?.({});
                 }, 0);
             }
-            paused = false;
+            engine.paused = false;
         },
 
         getVoices() {

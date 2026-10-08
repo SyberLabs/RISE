@@ -133,6 +133,17 @@ describe('an answer from the host’s model', () => {
         expect(clock.pending()).toBe(0);
     });
 
+    it('carries the Current a host admitted itself, whole, beside its events, for the runtime to compile', async () => {
+        const clock = createVirtualClock();
+        const port = createFakeMcpPort({ clock });
+        const connection = await createMcpAppAdapter({
+            port, clock, admittedEvents: currentToEvents(BLACK_HOLES_CURRENT), admittedCurrent: BLACK_HOLES_CURRENT
+        }).open(ASK);
+        expect(connection.sealed).toBe(BLACK_HOLES_CURRENT);
+        const delivered = await createMcpAppAdapter({ port, clock }).open(ASK);
+        expect(delivered.sealed).toBeNull();
+    });
+
     it('is refused whole, with a reason, when it is not a valid Current: nothing of it is applied', async () => {
         const clock = createVirtualClock();
         const port = createFakeMcpPort({ clock });
