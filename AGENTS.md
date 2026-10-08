@@ -126,11 +126,12 @@ current scope; the live Realtime page stays switched off by default. See
   `npm run measure:first-load`, which holds what `dist/index.html` fetches to
   a ratcheting brotli budget declared in the script, then the browser gate
   (`npm run test:e2e:gate`, a few minutes). It runs for every pull request,
-  including prose-only changes. The exact list is in
-  `.github/workflows/ci.yml`.
-- After a merge, a separate `CI` job builds and deploys `main`. The full unit,
-  Scriptorium, and sharded browser suites run on `main` and on manual
-  dispatch; they do not hold deployment.
+  including prose-only changes. The fast unit test list, and the number of
+  files it must collect, are in `vitest.fast.config.js`.
+- After a merge, the `CI` job runs again on `main` and uploads the `dist/` it
+  built; the `production` job waits for it and deploys that artifact without
+  rebuilding. The full unit, Scriptorium, and sharded browser suites run on
+  `main` after that and on manual dispatch; they do not hold deployment.
 - `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
   `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
   `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
