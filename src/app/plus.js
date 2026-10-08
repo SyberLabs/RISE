@@ -7,6 +7,36 @@
 const PLUS_KEY = 'rise.plus';
 const PLUS_CLAIM_ROUTE = '/api/plus/claim';
 const PLUS_FORGET_ROUTE = '/api/plus/forget';
+const PLUS_VOICES_ROUTE = '/api/plus/voices';
+const VOICE_SLUG = /^[a-z0-9_-]{1,40}$/u;
+
+/** The voice the Worker reads in when the reader has chosen none, or the list cannot be had. */
+export const PLUS_DEFAULT_VOICE = Object.freeze({ slug: 'default', label: 'Default' });
+
+/** The reader's chosen voice slug as the Worker accepts it, or the default. */
+export function plusVoiceSlug(value) {
+  return typeof value === 'string' && VOICE_SLUG.test(value) ? value : PLUS_DEFAULT_VOICE.slug;
+}
+
+/**
+ * The voices a reader may choose, as the Worker lists them. Only "Default"
+ * when the list cannot be had: the picker still works, and the Worker reads
+ * an unknown choice as nothing to voice rather than a wrong voice.
+ * @returns {Promise<Array<{ slug: string, label: string }>>}
+ */
+export async function fetchPlusVoices({ fetchImpl = globalThis.fetch?.bind(globalThis) } = {}) {
+  try {
+    const response = await fetchImpl(PLUS_VOICES_ROUTE);
+    if (!response.ok) throw new Error(`voices answered ${response.status}`);
+    const listed = (await response.json())
+      .filter(voice => typeof voice?.slug === 'string' && VOICE_SLUG.test(voice.slug))
+      .map(voice => ({ slug: voice.slug, label: typeof voice.label === 'string' && voice.label.trim() ? voice.label.trim().slice(0, 60) : voice.slug }));
+    if (listed.length) return listed;
+  } catch {
+    /* offline, or no list: Default alone */
+  }
+  return [{ ...PLUS_DEFAULT_VOICE }];
+}
 
 /**
  * The Stripe payment link for Plus, from the Stripe dashboard (Payment links).

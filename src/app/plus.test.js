@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { claimPlus, forgetPlus, markPlusLapsed, notePlusAllowance, plusAllowance, plusNotice, plusState } from './plus.js';
+import { claimPlus, fetchPlusVoices, forgetPlus, markPlusLapsed, notePlusAllowance, plusAllowance, plusNotice, plusState, plusVoiceSlug } from './plus.js';
 import { enterFromPlusClaim } from './plus-claim.js';
 
 afterEach(() => {
@@ -36,6 +36,17 @@ describe('Plus on this browser', () => {
     notePlusAllowance({ used: 900, limit: 105000, periodEnd: 2 });
     expect(plusAllowance()).toEqual({ used: 900, limit: 105000, periodEnd: 2 });
     expect(plusState()).toEqual({ claimed: true, lapsed: false });
+  });
+
+  it('lists the Worker\'s voices, and Default alone when the list cannot be had', async () => {
+    const listed = vi.fn(async () => Response.json([{ slug: 'default', label: 'Default' }, { slug: 'river', label: 'River' }, { slug: '<b>', label: 'x' }, { slug: 'ember' }]));
+    expect(await fetchPlusVoices({ fetchImpl: listed })).toEqual([{ slug: 'default', label: 'Default' }, { slug: 'river', label: 'River' }, { slug: 'ember', label: 'ember' }]);
+    expect(listed).toHaveBeenCalledWith('/api/plus/voices');
+    expect(await fetchPlusVoices({ fetchImpl: async () => { throw new Error('offline'); } })).toEqual([{ slug: 'default', label: 'Default' }]);
+    expect(await fetchPlusVoices({ fetchImpl: async () => new Response('nope', { status: 503 }) })).toEqual([{ slug: 'default', label: 'Default' }]);
+    expect(plusVoiceSlug('river')).toBe('river');
+    expect(plusVoiceSlug('"><script>')).toBe('default');
+    expect(plusVoiceSlug(undefined)).toBe('default');
   });
 
   it('forgets the claim here, even when the Worker cannot be reached', async () => {

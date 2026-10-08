@@ -1,5 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
-import { PLUS_PAYMENT_LINK, PLUS_PRICE, forgetPlus, plusAllowance, plusState } from '../app/plus.js';
+import { PLUS_DEFAULT_VOICE, PLUS_PAYMENT_LINK, PLUS_PRICE, fetchPlusVoices, forgetPlus, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
@@ -290,6 +290,15 @@ export class Settings {
             ${this.toggleRow('plusVoice', 'Plus voice',
                 `Reads a reading of your own aloud.${used}`,
                 this.settings.plusVoice !== false)}
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <label class="settings-label" for="settings-plus-voice">Voice</label>
+                <p class="settings-hint">Changing voice voices your readings again and uses allowance.</p>
+              </div>
+              <select id="settings-plus-voice" data-plus-voice>
+                <option value="${plusVoiceSlug(this.settings.plusVoiceSlug)}" selected>${plusVoiceSlug(this.settings.plusVoiceSlug) === PLUS_DEFAULT_VOICE.slug ? PLUS_DEFAULT_VOICE.label : plusVoiceSlug(this.settings.plusVoiceSlug)}</option>
+              </select>
+            </div>
             <div class="settings-row settings-action">
               <div class="settings-label-group">
                 <span class="settings-label">Forget Plus on this browser</span>
@@ -493,6 +502,15 @@ export class Settings {
             void this.forgetPlus();
         });
 
+        const voicePicker = this.container.querySelector('[data-plus-voice]');
+        if (voicePicker) {
+            voicePicker.addEventListener('change', () => {
+                this.settings.plusVoiceSlug = voicePicker.value;
+                this.onChange('plusVoiceSlug', voicePicker.value);
+            });
+            this.plusVoicesLoaded = this.fillPlusVoices(voicePicker);
+        }
+
     }
 
     /**
@@ -593,6 +611,19 @@ export class Settings {
             console.error('[Settings] Clear data failed:', e);
             this.showToast('Some browser data could not be cleared');
         }
+    }
+
+    /** The Worker's voices, in place of the one option the row was drawn with. */
+    async fillPlusVoices(picker) {
+        const voices = await fetchPlusVoices();
+        const chosen = plusVoiceSlug(this.settings.plusVoiceSlug);
+        picker.replaceChildren(...voices.map(({ slug, label }) => {
+            const option = document.createElement('option');
+            option.value = slug;
+            option.textContent = label;
+            option.selected = slug === chosen;
+            return option;
+        }));
     }
 
     /** The panel is drawn again so the row shows the way to buy Plus. */

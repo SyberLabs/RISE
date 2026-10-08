@@ -21,7 +21,7 @@ import { audioDiag } from '../core/audio-diagnostics.js';
 import { liveExited, liveMounted, takeLivePlayer } from './live-handoff.js';
 import { beginStep } from '../core/begin-steps.js';
 import { SEQUENCE_CAPABILITIES } from '../core/sequence-capabilities.js';
-import { PLUS_VOICE_MAX_CHARS, markPlusLapsed, notePlusAllowance, plusNotice, plusState } from './plus.js';
+import { PLUS_VOICE_MAX_CHARS, markPlusLapsed, notePlusAllowance, plusNotice, plusState, plusVoiceSlug } from './plus.js';
 
 /**
  * Whether a reading is the reader's own material, the only kind the Plus voice
@@ -179,7 +179,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 plusRefused = 'TOO_LONG';
             } else {
                 ui.updateLoadingStatus('Asking for the Plus voice...');
-                const voiced = await voiceReading(session.atoms);
+                const voiced = await voiceReading(session.atoms, { voice: plusVoiceSlug(operations.getSettings()?.plusVoiceSlug) });
                 assertCurrent();
                 if (voiced.ok) {
                     plusVoicing = voiced;

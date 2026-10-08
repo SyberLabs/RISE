@@ -443,6 +443,32 @@ describe('Settings Plus voice', () => {
         settings.destroy();
     });
 
+    it('offers the Worker\'s voices, says that a change costs allowance, and keeps the choice', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        vi.stubGlobal('fetch', vi.fn(async () => Response.json([{ slug: 'default', label: 'Default' }, { slug: 'river', label: 'River' }])));
+        const settings = mount({ plusVoiceSlug: 'river' });
+        await settings.plusVoicesLoaded;
+        const picker = settings.container.querySelector('[data-plus-voice]');
+        expect([...picker.options].map(option => [option.value, option.textContent])).toEqual([['default', 'Default'], ['river', 'River']]);
+        expect(picker.value).toBe('river');
+        expect(settings.container.textContent).toContain('Changing voice voices your readings again and uses allowance.');
+
+        picker.value = 'default';
+        picker.dispatchEvent(new Event('change'));
+        expect(settings.onChange).toHaveBeenCalledWith('plusVoiceSlug', 'default');
+        settings.destroy();
+    });
+
+    it('offers Default alone when the voices cannot be listed', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+        const settings = mount();
+        await settings.plusVoicesLoaded;
+        const picker = settings.container.querySelector('[data-plus-voice]');
+        expect([...picker.options].map(option => option.value)).toEqual(['default']);
+        settings.destroy();
+    });
+
     it('says when the Worker reported a lapse', () => {
         localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1, lapsed: true }));
         const settings = mount();

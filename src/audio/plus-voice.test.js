@@ -38,8 +38,8 @@ describe('voiceReading', () => {
     expect(first).toMatchObject({ ok: true, voiceId: 'el_plus', allowance: { used: 8, limit: 105000 } });
     expect(first.manifest.voices.el_plus.entries).toBeTruthy();
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(fetchImpl).toHaveBeenCalledWith('/api/plus/voice', expect.objectContaining({ method: 'POST', body: JSON.stringify({ atoms: ['One stressed phrase'] }) }));
-    expect(await PlusVoices.get(await voicingKey(['One stressed phrase']))).toMatchObject({ pack: first.manifest });
+    expect(fetchImpl).toHaveBeenCalledWith('/api/plus/voice', expect.objectContaining({ method: 'POST', body: JSON.stringify({ atoms: ['One stressed phrase'], voice: 'default' }) }));
+    expect(await PlusVoices.get(await voicingKey(['One stressed phrase'], 'default'))).toMatchObject({ pack: first.manifest });
 
     const second = await voiceReading(atoms, { fetchImpl });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
@@ -67,6 +67,17 @@ describe('voiceReading', () => {
     expect(await voice.load()).toBe(true);
     voice._decode = async bytes => bytes;
     expect(new Uint8Array(await voice._sharedBuffer(ASSET))).toEqual(MP3);
+  });
+
+  it('sends the chosen voice, and keeps each voice apart: another voice is voiced again', async () => {
+    const fetchImpl = vi.fn(async () => answer());
+    await voiceReading(['A phrase'], { fetchImpl, voice: 'river' });
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ atoms: ['A phrase'], voice: 'river' });
+    await voiceReading(['A phrase'], { fetchImpl, voice: 'river' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    await voiceReading(['A phrase'], { fetchImpl, voice: 'ember' });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(await voicingKey(['A phrase'], 'river')).not.toBe(await voicingKey(['A phrase'], 'ember'));
   });
 
   it('asks again for a different text, and after the store is erased', async () => {

@@ -971,6 +971,8 @@ class App {
             enableBinaural: false,
             // The Plus voice reads a reading of the reader's own aloud; on once Plus is claimed here.
             plusVoice: true,
+            // Which of the Worker's voices reads it (GET /api/plus/voices).
+            plusVoiceSlug: 'default',
 
             // Safety / Accessibility
             photosensitivityMode: false,
@@ -1018,7 +1020,11 @@ class App {
                 defaultCurve: curves.has(merged.defaultCurve) ? merged.defaultCurve : defaultSettings.defaultCurve,
                 defaultAudioPreset: typeof merged.defaultAudioPreset === 'string'
                     ? merged.defaultAudioPreset.slice(0, 80)
-                    : defaultSettings.defaultAudioPreset
+                    : defaultSettings.defaultAudioPreset,
+                // Checked where it is used (plusVoiceSlug, src/app/plus.js).
+                plusVoiceSlug: typeof merged.plusVoiceSlug === 'string'
+                    ? merged.plusVoiceSlug.slice(0, 40)
+                    : defaultSettings.plusVoiceSlug
             };
             for (const key of booleanKeys) this.settings[key] = merged[key] === true;
         } catch (e) {

@@ -18,13 +18,14 @@ export function spokenAtoms(atoms) {
 }
 
 /**
- * The store's key for a text: SHA-256 hex of exactly what the Worker voices
- * (the phrases joined by one space). The voice, model and slug are the
- * Worker's and are not known before it answers, so a version prefix stands
- * for them; a new voice is a new prefix.
+ * The store's key for a text in a voice: SHA-256 hex of the reader's chosen
+ * voice slug and exactly what the Worker voices (the phrases joined by one
+ * space). Another voice is another key, so switching voices voices the text
+ * again rather than replaying the other voice. The model is the Worker's and
+ * is not known before it answers; the version prefix stands for it.
  */
-export async function voicingKey(spoken) {
-  const bytes = new TextEncoder().encode(`rise.plus-voice.v1\n${spoken.join(' ')}`);
+export async function voicingKey(spoken, voice = 'default') {
+  const bytes = new TextEncoder().encode(`rise.plus-voice.v1\n${voice}\n${spoken.join(' ')}`);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
@@ -57,10 +58,10 @@ function playable({ pack, audio }) {
  *   `manifest` and `fetchImpl` are what the Voice is built with. `allowance`
  *   is present only when the Worker was asked.
  */
-export async function voiceReading(atoms, { fetchImpl = globalThis.fetch?.bind(globalThis), store = PlusVoices } = {}) {
+export async function voiceReading(atoms, { voice = 'default', fetchImpl = globalThis.fetch?.bind(globalThis), store = PlusVoices } = {}) {
   const spoken = spokenAtoms(atoms);
   if (!spoken.length) return { ok: false, code: 'NOTHING_TO_SAY', message: 'There is nothing to read aloud.' };
-  const key = await voicingKey(spoken);
+  const key = await voicingKey(spoken, voice);
   const kept = await store.get(key).catch(() => null);
   if (kept) return playable(kept);
 
@@ -69,7 +70,7 @@ export async function voiceReading(atoms, { fetchImpl = globalThis.fetch?.bind(g
     response = await fetchImpl(PLUS_VOICE_ROUTE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ atoms: spoken })
+      body: JSON.stringify({ atoms: spoken, voice })
     });
   } catch {
     return { ok: false, code: 'OFFLINE', message: 'The voice could not be reached.' };

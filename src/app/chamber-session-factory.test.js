@@ -188,6 +188,7 @@ describe('the Plus voice at the start of a reading', () => {
         const options = await mount(voiced(), reading());
 
         expect(voiceReading).toHaveBeenCalledTimes(1);
+        expect(voiceReading).toHaveBeenCalledWith(expect.any(Array), { voice: 'default' });
         expect(options.session).toMatchObject({
             revealMode: 'progressive', capabilities: ['recitation-audio'],
             recitation: { enabled: true, pack: null }, voiceId: 'el_plus'
@@ -263,6 +264,15 @@ describe('the Plus voice at the start of a reading', () => {
         expect(isReadersOwn({ provenance: { kind: 'local-text' } })).toBe(true);
         expect(isReadersOwn({ isCustom: true, sources: [{ providerId: 'local' }, { providerId: 'recursion' }] })).toBe(true);
         expect(isReadersOwn({ sources: [{ providerId: 'local' }] })).toBe(false);
+    });
+
+    it('asks in the reader\'s chosen voice', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        voiceReading.mockResolvedValue(VOICED);
+        const op = voiced();
+        op.getSettings = () => ({ plusVoiceSlug: 'river' });
+        await mount(op, reading());
+        expect(voiceReading).toHaveBeenCalledWith(expect.any(Array), { voice: 'river' });
     });
 
     it('is left off by the reader\'s switch', async () => {
