@@ -10,7 +10,8 @@
  *
  * `replay-<sha12>.json`, beside it under the same twelve digits, is the slim
  * file the replay route reads: run 1 of the fixed cases only, each decider's
- * admitted decision or its reject code. No controls and no raw answers; the
+ * admitted decision or its reject code, and each decider's status ("ran" or
+ * "not run: <reason>"). No controls and no raw answers; the
  * controls stay in the run file. It is derived from the run file alone, so
  * replayText regenerates it byte for byte and readArenaReplay checks that.
  */
@@ -83,7 +84,7 @@ export function replayText(run, runFile) {
     }
   }
   return `${JSON.stringify({ schema: REPLAY_SCHEMA, runFile, createdAt: run.createdAt,
-    providers: run.providers.map(({ id, requestedModel, servedModels }) => ({ id, requestedModel, servedModels })),
+    providers: run.providers.map(({ id, requestedModel, servedModels, status }) => ({ id, requestedModel, servedModels, status })),
     decisions })}\n`;
 }
 

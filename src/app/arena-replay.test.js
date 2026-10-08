@@ -15,7 +15,7 @@ describe('arena replay', () => {
     expect(createdAt).toBe('2026-10-07');
     expect(deciders.openai.decision).toMatchObject({ model: 'rise/arena-replay-1', provider: 'RISE', sourceModel: 'gpt-6-luna-2026-09-01', requestId: 'run-0123456789ab.json' });
     expect(deciders.jev.decision.sourceModel).toBe('typesafe/jev-1.13');
-    expect(deciders.kev).toEqual({ status: 'not run' });
+    expect(deciders.kev).toEqual({ status: 'not run: hardware/setup' });
     expect(deciders.rules).toEqual({ status: 'rejected: OUT_OF_MENU' });
     const [a, b] = await Promise.all([resolveJevReading(deciders.openai.decision), resolveJevReading(deciders.jev.decision)]);
     expect(a.text).not.toBe(b.text);
@@ -23,6 +23,12 @@ describe('arena replay', () => {
 
   it('refuses a missing or malformed index or run, and a case the run does not have', async () => {
     await expect(loadArenaCase('nope', files())).rejects.toThrow('no case');
+    // A decider absent from the run, or one with no stated reason, is plainly "not run".
+    const replay = arenaReplayFixture();
+    replay.providers = replay.providers.filter(item => item.id !== 'kev').map(item => ({ ...item, status: undefined }));
+    replay.decisions[ARENA_CASE] = {};
+    const bare = (await loadArenaCase(ARENA_CASE, files(undefined, replay))).deciders;
+    expect(Object.values(bare)).toEqual(Array(4).fill({ status: 'not run' }));
     const index = arenaIndexFixture();
     await expect(loadArenaCase(ARENA_CASE, files({ ...index, runs: [{ replay: '../secrets.json', mock: false }] }))).rejects.toThrow('names no run');
     // A mock run says nothing about any model: never replayed.
@@ -39,7 +45,7 @@ describe('arena replay', () => {
     await mountArenaReplay(section, { caseId: ARENA_CASE, decider: 'jev', launch, fallback, load: files() });
     expect(fallback).not.toHaveBeenCalled();
     expect(section.querySelector('[data-arena-decider="jev"]').getAttribute('aria-current')).toBe('true');
-    expect(section.querySelector('p[data-arena-decider="kev"]').textContent).toBe('C · Kev: not run');
+    expect(section.querySelector('p[data-arena-decider="kev"]').textContent).toBe('C · Kev: not run: hardware/setup');
     expect(section.querySelector('p[data-arena-decider="rules"]').textContent).toBe('D · rules, no model: rejected: OUT_OF_MENU');
     expect(section.textContent).toContain('Frozen result captured 2026-10-07. Independent comparison; no partnership with OpenAI or TypeSafe.');
     section.querySelector('button[data-arena-decider="openai"]').click();
