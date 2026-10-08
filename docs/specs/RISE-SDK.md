@@ -437,7 +437,7 @@ An exception in loading, `init`, a frame or a cue is also a failure. On failure 
 
 ### 7.9 Where a scene runs
 
-The worker is RISE's own module (`src/scenes/scene-worker.js`), started from a `blob:` URL in a host's card. It imports the admitted code from a second `blob:` URL. It holds the transferred canvas and has nothing else of the page.
+The worker is RISE's built `src/scenes/scene-worker.js`, started by `src/scenes/create-scene-worker.js`: a classic worker from a `blob:` URL in a host's card; RISE's own module worker on its pages. In a card the page's origin may be opaque, and a module worker's script is fetched in a mode a `blob:null` URL cannot pass, so there it would never load. Either way the worker imports the admitted code with `import()` from a second `blob:` URL. It holds the transferred canvas and has nothing else of the page.
 
 ### 7.10 The worker protocol
 
