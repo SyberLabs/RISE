@@ -1,0 +1,42 @@
+{
+  "id": "ARENA-REPLAY",
+  "title": "Decision Arena replay: /arena/<case>/<decider> plays a frozen result as a reading",
+  "lane": "reader",
+  "milestone": "Decision Arena",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude lane R",
+  "priority": "next",
+  "dependencies": [],
+  "acceptance": [
+    "/arena/<caseId>/<decider> (openai, jev, kev, rules) loads /content/arena/index.json and its run file only when opened, and plays the first run's admitted decision for that case and decider through the same reading gate, with no model call.",
+    "A frozen decision is admitted only under its own label, rise/arena-replay-1 with provider RISE, keeping the original model as sourceModel; other unknown labels are still refused.",
+    "Four plain-text deciders (A · OpenAI Decisions, B · TypeSafe Jev, C · Kev, D · rules, no model) switch the same case one reading at a time; a decider with no admitted decision reads 'not run' or 'rejected: <code>' as text; the page states the capture date and that there is no partnership with OpenAI or TypeSafe.",
+    "A missing index or run file, or a case the run lacks, opens Home; first load stays within the 64 KB brotli budget.",
+    "Seth or Mateo plays a real frozen run at rise.syberlabs.io/arena/<case>/<decider> after the billed capture lands."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "e2e/arena-replay.spec.js",
+      "note": "Branch arena/replay: 3 passed with url-routing.spec.js (9 passed) on a private port, 2026-10-08, against a test fixture run (src/test/arena-run.fixture.js); no real run yet.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/app/arena-replay.test.js",
+      "note": "Branch arena/replay: loader, fallback and switcher unit tests, plus the replay label in src/app/jev-reading.test.js and the route row in src/core/route-url.test.js, passed 2026-10-08.",
+      "date": "2026-10-08"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T18:55:00.000Z",
+      "summary": "Claimed for lane R and built on branch arena/replay against a fixture run; waiting on lane H's real run file and a human look."
+    }
+  ],
+  "updatedAt": "2026-10-08T18:55:00.000Z",
+  "revision": 1,
+  "summary": "Replays frozen Decision Arena results as real readings, one decider at a time. Built against a test fixture; the run-file field names (latest, schema, capturedAt, results[].error.code) are assumed until lane H's harness lands.",
+  "blocker": null
+}

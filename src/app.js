@@ -712,10 +712,12 @@ class App {
     }
 
     /** Resolve Jev's discrete choices against shipped text, then enter the reader. */
-    async launchJevReading(decision, { firstReadPreview = false } = {}) {
+    async launchJevReading(decision, { firstReadPreview = false, publicPath = null } = {}) {
         const { resolveJevReading } = await import('./app/jev-reading.js');
         const sessionConfig = await resolveJevReading(decision);
         if (firstReadPreview) sessionConfig.firstReadPreview = true;
+        // The address the reading keeps (an arena replay's own decider).
+        if (publicPath) sessionConfig.publicPath = publicPath;
         if (!await this.handleBeginSession(sessionConfig)) {
             throw new Error('The selected reading could not be opened. Please try again.');
         }

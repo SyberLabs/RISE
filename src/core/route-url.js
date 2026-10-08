@@ -19,6 +19,7 @@
  */
 
 import { KEYSTONE_ROUTE_PREFIX, TRY_RISE_PATH } from './keystone-paths.js';
+import { ARENA_DECIDERS } from './jev-demo-path.js';
 
 export const VISUAL_LAB_PATH = '/visual-lab';
 export const VISUAL_CATALOG_PATH = '/visual-catalog';
@@ -124,6 +125,9 @@ const ROUTES = [
     fixed('home', '/'),
     { id: 'home', pattern: '/jev-scene-demo', build: null, own: true, parse: () => ({ demoMode: true }) },
     { id: 'home', pattern: '/night-drive', build: null, own: true, parse: () => ({ demoMode: true }) },
+    // A frozen Decision Arena result, replayed (src/app/arena-replay.js).
+    { id: 'home', pattern: '/arena/:caseId/:decider', build: null, own: true,
+        parse: ({ decider }) => (ARENA_DECIDERS.includes(decider) ? { demoMode: true } : null) },
 
     pane('keystones', { pattern: TRY_RISE_PATH, build: () => TRY_RISE_PATH }),
     pane('keystones', {

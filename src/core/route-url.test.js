@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pathForRoute, routeFromPath, ROUTE_ALIASES, ROUTE_PANES } from './route-url.js';
+import { addressIsOwnTo, pathForRoute, routeFromPath, ROUTE_ALIASES, ROUTE_PANES } from './route-url.js';
 
 describe('route urls', () => {
     it('round-trips every route id', () => {
@@ -85,6 +85,16 @@ describe('route urls', () => {
         expect(pathForRoute('make', { pane: 'visual-catalog' })).toBe('/visual-catalog');
         expect(pathForRoute('settings', { pane: 'affect' })).toBe('/emotions');
         expect(routeFromPath('/night-drive').data).toEqual({ demoMode: true });
+    });
+
+    it('opens a frozen arena replay at /arena/<case>/<decider> on Home, for the four deciders only', () => {
+        for (const decider of ['openai', 'jev', 'kev', 'rules']) {
+            expect(routeFromPath(`/arena/quiet-evening/${decider}`)).toEqual({ id: 'home', data: { demoMode: true } });
+        }
+        expect(addressIsOwnTo('home', '/arena/quiet-evening/jev')).toBe(true);
+        expect(routeFromPath('/arena/quiet-evening/claude')).toBeNull();
+        expect(routeFromPath('/arena/quiet-evening')).toBeNull();
+        expect(routeFromPath('/arena/quiet-evening/jev/more')).toBeNull();
     });
 
     it('leaves /today to the app, which opens today\'s poem in the reader rather than a room', () => {

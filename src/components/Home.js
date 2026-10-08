@@ -35,7 +35,7 @@
 import './Home.css';
 import './portal-home.css';
 import { drawRiseSigil } from './atlas.js';
-import { isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
+import { arenaFromPath, isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
 import { HomeAsk, alertMarkup, showAlert } from './home-ask.js';
 import { connectionState, subscribeConnection } from '../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
@@ -178,8 +178,10 @@ export class Home {
 
   /** Router re-entry hook — refresh the living entries on return */
   update() {
-    const demoMode = isJevSceneDemoPath(window.location.pathname);
-    if (demoMode !== this.demoMode) {
+    const path = window.location.pathname;
+    const demoMode = isJevSceneDemoPath(path);
+    // A sample's view is its address's: another sample (an arena case or decider) is drawn again.
+    if ((demoMode ? path : null) !== this.samplePath) {
       const wasActive = this._active;
       this.deactivate();
       this.stage?.destroy();
@@ -282,6 +284,9 @@ export class Home {
         </footer>
       </div>
     `;
+    this.samplePath = this.demoMode ? window.location.pathname : null;
+    const arena = this.demoMode && arenaFromPath(this.samplePath);
+    if (arena) void this.mountArena(arena);
     this.asking = this.demoMode ? null : new HomeAsk(this.container.querySelector('.portal'), {
       getAudioEngine: this.getAudioEngine,
       loadTools: () => this.loadTools(),
@@ -323,6 +328,7 @@ export class Home {
   }
 
   renderDemo() {
+    if (arenaFromPath(window.location.pathname)) return '<section class="portal-ask" aria-labelledby="portal-ask-title" data-arena></section>';
     const nightDrive = sceneSampleFromPath(window.location.pathname) === 'night-drive';
     return `<section class="portal-ask" aria-labelledby="portal-ask-title">
       <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${nightDrive ? 'Night Drive sample' : 'RISE scene sample'}</p>
@@ -349,6 +355,21 @@ export class Home {
         <p class="portal-alt"><a class="portal-link portal-jev-demo-live" href="/">Ask RISE live for a personal reading</a></p>
       </div>`}
     </section>`;
+  }
+
+  /** A frozen Decision Arena result (src/app/arena-replay.js); plain Home when there is none. */
+  async mountArena(arena) {
+    const section = this.container.querySelector('[data-arena]');
+    const { mountArenaReplay } = await import('../app/arena-replay.js');
+    await mountArenaReplay(section, {
+      ...arena,
+      launch: (decision, publicPath) => this.onLaunchJevReading(decision, { publicPath }),
+      fallback: () => {
+        if (!section.isConnected) return;
+        window.history.replaceState({}, '', '/');
+        this.update();
+      }
+    });
   }
 
   /** Name the reading in the slot, speak it, and show its engine if Home is showing. */
