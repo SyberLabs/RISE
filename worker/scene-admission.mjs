@@ -1,6 +1,7 @@
 import { parse } from 'acorn';
 import { BEAT_LIMITS } from '../src/core/beats.js';
 import { sceneCodeBytes } from '../src/core/experience-program.js';
+import { SHADOWED_GLOBALS, STATIC_ONLY_NAMES } from '../src/scenes/scene-bans.js';
 
 /**
  * Static admission of a generated scene's code, before a Current that carries
@@ -21,18 +22,15 @@ import { sceneCodeBytes } from '../src/core/experience-program.js';
  *
  * This is the first of two locks. Nothing static sees every path to a global
  * (`[].constructor.constructor` reaches Function without naming it), so the
- * scene worker also shadows the names it can before the code is loaded
+ * scene worker also shadows the names it can, and seals the `constructor` of
+ * every function prototype, before the code is loaded
  * (src/scenes/scene-worker.js).
  */
 
 export const SCENE_CODE_BYTES = BEAT_LIMITS.code;
 
-/** The names §8 says a scene may not reach, as names. */
-export const BANNED_SCENE_NAMES = Object.freeze([
-  'fetch', 'XMLHttpRequest', 'WebSocket', 'importScripts', 'eval', 'Function', 'postMessage', 'self', 'globalThis',
-  'window', 'indexedDB', 'caches', 'navigator', 'setTimeout', 'setInterval', 'requestAnimationFrame', 'EventSource',
-  'WebTransport', 'BroadcastChannel', 'Worker', 'SharedWorker'
-]);
+/** The names §8 says a scene may not reach: every name the scene worker shadows, and the ones it cannot. */
+export const BANNED_SCENE_NAMES = Object.freeze([...SHADOWED_GLOBALS, ...STATIC_ONLY_NAMES]);
 
 const MAX_DIAGNOSTICS = 10;
 const BANNED = new Set(BANNED_SCENE_NAMES);

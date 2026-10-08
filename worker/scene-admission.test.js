@@ -5,6 +5,7 @@
  * and, where the parse knows it, the line and column.
  */
 import { describe, expect, it } from 'vitest';
+import { BANNED_GLOBALS } from '../src/scenes/scene-worker.js';
 import { admitSceneCode, BANNED_SCENE_NAMES, describeDiagnostic, SCENE_CODE_BYTES } from './scene-admission.mjs';
 
 const GOOD = `export const reportsCompletion = true;
@@ -130,6 +131,18 @@ describe('a scene the Worker refuses, and why', () => {
     for (const name of BANNED_SCENE_NAMES) {
       expect(refused(scene(`  const x = ${name};`))[0].message, name).toMatch(new RegExp(`^\`${name}\``, 'u'));
     }
+  });
+
+  it('refuses FontFace, a network path through a font source: new FontFace(name, "url(...)").load()', () => {
+    const [diagnostic] = refused(scene("  new FontFace('x', 'url(https://evil.example/a.woff2)').load();"));
+    expect(diagnostic).toMatchObject({ rule: 'banned-name', line: 2, column: 7 });
+    expect(diagnostic.message).toMatch(/^`FontFace`/u);
+  });
+
+  it('bans every name the scene worker shadows, and only names the scope cannot shadow besides', () => {
+    expect(BANNED_GLOBALS.filter(name => !BANNED_SCENE_NAMES.includes(name))).toEqual([]);
+    expect(BANNED_SCENE_NAMES.filter(name => !BANNED_GLOBALS.includes(name)).sort())
+      .toEqual(['Function', 'eval', 'globalThis', 'self', 'window']);
   });
 
   it('refuses a banned name wherever it is a name, a local one included, and says so', () => {

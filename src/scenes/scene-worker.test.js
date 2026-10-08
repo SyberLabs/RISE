@@ -7,9 +7,10 @@
  * read. The model's module is handed in already loaded, since a blob import
  * is the browser's to run (e2e/live-mcp.spec.js runs it).
  */
+import vm from 'node:vm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SCENE_LIMITS, TO_HOST, TO_WORKER } from './scene-protocol.js';
-import { attachSceneWorker, BANNED_GLOBALS, whereIn } from './scene-worker.js';
+import { attachSceneWorker, BANNED_GLOBALS, sealFunctionConstructors, whereIn } from './scene-worker.js';
 
 /** A 2D context that records nothing and answers every call. */
 const fakeContext = () => new Proxy({}, { get: (target, key) => (key in target ? target[key] : (target[key] = vi.fn())), set: (target, key, value) => { target[key] = value; return true; } });
@@ -34,7 +35,7 @@ function fakeScope() {
   const posted = [];
   const scope = {
     fetch: () => 'network', XMLHttpRequest: class {}, WebSocket: class {}, importScripts: () => {}, indexedDB: {}, caches: {},
-    navigator: { userAgent: 'x' }, setTimeout: () => 1, setInterval: () => 1, requestAnimationFrame: () => 1,
+    navigator: { userAgent: 'x' }, FontFace: class {}, setTimeout: () => 1, setInterval: () => 1, requestAnimationFrame: () => 1,
     addEventListener: (type, fn) => { if (type === 'message') listeners.push(fn); },
     postMessage: message => posted.push(message),
     close: vi.fn()
@@ -42,16 +43,33 @@ function fakeScope() {
   return { scope, posted, listeners };
 }
 
-function setup(module, { reducedMotion = false } = {}) {
+/**
+ * A fresh JavaScript realm with its own Function, AsyncFunction and generator
+ * prototypes. The worker seals those for good, so a test seals a realm's and
+ * never the one vitest itself runs in; `run` evaluates source inside it.
+ */
+function freshRealm() {
+  const context = vm.createContext({});
+  const run = source => vm.runInContext(source, context);
+  const functionPrototypes = run(`[Function.prototype, Object.getPrototypeOf(async function () {}),
+    Object.getPrototypeOf(function* () {}), Object.getPrototypeOf(async function* () {})]`);
+  return { run, functionPrototypes };
+}
+
+function setup(module, { reducedMotion = false, realm = freshRealm() } = {}) {
   const { scope, posted, listeners } = fakeScope();
-  const worker = attachSceneWorker(scope, { toUrl: () => 'blob:rise/scene-1', load: async () => (typeof module === 'function' ? module() : module) });
+  const worker = attachSceneWorker(scope, {
+    toUrl: () => 'blob:rise/scene-1',
+    load: async () => (typeof module === 'function' ? module() : module),
+    functionPrototypes: realm.functionPrototypes
+  });
   const canvas = fakeCanvas();
   const init = () => worker.handle({
     type: TO_WORKER.init, version: 1, code: 'export default () => ({ frame() {} })', width: 400, height: 300, dpr: 2,
     theme: { accent: '#ff0000' }, reducedMotion, canvas
   });
   const of = type => posted.filter(message => message.type === type);
-  return { scope, posted, listeners, worker, canvas, init, of };
+  return { scope, posted, listeners, worker, canvas, init, of, realm };
 }
 
 beforeEach(() => {
@@ -78,7 +96,7 @@ describe('starting a scene', () => {
       }
     });
     await init();
-    for (const name of ['fetch', 'XMLHttpRequest', 'WebSocket', 'importScripts', 'indexedDB', 'caches', 'navigator', 'setTimeout', 'setInterval', 'requestAnimationFrame', 'postMessage']) {
+    for (const name of ['fetch', 'XMLHttpRequest', 'WebSocket', 'importScripts', 'indexedDB', 'caches', 'navigator', 'setTimeout', 'setInterval', 'requestAnimationFrame', 'postMessage', 'FontFace']) {
       expect(seen[name], name).toBe('refused');
     }
     // And the code cannot put them back.
@@ -157,6 +175,66 @@ describe('starting a scene', () => {
   it('keeps a message short', async () => {
     const reported = await failsAt({ default: () => { throw new Error('x'.repeat(1000)); } }, 'init', /x/u);
     expect(reported.message.length).toBeLessThanOrEqual(300);
+  });
+});
+
+describe('the routes to Function that name nothing', () => {
+  const routes = {
+    'a constructor of a constructor': '[].constructor.constructor("return 1")()',
+    'an async arrow function': '(async () => {}).constructor("return 1")()',
+    'a generator function': '(function* () {}).constructor("return 1")()',
+    'an async generator function': '(async function* () {}).constructor("return 1")()',
+    'the prototype chain': 'Object.getPrototypeOf(async function () {}).constructor("return 1")()'
+  };
+
+  it('can be walked to Function in a realm that has not been sealed (the control)', () => {
+    const { run } = freshRealm();
+    for (const [route, source] of Object.entries(routes)) expect(() => run(source), route).not.toThrow();
+  });
+
+  for (const [route, source] of Object.entries(routes)) {
+    it(`refuses ${route} while the scene starts`, async () => {
+      const realm = freshRealm();
+      const { init, of } = setup(realm.run(`({ default: () => { ${source}; return { frame() {} }; } })`), { realm });
+      await init();
+      expect(of(TO_HOST.ready)).toEqual([]);
+      const [error] = of(TO_HOST.error);
+      expect(error).toMatchObject({ phase: 'init' });
+      expect(error.message).toMatch(/ReferenceError: Function is not available to a scene/u);
+    });
+  }
+
+  it('refuses it at a frame as well, and a scene that never reaches for Function runs', async () => {
+    const realm = freshRealm();
+    const late = setup(realm.run('({ default: () => ({ frame(t) { if (t > 0) [].constructor.constructor("return 1")(); } }) })'), { realm });
+    await late.init();
+    expect(late.of(TO_HOST.ready)).toHaveLength(1);
+    await late.worker.handle({ type: TO_WORKER.frame, t: 16, dt: 16 });
+    expect(late.of(TO_HOST.error)).toMatchObject([{ phase: 'frame' }]);
+
+    const plain = setup(realm.run('({ default: () => ({ frame() {} }) })'));
+    await plain.init();
+    expect(plain.of(TO_HOST.ready)).toHaveLength(1);
+    expect(plain.of(TO_HOST.error)).toEqual([]);
+  });
+
+  it('does not let the scene put the constructor back', async () => {
+    const realm = freshRealm();
+    const { init, of } = setup(realm.run(`({ default: () => {
+      Object.defineProperty(Function.prototype, 'constructor', { value: Function, configurable: true });
+      return { frame() {} };
+    } })`), { realm });
+    await init();
+    expect(of(TO_HOST.error)).toMatchObject([{ phase: 'init', message: expect.stringMatching(/TypeError/u) }]);
+  });
+
+  it('seals a realm once: a second call leaves it sealed and says so', () => {
+    const { functionPrototypes } = freshRealm();
+    expect(sealFunctionConstructors(functionPrototypes)).toBe(true);
+    const sealed = functionPrototypes.map(proto => Object.getOwnPropertyDescriptor(proto, 'constructor').value);
+    expect(sealFunctionConstructors(functionPrototypes)).toBe(true);
+    expect(functionPrototypes.map(proto => Object.getOwnPropertyDescriptor(proto, 'constructor').value)).toEqual(sealed);
+    expect(functionPrototypes.map(proto => Object.getOwnPropertyDescriptor(proto, 'constructor').configurable)).toEqual([false, false, false, false]);
   });
 });
 
