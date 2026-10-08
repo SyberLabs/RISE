@@ -27,8 +27,14 @@ describe('the production Worker', () => {
   // visible one-line diff, never a missing or mistyped var. Live realtime is off.
   // The MCP server is on only with the self-contained card: without it the
   // embedded page drops its framing headers for any site (LIVE-RED-TEAM.md R-1).
-  it('binds the private bucket the paid voice is served from', () => {
-    expect(config.r2_buckets).toContainEqual(expect.objectContaining({ binding: 'PLUS_AUDIO' }));
+  // The paid voice keeps no audio, so production deploys with no bucket existing; its
+  // allowance meter is a SQLite-backed Durable Object, the kind the free plan offers.
+  it('binds the Plus meter, and no bucket', () => {
+    expect(config.durable_objects.bindings).toContainEqual({ name: 'PLUS_METER', class_name: 'PlusMeter' });
+    expect(config.migrations.flatMap(m => m.new_sqlite_classes ?? [])).toContain('PlusMeter');
+    expect(config.migrations.flatMap(m => m.new_classes ?? [])).not.toContain('PlusMeter');
+    expect(config.r2_buckets).toBeUndefined();
+    expect(Number(config.vars.PLUS_DAILY_CHAR_CAP)).toBeGreaterThan(0);
   });
 
   it('ships live realtime off, and the MCP server on only with the self-contained card', () => {

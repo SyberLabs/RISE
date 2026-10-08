@@ -6,7 +6,7 @@
   "preview_urls": false,
   // Shared model inference is retired. Readers use their own OpenRouter account
   // or run Kev locally; the optional live integrations remain switched off.
-  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "true", "MCP_SELF_CONTAINED": "true", "PLUS_VOICE_SLUG": "el_plus", "PLUS_VOICE_MODEL": "eleven_flash_v2_5" },
+  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "true", "MCP_SELF_CONTAINED": "true", "PLUS_VOICE_SLUG": "el_plus", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_DAILY_CHAR_CAP": "500000" },
   // rise.syberlabs.io is attached to this Worker in the Cloudflare dashboard.
   "observability": { "enabled": true },
   "assets": {
@@ -20,12 +20,17 @@
     "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*"]
   },
   // Serves the live Realtime route (worker/live-realtime.mjs); off by default.
-  // The paid voice's clips (worker/plus.mjs), filled by scripts/build-canon-recitation.mjs.
+  // The paid voice (worker/plus.mjs). It stores no audio and no reader text, so there is no bucket.
   // Secrets STRIPE_SECRET_KEY and PLUS_COOKIE_SECRET switch the routes on; without them they answer 503.
   // Also set as secrets (a dashboard var is dropped by the next deploy): PLUS_PRICE_ID, the live
-  // Stripe price of RISE Plus (unset, every claim is refused), and PLUS_VOICE_ID, the ElevenLabs
-  // voice (unset, /api/plus/voice answers 503); ELEVENLABS_API_KEY for the voice route.
-  "r2_buckets": [{ "binding": "PLUS_AUDIO", "bucket_name": "rise-plus-audio" }],
+  // Stripe price of RISE Plus (unset, every claim and voicing is refused), and PLUS_VOICE_ID, the
+  // ElevenLabs voice; ELEVENLABS_API_KEY for the voice route. PLUS_COOKIE_SECRET here must differ
+  // from rise-plus-preview's: a cookie signed by the preview must never verify on production.
+  // PLUS_DAILY_CHAR_CAP (vars) is the characters every subscriber together may voice per UTC day
+  // (500,000 is about $20 at Flash pricing); unset or not a positive number, the voice answers 503.
+  // PLUS_METER holds each subscription's allowance and the daily total (SQLite-backed, free plan).
+  "durable_objects": { "bindings": [{ "name": "PLUS_METER", "class_name": "PlusMeter" }] },
+  "migrations": [{ "tag": "plus-meter-v1", "new_sqlite_classes": ["PlusMeter"] }],
   "ratelimits": [{
     "name": "DECISION_LIMITER",
     "namespace_id": "2026092602",

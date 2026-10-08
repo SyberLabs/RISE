@@ -5,19 +5,23 @@
   // `wrangler secret put <NAME> --config wrangler.plus-preview.jsonc`, together with
   // PLUS_PRICE_ID (the test-mode Stripe price; unset, every claim is refused) and
   // PLUS_VOICE_ID (the ElevenLabs voice; unset, /api/plus/voice answers 503).
+  // PLUS_COOKIE_SECRET must differ from production's, and STRIPE_SECRET_KEY is a test-mode
+  // key: a cookie minted here then fails both the signature and the mode check on production.
   "name": "rise-plus-preview",
   "main": "./worker/index.mjs",
   "compatibility_date": "2026-09-26",
   "workers_dev": true,
   "preview_urls": false,
-  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false", "PLUS_VOICE_SLUG": "el_plus", "PLUS_VOICE_MODEL": "eleven_flash_v2_5" },
+  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false", "PLUS_VOICE_SLUG": "el_plus", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_DAILY_CHAR_CAP": "20000" },
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
     "binding": "ASSETS",
     "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*"]
   },
-  "r2_buckets": [{ "binding": "PLUS_AUDIO", "bucket_name": "rise-plus-audio-preview" }],
+  // PLUS_METER holds each subscription's allowance and the daily total (SQLite-backed, free plan).
+  "durable_objects": { "bindings": [{ "name": "PLUS_METER", "class_name": "PlusMeter" }] },
+  "migrations": [{ "tag": "plus-meter-v1", "new_sqlite_classes": ["PlusMeter"] }],
   "ratelimits": [{
     "name": "DECISION_LIMITER",
     "namespace_id": "2026092602",
