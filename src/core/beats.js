@@ -59,7 +59,9 @@ export { BANNED_SCENE_NAMES } from '../scenes/scene-bans.js';
 /** The one source text that chunks to a single silent, timed atom (chunker.js PAUSE_DURATIONS). */
 export const HOLD_MARKER = '[HOLD]';
 
-const CUE = /^[A-Za-z0-9_:=.-]+$/u;
+/** What a cue may be, as a regex source: the validator's, and the JSON Schema's pattern for it (worker/mcp-server.mjs). */
+export const BEAT_CUE_PATTERN = '^[A-Za-z0-9_:=.-]+$';
+const CUE = new RegExp(BEAT_CUE_PATTERN, 'u');
 
 export function validateScenes(value, path) {
   if (value === undefined) return [];

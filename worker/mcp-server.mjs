@@ -1,7 +1,7 @@
 import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_SCHEMA_V2, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_GUIDE, STYLE_LINES, TOOL_NAME, styleGuide } from '../src/live/guide/index.js';
-import { BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES } from '../src/core/beats.js';
+import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES } from '../src/core/beats.js';
 import { SOUND_IDS } from '../src/audio/sound-ids.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
@@ -155,7 +155,7 @@ export function currentJsonSchemaV2() {
             show: { ...text, description: 'What is shown, when it differs from what is said, or with "hold" and no "say": a line shown for a while.' },
             hold,
             scene: { ...id, description: 'Start this scene at this beat.' },
-            cue: { type: 'string', pattern: '^[A-Za-z0-9_-]+$', maxLength: BEAT_LIMITS.cue, description: 'A signal to the running scene.' },
+            cue: { type: 'string', pattern: BEAT_CUE_PATTERN, maxLength: BEAT_LIMITS.cue, description: 'A signal to the running scene: one of its cues, or set:<parameter>=<value>.' },
             transition: { type: 'object', properties: { ms: { type: 'integer', minimum: 0, maximum: BEAT_LIMITS.transitionMaxMs } }, required: ['ms'], additionalProperties: false },
             place: { type: 'string', enum: BEAT_PLACES },
             size: { type: 'string', enum: BEAT_SIZES },

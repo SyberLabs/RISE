@@ -13,7 +13,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
 import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, STYLE_LINES, styleGuide } from '../src/live/guide/index.js';
-import { BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
+import { BEAT_CUE_PATTERN, BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
 import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
@@ -435,6 +435,19 @@ describe('the shape of a Current, as the host’s model is told it', () => {
       expect(() => validateRiseCurrent(structuredClone(current)), current.id).not.toThrow();
       expect(conforms(schema, current), current.id).toEqual([]);
     }
+  });
+
+  it('describes a cue with the validator’s own pattern, so a set: cue the guide teaches is in the schema', () => {
+    const { pattern } = currentJsonSchemaV2().properties.beats.items.properties.cue;
+    expect(pattern).toBe(BEAT_CUE_PATTERN);
+    const schemaCue = new RegExp(pattern, 'u');
+    for (const cue of ['set:intensity=0.6', 'calm', 'draw_2', 'turn-left']) expect(schemaCue.test(cue), cue).toBe(true);
+    for (const cue of ['a b', 'x/y', 'é', '']) expect(schemaCue.test(cue), cue).toBe(false);
+    // The hold runs under the attractor, whose intensity is cueable: the validator accepts what the schema now does.
+    const current = structuredClone(CURRENT_EXAMPLE_V2);
+    current.beats[1].cue = 'set:intensity=0.6';
+    expect(() => validateRiseCurrent(current)).not.toThrow();
+    expect(conforms(currentJsonSchemaV2(), current)).toEqual([]);
   });
 
   it('describes the v2 Current as the validator admits it: beats over scenes', () => {
