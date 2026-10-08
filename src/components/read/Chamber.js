@@ -3727,7 +3727,7 @@ export class Chamber {
       const spans = this.paintAtomText(
         atomDisplay,
         atom.content,
-        { reveal: deferReveal }
+        { reveal: deferReveal, emphasis: atom.beat?.emphasis }
       );
       if (spans) {
         this._concealedReveal = {
