@@ -86,7 +86,8 @@ scratch/
 /ostensoria.html
 /ostensoria (1).html
 /apparitio (2).html
-public/content/
+public/content/*
+!public/content/arena/
 
 __pycache__/
 *.pyc

@@ -172,7 +172,7 @@ const SOUND_PHASE_WORDS = new Set([
   ...Object.values(SOUND_ALIASES).flat()
 ]);
 
-function soundWords(value) {
+export function soundWords(value) {
   return (value.toLowerCase().match(/[a-z0-9]+/gu) || [])
     .filter(word => !IGNORED_SOUND_WORDS.has(word));
 }
@@ -430,12 +430,24 @@ function choiceConfig(answers, intent, choices) {
   return validConfig(config, choices);
 }
 
+/**
+ * A model's answers admitted against the offered menu and the reader's own
+ * words: the chosen book and the reading settings, or null. Pure; it is the
+ * whole of what RISE does with an answer, so evaluation can score it apart
+ * from any provider envelope.
+ */
+export function admitAnswers(answers, books, intent, choices) {
+  const answer = answers?.book;
+  const book = books.find(item => item.work_id === answer?.choice);
+  const config = choiceConfig(answers, intent, choices);
+  return answer?.type === 'choice' && book && config ? { book, config } : null;
+}
+
 export function validDecision(value, books, intent, choices, provider) {
   if (!validProviderResult(value, provider)) return null;
-  const answer = value.answers?.book;
-  const selected = books.find(book => book.work_id === answer?.choice);
-  const config = choiceConfig(value.answers, intent, choices);
-  if (answer?.type !== 'choice' || !selected || !config) return null;
+  const admitted = admitAnswers(value.answers, books, intent, choices);
+  if (!admitted) return null;
+  const { book: selected, config } = admitted;
   return {
     schemaVersion: 2,
     requestId: typeof value.id === 'string' && value.id.length <= 100 ? value.id : crypto.randomUUID(),

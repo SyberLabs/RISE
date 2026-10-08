@@ -62,6 +62,8 @@ READER_OPENROUTER_KEY=… node scripts/decision-eval.mjs capture --mode live --b
 node scripts/decision-eval.mjs compare --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --baseline jev-live.json --candidate kev-local.json
 ```
 
+The Decision Arena (`scripts/arena/arena.mjs`) runs these cases against several deciders, including OpenAI's Decisions API, on the operator's own keys. It is operator-paid offline research, run by hand and frozen into a file (ARCHITECTURE §8.47), not a reversal of #294: no reader request reaches it, and RISE still spends no shared inference.
+
 The old staging procedure, and the `Kev staging evaluation` workflow that automated it, assumed a Worker that owned the provider key. It captured Jev on SyberLabs' OpenRouter key and reached a local Kev through a public tunnel. Both are retired, along with that assumption. The gates are unchanged: every case valid, zero out-of-menu values, explicit preferences and contrast pairs at least as good as the live Jev baseline, and every Kev answer inside the 8-second browser deadline. `compare` refuses a mocked capture on either side and requires the pinned Kev revision.
 
 ## What is verified
