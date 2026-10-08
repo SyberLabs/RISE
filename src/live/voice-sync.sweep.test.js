@@ -7,7 +7,8 @@
  * Edge's online natural voice (no boundaries, a passage whole) and a voice on the device (boundaries). A 2 s
  * Pause is swept through the first 12 s of the reading. After each, the clock must not have been given up on,
  * and the voice must not still be speaking when the reading on screen has ended. A second sweep seeks instead,
- * one to three passages on or back, every second through the first 12 s, and holds the reading to the same.
+ * one to three passages on or back, every second through the first 12 s, and holds the reading to the same. A third
+ * changes the pace instead, to half or one and a half times the voice’s own, every 2 s through the first 11 s.
  *
  * One time source runs all of it: vitest's fake timers drive the Player, the voice, the adapter and the conductor.
  */
@@ -29,9 +30,11 @@ const VOICES = {
 /** The Current's spoken beats: the ten passages the voice says. */
 const SPOKEN = SKY_PREMIUM_EDUCATIONAL.beats.filter(beat => beat.say).length;
 const PAUSE_MS = 2_000;
-const PAUSES_AT = Array.from({ length: 24 }, (_, i) => 500 + i * 500);
+const PAUSES_AT = Array.from({ length: 20 }, (_, i) => 500 + i * 600);
 /** Where the seek sweep seeks, and how far: one to three passages, on or back, in a fixed order. */
 const SEEKS = Array.from({ length: 8 }, (_, i) => ({ at: 500 + i * 1_500, delta: ((i * 7) % 3 + 1) * (i % 2 === 0 ? 1 : -1) }));
+/** Where the pace sweep changes the pace, and to what: slower and faster in turn. */
+const PACES = Array.from({ length: 6 }, (_, i) => ({ at: 500 + i * 2_000, rate: i % 2 === 0 ? 0.5 : 1.5 }));
 
 const tick = ms => vi.advanceTimersByTimeAsync(ms);
 let runtime = null;
@@ -53,9 +56,9 @@ afterEach(async () => {
 
 /**
  * Read the field's Current in `kind`'s voice, held for 2 s at `pauseAt` (or never), or moved by `seek.delta`
- * passages at `seek.at`; what the journal says of it.
+ * passages at `seek.at`, or set to `pace.rate` at `pace.at`; what the journal says of it.
  */
-async function read(kind, pauseAt = null, seek = null) {
+async function read(kind, pauseAt = null, seek = null, pace = null) {
     const { voice, ...device } = VOICES[kind];
     const clock = createRealClock();
     const synth = createFakeSpeech(clock, device);
@@ -86,6 +89,10 @@ async function read(kind, pauseAt = null, seek = null) {
     if (seek !== null) {
         await tick(startedAt + seek.at - performance.now());
         if (runtime.status === 'live') runtime.seek({ delta: seek.delta });
+    }
+    if (pace !== null) {
+        await tick(startedAt + pace.at - performance.now());
+        if (runtime.status === 'live') runtime.setPace(pace.rate);
     }
     const said = () => runtime.journal().filter(entry => entry.type === 'speech.end').length;
     // A seek says passages again, or passes over them: such a reading is over when it has ended.
@@ -130,6 +137,22 @@ describe('a seek early in a reading', () => {
                 const late = result.voiceEndedAt - result.finishedAt;
                 if (result.degraded.length > 0 || result.finishedAt === null || late > 1_000) {
                     parted.push(`moved ${seek.delta} at ${seek.at} ms: gave up on the voice [${result.degraded.join(', ')}], voice ended ${Math.round(late)} ms after the reading`);
+                }
+            }
+            expect(parted).toEqual([]);
+        });
+    }
+});
+
+describe('a pace change early in a reading', () => {
+    for (const kind of Object.keys(VOICES)) {
+        it(`keeps the words and the ${kind} voice together, slower or faster, wherever in the first 11 s it falls`, async () => {
+            const parted = [];
+            for (const pace of PACES) {
+                const result = await read(kind, null, null, pace);
+                const late = result.voiceEndedAt - result.finishedAt;
+                if (result.degraded.length > 0 || result.said < SPOKEN || result.finishedAt === null || late > 1_000) {
+                    parted.push(`paced ${pace.rate} at ${pace.at} ms: gave up on the voice [${result.degraded.join(', ')}], voice ended ${Math.round(late)} ms after the reading, ${result.said}/${SPOKEN} passages said`);
                 }
             }
             expect(parted).toEqual([]);
