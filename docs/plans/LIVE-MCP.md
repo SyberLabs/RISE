@@ -48,6 +48,8 @@ A test in a sandboxed frame found one more: a frame sandboxed without `allow-for
 
 A `rise.current.v2` scene may be code the model wrote (`{ id, code }`). After the Current validates, the server parses each scene's code with acorn and never runs it (`worker/scene-admission.mjs`): at most 24,576 bytes, an ES module with one default export function, no `import` or `import()`, no `debugger`, none of the names a scene may not reach (`fetch`, `self`, `globalThis`, `setTimeout` and the rest; refused wherever the name appears, a local one included), and `reportsCompletion` only as a boolean literal. One refused scene refuses the call: `isError`, one line per problem (`Scene "vector" was refused: line 14, column 7: …`, at most ten, each cleaned and clipped like every other refusal), then a line telling the model to repair and call again. In the card, a scene that still fails at run time is reported to the host's model for its next turn with `ui/update-model-context`, only where the host's `ui/initialize` answer offers `hostCapabilities.updateModelContext.text` (Claude does), at most five times per Current and 2,000 characters each, in RISE's words with the scene's own error message quoted as data; the same line goes to DevTools as `[RISE scene]` and, under `?measure=1`, to `window.__riseLive.scenes()`.
 
+The whole renderer contract a third party builds against (the Current v2, manifests and cues, generated scenes, these tools and the report), with every limit held to the constant that sets it, is [RISE-SDK.md](../specs/RISE-SDK.md): provisional until the owner's Live Run.
+
 ## What was verified, and how
 
 | | How | Result |

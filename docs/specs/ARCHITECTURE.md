@@ -471,6 +471,10 @@ owning the glyph-mask state machine.
 - **A new personal store is added to `src/core/user-data.js` in the same change
   that introduces it.** A store missing from that inventory is data export
   cannot carry out and erase cannot clear.
+- **The renderer contract moves with its document.** What a third party builds
+  against (the Current v2, manifests and cues, generated scenes and their
+  worker protocol, the MCP tools) is `docs/specs/RISE-SDK.md`, held to the code
+  by `src/core/rise-sdk.test.js`.
 
 ---
 
