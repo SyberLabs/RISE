@@ -2,6 +2,7 @@ import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA,
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_GUIDE, TOOL_NAME } from '../src/live/adapters/current-guide.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
+import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
 import { readText } from './live-realtime.mjs';
 import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
 
@@ -193,18 +194,21 @@ function call(id, params) {
   });
 }
 
-function read(id, params, origin, witness) {
+function read(id, params, origin, witness, card) {
   if (params?.uri !== APP_URI) return failure(id, -32002, 'Resource not found', { uri: typeof params?.uri === 'string' ? clip(params.uri, 200) : null });
   return result(id, {
     contents: [{
       uri: APP_URI,
       mimeType: APP_MIME,
       // The witness log (docs/plans/EMBED-WITNESS.md) is switched on by the demo config for one session; production never sets it.
-      text: relayHtml({ origin, path: witness ? `${EMBED_PATH}&log=host` : EMBED_PATH }),
+      // The self-contained card (mcp-card.js) when the deployed page was given; the relay otherwise.
+      text: card === null
+        ? relayHtml({ origin, path: witness ? `${EMBED_PATH}&log=host` : EMBED_PATH })
+        : cardHtml({ origin, indexHtml: card, path: witness ? `${EMBED_PATH}&log=host` : EMBED_PATH }),
       _meta: {
         ui: {
           // The app frames RISE's own page and nothing else, fetches nothing itself, and asks for no device.
-          csp: { frameDomains: [origin], connectDomains: [], resourceDomains: [] },
+          csp: card === null ? { frameDomains: [origin], connectDomains: [], resourceDomains: [] } : cardCsp(origin),
           prefersBorder: false
         },
         // Read by ChatGPT before the app loads, so that it picks the mode first; inline is the only one, and the app says the same at ui/initialize.
@@ -217,7 +221,7 @@ function read(id, params, origin, witness) {
 }
 
 /** One JSON-RPC message, answered. `null` for one that is not answered (a notification or a response). */
-export function dispatch(message, origin, { gate0 = false, witness = false } = {}) {
+export function dispatch(message, origin, { gate0 = false, witness = false, card = null } = {}) {
   if (!message || typeof message !== 'object' || Array.isArray(message) || message.jsonrpc !== '2.0') {
     return failure(null, -32600, 'Invalid request');
   }
@@ -246,7 +250,7 @@ export function dispatch(message, origin, { gate0 = false, witness = false } = {
     }
     case 'resources/list':
       return result(id, { resources: [{ uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME }] });
-    case 'resources/read': return read(id, params, origin, witness);
+    case 'resources/read': return read(id, params, origin, witness, card);
     default: return failure(id, -32601, 'Method not found');
   }
 }
@@ -296,7 +300,17 @@ export async function handleMcp(request, env) {
     return failure(null, -32700, 'Parse error');
   }
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
-  return dispatch(message, origin, { gate0: env.MCP_GATE0 === 'true', witness: env.MCP_WITNESS === 'true' });
+  // The self-contained card is the deployed page itself, read when the host asks for the app.
+  let card = null;
+  if (env.MCP_SELF_CONTAINED === 'true' && message?.method === 'resources/read' && typeof env.ASSETS?.fetch === 'function') {
+    try {
+      const page = await env.ASSETS.fetch(new Request(`${origin}/index.html`));
+      if (page.ok) card = await page.text();
+    } catch {
+      /* the relay card is served instead */
+    }
+  }
+  return dispatch(message, origin, { gate0: env.MCP_GATE0 === 'true', witness: env.MCP_WITNESS === 'true', card });
 }
 
 /**
