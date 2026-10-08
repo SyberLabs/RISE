@@ -26,20 +26,7 @@ export const KEV = Object.freeze({
   revision: KEV_REVISION
 });
 
-/**
- * Jev called directly at TypeSafe, with the operator's own key. For evaluation
- * from the operator's machine: TypeSafe's API answers browsers only from its
- * own console, so no reader's page can call it.
- */
-export const JEV_DIRECT = Object.freeze({
-  name: 'TypeSafe direct',
-  url: 'https://api.typesafe.ai/v1/systemone',
-  model: 'jev-1.13.0',
-  revision: 'jev-1.13'
-});
-
 const JEV_MODEL = /^typesafe\/jev-1\.13(?:-\d{8})?$/u;
-const JEV_DIRECT_MODEL = /^jev-1\.13(?:\.\d+)?$/u;
 
 /** A served model label is only accepted from the provider that owns it. */
 export function validProviderResult(value, provider) {
@@ -47,10 +34,6 @@ export function validProviderResult(value, provider) {
   if (!value.answers || typeof value.answers !== 'object' || Array.isArray(value.answers)) return false;
   if (provider.name === 'Kev') {
     return value.model === provider.model && (value.provider === undefined || value.provider === 'Kev');
-  }
-  if (provider.name === JEV_DIRECT.name) {
-    return typeof value.model === 'string' && JEV_DIRECT_MODEL.test(value.model)
-      && (value.provider === undefined || value.provider === 'TypeSafe');
   }
   return value.provider === 'TypeSafe' && typeof value.model === 'string' && JEV_MODEL.test(value.model);
 }
