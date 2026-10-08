@@ -71,7 +71,7 @@ export function currentFromText(text) {
  * @param {string} [options.host] the page that framed RISE, as the reader should see it: it is the host,
  *   and nothing but the page itself vouches for which host it is
  */
-export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256, host, admittedEvents = null }) {
+export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256, host, admittedEvents = null, admittedCurrent = null }) {
     if (!port || typeof port.onCurrent !== 'function') {
         throw new TypeError('The MCP adapter is given a port that delivers Currents');
     }
@@ -150,7 +150,12 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             const off = isDive ? null : admittedEvents ? null : port.onCurrent(accept);
             const timer = clock.setTimer(() => fail('NO_ANSWER', 'The host did not answer in time'), timeoutMs);
             stopWaiting = () => { off?.(); timer(); };
-            if (!isDive && admittedEvents) acceptEvents(admittedEvents);
+            // A host that admitted the Current itself hands it over whole with its events, so the runtime compiles the
+            // sealed Current (its beats never pass through the stream) exactly as when the port delivers one.
+            if (!isDive && admittedEvents) {
+                sealed = admittedCurrent;
+                acceptEvents(admittedEvents);
+            }
             // A Current the host had already handed over was delivered as we subscribed.
             if (finished) stopWaiting();
 
