@@ -45,12 +45,14 @@ else is a recommendation.
 
 1. **No shared inference.** Every model call runs on the reader's own key or
    on the reader's own machine. RISE never pays for a reader's thinking. The
-   one bounded exception is voice, not thought: a Plus subscriber's reading is
-   rendered once by a speech vendor on the lab's key, metered against the
-   subscription, and served from storage (RFC 0001, decision D10).
+   one bounded exception is voice, not thought: a Plus subscriber's reading of
+   their own material is voiced by a speech vendor on the lab's account,
+   metered as a character count per subscription, and kept only in the
+   reader's browser (RFC 0001, decision D10).
 2. **A browser, no account.** There is no identity service and no server-side
    reader state. Nothing a reader types or reads leaves their device unless
-   they send it.
+   they send it. The Plus meter is one character count per subscription, not
+   reader state.
 3. **Content is static and content-addressed.** Editions, recitation, imagery
    and programs are files named by their hash, built from a content branch
    into `dist/`, and never part of the module graph.

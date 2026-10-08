@@ -2,10 +2,12 @@
 
 RISE spends no SyberLabs credential at request time for any model call: AI
 features run on a connection the reader owns, and reading and manual settings
-need none. The one exception is the Plus voice (`worker/plus.mjs`): a reading a
-subscriber chose to voice is rendered once by ElevenLabs on the lab's key,
-metered against the subscription, and served from storage; the Worker still
-runs no model and makes no decision.
+need none. The one exception is the Plus voice (`worker/plus.mjs`): with the
+Plus voice on, the text of a subscriber's reading of their own material goes
+through the Worker to ElevenLabs on the lab's account, is metered as a
+per-subscription character count for the billing period (105,000 characters),
+and comes back as audio the reader's browser keeps in IndexedDB. The Worker
+keeps no text or audio, runs no model, and makes no decision.
 
 | Option | What runs | Who pays | Where the credential lives |
 | --- | --- | --- | --- |
