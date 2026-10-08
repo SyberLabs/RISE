@@ -25,7 +25,7 @@
  * at maxMs at the latest whatever it does. While the scene holds, the Player
  * is told the hold may last maxMs, so its own watchdog waits that long. A hold
  * with no scene to ask, or no maxMs, lasts exactly its `ms`, at the Player's
- * pace.
+ * pace; a pace change while it runs re-times what is left of it (`repace`).
  *
  * A seek (`seek`) lands the cues of the earlier beats of the running scene
  * at once, marked `instant`, as the design's replay does
@@ -77,13 +77,30 @@ export function createBeatConductor({ clock, onCue = null, onHold = null }) {
                 stop?.();
                 resolve({ reason: 'ended' });
             };
-            stop = clock.setTimer(end, held ? atom.hold.maxMs : paced(atom));
+            /** Time the atom as one of `total` ms, `fraction` of which has passed. */
+            mine.time = (total, fraction = 0) => {
+                stop?.();
+                mine.total = total;
+                mine.startedAt = clock.now() - fraction * total;
+                stop = clock.setTimer(end, total * (1 - fraction));
+            };
+            mine.time(held ? atom.hold.maxMs : paced(atom));
             mine.cancel = () => stop();
             held?.then(end, () => {});
         });
     }
 
+    /** The Player's pace changed: a running hold or shown line goes on at it from where it is; a scene's hold keeps its maxMs. */
+    function repace() {
+        if (!waiting || waiting.held) return;
+        const fraction = waiting.total > 0 ? (clock.now() - waiting.startedAt) / waiting.total : 1;
+        if (!(fraction < 1)) return;
+        waiting.time(paced(waiting.atom), fraction);
+    }
+
     return {
+        repace,
+
         /** Take a place ahead of the speech governor on the Player's clock. */
         install(target) {
             if (player) return;

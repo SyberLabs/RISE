@@ -126,6 +126,35 @@ describe('what the conductor times', () => {
     await clock.advance(200);
     expect(state.done).toEqual({ reason: 'ended' });
   });
+
+  it('re-times a running hold at a new pace: what has passed stays passed, the rest goes at the new pace', async () => {
+    const { clock, conductor, player } = setup();
+    const state = { done: null, at: null };
+    player.governor.completion(HOLD, 0).then(result => { state.done = result; state.at = clock.now(); });
+    await clock.advance(1000);
+    // 2x at a third of the way: the remaining 2000 ms takes 1000.
+    player.speedFactor = 0.5;
+    conductor.repace();
+    await clock.advance(900);
+    expect(state.done).toBeNull();
+    await clock.advance(200);
+    expect(state.done).toEqual({ reason: 'ended' });
+    expect(state.at).toBe(2000);
+  });
+
+  it('leaves a hold the scene is holding to its maxMs', async () => {
+    const { clock, conductor, player } = setup({ onHold: () => new Promise(() => {}) });
+    const held = { content: '', duration: 1000, hold: { ms: 1000, maxMs: 5000, sceneId: 'field' } };
+    const state = { done: null };
+    player.governor.completion(held, 0).then(result => { state.done = result; });
+    await clock.advance(1000);
+    player.speedFactor = 0.5;
+    conductor.repace();
+    await clock.advance(3900);
+    expect(state.done).toBeNull();
+    await clock.advance(200);
+    expect(state.done).toEqual({ reason: 'ended' });
+  });
 });
 
 describe('a seek', () => {

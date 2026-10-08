@@ -41,9 +41,9 @@ afterEach(async () => {
 
 /**
  * Open the field's Current; what the voice said, what the words showed and what the scene was cued, each with when.
- * `lost`: passages the voice takes and never says, the first time it is given them.
+ * `lost`: passages the voice takes and never says, the first time it is given them. `msPerChar`: how slowly the voice speaks.
  */
-async function open({ lost = [] } = {}) {
+async function open({ lost = [], msPerChar = MS_PER_CHAR } = {}) {
     const losing = new Set(lost);
     const clock = createRealClock();
     const adapter = createMcpAppAdapter({
@@ -65,7 +65,7 @@ async function open({ lost = [] } = {}) {
         },
         voices: {
             create: () => {
-                const voice = createSyntheticVoice({ clock, msPerChar: MS_PER_CHAR, breathMs: 50 });
+                const voice = createSyntheticVoice({ clock, msPerChar, breathMs: 50 });
                 const attach = voice.attach.bind(voice);
                 voice.attach = callbacks => attach({
                     ...callbacks,
@@ -338,6 +338,46 @@ describe('the pace', () => {
         const hold = run.shown.find(entry => entry.sourceId === 'beat-1');
         const next = run.shown.find(entry => entry.index === hold.index + 1);
         expect(next.at - hold.at).toBeLessThan(SKY.beats[1].hold.ms * 0.6);
+    });
+
+    it('slowed fourfold in the middle of a long phrase, waits for the voice: the next words come only when it reaches them', async () => {
+        // A slow voice, so the phrase's rest at the new pace outlasts the watchdog the Player armed at the old one.
+        const run = await open({ msPerChar: 80 });
+        runtime.setPace(2);
+        const atoms = run.player().sessionState.session.atoms;
+        const first = atoms.findIndex(atom => atom.sourceId === 'beat-4' && !atom.seam);
+        for (let waited = 0; waited < 60_000 && !run.shown.some(entry => entry.index === first); waited += 20) await tick(20);
+        await tick(200);
+        runtime.setPace(0.5);
+        const next = atoms.findIndex(atom => atom.sourceId === 'beat-5' && !atom.seam);
+        for (let waited = 0; waited < 60_000 && !run.shown.some(entry => entry.index === next); waited += 50) await tick(50);
+        expect(run.journal('voice.degraded')).toEqual([]);
+        // The passage's second phrase is shown once the voice is past the first (when its own marks place the
+        // first's last character), not when a watchdog armed at the old pace gave up on it.
+        const end = atoms[first].content.length;
+        const marks = run.said.filter(entry => entry.kind === 'mark' && entry.id === 'beat-4');
+        const before = marks.findLast(entry => entry.charIndex <= end);
+        const beyond = marks.find(entry => entry.charIndex > end);
+        const voicePast = before.at + ((end - before.charIndex) / (beyond.charIndex - before.charIndex)) * (beyond.at - before.at);
+        expect(run.shown.find(entry => entry.index === first + 1).at).toBeGreaterThanOrEqual(voicePast - 50);
+        // And the next passage's words only once the voice begins it.
+        const begun = run.said.find(entry => entry.kind === 'start' && entry.id === 'beat-5');
+        expect(run.shown.find(entry => entry.index === next).at).toBeGreaterThanOrEqual(begun.at);
+    });
+
+    it('sped up during a hold, shortens the hold already running', async () => {
+        const run = await open();
+        const atoms = run.player().sessionState.session.atoms;
+        const hold = atoms.findIndex(atom => atom.sourceId === 'beat-8');
+        for (let waited = 0; waited < 60_000 && !run.shown.some(entry => entry.index === hold); waited += 10) await tick(10);
+        const began = run.shown.find(entry => entry.index === hold).at;
+        await tick(500);
+        runtime.setPace(2);
+        for (let waited = 0; waited < 10_000 && !run.shown.some(entry => entry.index === hold + 1); waited += 10) await tick(10);
+        // 500 ms of its 2000 at 1x, the other 1500 at 2x: 1250 ms in all.
+        const lasted = run.shown.find(entry => entry.index === hold + 1).at - began;
+        expect(lasted).toBeGreaterThanOrEqual(1_200);
+        expect(lasted).toBeLessThan(1_350);
     });
 
     it('is between half and twice the voice’s own', async () => {
