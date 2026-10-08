@@ -6,7 +6,8 @@
  * Windows meets: Chrome's Google network voice (no word boundaries, said a sentence at a time, slow to start),
  * Edge's online natural voice (no boundaries, a passage whole) and a voice on the device (boundaries). A 2 s
  * Pause is swept through the first 12 s of the reading. After each, the clock must not have been given up on,
- * and the voice must not still be speaking when the reading on screen has ended.
+ * and the voice must not still be speaking when the reading on screen has ended. A second sweep seeks instead,
+ * one to three passages on or back, every second through the first 12 s, and holds the reading to the same.
  *
  * One time source runs all of it: vitest's fake timers drive the Player, the voice, the adapter and the conductor.
  */
@@ -29,6 +30,8 @@ const VOICES = {
 const SPOKEN = SKY_PREMIUM_EDUCATIONAL.beats.filter(beat => beat.say).length;
 const PAUSE_MS = 2_000;
 const PAUSES_AT = Array.from({ length: 24 }, (_, i) => 500 + i * 500);
+/** Where the seek sweep seeks, and how far: one to three passages, on or back, in a fixed order. */
+const SEEKS = Array.from({ length: 8 }, (_, i) => ({ at: 500 + i * 1_500, delta: ((i * 7) % 3 + 1) * (i % 2 === 0 ? 1 : -1) }));
 
 const tick = ms => vi.advanceTimersByTimeAsync(ms);
 let runtime = null;
@@ -48,8 +51,11 @@ afterEach(async () => {
     vi.useRealTimers();
 });
 
-/** Read the field's Current in `kind`'s voice, held for 2 s at `pauseAt` (or never); what the journal says of it. */
-async function read(kind, pauseAt = null) {
+/**
+ * Read the field's Current in `kind`'s voice, held for 2 s at `pauseAt` (or never), or moved by `seek.delta`
+ * passages at `seek.at`; what the journal says of it.
+ */
+async function read(kind, pauseAt = null, seek = null) {
     const { voice, ...device } = VOICES[kind];
     const clock = createRealClock();
     const synth = createFakeSpeech(clock, device);
@@ -77,8 +83,14 @@ async function read(kind, pauseAt = null) {
         await tick(PAUSE_MS);
         if (runtime.status === 'interrupted') runtime.resume();
     }
+    if (seek !== null) {
+        await tick(startedAt + seek.at - performance.now());
+        if (runtime.status === 'live') runtime.seek({ delta: seek.delta });
+    }
     const said = () => runtime.journal().filter(entry => entry.type === 'speech.end').length;
-    for (let waited = 0; waited < 200_000 && (said() < SPOKEN || finishedAt === null); waited += 1_000) {
+    // A seek says passages again, or passes over them: such a reading is over when it has ended.
+    const over = () => (seek === null ? said() >= SPOKEN && finishedAt !== null : runtime.status === 'ended');
+    for (let waited = 0; waited < 200_000 && !over(); waited += 1_000) {
         await tick(1_000);
     }
     const journal = runtime.journal();
@@ -102,6 +114,22 @@ describe('a Pause and a Play early in a reading', () => {
                 const late = result.voiceEndedAt - result.finishedAt;
                 if (result.degraded.length > 0 || result.said < SPOKEN || result.finishedAt === null || late > 1_000) {
                     parted.push(`paused at ${pauseAt} ms: gave up on the voice [${result.degraded.join(', ')}], voice ended ${Math.round(late)} ms after the reading, ${result.said}/${SPOKEN} passages said`);
+                }
+            }
+            expect(parted).toEqual([]);
+        });
+    }
+});
+
+describe('a seek early in a reading', () => {
+    for (const kind of Object.keys(VOICES)) {
+        it(`keeps the words and the ${kind} voice together, one to three passages on or back, wherever in the first 12 s it falls`, async () => {
+            const parted = [];
+            for (const seek of SEEKS) {
+                const result = await read(kind, null, seek);
+                const late = result.voiceEndedAt - result.finishedAt;
+                if (result.degraded.length > 0 || result.finishedAt === null || late > 1_000) {
+                    parted.push(`moved ${seek.delta} at ${seek.at} ms: gave up on the voice [${result.degraded.join(', ')}], voice ended ${Math.round(late)} ms after the reading`);
                 }
             }
             expect(parted).toEqual([]);
