@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "Creative Control",
   "status": "in_review",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -64,6 +64,24 @@
       "ref": "scripts/measure-first-load.mjs",
       "note": "npm run measure:first-load after npx vite build on the branch, 2026-10-08: 57.3 KB br of a 64 KB budget, the same total as the base commit cc41b441; the guide text is only in the lazily loaded mcp-app chunk.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/522",
+      "note": "Merged to main. Full-validation run and known flakes are recorded in the pull request comments.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/3b1b49a3",
+      "note": "Merge commit 3b1b49a3. Its own production deploy failed (the Worker bundle reached KaTeX's stylesheet through math-typeset.js); the change went live in release eceed084 after #524.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/eceed084",
+      "note": "Release eceed084 (#524) verified live 2026-10-08: POST /api/mcp tools/list answered rise_present and rise_guide, resources/list answered ui://rise/current and ui://rise/guide/<style>, and a rise_guide call returned the premium-educational guide. Deployment only; not owner acceptance.",
+      "date": "2026-10-08"
     }
   ],
   "activity": [
@@ -74,10 +92,14 @@
     {
       "date": "2026-10-08T13:39:46.937Z",
       "summary": "Rebased onto the CC-006 sandbox work (one declaration of the banned names, in src/scenes/scene-bans.js). Added rise_guide, a read-only tool that returns a style's full guidance, because in claude.ai the reader attaches resources and the model only calls tools, so the guide resources alone would never reach it; the resources stay. The schema's cue pattern is now the validator's own. Not pushed; not yet seen in a host."
+    },
+    {
+      "date": "2026-10-08T14:49:04.714Z",
+      "summary": "Merged as 3b1b49a3 (#522). Deployed in release eceed084 on 2026-10-08 after #524 restored production deploys."
     }
   ],
-  "updatedAt": "2026-10-08T13:39:46.937Z",
-  "revision": 2,
+  "updatedAt": "2026-10-08T14:49:04.714Z",
+  "revision": 3,
   "summary": "A Current names a style and gets its typography and drawing defaults; a model is taught to write code scenes and given each style's full guidance as a resource; and the guidance is measured by a corpus every case of which is accepted and runs.",
   "blocker": null
 }

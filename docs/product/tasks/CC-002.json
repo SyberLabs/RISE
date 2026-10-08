@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "Creative Control",
   "status": "in_review",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
@@ -21,16 +21,32 @@
       "ref": "docs/superpowers/specs/2026-10-08-creative-control-design.md",
       "note": "The Creative Control design; §5 the Current v2, §6 its compilation, §7 the runtime. Approved by the owner 2026-10-08.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/517",
+      "note": "Merged to main. Full-validation run and known flakes are recorded in the pull request comments.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/3ad74f18",
+      "note": "Merge commit 3ad74f18; production deployed with its own merge, the last green deploy before the break.",
+      "date": "2026-10-08"
     }
   ],
   "activity": [
     {
       "date": "2026-10-08T12:00:00.000Z",
       "summary": "Opened from the approved design; built directly against it at the owner's instruction (no per-piece plan)."
+    },
+    {
+      "date": "2026-10-08T14:49:04.081Z",
+      "summary": "Merged as 3ad74f18 (#517). Deployed with its own merge; the deploy of 3ad74f18 was the last green one before production deploys broke."
     }
   ],
-  "updatedAt": "2026-10-08T12:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-08T14:49:04.081Z",
+  "revision": 2,
   "summary": "The first Creative Control sub-project: a Current of beats over scenes, compiled onto the existing score, timed by a conductor beside the voice. Native scenes without parameters; typography, manifests and generated scenes follow in CC-003..005.",
   "blocker": null
 }
