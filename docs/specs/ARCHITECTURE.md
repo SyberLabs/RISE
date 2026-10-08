@@ -44,7 +44,10 @@ Every decision in §8 is downstream of these. They are the axioms; everything
 else is a recommendation.
 
 1. **No shared inference.** Every model call runs on the reader's own key or
-   on the reader's own machine. RISE never pays for a reader's thinking.
+   on the reader's own machine. RISE never pays for a reader's thinking. The
+   one bounded exception is voice, not thought: a Plus subscriber's reading is
+   rendered once by a speech vendor on the lab's key, metered against the
+   subscription, and served from storage (RFC 0001, decision D10).
 2. **A browser, no account.** There is no identity service and no server-side
    reader state. Nothing a reader types or reads leaves their device unless
    they send it.

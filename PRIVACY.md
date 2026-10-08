@@ -31,9 +31,11 @@ thought, detail, or revision instruction. Generated prose can itself contain
 sensitive information. Text and project exports are files you deliberately save.
 Import and playback do not call the writer.
 
-We do not use cookies. We do not use analytics. We do not track you across
-sites or across visits. We have no accounts, so we do not know who you are. We
-do not sell personal information. Network processing occurs for hosting,
+We set one cookie, and only when you buy Plus: a signed token that says your
+subscription is paid, with no name or email in it. We do not use analytics. We
+do not track you across sites or across visits. We have no accounts. If you buy
+Plus, Stripe knows the email you paid with; we hold only its customer number
+inside that cookie. We do not sell personal information. Network processing occurs for hosting,
 external resources you request, and the optional decision actions described below.
 
 Scriptorium also has separate optional model routing. It sends the typed
@@ -63,7 +65,8 @@ RISE is a browser-based audiovisual reader. It presents public-domain texts
 over generative visuals and imagery held by museums and archives. It is
 experimental software offered without charge.
 
-There is no sign-up, no login and no user account of any kind.
+There is no sign-up, no login and no user account. Plus is a receipt, not an
+account: a paid Stripe subscription and one cookie.
 
 ---
 
@@ -292,8 +295,12 @@ transfer no longer happens.
 
 We state these plainly because the absence is the point.
 
-- **No cookies.** RISE sets none. There is no `document.cookie` call anywhere
-  in the application.
+- **One cookie, for Plus only.** The Worker sets `rise_plus` when you claim a
+  purchase; it is HttpOnly, read only by `/api/plus/*`, and never by page
+  script. There is no `document.cookie` call anywhere in the application.
+- **The Plus voice.** When you ask for the Plus voice on a reading, the text
+  you chose to voice is sent once to ElevenLabs on our key and the result is
+  kept so it is never rendered twice. Nothing else you read is sent anywhere.
 - **No analytics.** No Google Analytics, no Tag Manager, no Plausible, no
   Sentry, no product analytics of any kind. No third-party script of any kind
   runs on the page.

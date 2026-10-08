@@ -183,7 +183,8 @@ arising from or connected with your use of or inability to use the Service —
 
 To the fullest extent permitted by law, our total aggregate liability arising
 from or connected with the Service is limited to **one hundred United States
-dollars (USD 100)**. The Service is free; there is no fee to refund.
+dollars (USD 100)**. Reading is free. Plus is $8.99 a month through Stripe, cancellable at any
+time; a cancelled month is not refunded.
 
 **Nothing here limits liability for death or personal injury caused by
 negligence, for fraud or fraudulent misrepresentation, or for anything else
@@ -204,7 +205,7 @@ extent caused by us.
 
 The Service is not directed at children and is not intended for anyone under
 13. We do not knowingly collect personal information from children; there is no
-account system, so we hold no age information about anybody. If you believe a
+account system; Stripe holds what a purchase requires, and we hold none of it. If you believe a
 child has provided us with personal information, write to
 syberlabs.software@gmail.com.
 

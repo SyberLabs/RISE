@@ -1,7 +1,11 @@
 # User-owned AI in RISE
 
-RISE never spends SyberLabs inference credentials. AI features run on a
-connection the reader owns, and reading and manual settings need none.
+RISE spends no SyberLabs credential at request time for any model call: AI
+features run on a connection the reader owns, and reading and manual settings
+need none. The one exception is the Plus voice (`worker/plus.mjs`): a reading a
+subscriber chose to voice is rendered once by ElevenLabs on the lab's key,
+metered against the subscription, and served from storage; the Worker still
+runs no model and makes no decision.
 
 | Option | What runs | Who pays | Where the credential lives |
 | --- | --- | --- | --- |
