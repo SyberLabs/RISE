@@ -82,7 +82,10 @@ async function* divisionsOf(workIds) {
       if (only !== null && String(entry.id) !== only) continue;
       const decision = todayDecision({ seed: 'canon', workId: work.id });
       const input = await resolveJevReading(decision, { entryId: entry.id, label: entry.label });
-      const atoms = compileSession(input).atoms.map(atom => normalizeVoiceText(atom)).filter(Boolean);
+      // An atom with no letter or digit (a lone closing quote, a row of question
+      // marks) is choreography, not speech: it gets no clip and the Chamber reads
+      // it silently at its authored duration, as it does any atom without one.
+      const atoms = compileSession(input).atoms.map(atom => normalizeVoiceText(atom)).filter(text => /[\p{L}\p{N}]/u.test(text));
       yield { workId: work.id, entryId: Number(entry.id), label: entry.label, sourceRevision: released.sourceRevision, atoms };
     }
   }
