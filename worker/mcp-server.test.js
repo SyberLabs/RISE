@@ -121,6 +121,7 @@ describe('who may ask, and how', () => {
     expect(response.headers.get('Content-Type')).toMatch(/^application\/json/u);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    expect(response.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains');
   });
 
   it('carries the request’s id back, a string or a number', async () => {

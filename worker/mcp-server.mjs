@@ -44,7 +44,9 @@ const MAX_MESSAGE = 300;
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store',
-  'X-Content-Type-Options': 'nosniff'
+  'X-Content-Type-Options': 'nosniff',
+  // The site is https only; every response of the host says so, the static ones through _headers.
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
 };
 
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);

@@ -24,7 +24,7 @@ describe('Cloudflare static headers', () => {
         const common = rule('/*', readFileSync(output, 'utf8'));
         const names = [
             'X-Frame-Options', 'X-Content-Type-Options', 'Referrer-Policy',
-            'Permissions-Policy', 'Content-Security-Policy'
+            'Permissions-Policy', 'Content-Security-Policy', 'Strict-Transport-Security'
         ];
         for (const name of names) {
             const escaped = name.replace(/[-]/gu, '\\-');
