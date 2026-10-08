@@ -12,8 +12,17 @@ export const PENDING_KEY = 'rise-openrouter-pkce-v1';
 // so it survives however the provider appends ?code= to the URL.
 let captured = null;
 
+/**
+ * This tab's session storage, or null where the page may not have one. Inside a
+ * host's sandboxed card (an opaque origin) the getter itself throws, and a
+ * default parameter evaluates it before the function body can catch anything.
+ */
+export function sessionStorageOrNull() {
+  try { return globalThis.sessionStorage ?? null; } catch { return null; }
+}
+
 export function takeOpenRouterReturn(location = globalThis.location, history = globalThis.history,
-  storage = globalThis.sessionStorage) {
+  storage = sessionStorageOrNull()) {
   captured = readReturn(location, history, storage);
   return captured;
 }

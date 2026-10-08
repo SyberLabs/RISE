@@ -12,11 +12,15 @@ export const SHIPPED_STILLS = new Map([
     ['attractor', 'attractor.webp']
 ]);
 
-/** Same-origin and absolute, because safeUrl admits no relative path. */
+/**
+ * Absolute, because safeUrl admits no relative path, and resolved against the
+ * document's base rather than the window's origin: inside a host's card the
+ * window's origin is opaque ("null") while the base is RISE's (mcp-card.js).
+ */
 export function shippedStill(file) {
-    if (typeof location === 'undefined') return null;
+    if (typeof document === 'undefined') return null;
     try {
-        return new URL(`engine-stills/${file}`, location.origin + '/').href;
+        return new URL(`engine-stills/${file}`, document.baseURI).href;
     } catch {
         return null;
     }

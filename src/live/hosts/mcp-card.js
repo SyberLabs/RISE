@@ -38,5 +38,6 @@ export function cardHtml({ origin, indexHtml, path = CARD_PATH }) {
   if (!head) throw new TypeError('The page has no head');
   if (/<base[\s>]/iu.test(html)) throw new TypeError('The page has a base of its own');
   const at = head.index + head[0].length;
-  return `${html.slice(0, at)}\n<base href="${origin}/">\n<meta name="rise-embed" content="${path}">${html.slice(at)}`;
+  // The path is an attribute value: its ampersands are written as entities and read back decoded.
+  return `${html.slice(0, at)}\n<base href="${origin}/">\n<meta name="rise-embed" content="${path.replace(/&/gu, '&amp;')}">${html.slice(at)}`;
 }
