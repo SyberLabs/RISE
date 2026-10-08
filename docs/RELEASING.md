@@ -1,30 +1,38 @@
 # Releasing RISE
 
 Moved from the root README. Production release and rollback for the Cloudflare host.
-This page describes the workflow as it runs today; the open question at the end
-records what it no longer does.
+This page describes the workflow as it runs today.
 
 ## On a pull request
 
 The [CI workflow](../.github/workflows/ci.yml) runs one job, `CI`, for every
 pull request: hygiene, roadmap and security checks, the generated architecture
-diagram, the content build, a fixed set of fast unit tests, `vite build`, the
-first-load budget, and the browser gate (`npm run test:e2e:gate`). The
-main-branch ruleset requires that check and no human approval.
+diagram, the content build, the fast unit tests listed in
+[`vitest.fast.config.js`](../vitest.fast.config.js) (CI fails if they collect
+a different number of files than the committed `FAST_TEST_FILES`),
+`vite build`, the first-load budget, a Worker deploy dry run, and the browser
+gate (`npm run test:e2e:gate`, no retries). The main-branch ruleset requires
+that check and no human approval.
 
 ## On a push to `main`
 
-The same workflow runs its `production` job, and only that job; the `CI` job
-does not run on push. The job checks out the merged commit, rebuilds the app
-with `npm run build`, restores the recitation audio, and writes the commit into
-`dist/release.txt` and `dist/release-<sha>.txt`. Right before deploying it
-reads `main` from the GitHub API and stops if `main` no longer points at the
-commit it built. So not every push to `main` deploys: when merges land faster
-than the job runs, a superseded push's job fails at this step without deploying
-or verifying anything, and the job for the newest commit deploys. That check is
-the only guard between the merge and the deploy: nothing is handed from the pull
-request's `CI` run to this job, and the deploy is a fresh build from source. It
-deploys with the lockfile's Wrangler:
+The same `CI` job runs again on the merged commit. Its `dist/` (with the
+recitation audio and the release markers `dist/release.txt` and
+`dist/release-<sha>.txt`) and the Worker bundle from its dry run are uploaded
+as the artifact `rise-release-<sha>`, before the browser gate rebuilds `dist/`
+with test flags.
+
+The `production` job `needs` that job, so it runs only when every check on the
+merged commit, browser gate included, has passed. It does not build `dist/`:
+it downloads the artifact, checks the release markers and the audio count,
+bundles the Worker again from the same commit and requires it to be
+byte-identical to the tested bundle, and writes `wrangler versions list` to the
+run summary. Right before deploying it reads `main` from the GitHub API and
+stops if `main` no longer points at the tested commit. So not every push to
+`main` deploys: when merges land faster than the jobs run, a superseded push's
+job fails at this step without deploying, and the job for the newest commit
+deploys. It deploys with the lockfile's Wrangler and writes the new Worker
+version id to the run summary:
 
 ```bash
 ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --message "RISE <sha>"
@@ -65,9 +73,10 @@ must remain protected.
 
 ## Rollback
 
-The release does not record prior Worker versions. To roll back, list the
-versions from a checkout with this configuration and Cloudflare credentials,
-confirm one is known-good, and restore it with the lockfile's Wrangler:
+Each production run's summary lists the Worker versions that existed before
+its deploy and the version it deployed. Confirm one is known-good, and restore
+it with the lockfile's Wrangler from a checkout with this configuration and
+Cloudflare credentials:
 
 ```bash
 ./node_modules/.bin/wrangler versions list --config wrangler.production.jsonc
@@ -78,11 +87,12 @@ The previous [`.space` site](https://rise.syberlabs.space/) remains available
 for browser-local work there. A first production release may have no
 known-good prior production version to restore.
 
-## Open question
+## History
 
-Until 2026-09-26 the `CI` job uploaded the tested `dist/` as an artifact and
-the production job deployed that artifact without rebuilding. #196 removed the
-artifact digest, #204 removed the artifact handoff and the `needs: ci` link,
-and #209 removed the step that recorded prior Worker versions in the run
-summary. Whether to restore a build-once handoff is a decision for the
-repository owner; it is not made here.
+Until 2026-09-26 the `CI` job uploaded the tested `dist/` and the production
+job deployed it; #204 removed that handoff and the `needs: ci` link, and from
+then until this change production deployed a fresh build that no test had run
+against. The handoff is restored to close R1 of the
+2026-10-05 principal-architect critique: production ships the tested artifact.
+[Full validation](../.github/workflows/full-validation.yml) still runs after
+the deploy and does not hold it.

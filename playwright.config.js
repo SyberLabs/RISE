@@ -91,7 +91,9 @@ export default defineConfig({
     // `playwright test` with no argument is still exactly one run of
     // everything — the split costs the full run nothing.
     projects: [
-        { name: 'gate', testMatch: GATE },
+        // The gate is a required check: a test that passes only on its retry
+        // is a failure the gate would otherwise wave through. No retries here.
+        { name: 'gate', testMatch: GATE, retries: 0 },
         { name: 'full', testIgnore: [...GATE, ADMISSION] },
         // THE ONE PROJECT THAT PLAYS BY THE BROWSER'S RULES. Every other
         // spec runs with autoplay forced on, because a hundred tests
