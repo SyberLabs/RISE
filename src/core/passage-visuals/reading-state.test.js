@@ -49,9 +49,14 @@ describe('which choices Follow text draws', () => {
     return [directionEligibility(session).family, ensureDirector(session)?.family];
   };
 
-  it('draws museum works for the Gallery look and for a shelf of museum or science collections', () => {
+  it('draws museum works for the Gallery look and for a shelf of museum collections', () => {
     expect(family(shelf(['turrell']))).toEqual(['gallery', 'gallery']);
-    expect(family(shelf([], ['aic-landscapes', 'sci-astronomy']))).toEqual(['gallery', 'gallery']);
+    expect(family(shelf([], ['aic-landscapes', 'aic-oldmasters']))).toEqual(['gallery', 'gallery']);
+  });
+
+  it('never puts paintings into a science shelf: photographs of the sky are not a gallery of paintings', () => {
+    expect(family(shelf([], ['sci-astronomy']))).toEqual(['flame', 'flame']);
+    expect(family(shelf([], ['aic-landscapes', 'sci-astronomy']))).toEqual(['flame', 'flame']);
   });
 
   it('draws flames where the words draw from the room, so Follow never changes what fills them', () => {

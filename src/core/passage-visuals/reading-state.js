@@ -22,11 +22,12 @@ const DEFAULT_SHELVES = new Set(['', 'turrell']);
 
 const states = new WeakMap();
 
-const MUSEUM_SOURCE = /^(?:aic|sci)-/u;
+// Museum collections only: science imagery is a photograph of the world, not a painting (art-of, not witness-of).
+const MUSEUM_SOURCE = /^aic-/u;
 
 /**
  * What Follow text draws (R6): museum works for the Gallery look's Turrell
- * shelf or a shelf of museum and science collections, flames otherwise,
+ * shelf or a shelf of museum collections, flames otherwise,
  * and always where the words themselves draw imagery from the room.
  */
 function followFamily(visual = {}) {

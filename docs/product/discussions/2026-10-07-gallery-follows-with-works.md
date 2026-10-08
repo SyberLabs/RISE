@@ -8,7 +8,7 @@ Follow text keeps a reading in one family (R6). Part 1 held flame readings to fl
 
 Now the family is worked out from the reading's configuration:
 
-- **`gallery`:** the Gallery look's Turrell shelf, or a shelf made only of museum and science collections (`aic-…`, `sci-…`).
+- **`gallery`:** the Gallery look's Turrell shelf, or a shelf made only of museum collections (`aic-…`). Science shelves (`sci-…`) are photographs of the world, not paintings, so they never follow with paintings. An Astronomy family ("cosmic wonder") is deferred until readers have tested this (owner, 2026-10-08).
 - **`flame`:** everything else, as before. That covers Living Flame, an empty shelf, and other engines.
 - **Also `flame`: a reading whose words draw imagery** (a declared word fill). Its words fill from the room's pool, and a museum cue swaps that pool, so Follow would change what fills the words. Full validation caught exactly that: Fit's held image left the word mask.
 
