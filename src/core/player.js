@@ -948,6 +948,26 @@ export class Player {
     }
 
     /**
+     * Move on from a finished atom. Both callers (the atom timer and a spoken
+     * atom's end) are fire-and-forget, so a failure inside the step — most
+     * often a listener that could not paint the next atom — had no one to
+     * reject to: the state stayed 'playing' and the progress clock kept
+     * running under a reading that would never move again. The reading now
+     * pauses where it stands and says so once, as an 'error' a view can show.
+     * A presence that fails is a different case and is handled where it
+     * happens: the reading continues without it.
+     */
+    _advance() {
+        const playbackEpoch = this._playbackEpoch;
+        this.processNextNode().catch(error => {
+            if (playbackEpoch !== this._playbackEpoch) return;
+            console.warn('[Player] Playback failed; pausing:', error);
+            this.pause();
+            this.emit('error', { phase: 'playback', error });
+        });
+    }
+
+    /**
      * Schedule the next atom to display
      * @param {boolean} isResuming - true if resuming from pause, guarantees no re-emit blink
      * @param {Object} [options]
@@ -1085,7 +1105,7 @@ export class Player {
                     this.atomStartTime = null;
                     this.currentAtomRemainingTime = null;
                     this.currentAtomDisplayTime = null;
-                    void this.processNextNode();
+                    this._advance();
                 })
                 .catch(() => {
                     this._clearSpeechWatchdog();
@@ -1111,7 +1131,7 @@ export class Player {
                 this.atomStartTime = null;
                 this.currentAtomRemainingTime = null;
                 this.currentAtomDisplayTime = null;
-                void this.processNextNode();
+                this._advance();
             } else {
                 this.timerId = requestAnimationFrame(checkTime);
             }

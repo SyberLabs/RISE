@@ -757,3 +757,50 @@ describe('the lifecycle gate goes quiet without a click', () => {
         expect(calls[2][1]).toBe(1);
     });
 });
+
+/**
+ * A swallowed failure is said once. Stopping a node that is already stopped
+ * throws, and that is ordinary on a torn-down context, so the engine carries
+ * on — but it used to carry on in silence, so a failing audio path left no
+ * trace. One console line per site, the first time only.
+ */
+describe('a swallowed failure is said once', () => {
+  // The gate hands several test files to one fork, and a stop timer another
+  // file left running can land its own once-line in this spy. So the claims
+  // below are made on the errors this test threw, never on the text of a
+  // line, which any module instance of the engine could have written.
+  const saidAbout = (warn, error) => warn.mock.calls.filter(call => call[1] === error);
+
+  it('warns the first time a node will not stop, and not the second', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const engine = new AudioEngine();
+    const first = new Error('already stopped');
+    const second = new Error('already stopped, again');
+
+    engine.layers.noise = { stop() { throw first; } };
+    engine.stopNoise(true);
+    expect(engine.layers.noise).toBeNull();
+    engine.layers.noise = { stop() { throw second; } };
+    engine.stopNoise(true);
+
+    expect(saidAbout(warn, first)).toHaveLength(1);
+    expect(String(saidAbout(warn, first)[0][0])).toContain('stopNoise');
+    expect(saidAbout(warn, second)).toHaveLength(0);
+  });
+
+  it('counts per site, so another site still gets its one line', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const engine = new AudioEngine();
+    const noise = new Error('noise');
+    const drone = new Error('drone');
+    engine.layers.noise = { stop() { throw noise; } };
+    engine.stopNoise(true);
+    engine.layers.drone = { main: { stop() { throw drone; } }, detune: { stop() {} } };
+    engine.stopDrone(true);
+
+    expect(saidAbout(warn, noise), 'stopNoise already had its line above').toHaveLength(0);
+    expect(saidAbout(warn, drone)).toHaveLength(1);
+    expect(String(saidAbout(warn, drone)[0][0])).toContain('stopDrone');
+    expect(engine.layers.drone).toBeNull();
+  });
+});
