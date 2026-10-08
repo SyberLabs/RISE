@@ -52,10 +52,16 @@ export const BEAT_TYPES = TYPE_NAMES;
 export const SCENE_ENGINES = ENGINES;
 /** The guide's account of the engines, re-exported here so the live layer reaches it through the core. */
 export { describeManifests } from '../scenes/manifests.js';
+/** A generated scene's frame budget, for the guide, by the same route. */
+export { SCENE_LIMITS } from '../scenes/scene-protocol.js';
+/** The names a scene may not use, declared once in scene-bans.js; the guide names them by this route. */
+export { BANNED_SCENE_NAMES } from '../scenes/scene-bans.js';
 /** The one source text that chunks to a single silent, timed atom (chunker.js PAUSE_DURATIONS). */
 export const HOLD_MARKER = '[HOLD]';
 
-const CUE = /^[A-Za-z0-9_:=.-]+$/u;
+/** What a cue may be, as a regex source: the validator's, and the JSON Schema's pattern for it (worker/mcp-server.mjs). */
+export const BEAT_CUE_PATTERN = '^[A-Za-z0-9_:=.-]+$';
+const CUE = new RegExp(BEAT_CUE_PATTERN, 'u');
 
 export function validateScenes(value, path) {
   if (value === undefined) return [];
@@ -200,11 +206,12 @@ function audioCue(soundId) {
 }
 
 /**
- * Lower validated beats to passages.
- * @param {{scenes: Array<{id: string, engine: string}>, beats: Array<object>}} current
+ * Lower validated beats to passages. A beat that shows text and sets no place
+ * or size takes the style's (styles.js); a hold shows no text and takes none.
+ * @param {{scenes: Array<{id: string, engine: string}>, beats: Array<object>, typography?: {place: string, size: string}|null}} current
  * @returns {{segments: Array<object>, audio: Array<{segmentId: string, cue: object}>, spokenIds: Set<string>, unspokenIds: Set<string>}}
  */
-export function lowerBeats({ scenes, beats }) {
+export function lowerBeats({ scenes, beats, typography = null }) {
   const byId = new Map(scenes.map(scene => [scene.id, scene]));
   const segments = [];
   const audio = [];
@@ -217,6 +224,9 @@ export function lowerBeats({ scenes, beats }) {
     const meta = {};
     for (const key of ['scene', 'cue', 'transition', 'place', 'size', 'type', 'emphasis']) {
       if (beat[key] !== undefined) meta[key] = beat[key];
+    }
+    if (typography && beat.kind !== 'hold') {
+      for (const key of ['place', 'size']) meta[key] ??= typography[key];
     }
     const segment = { id: segmentId, beat: meta };
     if (running !== null) {

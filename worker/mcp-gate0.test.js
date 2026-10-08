@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
 import { callGate0, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
-import { handleMcp, MCP_PATH, TOOL } from './mcp-server.mjs';
+import { GUIDE_TOOL, handleMcp, MCP_PATH, TOOL } from './mcp-server.mjs';
 
 const ON = { MCP_ENABLED: 'true' };
 const PROBE = { MCP_ENABLED: 'true', MCP_GATE0: 'true' };
@@ -26,9 +26,9 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('Gate 0 probe', () => {
   it('is listed only when MCP_GATE0 is exactly the text true', async () => {
-    expect(await listed(PROBE)).toEqual([TOOL.name, GATE0_TOOL_NAME]);
+    expect(await listed(PROBE)).toEqual([TOOL.name, GUIDE_TOOL.name, GATE0_TOOL_NAME]);
     for (const extra of [{}, { MCP_GATE0: 'false' }, { MCP_GATE0: 'TRUE' }, { MCP_GATE0: true }]) {
-      expect(await listed({ ...ON, ...extra }), JSON.stringify(extra)).toEqual([TOOL.name]);
+      expect(await listed({ ...ON, ...extra }), JSON.stringify(extra)).toEqual([TOOL.name, GUIDE_TOOL.name]);
     }
   });
 

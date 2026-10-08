@@ -153,7 +153,7 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
         return gl;
       },
       get lib() {
-        lib ??= createSceneLibrary({ ctx: rise.ctx, size, theme: rise.theme, reducedMotion: rise.reducedMotion });
+        lib ??= createSceneLibrary({ ctx: rise.ctx, size, theme: rise.theme, reducedMotion: rise.reducedMotion, defaults: data.library });
         return lib;
       },
       done() { post({ type: TO_HOST.done }); }

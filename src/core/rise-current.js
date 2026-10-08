@@ -2,6 +2,7 @@ import { compileSession } from './session-compiler.js';
 import { RiseCurrentError, fail, hasLiteralForbidden, hasReservedMarker, id as trimmedId, keys, label, object } from './current-validation.js';
 import { BEAT_TYPES, lowerBeats, validateBeats, validateScenes } from './beats.js';
 import { hasMath } from './math-typeset.js';
+import { STYLES, styleOf } from './styles.js';
 import { cueCommands, sceneCue } from '../scenes/manifests.js';
 
 export { RiseCurrentError, hasLiteralForbidden, hasReservedMarker };
@@ -16,8 +17,8 @@ import { jevColors } from './jev-palette.js';
 export const RISE_CURRENT_SCHEMA = 'rise.current.v1';
 /** The Current with beats and scenes (beats.js); a v1 Current stays valid beside it. */
 export const RISE_CURRENT_SCHEMA_V2 = 'rise.current.v2';
-/** The styles a v2 Current may name: guidance and defaults bundled under one name. */
-export const RISE_CURRENT_STYLES = Object.freeze(['premium-educational', 'open-field']);
+/** The styles a v2 Current may name: guidance and defaults bundled under one name (styles.js). */
+export const RISE_CURRENT_STYLES = Object.freeze(Object.keys(STYLES));
 
 /** The bounds of a sealed Current. The realtime protocol lowers through them, so it shares them. */
 export const RISE_CURRENT_LIMITS = Object.freeze({
@@ -220,7 +221,7 @@ function validateRiseCurrentV2(source) {
   }
   const scenes = validateScenes(source.scenes, '$.scenes');
   const beats = validateBeats(source.beats, '$.beats', { scenes });
-  const lowered = lowerBeats({ scenes, beats });
+  const lowered = lowerBeats({ scenes, beats, typography: styleOf(style)?.typography ?? null });
   const segments = lowered.segments.map(segment => ({ ...segment, dives: [] }));
   return freeze({
     schema: RISE_CURRENT_SCHEMA_V2, id: currentId, title, ...(theme === undefined ? {} : { theme }),
@@ -286,6 +287,8 @@ function timeBeats(session, current) {
   session.spokenText = new Map(current.segments.filter(segment => segment.spoken !== null).map(segment => [segment.id, segment.spoken]));
   session.beats = current.beats;
   session.scenes = current.scenes;
+  // The style's library defaults reach a generated scene through the Chamber (styles.js).
+  session.style = current.style ?? null;
   // Maths in what is shown: the Chamber fetches the typesetter as the reading opens, not at its first formula.
   session.hasMath = current.segments.some(segment => hasMath(segment.text));
   return session;
@@ -295,6 +298,9 @@ function timeBeats(session, current) {
 function materializeValidatedRiseCurrent(current, lowered = null) {
   // A look lowered for the card brings its theme when the Current names none.
   const themeId = current.theme ?? lowered?.theme;
+  // The faces for text and captions: the style's, under the Current's own, role by role.
+  const typeFaces = { ...styleOf(current.style)?.typography.type, ...current.type };
+  const faces = Object.keys(typeFaces).length > 0;
   const look = themeId === undefined ? null : RISE_CURRENT_THEMES[themeId];
   const program = createExperienceProgram({
     schema: EXPERIENCE_PROGRAM_SCHEMA,
@@ -370,11 +376,11 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
         sourced: []
       }
     },
-    ...(look || current.type ? {
+    ...(look || faces ? {
       presentation: {
         ...(look ? { colorTheme: themeId, colors: jevColors(themeId), ...lowered?.type } : {}),
         // The faces a v2 Current asks for, by role or id, for its text and its captions (typography.js).
-        ...(current.type ? { typeFaces: { ...current.type } } : {})
+        ...(faces ? { typeFaces } : {})
       }
     } : {})
   };

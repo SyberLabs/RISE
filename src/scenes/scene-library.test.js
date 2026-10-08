@@ -1,22 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createSceneLibrary, EASE } from './scene-library.js';
-
-/** A context that records what was asked of it. */
-function fakeContext() {
-  const calls = [];
-  const record = name => (...args) => calls.push([name, ...args]);
-  const ctx = {
-    calls,
-    fillStyle: '', strokeStyle: '', lineWidth: 0, font: '', textAlign: '', textBaseline: '', globalAlpha: 1, lineCap: '', lineJoin: '',
-    save: record('save'), restore: record('restore'), setTransform: record('setTransform'), fillRect: record('fillRect'),
-    beginPath: record('beginPath'), moveTo: record('moveTo'), lineTo: record('lineTo'), stroke: record('stroke'), fill: record('fill'),
-    arc: record('arc'), closePath: record('closePath'), fillText: record('fillText'), setLineDash: record('setLineDash')
-  };
-  return ctx;
-}
+import { createSceneLibrary, EASE, LIBRARY_DEFAULTS } from './scene-library.js';
+import { fakeCanvasContext } from '../test/fake-canvas-context.js';
 
 const setup = options => {
-  const ctx = fakeContext();
+  const ctx = fakeCanvasContext();
   const lib = createSceneLibrary({ ctx, size: { width: 400, height: 300, dpr: 2 }, theme: { accent: '#ff0000' }, ...options });
   return { ctx, lib };
 };
@@ -70,6 +57,36 @@ describe('drawing', () => {
     expect(lib.color('accent')).toBe('#ff0000');
     expect(lib.color('accent', 0.5)).toBe('rgba(255, 0, 0, 0.5)');
     expect(lib.color('#123456')).toBe('#123456');
+  });
+});
+
+describe('a style’s defaults', () => {
+  it('set the stroke width, the label font, the grid’s alpha and the easing a call leaves out', () => {
+    const { ctx, lib } = setup({ defaults: { stroke: 2.5, labelFont: '15px serif', gridAlpha: 0.1, ease: 'linear' } });
+    const frame = lib.axes({ x: [0, 4], y: [0, 3] }, { labels: false });
+    lib.line(frame, [0, 0], [1, 1]);
+    expect(ctx.lineWidth).toBe(5);
+    lib.label('x', { at: [10, 10] });
+    expect(ctx.font).toBe('30px serif');
+    lib.grid(frame);
+    expect(ctx.globalAlpha).toBe(0.1);
+    const target = { t: 0 };
+    void lib.tween(target, { t: 1 }, { ms: 100 });
+    lib.tick(25);
+    expect(target.t).toBeCloseTo(0.25, 5);
+  });
+
+  it('leave a call’s own values alone, and ignore what the library does not read or a value of the wrong kind', () => {
+    const { ctx, lib } = setup({ defaults: { stroke: 'wide', ease: 'bounce', unknown: 1 } });
+    const frame = lib.axes({ x: [0, 4], y: [0, 3] }, { labels: false });
+    lib.line(frame, [0, 0], [1, 1]);
+    expect(ctx.lineWidth).toBe(LIBRARY_DEFAULTS.stroke * 2);
+    lib.line(frame, [0, 0], [1, 1], { width: 4 });
+    expect(ctx.lineWidth).toBe(8);
+    const target = { t: 0 };
+    void lib.tween(target, { t: 1 }, { ms: 100 });
+    lib.tick(25);
+    expect(target.t).toBeCloseTo(EASE[LIBRARY_DEFAULTS.ease](0.25), 5);
   });
 });
 

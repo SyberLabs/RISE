@@ -56,7 +56,7 @@ function freshRealm() {
   return { run, functionPrototypes };
 }
 
-function setup(module, { reducedMotion = false, realm = freshRealm() } = {}) {
+function setup(module, { reducedMotion = false, library, realm = freshRealm() } = {}) {
   const { scope, posted, listeners } = fakeScope();
   const worker = attachSceneWorker(scope, {
     toUrl: () => 'blob:rise/scene-1',
@@ -66,7 +66,7 @@ function setup(module, { reducedMotion = false, realm = freshRealm() } = {}) {
   const canvas = fakeCanvas();
   const init = () => worker.handle({
     type: TO_WORKER.init, version: 1, code: 'export default () => ({ frame() {} })', width: 400, height: 300, dpr: 2,
-    theme: { accent: '#ff0000' }, reducedMotion, canvas
+    theme: { accent: '#ff0000' }, reducedMotion, canvas, ...(library ? { library } : {})
   });
   const of = type => posted.filter(message => message.type === type);
   return { scope, posted, listeners, worker, canvas, init, of, realm };
@@ -120,6 +120,14 @@ describe('starting a scene', () => {
     expect(calls).toEqual(['init', ['frame', 0, 0]]);
     expect(of(TO_HOST.ready)).toEqual([{ type: TO_HOST.ready, reportsCompletion: true }]);
     expect(posted.at(-1).type).toBe(TO_HOST.ready);
+  });
+
+  it('builds the library with the style’s defaults it was sent', async () => {
+    let rise = null;
+    const { init } = setup({ default: given => { rise = given; return { frame() {} }; } }, { library: { stroke: 3 } });
+    await init();
+    rise.lib.line(rise.lib.axes({ x: [0, 1], y: [0, 1] }, { labels: false }), [0, 0], [1, 1]);
+    expect(rise.ctx.lineWidth).toBe(6);
   });
 
   it('sizes the canvas in device pixels', async () => {

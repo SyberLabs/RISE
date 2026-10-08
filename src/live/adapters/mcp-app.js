@@ -32,7 +32,7 @@
 import { AdapterError, createChannel, createEventWriter, recordHostEvent, validateOpenRequest } from '../adapter.js';
 import { createRealClock } from '../clock.js';
 import { currentToEvents } from './current-events.js';
-import { DIVE_INSTRUCTIONS, TOOL_NAME } from './current-guide.js';
+import { DIVE_INSTRUCTIONS, TOOL_NAME } from '../guide/index.js';
 
 export { TOOL_NAME };
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);

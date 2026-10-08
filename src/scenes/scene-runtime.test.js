@@ -45,7 +45,7 @@ function setup(options = {}) {
   const canvas = { transferControlToOffscreen: () => offscreen };
   const runtime = createSceneRuntime({
     createWorker: options.createWorker ?? (() => worker),
-    canvas, clock, theme: { accent: '#ff0000' }, reducedMotion: false,
+    canvas, clock, theme: { accent: '#ff0000' }, reducedMotion: false, ...(options.library ? { library: options.library } : {}),
     onFailure: diagnostic => failures.push(diagnostic),
     onLuma: (value, t) => lumas.push([value, t]),
     requestFrame: raf.request, cancelFrame: raf.cancel
@@ -77,9 +77,15 @@ describe('starting a scene', () => {
     await runtime.start(SCENE);
     expect(worker.of(TO_WORKER.init)).toEqual([{
       type: TO_WORKER.init, version: SCENE_PROTOCOL_VERSION, code: SCENE.code, width: 400, height: 300, dpr: SCENE_LIMITS.maxDpr,
-      theme: { accent: '#ff0000' }, reducedMotion: false, canvas: offscreen
+      theme: { accent: '#ff0000' }, reducedMotion: false, library: {}, canvas: offscreen
     }]);
     expect(worker.transfers).toEqual([offscreen]);
+  });
+
+  it('sends the style’s library defaults with the code', async () => {
+    const { runtime, worker } = setup({ library: { stroke: 2.5, ease: 'smooth' } });
+    await runtime.start(SCENE);
+    expect(worker.of(TO_WORKER.init)[0].library).toEqual({ stroke: 2.5, ease: 'smooth' });
   });
 
   it('waits for a worker that is made asynchronously, and fails at load when none can be made', async () => {

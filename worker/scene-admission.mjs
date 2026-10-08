@@ -1,7 +1,7 @@
 import { parse } from 'acorn';
 import { BEAT_LIMITS } from '../src/core/beats.js';
 import { sceneCodeBytes } from '../src/core/experience-program.js';
-import { SHADOWED_GLOBALS, STATIC_ONLY_NAMES } from '../src/scenes/scene-bans.js';
+import { BANNED_SCENE_NAMES } from '../src/scenes/scene-bans.js';
 
 /**
  * Static admission of a generated scene's code, before a Current that carries
@@ -29,8 +29,8 @@ import { SHADOWED_GLOBALS, STATIC_ONLY_NAMES } from '../src/scenes/scene-bans.js
 
 export const SCENE_CODE_BYTES = BEAT_LIMITS.code;
 
-/** The names §8 says a scene may not reach: every name the scene worker shadows, and the ones it cannot. */
-export const BANNED_SCENE_NAMES = Object.freeze([...SHADOWED_GLOBALS, ...STATIC_ONLY_NAMES]);
+/** The names §8 says a scene may not reach: every name the scene worker shadows, and the ones it cannot (scene-bans.js). */
+export { BANNED_SCENE_NAMES };
 
 const MAX_DIAGNOSTICS = 10;
 const BANNED = new Set(BANNED_SCENE_NAMES);

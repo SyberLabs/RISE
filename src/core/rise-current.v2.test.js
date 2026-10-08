@@ -142,7 +142,7 @@ describe('what a v2 Current carries for the layers', () => {
   it('puts each beat’s typography and cue on its atoms, the Current’s faces on the presentation, and says when there is maths', () => {
     const session = compileRiseCurrent(V2);
     const caption = session.atoms.find(atom => atom.sourceId === 'beat-2');
-    expect(caption.beat).toEqual({ place: 'caption' });
+    expect(caption.beat).toEqual({ place: 'caption', size: 'as-set' });
     expect(session.atoms.find(atom => atom.sourceId === 'beat-1').beat).toEqual({ cue: 'bright' });
     expect(session.atoms.find(atom => atom.sourceId === 'beat-1').scene).toBe('field');
     expect(session.atoms.find(atom => atom.sourceId === 'beat-1').cueCommands).toEqual([{ surface: 'attractor', parameter: 'intensity', value: 0.75 }]);
@@ -151,6 +151,58 @@ describe('what a v2 Current carries for the layers', () => {
     expect(session.hasMath).toBe(false);
     const withMath = compileRiseCurrent({ ...V2, beats: [{ say: 'x squared', show: 'So $x^2$.' }] });
     expect(withMath.hasMath).toBe(true);
+  });
+});
+
+describe('a style', () => {
+  const PLAIN = Object.freeze({
+    schema: 'rise.current.v2', id: 'styled', title: 'Styled', origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
+    scenes: [{ id: 'field', engine: 'attractor' }],
+    beats: [
+      { say: 'A sentence with nothing set.', scene: 'field' },
+      { hold: { ms: 1000 } },
+      { say: 'A sentence set by the beat.', place: 'top', size: 'larger', type: 'mono' },
+      { show: 'A line shown for a while.', hold: { ms: 1500 } }
+    ]
+  });
+  const beatOf = (session, index) => session.atoms.find(atom => atom.sourceId === `beat-${index}`).beat;
+
+  it('gives a Premium Educational beat that sets no place or size the style’s, and its faces to the reading', () => {
+    const session = compileRiseCurrent({ ...PLAIN, style: 'premium-educational' });
+    expect(beatOf(session, 0)).toEqual({ scene: 'field', place: 'caption', size: 'as-set' });
+    expect(beatOf(session, 3)).toEqual({ place: 'caption', size: 'as-set' });
+    // A beat's own choice stands, and a hold shows no text to set.
+    expect(beatOf(session, 2)).toEqual({ place: 'top', size: 'larger', type: 'mono' });
+    expect(beatOf(session, 1)).toBeUndefined();
+    expect(session.presentation.typeFaces).toEqual({ text: 'book-serif', caption: 'humanist-sans' });
+    expect(session.style).toBe('premium-educational');
+  });
+
+  it('gives an Open Field beat the centre, and a display face to its captions', () => {
+    const session = compileRiseCurrent({ ...PLAIN, style: 'open-field' });
+    expect(beatOf(session, 0)).toEqual({ scene: 'field', place: 'centre', size: 'as-set' });
+    expect(session.presentation.typeFaces).toEqual({ caption: 'display-serif' });
+    expect(session.style).toBe('open-field');
+  });
+
+  it('lets the Current’s own faces override the style’s, role by role', () => {
+    const session = compileRiseCurrent({ ...PLAIN, style: 'premium-educational', type: { caption: 'mono' } });
+    expect(session.presentation.typeFaces).toEqual({ text: 'book-serif', caption: 'mono' });
+  });
+
+  it('is nothing at all where the Current names none', () => {
+    const session = compileRiseCurrent(PLAIN);
+    expect(beatOf(session, 0)).toEqual({ scene: 'field' });
+    expect(beatOf(session, 3)).toBeUndefined();
+    expect(session.presentation?.typeFaces).toBeUndefined();
+    expect(session.style).toBeNull();
+  });
+
+  it('is applied the same every time: a pure function of the Current', () => {
+    const input = { ...PLAIN, style: 'premium-educational' };
+    expect(validateRiseCurrent(input)).toEqual(validateRiseCurrent(structuredClone(input)));
+    // The model's beats are kept as written; only their lowering takes the defaults.
+    expect(validateRiseCurrent(input).beats[0]).toEqual({ kind: 'say', say: 'A sentence with nothing set.', show: 'A sentence with nothing set.', scene: 'field' });
   });
 });
 

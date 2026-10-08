@@ -22,7 +22,8 @@ export const EASE = Object.freeze({
   inOut: t => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2)
 });
 
-const DEFAULTS = Object.freeze({ stroke: 2, font: '16px sans-serif', labelFont: '14px sans-serif' });
+/** What a call leaves out, unless the reading's style says otherwise (src/core/styles.js). */
+export const LIBRARY_DEFAULTS = Object.freeze({ ease: 'smooth', stroke: 2, gridAlpha: 0.25, labelFont: '14px sans-serif' });
 
 /**
  * @param {object} options
@@ -30,8 +31,14 @@ const DEFAULTS = Object.freeze({ stroke: 2, font: '16px sans-serif', labelFont: 
  * @param {{width: number, height: number, dpr: number}} options.size in CSS pixels, and the ratio drawn at
  * @param {object} options.theme the reading's colours: background, text, accent, muted, highlight
  * @param {boolean} [options.reducedMotion] every tween completes at once
+ * @param {object} [options.defaults] a style's library defaults; a key the library does not read, or a value of another kind, is ignored
  */
-export function createSceneLibrary({ ctx, size, theme, reducedMotion = false }) {
+export function createSceneLibrary({ ctx, size, theme, reducedMotion = false, defaults = {} }) {
+  const DEFAULTS = { ...LIBRARY_DEFAULTS };
+  for (const key of Object.keys(LIBRARY_DEFAULTS)) {
+    if (typeof defaults?.[key] === typeof LIBRARY_DEFAULTS[key]) DEFAULTS[key] = defaults[key];
+  }
+  const defaultEase = Object.hasOwn(EASE, DEFAULTS.ease) ? EASE[DEFAULTS.ease] : EASE[LIBRARY_DEFAULTS.ease];
   const tweens = new Set();
   const palette = { background: '#06051a', text: '#f4f2ff', accent: '#8ab4ff', muted: '#8b88a6', highlight: '#ffd166', ...theme };
   const px = value => value * size.dpr;
@@ -107,7 +114,7 @@ export function createSceneLibrary({ ctx, size, theme, reducedMotion = false }) 
     return Object.assign(frame, { draw, origin });
   }
 
-  function grid(frame, { step = 1, color = palette.muted, alpha = 0.25 } = {}) {
+  function grid(frame, { step = 1, color = palette.muted, alpha = DEFAULTS.gridAlpha } = {}) {
     ctx.save();
     ctx.globalAlpha = alpha;
     stroke(() => {
@@ -176,7 +183,7 @@ export function createSceneLibrary({ ctx, size, theme, reducedMotion = false }) 
    * Move `target`'s numeric properties to `to` over `ms`, on the host's time. Resolves when done; with
    * `instant` (or reduced motion) it completes in one step, which is how a replayed cue lands at once.
    */
-  function tween(target, to, { ms = 800, ease = EASE.smooth, instant = false } = {}) {
+  function tween(target, to, { ms = 800, ease = defaultEase, instant = false } = {}) {
     const from = Object.fromEntries(Object.keys(to).map(key => [key, Number(target[key]) || 0]));
     if (instant || reducedMotion || ms <= 0) {
       Object.assign(target, to);

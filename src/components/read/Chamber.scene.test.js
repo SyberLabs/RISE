@@ -5,6 +5,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TO_HOST, TO_WORKER } from '../../scenes/scene-protocol.js';
+import { STYLES } from '../../core/styles.js';
 
 const workers = [];
 vi.mock('../../scenes/create-scene-worker.js', () => ({
@@ -38,13 +39,14 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-function makeChamber() {
+function makeChamber(extra = {}) {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const session = {
     title: 'A vector', atoms: [], totalDuration: 0, atomCount: 0,
     visualConfig: { visualMode: 'off' },
-    visualProgram: { coordinateSpace: 'source', enabled: true, segments: [], fallback: FALLBACK }
+    visualProgram: { coordinateSpace: 'source', enabled: true, segments: [], fallback: FALLBACK },
+    ...extra
   };
   const chamber = new Chamber(container, { session, player: null, autoStart: false });
   return { chamber, container };
@@ -53,8 +55,8 @@ function makeChamber() {
 /** Let the lazily imported worker factory resolve and the scene start. */
 const settle = async () => { for (let i = 0; i < 10; i += 1) await new Promise(resolve => setTimeout(resolve, 0)); };
 
-async function mounted() {
-  const { chamber, container } = makeChamber();
+async function mounted(extra) {
+  const { chamber, container } = makeChamber(extra);
   chamber._visualFieldDirector.applyCue(SCENE, { transitionMs: 0 });
   await settle();
   const [worker] = workers;
@@ -70,6 +72,16 @@ describe('a generated scene in the Chamber', () => {
     expect(worker.of(TO_WORKER.init)[0]).toMatchObject({ code: CODE, reducedMotion: false });
     chamber.destroy();
     expect(worker.terminated).toBe(true);
+  });
+
+  it('gives the worker the reading’s style’s library defaults, and none where the reading names no style', async () => {
+    const styled = await mounted({ style: 'premium-educational' });
+    expect(styled.worker.of(TO_WORKER.init)[0].library).toEqual(STYLES['premium-educational'].library);
+    styled.chamber.destroy();
+    workers.length = 0;
+    const plain = await mounted();
+    expect(plain.worker.of(TO_WORKER.init)[0].library).toEqual({});
+    plain.chamber.destroy();
   });
 
   it('takes a cue by name through the visual-control path', async () => {

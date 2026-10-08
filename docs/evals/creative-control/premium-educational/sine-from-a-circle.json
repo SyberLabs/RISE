@@ -1,0 +1,67 @@
+{
+  "prompt": "Where does the sine wave come from?",
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "sine-from-a-circle",
+    "title": "Where the sine wave comes from",
+    "theme": "silver",
+    "style": "premium-educational",
+    "origin": {
+      "kind": "model",
+      "name": "Your name",
+      "provider": "Who runs you"
+    },
+    "scenes": [
+      {
+        "id": "wave",
+        "code": "export const reportsCompletion = true;\nexport default function scene(rise) {\n  const { lib } = rise;\n  const plane = lib.axes({ x: [-1.5, 8], y: [-1.5, 1.5] }, { labels: false });\n  const ring = Array.from({ length: 97 }, (_, i) => [Math.cos((i * Math.PI) / 48), Math.sin((i * Math.PI) / 48)]);\n  const arm = lib.vector({ x: 1, y: 0, t: 0 });\n  const wave = { to: 0 };\n  return {\n    frame() {\n      lib.clear();\n      lib.grid(plane, { step: 0.5 });\n      plane.draw();\n      lib.plot(plane, ring, { color: lib.color('muted') });\n      arm.draw(plane);\n      const angle = arm.angle;\n      if (wave.to > 0) {\n        const traced = Array.from({ length: 121 }, (_, i) => { const s = (angle * i) / 120; return [1.5 + s, Math.sin(s)]; });\n        lib.plot(plane, traced, { to: wave.to });\n        lib.line(plane, [Math.cos(angle), Math.sin(angle)], [1.5 + angle, Math.sin(angle)], { color: lib.color('highlight', 0.6), dash: [4, 6] });\n        lib.point(plane, [1.5 + angle, Math.sin(angle)]);\n      }\n    },\n    cue(name, { instant }) {\n      if (name === 'arm') return lib.tween(arm, { t: 1 }, { ms: 900, instant });\n      if (name === 'quarter') return lib.tween(arm, { angle: Math.PI / 2 }, { ms: 1500, instant });\n      if (name === 'trace') {\n        wave.to = 1;\n        return lib.tween(arm, { angle: Math.PI * 2 }, { ms: 6000, instant }).then(() => rise.done());\n      }\n    }\n  };\n}"
+      }
+    ],
+    "beats": [
+      {
+        "say": "Take an arm of length one, pinned at the centre of a circle.",
+        "scene": "wave",
+        "cue": "arm"
+      },
+      {
+        "hold": {
+          "ms": 1200
+        }
+      },
+      {
+        "say": "Turn it a quarter of the way round, and watch how high its tip climbs.",
+        "cue": "quarter"
+      },
+      {
+        "hold": {
+          "ms": 1800
+        }
+      },
+      {
+        "say": "Now let it go all the way round, and draw the height of the tip as it goes."
+      },
+      {
+        "hold": {
+          "ms": 6000,
+          "maxMs": 7000
+        },
+        "cue": "trace"
+      },
+      {
+        "say": "That height, traced against the angle, is the sine wave.",
+        "show": "The height of the tip is $\\sin\\theta$.",
+        "emphasis": [
+          "sine"
+        ]
+      },
+      {
+        "show": "One turn of the circle is one period of the wave: $2\\pi$.",
+        "hold": {
+          "ms": 3000
+        },
+        "place": "centre",
+        "size": "larger"
+      }
+    ]
+  }
+}
