@@ -22,6 +22,9 @@
   // Serves the live Realtime route (worker/live-realtime.mjs); off by default.
   // The paid voice's clips (worker/plus.mjs), filled by scripts/build-canon-recitation.mjs.
   // Secrets STRIPE_SECRET_KEY and PLUS_COOKIE_SECRET switch the routes on; without them they answer 503.
+  // Also set as secrets (a dashboard var is dropped by the next deploy): PLUS_PRICE_ID, the live
+  // Stripe price of RISE Plus (unset, every claim is refused), and PLUS_VOICE_ID, the ElevenLabs
+  // voice (unset, /api/plus/voice answers 503); ELEVENLABS_API_KEY for the voice route.
   "r2_buckets": [{ "binding": "PLUS_AUDIO", "bucket_name": "rise-plus-audio" }],
   "ratelimits": [{
     "name": "DECISION_LIMITER",

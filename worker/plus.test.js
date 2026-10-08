@@ -1,14 +1,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import worker from './index.mjs';
-import { PLUS_INTERNALS, isPlusRoute } from './plus.mjs';
+import { PLUS_INTERNALS, STRIPE_VERSION, isPlusRoute } from './plus.mjs';
 
 const SITE = 'https://rise.example';
 const NOW = 1_800_000_000;
 const { sign, COOKIE, DAY_S, GRACE_S } = PLUS_INTERNALS;
 
-const subscription = (overrides = {}) => ({
-  id: 'sub_1', status: 'active', customer: 'cus_1', current_period_end: NOW + 20 * DAY_S, ...overrides
+const PRICE = 'price_plus';
+/** A subscription as Stripe 2025-03-31.basil returns it: the billing period is on the item. */
+const subscription = ({ current_period_end = NOW + 20 * DAY_S, price = PRICE, ...overrides } = {}) => ({
+  id: 'sub_1', status: 'active', customer: 'cus_1',
+  items: { object: 'list', data: [{ id: 'si_1', price: { id: price }, current_period_end }] },
+  ...overrides
 });
 
 function bucket(objects = {}) {
@@ -23,6 +27,7 @@ function environment(overrides = {}) {
   return {
     STRIPE_SECRET_KEY: 'sk_test_x',
     PLUS_COOKIE_SECRET: 'cookie-secret-one',
+    PLUS_PRICE_ID: PRICE,
     PLUS_AUDIO: bucket({ 'el_a/the-iliad/3/pack.json': '{"schema":"pack"}', 'el_a/the-iliad/3/0123456789abcdef.m4a': 'audio-bytes' }),
     DECISION_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
     ...overrides
@@ -86,6 +91,7 @@ describe('claim', () => {
     expect(cookie).toMatch(new RegExp(`^${COOKIE}=v1\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+; Max-Age=${20 * DAY_S + GRACE_S}; HttpOnly; Secure; SameSite=Lax; Path=/api/plus$`, 'u'));
     expect(fetcher.mock.calls[0][0]).toBe('https://api.stripe.com/v1/checkout/sessions/cs_test_1?expand[]=subscription');
     expect(fetcher.mock.calls[0][1].headers.Authorization).toBe('Bearer sk_test_x');
+    expect(fetcher.mock.calls[0][1].headers['Stripe-Version']).toBe(STRIPE_VERSION);
     // The minted cookie opens the audio.
     const audio = await worker.fetch(audioRequest(cookie.split(';')[0]), env);
     expect(audio.status).toBe(200);
@@ -94,13 +100,35 @@ describe('claim', () => {
   it.each([
     ['an unpaid session', { payment_status: 'unpaid', subscription: subscription() }],
     ['a paid session whose subscription was cancelled since (a reused success link)', { payment_status: 'paid', subscription: subscription({ status: 'canceled' }) }],
-    ['a paid one-time session with no subscription', { payment_status: 'paid', subscription: null }]
+    ['a paid one-time session with no subscription', { payment_status: 'paid', subscription: null }],
+    ['a paid session for another product on the same Stripe account', { payment_status: 'paid', subscription: subscription({ price: 'price_other' }) }],
+    ['a subscription with no billing period anywhere', { payment_status: 'paid', subscription: { ...subscription(), items: { data: [{ price: { id: PRICE } }] } } }]
   ])('refuses %s with 402 PLUS_REQUIRED and sets no cookie', async (_, session) => {
     stripeAnswering({ session });
     const response = await worker.fetch(claimRequest(), environment());
     expect(response.status).toBe(402);
     expect((await response.json()).error.code).toBe('PLUS_REQUIRED');
     expect(setCookieOf(response)).toBeNull();
+  });
+
+  it('reads the period end from the top level for a subscription in the pre-basil shape', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const legacy = { id: 'sub_1', status: 'active', customer: 'cus_1', current_period_end: NOW + 10 * DAY_S, items: { data: [{ price: { id: PRICE } }] } };
+    stripeAnswering({ session: { payment_status: 'paid', subscription: legacy } });
+    const response = await worker.fetch(claimRequest(), environment());
+    expect(response.status).toBe(204);
+    expect(setCookieOf(response)).toContain(`Max-Age=${10 * DAY_S + GRACE_S};`);
+  });
+
+  it('refuses every claim while PLUS_PRICE_ID is unset, without asking Stripe (fail closed)', async () => {
+    const fetcher = stripeAnswering({ session: { payment_status: 'paid', subscription: subscription() } });
+    const response = await worker.fetch(claimRequest(), environment({ PLUS_PRICE_ID: undefined }));
+    expect(response.status).toBe(503);
+    const { error } = await response.json();
+    expect(error.code).toBe('PLUS_UNAVAILABLE');
+    expect(error.message).toContain('PLUS_PRICE_ID');
+    expect(setCookieOf(response)).toBeNull();
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it('needs a Checkout session id, and never asks Stripe without one', async () => {
@@ -195,6 +223,15 @@ describe('audio', () => {
     await worker.fetch(audioRequest(fresh), env);
     await worker.fetch(audioRequest(dayOld, '0123456789abcdef.m4a'), env);
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears a day-old cookie whose subscription no longer carries the Plus price', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    stripeAnswering({ sub: subscription({ price: 'price_other' }) });
+    const response = await worker.fetch(audioRequest(await cookieFor(env, { iat: NOW - 2 * DAY_S })), env);
+    expect(response.status).toBe(402);
+    expect((await response.json()).error.code).toBe('PLUS_LAPSED');
   });
 
   it('clears a day-old cookie whose subscription Stripe says is gone', async () => {
@@ -371,6 +408,19 @@ describe('voice', () => {
     expect((await worker.fetch(voiceRequest(null), env)).status).toBe(402);
     const { env: off } = voiceEnvironment({ ELEVENLABS_API_KEY: undefined });
     expect((await worker.fetch(voiceRequest(await cookieFor(off)), off)).status).toBe(503);
+  });
+
+  it('names the missing PLUS_VOICE_ID when the voice is switched off for want of it', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { env } = voiceEnvironment({ PLUS_VOICE_ID: undefined });
+    const fetcher = upstream();
+    const response = await worker.fetch(voiceRequest(await cookieFor(env)), env);
+    expect(response.status).toBe(503);
+    const { error } = await response.json();
+    expect(error.code).toBe('PLUS_UNAVAILABLE');
+    expect(error.message).toContain('PLUS_VOICE_ID');
+    expect(error.message).not.toContain('ELEVENLABS_API_KEY');
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   it('answers 502 when the vendor fails or the performance does not match the text, storing nothing', async () => {

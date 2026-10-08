@@ -18,8 +18,12 @@
  * never paid for twice: a voicing is cached by the hash of what was said.
  *
  * Secrets: STRIPE_SECRET_KEY, PLUS_COOKIE_SECRET (and PLUS_COOKIE_SECRET_PREVIOUS
- * while rotating), ELEVENLABS_API_KEY (voice only). Vars: PLUS_VOICE_ID (the
- * vendor's voice), PLUS_VOICE_SLUG (its name in RISE), PLUS_VOICE_MODEL.
+ * while rotating), ELEVENLABS_API_KEY (voice only). Set with `wrangler secret put`
+ * as well, because a dashboard var is dropped by the next deploy from config:
+ * PLUS_PRICE_ID (the Stripe price of RISE Plus, test and live differ; unset, every
+ * claim and renewal is refused) and PLUS_VOICE_ID (the vendor's voice; unset, the
+ * voice route answers 503). Vars in config: PLUS_VOICE_SLUG (the voice's name in
+ * RISE), PLUS_VOICE_MODEL.
  * Binding: PLUS_AUDIO, the private bucket the render script and the voice route fill.
  */
 import { mapAlignment } from '../src/audio/poem-alignment.js';
@@ -30,6 +34,12 @@ const KEY_ID = 'v1';
 const DAY_S = 24 * 60 * 60;
 const GRACE_S = 3 * DAY_S;
 const STRIPE = 'https://api.stripe.com';
+/**
+ * Every Stripe call names its API version, so the account's default cannot change
+ * the shape read here. From 2025-03-31.basil the billing period lives on the
+ * subscription items, not the subscription (docs.stripe.com/changelog/basil).
+ */
+export const STRIPE_VERSION = '2025-03-31.basil';
 const ELEVENLABS = 'https://api.elevenlabs.io';
 /** Characters a subscriber may have voiced per billing period (RFC 0001 revision 5; about half of $8.99 at Flash pricing). */
 export const VOICE_ALLOWANCE = 105_000;
@@ -120,7 +130,7 @@ const CLEAR_COOKIE = `${COOKIE}=; Max-Age=0; ${ATTRIBUTES}`;
 async function stripe(path, env, form = null) {
   const response = await fetch(`${STRIPE}${path}`, {
     method: form ? 'POST' : 'GET',
-    headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, ...(form ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
+    headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, 'Stripe-Version': STRIPE_VERSION, ...(form ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
     ...(form ? { body: new URLSearchParams(form).toString() } : {})
   });
   if (!response.ok) throw new Error(`Stripe answered ${response.status}`);
@@ -135,12 +145,26 @@ const usedFrom = (subscription, exp) => {
 
 const ACTIVE = new Set(['active', 'trialing']);
 
-/** The claim for a subscription object Stripe just returned, or null when it does not stand. */
-function claimFor(subscription) {
+const itemsOf = subscription => (Array.isArray(subscription?.items?.data) ? subscription.items.data : []);
+const priceIdOf = item => (typeof item?.price === 'string' ? item.price : item?.price?.id);
+
+/** The period end: on the items from basil on, at the top level before it. */
+function periodEnd(subscription) {
+  const fromItem = itemsOf(subscription)[0]?.current_period_end;
+  return Number.isFinite(fromItem) ? fromItem : subscription.current_period_end;
+}
+
+/**
+ * The claim for a subscription object Stripe just returned, or null when it does
+ * not stand. It stands only with the Plus price on it: the Stripe account may sell
+ * other subscriptions, and without PLUS_PRICE_ID nothing stands (fail closed).
+ */
+function claimFor(subscription, env) {
   if (!subscription || !ACTIVE.has(subscription.status)) return null;
+  if (!env.PLUS_PRICE_ID || !itemsOf(subscription).some(item => priceIdOf(item) === env.PLUS_PRICE_ID)) return null;
   const customer = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
-  if (!customer || typeof subscription.id !== 'string' || !Number.isFinite(subscription.current_period_end)) return null;
-  const exp = subscription.current_period_end;
+  const exp = periodEnd(subscription);
+  if (!customer || typeof subscription.id !== 'string' || !Number.isFinite(exp)) return null;
   return { c: customer, s: subscription.id, exp, u: usedFrom(subscription, exp) };
 }
 
@@ -166,13 +190,14 @@ async function claim(request, env, now) {
   if (typeof sessionId !== 'string' || !/^cs_[A-Za-z0-9_]+$/u.test(sessionId)) {
     return refuse(400, 'BAD_REQUEST', 'A Checkout session id is needed.');
   }
+  if (!env.PLUS_PRICE_ID) return refuse(503, 'PLUS_UNAVAILABLE', 'Plus is not switched on in this deployment (PLUS_PRICE_ID is not set).');
   let session;
   try {
     session = await stripe(`/v1/checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=subscription`, env);
   } catch {
     return refuse(502, 'UPSTREAM', 'Stripe could not be reached. Try again in a moment.');
   }
-  const paid = session.payment_status === 'paid' && claimFor(session.subscription);
+  const paid = session.payment_status === 'paid' && claimFor(session.subscription, env);
   if (!paid) return refuse(402, 'PLUS_REQUIRED', 'This purchase is not an active Plus subscription.');
   return reply(204, null, { 'Set-Cookie': await setCookie({ ...paid, iat: now }, env, now) });
 }
@@ -186,7 +211,7 @@ async function renewed(current, env, now) {
   } catch {
     return { claim: current }; // Stripe is down: the signed cookie stands until its own grace runs out
   }
-  const next = claimFor(subscription);
+  const next = claimFor(subscription, env);
   if (!next) return { claim: null };
   return { claim: { ...next, iat: now }, cookie: await setCookie({ ...next, iat: now }, env, now) };
 }
@@ -201,8 +226,9 @@ const sha256 = async text => [...new Uint8Array(await crypto.subtle.digest('SHA-
  */
 async function voice(request, env, now) {
   if (request.method !== 'POST') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use POST.');
-  if (!env.ELEVENLABS_API_KEY || !env.PLUS_VOICE_ID || !env.PLUS_VOICE_SLUG) {
-    return refuse(503, 'PLUS_UNAVAILABLE', 'The Plus voice is not switched on in this deployment.');
+  const missing = ['ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICE_SLUG'].filter(name => !env[name]);
+  if (missing.length) {
+    return refuse(503, 'PLUS_UNAVAILABLE', `The Plus voice is not switched on in this deployment (${missing.join(', ')} not set).`);
   }
   const current = await verify(cookieValue(request), env);
   if (!current) return refuse(402, 'PLUS_REQUIRED', 'A Plus subscription is needed for this voice.', { 'Set-Cookie': CLEAR_COOKIE });

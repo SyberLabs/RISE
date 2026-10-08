@@ -2,7 +2,9 @@
   // A workers.dev preview of the Plus routes (worker/plus.mjs) for test-mode runs.
   // No secret is set here: without STRIPE_SECRET_KEY, PLUS_COOKIE_SECRET and
   // ELEVENLABS_API_KEY every /api/plus route answers 503. Set them with
-  // `wrangler secret put <NAME> --config wrangler.plus-preview.jsonc`.
+  // `wrangler secret put <NAME> --config wrangler.plus-preview.jsonc`, together with
+  // PLUS_PRICE_ID (the test-mode Stripe price; unset, every claim is refused) and
+  // PLUS_VOICE_ID (the ElevenLabs voice; unset, /api/plus/voice answers 503).
   "name": "rise-plus-preview",
   "main": "./worker/index.mjs",
   "compatibility_date": "2026-09-26",
