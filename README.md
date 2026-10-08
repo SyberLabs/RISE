@@ -20,7 +20,7 @@
 - **AI reading request** (optional) – describe what you want to read and a bounded decision model picks a book and presentation from the held catalog. Bring your own model: **Connect OpenRouter** (hosted Jev, billed to your OpenRouter account) or **Run locally** (`npm run local`: RISE and pinned Kev-4B on your GPU, no hosted bill). See [docs/USER-OWNED-AI.md](docs/USER-OWNED-AI.md) and [docs/LOCAL-RISE.md](docs/LOCAL-RISE.md).
 - **Journeys (unpublished draft)** – [Heaven and Household](docs/journey-editorial/editorial-work.md) is source-bound against Milton and Bryant and remains outside the public catalog.
 
-Reading runs entirely in the browser. Your files and saved work stay in browser storage. See [Privacy](PRIVACY.md).
+Reading runs entirely in the browser, except optional visual direction, which sends sections of the text to your own AI connection (OpenRouter or Kev on your computer). Your files and saved work stay in browser storage. See [Privacy](PRIVACY.md).
 
 ## Engineering highlights
 
