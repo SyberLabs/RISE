@@ -41,6 +41,25 @@ describe('a Living Flame reading', () => {
   });
 });
 
+describe('which choices Follow text draws', () => {
+  const text = Array.from({ length: 12 }, () => 'The quiet garden rests in gentle peace and the still water holds the soft light of evening.').join(' ');
+  const shelf = (procedural, sourced = []) => ({ visualMode: 'interlocution', interlocution: { sourceFamily: sourced.length ? 'collections' : 'procedural', procedural, sourced, presentation: 'continuous' } });
+  const family = visualConfig => {
+    const session = compileSession({ title: 'Family', text, wpm: 300, chunkMode: 'phrase', visualConfig });
+    return [directionEligibility(session).family, ensureDirector(session)?.family];
+  };
+
+  it('draws museum works for the Gallery look and for a shelf of museum or science collections', () => {
+    expect(family(shelf(['turrell']))).toEqual(['gallery', 'gallery']);
+    expect(family(shelf([], ['aic-landscapes', 'sci-astronomy']))).toEqual(['gallery', 'gallery']);
+  });
+
+  it('draws flames for a Living Flame reading and an empty shelf, as before', () => {
+    expect(family({ visualMode: 'living-flame' })).toEqual(['flame', 'flame']);
+    expect(family(shelf([]))).toEqual(['flame', 'flame']);
+  });
+});
+
 describe('which sources may be sent to Jev', () => {
   const digests = ['a1', 'b2', 'c3'];
 
