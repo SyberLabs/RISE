@@ -13,7 +13,7 @@ import { kevDecider } from './adapters/kev.mjs';
 import { openaiDecider, toOpenAI } from './adapters/openai.mjs';
 import { rulesAnswers } from './adapters/rules.mjs';
 import { readArenaReplay, readArenaRun, replayName, sha256Hex } from './arena-file.mjs';
-import { ARENA_DIR, capture, captureRun, decidersFor, guard, mockFetch, report, writeRun } from './arena.mjs';
+import { ARENA_DIR, capture, captureRun, decidersFor, guard, mockFetch, notRunFor, report, writeRun } from './arena.mjs';
 import { calibrationRows, expectedChoices, scoreRun } from './report.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -44,6 +44,38 @@ test('billing guard: never from CI, never without --bill-operator, mock always a
   await assert.rejects(capture(['--bill-operator'], { env: { CI: '1', OPENAI_API_KEY: OPENAI_KEY }, fetchImpl }), /CI/u);
   await assert.rejects(capture([], { env: { OPENAI_API_KEY: OPENAI_KEY }, fetchImpl }), /--bill-operator/u);
   assert.equal(called, false);
+});
+
+test('a capture that asks only free deciders needs no billing flag, but still never runs from CI', () => {
+  assert.doesNotThrow(() => guard(['--deciders', 'rules,rules-floor,kev'], {}));
+  assert.throws(() => guard(['--deciders', 'rules,jev'], {}), /--bill-operator/u);
+  assert.throws(() => guard(['--deciders', 'openai'], {}), /--bill-operator/u);
+  assert.throws(() => guard(['--deciders', 'rules'], { CI: 'true' }), /never bills from CI/u);
+});
+
+test('each decider left out is recorded as not run, with its reason, in the run and its replay', async () => {
+  const names = ['rules', 'rules-floor'];
+  const notRun = notRunFor(names, 'openai=no key, jev=no key,kev=hardware/setup');
+  assert.deepEqual(notRun, [{ id: 'openai', status: 'not run: no key' }, { id: 'jev', status: 'not run: no key' },
+    { id: 'kev', status: 'not run: hardware/setup' }]);
+  assert.deepEqual(notRunFor(['openai', 'jev', 'kev', 'rules']), [{ id: 'rules-floor', status: 'not run: not selected' }]);
+  assert.throws(() => notRunFor(names, 'rules=busy'), /--not-run/u);
+  assert.throws(() => notRunFor(names, 'gpt=no key'), /--not-run/u);
+  assert.throws(() => notRunFor(names, 'kev='), /--not-run/u);
+  const { run } = await captureRun({ ...fixture, catalog, deciders: decidersFor(names, {}), notRun,
+    runs: 1, maxUsd: 0, harness });
+  assert.deepEqual(run.providers.map(item => [item.id, item.status]), [['rules', 'ran'], ['rules-floor', 'ran'],
+    ['openai', 'not run: no key'], ['jev', 'not run: no key'], ['kev', 'not run: hardware/setup']]);
+  assert.ok(run.notes.includes('kev: not run: hardware/setup.'));
+  assert.equal(run.scores.kev.results, 0);
+  const path = await writeRun(run, join(dir, 'not-run'));
+  const text = await readFile(path, 'utf8');
+  readArenaRun(text, basename(path));
+  const replayPath = join(dir, 'not-run', replayName(basename(path)));
+  const replay = readArenaReplay(await readFile(replayPath, 'utf8'), basename(replayPath), text, basename(path));
+  assert.equal(replay.providers.find(item => item.id === 'openai').status, 'not run: no key');
+  assert.deepEqual(Object.keys(Object.values(replay.decisions)[0]), names);
+  assert.equal(JSON.parse(await report(['--run', path])).matchesRecorded, true);
 });
 
 test('the OpenAI request carries every RISE question as a choice with its offered values', () => {

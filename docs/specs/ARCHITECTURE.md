@@ -1407,8 +1407,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 - **Chosen:** the Decision Arena compares deciders on RISE's own fixed cases
   offline. An operator runs `scripts/arena/arena.mjs` by hand, on the
-  operator's own keys, under a spending cap; it refuses to run in CI or
-  without an explicit billing flag. The capture is frozen into one file named
+  operator's own keys, under a spending cap; it refuses to run in CI, and
+  without an explicit billing flag whenever a billed decider is asked. A
+  decider left out is recorded as `not run: <reason>`, in the run and its
+  replay. The capture is frozen into one file named
   by the hash of its bytes, served immutable beside an index that revalidates.
   `scripts/arena/arena-file.mjs` refuses a file whose bytes do not match its
   name, whose schema is unknown, or whose harness had uncommitted changes
