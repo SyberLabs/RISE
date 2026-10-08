@@ -1,6 +1,6 @@
 # Creative Control: architecture design
 
-Date: 2026-10-08. Status: draft for the owner's review. Owner of the design: Claude coordinator (plugin lane). Decisions in §2 were taken by the owner in conversation on 2026-10-08; everything else is proposed.
+Date: 2026-10-08. Status: approved by the owner on 2026-10-08. Provider order, decided the same day: Claude first; ChatGPT integration begins only once the stage is established in Claude, so CC-001 moves to the end of the order and generated scenes are promised for Claude alone until then. Owner of the design: Claude coordinator (plugin lane). Decisions in §2 were taken by the owner in conversation on 2026-10-08; everything else is proposed.
 
 Creative Control is the stage after Composer v1. It lets the model that composes a reading also compose its *time* (speak, then let a picture play out, then speak again), its *pictures* (every native visual with parameters, and visuals the model writes as code), its *typography* (face, size, place, emphasis, maths), and its *sound*, inside the same RISE card in ChatGPT, in Claude, and on the reader site. The owner's framing: a Creative Runtime for Machine Intelligence, a dynamic informational interface that improves human information intake or aesthetic experience while letting models act creatively in new ways.
 
