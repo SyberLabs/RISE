@@ -139,11 +139,8 @@ current scope; the live Realtime page stays switched off by default. See
   Any relative Markdown link in it must point at a file in the tree, or the
   wiki build fails.
 - The main-branch ruleset requires one check and no human approval: `CI`.
-  `Agentic review` (`.github/workflows/agentic-review.yml`, an AI code review)
-  is advisory: without an `OPENAI_API_KEY` secret it passes with a notice that
-  no review ran; with one it blocks on concrete correctness or security
-  defects. Never make a check that only runs after merge required; it blocks
-  pull requests forever.
+  It also requires every review thread resolved. Never make a check that only
+  runs after merge required; it blocks pull requests forever.
 - `Codex feedback` (`.github/workflows/codex-feedback.yml`) is not a check.
   It runs when Codex submits a review with unresolved findings and answers
   them under the Reviewer findings contract above. It is not required and
