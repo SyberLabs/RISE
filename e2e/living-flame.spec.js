@@ -7,7 +7,7 @@
  * tolerant of rendering differences: nonblank, structured, and moving, never
  * an exact pixel hash.
  */
-import { test, expect, openHomeNav, connectTestOpenRouter } from './fixtures.js';
+import { test, expect, openHomeNav, connectTestOpenRouter, revealChamberControls } from './fixtures.js';
 
 const EMPTY_TREATMENT = 'violet-nebula';
 
@@ -55,18 +55,9 @@ async function beginChapter(page, { wpm = 1000, text = null, connectAI = false }
     null, { timeout: 30_000 });
 }
 
-/**
- * Open the Look sheet. The controls fade 3 s after the last mousemove over the
- * reading and take no pointer while faded. Under a busy software-rendered flame a
- * move can be handled late, so it moves until the bar is shown, then clicks.
- */
+/** Open the Look sheet once the controls are shown. */
 async function openLook(page) {
-  const controls = page.locator('#chamber-controls');
-  await expect.poll(async () => {
-    await page.mouse.move(640, 360);
-    await page.mouse.move(640, 700);
-    return controls.getAttribute('style');
-  }, { timeout: 15_000 }).toContain('opacity: 1');
+  await revealChamberControls(page);
   await page.locator('#look-btn').click();
 }
 

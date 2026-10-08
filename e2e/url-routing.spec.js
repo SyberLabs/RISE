@@ -1,4 +1,4 @@
-import { test, expect, openHomeNav, openHomeRoom } from './fixtures.js';
+import { test, expect, openHomeNav, openHomeRoom, revealChamberControls } from './fixtures.js';
 
 const pathOf = page => new URL(page.url()).pathname + new URL(page.url()).search;
 
@@ -89,7 +89,7 @@ test('Back never resurrects a finished reading', async ({ page }) => {
   await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
   await expect.poll(() => pathOf(page)).toBe('/read/session');
 
-  await page.locator('#chamber-display').hover();
+  await revealChamberControls(page);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect.poll(() => pathOf(page)).not.toBe('/read/session');

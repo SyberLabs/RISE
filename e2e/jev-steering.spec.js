@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { test, expect, askHome, openHomeAsk, connectTestOpenRouter, routeTestOpenRouter } from './fixtures.js';
+import { test, expect, askHome, openHomeAsk, connectTestOpenRouter, routeTestOpenRouter, revealChamberControls } from './fixtures.js';
 import { resolveJevChamberConfig } from '../src/core/jev-config.js';
 import { jevPalette } from '../src/core/jev-palette.js';
 import { compileJevAudioProgram, compileJevVisualProgram } from '../src/core/jev-sequence.js';
@@ -48,7 +48,7 @@ test('cold sample deep link admits a preset Gallery, then returns to its thresho
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('#jev-next-scene')).toBeEnabled({ timeout: 20_000 });
   expect(jevRequests()).toBe(0);
-  await page.locator('#chamber-display').hover();
+  await revealChamberControls(page);
   await page.locator('#look-btn').click();
   await page.locator('#jev-next-scene').click();
   await expect(page.locator('#jev-scene-status')).toContainText('Next scene selected');
@@ -59,6 +59,7 @@ test('cold sample deep link admits a preset Gallery, then returns to its thresho
           .some((value, index) => index % 4 === 3 && value > 0));
   }), { timeout: 10_000 }).toBe(true);
   expect(jevRequests()).toBe(0);
+  await revealChamberControls(page);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect(page.locator('#jev-scene-demo-start')).toBeVisible();
@@ -76,7 +77,7 @@ test('reader shifts Jev’s next visual scene without moving the text or pace', 
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 
   const shift = page.locator('#jev-next-scene');
-  await page.locator('#chamber-display').hover();
+  await revealChamberControls(page);
   await page.locator('#look-btn').click();
   await expect(shift).toBeVisible();
   await expect(shift).toBeEnabled({ timeout: 20_000 });
@@ -188,7 +189,7 @@ test('spoken Jev request opens a reading whose look can be changed live', async 
   expect(requestBody.model).toBe('typesafe/jev-1.13');
   expect(requestBody.questions.book.type).toBe('choice');
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
-  await page.locator('#chamber-display').hover();
+  await revealChamberControls(page);
   await page.locator('#look-btn').click();
   await page.locator('[data-look-size="xlarge"]').click();
   await expect(page.locator('#atom-display')).toHaveAttribute('data-font-size', 'xlarge');

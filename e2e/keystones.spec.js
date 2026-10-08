@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures.js';
+import { test, expect, revealChamberControls } from './fixtures.js';
 
 
 async function authorize(page) {
@@ -50,7 +50,7 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   // Leaving the reading returns to the screen it was opened from, not to
   // the orbital prep screen the Chamber otherwise falls back to.
   // The Chamber keeps its controls hidden until the reader moves.
-  await page.locator('#chamber-display').hover();
+  await revealChamberControls(page);
   await page.locator('#exit-btn').click();
   await page.locator('#exit-confirm').click();
   await expect(page).toHaveURL(/\/try-rise$/u);
