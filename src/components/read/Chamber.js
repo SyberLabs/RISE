@@ -113,6 +113,7 @@ import { resolveSessionWordFill } from '../../core/visual-selection.js';
 import { sessionColorTheme, sessionColorThemeId } from '../../core/session-presentation.js';
 import { flameComposition, themeEngine, themedFlameLookup } from '../../core/theme-engine-map.js';
 import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
+import { styleOf } from '../../core/styles.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../../core/jev-sequence.js';
@@ -2809,6 +2810,7 @@ export class Chamber {
       canvas: layer.canvas,
       theme: (this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session)) ?? {},
       reducedMotion: this._prefersReducedMotion() || document.documentElement.classList.contains('photosensitivity-mode'),
+      library: styleOf(this.session?.style)?.library ?? {},
       onFailure: diagnostic => {
         this._noteScene(diagnostic);
         (this._failedScenes ??= new Set()).add(cue.sceneId);

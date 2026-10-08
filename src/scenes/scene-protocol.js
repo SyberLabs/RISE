@@ -14,7 +14,7 @@ export const SCENE_PROTOCOL_VERSION = 1;
 
 /** Host → worker. */
 export const TO_WORKER = Object.freeze({
-  init: 'scene/init',          // { version, code, width, height, dpr, theme, reducedMotion, canvas }
+  init: 'scene/init',          // { version, code, width, height, dpr, theme, reducedMotion, library, canvas }  library: the style's rise.lib defaults
   frame: 'scene/frame',        // { t, dt }  scene time in ms, and the step since the last frame
   cue: 'scene/cue',            // { name, instant }
   resize: 'scene/resize',      // { width, height, dpr }

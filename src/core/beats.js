@@ -200,11 +200,12 @@ function audioCue(soundId) {
 }
 
 /**
- * Lower validated beats to passages.
- * @param {{scenes: Array<{id: string, engine: string}>, beats: Array<object>}} current
+ * Lower validated beats to passages. A beat that shows text and sets no place
+ * or size takes the style's (styles.js); a hold shows no text and takes none.
+ * @param {{scenes: Array<{id: string, engine: string}>, beats: Array<object>, typography?: {place: string, size: string}|null}} current
  * @returns {{segments: Array<object>, audio: Array<{segmentId: string, cue: object}>, spokenIds: Set<string>, unspokenIds: Set<string>}}
  */
-export function lowerBeats({ scenes, beats }) {
+export function lowerBeats({ scenes, beats, typography = null }) {
   const byId = new Map(scenes.map(scene => [scene.id, scene]));
   const segments = [];
   const audio = [];
@@ -217,6 +218,9 @@ export function lowerBeats({ scenes, beats }) {
     const meta = {};
     for (const key of ['scene', 'cue', 'transition', 'place', 'size', 'type', 'emphasis']) {
       if (beat[key] !== undefined) meta[key] = beat[key];
+    }
+    if (typography && beat.kind !== 'hold') {
+      for (const key of ['place', 'size']) meta[key] ??= typography[key];
     }
     const segment = { id: segmentId, beat: meta };
     if (running !== null) {

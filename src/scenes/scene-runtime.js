@@ -39,11 +39,12 @@ const wallClock = Object.freeze({
  * @param {{now: () => number, setTimer: (fn: Function, ms: number) => Function}} [options.clock] what holds and the silence watch wait on
  * @param {object} [options.theme] the reading's colours
  * @param {boolean} [options.reducedMotion]
+ * @param {object} [options.library] the reading's style's library defaults (src/core/styles.js)
  * @param {(diagnostic: {sceneId: string, phase: string, message: string, where: string|null}) => void} [options.onFailure]
  * @param {(value: number, t: number) => void} [options.onLuma] a brightness sample 0..1 at scene time t
  */
 export function createSceneRuntime({
-  createWorker, canvas, clock = wallClock, theme = {}, reducedMotion = false, onFailure = () => {}, onLuma = () => {},
+  createWorker, canvas, clock = wallClock, theme = {}, reducedMotion = false, library = {}, onFailure = () => {}, onLuma = () => {},
   requestFrame = callback => requestAnimationFrame(callback), cancelFrame = id => cancelAnimationFrame(id)
 }) {
   let worker = null;
@@ -167,7 +168,7 @@ export function createSceneRuntime({
       try {
         const offscreen = canvas.transferControlToOffscreen();
         worker.postMessage({
-          type: TO_WORKER.init, version: SCENE_PROTOCOL_VERSION, code: scene.code, ...size, theme, reducedMotion, canvas: offscreen
+          type: TO_WORKER.init, version: SCENE_PROTOCOL_VERSION, code: scene.code, ...size, theme, reducedMotion, library, canvas: offscreen
         }, [offscreen]);
       } catch (error) {
         fail('load', `The scene could not start: ${error?.message ?? error}`);
