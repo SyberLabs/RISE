@@ -308,6 +308,19 @@ describe('the pace', () => {
         expectTogether(run);
     });
 
+    it('slowed in the middle of a passage, keeps the words behind the voice: the passage is not left before the voice has said it', async () => {
+        const run = await open();
+        await tick(300);
+        runtime.setPace(0.5);
+        await playOut();
+        expect(runtime.status).toBe('ended');
+        expect(run.journal('voice.degraded')).toEqual([]);
+        const said = run.said.find(entry => entry.kind === 'end' && entry.id === 'beat-0');
+        const left = run.shown.find(entry => entry.index > 0 && entry.sourceId !== 'beat-0');
+        expect(left.at).toBeGreaterThanOrEqual(said.at - 250);
+        expectTogether(run);
+    });
+
     it('lets what no voice says follow it: a hold lasts half as long at twice the pace', async () => {
         const run = await open();
         runtime.setPace(2);
