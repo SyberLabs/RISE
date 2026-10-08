@@ -48,7 +48,9 @@ export class LiveRuntimeError extends Error {
 const clip = (text, length) => (text.length <= length ? text : text.slice(0, length));
 
 export function createLiveRuntime({
-    adapter, createPlayer, host = {}, voices = null, clock = createRealClock(), graceMs, reconnects = RUNTIME_LIMITS.reconnects
+    adapter, createPlayer, host = {}, voices = null, clock = createRealClock(), graceMs, reconnects = RUNTIME_LIMITS.reconnects,
+    // Told every journal entry as it is written, so a host can show the voice's trace where a reader can copy it.
+    onNote = null
 }) {
     assertAdapter(adapter);
     if (typeof createPlayer !== 'function') throw new TypeError('A runtime is handed the host’s Player factory');
@@ -64,8 +66,10 @@ export function createLiveRuntime({
     // ─── what the host can see ──────────────────────────────────────────
 
     function note(type, body = {}) {
-        journal.push({ at: clock.now(), type, ...body });
+        const entry = { at: clock.now(), type, ...body };
+        journal.push(entry);
         if (journal.length > RUNTIME_LIMITS.journal) journal.shift();
+        if (onNote) { try { onNote({ ...entry }); } catch { /* a listener may not break the runtime */ } }
     }
 
     function summary(run) {
@@ -278,7 +282,7 @@ export function createLiveRuntime({
         run.player.on('state', ({ state }) => {
             if (run.closed) return;
             if (state === 'paused') holdVoice(run);
-            else if (state === 'playing') run.voice?.release();
+            else if (state === 'playing') { if (run.voice) note('voice.released', { role: run.role, segmentId: run.speaking ?? null }); run.voice?.release(); }
             else if (state === 'complete') {
                 run.finished = true;
                 note('run.finished', { role: run.role });
@@ -544,7 +548,9 @@ export function createLiveRuntime({
     function holdVoice(run) {
         if (!run.voice) return;
         const phrase = run.player.betweenPhrases ? null : run.governor?.restartPoint(run.player.sessionState.currentIndex) ?? null;
-        if (run.voice.hold(phrase ? { resumeAt: phrase } : undefined) === true) run.player.restartCurrentAtom();
+        const takenUp = run.voice.hold(phrase ? { resumeAt: phrase } : undefined) === true;
+        note('voice.held', { role: run.role, segmentId: run.speaking ?? null, ...(phrase ? { resumeAt: phrase.charIndex } : {}), restarts: takenUp });
+        if (takenUp) run.player.restartCurrentAtom();
     }
 
     function attachVoice(run) {
