@@ -223,6 +223,13 @@ Leave these alone without new evidence.
 - **Regex on CSS is unsafe** wherever a comment can sit between a selector and
   its brace. It silently produced a descendant selector and killed
   `.portal-continue`. Parse, or edit by inspection.
+- **A module worker never loads in an opaque origin.** A host's card sandboxed
+  with `allow-scripts` alone has origin `null`; Chromium fetches a module
+  worker's script in CORS mode, which `blob:null/…` cannot pass, so
+  `new Worker(blobUrl, { type: 'module' })` fires `onerror` with no message.
+  A classic blob worker loads there, and `import()` works inside it. The
+  scene worker is classic for this reason (`src/scenes/create-scene-worker.js`);
+  the browser test of a generated scene in the self-contained card is the guard.
 
 ---
 
