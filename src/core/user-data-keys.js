@@ -40,6 +40,7 @@ export const USER_DATA_KEYS = Object.freeze({
     viaSound: 'rise_via_sound_v1',
     viaAdvance: 'rise_via_advance_v1',
     stanceNoteSeen: 'rise-stance-note-seen',
+    homeSeen: 'rise_home_seen_v1',
     sequencePilotFeedback: 'rise_sequence_pilot_feedback_v1'
 });
 

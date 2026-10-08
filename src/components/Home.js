@@ -40,6 +40,7 @@ import { HomeAsk, alertMarkup, showAlert } from './home-ask.js';
 import { connectionState, subscribeConnection } from '../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
 import { localDateKey, watchLocalDay } from '../core/local-day.js';
+import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
@@ -49,6 +50,14 @@ const capital = text => text ? text[0].toLocaleUpperCase('en') + text.slice(1) :
 const button = (hook, label, variant, extra = '') =>
   `<button class="btn btn-${variant}" type="button" data-home="${hook}"${extra}>${label}</button>`;
 const afterPaint = next => (globalThis.requestAnimationFrame || (run => setTimeout(run, 0)))(() => setTimeout(next, 0));
+/** What RISE is, said once: on a first visit only, and one line on a phone (60 characters or fewer). */
+const ABOUT = 'Texts read to you, with light and sound made for them.';
+
+/** Whether this browser has shown Home before; storage that refuses reads as a first visit. */
+function homeSeen() {
+  try { return localStorage.getItem(USER_DATA_KEYS.homeSeen) === '1'; } catch { return false; }
+}
+
 const whenIdle = run => (globalThis.requestIdleCallback ? requestIdleCallback(run, { timeout: 2000 }) : setTimeout(run, 200));
 /** How long a reading takes at its own pace, in whole minutes; 0 while its length is unknown. */
 const minutesOf = (words, wpm) => words ? Math.max(1, Math.round(words / wpm)) : 0;
@@ -308,6 +317,7 @@ export class Home {
         <button class="home-link" type="button" data-home="adjust">Adjust</button>
         <button class="home-link" type="button" data-home="ask-open" hidden>Ask for a reading</button>
       </div>
+      <p class="home-about"${homeSeen() ? ' hidden' : ''}>${ABOUT}</p>
       <p class="sr-only" role="status" aria-live="polite"><span data-home-status></span></p>
     </section>`;
   }
@@ -709,6 +719,7 @@ export class Home {
   activate() {
     if (this._active) return;
     this._active = true;
+    try { localStorage.setItem(USER_DATA_KEYS.homeSeen, '1'); } catch { /* the line shows again next time */ }
     if (!this._marksDrawn) this.drawMarks();
     if (this.demoMode) return;
     // After first paint: the slot is already there; the poem and the engine follow.
