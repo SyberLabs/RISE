@@ -78,6 +78,15 @@ describe('no shared inference credential in server code', () => {
     expect(offenders).toEqual([]);
   });
 
+  // The one vendor key the Worker may hold is the Plus voice's (RFC 0001, decision D10),
+  // read in exactly one file, and never echoed: a response body may not carry an env value.
+  it('reads the voice vendor key only in worker/plus.mjs', () => {
+    const readers = serverFiles.filter(file => /ELEVENLABS_API_KEY|api\.elevenlabs\.io/u.test(readFileSync(file, 'utf8')));
+    expect(readers).toEqual(['worker/plus.mjs']);
+    const plus = readFileSync('worker/plus.mjs', 'utf8');
+    expect(plus).not.toMatch(/JSON\.stringify\([^)]*env\./u);
+  });
+
   it('never asks fetch for redirect "error", which the Workers runtime rejects', () => {
     // workerd throws TypeError for redirect: 'error'; mocked fetch in unit tests hides it.
     const offenders = serverFiles.filter(file => /redirect:\s*['"]error['"]/.test(readFileSync(file, 'utf8')));

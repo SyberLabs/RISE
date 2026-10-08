@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated: 28 September 2026**
+**Last updated: 8 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Sections 3, 11 and 12
 > in particular carry real legal consequence and are worth settling with
@@ -25,8 +25,11 @@ use it.
 RISE is an experimental browser-based reader that presents public-domain texts
 over generative visuals and imagery held by museums and archives.
 
-It is offered without charge, as an experiment, and it is under active
-development. Features appear, change and are withdrawn. Nothing here is a
+Reading is offered without charge, as an experiment, and RISE is under active
+development. RISE Plus is an optional subscription, $8.99 a month through
+Stripe, that voices readings of your own material when the Plus voice is on,
+up to 105,000 characters per billing period. If the subscription lapses,
+reading continues without the voice. Features appear, change and are withdrawn. Nothing here is a
 product commitment.
 
 RISE is not a medical, therapeutic, educational, diagnostic or professional
@@ -69,7 +72,8 @@ Your saved work is stored **in your browser, on your device**. Storage at the
 and pacing run locally. Optional AI features run on a connection you own:
 your own OpenRouter account, whose usage is billed to you by OpenRouter under
 its terms, or Kev running on your own computer through local RISE. RISE does
-not pay for, resell, or proxy AI requests. See the Privacy Policy for what each
+not pay for, resell, or proxy AI requests, except the Plus voice, which sends
+the text of a reading through RISE's server to ElevenLabs on our account. See the Privacy Policy for what each
 feature sends. These actions do not create a backup of your saved work. Two
 consequences follow:
 
@@ -183,7 +187,8 @@ arising from or connected with your use of or inability to use the Service —
 
 To the fullest extent permitted by law, our total aggregate liability arising
 from or connected with the Service is limited to **one hundred United States
-dollars (USD 100)**. The Service is free; there is no fee to refund.
+dollars (USD 100)**. Reading is free. Plus is $8.99 a month through Stripe, cancellable at any
+time; a cancelled month is not refunded.
 
 **Nothing here limits liability for death or personal injury caused by
 negligence, for fraud or fraudulent misrepresentation, or for anything else
@@ -204,7 +209,7 @@ extent caused by us.
 
 The Service is not directed at children and is not intended for anyone under
 13. We do not knowingly collect personal information from children; there is no
-account system, so we hold no age information about anybody. If you believe a
+account system; Stripe holds what a purchase requires, and we hold none of it. If you believe a
 child has provided us with personal information, write to
 syberlabs.software@gmail.com.
 

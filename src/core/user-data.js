@@ -1,6 +1,7 @@
 import { PersonalSwells } from './personal-swells.js';
 import { READING_LIMITS } from './reading-limits.js';
 import { SourceCache } from '../sources/cache.js';
+import { PlusVoices } from '../audio/plus-voice-store.js';
 import { WorkshopMedia, blobToDataUrl } from './workshop-media.js';
 import { endVisualInterlocutionSession } from './visual-safety.js';
 import { ERASABLE_LOCAL_KEY_PREFIXES, USER_DATA_KEYS } from './user-data-keys.js';
@@ -195,10 +196,14 @@ export async function clearUserData() {
     }
     endVisualInterlocutionSession();
 
+    // Plus voicings are erased and, like source caches, never exported: each
+    // is the vendor's audio for text the export already carries, and the
+    // MP3s would spend the JSON export's binary budget on a copy.
     const results = await Promise.allSettled([
         PersonalSwells.clear(),
         SourceCache.clear(),
-        WorkshopMedia.clear()
+        WorkshopMedia.clear(),
+        PlusVoices.clear()
     ]);
     const failures = results.filter(result => result.status === 'rejected');
     if (failures.length) {

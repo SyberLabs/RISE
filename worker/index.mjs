@@ -2,6 +2,10 @@ import { isKevWorkerScript, serveKevWorkerScript } from './kev-worker-script.mjs
 import { isRetiredInferenceRoute, retiredInference } from './retired-inference.mjs';
 import { handleLiveRealtime } from './live-realtime.mjs';
 import { handleLive, handleMcp, MCP_PATH } from './mcp-server.mjs';
+import { handlePlus, isPlusRoute } from './plus.mjs';
+
+// The Plus allowance meter, a Durable Object class the configurations bind as PLUS_METER.
+export { PlusMeter } from './plus.mjs';
 
 const JSON_HEADERS = {
   'Content-Type': 'application/json; charset=utf-8',
@@ -46,6 +50,8 @@ export default {
     if (path === MCP_PATH) return handleMcp(request, env);
     if (path === '/live') return handleLive(request, env);
     if (path === '/api/live/realtime') return handleLiveRealtime(request, env);
+    // The paid voice: a Stripe receipt in a signed cookie, metered by PlusMeter (worker/plus.mjs).
+    if (isPlusRoute(path)) return handlePlus(request, env);
 
     return error(404, 'NOT_FOUND', 'API route not found.');
   }
