@@ -2,6 +2,7 @@
  * The fixed application route table. Room modules stay lazy, while their
  * application-level capabilities are explicit at this composition boundary.
  */
+import { appLocation } from '../core/embed-address.js';
 
 export function createRouteManifest(operations) {
   return [
@@ -42,7 +43,9 @@ export function createRouteManifest(operations) {
           // Chamber. Loaded whole on demand, so first load does not carry it.
           live: {
             router: operations.router,
-            onNavigate: (...args) => operations.handleNavigate(...args)
+            onNavigate: (...args) => operations.handleNavigate(...args),
+            // Read when the view is built: in a host's card the query is the card's, not the window's.
+            get search() { return appLocation().search; }
           },
           load: {
             chamber: () => import('./chamber-session-factory.js'),

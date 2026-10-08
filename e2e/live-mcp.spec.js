@@ -17,6 +17,7 @@
 import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../src/test/sealed-current.js';
 import { HORIZON_DIVE } from '../src/live/fixtures/black-holes.js';
 import { relayHtml } from '../src/live/hosts/mcp-relay.js';
+import { cardHtml } from '../src/live/hosts/mcp-card.js';
 import { serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { handleMcp } from '../worker/mcp-server.mjs';
 import { expect, test } from './fixtures.js';
@@ -77,11 +78,15 @@ async function openHost(page, baseURL, options = {}) {
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: await response.text() });
   });
   // `appOrigin` frames RISE from another site than the host page's, as a product host does.
-  const relay = relayHtml({ origin: options.appOrigin ?? origin, path: `/live?embed=mcp&voice=${options.voice ?? 'paced'}` });
+  const path = `/live?embed=mcp&voice=${options.voice ?? 'paced'}`;
+  // `selfContained`: the frame holds RISE's own page, its addresses at `appOrigin` (mcp-card.js), as Claude requires.
+  const relay = options.selfContained
+    ? cardHtml({ origin: options.appOrigin ?? origin, indexHtml: await (await fetch(`${origin}/index.html`)).text(), path })
+    : relayHtml({ origin: options.appOrigin ?? origin, path });
   await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
-  // The app is a page in a frame in the relay's frame.
-  return page.frameLocator('#view').frameLocator('#app');
+  // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
+  return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
 }
 
 const log = page => page.evaluate(() => window.__host.log);
@@ -779,3 +784,22 @@ for (const [look, field] of Object.entries(LOOK_FIELDS)) {
     expect(errors).toEqual([]);
   });
 }
+
+// LIVE-010: the self-contained card. RISE's own page is the host's frame, its addresses at another origin
+// (localhost against the host's 127.0.0.1), so modules, styles and content cross origins as in a product host.
+test('the self-contained card plays a Current from another origin, framing nothing', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const appOrigin = new URL(baseURL).origin.replace('127.0.0.1', 'localhost');
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: { ...BLACK_HOLES_CURRENT, look: 'signal' } });
+  await expect(posterTitle(app)).toHaveText(BLACK_HOLES_CURRENT.title);
+  await begin(app);
+  await expectShown(app, 'A black hole is a region of space');
+  await expect(app.locator('.chamber-attractor').first()).toBeAttached({ timeout: 15_000 });
+  expect(await app.locator('iframe').count()).toBe(0);
+  // Its code came from RISE's origin, not the host's.
+  const scripts = await page.frameLocator('#view').locator('script[type="module"]').evaluateAll(nodes => nodes.map(node => node.src));
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const src of scripts) expect(src.startsWith(appOrigin)).toBe(true);
+  expect(errors).toEqual([]);
+});

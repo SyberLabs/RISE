@@ -10,6 +10,7 @@
  */
 
 import { Router, claimStaleBuildReload } from './core/router.js';
+import { appHistory, appLocation } from './core/embed-address.js';
 import { compileSession } from './core/session-compiler.js';
 import { PACE_CURVE_IDS } from './core/pacing.js';
 import { resolveNextLibraryDivision } from './core/reading-continuation.js';
@@ -100,7 +101,7 @@ window.addEventListener('vite:preloadError', (event) => {
 class App {
     constructor() {
         // Read-only measurement records (setup-preview.js) outlive the router's first navigation.
-        if (new URLSearchParams(window.location.search).has('measure')) document.documentElement.dataset.riseMeasure = '';
+        if (new URLSearchParams(appLocation().search).has('measure')) document.documentElement.dataset.riseMeasure = '';
         this.router = null;
         this.audioEngine = null;
         this.settings = null;
@@ -233,6 +234,8 @@ class App {
 
         this.router = new Router({
             build: import.meta.url,
+            history: appHistory(),
+            location: appLocation(),
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
@@ -254,7 +257,7 @@ class App {
         // exact manifest gate rather than from URL text alone.
         // resolveAddress fetches keystones.js only for a Keystone path, so a
         // reader arriving at Home does not wait for that manifest.
-        const pathname = window.location.pathname;
+        const pathname = appLocation().pathname;
         // A minted sequence is the same kind of public entry point. TWO
         // QUESTIONS, NOT ONE: whether this is a mint URL at all, and which
         // mint it names. A printed code outlives the sequence it names, so
@@ -285,8 +288,8 @@ class App {
         // because the router does not own hashes.
         // A skin's page hands over one decision, admitted again by the normal
         // launch or Reader Setup resolver. The URL carries no reading data.
-        const opened = window.location.search.includes('invocation=')
-            && await (await import('./app/invocation.js')).enterFromInvocation(window.location.search, {
+        const opened = appLocation().search.includes('invocation=')
+            && await (await import('./app/invocation.js')).enterFromInvocation(appLocation().search, {
                 home: () => this.router.navigate('home'),
                 launch: decision => this.launchJevReading(decision),
                 adjust: decision => this.adjustJevReading(decision),
@@ -1274,7 +1277,7 @@ class App {
      * show all land somewhere real: Home, or the Chamber's setup.
      */
     async resolveAddress() {
-        const here = window.location;
+        const here = appLocation();
         let route = routeFromPath(here.pathname, here.search);
         if (route?.data?.pane === 'keystones' && route.data.slug) {
             const { keystoneSlugFromPath } = await import('./content/keystones.js');

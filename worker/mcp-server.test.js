@@ -410,6 +410,31 @@ describe('the app', () => {
     expect(content._meta['openai/widgetDescription']).toMatch(/^[^.]*Play[^.]*\.$/u);
   });
 
+  describe('self-contained, with MCP_SELF_CONTAINED (LIVE-010)', () => {
+    const PAGE = '<!doctype html><html><head><meta charset="utf-8"><script type="module" crossorigin src="/assets/main-x.js"></script></head><body><div id="app"></div></body></html>';
+    const assets = (page = PAGE, ok = true) => {
+      const binding = { asked: null, fetch: async request => { binding.asked = request.url; return new Response(page, { status: ok ? 200 : 404 }); } };
+      return binding;
+    };
+    const read = async env => (await json(await post(rpc('resources/read', { uri: APP_URI }), { env: { ...ON, ...env } }))).result.contents[0];
+
+    it('is RISE’s deployed page itself, its addresses at RISE, framing nothing and reaching only this origin', async () => {
+      const ASSETS = assets();
+      const content = await read({ MCP_SELF_CONTAINED: 'true', ASSETS });
+      expect(ASSETS.asked).toBe(`${SITE}/index.html`);
+      expect(content.text).toContain(`<base href="${SITE}/">`);
+      expect(content.text).toContain('<meta name="rise-embed" content="/live?embed=mcp">');
+      expect(content.text).toContain('src="/assets/main-x.js"');
+      expect(content.text).not.toContain('<iframe');
+      expect(content._meta.ui.csp).toEqual({ connectDomains: [SITE], resourceDomains: [SITE], baseUriDomains: [SITE], frameDomains: [] });
+    });
+
+    it('serves the framed card while the switch is off, or when the deployed page cannot be read', async () => {
+      expect((await read({ ASSETS: assets() })).text).toContain(`src="${SITE}/live?embed=mcp"`);
+      expect((await read({ MCP_SELF_CONTAINED: 'true', ASSETS: assets('', false) })).text).toContain('<iframe');
+    });
+  });
+
   it('tells ChatGPT on the resource that it is shown inline only, so the host picks the mode before loading it', async () => {
     const { result } = await json(await post(rpc('resources/read', { uri: APP_URI })));
     expect(result.contents[0]._meta['openai/ui']).toEqual({ availableDisplayModes: ['inline'] });
