@@ -428,6 +428,20 @@ export class Player {
         }
     }
 
+    /** Watch a spoken atom for an end that is not coming: due its budget plus the grace from now. */
+    _armSpeechWatchdog(budget) {
+        this._clearSpeechWatchdog();
+        const currentSyncId = this.speechSyncId;
+        const spokenBudget = Number(budget);
+        this.speechWatchdogId = setTimeout(() => {
+            this.speechWatchdogId = null;
+            if (this.speechSyncId !== currentSyncId) return;
+            if (this.sessionState.state !== 'playing') return;
+            this.scheduleNextAtom(true);
+        }, (Number.isFinite(spokenBudget) && spokenBudget > 0 ? spokenBudget : 0)
+            + SPEECH_WATCHDOG_GRACE_MS);
+    }
+
     play() {
         this._clearSpeechWatchdog();
         if (this.sessionState.state === 'playing' || this.sessionState.state === 'interlocuting') return;
@@ -602,10 +616,39 @@ export class Player {
      */
     setSpeedFactor(factor) {
         const parsed = Number(factor);
+        const before = this.speedFactor;
         this.speedFactor = Number.isFinite(parsed)
             ? Math.max(0.1, Math.min(5.0, parsed))
             : 1.0;
         console.log(`[Player] Speed factor set to: ${this.speedFactor}`);
+        if (this.speedFactor !== before) this._repaceCurrentAtom(this.speedFactor / before);
+    }
+
+    /**
+     * The atom on screen goes on at the new pace: the part already shown stays shown and only the rest is
+     * re-timed, by whatever governs the atom now (a governor rescaled before the Player answers at the new pace).
+     * A spoken atom keeps its completion; only its watchdog is re-armed for the rest, so a slower voice still
+     * saying it is not given up on. A paused atom has only its time left scaled, by `ratio`.
+     */
+    _repaceCurrentAtom(ratio) {
+        const atom = this.sessionState.currentAtom;
+        if (!atom) return;
+        if (this.sessionState.state === 'paused') {
+            if (this.currentAtomRemainingTime !== null) this.currentAtomRemainingTime *= ratio;
+            if (this.currentAtomDisplayTime !== null) this.currentAtomDisplayTime *= ratio;
+            return;
+        }
+        if (this.sessionState.state !== 'playing' || this.atomStartTime === null) return;
+        const atomFraction = this._currentAtomFraction();
+        this.currentAtomDisplayTime = this._atomDisplayMs(atom);
+        this.currentAtomRemainingTime = this.currentAtomDisplayTime * (1 - atomFraction);
+        this.atomStartTime = performance.now();
+        if (this.speechWatchdogId !== null) {
+            this._armSpeechWatchdog(this.currentAtomRemainingTime);
+            return;
+        }
+        if (this.timerId === null) return;
+        this.scheduleNextAtom(true);
     }
 
     // ─── The Shuttle (LATERAL-TRAVERSAL-SPEC) ───
@@ -1144,15 +1187,7 @@ export class Player {
             // length: if it has not reported an end by the time its audio
             // was going to be over, plus a margin for a late start, the
             // reading degrades to the timer and carries on.
-            this._clearSpeechWatchdog();
-            const spokenBudget = Number(this.currentAtomRemainingTime);
-            this.speechWatchdogId = setTimeout(() => {
-                this.speechWatchdogId = null;
-                if (this.speechSyncId !== currentSyncId) return;
-                if (this.sessionState.state !== 'playing') return;
-                this.scheduleNextAtom(true);
-            }, (Number.isFinite(spokenBudget) && spokenBudget > 0 ? spokenBudget : 0)
-                + SPEECH_WATCHDOG_GRACE_MS);
+            this._armSpeechWatchdog(this.currentAtomRemainingTime);
 
             Promise.resolve(completion)
                 .then(result => {

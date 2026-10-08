@@ -573,7 +573,9 @@ export function createLiveRuntime({
 
         /**
          * The voice's rate, from half to twice its own. The voice takes it at once; the speech clock rescales what
-         * it measured; the Player's timers follow it for what no voice says. Where the reader is does not move.
+         * it measured; the Player's timers follow it for what no voice says. Where the reader is does not move, and
+         * what is on screen goes on at the new pace: the Player re-times its atom from the rescaled clock, then the
+         * conductor its running hold.
          */
         setPace(rate) {
             if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) throw new LiveRuntimeError('PACE', 'A pace is between half and twice the voice’s own');
@@ -582,6 +584,7 @@ export function createLiveRuntime({
             main?.voice?.setRate?.(rate);
             main?.governor?.rescale(before / rate);
             main?.player?.setSpeedFactor(1 / rate);
+            main?.conductor?.repace();
             note('pace', { rate });
             set(status);
         },

@@ -47,16 +47,38 @@
       "ref": "docs/product/discussions/2026-10-05-embed-stage-decision.md",
       "note": "Amended 2026-10-08: the two-control rule was ChatGPT's two-action guideline; the Claude card carries the transport bar; transport 'minimal' keeps the two objects.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/player.govern.test.js",
+      "note": "Branch pace-retimes: a pace change re-times the atom on screen. A governed 1000 ms atom slowed to half at 400 ms keeps its watchdog until 400 + 1200 + 2500 ms and its governed end still advances; an ungoverned 1000 ms atom at 1.5x from 400 ms ends at 800 ms; a paused atom has only its time left scaled. All three failed before the change.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.seek.test.js",
+      "note": "Branch pace-retimes: slowed from 2x to 0.5x in the middle of a long phrase with a slow synthetic voice (80 ms per character), the next phrase waits for the voice (before the change it was shown 2.1 s ahead of it, at 15504 ms against 17656 ms); a 2000 ms hold sped to 2x 500 ms in lasts about 1250 ms (2000 before). The conductor test re-times a 3000 ms hold paced to 2x at 1000 ms to end at 2000 ms.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/voice-sync.sweep.test.js",
+      "note": "Branch pace-retimes: pace sweep, 3 voices x 6 points (0.5x and 1.5x in turn, every 2 s from 500 ms); 0 stand-downs, the voice never ends more than 1 s after the words. It also passes on the code before the change, so it guards against regressions and does not reproduce the defect. The pause sweep went from 24 points every 500 ms to 20 every 600 ms to keep the file near 12 s.",
+      "date": "2026-10-08"
     }
   ],
   "activity": [
     {
       "date": "2026-10-08T23:30:00.000Z",
       "summary": "Built on branch playback-instrument: runtime seek, replay and pace with the voice moving first, and the stage bar in the card; not merged, not deployed, no host witness."
+    },
+    {
+      "date": "2026-10-08T23:33:31.445Z",
+      "summary": "Follow-up on branch pace-retimes: a pace change re-times what is on screen (the atom's timer, a spoken atom's watchdog, the conductor's running hold); not merged, not deployed."
     }
   ],
-  "updatedAt": "2026-10-08T23:30:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-08T23:33:31.445Z",
+  "revision": 2,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Branch only: review, merge and a real-host witness (owner's witness pass, 2026-10-07) remain."
 }
