@@ -21,11 +21,11 @@ import { scoreDecisions } from './jev-eval.mjs';
 import { committedCatalog } from '../local/catalog.mjs';
 import { buildRecommendRequest, validDecision } from '../src/core/decision/recommend.js';
 import { callDecision, DecisionError } from '../src/core/decision/call.js';
-import { JEV, KEV } from '../src/core/decision/providers.js';
+import { JEV, JEV_DIRECT, KEV } from '../src/core/decision/providers.js';
 
 export const DEADLINE_MS = 8000;
 const MAX_BATCH = 39;
-const MODES = ['mock', 'local', 'live'];
+const MODES = ['mock', 'local', 'live', 'typesafe'];
 
 function fail(message) { throw new Error(message); }
 function argument(args, flag) {
@@ -69,6 +69,12 @@ export function connectionFor(mode, { origin, env = process.env, fetchImpl = fet
     const key = env.READER_OPENROUTER_KEY || '';
     if (key.length < 20) fail('Live mode needs READER_OPENROUTER_KEY: your own OpenRouter key. Each case is billed to that account.');
     return { provider: JEV, request: init => fetchImpl(JEV.url,
+      { ...init, headers: { ...init.headers, Authorization: `Bearer ${key}` } }) };
+  }
+  if (mode === 'typesafe') {
+    const key = env.TYPESAFE_API_KEY || '';
+    if (key.length < 20) fail('TypeSafe mode needs TYPESAFE_API_KEY: your own TypeSafe key. Each case is billed to that account.');
+    return { provider: JEV_DIRECT, request: init => fetchImpl(JEV_DIRECT.url,
       { ...init, headers: { ...init.headers, Authorization: `Bearer ${key}` } }) };
   }
   fail(`Unknown mode ${mode}; use ${MODES.join(', ')}.`);
@@ -165,6 +171,9 @@ async function capture(args) {
   const mode = argument(args, '--mode');
   const outputPath = argument(args, '--output');
   if (!MODES.includes(mode) || !outputPath) fail('Set --mode mock|local|live and --output.');
+  if (mode === 'typesafe' && !args.includes('--bill-my-typesafe-account')) {
+    fail('TypeSafe mode sends one billed request per case to your TypeSafe account. Add --bill-my-typesafe-account to proceed.');
+  }
   if (mode === 'live' && !args.includes('--bill-my-openrouter-account')) {
     fail('Live mode sends one billed request per case to your OpenRouter account. Add --bill-my-openrouter-account to proceed.');
   }
