@@ -97,7 +97,7 @@ public-domain text.
 ### Recitation audio
 
 The spoken audio under `public/audio/recitation/` (hydrated from the
-`rise/audio-assets` branch) is generated, not recorded:
+`rise/audio-assets-opus` branch) is generated, not recorded:
 
 | voice | made with | terms |
 |---|---|---|

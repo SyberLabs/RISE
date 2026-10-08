@@ -3,9 +3,9 @@
   "title": "Retire the catalog secrets and the WAV audio branch",
   "lane": "shared",
   "milestone": "Architecture",
-  "status": "planned",
+  "status": "done",
   "delivery": "not_shipped",
-  "owner": null,
+  "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
     "FND-003"
@@ -28,9 +28,15 @@
       "ref": "docs/experiments/CHATGPT-HOST-2026-10-04.md",
       "note": "Wrangler could not delete the demo Worker without a broader token scope; it was redeployed with no targets.",
       "date": "2026-10-04"
+    },
+    {
+      "kind": "observation",
+      "ref": "wrangler.production.jsonc",
+      "note": "wrangler secret delete (x3) --name rise-production; wrangler delete rise-chatgpt-demo; git push origin --delete rise/audio-assets. Before and after each removal: /content/catalog.json 200 (22,203 bytes), /audio/recitation/af_heart/10-1237qhv.opus 200, /release.txt 200, / 200. wrangler secret list now shows only OPENROUTER_API_KEY (docs/USER-OWNED-AI.md step 3; all six retired routes answer 410). The demo Worker lookup returns code 10007.",
+      "date": "2026-10-07"
     }
   ],
-  "summary": "Dashboard and branch cleanup that follows FND-003; needs Cloudflare account access.",
+  "summary": "Done 2026-10-07. NEON_DATABASE_URL, UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are removed from the production Worker (rise-production); no Worker module read them, and catalog.json, a recitation clip, release.txt and Home answered the same before and after. The inert rise-chatgpt-demo Worker is deleted. The rise/audio-assets branch, a stale pointer at #211 already in main, is deleted; recitation hydrates from rise/audio-assets-opus.",
   "blocker": null,
   "activity": [
     {
@@ -40,8 +46,12 @@
     {
       "date": "2026-10-05T01:46:43.333Z",
       "summary": "Added the inert demo Worker to the cleanup"
+    },
+    {
+      "date": "2026-10-08T03:29:16.456Z",
+      "summary": "Secrets removed, demo Worker deleted, old audio branch retired"
     }
   ],
-  "updatedAt": "2026-10-05T01:46:43.333Z",
-  "revision": 2
+  "updatedAt": "2026-10-08T03:29:16.456Z",
+  "revision": 3
 }
