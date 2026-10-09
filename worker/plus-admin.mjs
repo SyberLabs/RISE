@@ -1,5 +1,5 @@
 /** Dedicated Cloudflare Access application grants admin voice access; never a client-side role flag.
- * Protect /api/plus/admin-login with an Access Allow policy for the administrators only.
+ * Protect /api/plus/admin/* with an Access Allow policy for the administrators only.
  * The application's audience must be different from every public/staff application.
  */
 const ISSUER = /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u;
@@ -21,7 +21,7 @@ async function publicKeys(issuer) {
 }
 
 /** Returns a verified human administrator, or null. Configuration and network failures deny access. */
-export async function getAdmin(request, env) {
+export async function verifyAdmin(request, env) {
   const issuer = env.PLUS_ADMIN_ACCESS_ISSUER;
   const audience = env.PLUS_ADMIN_ACCESS_AUD;
   if (typeof issuer !== 'string' || !ISSUER.test(issuer) || typeof audience !== 'string' || !audience.trim()) return null;
@@ -44,6 +44,26 @@ export async function getAdmin(request, env) {
     const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
     const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, decode(signature), new TextEncoder().encode(`${head}.${payload}`));
     return valid ? { subject: claim.sub } : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Signature alone cannot detect a revoked Access session. Recheck through the protected admin path. */
+export async function getAdmin(request, env) {
+  const admin = await verifyAdmin(request, env);
+  if (!admin) return null;
+  const assertion = request.headers.get('Cf-Access-Jwt-Assertion');
+  const cookie = request.headers.get('Cookie')?.split(';').map(v => v.trim()).find(v => v.startsWith('CF_Authorization='))?.slice('CF_Authorization='.length);
+  const token = assertion || cookie;
+  try {
+    const response = await fetch('https://rise.syberlabs.io/api/plus/admin/check', {
+      headers: { Cookie: `CF_Authorization=${token}`, 'Cache-Control': 'no-cache' },
+      redirect: 'manual', signal: AbortSignal.timeout(5000)
+    });
+    if (!response.ok || response.status !== 200) return null;
+    const identity = await response.json();
+    return identity?.subject === admin.subject ? admin : null;
   } catch {
     return null;
   }

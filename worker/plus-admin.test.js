@@ -1,5 +1,5 @@
 import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest';
-import { getAdmin } from './plus-admin.mjs';
+import { getAdmin, verifyAdmin } from './plus-admin.mjs';
 
 const issuer = 'https://rise-admin.cloudflareaccess.com';
 const env = { PLUS_ADMIN_ACCESS_ISSUER: issuer, PLUS_ADMIN_ACCESS_AUD: 'rise-admin-app' };
@@ -17,7 +17,7 @@ async function token(overrides = {}, header = {}) {
   const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', privateKey, new TextEncoder().encode(parts.join('.')));
   return `${parts.join('.')}.${Buffer.from(signature).toString('base64url')}`;
 }
-function keys() { vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ keys: [jwk] })))); }
+function keys() { vi.stubGlobal('fetch', vi.fn(async url => new Response(JSON.stringify(url.includes('/certs') ? { keys: [jwk] } : { subject: 'verified-admin' })))); }
 function request(jwt, cookie = false) { return new Request('https://rise.syberlabs.io/api/plus/status', { headers: cookie ? { Cookie: `CF_Authorization=${jwt}` } : { 'Cf-Access-Jwt-Assertion': jwt } }); }
 describe('Cloudflare Access administrator identity', () => {
   it('accepts a cryptographically verified application user through assertion or browser cookie', async () => {
@@ -27,6 +27,7 @@ describe('Cloudflare Access administrator identity', () => {
     expect(await getAdmin(request(jwt, true), env)).toEqual({ subject: 'verified-admin' });
     expect(fetch.mock.calls[0][0]).toBe(`${issuer}/cdn-cgi/access/certs`);
     expect(fetch.mock.calls[0][1].redirect).toBe('manual');
+    expect(fetch.mock.calls.some(([url, options]) => url.endsWith('/admin/check') && options.headers.Cookie === `CF_Authorization=${jwt}`)).toBe(true);
   });
   it.each([{ iss: 'https://attacker.example' }, { aud: ['other-app'] }, { exp: 1 }, { iat: 9999999999 }, { type: 'service' }, { email: undefined }, { sub: '' }])('denies invalid claims %j', async override => {
     keys();
@@ -39,6 +40,13 @@ describe('Cloudflare Access administrator identity', () => {
     parts[1] = enc({ iss: issuer, aud: ['rise-admin-app'], sub: 'attacker', email: 'a@b.com', type: 'app', exp: 9999999999, iat: 1 });
     expect(await getAdmin(request(parts.join('.')), env)).toBeNull();
     expect(await getAdmin(request(await token({}, { alg: 'none' })), env)).toBeNull();
+  });
+  it('denies a revoked session even while its signature is valid', async () => {
+    keys();
+    const jwt = await token();
+    expect(await verifyAdmin(request(jwt), env)).toEqual({ subject: 'verified-admin' });
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 302, headers: { Location: issuer } })));
+    expect(await getAdmin(request(jwt), env)).toBeNull();
   });
   it('fails closed without configuration and refuses arbitrary key hosts', async () => {
     keys();
