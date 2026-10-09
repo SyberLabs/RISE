@@ -1,8 +1,16 @@
 import { ACCOUNT_SIGN_IN, getAccount } from '../core/account-service.js';
+import { appLocation, IN_HOST_CARD } from '../core/embed-address.js';
 import './account-control.css';
 
 /** Outside route containers, so reading and every room retain this entrance. */
 export function mountAccountControl() {
+  // The study promises no identity/network lookup. A host card is likewise
+  // self-contained and cannot supply the site's account session. Keep its
+  // explicit sign-in link, but never refresh identity just by opening/focusing it.
+  const isolated = () => {
+    const location = appLocation();
+    return IN_HOST_CARD || (location.pathname === '/live' && new URLSearchParams(location.search).has('eval'));
+  };
   const link = document.createElement('a');
   link.className = 'rise-account-control';
   link.href = ACCOUNT_SIGN_IN;
@@ -16,6 +24,14 @@ export function mountAccountControl() {
   let revision = 0;
   let accountRevision = 0;
   const refresh = async () => {
+    if (isolated()) {
+      revision++;
+      if (user) accountRevision++;
+      user = null;
+      link.textContent = 'Sign in';
+      link.setAttribute('aria-label', 'Sign in to SyberLabs');
+      return;
+    }
     const generation = ++revision;
     let current = null;
     try { current = await getAccount(); } catch { /* signed out or unavailable */ }
