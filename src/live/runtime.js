@@ -545,9 +545,18 @@ export function createLiveRuntime({
             }
         },
 
-        /** Carry on after an interruption, from the same place. */
+        /**
+         * Carry on after an interruption, from the same place. A voice the reading stood down from is re-armed: the
+         * reader's Play is a gesture the voice may need (WebKit's, voices/browser.js), so it is given the passage on
+         * screen again from its start, as a seek there gives it, and is the clock again once it speaks. If it does
+         * not begin this time either, the governor stands down again as it did before.
+         */
         resume() {
             if (status !== 'interrupted') throw new LiveRuntimeError('NOT_INTERRUPTED', 'Nothing is held');
+            if (main.voice && main.governor.degraded && main.presented && positionOf(main)) {
+                note('voice.rearmed', { role: main.role, reason: 'play' });
+                moveTo(main, positionOf(main).segmentId, null);
+            }
             set('live');
             main.player.play();
             // A Player whose words are all shown does not play again, so the voice saying the last of them is let go here.
@@ -720,13 +729,14 @@ export function createLiveRuntime({
      * Take the reading to the start of passage `to`. The voice first: what it says stops, it forgets this passage
      * and every later one it was given, and is given them again from here in the reading's order, as speak gives
      * them. The speech clock forgets their timing and is the clock again if it had stood down; the conductor lands
-     * the running scene's earlier cues at once; then the Player goes to the passage's first atom.
+     * the running scene's earlier cues at once; then the Player goes to the passage's first atom. `type` names the
+     * reader's move in the journal; a re-armed voice (resume) has noted its own reason, and is not a move.
      */
     function moveTo(run, to, type) {
         const list = passagesOf(run);
         const at = list.findIndex(passage => passage.id === to);
         const order = new Map(list.map((passage, index) => [passage.id, index]));
-        note(type, { from: positionOf(run).segmentId, to, reason: 'reader' });
+        if (type) note(type, { from: positionOf(run).segmentId, to, reason: 'reader' });
 
         const kept = run.given.findIndex(id => order.get(id) >= at);
         run.voice?.seek(kept < 0 ? to : run.given[kept]);
@@ -735,7 +745,7 @@ export function createLiveRuntime({
         run.speaking = null;
         const recovered = run.governor.degraded;
         run.governor.forget(to);
-        if (recovered) note('voice.recovered', { role: run.role });
+        if (recovered && type) note('voice.recovered', { role: run.role });
         run.segmentId = to;
         run.unspoken = run.stream.snapshot().segments.filter(segment => segment.ended).slice(0, run.lowered)
             .filter(segment => order.get(segment.id) >= at);

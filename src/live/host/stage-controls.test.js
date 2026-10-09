@@ -190,6 +190,22 @@ describe('the one object', () => {
         expect(play().dataset.voice).toBeUndefined();
         expect(play().getAttribute('aria-label')).toBe('Pause');
     });
+
+    it('carries the no-voice mark while the voice is given up on, says Play tries it again, and clears once it speaks', () => {
+        const runtime = fakeRuntime('live');
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        expect(play().dataset.voice).toBeUndefined();
+        runtime.set('live', { main: { voiceDegraded: true } });
+        expect(play().dataset.voice).toBe('none');
+        expect(play().querySelector('.rise-stage__novoice')).not.toBeNull();
+        expect(play().getAttribute('aria-label')).toBe('Pause (silent, the voice did not start; Play tries it again)');
+        runtime.set('interrupted', { main: { voiceDegraded: true } });
+        expect(play().getAttribute('aria-label')).toBe('Play (silent, the voice did not start; Play tries it again)');
+        runtime.set('live', { main: { voiceDegraded: false, speaking: 's1' } });
+        expect(play().dataset.voice).toBeUndefined();
+        expect(play().querySelector('.rise-stage__novoice')).toBeNull();
+        expect(play().getAttribute('aria-label')).toBe('Pause');
+    });
 });
 
 describe('what a screen reader hears', () => {
@@ -471,6 +487,51 @@ describe('the other three rows', () => {
         expect(chamber.onSettingsChange.mock.calls).toEqual([['reducedMotion', true], ['fontSize', 'small']]);
         runtime.set('live', { main: { speaking: 'x' } });
         expect(chamber.setColourTheme).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('About this reading', () => {
+    const ABOUT = 'voice: browser "Samantha" en-US local=true\nspeech starts: 3';
+    const panel = () => sheet().querySelector('details.rise-settings__about');
+    const copy = () => panel().querySelector('.rise-settings__copy');
+
+    it('is not in the sheet when the host has nothing to say about the reading', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {} });
+        expect(panel()).toBeNull();
+    });
+
+    it('is collapsed at the foot of the sheet, and shows what the host says as plain text, fresh at each opening', () => {
+        let said = ABOUT;
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, about: () => said });
+        expect(panel().open).toBe(false);
+        expect(sheet().lastElementChild).toBe(panel());
+        expect(panel().querySelector('summary').textContent).toBe('About this reading');
+        settings().click();
+        expect(panel().querySelector('pre').textContent).toBe(ABOUT);
+        settings().click();
+        said = `${ABOUT}\nspeech starts: 4`;
+        settings().click();
+        expect(panel().querySelector('pre').textContent).toBe(said);
+        // Not one of the setting rows, and not a stop of its own beyond its summary and Copy.
+        expect([...sheet().querySelectorAll('.rise-settings__row')]).toHaveLength(4);
+    });
+
+    it('Copy puts the text on the clipboard, or selects it where the clipboard is refused', async () => {
+        const writeText = vi.fn(async () => {});
+        Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+        try {
+            stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, about: () => ABOUT });
+            settings().click();
+            copy().click();
+            await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith(ABOUT));
+            await vi.waitFor(() => expect(copy().textContent).toBe('Copied'));
+            writeText.mockRejectedValueOnce(new Error('denied'));
+            copy().click();
+            await vi.waitFor(() => expect(document.getSelection().toString()).toBe(ABOUT));
+            expect(copy().textContent).toBe('Selected');
+        } finally {
+            delete navigator.clipboard;
+        }
     });
 });
 

@@ -35,6 +35,8 @@ import { lookTheme } from '../../core/current-look.js';
 import { createLiveControls } from './controls.js';
 import { createStageControls } from './stage-controls.js';
 import { isVoiceNote, voiceLine } from '../voice-trace.js';
+// Statically: Play unlocks speech synchronously inside its own tap, which a module still to be fetched cannot do.
+import { unlockSpeech } from '../voices/unlock.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
 
@@ -71,6 +73,8 @@ const KEYED = Object.freeze({
     }
 });
 const VOICES = Object.freeze({ auto: 'Speak if this device can', browser: 'Speak', paced: 'Silent, paced as if spoken' });
+/** How many voice and audio trace lines "About this reading" shows. */
+const TRACE_KEPT = 20;
 /** The journal notes after which the browser's voice is no longer speaking. */
 const VOICE_QUIET = new Set(['speech.end', 'voice.failed', 'voice.taken', 'voice.held']);
 
@@ -126,6 +130,8 @@ export class LiveHost {
         // The engine the reading's beds play on, once a reading is built; and the beds and tones it started (?measure=1).
         this.audioEngine = null;
         this.audioLog = [];
+        // The last voice and audio lines written to DevTools, for "About this reading" (aboutReading).
+        this.traceLines = [];
         this.onSoundStart = null;
         // ?measure=1 only: an analyser on the engine's output, made at the first measurement (outputLevelDbfs).
         this.audioTap = null;
@@ -437,7 +443,7 @@ export class LiveHost {
             // The voice's trace in DevTools, always: a reader who sees the words and the voice part can copy
             // what the clock saw (voice-trace.js), as a failed scene is reported.
             onNote: entry => {
-                if (isVoiceNote(entry.type)) console.info('[RISE voice]', voiceLine(entry));
+                if (isVoiceNote(entry.type)) this.trace('[RISE voice]', voiceLine(entry));
                 this.duckUnderVoice(entry.type);
             },
             createPlayer: session => createSessionPlayer(session),
@@ -488,10 +494,52 @@ export class LiveHost {
         this.audioEngine = engine;
         this.onSoundStart = ({ id, kind, trimDb }) => {
             const entry = { at: clock.now(), type: kind === 'tone' ? 'audio.tone' : 'audio.bed', id, trimDb };
-            console.info('[RISE audio]', voiceLine(entry));
+            this.trace('[RISE audio]', voiceLine(entry));
             if (this.params.has('measure')) this.audioLog = [...this.audioLog, entry].slice(-50);
         };
         engine.onSoundStart = this.onSoundStart;
+    }
+
+    /** One line in DevTools, and kept among the last TRACE_KEPT for "About this reading". */
+    trace(tag, line) {
+        console.info(tag, line);
+        this.traceLines = [...this.traceLines, `${tag} ${line}`].slice(-TRACE_KEPT);
+    }
+
+    /**
+     * "About this reading", for a reader with no DevTools (the stage's Settings sheet): which voice, why it went
+     * quiet if it did, how often it began, the host's context, the device, the audio engine, and the last trace
+     * lines. Only what the host already keeps, as plain text to copy.
+     */
+    aboutReading() {
+        const journal = this.runtime?.journal?.() ?? [];
+        const chosen = journal.findLast(entry => entry.type === 'voice.chosen');
+        const trouble = journal.findLast(entry => entry.type === 'voice.degraded' || entry.type === 'voice.failed');
+        const spoken = this.spokenVoice;
+        const voice = this.voiceKind !== 'browser' ? this.voiceKind ?? 'not chosen yet'
+            : spoken ? `browser "${spoken.name}" ${spoken.lang} local=${chosen?.local ?? 'unknown'}` : 'browser (platform default)';
+        const why = trouble
+            ? `${trouble.type} ${trouble.reason ? `reason=${trouble.reason}` : `message=${trouble.message}`} at ${(trouble.at / 1000).toFixed(1)} s`
+            : this.degradations({ pacingShown: true }).find(note => note.capability === 'speechOutput')?.effect ?? 'none';
+        const synth = this.env.speechSynthesis;
+        const count = this.voiceCount;
+        const voices = count === null ? 'voices not asked' : `${count} voice${count === 1 ? '' : 's'}`;
+        const lines = [
+            `voice: ${voice}`,
+            `voice trouble: ${why}`,
+            `speech starts: ${journal.filter(entry => entry.type === 'speech.start').length}`,
+            `speechSynthesis: ${this.caps.speechOutput}, ${voices}${synth ? `, speaking=${synth.speaking} pending=${synth.pending} paused=${synth.paused}` : ''}`
+        ];
+        const context = this.port?.hostContext?.();
+        if (context) {
+            const { platform, displayMode, deviceCapabilities: device, containerDimensions: box } = context;
+            lines.push(`host: platform=${platform ?? 'unknown'} display=${displayMode ?? 'unknown'} touch=${device?.touch ?? 'unknown'} hover=${device?.hover ?? 'unknown'} container=${box ? JSON.stringify(box) : 'unknown'}`);
+        }
+        const view = this.env.window ?? this.env;
+        lines.push(`device: ${this.env.navigator?.userAgent ?? 'unknown'}`, `viewport: ${view.innerWidth}×${view.innerHeight} @${view.devicePixelRatio ?? 1}x`);
+        const engine = this.audioEngine;
+        lines.push(engine ? `audio: context ${engine.context?.state ?? 'none'}, audible=${engine.audible}, sounding=${engine.sounding?.id ?? 'none'}` : 'audio: none');
+        return [...lines, '', ...this.traceLines].join('\n');
     }
 
     /** The browser's voice is not the engine's, so the engine is told when it speaks: the beds step back under it. */
@@ -984,7 +1032,10 @@ export class LiveHost {
         play.className = 'live-start';
         play.setAttribute('aria-label', 'Play');
         play.innerHTML = PLAY_GLYPH;
-        play.addEventListener('click', () => { void this.beginEmbedded(); });
+        play.addEventListener('click', () => {
+            this.unlockSpeech();
+            void this.beginEmbedded();
+        });
         main.append(heading, play);
     }
 
@@ -996,6 +1047,12 @@ export class LiveHost {
             if (colors) style.setProperty(name, colors[key]);
             else style.removeProperty(name);
         }
+    }
+
+    /** Inside a reader's press, before anything is awaited: a browser voice begun later may then be heard (voices/browser.js). */
+    unlockSpeech() {
+        if (this.selectedVoice() !== 'browser') return;
+        unlockSpeech({ synth: this.env.speechSynthesis, Utterance: this.env.SpeechSynthesisUtterance });
     }
 
     /** Validate the host's sealed answer once, then wait for the reader to begin it. */
@@ -1040,7 +1097,10 @@ export class LiveHost {
             // this device cannot do goes into the hidden status, which already says a silent reading is paced.
             this.controls = createStageControls({
                 runtime,
-                onPlayAgain: () => { void this.playAgainEmbedded(); },
+                onPlayAgain: () => {
+                    this.unlockSpeech();
+                    void this.playAgainEmbedded();
+                },
                 chamber: () => { const player = runtime.playerFor?.(); return player ? this.chamberPlaying(player) : null; },
                 paintTheme: theme => this.paintEmbedTheme(theme ?? this.embeddedTheme),
                 audible: this.voiceKind === 'browser',
@@ -1049,7 +1109,8 @@ export class LiveHost {
                 // Sound, where the reading has an engine for its beds and tones.
                 sound: Boolean(this.audioEngine),
                 // The host card: whether its host will show the card full screen, or floating.
-                port: this.port
+                port: this.port,
+                about: () => this.aboutReading()
             });
             await runtime.start('The answer the assistant presents');
         } catch (error) {
