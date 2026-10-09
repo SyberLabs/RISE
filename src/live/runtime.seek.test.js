@@ -56,6 +56,7 @@ async function open({ lost = [], msPerChar = MS_PER_CHAR, connectingPace = null 
     const cued = [];
     let player = null;
     let completedAt = null;
+    let voiceCallbacks = null;
     runtime = createLiveRuntime({
         adapter, clock,
         createPlayer: session => {
@@ -68,7 +69,7 @@ async function open({ lost = [], msPerChar = MS_PER_CHAR, connectingPace = null 
             create: () => {
                 const voice = createSyntheticVoice({ clock, msPerChar, breathMs: 50 });
                 const attach = voice.attach.bind(voice);
-                voice.attach = callbacks => attach({
+                voice.attach = callbacks => attach(voiceCallbacks = {
                     ...callbacks,
                     start: id => { said.push({ at: now(), kind: 'start', id }); callbacks.start(id); },
                     mark: (id, charIndex, tMs) => { said.push({ at: now(), kind: 'mark', id, charIndex }); callbacks.mark(id, charIndex, tMs); },
@@ -96,6 +97,7 @@ async function open({ lost = [], msPerChar = MS_PER_CHAR, connectingPace = null 
         said, shown, cued,
         player: () => player,
         completedAt: () => completedAt,
+        failVoice: id => voiceCallbacks.fail(id, 'network'),
         journal: type => runtime.journal().filter(entry => entry.type === type)
     };
 }
@@ -346,6 +348,16 @@ describe('the pace', () => {
         expect(runtime.snapshot().paceFrom).toBeNull();
         expect(run.player().speedFactor).toBe(2);
         expectTogether(run);
+    });
+
+    it('set during a passage the voice then fails, lands when the voice is given up on', async () => {
+        const run = await open();
+        await tick(300);
+        runtime.setPace(0.5);
+        expect(runtime.snapshot().paceFrom).toBe('passage');
+        run.failVoice('beat-0');
+        expect(runtime.snapshot().paceFrom).toBeNull();
+        expect(run.player().speedFactor).toBe(2);
     });
 
     it('set while the reading is paused, lands when it plays again', async () => {

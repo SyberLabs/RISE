@@ -443,7 +443,11 @@ export function createLiveRuntime({
             voice: run.voice ?? { playedMs: () => undefined },
             clock,
             graceMs,
-            onDegrade: ({ reason }) => note('voice.degraded', { role, reason })
+            onDegrade: ({ reason }) => {
+                note('voice.degraded', { role, reason });
+                // A pace asked for while the voice was saying something has no next utterance to land in: take it now.
+                if (role === 'main' && !run.closed) retime(run, pace);
+            }
         });
         if (role === 'main' && pace !== 1) {
             // Nothing is said yet, so the voice takes it at once; this clock is new, at the voice's own rate.
