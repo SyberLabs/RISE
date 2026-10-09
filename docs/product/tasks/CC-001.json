@@ -7,7 +7,9 @@
   "delivery": "not_shipped",
   "owner": "Claude coordinator",
   "priority": "later",
-  "dependencies": ["LIVE-009"],
+  "dependencies": [
+    "LIVE-009"
+  ],
   "acceptance": [
     "Measure ChatGPT's sandbox (worker-src blob, base-uri, updateModelContext) with the card as deployed; record in claude-mcp-apps-sandbox and a discussion doc."
   ],
@@ -27,12 +29,16 @@
   ],
   "activity": [
     {
-      "date": "2026-10-09T04:00:00.000Z",
+      "date": "2026-10-09T03:00:00.000Z",
       "summary": "Proposed in the 2026-10-09 reconciliation of records and roadmap."
+    },
+    {
+      "date": "2026-10-09T03:47:19.774Z",
+      "summary": "Recorded the change #571 made by hand: dependency on LIVE-009 added, since the critical path puts the ChatGPT sandbox measurement after the Claude Composer release; still deferred to the end by the owner"
     }
   ],
-  "updatedAt": "2026-10-09T04:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-09T03:47:19.774Z",
+  "revision": 2,
   "summary": "Deferred to the end by the owner (Claude first): generated scenes are promised for Claude alone until this measurement says what ChatGPT's sandbox allows.",
   "blocker": null
 }

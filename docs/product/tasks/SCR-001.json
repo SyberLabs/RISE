@@ -49,10 +49,14 @@
     {
       "date": "2026-10-08T04:01:48.609Z",
       "summary": "Owner answers recorded: all ten looks, build now"
+    },
+    {
+      "date": "2026-10-09T03:47:20.463Z",
+      "summary": "The four defaults appear decided per this record's 2026-10-08 activity and docs/product/discussions/2026-10-07-current-with-a-look.md section 6; the blocker awaits the owner's confirmation to clear"
     }
   ],
-  "updatedAt": "2026-10-08T04:01:48.609Z",
-  "revision": 3,
+  "updatedAt": "2026-10-09T03:47:20.463Z",
+  "revision": 4,
   "summary": "The Current with a look, score stage 1, designed; the owner answered on 2026-10-07: all ten looks admitted and properly lowered (Inlay without its word mask in the card), an explicit theme beats the look’s, no schema bump, and SCR-002 built now rather than after V1. Stage 1b fields and stage 2’s program stay as designed.",
   "blocker": "Class C: the owner signs off the record's four defaults (verified looks only, explicit theme wins, no schema bump, 1a after V1)."
 }

@@ -304,7 +304,7 @@ together means reviewing that boundary once.
 | Loosening the one-clock rule to make a provider's voice fit | **Refused.** It is a second discipline, not a relaxation of the first. §2.7. |
 | Widening the architecture to protect the thesis if the study separates nothing | **Refused**, and this was the original promise. The result gets recorded. |
 
-*Amended 2026-10-09:* the owner withdrew the first refusal (model-executable content) on 2026-10-08. Under the [Creative Control design](superpowers/specs/2026-10-08-creative-control-design.md), a model may write a generated scene, and that scene runs sandboxed: in a worker, on an OffscreenCanvas, after the Worker admits it, within frame budgets, and behind a kill switch that falls back to a native field. The refusal is withdrawn; the safety of the mechanism stays.
+*Amended 2026-10-09:* the owner narrowed the first refusal (model-executable content) on 2026-10-08 so that nothing executable reaches the page or UI, the one exception being a sandboxed scene module under the [Creative Control design](superpowers/specs/2026-10-08-creative-control-design.md): it runs in a worker on an OffscreenCanvas, after the Worker admits it, within frame budgets, and behind a kill switch that falls back to a native field.
 
 ---
 
