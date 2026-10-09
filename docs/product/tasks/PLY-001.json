@@ -131,6 +131,30 @@
       "ref": "e2e/live-mcp.spec.js",
       "note": "Local Chromium, one worker, whole file: 49 passed, including the bar hidden after 3 s of playing and shown again by a pointer move; pace 1.5 shortens the shown line 1251 ms to 838 ms.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/LiveHost.test.js",
+      "note": "Branch ios-voice-unlock: with the fake speechSynthesis under WebKit's gesture rule (gestureRequired), the poster's Play clicked inside a gesture yields speech.start and no voice.degraded; before the unlock the same test failed with voice.degraded reason=voice-did-not-start. About this reading names the voice, voice trouble (voice-did-not-start when Play is not a gesture), speech starts, speechSynthesis, host context, viewport and the [RISE voice] trace.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.seek.test.js",
+      "note": "Branch ios-voice-unlock: Play after the voice was given up on re-arms it (voice.rearmed reason=play): the passage on screen is said again from its start and shown from its first words, the reading ends with the voice (expectTogether), one stand-down only; a voice lost again stands down a second time; no re-arm when nothing was given up. Both re-arm tests failed before the change.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/stage-controls.test.js",
+      "note": "Branch ios-voice-unlock: the Play object carries the silent mark and \"(silent, the voice did not start; Play tries it again)\" while voiceDegraded, cleared when it is not; About this reading collapsed at the foot of Settings, fresh at each opening, Copy to the clipboard or selection where refused. All failed first.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Branch ios-voice-unlock, local Chromium, one worker, whole file: 50 passed (plus a temporary screenshot test of the About panel at 390x481, not committed). Fake host, not a product host; not tried on an iPhone.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -161,10 +185,14 @@
     {
       "date": "2026-10-09T08:56:27.361Z",
       "summary": "The bar's room moves with the words, not the stage box: no flicker"
+    },
+    {
+      "date": "2026-10-09T11:24:14.509Z",
+      "summary": "iOS: speech unlocked inside the Play tap; Play re-arms a stood-down voice; About this reading panel"
     }
   ],
-  "updatedAt": "2026-10-09T08:56:27.361Z",
-  "revision": 7,
+  "updatedAt": "2026-10-09T11:24:14.509Z",
+  "revision": 8,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }
