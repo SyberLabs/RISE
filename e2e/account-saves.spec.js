@@ -22,7 +22,9 @@ const seed = async page => page.evaluate(async record => {
   });
 }, work);
 
-async function mockAccount(page, onPost = () => {}) {
+async function mockAccount(page, onPost = () => {}, { failListAfterSave = false } = {}) {
+  let didSave = false;
+  let failedList = false;
   await page.route('https://syberlabs.io/admin/api/v1/**', async route => {
     const req = route.request();
     const headers = { 'Access-Control-Allow-Origin': new URL(page.url()).origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Content-Type,X-SyberLabs-Account,X-SyberLabs-Expected-User', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
@@ -31,8 +33,11 @@ async function mockAccount(page, onPost = () => {}) {
     if (pathname.includes('/saves') && !req.headers()['x-syberlabs-expected-user']) return route.fulfill({ status: 400, headers, json: { version: 1, error: 'expected_user_required' } });
     if (pathname.includes('/saves') && req.headers()['x-syberlabs-expected-user'] !== 'u1') return route.fulfill({ status: 409, headers, json: { version: 1, error: 'account_changed' } });
     let body = { user: { id: 'u1', label: 'Test reader' } };
-    if (req.method() === 'POST') { expect(req.headers()['x-syberlabs-expected-user']).toBe('u1'); onPost(req); body = { save }; }
-    else if (pathname.endsWith('/saves')) body = { saves: [save] };
+    if (req.method() === 'POST') { didSave = true; expect(req.headers()['x-syberlabs-expected-user']).toBe('u1'); onPost(req); body = { save }; }
+    else if (pathname.endsWith('/saves')) {
+      if (failListAfterSave && didSave && !failedList) { failedList = true; return route.abort(); }
+      body = { saves: [save] };
+    }
     else if (pathname.endsWith('/saves/save-1')) body = { save: { ...save, payload } };
     await route.fulfill({ status: 200, headers, json: { version: 1, ...body } });
   });
@@ -128,6 +133,43 @@ test('a detail response from an old account cannot overwrite the browser library
   expect(rows).toEqual([work]);
 });
 
+test('mobile account metadata, read-only recovery and keyboard focus remain usable after a committed save', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  let posts = 0;
+  await mockAccount(page, () => { posts++; }, { failListAfterSave: true });
+  await page.goto('/');
+  await seed(page);
+  const entrance = page.getByRole('link', { name: 'Open SyberLabs account' });
+  await entrance.click();
+  await expect(page.locator('[data-local-summary]')).toContainText('Account poem · 4 words · poem.txt');
+  await expect(page.locator('[data-backup-summary]')).toContainText('400 bytes');
+  const dialog = page.getByRole('dialog');
+  expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+  const close = page.getByRole('button', { name: 'Close account' });
+  const closeBox = await close.boundingBox();
+  expect(closeBox.width).toBeGreaterThanOrEqual(44);
+  expect(closeBox.height).toBeGreaterThanOrEqual(44);
+  await page.getByRole('button', { name: 'Save to account', exact: true }).click();
+  await expect(page.locator('[data-status]')).toContainText('Saved “Account poem” to your account. Backups could not refresh.');
+  await expect(page.getByRole('button', { name: 'Saved to account', exact: true })).toBeDisabled();
+  await expect(page.locator('[data-replace]')).not.toBeChecked();
+  await expect(page.locator('[data-replace]')).toBeDisabled();
+  await expect(page.locator('[data-backup-summary]')).toContainText('unavailable');
+  const refresh = page.getByRole('button', { name: 'Refresh browser library and account backups' });
+  await refresh.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-status]')).toHaveText('Browser library and account backups refreshed.');
+  await expect(page.locator('[data-replace]')).not.toBeChecked();
+  expect(posts).toBe(1);
+  await expect(page.getByRole('button', { name: 'Saved to account', exact: true })).toBeDisabled();
+  await expect(dialog.locator('section').first()).toHaveAttribute('aria-busy', 'false');
+  expect(await page.locator('[data-status]').evaluate(node => node.closest('[aria-busy]'))).toBeNull();
+  await page.keyboard.press('Tab');
+  expect(await dialog.evaluate(node => node.contains(document.activeElement))).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('rise-account-ux-mobile.png') });
+  await page.keyboard.press('Escape');
+  await expect(entrance).toBeFocused();
+});
 
 test('same-app history entry into a study blocks a remembered account without window focus', async ({ page }) => {
   const requests = [];

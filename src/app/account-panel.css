@@ -17,6 +17,7 @@
 .rise-account-panel section { border-top: 1px solid #a193bf50; padding-top: 12px; margin-top: 20px; }
 .account-panel-head, .account-panel-links { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .account-panel-head p { letter-spacing: .15em; font-size: 11px; }
+.account-panel-head button { min-width: 44px; }
 .rise-account-panel a { color: #9df9ef; text-underline-offset: 3px; }
 .rise-account-panel button, .rise-account-panel select { min-height: 44px; color: #fff; background: #252043; border: 1px solid #b49ada; border-radius: 12px; padding: 8px 12px; font: inherit; }
 .rise-account-panel select { width: 100%; margin: 6px 0 12px; }
@@ -24,6 +25,7 @@
 .rise-account-panel button:disabled { opacity: .5; cursor: default; }
 .rise-account-panel :focus-visible { outline: 2px solid #86ffee; outline-offset: 3px; }
 .account-panel-note { color: #b6adc8; font-size: 12px; }
+.account-selection { margin: 0 0 12px; color: #c4f7eb; overflow-wrap: anywhere; font-size: 13px; }
 .account-replace { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-bottom: 8px; }
 .account-replace input { width: 18px; height: 18px; }
 .rise-account-panel [data-status] { min-height: 3em; }

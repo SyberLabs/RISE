@@ -1,0 +1,51 @@
+{
+  "id": "reader-account-backup-ux",
+  "title": "Clear selected backups and trustworthy account save feedback",
+  "lane": "reader",
+  "milestone": "Account portal",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex-rise-account",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Selected browser text and account snapshot show useful existing metadata on mobile.",
+    "Explicit refresh preserves selections and resets replacement consent.",
+    "Committed save remains clearly successful if only the backup list refresh fails, with no duplicate retry upload.",
+    "Captured account and atomic browser replacement safeguards remain intact."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/app/account-panel.test.js",
+      "date": "2026-10-09",
+      "note": "34 focused account/panel/control/store tests passed, including post-commit network/401/409 recovery and consent/selection states; independent final review repeated this suite."
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/account-saves.spec.js",
+      "date": "2026-10-09",
+      "note": "Five browser account fixtures passed at 320px/375px, including read-only refresh after committed upload, metadata, consent reset, keyboard focus and Escape ownership; initial full gate passed51 tests with3 baseline skips."
+    },
+    {
+      "kind": "document",
+      "ref": "docs/ACCOUNT-SAVES.md",
+      "date": "2026-10-09",
+      "note": "Documented explicit refresh and committed-versus-list recovery without changing API or payload boundaries."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T04:13:18.935Z",
+      "summary": "Claimed authorized focused account UX polish; API and upload scope unchanged."
+    },
+    {
+      "date": "2026-10-09T04:27:03.580Z",
+      "summary": "Implemented and independently reviewed focused account UX; final local release gate and required CI remain before rollout"
+    }
+  ],
+  "updatedAt": "2026-10-09T04:27:03.580Z",
+  "revision": 2,
+  "summary": "Selected work/snapshot metadata, explicit read-only refresh, renewed replacement consent and trustworthy committed-save feedback implemented; runtime account guards unchanged.",
+  "blocker": null
+}
