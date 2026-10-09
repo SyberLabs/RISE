@@ -46,6 +46,12 @@
       "ref": "worker/plus-provider-rpc.test.js",
       "note": "Real Miniflare named-entrypoint RPC and public preview denial coverage; automated branch evidence does not establish production provider readiness.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/570",
+      "note": "Private existing-key provider RPC; public preview voicing refused. Seven focused backend/auth/RPC files passed251 tests at9b43351b, both Wrangler dry-runs and81-file fast-list collection passed. Deployment, provider validity and real acceptance remain pending.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -68,10 +74,14 @@
     {
       "date": "2026-10-09T03:32:08.537Z",
       "summary": "Private VoiceProvider RPC implementation uses the existing preview key without copying it; public preview voicing is refused and production authorization plus atomic reservations remain mandatory. Branch tests and rollout review in progress; deployment and real acceptance remain pending."
+    },
+    {
+      "date": "2026-10-09T03:35:26.830Z",
+      "summary": "Published private provider PR570 with source/RPC tests and ordered CI deployment; implementation is branch evidence only, not production acceptance."
     }
   ],
-  "updatedAt": "2026-10-09T03:32:08.537Z",
-  "revision": 5,
+  "updatedAt": "2026-10-09T03:35:26.830Z",
+  "revision": 6,
   "summary": "Add verified administrator access and a conservative invoice-derived subscriber voice budget; no claim of production success or acceptance yet.",
   "blocker": "Access organization/application configuration, production credentials and spend-policy values, merged implementation PRs and real sign-in/voice evidence remain to be verified."
 }
