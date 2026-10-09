@@ -34,7 +34,8 @@ function hostPage({ relay, current, sampling = true, dive, resultOnly = false, d
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:${height}px}</style>
 <iframe id="view" sandbox="${sandbox}" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
 <script>
-const CURRENT = ${JSON.stringify(current)};
+// Escaped so a Current that carries markup (a figure's SVG) cannot close this script.
+const CURRENT = ${JSON.stringify(current).replace(/</gu, '\\u003c')};
 const DIVE = ${JSON.stringify(dive)};
 const SAMPLING = ${JSON.stringify(sampling)};
 const RESULT_ONLY = ${JSON.stringify(resultOnly)};
@@ -63,7 +64,8 @@ window.addEventListener('message', event => {
       hostCapabilities: SAMPLING ? { sampling: {} } : {}, hostContext: DISPLAY_MODES ? { displayMode: 'inline', availableDisplayModes: DISPLAY_MODES } : {} } });
   } else if (message.method === 'ui/notifications/initialized') {
     if (!RESULT_ONLY) tell('ui/notifications/tool-input', { arguments: { current: CURRENT } });
-    if (FORGED_RESULT) { tell('ui/notifications/tool-result', { content: [{ type: 'text', text: 'accepted' }], structuredContent: { current: CURRENT } }); return; }
+    // As the Worker's answer would, after the input, on a later turn of the event loop.
+    if (FORGED_RESULT) { setTimeout(() => tell('ui/notifications/tool-result', { content: [{ type: 'text', text: 'accepted' }], structuredContent: { current: CURRENT } }), 50); return; }
     fetch('/api/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'rise_present', arguments: { current: CURRENT } } })
     }).then(response => response.json()).then(({ result }) => {
