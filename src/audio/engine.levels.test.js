@@ -87,6 +87,17 @@ describe('ducking a trimmed sound', () => {
     expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(target, 6);
   });
 
+  it('a bed levelled to -29 dBFS sits at about -44 dBFS under the voice: the floor of 0.18 is 14.9 dB down', () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const engine = readyEngine();
+    engine.startSoundscape('starlight');
+    const open = engine.layerGains.soundscape.gain.value;
+    engine.setVoiceDucking(true);
+    const ducked = engine.layerGains.soundscape.gain.value;
+    expect(20 * Math.log10(ducked / open)).toBeCloseTo(-14.9, 1);
+    expect(-29 + 20 * Math.log10(ducked / open)).toBeCloseTo(-44, 0);
+  });
+
   it('a bed started under the voice starts ducked, and comes back to its own level', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     const engine = readyEngine();

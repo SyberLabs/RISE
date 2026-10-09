@@ -1198,13 +1198,19 @@ test('a bed under the reading: the self-contained card starts the first beat’s
   await expect.poll(async () => (await audio())?.started.map(entry => entry.id) ?? [], { timeout: 5_000 }).toContain('starlight');
   expect(await sounding()).toBe('starlight');
   expect(audioLines.some(line => / audio\.bed id=starlight trimDb=-?\d/u.test(line))).toBe(true);
+  // Started is not heard. What leaves the engine's last gate is measured: the bed is levelled to -29 dBFS,
+  // and with the paced voice nothing ducks it. Pause takes it away and Play gives it back.
+  const level = async () => (await audio())?.levelDbfs ?? -Infinity;
+  await expect.poll(level, { timeout: 5_000 }).toBeGreaterThan(-45);
 
   const stage = app.locator('#rise-stage-controls');
   await stage.locator('[data-stage="play"]').click();
   await expect(stage.locator('[data-stage="play"]')).toHaveAttribute('aria-label', /^Play/u);
+  await expect.poll(level, { timeout: 2_000 }).toBeLessThan(-60);
   await stage.locator('[data-stage="play"]').click();
   await expect(stage.locator('[data-stage="play"]')).toHaveAttribute('aria-label', /^Pause/u);
   await expect.poll(sounding, { timeout: 5_000 }).toBe('starlight');
+  await expect.poll(level, { timeout: 5_000 }).toBeGreaterThan(-45);
 
   await stage.locator('[data-stage="settings"]').click();
   const sound = app.locator('#rise-settings-sound');

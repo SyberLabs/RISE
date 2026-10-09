@@ -69,6 +69,24 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/585",
       "note": "SND-001 pull request; not merged at the time of this record.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Field defect (bed logged as started in the Claude card, heard by nobody): __riseLive.audio().levelDbfs measures the RMS after the engine's last gate. On main the starlight bed measured -Infinity dBFS for the whole reading (sessionGain left at 0 by startSession, never faded in because the Chamber does not play a hosted reading). With the fix: -28.6 dBFS within 5 s of Play, -Infinity within 2 s of Pause, -28.6 again after Play. Local Chromium, one worker: live-mcp + live specs 64 passed; gate 57 passed, 3 skipped.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/LiveHost.test.js",
+      "note": "The host brings the engine's session up as the shown reading plays (1.2 s, then 0.6 s), down as it pauses (0.4 s), stops it when the reading completes, follows only the reading shown, and lets go at the end; the ?measure=1 level tap.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/audio/engine.levels.test.js",
+      "note": "A -29 dBFS bed under the voice floor 0.18 sits at about -44 dBFS (14.9 dB down).",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -79,10 +97,14 @@
     {
       "date": "2026-10-09T06:23:04.075Z",
       "summary": "Built on branch snd-001-card-sound and opened as PR #585: levelled catalogue, beds under the voice in the card, a Sound control, the guide's one quiet bed, and the audio trace."
+    },
+    {
+      "date": "2026-10-09T08:06:37.487Z",
+      "summary": "Field defect fixed on branch card-bed-audible: the card's bed was started but silent (session reveal never opened); the host now opens it on Play as the Reader does, and the browser test measures the level."
     }
   ],
-  "updatedAt": "2026-10-09T06:23:04.075Z",
-  "revision": 2,
+  "updatedAt": "2026-10-09T08:06:37.487Z",
+  "revision": 3,
   "summary": "Built on branch snd-001-card-sound (PR #585): the sixteen offered sounds levelled to -29 dBFS RMS +-2 dB through the real engine, beds and tones play in the card ducked under the browser voice, a Sound switch in Settings, Premium Educational teaches one quiet bed, and the trace notes each bed. Not yet witnessed in a real host.",
   "blocker": null
 }
