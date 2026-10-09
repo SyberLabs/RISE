@@ -1117,8 +1117,11 @@ export class AudioEngine {
      * restore, and the music would ratchet down and never come back up. There
      * is one baseline per layer, taken before anything ducked it, and the
      * deepest active floor wins.
+     *
+     * The default floor (0.35, 9.1 dB down) is the voice's: beds are levelled
+     * to -29 dBFS, so it keeps them heard under speech, near -38 dBFS.
      */
-    _setDucking(reason, ducked, { layers = MUSICAL_LAYERS, floor = 0.18,
+    _setDucking(reason, ducked, { layers = MUSICAL_LAYERS, floor = 0.35,
         downSec = 0.15, upSec = 0.6 } = {}) {
         if (!this.context) return;
         const now = this.context.currentTime;

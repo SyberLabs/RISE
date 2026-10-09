@@ -45,8 +45,8 @@ describe('voice ducking', () => {
         // Cutting to zero between every phrase would pump audibly. The
         // bed stays present under the voice.
         engine.setVoiceDucking(true);
-        expect(engine.layerGains.binaural.gain.value).toBeCloseTo(0.8 * 0.18, 5);
-        expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(1.0 * 0.18, 5);
+        expect(engine.layerGains.binaural.gain.value).toBeCloseTo(0.8 * 0.35, 5);
+        expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(1.0 * 0.35, 5);
         expect(engine.layerGains.binaural.gain.value).toBeGreaterThan(0);
     });
 
@@ -68,7 +68,7 @@ describe('voice ducking', () => {
 
     it('does not ratchet when ducked repeatedly', () => {
         // THE bug this test exists for. Twenty phrases of speech must
-        // leave the music where it started, not at 0.18^20 of it.
+        // leave the music where it started, not at 0.35^20 of it.
         for (let i = 0; i < 20; i++) engine.setVoiceDucking(true);
         engine.setVoiceDucking(false);
         expect(engine.layerGains.binaural.gain.value).toBeCloseTo(0.8, 5);
@@ -99,7 +99,7 @@ describe('voice ducking', () => {
     it('tolerates missing layers', () => {
         const sparse = engineWithLayers({ binaural: 0.7 });
         expect(() => sparse.setVoiceDucking(true)).not.toThrow();
-        expect(sparse.layerGains.binaural.gain.value).toBeCloseTo(0.7 * 0.18, 5);
+        expect(sparse.layerGains.binaural.gain.value).toBeCloseTo(0.7 * 0.35, 5);
     });
 });
 
@@ -139,9 +139,9 @@ describe('a layer ducks the bed it sounds over', () => {
         engine.setLayerDucking(true);
         engine.setVoiceDucking(true);
         // The deeper floor wins while both are asking.
-        expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(0.18, 5);
+        expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(0.34, 5);
         // And the voice ducks the layer, which the bed's own duck does not.
-        expect(engine.layerGains.swell.gain.value).toBeCloseTo(0.162, 5);
+        expect(engine.layerGains.swell.gain.value).toBeCloseTo(0.315, 5);
 
         engine.setVoiceDucking(false);
         // The layer is still sounding, so the bed stays at the layer's floor.
@@ -157,7 +157,7 @@ describe('a layer ducks the bed it sounds over', () => {
         engine.setVoiceDucking(true);
         engine.setLayerDucking(true);
         engine.setLayerDucking(false);
-        expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(0.18, 5);
+        expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(0.35, 5);
         engine.setVoiceDucking(false);
         expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(1.0, 5);
     });
