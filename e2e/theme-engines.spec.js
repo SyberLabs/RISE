@@ -101,6 +101,8 @@ const renderTheme = (page, theme) => page.evaluate(async ({ theme, flameColors, 
     let r = 0;
     let g = 0;
     let b = 0;
+    let chromaWeight = 0;
+    const chromaRgb = [0, 0, 0];
     let x = 0;
     let y = 0;
     for (let i = 0; i < data.length; i += 4) {
@@ -119,6 +121,10 @@ const renderTheme = (page, theme) => page.evaluate(async ({ theme, flameColors, 
           : (data[i] - data[i + 1]) / chroma + 4;
       const hue = raw * Math.PI / 3;
       const sat = chroma / max;
+      chromaWeight += chroma;
+      for (let channel = 0; channel < 3; channel += 1) {
+        chromaRgb[channel] += data[i + channel] * chroma;
+      }
       x += sat * Math.cos(hue);
       y += sat * Math.sin(hue);
     }
@@ -127,12 +133,19 @@ const renderTheme = (page, theme) => page.evaluate(async ({ theme, flameColors, 
       painted,
       ground,
       mean: painted ? [r / painted, g / painted, b / painted] : null,
+      // Weight the derived ink by chroma so its faint neutral glow cannot bury the theme.
+      chromaMean: chromaWeight ? chromaRgb.map(channel => channel / chromaWeight) : null,
       hue: Math.hypot(x, y) < 1e-6 ? null : (Math.atan2(y, x) * 180 / Math.PI + 360) % 360
     };
   };
 
   const cortex = await window.__RISE_TEST__.ensureVisualCortex();
   cortex.init();
+  // Compare each theme on the same drawing; random geometry changes its mean ink.
+  const generateHarmonograph = Object.getPrototypeOf(cortex.harmonograph).generate;
+  cortex.harmonograph.generate = function (signal, seed, options) {
+    return generateHarmonograph.call(this, signal, 'theme-engine-comparison', options);
+  };
   cortex.beginSessionVisualIdentity({ colorTheme: theme, flameColors, activeTypes: engines });
   const out = {};
   for (const engine of engines) {
@@ -161,6 +174,10 @@ test('every engine takes each of the nine themes', async ({ page }) => {
       const still = stills[engine][theme];
       expect.soft(still, `${engine} under ${theme} returned no work`).not.toBeNull();
       if (!still) continue;
+      if (engine === 'harmonograph') {
+        expect.soft(still.chromaMean, `harmonograph under ${theme} has no colored ink`).not.toBeNull();
+        expect.soft(still.hue, `harmonograph under ${theme} has no measurable hue`).not.toBeNull();
+      }
       expect.soft(still.painted / still.total, `${engine} under ${theme} is unpainted (${still.painted} of ${still.total} pixels off ground)`)
         .toBeGreaterThanOrEqual(PAINTED_SHARE);
     }
@@ -169,7 +186,8 @@ test('every engine takes each of the nine themes', async ({ page }) => {
       for (let j = i + 1; j < THEMES.length; j += 1) {
         const [a, b] = [THEMES[i], THEMES[j]];
         if (CELL[engine](a) === CELL[engine](b)) continue;
-        const [meanA, meanB] = [stills[engine][a]?.mean, stills[engine][b]?.mean];
+        const color = engine === 'harmonograph' ? 'chromaMean' : 'mean';
+        const [meanA, meanB] = [stills[engine][a]?.[color], stills[engine][b]?.[color]];
         if (!meanA || !meanB) continue;
         expect.soft(distance(meanA, meanB), `${engine}: ${a} (${show(meanA)}) and ${b} (${show(meanB)}) look the same`)
           .toBeGreaterThan(DISTINCT_RGB);
