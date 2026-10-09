@@ -124,10 +124,16 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     finally { busy = false; if (!closed) buttons(); }
   };
   dialog.querySelector('[data-close]').addEventListener('click', () => dialog.close());
-  // The native dialog owns Escape; the underlying reader must not navigate
-  // or cancel its transition when this account panel closes.
-  dialog.addEventListener('keydown', event => { if (event.key === 'Escape') event.stopPropagation(); });
-  dialog.addEventListener('close', () => { closed = true; dialog.remove(); trigger?.focus(); onClose(); }, { once: true });
+  // Disabling a focused control during Refresh can leave focus on the page.
+  // Own keyboard events while open even then, preserving native control/Tab
+  // defaults while keeping the reader behind the modal from handling them.
+  const modalKeydown = event => {
+    if (!dialog.open) return;
+    event.stopPropagation();
+    if (event.key === 'Escape') { event.preventDefault(); dialog.close(); }
+  };
+  window.addEventListener('keydown', modalKeydown, true);
+  dialog.addEventListener('close', () => { closed = true; window.removeEventListener('keydown', modalKeydown, true); dialog.remove(); trigger?.focus(); onClose(); }, { once: true });
   localSelect.addEventListener('change', () => { attempt = null; details(); buttons(); });
   remoteSelect.addEventListener('change', () => { replaceInput.checked = false; details(); buttons(); });
   refreshButton.addEventListener('click', () => run(async () => {

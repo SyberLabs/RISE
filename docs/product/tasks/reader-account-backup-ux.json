@@ -12,7 +12,8 @@
     "Selected browser text and account snapshot show useful existing metadata on mobile.",
     "Explicit refresh preserves selections and resets replacement consent.",
     "Committed save remains clearly successful if only the backup list refresh fails, with no duplicate retry upload.",
-    "Captured account and atomic browser replacement safeguards remain intact."
+    "Captured account and atomic browser replacement safeguards remain intact.",
+    "Escape closes Account after refresh loses control focus without navigating the background, and normal router keyboard behavior resumes after closing."
   ],
   "evidence": [
     {
@@ -32,6 +33,12 @@
       "ref": "docs/ACCOUNT-SAVES.md",
       "date": "2026-10-09",
       "note": "Documented explicit refresh and committed-versus-list recovery without changing API or payload boundaries."
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/account-saves.spec.js",
+      "date": "2026-10-09",
+      "note": "Seven account browser fixtures and39 focused tests pass. Refresh with body focus now closes Account via Escape without changing Library route/view; an additional assertion verifies normal router Escape resumes after close."
     }
   ],
   "activity": [
@@ -42,10 +49,14 @@
     {
       "date": "2026-10-09T04:27:03.580Z",
       "summary": "Implemented and independently reviewed focused account UX; final local release gate and required CI remain before rollout"
+    },
+    {
+      "date": "2026-10-09T04:55:30.000Z",
+      "summary": "Production authenticated refresh revealed page-focus Escape bypass; added modal window capture with background-key isolation and close cleanup, retaining native controls and Tab defaults."
     }
   ],
-  "updatedAt": "2026-10-09T04:27:03.580Z",
-  "revision": 2,
+  "updatedAt": "2026-10-09T04:55:30.000Z",
+  "revision": 3,
   "summary": "Selected work/snapshot metadata, explicit read-only refresh, renewed replacement consent and trustworthy committed-save feedback implemented; runtime account guards unchanged.",
   "blocker": null
 }
