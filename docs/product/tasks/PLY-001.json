@@ -95,6 +95,12 @@
       "ref": "src/live/beat-conductor.test.js",
       "note": "The missing test for 2e933c22: a hold its scene held, asked again with onHold now null (as after a seek back), stops being fixed and is timed at its paced 6000 ms. It failed with the line reverted (expected true to be false) and passes with it; 21 passed. player.govern.test.js adds the Player consequence, a paused atom no longer fixed has its time left scaled again; the two files together, 34 passed.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Validation repair on codex/fix-full-validation-regressions: pace measurement locates beat-2 in the fixture and reads its persistent atom timing record, avoiding a poll that can miss the 800 ms shown line and a later snapshot that can select the following atom. Both speedup thresholds are unchanged. Local unit checks: producer.compile-final, render intake, runtime seek and stage controls, 82 passed. Branch evidence only; no real-host acceptance.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -109,10 +115,14 @@
     {
       "date": "2026-10-09T00:14:17.331Z",
       "summary": "Deployed: #549 (8877fb38), #551 (286e7539) and #553 (96aee99a) merged and live in release 2e9f473f (rise.syberlabs.io/release.txt, main CI run 37862762796); still in review, no owner witness in a real host."
+    },
+    {
+      "date": "2026-10-09T02:05:15.114Z",
+      "summary": "Recorded narrow validation repair evidence; owner, acceptance, and release state preserved."
     }
   ],
-  "updatedAt": "2026-10-09T00:14:17.331Z",
-  "revision": 3,
+  "updatedAt": "2026-10-09T02:05:15.114Z",
+  "revision": 4,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Deployed, not accepted: the owner has not witnessed it in a real host (owner witness pass, 2026-10-07)."
 }
