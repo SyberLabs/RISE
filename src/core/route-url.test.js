@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { addressIsOwnTo, pathForRoute, routeFromPath, ROUTE_ALIASES, ROUTE_PANES } from './route-url.js';
 
 describe('route urls', () => {
+    it('opens the voice demo directly and preserves its address', () => {
+        expect(routeFromPath('/voice-demo')).toEqual({ id: 'read', data: { pane: 'voice-demo' } });
+        expect(pathForRoute('read', { pane: 'voice-demo' })).toBe('/voice-demo');
+    });
     it('round-trips every route id', () => {
         for (const id of Object.keys(ROUTE_ALIASES)) {
             const data = ROUTE_PANES[id] ? { pane: ROUTE_PANES[id] } : {};

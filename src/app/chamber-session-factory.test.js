@@ -29,7 +29,7 @@ const session = () => ({ atoms: [{}], visualConfig: { visualMode: 'off' } });
 
 function operations() {
     const cortex = { warmImagery: vi.fn(), resetSessionVisualIdentity: vi.fn(), updateConfig: vi.fn() };
-    const audio = { stopAmbient: vi.fn(), stopSession: vi.fn() };
+    const audio = { stopAmbient: vi.fn(), stopSession: vi.fn(), startSession: vi.fn(async () => {}) };
     return {
         router: { navigationRevision: 1, back: vi.fn(), getViewInstance: () => null },
         ensureVisualCortex: async () => cortex,
@@ -53,8 +53,55 @@ async function mount(op, reading) {
 }
 
 afterEach(() => {
+    localStorage.removeItem('rise.plus');
     vi.clearAllMocks();
     vi.useRealTimers();
+});
+
+describe('an explicitly requested ElevenLabs demo', () => {
+    const demo = () => ({ ...session(), atoms: [{ content: 'A little light.' }], provenance: { kind: 'local-text' }, origin: { view: 'voice-demo', requireElevenLabs: true, voice: 'river' } });
+    it('refuses unverified entitlement even when the browser remembers Plus', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: Date.now() }));
+        const reading = demo();
+        await expect(createChamberSession(operations(), document.createElement('div'), reading)).rejects.toThrow();
+        expect(voiceReading).not.toHaveBeenCalled();
+        expect(Chamber).not.toHaveBeenCalled();
+        localStorage.removeItem('rise.plus');
+    });
+    it('returns a voice refusal without mounting a silent Chamber', async () => {
+        fetchPlusStatus.mockResolvedValueOnce({ admin: true, available: true });
+        voiceReading.mockResolvedValueOnce({ ok: false, code: 'PLUS_ALLOWANCE', message: 'Voice allowance used up.' });
+        const reading = demo();
+        await expect(createChamberSession(operations(), document.createElement('div'), reading)).rejects.toThrow();
+        expect(reading.origin.voiceFailure).toContain('allowance');
+        expect(Chamber).not.toHaveBeenCalled();
+    });
+    it('uses the explicitly chosen voice even when the saved preference is off', async () => {
+        fetchPlusStatus.mockResolvedValueOnce({ subscriber: true, available: true });
+        voiceReading.mockResolvedValueOnce({ ok: true, voiceId: 'eleven', manifest: {}, fetchImpl: vi.fn() });
+        const op = operations();
+        op.getSettings = () => ({ plusVoice: false, plusVoiceSlug: 'other' });
+        const options = await mount(op, demo());
+        expect(voiceReading).toHaveBeenCalledWith(expect.any(Array), { voice: 'river' });
+        expect(options.voice.options.voiceId).toBe('eleven');
+    });
+    it('does not mount a silent reader when the ElevenLabs audio cannot be decoded', async () => {
+        fetchPlusStatus.mockResolvedValueOnce({ admin: true, available: true });
+        voiceReading.mockResolvedValueOnce({ ok: true, voiceId: 'eleven', manifest: {}, fetchImpl: vi.fn() });
+        Voice.mockImplementationOnce(function () { this.prepare = async () => false; this.destroy = vi.fn(); });
+        const reading = demo();
+        await expect(createChamberSession(operations(), document.createElement('div'), reading)).rejects.toThrow('could not be prepared');
+        expect(Chamber).not.toHaveBeenCalled();
+        expect(voiceReading).toHaveBeenCalledTimes(1);
+    });
+    it('refuses malformed provider output without a substitute voice or retry', async () => {
+        fetchPlusStatus.mockResolvedValueOnce({ subscriber: true, available: true });
+        voiceReading.mockResolvedValueOnce({ ok: false, code: 'BAD_PACK', message: 'The ElevenLabs response was not a voice pack.' });
+        await expect(createChamberSession(operations(), document.createElement('div'), demo())).rejects.toThrow('not a voice pack');
+        expect(Voice).not.toHaveBeenCalled();
+        expect(Chamber).not.toHaveBeenCalled();
+        expect(voiceReading).toHaveBeenCalledTimes(1);
+    });
 });
 
 describe('the Chamber a live reading gets', () => {

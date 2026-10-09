@@ -34,7 +34,8 @@ export class Read {
       loaders: {
         setup: load.setup || (() => import('./read/ChamberOrbital.js')),
         chamber: load.chamber,
-        live: load.live
+        live: load.live,
+        'voice-demo': () => import('./read/VoiceDemo.js')
       },
       factories: {
         setup: (element, { ChamberOrbital }, data) => {
@@ -43,7 +44,12 @@ export class Read {
           return orbital;
         },
         chamber: (element, { createChamberSession }, data) => createChamberSession(chamber, element, data?.session),
-        live: (element, { LiveHost }) => new LiveHost(element, live)
+        live: (element, { LiveHost }) => new LiveHost(element, live),
+        'voice-demo': (element, { VoiceDemo }) => new VoiceDemo(element, {
+          onBeginSession: setup.onBeginSession,
+          ensureAudioEngine: chamber.ensureAudioEngine,
+          getAudioEngine: chamber.getAudioEngine
+        })
       }
     });
   }
@@ -59,7 +65,7 @@ export class Read {
 
   /** The pane `data` names (the router's aliases always name one), else setup. */
   static paneFor(data = {}) {
-    return ['setup', 'chamber', 'live'].includes(data?.pane) ? data.pane : 'setup';
+    return ['setup', 'chamber', 'live', 'voice-demo'].includes(data?.pane) ? data.pane : 'setup';
   }
 
   async open(data = {}) {

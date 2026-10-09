@@ -50,6 +50,7 @@ export const ROUTE_ALIASES = {
     'visual-lab': 'make',
     'visual-catalog': 'make',
     live: 'read',
+    'voice-demo': 'read',
     chapel: 'library'
 };
 
@@ -75,7 +76,8 @@ export const ROUTE_PANES = {
     emotions: 'affect',
     chamber: 'setup',
     'chamber-session': 'chamber',
-    live: 'live'
+    live: 'live',
+    'voice-demo': 'voice-demo'
 };
 
 /** The pane a room opens when its data names none. */
@@ -147,6 +149,7 @@ const ROUTES = [
             && /^\/(?!\/)/u.test(data.session.publicPath) ? data.session.publicPath : '/read/session')
     }, 'read'),
     pane('live', { pattern: LIVE_PATH, build: () => LIVE_PATH }, 'read'),
+    pane('voice-demo', { pattern: '/voice-demo', build: () => '/voice-demo' }, 'read'),
 
     fixed('library', '/library'),
     pane('chapel', {

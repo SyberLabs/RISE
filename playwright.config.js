@@ -61,7 +61,8 @@ const GATE = [
     '**/request-preview.spec.js',
     '**/scriptorium.spec.js',
     '**/smoke.spec.js',
-    '**/url-routing.spec.js'
+    '**/url-routing.spec.js',
+    '**/voice-demo.spec.js'
 ];
 const e2ePort = Number(process.env.RISE_E2E_PORT) || 4317;
 

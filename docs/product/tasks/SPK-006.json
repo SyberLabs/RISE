@@ -1,0 +1,50 @@
+{
+  "id": "SPK-006",
+  "title": "Direct ElevenLabs psychedelic voice demo",
+  "lane": "shared",
+  "milestone": "Speech service",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "codex-rise-voice (Seth)",
+  "priority": "now",
+  "dependencies": [
+    "SPK-005"
+  ],
+  "acceptance": [
+    "A public /voice-demo route offers editable original short text, a server-listed voice and a continuous psychedelic fractal preset without Settings, Library or Workshop detours.",
+    "Returning verified administrators and subscribers can Begin from the form with an explicit audio gesture; fresh server entitlement/readiness and existing Worker limits remain authoritative.",
+    "Provider refusal, malformed audio or decode failure keeps the draft and failure message on the form without a silent or alternate voice reading. Duplicate pending Begin makes one request.",
+    "Draft and selected voice/look survive full-page administrator sign-in and successful Chamber exit; explicit Reset and existing Clear browser data remove the retained draft.",
+    "Focused and required CI tests pass, browser evidence shows a painted fractal field, and real production administrator/subscriber audio is witnessed after external configuration is ready. Mocked provider evidence alone is not production acceptance."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/components/read/VoiceDemo.test.js",
+      "note": "TDD covers authoritative readiness, admission, draft/sign-in retention, duplicate submission and router rollback refusal.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/voice-demo.spec.js",
+      "note": "Local endpoint fixture with decodable audio; no vendor call or production acceptance.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "vitest.fast.config.js",
+      "note": "86-file unit subset passed 1,930 tests with 2 existing skips; full browser gate passed 56 with 3 existing skips. Final demo tests use a local decodable provider fixture and no autoplay override; production access/audio has not been accepted.",
+      "date": "2026-10-09"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T04:55:00.000Z",
+      "summary": "Claimed from the authorized direct demo request; implementation and mocked browser checks in progress. External Access/payment/provider acceptance remains separate."
+    }
+  ],
+  "updatedAt": "2026-10-09T04:55:00.000Z",
+  "revision": 1,
+  "summary": "Direct demo client in isolated branch, awaiting required CI and production configuration/acceptance.",
+  "blocker": null
+}

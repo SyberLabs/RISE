@@ -55,6 +55,11 @@ export function createSessionPlayer(session) {
 
 export async function createChamberSession(operations, container, sessionData) {
     const session = sessionData || operations.getCurrentSession();
+    const requiredVoice = session?.origin?.view === 'voice-demo' && session.origin.requireElevenLabs === true;
+    const refuseRequiredVoice = message => {
+        session.origin.voiceFailure = message;
+        throw new Error(message);
+    };
     // A LIVE READING ARRIVES WITH ITS PLAYER, ALREADY RUNNING OR HELD. It is the
     // one Player for the whole Current, so it is adopted, not rebuilt; and
     // because the view replaces one already on screen (a Dive, coming back), the
@@ -172,9 +177,12 @@ export async function createChamberSession(operations, container, sessionData) {
         let plusVoicing = null;
         const plus = plusState();
         const ownVoice = !live && !spatialLaunch && session.recitation?.enabled !== true && isReadersOwn(session)
-            && operations.getSettings()?.plusVoice !== false;
+            && (requiredVoice || operations.getSettings()?.plusVoice !== false);
         const entitlement = ownVoice ? await fetchPlusStatus() : null;
         assertCurrent();
+        if (requiredVoice && (!ownVoice || !entitlement?.available || !(entitlement.admin || entitlement.subscriber))) {
+            refuseRequiredVoice('Could not confirm ElevenLabs access or availability. Your text is still here. Check availability and try again.');
+        }
         if (ownVoice && ((entitlement?.available && (entitlement.admin || entitlement.subscriber))
             || (plus.claimed && !plus.lapsed))) {
             const { spokenAtoms, voiceReading } = await import('../audio/plus-voice.js');
@@ -183,7 +191,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 plusRefused = 'TOO_LONG';
             } else {
                 ui.updateLoadingStatus('Asking for the Plus voice...');
-                const voiced = await voiceReading(session.atoms, { voice: plusVoiceSlug(operations.getSettings()?.plusVoiceSlug) });
+                const voiced = await voiceReading(session.atoms, { voice: plusVoiceSlug(requiredVoice ? session.origin.voice : operations.getSettings()?.plusVoiceSlug) });
                 assertCurrent();
                 if (voiced.ok) {
                     plusVoicing = voiced;
@@ -193,10 +201,12 @@ export async function createChamberSession(operations, container, sessionData) {
                     session.recitation = { enabled: true, pack: null };
                     session.voiceId = voiced.voiceId;
                 } else {
+                    if (requiredVoice) refuseRequiredVoice(voiced.message || 'ElevenLabs could not render this reading. Your text is still here.');
                     plusRefused = voiced.code;
                     if (voiced.code === 'PLUS_REQUIRED' || voiced.code === 'PLUS_LAPSED') markPlusLapsed();
                 }
             }
+            if (requiredVoice && plusRefused) refuseRequiredVoice('This reading is too long for the ElevenLabs voice. Your text is still here.');
         }
 
         // Start the selected neural voice during preparation, not
@@ -500,6 +510,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 context: audioEngine?.context ? audioEngine.context.state : 'none'
             });
             if (!spokenReady) {
+                if (requiredVoice) refuseRequiredVoice('The ElevenLabs audio could not be prepared. No reading was started. Your text is still here.');
                 operations.showToast(
                     'The spoken voice could not be prepared. The reading continues at its own pace.',
                     5000
@@ -594,6 +605,11 @@ export async function createChamberSession(operations, container, sessionData) {
         if (plusRefused) chamber.announceMovement(plusNotice(plusRefused));
         if (recitationVoice) {
             recitationVoice.onLapse = () => {
+                if (requiredVoice) {
+                    player.pause();
+                    chamber.announceMovement('The ElevenLabs voice stopped. Your text remains available.');
+                    return;
+                }
                 markPlusLapsed();
                 chamber.announceMovement(plusNotice('PLUS_LAPSED'));
             };
@@ -613,6 +629,11 @@ export async function createChamberSession(operations, container, sessionData) {
         await operations.getAudioEngine()?.stopSession({ immediate: true })?.catch(() => {});
         operations.hideLoading();
         if (error?.name === 'AbortError') throw error;
+        if (requiredVoice) {
+            session.origin.voiceFailure ||= 'The ElevenLabs reading could not start. Your text is still here.';
+            operations.releaseSession?.(session);
+            throw error;
+        }
         // A missing optional chunk must not trigger the router's reload recovery:
         // the personal draft may not have been kept yet.
         if (session.provenance?.kind === 'personal-generated') throw new Error('Personal reading playback unavailable.');

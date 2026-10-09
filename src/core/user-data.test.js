@@ -110,7 +110,9 @@ describe('personal data inventory', () => {
         const clearMedia = vi.spyOn(WorkshopMedia, 'clear').mockResolvedValue(undefined);
         const clearPlusVoices = vi.spyOn(PlusVoices, 'clear').mockResolvedValue(undefined);
 
+        sessionStorage.setItem('rise.voice-demo.draft', 'private words');
         await clearUserData();
+        expect(sessionStorage.getItem('rise.voice-demo.draft')).toBeNull();
 
         Object.values(USER_DATA_KEYS).forEach(key => expect(localStorage.getItem(key)).toBeNull());
         expect(sessionStorage.getItem(VISUAL_CONSENT_KEY)).toBeNull();

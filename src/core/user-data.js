@@ -187,6 +187,7 @@ export async function exportUserData(settings = null, options = {}) {
 }
 
 export async function clearUserData() {
+    try { sessionStorage.removeItem('rise.voice-demo.draft'); } catch { /* Continue clearing accessible stores. */ }
     for (const key of Object.values(USER_DATA_KEYS)) localStorage.removeItem(key);
     for (let index = localStorage.length - 1; index >= 0; index -= 1) {
         const key = localStorage.key(index);
