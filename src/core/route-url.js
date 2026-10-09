@@ -51,6 +51,7 @@ export const ROUTE_ALIASES = {
     'visual-catalog': 'make',
     live: 'read',
     'voice-demo': 'read',
+    try: 'read',
     chapel: 'library'
 };
 
@@ -77,7 +78,8 @@ export const ROUTE_PANES = {
     chamber: 'setup',
     'chamber-session': 'chamber',
     live: 'live',
-    'voice-demo': 'voice-demo'
+    'voice-demo': 'voice-demo',
+    try: 'try'
 };
 
 /** The pane a room opens when its data names none. */
@@ -150,6 +152,10 @@ const ROUTES = [
     }, 'read'),
     pane('live', { pattern: LIVE_PATH, build: () => LIVE_PATH }, 'read'),
     pane('voice-demo', { pattern: '/voice-demo', build: () => '/voice-demo' }, 'read'),
+    // The public one-minute sample, and the visitor's own text after it
+    // (src/components/read/Try.js). Linked from syberlabs.io with the slash.
+    pane('try', { pattern: '/try', build: data => (data?.kind === 'text' ? '/try/your-text/' : '/try/') }, 'read'),
+    pane('try', { pattern: '/try/your-text', build: null, parse: () => ({ kind: 'text' }) }, 'read'),
 
     fixed('library', '/library'),
     pane('chapel', {

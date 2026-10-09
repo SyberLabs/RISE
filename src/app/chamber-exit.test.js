@@ -46,6 +46,25 @@ describe('leaving a reading opened from try-rise', () => {
     });
 });
 
+describe('leaving a /try/ reading', () => {
+    const sample = { origin: { view: 'try', kind: 'sample', run: 3 } };
+    it('ends on the /try/ completion screen, naming the run that ended', () => {
+        expect(chamberExitTarget('complete', sample)).toEqual({
+            kind: 'navigate', view: 'try', data: { kind: 'sample', run: 3, stage: 'complete' }, replaceUrl: true
+        });
+    });
+    it('returns to the entry screen of the same text when the reader leaves early', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, { origin: { view: 'try', kind: 'text', run: 1 } }), reason).toEqual({
+                kind: 'navigate', view: 'try', data: { kind: 'text', run: 1, stage: 'idle' }, replaceUrl: true
+            });
+        }
+    });
+    it('is the only reading a completion moves', () => {
+        expect(chamberExitTarget('complete', { origin: { view: 'live' } })).toBeNull();
+    });
+});
+
 describe('every other surface leaves exactly as it did', () => {
     it('returns a live reading to the live surface', () => {
         for (const reason of LEAVING) {

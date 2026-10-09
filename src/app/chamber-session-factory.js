@@ -60,6 +60,10 @@ export async function createChamberSession(operations, container, sessionData) {
         session.origin.voiceFailure = message;
         throw new Error(message);
     };
+    // A /try/ reading uses only what every visitor has (src/app/try-session.js):
+    // never the Plus voice, and a failure goes back to the /try/ screen, which
+    // offers Retry and Read silently, rather than into a silent reading.
+    const tryReading = session?.origin?.view === 'try';
     // A LIVE READING ARRIVES WITH ITS PLAYER, ALREADY RUNNING OR HELD. It is the
     // one Player for the whole Current, so it is adopted, not rebuilt; and
     // because the view replaces one already on screen (a Dive, coming back), the
@@ -176,7 +180,7 @@ export async function createChamberSession(operations, container, sessionData) {
         let plusRefused = null;
         let plusVoicing = null;
         const plus = plusState();
-        const ownVoice = !live && !spatialLaunch && session.recitation?.enabled !== true && isReadersOwn(session)
+        const ownVoice = !live && !spatialLaunch && !tryReading && session.recitation?.enabled !== true && isReadersOwn(session)
             && (requiredVoice || operations.getSettings()?.plusVoice !== false);
         const entitlement = ownVoice ? await fetchPlusStatus() : null;
         assertCurrent();
@@ -511,6 +515,10 @@ export async function createChamberSession(operations, container, sessionData) {
             });
             if (!spokenReady) {
                 if (requiredVoice) refuseRequiredVoice('The ElevenLabs audio could not be prepared. No reading was started. Your text is still here.');
+                if (tryReading) {
+                    session.origin.failure = 'The voice could not be prepared.';
+                    throw new Error(session.origin.failure);
+                }
                 operations.showToast(
                     'The spoken voice could not be prepared. The reading continues at its own pace.',
                     5000
@@ -631,6 +639,11 @@ export async function createChamberSession(operations, container, sessionData) {
         if (error?.name === 'AbortError') throw error;
         if (requiredVoice) {
             session.origin.voiceFailure ||= 'The ElevenLabs reading could not start. Your text is still here.';
+            operations.releaseSession?.(session);
+            throw error;
+        }
+        if (tryReading) {
+            session.origin.failure ||= 'The reading could not be prepared.';
             operations.releaseSession?.(session);
             throw error;
         }

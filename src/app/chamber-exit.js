@@ -52,6 +52,19 @@ export function chamberExitTarget(reason, session = {}, data = null) {
         return { kind: 'navigate', view: 'workshop', data: { blueprintId: data.blueprintId } };
     }
 
+    // A /try/ reading returns to /try/: its completion screen when it ran to
+    // the end, its own entry screen when the reader left early. `run` names
+    // which Begin ended, so the screen hears about every one of them.
+    if (session?.origin?.view === 'try' && (reason === 'complete' || LEAVING.has(reason))) {
+        const { kind, run } = session.origin;
+        return {
+            kind: 'navigate',
+            view: 'try',
+            data: { kind, run, stage: reason === 'complete' ? 'complete' : 'idle' },
+            replaceUrl: true
+        };
+    }
+
     if (!LEAVING.has(reason)) return null;
 
     if (session?.origin?.view === 'voice-demo') return { kind: 'navigate', view: 'voice-demo', replaceUrl: true };

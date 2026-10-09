@@ -6,6 +6,16 @@ describe('route urls', () => {
         expect(routeFromPath('/voice-demo')).toEqual({ id: 'read', data: { pane: 'voice-demo' } });
         expect(pathForRoute('read', { pane: 'voice-demo' })).toBe('/voice-demo');
     });
+    it('opens /try/ and its own-text step directly, with the slash the homepage links', () => {
+        for (const path of ['/try', '/try/']) expect(routeFromPath(path)).toEqual({ id: 'read', data: { pane: 'try' } });
+        for (const path of ['/try/your-text', '/try/your-text/']) {
+            expect(routeFromPath(path)).toEqual({ id: 'read', data: { pane: 'try', kind: 'text' } });
+        }
+        expect(pathForRoute('read', { pane: 'try' })).toBe('/try/');
+        expect(pathForRoute('read', { pane: 'try', kind: 'sample', stage: 'complete', run: 2 })).toBe('/try/');
+        expect(pathForRoute('read', { pane: 'try', kind: 'text' })).toBe('/try/your-text/');
+        expect(routeFromPath('/try/elsewhere')).toBeNull();
+    });
     it('round-trips every route id', () => {
         for (const id of Object.keys(ROUTE_ALIASES)) {
             const data = ROUTE_PANES[id] ? { pane: ROUTE_PANES[id] } : {};

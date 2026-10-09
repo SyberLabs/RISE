@@ -38,6 +38,7 @@ import { defineConfig } from '@playwright/test';
  *   journeys          Home and the Vault offer no Journeys door
  *   curation          what the shelf is allowed to show
  *   url-routing       every room has an address; reload and Back keep it
+ *   try               /try/, the public sample syberlabs.io links to
  *
  * Full coverage runs in sixteen shards on main without holding the release.
  * This corridor is the local fast check before pushing and runs in every
@@ -61,6 +62,7 @@ const GATE = [
     '**/request-preview.spec.js',
     '**/scriptorium.spec.js',
     '**/smoke.spec.js',
+    '**/try.spec.js',
     '**/url-routing.spec.js',
     '**/voice-demo.spec.js'
 ];

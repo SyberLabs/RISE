@@ -5154,6 +5154,12 @@ export class Chamber {
       this._visualFieldDirector?.pause();
       return;
     }
+    // A /try/ reading ends on its own completion screen (src/components/read/Try.js).
+    if (this.session?.origin?.view === 'try') {
+      if (document.fullscreenElement) document.exitFullscreen();
+      this.onExit('complete');
+      return;
+    }
     if (this.session?.firstReadPreview === true) this.dismissFirstReadChoice();
     const display = this.container.querySelector('#chamber-display');
     const postSession = this.container.querySelector('#chamber-post');
