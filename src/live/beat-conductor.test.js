@@ -274,6 +274,21 @@ describe('a hold the scene may end', () => {
     await clock.advance(0);
   });
 
+  it('stops calling a hold fixed once its scene no longer holds it, so the pace times it again', async () => {
+    let holding = true;
+    const running = scene();
+    const { clock, player } = setup({ onHold: atom => (holding ? running.onHold(atom) : null) });
+    void player.governor.completion(SCENE_HOLD, 0);
+    expect(player.governor.fixed(SCENE_HOLD)).toBe(true);
+    player.set('paused');
+    // The reader seeks back before the scene began: asked again, the host has no scene to hold it.
+    holding = false;
+    void player.governor.completion(SCENE_HOLD, 0);
+    expect(player.governor.fixed(SCENE_HOLD)).toBe(false);
+    expect(player.governor.duration(SCENE_HOLD, 0)).toBe(6000);
+    await clock.advance(0);
+  });
+
   it('keeps its own clock when there is no scene to ask, or the hold has no maxMs', async () => {
     const asked = [];
     const { clock, player } = setup({ onHold: atom => { asked.push(atom); return null; } });
