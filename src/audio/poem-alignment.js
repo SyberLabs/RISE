@@ -81,6 +81,33 @@ export function mapAlignment({ atoms, alignment }) {
   return { ok: true, atoms: mapped };
 }
 
+/**
+ * Consecutive atoms grouped so each group's spoken text (atoms joined by one
+ * space) fits the vendor's per-request cap. A whole division is rarely one
+ * request; a poem always is. An atom longer than the cap stands alone and is
+ * refused by the vendor, never split, so the letter check still holds.
+ * @param {string[]} atoms
+ * @param {number} maxChars
+ * @returns {{ from: number, to: number, text: string }[]} half-open atom ranges
+ */
+export function groupAtoms(atoms, maxChars) {
+  const groups = [];
+  let from = 0;
+  let length = 0;
+  for (let a = 0; a < atoms.length; a++) {
+    const next = length ? length + 1 + atoms[a].length : atoms[a].length;
+    if (a > from && next > maxChars) {
+      groups.push({ from, to: a, text: atoms.slice(from, a).join(' ') });
+      from = a;
+      length = atoms[a].length;
+    } else {
+      length = next;
+    }
+  }
+  if (from < atoms.length) groups.push({ from, to: atoms.length, text: atoms.slice(from).join(' ') });
+  return groups;
+}
+
 const LEAD_MS = 120;
 const TAIL_MS = 400;
 const GUARD_MS = 30;
