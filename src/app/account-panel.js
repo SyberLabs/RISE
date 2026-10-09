@@ -64,7 +64,11 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
   };
   const buttons = () => {
     const selected = works.find(work => work.id === localSelect.value);
-    const alreadySaved = selected && savedFingerprint === JSON.stringify(workPayload(selected));
+    let alreadySaved = false;
+    if (selected && savedFingerprint) {
+      try { alreadySaved = savedFingerprint === JSON.stringify(workPayload(selected)); }
+      catch { /* Backup eligibility is reported by the explicit save action. */ }
+    }
     saveButton.disabled = busy || invalidated || !localSelect.value || alreadySaved;
     saveButton.textContent = alreadySaved ? 'Saved to account' : 'Save to account';
     restoreButton.disabled = busy || invalidated || remoteState !== 'ready' || !remoteSelect.value;

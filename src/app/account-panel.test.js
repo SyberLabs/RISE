@@ -163,3 +163,15 @@ it.each([[409, 'account_changed'], [401, 'unauthorized']])('keeps committed succ
   }
   expect(dialog.querySelector('[data-restore]').disabled).toBe(true);
 });
+
+it('keeps valid browser works with account-ineligible metadata usable and reports refusal only on explicit save', async () => {
+  const localOnly = draftLocalWork({ title: 'A'.repeat(1001), text: 'A valid browser text.' });
+  const fetcher = vi.fn(async url => url.endsWith('/account') ? ok({ user: { id: 'u', label: 'Reader' } }) : ok({ saves: [] }));
+  vi.stubGlobal('fetch', fetcher);
+  const dialog = openAccountPanel({ user: { id: 'u', label: 'Reader' }, store: { ...store, all: async () => [localOnly] } });
+  await vi.waitFor(() => expect(dialog.querySelector('[data-save]').disabled).toBe(false));
+  dialog.querySelector('[data-save]').click();
+  await vi.waitFor(() => expect(dialog.querySelector('[data-status]').textContent).toContain('invalid metadata'));
+  expect(dialog.querySelector('[data-refresh]').disabled).toBe(false);
+  expect(fetcher.mock.calls.some(([, options]) => options.method === 'POST')).toBe(false);
+});
