@@ -42,8 +42,9 @@ afterEach(async () => {
 /**
  * Open the field's Current; what the voice said, what the words showed and what the scene was cued, each with when.
  * `lost`: passages the voice takes and never says, the first time it is given them. `msPerChar`: how slowly the voice speaks.
+ * `connectingPace`: a pace the reader sets while the reading is still being opened.
  */
-async function open({ lost = [], msPerChar = MS_PER_CHAR } = {}) {
+async function open({ lost = [], msPerChar = MS_PER_CHAR, connectingPace = null } = {}) {
     const losing = new Set(lost);
     const clock = createRealClock();
     const adapter = createMcpAppAdapter({
@@ -87,7 +88,9 @@ async function open({ lost = [], msPerChar = MS_PER_CHAR } = {}) {
             }
         }
     });
-    await runtime.start('Why is the sky blue?');
+    const starting = runtime.start('Why is the sky blue?');
+    if (connectingPace !== null) runtime.setPace(connectingPace);
+    await starting;
     await tick(50);
     return {
         said, shown, cued,
@@ -308,7 +311,7 @@ describe('the pace', () => {
         runtime.setPace(2);
         expect(runtime.position()).toEqual(before);
         expect(runtime.snapshot().pace).toBe(2);
-        expect(run.journal('pace')).toEqual([expect.objectContaining({ rate: 2 })]);
+        expect(run.journal('pace')).toEqual([expect.objectContaining({ rate: 2, applied: false })]);
         await playOut();
         expect(runtime.status).toBe('ended');
         expect(run.journal('voice.degraded')).toEqual([]);
@@ -318,20 +321,52 @@ describe('the pace', () => {
         expectTogether(run);
     });
 
-    it('slowed in the middle of a passage, keeps the words behind the voice: the passage is not left before the voice has said it', async () => {
+    it('slowed in the middle of a passage, lets the voice finish it at the old rate, the words with it, and lands as it ends', async () => {
         const run = await open();
         await tick(300);
         runtime.setPace(0.5);
+        expect(runtime.snapshot().pace).toBe(0.5);
+        expect(runtime.snapshot().paceFrom).toBe('passage');
+        expect(run.journal('pace')).toEqual([expect.objectContaining({ rate: 0.5, applied: false })]);
+        // Nothing is re-timed yet: the voice is still saying this passage at the old rate.
+        expect(run.player().speedFactor).toBe(1);
         await playOut();
         expect(runtime.status).toBe('ended');
         expect(run.journal('voice.degraded')).toEqual([]);
-        const said = run.said.find(entry => entry.kind === 'end' && entry.id === 'beat-0');
+        const ended = id => run.said.find(entry => entry.kind === 'end' && entry.id === id);
+        expect(ended('beat-0').durationMs).toBeCloseTo(SKY.beats[0].say.length * MS_PER_CHAR, 0);
+        // The words keep with the voice at the old rate: the passage is not left before the voice has said it, nor long after.
         const left = run.shown.find(entry => entry.index > 0 && entry.sourceId !== 'beat-0');
-        expect(left.at).toBeGreaterThanOrEqual(said.at - 250);
+        expect(left.at).toBeGreaterThanOrEqual(ended('beat-0').at - 250);
+        expect(left.at).toBeLessThan(ended('beat-0').at + 500);
+        // The pace lands as the voice finishes the passage it was saying; the next passage said is said at it.
+        expect(run.journal('pace.applied')).toEqual([expect.objectContaining({ at: ended('beat-0').at, rate: 0.5, segmentId: 'beat-0' })]);
+        const next = SPOKEN[1];
+        expect(ended(next).durationMs).toBeCloseTo(SKY.beats[index(next)].say.length * MS_PER_CHAR * 2, 0);
+        expect(runtime.snapshot().paceFrom).toBeNull();
+        expect(run.player().speedFactor).toBe(2);
         expectTogether(run);
     });
 
-    it('lets what no voice says follow it: a hold lasts half as long at twice the pace', async () => {
+    it('set while the reading is paused, lands when it plays again', async () => {
+        const run = await open();
+        await tick(1_000);
+        await runtime.interrupt();
+        runtime.setPace(2);
+        expect(run.journal('pace')).toEqual([expect.objectContaining({ rate: 2, applied: false })]);
+        await tick(2_000);
+        expect(run.journal('pace.applied')).toEqual([]);
+        runtime.resume();
+        await tick(500);
+        expect(run.journal('pace.applied')).toEqual([expect.objectContaining({ rate: 2, segmentId: 'beat-0' })]);
+        expect(runtime.snapshot().paceFrom).toBeNull();
+        await playOut();
+        expect(runtime.status).toBe('ended');
+        expect(run.journal('voice.degraded')).toEqual([]);
+        expectTogether(run);
+    });
+
+    it('lets what no voice says follow it: a hold after the passage the pace was set in lasts half as long at twice the pace', async () => {
         const run = await open();
         runtime.setPace(2);
         for (let waited = 0; waited < 20_000 && runtime.position().segmentId !== 'beat-2'; waited += 10) await tick(10);
@@ -362,7 +397,8 @@ describe('the pace', () => {
         expect(run.shown.find(entry => entry.index === first + 1).at).toBeGreaterThanOrEqual(voicePast - 50);
         // And the next passage's words only once the voice begins it.
         const begun = run.said.find(entry => entry.kind === 'start' && entry.id === 'beat-5');
-        expect(run.shown.find(entry => entry.index === next).at).toBeGreaterThanOrEqual(begun.at);
+        // Less a millisecond: the synthetic voice has begun an utterance one timer tick before it reports the start.
+        expect(run.shown.find(entry => entry.index === next).at).toBeGreaterThanOrEqual(begun.at - 1);
     });
 
     it('sped up during a hold, shortens the hold already running', async () => {
@@ -373,11 +409,26 @@ describe('the pace', () => {
         const began = run.shown.find(entry => entry.index === hold).at;
         await tick(500);
         runtime.setPace(2);
+        // The voice says nothing during a hold, so there is nothing to wait for: the pace lands at once.
+        expect(run.journal('pace')).toEqual([expect.objectContaining({ rate: 2, applied: true })]);
+        expect(runtime.snapshot().paceFrom).toBeNull();
         for (let waited = 0; waited < 10_000 && !run.shown.some(entry => entry.index === hold + 1); waited += 10) await tick(10);
         // 500 ms of its 2000 at 1x, the other 1500 at 2x: 1250 ms in all.
         const lasted = run.shown.find(entry => entry.index === hold + 1).at - began;
         expect(lasted).toBeGreaterThanOrEqual(1_200);
         expect(lasted).toBeLessThan(1_350);
+    });
+
+    it('set while the reading is still being opened, is the pace of all of it', async () => {
+        const run = await open({ connectingPace: 2 });
+        expect(run.journal('pace')).toEqual([expect.objectContaining({ rate: 2, applied: true })]);
+        await playOut();
+        expect(runtime.status).toBe('ended');
+        expect(run.journal('voice.degraded')).toEqual([]);
+        expect(run.journal('pace.applied')).toEqual([]);
+        const ended = run.said.find(entry => entry.kind === 'end' && entry.id === 'beat-0');
+        expect(ended.durationMs).toBeCloseTo(SKY.beats[0].say.length * MS_PER_CHAR / 2, 0);
+        expectTogether(run);
     });
 
     it('is between half and twice the voice’s own', async () => {

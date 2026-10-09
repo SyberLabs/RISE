@@ -13,8 +13,14 @@
  * hold. So the only time it keeps is PLAYED time, which stops while it is held.
  *
  * A voice, of any kind, is
- *   { attach({start, mark, end}), enqueue({id, text}), hold(), release(),
+ *   { attach({start, mark, end, rateApplied}), enqueue({id, text}), hold(), release(),
  *     seek(id), setRate(rate), cancel(), close(), playedMs(id) }
+ *
+ * A change of rate never interrupts an utterance (voices/browser.js says why):
+ * the next utterance begun, or the one held when it is released, takes it.
+ * `rateApplied(id, rate)` is reported once nothing is said at the old rate any
+ * more: as the utterance under way ends, or as a held one goes on. One set
+ * while nothing is under way holds at once, and `setRate` says so.
  */
 
 import { createRealClock } from '../clock.js';
@@ -27,10 +33,12 @@ function markPoints(text) {
 }
 
 export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62, breathMs = 150 } = {}) {
-    let report = { start() {}, mark() {}, end() {} };
+    let report = { start() {}, mark() {}, end() {}, rateApplied() {} };
     let closed = false;
     let held = false;
     let rate = 1;
+    /** The rate it last reported speaking at: the one it began with, or the last that landed. */
+    let spokenRate = rate;
     const queue = [];
     const seen = new Set();
     const finished = new Map();
@@ -64,9 +72,17 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
     /** Each event reports the played time it falls due at, which a change of pace moves. */
     function begin(next) {
         if (!next) { phase = null; return; }
-        const perChar = msPerChar / rate;
+        const at = rate;
+        const perChar = msPerChar / at;
         const events = [
-            { at: 0, run: () => safely(report.start, next.id) },
+            {
+                at: 0,
+                run: () => {
+                    const own = phase;
+                    safely(report.start, next.id);
+                    if (own.rate !== spokenRate) { spokenRate = own.rate; safely(report.rateApplied, next.id, spokenRate); }
+                }
+            },
             ...markPoints(next.text).map(charIndex => ({
                 at: charIndex * perChar,
                 run() { safely(report.mark, next.id, charIndex, this.at); }
@@ -76,11 +92,12 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
                 run() {
                     finished.set(next.id, this.at);
                     safely(report.end, next.id, this.at);
+                    if (rate !== spokenRate) { spokenRate = rate; safely(report.rateApplied, next.id, rate); }
                     breathe();
                 }
             }
         ];
-        phase = { id: next.id, played: 0, since: null, cancel: null, index: 0, events, speaking: true };
+        phase = { id: next.id, played: 0, since: null, cancel: null, index: 0, events, speaking: true, rate: at };
     }
 
     /** The silence between utterances is played time too, so a hold holds it. */
@@ -97,7 +114,7 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
         capabilities: Object.freeze({ audible: false }),
 
         attach(callbacks) {
-            report = { start() {}, mark() {}, end() {}, ...callbacks };
+            report = { start() {}, mark() {}, end() {}, rateApplied() {}, ...callbacks };
         },
 
         enqueue({ id, text }) {
@@ -126,9 +143,17 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
             }
         },
 
+        /** Take up again; an utterance under way when a new rate was set goes on at it from here. */
         release() {
             if (!held || closed) return;
             held = false;
+            if (phase?.speaking && phase.rate !== rate) {
+                const ratio = phase.rate / rate;
+                phase.rate = rate;
+                for (const event of phase.events.slice(phase.index)) event.at = phase.played + (event.at - phase.played) * ratio;
+                // One not yet begun reports it as it begins.
+                if (phase.index > 0 && rate !== spokenRate) { spokenRate = rate; safely(report.rateApplied, phase.id, rate); }
+            }
             schedule();
         },
 
@@ -153,18 +178,15 @@ export function createSyntheticVoice({ clock = createRealClock(), msPerChar = 62
             }
         },
 
-        /** Say from now at `next` times the normal rate: the rest of what it is saying, and everything after. */
+        /**
+         * Say at `next` times the normal rate from the next utterance begun; what it is saying finishes at its own.
+         * @returns {boolean} whether it holds at once, because nothing is under way; else `rateApplied` says when
+         */
         setRate(next) {
-            const ratio = rate / next;
             rate = next;
-            if (!phase) return;
-            const now = played();
-            phase.cancel?.();
-            phase.cancel = null;
-            phase.played = now;
-            phase.since = null;
-            for (const event of phase.events.slice(phase.index)) event.at = now + (event.at - now) * ratio;
-            schedule();
+            if (phase?.speaking) return false;
+            spokenRate = next;
+            return true;
         },
 
         /** Stop, forget what was queued, and take nothing more that was already said as still to come. */

@@ -18,7 +18,8 @@ function setup(options = {}) {
     voice.attach({
         start: id => log.push([clock.now(), 'start', id]),
         mark: (id, charIndex, tMs) => log.push([clock.now(), 'mark', id, charIndex, tMs]),
-        end: (id, durationMs) => log.push([clock.now(), 'end', id, durationMs])
+        end: (id, durationMs) => log.push([clock.now(), 'end', id, durationMs]),
+        rateApplied: (id, rate) => log.push([clock.now(), 'rateApplied', id, rate])
     });
     return { clock, voice, log };
 }
@@ -243,18 +244,59 @@ describe('a seek', () => {
 });
 
 describe('a change of pace', () => {
-    it('says the rest of what it is saying, and everything after, at the new rate', async () => {
+    it('finishes what it is saying at its rate, reports the new one as that ends, and says the next utterance at it', async () => {
+        const { clock, voice, log } = setup();
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: 'second words' });
+        voice.enqueue({ id: 'c', text: 'third words' });
+        await clock.advance(80);
+        voice.setRate(2);
+        await clock.runAll();
+        const end = id => log.find(e => e[1] === 'end' && e[2] === id);
+        expect(end('a')[3]).toBe(TEXT.length * 10);
+        expect(end('b')[3]).toBe('second words'.length * 5);
+        expect(end('c')[3]).toBe('third words'.length * 5);
+        const aEnd = end('a')[0];
+        expect(log.filter(e => e[1] === 'rateApplied')).toEqual([[aEnd, 'rateApplied', 'a', 2]]);
+        // Every mark says the played time it was reached at.
+        for (const [at, , id, , tMs] of log.filter(e => e[1] === 'mark' && e[2] === 'a')) expect(at).toBe(tMs);
+    });
+
+    it('takes a rate set while held when released, and reports it then', async () => {
+        const { clock, voice, log } = setup();
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(80);
+        voice.hold();
+        voice.setRate(2);
+        await clock.advance(1_000);
+        expect(log.filter(e => e[1] === 'rateApplied')).toEqual([]);
+        voice.release();
+        expect(log.filter(e => e[1] === 'rateApplied').map(e => [e[2], e[3]])).toEqual([['a', 2]]);
+        await clock.runAll();
+        expect(log.find(e => e[1] === 'end' && e[2] === 'a')[3]).toBe(80 + (TEXT.length * 10 - 80) / 2);
+    });
+
+    it('takes a rate at once while it is saying nothing, says so, and reports nothing later', async () => {
+        const { clock, voice, log } = setup();
+        expect(voice.setRate(2)).toBe(true);
+        voice.enqueue({ id: 'a', text: TEXT });
+        expect(voice.setRate(1)).toBe(false);
+        voice.setRate(2);
+        await clock.runAll();
+        expect(log.find(e => e[1] === 'end' && e[2] === 'a')[3]).toBe(TEXT.length * 5);
+        expect(voice.setRate(1)).toBe(true);
+        expect(log.filter(e => e[1] === 'rateApplied')).toEqual([]);
+    });
+
+    it('reports nothing when the rate is set back before it lands', async () => {
         const { clock, voice, log } = setup();
         voice.enqueue({ id: 'a', text: TEXT });
         voice.enqueue({ id: 'b', text: 'second words' });
         await clock.advance(80);
         voice.setRate(2);
+        voice.setRate(1);
         await clock.runAll();
-        const end = id => log.find(e => e[1] === 'end' && e[2] === id);
-        expect(end('a')[3]).toBe(80 + (TEXT.length * 10 - 80) / 2);
-        expect(end('b')[3]).toBe('second words'.length * 5);
-        // Every mark says the played time it was reached at.
-        for (const [at, , id, , tMs] of log.filter(e => e[1] === 'mark' && e[2] === 'a')) expect(at).toBe(tMs);
+        expect(log.filter(e => e[1] === 'rateApplied')).toEqual([]);
     });
 });
 

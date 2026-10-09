@@ -18,7 +18,7 @@ import { manifestFor } from '../../scenes/manifests.js';
 
 const snapshot = (status, extra = {}) => ({
     status, error: null, main: { voiceDegraded: false, speaking: null, segmentId: 's1', ...extra.main }, side: null, ...(extra.error ? { error: extra.error } : {}),
-    pace: extra.pace ?? 1, position: extra.position ?? null
+    pace: extra.pace ?? 1, paceFrom: extra.paceFrom ?? null, position: extra.position ?? null
 });
 
 const SEGMENTS = [{ text: 'first line', ended: true }, { text: 'second line', ended: true }, { text: 'still being written', ended: false }];
@@ -604,6 +604,131 @@ describe('the transport', () => {
         expect(status().textContent).toBe('Paused. Passage 2 of 5.');
         runtime.set('interrupted', { position: at(4) });
         expect(status().textContent).toBe('Paused. Passage 5 of 5.');
+    });
+});
+
+describe('a change of pace, heard', () => {
+    const note = () => $('#rise-stage-controls .rise-stage__pace-note');
+
+    it('says in a hidden live region where a new pace lands, and again once it has; the object shows it at once', () => {
+        const runtime = reading();
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        expect(note().getAttribute('aria-live')).toBe('polite');
+        expect(note().classList.contains('rise-stage__sr')).toBe(true);
+        expect(note().textContent).toBe('');
+        runtime.set('live', { position: at(1), pace: 1.25, paceFrom: 'passage' });
+        expect(object('pace').textContent).toBe('1.25×');
+        expect(note().textContent).toBe('Pace 1.25×, from the next passage.');
+        // A render for anything else says nothing new.
+        runtime.set('live', { position: at(2), pace: 1.25, paceFrom: 'passage' });
+        expect(note().textContent).toBe('Pace 1.25×, from the next passage.');
+        runtime.set('live', { position: at(2), pace: 1.25, paceFrom: null });
+        expect(note().textContent).toBe('Pace 1.25×.');
+        runtime.set('live', { position: at(2), pace: 1.5, paceFrom: 'sentence' });
+        expect(note().textContent).toBe('Pace 1.5×, from the next sentence.');
+    });
+
+    it('says a pace taken at once as it is', () => {
+        const runtime = reading();
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        object('pace').click();
+        expect(note().textContent).toBe('Pace 1.25×.');
+    });
+});
+
+describe('the bar while the reading plays', () => {
+    const bar = () => $('#rise-stage-controls').dataset.bar;
+    const pointer = (type, pointerType, target = document) => {
+        const event = new MouseEvent(type, { bubbles: true, cancelable: true });
+        Object.defineProperty(event, 'pointerType', { value: pointerType });
+        target.dispatchEvent(event);
+    };
+
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('hides itself after 2.5 s with no pointer movement while the reading plays', () => {
+        vi.useFakeTimers();
+        stage = createStageControls({ runtime: reading('live'), onPlayAgain: () => {} });
+        expect(bar()).toBe('shown');
+        vi.advanceTimersByTime(2_499);
+        expect(bar()).toBe('shown');
+        vi.advanceTimersByTime(1);
+        expect(bar()).toBe('hidden');
+    });
+
+    it('shows again on pointer movement, a touch, a key on the stage, or focus entering it, and hides 2.5 s after', () => {
+        vi.useFakeTimers();
+        stage = createStageControls({ runtime: reading('live'), onPlayAgain: () => {} });
+        const wakes = {
+            pointermove: () => pointer('pointermove', 'mouse'),
+            touch: () => pointer('pointerdown', 'touch'),
+            key: () => play().dispatchEvent(new KeyboardEvent('keydown', { key: 'Shift', bubbles: true })),
+            focus: () => { play().blur(); play().focus(); }
+        };
+        for (const [name, wake] of Object.entries(wakes)) {
+            vi.advanceTimersByTime(2_500);
+            expect(bar(), name).toBe('hidden');
+            wake();
+            expect(bar(), name).toBe('shown');
+            vi.advanceTimersByTime(2_499);
+            expect(bar(), name).toBe('shown');
+        }
+        vi.advanceTimersByTime(1);
+        expect(bar()).toBe('hidden');
+    });
+
+    it('never hides while paused, ended or with the Settings sheet open, and shows at once when the reading stops playing', () => {
+        vi.useFakeTimers();
+        const runtime = reading('interrupted');
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        vi.advanceTimersByTime(10_000);
+        expect(bar()).toBe('shown');
+        runtime.set('live', { position: at(1) });
+        vi.advanceTimersByTime(2_500);
+        expect(bar()).toBe('hidden');
+        runtime.set('interrupted', { position: at(1) });
+        expect(bar()).toBe('shown');
+        runtime.set('ended', { position: at(4) });
+        vi.advanceTimersByTime(10_000);
+        expect(bar()).toBe('shown');
+        runtime.set('live', { position: at(1) });
+        settings().click();
+        vi.advanceTimersByTime(10_000);
+        expect(bar()).toBe('shown');
+        $('.rise-settings__close').click();
+        vi.advanceTimersByTime(2_500);
+        expect(bar()).toBe('hidden');
+    });
+
+    it('takes a first touch on the hidden bar only to show it; a mouse press acts', () => {
+        vi.useFakeTimers();
+        const runtime = reading('live');
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        vi.advanceTimersByTime(2_500);
+        pointer('pointerdown', 'touch', play());
+        play().click();
+        expect(runtime.interrupt).not.toHaveBeenCalled();
+        expect(bar()).toBe('shown');
+        play().click();
+        expect(runtime.interrupt).toHaveBeenCalledTimes(1);
+        runtime.set('live', { position: at(1) });
+        vi.advanceTimersByTime(2_500);
+        pointer('pointerdown', 'mouse', play());
+        play().click();
+        expect(runtime.interrupt).toHaveBeenCalledTimes(2);
+    });
+
+    it('fades in 180 ms, at once under reduced motion, keeps the beat line faint as progress, and gives the words the room back', () => {
+        const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'LiveHost.css'), 'utf8');
+        expect(css).toMatch(/\.rise-stage\[data-bar="hidden"\] \.rise-stage__object\s*\{[^}]*opacity:\s*0/u);
+        expect(css).toMatch(/\.rise-stage__object\s*\{[^}]*transition:[^}]*opacity 180ms/u);
+        expect(css).toMatch(/\.rise-stage\[data-bar="hidden"\] \.rise-stage__beats\s*\{[^}]*opacity:\s*0\.\d+/u);
+        expect(css).toMatch(/:has\(\.rise-stage\[data-transport="full"\]\[data-bar="hidden"\]\) \.chamber-field\s*\{[^}]*padding-bottom:/u);
+        expect(css).toMatch(/html\[data-embed="mcp"\] \.chamber-field\s*\{[^}]*transition:\s*padding-bottom 180ms/u);
+        const still = [...css.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/gu)].map(match => match[1]).join('\n');
+        expect(still).toMatch(/\.rise-stage__beats[^{]*\{[^}]*transition:\s*none/u);
+        expect(still).toMatch(/\.chamber-field[^{]*\{[^}]*transition:\s*none/u);
+        expect(still).toMatch(/\.rise-stage__object[^{]*\{[^}]*transition:\s*none/u);
     });
 });
 

@@ -113,6 +113,24 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Owner, 2026-10-09, in Claude on the deployed build, after voice hardening 2 (#535) and the playback instrument (#549, #551, #553): \"Beautiful!! Much more robust and working well on the voice side. Card behavior still needs further testing from brand new sessions.\" and \"very good. seems to be working wonderfully! Fullscreen esp is a step up.\" Recorded as observations, not as acceptance: the owner has not said they accept this task.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.seek.test.js",
+      "note": "Branch pace-at-next-utterance: pace applies at the next utterance after the field run of 2026-10-09 (Microsoft Ava Online (Natural) silenced, skipped or glitched when setRate cancelled and re-spoke). Slowed mid-passage, the voice finishes it at the old rate, the words with it, and pace.applied lands as it ends; set while paused, it lands on Play; set during a hold or while the reading opens, at once. 20 tests pass; src/live and src/core/player*: 1397 passed, 4 skipped, voice-sync sweep (pace sweep included) green.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/stage-controls.test.js",
+      "note": "The bar hides itself while the reading plays: hidden after 2.5 s without pointer movement; back on pointermove, touch, key, focus; never while paused, ended or with the sheet open; a first touch on the hidden bar only shows it; CSS 180 ms fade, none under reduced motion, the words reclaim the bar room. The pace live region says \"Pace 1.25×, from the next passage.\" and \"Pace 1.25×.\" when it lands. 64 tests pass.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Local Chromium, one worker, whole file: 49 passed, including the bar hidden after 3 s of playing and shown again by a pointer move; pace 1.5 shortens the shown line 1251 ms to 838 ms.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -135,10 +153,14 @@
     {
       "date": "2026-10-09T03:34:37.954Z",
       "summary": "Owner observations of 2026-10-09 in Claude recorded, not as acceptance; Claude-first blocker replaces the real-host witness line"
+    },
+    {
+      "date": "2026-10-09T08:12:14.074Z",
+      "summary": "Pace applies at the next utterance after the field run of 2026-10-09; the bar hides itself while playing"
     }
   ],
-  "updatedAt": "2026-10-09T03:34:37.954Z",
-  "revision": 5,
+  "updatedAt": "2026-10-09T08:12:14.074Z",
+  "revision": 6,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

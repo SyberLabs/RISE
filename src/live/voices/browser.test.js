@@ -26,7 +26,8 @@ function setup(speechOptions = {}, voiceOptions = {}) {
         end: (id, durationMs) => log.push([clock.now(), 'end', id, durationMs]),
         fail: (id, reason) => log.push([clock.now(), 'fail', id, reason]),
         taken: (id, reason) => log.push([clock.now(), 'taken', id, reason]),
-        restarted: (id, afterMs) => log.push([clock.now(), 'restarted', id, afterMs])
+        restarted: (id, afterMs) => log.push([clock.now(), 'restarted', id, afterMs]),
+        rateApplied: (id, rate) => log.push([clock.now(), 'rateApplied', id, rate])
     });
     return { clock, synth, voice, log };
 }
@@ -461,25 +462,59 @@ describe('a change of pace', () => {
         return said;
     }
 
-    it('says what it is saying again from the last word heard at the new rate, at once, and the next utterance at it too', async () => {
+    function countCancels(synth) {
+        const counted = { n: 0 };
+        const cancel = synth.cancel.bind(synth);
+        synth.cancel = () => { counted.n += 1; cancel(); };
+        return counted;
+    }
+
+    it('never interrupts what it is saying: that finishes at its rate, the rate lands as it ends, and the next utterance carries it', async () => {
         const { clock, voice, log, synth } = setup();
         const said = watchSpeech(synth);
+        const cancels = countCancels(synth);
         voice.enqueue({ id: 'a', text: TEXT });
         voice.enqueue({ id: 'b', text: 'the next one' });
-        await clock.advance(30 + 9 * MS);          // marks at 4 and 8 have been heard
-        voice.setRate(2);
-        expect(said.at(-1).text).toBe(TEXT.slice(8));
-        expect(said.at(-1).rate).toBe(2);
+        voice.enqueue({ id: 'c', text: 'and the last' });
+        await clock.advance(30 + 9 * MS);
+        expect(voice.setRate(2)).toBe(false);
+        expect(cancels.n).toBe(0);
+        expect(synth.speaking).toBe(true);
+        expect(said).toHaveLength(1);
         await clock.runAll();
-        expect(said.at(-1).rate).toBe(2);
-        expect(kinds(log, 'start', 'a')).toHaveLength(1);
-        // Time is speaking time: what was said at the old rate, and the rest at the new.
-        expect(kinds(log, 'end', 'a')[0][3]).toBe(8 * MS + (TEXT.length - 8) * MS / 2);
-        expect(kinds(log, 'restarted')).toEqual([]);
+        expect(said.map(utterance => [utterance.text, utterance.rate])).toEqual([[TEXT, 1], ['the next one', 2], ['and the last', 2]]);
+        expect(cancels.n).toBe(0);
+        // The utterance it was saying took its whole time at the old rate.
+        expect(kinds(log, 'end', 'a')[0][3]).toBe(TEXT.length * MS);
+        // Reported once, when nothing is said at the old rate any more: as the utterance it was saying ends.
+        const aEnd = kinds(log, 'end', 'a')[0][0];
+        expect(kinds(log, 'rateApplied')).toEqual([[aEnd, 'rateApplied', 'a', 2]]);
+        expect(log.findIndex(e => e[1] === 'rateApplied')).toBeGreaterThan(log.findIndex(e => e[1] === 'end' && e[2] === 'a'));
+        expect(log.findIndex(e => e[1] === 'rateApplied')).toBeLessThan(log.findIndex(e => e[1] === 'start' && e[2] === 'b'));
     });
 
-    it('stays silent when held, and takes up at the new rate once released', async () => {
-        const { clock, voice, synth } = setup();
+    it('a voice speaking in sentences takes the new rate at its next sentence', async () => {
+        const GOOGLE = { name: 'Google US English', lang: 'en-US', localService: false };
+        const { clock, voice, log, synth } = setup({ boundaries: false }, { voice: GOOGLE });
+        const said = watchSpeech(synth);
+        const cancels = countCancels(synth);
+        expect(voice.capabilities.inSentences).toBe(true);
+        voice.enqueue({ id: 'a', text: 'First sentence here. Second one now.' });
+        await clock.advance(30 + 5 * MS);
+        voice.setRate(1.25);
+        await clock.runAll();
+        expect(cancels.n).toBe(0);
+        expect(said.map(utterance => [utterance.text, utterance.rate])).toEqual([['First sentence here. ', 1], ['Second one now.', 1.25]]);
+        expect(kinds(log, 'rateApplied').map(e => [e[2], e[3]])).toEqual([['a', 1.25]]);
+        expect(kinds(log, 'start', 'a')).toHaveLength(1);
+    });
+
+    it('says only that it speaks in sentences when it does', () => {
+        expect(setup().voice.capabilities.inSentences).toBe(false);
+    });
+
+    it('stays silent when held, and takes the new rate up when released, reporting it then', async () => {
+        const { clock, voice, synth, log } = setup();
         const said = watchSpeech(synth);
         voice.enqueue({ id: 'a', text: TEXT });
         await clock.advance(30 + 9 * MS);
@@ -488,8 +523,38 @@ describe('a change of pace', () => {
         voice.setRate(0.5);
         expect(said.length).toBe(before);
         expect(synth.speaking).toBe(false);
+        await clock.advance(1_000);
+        expect(kinds(log, 'rateApplied')).toEqual([]);
         voice.release();
         expect(said.at(-1).rate).toBe(0.5);
+        await clock.runAll();
+        expect(kinds(log, 'rateApplied').map(e => [e[2], e[3]])).toEqual([['a', 0.5]]);
+    });
+
+    it('reports nothing when the rate is set back before it lands', async () => {
+        const { clock, voice, log } = setup();
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: 'the next one' });
+        await clock.advance(30 + 9 * MS);
+        voice.setRate(1.5);
+        voice.setRate(1);
+        await clock.runAll();
+        expect(kinds(log, 'rateApplied')).toEqual([]);
+    });
+
+    it('takes a rate at once while it is saying nothing, says so, and reports nothing later', async () => {
+        const { clock, voice, log, synth } = setup();
+        const said = watchSpeech(synth);
+        expect(voice.setRate(1.5)).toBe(true);
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.runAll();
+        expect(voice.setRate(2)).toBe(true);
+        voice.enqueue({ id: 'b', text: 'the next one' });
+        expect(voice.setRate(1)).toBe(false);
+        voice.setRate(2);
+        await clock.runAll();
+        expect(said.map(utterance => utterance.rate)).toEqual([1.5, 2]);
+        expect(kinds(log, 'rateApplied')).toEqual([]);
     });
 });
 
