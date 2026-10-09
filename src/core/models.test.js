@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Atom, Source, Session, SessionState } from './models.js';
+import { AudioScheduleController } from './journey-schedulers.js';
 
 describe('Atom', () => {
   describe('constructor', () => {
@@ -91,6 +92,37 @@ describe('Session', () => {
     expect(new Session({ atoms, soundscape: 'chase' }).soundscape).toBe('night-drive');
     expect(new Session({ atoms, soundscape: 'mystery' }).soundscape).toBe('faded-signal');
     expect(new Session({ atoms, soundscape: 'aurora' }).soundscape).toBe('aurora');
+  });
+
+  it('restores parked phase cues and the fallback before scheduling saved audio', () => {
+    const audioProgram = { coordinateSpace: 'source', segments: [{
+      id: 'saved-finale', match: { sourceIds: ['primary'] },
+      cue: { kind: 'soundscape', soundscapeId: 'chase', gain: 0.4 }
+    }], fallback: { kind: 'soundscape', soundscapeId: 'mystery' } };
+    const session = new Session({ atoms, audioProgram });
+    const played = [];
+    const controller = new AudioScheduleController(session.audioProgram, {
+      startSoundscape: id => played.push(id), stopSoundscape() {}, setLayerVolume() {}
+    });
+    controller.observe({ sourceId: 'primary', content: 'word' });
+    controller.observe({ sourceId: 'other', content: 'word' });
+    expect(played).toEqual(['night-drive', 'faded-signal']);
+    expect(audioProgram.segments[0].cue.soundscapeId).toBe('chase');
+  });
+
+  it('restores parked sounds in a saved canonical score without mutating its input', () => {
+    const experienceProgram = { schema: 'rise.experience-program.v1', id: 'saved-score',
+      authority: 'published', editable: false, tracks: [{ id: 'movement', kind: 'movement',
+        clips: [{ id: 'reading', anchor: { sourceIds: ['primary'] }, data: { index: 0, title: 'Reading' } }]
+      }, { id: 'bed', kind: 'audio',
+        clips: [{ id: 'phase', anchor: { sourceIds: ['primary'] },
+          cue: { kind: 'soundscape', soundscapeId: 'triumph', gain: 0.4 } }],
+        fallback: { kind: 'soundscape', soundscapeId: 'wonder' }
+      }] };
+    const session = new Session({ atoms, experienceProgram });
+    expect(session.experienceProgram.tracks[1].clips[0].cue.soundscapeId).toBe('starlight');
+    expect(session.audioProgram.fallback.soundscapeId).toBe('aurora');
+    expect(experienceProgram.tracks[1].clips[0].cue.soundscapeId).toBe('triumph');
   });
 
   it('creates a session with default values', () => {

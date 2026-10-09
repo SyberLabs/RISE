@@ -13,6 +13,7 @@ import { isJevColorTheme } from './jev-color-themes.js';
 import { normalizeLivingFlameConfig } from './flame-recipe.js';
 import { flamePreset } from '../visuals/living-flame/flame-presets.js';
 import { EXPERIENCE_PROGRAM_LIMITS, sceneCodeBytes } from './experience-program.js';
+import { standInSound } from '../audio/sound-ids.js';
 
 // Classic's composition (THEME_ENGINE_MAP), named here because the theme map
 // reaches the session compiler, which reaches this file. No theme reaches this
@@ -363,7 +364,7 @@ function normalizeAudioCue(value) {
   if (value.kind === 'soundscape') {
     const id = boundedString(value.soundscapeId);
     if (!id) return { kind: 'hold' };
-    cue.soundscapeId = id;
+    cue.soundscapeId = standInSound(id);
     const gain = Number(value.gain);
     if (Number.isFinite(gain)) cue.gain = Math.min(Math.max(gain, 0), 1);
   }
