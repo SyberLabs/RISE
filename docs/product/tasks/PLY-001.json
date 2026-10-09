@@ -179,6 +179,18 @@
       "ref": "src/components/read/scene-layer.test.js",
       "note": "The scene layer reports and observes its own canvas box, not the field: 2 tests pass.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Phone card pass 3, local Chromium emulating an iPhone 14 (DPR 3, touch), one worker, whole file: 62 passed. The wide 400x260 figure under a three-line centred line, share of the figure under the words, before (main at 276ee569) to after: 390x481 51.8 % to 0 % (figure 390x254 above words at y 262-393; picture region 259.5 px); 412x481 51.3 % to 0 % (region 253.5); 390x844 51.8 % to 0 % (words end at 756, the bar room); 390x360 51.8 % to 0 % (region 138.5, figure 213x139); 390x340 and 390x300 keep the overlay (52.2 %, 62 %) with the words at the foot instead of the centre (before at 300: y 40-172). Sky (generated scene) at 390x481: canvas bottom 393 to 260, the caption 40 px above it at least (before: 93 px over it), 0 scene resizes in 8 s, one canvas size; a scene first mounted mid-reading: 0 resizes, one size. A tap on the words no longer selects them in stacked mode; the drag test moved to an attractor (ambient) reading and still passes.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/read/Chamber.scene.test.js",
+      "note": "Phone card pass 3: the field is marked data-picture=scene before the scene canvas is measured and keeps the mark after a field replaces it; with Chamber.figure.test.js (data-picture=figure on mount, none when admission refuses). Both failed first; 258 passed across the Chamber, stage-controls, scene/figure layer, director and system-design tests.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -221,10 +233,14 @@
     {
       "date": "2026-10-09T11:50:27.783Z",
       "summary": "phone card pass 1: touch drag, empty scrim, type, hit areas, callout, sheet, blur, sign-in moved to Settings"
+    },
+    {
+      "date": "2026-10-09T12:41:30.735Z",
+      "summary": "phone card pass 3: stacked layout — on a small host card a figure or scene sits above a fixed words strip; 0 % overlap at 390×481"
     }
   ],
-  "updatedAt": "2026-10-09T12:07:16.293Z",
-  "revision": 10,
+  "updatedAt": "2026-10-09T12:41:30.735Z",
+  "revision": 11,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

@@ -205,6 +205,7 @@ A figure is a picture the model draws as SVG: `{ "id": "triangle", "svg": "<svg 
 - **On the score.** A figure lowers to the visual cue `{ "kind": "scene", "sceneId": "<id>", "svg": "<svg …>" }`: the scene cue carries `svg` or `code`, exactly one. Offline rendering does not support a scene cue of either kind.
 - **Ink.** `currentColor` inside an image resolves in the image's own document, so the card writes the theme's ink onto the figure's root as `color`, unless the root sets one. Draw ink in `currentColor`.
 - **Motion.** SMIL (`<animate>` and its kin) runs inside the image, in reduced motion too; this version does not pause it.
+- **On a phone.** In a host's card 640 px wide or less, a figure (like a generated scene) is fitted whole above a strip kept for three lines of the words, so the words never cover it; a card under 350 px tall lays the words over its foot instead.
 
 **Admission.** `admitSvg` in `src/core/svg-admission.js` reads the text with a small tokenizer, never a DOM, and never draws it. The Worker runs it before it accepts a Current, and the card runs it again before it draws a figure; a figure the card refuses is not mounted. The rules:
 

@@ -74,6 +74,25 @@ describe('a generated scene in the Chamber', () => {
     expect(worker.terminated).toBe(true);
   });
 
+  it('marks the field as holding a picture before its canvas is measured, and keeps the mark for the reading', async () => {
+    const { chamber, container } = makeChamber();
+    const field = container.querySelector('#chamber-field');
+    expect(field.dataset.picture).toBeUndefined();
+    let markedWhenMeasured = null;
+    const measure = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function height() {
+      if (this.classList?.contains('chamber-scene')) markedWhenMeasured = field.dataset.picture ?? null;
+      return 0;
+    });
+    chamber._visualFieldDirector.applyCue(SCENE, { transitionMs: 0 });
+    await settle();
+    measure.mockRestore();
+    expect(markedWhenMeasured).toBe('scene');
+    chamber._visualFieldDirector.applyCue(FALLBACK, { transitionMs: 0 });
+    await settle();
+    expect(field.dataset.picture).toBe('scene');
+    chamber.destroy();
+  });
+
   it('gives the worker the reading’s style’s library defaults, and none where the reading names no style', async () => {
     const styled = await mounted({ style: 'premium-educational' });
     expect(styled.worker.of(TO_WORKER.init)[0].library).toEqual(STYLES['premium-educational'].library);

@@ -2778,6 +2778,15 @@ export class Chamber {
   }
 
   /**
+   * Marks the field as holding a picture (a figure or a generated scene), before the picture is inserted and
+   * measured: a host card on a phone keeps the words in a strip below it (LiveHost.css). The mark stays for
+   * the reading, so the picture's box is set once and never changes as one picture gives way to another.
+   */
+  _markPicture(field, kind) {
+    field.dataset.picture = kind;
+  }
+
+  /**
    * A generated scene (src/scenes/): a canvas behind the reading, given to a
    * worker that runs the scene's code. Its holds and cues come through the
    * director's record; a scene that fails gives way to the fallback, and one
@@ -2787,6 +2796,7 @@ export class Chamber {
     if (typeof cue.svg === 'string') return this._mountFigureCue(field, cue);
     let destroyed = false;
     let runtime = null;
+    this._markPicture(field, 'scene');
     const layer = mountSceneLayer({
       field,
       insertBehindReading: (host, node) => this._insertBehindReading(host, node),
@@ -2859,6 +2869,7 @@ export class Chamber {
     }
     let record = null;
     const colors = this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session);
+    this._markPicture(field, 'figure');
     const layer = mountFigureLayer({
       field,
       insertBehindReading: (host, node) => this._insertBehindReading(host, node),
