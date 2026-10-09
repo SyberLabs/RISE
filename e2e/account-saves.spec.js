@@ -87,3 +87,43 @@ test('explicit account save and validated restore round trip through browser lib
   const restored = await page.evaluate(() => new Promise(resolve => { const req = indexedDB.open('rise-local-works', 1); req.onsuccess = () => { const db = req.result; const get = db.transaction('works').objectStore('works').get('local-account-poem'); get.onsuccess = () => { db.close(); resolve(get.result); }; }; }));
   expect(restored.text).toBe(work.text);
 });
+
+test('a detail response from an old account cannot overwrite the browser library after account refresh', async ({ page }) => {
+  let accountId = 'u1';
+  let releaseDetail;
+  let profileReads = 0;
+  await page.route('https://syberlabs.io/admin/api/v1/**', async route => {
+    const req = route.request();
+    const headers = { 'Access-Control-Allow-Origin': new URL(page.url()).origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Content-Type,X-SyberLabs-Account,X-SyberLabs-Expected-User', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    const pathname = new URL(req.url()).pathname;
+    if (pathname.endsWith('/account')) {
+      await route.fulfill({ status: 200, headers, json: { version: 1, user: { id: accountId, label: accountId } } });
+      profileReads++;
+      return;
+    }
+    expect(req.headers()['x-syberlabs-expected-user']).toBe('u1');
+    if (pathname.endsWith('/saves/save-1')) {
+      // The producer already accepted user A; deliver that valid response after
+      // the global entrance has observed user B, to exercise the client write guard.
+      await new Promise(resolve => { releaseDetail = resolve; });
+      return route.fulfill({ status: 200, headers, json: { version: 1, save: { ...save, payload } } });
+    }
+    return route.fulfill({ status: 200, headers, json: { version: 1, saves: [save] } });
+  });
+  await page.goto('/');
+  await seed(page);
+  await page.getByRole('link', { name: 'Open SyberLabs account' }).click();
+  await page.locator('[data-replace]').check();
+  await page.getByRole('button', { name: 'Restore to browser library' }).click();
+  await expect.poll(() => typeof releaseDetail).toBe('function');
+  const readsBefore = profileReads;
+  accountId = 'u2';
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect.poll(() => profileReads).toBeGreaterThan(readsBefore);
+  await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 0)));
+  releaseDetail();
+  await expect(page.locator('[data-status]')).toContainText('no longer current');
+  const rows = await page.evaluate(() => new Promise(resolve => { const req = indexedDB.open('rise-local-works', 1); req.onsuccess = () => { const db = req.result; const get = db.transaction('works').objectStore('works').getAll(); get.onsuccess = () => { db.close(); resolve(get.result); }; }; }));
+  expect(rows).toEqual([work]);
+});

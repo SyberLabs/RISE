@@ -92,7 +92,7 @@ export class LocalWorkStore {
    * in it. It also means a rename mints a NEW id and leaves the old work
    * standing — which is correct, because a score may already point at it.
    */
-  async save(record) {
+  async save(record, { beforeWrite = () => {} } = {}) {
     validateLocalWork(record);
     await this.init();
     const existing = await this.all();
@@ -112,7 +112,12 @@ export class LocalWorkStore {
       );
     }
 
-    await this._run('readwrite', store => store.put({ ...record, savedAt: new Date().toISOString() }));
+    await this._run('readwrite', store => {
+      // Account restoration checks its captured identity after every async read,
+      // at the actual IndexedDB write boundary. Ordinary local saves need no guard.
+      beforeWrite();
+      return store.put({ ...record, savedAt: new Date().toISOString() });
+    });
     return record;
   }
 

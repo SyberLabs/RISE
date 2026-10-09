@@ -14,11 +14,13 @@ export function mountAccountControl() {
   let destroyed = false;
   let opening = false;
   let revision = 0;
+  let accountRevision = 0;
   const refresh = async () => {
     const generation = ++revision;
     let current = null;
     try { current = await getAccount(); } catch { /* signed out or unavailable */ }
     if (destroyed || generation !== revision) return;
+    if (user?.id !== current?.id) accountRevision++;
     user = current;
     link.textContent = user ? 'Account' : 'Sign in';
     link.setAttribute('aria-label', user ? 'Open SyberLabs account' : 'Sign in to SyberLabs');
@@ -28,9 +30,11 @@ export function mountAccountControl() {
     event.preventDefault();
     if (opening) return;
     opening = true;
+    const capturedUser = user;
+    const capturedRevision = accountRevision;
     try {
       const { openAccountPanel } = await import('./account-panel.js');
-      if (!destroyed) openAccountPanel({ user, trigger: link, onClose: refresh });
+      if (!destroyed) openAccountPanel({ user: capturedUser, trigger: link, onClose: refresh, isCurrentAccount: () => !destroyed && accountRevision === capturedRevision && user?.id === capturedUser.id });
     } finally { opening = false; }
   };
   link.addEventListener('click', click);

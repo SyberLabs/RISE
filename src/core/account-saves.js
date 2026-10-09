@@ -23,8 +23,9 @@ export async function saveAccountWork(record, requestId, expectedUserId, fetcher
   return request('/saves', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-SyberLabs-Account': 'v1', ...expectedAccountHeader(expectedUserId) }, body }, fetcher);
 }
 
-export async function restoreAccountWork(id, store, { replace = false, expectedUserId, fetcher } = {}) {
+export async function restoreAccountWork(id, store, { replace = false, expectedUserId, fetcher, beforeWrite = () => {} } = {}) {
   const body = await request(`/saves/${encodeURIComponent(id)}`, { headers: expectedAccountHeader(expectedUserId) }, fetcher);
+  beforeWrite();
   const save = body.save;
   if (save?.app !== 'rise' || save.payload?.schema !== 'rise.account-work.v1') throw new AccountError('This backup is not a RISE text work.');
   let record;
@@ -34,6 +35,7 @@ export async function restoreAccountWork(id, store, { replace = false, expectedU
   if (existing && JSON.stringify(workPayload(existing)) !== JSON.stringify(workPayload(record)) && !replace) {
     throw new AccountError('A different browser copy already exists. Select Replace browser copy to restore this backup.');
   }
-  await store.save(record);
+  beforeWrite();
+  await store.save(record, { beforeWrite });
   return record;
 }

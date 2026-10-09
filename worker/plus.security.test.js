@@ -33,7 +33,7 @@ const VOICES = [
 const VENDOR_IDS = ['voice-1', 'JBFqnCBsd6RMkjVDRZzb', '21m00Tcm4TlvDq8ikWAM'];
 
 const subscription = (o = {}) => ({
-  id: 'sub_1', status: 'active', customer: 'cus_1',
+  id: 'sub_1', status: 'active', customer: 'cus_1', latest_invoice: 'in_1',
   items: { object: 'list', data: [{ id: 'si_1', price: { id: PRICE }, current_period_start: START, current_period_end: EXP }] }, ...o
 });
 
@@ -127,13 +127,22 @@ function world({ sub = subscription(), vendor = 'echo', subsById = null, barrier
     }
     if (u.hostname === 'api.stripe.com') {
       if ((init.method ?? 'GET') !== 'GET') state.stripeWrites.push(init.body);
+      if (u.pathname.startsWith('/v1/invoices/')) {
+        const invoiceId = decodeURIComponent(u.pathname.split('/').pop());
+        const id = invoiceId === 'in_1' ? 'sub_1' : invoiceId.slice('in_'.length);
+        const billSub = subsById?.[id] ?? state.sub;
+        const item = billSub?.items?.data?.find(candidate => (typeof candidate.price === 'string' ? candidate.price : candidate.price?.id) === PRICE);
+        return Response.json({ id: invoiceId, status: 'paid', currency: 'usd', livemode: /^(sk|rk)_live_/u.test(init.headers?.Authorization?.slice(7) ?? ''), amount_paid: 2000, total: 2000, total_taxes: [], post_payment_credit_notes_amount: 0, parent: { subscription_details: { subscription: id } }, lines: { has_more: false, data: [{ pricing: { price_details: { price: PRICE } }, period: { start: item?.current_period_start, end: item?.current_period_end }, parent: { subscription_item_details: { subscription: id, subscription_item: item?.id, proration: false } } }] } });
+      }
+      if (u.pathname === '/v1/balance_transactions/txn_budget') return Response.json({ currency: 'usd', fee: 88 });
+      if (u.pathname === '/v1/invoice_payments' && u.searchParams.has('invoice')) return Response.json({ has_more: false, data: [{ status: 'paid', currency: 'usd', amount_paid: 2000, payment: { type: 'payment_intent', payment_intent: { status: 'succeeded', latest_charge: { paid: true, captured: true, disputed: false, currency: 'usd', amount: 2000, amount_refunded: 0, balance_transaction: 'txn_budget' } } } }] });
       if (u.pathname.startsWith('/v1/checkout/sessions/')) { state.sessionGets++; return Response.json({ payment_status: 'paid', subscription: state.sub }); }
       if (u.pathname.startsWith('/v1/subscriptions/')) {
         state.stripeGets++;
         await gate();
         const id = decodeURIComponent(u.pathname.split('/').pop());
         if (subsById) return subsById[id] ? Response.json(subsById[id]) : new Response('', { status: 404 });
-        return state.sub ? Response.json({ ...state.sub, id }) : new Response('', { status: 404 });
+        return state.sub ? Response.json({ ...state.sub, id, latest_invoice: `in_${id}` }) : new Response('', { status: 404 });
       }
     }
     return new Response('', { status: 500 });
@@ -144,6 +153,7 @@ function world({ sub = subscription(), vendor = 'echo', subsById = null, barrier
 
 function env(overrides = {}) {
   return {
+    PLUS_ADMIN_ACCESS_ISSUER: undefined, PLUS_ADMIN_ACCESS_AUD: undefined, PLUS_VENDOR_MICRO_USD_PER_CHAR: '60', PLUS_FEE_BPS: '500', PLUS_FEE_FIXED_USD_CENTS: '50', PLUS_RESERVE_BPS: '5000',
     STRIPE_SECRET_KEY: 'sk_test_x', PLUS_COOKIE_SECRET: 'cookie-secret-one', PLUS_PRICE_ID: PRICE,
     ELEVENLABS_API_KEY: 'el-secret', PLUS_VOICE_ID: 'voice-1', PLUS_VOICES: VOICES, PLUS_DAILY_CHAR_CAP: '1000000',
     // These attacks are on the period allowance; the per-subscription daily cap is tested in plus.test.js.
@@ -288,7 +298,7 @@ describe('allowance integrity (original exploits, valid plumbing)', () => {
       expect(s.vendorChars).toBe(10_000);
       expect(await used(base, 'sub:sub_1', START)).toBe(10_000); // metered either way
       expect(await used(base, 'global', DAY)).toBe(10_000);
-      const allowed = new Set(['STRIPE_SECRET_KEY', 'PLUS_COOKIE_SECRET', 'PLUS_COOKIE_SECRET_PREVIOUS', 'PLUS_PRICE_ID', 'ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', 'DECISION_LIMITER', 'PLUS_VOICE_MODEL', 'PLUS_REQUIRE_LIVE', 'PLUS_SUB_DAILY_CHAR_CAP']);
+      const allowed = new Set(['STRIPE_SECRET_KEY', 'PLUS_COOKIE_SECRET', 'PLUS_COOKIE_SECRET_PREVIOUS', 'PLUS_PRICE_ID', 'ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', 'DECISION_LIMITER', 'PLUS_VOICE_MODEL', 'PLUS_REQUIRE_LIVE', 'PLUS_SUB_DAILY_CHAR_CAP', 'PLUS_ADMIN_ACCESS_ISSUER', 'PLUS_ADMIN_ACCESS_AUD', 'PLUS_VENDOR_MICRO_USD_PER_CHAR', 'PLUS_FEE_BPS', 'PLUS_FEE_FIXED_USD_CENTS', 'PLUS_RESERVE_BPS']);
       expect([...touched].filter(k => typeof k === 'string' && !allowed.has(k))).toEqual([]);
       if (mode === 'garbage') expect(status).toBe(502);
       if (mode === 'noalign') expect(status).toBe(502); // N12: a handled 502, still metered
@@ -470,15 +480,15 @@ describe('NEW: attacks on the new design', () => {
     }
   });
 
-  it('N2b: an unbilled vendor error releases both meters exactly (no leak, no negative)', async () => {
+  it('N2b: vendor errors and lost answers retain both debits conservatively', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const e = env();
     world({ vendor: 'throw', barrier: 30 });
     const cookie = await cookieFor(e);
     const rs = await Promise.all(Array.from({ length: 30 }, (_, i) => worker.fetch(voiceReq(cookie, [textOf(10_000, i)]), e)));
     for (const c of await Promise.all(rs.map(code))) expect(['UPSTREAM', 'PLUS_ALLOWANCE']).toContain(c); // in-flight reservations may briefly fill the meter
-    expect(await used(e, 'sub:sub_1', START)).toBe(0);
-    expect(await used(e, 'global', DAY)).toBe(0);
+    expect(await used(e, 'sub:sub_1', START)).toBe(100000);
+    expect(await used(e, 'global', DAY)).toBe(100000);
   });
 
   it.each(['/gate', '/reserve'])('N2c: a meter outage at %s fails closed (no vendor call)', async op => {
@@ -487,7 +497,7 @@ describe('NEW: attacks on the new design', () => {
     const s = world();
     e.PLUS_METER.failNext = 1;
     e.PLUS_METER.failOp = op;
-    await expect(worker.fetch(voiceReq(await cookieFor(e), ['hello there']), e)).rejects.toThrow();
+    expect((await worker.fetch(voiceReq(await cookieFor(e), ['hello there']), e)).status).toBe(503);
     expect(s.vendorCalls).toBe(0);
   });
 
@@ -662,7 +672,7 @@ describe('NEW: attacks on the new design', () => {
     const s = world({ sub: subscription({ status: 'active' }) });
     vi.mocked(fetch).mockImplementation((original => async (url, init) => {
       const u = new URL(url);
-      if (u.pathname === '/v1/invoice_payments') return Response.json({ data: [{ invoice: { parent: { subscription_details: { subscription: 'sub_1' } } } }] });
+      if (u.pathname === '/v1/invoice_payments' && !u.searchParams.has('invoice')) return Response.json({ data: [{ invoice: { parent: { subscription_details: { subscription: 'sub_1' } } } }] });
       return original(url, init);
     })(vi.mocked(fetch).getMockImplementation()));
     const cookie = await cookieFor(e);

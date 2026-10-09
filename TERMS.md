@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated: 8 October 2026**
+**Last updated: 9 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Sections 3, 11 and 12
 > in particular carry real legal consequence and are worth settling with
@@ -28,8 +28,12 @@ over generative visuals and imagery held by museums and archives.
 Reading is offered without charge, as an experiment, and RISE is under active
 development. RISE Plus is an optional subscription, $8.99 a month through
 Stripe, that voices readings of your own material when the Plus voice is on,
-up to 105,000 characters per billing period. If the subscription lapses,
-reading continues without the voice. Features appear, change and are withdrawn. Nothing here is a
+up to 105,000 characters per paid billing period and at most 25,000 per UTC day.
+The effective allowance may be lower because it is limited by the paid
+invoice's voice-cost budget, after applicable tax, discounts and fee or
+fixed-cost reserves. Administrator voice access requires separate Cloudflare
+Access authorization and has separate shared daily and monthly limits. If authorization lapses or
+a limit is reached, reading continues without the voice. Features appear, change and are withdrawn. Nothing here is a
 product commitment.
 
 RISE is not a medical, therapeutic, educational, diagnostic or professional

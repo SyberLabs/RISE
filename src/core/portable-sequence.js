@@ -2,7 +2,7 @@
 import { releaseArchiveMetadata } from '../content/archive/index.js';
 import { PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 import { exportCuratorContext } from './curator-context.js';
-import { importExperienceProgram, programCapabilities, programSourceIds,
+import { importExperienceProgram, normalizeImportedProgram, programCapabilities, programSourceIds,
   workshopProjectFromImportedProgram } from './experience-program-io.js';
 import { validateExperienceProgram } from './experience-program.js';
 import { parseLibraryExtent } from './library-extent.js';
@@ -61,8 +61,8 @@ function checkReference(reference, id) {
   }
 }
 
-function portableProgram(value) {
-  const program = validateExperienceProgram(value);
+function portableProgram(value, options) {
+  const program = validateExperienceProgram(value, options);
   const used = programCapabilities(program);
   if (used.assets.size || used.swells.size || used.voices.size
     || program.tracks.some(track => ['swell', 'narration'].includes(track.kind))) {
@@ -94,7 +94,7 @@ function portableProgram(value) {
       ...track, metadata: undefined,
       clips: track.clips.map(clip => ({ ...clip, metadata: undefined }))
     }))
-  });
+  }, options);
 }
 
 function context() {
@@ -259,9 +259,15 @@ export async function inspectPortableSequence(text) {
     if (!Number.isInteger(wpm) || wpm < READING_PACE.min || wpm > READING_PACE.max) {
       refuse('PORTABLE_PACE', 'The saved reading pace is invalid.');
     }
-    const expectedId = await portableId(program, bundle.sources,
-      { parent, title: bundle.title, wpm });
-    if (bundle.id !== expectedId) refuse('PORTABLE_ID', 'Sequence identity does not match its score.');
+    const identity = { parent, title: bundle.title, wpm };
+    // A bundle exported before a sound it names was parked was hashed with
+    // that sound; it keeps that identity and imports with the stand-in.
+    if (bundle.id !== await portableId(program, bundle.sources, identity)
+      && bundle.id !== await portableId(validateExperienceProgram(normalizeImportedProgram(
+        portableProgram(bundle.program, { keepParkedSounds: true })), { keepParkedSounds: true }),
+      bundle.sources, identity)) {
+      refuse('PORTABLE_ID', 'Sequence identity does not match its score.');
+    }
     const sources = await admittedSources(program);
     const project = workshopProjectFromImportedProgram({
       program, context: context(), sources, assets: [],

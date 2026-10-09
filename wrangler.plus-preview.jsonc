@@ -14,7 +14,7 @@
   "compatibility_date": "2026-09-26",
   "workers_dev": true,
   "preview_urls": false,
-  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_PAYMENT_LINK": "https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00",
+  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_PAYMENT_LINK": "https://buy.stripe.com/test_6oUeVd3zhgLH0K528f9MY01",
     "PLUS_DAILY_CHAR_CAP": "20000",
     // The voices a reader may choose (worker/plus.mjs). ElevenLabs premade voice ids, not secret;
     // "default" takes its id from the PLUS_VOICE_ID secret. GET /api/plus/voices lists slugs and labels only.

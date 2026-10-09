@@ -2,7 +2,7 @@ import { ACCOUNT_ORIGIN, ACCOUNT_SIGN_IN, getAccount, listAccountSaves, saveAcco
 import { LocalWorks } from '../core/local-work-store.js';
 import './account-panel.css';
 
-export function openAccountPanel({ user, trigger, onClose = () => {}, store = LocalWorks }) {
+export function openAccountPanel({ user, trigger, onClose = () => {}, store = LocalWorks, isCurrentAccount = () => true }) {
   document.querySelector('.rise-account-panel')?.close();
   const dialog = document.createElement('dialog');
   dialog.className = 'rise-account-panel';
@@ -26,8 +26,9 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
   let attempt = null;
   let busy = false;
   let closed = false;
+  let invalidated = false;
   const message = error => {
-    if (error.code === 'account_changed') attempt = null;
+    if (error.code === 'account_changed') { attempt = null; invalidated = true; }
     status.textContent = error.message || 'Account request failed. Your browser library is unchanged.';
     dialog.querySelector('[data-sign-in]').hidden = error.status !== 401;
   };
@@ -41,13 +42,22 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     restoreButton.disabled = busy || !remoteSelect.value;
     localSelect.disabled = remoteSelect.disabled = dialog.querySelector('[data-replace]').disabled = busy;
   };
+  const beforeWrite = () => {
+    if (closed || invalidated || !isCurrentAccount()) throw new Error('This account panel is no longer current. Close it and open Account again. Your browser library is unchanged.');
+  };
   const requireSameAccount = async () => {
+    beforeWrite();
     const current = await getAccount();
-    if (current.id !== user.id) throw new Error('Your signed-in account changed. Close this panel and open Account again before saving or restoring.');
+    beforeWrite();
+    if (current.id !== user.id) {
+      invalidated = true;
+      throw new Error('Your signed-in account changed. Close this panel and open Account again before saving or restoring.');
+    }
   };
   const loadLocal = async () => { works = await store.all(); if (!closed) fill(localSelect, works, row => row.title, 'No imported text works yet'); };
   const loadRemote = async () => {
     const saves = await listAccountSaves(user.id);
+    beforeWrite();
     if (!closed) fill(remoteSelect, saves, row => `${row.name} · ${new Date(row.createdAt).toLocaleString()}`, 'No account backups yet');
   };
   const run = async action => {
@@ -67,6 +77,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     if (!record) throw new Error('Select a browser work first.');
     const fingerprint = JSON.stringify(workPayload(record));
     if (!attempt || attempt.fingerprint !== fingerprint) attempt = { fingerprint, requestId: crypto.randomUUID(), expectedUserId: user.id };
+    beforeWrite();
     await saveAccountWork(record, attempt.requestId, attempt.expectedUserId);
     attempt = null;
     if (closed) return;
@@ -78,7 +89,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     const replace = dialog.querySelector('[data-replace]').checked;
     await requireSameAccount();
     if (closed) return;
-    const record = await restoreAccountWork(saveId, store, { replace, expectedUserId: user.id });
+    const record = await restoreAccountWork(saveId, store, { replace, expectedUserId: user.id, beforeWrite });
     if (closed) return;
     dialog.querySelector('[data-replace]').checked = false;
     await loadLocal();

@@ -133,6 +133,7 @@ export const LAYER_PRESETS = {
 import { PersonalSwells } from '../core/personal-swells.js';
 import { PERSONAL_BED_PREFIX } from '../core/workshop-audio.js';
 import { createSoundscape } from './soundscapes.js';
+import { PARKED_SOUNDS, standInSound } from './sound-ids.js';
 import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 import { siteUrl } from '../core/embed-address.js';
@@ -1385,6 +1386,12 @@ export class AudioEngine {
     startSoundscape(id) {
         if (!this.isInitialized) return;
         this.stopSoundscape(true);
+        // Every reader of saved programs translates a parked sound; one that
+        // still arrives plays its stand-in rather than silence.
+        if (Object.hasOwn(PARKED_SOUNDS, id)) {
+            console.warn(`[AudioEngine] Parked soundscape ${id} plays its stand-in, ${standInSound(id)}`);
+            id = standInSound(id);
+        }
 
         // Chant beds are soundscapes whose voices are recorded sacred
         // music (src/audio/chant.js) — same contract, same layer.
