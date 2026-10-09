@@ -96,10 +96,51 @@ jobs:
       # required check opened one. The gate is the fast browser subset.
       - name: Browser gate
         run: npm run test:e2e:gate
-  production:
+  # The private voice provider (rise-plus-preview) is its own job: it deploys before production
+  # when it can, and its failure is reported but never holds the site (production needs only CI).
+  voice-provider:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    # Deploy only what the CI job above built and tested on this push.
     needs: [ci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+    env:
+      TESTED_SHA: ${{ github.sha }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          name: rise-release-${{ github.sha }}
+          path: ${{ runner.temp }}/release
+      - name: Verify the tested provider bundle
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/wrangler deploy --config wrangler.plus-preview.jsonc --dry-run --outdir "$RUNNER_TEMP/provider-deploy-bundle"
+          cmp "$RUNNER_TEMP/release/voice-provider/plus-preview.js" "$RUNNER_TEMP/provider-deploy-bundle/plus-preview.js"
+          cmp "$RUNNER_TEMP/release/voice-provider/wrangler.plus-preview.jsonc" wrangler.plus-preview.jsonc
+      - name: Deploy private voice provider
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          test "$TESTED_SHA" = "$current"
+          # Retain this Worker's existing encrypted key; public test payments cannot render.
+          ./node_modules/.bin/wrangler deploy --config wrangler.plus-preview.jsonc --message "RISE private voice provider $TESTED_SHA" | tee "$RUNNER_TEMP/provider-deploy.log"
+          version=$(sed -n 's/^Current Version ID: *//p' "$RUNNER_TEMP/provider-deploy.log")
+          echo "Deployed private voice provider version: \`${version:-unknown}\` (RISE $TESTED_SHA)" >> "$GITHUB_STEP_SUMMARY"
+
+  production:
+    # Waits for the provider's attempt so it goes first when it can, and deploys whether it passed or not.
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.ci.result == 'success'
+    # Deploy only what the CI job above built and tested on this push.
+    needs: [ci, voice-provider]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # GitHub restricts this environment to main. Required PR checks gate merges.
@@ -136,9 +177,17 @@ jobs:
           # to the bundle the CI job dry-ran.
           ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --dry-run --outdir "$RUNNER_TEMP/deploy-bundle"
           cmp "$RUNNER_TEMP/release/worker/index.js" "$RUNNER_TEMP/deploy-bundle/index.js"
-          ./node_modules/.bin/wrangler deploy --config wrangler.plus-preview.jsonc --dry-run --outdir "$RUNNER_TEMP/provider-deploy-bundle"
-          cmp "$RUNNER_TEMP/release/voice-provider/plus-preview.js" "$RUNNER_TEMP/provider-deploy-bundle/plus-preview.js"
-          cmp "$RUNNER_TEMP/release/voice-provider/wrangler.plus-preview.jsonc" wrangler.plus-preview.jsonc
+      - name: Note the private voice provider's deploy
+        env:
+          PROVIDER_RESULT: ${{ needs.voice-provider.result }}
+        run: |
+          set -euo pipefail
+          # The provider deploys first when it can (production's PLUS_VOICE_PROVIDER binding calls it),
+          # but its failure never holds the site: only Plus voices depend on it.
+          if [ "$PROVIDER_RESULT" != success ]; then
+            echo "::warning::The private voice provider did not deploy ($PROVIDER_RESULT); production deploys without it, and Plus voices use the provider version already live."
+            echo "Private voice provider: **$PROVIDER_RESULT** (production deployed regardless; Plus voices use the provider version already live)." >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Record prior production versions
         run: |
           set -euo pipefail
@@ -151,17 +200,6 @@ jobs:
             echo '```'
             echo 'Roll back with `./node_modules/.bin/wrangler rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"`.'
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Deploy private voice provider before production
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
-          test "$TESTED_SHA" = "$current"
-          # Retain this Worker's existing encrypted key; public test payments cannot render.
-          ./node_modules/.bin/wrangler deploy --config wrangler.plus-preview.jsonc --message "RISE private voice provider $TESTED_SHA" | tee "$RUNNER_TEMP/provider-deploy.log"
-          version=$(sed -n 's/^Current Version ID: *//p' "$RUNNER_TEMP/provider-deploy.log")
-          echo "Deployed private voice provider version: \`${version:-unknown}\` (RISE $TESTED_SHA)" >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy production
         env:
           GH_TOKEN: ${{ github.token }}
