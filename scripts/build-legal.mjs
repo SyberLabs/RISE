@@ -17,8 +17,11 @@
  * lists, tables, block quotes and rules. A dependency has to earn its place,
  * and eighty lines of converter is cheaper than a supply chain.
  *
- *   node scripts/build-legal.mjs           write public/privacy.html, terms.html
- *   node scripts/build-legal.mjs --check   fail if either is stale
+ * Also publish the four linked source documents verbatim. Keeping them only
+ * at the repository root makes their public URLs return the app's fallback.
+ *
+ *   node scripts/build-legal.mjs           write public pages and source documents
+ *   node scripts/build-legal.mjs --check   fail if any published document is stale
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -387,10 +390,23 @@ for (const document of DOCUMENTS) {
     process.stderr.write(`✓ ${document.source} → public/${document.out}\n`);
 }
 
+for (const source of ['LICENSE', 'NOTICE', 'ASSET-LICENSES.md', 'PRIVACY.md']) {
+    const bytes = readFileSync(join(ROOT, source));
+    const target = join(ROOT, 'public', source);
+    if (check) {
+        if (!existsSync(target) || !readFileSync(target).equals(bytes)) {
+            problems.push(`public/${source} does not match ${source}`);
+        }
+    } else {
+        writeFileSync(target, bytes);
+        process.stderr.write(`✓ ${source} → public/${source}\n`);
+    }
+}
+
 if (check) {
     if (problems.length) {
         process.stderr.write(`\n✗ ${problems.join('\n✗ ')}\n\nRun: npm run build:legal\n`);
         process.exit(1);
     }
-    process.stderr.write('✓ published policy pages match their Markdown\n');
+    process.stderr.write('✓ published legal pages and documents match their sources\n');
 }
