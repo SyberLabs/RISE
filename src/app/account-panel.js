@@ -27,6 +27,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
   let busy = false;
   let closed = false;
   const message = error => {
+    if (error.code === 'account_changed') attempt = null;
     status.textContent = error.message || 'Account request failed. Your browser library is unchanged.';
     dialog.querySelector('[data-sign-in]').hidden = error.status !== 401;
   };

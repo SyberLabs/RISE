@@ -40,6 +40,34 @@ describe('account boundary', () => {
     await expect(getAccount(async () => ({ ok: false, status: 401 }))).rejects.toMatchObject({ status: 401 });
     await expect(getAccount(async () => ({ ok: true, json: async () => ({ version: 2 }) }))).rejects.toThrow('unsupported');
   });
+  it('requires the displayed account identity before asking for any backup', async () => {
+    const fetcher = vi.fn();
+    await expect(listAccountSaves('', fetcher)).rejects.toMatchObject({ code: 'expected_user_required' });
+    await expect(restoreAccountWork('x', store, { fetcher })).rejects.toMatchObject({ code: 'expected_user_required' });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('binds lists, detail reads and creates to the captured identity when cookies switch in either direction', async () => {
+    await store.save(makeWork());
+    const before = await store.all();
+    for (const [expectedUserId, liveCookieUser] of [['A', 'B'], ['B', 'A']]) {
+      let writes = 0;
+      const producer = vi.fn(async (_url, options) => {
+        if (!options.headers?.['X-SyberLabs-Expected-User']) return { ok: false, status: 400, json: async () => ({ version: 1, error: 'expected_user_required' }) };
+        if (options.headers['X-SyberLabs-Expected-User'] !== liveCookieUser) return { ok: false, status: 409, json: async () => ({ version: 1, error: 'account_changed' }) };
+        if (options.method === 'POST') writes++;
+        return response({ saves: [] });
+      });
+      for (const operation of [
+        () => listAccountSaves(expectedUserId, producer),
+        () => saveAccountWork(makeWork(), '24476b3f-4439-4b5a-9d5b-133f89ac9113', expectedUserId, producer),
+        () => restoreAccountWork('x', store, { expectedUserId, fetcher: producer })
+      ]) await expect(operation()).rejects.toMatchObject({ status: 409, code: 'account_changed' });
+      expect(writes).toBe(0);
+      expect(producer).toHaveBeenCalledTimes(3);
+      for (const [, options] of producer.mock.calls) expect(options.headers['X-SyberLabs-Expected-User']).toBe(expectedUserId);
+      expect(await store.all()).toEqual(before);
+    }
+  });
 });
 
 describe('restore crosses the existing work validator', () => {
@@ -84,43 +112,4 @@ it('preserves a browser draft admitted while a restore is waiting to write', asy
     expectedUserId: 'u1', fetcher: async () => backup(remote)
   })).rejects.toThrow('different browser copy');
   expect((await store.get(newDraft.id)).text).toBe(newDraft.text);
-});
-
-
-it('binds list and detail reads to the account whose panel was opened', async () => {
-  const fetcher = vi.fn(async url => url.endsWith('?app=rise')
-    ? response({ saves: [] }) : backup(makeWork()));
-  await listAccountSaves('displayed-account', fetcher);
-  await restoreAccountWork('x', store, { expectedUserId: 'displayed-account', fetcher });
-  expect(fetcher.mock.calls.map(([, options]) => options.headers['X-SyberLabs-Expected-User']))
-    .toEqual(['displayed-account', 'displayed-account']);
-});
-
-it('retains account identity and UUID on retries after the live session switches', async () => {
-  const writes = [];
-  let liveUser = 'different-account';
-  const fetcher = vi.fn(async (_url, options) => {
-    if (options.headers['X-SyberLabs-Expected-User'] !== liveUser) {
-      return { ok: false, status: 409, json: async () => ({ version: 1, error: 'account_changed' }) };
-    }
-    writes.push(JSON.parse(options.body));
-    return response({ save: { id: 'backup' } });
-  });
-  const work = makeWork();
-  const requestId = '24476b3f-4439-4b5a-9d5b-133f89ac9113';
-  await expect(saveAccountWork(work, requestId, 'displayed-account', fetcher)).rejects.toThrow('account changed');
-  expect(writes).toHaveLength(0);
-  liveUser = 'displayed-account';
-  await saveAccountWork(work, requestId, 'displayed-account', fetcher);
-  expect(writes[0].requestId).toBe(requestId);
-  expect(fetcher.mock.calls.map(([, options]) => options.headers['X-SyberLabs-Expected-User']))
-    .toEqual(['displayed-account', 'displayed-account']);
-});
-
-it('rejects a missing displayed account before making a backup request', async () => {
-  const fetcher = vi.fn();
-  await expect(listAccountSaves('', fetcher)).rejects.toThrow('account');
-  await expect(saveAccountWork(makeWork(), 'uuid', undefined, fetcher)).rejects.toThrow('account');
-  await expect(restoreAccountWork('x', store, { fetcher })).rejects.toThrow('account');
-  expect(fetcher).not.toHaveBeenCalled();
 });

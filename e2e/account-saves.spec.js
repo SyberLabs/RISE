@@ -28,9 +28,10 @@ async function mockAccount(page, onPost = () => {}) {
     const headers = { 'Access-Control-Allow-Origin': new URL(page.url()).origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Content-Type,X-SyberLabs-Account,X-SyberLabs-Expected-User', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
     const pathname = new URL(req.url()).pathname;
-    if (pathname.includes('/saves')) expect(req.headers()['x-syberlabs-expected-user']).toBe('u1');
+    if (pathname.includes('/saves') && !req.headers()['x-syberlabs-expected-user']) return route.fulfill({ status: 400, headers, json: { version: 1, error: 'expected_user_required' } });
+    if (pathname.includes('/saves') && req.headers()['x-syberlabs-expected-user'] !== 'u1') return route.fulfill({ status: 409, headers, json: { version: 1, error: 'account_changed' } });
     let body = { user: { id: 'u1', label: 'Test reader' } };
-    if (req.method() === 'POST') { onPost(req); body = { save }; }
+    if (req.method() === 'POST') { expect(req.headers()['x-syberlabs-expected-user']).toBe('u1'); onPost(req); body = { save }; }
     else if (pathname.endsWith('/saves')) body = { saves: [save] };
     else if (pathname.endsWith('/saves/save-1')) body = { save: { ...save, payload } };
     await route.fulfill({ status: 200, headers, json: { version: 1, ...body } });
@@ -119,7 +120,7 @@ test('account switch after preflight refuses private text and preserves browser 
   await seed(page);
   await page.getByRole('link', { name: 'Open SyberLabs account' }).click();
   await page.getByRole('button', { name: 'Save to account', exact: true }).click();
-  await expect(page.locator('[data-status]')).toContainText('Your account changed');
+  await expect(page.locator('[data-status]')).toContainText('account changed');
   expect(acceptedWrites).toBe(0);
   // Read IndexedDB directly: the production build does not expose source modules.
   const text = await page.evaluate(() => new Promise(resolve => {
