@@ -55,8 +55,9 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
   dialog.addEventListener('close', () => { closed = true; dialog.remove(); trigger?.focus(); onClose(); }, { once: true });
   localSelect.addEventListener('change', () => { attempt = null; buttons(); });
   saveButton.addEventListener('click', () => run(async () => {
+    const selected = localSelect.value;
     await requireSameAccount();
-    const record = works.find(work => work.id === localSelect.value);
+    const record = works.find(work => work.id === selected);
     if (!record) throw new Error('Select a browser work first.');
     const fingerprint = JSON.stringify(workPayload(record));
     if (!attempt || attempt.fingerprint !== fingerprint) attempt = { fingerprint, requestId: crypto.randomUUID() };
@@ -67,8 +68,10 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     await loadRemote();
   }));
   restoreButton.addEventListener('click', () => run(async () => {
+    const saveId = remoteSelect.value;
+    const replace = dialog.querySelector('[data-replace]').checked;
     await requireSameAccount();
-    const record = await restoreAccountWork(remoteSelect.value, store, { replace: dialog.querySelector('[data-replace]').checked });
+    const record = await restoreAccountWork(saveId, store, { replace });
     if (closed) return;
     dialog.querySelector('[data-replace]').checked = false;
     await loadLocal();
