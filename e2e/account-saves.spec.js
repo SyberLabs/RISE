@@ -133,7 +133,7 @@ test('a detail response from an old account cannot overwrite the browser library
   expect(rows).toEqual([work]);
 });
 
-test('mobile account metadata, read-only recovery and keyboard focus remain usable after a committed save', async ({ page }) => {
+test('mobile account metadata, read-only recovery and keyboard focus remain usable after a committed save', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 320, height: 640 });
   let posts = 0;
   await mockAccount(page, () => { posts++; }, { failListAfterSave: true });
@@ -166,7 +166,7 @@ test('mobile account metadata, read-only recovery and keyboard focus remain usab
   expect(await page.locator('[data-status]').evaluate(node => node.closest('[aria-busy]'))).toBeNull();
   await page.keyboard.press('Tab');
   expect(await dialog.evaluate(node => node.contains(document.activeElement))).toBe(true);
-  await page.screenshot({ path: '/Users/sethcarlson/Documents/Codex/2026-10-08/conti/outputs/rise-account-ux-mobile.png' });
+  await page.screenshot({ path: testInfo.outputPath('rise-account-ux-mobile.png') });
   await page.keyboard.press('Escape');
   await expect(entrance).toBeFocused();
 });
