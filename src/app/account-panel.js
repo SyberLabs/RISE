@@ -27,6 +27,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
   let busy = false;
   let closed = false;
   const message = error => {
+    if (error.code === 'account_changed') attempt = null;
     status.textContent = error.message || 'Account request failed. Your browser library is unchanged.';
     dialog.querySelector('[data-sign-in]').hidden = error.status !== 401;
   };
@@ -46,7 +47,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
   };
   const loadLocal = async () => { works = await store.all(); if (!closed) fill(localSelect, works, row => row.title, 'No imported text works yet'); };
   const loadRemote = async () => {
-    const saves = await listAccountSaves();
+    const saves = await listAccountSaves(user.id);
     if (!closed) fill(remoteSelect, saves, row => `${row.name} · ${new Date(row.createdAt).toLocaleString()}`, 'No account backups yet');
   };
   const run = async action => {
@@ -65,8 +66,8 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     const record = works.find(work => work.id === selected);
     if (!record) throw new Error('Select a browser work first.');
     const fingerprint = JSON.stringify(workPayload(record));
-    if (!attempt || attempt.fingerprint !== fingerprint) attempt = { fingerprint, requestId: crypto.randomUUID() };
-    await saveAccountWork(record, attempt.requestId);
+    if (!attempt || attempt.fingerprint !== fingerprint) attempt = { fingerprint, requestId: crypto.randomUUID(), expectedUserId: user.id };
+    await saveAccountWork(record, attempt.requestId, attempt.expectedUserId);
     attempt = null;
     if (closed) return;
     status.textContent = `Saved “${record.title}” to your account.`;
@@ -77,7 +78,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     const replace = dialog.querySelector('[data-replace]').checked;
     await requireSameAccount();
     if (closed) return;
-    const record = await restoreAccountWork(saveId, store, { replace });
+    const record = await restoreAccountWork(saveId, store, { replace, expectedUserId: user.id });
     if (closed) return;
     dialog.querySelector('[data-replace]').checked = false;
     await loadLocal();

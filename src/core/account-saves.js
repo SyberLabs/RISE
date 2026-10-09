@@ -1,5 +1,5 @@
 import { validateLocalWork } from './local-works.js';
-import { accountRequest as request, AccountError, ERRORS } from './account-service.js';
+import { accountRequest as request, AccountError, ERRORS, expectedAccountHeader } from './account-service.js';
 export { ACCOUNT_ORIGIN, ACCOUNT_SIGN_IN, getAccount, listAccountSaves } from './account-service.js';
 const MAX_BYTES = 1024 * 1024;
 
@@ -17,14 +17,14 @@ export function workPayload(record) {
   return { schema: 'rise.account-work.v1', work: { schema, id, title, author, text, cuts, labels, sourceName, createdAt, noun, authored, reason } };
 }
 
-export async function saveAccountWork(record, requestId, fetcher) {
+export async function saveAccountWork(record, requestId, expectedUserId, fetcher) {
   const body = JSON.stringify({ app: 'rise', name: record.title.slice(0, 100), payload: workPayload(record), requestId });
   if (new TextEncoder().encode(JSON.stringify(JSON.parse(body).payload)).byteLength > MAX_BYTES) throw new AccountError(ERRORS[413], 413);
-  return request('/saves', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-SyberLabs-Account': 'v1' }, body }, fetcher);
+  return request('/saves', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-SyberLabs-Account': 'v1', ...expectedAccountHeader(expectedUserId) }, body }, fetcher);
 }
 
-export async function restoreAccountWork(id, store, { replace = false, fetcher } = {}) {
-  const body = await request(`/saves/${encodeURIComponent(id)}`, {}, fetcher);
+export async function restoreAccountWork(id, store, { replace = false, expectedUserId, fetcher } = {}) {
+  const body = await request(`/saves/${encodeURIComponent(id)}`, { headers: expectedAccountHeader(expectedUserId) }, fetcher);
   const save = body.save;
   if (save?.app !== 'rise' || save.payload?.schema !== 'rise.account-work.v1') throw new AccountError('This backup is not a RISE text work.');
   let record;
