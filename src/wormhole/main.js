@@ -1,4 +1,6 @@
 import './wormhole.css';
+import { mountAccountControl } from '../app/account-control.js';
+mountAccountControl();
 import { mountWormhole } from './wormhole.js';
 import { createScene } from './scene.js';
 import { initialScene, shipPose, stepScene } from './scene-state.js';

@@ -1,0 +1,30 @@
+.rise-account-control {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  z-index: 900;
+  display: grid;
+  place-items: center;
+  min-width: 76px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #bda5ff;
+  border-radius: 999px;
+  background: linear-gradient(125deg, #342068, #172745 60%, #4a175b);
+  box-shadow: 0 0 20px #9c57ff35;
+  color: #fff;
+  text-decoration: none;
+  font: 600 13px/1.2 var(--sy-font-sans, sans-serif);
+}
+.rise-account-control:focus-visible { outline: 2px solid #83f6e5; outline-offset: 3px; }
+.has-rise-account .sl-header { padding-right: 110px; }
+.has-rise-account .chamber-ready { right: 120px; }
+@media (max-width: 600px) {
+  .has-rise-account .sl-lockup { gap: 6px; }
+  .has-rise-account .sl-wordmark { font-size: 0; letter-spacing: 0; }
+  .has-rise-account .sl-wordmark::after { content: 'RISE'; font: 600 12px var(--sy-font-sans, sans-serif); letter-spacing: .12em; }
+  .has-rise-account .sl-sigil { display: none; }
+}
+
+.has-rise-account .wh-header { padding-right: 110px; }
+@media (max-width: 600px) { .has-rise-account .wh-serial { display: none; } }

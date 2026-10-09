@@ -216,7 +216,7 @@ flowchart LR
     visuals -.-> |4 lazy| content
     visuals --> |25| core
     visuals --> |4| sources
-    wormhole --> |1| app
+    wormhole --> |2| app
     wormhole --> |2| core
 ```
 
