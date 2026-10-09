@@ -15,6 +15,7 @@
  * also run against the same page, once, by hand; see docs/plans/LIVE-MCP.md.
  */
 import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../src/test/sealed-current.js';
+import { compileRiseCurrent } from '../src/core/rise-current.js';
 import { HORIZON_DIVE } from '../src/live/fixtures/black-holes.js';
 import { SKY_PREMIUM_EDUCATIONAL } from '../src/live/fixtures/sky-premium-educational.js';
 import { relayHtml } from '../src/live/hosts/mcp-relay.js';
@@ -1044,8 +1045,10 @@ async function shownLineMs(page, baseURL, presses) {
   const pace = app.locator('#rise-stage-controls [data-stage="pace"]');
   for (let i = 0; i < presses; i += 1) await pace.click();
   const live = () => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__riseLive.atoms());
-  await expectShown(app, 'A line nobody says', 20_000);
-  const { index } = (await live()).at(-1);
+  // Locate the shown beat in the fixture, then read its persistent timing record.
+  // A 1000 ms poll can miss its 800 ms appearance at 1.5x; a later snapshot can also select the next atom.
+  const index = compileRiseCurrent(SKY_BEATS).atoms.findIndex(atom => atom.sourceId === 'beat-2');
+  expect(index).toBeGreaterThanOrEqual(0);
   await expect.poll(async () => (await live()).some(entry => entry.index === index + 1), { timeout: 20_000 }).toBe(true);
   const atoms = await live();
   return Math.round(atoms.find(entry => entry.index === index + 1).at - atoms.find(entry => entry.index === index).at);
