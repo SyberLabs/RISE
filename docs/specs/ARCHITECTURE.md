@@ -187,7 +187,7 @@ flowchart LR
     audio --> |8| core
     components --> |3| affect
     components --> |1| app
-    components --> |5| audio
+    components --> |6| audio
     components --> |23| content
     components --> |187| core
     components -.-> |1 lazy| page
@@ -199,7 +199,7 @@ flowchart LR
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
-    core --> |10| audio
+    core --> |12| audio
     core --> |15| content
     core --> |9| scenes
     core --> |4| sources
