@@ -1265,6 +1265,18 @@ test('on a phone a caption sits whole in the card, in its lower half and above t
   }
 });
 
+test('on a phone a line placed at the side is a caption, and it too sits above the bar', async ({ page, baseURL }) => {
+  const [first, ...rest] = SKY_PREMIUM_EDUCATIONAL.beats;
+  for (const place of ['left', 'right']) {
+    await page.setViewportSize({ width: 390, height: 481 });
+    const app = await fieldCard(page, baseURL, { height: 481, current: { ...SKY_PREMIUM_EDUCATIONAL, beats: [{ ...first, place }, ...rest] } });
+    const words = await viewBox(app.locator(`#atom-display[data-place="${place}"]`));
+    const beats = await viewBox(app.locator('.rise-stage__beats'));
+    expect(words.top, `the ${place} line's top`).toBeGreaterThanOrEqual(0);
+    expect(words.bottom, `the ${place} line's bottom against the beat line`).toBeLessThan(beats.top);
+  }
+});
+
 const TALL_SVG = [
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 400" font-family="sans-serif" font-size="16" fill="currentColor">',
   '  <rect x="40" y="40" width="180" height="320" fill="none" stroke="currentColor" stroke-width="2.5"/>',

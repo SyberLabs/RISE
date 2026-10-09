@@ -186,6 +186,11 @@ html[data-embed="mcp"] .chamber-figure { height: calc(100% - var(--embed-bar-roo
 /* A caption sits just above the bar's room, not at 9 % of the field (the Reader's rule, Chamber.css). */
 html[data-embed="mcp"] .atom-display[data-place="caption"] { bottom: calc(var(--embed-bar-room) + 8px); }
 
+/* On a phone a column is a caption (Chamber.css), so it sits there too. */
+@media (max-width: 600px) {
+  html[data-embed="mcp"] .atom-display:is([data-place="left"], [data-place="right"]) { bottom: calc(var(--embed-bar-room) + 8px); }
+}
+
 /* While the bar is hidden (stage-controls.js) the words move down into its room, all but the faint beat line's
    (half the padding they no longer need: 64 to 24, 88 to 40), as the bar fades, not at once. They move by the
    band's transform (Chamber.css), never by the field's padding: the field is the box each visual's canvas is
