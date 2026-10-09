@@ -1,16 +1,21 @@
 {
   "id": "CC-009",
-  "title": "SVG figures: a scene kind for model-drawn SVG, admitted and cued",
+  "title": "SVG figures: a scene kind for model-drawn SVG, admitted and drawn",
   "lane": "live-sdk",
   "milestone": "Creative Control",
-  "status": "planned",
-  "delivery": "not_shipped",
+  "status": "in_review",
+  "delivery": "branch",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [],
   "acceptance": [
-    "Stage 1: an image layer for model-drawn SVG with admission: a size cap, a parse, and no script, foreignObject or external href.",
-    "Stage 2: cueable groups, after a sanitiser corpus."
+    "Stage 1 (built on branch cc-009-svg-figures): a scene may be { id, svg }, one SVG document of at most BEAT_LIMITS.svg = 32,768 UTF-8 bytes, exclusive with engine, params and code (SCENE_SVG); a cue to a figure is refused (BEAT_CUE, \"An SVG figure takes no cues\"); a hold under it runs on its ms; it lowers to the scene cue { kind: \"scene\", sceneId, svg }, which the score, the visual program and the director accept as exactly one of code and svg.",
+    "Stage 1: src/core/svg-admission.js admitSvg, a tokenizer with no DOM, shared by the Worker and the card: root <svg> with the SVG namespace and a viewBox, ending </svg>; no DOCTYPE, <!ENTITY, other declaration, processing instruction (but the xml declaration) or CDATA holding <; an element allowlist (feImage, script, foreignObject, image, a and every unknown refused by name); no on* attribute or externalResourcesRequired; href and xlink:href only #id; animations may not target href or handlers; only the SVG and XLink namespaces; no javascript:, data:, http:, https: or // in a decoded value, url() only #id; CSS with no @import, expression(, behavior, -moz-binding or escapes; at most ten diagnostics with line and column; a corpus of 27 tests in src/core/svg-admission.test.js.",
+    "Stage 1: the Worker refuses the whole rise_present call for a refused figure with Scene \"<id>\" was refused: line L, column C: <rule>. and a repair line; the v2 input schema has the third oneOf branch { id, svg }; worker/mcp-server.test.js holds both.",
+    "Stage 1: the card admits again before drawing (Chamber._mountFigureCue) and shows the figure only as an <img> of a blob: URL (src/components/read/figure-layer.js), the theme ink written as the root colour; a refused figure mounts nothing, and a refused or undrawable figure gives way to the fallback and is reported as [RISE scene] (phases admission and image); held by Chamber.figure.test.js and two e2e tests in e2e/live-mcp.spec.js.",
+    "Stage 1: the guide names figures in the tool description and teaches them in full with every style (FIGURE_GUIDE); premium-educational has a worked Current with a labelled cell diagram; each style eval corpus has a figure and npm run eval:creative admits figures; docs/specs/RISE-SDK.md 3.9 and src/core/rise-sdk.test.js hold the limit, the element list, the refusal and report lines.",
+    "Stage 2: cueable groups, after a sanitiser corpus.",
+    "Not yet measured: whether Claude and ChatGPT sandboxes allow a blob: image in the card (img-src); where not, the figure falls back to the look field."
   ],
   "evidence": [
     {
@@ -24,10 +29,14 @@
     {
       "date": "2026-10-09T04:00:00.000Z",
       "summary": "Proposed in the 2026-10-09 reconciliation of records and roadmap."
+    },
+    {
+      "date": "2026-10-09T06:27:11.453Z",
+      "summary": "Stage 1 built on cc-009-svg-figures: figure scenes, shared SVG admission in Worker and card, image layer, guide, corpus and SDK contract; PR to follow."
     }
   ],
-  "updatedAt": "2026-10-09T04:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-09T06:27:11.453Z",
+  "revision": 2,
   "summary": "Proposed 2026-10-09: a figure a model draws as SVG, admitted by the Worker before the card shows it.",
   "blocker": null
 }
