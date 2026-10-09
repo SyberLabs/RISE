@@ -69,7 +69,7 @@ it('keeps the study entrance without looking up identity on mount or focus', asy
   expect(fetcher).not.toHaveBeenCalled();
 });
 
-it('keeps the host card entrance without looking up identity on mount or focus', async () => {
+it('puts no entrance over the reading in a host card, and looks up no identity on mount or focus', async () => {
   vi.resetModules();
   const meta = document.createElement('meta');
   meta.name = 'rise-embed'; meta.content = '/live?embed=mcp&voice=paced';
@@ -81,8 +81,11 @@ it('keeps the host card entrance without looking up identity on mount or focus',
     control = mountCardAccount();
     window.dispatchEvent(new Event('focus'));
     await new Promise(resolve => setTimeout(resolve, 0));
-    expect(document.querySelector('.rise-account-control').textContent).toBe('Sign in');
+    // The card's sign-in is a row of its Settings sheet, opened outside the card (stage-controls.js).
+    expect(document.querySelector('.rise-account-control')).toBeNull();
+    expect(document.body.classList.contains('has-rise-account')).toBe(false);
     expect(fetcher).not.toHaveBeenCalled();
+    control.destroy();
   } finally { meta.remove(); vi.resetModules(); }
 });
 

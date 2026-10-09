@@ -207,11 +207,12 @@
     }
 }
 
-/* On a phone the pane is the full-width band that holds the word. */
+/* On a phone the pane is the full-width band that holds the word, and only while it holds one:
+   an empty band (a hold) or a placed display keeps its height and paints nothing (Chamber.css). */
 @media (max-width: 640px) {
-    .chamber .chamber-field-stream .atom-band:has(.atom-display.glass-tile:not(.is-mask)),
-    .chamber .chamber-field-genesis .atom-band:has(.atom-display.glass-tile:not(.is-mask)),
-    .chamber .chamber-field-night .atom-band:has(.atom-display.glass-tile:not(.is-mask)) {
+    .chamber .chamber-field-stream .atom-band:has(.atom-display.glass-tile:not(.is-mask)):where(:not(:has(.atom-display:empty)):not(:has(.atom-display[data-place]))),
+    .chamber .chamber-field-genesis .atom-band:has(.atom-display.glass-tile:not(.is-mask)):where(:not(:has(.atom-display:empty)):not(:has(.atom-display[data-place]))),
+    .chamber .chamber-field-night .atom-band:has(.atom-display.glass-tile:not(.is-mask)):where(:not(:has(.atom-display:empty)):not(:has(.atom-display[data-place]))) {
         background: var(--reading-scrim);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);

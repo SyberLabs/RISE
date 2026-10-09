@@ -1,6 +1,7 @@
 import { describeStatus } from './controls.js';
 import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
 import { FONT_SIZE_CHIPS, resolveFontSize } from '../../core/chamber-type-size.js';
+import { ACCOUNT_SIGN_IN } from '../../core/account-service.js';
 
 /**
  * The stage inside a host's card: the reading, and a row of objects over it.
@@ -109,6 +110,7 @@ export function createStageControls({
         ${full ? `<p id="rise-settings-keys" class="rise-stage__sr">${KEYS_DESCRIBED}</p>` : ''}
         <div class="rise-settings__head">
           <h2 class="rise-settings__title">Settings</h2>
+          <a class="rise-settings__account" href="${ACCOUNT_SIGN_IN}" target="_blank" rel="noopener">Sign in to SyberLabs</a>
           <button type="button" class="rise-settings__close" aria-label="Close settings">${CLOSE_GLYPH}</button>
         </div>
         <div class="rise-settings__row">
@@ -505,6 +507,13 @@ export function createStageControls({
             selection.addRange(range);
             copy.textContent = 'Selected';
         });
+    });
+    // Sign in opens outside the card: a host is asked to open it (a sandboxed card cannot open a page itself, and
+    // following the link would put the sign-in page where the reading was). With no host it is an ordinary link.
+    $('.rise-settings__account').addEventListener('click', event => {
+        if (typeof port?.openLink !== 'function') return;
+        event.preventDefault();
+        port.openLink(event.currentTarget.href).catch(() => {});
     });
     for (const chip of sizes) {
         chip.addEventListener('change', () => { if (chip.checked) choose('fontSize', chip.value); });

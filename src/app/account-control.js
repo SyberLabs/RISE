@@ -4,12 +4,15 @@ import './account-control.css';
 
 /** Outside route containers, so reading and every room retain this entrance. */
 export function mountAccountControl() {
-  // The study promises no identity/network lookup. A host card is likewise
-  // self-contained and cannot supply the site's account session. Keep its
-  // explicit sign-in link, but never refresh identity just by opening/focusing it.
+  // A host card shows the reading and its controls, nothing over them, and
+  // cannot supply the site's account session: its sign-in is the Settings
+  // sheet's head, opened outside the card (live/host/stage-controls.js).
+  if (IN_HOST_CARD) return { destroy() {} };
+  // The study promises no identity/network lookup. Keep its explicit sign-in
+  // link, but never refresh identity just by opening/focusing it.
   const isolated = () => {
     const location = appLocation();
-    return IN_HOST_CARD || (location.pathname === '/live' && new URLSearchParams(location.search).has('eval'));
+    return location.pathname === '/live' && new URLSearchParams(location.search).has('eval');
   };
   const link = document.createElement('a');
   link.className = 'rise-account-control';

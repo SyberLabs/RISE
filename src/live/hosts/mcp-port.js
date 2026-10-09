@@ -48,7 +48,8 @@ export const METHODS = Object.freeze({
     ping: 'ping',
     teardown: 'ui/resource-teardown',
     updateModelContext: 'ui/update-model-context',
-    requestDisplayMode: 'ui/request-display-mode'
+    requestDisplayMode: 'ui/request-display-mode',
+    openLink: 'ui/open-link'
 });
 
 /** The display modes the extension defines; the app declares each at hello, so a host may move it to any it offers. */
@@ -318,6 +319,12 @@ export function createMcpGuestPort({ frame, host = frame.parent, appName = 'RISE
             const result = await request(METHODS.requestDisplayMode, { mode });
             if (DISPLAY_MODES.includes(result?.mode)) hostContext = { ...hostContext, displayMode: result.mode };
             return hostContext.displayMode ?? 'inline';
+        },
+
+        /** Ask the host to open an address in the reader's browser, outside the card. True if the host says it did. */
+        async openLink(url) {
+            const result = await request(METHODS.openLink, { url });
+            return result?.isError !== true;
         },
 
         /** Whether the host said, when the app said hello, that it will put a question to its model. */
