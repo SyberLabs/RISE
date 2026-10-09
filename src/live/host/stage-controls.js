@@ -65,11 +65,13 @@ const KEYS_DESCRIBED = 'Keys on the stage: Space plays or pauses; the Left and R
  * @param {object | null} [options.port] the host card's port (mcp-port.js), whose host may offer to show the
  *   card full screen or floating; with none, the browser's own full screen where it allows it
  * @param {boolean} [options.sound] there is an engine for the reading's beds and tones: the sheet offers Sound
+ * @param {(() => string) | null} [options.about] what the host knows of this reading's voice, host and device, as
+ *   plain text: the sheet ends with it, collapsed, under "About this reading", with Copy
  * @param {Document} [options.doc]
  */
 export function createStageControls({
     runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], takeFocus = false,
-    transport = 'full', port = null, sound: offersSound = false, doc = document
+    transport = 'full', port = null, sound: offersSound = false, about = null, doc = document
 }) {
     const full = transport !== 'minimal';
     const noVoice = degradations.some(note => note.capability === 'speechOutput');
@@ -78,6 +80,8 @@ export function createStageControls({
     const silent = !noVoice ? '' : degradations.find(note => note.capability === 'speechOutput').effect.startsWith('No voice')
         ? ' (silent, no voice is installed)'
         : ' (silent, this browser cannot speak)';
+    // A voice the reading gave up on (speech-governor.js) is marked as one that cannot speak until it is the clock again.
+    const givenUp = ' (silent, the voice did not start; Play tries it again)';
     const root = doc.createElement('section');
     root.id = 'rise-stage-controls';
     root.className = 'rise-stage';
@@ -128,6 +132,11 @@ export function createStageControls({
           <span class="rise-settings__label" id="rise-settings-size-label">Text size</span>
           <div class="rise-settings__chips" role="radiogroup" aria-labelledby="rise-settings-size-label">${SIZE_CHIPS.map(chip => `<label class="rise-settings__chip"><input type="radio" name="rise-settings-size" value="${chip.fontSize}"${chip.fontSize === 'medium' ? ' checked' : ''}><span>${chip.label}</span></label>`).join('')}</div>
         </div>
+        ${about ? `<details class="rise-settings__about">
+          <summary>About this reading</summary>
+          <button type="button" class="rise-settings__copy">Copy</button>
+          <pre class="rise-settings__about-text"></pre>
+        </details>` : ''}
       </section>`;
     doc.body.appendChild(root);
 
@@ -152,6 +161,9 @@ export function createStageControls({
     const fullscreen = $('[data-stage="fullscreen"]');
     const beats = $('.rise-stage__beats');
     const paceNote = $('.rise-stage__pace-note');
+    const aboutPanel = $('.rise-settings__about');
+    const aboutText = $('.rise-settings__about-text');
+    const copy = $('.rise-settings__copy');
     let destroyed = false;
     // The pace last said and where it was to land; the first one rendered is the reading's own, not news.
     let paceSaid = null;
@@ -165,10 +177,10 @@ export function createStageControls({
     const picked = {};
     let reached = null;
 
-    function name(status) {
+    function name(status, why) {
         if (status === 'ended') return 'Play again';
-        if (status === 'interrupted') return `Play${silent}`;
-        if (status === 'live') return `Pause${silent}`;
+        if (status === 'interrupted') return `Play${why}`;
+        if (status === 'live') return `Pause${why}`;
         return 'Starting';
     }
 
@@ -369,9 +381,12 @@ export function createStageControls({
             // Only from nowhere: a frame whose document has lost the focus, or a reader who moved it, keeps theirs.
             if (doc.hasFocus() && (doc.activeElement === doc.body || doc.activeElement === null)) play.focus();
         }
-        play.setAttribute('aria-label', name(status));
+        const lost = !noVoice && audible && snapshot.main?.voiceDegraded === true;
+        if (noVoice || lost) play.dataset.voice = 'none';
+        else delete play.dataset.voice;
+        play.setAttribute('aria-label', name(status, lost ? givenUp : silent));
         // The end is drawn apart from a pause: the same triangle would leave a sighted reader unable to tell them.
-        play.innerHTML = `${status === 'live' ? PAUSE_GLYPH : status === 'ended' ? AGAIN_GLYPH : PLAY_GLYPH}${noVoice ? NO_VOICE_GLYPH : ''}`;
+        play.innerHTML = `${status === 'live' ? PAUSE_GLYPH : status === 'ended' ? AGAIN_GLYPH : PLAY_GLYPH}${noVoice || lost ? NO_VOICE_GLYPH : ''}`;
         alert.textContent = status === 'failed' ? describeStatus(snapshot, { audible, dive: false }) : '';
         alert.hidden = status !== 'failed';
         wholeReading();
@@ -423,9 +438,17 @@ export function createStageControls({
 
     const outside = event => { if (!sheet.contains(event.target) && event.target !== settings) closeSheet(); };
 
+    /** What the host says of the reading now; Copy says it was not yet pressed. */
+    function refreshAbout() {
+        if (!aboutText) return;
+        aboutText.textContent = about();
+        copy.textContent = 'Copy';
+    }
+
     function openSheet() {
         refreshIntensity();
         refreshSaved();
+        refreshAbout();
         sheet.hidden = false;
         settings.setAttribute('aria-expanded', 'true');
         doc.addEventListener('pointerdown', outside);
@@ -465,6 +488,22 @@ export function createStageControls({
         render(runtime.snapshot());
     });
     sound?.addEventListener('change', () => choose('cardSound', sound.checked));
+    aboutPanel?.addEventListener('toggle', () => { if (aboutPanel.open) refreshAbout(); });
+    // Written inside the press, which the clipboard asks for; where it is refused, the text is selected for the reader to copy.
+    copy?.addEventListener('click', () => {
+        refreshAbout();
+        const said = aboutText.textContent;
+        let written;
+        try { written = Promise.resolve(doc.defaultView.navigator.clipboard.writeText(said)); } catch (refused) { written = Promise.reject(refused); }
+        written.then(() => { copy.textContent = 'Copied'; }, () => {
+            const range = doc.createRange();
+            range.selectNodeContents(aboutText);
+            const selection = doc.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            copy.textContent = 'Selected';
+        });
+    });
     for (const chip of sizes) {
         chip.addEventListener('change', () => { if (chip.checked) choose('fontSize', chip.value); });
     }

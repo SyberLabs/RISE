@@ -41,11 +41,11 @@ afterEach(async () => {
 
 /**
  * Open the field's Current; what the voice said, what the words showed and what the scene was cued, each with when.
- * `lost`: passages the voice takes and never says, the first time it is given them. `msPerChar`: how slowly the voice speaks.
+ * `lost`: passages the voice takes and never says, once for each time one is named, the first times it is given them. `msPerChar`: how slowly the voice speaks.
  * `connectingPace`: a pace the reader sets while the reading is still being opened.
  */
 async function open({ lost = [], msPerChar = MS_PER_CHAR, connectingPace = null } = {}) {
-    const losing = new Set(lost);
+    const losing = [...lost];
     const clock = createRealClock();
     const adapter = createMcpAppAdapter({
         port: { onCurrent: () => () => {}, canSample: () => false }, clock, host: 'https://host.example',
@@ -76,7 +76,12 @@ async function open({ lost = [], msPerChar = MS_PER_CHAR, connectingPace = null 
                     end: (id, durationMs) => { said.push({ at: now(), kind: 'end', id, durationMs }); callbacks.end(id, durationMs); }
                 });
                 const enqueue = voice.enqueue.bind(voice);
-                voice.enqueue = item => (losing.delete(item.id) ? undefined : enqueue(item));
+                voice.enqueue = item => {
+                    const at = losing.indexOf(item.id);
+                    if (at < 0) return enqueue(item);
+                    losing.splice(at, 1);
+                    return undefined;
+                };
                 return voice;
             }
         },
@@ -448,5 +453,53 @@ describe('the pace', () => {
         expect(() => runtime.setPace(0.4)).toThrow(/pace/u);
         expect(() => runtime.setPace(2.5)).toThrow(/pace/u);
         expect(() => runtime.setPace(Number.NaN)).toThrow(/pace/u);
+    });
+});
+
+describe('Play after the voice was given up on', () => {
+    /** Open with the first passage lost `times` times, and play until the reading has stood down from its voice; then pause. */
+    async function givenUp(times = 1) {
+        const run = await open({ lost: Array(times).fill('beat-0') });
+        for (let waited = 0; waited < 10_000 && !runtime.snapshot().main.voiceDegraded; waited += 50) await tick(50);
+        expect(run.journal('voice.degraded').map(entry => entry.reason)).toEqual(['voice-did-not-start']);
+        await runtime.interrupt();
+        return run;
+    }
+
+    it('re-arms the voice: it says the passage on screen from its start, and is the clock again', async () => {
+        const run = await givenUp();
+        const on = runtime.position().segmentId;
+        const at = now();
+        runtime.resume();
+        expect(run.journal('voice.rearmed')).toEqual([expect.objectContaining({ role: 'main', reason: 'play' })]);
+        expect(runtime.snapshot().main.voiceDegraded).toBe(false);
+        await tick(3_000);
+        expect(after(run.said, at)[0]).toMatchObject({ kind: 'start', id: on });
+        const first = run.player().sessionState.session.atoms.findIndex(atom => atom.sourceId === on && !atom.seam);
+        expect(after(run.shown, at)[0]).toMatchObject({ index: first, sourceId: on });
+        await playOut();
+        expect(runtime.status).toBe('ended');
+        expect(run.journal('voice.degraded')).toHaveLength(1);
+        expectTogether(run);
+    });
+
+    it('stands down again, as before, when the voice does not start this time either', async () => {
+        const run = await givenUp(2);
+        expect(runtime.position().segmentId).toBe('beat-0');
+        runtime.resume();
+        expect(run.journal('voice.rearmed')).toHaveLength(1);
+        await tick(4_500);
+        expect(run.journal('voice.degraded').map(entry => entry.reason)).toEqual(['voice-did-not-start', 'voice-did-not-start']);
+        expect(runtime.snapshot().main.voiceDegraded).toBe(true);
+        await playOut();
+        expect(runtime.status).toBe('ended');
+    });
+
+    it('re-arms nothing when the voice was never given up on', async () => {
+        const run = await open();
+        await tick(1_000);
+        await runtime.interrupt();
+        runtime.resume();
+        expect(run.journal('voice.rearmed')).toEqual([]);
     });
 });

@@ -481,6 +481,34 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 .rise-settings__chip input:focus-visible + span,
 .rise-settings select:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
 
+/* About this reading: collapsed at the foot; open, it is the whole sheet, so it fits the card without scrolling. Copy takes all of it. */
+.rise-settings__about { margin-top: 4px; font-size: 0.9rem; }
+.rise-settings:has(.rise-settings__about[open]) .rise-settings__row { display: none; }
+.rise-settings__about summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; }
+.rise-settings__about summary:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
+.rise-settings__copy {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(232, 232, 236, 0.08);
+  border-radius: 8px;
+  background: rgba(10, 10, 12, 0.36);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.rise-settings__about-text {
+  max-height: 45vh;
+  margin: 8px 0 0;
+  overflow: hidden;
+  font-family: var(--sy-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise-settings { animation: none; }
   .live-host--embedded .live-start,

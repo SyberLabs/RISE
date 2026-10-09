@@ -20,6 +20,11 @@
  * one starts that late instead, as Chrome's network voices can after their
  * engine has shut down (its offscreen document is closed 30 s after the last
  * stop, chrome/browser/resources/network_speech_synthesis/mv3/tts_extension.js).
+ *
+ * `gestureRequired`: WebKit's rule on iOS (SpeechSynthesis.cpp, `speak()`). Until one `speak()` is made while
+ * a user gesture is being handled, a `speak()` is dropped: nothing is queued and no event fires. `gesture(fn)`
+ * is that gesture, for the synchronous call of `fn` only; the fake is stricter than WebKit, which also carries
+ * a gesture through microtasks and timers fired within a second, so a fix that passes here relies on neither.
  */
 export function createFakeSpeechEngine() {
     return { paused: false };
@@ -27,11 +32,13 @@ export function createFakeSpeechEngine() {
 
 export function createFakeSpeech(clock, {
     msPerChar = 50, latencyMs = 30, boundaries = true, cancelReports = 'error', failWith = null, engine = createFakeSpeechEngine(),
-    latencyAfterCancelMs = null
+    latencyAfterCancelMs = null, gestureRequired = false
 } = {}) {
     const queue = [];
     let current = null;
     let cold = false;
+    let inGesture = false;
+    let unlocked = !gestureRequired;
 
     class Utterance {
         constructor(text) {
@@ -97,6 +104,8 @@ export function createFakeSpeech(clock, {
         get pending() { return queue.length; },
 
         speak(utterance) {
+            if (inGesture) unlocked = true;
+            else if (!unlocked) return;
             queue.push(utterance);
             next();
         },
@@ -138,6 +147,12 @@ export function createFakeSpeech(clock, {
 
         getVoices() {
             return [{ name: 'Fake voice', lang: 'en-US' }];
+        },
+
+        /** Run `fn` as a user gesture: only its synchronous part is one. */
+        gesture(fn) {
+            inGesture = true;
+            try { return fn(); } finally { inGesture = false; }
         }
     };
 

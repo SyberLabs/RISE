@@ -8,7 +8,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LiveHost, framedBy, sceneReportLine } from './LiveHost.js';
-import { createVirtualClock } from '../clock.js';
+import { createRealClock, createVirtualClock } from '../clock.js';
 import { createMockAdapter } from '../adapters/mock.js';
 import { BLACK_HOLES_CURRENT } from '../../test/sealed-current.js';
 import { createFakeSpeech } from '../../test/fake-speech.js';
@@ -985,7 +985,8 @@ describe('inside an MCP host', () => {
         // The stage took the poster's place: no microphone, no notice, no notes, no question.
         const stage = document.querySelector('#rise-stage-controls');
         expect(stage).not.toBeNull();
-        expect(stage.querySelectorAll('form, input[type="text"], details, [data-live]')).toHaveLength(0);
+        // About this reading is inside Settings, collapsed; nothing else discloses.
+        expect(stage.querySelectorAll('form, input[type="text"], details:not(.rise-settings__about), [data-live]')).toHaveLength(0);
         // This frame's browser cannot speak, and the object's name says so.
         expect(stage.querySelector('[data-stage="play"]').getAttribute('aria-label')).toBe('Pause (silent, this browser cannot speak)');
         expect(stage.querySelector('[data-stage="settings"]')).not.toBeNull();
@@ -1071,6 +1072,71 @@ describe('inside an MCP host', () => {
         expect(panel.querySelector('[data-stage="play"]').dataset.voice).toBeUndefined();
         expect(panel.querySelector('.rise-stage__status').textContent.match(/paced as if/gu)).toHaveLength(1);
         await host.stop();
+    });
+
+    describe('on a device that speaks only after a gesture (iOS WebKit)', () => {
+        afterEach(() => { vi.useRealTimers(); });
+
+        /** The answer held under Play in a frame whose speech WebKit's gesture rule governs; the reading is presented to no Chamber. */
+        async function readyOnIos() {
+            vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame'] });
+            const { environment, sent, hostSays } = framed();
+            const synth = createFakeSpeech(createRealClock(), { gestureRequired: true });
+            Object.assign(environment.window, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance, innerHeight: 640, devicePixelRatio: 3 });
+            Object.assign(environment, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance, navigator: { language: 'en-US' } });
+            vi.spyOn(console, 'info').mockImplementation(() => {});
+            mount('?embed=mcp', environment);
+            const loaded = await host.modules;
+            host.modules = Promise.resolve([...loaded.slice(0, 4), { presentLive: async () => {}, leaveLive: async () => {}, dismissLive: () => {} }, loaded[5]]);
+            await vi.waitFor(() => expect(sent).toHaveLength(1));
+            hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: { platform: 'mobile', displayMode: 'inline' } } });
+            await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
+            answerCurrent(hostSays);
+            await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
+            return synth;
+        }
+        const types = () => host.runtime.journal().map(entry => entry.type);
+
+        it('speaks: Play unlocks speech inside its own tap, so the voice begun later is heard and never stood down', async () => {
+            const synth = await readyOnIos();
+            synth.gesture(() => container.querySelector('.live-start').click());
+            await vi.waitFor(() => expect(host.runtime).toBeTruthy());
+            await vi.advanceTimersByTimeAsync(6_000);
+            const degraded = host.runtime.journal().filter(entry => entry.type === 'voice.degraded').map(entry => entry.reason);
+            expect(degraded).toEqual([]);
+            expect(types()).toContain('speech.start');
+            await host.stop();
+        });
+
+        it('says in About this reading which voice spoke, how often, on what host and device, and its last trace lines', async () => {
+            const synth = await readyOnIos();
+            synth.gesture(() => container.querySelector('.live-start').click());
+            await vi.waitFor(() => expect(host.runtime).toBeTruthy());
+            await vi.advanceTimersByTimeAsync(3_000);
+            const about = host.aboutReading();
+            expect(about).toMatch(/^voice: browser \(platform default\)$/mu);
+            expect(about).toMatch(/^voice trouble: none$/mu);
+            expect(about).toMatch(/^speech starts: [1-9]\d*$/mu);
+            expect(about).toMatch(/^speechSynthesis: synthesis, 1 voices?, speaking=(true|false) pending=\S+ paused=(true|false)$/mu);
+            expect(about).toMatch(/^host: platform=mobile display=inline/mu);
+            expect(about).toMatch(/^viewport: \d+×\d+ @\d/mu);
+            expect(about).toMatch(/^audio: none$/mu);
+            expect(about).toMatch(/^\[RISE voice\] t=\d+\.\d{3}s voice\.chosen role=main kind=browser/mu);
+            expect(container.ownerDocument.querySelector('.rise-settings__about')).not.toBeNull();
+            await host.stop();
+        });
+
+        it('names the reason the voice was given up on in About this reading', async () => {
+            const synth = await readyOnIos();
+            // Not a gesture: WebKit drops the voice, and the reading stands down from it.
+            container.querySelector('.live-start').click();
+            await vi.waitFor(() => expect(host.runtime).toBeTruthy());
+            await vi.advanceTimersByTimeAsync(6_000);
+            expect(synth.speaking).toBe(false);
+            expect(host.aboutReading()).toMatch(/^voice trouble: voice\.degraded reason=voice-did-not-start at \d+\.\d s$/mu);
+            expect(host.aboutReading()).toMatch(/^speech starts: 0$/mu);
+            await host.stop();
+        });
     });
 
     it('on Play again, stops the finished runtime, builds a new one from the admitted answer and starts it, without closing the port', async () => {
