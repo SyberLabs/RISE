@@ -1843,10 +1843,101 @@ describe('the beds under the reading', () => {
         expect(engine.ducked.at(-1)).toBe(false);
     });
 
+    /** A Player as the host sees it: its state, and who hears it change. */
+    function fakePlayer(state) {
+        const heard = new Set();
+        return {
+            state,
+            on(event, callback) { if (event === 'state') heard.add(callback); return () => heard.delete(callback); },
+            become(next) { this.state = next; for (const callback of [...heard]) callback({ state: next }); }
+        };
+    }
+
+    /** The host with the runtime it builds caught, so its present hook can be called as the runtime calls it. */
+    async function hostedWith(engine) {
+        mountWith('?voice=paced', env(), engine);
+        const loaded = await host.modules;
+        let hosted = null;
+        host.modules = Promise.resolve([
+            { createLiveRuntime: options => { hosted = options.host; return {}; } },
+            ...loaded.slice(1, 4),
+            { presentLive: async () => {}, leaveLive: async () => {} },
+            loaded[5]
+        ]);
+        await host.buildRuntime();
+        return hosted;
+    }
+
+    function sessionEngine() {
+        return {
+            ...fakeEngine(),
+            calls: [],
+            fadeInSession(seconds) { this.calls.push(['in', seconds]); },
+            fadeOutSession(seconds) { this.calls.push(['out', seconds]); },
+            stopSession() { this.calls.push(['stop']); }
+        };
+    }
+
+    it('lets the engine’s session be heard as the Reader does: up as the reading plays, down as it pauses, closed when it is over', async () => {
+        // The factory opens the session at zero (startSession) and leaves the reveal to whoever plays the
+        // reading; the Chamber does not play a hosted one, so the host does.
+        const engine = sessionEngine();
+        const hosted = await hostedWith(engine);
+        const player = fakePlayer('idle');
+        await hosted.present({ role: 'main', session: {}, player });
+        expect(engine.calls).toEqual([]);
+        player.become('playing');
+        player.become('paused');
+        player.become('playing');
+        player.become('complete');
+        expect(engine.calls).toEqual([['in', 1.2], ['out', 0.4], ['in', 0.6], ['stop']]);
+    });
+
+    it('brings the session up at once for a reading already playing when it is shown, and follows only the reading shown', async () => {
+        const engine = sessionEngine();
+        const hosted = await hostedWith(engine);
+        const first = fakePlayer('playing');
+        await hosted.present({ role: 'main', session: {}, player: first });
+        expect(engine.calls).toEqual([['in', 1.2]]);
+        const again = fakePlayer('idle');
+        await hosted.present({ role: 'main', session: {}, player: again });
+        first.become('paused');
+        expect(engine.calls).toEqual([['in', 1.2]]);
+        await host.ended();
+        again.become('playing');
+        expect(engine.calls).toEqual([['in', 1.2]]);
+    });
+
     it('reads without beds where the page has no engine', async () => {
         mountWith('?measure=1&voice=paced', env(), null);
         await host.buildRuntime();
         host.duckUnderVoice('speech.start');
-        expect(host.env.__riseLive.audio()).toEqual({ started: [], sounding: null });
+        expect(host.env.__riseLive.audio()).toEqual({ started: [], sounding: null, levelDbfs: null });
+    });
+
+    it('under ?measure=1, measures what leaves the engine after its last gate: the RMS of about the last quarter second, in dBFS', async () => {
+        const taps = [];
+        let amplitude = 0.1;
+        const gate = { connected: [], connect(node) { this.connected.push(node); }, disconnect(node) { this.connected = this.connected.filter(n => n !== node); } };
+        const context = {
+            sampleRate: 48_000,
+            createAnalyser() {
+                const analyser = { fftSize: 2048, getFloatTimeDomainData(samples) { samples.fill(amplitude); } };
+                taps.push(analyser);
+                return analyser;
+            }
+        };
+        const engine = { ...fakeEngine(), context, lifecycleGate: gate };
+        const environment = env();
+        mountWith('?measure=1&voice=paced', environment, engine);
+        await host.buildRuntime();
+        expect(environment.__riseLive.audio().levelDbfs).toBeCloseTo(-20, 6);
+        amplitude = 0;
+        expect(environment.__riseLive.audio().levelDbfs).toBe(-Infinity);
+        expect(taps).toHaveLength(1);
+        expect(gate.connected).toEqual(taps);
+        expect(taps[0].fftSize).toBe(8192);
+        await host.ended();
+        expect(gate.connected).toEqual([]);
     });
 });

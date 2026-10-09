@@ -127,6 +127,10 @@ export class LiveHost {
         this.audioEngine = null;
         this.audioLog = [];
         this.onSoundStart = null;
+        // ?measure=1 only: an analyser on the engine's output, made at the first measurement (outputLevelDbfs).
+        this.audioTap = null;
+        // Leaves the shown Player's state changes; set while the engine's session follows one (followReading).
+        this.stopFollowingReading = null;
         this.params = new URLSearchParams(search);
         this.env = env;
         this.caps = detectCapabilities(env);
@@ -439,13 +443,14 @@ export class LiveHost {
             createPlayer: session => createSessionPlayer(session),
             voices,
             host: {
-                present: ({ role, session, player }) => {
+                present: async ({ role, session, player }) => {
                     if (this.params.has('measure')) {
                         player.on('atom', ({ index, concealed, replayed }) => {
                             if (!concealed && !replayed) this.atomLog.push({ at: performance.now(), index, role });
                         });
                     }
-                    return this.present.presentLive(this.router, session, player);
+                    await this.present.presentLive(this.router, session, player);
+                    this.followReading(player);
                 },
                 discoverVisual: ({ player }) => mountedChamber(player)?.discoverVisual?.() ?? null,
                 controlVisual: ({ player, command, instant }) => mountedChamber(player)?.controlVisual?.(command, { instant: instant === true })
@@ -461,7 +466,11 @@ export class LiveHost {
                 startedAt: () => this.startedAt,
                 voice: () => this.spokenVoice,
                 scenes: () => [...this.sceneReports],
-                audio: () => ({ started: this.audioLog.map(entry => ({ ...entry })), sounding: this.audioEngine?.sounding?.id ?? null }),
+                audio: () => ({
+                    started: this.audioLog.map(entry => ({ ...entry })),
+                    sounding: this.audioEngine?.sounding?.id ?? null,
+                    levelDbfs: this.outputLevelDbfs()
+                }),
                 now: () => performance.now()
             });
         }
@@ -492,8 +501,72 @@ export class LiveHost {
         else if (VOICE_QUIET.has(type)) this.audioEngine.setVoiceDucking(false);
     }
 
+    /**
+     * What the engine sends the speakers (?measure=1): the RMS, in dBFS, of about the last quarter second
+     * after its last gate, mixed to one channel; null with no engine output to listen to. A bed the engine
+     * says it started can still be silent, so this is what a test of hearing it measures.
+     */
+    outputLevelDbfs() {
+        const out = this.audioEngine?.lifecycleGate;
+        const context = this.audioEngine?.context;
+        if (!out || !context) return null;
+        if (this.audioTap?.node !== out) {
+            this.releaseAudioTap();
+            const analyser = context.createAnalyser();
+            // The longest power of two of samples within a quarter second; an AnalyserNode allows 32 to 32768.
+            analyser.fftSize = 2 ** Math.min(15, Math.max(5, Math.floor(Math.log2(context.sampleRate / 4))));
+            out.connect(analyser);
+            this.audioTap = { node: out, analyser, samples: new Float32Array(analyser.fftSize) };
+        }
+        const { analyser, samples } = this.audioTap;
+        analyser.getFloatTimeDomainData(samples);
+        let sum = 0;
+        for (const sample of samples) sum += sample * sample;
+        return 10 * Math.log10(sum / samples.length);
+    }
+
+    releaseAudioTap() {
+        const tap = this.audioTap;
+        this.audioTap = null;
+        try { tap?.node.disconnect(tap.analyser); } catch { /* already gone with its context */ }
+    }
+
+    /**
+     * The engine's session heard as the Reader hears it. The factory opens it at zero (startSession) and
+     * leaves the reveal to whoever plays the reading: the Chamber's own Begin in the Reader, and here,
+     * where the Chamber plays nothing (hostPlays), this host. Shown after the factory has opened it, so
+     * the reveal is never zeroed behind it. A visual presence's return to playing is not a new reveal.
+     */
+    followReading(player) {
+        this.stopFollowingReading?.();
+        this.stopFollowingReading = null;
+        const engine = this.audioEngine;
+        if (!engine || this.destroyed) return;
+        let heard = false;
+        let up = false;
+        const follow = state => {
+            if (state === 'playing' && !up) {
+                engine.fadeInSession?.(heard ? 0.6 : 1.2);
+                heard = true;
+                up = true;
+            } else if (state === 'paused') {
+                engine.fadeOutSession?.(0.4);
+                up = false;
+            } else if (state === 'complete') {
+                // No audio outlives the reading; Play again opens a new session.
+                engine.stopSession?.();
+                up = false;
+            }
+        };
+        this.stopFollowingReading = player.on('state', ({ state }) => follow(state));
+        follow(player.state);
+    }
+
     /** Let go of the engine: no longer told of its sounds, and nothing left ducked for a voice that is gone. */
     releaseAudio() {
+        this.stopFollowingReading?.();
+        this.stopFollowingReading = null;
+        this.releaseAudioTap();
         const engine = this.audioEngine;
         if (!engine) return;
         if (engine.onSoundStart === this.onSoundStart) engine.onSoundStart = null;
