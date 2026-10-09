@@ -18,6 +18,13 @@ const load = file => JSON.parse(stripComments(readFileSync(file, 'utf8')));
 const config = load('wrangler.production.jsonc');
 
 describe('the production Worker', () => {
+  it('rechecks admin sessions through the public Access edge rather than the private origin', () => {
+    // getAdmin probes /api/plus/admin/check on this Worker's own zone. Public
+    // routing must apply Access revocation and reach that check handler.
+    expect(config.compatibility_flags).toContain('global_fetch_strictly_public');
+    expect(config.compatibility_flags).not.toContain('global_fetch_private_origin');
+  });
+
   it('runs first for the API and for the page an MCP app frames', () => {
     expect(config.assets.run_worker_first).toEqual(expect.arrayContaining(['/api/*', '/live', '/content/arena/*']));
   });

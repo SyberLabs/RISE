@@ -52,6 +52,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/570",
       "note": "Private existing-key provider RPC; public preview voicing refused. Seven focused backend/auth/RPC files passed251 tests at9b43351b, both Wrangler dry-runs and81-file fast-list collection passed. Deployment, provider validity and real acceptance remain pending.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "worker/production-config.test.js",
+      "note": "Public Access probe routing fix branch: production global_fetch_strictly_public regression plus real JWT/admin/budget/Worker suites passed 85 tests. Live version58ebe674 had no compatibility flags; browser protected check succeeds but login probe denies. Deployment and successful authenticated production voice remain pending.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "document",
+      "ref": "https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public",
+      "note": "Cloudflare documents public-front-door routing and security checks for same-zone global fetch when enabled; getAdmin keeps signature validation and its protected live-revocation probe unchanged.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -82,10 +94,14 @@
     {
       "date": "2026-10-09T03:56:00.633Z",
       "summary": "PR570 review fixes distinguish definitive private broker refusal from uncertain provider contact and perform bounded nonbillable readiness checks before reserving; source review and regression tests pass, fresh CI and deployment acceptance remain pending."
+    },
+    {
+      "date": "2026-10-09T05:34:47.356Z",
+      "summary": "Production admin self-probe public-edge routing enabled on branch with config/auth regression evidence; no auth grants or spend caps changed. Production proof remains pending."
     }
   ],
-  "updatedAt": "2026-10-09T03:56:00.633Z",
-  "revision": 7,
+  "updatedAt": "2026-10-09T05:34:47.356Z",
+  "revision": 8,
   "summary": "Add verified administrator access and a conservative invoice-derived subscriber voice budget; no claim of production success or acceptance yet.",
   "blocker": "Access organization/application configuration, production credentials and spend-policy values, merged implementation PRs and real sign-in/voice evidence remain to be verified."
 }

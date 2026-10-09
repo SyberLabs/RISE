@@ -3,6 +3,8 @@
   "main": "./worker/index.mjs",
   "services": [{ "binding": "PLUS_VOICE_PROVIDER", "service": "rise-plus-preview", "entrypoint": "VoiceProvider" }],
   "compatibility_date": "2026-09-26",
+  // Admin session probes must traverse Access on this zone's public edge.
+  "compatibility_flags": ["global_fetch_strictly_public"],
   "workers_dev": false,
   "preview_urls": false,
   // Shared model inference is retired. Readers use their own OpenRouter account
