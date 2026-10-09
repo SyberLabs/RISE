@@ -38,6 +38,13 @@ describe('a Current RISE accepts', () => {
     expect(report.ok).toBe(true);
     expect(report.scenes).toEqual([{ id: 'probe', kind: 'native', engine: 'attractor' }]);
   });
+
+  it('says a figure is admitted by the Worker and by the card’s own admission, and not drawn here', async () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"><circle r="1" fill="currentColor"/></svg>';
+    const report = await evaluateCurrent({ ...withScene(TWEENING), scenes: [{ id: 'probe', svg }], beats: [{ say: 'Look.', scene: 'probe' }, { hold: { ms: 1000 } }] });
+    expect(report.ok).toBe(true);
+    expect(report.scenes).toEqual([{ id: 'probe', kind: 'figure', bytes: svg.length, cardAdmits: true }]);
+  });
 });
 
 describe('what it does not pass', () => {
@@ -51,6 +58,13 @@ describe('what it does not pass', () => {
     const report = await evaluateCurrent(withScene('export default function scene(rise) { fetch(1); return { frame() {} }; }'));
     expect(report.accepted).toBe(false);
     expect(report.refusal).toMatch(/Scene "probe" was refused: line 1, column \d+: `fetch`/u);
+  });
+
+  it('a figure the admission refuses, with its line and column', async () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1">\n<foreignObject/></svg>';
+    const report = await evaluateCurrent({ ...withScene(TWEENING), scenes: [{ id: 'probe', svg }], beats: [{ say: 'Look.', scene: 'probe' }] });
+    expect(report.accepted).toBe(false);
+    expect(report.refusal).toContain('Scene "probe" was refused: line 2, column 1: <foreignObject> is not an element a figure may use.');
   });
 
   it('a scene that throws on a frame', async () => {
@@ -107,6 +121,12 @@ describe('the corpus', () => {
     for (const { file, current } of corpus.filter(item => item.style === 'premium-educational')) {
       const sounded = current.beats.map((beat, index) => [index, beat.sound]).filter(([, sound]) => sound !== undefined);
       expect(sounded, file).toEqual([[0, expect.stringMatching(/^(starlight|aurora)$/u)]]);
+    }
+  });
+
+  it('has a figure in every style', () => {
+    for (const style of RISE_CURRENT_STYLES) {
+      expect(corpus.some(item => item.style === style && (item.current.scenes ?? []).some(scene => typeof scene.svg === 'string')), style).toBe(true);
     }
   });
 

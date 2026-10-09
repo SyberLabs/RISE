@@ -27,7 +27,7 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, forgedResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     // A product host's sandbox refuses a <base> (Claude's policy carries base-uri 'self'); the frame inherits this page's policy.
     return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="base-uri 'self'"><title>fake host</title>
@@ -39,6 +39,8 @@ const DIVE = ${JSON.stringify(dive)};
 const SAMPLING = ${JSON.stringify(sampling)};
 const RESULT_ONLY = ${JSON.stringify(resultOnly)};
 const DEFER_TOOL_RESULT = ${JSON.stringify(deferToolResult)};
+// A host whose server accepted what RISE's Worker would refuse: the Current is handed to the card as admitted.
+const FORGED_RESULT = ${JSON.stringify(forgedResult)};
 // The display modes this host offers, as an MCP Apps host says at hello (null: it says nothing of them, as before).
 const DISPLAY_MODES = ${JSON.stringify(displayModes)};
 const log = [];
@@ -61,6 +63,7 @@ window.addEventListener('message', event => {
       hostCapabilities: SAMPLING ? { sampling: {} } : {}, hostContext: DISPLAY_MODES ? { displayMode: 'inline', availableDisplayModes: DISPLAY_MODES } : {} } });
   } else if (message.method === 'ui/notifications/initialized') {
     if (!RESULT_ONLY) tell('ui/notifications/tool-input', { arguments: { current: CURRENT } });
+    if (FORGED_RESULT) { tell('ui/notifications/tool-result', { content: [{ type: 'text', text: 'accepted' }], structuredContent: { current: CURRENT } }); return; }
     fetch('/api/mcp', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'rise_present', arguments: { current: CURRENT } } })
     }).then(response => response.json()).then(({ result }) => {
@@ -104,7 +107,7 @@ async function openHost(page, baseURL, options = {}) {
   // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
   // frame keeps it because the relay frames RISE's real page.
   const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, height: options.height, displayModes: options.displayModes ?? null, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, forgedResult: options.forgedResult ?? false, height: options.height, displayModes: options.displayModes ?? null, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
   return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
@@ -959,6 +962,78 @@ test('a generated scene that throws gives way to the look’s field, and its hol
   // The signal look's field stands in for the scene, whose canvas is gone.
   await expect(app.locator('.chamber-attractor').first()).toBeAttached({ timeout: 15_000 });
   await expect(app.locator('canvas.chamber-scene')).toHaveCount(0, { timeout: 5_000 });
+  expect(errors).toEqual([]);
+});
+
+// CC-009: a figure is SVG the model drew, admitted by the Worker and again by the card, and shown as an image.
+const TRIANGLE_SVG = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" font-family="sans-serif" font-size="16" fill="currentColor">',
+  '  <path d="M60,220 H300 V40 Z" fill="none" stroke="currentColor" stroke-width="2.5"/>',
+  '  <text x="180" y="246" text-anchor="middle">4</text>',
+  '</svg>'
+].join('\n');
+
+const figureBeats = svg => ({
+  schema: 'rise.current.v2',
+  id: 'triangle',
+  title: 'A right triangle',
+  origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
+  look: 'signal',
+  scenes: [{ id: 'triangle', svg }],
+  beats: [
+    { say: 'A triangle.', scene: 'triangle' },
+    { hold: { ms: 1500, maxMs: 8000 } },
+    { say: 'It came to rest.' }
+  ]
+});
+
+test('a figure draws in the self-contained card as an image, and the hold under it runs on its ms', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const current = figureBeats(TRIANGLE_SVG);
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await begin(app);
+  await expectShown(app, 'A triangle.');
+  const from = Date.now();
+  const figure = app.locator('img.chamber-figure');
+  await expect(figure).toBeAttached({ timeout: 15_000 });
+  await expect.poll(() => figure.evaluate(img => img.complete && img.naturalWidth), { timeout: 15_000 }).toBeGreaterThan(0);
+  expect(await figure.getAttribute('src')).toMatch(/^blob:/u);
+  await expectShown(app, 'It came to rest', 20_000);
+  const held = Date.now() - from;
+  // At its ms (1.5 s, after a beat of about half a second), never at its maxMs (8 s): a figure ends no hold.
+  expect(held).toBeGreaterThanOrEqual(1500);
+  expect(held).toBeLessThan(6000);
+  expect(errors).toEqual([]);
+});
+
+test('a figure carrying a script is refused by the Worker with its line, and a card handed it anyway draws the look’s field and says why', async ({ page, baseURL }) => {
+  const bad = TRIANGLE_SVG.replace('  <text', '  <script>parent.postMessage("figure ran", "*")</script>\n  <text');
+  const current = figureBeats(bad);
+  const response = await handleMcp(new Request('https://rise.invalid/api/mcp', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'rise_present', arguments: { current } } })
+  }), { MCP_ENABLED: 'true' });
+  const { result } = await response.json();
+  expect(result.isError).toBe(true);
+  expect(result.content[0].text).toContain('Scene "triangle" was refused: line 3, column 3: <script> is not an element a figure may use.');
+
+  const errors = [];
+  const reported = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.text().startsWith('[RISE scene]')) reported.push(message.text()); });
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current, forgedResult: true });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await begin(app);
+  await expectShown(app, 'A triangle.');
+  // The signal look's field stands in for the figure, which was never mounted.
+  await expect(app.locator('.chamber-attractor').first()).toBeAttached({ timeout: 15_000 });
+  await expect(app.locator('img.chamber-figure')).toHaveCount(0);
+  await expect.poll(() => reported, { timeout: 10_000 }).toContainEqual(expect.stringContaining('scene "triangle": not drawn — the card refused the figure: "line 3, column 3: <script> is not an element a figure may use"'));
+  await expectShown(app, 'It came to rest', 20_000);
   expect(errors).toEqual([]);
 });
 

@@ -151,12 +151,14 @@ export function cueCommands(engine, cue) {
  * engine (its config the theme's defaults under the scene's parameters; the
  * Living Flame a whole recipe from its preset and macros), a procedural cue
  * for a pattern engine, a still for none; a generated scene is a scene cue
- * carrying its code, which only the scene worker runs.
- * @param {{id?: string, engine?: string, params?: object, code?: string}} scene
+ * carrying its code, which only the scene worker runs, and a figure one
+ * carrying its SVG, which the card admits and shows as an image.
+ * @param {{id?: string, engine?: string, params?: object, code?: string, svg?: string}} scene
  * @param {object|null} themeConfig the theme's own defaults for this engine (rise-current.js)
  */
 export function sceneCue(scene, themeConfig = null) {
   if (typeof scene.code === 'string') return { kind: 'scene', sceneId: scene.id, code: scene.code };
+  if (typeof scene.svg === 'string') return { kind: 'scene', sceneId: scene.id, svg: scene.svg };
   const manifest = manifestFor(scene.engine);
   const params = scene.params ?? {};
   if (!manifest || manifest.kind === 'still') return { kind: 'still' };

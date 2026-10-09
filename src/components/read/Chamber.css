@@ -1349,6 +1349,19 @@
   pointer-events: none;
 }
 
+/* A figure: the model's SVG, admitted, shown whole and centred as an image. */
+.chamber-figure {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+}
+
 .chamber-scheduled-field {
   opacity: 0;
   transition: opacity 320ms ease;

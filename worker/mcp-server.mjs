@@ -8,6 +8,7 @@ import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
 import { readText } from './live-realtime.mjs';
 import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
 import { admitSceneCode, describeDiagnostic } from './scene-admission.mjs';
+import { admitSvg } from '../src/core/svg-admission.js';
 
 /**
  * RISE as an MCP server: one tool that presents a Current, and the app that shows it.
@@ -28,7 +29,7 @@ import { admitSceneCode, describeDiagnostic } from './scene-admission.mjs';
  * protocol version it does not speak before reading anything, holds each client
  * address to the site's rate limiter where the platform offers one, reads a
  * bounded body, and returns nothing it was sent except a validator's message, a
- * scene parser's diagnostic (scene-admission.mjs) or an argument's name, clipped.
+ * scene parser's diagnostic (scene-admission.mjs), a figure's (svg-admission.js) or an argument's name, clipped.
  *
  * CHECKED AGAINST THE REFERENCE, NOT AGAINST A PRODUCT: the shapes below were
  * compared with @modelcontextprotocol/ext-apps 2.0.3 and the SDK's own client
@@ -141,6 +142,20 @@ export function currentJsonSchemaV2() {
               }
             },
             required: ['id', 'code'],
+            additionalProperties: false
+          }, {
+            type: 'object',
+            properties: {
+              id,
+              svg: {
+                type: 'string',
+                minLength: 1,
+                // As for code: characters, never more than the bytes the validator counts.
+                maxLength: BEAT_LIMITS.svg,
+                description: `A figure you draw: one SVG document of at most ${BEAT_LIMITS.svg.toLocaleString('en-US')} bytes, shown as an image behind the words. The root <svg> has xmlns="http://www.w3.org/2000/svg" and a viewBox; draw ink in currentColor so the theme colours it. It takes no cues: a hold under it lasts its ms. No script, no event handlers, no links or images, and no href or url() outside the figure (#id only).`
+              }
+            },
+            required: ['id', 'svg'],
             additionalProperties: false
           }]
         }
@@ -255,7 +270,7 @@ export const TOOL = Object.freeze({
     '',
     CURRENT_GUIDE,
     '',
-    `Styles, for "style" on a v2 Current. Before writing in a style, call ${GUIDE_TOOL_NAME} with {"style": "<style>"} for its full guidance and two worked Currents.`,
+    `Styles, for "style" on a v2 Current. Before writing in a style, call ${GUIDE_TOOL_NAME} with {"style": "<style>"} for its full guidance, worked Currents and the figure rules.`,
     ...STYLE_LINES
   ].join('\n'),
   inputSchema: {
@@ -312,15 +327,20 @@ function refusal(error) {
   return `RISE refused this Current: ${clean(error?.message ?? 'The Current was not valid')}. Correct it and call ${TOOL_NAME} again.`;
 }
 
-/** Every generated scene's code, parsed and held to the scene rules (scene-admission.mjs); the refusal's lines, or none. */
+/**
+ * Every generated scene's code, parsed and held to the scene rules (scene-admission.mjs), and every figure's SVG,
+ * held to the figure rules the card holds it to again (svg-admission.js): the refusal's lines, or none.
+ */
 function sceneRefusals(current) {
   const lines = [];
+  let code = false;
   for (const scene of Array.isArray(current.scenes) ? current.scenes : []) {
-    if (scene?.code === undefined) continue;
-    const verdict = admitSceneCode(scene.code);
-    if (!verdict.ok) for (const diagnostic of verdict.diagnostics) lines.push(clean(`Scene "${scene.id}" was refused: ${describeDiagnostic(diagnostic)}`));
+    const verdict = scene?.code !== undefined ? admitSceneCode(scene.code) : scene?.svg !== undefined ? admitSvg(scene.svg) : { ok: true };
+    if (verdict.ok) continue;
+    code ||= scene.code !== undefined;
+    for (const diagnostic of verdict.diagnostics) lines.push(clean(`Scene "${scene.id}" was refused: ${describeDiagnostic(diagnostic)}`));
   }
-  return lines.slice(0, MAX_SCENE_LINES);
+  return { lines: lines.slice(0, MAX_SCENE_LINES), repair: code ? 'the scene’s code' : 'the figure' };
 }
 
 function call(id, params) {
@@ -344,8 +364,8 @@ function call(id, params) {
     return result(id, { content: [{ type: 'text', text: refusal(error) }], isError: true });
   }
   const refused = sceneRefusals(args.current);
-  if (refused.length) {
-    const text = [...refused, `Repair the scene’s code and call ${TOOL_NAME} again with the whole Current.`].join('\n');
+  if (refused.lines.length) {
+    const text = [...refused.lines, `Repair ${refused.repair} and call ${TOOL_NAME} again with the whole Current.`].join('\n');
     return result(id, { content: [{ type: 'text', text }], isError: true });
   }
   return result(id, {
@@ -431,7 +451,7 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
           { uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME },
           ...[...GUIDE_URIS].map(([uri, style]) => ({
             uri, name: `rise-guide-${style}`, title: `RISE style: ${style}`,
-            description: `How to write a Current in the ${style} style, with two worked Currents.`, mimeType: GUIDE_MIME
+            description: `How to write a Current in the ${style} style, with worked Currents.`, mimeType: GUIDE_MIME
           }))
         ]
       });

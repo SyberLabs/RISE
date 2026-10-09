@@ -12,7 +12,7 @@ docs/evals/creative-control/
   open-field/<id>.json
 ```
 
-The two worked Currents each style's guidance teaches
+The worked Currents each style's guidance teaches
 (`src/live/guide/styles/*.js`, served as `ui://rise/guide/<style>`) are in
 the corpus unchanged; `src/test/eval-creative.test.js` fails if they drift
 apart. Every other case is the corpus's own.
@@ -33,7 +33,8 @@ For each case, in style and file order:
 
 1. **Acceptance**: the Current goes through the Worker's own `rise_present`
    door (`dispatch` in `worker/mcp-server.mjs`): the MCP size limit, the
-   strict validator, and the static admission of every code scene. A refusal
+   strict validator, and the static admission of every code scene and every
+   figure (an SVG scene, `src/core/svg-admission.js`). A refusal
    is printed in the Worker's words, the text a model would read.
 2. **Code scenes, headless**: every admitted code scene is run through the
    scene worker's own protocol (`attachSceneWorker`) over a recording 2D
@@ -44,7 +45,11 @@ For each case, in style and file order:
    - seeked: every cue with `instant: true`, as a replay delivers them;
    - reduced motion: every cue animated, and no tween may still be moving
      before the next frame.
-3. **Report**: cues answered out of cues sent, frames drawn, the slowest
+3. **Figures**: every figure is admitted again by the same function the
+   card runs before it draws one, and reported with its size. It is not
+   drawn: the browser draws it as an image, in the page only. Every style
+   has at least one case with a figure.
+4. **Report**: cues answered out of cues sent, frames drawn, the slowest
    frame, frames over the soft budget (24 ms), whether the card's kill switch
    would have ended the scene, and every error with its phase and line.
 

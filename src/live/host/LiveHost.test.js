@@ -1748,6 +1748,14 @@ describe('the line a failed scene is reported in', () => {
             .toBe('scene "v": frozen — it would flash more than three times a second; its last frame stays');
     });
 
+    it('says a figure the card refused, or could not draw, in RISE’s own words, the rule quoted and bounded', () => {
+        expect(sceneReportLine({ sceneId: 'v', phase: 'admission', message: 'line 2, column 3: <script> is not an element a figure may use', where: null }))
+            .toBe('scene "v": not drawn — the card refused the figure: "line 2, column 3: <script> is not an element a figure may use"');
+        expect(sceneReportLine({ sceneId: 'v', phase: 'admission', message: `a"\n${'b'.repeat(400)}`, where: null }).match(/"/gu)).toHaveLength(4);
+        expect(sceneReportLine({ sceneId: 'v', phase: 'image', message: 'anything', where: 'scene.js:1:1' }))
+            .toBe('scene "v": not drawn — the figure could not be drawn as an image');
+    });
+
     it('is kept for ?measure=1', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const environment = env();

@@ -102,6 +102,9 @@ function quotable(value, length) {
 export function sceneReportLine({ sceneId, phase, message, where }) {
     const id = quotable(sceneId, 40);
     if (phase === 'flash') return `scene "${id}": frozen — it would flash more than three times a second; its last frame stays`;
+    // A figure's two failures (Chamber._mountFigureCue): the rule is admission's sentence, though it names what the figure wrote.
+    if (phase === 'admission') return `scene "${id}": not drawn — the card refused the figure: "${quotable(message, 200)}"`;
+    if (phase === 'image') return `scene "${id}": not drawn — the figure could not be drawn as an image`;
     const at = typeof where === 'string' && /^scene\.js(:\d{1,6}:\d{1,6})?$/u.test(where) ? ` at ${where}` : '';
     return `scene "${id}": ${SCENE_PHASES.includes(phase) ? phase : 'failed'} — the scene’s own words: "${quotable(message, 200)}"${at}`;
 }

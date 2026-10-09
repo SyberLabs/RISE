@@ -7,18 +7,18 @@
  * guidance as a resource, and a Dive puts the guide in front of the question it
  * asks the model. Split by concern: the v1 contract (contract.js), the themes
  * and looks (looks.js), beats and code scenes (beats.js), and one file per
- * style (styles/), each with two worked Currents the validator accepts and
- * whose scenes the server admits.
+ * style (styles/), each with worked Currents the validator accepts and
+ * whose scenes the server admits; the figure rules travel with every style.
  */
 import { RISE_CURRENT_STYLES } from '../../core/rise-current.js';
 import { STYLES } from '../../core/styles.js';
 import { CONTRACT_GUIDE, CURRENT_EXAMPLE } from './contract.js';
-import { BEATS_GUIDE, CURRENT_EXAMPLE_V2, LIB_GUIDE, SCENE_CODE_EXAMPLE } from './beats.js';
+import { BEATS_GUIDE, CURRENT_EXAMPLE_V2, FIGURE_EXAMPLE, FIGURE_GUIDE, LIB_GUIDE, SCENE_CODE_EXAMPLE } from './beats.js';
 import { LOOK_HINTS, THEME_HINTS } from './looks.js';
 import * as premiumEducational from './styles/premium-educational.js';
 import * as openField from './styles/open-field.js';
 
-export { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, LIB_GUIDE, LOOK_HINTS, SCENE_CODE_EXAMPLE, THEME_HINTS };
+export { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, FIGURE_EXAMPLE, FIGURE_GUIDE, LIB_GUIDE, LOOK_HINTS, SCENE_CODE_EXAMPLE, THEME_HINTS };
 
 export const TOOL_NAME = 'rise_present';
 
@@ -51,7 +51,9 @@ export function styleGuide(id) {
     return [
         GUIDANCE,
         '',
-        'Two worked Currents in this style, each accepted by RISE as it stands:',
-        ...EXAMPLES.flatMap(({ prompt, current }, index) => ['', `${index + 1}. Asked: "${prompt}"`, '', JSON.stringify(current, null, 2)])
+        'The worked Currents in this style, each accepted by RISE as it stands:',
+        ...EXAMPLES.flatMap(({ prompt, current }, index) => ['', `${index + 1}. Asked: "${prompt}"`, '', JSON.stringify(current, null, 2)]),
+        '',
+        FIGURE_GUIDE
     ].join('\n');
 }

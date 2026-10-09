@@ -4,7 +4,8 @@
  * For every case in the corpus (docs/evals/creative-control/<style>/*.json,
  * each { prompt, current }), the Current goes through the Worker's own
  * rise_present door (worker/mcp-server.mjs dispatch: the size limit, the
- * validator, and the static admission of every code scene), and every code
+ * validator, and the static admission of every code scene and figure), every
+ * figure is admitted again as the card admits it, and every code
  * scene that is admitted is then run headless through the scene worker's own
  * protocol (src/scenes/scene-worker.js) over a recording 2D context that
  * draws no pixels: a dry frame, 60 frames at 16.7 ms, every cue its beats
@@ -28,6 +29,7 @@ import { SCENE_LIMITS, SCENE_PROTOCOL_VERSION, TO_HOST, TO_WORKER } from '../src
 import { styleOf } from '../src/core/styles.js';
 import { jevColors } from '../src/core/jev-palette.js';
 import { fakeCanvasContext } from '../src/test/fake-canvas-context.js';
+import { admitSvg } from '../src/core/svg-admission.js';
 
 const ROOT = resolve(import.meta.dirname, '..');
 export const CORPUS_DIR = join(ROOT, 'docs', 'evals', 'creative-control');
@@ -123,6 +125,8 @@ function wouldFallBack(frames) {
 }
 
 async function evaluateScene(scene, current) {
+  // A figure is drawn by the browser as an image; here it is only admitted again, as the card admits it.
+  if (typeof scene.svg === 'string') return { id: scene.id, kind: 'figure', bytes: new TextEncoder().encode(scene.svg).length, cardAdmits: admitSvg(scene.svg).ok };
   if (typeof scene.code !== 'string') return { id: scene.id, kind: 'native', engine: scene.engine };
   const cues = cuesFor(current, scene.id);
   const setup = { code: scene.code, theme: current.theme ? jevColors(current.theme) : {}, library: styleOf(current.style)?.library ?? {} };
@@ -175,13 +179,15 @@ export async function evaluateCurrent(current) {
   if (refusal !== null) return { id: current?.id ?? null, accepted: false, ok: false, refusal, scenes: [] };
   const scenes = [];
   for (const scene of current.scenes ?? []) scenes.push(await evaluateScene(scene, current));
-  const ok = scenes.every(scene => scene.kind === 'native' || (scene.errors.length === 0 && scene.reducedMotionSettled));
+  const ok = scenes.every(scene => scene.kind === 'native'
+    || (scene.kind === 'figure' ? scene.cardAdmits : scene.errors.length === 0 && scene.reducedMotionSettled));
   return { id: current.id, accepted: true, ok, refusal: null, scenes };
 }
 
 const ms = value => `${value.toFixed(2)} ms`;
 
 function describeScene(scene) {
+  if (scene.kind === 'figure') return `  scene "${scene.id}" (figure): ${scene.bytes} bytes of SVG; ${scene.cardAdmits ? 'the card admits it too' : 'the CARD REFUSES it'}; drawn only in the page, as an image`;
   if (scene.kind === 'native') return `  scene "${scene.id}" (native ${scene.engine}): checked against its manifest; drawn only in the page, not here`;
   const lines = [
     `  scene "${scene.id}" (code): cues ${scene.cues.length ? scene.cues.join(', ') : 'none'}; ${scene.cuesHandled} of ${scene.cues.length * 3} cue deliveries answered (played, seeked, reduced motion)`,
