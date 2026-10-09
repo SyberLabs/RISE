@@ -11,7 +11,7 @@ const json = part => JSON.parse(new TextDecoder().decode(decode(part)));
 async function publicKeys(issuer) {
   const cached = keysByIssuer.get(issuer);
   if (cached && cached.until > Date.now()) return cached.keys;
-  const response = await fetch(`${issuer}/cdn-cgi/access/certs`, { redirect: 'error', signal: AbortSignal.timeout(5000) });
+  const response = await fetch(`${issuer}/cdn-cgi/access/certs`, { redirect: 'manual', signal: AbortSignal.timeout(5000) });
   if (!response.ok) throw new Error('Access keys unavailable');
   const body = await response.json();
   if (!Array.isArray(body.keys) || body.keys.length > 20) throw new Error('Invalid Access keys');

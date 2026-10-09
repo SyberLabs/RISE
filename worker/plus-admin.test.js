@@ -26,6 +26,7 @@ describe('Cloudflare Access administrator identity', () => {
     expect(await getAdmin(request(jwt), env)).toEqual({ subject: 'verified-admin' });
     expect(await getAdmin(request(jwt, true), env)).toEqual({ subject: 'verified-admin' });
     expect(fetch.mock.calls[0][0]).toBe(`${issuer}/cdn-cgi/access/certs`);
+    expect(fetch.mock.calls[0][1].redirect).toBe('manual');
   });
   it.each([{ iss: 'https://attacker.example' }, { aud: ['other-app'] }, { exp: 1 }, { iat: 9999999999 }, { type: 'service' }, { email: undefined }, { sub: '' }])('denies invalid claims %j', async override => {
     keys();
