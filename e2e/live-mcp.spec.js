@@ -1154,6 +1154,90 @@ test('the stage bar hides itself while the reading plays, and a moving pointer b
   await expect(app.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
 });
 
+test('the bar hides and comes back without the stage box changing: the words move into its room, the scene is never resized, and no frame goes dark', async ({ page, baseURL }) => {
+  // The first line centred, where the words move with the bar (a caption is placed on the field and stays), and
+  // shown long enough to outlast the bar's hiding and return.
+  const [first, ...rest] = SKY_PREMIUM_EDUCATIONAL.beats;
+  const line = 'Sunlight looks white, but it is every colour at once.';
+  const current = { ...SKY_PREMIUM_EDUCATIONAL, beats: [{ show: line, hold: { ms: 8_000 }, scene: first.scene, cue: first.cue, place: 'centre' }, ...rest] };
+  const app = await fieldCard(page, baseURL, { current });
+  const stage = app.locator('#rise-stage-controls');
+  await expect(app.locator('canvas.chamber-scene')).toBeAttached({ timeout: 15_000 });
+  // Every frame: the scene's pixels as shown (an 8 x 8 reduction of its canvas), the canvas's size, where the
+  // words are, the field's content box, and each resize the card sends the scene's worker.
+  await app.locator('body').evaluate(body => {
+    const doc = body.ownerDocument;
+    const win = doc.defaultView;
+    const field = doc.querySelector('#chamber-field');
+    const record = win.__barProbe = { resizes: 0, fieldBoxes: [], frames: [] };
+    const post = win.Worker.prototype.postMessage;
+    win.Worker.prototype.postMessage = function (message, ...rest) {
+      if (message?.type === 'scene/resize') record.resizes += 1;
+      return post.call(this, message, ...rest);
+    };
+    let first = true;
+    new win.ResizeObserver(entries => {
+      if (first) { first = false; return; }
+      for (const entry of entries) record.fieldBoxes.push(`${entry.contentRect.width}x${entry.contentRect.height}`);
+    }).observe(field);
+    const probe = doc.createElement('canvas');
+    probe.width = 8;
+    probe.height = 8;
+    const ctx = probe.getContext('2d', { willReadFrequently: true });
+    const tick = () => {
+      const canvas = doc.querySelector('canvas.chamber-scene');
+      let luma = null;
+      if (canvas) {
+        ctx.clearRect(0, 0, 8, 8);
+        ctx.drawImage(canvas, 0, 0, 8, 8);
+        const { data } = ctx.getImageData(0, 0, 8, 8);
+        let sum = 0;
+        for (let i = 0; i < data.length; i += 4) sum += ((0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) * data[i + 3]) / 255;
+        luma = sum / 64;
+      }
+      const display = doc.querySelector('#atom-display');
+      record.frames.push({
+        bar: doc.querySelector('#rise-stage-controls')?.dataset.bar,
+        luma,
+        size: canvas ? `${canvas.width}x${canvas.height}` : null,
+        top: display.getBoundingClientRect().top,
+        words: `${display.dataset.place ?? 'centre'}: ${display.textContent.trim()}`
+      });
+      if (!record.stopped) win.requestAnimationFrame(tick);
+    };
+    win.requestAnimationFrame(tick);
+  });
+  await expect(stage).toHaveAttribute('data-bar', 'hidden', { timeout: 5_000 });
+  await page.waitForTimeout(600);
+  await app.locator('body').hover({ position: { x: 24, y: 24 } });
+  await expect(stage).toHaveAttribute('data-bar', 'shown');
+  await page.waitForTimeout(600);
+  const record = await app.locator('body').evaluate(body => {
+    const probe = body.ownerDocument.defaultView.__barProbe;
+    probe.stopped = true;
+    return probe;
+  });
+  const lumas = record.frames.map(frame => frame.luma).filter(Number.isFinite);
+  const median = [...lumas].sort((a, b) => a - b)[Math.floor(lumas.length / 2)];
+  const dark = record.frames.filter(frame => Number.isFinite(frame.luma) && frame.luma < median * 0.25);
+  const shifts = record.frames.map(frame => frame.top - record.frames[0].top);
+  console.log(`[bar] ${record.frames.length} frames, median luma ${median?.toFixed(2)}, min ${Math.min(...lumas).toFixed(2)}, dark ${dark.length}; `
+    + `scene resizes ${record.resizes}; field content boxes ${record.fieldBoxes.length} [${[...new Set(record.fieldBoxes)].join(', ')}]; `
+    + `canvas sizes [${[...new Set(record.frames.map(frame => frame.size))].join(', ')}]; `
+    + `words moved [${[...new Set(shifts.map(Math.round))].join(', ')}] px; words [${[...new Set(record.frames.map(frame => frame.words))].join(' | ')}]`);
+  expect(record.frames.some(frame => frame.bar === 'hidden')).toBe(true);
+  expect(new Set(record.frames.map(frame => frame.words))).toEqual(new Set([`centre: ${line}`]));
+  // The words still take the bar's room (half of 88 - 40 px in the full transport), easing into it and back, never jumping.
+  expect(Math.max(...shifts)).toBeCloseTo(24, 0);
+  expect(shifts.at(-1)).toBeCloseTo(0, 0);
+  expect(shifts.filter(shift => shift > 1 && shift < 23).length).toBeGreaterThan(2);
+  expect(median).toBeGreaterThan(1);
+  expect(record.resizes).toBe(0);
+  expect(record.fieldBoxes).toEqual([]);
+  expect(new Set(record.frames.map(frame => frame.size)).size).toBe(1);
+  expect(dark).toEqual([]);
+});
+
 test('full screen: absent where the host shows the card inline only, and asked of a host that offers it', async ({ page, baseURL }) => {
   let app = await fieldCard(page, baseURL);
   await expect(app.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();

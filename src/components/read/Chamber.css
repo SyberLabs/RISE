@@ -358,8 +358,8 @@
      that child rather than re-flowing the field, so nothing below the
      band (control bar, page host) is disturbed. `--band-offset` is set
      in px by the Chamber, which is the only place the field's height is
-     known. */
-  transform: translateY(var(--band-offset, 0px));
+     known. `--bar-offset` is a host's room for its own bar (LiveHost.css). */
+  transform: translateY(calc(var(--band-offset, 0px) + var(--bar-offset, 0px)));
 }
 
 /* Fit only. Chamber JS measured the current Word against
@@ -2048,7 +2048,7 @@
        moving the text out of its own tile would be worse than not
        moving it. The inner transform is cancelled just below so the
        two do not compound. */
-    transform: translateY(var(--band-offset, 0px));
+    transform: translateY(calc(var(--band-offset, 0px) + var(--bar-offset, 0px)));
 
     /* backdrop-filter creates a stacking context; without z-index the
        band sits under field imagery and gallery paint covers the text. */

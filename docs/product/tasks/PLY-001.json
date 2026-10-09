@@ -157,10 +157,14 @@
     {
       "date": "2026-10-09T08:12:14.074Z",
       "summary": "Pace applies at the next utterance after the field run of 2026-10-09; the bar hides itself while playing"
+    },
+    {
+      "date": "2026-10-09T08:56:27.361Z",
+      "summary": "The bar's room moves with the words, not the stage box: no flicker"
     }
   ],
-  "updatedAt": "2026-10-09T08:12:14.074Z",
-  "revision": 6,
+  "updatedAt": "2026-10-09T08:56:27.361Z",
+  "revision": 7,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }
