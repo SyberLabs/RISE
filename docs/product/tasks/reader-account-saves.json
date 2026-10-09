@@ -43,6 +43,12 @@
       "ref": "e2e/live-eval.spec.js",
       "date": "2026-10-09",
       "note": "Before repair, study zero-external-request and ordinary reader-owned OpenAI browser cases failed on account GET/CORS. Repair candidate passed all59 study/host-card/account/OpenAI browser tests with retries0. Final rebuilt gate passed50 with3 existing skips/retries0; after narrowing the signed-out fixture to account and saves only, all9 original failure/host/dedicated account browser checks passed, retries0."
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/account-saves.spec.js",
+      "date": "2026-10-09",
+      "note": "Follow-up boundary repair: three permanent no-focus unit regressions and actual history/popstate study browser probe failed before guards. Patched account-control/CLI 84 tests pass; provider/account combined84 fast files1904 pass with2 existing skips; all5 account browser tests pass retries0. Final focused study/card/OpenAI checks and exact CI remain under review; real authenticated production acceptance remains pending."
     }
   ],
   "activity": [
@@ -61,10 +67,14 @@
     {
       "date": "2026-10-09T04:02:31.431Z",
       "summary": "Final local verification complete:79 account-control/CLI tests;94 focused account/CLI tests;82 fast files1855passed2existingSkip;59 broader browser checks,50gate3existingSkip and9 final isolated/account cases passed with retries0. Production authenticated acceptance remains pending."
+    },
+    {
+      "date": "2026-10-09T04:20:23.737Z",
+      "summary": "Actual no-focus study navigation reproduced before repair; narrow account boundary guards and permanent regressions prepared, with production authenticated acceptance pending."
     }
   ],
-  "updatedAt": "2026-10-09T04:02:31.431Z",
-  "revision": 4,
-  "summary": "Account implementation merged/deployed at24fe561e; full-suite study/card identity lookup and CLI classification regression repair is on a follow-up branch. Real authenticated production acceptance remains pending.",
+  "updatedAt": "2026-10-09T04:20:23.737Z",
+  "revision": 5,
+  "summary": "Account isolation repair merged at c089b815; follow-up guards reject pending identity and stale account panels after same-app study navigation without focus. Final follow-up CI and authenticated production acceptance remain pending.",
   "blocker": null
 }

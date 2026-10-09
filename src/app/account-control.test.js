@@ -124,3 +124,77 @@ it('clears a remembered account when an authenticated page enters a study', asyn
   await new Promise(resolve => setTimeout(resolve, 0));
   expect(link.textContent).toBe('Sign in');
 });
+
+it('does not adopt a late profile after entering a study without window focus', async () => {
+  const location = { pathname: '/settings', search: '' };
+  vi.stubGlobal('location', location);
+  let settle;
+  vi.stubGlobal('fetch', () => new Promise(resolve => { settle = () => resolve({ ok: true, json: async () => ({ version: 1, user: { id: 'A', label: 'A' } }) }); }));
+  control = mountAccountControl();
+  location.pathname = '/live'; location.search = '?eval=1';
+  settle();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(document.querySelector('.rise-account-control').textContent).toBe('Sign in');
+});
+
+it('does not open a remembered account panel in a study without window focus', async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  const { LocalWorks } = await import('../core/local-work-store.js');
+  vi.spyOn(LocalWorks, 'all').mockResolvedValue([]);
+  try {
+    const location = { pathname: '/settings', search: '' };
+    vi.stubGlobal('location', location);
+    const fetcher = vi.fn(async () => ({ ok: true, json: async () => ({ version: 1, user: { id: 'A', label: 'A' }, saves: [] }) }));
+    vi.stubGlobal('fetch', fetcher);
+    control = mountAccountControl();
+    const link = document.querySelector('.rise-account-control');
+    await vi.waitFor(() => expect(link.textContent).toBe('Account'));
+    const before = fetcher.mock.calls.length;
+    location.pathname = '/live'; location.search = '?eval=later';
+    link.addEventListener('click', event => event.preventDefault());
+    link.click();
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(document.querySelector('.rise-account-panel')).toBeNull();
+    expect(fetcher).toHaveBeenCalledTimes(before);
+    expect(link.textContent).toBe('Sign in');
+  } finally { vi.restoreAllMocks(); }
+});
+
+it('refuses a remembered panel restore before any request after entering a study without focus', async () => {
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new Event('close')); };
+  const { LocalWorks } = await import('../core/local-work-store.js');
+  const write = vi.spyOn(LocalWorks, 'save');
+  vi.spyOn(LocalWorks, 'all').mockResolvedValue([]);
+  vi.spyOn(LocalWorks, 'get').mockResolvedValue(null);
+  try {
+    const location = { pathname: '/settings', search: '' };
+    vi.stubGlobal('location', location);
+    const fetcher = vi.fn(async url => ({ ok: true, json: async () => ({ version: 1, ...(url.endsWith('/account') ? { user: { id: 'A', label: 'A' } } : { saves: [{ id: 'backup', app: 'rise', name: 'Backup', createdAt: '2026-10-09' }] }) }) }));
+    vi.stubGlobal('fetch', fetcher);
+    control = mountAccountControl();
+    await vi.waitFor(() => expect(document.querySelector('.rise-account-control').textContent).toBe('Account'));
+    document.querySelector('.rise-account-control').click();
+    await vi.waitFor(() => expect(document.querySelector('[data-restore]')?.disabled).toBe(false));
+    const before = fetcher.mock.calls.length;
+    location.pathname = '/live'; location.search = '?eval=later';
+    document.querySelector('[data-restore]').click();
+    await vi.waitFor(() => expect(document.querySelector('[data-status]').textContent).toContain('no longer current'));
+    expect(fetcher).toHaveBeenCalledTimes(before);
+    expect(write).not.toHaveBeenCalled();
+    document.querySelector('dialog').close();
+  } finally { vi.restoreAllMocks(); }
+});
+
+it('retains explicit sign-in navigation in a study', () => {
+  vi.stubGlobal('location', { pathname: '/live', search: '?eval=1' });
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  control = mountAccountControl();
+  const link = document.querySelector('.rise-account-control');
+  let prevented;
+  link.addEventListener('click', event => { prevented = event.defaultPrevented; event.preventDefault(); });
+  link.click();
+  expect(prevented).toBe(false);
+  expect(fetcher).not.toHaveBeenCalled();
+});

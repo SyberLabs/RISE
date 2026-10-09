@@ -170,3 +170,24 @@ test('mobile account metadata, read-only recovery and keyboard focus remain usab
   await page.keyboard.press('Escape');
   await expect(entrance).toBeFocused();
 });
+
+test('same-app history entry into a study blocks a remembered account without window focus', async ({ page }) => {
+  const requests = [];
+  page.on('request', request => {
+    if (request.url().startsWith('https://syberlabs.io/admin/api/v1/')) requests.push(request.url());
+  });
+  await mockAccount(page);
+  await page.goto('/settings');
+  await expect(page.getByRole('link', { name: 'Open SyberLabs account' })).toBeVisible();
+  await page.evaluate(() => {
+    history.pushState(null, '', '/live?eval=1&n=0&seed=1');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(page.locator('#live-eval-title')).toHaveText('A short study');
+  const before = requests.length;
+  // A DOM click deliberately avoids a browser focus event masking the edge.
+  await page.evaluate(() => document.querySelector('.rise-account-control').click());
+  await expect(page.getByRole('link', { name: 'Sign in to SyberLabs' })).toBeVisible();
+  await expect(page.locator('.rise-account-panel')).toHaveCount(0);
+  expect(requests.length).toBe(before);
+});

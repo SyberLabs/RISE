@@ -23,34 +23,43 @@ export function mountAccountControl() {
   let opening = false;
   let revision = 0;
   let accountRevision = 0;
+  const clearAccount = () => {
+    revision++;
+    if (user) accountRevision++;
+    user = null;
+    link.textContent = 'Sign in';
+    link.setAttribute('aria-label', 'Sign in to SyberLabs');
+  };
   const refresh = async () => {
-    if (isolated()) {
-      revision++;
-      if (user) accountRevision++;
-      user = null;
-      link.textContent = 'Sign in';
-      link.setAttribute('aria-label', 'Sign in to SyberLabs');
-      return;
-    }
+    if (isolated()) { clearAccount(); return; }
     const generation = ++revision;
     let current = null;
     try { current = await getAccount(); } catch { /* signed out or unavailable */ }
     if (destroyed || generation !== revision) return;
+    if (isolated()) { clearAccount(); return; }
     if (user?.id !== current?.id) accountRevision++;
     user = current;
     link.textContent = user ? 'Account' : 'Sign in';
     link.setAttribute('aria-label', user ? 'Open SyberLabs account' : 'Sign in to SyberLabs');
   };
   const click = async event => {
+    if (isolated()) {
+      const remembered = user;
+      clearAccount();
+      if (remembered && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) event.preventDefault();
+      return;
+    }
     if (!user || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     if (opening) return;
     opening = true;
     const capturedUser = user;
     const capturedRevision = accountRevision;
+    const isCurrentAccount = () => !destroyed && !isolated() && accountRevision === capturedRevision && user?.id === capturedUser.id;
     try {
       const { openAccountPanel } = await import('./account-panel.js');
-      if (!destroyed) openAccountPanel({ user: capturedUser, trigger: link, onClose: refresh, isCurrentAccount: () => !destroyed && accountRevision === capturedRevision && user?.id === capturedUser.id });
+      if (isolated()) { clearAccount(); return; }
+      if (isCurrentAccount()) openAccountPanel({ user: capturedUser, trigger: link, onClose: refresh, isCurrentAccount });
     } finally { opening = false; }
   };
   link.addEventListener('click', click);
