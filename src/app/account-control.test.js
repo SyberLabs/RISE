@@ -56,3 +56,58 @@ it('invalidates an old panel restore when a global refresh observes another acco
   document.querySelector('dialog').close();
   vi.restoreAllMocks();
 });
+
+
+it('keeps the study entrance without looking up identity on mount or focus', async () => {
+  vi.stubGlobal('location', { pathname: '/live', search: '?eval=1&n=0&seed=1' });
+  const fetcher = vi.fn().mockRejectedValue(new Error('no study network'));
+  vi.stubGlobal('fetch', fetcher);
+  control = mountAccountControl();
+  window.dispatchEvent(new Event('focus'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(document.querySelector('.rise-account-control').textContent).toBe('Sign in');
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it('keeps the host card entrance without looking up identity on mount or focus', async () => {
+  vi.resetModules();
+  const meta = document.createElement('meta');
+  meta.name = 'rise-embed'; meta.content = '/live?embed=mcp&voice=paced';
+  document.head.append(meta);
+  try {
+    const { mountAccountControl: mountCardAccount } = await import('./account-control.js');
+    const fetcher = vi.fn().mockRejectedValue(new Error('no card account network'));
+    vi.stubGlobal('fetch', fetcher);
+    control = mountCardAccount();
+    window.dispatchEvent(new Event('focus'));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(document.querySelector('.rise-account-control').textContent).toBe('Sign in');
+    expect(fetcher).not.toHaveBeenCalled();
+  } finally { meta.remove(); vi.resetModules(); }
+});
+
+it('still refreshes identity on the ordinary reader-owned live page', async () => {
+  vi.stubGlobal('location', { pathname: '/live', search: '?provider=openai&voice=paced' });
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ version: 1, user: { id: 'u', label: 'Reader' } }) }));
+  control = mountAccountControl();
+  await vi.waitFor(() => expect(document.querySelector('.rise-account-control').textContent).toBe('Account'));
+});
+
+
+it('defers focus lookup while an existing page enters a study and resumes after leaving', async () => {
+  const location = { pathname: '/settings', search: '' };
+  vi.stubGlobal('location', location);
+  const fetcher = vi.fn().mockRejectedValue(new Error('signed out'));
+  vi.stubGlobal('fetch', fetcher);
+  control = mountAccountControl();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  location.pathname = '/live'; location.search = '?eval=later';
+  window.dispatchEvent(new Event('focus'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  location.pathname = '/settings'; location.search = '';
+  window.dispatchEvent(new Event('focus'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});

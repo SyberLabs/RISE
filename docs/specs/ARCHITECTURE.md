@@ -179,7 +179,7 @@ flowchart LR
     app --> |1| audio
     app -.-> |8 lazy| components
     app --> |4| content
-    app --> |52| core
+    app --> |53| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
