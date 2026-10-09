@@ -23,6 +23,12 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Revised 2026-10-09: Claude first, the critical path to the Composer release, and this task's place on it.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/586",
+      "note": "Opened on branch cc-009-svg-figures; not merged. Local: 27-case admission corpus, targeted vitest, e2e/live-mcp.spec.js 47 passed with one worker, eval:creative all passed, vite build, first load 61.6 of 64.0 KB br.",
+      "date": "2026-10-08"
     }
   ],
   "activity": [
@@ -33,10 +39,14 @@
     {
       "date": "2026-10-09T06:27:11.453Z",
       "summary": "Stage 1 built on cc-009-svg-figures: figure scenes, shared SVG admission in Worker and card, image layer, guide, corpus and SDK contract; PR to follow."
+    },
+    {
+      "date": "2026-10-09T06:27:52.368Z",
+      "summary": "PR #586 opened."
     }
   ],
-  "updatedAt": "2026-10-09T06:27:11.453Z",
-  "revision": 2,
+  "updatedAt": "2026-10-09T06:27:52.368Z",
+  "revision": 3,
   "summary": "Proposed 2026-10-09: a figure a model draws as SVG, admitted by the Worker before the card shows it.",
   "blocker": null
 }
