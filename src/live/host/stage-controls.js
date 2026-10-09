@@ -443,6 +443,8 @@ export function createStageControls({
         if (!aboutText) return;
         aboutText.textContent = about();
         copy.textContent = 'Copy';
+        // More than the sheet can show is faded at its foot (the stage never scrolls); Copy takes it all.
+        aboutText.dataset.clipped = String(aboutText.scrollHeight > aboutText.clientHeight);
     }
 
     function openSheet() {

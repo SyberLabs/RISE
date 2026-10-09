@@ -508,6 +508,10 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
   -webkit-user-select: text;
   user-select: text;
 }
+.rise-settings__about-text[data-clipped="true"] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5em), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2.5em), transparent);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .rise-settings { animation: none; }
