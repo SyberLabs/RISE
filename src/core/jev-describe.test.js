@@ -15,10 +15,10 @@ import {
 function decision(overrides = {}, workId = 'ulysses') {
   const selectors = {
     section: 'first', wpm: 300, curve: 'wave', chunkMode: 'phrase',
-    audio: 'chase', visualMode: 'interlocution', visualStyle: 'psychedelic',
+    audio: 'night-drive', visualMode: 'interlocution', visualStyle: 'psychedelic',
     visualEngine: 'fractal', visualArc: 'triple', arcSplit: '30',
     middleEngine: 'fractal', finaleEngine: 'fractal', middleTheme: 'prism', finaleTheme: 'prism',
-    middleAudio: 'chase', finaleAudio: 'chase', visualPalette: 'purple', kleePreset: 'chaotic',
+    middleAudio: 'night-drive', finaleAudio: 'night-drive', visualPalette: 'purple', kleePreset: 'chaotic',
     galleryCadence: 'lively', chamberFace: 'jp', fontSize: 'large', colorTheme: 'prism',
     textColor: 'amethyst', backgroundColor: 'prism', wordFill: 'accent',
     projection: 'stream', revealMode: 'instant', ...overrides
@@ -42,7 +42,7 @@ function decision(overrides = {}, workId = 'ulysses') {
 describe('summarizeJevPlan', () => {
   it('says the live Tokyo Drift plan in four parts that match its values', () => {
     expect(summarizeJevPlan(decision().config)).toEqual(
-      ['fast phrases', 'fractal light', 'chase', 'large japanese serif']);
+      ['fast phrases', 'fractal light', 'night drive', 'large japanese serif']);
   });
 
   it('says plainly when a plan has no imagery, no sound, or is a page', () => {

@@ -18,6 +18,7 @@ import {
 } from './visual-score-lane.js';
 import { createLibraryContinuation } from './reading-continuation.js';
 import { recitationPackUrl } from '../audio/voice-pack-key.js';
+import { standInSound } from '../audio/sound-ids.js';
 import {
   normalizeSequenceCapabilities,
   sequenceHasCapability,
@@ -254,7 +255,7 @@ export class Session {
     this.curve = curve;
     this.displayMode = displayMode;
     this.audioPreset = audioPreset;
-    this.soundscape = soundscape;
+    this.soundscape = standInSound(soundscape);
     this.entrainmentMode = entrainmentMode;
     this.entrainmentWaveform = entrainmentWaveform;
     this.visualConfig = visualConfig;

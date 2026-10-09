@@ -277,7 +277,8 @@ export async function report(args) {
     resolve(ROOT, argument(args, '--cases', DEFAULT_CASES)), resolve(ROOT, argument(args, '--options', DEFAULT_OPTIONS)));
   const { controls, controlsHash, file: controlsFile } = run.inputs.controls
     ? await readControls(resolve(ROOT, argument(args, '--controls', DEFAULT_CONTROLS))) : { controls: [] };
-  const catalog = await committedCatalog();
+  const catalogFile = argument(args, '--catalog');
+  const catalog = catalogFile ? JSON.parse(await readFile(resolve(ROOT, catalogFile), 'utf8')) : await committedCatalog();
   if (run.inputs.cases.sha256 !== casesHash || run.inputs.options.sha256 !== optionsHash
     || run.inputs.catalog.sha256 !== digest(JSON.stringify(catalog))
     || (run.inputs.controls && run.inputs.controls.sha256 !== controlsHash)) {

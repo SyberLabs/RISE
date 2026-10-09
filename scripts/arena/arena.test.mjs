@@ -363,13 +363,31 @@ test('the reader app never names the OpenAI Decisions endpoint or model', () => 
   assert.deepEqual(offenders, []);
 });
 
+/**
+ * A run captured against fixtures that have since moved on is re-scored
+ * against copies of the inputs it was captured with, pinned in
+ * scripts/arena/inputs/<sha12>/; report() still checks each copy's hash
+ * against the hash the run recorded.
+ */
+function pinnedInputs(file) {
+  const pins = join('scripts/arena/inputs', basename(file).slice('run-'.length, -'.json'.length));
+  if (!existsSync(join(ROOT, pins))) return null;
+  return { dir: pins, args: ['--cases', `${pins}/cases.json`, '--options', `${pins}/options.json`,
+    '--controls', `${pins}/controls.json`, '--catalog', `${pins}/catalog.json`] };
+}
+
 test('every committed arena run is valid, not a mock, and its replay is the one it derives, byte for byte', async () => {
   for (const file of walk(join(ROOT, ARENA_DIR)).filter(path => /run-[0-9a-f]{12}\.json$/u.test(path))) {
     const text = readFileSync(file, 'utf8');
     const run = readArenaRun(text, basename(file));
     assert.equal(run.harness.mock, false, `${relative(ROOT, file)} is a mock run`);
-    // /arena names each case by its request in scripts/jev-eval-cases.json: the file the run was asked from.
-    assert.equal(run.inputs.cases.sha256, fixture.casesHash, `${relative(ROOT, file)} was asked other cases than scripts/jev-eval-cases.json`);
+    // /arena names each case by its request in scripts/jev-eval-cases.json, so the
+    // cases the run was asked carry the same requests, under the same ids.
+    const pinned = pinnedInputs(file);
+    const asked = pinned ? await fixtures(join(ROOT, pinned.dir, 'cases.json'), join(ROOT, pinned.dir, 'options.json')) : fixture;
+    assert.equal(run.inputs.cases.sha256, asked.casesHash, `${relative(ROOT, file)} was asked other cases than it names`);
+    const requests = list => list.map(item => [item.id, item.intent]);
+    assert.deepEqual(requests(fixture.cases), requests(asked.cases), `${relative(ROOT, file)}: /arena would name its cases by other requests`);
     const replay = join(ROOT, ARENA_DIR, replayName(basename(file)));
     readArenaReplay(readFileSync(replay, 'utf8'), basename(replay), text, basename(file));
   }
@@ -377,7 +395,7 @@ test('every committed arena run is valid, not a mock, and its replay is the one 
 
 test('every committed arena run reports its recorded scores, with case-clustered agreement and paired differences', async () => {
   for (const file of walk(join(ROOT, ARENA_DIR)).filter(path => /run-[0-9a-f]{12}\.json$/u.test(path))) {
-    const output = JSON.parse(await report(['--run', file]));
+    const output = JSON.parse(await report(['--run', file, ...(pinnedInputs(file)?.args ?? [])]));
     assert.equal(output.matchesRecorded, true, `${relative(ROOT, file)} no longer matches its recorded scores`);
     assert.equal(output.matchesReplay, true);
     const ran = Object.keys(output.scores).filter(id => !output.scores[id].status);

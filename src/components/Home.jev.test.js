@@ -65,10 +65,10 @@ afterEach(async () => {
 /** The plan the live service returned for the Tokyo Drift request (2026-09-27). */
 function tokyoDecision() {
   const selectors = {
-    section: 'first', wpm: 300, curve: 'wave', chunkMode: 'phrase', audio: 'chase',
+    section: 'first', wpm: 300, curve: 'wave', chunkMode: 'phrase', audio: 'night-drive',
     visualMode: 'interlocution', visualStyle: 'psychedelic', visualEngine: 'fractal',
     visualArc: 'triple', arcSplit: '30', middleEngine: 'fractal', finaleEngine: 'fractal',
-    middleTheme: 'prism', finaleTheme: 'prism', middleAudio: 'chase', finaleAudio: 'chase',
+    middleTheme: 'prism', finaleTheme: 'prism', middleAudio: 'night-drive', finaleAudio: 'night-drive',
     visualPalette: 'purple', kleePreset: 'chaotic', galleryCadence: 'lively', chamberFace: 'jp',
     fontSize: 'large', colorTheme: 'prism', textColor: 'amethyst', backgroundColor: 'prism',
     wordFill: 'accent', projection: 'stream', revealMode: 'instant'
@@ -231,7 +231,7 @@ it('asks once, makes the answer Home\'s reading, says what RISE cannot do, and p
   expect(container.querySelector('.home-label').textContent).toBe('As you asked');
   await vi.waitFor(() => expect(container.querySelector('.home-meta').textContent).toBe('James Joyce · 3 min · Custom'));
   expect(container.querySelector('.home-epigraph').dataset.face).toBe('jp');
-  expect(homeStatus(container)).toBe('As you asked. Ulysses, by James Joyce. Fast phrases, fractal light, chase, large japanese serif.');
+  expect(homeStatus(container)).toBe('As you asked. Ulysses, by James Joyce. Fast phrases, fractal light, night drive, large japanese serif.');
   const note = container.querySelector('.home-note');
   expect(note.hidden).toBe(false);
   expect(note.textContent).toContain('You referenced “Tokyo Drift”. RISE treated it as a style');

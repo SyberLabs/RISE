@@ -54,6 +54,13 @@ function legacyBlueprint(overrides = {}) {
 }
 
 describe('Workshop Project v1', () => {
+  it('opens a saved project whose sound is a parked Feelings soundscape on its stand-in', () => {
+    const project = migrateWorkshopBlueprint(legacyBlueprint({ soundscape: 'wonder' }));
+    expect(project.defaults.audio.soundscape).toBe('aurora');
+    expect(validateWorkshopProject({ ...project, defaults: { ...project.defaults,
+      audio: { ...project.defaults.audio, soundscape: 'chase' } } }).defaults.audio.soundscape).toBe('night-drive');
+  });
+
   it('migrates a flat blueprint into one canonical project', () => {
     const project = migrateWorkshopBlueprint(legacyBlueprint());
 

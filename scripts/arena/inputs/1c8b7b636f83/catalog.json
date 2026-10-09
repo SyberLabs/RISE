@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 1,
   "books": [
     {
       "work_id": "middlemarch",
@@ -328,6 +329,36 @@
       "active": true
     },
     {
+      "sound_id": "sad",
+      "decision_criterion": "Slow minor harmony for grief, loneliness, or melancholy.",
+      "active": true
+    },
+    {
+      "sound_id": "angry",
+      "decision_criterion": "Tense, rough harmony for anger, conflict, or defiance.",
+      "active": true
+    },
+    {
+      "sound_id": "happy",
+      "decision_criterion": "Warm major harmony for joy, ease, or celebration.",
+      "active": true
+    },
+    {
+      "sound_id": "excited",
+      "decision_criterion": "Bright sustained harmony with a quick shimmer, for anticipation. No beat.",
+      "active": true
+    },
+    {
+      "sound_id": "thrilling",
+      "decision_criterion": "Low sustained tones with a slow throb for suspense or dramatic tension. No beat.",
+      "active": true
+    },
+    {
+      "sound_id": "scary",
+      "decision_criterion": "Uneasy low dissonance for dread, fear, or ominous scenes.",
+      "active": true
+    },
+    {
       "sound_id": "piano",
       "decision_criterion": "Gentle piano melody for intimate, tender, or reflective reading.",
       "active": true
@@ -368,6 +399,31 @@
       "active": true
     },
     {
+      "sound_id": "wonder",
+      "decision_criterion": "A spacious rising synth theme for discovery, awe, and possibility.",
+      "active": true
+    },
+    {
+      "sound_id": "mystery",
+      "decision_criterion": "A sparse, questioning synth theme for secrets and investigation.",
+      "active": true
+    },
+    {
+      "sound_id": "chase",
+      "decision_criterion": "A quick repeating synth figure over a low drone for pursuit and urgency. No drums.",
+      "active": true
+    },
+    {
+      "sound_id": "triumph",
+      "decision_criterion": "A bold resolving synth theme for victory and earned celebration.",
+      "active": true
+    },
+    {
+      "sound_id": "haunted",
+      "decision_criterion": "A fragile dissonant theme for eerie, ghostly, or uncanny scenes.",
+      "active": true
+    },
+    {
       "sound_id": "starlight",
       "decision_criterion": "A slow shimmering synth theme for cosmic calm and night skies.",
       "active": true
@@ -382,74 +438,62 @@
     {
       "kind": "chamberFace",
       "id": "literary",
-      "description": "Literary serif letterforms for prose and classic reading.",
-      "active": true
+      "description": "Literary serif letterforms for prose and classic reading."
     },
     {
       "kind": "chamberFace",
       "id": "display",
-      "description": "Display serif letterforms for a formal, monumental tone.",
-      "active": true
+      "description": "Display serif letterforms for a formal, monumental tone."
     },
     {
       "kind": "chamberFace",
       "id": "thick",
-      "description": "Bold geometric letterforms for strong, vivid readings.",
-      "active": true
+      "description": "Bold geometric letterforms for strong, vivid readings."
     },
     {
       "kind": "chamberFace",
       "id": "mono",
-      "description": "Evenly spaced monospaced letterforms for technical, archival, or machine-like tone.",
-      "active": true
+      "description": "Evenly spaced monospaced letterforms for technical, archival, or machine-like tone."
     },
     {
       "kind": "chamberFace",
       "id": "jp",
-      "description": "Japanese serif letterforms for Japanese-language text.",
-      "active": true
+      "description": "Japanese serif letterforms for Japanese-language text."
     },
     {
       "kind": "chamberFace",
       "id": "sans",
-      "description": "Clean regular sans letterforms for modern or minimal reading.",
-      "active": true
+      "description": "Clean regular sans letterforms for modern or minimal reading."
     },
     {
       "kind": "chamberFace",
       "id": "book",
-      "description": "Stronger book serif letterforms for readable emphasis.",
-      "active": true
+      "description": "Stronger book serif letterforms for readable emphasis."
     },
     {
       "kind": "fontSize",
       "id": "small",
-      "description": "Small text for a dense, restrained field.",
-      "active": true
+      "description": "Small text for a dense, restrained field."
     },
     {
       "kind": "fontSize",
       "id": "medium",
-      "description": "Medium text for balanced reading.",
-      "active": true
+      "description": "Medium text for balanced reading."
     },
     {
       "kind": "fontSize",
       "id": "large",
-      "description": "Large text for emphatic or accessible reading.",
-      "active": true
+      "description": "Large text for emphatic or accessible reading."
     },
     {
       "kind": "fontSize",
       "id": "xlarge",
-      "description": "Extra large text for strong emphasis or easier reading at a distance.",
-      "active": true
+      "description": "Extra large text for strong emphasis or easier reading at a distance."
     },
     {
       "kind": "fontSize",
       "id": "fit",
-      "description": "Fit each word to the Chamber; choose only with one-word chunks.",
-      "active": true
+      "description": "Fit each word to the Chamber; choose only with one-word chunks."
     }
   ]
 }

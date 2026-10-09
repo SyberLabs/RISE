@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { mixAudio, peakAmplitude, measureLoudnessLufs, OFFLINE_SOUNDSCAPE_IDS } from './audio-mix.js';
-import { SOUNDSCAPES } from '../../audio/soundscapes.js';
+import { PARKED_SOUNDSCAPES, SOUNDSCAPES } from '../../audio/soundscapes.js';
 import { encodeWav } from './wav.js';
 import { RenderError } from './errors.js';
 import { resolveVoicePackEntry, VOICE_PACK_SCHEMA, voiceAssetKey } from '../../audio/voice-pack.js';
@@ -264,8 +264,8 @@ describe('named soundscape beds', () => {
     };
   }
 
-  it('names an offline bed for every soundscape the app offers', () => {
-    expect([...OFFLINE_SOUNDSCAPE_IDS].sort()).toEqual(Object.keys(SOUNDSCAPES).sort());
+  it('names an offline bed for every soundscape the app offers, and each parked one kept for its rework', () => {
+    expect([...OFFLINE_SOUNDSCAPE_IDS].sort()).toEqual(Object.keys({ ...SOUNDSCAPES, ...PARKED_SOUNDSCAPES }).sort());
   });
 
   it('gives each soundscape its own bed instead of one shared drone', () => {

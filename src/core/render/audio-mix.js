@@ -25,7 +25,7 @@ import { CINEMATIC_OFFLINE_IDS, sampleCinematicPiece } from './cinematic-piece-s
  * partials, Faded Signal's tape drift in cents. The live scheduler is not
  * authority here and cannot be: it needs an AudioContext.
  *
- * Every id in this table must exist in SOUNDSCAPES. An id that is not in this
+ * Every id in this table must exist in SOUNDSCAPES or PARKED_SOUNDSCAPES. An id that is not in this
  * table refuses rather than borrowing another bed — every export used to be
  * Aurora regardless of what the score asked for, so a whole slate of clips
  * shared one drone and nobody could hear that the score was being ignored.

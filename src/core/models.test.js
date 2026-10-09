@@ -87,6 +87,12 @@ describe('Session', () => {
     ];
   });
 
+  it('plays a parked Feelings soundscape a saved reading names as its stand-in', () => {
+    expect(new Session({ atoms, soundscape: 'chase' }).soundscape).toBe('night-drive');
+    expect(new Session({ atoms, soundscape: 'mystery' }).soundscape).toBe('faded-signal');
+    expect(new Session({ atoms, soundscape: 'aurora' }).soundscape).toBe('aurora');
+  });
+
   it('creates a session with default values', () => {
     const session = new Session({ atoms });
 

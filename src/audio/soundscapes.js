@@ -32,6 +32,7 @@
 import { createNightDrive } from './night-drive.js';
 import { ACOUSTIC_SOUNDSCAPES } from './acoustic-pieces.js';
 import { CINEMATIC_SOUNDSCAPES } from './cinematic-pieces.js';
+import { PARKED_SOUNDS } from './sound-ids.js';
 
 /** How long a held phase waits before asking again. */
 const HOLD_MS = 250;
@@ -876,7 +877,7 @@ function createKeyboardMusic(style, ctx, destination, options = {}) {
     };
 }
 
-export const SOUNDSCAPES = {
+const ALL_SOUNDSCAPES = {
     aurora: {
         name: 'Aurora',
         description: 'A deep just-intoned pad visited by wandering harmonics — slowly evolving, never looping.',
@@ -915,6 +916,14 @@ export const SOUNDSCAPES = {
         create: (ctx, destination) => createMoodBed(profile, ctx, destination)
     }]))
 };
+
+const isParked = ([id]) => Object.hasOwn(PARKED_SOUNDS, id);
+
+/** Every soundscape RISE offers; createSoundscape creates these and no other. */
+export const SOUNDSCAPES = Object.fromEntries(Object.entries(ALL_SOUNDSCAPES).filter(entry => !isParked(entry)));
+
+/** The parked Feelings (PARKED_SOUNDS), kept for their rework; nothing creates one by id. */
+export const PARKED_SOUNDSCAPES = Object.fromEntries(Object.entries(ALL_SOUNDSCAPES).filter(isParked));
 
 /**
  * @param {string} id - soundscape id (e.g. 'aurora')

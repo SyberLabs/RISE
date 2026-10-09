@@ -356,7 +356,7 @@ describe('the Look sheet', () => {
     expect([...sound.querySelectorAll('optgroup')].map(group => [group.label, [...group.children].map(option => option.value)]))
       .toEqual(SOUND_GROUPS.filter(group => group.id !== 'silence')
         .map(group => [group.label, group.entries.map(entry => entry.id)]));
-    expect(sound.querySelectorAll('optgroup option')).toHaveLength(27);
+    expect(sound.querySelectorAll('optgroup option')).toHaveLength(16);
 
     sound.value = 'deep';
     sound.dispatchEvent(new Event('change', { bubbles: true }));

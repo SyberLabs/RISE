@@ -142,7 +142,7 @@ const QUESTION_INSTRUCTIONS = Object.freeze({
   chunk: 'Choose how much text appears at once. Match requests for one-word focus, short phrases, sentences, or paragraphs.',
   audio: 'Opening sound: honor requested sound or silence. Ignore text speed and visual motion.',
   middleAudio: 'Middle sound: honor middle-specific requests; otherwise continue the opening mood.',
-  finaleAudio: 'Ending sound: honor ending-specific requests. A triumphant ending calls for triumph when offered.',
+  finaleAudio: 'Ending sound: honor ending-specific requests; otherwise resolve the mood.',
   visual: 'Choose the visual field. Honor darkness and minimalism; use continuous visuals only when the reader wants visual motion or atmosphere.',
   visualStyle: 'Choose visual energy. Reserve psychedelic for vivid, trippy, neon, or kaleidoscopic requests, including named films, games, or songs with a neon, high-speed look; keep quiet prompts quiet.',
   visualArc: 'Use dual or triple for requested visual or sound phase changes.',
@@ -165,11 +165,9 @@ const IGNORED_SOUND_WORDS = new Set([
   'and', 'are', 'for', 'from', 'give', 'have', 'into', 'like', 'me', 'please', 'read', 'reading',
   'sound', 'sounds', 'that', 'the', 'this', 'with', 'you'
 ]);
-const SOUND_ALIASES = Object.freeze({ triumph: ['triumphant'] });
 const SOUND_PHASE_WORDS = new Set([
   'audio', 'music', 'song', 'sound', 'soundscape', 'synth', 'silent', 'silence',
-  ...JEV_AUDIO_IDS.flatMap(id => soundWords(id.replaceAll('-', ' '))),
-  ...Object.values(SOUND_ALIASES).flat()
+  ...JEV_AUDIO_IDS.flatMap(id => soundWords(id.replaceAll('-', ' ')))
 ]);
 
 export function soundWords(value) {
@@ -186,9 +184,7 @@ function shortlistSounds(sounds, intent, turn) {
   const ranked = rotated.map(({ row, catalogIndex }, index) => {
     const idWords = soundWords(row.sound_id.replaceAll('-', ' '));
     const criterionWords = new Set(soundWords(row.decision_criterion));
-    const explicit = normalizedIntent.includes(` ${idWords.join(' ')} `)
-      || (SOUND_ALIASES[row.sound_id] || []).some(alias =>
-        normalizedIntent.includes(` ${alias} `));
+    const explicit = normalizedIntent.includes(` ${idWords.join(' ')} `);
     const score = idWords.reduce((total, word) => total + (intentWords.has(word) ? 3 : 0), 0)
       + [...criterionWords].reduce((total, word) => total + (intentWords.has(word) ? 1 : 0), 0);
     return { row, explicit, score, index, catalogIndex };
@@ -311,18 +307,6 @@ function requestsEndingSoundChange(intent, openingSound, finaleSound) {
     && [...SOUND_PHASE_WORDS].some(word => words.has(word));
 }
 
-function requestsTriumphantEnding(intent) {
-  const text = intent.normalize('NFKC').toLowerCase();
-  if (/\b(?:no|not|never|avoid|without)\b.{0,35}\btriumphant\b|\b(?:no|without)\s+(?:any\s+)?(?:audio|music|sound|soundscape)\b/u.test(text)) return false;
-  const ending = /\b(?:end|ending|finale|finish)\b/u.exec(text);
-  const triumph = /\b(?:triumphant|triumph)\b/u.exec(text);
-  if (!ending || !triumph || Math.abs(ending.index - triumph.index) > 60) return false;
-  const between = text.slice(Math.min(ending.index, triumph.index),
-    Math.max(ending.index, triumph.index));
-  return !/\bthen\b/u.test(between)
-    && !/\b(?:end|ending|finale|finish)\b.{0,35}\b(?:silent|silence)\b/u.test(text);
-}
-
 function choiceConfig(answers, intent, choices) {
   if (!answers || typeof answers !== 'object' || Array.isArray(answers)) return null;
   for (const question of CONFIG_ANSWERS) {
@@ -355,9 +339,6 @@ function choiceConfig(answers, intent, choices) {
     wordFill: answers.wordFill.choice,
     projection: answers.projection.choice, revealMode: answers.reveal.choice
   };
-  if (requestsTriumphantEnding(intent) && Object.hasOwn(choices.finaleAudio, 'triumph')) {
-    config.finaleAudio = 'triumph';
-  }
   const soundArc = requestsEndingSoundChange(intent, config.audio, config.finaleAudio);
   if (soundArc) config.projection = 'stream';
   // One Jev answer determines one coherent plan. A psychedelic request cannot

@@ -3,6 +3,7 @@ import { validateJevRecommendation } from '../app/jev-reading.js';
 import { ROLL_RANGES, VIVID_LOOKS } from './roll.js';
 import { todayDecision } from './today-reading.js';
 import { todayPoem, todayPool } from './today-poem.js';
+import { PARKED_SOUNDS } from '../audio/sound-ids.js';
 
 describe('todayDecision', () => {
   it('reads every poem of a cycle with a procedural visual, never without one', () => {
@@ -35,6 +36,19 @@ describe('todayDecision', () => {
     for (const [look, drawn] of paces) {
       expect([...drawn].sort((a, b) => a - b), look).toEqual([...ROLL_RANGES[look].paces].sort((a, b) => a - b));
     }
+  });
+
+  it('sounds no parked Feelings soundscape on any day of a cycle', () => {
+    for (let day = 0; day < todayPool().length; day++) {
+      const { config } = todayDecision(todayPoem(new Date(2026, 0, 1 + day, 12)));
+      for (const audio of [config.audio, config.middleAudio, config.finaleAudio]) {
+        expect(PARKED_SOUNDS, audio).not.toHaveProperty(audio);
+      }
+    }
+    // The day the Feelings were parked read Revel, which played Chase.
+    const parkedDay = todayDecision(todayPoem(new Date(2026, 9, 9, 12)));
+    expect(parkedDay.look).toBe('revel');
+    expect(parkedDay.config.audio).toBe('night-drive');
   });
 
   it('is the same all day, and admitted like any roll', () => {

@@ -106,7 +106,7 @@ it('opens a dark reading with a silent opening and a sound-only finale', async (
     audio: 'silent', visualMode: 'off', visualStyle: 'quiet',
     visualEngine: 'klee', visualPalette: 'white', kleePreset: 'harmonic',
     visualArc: 'dual', arcSplit: '50', middleEngine: 'turrell', finaleEngine: 'fractal',
-    middleAudio: 'silent', finaleAudio: 'triumph', middleTheme: 'classic', finaleTheme: 'classic',
+    middleAudio: 'silent', finaleAudio: 'starlight', middleTheme: 'classic', finaleTheme: 'classic',
     galleryCadence: 'balanced', chamberFace: 'literary', fontSize: 'medium',
     wordFill: 'plain', colorTheme: 'classic', textColor: 'classic',
     backgroundColor: 'classic', projection: 'stream', revealMode: 'instant'
@@ -125,5 +125,5 @@ it('opens a dark reading with a silent opening and a sound-only finale', async (
   expect(session.visualConfig.visualMode).toBe('off');
   expect(session.visualProgram).toBeNull();
   expect(session.audioProgram.segments.map(segment =>
-    segment.cue.soundscapeId || segment.cue.kind)).toEqual(['silence', 'triumph']);
+    segment.cue.soundscapeId || segment.cue.kind)).toEqual(['silence', 'starlight']);
 });

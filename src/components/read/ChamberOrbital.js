@@ -44,6 +44,7 @@ import {
   defaultVoicePackId
 } from '../../audio/voice-pack.js';
 import { SOUND_GROUPS, soundOf } from '../../audio/sound-list.js';
+import { standInSound } from '../../audio/sound-ids.js';
 import {
   SEQUENCE_CAPABILITIES,
   normalizeSequenceCapabilities,
@@ -301,6 +302,7 @@ export class ChamberOrbital {
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
     }
+    this.config.soundscape = standInSound(this.config.soundscape);
     // RHYTHM DEFAULT MIGRATION: a Word saved without phraseDefault was the
     // old default, not a choice, and reads in phrases from now on. A Word
     // saved with it was chosen, and a Word under Fit is what Fit needs to

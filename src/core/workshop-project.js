@@ -12,6 +12,7 @@ import { visualFallbackCueFromConfig } from './visual-program.js';
 import { compileWorkshopScoreProgram } from './audio-score-lane.js';
 import { audioScoreAssetFromId, TONE_DELIVERIES, TONE_WAVEFORMS } from './workshop-audio.js';
 import { narrationAssignmentsFromClips } from './narration-score-lane.js';
+import { standInSound } from '../audio/sound-ids.js';
 
 export const WORKSHOP_PROJECT_SCHEMA = 'rise.workshop-project.v1';
 
@@ -210,7 +211,7 @@ function normalizeVisual(value = {}) {
 function normalizeAudio(value = {}) {
   const input = value && typeof value === 'object' ? value : {};
   return {
-    soundscape: text(input.soundscape, 'none', 80),
+    soundscape: standInSound(text(input.soundscape, 'none', 80)),
     audioPreset: text(input.audioPreset, 'silent', 80),
     selectedSwellId: typeof input.selectedSwellId === 'string'
       ? input.selectedSwellId.slice(0, WORKSHOP_PROJECT_LIMITS.maxIdLength)

@@ -83,7 +83,7 @@ export const EXAMPLES = Object.freeze([
             origin: ORIGIN,
             scenes: [{ id: 'swarm', code: SWARM_SCENE }],
             beats: [
-                { show: 'A thought, forming', hold: { ms: 2500 }, scene: 'swarm', size: 'display', sound: 'mystery' },
+                { show: 'A thought, forming', hold: { ms: 2500 }, scene: 'swarm', size: 'display', sound: 'faded-signal' },
                 { say: 'Before a thought has words, it is a scattering.', place: 'top', size: 'smaller' },
                 { hold: { ms: 2500 } },
                 { say: 'Small things, circling, not yet touching.' },
@@ -110,5 +110,5 @@ export const GUIDANCE = [
     `- Faces are yours to choose, by role: ${TYPE_ROLES.join(', ')}. One face for the text ("type" on the Current) and one for a moment ("type" on a beat) is plenty.`,
     '- Let holds breathe: a picture alone for two to six seconds between sentences is a beat too.',
     '- A code scene here is generative: particles, curves, slowly turning shapes, drawn with rise.ctx and rise.lib together. It changes on cues, drifts with t, and stands still when rise.reducedMotion is true. Nothing strobes: RISE freezes a scene that flashes.',
-    '- A bed under the whole reading suits the style: a "sound" atmosphere or music on the first beat (aurora, starlight, soft-rain, piano, mystery…).'
+    '- A bed under the whole reading suits the style: a "sound" atmosphere or music on the first beat (aurora, starlight, soft-rain, faded-signal, piano…).'
 ].join('\n');

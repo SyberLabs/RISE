@@ -1,10 +1,11 @@
 /**
  * The one sound list (RDR-024): every soundscape and every reader-facing tone,
- * each exactly once, in five groups, and every look's sound among them.
+ * each exactly once, in four groups, and every look's sound among them.
  */
 import { describe, expect, it } from 'vitest';
 import { SOUND_GROUPS, soundOf } from './sound-list.js';
 import { SOUNDSCAPES } from './soundscapes.js';
+import { PARKED_SOUNDS } from './sound-ids.js';
 import { LAYER_PRESETS } from './engine.js';
 import { WORKSHOP_AUDIO_ASSETS } from '../core/workshop-audio.js';
 import { LOOKS } from '../core/looks.js';
@@ -16,22 +17,24 @@ const TONE_IDS = WORKSHOP_AUDIO_ASSETS
   .map(asset => asset.value);
 
 describe('the one sound list', () => {
-  it('groups Silence, Atmospheres, Music, Feelings and Tones, in that order', () => {
+  it('groups Silence, Atmospheres, Music and Tones, in that order', () => {
     expect(SOUND_GROUPS.map(group => group.label))
-      .toEqual(['Silence', 'Atmospheres', 'Music', 'Feelings', 'Tones']);
+      .toEqual(['Silence', 'Atmospheres', 'Music', 'Tones']);
     expect(SOUND_GROUPS[0].entries).toEqual([{ id: 'none', kind: 'silence', name: 'Silence' }]);
     expect(SOUND_GROUPS[1].entries.map(entry => entry.id))
       .toEqual(['aurora', 'faded-signal', 'soft-rain', 'starlight', 'night-drive']);
     expect(SOUND_GROUPS[2].entries.map(entry => entry.id))
       .toEqual(['piano', 'jazz', 'lullaby', 'nocturne', 'waltz', 'blues', 'bossa', 'ragtime']);
-    expect(SOUND_GROUPS[3].entries.map(entry => entry.id).slice(0, 5))
-      .toEqual(['wonder', 'mystery', 'triumph', 'chase', 'haunted']);
-    expect(SOUND_GROUPS[4].entries.map(entry => entry.id)).toEqual(['focus', 'deep', 'gateway']);
+    expect(SOUND_GROUPS[3].entries.map(entry => entry.id)).toEqual(['focus', 'deep', 'gateway']);
+  });
+
+  it('offers no parked Feelings sound', () => {
+    for (const id of Object.keys(PARKED_SOUNDS)) expect(soundOf(id), id).toBeNull();
   });
 
   it('holds every soundscape exactly once, and names none that does not exist', () => {
     const soundscapes = idsOf('soundscape');
-    expect(soundscapes).toHaveLength(24);
+    expect(soundscapes).toHaveLength(13);
     expect(new Set(soundscapes).size).toBe(soundscapes.length);
     expect(new Set(soundscapes)).toEqual(new Set(Object.keys(SOUNDSCAPES)));
   });

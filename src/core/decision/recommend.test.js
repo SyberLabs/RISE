@@ -3,6 +3,7 @@ import releaseInventory from '../../content/archive/release-inventory.json';
 import modernManifest from '../../content/modern-readings-manifest.json';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
 import { JEV_AUDIO_IDS } from '../../core/jev-config.js';
+import { PARKED_SOUNDS } from '../../audio/sound-ids.js';
 import * as jevSequence from '../../core/jev-sequence.js';
 import { validateJevRecommendation } from '../../app/jev-reading.js';
 import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
@@ -96,7 +97,7 @@ function book(workId, extras = {}) {
 }
 
 const books = Object.keys(releaseInventory).map(workId => book(workId));
-const sounds = ['aurora', 'faded-signal', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary', 'piano', 'jazz']
+const sounds = ['aurora', 'faded-signal', 'soft-rain', 'starlight', 'lullaby', 'nocturne', 'waltz', 'blues', 'piano', 'jazz']
   .map(id => ({ sound_id: id, decision_criterion: `Choose for a ${id} reading mood.`, active: true }));
 const options = [
   ...['literary', 'display', 'thick', 'jp', 'mono'].map(id => ({ kind: 'chamberFace', id, description: 'Reviewed font.' })),
@@ -268,7 +269,7 @@ describe('Jev reading recommendation', () => {
     expect(result.config.fontSize).toBe('xlarge');
   });
 
-  it('accepts all 24 deployed sounds while offering Jev only a matching shortlist', async () => {
+  it('accepts all 13 deployed sounds while offering Jev only a matching shortlist', async () => {
     const fullCatalog = JEV_AUDIO_IDS.map(id => ({
       sound_id: id, decision_criterion: `Choose ${id} for fitting musical atmosphere.`, active: true
     }));
@@ -283,7 +284,7 @@ describe('Jev reading recommendation', () => {
     const response = await handleJevRecommend(request({ intent: 'Read with starlight sound.' }), env);
 
     expect(response.status).toBe(200);
-    expect(JEV_AUDIO_IDS).toHaveLength(24);
+    expect(JEV_AUDIO_IDS).toHaveLength(13);
     const payload = JSON.parse(provider.mock.calls[0][1].body);
     expect(Object.keys(payload.questions.audio.criteria)).toHaveLength(10);
     expect(payload.questions.audio.criteria).toHaveProperty('starlight');
@@ -324,7 +325,7 @@ describe('Jev reading recommendation', () => {
     expect(Object.keys(audio)[1]).toBe('piano');
   });
 
-  it('offers triumph for a triumphant ending and gives Jev phase-specific guidance', async () => {
+  it('offers starlight for a starlit ending and gives Jev phase-specific guidance', async () => {
     mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
       ? JEV_AUDIO_IDS.map(id => ({ sound_id: id,
         decision_criterion: `Choose a ${id} soundscape for this reading.`, active: true }))
@@ -335,17 +336,17 @@ describe('Jev reading recommendation', () => {
     }));
     vi.stubGlobal('fetch', provider);
 
-    const response = await handleJevRecommend(request({ intent: 'Let the ending feel triumphant.' }), env);
+    const response = await handleJevRecommend(request({ intent: 'Let the ending feel like starlight.' }), env);
 
     expect(response.status).toBe(200);
     const questions = JSON.parse(provider.mock.calls[0][1].body).questions;
-    expect(Object.keys(questions.finaleAudio.criteria)[1]).toBe('triumph');
-    expect(questions.finaleAudio.instructions).toMatch(/ending.*triumph/u);
+    expect(Object.keys(questions.finaleAudio.criteria)[1]).toBe('starlight');
+    expect(questions.finaleAudio.instructions).toMatch(/^Ending sound/u);
     expect(questions.middleAudio.instructions).toMatch(/middle/u);
     expect(questions.finaleTheme.instructions).toMatch(/ending color/u);
   });
 
-  it('keeps visuals off while scheduling a requested triumphant audio finale', async () => {
+  it('keeps visuals off while scheduling a requested starlight audio finale', async () => {
     mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
       ? JEV_AUDIO_IDS.map(id => ({ sound_id: id,
         decision_criterion: `Choose a ${id} soundscape for this reading.`, active: true }))
@@ -354,7 +355,7 @@ describe('Jev reading recommendation', () => {
       id: 'audio-only-finale', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
       answers: answers('literary-walden', {
         audio: { type: 'choice', choice: 'silent' },
-        finaleAudio: { type: 'choice', choice: 'silent' },
+        finaleAudio: { type: 'choice', choice: 'starlight' },
         visual: { type: 'choice', choice: 'off' },
         visualArc: { type: 'choice', choice: 'single' },
         projection: { type: 'choice', choice: 'page' }
@@ -362,24 +363,24 @@ describe('Jev reading recommendation', () => {
     })));
 
     const response = await handleJevRecommend(request({
-      intent: 'Start in silence, then make the ending triumphant with no visuals.'
+      intent: 'Start in silence, then make the ending starlight with no visuals.'
     }), env);
 
     expect(response.status).toBe(200);
     const decision = await response.json();
     expect(decision.config).toMatchObject({
-      audio: 'silent', finaleAudio: 'triumph', visualMode: 'off', visualArc: 'dual',
+      audio: 'silent', finaleAudio: 'starlight', visualMode: 'off', visualArc: 'dual',
       projection: 'stream',
       visualProgram: null,
       audioProgram: { segments: [
         { cue: { kind: 'silence' } },
-        { cue: { kind: 'soundscape', soundscapeId: 'triumph' } }
+        { cue: { kind: 'soundscape', soundscapeId: 'starlight' } }
       ] }
     });
     expect(() => validateJevRecommendation(decision)).not.toThrow();
   });
 
-  it('keeps a requested silent ending after a triumphant opening', async () => {
+  it('keeps a requested silent ending after a starlight opening', async () => {
     mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
       ? JEV_AUDIO_IDS.map(id => ({ sound_id: id,
         decision_criterion: `Choose a ${id} soundscape for this reading.`, active: true }))
@@ -387,23 +388,23 @@ describe('Jev reading recommendation', () => {
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({
       id: 'silent-finale', model: 'typesafe/jev-1.13', provider: 'TypeSafe',
       answers: answers('literary-walden', {
-        audio: { type: 'choice', choice: 'triumph' },
+        audio: { type: 'choice', choice: 'starlight' },
         finaleAudio: { type: 'choice', choice: 'silent' },
         visual: { type: 'choice', choice: 'off' }
       })
     })));
 
     const response = await handleJevRecommend(request({
-      intent: 'Start with a triumphant synth theme, then let the ending be silent with no visuals.'
+      intent: 'Start with a starlight synth theme, then let the ending be silent with no visuals.'
     }), env);
 
     expect(response.status).toBe(200);
     const { config } = await response.json();
     expect(config).toMatchObject({
-      audio: 'triumph', finaleAudio: 'silent', visualMode: 'off', visualArc: 'dual',
+      audio: 'starlight', finaleAudio: 'silent', visualMode: 'off', visualArc: 'dual',
       visualProgram: null,
       audioProgram: { segments: [
-        { cue: { kind: 'soundscape', soundscapeId: 'triumph' } },
+        { cue: { kind: 'soundscape', soundscapeId: 'starlight' } },
         { cue: { kind: 'silence' } }
       ] }
     });
@@ -594,15 +595,16 @@ describe('Jev reading recommendation', () => {
     expect(criteria[originalId]).toContain('AI');
   });
 
-  it.each(['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'])(
-    'serves a validated %s mood choice into the Chamber plan', async mood => {
-      vi.stubGlobal('fetch', vi.fn(async () => Response.json({
+  it.each(Object.keys(PARKED_SOUNDS))(
+    'neither offers nor accepts the parked %s sound', async mood => {
+      const provider = vi.fn(async () => Response.json({
         id: `mood-${mood}`, model: 'typesafe/jev-1.13', provider: 'TypeSafe',
         answers: answers('literary-walden', { audio: { type: 'choice', choice: mood } })
-      })));
+      }));
+      vi.stubGlobal('fetch', provider);
       const response = await handleJevRecommend(request({ intent: `A ${mood} reading.` }), env);
-      expect(response.status).toBe(200);
-      expect((await response.json()).config).toMatchObject({ audio: mood, soundscape: mood });
+      expect(JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria).not.toHaveProperty(mood);
+      expect(response.status).toBe(502);
     }
   );
 
@@ -629,16 +631,16 @@ describe('Jev reading recommendation', () => {
     expect(provider).not.toHaveBeenCalled();
   });
 
-  it('does not offer or accept a deactivated mood sound', async () => {
+  it('does not offer or accept a deactivated sound', async () => {
     mocks.query.mockImplementation(strings => Promise.resolve(strings.join('').includes('FROM rise_sounds')
-      ? sounds.filter(row => row.sound_id !== 'scary') : books));
+      ? sounds.filter(row => row.sound_id !== 'starlight') : books));
     const provider = vi.fn(async () => Response.json({
       model: 'typesafe/jev-1.13', provider: 'TypeSafe',
-      answers: answers('literary-walden', { audio: { type: 'choice', choice: 'scary' } })
+      answers: answers('literary-walden', { audio: { type: 'choice', choice: 'starlight' } })
     }));
     vi.stubGlobal('fetch', provider);
     const response = await handleJevRecommend(request(), env);
-    expect(JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria).not.toHaveProperty('scary');
+    expect(JSON.parse(provider.mock.calls[0][1].body).questions.audio.criteria).not.toHaveProperty('starlight');
     expect(response.status).toBe(502);
   });
 

@@ -1,6 +1,6 @@
 /**
  * The one list a reader chooses sound from (RDR-024): Silence, the
- * soundscapes in three groups, and the tones. Names come from the
+ * soundscapes in two groups, and the tones. Names come from the
  * definitions; sound-list.test.js holds the groups to SOUNDSCAPES and the
  * tone definitions, each id exactly once.
  */
@@ -18,8 +18,6 @@ export const SOUND_GROUPS = Object.freeze([
   group('silence', 'Silence', [entry('none', 'silence', TONES.find(tone => tone.value === 'silent').name)]),
   group('atmospheres', 'Atmospheres', soundscapes(['aurora', 'faded-signal', 'soft-rain', 'starlight', 'night-drive'])),
   group('music', 'Music', soundscapes(['piano', 'jazz', 'lullaby', 'nocturne', 'waltz', 'blues', 'bossa', 'ragtime'])),
-  group('feelings', 'Feelings', soundscapes(['wonder', 'mystery', 'triumph', 'chase', 'haunted',
-    'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'])),
   group('tones', 'Tones', TONES.filter(tone => tone.value !== 'silent')
     .map(tone => entry(tone.value, 'tone', tone.name)))
 ]);
