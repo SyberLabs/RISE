@@ -1,4 +1,5 @@
 .rise-account-panel {
+  margin: auto;
   width: min(520px, calc(100vw - 24px));
   max-height: calc(100dvh - 32px);
   padding: clamp(20px, 5vw, 32px);
