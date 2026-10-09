@@ -34,6 +34,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/563",
       "note": "Client server-authorized admin voice and sign-in link, with bounded fail-closed status lookup; required CI passed for reviewed head 44636423, production sign-in not yet witnessed.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/smoke.spec.js",
+      "note": "Documentation branch: local browser gate 46 passed, 3 existing skips; 72 tasks validated and generated legal sources matched. This does not exercise production Access configuration or payment credentials.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -48,10 +54,14 @@
     {
       "date": "2026-10-09T02:49:28.191Z",
       "summary": "Linked backend #566 and client #563 implementation evidence; production verification and human acceptance remain pending."
+    },
+    {
+      "date": "2026-10-09T02:52:09.351Z",
+      "summary": "Local browser gate passed 46 tests with 3 existing skips, legal-source and 72-task checks passed. Production acceptance remains pending."
     }
   ],
-  "updatedAt": "2026-10-09T02:49:28.191Z",
-  "revision": 3,
+  "updatedAt": "2026-10-09T02:52:09.351Z",
+  "revision": 4,
   "summary": "Add verified administrator access and a conservative invoice-derived subscriber voice budget; no claim of production success or acceptance yet.",
   "blocker": "Access organization/application configuration, production credentials and spend-policy values, merged implementation PRs and real sign-in/voice evidence remain to be verified."
 }
