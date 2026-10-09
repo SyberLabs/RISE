@@ -9,3 +9,5 @@ Backups use the version-one account service at `https://syberlabs.io/admin/api/v
 Deploy the central account producer before this consumer. Preview and localhost are intentionally excluded from production credentialed CORS. Tests simulate the protocol and use real IndexedDB for local restore; live cross-origin account validation belongs to the production deployment check.
 
 Restores also retain the account entrance’s captured identity generation. An observed account change permanently invalidates the old panel; validation checks again at the actual IndexedDB write boundary after asynchronous shelf reads, so an older detail response cannot replace the browser copy.
+
+Replacement validation and the account restore write share one IndexedDB readwrite transaction. A newer draft saved in another tab after the initial restore precheck is preserved unless replacement was explicitly chosen.

@@ -36,6 +36,10 @@ export async function restoreAccountWork(id, store, { replace = false, expectedU
     throw new AccountError('A different browser copy already exists. Select Replace browser copy to restore this backup.');
   }
   beforeWrite();
-  await store.save(record, { beforeWrite });
+  await store.save(record, { beforeWrite, validateExisting: latest => {
+    if (latest && JSON.stringify(workPayload(latest)) !== JSON.stringify(workPayload(record)) && !replace) {
+      throw new AccountError('A different browser copy already exists. Select Replace browser copy to restore this backup.');
+    }
+  } });
   return record;
 }

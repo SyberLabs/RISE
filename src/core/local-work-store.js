@@ -92,7 +92,7 @@ export class LocalWorkStore {
    * in it. It also means a rename mints a NEW id and leaves the old work
    * standing — which is correct, because a score may already point at it.
    */
-  async save(record, { beforeWrite = () => {} } = {}) {
+  async save(record, { beforeWrite = () => {}, validateExisting } = {}) {
     validateLocalWork(record);
     await this.init();
     const existing = await this.all();
@@ -110,6 +110,28 @@ export class LocalWorkStore {
         'Your own works fill the space available. Remove one to add another.',
         'LOCAL_WORK_SHELF_FULL'
       );
+    }
+
+    if (validateExisting) {
+      // Account restore must compare the latest browser copy and write while
+      // holding the same readwrite transaction, including across tabs.
+      await new Promise((resolve, reject) => {
+        const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+        const shelf = transaction.objectStore(STORE_NAME);
+        let failure;
+        transaction.oncomplete = () => resolve();
+        transaction.onabort = () => reject(failure || transaction.error || new LocalWorkError('The local works store refused the write.', 'LOCAL_WORK_WRITE'));
+        transaction.onerror = () => {}; // onabort reports the transaction failure.
+        const read = shelf.get(record.id);
+        read.onsuccess = () => {
+          try {
+            validateExisting(read.result ? this._served(read.result) : null);
+            beforeWrite();
+            shelf.put({ ...record, savedAt: new Date().toISOString() });
+          } catch (error) { failure = error; transaction.abort(); }
+        };
+      });
+      return record;
     }
 
     await this._run('readwrite', store => {

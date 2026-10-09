@@ -129,3 +129,24 @@ it('refuses stale restoration after detail or while the IndexedDB shelf is loadi
     expect((await store.get(original.id)).text).toBe(original.text);
   }
 });
+
+it('checks replacement and writes atomically against a draft saved by another tab after the precheck', async () => {
+  const remote = makeWork('The old account snapshot.');
+  const newDraft = makeWork('A newer draft from another browser tab.');
+  const otherTab = new LocalWorkStore();
+  const get = store.get.bind(store);
+  for (const initiallyMissing of [true, false]) {
+    await store.clear();
+    if (!initiallyMissing) await store.save(remote);
+    vi.spyOn(store, 'get').mockImplementationOnce(async id => {
+      const earlier = await get(id);
+      await otherTab.save(newDraft);
+      return earlier;
+    });
+    await expect(restoreAccountWork('x', store, { expectedUserId: 'u1', fetcher: async () => backup(remote) })).rejects.toThrow('different browser copy');
+    vi.restoreAllMocks();
+    expect((await store.get(newDraft.id)).text).toBe(newDraft.text);
+    await restoreAccountWork('x', store, { replace: true, expectedUserId: 'u1', fetcher: async () => backup(remote) });
+    expect((await store.get(remote.id)).text).toBe(remote.text);
+  }
+});
