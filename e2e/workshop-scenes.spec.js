@@ -32,28 +32,39 @@ for (const phone of PHONES) {
             await expect(page.locator('.scenes')).toBeVisible({ timeout: 30000 });
             await expect(page.locator('.workshop-studio')).toBeHidden();
             expect(await sideways(page)).toBeNull();
+            const account = page.locator('.rise-account-control');
+            await expect(account).toBeVisible();
 
             await page.getByRole('button', { name: 'Write the first scene' }).tap();
+            await expect(account).toBeHidden();
             await page.locator('[data-write-draft]').fill('Waste no more time arguing what a good man should be. Be one.');
             await page.getByRole('button', { name: 'Done' }).tap();
             await expect(page.locator('.scene-card')).toHaveCount(1);
+            await expect(account).toBeVisible();
 
             await page.locator('.scene-card-open').first().tap();
+            await expect(account).toBeHidden();
             await page.locator('.scene-view [data-sa="visual"]').tap();
             await expect(page.locator('.vstage')).toBeVisible();
+            await expect(account).toBeHidden();
             await page.locator('.vstage-tile[data-world="fractal"]').tap();
             await page.locator('[data-stage="choose"]').tap();
             await expect(page.locator('.vstage')).toBeHidden({ timeout: 5000 });
             await expect(page.locator('.scene-view .scene-lane').first()).toContainText('Fractal Flames');
             await page.locator('[data-sa="close-scene"]').tap();
+            await expect(account).toBeVisible();
 
             await page.locator('[data-sa="add"]').tap();
             await page.locator('.scene-sheet [data-sa="library"]').tap();
+            await expect(account).toBeHidden();
             await page.getByRole('searchbox', { name: 'Search the source library' }).fill('Middlemarch');
+            // Wait for the debounced search before entering its chapter list.
+            await expect(page.locator('.sb-item')).toHaveCount(1);
             await page.getByRole('button', { name: /Open chapters of Middlemarch/ }).tap();
             await expect.poll(() => page.locator('.sb-chapter-item').count()).toBeGreaterThan(1);
             await page.locator('.sb-chapter-add').first().tap();
             await expect(page.locator('.source-browser-overlay')).toBeHidden({ timeout: 10000 });
+            await expect(account).toBeVisible();
             await expect(page.locator('.scene-card')).toHaveCount(2);
             expect(await sideways(page)).toBeNull();
 
