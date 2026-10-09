@@ -1,0 +1,44 @@
+{
+  "id": "CC-001",
+  "title": "Measure ChatGPT's sandbox for the card",
+  "lane": "live-sdk",
+  "milestone": "Creative Control",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": "Claude coordinator",
+  "priority": "later",
+  "dependencies": [
+    "LIVE-009"
+  ],
+  "acceptance": [
+    "Measure ChatGPT's sandbox (worker-src blob, base-uri, updateModelContext) with the card as deployed; record in claude-mcp-apps-sandbox and a discussion doc."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-08-creative-control-design.md",
+      "note": "§15 row CC-001; the design's provider order puts CC-001 at the end (Claude first).",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
+      "note": "Revised 2026-10-09: Claude first, the critical path to the Composer release, and this task's place on it.",
+      "date": "2026-10-09"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T03:00:00.000Z",
+      "summary": "Proposed in the 2026-10-09 reconciliation of records and roadmap."
+    },
+    {
+      "date": "2026-10-09T03:47:19.774Z",
+      "summary": "Recorded the change #571 made by hand: dependency on LIVE-009 added, since the critical path puts the ChatGPT sandbox measurement after the Claude Composer release; still deferred to the end by the owner"
+    }
+  ],
+  "updatedAt": "2026-10-09T03:47:19.774Z",
+  "revision": 2,
+  "summary": "Deferred to the end by the owner (Claude first): generated scenes are promised for Claude alone until this measurement says what ChatGPT's sandbox allows.",
+  "blocker": null
+}

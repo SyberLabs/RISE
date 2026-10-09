@@ -1,0 +1,42 @@
+{
+  "id": "SND-001",
+  "title": "Sound in the card: a levelled catalogue, beds under the voice, a Sound control",
+  "lane": "live-sdk",
+  "milestone": "Sound",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": "Claude coordinator",
+  "priority": "next",
+  "dependencies": [],
+  "acceptance": [
+    "The remaining sound catalogue is levelled to a stated loudness band, measured through the real engine.",
+    "The card's Chamber plays beds and tones, ducked under the voice.",
+    "A Sound on/off control in the card's Settings.",
+    "The premium-educational guide teaches one quiet bed.",
+    "The voice trace notes the bed."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-09-feelings-sounds-parked.md",
+      "note": "The eleven Feelings sounds are parked (#558, #562); this task levels what remains.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
+      "note": "Revised 2026-10-09: Claude first, the critical path to the Composer release, and this task's place on it.",
+      "date": "2026-10-09"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T04:00:00.000Z",
+      "summary": "Proposed in the 2026-10-09 reconciliation of records and roadmap."
+    }
+  ],
+  "updatedAt": "2026-10-09T04:00:00.000Z",
+  "revision": 1,
+  "summary": "Proposed 2026-10-09: sound earns a place in the card once the catalogue is levelled and a bed sits under the voice.",
+  "blocker": null
+}

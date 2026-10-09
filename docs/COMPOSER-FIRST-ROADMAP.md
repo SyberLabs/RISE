@@ -6,11 +6,15 @@ Status: product direction approved; delivery roadmap. Milestones below are propo
 
 Updated 2026-10-04: [Composer is the decided approach](product/discussions/2026-10-04-composer-decision.md). Composer is a one-shot sequence creator and RISE presentation within ChatGPT. Dive (follow-up questions and model-authored Dive notes) and realtime Live are out of current scope; M3 and the Live research track are removed below.
 
+Revised 2026-10-09: the product line is Reader, Composer and Live; Claude is the first and current host, and ChatGPT comes last; Creative Control, voice hardening and the playback instrument shipped; the Feelings sounds are parked. The milestones below keep their 2026-10-03 text with dated amendments. [Revised 2026-10-09](#revised-2026-10-09-where-the-composer-edition-stands) states the current position, and [Immediate execution order](#immediate-execution-order) the critical path from here.
+
 ## Product promise and scope
 
 **Turn an answer into a coherent audiovisual experience, composed in one shot and presented by RISE under the reader's control.**
 
 The first edition serves one job: a short guided explanation. The model composes an admitted score before playback. RISE performs it with immediate reader controls. A reader can begin, interrupt, resume, stop and adjust the visual without losing their place; asking the model a follow-up inside the presentation is out of scope. The first supported provider host is ChatGPT; the same score and playback path must remain usable locally.
+
+*Amended 2026-10-09:* the first supported host is Claude. The owner, 2026-10-08: "We will focus on Claude first as the Provider … only at the end … integrating onto GPT." ChatGPT follows the Composer release in Claude: first the sandbox measurement (CC-001), then the minimal-transport ChatGPT edition.
 
 This roadmap changes the release sequence of the October Live roadmap. Composition is a product mode with its own character, not a temporary imitation of Live. The ChatGPT host session of 2026-10-04 showed that a model's later tool calls do not reach an open widget, so model-driven mutation during an utterance is deferred rather than researched in parallel.
 
@@ -27,6 +31,8 @@ This is a milestone and ownership roadmap. Each engineering work package needs a
 | Small, governed instrument set | Models need choices they can use correctly; readers need comprehensible, accessible output. |
 
 Remove realtime mutation and Dive from the current scope. Defer broad renderer expansion, a new event protocol, scenes, generated renderer execution, public SDK commitments and additional hosts. Preserve existing admission, reader-owned AI and applicable release requirements. Existing canonical-source publication gates in [the earlier release ledger](RELEASE-ROADMAP-2026-08-20.md) remain in force for those reading experiences; this explanation edition does not certify them.
+
+*Amended 2026-10-09:* the deferral of scenes and generated renderer execution is superseded. The owner approved the [Creative Control design](superpowers/specs/2026-10-08-creative-control-design.md) on 2026-10-08, and it shipped as CC-002 to CC-008: beats, typography and maths, native engine manifests and cues, generated scenes in a sandboxed worker, their admission, styles and `rise_guide`, and the provisional RiseSDK renderer contract. Realtime mutation, Dive and additional hosts stay out of the Composer edition.
 
 ## Starting position
 
@@ -78,6 +84,8 @@ Owners: score/playback agent, host/admission agent, experience-design agent. Dep
 
 **Exit:** an end-to-end experience whose purpose is apparent on the first use, with exact-head audible and visual host acceptance recorded. Text remains usable when speech is unavailable, with an explicit visible state.
 
+*Amended 2026-10-09:* the code is deployed (LIVE-001 to LIVE-003 done; LIVE-004 deployed, in review). Acceptance moves to Claude: the owner's explicit witness decision on LIVE-004, after the first-chat card defect (LIVE-016).
+
 **Parallel:** core parity and Worker admission can be implemented separately after the contract is fixed. Instrument writing and fixtures can proceed alongside them. Changes to shared manifests/compilers stay with the score owner.
 
 ### M2 — make the experience reader-controlled
@@ -91,6 +99,8 @@ Owners: reader-experience agent and score/playback owner. Dependencies: M1 playa
 - [ ] Save/export the admitted explanation through existing interchange/Vault machinery and verify replay semantics.
 
 **Exit:** the reader can complete, interrupt, resume and revisit an explanation without losing orientation. Reader changes survive replay when promised; transient preferences are identified accurately.
+
+*Amended 2026-10-09:* M2 is built in the card and deployed (LIVE-005), and the card gained a full transport: seek, replay, pace and full screen with the voice moving first (PLY-001: #549, #551, #553). Both are in review for the owner's witness in Claude.
 
 **Parallel:** UI accessibility work can use a fixed score fixture while core persistence is implemented. Shared runtime or Player edits must be serialized under their owner.
 
@@ -106,6 +116,8 @@ Owner: coordinator with human participants. Dependencies: M1 for initial observa
 **Exit:** a specific reader benefit and a usable flow, supported by observations. If there is no clear benefit, revise composition and interaction before adding transport or renderer complexity.
 
 **Parallel:** prepare the release evidence plan. Follow-up machinery is out of scope.
+
+*Amended 2026-10-09:* not started. The reader-session protocol for LIVE-006 is still to be written; the sessions run in Claude.
 
 ### M3 — removed
 
@@ -123,9 +135,45 @@ Owner: coordinator. Dependencies: M0–M2, V1, and applicable security/distribut
 
 **Exit:** a small reliable edition with a clear promise, known supported environments and an exact-release evidence record. Unproven Live claims must not appear in release copy.
 
+*Amended 2026-10-09:* M4 releases the Composer edition in Claude (LIVE-009). The ChatGPT edition follows it: CC-001 measures ChatGPT's sandbox, then the minimal transport ships there.
+
 ## Live in ChatGPT: decided
 
 The decoupled host probe ran once, within its two-session budget, on 2026-10-04. Reader changes applied in one persistent widget; admitted model changes did not reach it without a manual read; Voice interleaving was not shown. ChatGPT is a Composer host, #372 is closed, and no ChatGPT-specific Live plumbing is planned. A future Live needs a host RISE owns and a concrete reader benefit to test; see the [decision](product/discussions/2026-10-04-composer-decision.md).
+
+*Amended 2026-10-09:* that future Live is named (see below): RISE LIVE, the third product, after the Composer release gate.
+
+## Revised 2026-10-09: where the Composer edition stands
+
+### The product line
+
+Three products, in this order:
+
+1. **Reader:** RISE's own site, reading canonical texts.
+2. **Composer:** a host model composes one sealed Current, the Worker admits it, and RISE presents it under the reader's control. This roadmap.
+3. **Live:** "RISE LIVE", named by the owner on 2026-10-08 as the third product. RISE controls the whole environment through coordinated voice streaming and realtime response, so that the host does not own the venue; it may host interactive scenes more naturally. Its first design question is the one-clock rule ([VISION §2.7](VISION.md)). Not scheduled before the Composer release gate (LIVE-017).
+
+### Host order
+
+Claude is the first and current host. ChatGPT comes last: the sandbox measurement (CC-001), then the minimal-transport ChatGPT edition. The owner, 2026-10-08: "We will focus on Claude first as the Provider … only at the end … integrating onto GPT."
+
+### What shipped since 2026-10-04
+
+Every item below is merged and in the live release (rise.syberlabs.io/release.txt read `3b43a3be` on 2026-10-09). Shipped is not accepted: the human gates stay open on each task.
+
+- **Creative Control** (CC-002 to CC-008, #517 to #523; [design](superpowers/specs/2026-10-08-creative-control-design.md)): beats (`rise.current.v2`), typography, placement and maths, native engine manifests and cues, generated scenes in a sandboxed worker on an OffscreenCanvas with budgets and a kill switch, their admission and diagnostics, styles and `rise_guide`, and the provisional [RiseSDK contract](specs/RISE-SDK.md).
+- **The look on the Current** (SCR-002 #504, SCR-003 #506). The stage 1b fields (collection and sourced stills, pace) and the curator-context resource are not built.
+- **Voice hardening** (SPK-004): #515, then voice hardening 2, #535.
+- **The playback instrument** (PLY-001): seek, replay, pace and full screen with the voice moving first, #549, #551, #553.
+- **The Feelings sounds parked** (#558, #562): the eleven are removed from every list, look, Current and guide until they are reworked ([record](product/discussions/2026-10-09-feelings-sounds-parked.md)).
+
+### What the owner observed
+
+In Claude on the deployed build, 2026-10-09, after #535 and the playback instrument: "Beautiful!! Much more robust and working well on the voice side. Card behavior still needs further testing from brand new sessions." and "very good. seems to be working wonderfully! Fullscreen esp is a step up." These are observations, not acceptance. LIVE-004, LIVE-005 and PLY-001 stay in review until the owner gives an explicit witness decision. The card's first-chat-of-the-day failure (the card does not appear until a reload on the first new RISE chat of the day) is open as LIVE-016.
+
+### Plus
+
+A Plus lane is being built by sdcarlson outside this roadmap: Stripe purchase, Plus voices and canon recitation. Merged so far: #541, #542, #552, #555, #556, #561, #563, #566. SPK-005 records the administrator and paid voice budget. How Plus relates to the Composer edition is the owner's decision.
 
 ## Dependency map
 
@@ -176,10 +224,17 @@ These are evidence-triggered options, not an automatic platform backlog.
 
 ## Immediate execution order
 
-1. Coordinator refreshes and reconciles the repair foundation; writes the shared Composer contract.
-2. Prepare three explanation fixtures and the reader-session protocol in parallel.
-3. Dispatch score/playback and host/admission implementation from the reviewed foundation; the experience lane prepares and then consumes their contract.
-4. Integrate M1, observe readers, complete M2 and adjust from the findings.
-5. Verify the exact release and deliver M4.
+Revised 2026-10-09. The critical path to the Composer release, in order:
+
+1. **LIVE-016:** the card on the first chat of the day. Reproduce it with the owner in a brand-new chat, name the root cause, then fix it or report it to the host with the trace.
+2. **The owner's witness decision** in Claude on LIVE-004, LIVE-005 and PLY-001.
+3. **LIVE-006:** initial formative reader observations. The session protocol is still to be written.
+4. **LIVE-007:** evaluate the complete control flow.
+5. **LIVE-009:** release the Composer edition in Claude.
+6. **CC-001, then the ChatGPT edition:** measure ChatGPT's sandbox, then ship the minimal transport there.
+
+In parallel, off the critical path: SND-001 (sound in the card), CC-009 (SVG figures), and the Reader lane (RDR-019, RDR-007, RDR-008, RDR-009). LIVE-017 (the RISE LIVE design) waits for the release gate.
+
+The order of 2026-10-03 was: reconcile the foundation and write the contract; prepare fixtures and the session protocol; dispatch score/playback and host/admission; integrate M1, observe readers and complete M2; verify and deliver M4. Its steps 1 to 3 and the M1 and M2 code are done. The session protocol and everything after it are what the order above carries.
 
 Planning checks: every included capability serves the reader job or reproducible delivery; speculative realtime/platform layers were removed from the release path; one semantic center and clear file ownership remain. This document has been checked for dependency consistency. Product quality, host behavior and release readiness still require the execution and witnessed evidence above.

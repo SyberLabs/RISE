@@ -349,6 +349,9 @@ const shipAngle = page => page.evaluate(() => Number(document.querySelector('.wo
 const arcBetween = (from, to) => { let d = (to - from) % (2 * Math.PI); if (d > Math.PI) d -= 2 * Math.PI; if (d <= -Math.PI) d += 2 * Math.PI; return d; };
 
 test('the ship waits at the bottom of the ring, and follows the pointer round the gate', async ({ page }) => {
+  // Chromium can replay its remembered hover during navigation. Keep the
+  // pointer outside the page until the no-input idle assertion has passed.
+  await page.mouse.move(-100, -100);
   await openWormhole(page);
   await needsWebGL(page);
   await expect.poll(() => shipAngle(page)).toBeCloseTo(-Math.PI / 2, 1);
@@ -392,7 +395,9 @@ test('pointing at the gate itself does not send the ship anywhere', async ({ pag
   await needsWebGL(page);
   const { x, y, radius } = await gate(page);
   await page.mouse.move(x, y - radius, { steps: 4 });
-  await expect.poll(async () => Math.abs(arcBetween(await shipAngle(page), Math.PI / 2))).toBeLessThan(0.08);
+  // Measure the held bearing after the previous turn has settled, rather
+  // than while it is still closing the last 0.08 radians on its target.
+  await expect.poll(async () => Math.abs(arcBetween(await shipAngle(page), Math.PI / 2))).toBeLessThan(0.01);
   const held = await shipAngle(page);
   // Crossing the gate's own centre has no bearing, so the ship keeps its last one.
   await page.mouse.move(x + 1, y - 1, { steps: 4 });

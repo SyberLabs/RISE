@@ -1,0 +1,40 @@
+{
+  "id": "LIVE-017",
+  "title": "RISE LIVE design: the one-clock decision",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": "Claude coordinator",
+  "priority": "later",
+  "dependencies": [
+    "LIVE-009"
+  ],
+  "acceptance": [
+    "A design document answering VISION §2.7 (a provider's voice as a second clock discipline, without loosening the first) before any adapter work."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/VISION.md",
+      "note": "§2.7 Voice mode: the one-clock rule this design must answer.",
+      "date": "2026-10-01"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
+      "note": "Revised 2026-10-09: Claude first, the critical path to the Composer release, and this task's place on it.",
+      "date": "2026-10-09"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T04:00:00.000Z",
+      "summary": "Proposed in the 2026-10-09 reconciliation of records and roadmap."
+    }
+  ],
+  "updatedAt": "2026-10-09T04:00:00.000Z",
+  "revision": 1,
+  "summary": "RISE LIVE, the third product of the line (owner, 2026-10-08): RISE controls the whole environment through coordinated voice streaming and realtime response. Not scheduled before the Composer release gate (LIVE-009).",
+  "blocker": null
+}

@@ -1,0 +1,40 @@
+{
+  "id": "LIVE-016",
+  "title": "Card on the first chat of the day",
+  "lane": "live-sdk",
+  "milestone": "M1 acceptance",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Reproduced with the owner in a brand-new chat with the permission prompt.",
+    "Root cause named with evidence.",
+    "Fixed, or reported to the host with the trace."
+  ],
+  "evidence": [
+    {
+      "kind": "observation",
+      "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
+      "note": "Owner, 2026-10-09: \"Beautiful!! Much more robust and working well on the voice side. Card behavior still needs further testing from brand new sessions.\" The card does not appear until reload on the first new RISE chat of the day.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
+      "note": "Revised 2026-10-09: Claude first, the critical path to the Composer release, and this task's place on it.",
+      "date": "2026-10-09"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T04:00:00.000Z",
+      "summary": "Proposed in the 2026-10-09 reconciliation of records and roadmap."
+    }
+  ],
+  "updatedAt": "2026-10-09T04:00:00.000Z",
+  "revision": 1,
+  "summary": "The card's first-chat-of-the-day failure in Claude, a host-boundary defect; first on the critical path to the Composer release. LIVE-010 to LIVE-015 were used as labels of merged pull requests (#507, #510 to #514) without task records, so this record takes LIVE-016.",
+  "blocker": null
+}

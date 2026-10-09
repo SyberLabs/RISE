@@ -4,7 +4,7 @@
   "lane": "reader",
   "milestone": "Reader acceptance",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Codex public-site audit",
   "priority": "now",
   "dependencies": [],
@@ -30,6 +30,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/557",
       "note": "Scoped document asset publication; required CI and live release verification pending.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/c480b25d",
+      "note": "PR #557 merged as c480b25d (main CI run 37870400782 succeeded); live release 3b43a3be contains it. On 2026-10-09 /LICENSE, /NOTICE, /ASSET-LICENSES.md and /PRIVACY.md on rise.syberlabs.io returned text/plain whose SHA-256 matched the repository source at 3b43a3be. Machine check by the reconciling agent, not the owner's acceptance.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -44,10 +50,18 @@
     {
       "date": "2026-10-09T01:28:06.621Z",
       "summary": "Opened protected PR #557 after independent Ship review and local build/artifact checks."
+    },
+    {
+      "date": "2026-10-09T03:34:38.522Z",
+      "summary": "Linked the merge of #557 (c480b25d) and a live byte check of the four routes; delivery deployed; status and owner left to the task owner"
+    },
+    {
+      "date": "2026-10-09T03:47:20.261Z",
+      "summary": "Recorded the change #571 made by hand and finished it: the summary narrowed to the open acceptance work, since the merge and the live byte check are done"
     }
   ],
-  "updatedAt": "2026-10-09T01:28:06.621Z",
-  "revision": 3,
-  "summary": "Four unchanged source documents are published as text assets. Local release hygiene, build, byte-for-byte dist checks and roadmap tests pass; protected PR and production verification pending. Two pre-existing stale generated HTML pages are excluded from this scoped fix.",
+  "updatedAt": "2026-10-09T03:47:20.261Z",
+  "revision": 5,
+  "summary": "Four unchanged source documents are published as text assets; #557 merged (c480b25d) and a live byte check of the four routes matched the source. Open: the task owner's acceptance of both criteria, including that the required release check rejects missing or stale published copies. Two pre-existing stale generated HTML pages remain excluded from this scoped fix.",
   "blocker": null
 }
