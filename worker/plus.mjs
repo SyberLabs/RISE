@@ -9,7 +9,8 @@
  *   POST /api/plus/voice   { atoms }        voices one short reading on the lab's key (contract below)
  *   POST /api/plus/forget                   clears the cookie in this browser
  *   GET  /api/plus/voices                   the voices a reader may choose: [{ slug, label }], never a vendor id; no cookie needed
- *   GET  /api/plus/config                   { paymentLink }: PLUS_PAYMENT_LINK when it is an https://buy.stripe.com/ link, else null
+ *   GET  /api/plus/config                   { paymentLink }: PLUS_PAYMENT_LINK when it is an https://buy.stripe.com/ link of the
+ *                                           same Stripe mode as STRIPE_SECRET_KEY (a test_ link only with a test key), else null
  *   POST /api/plus/stripe-webhook           Stripe's events (below); signed by Stripe, so it is exempt from the Origin rule
  *
  * Every other POST must carry `Origin` equal to the request's own origin (403 FORBIDDEN_ORIGIN);
@@ -40,7 +41,9 @@
  *         the cookie is cleared), 402 PLUS_LAPSED (cookie past its period and grace),
  *     402 PLUS_ALLOWANCE (this period's characters are used up), 429 RATE_LIMITED (per address,
  *         and per subscription; also when the rate limiter itself fails: the voice fails closed),
- *     503 PLUS_UNAVAILABLE (names the missing secret, var or binding),
+ *     429 PLUS_DAILY_LIMIT (this subscription voiced PLUS_SUB_DAILY_CHAR_CAP characters this UTC day),
+ *     503 PLUS_UNAVAILABLE (names the missing secret, var or binding; under PLUS_REQUIRE_LIVE a
+ *         generic message, the detail going to the Worker's log, names only, never values),
  *     503 PLUS_DAILY_CAP (every subscriber together reached today's character cap),
  *     502 UPSTREAM (Stripe or the vendor could not answer), 502 VOICE_REFUSED (the
  *         performance did not match the text; the vendor billed it, so it stays metered).
@@ -78,6 +81,10 @@
  * Stripe's v1 scheme: HMAC-SHA256 of "<t>.<raw body>", within WEBHOOK_TOLERANCE_S of now.
  * Each event is applied once (by event id). A charge is traced to its subscription through
  * Stripe (invoice payments of its PaymentIntent); a Stripe error answers 500 so Stripe retries.
+ * A full refund or a dispute also cancels the Plus subscription in Stripe at once (DELETE
+ * /v1/subscriptions/{id}), so the reader is not billed again for a voice that will never
+ * come back; one already cancelled, gone, or not carrying PLUS_PRICE_ID is left alone. The
+ * cancel is tried on every delivery, a redelivery included, so a failed one (500) is retried.
  * Unset, the webhook answers 503 and every other route works as before.
  *
  * Secrets: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, PLUS_COOKIE_SECRET (and PLUS_COOKIE_SECRET_PREVIOUS while
@@ -89,6 +96,15 @@
  * Payment Link the Subscribe button opens; test and live differ). Bindings: PLUS_METER, the
  * PlusMeter Durable Object namespace; PLUS_CLAIM_LIMITER, the strict per-address limit on
  * claims (each costs a Stripe call; unbound, every claim is refused); DECISION_LIMITER.
+ * PLUS_SUB_DAILY_CHAR_CAP (vars, default SUB_DAILY_CHAR_CAP): the characters one subscription
+ * may voice per UTC day, under its period allowance, so a stolen card cannot drain the
+ * allowance in the hours before its chargeback.
+ *
+ * PLUS_REQUIRE_LIVE (vars, "true" in production only): the deployment takes real money, so
+ * claim and voice answer 503 PLUS_UNAVAILABLE, and config serves no payment link, unless
+ * STRIPE_SECRET_KEY is a live key (sk_live_/rk_live_), PLUS_PAYMENT_LINK is a live link (no
+ * test_), and STRIPE_WEBHOOK_SECRET is set. Production once served a test-mode link with a
+ * test key, and Stripe's public test card then bought real ElevenLabs characters.
  */
 import { mapAlignment } from '../src/audio/poem-alignment.js';
 import { VOICE_PACK_SCHEMA, voiceAssetKey } from '../src/audio/voice-pack-key.js';
@@ -120,6 +136,8 @@ export const STRIPE_VERSION = '2025-03-31.basil';
 const ELEVENLABS = 'https://api.elevenlabs.io';
 /** Characters a subscriber may have voiced per billing period (RFC 0001 revision 5; about half of $8.99 at Flash pricing). */
 export const VOICE_ALLOWANCE = 105_000;
+/** Characters one subscription may voice per UTC day when PLUS_SUB_DAILY_CHAR_CAP is unset. */
+export const SUB_DAILY_CHAR_CAP = 25_000;
 /** One voicing is one vendor request: a Current, not a chapter. */
 const VOICE_MAX_CHARS = 10_000;
 const VOICE_MAX_ATOMS = 400;
@@ -136,10 +154,47 @@ export function isPlusRoute(path) {
   return ROUTES.has(path);
 }
 
-/** PLUS_PAYMENT_LINK when it is a Stripe Payment Link, else null (and the client hides Subscribe). */
+/**
+ * PLUS_PAYMENT_LINK when it is a Stripe Payment Link of the key's own mode (a test_ link
+ * with a test key, any other with a live key) and the deployment is ready to take money,
+ * else null (and the client hides Subscribe).
+ */
 function paymentLink(env) {
   const link = env.PLUS_PAYMENT_LINK;
-  return typeof link === 'string' && /^https:\/\/buy\.stripe\.com\/[A-Za-z0-9_]+$/u.test(link) ? link : null;
+  if (typeof link !== 'string' || !PAYMENT_LINK.test(link)) return null;
+  if (isTestLink(link) === livemode(env) || notLive(env)) return null;
+  return link;
+}
+
+/** A Stripe Payment Link, nothing before or after it. */
+const PAYMENT_LINK = /^https:\/\/buy\.stripe\.com\/[A-Za-z0-9_]+$/u;
+const isTestLink = link => link.startsWith('https://buy.stripe.com/test_');
+const requireLive = env => env.PLUS_REQUIRE_LIVE === 'true';
+
+/**
+ * Under PLUS_REQUIRE_LIVE, what keeps this deployment from taking real money, by name
+ * (never a value); null when nothing does, or when the deployment does not require live.
+ */
+function notLive(env) {
+  if (!requireLive(env)) return null;
+  const link = env.PLUS_PAYMENT_LINK;
+  const problems = [
+    !livemode(env) && 'STRIPE_SECRET_KEY is not a live key',
+    (typeof link !== 'string' || !PAYMENT_LINK.test(link) || isTestLink(link)) && 'PLUS_PAYMENT_LINK is not a live Payment Link',
+    !env.STRIPE_WEBHOOK_SECRET && 'STRIPE_WEBHOOK_SECRET is not set'
+  ].filter(Boolean);
+  return problems.length ? problems.join('; ') : null;
+}
+
+/**
+ * 503 PLUS_UNAVAILABLE. Under PLUS_REQUIRE_LIVE the body is generic and the detail (names
+ * of what is unset, never a value) goes to the Worker's log: a public answer must not map
+ * production's configuration. Elsewhere the detail is the message, for whoever sets it up.
+ */
+function unavailable(env, detail) {
+  if (!requireLive(env)) return refuse(503, 'PLUS_UNAVAILABLE', detail);
+  console.error(`Plus unavailable: ${detail}`);
+  return refuse(503, 'PLUS_UNAVAILABLE', 'Plus is not available right now.');
 }
 
 /**
@@ -239,8 +294,9 @@ async function setCookie(claim, env, now) {
 
 const CLEAR_COOKIE = `${COOKIE}=; Max-Age=0; ${ATTRIBUTES}`;
 
-async function stripe(path, env) {
+async function stripe(path, env, method = 'GET') {
   const response = await fetch(`${STRIPE}${path}`, {
+    method,
     headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, 'Stripe-Version': STRIPE_VERSION }
   });
   if (!response.ok) throw Object.assign(new Error(`Stripe answered ${response.status}`), { status: response.status });
@@ -335,7 +391,7 @@ async function readBytes(request, max) {
 
 async function claim(request, env, now) {
   // Each claim costs a Stripe call and needs no cookie, so it has its own, stricter limit, and none bound is no claim.
-  if (!env.PLUS_CLAIM_LIMITER) return refuse(503, 'PLUS_UNAVAILABLE', 'Plus is not switched on in this deployment (PLUS_CLAIM_LIMITER is not bound).');
+  if (!env.PLUS_CLAIM_LIMITER) return unavailable(env, 'Plus is not switched on in this deployment (PLUS_CLAIM_LIMITER is not bound).');
   if (await limited(request, env.PLUS_CLAIM_LIMITER, 'plus-claim')) return refuse(429, 'RATE_LIMITED', 'Too many requests were sent. Try again in a minute.');
   const { refusal, body } = await readJson(request);
   if (refusal) return refusal;
@@ -343,7 +399,7 @@ async function claim(request, env, now) {
   if (typeof sessionId !== 'string' || !/^cs_[A-Za-z0-9_]+$/u.test(sessionId)) {
     return refuse(400, 'BAD_REQUEST', 'A Checkout session id is needed.');
   }
-  if (!env.PLUS_PRICE_ID) return refuse(503, 'PLUS_UNAVAILABLE', 'Plus is not switched on in this deployment (PLUS_PRICE_ID is not set).');
+  if (!env.PLUS_PRICE_ID) return unavailable(env, 'Plus is not switched on in this deployment (PLUS_PRICE_ID is not set).');
   let session;
   try {
     session = await stripe(`/v1/checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=subscription`, env);
@@ -359,6 +415,8 @@ const sha256 = async text => [...new Uint8Array(await crypto.subtle.digest('SHA-
 
 /** PLUS_DAILY_CHAR_CAP as a positive whole number, else null (and the voice is off). */
 const dailyCap = env => (/^\d+$/u.test(String(env.PLUS_DAILY_CHAR_CAP ?? '')) && Number(env.PLUS_DAILY_CHAR_CAP) > 0 ? Number(env.PLUS_DAILY_CHAR_CAP) : null);
+/** PLUS_SUB_DAILY_CHAR_CAP as a positive whole number, else SUB_DAILY_CHAR_CAP: a cap always stands. */
+const subDailyCap = env => (/^\d+$/u.test(String(env.PLUS_SUB_DAILY_CHAR_CAP ?? '')) && Number(env.PLUS_SUB_DAILY_CHAR_CAP) > 0 ? Number(env.PLUS_SUB_DAILY_CHAR_CAP) : SUB_DAILY_CHAR_CAP);
 
 /** One meter: a Durable Object instance by name. */
 async function meter(env, name, op, body) {
@@ -375,10 +433,10 @@ async function meter(env, name, op, body) {
  */
 async function voice(request, env, now) {
   const allowed = voices(env);
-  const missing = ['ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_PRICE_ID', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER']
+  const missing = ['ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_PRICE_ID', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', ...(requireLive(env) ? ['STRIPE_WEBHOOK_SECRET'] : [])]
     .filter(name => (name === 'PLUS_DAILY_CHAR_CAP' ? dailyCap(env) === null : name === 'PLUS_VOICES' ? !allowed : !env[name]));
   if (missing.length) {
-    return refuse(503, 'PLUS_UNAVAILABLE', `The Plus voice is not switched on in this deployment (${missing.join(', ')} not set).`);
+    return unavailable(env, `The Plus voice is not switched on in this deployment (${missing.join(', ')} not set).`);
   }
   const current = await verify(cookieValue(request), env, now);
   if (!current) return refuse(402, 'PLUS_REQUIRED', 'A Plus subscription is needed for this voice.', { 'Set-Cookie': CLEAR_COOKIE });
@@ -426,11 +484,12 @@ async function voice(request, env, now) {
   }
   if (!standing || standing.s !== current.s) return lapsed();
 
-  const own = { period: standing.start, n, limit: VOICE_ALLOWANCE };
   const day = new Date(now * 1000).toISOString().slice(0, 10);
+  const own = { period: standing.start, n, limit: VOICE_ALLOWANCE, day, dayLimit: subDailyCap(env) };
   const all = { period: day, n, limit: dailyCap(env) };
   const reserved = await meter(env, sub, 'reserve', own);
   if (reserved.revoked) return lapsed();
+  if (reserved.dayFull) return refuse(429, 'PLUS_DAILY_LIMIT', `Today's voice limit for this subscription is reached (${subDailyCap(env).toLocaleString('en')} characters). It resets at midnight UTC.`);
   if (!reserved.ok) return spent();
   if (!(await meter(env, 'global', 'reserve', all)).ok) {
     await meter(env, sub, 'release', own);
@@ -546,7 +605,7 @@ async function subscriptionsPaidBy(object, env) {
  */
 async function webhook(request, env) {
   if (!env.STRIPE_WEBHOOK_SECRET || !env.STRIPE_SECRET_KEY || !env.PLUS_METER) {
-    return refuse(503, 'PLUS_UNAVAILABLE', 'The Stripe webhook is not switched on in this deployment (STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY or PLUS_METER is not set).');
+    return unavailable(env, 'The Stripe webhook is not switched on in this deployment (STRIPE_WEBHOOK_SECRET, STRIPE_SECRET_KEY or PLUS_METER is not set).');
   }
   const { refusal, bytes } = await readBytes(request, MAX_WEBHOOK_BYTES);
   if (refusal) return refusal;
@@ -587,7 +646,30 @@ async function webhook(request, env) {
     await meter(env, `sub:${s}`, 'event', { id: event.id, created: event.created, ...change });
     applied.push(s);
   }
+  // Money taken back ends the subscription in Stripe too: the meter's revocation is final,
+  // so billing on would charge the reader for a voice that never returns.
+  if (change?.kind === 'refund' || change?.kind === 'dispute') {
+    try {
+      for (const s of applied) await cancelPlus(s, env);
+    } catch {
+      return refuse(500, 'UPSTREAM', 'Stripe could not cancel the subscription; Stripe will send the event again.');
+    }
+  }
   return reply(200, { received: true, applied });
+}
+
+/** Cancels a Plus subscription at once. One that is already cancelled, gone, or not Plus is left alone; any other Stripe error throws. */
+async function cancelPlus(id, env) {
+  const path = `/v1/subscriptions/${encodeURIComponent(id)}`;
+  let subscription;
+  try {
+    subscription = await stripe(path, env);
+  } catch (error) {
+    if (error?.status === 404) return;
+    throw error;
+  }
+  if (subscription?.status === 'canceled' || !env.PLUS_PRICE_ID || !itemsOf(subscription).some(item => priceIdOf(item) === env.PLUS_PRICE_ID)) return;
+  await stripe(path, env, 'DELETE');
 }
 
 export async function handlePlus(request, env) {
@@ -595,7 +677,7 @@ export async function handlePlus(request, env) {
   if (path === '/api/plus/voices') {
     if (request.method !== 'GET') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
     const allowed = voices(env);
-    if (!allowed) return refuse(503, 'PLUS_UNAVAILABLE', 'The Plus voices are not set in this deployment (PLUS_VOICES).');
+    if (!allowed) return unavailable(env, 'The Plus voices are not set in this deployment (PLUS_VOICES).');
     return reply(200, [...allowed].map(([slug, { label }]) => ({ slug, label })));
   }
   if (path === '/api/plus/config') {
@@ -610,8 +692,10 @@ export async function handlePlus(request, env) {
   }
   if (path === '/api/plus/forget') return reply(204, null, { 'Set-Cookie': CLEAR_COOKIE });
   if (!env.STRIPE_SECRET_KEY || !env.PLUS_COOKIE_SECRET) {
-    return refuse(503, 'PLUS_UNAVAILABLE', 'Plus is not switched on in this deployment (STRIPE_SECRET_KEY or PLUS_COOKIE_SECRET is not set).');
+    return unavailable(env, 'Plus is not switched on in this deployment (STRIPE_SECRET_KEY or PLUS_COOKIE_SECRET is not set).');
   }
+  const blocked = notLive(env);
+  if (blocked) return unavailable(env, `Plus requires live Stripe here (PLUS_REQUIRE_LIVE): ${blocked}.`);
   const now = Math.floor(Date.now() / 1000);
   if (path === '/api/plus/claim') return claim(request, env, now);
   return voice(request, env, now);
@@ -625,8 +709,9 @@ export async function handlePlus(request, env) {
  * (wrangler `new_sqlite_classes`), the only kind the Workers Free plan offers; the
  * synchronous `ctx.storage.kv` is that backend's key-value API.
  *
- *   POST /reserve { period, n, limit }  -> { ok, used[, revoked] }  adds n unless used + n would pass limit, or the subscription is revoked
- *   POST /release { period, n }         -> { ok, used }  gives n back (a vendor refusal before billing)
+ *   POST /reserve { period, n, limit[, day, dayLimit] }  -> { ok, used[, revoked | dayFull] }  adds n unless used + n would
+ *        pass limit, or (with `day`, a UTC date) the day's count + n would pass dayLimit, or the subscription is revoked
+ *   POST /release { period, n[, day] }  -> { ok, used }  gives n back (a vendor refusal before billing)
  *
  * A subscription's instance also keeps what decides whether it may voice, so most
  * refusals cost no Stripe call:
@@ -641,7 +726,8 @@ export async function handlePlus(request, env) {
  *        'restore'. Older events than the last status event applied do not move the status.
  *        Every event forgets the kept standing.
  *
- * One period and one count, never a history: a newer period overwrites the old count.
+ * One period and one count, never a history: a newer period overwrites the old count; the
+ * same for the day's count (`today`), which a newer day overwrites.
  * (Stored as `since`: the earlier `period` held a period end and is ignored.)
  * Everything an instance keeps is listed in PRIVACY.md ("What the server keeps").
  */
@@ -666,7 +752,7 @@ export class PlusMeter {
       return Response.json({ ok: true });
     }
     if (op === '/event') return Response.json(this.event(body));
-    const { period, n, limit } = body;
+    const { period, n, limit, day, dayLimit } = body;
     if (!Number.isInteger(n) || n < 0 || (typeof period !== 'number' && typeof period !== 'string')) {
       return Response.json({ ok: false, error: 'bad meter request' }, { status: 400 });
     }
@@ -676,11 +762,17 @@ export class PlusMeter {
     if (op === '/reserve') {
       if (this.kv.get('revoked')) return Response.json({ ok: false, used, revoked: true });
       if (stale || !(used + n <= limit)) return Response.json({ ok: false, used });
+      const today = this.kv.get('today');
+      const dayUsed = day !== undefined && today?.day === day ? today.used : 0;
+      if (day !== undefined && !(dayUsed + n <= dayLimit)) return Response.json({ ok: false, used, dayFull: true });
+      if (day !== undefined) this.kv.put('today', { day, used: dayUsed + n });
       this.kv.put('since', period);
       this.kv.put('used', used + n);
       return Response.json({ ok: true, used: used + n });
     }
     if (op === '/release') {
+      const today = this.kv.get('today');
+      if (day !== undefined && today?.day === day) this.kv.put('today', { day, used: Math.max(0, today.used - n) });
       if (stale || this.kv.get('since') !== period) return Response.json({ ok: true, used });
       this.kv.put('used', Math.max(0, used - n));
       return Response.json({ ok: true, used: Math.max(0, used - n) });

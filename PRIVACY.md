@@ -201,11 +201,12 @@ your own material when the Plus voice is on. There is no RISE account.
   Erase clears it. Voicing the same text again on another device, or after
   Erase, uses your allowance again.
 - **What the server keeps.** For each Stripe subscription, in a Cloudflare
-  Durable Object: the characters voiced in the current billing period; what
+  Durable Object: the characters voiced in the current billing period and
+  in the current UTC day; what
   Stripe last said of the subscription (whether it is active, its customer
   number and its billing period), for one minute of use; how many voicing
   requests it made this minute; whether it was ended, refunded or disputed;
-  and the ids of the last 50 Stripe events about it. The allowance is 105,000 characters per billing period. If the
+  and the ids of the last 50 Stripe events about it. The allowance is 105,000 characters per billing period, at most 25,000 of them a day. If the
   subscription lapses, reading continues without the voice.
 - **What ElevenLabs keeps.** ElevenLabs processes the text and returns the
   audio under its own policy (<https://elevenlabs.io/privacy-policy>). By

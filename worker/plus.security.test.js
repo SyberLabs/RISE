@@ -146,6 +146,8 @@ function env(overrides = {}) {
   return {
     STRIPE_SECRET_KEY: 'sk_test_x', PLUS_COOKIE_SECRET: 'cookie-secret-one', PLUS_PRICE_ID: PRICE,
     ELEVENLABS_API_KEY: 'el-secret', PLUS_VOICE_ID: 'voice-1', PLUS_VOICES: VOICES, PLUS_DAILY_CHAR_CAP: '1000000',
+    // These attacks are on the period allowance; the per-subscription daily cap is tested in plus.test.js.
+    PLUS_SUB_DAILY_CHAR_CAP: String(VOICE_ALLOWANCE),
     PLUS_METER: meterNamespace(),
     DECISION_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
     PLUS_CLAIM_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
@@ -286,7 +288,7 @@ describe('allowance integrity (original exploits, valid plumbing)', () => {
       expect(s.vendorChars).toBe(10_000);
       expect(await used(base, 'sub:sub_1', START)).toBe(10_000); // metered either way
       expect(await used(base, 'global', DAY)).toBe(10_000);
-      const allowed = new Set(['STRIPE_SECRET_KEY', 'PLUS_COOKIE_SECRET', 'PLUS_COOKIE_SECRET_PREVIOUS', 'PLUS_PRICE_ID', 'ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', 'DECISION_LIMITER', 'PLUS_VOICE_MODEL']);
+      const allowed = new Set(['STRIPE_SECRET_KEY', 'PLUS_COOKIE_SECRET', 'PLUS_COOKIE_SECRET_PREVIOUS', 'PLUS_PRICE_ID', 'ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', 'DECISION_LIMITER', 'PLUS_VOICE_MODEL', 'PLUS_REQUIRE_LIVE', 'PLUS_SUB_DAILY_CHAR_CAP']);
       expect([...touched].filter(k => typeof k === 'string' && !allowed.has(k))).toEqual([]);
       if (mode === 'garbage') expect(status).toBe(502);
       if (mode === 'noalign') expect(status).toBe(502); // N12: a handled 502, still metered
