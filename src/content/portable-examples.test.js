@@ -16,7 +16,7 @@ it('admits both fixed Archive editions and preserves their distinct authored sco
   expect(quiet.project.experienceProgram.tracks.find(track => track.kind === 'audio')
     .clips.map(clip => clip.cue.soundscapeId)).toEqual(['aurora', 'nocturne']);
   expect(energetic.project.experienceProgram.tracks.find(track => track.kind === 'audio')
-    .clips.map(clip => clip.cue.soundscapeId)).toEqual(['thrilling', 'chase']);
+    .clips.map(clip => clip.cue.soundscapeId)).toEqual(['night-drive', 'night-drive']);
   expect(quiet.project.experienceProgram.authority).toBe('proposed');
   expect(energetic.project.experienceProgram.authority).toBe('proposed');
   for (const [index, example] of PORTABLE_EXAMPLES.entries()) {

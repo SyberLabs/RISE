@@ -751,7 +751,7 @@ describe('the Sound panel: one sound list (RDR-024)', () => {
     const active = container => [...container.querySelectorAll('#modal-audio .active[data-soundscape], #modal-audio .active[data-audio-preset]')]
         .map(choiceId);
 
-    it('offers Silence, the 24 soundscapes and the 3 tones, in the five groups', () => {
+    it('offers Silence, the 13 soundscapes and the 3 tones, in the four groups', () => {
         const { container, orbital } = createOrbital();
         orbital.loadText('Begin the morning', 'Meditations');
         const groups = [...container.querySelectorAll('#modal-audio [data-sound-group]')]
@@ -761,7 +761,7 @@ describe('the Sound panel: one sound list (RDR-024)', () => {
         const offered = groups.map(group => [...group.querySelectorAll('[data-soundscape], [data-audio-preset]')]
             .filter(button => !button.hidden).map(choiceId));
         expect(offered).toEqual(SOUND_GROUPS.map(group => group.entries.map(entry => entry.id)));
-        expect(offered.flat().filter(id => Object.hasOwn(SOUNDSCAPES, id))).toHaveLength(24);
+        expect(offered.flat().filter(id => Object.hasOwn(SOUNDSCAPES, id))).toHaveLength(13);
         expect(offered.at(-1)).toEqual(['focus', 'deep', 'gateway']);
         orbital.destroy();
     });

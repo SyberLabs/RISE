@@ -102,6 +102,12 @@ describe('what each look names', () => {
         }
     });
 
+    it('sounds no look with a parked Feelings soundscape, each on its stand-in', () => {
+        expect(look('flame').config.soundscape).toBe('aurora');
+        expect(look('iris').config.soundscape).toBe('starlight');
+        expect(look('revel').config.soundscape).toBe('night-drive');
+    });
+
     it('sounds every look with a known soundscape and never a tone under it', () => {
         const known = new Set(['none', ...Object.keys(SOUNDSCAPES)]);
         for (const { id, config } of LOOKS) {
@@ -258,7 +264,7 @@ describe('which look a configuration is in', () => {
     it('is Custom for a configuration that matches none of them', () => {
         const config = createDefaultConfig();
         config.visualInterlocution.visualMode = 'attractor';
-        config.soundscape = 'chase';
+        config.soundscape = 'jazz';
         expect(lookOf(config)).toBe('custom');
         expect(lookOf(null)).toBe('custom');
     });

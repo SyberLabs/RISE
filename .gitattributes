@@ -10,3 +10,7 @@
 *.sh text eol=lf
 
 public/audio/recitation/**/*.opus binary
+
+# A pinned arena input is checked against the sha256 its run recorded, so its
+# bytes must be the same on every checkout.
+scripts/arena/inputs/** text eol=lf

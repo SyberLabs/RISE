@@ -6,7 +6,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { JEV_AUDIO_IDS } from '../core/jev-config.js';
-import { SOUNDSCAPES, createSoundscape } from './soundscapes.js';
+import { PARKED_SOUNDSCAPES, SOUNDSCAPES, createSoundscape } from './soundscapes.js';
+import { PARKED_SOUNDS } from './sound-ids.js';
 
 function makeParam(initial = 0) {
     return {
@@ -80,18 +81,27 @@ describe('soundscapes', () => {
     });
 
     it('offers the expanded original music catalog', () => {
-        const additions = ['lullaby', 'nocturne', 'waltz', 'blues', 'bossa', 'ragtime',
-            'wonder', 'mystery', 'chase', 'triumph', 'haunted', 'starlight'];
+        const additions = ['lullaby', 'nocturne', 'waltz', 'blues', 'bossa', 'ragtime', 'starlight'];
         additions.forEach(id => {
             expect(JEV_AUDIO_IDS).toContain(id);
             expect(SOUNDSCAPES[id]?.create).toBeTypeOf('function');
         });
     });
 
+    it('parks the Feelings: kept to rework, never created by id', () => {
+        const { ctx } = makeMockContext();
+        expect(Object.keys(PARKED_SOUNDSCAPES).sort()).toEqual(Object.keys(PARKED_SOUNDS).sort());
+        for (const id of Object.keys(PARKED_SOUNDS)) {
+            expect(SOUNDSCAPES, id).not.toHaveProperty(id);
+            expect(createSoundscape(id, ctx, makeNode()), id).toBeNull();
+            expect(PARKED_SOUNDSCAPES[id].create, id).toBeTypeOf('function');
+        }
+    });
+
     it.each(['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'])(
-        'plays and tears down the %s mood sound', id => {
+        'plays and tears down the parked %s mood sound', id => {
             const { ctx, oscillators } = makeMockContext();
-            const sound = createSoundscape(id, ctx, makeNode());
+            const sound = PARKED_SOUNDSCAPES[id].create(ctx, makeNode());
             expect(sound).not.toBeNull();
             sound.start();
             expect(oscillators.length).toBeGreaterThan(1);
@@ -104,7 +114,7 @@ describe('soundscapes', () => {
     it('gives the six moods distinct audible pitch and timbre signatures', () => {
         const signatures = ['sad', 'angry', 'happy', 'excited', 'thrilling', 'scary'].map(id => {
             const { ctx, oscillators } = makeMockContext();
-            const sound = createSoundscape(id, ctx, makeNode());
+            const sound = PARKED_SOUNDSCAPES[id].create(ctx, makeNode());
             const signature = `${oscillators[0].type}:${oscillators[0].frequency.value}`;
             sound.start();
             sound.stop(true);

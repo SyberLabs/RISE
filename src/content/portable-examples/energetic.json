@@ -1,6 +1,6 @@
 {
   "schema": "rise.portable-sequence.v1",
-  "id": "portable-8cd62918fcd03f2f8b5030e35d3635c9",
+  "id": "portable-ccde7f0ab9c4b4d09fa07528789680b7",
   "title": "At the Palace Doors",
   "creatorCredit": "RISE",
   "sources": [
@@ -94,7 +94,7 @@
             },
             "cue": {
               "kind": "soundscape",
-              "soundscapeId": "thrilling",
+              "soundscapeId": "night-drive",
               "gain": 0.35
             }
           },
@@ -109,7 +109,7 @@
             },
             "cue": {
               "kind": "soundscape",
-              "soundscapeId": "chase",
+              "soundscapeId": "night-drive",
               "gain": 0.5
             }
           }

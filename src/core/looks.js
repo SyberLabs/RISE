@@ -95,7 +95,7 @@ export const LOOKS = Object.freeze([
     }, ['klee']),
     look('flame', 'Flame', 'A living flame behind the text, breathing with it.', {
         visualInterlocution: Object.freeze({ visualMode: 'living-flame' }),
-        soundscape: 'wonder',
+        soundscape: 'aurora',
         presentation: presentation('display', 'large', 'ember')
     }, ['living-flame']),
     look('signal', 'Signal', 'A strange attractor circling the words, and a faded signal.', {
@@ -103,14 +103,14 @@ export const LOOKS = Object.freeze([
         soundscape: 'faded-signal',
         presentation: presentation('mono', 'large', 'cobalt')
     }, ['attractor']),
-    look('iris', 'Iris', 'Spectral plates turning behind the text, and a rising theme.', {
+    look('iris', 'Iris', 'Spectral plates turning behind the text, under starlight.', {
         visualInterlocution: gallery({ galleryCadence: 0.5 }),
-        soundscape: 'triumph',
+        soundscape: 'starlight',
         presentation: presentation('display', 'large', 'rose')
     }, ['ostensoria', 'apparitio']),
-    look('revel', 'Revel', 'Fractal flames at a lively cadence, and a chase.', {
+    look('revel', 'Revel', 'Fractal flames at a lively cadence, and a night drive.', {
         visualInterlocution: gallery({ galleryCadence: 0.85 }),
-        soundscape: 'chase',
+        soundscape: 'night-drive',
         presentation: presentation('thick', 'xlarge', 'prism')
     }, ['fractal']),
     look('vigil', 'Vigil', 'One held image, and a soundscape beneath it.', {

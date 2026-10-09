@@ -1,9 +1,9 @@
 import { jevColors } from './jev-palette.js';
 
 export const JEV_AUDIO_IDS = Object.freeze([
-  'aurora', 'faded-signal', 'soft-rain', 'sad', 'angry', 'happy', 'excited', 'thrilling', 'scary',
+  'aurora', 'faded-signal', 'soft-rain',
   'piano', 'jazz', 'lullaby', 'nocturne', 'waltz', 'blues', 'bossa', 'ragtime',
-  'wonder', 'mystery', 'chase', 'triumph', 'haunted', 'starlight', 'night-drive'
+  'starlight', 'night-drive'
 ]);
 
 const CADENCES = Object.freeze({ slow: 0.15, balanced: 0.5, lively: 0.85 });

@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../../core/rise-current.js';
 import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_ENGINES, SCENE_LIMITS } from '../../core/beats.js';
 import { STYLES } from '../../core/styles.js';
+import { PARKED_SOUNDS } from '../../audio/sound-ids.js';
 import { createSceneLibrary } from '../../scenes/scene-library.js';
 import { admitSceneCode } from '../../../worker/scene-admission.mjs';
 import {
@@ -213,6 +214,14 @@ describe('styles', () => {
                 expect(valid.style, current.id).toBe(id);
                 expect(valid.schema).toBe('rise.current.v2');
                 for (const scene of codeScenes(current)) expect(admitSceneCode(scene.code), `${current.id}/${scene.id}`).toEqual({ ok: true });
+            }
+        }
+    });
+
+    it('teach no parked Feelings sound, in guidance or in a worked Current', () => {
+        for (const id of RISE_CURRENT_STYLES) {
+            for (const sound of Object.keys(PARKED_SOUNDS)) {
+                expect(styleGuide(id), `${id}: ${sound}`).not.toMatch(new RegExp(`\\b${sound}\\b`, 'u'));
             }
         }
     });

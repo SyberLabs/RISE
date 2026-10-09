@@ -66,6 +66,8 @@ describe('what a beat may carry', () => {
     refuses([{ say: 'x', size: 'huge' }], 'BEAT_SIZE');
     refuses([{ say: 'x', type: 'comic-sans' }], 'BEAT_TYPE');
     refuses([{ say: 'x', sound: 'airhorn' }], 'BEAT_SOUND');
+    // The Feelings are parked until they are reworked (owner, 2026-10-09).
+    for (const sound of ['wonder', 'mystery', 'chase', 'scary']) refuses([{ say: 'x', sound }], 'BEAT_SOUND');
     refuses([{ say: 'x', scene: 'field', cue: 'has space' }], 'BEAT_CUE');
     // A cue is the running scene's: named in its manifest, or setting a parameter it changes while it runs.
     refuses([{ say: 'x', cue: 'bright' }], 'BEAT_CUE');

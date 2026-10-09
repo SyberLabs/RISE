@@ -227,6 +227,18 @@ describe('ChamberOrbital origin chip', () => {
         container.remove();
     });
 
+    it('restores a saved parked Feelings soundscape as its stand-in', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({ soundscape: 'chase' }));
+
+        const { orbital, container } = makeOrbital();
+        expect(orbital.config.soundscape).toBe('night-drive');
+        expect(container.querySelector('[data-soundscape="night-drive"]').classList.contains('active')).toBe(true);
+
+        orbital.destroy();
+        container.remove();
+        localStorage.removeItem('rise_orbital_prefs_v1');
+    });
+
     it('persists last-used settings at Begin and restores them for the next visit', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
 
@@ -297,8 +309,8 @@ describe('ChamberOrbital origin chip', () => {
 
         // Section renders with Silence active by default
         const chips = container.querySelectorAll('[data-soundscape]');
-        // Silence, the 24 soundscapes + the two chant beds
-        expect(chips).toHaveLength(27);
+        // Silence, the 13 soundscapes + the two chant beds
+        expect(chips).toHaveLength(16);
         expect(container.querySelector('[data-soundscape="none"]').classList.contains('active')).toBe(true);
 
         // Selecting Aurora updates config and the orbit status

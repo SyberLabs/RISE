@@ -508,7 +508,10 @@ describe('the shape of a Current, as the host’s model is told it', () => {
       c => { c.beats[0].place = 'margin'; },
       c => { c.scenes[0].engine = 'shader'; },
       c => { c.scenes[0].code = 'export default () => ({ frame() {} });'; },
-      c => { c.beats = []; }
+      c => { c.beats = []; },
+      // The Feelings are parked until they are reworked (owner, 2026-10-09).
+      c => { c.beats[0].sound = 'mystery'; },
+      c => { c.beats[0].sound = 'chase'; }
     ]) {
       const current = structuredClone(CURRENT_EXAMPLE_V2);
       mutate(current);

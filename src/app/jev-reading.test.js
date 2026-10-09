@@ -228,9 +228,9 @@ describe('Jev reading handoff', () => {
   });
 
   it('hands a mood sound and a real later chapter to the Chamber', async () => {
-    const input = await resolveJevReading(decision({ section: 'last', audio: 'scary' }));
+    const input = await resolveJevReading(decision({ section: 'last', audio: 'faded-signal' }));
     expect(input.text).toBe('The longest existing passage.');
-    expect(input.soundscape).toBe('scary');
+    expect(input.soundscape).toBe('faded-signal');
     expect(input.continuation.entryId).toBe('2');
   });
 });

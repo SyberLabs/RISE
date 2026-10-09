@@ -13,12 +13,13 @@ const releaseInventory = JSON.parse(readFileSync(
   new URL('../src/content/archive/release-inventory.json', import.meta.url), 'utf8'
 ));
 const released = releaseInventory.ulysses;
-// The plan production returned for this request on 2026-09-27.
+// The plan production returned for this request on 2026-09-27, with an offered
+// opening sound: the night-drive routing replaces it.
 const selectors = {
-  section: 'first', wpm: 300, curve: 'wave', chunkMode: 'phrase', audio: 'chase',
+  section: 'first', wpm: 300, curve: 'wave', chunkMode: 'phrase', audio: 'starlight',
   visualMode: 'interlocution', visualStyle: 'psychedelic', visualEngine: 'fractal',
   visualArc: 'triple', arcSplit: '30', middleEngine: 'fractal', finaleEngine: 'fractal',
-  middleTheme: 'prism', finaleTheme: 'prism', middleAudio: 'chase', finaleAudio: 'chase',
+  middleTheme: 'prism', finaleTheme: 'prism', middleAudio: 'starlight', finaleAudio: 'starlight',
   visualPalette: 'purple', kleePreset: 'chaotic', galleryCadence: 'lively', chamberFace: 'jp',
   fontSize: 'large', colorTheme: 'prism', textColor: 'amethyst', backgroundColor: 'prism',
   wordFill: 'accent', projection: 'stream', revealMode: 'instant'

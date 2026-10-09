@@ -77,10 +77,10 @@
       "group": "control",
       "field": "audio",
       "odds": {
-        "ragtime": 0.5,
-        "faded-signal": 0.5
+        "wonder": 0.5,
+        "mystery": 0.5
       },
-      "intent": "Ten slips are in a hat: five say 'ragtime', five say 'faded-signal'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+      "intent": "Ten slips are in a hat: five say 'wonder', five say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
     },
     {
       "id": "odds-60-1",
@@ -157,10 +157,10 @@
       "group": "control",
       "field": "audio",
       "odds": {
-        "ragtime": 0.4,
-        "faded-signal": 0.6
+        "wonder": 0.4,
+        "mystery": 0.6
       },
-      "intent": "Ten slips are in a hat: four say 'ragtime', six say 'faded-signal'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+      "intent": "Ten slips are in a hat: four say 'wonder', six say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
     },
     {
       "id": "odds-70-1",
@@ -237,10 +237,10 @@
       "group": "control",
       "field": "audio",
       "odds": {
-        "ragtime": 0.3,
-        "faded-signal": 0.7
+        "wonder": 0.3,
+        "mystery": 0.7
       },
-      "intent": "Ten slips are in a hat: three say 'ragtime', seven say 'faded-signal'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+      "intent": "Ten slips are in a hat: three say 'wonder', seven say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
     },
     {
       "id": "odds-80-1",
@@ -317,10 +317,10 @@
       "group": "control",
       "field": "audio",
       "odds": {
-        "ragtime": 0.2,
-        "faded-signal": 0.8
+        "wonder": 0.2,
+        "mystery": 0.8
       },
-      "intent": "Ten slips are in a hat: two say 'ragtime', eight say 'faded-signal'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+      "intent": "Ten slips are in a hat: two say 'wonder', eight say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
     },
     {
       "id": "odds-90-1",
@@ -397,10 +397,10 @@
       "group": "control",
       "field": "audio",
       "odds": {
-        "ragtime": 0.1,
-        "faded-signal": 0.9
+        "wonder": 0.1,
+        "mystery": 0.9
       },
-      "intent": "Ten slips are in a hat: one says 'ragtime', nine say 'faded-signal'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+      "intent": "Ten slips are in a hat: one says 'wonder', nine say 'mystery'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
     },
     {
       "id": "odds-3way-1",
@@ -484,11 +484,11 @@
       "group": "control",
       "field": "audio",
       "odds": {
-        "bossa": 0.6,
-        "nocturne": 0.2,
-        "soft-rain": 0.2
+        "happy": 0.6,
+        "sad": 0.2,
+        "haunted": 0.2
       },
-      "intent": "Ten slips are in a hat: six say 'bossa', two say 'nocturne', two say 'soft-rain'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
+      "intent": "Ten slips are in a hat: six say 'happy', two say 'sad', two say 'haunted'. One slip will be drawn after you answer, and that draw is the right answer. Which sound?"
     },
     {
       "id": "odds-3way-9",
