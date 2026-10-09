@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from './index.mjs';
 import { handlePlus, PLUS_INTERNALS, PlusMeter } from './plus.mjs';
 
-const auth = vi.hoisted(() => ({ subject: null }));
-vi.mock('./plus-admin.mjs', () => ({ getAdmin: async () => auth.subject ? { subject: auth.subject } : null, verifyAdmin: async () => auth.subject ? { subject: auth.subject } : null }));
+const auth = vi.hoisted(() => ({ subject: null, calls: 0 }));
+vi.mock('./plus-admin.mjs', () => ({ getAdmin: async () => { auth.calls++; return auth.subject ? { subject: auth.subject } : null; }, verifyAdmin: async () => auth.subject ? { subject: auth.subject } : null }));
 
 const NOW = 1800000000;
 const START = NOW - 864000;
@@ -41,7 +41,7 @@ async function request(e,n) {
   const token = await PLUS_INTERNALS.sign({ c:'cus_1',s:'sub_1',exp:END,iat:NOW,l:true },e.PLUS_COOKIE_SECRET);
   return new Request(SITE+'/api/plus/voice',{method:'POST',headers:{Origin:SITE,'Content-Type':'application/json',Cookie:PLUS_INTERNALS.COOKIE+'='+token,'CF-Connecting-IP':'192.0.2.1'},body:JSON.stringify({atoms:['a'.repeat(n)]})});
 }
-afterEach(()=>{auth.subject = null;vi.unstubAllGlobals();vi.useRealTimers();});
+afterEach(()=>{auth.subject = null; auth.calls = 0;vi.unstubAllGlobals();vi.useRealTimers();});
 
 describe('subscriber vendor spend is funded by collected revenue',()=>{
   it('atomically caps an $8.99 paid invoice at 67,000 characters after conservative fees and reserve',async()=>{
@@ -155,5 +155,78 @@ describe('new entitlement routes reach the production Worker',()=>{
     expect((await worker.fetch(new Request(SITE+'/api/plus/admin/login'),e)).status).toBe(403);
     expect((await worker.fetch(new Request(SITE+'/api/plus/admin/check'),e)).status).toBe(403);
     auth.subject='verified';const checked=await worker.fetch(new Request(SITE+'/api/plus/admin/check'),e);expect(await checked.json()).toEqual({subject:'verified'});
+  });
+});
+
+describe('status caches unavailable subscriptions without hiding normal signed-out state', () => {
+  it('reuses a negative financial standing for two requests, then rechecks after its cache expires', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const e = env();
+    world({ subscription: { ...sub, status: 'canceled' } });
+    const upstream = vi.mocked(fetch).getMockImplementation();
+    let subscriptionGets = 0;
+    vi.mocked(fetch).mockImplementation((url, init) => {
+      if (new URL(url).pathname.startsWith('/v1/subscriptions/')) subscriptionGets++;
+      return upstream(url, init);
+    });
+    const cookie = (await request(e, 1)).headers.get('Cookie');
+    const read = () => handlePlus(new Request(SITE + '/api/plus/status', { headers: { Cookie: cookie } }), e);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await read();
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ admin: false, subscriber: false, available: false, adminLogin: false, allowance: null });
+    }
+    expect(subscriptionGets).toBe(1);
+    vi.setSystemTime((NOW + 61) * 1000);
+    expect((await read()).status).toBe(200);
+    expect(subscriptionGets).toBe(2);
+  });
+
+  it('treats a Stripe subscription 404 as a normal signed-out response and caches the null standing', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const e = env();
+    world();
+    const upstream = vi.mocked(fetch).getMockImplementation();
+    let subscriptionGets = 0;
+    vi.mocked(fetch).mockImplementation((url, init) => {
+      if (new URL(url).pathname.startsWith('/v1/subscriptions/')) {
+        subscriptionGets++;
+        return new Response('', { status: 404 });
+      }
+      return upstream(url, init);
+    });
+    const cookie = (await request(e, 1)).headers.get('Cookie');
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await handlePlus(new Request(SITE + '/api/plus/status', { headers: { Cookie: cookie } }), e);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ admin: false, subscriber: false, available: false, allowance: null });
+    }
+    expect(subscriptionGets).toBe(1);
+    const voice = await handlePlus(await request(e, 1), e);
+    expect(voice.status).toBe(402);
+    expect(subscriptionGets).toBe(1);
+  });
+});
+
+
+describe('public entitlement status is rate limited before any paid or authentication lookups', () => {
+  it.each(['denied', 'outage'])('returns 429 on a %s address limiter before contacting Stripe or Access', async mode => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const e = env({ DECISION_LIMITER: { limit: async () => { if (mode === 'outage') throw new Error('rate limiter unavailable'); return { success: false }; } } });
+    world();
+    auth.subject = 'verified';
+    const response = await worker.fetch(new Request(SITE + '/api/plus/status', { headers: { 'CF-Connecting-IP': '192.0.2.1' } }), e);
+    expect(response.status).toBe(429);
+    expect((await response.json()).error.code).toBe('RATE_LIMITED');
+    expect(auth.calls).toBe(0);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+  it('fails closed when the status address limiter is not configured', async () => {
+    const e = env({ DECISION_LIMITER: undefined });
+    world();
+    const response = await worker.fetch(new Request(SITE + '/api/plus/status', { headers: { 'CF-Connecting-IP': '192.0.2.1' } }), e);
+    expect(response.status).toBe(503);
+    expect(auth.calls).toBe(0);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

@@ -751,7 +751,11 @@ async function routePlus(request, env) {
   const path = new URL(request.url).pathname;
   if (path === '/api/plus/status' || path === '/api/plus/admin/login' || path === '/api/plus/admin/check') {
     if (request.method !== 'GET') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
-    if (path === '/api/plus/status') return status(request, env, Math.floor(Date.now() / 1000));
+    if (path === '/api/plus/status') {
+      if (typeof env.DECISION_LIMITER?.limit !== 'function') return unavailable(env, 'The Plus status address limiter is not configured.');
+      if (await limited(request, env.DECISION_LIMITER, 'plus-status')) return refuse(429, 'RATE_LIMITED', 'Too many requests were sent. Try again in a minute.');
+      return status(request, env, Math.floor(Date.now() / 1000));
+    }
     if (path === '/api/plus/admin/check') {
       const checked = await verifyAdmin(request, env);
       return checked ? reply(200, { subject: checked.subject }) : refuse(403, 'FORBIDDEN_ADMIN', 'Administrator sign-in is required.');
