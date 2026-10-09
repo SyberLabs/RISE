@@ -74,6 +74,8 @@ function environment(overrides = {}) {
     PLUS_VOICE_ID: 'voice-1',
     PLUS_VOICES: VOICES,
     PLUS_DAILY_CHAR_CAP: '1000000',
+    // Most tests exercise the period allowance in one day; the daily sub-cap has its own tests (default restored there).
+    PLUS_SUB_DAILY_CHAR_CAP: String(VOICE_ALLOWANCE),
     PLUS_METER: meterNamespace(),
     DECISION_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
     PLUS_CLAIM_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
@@ -103,8 +105,8 @@ function vendorAnswer(text) {
  * Stripe and the vendor behind one fetch. `vendor` is 'echo' (a faithful answer),
  * 'mismatch' (billed, but says something else), 'garbage' (billed, not JSON), or a status.
  */
-function world({ sub = subscription(), session = { payment_status: 'paid', subscription: sub }, vendor = 'echo', stripeDown = false, barrier = 0 } = {}) {
-  const state = { vendorCalls: 0, vendorChars: 0, stripeGets: 0, stripeWrites: 0 };
+function world({ sub = subscription(), session = { payment_status: 'paid', subscription: sub }, vendor = 'echo', stripeDown = false, barrier = 0, cancelDown = false } = {}) {
+  const state = { vendorCalls: 0, vendorChars: 0, stripeGets: 0, stripeWrites: 0, cancels: [], cancelled: new Set() };
   // barrier: the subscription GET answers only once `barrier` requests wait on it, then all at once,
   // as Stripe's real latency lines parallel requests up. Without it WebCrypto's callbacks serialize
   // the requests, they never overlap at the meter, and a meter with a race in it would still pass.
@@ -132,11 +134,19 @@ function world({ sub = subscription(), session = { payment_status: 'paid', subsc
         const paid = u.searchParams.get('payment[payment_intent]') === 'pi_1' && u.searchParams.get('payment[type]') === 'payment_intent';
         return Response.json({ data: paid ? [{ invoice: { id: 'in_1', parent: { subscription_details: { subscription: 'sub_1' } } } }] : [] });
       }
+      if (u.pathname.startsWith('/v1/subscriptions/') && init.method === 'DELETE') {
+        const id = decodeURIComponent(u.pathname.split('/').pop());
+        state.cancels.push({ id, version: init.headers?.['Stripe-Version'] });
+        if (cancelDown) return new Response('', { status: 500 });
+        state.cancelled.add(id);
+        return Response.json({ ...sub, id, status: 'canceled' });
+      }
       if (u.pathname.startsWith('/v1/subscriptions/')) {
         state.stripeGets++;
         await held();
         // Each subscription id answers as itself, so several subscribers can share one Stripe.
-        return sub ? Response.json({ ...sub, id: decodeURIComponent(u.pathname.split('/').pop()) }) : new Response('', { status: 404 });
+        const id = decodeURIComponent(u.pathname.split('/').pop());
+        return sub ? Response.json({ ...sub, id, ...(state.cancelled.has(id) ? { status: 'canceled' } : {}) }) : new Response('', { status: 404 });
       }
     }
     return new Response('', { status: 500 });
@@ -1149,5 +1159,177 @@ describe('the payment link is configuration (GET /api/plus/config)', () => {
       const value = readFileSync(file, 'utf8').match(/"PLUS_PAYMENT_LINK": "([^"]+)"/u)?.[1];
       expect(value).toMatch(/^https:\/\/buy\.stripe\.com\/[A-Za-z0-9_]+$/u);
     }
+  });
+});
+
+describe('production requires live Stripe (PLUS_REQUIRE_LIVE)', () => {
+  const LIVE_LINK = 'https://buy.stripe.com/aFa7sL5HpfHD0K5bIP9MY00';
+  const TEST_LINK = 'https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00';
+  const live = (overrides = {}) => environment({ PLUS_REQUIRE_LIVE: 'true', STRIPE_SECRET_KEY: 'sk_live_x', PLUS_PAYMENT_LINK: LIVE_LINK, STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ...overrides });
+  const config = async env => (await worker.fetch(new Request(`${SITE}/api/plus/config`), env)).json();
+  /** Claim and voice both refused with 503 and a message that maps nothing, and nothing paid was called. */
+  async function refusedEverywhere(env, state) {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    for (const response of [await worker.fetch(claimRequest(), env), await worker.fetch(voiceRequest(await cookieFor(env, { l: true }), ['hello there']), env)]) {
+      expect(response.status).toBe(503);
+      const { error } = await response.json();
+      expect(error).toEqual({ code: 'PLUS_UNAVAILABLE', message: 'Plus is not available right now.' });
+    }
+    expect(state.vendorCalls + state.stripeGets).toBe(0);
+    // The detail is logged by name, never by value.
+    const lines = logged.mock.calls.map(args => args.join(' ')).join('\n');
+    expect(lines).toMatch(/Plus unavailable/u);
+    for (const value of Object.values(env).filter(v => typeof v === 'string' && v !== 'true')) expect(lines).not.toContain(value);
+    logged.mockRestore();
+    return lines;
+  }
+
+  it('is set in production and not in the preview', async () => {
+    const { readFileSync } = await import('node:fs');
+    expect(readFileSync('wrangler.production.jsonc', 'utf8')).toMatch(/"PLUS_REQUIRE_LIVE": "true"/u);
+    expect(readFileSync('wrangler.plus-preview.jsonc', 'utf8')).not.toMatch(/PLUS_REQUIRE_LIVE/u);
+  });
+
+  it('a test key refuses claim and voice, and config serves no link: production\'s test card exposure', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { state } = world();
+    for (const env of [live({ STRIPE_SECRET_KEY: 'sk_test_x', PLUS_PAYMENT_LINK: TEST_LINK }), live({ STRIPE_SECRET_KEY: 'sk_test_x' })]) {
+      expect(await config(env)).toEqual({ paymentLink: null });
+      expect(await refusedEverywhere(env, state)).toContain('STRIPE_SECRET_KEY is not a live key');
+    }
+  });
+
+  it('a live key with a test link refuses, and serves no link', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { state } = world();
+    const env = live({ PLUS_PAYMENT_LINK: TEST_LINK });
+    expect(await config(env)).toEqual({ paymentLink: null });
+    expect(await refusedEverywhere(env, state)).toContain('PLUS_PAYMENT_LINK is not a live Payment Link');
+  });
+
+  it('a missing webhook secret refuses, and serves no link: a refund must be able to stop the voice', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { state } = world();
+    const env = live({ STRIPE_WEBHOOK_SECRET: undefined });
+    expect(await config(env)).toEqual({ paymentLink: null });
+    const lines = await refusedEverywhere(env, state);
+    expect(lines).toContain('STRIPE_WEBHOOK_SECRET is not set');
+  });
+
+  it('every PLUS_UNAVAILABLE answer is generic under it, whichever secret is unset', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    world();
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const answers = [
+      await worker.fetch(claimRequest(), live({ PLUS_COOKIE_SECRET: undefined })),
+      await worker.fetch(claimRequest(), live({ PLUS_PRICE_ID: undefined })),
+      await worker.fetch(claimRequest(), live({ PLUS_CLAIM_LIMITER: undefined })),
+      await worker.fetch(voiceRequest(await cookieFor(live(), { l: true }), ['hello there']), live({ ELEVENLABS_API_KEY: undefined })),
+      await worker.fetch(new Request(`${SITE}/api/plus/voices`), live({ PLUS_VOICES: 'nope' })),
+      await hook(live({ STRIPE_WEBHOOK_SECRET: undefined }), stripeEvent('customer.subscription.deleted', { id: 'sub_1' }, { livemode: true }))
+    ];
+    for (const response of answers) {
+      expect(response.status).toBe(503);
+      expect((await response.json()).error).toEqual({ code: 'PLUS_UNAVAILABLE', message: 'Plus is not available right now.' });
+    }
+    expect(logged).toHaveBeenCalledTimes(answers.length);
+    logged.mockRestore();
+  });
+
+  it('with a live key, a live link and the webhook secret, it serves the link and voices', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    world();
+    const env = live();
+    expect(await config(env)).toEqual({ paymentLink: LIVE_LINK });
+    expect((await worker.fetch(claimRequest(), env)).status).toBe(204);
+    expect((await worker.fetch(voiceRequest(await cookieFor(env, { l: true }), ['hello there']), env)).status).toBe(200);
+    expect(await config(live({ STRIPE_SECRET_KEY: 'rk_live_x' }))).toEqual({ paymentLink: LIVE_LINK });
+  });
+
+  it('never serves a link of the other Stripe mode, with or without it', async () => {
+    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_live_x', PLUS_PAYMENT_LINK: TEST_LINK }))).toEqual({ paymentLink: null });
+    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_test_x', PLUS_PAYMENT_LINK: LIVE_LINK }))).toEqual({ paymentLink: null });
+    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_test_x', PLUS_PAYMENT_LINK: TEST_LINK }))).toEqual({ paymentLink: TEST_LINK });
+    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_live_x', PLUS_PAYMENT_LINK: LIVE_LINK }))).toEqual({ paymentLink: LIVE_LINK });
+  });
+});
+
+describe('money taken back cancels the subscription in Stripe', () => {
+  const hooked = (overrides = {}) => environment({ STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ...overrides });
+  const refund = () => stripeEvent('charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', refunded: true });
+
+  it('a full refund cancels it, once, on Stripe\'s pinned API version; a redelivery does not cancel again', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    const { state } = world();
+    const event = refund();
+    expect(await (await hook(env, event)).json()).toEqual({ received: true, applied: ['sub_1'] });
+    expect(state.cancels).toEqual([{ id: 'sub_1', version: STRIPE_VERSION }]);
+    expect((await hook(env, event)).status).toBe(200);
+    expect(state.cancels).toHaveLength(1);
+    expect(await codeOf(await voiceAt(env, await cookieFor(env), 10))).toBe('PLUS_REQUIRED');
+  });
+
+  it('a dispute cancels it', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    const { state } = world();
+    await hook(env, stripeEvent('charge.dispute.created', { id: 'dp_1', charge: 'ch_1' }));
+    expect(state.cancels.map(c => c.id)).toEqual(['sub_1']);
+  });
+
+  it('a Stripe failure answers 500 so Stripe retries, and the retry of the same event cancels', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    world({ cancelDown: true });
+    const event = refund();
+    const failed = await hook(env, event);
+    expect(failed.status).toBe(500);
+    expect(await codeOf(await voiceAt(env, await cookieFor(env), 10))).toBe('PLUS_REQUIRED'); // revoked meanwhile
+    const { state } = world();
+    expect((await hook(env, event)).status).toBe(200);
+    expect(state.cancels.map(c => c.id)).toEqual(['sub_1']);
+  });
+
+  it('cancels nothing for a partial refund, a status change, a deletion, or a subscription that is not Plus', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    const { state } = world();
+    await hook(env, stripeEvent('charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', refunded: false, amount_refunded: 100 }));
+    await hook(env, stripeEvent('customer.subscription.updated', { id: 'sub_1', status: 'past_due' }));
+    await hook(env, stripeEvent('customer.subscription.deleted', { id: 'sub_1' }));
+    expect(state.cancels).toEqual([]);
+    const other = world({ sub: subscription({ price: 'price_other' }) });
+    expect((await hook(env, refund())).status).toBe(200);
+    expect(other.state.cancels).toEqual([]);
+  });
+});
+
+describe('the daily cap per subscription (PLUS_SUB_DAILY_CHAR_CAP)', () => {
+  it('defaults to 25,000 characters a UTC day, refuses past it with no vendor call, and starts again the next day', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment({ PLUS_SUB_DAILY_CHAR_CAP: undefined });
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    expect((await voiceAt(env, cookie, 10_000, '192.0.2.1', 1)).status).toBe(200);
+    expect((await voiceAt(env, cookie, 10_000, '192.0.2.1', 2)).status).toBe(200);
+    const over = await voiceAt(env, cookie, 10_000, '192.0.2.1', 3);
+    expect([over.status, await codeOf(over)]).toEqual([429, 'PLUS_DAILY_LIMIT']);
+    expect((await voiceAt(env, cookie, 5_000, '192.0.2.1', 4)).status).toBe(200); // exactly 25,000
+    expect(state.vendorChars).toBe(25_000);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(25_000); // the refused one reserved nothing
+    vi.setSystemTime((NOW + DAY_S) * 1000);
+    expect((await voiceAt(env, await cookieFor(env, { iat: NOW + DAY_S }), 10_000, '192.0.2.1', 5)).status).toBe(200);
+  });
+
+  it('takes its value from the var, and a vendor refusal gives the day\'s characters back', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment({ PLUS_SUB_DAILY_CHAR_CAP: '5000' });
+    world({ vendor: 500 });
+    const cookie = await cookieFor(env);
+    expect((await voiceAt(env, cookie, 5_000, '192.0.2.1', 1)).status).toBe(502);
+    world();
+    expect((await voiceAt(env, cookie, 5_000, '192.0.2.1', 2)).status).toBe(200);
+    expect(await codeOf(await voiceAt(env, cookie, 10, '192.0.2.1', 3))).toBe('PLUS_DAILY_LIMIT');
   });
 });
