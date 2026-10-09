@@ -28,3 +28,7 @@
 
 .has-rise-account .wh-header { padding-right: 110px; }
 @media (max-width: 600px) { .has-rise-account .wh-serial { display: none; } }
+
+/* Reader sheets live inside an animated route stacking context. The global
+   entrance must leave those modal controls unobstructed and unfocusable. */
+.has-rise-account:has(.view-container:not([hidden]) .orbital-modal:not([hidden]), .view-container:not([hidden]) .look-sheet:not([hidden]), .view-container:not([hidden]) .modal-overlay:not(.hidden):not([hidden]), #photosensitivity-modal:not(.hidden):not([hidden])) .rise-account-control { visibility: hidden; }
