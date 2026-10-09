@@ -191,6 +191,30 @@ html[data-embed="mcp"] .atom-display[data-place="caption"] { bottom: calc(var(--
   html[data-embed="mcp"] .atom-display:is([data-place="left"], [data-place="right"]) { bottom: calc(var(--embed-bar-room) + 8px); }
 }
 
+/* On a phone a figure or a generated scene sits above the words, never under them. The Chamber marks the
+   field `data-picture` before it inserts the first one and keeps the mark for the reading; ambient looks
+   leave it unmarked and keep the overlay. Top to bottom: the picture, a strip kept for the words, the bar's
+   room. The strip is sized once per card, for three lines of the band's face for a phrase that needs
+   lines (its scale floor 0.88, at the default text size 1.18), plus the band's padding and edges; longer
+   words rise over the picture's foot on their scrim rather than resize it. Below 350 px tall the picture
+   would be under 130 px, so it keeps the field and the words lie over its foot. Either way the words sit
+   at the foot, never the centre, and take no press: there is nowhere to move them. */
+@media (max-width: 640px) {
+  html[data-embed="mcp"] .chamber-field[data-picture] { align-items: flex-end; }
+  html[data-embed="mcp"] .chamber-field[data-picture] :is(#atom-band, #atom-display) { --band-offset: 0px; }
+  html[data-embed="mcp"] .chamber-field[data-picture] #atom-display { pointer-events: none; }
+}
+
+@media (max-width: 640px) and (min-height: 350px) {
+  html[data-embed="mcp"] .chamber-field[data-picture] {
+    --embed-words-strip: calc(3 * 1.45 * 0.88 * 1.18 * clamp(20px, 6.1vw, 27px) + 2 * var(--space-sm) + 2px);
+  }
+
+  html[data-embed="mcp"] .chamber-field[data-picture] :is(.chamber-scene, .chamber-figure) {
+    height: calc(100% - var(--embed-bar-room) - var(--embed-words-strip));
+  }
+}
+
 /* While the bar is hidden (stage-controls.js) the words move down into its room, all but the faint beat line's
    (half the padding they no longer need: 64 to 24, 88 to 40), as the bar fades, not at once. They move by the
    band's transform (Chamber.css), never by the field's padding: the field is the box each visual's canvas is

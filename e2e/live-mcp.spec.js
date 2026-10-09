@@ -1290,10 +1290,12 @@ test('on a phone the picture ends where the bar’s room begins: the scene is dr
   const sky = await fieldCard(page, baseURL, { height: 481 });
   const canvas = sky.locator('canvas.chamber-scene');
   await expect(canvas).toBeAttached({ timeout: 15_000 });
-  expect((await viewBox(canvas)).height).toBeCloseTo(481 - room, 0);
+  // At or above the room: on a phone a scene also leaves the words their strip (pass 3).
+  const { height } = await viewBox(canvas);
+  expect(height).toBeLessThanOrEqual(481 - room);
   // The worker draws at that height, not the field's stretched into it.
   await expect.poll(() => canvas.evaluate(node => node.height / Math.min(2, Math.max(1, node.ownerDocument.defaultView.devicePixelRatio))), { timeout: 5_000 })
-    .toBeCloseTo(481 - room, 0);
+    .toBeCloseTo(height, 0);
 
   const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
   const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: figureBeats(TALL_SVG), height: 481 });
@@ -1355,11 +1357,13 @@ test.describe('the card on a phone', () => {
     const [first, ...rest] = SKY_PREMIUM_EDUCATIONAL.beats;
     return { ...SKY_PREMIUM_EDUCATIONAL, beats: [{ show: PHONE_LINE, hold: { ms: 60_000 }, scene: first.scene, cue: first.cue, place: 'centre' }, ...rest] };
   };
+  /** A line held over an engine's field (the attractor), not a figure or a generated scene: the words lie over it and can be moved. */
+  const ambient = () => ({ ...SKY_BEATS, beats: [{ show: PHONE_LINE, hold: { ms: 60_000 }, scene: 'field', place: 'centre' }, ...SKY_BEATS.beats.slice(1)] });
   /** Sky as written, with every line in the band rather than placed: its holds leave the band empty. */
   const centred = () => ({ ...SKY_PREMIUM_EDUCATIONAL, beats: SKY_PREMIUM_EDUCATIONAL.beats.map(beat => (beat.say || beat.show ? { ...beat, place: 'centre' } : beat)) });
 
   test('a drag on the words, once selected, moves them the whole way, and the conversation around the card does not scroll', async ({ page, baseURL }) => {
-    const app = await fieldCard(page, baseURL, { current: steady(), height: 481, chat: 600 });
+    const app = await fieldCard(page, baseURL, { current: ambient(), height: 481, chat: 600 });
     const cdp = await page.context().newCDPSession(page);
     await page.evaluate(() => window.scrollTo(0, 200));
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(200);
@@ -1468,6 +1472,164 @@ test.describe('the card on a phone', () => {
     ]);
     // The card is still the reading: the link did not navigate it.
     await expect(app.locator('#atom-display')).toContainText(PHONE_LINE);
+  });
+
+  // Pass 3: on a small card a figure or a scene sits above a strip kept for the words, never under them.
+  const ROOM = 88;
+  /** The wide triangle (400 x 260) under a centred line held long, as the audit measured it (finding 2). */
+  const heldFigure = () => ({ ...figureBeats(TRIANGLE_SVG), beats: [{ show: PHONE_LINE, hold: { ms: 60_000 }, scene: 'triangle', place: 'centre' }, { say: 'It came to rest.' }] });
+  const figureCard = async (page, baseURL, height) => {
+    const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+    const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: heldFigure(), height });
+    await begin(app);
+    await expectShown(app, 'Sunlight looks white');
+    const figure = app.locator('img.chamber-figure');
+    await expect.poll(() => figure.evaluate(img => img.complete && img.naturalWidth).catch(() => 0), { timeout: 15_000 }).toBeGreaterThan(0);
+    return app;
+  };
+  /** The figure's content box (contained and centred, at its viewBox's 400:260) against the words' box. */
+  const composition = app => app.locator('#chamber-field').evaluate(field => {
+    const box = field.querySelector('img.chamber-figure').getBoundingClientRect();
+    const scale = Math.min(box.width / 400, box.height / 260);
+    const figure = { left: box.left + (box.width - 400 * scale) / 2, top: box.top + (box.height - 260 * scale) / 2, width: 400 * scale, height: 260 * scale };
+    // The words' box: the phone band's where it has one, else the display's.
+    const outer = field.querySelector('.atom-band').getBoundingClientRect();
+    const band = outer.height ? outer : field.querySelector('#atom-display').getBoundingClientRect();
+    const across = Math.max(0, Math.min(figure.left + figure.width, band.right) - Math.max(figure.left, band.left));
+    const down = Math.max(0, Math.min(figure.top + figure.height, band.bottom) - Math.max(figure.top, band.top));
+    return {
+      picture: field.dataset.picture ?? null,
+      region: Math.round(box.height * 10) / 10,
+      figure: `${Math.round(figure.width)}x${Math.round(figure.height)}`,
+      figureTop: Math.round(figure.top), figureBottom: Math.round(figure.top + figure.height),
+      wordsTop: Math.round(band.top), wordsBottom: Math.round(band.bottom),
+      font: parseFloat(getComputedStyle(field.querySelector('#atom-display')).fontSize),
+      overlap: Math.round((1000 * across * down) / (figure.width * figure.height)) / 10
+    };
+  });
+
+  test('on a small card a wide figure sits whole above the words, none of it under them, and the words take no press', async ({ page, baseURL }) => {
+    const seen = {};
+    for (const [width, height] of [[390, 481], [412, 481], [390, 844], [390, 360]]) {
+      await page.setViewportSize({ width, height });
+      const app = await figureCard(page, baseURL, height);
+      const at = seen[`${width}x${height}`] = await composition(app);
+      console.log(`[stacked] ${width}x${height} ${JSON.stringify(at)}`);
+      expect(at.picture).toBe('figure');
+      // Measured before (finding 2): 51.9 % at 390 wide, 51.4 % at 412.
+      expect(at.overlap, `overlap at ${width}x${height}`).toBe(0);
+      // At the bar's room, or in it by the 24 px the words move while the bar is hidden.
+      expect(at.wordsBottom).toBeGreaterThanOrEqual(height - ROOM - 2);
+      expect(at.wordsBottom).toBeLessThanOrEqual(height - ROOM + 25);
+      if (width === 390 && height === 481) {
+        // A tap on the words selects nothing to move: the strip is theirs, and a drag has nowhere to take them.
+        const cdp = await page.context().newCDPSession(page);
+        const box = await app.locator('#atom-display').boundingBox();
+        const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+        await page.waitForTimeout(60);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await page.waitForTimeout(200);
+        await expect(app.locator('#atom-display')).not.toHaveClass(/is-band-movable/u);
+      }
+    }
+    // The picture region is the card less the bar's room and a strip of three lines of the band's face (134 px at 390 wide).
+    expect(seen['390x481'].region).toBeGreaterThanOrEqual(255);
+    expect(seen['390x481'].region).toBeLessThanOrEqual(268);
+    expect(seen['390x481'].figure).toMatch(/^390x25[3-4]$/u);
+    expect(seen['412x481'].region).toBeGreaterThanOrEqual(250);
+    expect(seen['412x481'].region).toBeLessThanOrEqual(262);
+    expect(seen['390x360'].region).toBeGreaterThanOrEqual(130);
+    expect(seen['390x360'].region).toBeLessThanOrEqual(145);
+  });
+
+  test('a card too short to keep a picture and the words apart lays the words over it, at its foot and never at its centre', async ({ page, baseURL }) => {
+    for (const height of [340, 300]) {
+      await page.setViewportSize({ width: 390, height });
+      const app = await figureCard(page, baseURL, height);
+      const at = await composition(app);
+      console.log(`[stacked] 390x${height} ${JSON.stringify(at)}`);
+      expect(at.picture).toBe('figure');
+      // The picture keeps the whole field above the bar's room; the words sit at its foot (measured before at 300: centred, y 40 to 172).
+      expect(at.region).toBeCloseTo(height - ROOM, 0);
+      expect(at.wordsBottom).toBeGreaterThanOrEqual(height - ROOM - 2);
+      expect(at.wordsBottom).toBeLessThanOrEqual(height - ROOM + 25);
+    }
+  });
+
+  /** Every frame for `ms`: the scene's canvas box and pixel size, the words' box, and each resize sent to its worker. */
+  const sceneFrames = async (app, page, ms) => {
+    await app.locator('body').evaluate(body => {
+      const doc = body.ownerDocument;
+      const win = doc.defaultView;
+      const box = field => {
+        const outer = field.querySelector('.atom-band').getBoundingClientRect();
+        return outer.height ? outer : field.querySelector('#atom-display').getBoundingClientRect();
+      };
+      const record = win.__stackProbe = { resizes: 0, frames: [] };
+      const post = win.Worker.prototype.postMessage;
+      win.Worker.prototype.postMessage = function (message, ...rest) {
+        if (message?.type === 'scene/resize') record.resizes += 1;
+        return post.call(this, message, ...rest);
+      };
+      const tick = () => {
+        const field = doc.querySelector('#chamber-field');
+        const canvas = doc.querySelector('canvas.chamber-scene');
+        const display = doc.querySelector('#atom-display');
+        const band = box(field);
+        record.frames.push({
+          picture: field.dataset.picture ?? null,
+          canvas: canvas ? { bottom: canvas.getBoundingClientRect().bottom, size: `${canvas.width}x${canvas.height}` } : null,
+          words: display.textContent.trim() ? { top: band.top, bottom: band.bottom } : null
+        });
+        if (!record.stopped) win.requestAnimationFrame(tick);
+      };
+      win.requestAnimationFrame(tick);
+    });
+    await page.waitForTimeout(ms);
+    return app.locator('body').evaluate(body => {
+      const probe = body.ownerDocument.defaultView.__stackProbe;
+      probe.stopped = true;
+      return probe;
+    });
+  };
+
+  test('a generated scene on a small card is drawn above the words, and sized once: no resize in 8 s of play', async ({ page, baseURL }) => {
+    await page.setViewportSize({ width: 390, height: 481 });
+    const app = await fieldCard(page, baseURL, { height: 481 });
+    await expect(app.locator('canvas.chamber-scene')).toBeAttached({ timeout: 15_000 });
+    const record = await sceneFrames(app, page, 8_000);
+    const drawn = record.frames.filter(frame => frame.canvas);
+    const worded = drawn.filter(frame => frame.words);
+    const gaps = worded.map(frame => frame.words.top - frame.canvas.bottom);
+    console.log(`[stacked] Sky 390x481: ${record.frames.length} frames, canvas bottoms [${[...new Set(drawn.map(frame => Math.round(frame.canvas.bottom)))]}], `
+      + `canvas sizes [${[...new Set(drawn.map(frame => frame.canvas.size))]}], words above the canvas by ${Math.round(Math.min(...gaps))} px at least, resizes ${record.resizes}`);
+    expect(new Set(record.frames.map(frame => frame.picture))).toEqual(new Set(['scene']));
+    expect(worded.length).toBeGreaterThan(0);
+    // Measured before: the canvas ran to 393 px and the caption sat on it, from 289 to 385.
+    expect(Math.min(...gaps)).toBeGreaterThanOrEqual(-0.5);
+    expect(record.resizes).toBe(0);
+    expect(new Set(drawn.map(frame => frame.canvas.size)).size).toBe(1);
+  });
+
+  test('a scene that first appears mid-reading on a small card is sized once, at its mount', async ({ page, baseURL }) => {
+    await page.setViewportSize({ width: 390, height: 481 });
+    const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+    const late = { ...sceneBeats(ORBIT_CODE, { ms: 3000 }), beats: [
+      { say: 'First, the look alone.' }, { hold: { ms: 1500 } }, { say: 'Then a point going round.', scene: 'orbit' }, { hold: { ms: 4000 } }, { say: 'It came to rest.' }
+    ] };
+    const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: late, height: 481 });
+    await begin(app);
+    await expectShown(app, 'First, the look alone.');
+    await expect(app.locator('#chamber-field')).not.toHaveAttribute('data-picture', /./u);
+    const record = await sceneFrames(app, page, 6_000);
+    // 300 x 150 is a canvas's default size, before its worker is given the one it draws at.
+    const drawn = record.frames.filter(frame => frame.canvas && frame.canvas.size !== '300x150');
+    console.log(`[stacked] late scene 390x481: picture [${[...new Set(record.frames.map(frame => frame.picture))]}], canvas sizes [${[...new Set(drawn.map(frame => frame.canvas.size))]}], resizes ${record.resizes}`);
+    expect(drawn.length).toBeGreaterThan(0);
+    expect(new Set(drawn.map(frame => frame.picture))).toEqual(new Set(['scene']));
+    expect(record.resizes).toBe(0);
+    expect(new Set(drawn.map(frame => frame.canvas.size)).size).toBe(1);
   });
 });
 

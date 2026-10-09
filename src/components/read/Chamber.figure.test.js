@@ -70,6 +70,18 @@ describe('a figure in the Chamber', () => {
     expect(img.isConnected).toBe(false);
   });
 
+  it('marks the field as holding a picture when it mounts, and not when admission refuses it', async () => {
+    const refused = makeChamber();
+    refused.chamber.applyScheduledVisualCue(BAD, { transitionMs: 0 });
+    await settle();
+    expect(refused.container.querySelector('#chamber-field').dataset.picture).toBeUndefined();
+    refused.chamber.destroy();
+    const { chamber, container } = makeChamber();
+    chamber.applyScheduledVisualCue(FIGURE, { transitionMs: 0 });
+    expect(container.querySelector('#chamber-field').dataset.picture).toBe('figure');
+    chamber.destroy();
+  });
+
   it('runs its holds on their ms: a figure ends no hold early', async () => {
     const { chamber } = makeChamber();
     chamber.applyScheduledVisualCue(FIGURE, { transitionMs: 0 });
