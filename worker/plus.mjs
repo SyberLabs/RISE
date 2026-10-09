@@ -721,13 +721,18 @@ async function status(request, env, now) {
     name = `sub:${current.s}`;
     const kept = await meter(env, name, 'inspect', { ttl: STANDING_TTL_S });
     if (kept.revoked) return reply(200, result);
-    if (kept.fresh && kept.standing?.l === livemode(env) && kept.standing.budgetPolicy === JSON.stringify(policy)) standing = kept.standing;
+    if (kept.fresh && (kept.standing === null || (kept.standing.l === livemode(env) && kept.standing.budgetPolicy === JSON.stringify(policy)))) standing = kept.standing;
     else {
-      const subscription = await stripe(`/v1/subscriptions/${encodeURIComponent(current.s)}`, env);
-      standing = claimFor(subscription, env);
-      if (standing) {
-        const budgetMicros = await paidBudget(subscription, standing, env, policy, stripe);
-        standing = budgetMicros ? { ...standing, budgetMicros, budgetPolicy: JSON.stringify(policy) } : null;
+      try {
+        const subscription = await stripe(`/v1/subscriptions/${encodeURIComponent(current.s)}`, env);
+        standing = claimFor(subscription, env);
+        if (standing) {
+          const budgetMicros = await paidBudget(subscription, standing, env, policy, stripe);
+          standing = budgetMicros ? { ...standing, budgetMicros, budgetPolicy: JSON.stringify(policy) } : null;
+        }
+      } catch (error) {
+        if (error?.status !== 404) throw error;
+        standing = null;
       }
       await meter(env, name, 'standing', { standing, revision: kept.revision });
     }
