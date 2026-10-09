@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "M1 acceptance",
   "status": "in_review",
-  "delivery": "not_shipped",
+  "delivery": "deployed",
   "owner": null,
   "priority": "next",
   "dependencies": [
@@ -46,6 +46,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/484",
       "note": "Fixes the three witness defects: a hold cancels and remembers instead of pausing Chromium's browser-wide speech engine, every pause takes up the phrase on screen with the voice, a new voice clears an engine left paused, and the end draws a replay arrow. Needs a re-witness on a release that includes it.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/3b43a3be42e893dc1dbb6b78bfc30d49f930e8c8",
+      "note": "Live release: https://rise.syberlabs.io/release.txt read 3b43a3be on 2026-10-09, after main CI run 37876662647 (CI and production succeeded). It contains #484 (79d3dd29, the fixes for the three defects of the 2026-10-07 witness), #512 (d5a1718c, RISE switched on in ChatGPT and Claude with the self-contained card), #535 (907ab61b) and #549, #551, #553 (the playback instrument).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
+      "note": "Owner, 2026-10-09, in Claude on the deployed build, after voice hardening 2 (#535) and the playback instrument (#549, #551, #553): \"Beautiful!! Much more robust and working well on the voice side. Card behavior still needs further testing from brand new sessions.\" and \"very good. seems to be working wonderfully! Fullscreen esp is a step up.\" Recorded as observations, not as acceptance: the owner has not said they accept this task.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -68,10 +80,14 @@
     {
       "date": "2026-10-07T14:31:33.423Z",
       "summary": "The three witness defects fixed in #484; re-witness next"
+    },
+    {
+      "date": "2026-10-09T03:34:37.684Z",
+      "summary": "Reconciled: delivery deployed (release 3b43a3be); owner observations of 2026-10-09 in Claude recorded, not as acceptance; Claude-first blocker replaces the ChatGPT re-witness"
     }
   ],
-  "updatedAt": "2026-10-07T14:31:33.423Z",
-  "revision": 5,
+  "updatedAt": "2026-10-09T03:34:37.684Z",
+  "revision": 6,
   "summary": "Integrate score, admitted host behavior and fixtures into a coherent first-use experience.",
-  "blocker": "Re-witness in ChatGPT on a release that includes #484 (the fixes for the three playback defects of the 2026-10-07 witness)."
+  "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

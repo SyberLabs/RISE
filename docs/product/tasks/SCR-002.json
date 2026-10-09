@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "Score stage 1",
   "status": "in_review",
-  "delivery": "not_shipped",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
@@ -27,6 +27,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/504",
       "note": "Validator, lowering, live event path, tool schema and guide; one card browser test per look.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/3b43a3be42e893dc1dbb6b78bfc30d49f930e8c8",
+      "note": "Live release: https://rise.syberlabs.io/release.txt read 3b43a3be on 2026-10-09, after main CI run 37876662647 (CI and production succeeded). It contains #504 (343f2c91, the look) and #517 (3ad74f18, rise.current.v2 with a sound per beat).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/517",
+      "note": "Merged as 3ad74f18: a v2 beat may name a sound, checked against SOUND_IDS (BEAT_SOUND refusal); a v1 Current still admits. Since #558 (337da6b7) the eleven Feelings ids are refused.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -37,10 +49,14 @@
     {
       "date": "2026-10-08T04:01:48.863Z",
       "summary": "A Current names one of the ten looks (#504)"
+    },
+    {
+      "date": "2026-10-09T03:34:38.251Z",
+      "summary": "Reconciled: the look (#504) is live in release 3b43a3be, delivery deployed; collection, pace and the curator-context resource remain unmet"
     }
   ],
-  "updatedAt": "2026-10-08T04:01:48.863Z",
-  "revision": 2,
+  "updatedAt": "2026-10-09T03:34:38.251Z",
+  "revision": 3,
   "summary": "A Current names one of the ten looks (RISE_CURRENT_LOOKS); the Worker admits the id only, and the card lowers it through its own field, typeface, size and theme (src/core/current-look.js), sound not lowered, Inlay without its word mask. The tool schema and the guide offer the ten. Witnessed in ChatGPT in the final pass.",
-  "blocker": null
+  "blocker": "Not met: criterion 1 for the stage 1b fields (a per-segment collection and pace are not admitted; only look, and a sound per v2 beat, are); criterion 2 (the curator context is not served as an MCP resource: resources/list offers ui://rise/current and the ui://rise/guide/<style> guides only). Criterion 3 met as far as tests show (v1 still admits)."
 }

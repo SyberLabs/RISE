@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "Speech",
   "status": "in_review",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -22,16 +22,44 @@
       "ref": "docs/product/tasks/SPK-004.json",
       "note": "Owner, 2026-10-08, on a friend's Chrome PC in Claude: some phrases flashed past faster than the voice, which then caught up; and the voice fell back to the default browser voice.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/515",
+      "note": "Merged as ddba7419 (main CI run 37760303919 succeeded): words never ahead of a voice reporting boundaries, a longer first grace, Chrome's Google voices a sentence at a time. Unit tests in src/live/speech-governor.test.js, src/live/speech-governor.guard.test.js and src/live/voices/browser.test.js (criteria 1 to 3).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/535",
+      "note": "Merged as 907ab61b (main CI run 37842101050 succeeded): voice hardening 2, the clock after a hold, a voice taken from outside, and the reading that ends when the voice has; findings in docs/product/discussions/2026-10-08-voice-hardening-2-findings.md.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/3b43a3be42e893dc1dbb6b78bfc30d49f930e8c8",
+      "note": "Live release: https://rise.syberlabs.io/release.txt read 3b43a3be on 2026-10-09, after main CI run 37876662647 (CI and production succeeded). It contains ddba7419 (#515) and 907ab61b (#535).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
+      "note": "Owner, 2026-10-09, in Claude on the deployed build: \"Beautiful!! Much more robust and working well on the voice side. Card behavior still needs further testing from brand new sessions.\" Not recorded as criterion 4: it does not say Chrome on Windows, a Google voice, or no phrase faster than spoken.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
     {
       "date": "2026-10-08T10:00:00.000Z",
       "summary": "Opened from the owner's second-PC witness in Claude; design approved by the owner the same day."
+    },
+    {
+      "date": "2026-10-09T03:34:38.106Z",
+      "summary": "Reconciled: shipped as #515 (ddba7419), hardened by #535 (907ab61b), both in live release 3b43a3be; delivery deployed, in review for the Chrome-on-Windows human gate"
     }
   ],
-  "updatedAt": "2026-10-08T10:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-09T03:34:38.106Z",
+  "revision": 2,
   "summary": "Hardens the browser voice as the reading's clock: the words on screen wait for the word spoken, a cold engine gets a longer first grace, and Chrome readers get a Google voice spoken a sentence at a time.",
-  "blocker": null
+  "blocker": "Criterion 4 is a human gate: the owner or a second reader on Chrome on Windows hears a Google voice and sees no phrase pass faster than it is spoken, on the live release."
 }
