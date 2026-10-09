@@ -26,6 +26,7 @@ import { sceneReportLine } from '../live/host/LiveHost.js';
 import { SCENE_CODE_EXAMPLE, TOOL_NAME } from '../live/guide/index.js';
 import { APP_MIME, APP_URI, GUIDE_TOOL_NAME, MAX_SCENE_LINES, MCP_PATH, PROTOCOL_VERSIONS, currentJsonSchemaV2 } from '../../worker/mcp-server.mjs';
 import { admitSceneCode, describeDiagnostic } from '../../worker/scene-admission.mjs';
+import { admitSvg } from './svg-admission.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DOC = 'docs/specs/RISE-SDK.md';
@@ -256,5 +257,25 @@ describe('generated scenes', () => {
     expect(text).toContain(sceneReportLine({ sceneId: 'vector', phase: 'flash' }));
     const lead = /const REPORT_LEAD = '([^']+)'/u.exec(read('src/live/hosts/mcp-port.js'))[1];
     expect(text).toContain(lead);
+  });
+});
+
+describe('figures', () => {
+  it('list exactly the elements a figure may use, as admission keeps them', () => {
+    const line = text.split('\n').find(item => item.startsWith('- **Elements a figure may use:**'));
+    expect(line, `${DOC} has no line listing the figure's elements`).toBeDefined();
+    expect([...line.matchAll(/`([^`]+)`/gu)].map(match => match[1])).toEqual([...sdk.SVG_ELEMENTS]);
+    expect(sdk.SVG_ELEMENTS).not.toContain('feImage');
+  });
+
+  it('quote the admission’s refusal line as the server writes it', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3">\n  <script>alert(1)</script>\n</svg>';
+    const [diagnostic] = admitSvg(svg).diagnostics;
+    expect(text).toContain(`Scene "triangle" was refused: ${describeDiagnostic(diagnostic)}`);
+  });
+
+  it('quote the card’s report of a figure it refused or could not draw', () => {
+    expect(text).toContain(sceneReportLine({ sceneId: 'triangle', phase: 'admission', message: 'line 2, column 3: <script> is not an element a figure may use', where: null }));
+    expect(text).toContain(sceneReportLine({ sceneId: 'triangle', phase: 'image', message: '', where: null }));
   });
 });

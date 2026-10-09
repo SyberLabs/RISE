@@ -1,8 +1,9 @@
 /**
  * Premium Educational: a calm lesson in the manner of 3Blue1Brown
  * (docs/superpowers/specs/2026-10-08-creative-control-design.md §11). The
- * guidance says how to write in the style; the two worked Currents are real
- * ones the validator accepts and whose scenes the server admits (held by
+ * guidance says how to write in the style; the worked Currents (two code
+ * scenes and a figure) are real ones the validator accepts and whose scenes
+ * the server admits (held by
  * src/live/guide/index.test.js, and run headless by npm run eval:creative).
  */
 
@@ -72,6 +73,36 @@ const TANGENT_SCENE = [
     '}'
 ].join('\n');
 
+const CELL_FIGURE = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 300" font-family="sans-serif" font-size="15" fill="currentColor">',
+    '  <title>An animal cell, labelled</title>',
+    '  <defs>',
+    '    <radialGradient id="plasm" cx="0.45" cy="0.4" r="0.7">',
+    '      <stop offset="0" stop-color="currentColor" stop-opacity="0.16"/>',
+    '      <stop offset="1" stop-color="currentColor" stop-opacity="0.04"/>',
+    '    </radialGradient>',
+    '  </defs>',
+    '  <ellipse cx="200" cy="150" rx="170" ry="120" fill="url(#plasm)" stroke="currentColor" stroke-width="2.5"/>',
+    '  <circle cx="185" cy="140" r="42" fill="none" stroke="currentColor" stroke-width="2"/>',
+    '  <circle cx="192" cy="134" r="11"/>',
+    '  <g fill="none" stroke="currentColor" stroke-width="1.6" transform="rotate(-20 290 200)">',
+    '    <ellipse cx="290" cy="200" rx="36" ry="16"/>',
+    '    <path d="M262,204 q7,-12 14,0 t14,0 t14,0 t14,0"/>',
+    '  </g>',
+    '  <g stroke="currentColor" stroke-width="1" stroke-dasharray="3 3">',
+    '    <line x1="347" y1="90" x2="395" y2="60"/>',
+    '    <line x1="221" y1="119" x2="395" y2="115"/>',
+    '    <line x1="200" y1="132" x2="395" y2="165"/>',
+    '    <line x1="322" y1="196" x2="395" y2="220"/>',
+    '  </g>',
+    '  <text x="400" y="65">cell membrane</text>',
+    '  <text x="400" y="120">nucleus</text>',
+    '  <text x="400" y="170">nucleolus</text>',
+    '  <text x="400" y="225">mitochondrion</text>',
+    '  <text x="80" y="215" fill-opacity="0.8">cytoplasm</text>',
+    '</svg>'
+].join('\n');
+
 export const EXAMPLES = Object.freeze([
     {
         prompt: 'Explain why the length of a vector is the square root of x squared plus y squared.',
@@ -115,6 +146,27 @@ export const EXAMPLES = Object.freeze([
                 { show: "$f'(a) = \\lim_{h \\to 0} \\dfrac{f(a+h) - f(a)}{h}$", hold: { ms: 3500 }, place: 'centre', size: 'larger' }
             ]
         }
+    },
+    {
+        prompt: 'Show me the parts of an animal cell.',
+        current: {
+            schema: 'rise.current.v2',
+            id: 'parts-of-a-cell',
+            title: 'The parts of an animal cell',
+            theme: 'jade',
+            style: 'premium-educational',
+            origin: ORIGIN,
+            scenes: [{ id: 'cell', svg: CELL_FIGURE }],
+            beats: [
+                { say: 'Here is an animal cell, drawn as if it were sliced open.', scene: 'cell', sound: 'starlight' },
+                { hold: { ms: 2500 } },
+                { say: 'Its edge is the cell membrane, a thin skin that decides what comes in and what goes out.', emphasis: ['membrane'] },
+                { say: 'Inside is the cytoplasm, a crowded gel where the cell does most of its work.' },
+                { say: 'The nucleus holds the cell’s DNA, and the dark spot within it, the nucleolus, builds ribosomes.' },
+                { say: 'And the mitochondria turn sugar and oxygen into the energy the cell spends.' },
+                { show: 'Membrane, cytoplasm, nucleus, mitochondria: the parts every animal cell shares.', hold: { ms: 3500 }, place: 'centre', size: 'larger' }
+            ]
+        }
     }
 ]);
 
@@ -133,5 +185,6 @@ export const GUIDANCE = [
     '- Draw on the quiet field lib.clear() gives: the grid faint, the accent colour for the thing being explained, muted for scaffolding, highlight for the one point to look at. Nothing flashes, nothing spins for its own sake.',
     '- Keep text in the scene to a few labels; the captions carry the words.',
     '- Lay one quiet bed under the whole lesson: "sound": "starlight" (or "aurora") on the first beat and on no other. Never a tone, never a change of sound part way through, never a sound on a hold; the voice and the picture carry the lesson.',
+    '- A labelled diagram that needs no cues (the parts of a thing, a map, a chart) is a figure: draw it as SVG in currentColor, labels and all, and let the captions walk through it.',
     '- End on a shown line ("show" with "hold", in the centre, larger) that states the result.'
 ].join('\n');

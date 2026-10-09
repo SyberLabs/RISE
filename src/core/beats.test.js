@@ -151,6 +151,35 @@ describe('scenes, in this release', () => {
     expect(caught?.code).toBe('BEAT_CUE');
   });
 
+  it('admits a figure: an SVG document within its size, and nothing beside it', () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>';
+    expect(validateScenes([{ id: 'triangle', svg }], '$.scenes')).toEqual([{ id: 'triangle', svg }]);
+    expect(BEAT_LIMITS.svg).toBe(32_768);
+    refusesScene([{ id: 'f', svg: 42 }], 'SCENE_SVG');
+    const big = refusesScene([{ id: 'f', svg: `<svg>${'é'.repeat(BEAT_LIMITS.svg / 2)}</svg>` }], 'SCENE_SVG');
+    expect(big.path).toBe('$.scenes[0].svg');
+    for (const mix of [{ engine: 'attractor' }, { params: {} }, { code: 'export default () => ({})' }]) {
+      expect(refusesScene([{ id: 'f', svg, ...mix }], 'SCENE_SVG').path, JSON.stringify(mix)).toBe('$.scenes[0]');
+    }
+  });
+
+  it('refuses a cue to a figure, which takes none', () => {
+    const scenes = [{ id: 'triangle', svg: '<svg/>' }];
+    let caught = null;
+    try { validateBeats([{ say: 'x', scene: 'triangle' }, { hold: { ms: 2000 }, cue: 'draw' }], '$.beats', { scenes }); } catch (error) { caught = error; }
+    expect(caught?.code).toBe('BEAT_CUE');
+    expect(caught?.message).toMatch(/^An SVG figure takes no cues/u);
+    expect(caught?.path).toBe('$.beats[1].cue');
+  });
+
+  it('lowers a figure’s passages with the figure, and draws it as a scene', () => {
+    const scenes = [{ id: 'triangle', svg: '<svg/>' }];
+    const lowered = lowerBeats({ scenes, beats: validateBeats([{ say: 'x', scene: 'triangle' }, { hold: { ms: 2000 } }], '$.beats', { scenes }) });
+    expect(lowered.segments.map(segment => segment.visual)).toEqual(['scene', 'scene']);
+    expect(lowered.segments[1].scene).toEqual(scenes[0]);
+    expect(lowered.segments[1].hold).toEqual({ ms: 2000, sceneId: 'triangle' });
+  });
+
   it('lowers a generated scene’s passages with the scene, and draws it', () => {
     const scenes = [{ id: 'vector', code: 'export default () => ({ frame() {} })' }];
     const lowered = lowerBeats({ scenes, beats: validateBeats([{ say: 'x', scene: 'vector' }, { hold: { ms: 2000, maxMs: 5000 } }], '$.beats', { scenes }) });

@@ -13,9 +13,10 @@ import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_ENGINES, SCENE_LIMITS } from '..
 import { STYLES } from '../../core/styles.js';
 import { PARKED_SOUNDS } from '../../audio/sound-ids.js';
 import { createSceneLibrary } from '../../scenes/scene-library.js';
-import { admitSceneCode } from '../../../worker/scene-admission.mjs';
+import { admitSceneCode, describeDiagnostic } from '../../../worker/scene-admission.mjs';
+import { admitSvg, SVG_ELEMENTS } from '../../core/svg-admission.js';
 import {
-    CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, CURRENT_GUIDE_V2, DIVE_INSTRUCTIONS, LIB_GUIDE, LOOK_HINTS, SCENE_CODE_EXAMPLE,
+    CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, CURRENT_GUIDE_V2, DIVE_INSTRUCTIONS, FIGURE_EXAMPLE, FIGURE_GUIDE, LIB_GUIDE, LOOK_HINTS, SCENE_CODE_EXAMPLE,
     STYLE_EXAMPLES, STYLE_LINES, THEME_HINTS, TOOL_NAME, styleGuide
 } from './index.js';
 
@@ -140,6 +141,8 @@ describe('the guide to beats', () => {
 
 /** Every scene of a Current that is code. */
 const codeScenes = current => (current.scenes ?? []).filter(scene => typeof scene.code === 'string');
+/** Every scene of a Current that is a figure. */
+const figures = current => (current.scenes ?? []).filter(scene => typeof scene.svg === 'string');
 
 describe('code scenes, as the guide teaches them', () => {
     it('shows a module the server admits, verbatim, and one a Current may carry', () => {
@@ -189,16 +192,46 @@ describe('code scenes, as the guide teaches them', () => {
     });
 });
 
+describe('figures, as the guide teaches them', () => {
+    it('are named in the tool’s guide in a few lines: the shape, the size, the namespace, the viewBox, the ink, no cues, and where the rules are', () => {
+        expect(CURRENT_GUIDE_V2).toContain('"svg"');
+        expect(CURRENT_GUIDE_V2).toContain(BEAT_LIMITS.svg.toLocaleString('en-US'));
+        expect(CURRENT_GUIDE_V2).toContain('xmlns="http://www.w3.org/2000/svg"');
+        expect(CURRENT_GUIDE_V2).toMatch(/viewBox/u);
+        expect(CURRENT_GUIDE_V2).toMatch(/currentColor/u);
+        expect(CURRENT_GUIDE_V2).toMatch(/takes no cues/u);
+        expect(CURRENT_GUIDE_V2).toContain('rise_guide');
+        expect(CURRENT_GUIDE_V2).not.toContain(FIGURE_GUIDE);
+    });
+
+    it('are taught in full with every style: when to draw one, its limits, every element it may use, and an example the card admits', () => {
+        expect(admitSvg(FIGURE_EXAMPLE)).toEqual({ ok: true });
+        expect(FIGURE_GUIDE).toContain(FIGURE_EXAMPLE);
+        for (const name of SVG_ELEMENTS) expect(FIGURE_GUIDE, name).toMatch(new RegExp(`\\b${name}\\b`, 'u'));
+        for (const name of ['script', 'foreignObject', 'image', 'feImage']) expect(FIGURE_GUIDE, name).toContain(name);
+        expect(FIGURE_GUIDE).toMatch(/code scene/u);
+        expect(FIGURE_GUIDE).toMatch(/takes no cues/u);
+        expect(FIGURE_GUIDE).toMatch(/currentColor/u);
+        expect(FIGURE_GUIDE).toContain(BEAT_LIMITS.svg.toLocaleString('en-US'));
+        for (const id of RISE_CURRENT_STYLES) expect(styleGuide(id), id).toContain(FIGURE_GUIDE);
+    });
+
+    it('quote the refusal as the Worker writes it', () => {
+        const bad = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3">\n  <script>alert(1)</script>\n</svg>';
+        expect(FIGURE_GUIDE).toContain(`Scene "triangle" was refused: ${describeDiagnostic(admitSvg(bad).diagnostics[0])}`);
+    });
+});
+
 describe('styles', () => {
     it('give the tool one line each, the style’s own', () => {
         expect(STYLE_LINES).toEqual(RISE_CURRENT_STYLES.map(id => `- ${STYLES[id].line}`));
     });
 
-    it('each have full guidance with two worked Currents, as they will be read, and nothing else has any', () => {
+    it('each have full guidance with their worked Currents, as they will be read, and nothing else has any', () => {
         for (const id of RISE_CURRENT_STYLES) {
             const text = styleGuide(id);
             expect(text, id).toContain(`"style": "${id}"`);
-            expect(STYLE_EXAMPLES[id], id).toHaveLength(2);
+            expect(STYLE_EXAMPLES[id].length, id).toBeGreaterThanOrEqual(2);
             for (const { prompt, current } of STYLE_EXAMPLES[id]) {
                 expect(text).toContain(prompt);
                 expect(text).toContain(JSON.stringify(current, null, 2));
@@ -214,6 +247,7 @@ describe('styles', () => {
                 expect(valid.style, current.id).toBe(id);
                 expect(valid.schema).toBe('rise.current.v2');
                 for (const scene of codeScenes(current)) expect(admitSceneCode(scene.code), `${current.id}/${scene.id}`).toEqual({ ok: true });
+                for (const scene of figures(current)) expect(admitSvg(scene.svg), `${current.id}/${scene.id}`).toEqual({ ok: true });
             }
         }
     });
@@ -241,7 +275,9 @@ describe('styles', () => {
     });
 
     it('teach code scenes in both: Premium Educational writes its pictures, Open Field shows a look and a scene of its own', () => {
-        for (const { current } of STYLE_EXAMPLES['premium-educational']) expect(codeScenes(current).length, current.id).toBeGreaterThan(0);
+        // Every lesson draws its own picture: code it cues, or a figure.
+        for (const { current } of STYLE_EXAMPLES['premium-educational']) expect(codeScenes(current).length + figures(current).length, current.id).toBeGreaterThan(0);
+        expect(STYLE_EXAMPLES['premium-educational'].some(({ current }) => figures(current).length > 0)).toBe(true);
         const open = STYLE_EXAMPLES['open-field'];
         expect(open.some(({ current }) => current.look !== undefined)).toBe(true);
         expect(open.some(({ current }) => codeScenes(current).length > 0)).toBe(true);

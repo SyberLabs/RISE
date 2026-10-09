@@ -129,6 +129,8 @@ import { manifestFor } from '../../scenes/manifests.js';
 import { createFlashWatch, createSceneRuntime, SCENE_VISUAL_MANIFEST } from '../../scenes/scene-runtime.js';
 import { VisualFlashGate } from '../../core/visual-safety.js';
 import { mountSceneLayer } from './scene-layer.js';
+import { mountFigureLayer } from './figure-layer.js';
+import { admitSvg } from '../../core/svg-admission.js';
 import './Chamber.css';
 
 const RHYTHMS = Object.freeze([['phrase', 'Phrase'], ['sentence', 'Sentence'], ['word', 'Word']]);
@@ -2782,6 +2784,7 @@ export class Chamber {
    * that would flash is frozen on its last frame.
    */
   _mountSceneCue(field, cue) {
+    if (typeof cue.svg === 'string') return this._mountFigureCue(field, cue);
     let destroyed = false;
     let runtime = null;
     const layer = mountSceneLayer({
@@ -2832,6 +2835,41 @@ export class Chamber {
     layer.resize();
     void runtime.start({ id: cue.sceneId, code: cue.code });
     if (this._visualFieldDirector?.paused !== true) runtime.play();
+    return record;
+  }
+
+  /**
+   * A figure (CC-009): SVG the model drew, admitted here again whatever the Worker said, then shown as an
+   * image behind the reading. A refused figure mounts nothing; one that cannot be drawn gives way to the
+   * fallback. Either is noted, and not tried again. Its holds run on their ms (holdScene sees no 'scene').
+   */
+  _mountFigureCue(field, cue) {
+    const failed = (phase, message) => {
+      this._noteScene({ sceneId: cue.sceneId, phase, message, where: null });
+      (this._failedScenes ??= new Set()).add(cue.sceneId);
+    };
+    const verdict = admitSvg(cue.svg);
+    if (!verdict.ok) {
+      const [{ line, column, message }] = verdict.diagnostics;
+      failed('admission', line === null ? message : `line ${line}, column ${column}: ${message}`);
+      queueMicrotask(() => {
+        if (this._currentVisualCue === cue) this.applyScheduledVisualCue(this._sceneFallbackCue(), {});
+      });
+      return null;
+    }
+    let record = null;
+    const colors = this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session);
+    const layer = mountFigureLayer({
+      field,
+      insertBehindReading: (host, node) => this._insertBehindReading(host, node),
+      svg: cue.svg,
+      ink: colors?.text ?? null,
+      onError: () => {
+        failed('image', 'the figure could not be drawn as an image');
+        if (this._visualFieldDirector?.active === record) this.applyScheduledVisualCue(this._sceneFallbackCue(), {});
+      }
+    });
+    record = { node: layer.node, renderer: 'figure', sceneId: cue.sceneId, destroy: () => layer.destroy() };
     return record;
   }
 

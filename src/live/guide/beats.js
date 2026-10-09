@@ -6,9 +6,13 @@
  * BEAT_LIMITS and SCENE_LIMITS, the refused names are the admission's list,
  * the module shape is the one the scene worker calls, and LIB_GUIDE names
  * exactly what createSceneLibrary gives a scene (index.test.js holds each).
+ * A figure (an SVG scene) is named here in a few lines, for the tool's
+ * description has little room; FIGURE_GUIDE, with the element list the
+ * admission keeps, travels with every style's guidance (rise_guide).
  */
 import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_ENGINES, SCENE_LIMITS, describeManifests } from '../../core/beats.js';
 import { RISE_CURRENT_STYLES } from '../../core/rise-current.js';
+import { SVG_ELEMENTS } from '../../core/svg-admission.js';
 
 /** A Current of beats: time the model composes (src/core/beats.js). */
 export const CURRENT_EXAMPLE_V2 = Object.freeze({
@@ -82,6 +86,34 @@ const SCENE_GUIDE = [
     '- RISE checks every code scene before it accepts the Current. A refusal names the scene, the line and column, and the rule (Scene "plane" was refused: line 4, column 9: `fetch` is not available to a scene.); repair that line and call again with the whole Current.'
 ].join('\n');
 
+/** A figure as a model draws it: admitted by the server and the card (held by a test). */
+export const FIGURE_EXAMPLE = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" font-family="sans-serif" font-size="16" fill="currentColor">',
+    '  <title>A right triangle with sides 3, 4 and 5</title>',
+    '  <path d="M60,220 H300 V40 Z" fill="none" stroke="currentColor" stroke-width="2.5"/>',
+    '  <path d="M282,220 V202 H300" fill="none" stroke="currentColor"/>',
+    '  <text x="180" y="246" text-anchor="middle">4</text>',
+    '  <text x="314" y="136">3</text>',
+    '  <text x="168" y="120" text-anchor="end">5</text>',
+    '</svg>'
+].join('\n');
+
+const FIGURE_LINE = `Figures. A scene may instead be { "id": "...", "svg": "<svg ...>" }: one SVG document of at most ${BEAT_LIMITS.svg.toLocaleString('en-US')} bytes, shown still behind the words: a labelled diagram that needs no cues. Its root has xmlns="http://www.w3.org/2000/svg" and a viewBox; draw ink in currentColor. A figure takes no cues. Call rise_guide for the figure rules before drawing one.`;
+
+/** Everything a model is told about figures, with each style's guidance. */
+export const FIGURE_GUIDE = [
+    'Figures: a picture you draw as SVG.',
+    `- When: a labelled diagram, a chart, the parts of a thing; a picture that is right standing still. When the picture must change on cue, beat by beat, write a code scene instead.`,
+    `- Shape: { "id": "...", "svg": "..." }, one SVG document of at most ${BEAT_LIMITS.svg.toLocaleString('en-US')} bytes. The root <svg> has xmlns="http://www.w3.org/2000/svg" and a viewBox; RISE scales the figure to fit behind the words, centred, and dissolves it in and out like any scene.`,
+    '- Ink: draw strokes, fills and text in currentColor, and RISE gives it the reading\'s ink, so the figure suits the theme. Leave the background empty: the reading\'s own shows through.',
+    '- Time: a figure takes no cues, and a hold under it lasts its ms. <animate> and its kin run inside the figure, even for a reader who asked for reduced motion, so keep any motion slow and small, or leave it out.',
+    `- Elements: only ${SVG_ELEMENTS.join(', ')}. Anything else is refused by name: script, foreignObject, image, a, iframe, feImage, metadata and the rest.`,
+    '- Nothing outside the figure: no event handler (on...), no href or xlink:href but "#id", no url() but url(#id), and no javascript:, data:, http:, https: or // in any value. No DOCTYPE or entity declaration, and no processing instruction but <?xml ...?> at the start. In CSS (a style attribute or a <style>): no @import, no escapes (\\), no expression(, behavior or -moz-binding.',
+    '- RISE checks every figure before it accepts the Current, and again before it draws it. A refusal names the scene, the line and column, and the rule: Scene "triangle" was refused: line 2, column 3: <script> is not an element a figure may use. Repair it and call again with the whole Current.',
+    '',
+    FIGURE_EXAMPLE
+].join('\n');
+
 export const BEATS_GUIDE = [
     'A Current may instead be a sequence of BEATS over SCENES ("schema": "rise.current.v2"), when the answer needs time of its own: a picture that plays while nothing is said, a caption under a running scene, a line shown for a while.',
     '',
@@ -101,5 +133,7 @@ export const BEATS_GUIDE = [
     'Scenes, their parameters ("params", each within its bounds) and their cues ("cue" on a later beat: a named cue, or set:<parameter>=<value> on a cueable one):',
     describeManifests(),
     '',
-    SCENE_GUIDE
+    SCENE_GUIDE,
+    '',
+    FIGURE_LINE
 ].join('\n');

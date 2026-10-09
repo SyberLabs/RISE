@@ -1,0 +1,67 @@
+{
+  "prompt": "Draw me the Plough, and tell me why we see shapes in the stars.",
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "a-shape-in-the-stars",
+    "title": "A shape in the stars",
+    "theme": "cobalt",
+    "style": "open-field",
+    "origin": {
+      "kind": "model",
+      "name": "Your name",
+      "provider": "Who runs you"
+    },
+    "scenes": [
+      {
+        "id": "sky",
+        "engine": "attractor",
+        "params": {
+          "palette": "blue",
+          "speed": 0.3
+        }
+      },
+      {
+        "id": "plough",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 600 340\" fill=\"currentColor\" font-family=\"serif\" font-style=\"italic\" font-size=\"18\">\n  <title>The Plough, joined star to star</title>\n  <defs>\n    <filter id=\"glow\"><feGaussianBlur stdDeviation=\"2.5\" result=\"blur\"/><feMerge><feMergeNode in=\"blur\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter>\n    <symbol id=\"star\" viewBox=\"-10 -10 20 20\"><circle r=\"4\"/></symbol>\n  </defs>\n  <polyline points=\"70,110 170,95 260,120 330,160 340,250 470,265 485,175 330,160\" fill=\"none\" stroke=\"currentColor\" stroke-opacity=\"0.45\" stroke-width=\"1.2\"/>\n  <g filter=\"url(#glow)\">\n    <use href=\"#star\" x=\"60\" y=\"100\" width=\"20\" height=\"20\"/>\n    <use href=\"#star\" x=\"160\" y=\"85\" width=\"20\" height=\"20\"/>\n    <use href=\"#star\" x=\"250\" y=\"110\" width=\"20\" height=\"20\"/>\n    <use href=\"#star\" x=\"320\" y=\"150\" width=\"20\" height=\"20\"/>\n    <use href=\"#star\" x=\"330\" y=\"240\" width=\"20\" height=\"20\"/>\n    <use href=\"#star\" x=\"460\" y=\"255\" width=\"20\" height=\"20\"/>\n    <use href=\"#star\" x=\"475\" y=\"165\" width=\"20\" height=\"20\">\n      <animate attributeName=\"opacity\" values=\"1;0.6;1\" dur=\"6s\" repeatCount=\"indefinite\"/>\n    </use>\n  </g>\n  <text x=\"300\" y=\"315\" text-anchor=\"middle\" fill-opacity=\"0.75\">seven stars, one shape we agreed to see</text>\n</svg>"
+      }
+    ],
+    "beats": [
+      {
+        "say": "The stars are not arranged for us.",
+        "scene": "sky",
+        "sound": "starlight"
+      },
+      {
+        "hold": {
+          "ms": 2500
+        }
+      },
+      {
+        "say": "They are scattered at every distance, and none of them knows its neighbour."
+      },
+      {
+        "show": "and yet",
+        "hold": {
+          "ms": 2000
+        },
+        "scene": "plough",
+        "size": "display",
+        "transition": {
+          "ms": 1500
+        }
+      },
+      {
+        "say": "We join seven of them, and a plough appears, or a bear, or a ladle, depending on who is looking."
+      },
+      {
+        "hold": {
+          "ms": 3000
+        }
+      },
+      {
+        "say": "A shape in the stars is a story we tell together, and keep telling.",
+        "place": "caption"
+      }
+    ]
+  }
+}

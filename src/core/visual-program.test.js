@@ -90,6 +90,14 @@ describe('visual program persistence boundary', () => {
     expect(normalizeVisualCue({ ...cue, code: 'x'.repeat(24_577) })).toEqual({ kind: 'still' });
   });
 
+  it('keeps a figure’s id and svg, and stills one that is malformed, too large, or both code and svg', () => {
+    const cue = { kind: 'scene', sceneId: 'triangle', svg: '<svg/>' };
+    expect(normalizeVisualCue({ ...cue, extra: true })).toEqual(cue);
+    expect(normalizeVisualCue({ ...cue, svg: 7 })).toEqual({ kind: 'still' });
+    expect(normalizeVisualCue({ ...cue, svg: 'x'.repeat(32_769) })).toEqual({ kind: 'still' });
+    expect(normalizeVisualCue({ ...cue, code: 'export default () => ({})' })).toEqual({ kind: 'still' });
+  });
+
   it('round-trips bounded procedural styles without carrying unknown fields', () => {
     const styled = {
       coordinateSpace: 'source',

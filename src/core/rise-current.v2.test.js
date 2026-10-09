@@ -229,6 +229,31 @@ describe('a style', () => {
   });
 });
 
+describe('a figure', () => {
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><path d="M0,3 L4,3 L4,0 z"/></svg>';
+  const FIGURE = {
+    ...V2,
+    scenes: [{ id: 'triangle', svg: SVG }],
+    beats: [{ say: 'Here is a triangle.', scene: 'triangle' }, { hold: { ms: 2500, maxMs: 6000 } }, { say: 'That is all.' }]
+  };
+
+  it('lowers to a scene cue on the score carrying its svg, and makes the reading draw', () => {
+    const { program } = materializeRiseCurrent(FIGURE);
+    const clips = program.tracks.find(track => track.kind === 'visual').clips;
+    expect(clips.map(clip => clip.cue)).toEqual(Array.from({ length: 3 }, () => ({ kind: 'scene', sceneId: 'triangle', svg: SVG })));
+    expect(compileRiseCurrent(FIGURE).visualConfig.visualMode).toBe('interlocution');
+  });
+
+  it('gives its hold the figure, with no cue, and carries it to the session and the reading’s program', () => {
+    const session = compileRiseCurrent(FIGURE);
+    const hold = session.atoms.find(atom => atom.sourceId === 'beat-1');
+    expect(hold.hold).toEqual({ ms: 2500, maxMs: 6000, sceneId: 'triangle' });
+    expect(hold.cueCommands).toBeUndefined();
+    expect(session.scenes).toEqual([{ id: 'triangle', svg: SVG }]);
+    expect(session.visualProgram.segments.some(segment => segment.cue.kind === 'scene' && segment.cue.svg === SVG)).toBe(true);
+  });
+});
+
 describe('a generated scene', () => {
   const CODE = 'export const reportsCompletion = true;\nexport default function scene(rise) { return { frame() {}, cue() { rise.done(); } }; }';
   const GENERATED = {

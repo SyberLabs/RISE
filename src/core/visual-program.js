@@ -152,10 +152,12 @@ export function normalizeVisualCue(value) {
     };
   }
   if (value.kind === 'scene') {
-    const { maxSceneIdLength, maxSceneCodeBytes } = EXPERIENCE_PROGRAM_LIMITS;
-    const valid = typeof value.sceneId === 'string' && value.sceneId && value.sceneId.length <= maxSceneIdLength
-      && typeof value.code === 'string' && value.code && sceneCodeBytes(value.code) <= maxSceneCodeBytes;
-    return valid ? { kind: 'scene', sceneId: value.sceneId, code: value.code } : { kind: 'still' };
+    const { maxSceneIdLength, maxSceneCodeBytes, maxSceneSvgBytes } = EXPERIENCE_PROGRAM_LIMITS;
+    const named = typeof value.sceneId === 'string' && value.sceneId && value.sceneId.length <= maxSceneIdLength;
+    const text = (field, max) => typeof value[field] === 'string' && value[field] && sceneCodeBytes(value[field]) <= max;
+    if (named && value.svg === undefined && text('code', maxSceneCodeBytes)) return { kind: 'scene', sceneId: value.sceneId, code: value.code };
+    if (named && value.code === undefined && text('svg', maxSceneSvgBytes)) return { kind: 'scene', sceneId: value.sceneId, svg: value.svg };
+    return { kind: 'still' };
   }
   return { kind: 'still' };
 }

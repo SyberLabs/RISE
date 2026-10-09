@@ -100,6 +100,19 @@ describe('VisualFieldDirector', () => {
   });
 });
 
+describe('VisualFieldDirector figures', () => {
+  it('mounts one layer per figure and svg, so a changed figure is a new layer', () => {
+    const director = new VisualFieldDirector({ scheduleFrame: callback => callback(), mount: cue => record(cue.sceneId, []) });
+    const figure = { kind: 'scene', sceneId: 'triangle', svg: '<svg/>' };
+    director.applyCue(figure);
+    const mounted = director.active;
+    director.applyCue({ ...figure });
+    expect(director.active).toBe(mounted);
+    director.applyCue({ ...figure, svg: '<svg />' });
+    expect(director.active).not.toBe(mounted);
+  });
+});
+
 describe('VisualFieldDirector living-flame support', () => {
   it('morphs a compatible successor in place instead of mounting a new layer', () => {
     const log = [];

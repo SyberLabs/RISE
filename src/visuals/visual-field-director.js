@@ -34,7 +34,7 @@ export class VisualFieldDirector {
       return false;
     }
     const key = cue.kind === 'scene'
-      ? JSON.stringify(['scene', cue.sceneId, cue.code])
+      ? JSON.stringify(['scene', cue.sceneId, cue.code ?? null, cue.svg ?? null])
       : JSON.stringify([cue.renderer, cue.config || {}]);
     if (this.active?.key === key) {
       this.active.cancelVisualControl?.();

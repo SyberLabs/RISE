@@ -24,3 +24,4 @@ export { SCENE_MANIFESTS, SCENE_ENGINES } from '../scenes/manifests.js';
 export { SCENE_PROTOCOL_VERSION, TO_WORKER, TO_HOST, SCENE_LIMITS } from '../scenes/scene-protocol.js';
 export { BANNED_SCENE_NAMES, SHADOWED_GLOBALS, STATIC_ONLY_NAMES } from '../scenes/scene-bans.js';
 export { LIBRARY_DEFAULTS } from '../scenes/scene-library.js';
+export { SVG_ELEMENTS } from './svg-admission.js';

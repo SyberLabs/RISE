@@ -20,7 +20,9 @@
  * cues, or sets one of its cueable parameters. A generated scene is code: an
  * ES module with a default export, checked here only for its shape and size
  * (what it may reference is the server's static admission, and the worker's
- * own guard); any cue name is its to interpret.
+ * own guard); any cue name is its to interpret. A figure is SVG, checked
+ * here only for its size (its markup is svg-admission.js's, at the server and
+ * again in the card); it takes no cue.
  */
 import { soundKind } from '../audio/sound-ids.js';
 import { fail, id, keys, object, spokenText } from './current-validation.js';
@@ -32,6 +34,7 @@ export const BEAT_LIMITS = Object.freeze({
   beats: 64,
   scenes: 8,
   code: EXPERIENCE_PROGRAM_LIMITS.maxSceneCodeBytes,
+  svg: EXPERIENCE_PROGRAM_LIMITS.maxSceneSvgBytes,
   text: 4_000,
   totalText: 20_000,
   id: 120,
@@ -72,10 +75,19 @@ export function validateScenes(value, path) {
   return value.map((item, index) => {
     const at = `${path}[${index}]`;
     const scene = object(item, at);
-    keys(scene, ['id', 'engine', 'params', 'code'], at);
+    keys(scene, ['id', 'engine', 'params', 'code', 'svg'], at);
     const sceneId = id(scene.id, BEAT_LIMITS.id, `${at}.id`);
     if (seen.has(sceneId)) fail('CURRENT_DUPLICATE_ID', `${at}.id`, 'Duplicate scene id');
     seen.add(sceneId);
+    if (scene.svg !== undefined) {
+      if (scene.engine !== undefined || scene.params !== undefined || scene.code !== undefined) {
+        fail('SCENE_SVG', at, 'A scene is a native engine with params, generated code, or an SVG figure, one of them');
+      }
+      if (typeof scene.svg !== 'string' || sceneCodeBytes(scene.svg) > BEAT_LIMITS.svg) {
+        fail('SCENE_SVG', `${at}.svg`, `A figure is an SVG document of at most ${BEAT_LIMITS.svg.toLocaleString('en-US')} bytes`);
+      }
+      return { id: sceneId, svg: scene.svg };
+    }
     if (scene.code !== undefined) {
       if (scene.engine !== undefined || scene.params !== undefined) {
         fail('SCENE_CODE', at, 'A scene is a native engine with params, or generated code, not both');
@@ -159,7 +171,8 @@ export function validateBeats(value, path, { scenes }) {
         fail('BEAT_CUE', `${at}.cue`, `A cue is a name of at most ${BEAT_LIMITS.cue} letters, digits, _, -, : or =`);
       }
       if (running === null) fail('BEAT_CUE', `${at}.cue`, 'A cue needs a scene running: start one with "scene" first');
-      const { engine, code } = sceneOf.get(running);
+      const { engine, code, svg } = sceneOf.get(running);
+      if (svg !== undefined) fail('BEAT_CUE', `${at}.cue`, 'An SVG figure takes no cues');
       if (code === undefined && cueCommands(engine, beat.cue) === null) {
         const manifest = manifestFor(engine);
         const named = Object.keys(manifest.cues);

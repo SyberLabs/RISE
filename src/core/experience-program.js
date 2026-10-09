@@ -46,7 +46,9 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
   maxMetadataString: 2_000,
   /** A generated scene's id and its code, in UTF-8 bytes (creative-control design §5). */
   maxSceneIdLength: 120,
-  maxSceneCodeBytes: 24_576
+  maxSceneCodeBytes: 24_576,
+  /** A figure's SVG document, in UTF-8 bytes (CC-009). */
+  maxSceneSvgBytes: 32_768
 });
 
 /** The size of a scene's code as it travels, in UTF-8 bytes. */
@@ -365,6 +367,7 @@ function validateVisualCue(value, path) {
   if (source.kind === 'scene') {
     cueFields.add('sceneId');
     cueFields.add('code');
+    cueFields.add('svg');
   }
   onlyKeys(source, cueFields, path);
   if (source.kind === 'still') return { kind: 'still' };
@@ -373,6 +376,18 @@ function validateVisualCue(value, path) {
     if (sceneId.length > EXPERIENCE_PROGRAM_LIMITS.maxSceneIdLength) {
       fail('PROGRAM_ID_TOO_LONG',
         `Scene ids may not exceed ${EXPERIENCE_PROGRAM_LIMITS.maxSceneIdLength} characters`, `${path}.sceneId`);
+    }
+    // A scene is generated code or a figure's SVG, exactly one.
+    if (source.svg !== undefined && source.code === undefined) {
+      if (typeof source.svg !== 'string' || !source.svg
+        || sceneCodeBytes(source.svg) > EXPERIENCE_PROGRAM_LIMITS.maxSceneSvgBytes) {
+        fail('PROGRAM_SCENE_SVG',
+          `A figure is an SVG document of at most ${EXPERIENCE_PROGRAM_LIMITS.maxSceneSvgBytes} bytes`, `${path}.svg`);
+      }
+      return { kind: 'scene', sceneId, svg: source.svg };
+    }
+    if (source.svg !== undefined) {
+      fail('PROGRAM_SCENE_CODE', 'A scene is generated code or a figure, not both', `${path}.code`);
     }
     if (typeof source.code !== 'string' || !source.code
       || sceneCodeBytes(source.code) > EXPERIENCE_PROGRAM_LIMITS.maxSceneCodeBytes) {

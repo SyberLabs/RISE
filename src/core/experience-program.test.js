@@ -207,6 +207,24 @@ describe('rise.experience-program.v1', () => {
     refuses({ code: '界'.repeat(8_193) }, 'PROGRAM_SCENE_CODE');
   });
 
+  it('validates and lowers a figure by its id and svg, exactly one of code and svg', () => {
+    const value = score();
+    const cue = { kind: 'scene', sceneId: 'triangle', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>' };
+    value.tracks[2].clips[0].cue = cue;
+    expect(validateExperienceProgram(value).tracks[2].clips[0].cue).toEqual(cue);
+    expect(lowerExperienceProgram(value).visualProgram.segments[0].cue).toEqual(cue);
+    const refuses = (patch, code) => {
+      const bad = score();
+      bad.tracks[2].clips[0].cue = { ...cue, ...patch };
+      expect(() => validateExperienceProgram(bad), JSON.stringify(patch)).toThrow(expect.objectContaining({ code }));
+    };
+    refuses({ svg: 42 }, 'PROGRAM_SCENE_SVG');
+    refuses({ svg: '' }, 'PROGRAM_SCENE_SVG');
+    refuses({ svg: '界'.repeat(10_923) }, 'PROGRAM_SCENE_SVG');
+    refuses({ code: 'export default () => ({})' }, 'PROGRAM_SCENE_CODE');
+    refuses({ svg: undefined }, 'PROGRAM_SCENE_CODE');
+  });
+
   it('rejects unknown fields rather than dropping a likely misspelling', () => {
     const value = score();
     value.tracks[2].clips[0].synchGroup = 'descent-1';

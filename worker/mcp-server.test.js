@@ -16,6 +16,8 @@ import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, STYLE_LINES, styleG
 import { BEAT_CUE_PATTERN, BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
+import { admitSvg } from '../src/core/svg-admission.js';
+import { describeDiagnostic } from './scene-admission.mjs';
 import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, GUIDE_TOOL, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
 
 const SITE = 'https://rise.example';
@@ -390,6 +392,42 @@ describe('the tool', () => {
     });
   });
 
+  describe('a figure, admitted by its tokenizer (CC-009)', () => {
+    const FIGURE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3">\n  <path d="M0,3 L4,3 L4,0 z" fill="currentColor"/>\n</svg>';
+    const withFigure = (svg, id = 'triangle') => {
+      const current = structuredClone(CURRENT_EXAMPLE_V2);
+      current.scenes.push({ id, svg });
+      return current;
+    };
+    const present = async current => (await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current } })))).result;
+
+    it('takes a Current whose figure is admitted', async () => {
+      const current = withFigure(FIGURE);
+      const result = await present(current);
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent).toEqual({ current });
+    });
+
+    it('refuses the whole call for a figure with a script, with the line and column the card would refuse it by', async () => {
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3">\n  <script>alert(1)</script>\n</svg>';
+      const result = await present(withFigure(svg));
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent).toBeUndefined();
+      const [diagnostic] = admitSvg(svg).diagnostics;
+      expect(result.content[0].text.split('\n')).toEqual([
+        `Scene "triangle" was refused: ${describeDiagnostic(diagnostic)}`,
+        'Repair the figure and call rise_present again with the whole Current.'
+      ]);
+      expect(result.content[0].text).toContain('Scene "triangle" was refused: line 2, column 3: <script> is not an element a figure may use.');
+    });
+
+    it('refuses a figure over its size as the validator does, before reading it', async () => {
+      const result = await present(withFigure(`<svg>${'x'.repeat(40_000)}</svg>`));
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/^RISE refused this Current: A figure is an SVG document/u);
+    });
+  });
+
   it('keeps nothing between calls: the same call answers the same, in any order', async () => {
     const a = await (await post(rpc('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } }))).text();
     await post(rpc('tools/call', { name: 'rise_present', arguments: { current: { schema: 'x' } } }));
@@ -499,6 +537,14 @@ describe('the shape of a Current, as the host’s model is told it', () => {
     expect(generated).toMatchObject({ required: ['id', 'code'], additionalProperties: false });
     expect(generated.properties.code.maxLength).toBe(BEAT_LIMITS.code);
     expect(generated.properties.code.description).toMatch(/default export function.*rise.*no imports.*no network.*no timers.*frame/isu);
+    const figure = v2.properties.scenes.items.oneOf[2];
+    expect(figure).toMatchObject({ required: ['id', 'svg'], additionalProperties: false });
+    expect(figure.properties.svg.maxLength).toBe(BEAT_LIMITS.svg);
+    expect(figure.properties.svg.description).toMatch(/SVG.*viewBox.*currentColor.*no cues/isu);
+    const drawn = structuredClone(CURRENT_EXAMPLE_V2);
+    drawn.scenes.push({ id: 'triangle', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>' });
+    expect(() => validateRiseCurrent(drawn)).not.toThrow();
+    expect(conforms(v2, drawn)).toEqual([]);
     const coded = structuredClone(CURRENT_EXAMPLE_V2);
     coded.scenes.push({ id: 'vector', code: 'export default () => ({ frame() {} });' });
     expect(() => validateRiseCurrent(coded)).not.toThrow();
@@ -507,7 +553,8 @@ describe('the shape of a Current, as the host’s model is told it', () => {
       c => { c.beats[0].extra = 1; },
       c => { c.beats[0].place = 'margin'; },
       c => { c.scenes[0].engine = 'shader'; },
-      c => { c.scenes[0].code = 'export default () => ({ frame() {} });'; },
+      c => { c.scenes[0].code = 'export default () => ({ frame() {} });'; },      c => { c.scenes[0].svg = '<svg/>'; },
+
       c => { c.beats = []; },
       // The Feelings are parked until they are reworked (owner, 2026-10-09).
       c => { c.beats[0].sound = 'mystery'; },

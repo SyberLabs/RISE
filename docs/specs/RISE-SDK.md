@@ -9,7 +9,7 @@ Earlier records (SDK-001 and SDK-002 in `docs/product/tasks/`, and the [Composer
 RISE turns a document called a **Current** into a timed reading: a voice, the words shown as they are spoken, and pictures behind them. This document is for an engineer who has never seen RISE and wants to do one of three things:
 
 - **Write Currents** as another model provider or tool: the shape of the document, every field, every limit, every refusal (§3 to §6).
-- **Write a generated scene**: a small JavaScript module that draws a picture RISE runs in an isolated worker (§7).
+- **Write a generated scene**: a small JavaScript module that draws a picture RISE runs in an isolated worker (§7), or a figure: an SVG document RISE admits and shows as an image (§3.9).
 - **Host RISE** in another MCP host, or embed it: the two tools, the resources, and what the card tells the host's model (§8).
 
 What RISE draws, how it lays out text and which pixels appear are not part of the contract (§10).
@@ -101,12 +101,12 @@ A beat that starts a scene and cues it reaches the scene it started. Text may no
 
 - A hold with no `maxMs` lasts exactly `ms`.
 - A hold with `maxMs`, under a generated scene that exports `reportsCompletion = true`, ends when the scene calls `rise.done()`. It never ends sooner than `SCENE_LIMITS.earliestDoneMs` into the hold, and it ends at `maxMs` if the scene never calls `done`.
-- Any other hold lasts `ms`. So does a hold whose scene fails or is frozen: it then runs on `ms` from where it began.
+- Any other hold lasts `ms`, a hold under a figure (§3.9) included. So does a hold whose scene fails or is frozen: it then runs on `ms` from where it began.
 - Pause stops the voice, the hold and the scene's time together.
 
 ### 3.4 Scenes
 
-A scene is either a **native engine** with parameters or **generated code**, never both (`SCENE_CODE`). Ids are unique within the Current.
+A scene is a **native engine** with parameters, **generated code**, or a **figure** (an SVG document, §3.9): one of the three. Code beside an engine is `SCENE_CODE`; an `svg` beside anything else is `SCENE_SVG`. Ids are unique within the Current.
 
 | Scene field | Required | Value |
 | --- | --- | --- |
@@ -114,6 +114,7 @@ A scene is either a **native engine** with parameters or **generated code**, nev
 | `engine` | no | One of `SCENE_ENGINES` (§6). Given with `params`, never with `code`. |
 | `params` | no | The engine's parameters, each held to its manifest (§6.2). Unknown names and out-of-range values are refused. |
 | `code` | no | A generated scene's module: at most `BEAT_LIMITS.code` bytes of UTF-8, with `export default` (§7). |
+| `svg` | no | A figure: one SVG document of at most `BEAT_LIMITS.svg` bytes of UTF-8, admitted by its rules (§3.9). Never with `engine`, `params` or `code`. |
 
 ### 3.5 Limits
 
@@ -122,6 +123,7 @@ A scene is either a **native engine** with parameters or **generated code**, nev
 | `BEAT_LIMITS.beats` | 64 | Beats per Current. |
 | `BEAT_LIMITS.scenes` | 8 | Scenes per Current. |
 | `BEAT_LIMITS.code` | 24,576 | UTF-8 bytes of one scene's `code`. |
+| `BEAT_LIMITS.svg` | 32,768 | UTF-8 bytes of one figure's `svg`. |
 | `BEAT_LIMITS.text` | 4,000 | Characters of one `say` or `show`. |
 | `BEAT_LIMITS.totalText` | 20,000 | Characters of `say` and `show` in all. |
 | `BEAT_LIMITS.id` | 120 | Characters of a scene id. |
@@ -167,11 +169,12 @@ A scene is either a **native engine** with parameters or **generated code**, nev
 | `SCENE_ENGINE` | `engine` is not a native engine. |
 | `SCENE_PARAM` | A parameter is unknown to the engine, or outside its bounds. |
 | `SCENE_CODE` | A scene has both engine and code, or code that is too large or has no `export default`. |
+| `SCENE_SVG` | A figure's `svg` is not text, is over `BEAT_LIMITS.svg`, or stands beside `engine`, `params` or `code`. |
 | `BEAT_COUNT` | `beats` is missing, empty, or too long. |
 | `BEAT_KIND` | A beat's fields fit no kind (§3.2). |
 | `BEAT_HOLD` | `hold.ms` or `hold.maxMs` is out of bounds. |
 | `BEAT_SCENE` | `scene` names no declared scene. |
-| `BEAT_CUE` | A cue does not match the pattern, is too long, has no running scene, or is not one the running engine takes. The message lists the cues it takes. |
+| `BEAT_CUE` | A cue does not match the pattern, is too long, has no running scene, is not one the running engine takes, or goes to a figure, which takes none. The message lists the cues an engine takes. |
 | `BEAT_TRANSITION` | `transition.ms` is out of bounds. |
 | `BEAT_PLACE` | `place` is not a place. |
 | `BEAT_SIZE` | `size` is not a size. |
@@ -179,7 +182,7 @@ A scene is either a **native engine** with parameters or **generated code**, nev
 | `BEAT_EMPHASIS` | `emphasis` has too many words, or a blank or long one. |
 | `BEAT_SOUND` | `sound` is not a sound id. |
 
-An unknown `schema` is refused too. The server adds two refusals that are not codes: a Current over `MCP_CURRENT_BYTES`, and a scene its admission refuses (§7.7).
+An unknown `schema` is refused too. The server adds two refusals that are not codes: a Current over `MCP_CURRENT_BYTES`, and a scene its admission refuses (§7.7, and §3.9 for a figure).
 
 ### 3.8 Version 1 stays valid
 
@@ -193,6 +196,44 @@ A `rise.current.v1` Current is passages (`segments`), each with text, an optiona
 | `RISE_CURRENT_LIMITS.totalText` | 20,000 | Characters of all passages. |
 | `RISE_CURRENT_LIMITS.dives` | 8 | Dive notes per passage. |
 | `RISE_CURRENT_LIMITS.diveText` | 600 | Characters of one Dive note. |
+
+### 3.9 Figures
+
+A figure is a picture the model draws as SVG: `{ "id": "triangle", "svg": "<svg …>…</svg>" }`. It is for a picture that is right standing still, such as a labelled diagram; a picture that changes on cue is a generated scene (§7).
+
+- **Contract.** One SVG document of at most `BEAT_LIMITS.svg` bytes. It takes no cues: a beat whose `cue` reaches a figure is refused (`BEAT_CUE`), and a hold under it lasts its `ms`. It is drawn behind the words like any scene, and the reading's own field returns when the next scene starts, or when the figure is refused or cannot be drawn.
+- **On the score.** A figure lowers to the visual cue `{ "kind": "scene", "sceneId": "<id>", "svg": "<svg …>" }`: the scene cue carries `svg` or `code`, exactly one. Offline rendering does not support a scene cue of either kind.
+- **Ink.** `currentColor` inside an image resolves in the image's own document, so the card writes the theme's ink onto the figure's root as `color`, unless the root sets one. Draw ink in `currentColor`.
+- **Motion.** SMIL (`<animate>` and its kin) runs inside the image, in reduced motion too; this version does not pause it.
+
+**Admission.** `admitSvg` in `src/core/svg-admission.js` reads the text with a small tokenizer, never a DOM, and never draws it. The Worker runs it before it accepts a Current, and the card runs it again before it draws a figure; a figure the card refuses is not mounted. The rules:
+
+1. At most `BEAT_LIMITS.svg` bytes of UTF-8.
+2. After an optional `<?xml …?>`, whitespace and comments, the document begins with `<svg`, and it ends with `</svg>`: once the root has closed, nothing but whitespace and comments may follow (`the figure is not well-formed: nothing may follow the root <svg>`). Every element closes in order, and no attribute is given twice. The root carries `xmlns="http://www.w3.org/2000/svg"` (without it no browser draws the image) and a `viewBox`.
+3. No DOCTYPE, no `<!ENTITY`, no other `<!` declaration, no processing instruction but the xml declaration, and no CDATA that holds `<`.
+4. Only these elements, named exactly; anything else, `script`, `foreignObject`, `image`, `a`, `iframe`, `object`, `embed`, `video`, `audio` and `feImage` among them, is refused by name.
+- **Elements a figure may use:** `svg`, `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `text`, `tspan`, `textPath`, `defs`, `linearGradient`, `radialGradient`, `stop`, `clipPath`, `mask`, `pattern`, `marker`, `symbol`, `use`, `title`, `desc`, `animate`, `animateTransform`, `animateMotion`, `set`, `mpath`, `style`, `filter`, `feBlend`, `feColorMatrix`, `feComponentTransfer`, `feComposite`, `feConvolveMatrix`, `feDiffuseLighting`, `feDisplacementMap`, `feDistantLight`, `feDropShadow`, `feFlood`, `feFuncA`, `feFuncB`, `feFuncG`, `feFuncR`, `feGaussianBlur`, `feMerge`, `feMergeNode`, `feMorphology`, `feOffset`, `fePointLight`, `feSpecularLighting`, `feSpotLight`, `feTile`, `feTurbulence`
+5. No attribute whose name begins with `on`, in any case, and no `externalResourcesRequired`.
+6. `href` and `xlink:href` only when the value begins with `#`. An animation's `attributeName` may not be `href`, `xlink:href` or an event handler.
+7. `xmlns` only as the SVG namespace, and `xmlns:xlink` only as XLink; no other namespace, since a prefix could rename an element.
+8. No value, with its character references decoded and its whitespace removed, containing `javascript:`, `data:`, `http:`, `https:` or `//`, nor `url(` unless it is `url(#`.
+9. In CSS, a `style` attribute or a `<style>` (which holds only CSS): the same, and no `@import`, `expression(`, `behavior`, `-moz-binding` or escape (`\`).
+
+The card then shows the admitted text only as an `<img>` of a `blob:` URL (`image/svg+xml`), centred and scaled to fit. An SVG image runs no script and fetches nothing by platform rule: that is the second lock. The URL is let go once the image loads or the figure is taken down.
+
+A refused figure refuses the whole `rise_present` call, as a refused code scene does (§7.7): one line per problem, up to `MAX_SCENE_LINES` across all scenes. For example:
+
+```text
+Scene "triangle" was refused: line 2, column 3: <script> is not an element a figure may use.
+Repair the figure and call rise_present again with the whole Current.
+```
+
+When the card refuses a figure, or the image cannot be drawn, it says so in RISE's words (§8.4):
+
+```text
+scene "triangle": not drawn — the card refused the figure: "line 2, column 3: <script> is not an element a figure may use"
+scene "triangle": not drawn — the figure could not be drawn as an image
+```
 
 ## 4. Styles
 
@@ -522,6 +563,7 @@ An embedder imports the contract's values from `src/core/rise-sdk.js`, which hol
 - **No pixels.** The same Current may look different across releases, hosts and screens. Engine rendering, layout, scrims, transitions and the exact text sizes are RISE's to change. Only the names, values and behaviours above are the contract.
 - **No moderation.** A scene can draw anything within its budget. The words and pictures a model composes are the host model's responsibility, as its text is.
 - **ChatGPT is unmeasured.** Whether ChatGPT's sandbox allows `blob:` workers and `ui/update-model-context` has not been measured (CC-001, pending). Until it is, generated scenes are promised for Claude only, and native scenes everywhere.
+- **Figures in a host are unmeasured.** A figure is an image of a `blob:` URL. Whether a host's sandbox lets the card show a `blob:` image has not been measured in Claude or ChatGPT; where it does not, the figure fails as an image and the reading's own field shows instead.
 - **The internal score is not the contract.** How a Current lowers to RISE's Experience Program and Session (`compileRiseCurrent`) may change without a version bump.
 - **Not in this version:** reader interaction inside scenes, an imagery lookup a model can call, fonts inside the scene worker, WebGPU, instant cue replay on seek, and Dive or realtime Live.
 
@@ -534,5 +576,5 @@ An embedder imports the contract's values from `src/core/rise-sdk.js`, which hol
 3. the field tables differ from the tool's input schema, or the refusal codes from the validators' own;
 4. the style, face, engine or parameter tables differ from `STYLES`, `TYPE_FACES` or `SCENE_MANIFESTS`, or the engines differ from what `describeManifests()` tells the model;
 5. the `rise.lib` table differs from the keys of `createSceneLibrary(…)`, the message table from `TO_WORKER` and `TO_HOST`, or the banned lists from `SHADOWED_GLOBALS` and `STATIC_ONLY_NAMES`;
-6. the example module, the refusal line or the report lines differ from what the guide, the server and the card produce;
+6. the example module, the refusal lines or the report lines differ from what the guide, the server and the card produce, or the figure's element list from `SVG_ELEMENTS`;
 7. `src/core/rise-sdk.js` exports a function, or imports anything outside the core and the scenes.
