@@ -171,6 +171,34 @@ test('mobile account metadata, read-only recovery and keyboard focus remain usab
   await expect(entrance).toBeFocused();
 });
 
+test('Escape after Refresh with page focus closes Account without navigating the Library', async ({ page }) => {
+  await mockAccount(page);
+  await page.goto('/library');
+  await page.waitForFunction(() => window.__RISE_TEST__?.getRouterState().currentView === 'library'
+    && !window.__RISE_TEST__.getRouterState().transitioning);
+  await seed(page);
+  const entrance = page.getByRole('link', { name: 'Open SyberLabs account' });
+  await entrance.click();
+  const dialog = page.getByRole('dialog');
+  await expect(page.locator('[data-status]')).toContainText('Choose a work');
+  await page.locator('[data-replace]').check();
+  await page.getByRole('button', { name: 'Refresh browser library and account backups' }).click();
+  await expect(page.locator('[data-status]')).toHaveText('Browser library and account backups refreshed.');
+  await expect(page.locator('[data-replace]')).not.toBeChecked();
+  await page.evaluate(() => document.activeElement.blur());
+  expect(await page.evaluate(() => ['BODY', 'HTML'].includes(document.activeElement.tagName))).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(entrance).toBeFocused();
+  await expect(page).toHaveURL(/\/library$/);
+  expect(await page.evaluate(() => window.__RISE_TEST__.getRouterState().currentView)).toBe('library');
+  // Once Account closes, its listener must release the router's normal Escape.
+  await page.keyboard.press('Escape');
+  await expect(page).toHaveURL(/\/$/);
+  await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'home'
+    && !window.__RISE_TEST__.getRouterState().transitioning);
+});
+
 test('same-app history entry into a study blocks a remembered account without window focus', async ({ page }) => {
   const requests = [];
   page.on('request', request => {
