@@ -36,6 +36,21 @@ async function mockAccount(page, onPost = () => {}) {
   });
 }
 
+test('standalone policy and app-information pages retain the upper-right sign-in entrance', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  for (const path of ['/privacy.html', '/terms.html', '/apps.html']) {
+    await page.goto(path);
+    const link = page.getByRole('link', { name: 'Sign in to SyberLabs' });
+    await expect(link).toBeVisible();
+    expect(new URL(await link.getAttribute('href')).searchParams.get('next')).toBe('/admin/return?app=rise');
+    const reachable = await link.evaluate(node => {
+      const r = node.getBoundingClientRect();
+      return r.right <= innerWidth && r.height >= 44 && node.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    });
+    expect(reachable).toBe(true);
+  }
+});
+
 test('account is visible and clickable in the upper right across routes on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await mockAccount(page);

@@ -17,7 +17,7 @@ AI features are optional and use a connection you own: either your own
 OpenRouter account, where this page sends your request straight to OpenRouter
 and usage is billed to you, or Kev running on your own computer through local
 RISE. An OpenRouter key stays in this tab's memory and is never sent to RISE's
-servers.
+servers. Optional SyberLabs account backups store only a text work you explicitly choose to upload; see section 4.
 If you press **Speak**, your browser may use its speech service to turn your
 voice into editable text. RISE does not receive the microphone audio.
 Inside ChatGPT or Claude, RISE receives only the reading your assistant writes
@@ -34,10 +34,9 @@ thought, detail, or revision instruction. Generated prose can itself contain
 sensitive information. Text and project exports are files you deliberately save.
 Import and playback do not call the writer.
 
-We set one cookie, and only when you buy Plus: a signed token that carries your
+The Plus service sets one cookie when you buy Plus: a signed token that carries your
 Stripe subscription number, with no name or email in it. We do not use
-analytics. We do not track you across sites or across visits. We have no
-accounts. If you buy Plus, Stripe processes the payment and knows the email you
+analytics. RISE does not automatically upload your readings or browser history. Optional SyberLabs sign-in uses a separate host-only session cookie at `syberlabs.io` and associates chosen backups with your account. If you buy Plus, Stripe processes the payment and knows the email you
 paid with; we do not keep it. We do not sell personal information. Network
 processing occurs for hosting, external resources you request, the optional
 decision actions, and the Plus voice described below.
@@ -70,16 +69,14 @@ over generative visuals and imagery held by museums and archives. It is
 experimental software, and reading in it is free. RISE Plus, an optional
 subscription, adds a spoken voice (section 4).
 
-There is no sign-up, no login and no user account. Plus is a receipt, not an
-account: a paid Stripe subscription and one cookie.
+Reading does not require an account. Enabled SyberLabs accounts can sign in with Google or GitHub and explicitly back up text works. Plus remains a separate paid Stripe subscription and cookie; account sign-in does not purchase Plus.
 
 ---
 
 ## 3. What stays on your device
 
 The following is written to your browser's own storage, on your own computer or
-phone. RISE does not synchronize this storage to a server, and we cannot recover
-it for you. Text selected for a reading stays in the browser as the Chamber
+phone. RISE does not automatically synchronize this storage to a server. Only a text work you explicitly save to your SyberLabs account has an account backup you can restore. Text selected for a reading stays in the browser as the Chamber
 presents it, except the text the Plus voice sends to be voiced (section 4).
 Browser storage belongs to its exact site origin: saved work at
 `rise.syberlabs.space` does not appear at `rise.syberlabs.io`.
@@ -182,10 +179,18 @@ only to tell older tabs they are retired. The exceptions are the optional
 OpenAI Live answer below, which is switched off on this site, and the Plus
 voice.
 
+### Optional SyberLabs account backups
+
+Google or GitHub sign-in at `syberlabs.io` identifies an enabled SyberLabs account. The account service stores its provider identifier and email or username, an internal account identifier, and session records in Cloudflare D1. Its host-only, HttpOnly session cookie authenticates requests from the SyberLabs applications; RISE does not store a bearer token in browser storage.
+
+**Save to account** sends only the chosen imported text work, its title, named divisions, and display metadata to `syberlabs.io`, where it is stored privately under your account. Text can contain sensitive information; each upload is your explicit choice. Journals, settings, images, audio, video and provider keys are not included. There is no automatic upload or synchronization. Backups are limited to 1 MB each, with a shared limit of 50 saves and 10 MB per account.
+
+**Restore** downloads a chosen backup and validates it before adding it to the browser library. Replacing a different existing browser copy requires your explicit selection. Browser erase does not delete account backups. Download backups through the account portal; for removal of account data, contact **syberlabs.software@gmail.com**. Account backups remain stored until removed; they are separate from Plus billing and voice processing.
+
 ### The Plus voice
 
 RISE Plus is an optional subscription, $8.99 a month, that voices readings of
-your own material when the Plus voice is on. There is no RISE account.
+your own material when the Plus voice is on. Plus is separate from optional SyberLabs account sign-in.
 
 - **Payment.** Stripe processes the payment and holds the details you give it,
   under its own policy (<https://stripe.com/privacy>). RISE's server then sets
@@ -390,7 +395,7 @@ action you chose, not cross-site tracking.
 
 ## 8. Your controls
 
-Because your data is on your device, you hold it directly.
+You hold browser-local data directly. Explicit account backups have the separate controls described in section 4.
 
 - **Export.** Settings offers an export of some saved data. It is incomplete
   and there is no complete import path, so it cannot transfer all work from
@@ -399,7 +404,7 @@ Because your data is on your device, you hold it directly.
   covers every key and database listed in section 3; an automated check
   fails the build if a new one is ever added without being registered.
 - **Clear it yourself.** Clearing site data for this domain in your browser
-  removes everything RISE has stored, with no involvement from us.
+  removes browser-local data for that domain. It does not remove separately saved account backups.
 
 If you are in the UK, EU or another jurisdiction granting data-subject rights,
 those rights — access, rectification, erasure, restriction, portability,
@@ -408,7 +413,7 @@ objection — concern the server processing described in section 4. Write to
 supervisory authority; in the UK that is the Information Commissioner's Office.
 
 For the on-device data in section 3 we cannot action such a request, because we
-have no copy to access, correct or delete. The local erase control can delete
+have no server copy unless you explicitly saved that text work to your account. The local erase control can delete
 that copy immediately. If you connected OpenRouter, it processes your requests
 under its own policy; contact OpenRouter about its processing or retention.
 Text you voiced with Plus is retained by ElevenLabs under its own policy, as
@@ -494,7 +499,7 @@ RISE is not directed at children and is not intended for anyone under 13. We do
 not knowingly collect personal information from children. A reader who
 chooses model routing may include personal information in the intent sent as
 described in section 4.
-There is no account system, so we hold no age information about anybody. If you
+SyberLabs account sign-in does not ask for age information. If you
 believe a child has provided us with personal information, write to
 syberlabs.software@gmail.com. We will review data held by RISE and explain the
 available deletion steps. Requests sent through a reader's own OpenRouter
