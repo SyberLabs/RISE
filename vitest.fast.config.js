@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 87;
+export const FAST_TEST_FILES = 91;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -32,6 +32,11 @@ const FAST_TESTS = [
     'src/app/chamber-session-factory.test.js',
     'src/app/voice-demo-session.test.js',
     'src/components/read/VoiceDemo.test.js',
+    // /try/, the public sample linked from syberlabs.io, and where its readings return.
+    'src/app/try-session.test.js',
+    'src/components/read/Try.test.js',
+    'src/app/chamber-exit.test.js',
+    'src/core/route-url.test.js',
     'src/components/Settings.test.js',
     'src/core/decision/**/*.test.js',
     'src/core/jev-palette.test.js',

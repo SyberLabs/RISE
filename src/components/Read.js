@@ -6,6 +6,7 @@
  *            chamber-session factory, the one place a Player is made
  *   live     the host of a live Current, which presents its readings in the
  *            chamber pane and keeps running while they show
+ *   try      /try/: the public one-minute sample and the visitor's own text
  *
  * The old route ids `chamber`, `chamber-session` and `live` are aliases for
  * these panes (src/core/route-url.js). Setup and chamber once shared one
@@ -35,7 +36,8 @@ export class Read {
         setup: load.setup || (() => import('./read/ChamberOrbital.js')),
         chamber: load.chamber,
         live: load.live,
-        'voice-demo': () => import('./read/VoiceDemo.js')
+        'voice-demo': () => import('./read/VoiceDemo.js'),
+        try: () => import('./read/Try.js')
       },
       factories: {
         setup: (element, { ChamberOrbital }, data) => {
@@ -47,6 +49,13 @@ export class Read {
         live: (element, { LiveHost }) => new LiveHost(element, live),
         'voice-demo': (element, { VoiceDemo }) => new VoiceDemo(element, {
           onBeginSession: setup.onBeginSession,
+          ensureAudioEngine: chamber.ensureAudioEngine,
+          getAudioEngine: chamber.getAudioEngine
+        }),
+        try: (element, { Try }, data) => new Try(element, {
+          data,
+          onBeginSession: setup.onBeginSession,
+          onNavigate: setup.onNavigate,
           ensureAudioEngine: chamber.ensureAudioEngine,
           getAudioEngine: chamber.getAudioEngine
         })
@@ -65,7 +74,7 @@ export class Read {
 
   /** The pane `data` names (the router's aliases always name one), else setup. */
   static paneFor(data = {}) {
-    return ['setup', 'chamber', 'live', 'voice-demo'].includes(data?.pane) ? data.pane : 'setup';
+    return ['setup', 'chamber', 'live', 'voice-demo', 'try'].includes(data?.pane) ? data.pane : 'setup';
   }
 
   async open(data = {}) {

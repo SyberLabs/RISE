@@ -104,6 +104,35 @@ describe('an explicitly requested ElevenLabs demo', () => {
     });
 });
 
+describe('a /try/ reading', () => {
+    const own = () => ({ ...session(), atoms: [{ content: 'My words.' }], provenance: { kind: 'local-text' }, origin: { view: 'try', kind: 'text', run: 1 } });
+    it('never asks for the Plus voice, so the visitor\'s text is not sent, even when this browser holds Plus', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: Date.now() }));
+        await mount(operations(), own());
+        expect(fetchPlusStatus).not.toHaveBeenCalled();
+        expect(voiceReading).not.toHaveBeenCalled();
+    });
+    it('hands a voice that cannot be prepared back to /try/ instead of reading silently', async () => {
+        Voice.mockImplementationOnce(function () { this.prepare = async () => false; this.destroy = vi.fn(); });
+        const reading = { ...session(), atoms: [{ content: 'Of bodies changed to various forms I sing:' }], recitation: { enabled: true }, origin: { view: 'try', kind: 'sample', run: 1 } };
+        const op = operations();
+        await expect(createChamberSession(op, document.createElement('div'), reading)).rejects.toThrow('voice could not be prepared');
+        expect(reading.origin.failure).toBe('The voice could not be prepared.');
+        expect(Chamber).not.toHaveBeenCalled();
+        expect(op.router.back).not.toHaveBeenCalled();
+        expect(op.releaseSession).toHaveBeenCalledWith(reading);
+    });
+    it('reports any other preparation failure the same way', async () => {
+        const op = operations();
+        op.ensureVisualCortex = async () => { throw new Error('engine missing'); };
+        const reading = own();
+        await expect(createChamberSession(op, document.createElement('div'), reading)).rejects.toThrow('engine missing');
+        expect(reading.origin.failure).toBe('The reading could not be prepared.');
+        expect(op.showToast).not.toHaveBeenCalled();
+        expect(op.router.back).not.toHaveBeenCalled();
+    });
+});
+
 describe('the Chamber a live reading gets', () => {
     it('adopts the live Player and is built without chrome', async () => {
         const live = session();
