@@ -21,7 +21,7 @@ import { audioDiag } from '../core/audio-diagnostics.js';
 import { liveExited, liveMounted, takeLivePlayer } from './live-handoff.js';
 import { beginStep } from '../core/begin-steps.js';
 import { SEQUENCE_CAPABILITIES } from '../core/sequence-capabilities.js';
-import { PLUS_VOICE_MAX_CHARS, markPlusLapsed, notePlusAllowance, plusNotice, plusState, plusVoiceSlug } from './plus.js';
+import { PLUS_VOICE_MAX_CHARS, fetchPlusStatus, markPlusLapsed, notePlusAllowance, plusNotice, plusState, plusVoiceSlug } from './plus.js';
 
 /**
  * Whether a reading is the reader's own material, the only kind the Plus voice
@@ -171,8 +171,12 @@ export async function createChamberSession(operations, container, sessionData) {
         let plusRefused = null;
         let plusVoicing = null;
         const plus = plusState();
-        if (!live && !spatialLaunch && session.recitation?.enabled !== true && isReadersOwn(session)
-            && plus.claimed && !plus.lapsed && operations.getSettings()?.plusVoice !== false) {
+        const ownVoice = !live && !spatialLaunch && session.recitation?.enabled !== true && isReadersOwn(session)
+            && operations.getSettings()?.plusVoice !== false;
+        const entitlement = ownVoice ? await fetchPlusStatus() : null;
+        assertCurrent();
+        if (ownVoice && ((entitlement?.available && (entitlement.admin || entitlement.subscriber))
+            || (plus.claimed && !plus.lapsed))) {
             const { spokenAtoms, voiceReading } = await import('../audio/plus-voice.js');
             assertCurrent();
             if (spokenAtoms(session.atoms).join(' ').length > PLUS_VOICE_MAX_CHARS) {

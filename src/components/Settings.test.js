@@ -403,6 +403,42 @@ describe('Settings Plus voice', () => {
 
     const PAYMENT_LINK = 'https://buy.stripe.com/test_link1';
 
+    it('shows server authenticated admin voice controls without a local claim', async () => {
+        vi.stubGlobal('fetch', vi.fn(async url => Response.json(url === '/api/plus/status'
+            ? { admin: true, subscriber: false, available: true, allowance: { used: 10, limit: 100, periodEnd: 1 } }
+            : url === '/api/plus/voices' ? [{ slug: 'default', label: 'Default' }] : { paymentLink: null })));
+        const settings = mount();
+        await settings.plusStatusLoaded;
+        expect(settings.container.querySelector('[data-plus-status]').textContent).toContain('Admin voice is active');
+        expect(settings.container.querySelector('[data-setting="plusVoice"]').checked).toBe(true);
+        expect(settings.container.querySelector('[data-plus-subscribe]')).toBeNull();
+        expect(settings.container.querySelector('[data-action="forget-plus"]')).toBeNull();
+        expect(localStorage.getItem('rise.plus')).toBeNull();
+        settings.destroy();
+    });
+
+    it('removes admin controls when a fresh server check refuses the identity', async () => {
+        let admin = true;
+        vi.stubGlobal('fetch', vi.fn(async url => Response.json(url === '/api/plus/status'
+            ? { admin, subscriber: false, available: true, allowance: null }
+            : url === '/api/plus/voices' ? [{ slug: 'default', label: 'Default' }] : { paymentLink: null })));
+        const settings = mount();
+        await settings.plusStatusLoaded;
+        admin = false;
+        await settings.fillPlusStatus();
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        settings.destroy();
+    });
+
+    it('offers admin sign in only when the server configured it', async () => {
+        vi.stubGlobal('fetch', vi.fn(async url => Response.json(url === '/api/plus/status'
+            ? { admin: false, subscriber: false, available: true, adminLogin: true, allowance: null } : { paymentLink: null })));
+        const settings = mount();
+        await settings.plusStatusLoaded;
+        expect(settings.container.querySelector('[data-admin-login]').getAttribute('href')).toBe('/api/plus/admin-login');
+        settings.destroy();
+    });
+
     it('offers the deployment\'s payment link until Plus is claimed in this browser', async () => {
         const fetchImpl = vi.fn(async () => Response.json({ paymentLink: PAYMENT_LINK }));
         vi.stubGlobal('fetch', fetchImpl);
