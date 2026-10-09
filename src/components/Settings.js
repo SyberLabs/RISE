@@ -284,11 +284,17 @@ export class Settings {
         }
         const allowance = plusAllowance();
         const used = allowance
-            ? ` ${allowance.used.toLocaleString('en')} of ${allowance.limit.toLocaleString('en')} characters used this month.`
+            ? ` · ${allowance.used.toLocaleString('en')} of ${allowance.limit.toLocaleString('en')} characters used this period`
             : '';
         return `
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <span class="settings-label" data-plus-status>Plus is active${used}</span>
+                <p class="settings-hint">Plus voices your own readings: files you add in Library → Your files, and Composer Currents.</p>
+              </div>
+            </div>
             ${this.toggleRow('plusVoice', 'Plus voice',
-                `Reads a reading of your own aloud.${used}`,
+                'Reads a reading of your own aloud.',
                 this.settings.plusVoice !== false)}
             <div class="settings-row">
               <div class="settings-label-group">

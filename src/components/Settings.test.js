@@ -456,13 +456,14 @@ describe('Settings Plus voice', () => {
     it('shows what the Worker last said of the allowance, once it has voiced something here', () => {
         localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
         let settings = mount();
-        expect(settings.container.textContent).not.toContain('characters used');
+        expect(settings.container.querySelector('[data-plus-status]').textContent).toBe('Plus is active');
+        expect(settings.container.textContent).toContain('Plus voices your own readings: files you add in Library → Your files, and Composer Currents.');
         settings.destroy();
         document.body.replaceChildren();
 
         notePlusAllowance({ used: 12345, limit: 105000, periodEnd: 1 });
         settings = mount();
-        expect(settings.container.textContent).toContain('12,345 of 105,000 characters used this month.');
+        expect(settings.container.querySelector('[data-plus-status]').textContent).toBe('Plus is active · 12,345 of 105,000 characters used this period');
         settings.destroy();
     });
 
