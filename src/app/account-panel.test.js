@@ -66,3 +66,25 @@ it('locks the chosen private work while account validation is pending', async ()
   validateAccount();
   await vi.waitFor(() => expect(posted?.payload.work.id).toBe(work.id));
 });
+
+it('starts a new explicit save after an authoritative changed-account refusal', async () => {
+  const attempts = [];
+  vi.stubGlobal('fetch', async (url, options) => {
+    if (options.method === 'POST') {
+      attempts.push({ id: JSON.parse(options.body).requestId, user: options.headers['X-SyberLabs-Expected-User'] });
+      if (attempts.length === 1) return { ok: false, status: 409, json: async () => ({ version: 1, error: 'account_changed' }) };
+      return ok({ save: { id: 's1' } });
+    }
+    return url.endsWith('/account') ? ok({ user: { id: 'u', label: 'Reader' } }) : ok({ saves: [] });
+  });
+  const dialog = openAccountPanel({ user: { id: 'u', label: 'Reader' }, store });
+  const button = dialog.querySelector('[data-save]');
+  await vi.waitFor(() => expect(button.disabled).toBe(false));
+  button.click();
+  await vi.waitFor(() => expect(dialog.querySelector('[data-status]').textContent).toContain('account changed'));
+  button.click();
+  await vi.waitFor(() => expect(dialog.querySelector('[data-status]').textContent).toContain('Saved “A poem”'));
+  expect(attempts).toHaveLength(2);
+  expect(attempts[0].id).not.toBe(attempts[1].id);
+  expect(attempts.map(attempt => attempt.user)).toEqual(['u', 'u']);
+});
