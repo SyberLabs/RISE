@@ -1243,6 +1243,73 @@ test('the bar hides and comes back without the stage box changing: the words mov
   expect(dark).toEqual([]);
 });
 
+// ─── a phone-sized card: the caption and the picture against the bar's room ───
+
+const viewBox = locator => locator.evaluate(node => {
+  const { top, bottom, height } = node.getBoundingClientRect();
+  return { top, bottom, height };
+});
+
+test('on a phone a caption sits whole in the card, in its lower half and above the bar, at three card heights', async ({ page, baseURL }) => {
+  // The Sky reading's first beat has no place, so under its style it is a caption.
+  for (const height of [481, 360, 300]) {
+    await page.setViewportSize({ width: 390, height });
+    const app = await fieldCard(page, baseURL, { height });
+    const caption = app.locator('#atom-display');
+    await expect(caption).toHaveAttribute('data-place', 'caption');
+    const words = await viewBox(caption);
+    const beats = await viewBox(app.locator('.rise-stage__beats'));
+    expect(words.top, `the caption's top at ${height} px`).toBeGreaterThanOrEqual(0);
+    expect(words.bottom, `the caption's bottom at ${height} px`).toBeGreaterThan(height / 2);
+    expect(words.bottom, `the caption's bottom against the beat line at ${height} px`).toBeLessThan(beats.top);
+  }
+});
+
+test('on a phone a line placed at the side is a caption, and it too sits above the bar', async ({ page, baseURL }) => {
+  const [first, ...rest] = SKY_PREMIUM_EDUCATIONAL.beats;
+  for (const place of ['left', 'right']) {
+    await page.setViewportSize({ width: 390, height: 481 });
+    const app = await fieldCard(page, baseURL, { height: 481, current: { ...SKY_PREMIUM_EDUCATIONAL, beats: [{ ...first, place }, ...rest] } });
+    const words = await viewBox(app.locator(`#atom-display[data-place="${place}"]`));
+    const beats = await viewBox(app.locator('.rise-stage__beats'));
+    expect(words.top, `the ${place} line's top`).toBeGreaterThanOrEqual(0);
+    expect(words.bottom, `the ${place} line's bottom against the beat line`).toBeLessThan(beats.top);
+  }
+});
+
+const TALL_SVG = [
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 400" font-family="sans-serif" font-size="16" fill="currentColor">',
+  '  <rect x="40" y="40" width="180" height="320" fill="none" stroke="currentColor" stroke-width="2.5"/>',
+  '  <text x="130" y="390" text-anchor="middle">base</text>',
+  '</svg>'
+].join('\n');
+
+test('on a phone the picture ends where the bar’s room begins: the scene is drawn to that height, and a tall figure stays above it', async ({ page, baseURL }) => {
+  const room = 88;
+  await page.setViewportSize({ width: 390, height: 481 });
+  const sky = await fieldCard(page, baseURL, { height: 481 });
+  const canvas = sky.locator('canvas.chamber-scene');
+  await expect(canvas).toBeAttached({ timeout: 15_000 });
+  expect((await viewBox(canvas)).height).toBeCloseTo(481 - room, 0);
+  // The worker draws at that height, not the field's stretched into it.
+  await expect.poll(() => canvas.evaluate(node => node.height / Math.min(2, Math.max(1, node.ownerDocument.defaultView.devicePixelRatio))), { timeout: 5_000 })
+    .toBeCloseTo(481 - room, 0);
+
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: figureBeats(TALL_SVG), height: 481 });
+  await begin(app);
+  const figure = app.locator('img.chamber-figure');
+  await expect.poll(() => figure.evaluate(img => img.complete && img.naturalWidth).catch(() => 0), { timeout: 15_000 }).toBeGreaterThan(0);
+  const content = await figure.evaluate(img => {
+    const box = img.getBoundingClientRect();
+    const scale = Math.min(box.width / img.naturalWidth, box.height / img.naturalHeight);
+    const height = img.naturalHeight * scale;
+    return { top: box.top + (box.height - height) / 2, bottom: box.top + (box.height + height) / 2 };
+  });
+  expect(content.top).toBeGreaterThanOrEqual(0);
+  expect(content.bottom).toBeLessThanOrEqual(481 - room + 0.5);
+});
+
 test('full screen: absent where the host shows the card inline only, and asked of a host that offers it', async ({ page, baseURL }) => {
   let app = await fieldCard(page, baseURL);
   await expect(app.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();

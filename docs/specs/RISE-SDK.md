@@ -219,7 +219,7 @@ A figure is a picture the model draws as SVG: `{ "id": "triangle", "svg": "<svg 
 8. No value, with its character references decoded and its whitespace removed, containing `javascript:`, `data:`, `http:`, `https:` or `//`, nor `url(` unless it is `url(#`.
 9. In CSS, a `style` attribute or a `<style>` (which holds only CSS): the same, and no `@import`, `expression(`, `behavior`, `-moz-binding` or escape (`\`).
 
-The card then shows the admitted text only as an `<img>` of a `blob:` URL (`image/svg+xml`), centred and scaled to fit. An SVG image runs no script and fetches nothing by platform rule: that is the second lock. The URL is let go once the image loads or the figure is taken down.
+The card then shows the admitted text only as an `<img>` of a `blob:` URL (`image/svg+xml`), centred and scaled to fit. In a host's card the picture ends where the bar's room begins, so a figure, like a scene's canvas, is fitted above the controls and never runs under them. An SVG image runs no script and fetches nothing by platform rule: that is the second lock. The URL is let go once the image loads or the figure is taken down.
 
 A refused figure refuses the whole `rise_present` call, as a refused code scene does (§7.7): one line per problem, up to `MAX_SCENE_LINES` across all scenes. For example:
 
@@ -391,7 +391,7 @@ export default function scene(rise) {
 | `ctx` | The canvas's 2D context, created the first time it is read. |
 | `use('webgl2')` | Switch to WebGL2 instead. Call it before the first frame and before reading `ctx`. It returns the context. |
 | `gl` | The WebGL2 context after `use('webgl2')`, otherwise `null`. |
-| `size` | `{ width, height, dpr }`: CSS pixels, and the device pixel ratio, capped at `SCENE_LIMITS.maxDpr`. The same object is updated on resize. |
+| `size` | `{ width, height, dpr }`: CSS pixels of the canvas (in a host's card, the field above the bar's room), and the device pixel ratio, capped at `SCENE_LIMITS.maxDpr`. The same object is updated on resize. |
 | `theme` | The reading's colours: `background`, `text`, `accent`, `muted`, `highlight`. |
 | `reducedMotion` | `true` when the reader asked for reduced motion. |
 | `fonts` | An empty list in this version. Labels draw in the system's faces. |

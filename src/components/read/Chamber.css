@@ -2097,6 +2097,14 @@
     transform: none;
   }
 
+  /* A placed display (a caption, top, left, right) leaves the band as it does on desktop: no box. A band
+     with a box is positioned and transformed, so it would be the display's containing block, and with its
+     one child out of flow it is 0 px tall: `bottom: 9%` of nothing put a caption at the field's centre, or
+     off the top of a short card. Its backdrop-filter would also be a stacking context under the scene. */
+  .chamber-field .atom-band:has(> .atom-display[data-place]) {
+    display: contents;
+  }
+
   /* The reading keeps the band's padding and loses the band's skin —
      it is the thing that fades, and it must have nothing to fade. */
   .chamber-field-stream .atom-display.glass-tile,
