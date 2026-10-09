@@ -1136,5 +1136,15 @@ test('a bed under the reading: the self-contained card starts the first beat’s
   await expect.poll(sounding, { timeout: 5_000 }).toBeNull();
   await sound.click();
   await expect.poll(sounding, { timeout: 5_000 }).toBe('starlight');
+
+  // The bed lies under the whole lesson, not its first beat: two passages on, it is still sounding.
+  const journal = () => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__riseLive.journal());
+  const forward = stage.locator('[data-stage="forward"]');
+  await forward.click();
+  await expect.poll(async () => (await journal()).filter(entry => entry.type === 'seek').length, { timeout: 5_000 }).toBe(1);
+  await forward.click();
+  await expect.poll(async () => (await journal()).filter(entry => entry.type === 'seek').length, { timeout: 5_000 }).toBe(2);
+  await page.waitForTimeout(1_000);
+  expect(await sounding()).toBe('starlight');
   expect(errors).toEqual([]);
 });

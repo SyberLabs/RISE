@@ -98,6 +98,17 @@ describe('App safety orchestration', () => {
     expect(media.addEventListener).toHaveBeenCalledTimes(1);
   });
 
+  it('defaults the card’s Sound on, and remembers a reader who turned it off across a reload', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.settings.cardSound).toBe(true);
+
+    app.handleSettingsChange('cardSound', false);
+    const reloaded = new App();
+    reloaded.loadSettings();
+    expect(reloaded.settings.cardSound).toBe(false);
+  });
+
   it('defaults artwork labels on, restores an explicit opt-out, and propagates it live', async () => {
     const app = new App();
     app.loadSettings();
