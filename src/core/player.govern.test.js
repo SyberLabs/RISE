@@ -205,6 +205,27 @@ describe('governing the end of an atom', () => {
         expect(shown[1].at - 1400).toBeLessThan(1220);
     });
 
+    it('leaves the time left of a paused atom alone when a governor calls it fixed: a scene’s hold is real time, not speech', async () => {
+        const timed = session();
+        for (const atom of timed.atoms) atom.duration = 1000;
+        player = new Player(timed);
+        // The beat conductor answers so for a hold a scene may end: its remainder is on the scene's clock, whatever the pace.
+        player.govern({ duration: () => null, completion: () => null, fixed: atom => atom === timed.atoms[0] });
+        player.play();
+        await tick(400);
+        player.pause();
+        const left = player.currentAtomRemainingTime;
+        player.setSpeedFactor(2);
+        expect(player.currentAtomRemainingTime).toBe(left);
+        // The next atom, which no scene holds, is paced as before.
+        player.play();
+        await tick(left + 10);
+        player.pause();
+        const before = player.currentAtomRemainingTime;
+        player.setSpeedFactor(4);
+        expect(player.currentAtomRemainingTime).toBeCloseTo(before * 2, 0);
+    });
+
     it('carries on for an atom that nothing governs', async () => {
         player = new Player(session());
         const shown = [];

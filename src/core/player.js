@@ -634,6 +634,9 @@ export class Player {
         const atom = this.sessionState.currentAtom;
         if (!atom) return;
         if (this.sessionState.state === 'paused') {
+            // A hold a scene holds is on the scene's clock (beat-conductor.js `fixed`): its remainder is real time,
+            // not speech, and the pace does not touch it.
+            if (this._governors.some(governor => governor.fixed?.(atom) === true)) return;
             if (this.currentAtomRemainingTime !== null) this.currentAtomRemainingTime *= ratio;
             if (this.currentAtomDisplayTime !== null) this.currentAtomDisplayTime *= ratio;
             return;
