@@ -1,5 +1,23 @@
-import { expect } from '@playwright/test';
-export { expect, test } from '@playwright/test';
+import { expect, test as base } from '@playwright/test';
+export { expect } from '@playwright/test';
+
+// Local app conformance runs with a signed-out account, without contacting the
+// production account service. Dedicated account specs install their own later
+// route and exercise the complete producer protocol. Requests remain observable,
+// so this cannot mask the study's assertion that no account lookup occurs.
+export const test = base.extend({
+  page: async ({ page }, use) => {
+    await page.route(/^https:\/\/syberlabs\.io\/admin\/api\/v1\/(?:account|saves(?:\/[^/?]+)?)(?:\?.*)?$/u, async route => {
+      const origin = route.request().headers().origin;
+      const headers = origin ? { 'Access-Control-Allow-Origin': origin, 'Access-Control-Allow-Credentials': 'true' } : {};
+      if (route.request().method() === 'OPTIONS') {
+        return route.fulfill({ status: 204, headers: { ...headers, 'Access-Control-Allow-Headers': 'Content-Type,X-SyberLabs-Expected-User', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' } });
+      }
+      await route.fulfill({ status: 401, headers, json: { version: 1, error: 'signin_required' } });
+    });
+    await use(page);
+  }
+});
 import { answerDecisions, connectOpenRouter, openAskDialog } from './reader-connection.js';
 
 /**

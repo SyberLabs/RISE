@@ -5,7 +5,7 @@
   "milestone": "Account portal",
   "status": "in_review",
   "delivery": "branch",
-  "owner": "codex-rise-account",
+  "owner": "codex-fly-saves-review",
   "priority": "now",
   "dependencies": [],
   "acceptance": [
@@ -31,6 +31,18 @@
       "ref": "docs/ACCOUNT-SAVES.md",
       "date": "2026-10-09",
       "note": "Account boundary and producer-first rollout documented."
+    },
+    {
+      "kind": "test",
+      "ref": "src/app/account-control.test.js",
+      "date": "2026-10-09",
+      "note": "Account full-validation repair: red study/card tests observed unwanted mount/focus identity requests; repaired isolation and enter/leave-focus regressions pass. 94 focused account/CLI tests and 82 fast files (1855 passed, two existing skips) passed locally."
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-eval.spec.js",
+      "date": "2026-10-09",
+      "note": "Before repair, study zero-external-request and ordinary reader-owned OpenAI browser cases failed on account GET/CORS. Repair candidate passed all59 study/host-card/account/OpenAI browser tests with retries0. Final rebuilt gate passed50 with3 existing skips/retries0; after narrowing the signed-out fixture to account and saves only, all9 original failure/host/dedicated account browser checks passed, retries0."
     }
   ],
   "activity": [
@@ -41,10 +53,18 @@
     {
       "date": "2026-10-09T02:42:48.567Z",
       "summary": "Implementation and focused validation complete; release checks and review underway."
+    },
+    {
+      "date": "2026-10-09T03:58:10.225Z",
+      "summary": "Root handed off account full-validation repair to codex-fly-saves-review: preserve study/card isolation, normal account UI and explicit CLI refusal classification. Local red/green evidence recorded; final checks underway."
+    },
+    {
+      "date": "2026-10-09T04:02:31.431Z",
+      "summary": "Final local verification complete:79 account-control/CLI tests;94 focused account/CLI tests;82 fast files1855passed2existingSkip;59 broader browser checks,50gate3existingSkip and9 final isolated/account cases passed with retries0. Production authenticated acceptance remains pending."
     }
   ],
-  "updatedAt": "2026-10-09T02:42:48.567Z",
-  "revision": 2,
-  "summary": "Shared account entrance and explicit validated text backups implemented; production rollout depends on central account producer.",
+  "updatedAt": "2026-10-09T04:02:31.431Z",
+  "revision": 4,
+  "summary": "Account implementation merged/deployed at24fe561e; full-suite study/card identity lookup and CLI classification regression repair is on a follow-up branch. Real authenticated production acceptance remains pending.",
   "blocker": null
 }

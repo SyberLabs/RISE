@@ -11,3 +11,6 @@ Deploy the central account producer before this consumer. Preview and localhost 
 Restores also retain the account entrance’s captured identity generation. An observed account change permanently invalidates the old panel; validation checks again at the actual IndexedDB write boundary after asynchronous shelf reads, so an older detail response cannot replace the browser copy.
 
 Replacement validation and the account restore write share one IndexedDB readwrite transaction. A newer draft saved in another tab after the initial restore precheck is preserved unless replacement was explicitly chosen.
+
+
+The isolated study (`/live?eval=1` and `?eval=later`) and self-contained host cards retain the explicit Sign in entrance but do not look up account identity automatically, including on window focus. Ordinary reader routes, including a reader-owned `/live` provider session, continue to refresh the account entrance. Local browser conformance answers the account protocol as signed out instead of reaching the production service; dedicated account tests supply their own authenticated protocol fixture. The study still asserts no external requests, so the signed-out fixture cannot conceal an unwanted account lookup.

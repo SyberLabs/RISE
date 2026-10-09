@@ -763,6 +763,10 @@ describe('every refusal the session can phrase has a status', () => {
    * already uses for statuses.
    */
   const NOT_A_REFUSAL_HERE = Object.freeze({
+    AccountError:
+      'account-service.js is called only by the account entrance and backup '
+      + 'panel, which catch its refusals themselves; the Scriptorium sequence '
+      + 'does not call the account service or save account backups',
     JourneyCompileError:
       'a Journey is compiled from a published program the Scriptorium cannot '
       + 'produce; nothing in the sequence calls the Journey compiler',
