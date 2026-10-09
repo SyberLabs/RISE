@@ -152,6 +152,7 @@ history, not a distinction; read the status column instead.
 
 | Document | Status | What it is |
 | --- | --- | --- |
+| [PLUS-VOICE-OPERATIONS.md](PLUS-VOICE-OPERATIONS.md) | Intent | Dedicated Cloudflare Access admin sign-in, shared admin budget, invoice-derived subscriber voice ceiling, configuration and production acceptance checks tracked by SPK-005. |
 | [USER-OWNED-AI.md](USER-OWNED-AI.md) | Intent | RISE spends no shared inference: hosted Jev on the reader's own OpenRouter account, the shared decision contract, retired routes, release order, and the mocked/local/live evaluation. |
 | [LOCAL-RISE.md](LOCAL-RISE.md) | Intent | Run RISE and pinned Kev-4B on your own computer: requirements, launcher states, bridge security, and network dependencies. |
 | [jev-core/variety-evaluation.md](jev-core/variety-evaluation.md) | Record | Jev prompt-variety baseline, bounded evaluation method, and local candidate evidence. |

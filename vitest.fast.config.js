@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 74;
+export const FAST_TEST_FILES = 79;
 
 const FAST_TESTS = [
     'src/core/system-design.test.js',
@@ -20,6 +20,11 @@ const FAST_TESTS = [
     'worker/plus.test.js',
     // The independent attack suite: each test passes only while its attack fails.
     'worker/plus.security.test.js',
+    'worker/plus-admin.test.js',
+    'worker/plus-budget.test.js',
+    'src/app/plus.test.js',
+    'src/app/chamber-session-factory.test.js',
+    'src/components/Settings.test.js',
     'src/core/decision/**/*.test.js',
     'src/core/jev-palette.test.js',
     'src/components/read/Chamber.jev-look.test.js',

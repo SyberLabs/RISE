@@ -33,7 +33,7 @@ const VOICES = [
 
 /** A subscription as Stripe 2025-03-31.basil returns it: the billing period is on the item. */
 const subscription = ({ current_period_end = EXP, current_period_start = START, price = PRICE, ...overrides } = {}) => ({
-  id: 'sub_1', status: 'active', customer: 'cus_1',
+  id: 'sub_1', status: 'active', customer: 'cus_1', latest_invoice: 'in_1',
   items: { object: 'list', data: [{ id: 'si_1', price: { id: price }, current_period_start, current_period_end }] },
   ...overrides
 });
@@ -126,10 +126,18 @@ function world({ sub = subscription(), session = { payment_status: 'paid', subsc
     if (u.hostname === 'api.stripe.com') {
       if (stripeDown) throw new Error('offline');
       if ((init.method ?? 'GET') !== 'GET') state.stripeWrites++;
+      if (u.pathname.startsWith('/v1/invoices/')) {
+        const item = sub?.items?.data?.find(candidate => (typeof candidate.price === 'string' ? candidate.price : candidate.price?.id) === PRICE) ?? sub?.items?.data?.[0];
+        const invoiceId = decodeURIComponent(u.pathname.split('/').pop());
+        const s = invoiceId === 'in_1' ? 'sub_1' : invoiceId.slice('in_'.length);
+        return Response.json({ id: 'in_1', status: 'paid', currency: 'usd', livemode: /^sk_live_/u.test(init.headers?.Authorization?.slice(7) ?? ''), amount_paid: 2000, total: 2000, total_taxes: [], post_payment_credit_notes_amount: 0, parent: { subscription_details: { subscription: s } }, lines: { has_more: false, data: [{ pricing: { price_details: { price: PRICE } }, period: { start: item?.current_period_start ?? sub?.current_period_start, end: item?.current_period_end ?? sub?.current_period_end }, parent: { subscription_item_details: { subscription: s, subscription_item: item?.id, proration: false } } }] } });
+      }
+      if (u.pathname === '/v1/balance_transactions/txn_budget') return Response.json({ currency: 'usd', fee: 88 });
       if (u.pathname.startsWith('/v1/checkout/sessions/')) return session ? Response.json(session) : new Response('', { status: 404 });
       // A charge traced to its subscription, as the webhook does it: charge, PaymentIntent, invoice payment, invoice.
       if (u.pathname === '/v1/charges/ch_1') return Response.json({ id: 'ch_1', payment_intent: 'pi_1' });
       if (u.pathname === '/v1/invoice_payments') {
+        if (u.searchParams.has('invoice')) return Response.json({ has_more: false, data: [{ status: 'paid', currency: 'usd', amount_paid: 2000, payment: { type: 'payment_intent', payment_intent: { status: 'succeeded', latest_charge: { paid: true, captured: true, disputed: false, currency: 'usd', amount: 2000, amount_refunded: 0, balance_transaction: 'txn_budget' } } } }] });
         state.paymentLookups = (state.paymentLookups ?? 0) + 1;
         const paid = u.searchParams.get('payment[payment_intent]') === 'pi_1' && u.searchParams.get('payment[type]') === 'payment_intent';
         return Response.json({ data: paid ? [{ invoice: { id: 'in_1', parent: { subscription_details: { subscription: 'sub_1' } } } }] : [] });
@@ -146,7 +154,7 @@ function world({ sub = subscription(), session = { payment_status: 'paid', subsc
         await held();
         // Each subscription id answers as itself, so several subscribers can share one Stripe.
         const id = decodeURIComponent(u.pathname.split('/').pop());
-        return sub ? Response.json({ ...sub, id, ...(state.cancelled.has(id) ? { status: 'canceled' } : {}) }) : new Response('', { status: 404 });
+        return sub ? Response.json({ ...sub, id, latest_invoice: `in_${id}`, ...(state.cancelled.has(id) ? { status: 'canceled' } : {}) }) : new Response('', { status: 404 });
       }
     }
     return new Response('', { status: 500 });
@@ -233,7 +241,7 @@ describe('claim', () => {
 
   it('reads the period end from the top level for a subscription in the pre-basil shape', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
-    const legacy = { id: 'sub_1', status: 'active', customer: 'cus_1', current_period_start: NOW - DAY_S, current_period_end: NOW + 10 * DAY_S, items: { data: [{ price: { id: PRICE } }] } };
+    const legacy = { id: 'sub_1', status: 'active', customer: 'cus_1', latest_invoice: 'in_1', current_period_start: NOW - DAY_S, current_period_end: NOW + 10 * DAY_S, items: { data: [{ price: { id: PRICE } }] } };
     world({ session: { payment_status: 'paid', subscription: legacy } });
     const response = await worker.fetch(claimRequest(), environment());
     expect(response.status).toBe(204);
@@ -426,7 +434,7 @@ describe('voice', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it('gives the reservation back when the vendor refuses before billing', async () => {
+  it('retains the reservation after a vendor request with an unsuccessful answer', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     for (const status of [429, 500, 401]) {
       const env = environment();
@@ -434,8 +442,8 @@ describe('voice', () => {
       const response = await worker.fetch(voiceRequest(await cookieFor(env), ATOMS), env);
       expect(response.status).toBe(502);
       expect(await codeOf(response)).toBe('UPSTREAM');
-      expect(await usedIn(env, 'sub:sub_1', START)).toBe(0);
-      expect(await usedIn(env, 'global', '2027-01-15')).toBe(0);
+      expect(await usedIn(env, 'sub:sub_1', START)).toBe(TEXT.length);
+      expect(await usedIn(env, 'global', '2027-01-15')).toBe(TEXT.length);
     }
   });
 
@@ -573,11 +581,11 @@ describe('attacks from the security review, now refused', () => {
     expect(state.vendorCalls).toBe(0);
   });
 
-  it('H3: a trialing subscription with the Plus price still voices', async () => {
+  it('H3: a free trial cannot fund a billable voice', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
     world({ sub: subscription({ status: 'trialing' }) });
-    expect((await worker.fetch(voiceRequest(await cookieFor(env), ['hello there']), env)).status).toBe(200);
+    expect((await worker.fetch(voiceRequest(await cookieFor(env), ['hello there']), env)).status).toBe(402);
   });
 
   it('H3: Stripe unreachable at voicing time fails closed, before the vendor', async () => {
@@ -977,9 +985,10 @@ describe('a billed answer without timing (N12)', () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
     const { state } = world();
+    const normalFetch = vi.mocked(fetch).getMockImplementation();
     vi.mocked(fetch).mockImplementation(async (url, init) => {
       if (new URL(url).hostname === 'api.elevenlabs.io') { state.vendorChars += JSON.parse(init.body).text.length; return Response.json({ audio_base64: btoa('mp3') }); }
-      if (new URL(url).hostname === 'api.stripe.com') return Response.json(subscription());
+      if (new URL(url).hostname === 'api.stripe.com') return normalFetch(url, init);
       return new Response('', { status: 500 });
     });
     const response = await voiceAt(env, await cookieFor(env), 1000);
@@ -1086,7 +1095,7 @@ describe('the Stripe webhook (N9)', () => {
     // Final: a later "active" update does not lift a refund.
     await hook(env, stripeEvent('customer.subscription.updated', { id: 'sub_1', status: 'active' }, { created: NOW + 1 }));
     expect(await codeOf(await voiceAt(env, cookie, 10))).toBe('PLUS_REQUIRED');
-    expect(state.paymentLookups).toBe(1);
+    expect(state.paymentLookups).toBe(2);
   });
 
   it('charge.dispute.created revokes the subscription the disputed charge paid, through the charge when the dispute names no PaymentIntent', async () => {
@@ -1322,14 +1331,14 @@ describe('the daily cap per subscription (PLUS_SUB_DAILY_CHAR_CAP)', () => {
     expect((await voiceAt(env, await cookieFor(env, { iat: NOW + DAY_S }), 10_000, '192.0.2.1', 5)).status).toBe(200);
   });
 
-  it('takes its value from the var, and a vendor refusal gives the day\'s characters back', async () => {
+  it('takes its value from the var, and an unsuccessful vendor request stays counted', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment({ PLUS_SUB_DAILY_CHAR_CAP: '5000' });
     world({ vendor: 500 });
     const cookie = await cookieFor(env);
     expect((await voiceAt(env, cookie, 5_000, '192.0.2.1', 1)).status).toBe(502);
     world();
-    expect((await voiceAt(env, cookie, 5_000, '192.0.2.1', 2)).status).toBe(200);
+    expect((await voiceAt(env, cookie, 5_000, '192.0.2.1', 2)).status).toBe(429);
     expect(await codeOf(await voiceAt(env, cookie, 10, '192.0.2.1', 3))).toBe('PLUS_DAILY_LIMIT');
   });
 });

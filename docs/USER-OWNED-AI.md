@@ -3,12 +3,20 @@
 RISE spends no SyberLabs credential at request time for any model call: AI
 features run on a connection the reader owns, and reading and manual settings
 need none. The one exception is the Plus voice (`worker/plus.mjs`): with the
-Plus voice on, the text of a subscriber's reading of their own material goes
+Plus voice on, the text of a verified subscriber's or administrator's reading of their own material goes
 through the Worker to ElevenLabs on the lab's account, is metered as a
-per-subscription character count for the billing period (105,000 characters,
-at most 25,000 a UTC day),
+per-subscription character and cost budget for the paid billing period (up to
+105,000 characters, at most 25,000 a UTC day, with a potentially lower
+invoice-derived spend ceiling), or separate shared administrator daily and monthly meters,
 and comes back as audio the reader's browser keeps in IndexedDB. The Worker
-keeps no text or audio, runs no model, and makes no decision.
+keeps no text or audio, runs no model, and makes no decision. Administrators
+sign in through a dedicated Cloudflare Access application; the Worker verifies
+the signed identity without persisting its subject, email or token. A browser
+role flag grants nothing. Subscriber budgets, confirmed standing and usage
+records remain server-side. See [Plus voice operations](PLUS-VOICE-OPERATIONS.md)
+and [SPK-005](product/tasks/SPK-005.json) for rollout status; these contracts do
+not establish that production configuration or real sign-in/voicing has been
+verified.
 
 | Option | What runs | Who pays | Where the credential lives |
 | --- | --- | --- | --- |
