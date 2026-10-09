@@ -22,6 +22,19 @@
 /site.webmanifest
   Content-Type: application/manifest+json
 
+# Linked source documents are readable text, including the extensionless ones.
+/LICENSE
+  Content-Type: text/plain; charset=utf-8
+
+/NOTICE
+  Content-Type: text/plain; charset=utf-8
+
+/ASSET-LICENSES.md
+  Content-Type: text/plain; charset=utf-8
+
+/PRIVACY.md
+  Content-Type: text/plain; charset=utf-8
+
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 

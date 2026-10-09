@@ -8,7 +8,7 @@
  *
  *   node scripts/ci-hygiene.mjs
  */
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const failures = [];
@@ -188,8 +188,18 @@ for (const file of GREETS_A_STRANGER) {
     }
 }
 
+// ── 9. Linked legal documents ship their source text, not the SPA ────
+// Vite copies public/ into dist/. A root-only document silently falls
+// through Cloudflare's single-page fallback and returns index.html.
+for (const file of ['LICENSE', 'NOTICE', 'ASSET-LICENSES.md', 'PRIVACY.md']) {
+    const published = join('public', file);
+    if (!existsSync(published) || !readFileSync(published).equals(readFileSync(file))) {
+        fail('linked legal document missing or stale', `${published} must match ${file}; run npm run build:legal`);
+    }
+}
+
 // ── Report ───────────────────────────────────────────────────────────
-const CHECKS = 8;
+const CHECKS = 9;
 if (failures.length) {
     console.error(`\n✗ ${failures.length} hygiene failure(s):\n`);
     for (const { check, detail } of failures) console.error(`  ${check}\n      ${detail}`);
