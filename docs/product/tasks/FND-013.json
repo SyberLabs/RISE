@@ -1,0 +1,42 @@
+{
+  "id": "FND-013",
+  "title": "Keep the account entrance clear of Workshop modal controls",
+  "lane": "shared",
+  "milestone": "Release validation",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "codex deploy (Seth)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "The account entrance is visible in the Workshop scene stack.",
+    "The account entrance is hidden and cannot receive focus while scene editors, scene sheets, visual selection or source selection are open.",
+    "The account entrance returns after editing or source selection closes.",
+    "The complete Workshop touch flow passes on iPhone 12 and small Android portrait without forced taps.",
+    "Existing reader modal behavior and required release checks remain intact."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/37880531392/job/113658952115",
+      "note": "Both phone scene-writing flows timed out because the global Sign in control intercepted the Done tap on both attempts.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/workshop-scenes.spec.js",
+      "note": "Permanent account-visibility assertion fails before the stylesheet repair. The first repaired run passed Android and both studio flows but exposed an existing iPhone search debounce race; waiting for the one filtered book, as neighboring specs do, resolved it. Final phone flows: 12/12 without retries, then 4/4 on provider merge 785c6f54. Required checks passed: hygiene, audit (no high/critical), compatibility, diagram, 1895 unit tests with 2 existing skips, build, first-load 61.2 KB/64 KB, and browser gate 50 passed with 3 existing skips. GitHub CI and deployment pending.",
+      "date": "2026-10-09"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T04:06:13.670751Z",
+      "summary": "Claimed narrow account CSS modal policy repair in Slack MFM; confirmed account isolation PR #574 edits separate files."
+    }
+  ],
+  "updatedAt": "2026-10-09T04:16:19.971733Z",
+  "revision": 2,
+  "summary": "Extend the existing modal visibility policy to Workshop scene and selection sheets without changing their touch interactions.",
+  "blocker": null
+}
