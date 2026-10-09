@@ -14,13 +14,20 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
 
     // This test is about Page COMPOSITION, pagination, figure accounting,
     // and Stream suspension — not museum-CDN availability. Make the remote
-    // artwork outcome deterministic: every off-origin image request fails
-    // fast, so each figure reverently terminalizes to `is-absent` instead
-    // of the paginated walk waiting on live network. (Successful network
-    // resolution belongs to a dedicated imagery test.)
+    // artwork outcome deterministic: museum metadata and off-origin image
+    // requests fail fast, so each figure terminalizes to `is-absent` instead
+    // of preparation or pagination waiting on live museum services.
+    // Successful network resolution belongs to a dedicated imagery test.
+    const localOrigin = new URL(test.info().project.use.baseURL).origin;
+    const museumCatalogs = new Set([
+        'api.artic.edu', 'id.rijksmuseum.nl', 'openaccess-api.clevelandart.org'
+    ]);
     await page.route('**/*', (route) => {
         const req = route.request();
-        if (req.resourceType() === 'image' && !req.url().includes('127.0.0.1')) {
+        const url = new URL(req.url());
+        const remoteImage = req.resourceType() === 'image' && url.origin !== localOrigin;
+        const museumMetadata = req.resourceType() === 'fetch' && museumCatalogs.has(url.hostname);
+        if (remoteImage || museumMetadata) {
             return route.abort();
         }
         return route.fallback();

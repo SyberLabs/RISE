@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { claimPlus, fetchPlusPaymentLink, fetchPlusVoices, forgetPlus, markPlusLapsed, notePlusAllowance, plusAllowance, plusNotice, plusState, plusVoiceSlug } from './plus.js';
+import { claimPlus, fetchPlusStatus, fetchPlusPaymentLink, fetchPlusVoices, forgetPlus, markPlusLapsed, notePlusAllowance, plusAllowance, plusNotice, plusState, plusVoiceSlug } from './plus.js';
 import { enterFromPlusClaim } from './plus-claim.js';
 
 afterEach(() => {
   localStorage.clear();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
 describe('Plus on this browser', () => {
@@ -102,3 +103,26 @@ describe('the claim page', () => {
     expect(plusState().claimed).toBe(false);
   });
 });
+
+ describe('server voice entitlement', () => {
+  it('recognizes only explicit server booleans and never persists admin authority', async () => {
+    const fetchImpl = vi.fn(async () => Response.json({ admin: true, subscriber: false, available: true, adminLogin: false, allowance: { used: 1, limit: 2, periodEnd: 3 } }));
+    expect(await fetchPlusStatus({ fetchImpl })).toEqual({ admin: true, subscriber: false, available: true, adminLogin: false, allowance: { used: 1, limit: 2, periodEnd: 3 } });
+    expect(fetchImpl).toHaveBeenCalledWith('/api/plus/status', { signal: expect.any(AbortSignal) });
+    expect(localStorage.getItem('rise.plus')).toBeNull();
+    expect(await fetchPlusStatus({ fetchImpl: async () => Response.json({ admin: 'true', subscriber: 1, available: true }) })).toEqual({ admin: false, subscriber: false, available: true, adminLogin: false, allowance: null });
+  });
+  it('fails closed when status is unavailable', async () => {
+    for (const fetchImpl of [async () => { throw new Error('offline'); }, async () => new Response(null, { status: 503 })]) {
+      expect(await fetchPlusStatus({ fetchImpl })).toEqual({ admin: false, subscriber: false, available: false, adminLogin: false, allowance: null });
+    }
+  });
+});
+
+ it('bounds a stalled status request so a reading can continue silently', async () => {
+   vi.useFakeTimers();
+   let result;
+   fetchPlusStatus({ fetchImpl: () => new Promise(() => {}), timeoutMs: 20 }).then(status => { result = status; });
+   await vi.advanceTimersByTimeAsync(20);
+   expect(result).toEqual({ admin: false, subscriber: false, available: false, adminLogin: false, allowance: null });
+ });
