@@ -58,6 +58,6 @@
   ],
   "updatedAt": "2026-10-09T03:34:38.522Z",
   "revision": 4,
-  "summary": "Four unchanged source documents are published as text assets. Local release hygiene, build, byte-for-byte dist checks and roadmap tests pass; protected PR and production verification pending. Two pre-existing stale generated HTML pages are excluded from this scoped fix.",
+  "summary": "Four unchanged source documents are published as text assets. Local release hygiene, build, byte-for-byte dist checks and roadmap tests pass; protected PR #557 merged and the live bytes checked; human acceptance pending. Two pre-existing stale generated HTML pages are excluded from this scoped fix.",
   "blocker": null
 }

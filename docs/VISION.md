@@ -54,7 +54,8 @@ Every stage in §4 widens exactly one of these. None of them requires giving the
 model a compiler, and that is the point: **the model gets expressiveness from a
 bigger validated vocabulary and a faster clock, never from being handed
 execution.** The invariant that already governs `src/live/protocol.js` — a field
-that is not named is refused, nothing executable is ever accepted — is not a
+that is not named is refused, and nothing executable reaches the page or UI
+(the one exception is a sandboxed scene module, §5) — is not a
 restriction on this vision. It is the only reason the vision can be handed to
 other people's readers.
 
@@ -145,7 +146,8 @@ tested, accessible, and the same for every scene.
 The obvious alternative is to let the model emit HTML, CSS, or a component tree
 and render it. We refuse that, and the refusal is the architecture:
 
-- It is executable content from a model, in the reader's page, with the reader's
+- It is executable content from a model, in the reader's page (a sandboxed
+  scene module in a worker is the amended exception, §5), with the reader's
   session. There is no validation story for it that ends well.
 - It cannot be held to a budget, a frame rate, a contrast ratio, or a screen
   reader.

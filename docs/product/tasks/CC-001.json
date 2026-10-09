@@ -7,7 +7,7 @@
   "delivery": "not_shipped",
   "owner": "Claude coordinator",
   "priority": "later",
-  "dependencies": [],
+  "dependencies": ["LIVE-009"],
   "acceptance": [
     "Measure ChatGPT's sandbox (worker-src blob, base-uri, updateModelContext) with the card as deployed; record in claude-mcp-apps-sandbox and a discussion doc."
   ],
