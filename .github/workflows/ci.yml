@@ -121,6 +121,11 @@ jobs:
       - name: Verify the tested provider bundle
         run: |
           set -euo pipefail
+          test ! -e dist
+          mv "$RUNNER_TEMP/release/dist" dist
+          test "$(cat dist/release.txt)" = "$TESTED_SHA"
+          test "$(cat "dist/release-$TESTED_SHA.txt")" = "$TESTED_SHA"
+          test "$(find dist/audio/recitation -type f -name '*.opus' | wc -l)" -eq 877
           ./node_modules/.bin/wrangler deploy --config wrangler.plus-preview.jsonc --dry-run --outdir "$RUNNER_TEMP/provider-deploy-bundle"
           cmp "$RUNNER_TEMP/release/voice-provider/plus-preview.js" "$RUNNER_TEMP/provider-deploy-bundle/plus-preview.js"
           cmp "$RUNNER_TEMP/release/voice-provider/wrangler.plus-preview.jsonc" wrangler.plus-preview.jsonc

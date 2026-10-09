@@ -64,6 +64,18 @@
       "ref": "https://developers.cloudflare.com/workers/configuration/compatibility-flags/#global-fetch-strictly-public",
       "note": "Cloudflare documents public-front-door routing and security checks for same-zone global fetch when enabled; getAdmin keeps signature validation and its protected live-revocation probe unchanged.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": ".github/workflows/ci.yml",
+      "date": "2026-10-09",
+      "note": "Provider job follow-up to #587: actual Wrangler dry-run reproduced missing checkout dist. Extracted corrected workflow step restored exact downloaded 3832 release assets, checked both SHA markers and877 Opus files, then passed real Wrangler dry-run plus byte-identical provider bundle/original config comparisons. No runtime/credential/permission changes; required CI and publication remain pending. Local browser gate passed 57 tests with 3 existing skips; production configuration tests passed 6, roadmap tests passed 23, 82 tasks validated, and CI hygiene passed 9 checks."
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/588",
+      "date": "2026-10-09",
+      "note": "Narrow tested-provider-assets restoration. Local actual workflow replay and browser gate passed; required PR CI pending. No merge, deployment, permission grant or provider acceptance claimed."
     }
   ],
   "activity": [
@@ -98,10 +110,22 @@
     {
       "date": "2026-10-09T05:34:47.356Z",
       "summary": "Production admin self-probe public-edge routing enabled on branch with config/auth regression evidence; no auth grants or spend caps changed. Production proof remains pending."
+    },
+    {
+      "date": "2026-10-09T07:43:07.671Z",
+      "summary": "Repair the split provider job's missing tested assets; real dry-run/config and bundle comparisons pass on branch, CI and release pending."
+    },
+    {
+      "date": "2026-10-09T07:46:24.270Z",
+      "summary": "Record fresh local gate and configuration verification for tested provider assets restoration"
+    },
+    {
+      "date": "2026-10-09T07:46:56.565Z",
+      "summary": "Link provider tested-assets follow-up PR #588 and pending required CI"
     }
   ],
-  "updatedAt": "2026-10-09T05:34:47.356Z",
-  "revision": 8,
+  "updatedAt": "2026-10-09T07:46:56.565Z",
+  "revision": 11,
   "summary": "Add verified administrator access and a conservative invoice-derived subscriber voice budget; no claim of production success or acceptance yet.",
   "blocker": "Access organization/application configuration, production credentials and spend-policy values, merged implementation PRs and real sign-in/voice evidence remain to be verified."
 }
