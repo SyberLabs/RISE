@@ -35,16 +35,26 @@
       "ref": "vitest.fast.config.js",
       "note": "86-file unit subset passed 1,930 tests with 2 existing skips; full browser gate passed 56 with 3 existing skips. Final demo tests use a local decodable provider fixture and no autoplay override; production access/audio has not been accepted.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/581",
+      "note": "Direct demo client at implementation commit eb9055e3689ace723bb2cffab3fb72281abe615d; required CI pending. Route must merge before paired admin return hook #579; production configuration and real listening remain outstanding.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
     {
       "date": "2026-10-09T04:55:00.000Z",
       "summary": "Claimed from the authorized direct demo request; implementation and mocked browser checks in progress. External Access/payment/provider acceptance remains separate."
+    },
+    {
+      "date": "2026-10-09T05:02:07.994Z",
+      "summary": "Published direct demo client #581 with local test evidence; required CI and production acceptance pending."
     }
   ],
-  "updatedAt": "2026-10-09T04:55:00.000Z",
-  "revision": 1,
-  "summary": "Direct demo client in isolated branch, awaiting required CI and production configuration/acceptance.",
+  "updatedAt": "2026-10-09T05:02:07.994Z",
+  "revision": 2,
+  "summary": "Direct demo client published as #581; local tests pass, required CI and paired production release/acceptance remain pending.",
   "blocker": null
 }
