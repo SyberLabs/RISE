@@ -5,8 +5,8 @@
  * degradations; unresolved publication rights.
  */
 
-import { contentHashOf, hashesEqual, sha256Hex } from './hash.js';
-import { RENDER_MANIFEST_SCHEMA } from './environment.js';
+import { contentHashOf, hashesEqual, sha256Hex } from '../../src/core/render/hash.js';
+import { RENDER_MANIFEST_SCHEMA } from '../../src/core/render/environment.js';
 
 function asText(value) {
   if (typeof value === 'string') return value;

@@ -5,12 +5,12 @@
  * library recitation bytes — the same mix as driver and distribution.
  */
 
-import { fail } from './errors.js';
-import { frameIndexAt } from './clock.js';
-import { compileRenderPlan } from './plan.js';
-import { renderFrameRgba } from './raster.js';
-import { mixAudio } from './audio-mix.js';
-import { RENDER_SAMPLE_RATE } from './layout.js';
+import { fail } from '../../src/core/render/errors.js';
+import { frameIndexAt } from '../../src/core/render/clock.js';
+import { compileRenderPlan } from '../../src/core/render/plan.js';
+import { renderFrameRgba } from '../../src/core/render/raster.js';
+import { mixAudio } from '../../src/core/render/audio-mix.js';
+import { RENDER_SAMPLE_RATE } from '../../src/core/render/layout.js';
 import { encodeMp4 } from './encode-mp4.js';
 
 function frameWindow(plan, fromMs, toMs) {

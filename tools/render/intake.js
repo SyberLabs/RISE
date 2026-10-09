@@ -7,20 +7,20 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { fail } from './errors.js';
+import { fail } from '../../src/core/render/errors.js';
 import {
   DEFAULT_RENDER_PROFILE_ID,
   KERNEL_REQUEST_SCHEMA,
   buildKernelRequest,
   sourcesForKernel
-} from './kernel-request.js';
-import { EXPERIENCE_PROGRAM_SCHEMA } from '../experience-program.js';
+} from '../../src/core/render/kernel-request.js';
+import { EXPERIENCE_PROGRAM_SCHEMA } from '../../src/core/experience-program.js';
 import {
   AGENT_OPERATION_LIMITS,
   AGENT_OPERATION_SET_SCHEMA,
   validateAgentOperationSet
-} from '../agent-operations.js';
-import { emptyWorkshopProject } from '../workshop-project.js';
+} from '../../src/core/agent-operations.js';
+import { emptyWorkshopProject } from '../../src/core/workshop-project.js';
 import { writeRenderPackageDir } from './package-fs.js';
 
 export const RENDER_CLI_USAGE = `Usage: node scripts/render-mp4.mjs <program-or-ops.json> [options]
@@ -243,7 +243,7 @@ async function renderFromOperations(document, options = {}) {
       '$.sources'
     );
   }
-  const { runProducer } = await import('../producer.js');
+  const { runProducer } = await import('../../src/core/producer.js');
   const produced = await runProducer({
     project: options.project || emptyWorkshopProject({
       id: operationSet.projectId,

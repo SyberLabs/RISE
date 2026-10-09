@@ -6,8 +6,8 @@ import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { KERNEL_REQUEST_SCHEMA, renderArtifact } from './artifact.js';
 import { buildVerticalSlice } from './vertical-slice.js';
-import { RenderError } from './errors.js';
-import { EXPERIENCE_PROGRAM_SCHEMA } from '../experience-program.js';
+import { RenderError } from '../../src/core/render/errors.js';
+import { EXPERIENCE_PROGRAM_SCHEMA } from '../../src/core/experience-program.js';
 
 const ffmpegCommand = process.env.RISE_FFMPEG_PATH || 'ffmpeg';
 const ffmpeg = spawnSync(ffmpegCommand, ['-version'], { stdio: 'ignore' });

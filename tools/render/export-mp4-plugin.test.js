@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { handleExportMp4 } from '../../../scripts/export-mp4-plugin.js';
+import { handleExportMp4 } from '../../scripts/export-mp4-plugin.js';
 
 function mockRes() {
   return {

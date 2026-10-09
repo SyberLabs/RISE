@@ -8,9 +8,9 @@
 import { createReadStream, mkdirSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
-import { buildVerticalSlice } from '../src/core/render/vertical-slice.js';
+import { buildVerticalSlice } from '../tools/render/vertical-slice.js';
 import { KERNEL_REQUEST_SCHEMA } from '../src/core/render/kernel-request.js';
-import { materializeExportJob } from '../src/core/render/intake.js';
+import { materializeExportJob } from '../tools/render/intake.js';
 
 const DEFAULT_OUT = join('out', 'release', 'render-proofs');
 

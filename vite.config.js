@@ -182,6 +182,6 @@ export default defineConfig({
     execArgv: [`--max-old-space-size=${WORKER_HEAP_MB}`],
     maxWorkers: Math.max(1, Math.min(coreCeiling, memoryCeiling)),
 
-    include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js']
+    include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js', 'tools/**/*.{test,spec}.js']
   }
 });

@@ -20,9 +20,9 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fail } from './errors.js';
+import { fail } from '../../src/core/render/errors.js';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
 function findPlaywrightChrome() {
   const root = join(process.env.LOCALAPPDATA || '', 'ms-playwright');

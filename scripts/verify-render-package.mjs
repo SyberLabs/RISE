@@ -13,8 +13,8 @@
  */
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
-import { readRenderPackageDir } from '../src/core/render/package-fs.js';
-import { verifyRenderPackage } from '../src/core/render/verify.js';
+import { readRenderPackageDir } from '../tools/render/package-fs.js';
+import { verifyRenderPackage } from '../tools/render/verify.js';
 
 const dir = process.argv[2] ? resolve(process.argv[2]) : null;
 if (!dir || !existsSync(dir)) {

@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import { request as httpRequest } from 'node:http';
 import { Readable } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { EXPERIENCE_PROGRAM_SCHEMA } from '../experience-program.js';
-import { KERNEL_REQUEST_SCHEMA } from './kernel-request.js';
+import { EXPERIENCE_PROGRAM_SCHEMA } from '../../src/core/experience-program.js';
+import { KERNEL_REQUEST_SCHEMA } from '../../src/core/render/kernel-request.js';
 
 vi.mock('./artifact.js', () => ({
   renderArtifact: vi.fn(async request => {
@@ -30,7 +30,7 @@ vi.mock('./artifact.js', () => ({
   })
 }));
 
-vi.mock('../producer.js', () => ({
+vi.mock('../../src/core/producer.js', () => ({
   runProducer: vi.fn(async ({ encode }) => ({
     stage: 'review-queued',
     job: { profile: 'social-portrait-1080' },

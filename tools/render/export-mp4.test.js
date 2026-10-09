@@ -4,9 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { compileRenderPlan } from './plan.js';
+import { compileRenderPlan } from '../../src/core/render/plan.js';
 import { exportRenderMp4 } from './export-mp4.js';
-import { mixAudio } from './audio-mix.js';
+import { mixAudio } from '../../src/core/render/audio-mix.js';
 import { buildVerticalSlice } from './vertical-slice.js';
 
 const ffmpegCommand = process.env.RISE_FFMPEG_PATH || 'ffmpeg';

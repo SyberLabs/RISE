@@ -15,7 +15,7 @@ import {
   closeMill,
   createMill,
   startMill
-} from '../src/core/render/mill.js';
+} from '../tools/render/mill.js';
 
 export const MILL_CLI_USAGE = `Usage: node scripts/render-mill.mjs [options]
 
