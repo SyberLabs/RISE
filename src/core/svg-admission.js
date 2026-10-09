@@ -122,11 +122,15 @@ export function admitSvg(svg) {
     i = end + 2;
   }
   let root = false;
+  // Once the root has closed, only whitespace and comments may follow.
+  let closed = false;
   const open = [];
+  const after = offset => malformed(offset, 'nothing may follow the root <svg>');
   while (i < svg.length) {
     const lt = svg.indexOf('<', i);
     const text = svg.slice(i, lt < 0 ? svg.length : lt);
     if (!root && text.trim()) refuse(i + text.search(/\S/u), 'an SVG figure begins with <svg');
+    if (closed && text.trim()) { after(i + text.search(/\S/u)); break; }
     if (lt < 0) break;
     if (svg.startsWith('<!--', lt)) {
       const end = svg.indexOf('-->', lt + 4);
@@ -134,6 +138,7 @@ export function admitSvg(svg) {
       i = end + 3;
       continue;
     }
+    if (closed) { after(lt); break; }
     if (svg.startsWith('<![CDATA[', lt)) {
       const end = svg.indexOf(']]>', lt + 9);
       if (end < 0) { malformed(lt, 'a CDATA section is not closed'); break; }
@@ -164,6 +169,7 @@ export function admitSvg(svg) {
     if (closing) {
       if (svg[at] !== '>') { malformed(lt, 'a tag is not closed'); break; }
       if (open.pop() !== name) { malformed(lt, `</${name}> does not close the element that is open`); break; }
+      closed = open.length === 0;
       i = at + 1;
       continue;
     }
@@ -196,6 +202,7 @@ export function admitSvg(svg) {
     const selfClosing = svg[at] === '/';
     i = at + (selfClosing ? 2 : 1);
     if (!selfClosing) open.push(name);
+    else closed = open.length === 0;
     if (name === 'style' && !selfClosing) {
       const end = svg.indexOf('</style', i);
       if (end < 0) { malformed(lt, 'a <style> is not closed'); break; }
@@ -206,7 +213,7 @@ export function admitSvg(svg) {
     }
   }
   if (open.length && !diagnostics.length) malformed(svg.length, `<${open.at(-1)}> is not closed`);
-  if (!/<\/svg\s*>\s*$/u.test(svg)) {
+  if (!/<\/svg\s*>(?:\s*<!--[\s\S]*?-->)*\s*$/u.test(svg)) {
     const last = svg.trimEnd().length - 1;
     refuse(Math.max(0, last), 'an SVG figure ends with </svg>');
   }

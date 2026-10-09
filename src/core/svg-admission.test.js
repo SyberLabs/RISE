@@ -102,8 +102,8 @@ describe('a figure RISE refuses, by rule, where', () => {
     expect(refusal('<svg viewBox="0 0 1 1"></svg>').message).toBe('the root <svg> needs xmlns="http://www.w3.org/2000/svg"');
   });
 
-  it('a document that does not end with </svg>', () => {
-    expect(refusal(`${fig('')}\ntrailing`)).toMatchObject({ line: 2, message: 'an SVG figure ends with </svg>' });
+  it('a document that does not end with </svg>: a root that closes itself draws nothing', () => {
+    expect(refusal(`<svg ${NS} viewBox="0 0 1 1"/>`)).toMatchObject({ line: 1, message: 'an SVG figure ends with </svg>' });
   });
 
   it('a DOCTYPE, and an entity declared in one', () => {
@@ -187,6 +187,15 @@ describe('a figure RISE refuses, by rule, where', () => {
     expect(refusal(fig('<rect width="1" width="2"/>')).message).toBe('the figure is not well-formed: the attribute width is given twice');
     expect(refusal(`${open}<rect`).message).toBe('the figure is not well-formed: a tag is not closed');
     expect(refusal(`${open}<!-- open`).message).toBe('the figure is not well-formed: a comment is not closed');
+  });
+
+  it('anything but whitespace or comments after the root has closed, where it begins', () => {
+    const rule = 'the figure is not well-formed: nothing may follow the root <svg>';
+    const self = `<svg ${NS} viewBox="0 0 1 1"/>`;
+    expect(refusal(`${self}<svg ${NS} viewBox="0 0 1 1"/>`)).toEqual({ line: 1, column: self.length + 1, message: rule });
+    expect(refusal(`${fig('')}\n<g/>`)).toEqual({ line: 2, column: 1, message: rule });
+    expect(refusal(`${fig('')}text`)).toEqual({ line: 1, column: fig('').length + 1, message: rule });
+    expect(admitSvg(`${fig('')}\n<!-- after -->\n`)).toEqual({ ok: true });
   });
 
   it('says at most ten things at once', () => {
