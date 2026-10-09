@@ -791,7 +791,8 @@ async function routePlus(request, env) {
       return checked ? reply(200, { subject: checked.subject }) : refuse(403, 'FORBIDDEN_ADMIN', 'Administrator sign-in is required.');
     }
     if (!(await getAdmin(request, env))) return refuse(403, 'FORBIDDEN_ADMIN', 'Administrator sign-in is required.');
-    return reply(303, null, { Location: '/settings' });
+    const destination = new URL(request.url).search === '?returnTo=voice-demo' ? '/voice-demo' : '/settings';
+    return reply(303, null, { Location: destination });
   }
   if (path === '/api/plus/voices') {
     if (request.method !== 'GET') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use GET.');

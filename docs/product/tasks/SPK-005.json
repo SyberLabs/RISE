@@ -52,6 +52,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/570",
       "note": "Private existing-key provider RPC; public preview voicing refused. Seven focused backend/auth/RPC files passed251 tests at9b43351b, both Wrangler dry-runs and81-file fast-list collection passed. Deployment, provider validity and real acceptance remain pending.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "worker/plus-budget.test.js",
+      "note": "Admin demo return hook branch: three focused Worker/auth files passed 92 tests; exact returnTo=voice-demo redirects verified administrators only. Unsupported/injected destinations retain Settings. CI, merge and deployment pending.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -82,10 +88,14 @@
     {
       "date": "2026-10-09T03:56:00.633Z",
       "summary": "PR570 review fixes distinguish definitive private broker refusal from uncertain provider contact and perform bounded nonbillable readiness checks before reserving; source review and regression tests pass, fresh CI and deployment acceptance remain pending."
+    },
+    {
+      "date": "2026-10-09T04:49:21.500Z",
+      "summary": "Admin login exact voice-demo return path tested on isolated branch; existing identity checks and spend controls unchanged. Merge, deployment and human acceptance remain pending."
     }
   ],
-  "updatedAt": "2026-10-09T03:56:00.633Z",
-  "revision": 7,
+  "updatedAt": "2026-10-09T04:49:21.500Z",
+  "revision": 8,
   "summary": "Add verified administrator access and a conservative invoice-derived subscriber voice budget; no claim of production success or acceptance yet.",
   "blocker": "Access organization/application configuration, production credentials and spend-policy values, merged implementation PRs and real sign-in/voice evidence remain to be verified."
 }

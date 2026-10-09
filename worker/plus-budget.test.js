@@ -149,6 +149,40 @@ describe('financial standing cannot race a refund invalidation',()=>{
 });
 
 
+describe('admin login return destination', () => {
+  it('returns a verified administrator directly to the voice demo', async () => {
+    auth.subject = 'verified';
+    const response = await worker.fetch(new Request(SITE + '/api/plus/admin/login?returnTo=voice-demo'), env());
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/voice-demo');
+    expect(auth.calls).toBe(1);
+  });
+  it.each(['', '?returnTo=voice-demo', '?returnTo=https://evil.example'])('still requires verified identity for %s', async query => {
+    const response = await worker.fetch(new Request(SITE + '/api/plus/admin/login' + query), env());
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Location')).toBeNull();
+    expect(auth.calls).toBe(1);
+  });
+  it.each([
+    '', '?returnTo=settings', '?returnTo=https://evil.example', '?returnTo=//evil.example',
+    '?returnTo=/voice-demo', '?returnTo=voice-demo%3Fnext%3Dhttps%3A%2F%2Fevil.example',
+    '?returnTo=voice-demo&returnTo=https://evil.example', '?returnTo=voice-demo&next=https://evil.example'
+  ])('keeps Settings as the destination for unsupported query %s', async query => {
+    auth.subject = 'verified';
+    const response = await worker.fetch(new Request(SITE + '/api/plus/admin/login' + query), env());
+    expect(response.status).toBe(303);
+    expect(response.headers.get('Location')).toBe('/settings');
+    expect(auth.calls).toBe(1);
+  });
+  it('does not turn login into a POST redirect', async () => {
+    auth.subject = 'verified';
+    const response = await worker.fetch(new Request(SITE + '/api/plus/admin/login?returnTo=voice-demo', { method: 'POST' }), env());
+    expect(response.status).toBe(405);
+    expect(response.headers.get('Location')).toBeNull();
+    expect(auth.calls).toBe(0);
+  });
+});
+
 describe('new entitlement routes reach the production Worker',()=>{
   it('admits status and protected login/check paths through the Worker router',async()=>{
     const e=env();const status=await worker.fetch(new Request(SITE+'/api/plus/status'),e);expect(status.status).toBe(200);
