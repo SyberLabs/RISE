@@ -158,8 +158,13 @@ export class AudioScheduleController {
     /** A reader may silence a Journey without rewriting it (§3.3). */
     setEnabled(enabled) {
         this._enabled = enabled !== false;
-        if (!this._enabled) this.stop();
-        else if (this._lastAtom) this.resume();
+        if (!this._enabled) {
+            // Silenced, not ended: where the reading is stays known, so
+            // turning it back on restores the sound there at once.
+            const at = this._lastAtom;
+            this.stop();
+            this._lastAtom = at;
+        } else if (this._lastAtom) this.resume();
     }
 
     observe(atom) {

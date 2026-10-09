@@ -56,11 +56,12 @@ const KEYS_DESCRIBED = 'Keys on the stage: Space plays or pauses; the Left and R
  * @param {'full' | 'minimal'} [options.transport] the whole transport, or only Play/Pause and Settings
  * @param {object | null} [options.port] the host card's port (mcp-port.js), whose host may offer to show the
  *   card full screen or floating; with none, the browser's own full screen where it allows it
+ * @param {boolean} [options.sound] there is an engine for the reading's beds and tones: the sheet offers Sound
  * @param {Document} [options.doc]
  */
 export function createStageControls({
     runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], takeFocus = false,
-    transport = 'full', port = null, doc = document
+    transport = 'full', port = null, sound: offersSound = false, doc = document
 }) {
     const full = transport !== 'minimal';
     const noVoice = degradations.some(note => note.capability === 'speechOutput');
@@ -110,6 +111,10 @@ export function createStageControls({
           <input id="rise-settings-still" type="checkbox" role="switch"${systemStill ? ' checked disabled aria-describedby="rise-settings-still-note"' : ''}>
           <span id="rise-settings-still-note" hidden>Your system asks for reduced motion.</span>
         </div>
+        ${offersSound ? `<div class="rise-settings__row rise-settings__row--switch">
+          <label for="rise-settings-sound">Sound</label>
+          <input id="rise-settings-sound" type="checkbox" role="switch" checked>
+        </div>` : ''}
         <div class="rise-settings__row rise-settings__row--chips">
           <span class="rise-settings__label" id="rise-settings-size-label">Text size</span>
           <div class="rise-settings__chips" role="radiogroup" aria-labelledby="rise-settings-size-label">${SIZE_CHIPS.map(chip => `<label class="rise-settings__chip"><input type="radio" name="rise-settings-size" value="${chip.fontSize}"${chip.fontSize === 'medium' ? ' checked' : ''}><span>${chip.label}</span></label>`).join('')}</div>
@@ -129,6 +134,7 @@ export function createStageControls({
     const intensity = $('#rise-settings-intensity');
     const theme = $('#rise-settings-theme');
     const still = $('#rise-settings-still');
+    const sound = $('#rise-settings-sound');
     const sizes = [...$('.rise-settings__chips').querySelectorAll('input')];
     const back = $('[data-stage="back"]');
     const forward = $('[data-stage="forward"]');
@@ -202,7 +208,12 @@ export function createStageControls({
 
     function apply(to, key, value) {
         if (key === 'theme') to.setColourTheme(value);
-        else to.onSettingsChange(key, value);
+        else if (key === 'cardSound') {
+            // Off is the Chamber's own silence of the reading's sound, the one its sound list's None makes;
+            // on gives the reading back the sound it was written with.
+            to.changeJevLook?.('jev-soundscape', value ? 'authored' : 'none');
+            to.onSettingsChange(key, value);
+        } else to.onSettingsChange(key, value);
     }
 
     /** The Chamber on screen, or null; one seen for the first time takes every choice made so far and gives its saved rows. */
@@ -212,6 +223,8 @@ export function createStageControls({
             reached = current;
             for (const [key, value] of Object.entries(picked)) apply(current, key, value);
             refreshSaved(current);
+            // Sound the reader turned off in an earlier reading stays off in this one.
+            if (sound && !sound.checked && picked.cardSound === undefined) apply(current, 'cardSound', false);
         }
         return current;
     }
@@ -229,6 +242,7 @@ export function createStageControls({
         const saved = from?.getSettings?.();
         if (!saved) return;
         if (!systemStill) still.checked = picked.reducedMotion ?? (saved.reducedMotion === true);
+        if (sound) sound.checked = picked.cardSound ?? (saved.cardSound !== false);
         const size = picked.fontSize ?? resolveFontSize(saved.fontSize);
         for (const chip of sizes) chip.checked = chip.value === size;
     }
@@ -360,7 +374,7 @@ export function createStageControls({
         sheet.hidden = false;
         settings.setAttribute('aria-expanded', 'true');
         doc.addEventListener('pointerdown', outside);
-        ([intensity, theme, still, ...sizes].find(control => !control.disabled) ?? close).focus();
+        ([intensity, theme, still, sound, ...sizes].find(control => control && !control.disabled) ?? close).focus();
     }
 
     function closeSheet(refocus = true) {
@@ -393,6 +407,7 @@ export function createStageControls({
         choose('reducedMotion', still.checked);
         render(runtime.snapshot());
     });
+    sound?.addEventListener('change', () => choose('cardSound', sound.checked));
     for (const chip of sizes) {
         chip.addEventListener('change', () => { if (chip.checked) choose('fontSize', chip.value); });
     }

@@ -103,6 +103,13 @@ describe('the corpus', () => {
     expect(drawn.some(({ code }) => ['lib.axes', 'lib.plot', 'lib.vector', 'lib.tween'].every(call => code.includes(call)))).toBe(true);
   });
 
+  it('lays one quiet bed under every Premium Educational lesson, on its first beat and nowhere else', () => {
+    for (const { file, current } of corpus.filter(item => item.style === 'premium-educational')) {
+      const sounded = current.beats.map((beat, index) => [index, beat.sound]).filter(([, sound]) => sound !== undefined);
+      expect(sounded, file).toEqual([[0, expect.stringMatching(/^(starlight|aurora)$/u)]]);
+    }
+  });
+
   it('passes, every case', async () => {
     for (const item of corpus) {
       const report = await evaluateCurrent(item.current);

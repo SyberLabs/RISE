@@ -338,7 +338,14 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
       },
       ...(current.audio?.length ? [{
         id: 'current-audio', kind: 'audio',
-        clips: current.audio.map((item, index) => ({ id: `audio-${index}`, anchor: { sourceIds: [item.segmentId] }, cue: { ...item.cue } })),
+        // A sound holds until the next one, so a bed plays under the whole span, not one beat.
+        clips: current.audio.map((item, index) => {
+          const ids = current.segments.map((segment) => segment.id);
+          const from = ids.indexOf(item.segmentId);
+          const next = current.audio[index + 1] ? ids.indexOf(current.audio[index + 1].segmentId) : -1;
+          const sourceIds = from < 0 ? [item.segmentId] : ids.slice(from, next > from ? next : undefined);
+          return { id: `audio-${index}`, anchor: { sourceIds }, cue: { ...item.cue } };
+        }),
         fallback: { kind: 'silence', fadeMs: 500 }
       }] : []),
       {

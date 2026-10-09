@@ -1097,3 +1097,54 @@ test('full screen: absent where the host shows the card inline only, and asked o
   expect(beats.ticks).toBe(17);
   expect(beats.left).toBeGreaterThanOrEqual(12);
 });
+
+// ─── sound in the card (SND-001): a bed under the reading, and a Sound control ───
+
+const SKY_UNDER_STARLIGHT = {
+  ...SKY_PREMIUM_EDUCATIONAL,
+  id: 'sky-under-starlight',
+  beats: [{ ...SKY_PREMIUM_EDUCATIONAL.beats[0], sound: 'starlight' }, ...SKY_PREMIUM_EDUCATIONAL.beats.slice(1)]
+};
+
+test('a bed under the reading: the self-contained card starts the first beat’s sound, Pause and Play keep it, and the Sound switch silences it and gives it back', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const audioLines = [];
+  page.on('console', message => { if (message.text().startsWith('[RISE audio]')) audioLines.push(message.text()); });
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  // An opaque origin, as in Claude: the engine has no IndexedDB here and must still start.
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: SKY_UNDER_STARLIGHT, measure: true });
+  await expect(posterTitle(app)).toHaveText(SKY_UNDER_STARLIGHT.title);
+  await begin(app);
+  const audio = () => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__riseLive?.audio() ?? null);
+  const sounding = async () => (await audio())?.sounding ?? null;
+  await expect.poll(async () => (await audio())?.started.map(entry => entry.id) ?? [], { timeout: 5_000 }).toContain('starlight');
+  expect(await sounding()).toBe('starlight');
+  expect(audioLines.some(line => / audio\.bed id=starlight trimDb=-?\d/u.test(line))).toBe(true);
+
+  const stage = app.locator('#rise-stage-controls');
+  await stage.locator('[data-stage="play"]').click();
+  await expect(stage.locator('[data-stage="play"]')).toHaveAttribute('aria-label', /^Play/u);
+  await stage.locator('[data-stage="play"]').click();
+  await expect(stage.locator('[data-stage="play"]')).toHaveAttribute('aria-label', /^Pause/u);
+  await expect.poll(sounding, { timeout: 5_000 }).toBe('starlight');
+
+  await stage.locator('[data-stage="settings"]').click();
+  const sound = app.locator('#rise-settings-sound');
+  await expect(sound).toBeChecked();
+  await sound.click();
+  await expect.poll(sounding, { timeout: 5_000 }).toBeNull();
+  await sound.click();
+  await expect.poll(sounding, { timeout: 5_000 }).toBe('starlight');
+
+  // The bed lies under the whole lesson, not its first beat: two passages on, it is still sounding.
+  const journal = () => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__riseLive.journal());
+  const forward = stage.locator('[data-stage="forward"]');
+  await forward.click();
+  await expect.poll(async () => (await journal()).filter(entry => entry.type === 'seek').length, { timeout: 5_000 }).toBe(1);
+  await forward.click();
+  await expect.poll(async () => (await journal()).filter(entry => entry.type === 'seek').length, { timeout: 5_000 }).toBe(2);
+  await page.waitForTimeout(1_000);
+  expect(await sounding()).toBe('starlight');
+  expect(errors).toEqual([]);
+});

@@ -21,7 +21,8 @@
       {
         "say": "Here is a vector: three steps across, and two steps up.",
         "scene": "plane",
-        "cue": "draw"
+        "cue": "draw",
+        "sound": "starlight"
       },
       {
         "hold": {

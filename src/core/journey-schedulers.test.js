@@ -157,6 +157,16 @@ describe('the audio controller sends bounded commands', () => {
         expect(e.stopSoundscape).toHaveBeenCalled();
     });
 
+    it('gives a silenced Journey its sound back at once, from where the reading is, when the reader turns it on again', () => {
+        const e = engine();
+        const c = new AudioScheduleController(program().audioProgram, e);
+        c.observe(atom('p2'));
+        c.setEnabled(false);
+        e.startSoundscape.mockClear();
+        c.setEnabled(true);
+        expect(e.startSoundscape).toHaveBeenCalledWith('mortal-pulse');
+    });
+
     it('survives an engine that cannot do what was asked', () => {
         // A runtime playback failure degrades to silence (§8.5); it does
         // not throw into the reading.

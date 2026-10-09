@@ -44,6 +44,8 @@ export function createRouteManifest(operations) {
           live: {
             router: operations.router,
             onNavigate: (...args) => operations.handleNavigate(...args),
+            // The engine the reading's Chamber plays its beds on, so the host can trace them and duck them under its voice.
+            ensureAudioEngine: () => operations.chamberSession.ensureAudioEngine(),
             // Read when the view is built: in a host's card the query is the card's, not the window's.
             get search() { return appLocation().search; }
           },

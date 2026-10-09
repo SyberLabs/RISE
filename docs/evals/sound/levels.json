@@ -1,0 +1,131 @@
+{
+  "measuredAt": "2026-10-09T06:04:16.993Z",
+  "settings": {
+    "soundscapeLayer": 0.85,
+    "master": 0.7,
+    "fadeInS": 2,
+    "sampleRate": 48000,
+    "windowS": [
+      3,
+      28
+    ]
+  },
+  "band": {
+    "rmsDbfs": -29,
+    "toleranceDb": 2
+  },
+  "sounds": [
+    {
+      "id": "aurora",
+      "kind": "soundscape",
+      "trimDb": 5.5,
+      "rmsDbfs": -29.2,
+      "peakDbfs": -18.3
+    },
+    {
+      "id": "faded-signal",
+      "kind": "soundscape",
+      "trimDb": 4,
+      "rmsDbfs": -28.9,
+      "peakDbfs": -17.8
+    },
+    {
+      "id": "soft-rain",
+      "kind": "soundscape",
+      "trimDb": 1,
+      "rmsDbfs": -28.9,
+      "peakDbfs": -16
+    },
+    {
+      "id": "starlight",
+      "kind": "soundscape",
+      "trimDb": -2,
+      "rmsDbfs": -29.1,
+      "peakDbfs": -21.1
+    },
+    {
+      "id": "night-drive",
+      "kind": "soundscape",
+      "trimDb": 1,
+      "rmsDbfs": -28.9,
+      "peakDbfs": -13.2
+    },
+    {
+      "id": "piano",
+      "kind": "soundscape",
+      "trimDb": 17.5,
+      "rmsDbfs": -29,
+      "peakDbfs": -14.6
+    },
+    {
+      "id": "jazz",
+      "kind": "soundscape",
+      "trimDb": 14,
+      "rmsDbfs": -29.2,
+      "peakDbfs": -14.2
+    },
+    {
+      "id": "lullaby",
+      "kind": "soundscape",
+      "trimDb": 22.5,
+      "rmsDbfs": -28.8,
+      "peakDbfs": -14.1
+    },
+    {
+      "id": "nocturne",
+      "kind": "soundscape",
+      "trimDb": 23.5,
+      "rmsDbfs": -29.2,
+      "peakDbfs": -13.6
+    },
+    {
+      "id": "waltz",
+      "kind": "soundscape",
+      "trimDb": 20,
+      "rmsDbfs": -28.8,
+      "peakDbfs": -13
+    },
+    {
+      "id": "blues",
+      "kind": "soundscape",
+      "trimDb": 19,
+      "rmsDbfs": -28.8,
+      "peakDbfs": -16
+    },
+    {
+      "id": "bossa",
+      "kind": "soundscape",
+      "trimDb": 24,
+      "rmsDbfs": -29.2,
+      "peakDbfs": -13.1
+    },
+    {
+      "id": "ragtime",
+      "kind": "soundscape",
+      "trimDb": 17.5,
+      "rmsDbfs": -29.1,
+      "peakDbfs": -11
+    },
+    {
+      "id": "focus",
+      "kind": "tone",
+      "trimDb": -12.5,
+      "rmsDbfs": -29.1,
+      "peakDbfs": -24.6
+    },
+    {
+      "id": "deep",
+      "kind": "tone",
+      "trimDb": -16.5,
+      "rmsDbfs": -28.8,
+      "peakDbfs": -23
+    },
+    {
+      "id": "gateway",
+      "kind": "tone",
+      "trimDb": -17.5,
+      "rmsDbfs": -29,
+      "peakDbfs": -23.1
+    }
+  ]
+}

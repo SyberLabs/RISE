@@ -3,6 +3,7 @@
  * compiler (docs/superpowers/specs/2026-10-08-creative-control-design.md §5–6).
  */
 import { describe, expect, it } from 'vitest';
+import { cueForAtom } from './visual-scheduler.js';
 import {
   RISE_CURRENT_SCHEMA, RISE_CURRENT_SCHEMA_V2, compileRiseCurrent, materializeRiseCurrent, validateRiseCurrent
 } from './rise-current.js';
@@ -75,8 +76,30 @@ describe('the score of a v2 Current', () => {
     expect(track('visual').clips.map(clip => clip.cue.kind)).toEqual(['field', 'field', 'field', 'still', 'still']);
     expect(track('visual').clips[0].cue.renderer).toBe('attractor');
     expect(track('audio').clips).toHaveLength(1);
-    expect(track('audio').clips[0]).toMatchObject({ anchor: { sourceIds: ['beat-0'] }, cue: { kind: 'soundscape', soundscapeId: 'starlight' } });
+    // A sound holds until the next one: the bed is anchored to every passage from its beat on.
+    expect(track('audio').clips[0]).toMatchObject({ anchor: { sourceIds: ['beat-0', 'beat-1', 'beat-2', 'beat-3', 'beat-4'] }, cue: { kind: 'soundscape', soundscapeId: 'starlight' } });
     expect(track('thread').clips).toEqual([]);
+  });
+});
+
+describe('a sound under the reading', () => {
+  /** The audio cue the reading plays on the first atom of each beat. */
+  const bedByBeat = current => {
+    const session = compileRiseCurrent(current);
+    return current.beats.map((_, index) => {
+      const atom = session.atoms.find(item => item.sourceId === `beat-${index}`);
+      const { cue } = cueForAtom(session.audioProgram, atom);
+      return cue.kind === 'soundscape' ? cue.soundscapeId : cue.kind;
+    });
+  };
+
+  it('set on the first beat is still the bed on beat 3', () => {
+    expect(bedByBeat(V2)[3]).toBe('starlight');
+  });
+
+  it('ends where the next sound begins', () => {
+    const two = { ...V2, beats: V2.beats.map((beat, index) => (index === 4 ? { ...beat, sound: 'piano' } : beat)) };
+    expect(bedByBeat(two)).toEqual(['starlight', 'starlight', 'starlight', 'starlight', 'piano']);
   });
 });
 

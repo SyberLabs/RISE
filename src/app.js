@@ -967,6 +967,8 @@ class App {
             showProgress: true,
             showDuration: true,
             showArtworkLabels: true,
+            // Each Current's authored sound bed plays unless the reader turns Sound off.
+            cardSound: true,
 
             // Audio
             masterVolume: 0.75,
@@ -1002,6 +1004,7 @@ class App {
                 'showDuration',
                 'showArtworkLabels',
                 'livingText',
+                'cardSound',
                 'enableBinaural',
                 'plusVoice',
                 'photosensitivityMode',

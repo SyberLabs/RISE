@@ -84,7 +84,7 @@ export const EXAMPLES = Object.freeze([
             origin: ORIGIN,
             scenes: [{ id: 'plane', code: VECTOR_SCENE }],
             beats: [
-                { say: 'Here is a vector: three steps across, and two steps up.', scene: 'plane', cue: 'draw' },
+                { say: 'Here is a vector: three steps across, and two steps up.', scene: 'plane', cue: 'draw', sound: 'starlight' },
                 { hold: { ms: 1500 } },
                 { say: 'Drop its shadow onto the axes, and a right triangle appears.' },
                 { hold: { ms: 2000, maxMs: 4000 }, cue: 'legs' },
@@ -105,7 +105,7 @@ export const EXAMPLES = Object.freeze([
             origin: ORIGIN,
             scenes: [{ id: 'curve', code: TANGENT_SCENE }],
             beats: [
-                { say: 'Here is a curve: y equals one half x squared.', show: 'Here is a curve: $y = \\tfrac{1}{2}x^2$.', scene: 'curve', cue: 'curve' },
+                { say: 'Here is a curve: y equals one half x squared.', show: 'Here is a curve: $y = \\tfrac{1}{2}x^2$.', scene: 'curve', cue: 'curve', sound: 'starlight' },
                 { hold: { ms: 1500 } },
                 { say: 'Pick a point on it, and a second point a little further along. The line through both is a secant.', cue: 'secant' },
                 { hold: { ms: 1500 } },
@@ -132,5 +132,6 @@ export const GUIDANCE = [
     '- Every cue a beat names must change something the reader can see, and must land at once when instant is true.',
     '- Draw on the quiet field lib.clear() gives: the grid faint, the accent colour for the thing being explained, muted for scaffolding, highlight for the one point to look at. Nothing flashes, nothing spins for its own sake.',
     '- Keep text in the scene to a few labels; the captions carry the words.',
+    '- Lay one quiet bed under the whole lesson: "sound": "starlight" (or "aurora") on the first beat and on no other. Never a tone, never a change of sound part way through, never a sound on a hold; the voice and the picture carry the lesson.',
     '- End on a shown line ("show" with "hold", in the centre, larger) that states the result.'
 ].join('\n');

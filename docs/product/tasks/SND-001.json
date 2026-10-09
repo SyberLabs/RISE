@@ -3,8 +3,8 @@
   "title": "Sound in the card: a levelled catalogue, beds under the voice, a Sound control",
   "lane": "live-sdk",
   "milestone": "Sound",
-  "status": "planned",
-  "delivery": "not_shipped",
+  "status": "in_review",
+  "delivery": "branch",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [],
@@ -27,16 +27,62 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Revised 2026-10-09: Claude first, the critical path to the Composer release, and this task's place on it.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/evals/sound/levels.json",
+      "note": "Measured through the real engine (layer 0.85, master 0.7, 25 s from t=3 s): all sixteen offered sounds between -29.2 and -28.8 dBFS RMS with their trims; before trimming they spanned -53.2 to -11.5.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/audio/sound-levels.test.js",
+      "note": "Every offered sound has a trim, no parked sound has one, and every manifest entry was measured with the shipped trim and is inside the band.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/audio/engine.levels.test.js",
+      "note": "Trims on soundscapes and tones without changing the configured volume; ducking from the target level during a fade-in and for a bed started under the voice; onSoundStart and sounding; init completes with one warning where indexedDB.open throws SecurityError.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/LiveHost.test.js",
+      "note": "[RISE audio] line per bed and tone, __riseLive.audio(); ducked on speech.start, released on speech.end, voice.failed, voice.taken, voice.held; not ducked when paced; engine released at the end.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/stage-controls.test.js",
+      "note": "Sound row only with an engine; a switch, on by default, off and on through the Chamber and saved as cardSound; a saved off silences the next reading.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Local Chromium, one worker, whole file: 46 passed. New: in the opaque-origin self-contained card, starlight starts within 5 s of Play, Pause then Play keeps it, Sound off stops it, on restores it. Fails without the IndexedDB guard. Fake host, paced voice.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/585",
+      "note": "SND-001 pull request; not merged at the time of this record.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
     {
       "date": "2026-10-09T04:00:00.000Z",
       "summary": "Proposed in the 2026-10-09 reconciliation of records and roadmap."
+    },
+    {
+      "date": "2026-10-09T06:23:04.075Z",
+      "summary": "Built on branch snd-001-card-sound and opened as PR #585: levelled catalogue, beds under the voice in the card, a Sound control, the guide's one quiet bed, and the audio trace."
     }
   ],
-  "updatedAt": "2026-10-09T04:00:00.000Z",
-  "revision": 1,
-  "summary": "Proposed 2026-10-09: sound earns a place in the card once the catalogue is levelled and a bed sits under the voice.",
+  "updatedAt": "2026-10-09T06:23:04.075Z",
+  "revision": 2,
+  "summary": "Built on branch snd-001-card-sound (PR #585): the sixteen offered sounds levelled to -29 dBFS RMS +-2 dB through the real engine, beds and tones play in the card ducked under the browser voice, a Sound switch in Settings, Premium Educational teaches one quiet bed, and the trace notes each bed. Not yet witnessed in a real host.",
   "blocker": null
 }

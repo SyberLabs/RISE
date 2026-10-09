@@ -21,7 +21,8 @@
       {
         "say": "Take an arm of length one, pinned at the centre of a circle.",
         "scene": "wave",
-        "cue": "arm"
+        "cue": "arm",
+        "sound": "aurora"
       },
       {
         "hold": {
