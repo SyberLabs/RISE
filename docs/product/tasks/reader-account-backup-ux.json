@@ -1,0 +1,28 @@
+{
+  "id": "reader-account-backup-ux",
+  "title": "Clear selected backups and trustworthy account save feedback",
+  "lane": "reader",
+  "milestone": "Account portal",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "codex-rise-account",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Selected browser text and account snapshot show useful existing metadata on mobile.",
+    "Explicit refresh preserves selections and resets replacement consent.",
+    "Committed save remains clearly successful if only the backup list refresh fails, with no duplicate retry upload.",
+    "Captured account and atomic browser replacement safeguards remain intact."
+  ],
+  "evidence": [],
+  "activity": [
+    {
+      "date": "2026-10-09T04:13:18.935Z",
+      "summary": "Claimed authorized focused account UX polish; API and upload scope unchanged."
+    }
+  ],
+  "updatedAt": "2026-10-09T04:13:18.935Z",
+  "revision": 1,
+  "summary": "Polish the already deployed account feature without changing the shared API; clarify chosen works, explicit list refresh and commit-versus-refresh feedback.",
+  "blocker": null
+}
