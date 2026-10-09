@@ -162,11 +162,14 @@
 /* The full transport adds the beat line over the objects: the words clear it too. */
 html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { padding-bottom: 88px; }
 
-/* While the bar is hidden (stage-controls.js) the words take its room back, all but the faint beat line's, and
-   move into it as the bar fades, not at once. */
-html[data-embed="mcp"] .chamber-field { transition: padding-bottom 180ms ease; }
-html[data-embed="mcp"]:has(.rise-stage[data-bar="hidden"]) .chamber-field { padding-bottom: 24px; }
-html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]) .chamber-field { padding-bottom: 40px; }
+/* While the bar is hidden (stage-controls.js) the words move down into its room, all but the faint beat line's
+   (half the padding they no longer need: 64 to 24, 88 to 40), as the bar fades, not at once. They move by the
+   band's transform (Chamber.css), never by the field's padding: the field is the box each visual's canvas is
+   sized to, and a canvas resized on every frame of the fade is cleared on every frame, so the card flickered. */
+@property --bar-offset { syntax: '<length>'; inherits: true; initial-value: 0px; }
+html[data-embed="mcp"] .chamber-field { transition: --bar-offset 180ms ease; }
+html[data-embed="mcp"]:has(.rise-stage[data-bar="hidden"]) .chamber-field { --bar-offset: 20px; }
+html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]) .chamber-field { --bar-offset: 24px; }
 
 /* The poster: the words' own face for the title, clamped to three lines (the whole title is its label). */
 .live-host--poster { gap: 24px; }

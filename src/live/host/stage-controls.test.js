@@ -723,8 +723,17 @@ describe('the bar while the reading plays', () => {
         expect(css).toMatch(/\.rise-stage\[data-bar="hidden"\] \.rise-stage__object\s*\{[^}]*opacity:\s*0/u);
         expect(css).toMatch(/\.rise-stage__object\s*\{[^}]*transition:[^}]*opacity 180ms/u);
         expect(css).toMatch(/\.rise-stage\[data-bar="hidden"\] \.rise-stage__beats\s*\{[^}]*opacity:\s*0\.\d+/u);
-        expect(css).toMatch(/:has\(\.rise-stage\[data-transport="full"\]\[data-bar="hidden"\]\) \.chamber-field\s*\{[^}]*padding-bottom:/u);
-        expect(css).toMatch(/html\[data-embed="mcp"\] \.chamber-field\s*\{[^}]*transition:\s*padding-bottom 180ms/u);
+        // The field is the box every visual's canvas is sized to: the bar never changes it. The words move by the band's transform.
+        const hidden = [...css.matchAll(/\[data-bar="hidden"\]\)[^{]*\.chamber-field\s*\{([^}]*)\}/gu)].map(match => match[1]);
+        expect(hidden.length).toBe(2);
+        for (const rule of hidden) expect(rule).toMatch(/^\s*--bar-offset:\s*\d+px;\s*$/u);
+        expect(css).toMatch(/@property --bar-offset\s*\{[^}]*syntax:\s*'<length>'/u);
+        expect(css).toMatch(/html\[data-embed="mcp"\] \.chamber-field\s*\{\s*transition:\s*--bar-offset 180ms/u);
+        expect(css).not.toMatch(/transition:[^;]*padding/u);
+        const chamber = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../components/read/Chamber.css'), 'utf8');
+        const bands = chamber.match(/transform: translateY\([^;]*--band-offset[^;]*;/gu);
+        expect(bands.length).toBe(2);
+        for (const band of bands) expect(band).toContain('var(--bar-offset, 0px)');
         const still = [...css.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/gu)].map(match => match[1]).join('\n');
         expect(still).toMatch(/\.rise-stage__beats[^{]*\{[^}]*transition:\s*none/u);
         expect(still).toMatch(/\.chamber-field[^{]*\{[^}]*transition:\s*none/u);
