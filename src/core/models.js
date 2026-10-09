@@ -18,7 +18,7 @@ import {
 } from './visual-score-lane.js';
 import { createLibraryContinuation } from './reading-continuation.js';
 import { recitationPackUrl } from '../audio/voice-pack-key.js';
-import { standInScoreSounds, standInSound } from '../audio/sound-ids.js';
+import { standInSound } from '../audio/sound-ids.js';
 import {
   normalizeSequenceCapabilities,
   sequenceHasCapability,
@@ -297,7 +297,7 @@ export class Session {
     // restore cannot preserve one lane while silently losing another.
     this.experienceProgram = experienceProgram == null
       ? null
-      : validateExperienceProgram(standInScoreSounds(experienceProgram));
+      : validateExperienceProgram(experienceProgram);
     if (this.experienceProgram) {
       validateSequenceAssetReferences(this.experienceProgram, this.sequenceVisualAssets);
     }
