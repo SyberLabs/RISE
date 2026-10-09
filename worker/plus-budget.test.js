@@ -125,6 +125,7 @@ describe('authenticated administrators have a separate bounded budget',()=>{
     expect((await handlePlus(new Request(SITE+'/api/plus/admin/login'),e)).status).toBe(403);
     auth.subject='admin';const signedIn=await handlePlus(new Request(SITE+'/api/plus/status'),e);expect(await signedIn.json()).toMatchObject({admin:true,subscriber:false,available:true,allowance:{used:0,limit:83333}});
     const login=await handlePlus(new Request(SITE+'/api/plus/admin/login'),e);expect(login.status).toBe(303);expect(login.headers.get('Location')).toBe('/settings');
+    expect((await handlePlus(new Request(SITE+'/api/plus/admin/login?returnTo=voice-demo'),e)).headers.get('Location')).toBe('/voice-demo');
   });
   it('preserves dollar debits when the configured vendor rate is lowered after earlier spending',async()=>{
     vi.useFakeTimers({now:NOW*1000});const e=env({PLUS_ADMIN_MONTHLY_USD_CENTS:'1',PLUS_VENDOR_MICRO_USD_PER_CHAR:'100'});world();auth.subject='admin';

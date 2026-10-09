@@ -54,6 +54,8 @@ export function chamberExitTarget(reason, session = {}, data = null) {
 
     if (!LEAVING.has(reason)) return null;
 
+    if (session?.origin?.view === 'voice-demo') return { kind: 'navigate', view: 'voice-demo', replaceUrl: true };
+
     if (session?.provenance?.kind === 'personal-generated') {
         return { kind: 'navigate', view: 'vault' };
     }

@@ -1,0 +1,23 @@
+.voice-demo { width: min(100% - 40px, 720px); margin: 0 auto; padding: 24px 0 32px; color: #f5efe8; font-family: var(--font-sans, sans-serif); }
+.voice-demo-home { display: flex; justify-content: space-between; color: #bce6df; text-decoration: none; letter-spacing: .12em; font-size: 13px; }
+.voice-demo-eyebrow { margin: 28px 0 16px; color: #a5c7c0; font-size: 11px; letter-spacing: .2em; }
+.voice-demo h1 { margin: 0; font-size: clamp(36px, 6vw, 48px); line-height: 1.04; letter-spacing: -.045em; font-weight: 500; }
+.voice-demo-intro { max-width: 580px; margin: 16px 0 24px; color: #c6c6c9; font-size: 17px; line-height: 1.6; }
+.voice-demo form { padding: 20px; background: linear-gradient(130deg, #12322c80, #25183780); border: 1px solid #6e998055; border-radius: 20px; }
+.voice-demo label { display: block; font-size: 13px; color: #dce6e1; }
+.voice-demo textarea, .voice-demo select { width: 100%; margin-top: 10px; border: 1px solid #98b4a64d; border-radius: 10px; background: #0c1417; color: #f7f3ed; font: inherit; padding: 12px; box-sizing: border-box; }
+.voice-demo textarea { resize: vertical; min-height: 112px; line-height: 1.6; font-size: 16px; }
+.voice-demo-count { text-align: right; color: #92a9a1; font-size: 11px; }
+.voice-demo-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.voice-demo select { min-height: 46px; }
+.voice-demo-note, .voice-demo-foot { font-size: 12px; color: #9cafac; line-height: 1.6; }
+.voice-demo-note { margin: 14px 0 12px; }
+.voice-demo [data-status] { font-size: 14px; line-height: 1.5; min-height: 34px; }
+.voice-demo button { min-height: 48px; border-radius: 10px; padding: 12px 20px; cursor: pointer; font: inherit; }
+.voice-demo [data-begin] { display: flex; justify-content: space-between; width: 100%; border: 0; background: #b5e8d6; color: #10251e; }
+.voice-demo [data-begin]:disabled { background: #52655c; color: #b1bdb8; cursor: default; }
+.voice-demo [data-refresh], .voice-demo [data-reset] { border: 0; background: transparent; color: #afc5c0; padding-left: 0; font-size: 12px; }
+.voice-demo-access { display: flex; flex-wrap: wrap; gap: 18px; color: #9cafac; font-size: 12px; margin-bottom: 18px; }
+.voice-demo-access a { color: #b5e8d6; }
+.voice-demo :focus-visible { outline: 2px solid #b5e8d6; outline-offset: 3px; }
+@media (max-width: 500px) { .voice-demo { width: calc(100% - 28px); padding-top: 24px; } .voice-demo-eyebrow { margin-top: 44px; } .voice-demo form { padding: 18px; } .voice-demo-choices { grid-template-columns: 1fr; gap: 16px; } }
