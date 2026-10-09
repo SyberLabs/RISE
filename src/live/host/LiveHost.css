@@ -203,6 +203,15 @@ html[data-embed="mcp"] .atom-display[data-place="caption"] { bottom: calc(var(--
   html[data-embed="mcp"] .chamber-field[data-picture] { align-items: flex-end; }
   html[data-embed="mcp"] .chamber-field[data-picture] :is(#atom-band, #atom-display) { --band-offset: 0px; }
   html[data-embed="mcp"] .chamber-field[data-picture] #atom-display { pointer-events: none; }
+  html[data-embed="mcp"] .chamber-field[data-picture] .atom-display:is([data-place="left"], [data-place="right"]) {
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: calc(var(--embed-bar-room) + 8px);
+    translate: -50% 0;
+    max-width: 92%;
+    text-align: center;
+  }
 }
 
 @media (max-width: 640px) and (min-height: 350px) {
