@@ -25,9 +25,10 @@ const seed = async page => page.evaluate(async record => {
 async function mockAccount(page, onPost = () => {}) {
   await page.route('https://syberlabs.io/admin/api/v1/**', async route => {
     const req = route.request();
-    const headers = { 'Access-Control-Allow-Origin': new URL(page.url()).origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Content-Type,X-SyberLabs-Account', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
+    const headers = { 'Access-Control-Allow-Origin': new URL(page.url()).origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Content-Type,X-SyberLabs-Account,X-SyberLabs-Expected-User', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
     const pathname = new URL(req.url()).pathname;
+    if (pathname.includes('/saves')) expect(req.headers()['x-syberlabs-expected-user']).toBe('u1');
     let body = { user: { id: 'u1', label: 'Test reader' } };
     if (req.method() === 'POST') { onPost(req); body = { save }; }
     else if (pathname.endsWith('/saves')) body = { saves: [save] };
@@ -84,4 +85,50 @@ test('explicit account save and validated restore round trip through browser lib
   await expect(page.locator('[data-status]')).toContainText('Restored “Account poem”');
   const restored = await page.evaluate(() => new Promise(resolve => { const req = indexedDB.open('rise-local-works', 1); req.onsuccess = () => { const db = req.result; const get = db.transaction('works').objectStore('works').get('local-account-poem'); get.onsuccess = () => { db.close(); resolve(get.result); }; }; }));
   expect(restored.text).toBe(work.text);
+});
+
+
+test('account switch after preflight refuses private text and preserves browser work', async ({ page }) => {
+  let preflightPassed = false;
+  let accountReads = 0;
+  let acceptedWrites = 0;
+  await page.route('https://syberlabs.io/admin/api/v1/**', async route => {
+    const request = route.request();
+    const headers = {
+      'Access-Control-Allow-Origin': new URL(page.url()).origin,
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Headers': 'Content-Type,X-SyberLabs-Account,X-SyberLabs-Expected-User',
+      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
+    };
+    if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers });
+    if (new URL(request.url()).pathname.endsWith('/account')) {
+      accountReads += 1;
+      if (accountReads > 1) preflightPassed = true;
+      return route.fulfill({ headers, json: { version: 1, user: { id: 'u1', label: 'First reader' } } });
+    }
+    expect(request.headers()['x-syberlabs-expected-user']).toBe('u1');
+    if (request.method() === 'POST') {
+      expect(preflightPassed).toBe(true);
+      // The live cookie switches to u2 after the client checked u1.
+      if (request.headers()['x-syberlabs-expected-user'] === 'u2') acceptedWrites += 1;
+      return route.fulfill({ status: 409, headers, json: { version: 1, error: 'account_changed' } });
+    }
+    return route.fulfill({ headers, json: { version: 1, saves: [] } });
+  });
+  await page.goto('/');
+  await seed(page);
+  await page.getByRole('link', { name: 'Open SyberLabs account' }).click();
+  await page.getByRole('button', { name: 'Save to account', exact: true }).click();
+  await expect(page.locator('[data-status]')).toContainText('Your account changed');
+  expect(acceptedWrites).toBe(0);
+  // Read IndexedDB directly: the production build does not expose source modules.
+  const text = await page.evaluate(() => new Promise(resolve => {
+    const open = indexedDB.open('rise-local-works', 1);
+    open.onsuccess = () => {
+      const db = open.result;
+      const get = db.transaction('works').objectStore('works').get('local-account-poem');
+      get.onsuccess = () => { db.close(); resolve(get.result?.text); };
+    };
+  }));
+  expect(text).toBe(work.text);
 });

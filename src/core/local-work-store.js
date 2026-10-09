@@ -29,6 +29,13 @@ const STORE_NAME = 'works';
 export const MAX_LOCAL_WORKS = 40;
 const MAX_STORE_CHARACTERS = READING_LIMITS.maxTextCharacters * 10;
 
+function sameWork(left, right) {
+  const canonical = record => JSON.stringify(Object.fromEntries(
+    Object.entries(record).filter(([key]) => key !== 'savedAt').sort(([a], [b]) => a.localeCompare(b))
+  ));
+  return canonical(left) === canonical(right);
+}
+
 export class LocalWorkStore {
   constructor() {
     /** @type {IDBDatabase|null} */
@@ -92,28 +99,48 @@ export class LocalWorkStore {
    * in it. It also means a rename mints a NEW id and leaves the old work
    * standing — which is correct, because a score may already point at it.
    */
-  async save(record) {
+  async save(record, { replaceExisting = true } = {}) {
     validateLocalWork(record);
     await this.init();
-    const existing = await this.all();
-    const others = existing.filter(work => work.id !== record.id);
-
-    if (others.length >= MAX_LOCAL_WORKS) {
-      throw new LocalWorkError(
-        `The shelf holds ${MAX_LOCAL_WORKS} of your own works. Remove one to add another.`,
-        'LOCAL_WORK_SHELF_FULL'
+    // The read, conflict check, quota check and put share one write lock.
+    // A different tab cannot admit a draft between our check and our write.
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      let failure;
+      transaction.oncomplete = () => resolve(record);
+      transaction.onabort = transaction.onerror = () => reject(
+        failure || transaction.error || new LocalWorkError('The local works store refused the write.', 'LOCAL_WORK_WRITE')
       );
-    }
-    const characters = others.reduce((total, work) => total + work.text.length, 0) + record.text.length;
-    if (characters > MAX_STORE_CHARACTERS) {
-      throw new LocalWorkError(
-        'Your own works fill the space available. Remove one to add another.',
-        'LOCAL_WORK_SHELF_FULL'
-      );
-    }
-
-    await this._run('readwrite', store => store.put({ ...record, savedAt: new Date().toISOString() }));
-    return record;
+      const request = store.getAll();
+      request.onsuccess = () => {
+        try {
+          const existing = request.result.map(row => this._served(row)).filter(Boolean);
+          const previous = existing.find(work => work.id === record.id);
+          if (previous && !replaceExisting && !sameWork(previous, record)) {
+            throw new LocalWorkError(
+              'A different browser copy already exists. Select Replace browser copy to restore this backup.',
+              'LOCAL_WORK_CONFLICT'
+            );
+          }
+          const others = existing.filter(work => work.id !== record.id);
+          if (others.length >= MAX_LOCAL_WORKS) {
+            throw new LocalWorkError(
+              `The shelf holds ${MAX_LOCAL_WORKS} of your own works. Remove one to add another.`,
+              'LOCAL_WORK_SHELF_FULL'
+            );
+          }
+          const characters = others.reduce((total, work) => total + work.text.length, 0) + record.text.length;
+          if (characters > MAX_STORE_CHARACTERS) {
+            throw new LocalWorkError('Your own works fill the space available. Remove one to add another.', 'LOCAL_WORK_SHELF_FULL');
+          }
+          store.put({ ...record, savedAt: new Date().toISOString() });
+        } catch (error) {
+          failure = error;
+          transaction.abort();
+        }
+      };
+    });
   }
 
   async get(id) {

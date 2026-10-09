@@ -81,3 +81,28 @@ describe('when something is wrong with a row', () => {
     await expect(shelf.save(work('Work 0'))).resolves.toBeTruthy();
   });
 });
+
+
+describe('conditional writes are atomic across browser shelves', () => {
+  it('admits one competing version and preserves it when the other is refused', async () => {
+    const otherShelf = new LocalWorkStore();
+    const first = work('Concurrent draft', 'First browser draft.');
+    const second = work('Concurrent draft', 'Second browser draft.');
+    const results = await Promise.allSettled([
+      shelf.save(first, { replaceExisting: false }),
+      otherShelf.save(second, { replaceExisting: false })
+    ]);
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    const refused = results.find(result => result.status === 'rejected');
+    expect(refused.reason.code).toBe('LOCAL_WORK_CONFLICT');
+    const winner = results[0].status === 'fulfilled' ? first : second;
+    expect((await shelf.get(first.id)).text).toBe(winner.text);
+  });
+
+  it('allows the same record regardless of property order or persistence timestamp', async () => {
+    const record = work('Same draft');
+    await shelf.save(record);
+    const reversed = Object.fromEntries(Object.entries(record).reverse());
+    await expect(shelf.save(reversed, { replaceExisting: false })).resolves.toEqual(reversed);
+  });
+});

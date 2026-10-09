@@ -23,9 +23,11 @@ it('rejects a save when another tab changed the signed-in account', async () => 
 
 it('retains the same request id when a failed explicit save is retried', async () => {
   const ids = [];
+  const identities = [];
   vi.stubGlobal('fetch', async (url, options) => {
     if (options.method === 'POST') {
       ids.push(JSON.parse(options.body).requestId);
+      identities.push(options.headers['X-SyberLabs-Expected-User']);
       if (ids.length === 1) throw new Error('network failed after upload');
       return ok({ save: { id: 's1' } });
     }
@@ -40,6 +42,7 @@ it('retains the same request id when a failed explicit save is retried', async (
   await vi.waitFor(() => expect(dialog.querySelector('[data-status]').textContent).toContain('Saved “A poem”'));
   expect(ids).toHaveLength(2);
   expect(ids[0]).toBe(ids[1]);
+  expect(identities).toEqual(['u', 'u']);
 });
 
 it('locks the chosen private work while account validation is pending', async () => {

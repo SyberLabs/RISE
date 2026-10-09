@@ -19,7 +19,14 @@ export async function accountRequest(path, options = {}, fetcher = globalThis.fe
   let response;
   try { response = await fetcher(`${API}${path}`, { ...options, credentials: 'include' }); }
   catch { throw new AccountError('Could not reach your account. Your browser library is unchanged.'); }
-  if (!response.ok) throw new AccountError(ERRORS[response.status] || 'Account request failed. Your browser library is unchanged.', response.status);
+  if (!response.ok) {
+    let error;
+    try { error = (await response.json())?.error; } catch { /* Status remains useful for non-JSON failures. */ }
+    if (response.status === 409 && error === 'account_changed') {
+      throw new AccountError('Your account changed. Close and reopen Account before saving or restoring.', 409);
+    }
+    throw new AccountError(ERRORS[response.status] || 'Account request failed. Your browser library is unchanged.', response.status);
+  }
   let body;
   try { body = await response.json(); } catch { throw new AccountError('Account returned an unreadable response.'); }
   if (body?.version !== 1) throw new AccountError('Account returned an unsupported response.');
@@ -32,8 +39,15 @@ export async function getAccount(fetcher) {
   return body.user;
 }
 
-export async function listAccountSaves(fetcher) {
-  const body = await accountRequest('/saves?app=rise', {}, fetcher);
+export function expectedAccountHeaders(expectedUserId) {
+  if (typeof expectedUserId !== 'string' || !expectedUserId.trim()) {
+    throw new AccountError('Open your account before saving or restoring a backup.');
+  }
+  return { 'X-SyberLabs-Expected-User': expectedUserId };
+}
+
+export async function listAccountSaves(expectedUserId, fetcher) {
+  const body = await accountRequest('/saves?app=rise', { headers: expectedAccountHeaders(expectedUserId) }, fetcher);
   if (!Array.isArray(body.saves)) throw new AccountError('Account returned an unreadable backup list.');
   return body.saves.filter(save => save.app === 'rise' && typeof save.id === 'string' && typeof save.name === 'string');
 }
