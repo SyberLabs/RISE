@@ -155,6 +155,18 @@
       "ref": "e2e/live-mcp.spec.js",
       "note": "Branch ios-voice-unlock, local Chromium, one worker, whole file: 50 passed (plus a temporary screenshot test of the About panel at 390x481, not committed). Fake host, not a product host; not tried on an iPhone.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/stage-controls.test.js",
+      "note": "Branch phone-card-touch (phone card pass 1): CSS rules read from Chamber.css, visuals.css and LiveHost.css for findings 3, 4, 7, 8, 9, 10, 12 and 13 of the phone audit, and Sign in in the sheet head opened through the port; with src/live/hosts/mcp-port.test.js (ui/open-link) and src/app/account-control.test.js (no entrance in a host card). All failed first; 381 passed across src/live/host, src/live/hosts, account-control and system-design.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Branch phone-card-touch, local Chromium emulating an iPhone 14 (390 px, DPR 3, touch), one worker, whole file: 55 passed. The five phone tests failed first on main with the audit values: host scroll 200 to 305 under a drag of selected words (now 200, words move 120 px), a scrim under no words (now none, height kept), caption 28 px (now 21.06), 15 to 17 px band type at 360 tall (now 24.7), the sheet off the top at 300 tall (now inside, scrolling). Fake host, not a product host; not tried on a phone.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -189,10 +201,14 @@
     {
       "date": "2026-10-09T11:24:14.509Z",
       "summary": "iOS: speech unlocked inside the Play tap; Play re-arms a stood-down voice; About this reading panel"
+    },
+    {
+      "date": "2026-10-09T11:50:27.783Z",
+      "summary": "phone card pass 1: touch drag, empty scrim, type, hit areas, callout, sheet, blur, sign-in moved to Settings"
     }
   ],
-  "updatedAt": "2026-10-09T11:24:14.509Z",
-  "revision": 8,
+  "updatedAt": "2026-10-09T11:50:27.783Z",
+  "revision": 9,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }
