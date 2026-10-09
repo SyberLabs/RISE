@@ -3,13 +3,13 @@
   "title": "Keep the Wormhole ship-pointer browser checks deterministic",
   "lane": "shared",
   "milestone": "Release validation",
-  "status": "in_progress",
+  "status": "in_review",
   "delivery": "branch",
-  "owner": "codex deploy (Seth)",
+  "owner": "codex-fly-saves-review (Seth)",
   "priority": "now",
   "dependencies": [],
   "acceptance": [
-    "The full-motion ship waits at the bottom with no pointer in the page.",
+    "The full-motion ship starts at the bottom when no pointer bearing is supplied, including a real pointer parked in the gate dead zone before a fresh scene.",
     "The same browser test follows all four cardinal pointer bearings without changed tolerances.",
     "The dead-zone check measures its held angle after the prior turn settles, without weakening its drift assertion.",
     "A remembered hover reproducer fails before pointer setup and passes after it.",
@@ -27,16 +27,36 @@
       "ref": "e2e/wormhole.spec.js",
       "note": "Controlled remembered-pointer hover reproduced the exact failure, then passed three runs without retries after parking outside the page. Clean motion suite: 25 passed without retries. Required release checks: hygiene, audit (no high/critical), compatibility, diagram, fast unit tests (1851 passed, 2 skipped), build, first load (61.2 KB brotli of 64 KB), and browser gate (50 passed, 3 existing skips).",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/37886984353/job/113679077011",
+      "date": "2026-10-09",
+      "note": "After573, final4aba initial ship angle failed on both CI attempts at2.39 rather than -1.571. Original setup also reproduced locally headed:1failure2passes, retries0; headless3passed, so failure is intermittent. Follow-up measures actual gate center, parks real pointer in bearing dead zone and reloads fresh scene; all initial/cardinal/drift assertions and tolerances remain unchanged."
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/wormhole.spec.js",
+      "date": "2026-10-09",
+      "note": "Neutral-setup follow-up headless12/12 passed retries0:3 repetitions of real remembered nonneutral pointer recovery and3 repetitions each initial/cardinal, sweep/no-jump and strict0.01settled dead-zone drift checks. Matching headed12-case check is underway. Production source unchanged; fresh exact required CI and independent review remain pending."
     }
   ],
   "activity": [
     {
       "date": "2026-10-09T03:41:28.959Z",
       "summary": "Claimed isolated test-only repair via Slack MFM; integration owner confirmed no competing edits."
+    },
+    {
+      "date": "2026-10-09T05:13:16.721Z",
+      "summary": "Root reassigned narrow test-only follow-up after actual573 setup recurrence; neutral real gate pointer and fresh scene preserve every ship-angle assertion."
+    },
+    {
+      "date": "2026-10-09T05:14:02.486Z",
+      "summary": "Real remembered nonneutral pointer recovery and full ship contracts pass12 headless cases without retries; headed and fresh review/CI pending."
     }
   ],
-  "updatedAt": "2026-10-09T03:51:51.577504Z",
-  "revision": 2,
-  "summary": "Control the idle test input before navigation; keep the production scene and all ship-angle assertions intact.",
+  "updatedAt": "2026-10-09T05:14:02.486Z",
+  "revision": 4,
+  "summary": "Replace negative-coordinate replay setup with a measured real-pointer dead zone and fresh scene; all angle/cardinal/drift assertions remain strict. Final CI/review pending.",
   "blocker": null
 }
