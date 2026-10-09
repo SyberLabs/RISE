@@ -111,3 +111,16 @@ it('defers focus lookup while an existing page enters a study and resumes after 
   await new Promise(resolve => setTimeout(resolve, 0));
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
+
+it('clears a remembered account when an authenticated page enters a study', async () => {
+  const location = { pathname: '/settings', search: '' };
+  vi.stubGlobal('location', location);
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ version: 1, user: { id: 'u', label: 'Reader' } }) }));
+  control = mountAccountControl();
+  const link = document.querySelector('.rise-account-control');
+  await vi.waitFor(() => expect(link.textContent).toBe('Account'));
+  location.pathname = '/live'; location.search = '?eval=later';
+  window.dispatchEvent(new Event('focus'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(link.textContent).toBe('Sign in');
+});

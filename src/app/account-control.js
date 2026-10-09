@@ -24,7 +24,14 @@ export function mountAccountControl() {
   let revision = 0;
   let accountRevision = 0;
   const refresh = async () => {
-    if (isolated()) return;
+    if (isolated()) {
+      revision++;
+      if (user) accountRevision++;
+      user = null;
+      link.textContent = 'Sign in';
+      link.setAttribute('aria-label', 'Sign in to SyberLabs');
+      return;
+    }
     const generation = ++revision;
     let current = null;
     try { current = await getAccount(); } catch { /* signed out or unavailable */ }
