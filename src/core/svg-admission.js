@@ -122,6 +122,7 @@ export function admitSvg(svg) {
     i = end + 2;
   }
   let root = false;
+  const open = [];
   while (i < svg.length) {
     const lt = svg.indexOf('<', i);
     const text = svg.slice(i, lt < 0 ? svg.length : lt);
@@ -162,6 +163,7 @@ export function admitSvg(svg) {
     let at = skipSpace(lt + (closing ? 2 : 1) + name.length);
     if (closing) {
       if (svg[at] !== '>') { malformed(lt, 'a tag is not closed'); break; }
+      if (open.pop() !== name) { malformed(lt, `</${name}> does not close the element that is open`); break; }
       i = at + 1;
       continue;
     }
@@ -177,6 +179,7 @@ export function admitSvg(svg) {
       if (svg[skipSpace(at + attribute.length)] !== '=' || (quote !== '"' && quote !== "'")) { malformed(at, 'an attribute value is quoted'); broken = true; break; }
       const end = svg.indexOf(quote, valueAt + 1);
       if (end < 0) { malformed(at, 'an attribute value is not closed'); broken = true; break; }
+      if (attributes.has(attribute)) { malformed(at, `the attribute ${attribute} is given twice`); broken = true; break; }
       attributes.set(attribute, svg.slice(valueAt + 1, end));
       judgeAttribute(attribute, svg.slice(valueAt + 1, end), at);
       at = skipSpace(end + 1);
@@ -192,6 +195,7 @@ export function admitSvg(svg) {
     }
     const selfClosing = svg[at] === '/';
     i = at + (selfClosing ? 2 : 1);
+    if (!selfClosing) open.push(name);
     if (name === 'style' && !selfClosing) {
       const end = svg.indexOf('</style', i);
       if (end < 0) { malformed(lt, 'a <style> is not closed'); break; }
@@ -201,6 +205,7 @@ export function admitSvg(svg) {
       i = end;
     }
   }
+  if (open.length && !diagnostics.length) malformed(svg.length, `<${open.at(-1)}> is not closed`);
   if (!/<\/svg\s*>\s*$/u.test(svg)) {
     const last = svg.trimEnd().length - 1;
     refuse(Math.max(0, last), 'an SVG figure ends with </svg>');

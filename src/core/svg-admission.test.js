@@ -183,6 +183,8 @@ describe('a figure RISE refuses, by rule, where', () => {
 
   it('markup that is not well-formed enough to read', () => {
     expect(refusal(fig('<rect width=10/>')).message).toBe('the figure is not well-formed: an attribute value is quoted');
+    expect(refusal(`${open}<g></svg>`).message).toBe('the figure is not well-formed: </svg> does not close the element that is open');
+    expect(refusal(fig('<rect width="1" width="2"/>')).message).toBe('the figure is not well-formed: the attribute width is given twice');
     expect(refusal(`${open}<rect`).message).toBe('the figure is not well-formed: a tag is not closed');
     expect(refusal(`${open}<!-- open`).message).toBe('the figure is not well-formed: a comment is not closed');
   });
