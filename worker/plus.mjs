@@ -141,7 +141,7 @@ export const VOICE_ALLOWANCE = 105_000;
 /** Characters one subscription may voice per UTC day when PLUS_SUB_DAILY_CHAR_CAP is unset. */
 export const SUB_DAILY_CHAR_CAP = 25_000;
 /** One voicing is one vendor request: a Current, not a chapter. */
-const VOICE_MAX_CHARS = 10_000;
+export const VOICE_MAX_CHARS = 10_000;
 const VOICE_MAX_ATOMS = 400;
 
 const JSON_HEADERS = {
@@ -204,7 +204,7 @@ function unavailable(env, detail) {
  * usable list (and the voice is off). Wrangler hands a JSON var over parsed; a dashboard
  * or secret value arrives as text. The "default" voice's id is the PLUS_VOICE_ID secret.
  */
-function voices(env) {
+export function voices(env) {
   let list = env.PLUS_VOICES;
   try {
     if (typeof list === 'string') list = JSON.parse(list);
@@ -447,7 +447,7 @@ async function voice(request, env, now, admin = null) {
   if (!policy || (admin && !adminCap)) return unavailable(env, 'The voice spending policy is not configured safely.');
   const allowed = voices(env);
   const missing = ['ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', ...(!admin ? ['PLUS_PRICE_ID', ...(requireLive(env) ? ['STRIPE_WEBHOOK_SECRET'] : [])] : [])]
-    .filter(name => (name === 'PLUS_DAILY_CHAR_CAP' ? dailyCap(env) === null : name === 'PLUS_VOICES' ? !allowed : !env[name]));
+    .filter(name => (name === 'ELEVENLABS_API_KEY' ? !providerReady(env) : name === 'PLUS_DAILY_CHAR_CAP' ? dailyCap(env) === null : name === 'PLUS_VOICES' ? !allowed : !env[name]));
   if (missing.length) {
     return unavailable(env, `The Plus voice is not switched on in this deployment (${missing.join(', ')} not set).`);
   }
@@ -525,7 +525,7 @@ async function voice(request, env, now, admin = null) {
   const model = env.PLUS_VOICE_MODEL || 'eleven_flash_v2_5';
   let response;
   try {
-    response = await fetch(`${ELEVENLABS}/v1/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=mp3_44100_64`, {
+    response = typeof env.PLUS_VOICE_PROVIDER?.render === 'function' ? await env.PLUS_VOICE_PROVIDER.render({ text, voiceId, model }) : await fetch(`${ELEVENLABS}/v1/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=mp3_44100_64`, {
       method: 'POST',
       headers: { 'xi-api-key': env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, model_id: model })
@@ -698,7 +698,8 @@ async function cancelPlus(id, env) {
 }
 
 const adminLoginConfigured = env => /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u.test(env.PLUS_ADMIN_ACCESS_ISSUER ?? '') && typeof env.PLUS_ADMIN_ACCESS_AUD === 'string' && Boolean(env.PLUS_ADMIN_ACCESS_AUD.trim());
-const voiceReady = env => Boolean(env.ELEVENLABS_API_KEY && env.PLUS_VOICE_ID && voices(env) && dailyCap(env) && env.PLUS_METER && spendingPolicy(env));
+const providerReady = env => typeof env.PLUS_VOICE_PROVIDER?.render === 'function' || Boolean(env.ELEVENLABS_API_KEY);
+const voiceReady = env => Boolean(providerReady(env) && env.PLUS_VOICE_ID && voices(env) && dailyCap(env) && env.PLUS_METER && spendingPolicy(env));
 
 /** A read-only entitlement view. Identity always comes from verified Access or a server-signed
  * Stripe receipt; client flags and cached browser allowance are never consulted.

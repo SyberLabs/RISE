@@ -298,7 +298,7 @@ describe('allowance integrity (original exploits, valid plumbing)', () => {
       expect(s.vendorChars).toBe(10_000);
       expect(await used(base, 'sub:sub_1', START)).toBe(10_000); // metered either way
       expect(await used(base, 'global', DAY)).toBe(10_000);
-      const allowed = new Set(['STRIPE_SECRET_KEY', 'PLUS_COOKIE_SECRET', 'PLUS_COOKIE_SECRET_PREVIOUS', 'PLUS_PRICE_ID', 'ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', 'DECISION_LIMITER', 'PLUS_VOICE_MODEL', 'PLUS_REQUIRE_LIVE', 'PLUS_SUB_DAILY_CHAR_CAP', 'PLUS_ADMIN_ACCESS_ISSUER', 'PLUS_ADMIN_ACCESS_AUD', 'PLUS_VENDOR_MICRO_USD_PER_CHAR', 'PLUS_FEE_BPS', 'PLUS_FEE_FIXED_USD_CENTS', 'PLUS_RESERVE_BPS']);
+      const allowed = new Set(['STRIPE_SECRET_KEY', 'PLUS_COOKIE_SECRET', 'PLUS_COOKIE_SECRET_PREVIOUS', 'PLUS_PRICE_ID', 'ELEVENLABS_API_KEY', 'PLUS_VOICE_PROVIDER', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', 'DECISION_LIMITER', 'PLUS_VOICE_MODEL', 'PLUS_REQUIRE_LIVE', 'PLUS_SUB_DAILY_CHAR_CAP', 'PLUS_ADMIN_ACCESS_ISSUER', 'PLUS_ADMIN_ACCESS_AUD', 'PLUS_VENDOR_MICRO_USD_PER_CHAR', 'PLUS_FEE_BPS', 'PLUS_FEE_FIXED_USD_CENTS', 'PLUS_RESERVE_BPS']);
       expect([...touched].filter(k => typeof k === 'string' && !allowed.has(k))).toEqual([]);
       if (mode === 'garbage') expect(status).toBe(502);
       if (mode === 'noalign') expect(status).toBe(502); // N12: a handled 502, still metered

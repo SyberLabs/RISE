@@ -40,6 +40,12 @@
       "ref": "e2e/smoke.spec.js",
       "note": "Documentation branch: local browser gate 46 passed, 3 existing skips; 72 tasks validated and generated legal sources matched. This does not exercise production Access configuration or payment credentials.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "worker/plus-provider-rpc.test.js",
+      "note": "Real Miniflare named-entrypoint RPC and public preview denial coverage; automated branch evidence does not establish production provider readiness.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -58,10 +64,14 @@
     {
       "date": "2026-10-09T02:52:09.351Z",
       "summary": "Local browser gate passed 46 tests with 3 existing skips, legal-source and 72-task checks passed. Production acceptance remains pending."
+    },
+    {
+      "date": "2026-10-09T03:32:08.537Z",
+      "summary": "Private VoiceProvider RPC implementation uses the existing preview key without copying it; public preview voicing is refused and production authorization plus atomic reservations remain mandatory. Branch tests and rollout review in progress; deployment and real acceptance remain pending."
     }
   ],
-  "updatedAt": "2026-10-09T02:52:09.351Z",
-  "revision": 4,
+  "updatedAt": "2026-10-09T03:32:08.537Z",
+  "revision": 5,
   "summary": "Add verified administrator access and a conservative invoice-derived subscriber voice budget; no claim of production success or acceptance yet.",
   "blocker": "Access organization/application configuration, production credentials and spend-policy values, merged implementation PRs and real sign-in/voice evidence remain to be verified."
 }
