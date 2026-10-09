@@ -21,7 +21,7 @@ history, not a distinction; read the status column instead.
 
 | Document | Status | What it is |
 | --- | --- | --- |
-| [COMPOSER-FIRST-ROADMAP.md](COMPOSER-FIRST-ROADMAP.md) | Intent | First-edition guided explanations in ChatGPT, composed in one shot and presented by RISE: milestones, dependencies and ownership. Dive and realtime Live are out of current scope. |
+| [COMPOSER-FIRST-ROADMAP.md](COMPOSER-FIRST-ROADMAP.md) | Intent | First-edition guided explanations composed in one shot and presented by RISE, in Claude first and ChatGPT last (revised 2026-10-09): milestones, what shipped, and the critical path to the Composer release. Dive is out of scope; RISE LIVE is the third product, after the release gate. |
 | [VISION.md](VISION.md) | Intent | Where RISE is going: the harness a model performs in. The reader redirects the room in words while it runs, the model searches a catalog of procedural imagery and sees what the reader does, and scenes let the reader act inside the explanation. Says plainly what is built (little of it), the order to build the rest, and what we refuse. Supersedes the `vision/` folder as direction. |
 | [PROJECT-KNOWLEDGE.md](PROJECT-KNOWLEDGE.md) | Record | The handover. Recurring defect patterns and the reasoning behind decisions that look arbitrary. Read section 2 twice. |
 | [specs/ARCHITECTURE.md](specs/ARCHITECTURE.md) | Contract | The canonical, living system design: the planes, the room register, the contracts, and every significant decision with the alternative it rejected. `src/core/system-design.test.js` fails a build when it drifts from the tree. |

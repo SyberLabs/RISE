@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "Score stage 1",
   "status": "in_review",
-  "delivery": "not_shipped",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
@@ -27,6 +27,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/506",
       "note": "Intensity offered only where the field has a verified mutable control; per-look card test checks the row.",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/3b43a3be42e893dc1dbb6b78bfc30d49f930e8c8",
+      "note": "Live release: https://rise.syberlabs.io/release.txt read 3b43a3be on 2026-10-09, after main CI run 37876662647 (CI and production succeeded). It contains #504 (343f2c91, a card browser test per look) and #506 (2ed51d01, Intensity only where the field has a verified mutable control): criteria 1 and 2.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -37,10 +43,14 @@
     {
       "date": "2026-10-08T04:25:54.193Z",
       "summary": "The card opens every look; Intensity only where it applies (#506)"
+    },
+    {
+      "date": "2026-10-09T03:34:38.389Z",
+      "summary": "Reconciled: criteria 1 and 2 live in release 3b43a3be, delivery deployed; the host session with a sourced still remains open"
     }
   ],
-  "updatedAt": "2026-10-08T04:25:54.193Z",
-  "revision": 2,
+  "updatedAt": "2026-10-09T03:34:38.389Z",
+  "revision": 3,
   "summary": "The card side of stage 1a: a Current with any of the ten looks opens in that look (SCR-002, a card browser test per look), the three visual ids open as before, and the Settings sheet offers Intensity only where the field has a verified mutable control (the attractor). The host witness on the exact release, and the sourced still, CSP hosts and bed of 1b, wait for the final pass and for 1b.",
-  "blocker": null
+  "blocker": "Criterion 3 not met: no host session on an exact release has recorded admission, Begin, the look and a sourced still; sourced stills do not exist yet (no collection field is admitted, SCR-002)."
 }

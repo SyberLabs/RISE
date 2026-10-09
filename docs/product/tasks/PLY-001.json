@@ -101,6 +101,18 @@
       "ref": "e2e/live-mcp.spec.js",
       "note": "Validation repair on codex/fix-full-validation-regressions: pace measurement locates beat-2 in the fixture and reads its persistent atom timing record, avoiding a poll that can miss the 800 ms shown line and a later snapshot that can select the following atom. Both speedup thresholds are unchanged. Local unit checks: producer.compile-final, render intake, runtime seek and stage controls, 82 passed. Branch evidence only; no real-host acceptance.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/3b43a3be42e893dc1dbb6b78bfc30d49f930e8c8",
+      "note": "Live release: https://rise.syberlabs.io/release.txt read 3b43a3be on 2026-10-09, after main CI run 37876662647 (CI and production succeeded). Still contains 8877fb38 (#549), 286e7539 (#551) and 96aee99a (#553).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
+      "note": "Owner, 2026-10-09, in Claude on the deployed build, after voice hardening 2 (#535) and the playback instrument (#549, #551, #553): \"Beautiful!! Much more robust and working well on the voice side. Card behavior still needs further testing from brand new sessions.\" and \"very good. seems to be working wonderfully! Fullscreen esp is a step up.\" Recorded as observations, not as acceptance: the owner has not said they accept this task.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -119,10 +131,14 @@
     {
       "date": "2026-10-09T02:05:15.114Z",
       "summary": "Recorded narrow validation repair evidence; owner, acceptance, and release state preserved."
+    },
+    {
+      "date": "2026-10-09T03:34:37.954Z",
+      "summary": "Owner observations of 2026-10-09 in Claude recorded, not as acceptance; Claude-first blocker replaces the real-host witness line"
     }
   ],
-  "updatedAt": "2026-10-09T02:05:15.114Z",
-  "revision": 4,
+  "updatedAt": "2026-10-09T03:34:37.954Z",
+  "revision": 5,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
-  "blocker": "Deployed, not accepted: the owner has not witnessed it in a real host (owner witness pass, 2026-10-07)."
+  "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

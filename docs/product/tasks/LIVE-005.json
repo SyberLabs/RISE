@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "M2 control and replay",
   "status": "in_review",
-  "delivery": "not_shipped",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
@@ -64,6 +64,24 @@
       "ref": "docs/product/discussions/2026-10-07-reader-control-and-replay.md",
       "note": "M2 mapped line by line to tests in the embed: Stop folded into Pause and teardown; settings kept vs for this reading; place kept through pauses and hidden pages (#484); the focus handed to the stage for keyboard readers; replay as the host redelivery and Play again, with a Vault save left out of the card (reversible, owner to confirm).",
       "date": "2026-10-07"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/485",
+      "note": "Merged as aa8d35f5: a keyboard reader kept on the stage, and M2 recorded in the embed.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/3b43a3be42e893dc1dbb6b78bfc30d49f930e8c8",
+      "note": "Live release: https://rise.syberlabs.io/release.txt read 3b43a3be on 2026-10-09, after main CI run 37876662647 (CI and production succeeded). It contains #484 (79d3dd29), #485 (aa8d35f5) and the playback instrument (#549, #551, #553).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
+      "note": "Owner, 2026-10-09, in Claude on the deployed build, after voice hardening 2 (#535) and the playback instrument (#549, #551, #553): \"Beautiful!! Much more robust and working well on the voice side. Card behavior still needs further testing from brand new sessions.\" and \"very good. seems to be working wonderfully! Fullscreen esp is a step up.\" Recorded as observations, not as acceptance: the owner has not said they accept this task.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -86,10 +104,14 @@
     {
       "date": "2026-10-07T20:29:04.826Z",
       "summary": "M2 built in the embed and recorded; keyboard focus handover added; real-host witness deferred to the final pass"
+    },
+    {
+      "date": "2026-10-09T03:34:37.824Z",
+      "summary": "Reconciled: delivery deployed (release 3b43a3be, includes #485); owner observations of 2026-10-09 in Claude recorded, not as acceptance; Claude-first blocker"
     }
   ],
-  "updatedAt": "2026-10-07T20:29:04.826Z",
-  "revision": 5,
+  "updatedAt": "2026-10-09T03:34:37.824Z",
+  "revision": 6,
   "summary": "Predictable Begin/pause/resume/Stop, no stale callback restart, place preservation and existing interchange/Vault replay.",
-  "blocker": "Built and pinned by tests; the real-host witness waits for the whole product to be provisionally ready (owner, 2026-10-07)."
+  "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }
