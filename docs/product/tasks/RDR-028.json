@@ -24,6 +24,12 @@
       "ref": "scripts/build-legal.mjs",
       "note": "Copies the four canonical source documents verbatim. Production build artifact byte checks passed; unrelated generated HTML drift excluded.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/557",
+      "note": "Scoped document asset publication; required CI and live release verification pending.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -34,10 +40,14 @@
     {
       "date": "2026-10-09T01:25:58.585Z",
       "summary": "Regression check failed for four missing files, passes after generation, and rejects a deliberately stale copy. Locked install and production build passed; all four dist files match canonical source bytes. Roadmap tests: 23 passed."
+    },
+    {
+      "date": "2026-10-09T01:28:06.621Z",
+      "summary": "Opened protected PR #557 after independent Ship review and local build/artifact checks."
     }
   ],
-  "updatedAt": "2026-10-09T01:25:58.585Z",
-  "revision": 2,
+  "updatedAt": "2026-10-09T01:28:06.621Z",
+  "revision": 3,
   "summary": "Four unchanged source documents are published as text assets. Local release hygiene, build, byte-for-byte dist checks and roadmap tests pass; protected PR and production verification pending. Two pre-existing stale generated HTML pages are excluded from this scoped fix.",
   "blocker": null
 }
