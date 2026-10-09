@@ -157,7 +157,20 @@
 
 @media (max-width: 640px) {
   html[data-embed="mcp"] .chamber-field { padding-bottom: 64px; }
+
+  /* The phone band keeps its 80 % scrim and drops the blur: the scrim already hides what is behind it, and a blur
+     over a picture that repaints every frame is filtered again every frame. Not yet measured on a device. */
+  html[data-embed="mcp"] .chamber .chamber-field-stream .atom-band:has(.atom-display.glass-tile:not(.is-mask)),
+  html[data-embed="mcp"] .chamber .chamber-field-genesis .atom-band:has(.atom-display.glass-tile:not(.is-mask)),
+  html[data-embed="mcp"] .chamber .chamber-field-night .atom-band:has(.atom-display.glass-tile:not(.is-mask)) {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
+
+/* A long press on the words would select them and raise the system's callout over the reading. The whole reading is
+   in the stage's hidden list for whoever needs its text; the Reader, outside a card, keeps its selection. */
+html[data-embed="mcp"] #atom-display { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
 /* The full transport adds the beat line over the objects: the words clear it too. */
 html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { padding-bottom: 88px; }
@@ -241,6 +254,8 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
   color: var(--color-light);
   font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
   --stage-inset: 16px;
+  /* iOS paints a grey box over a tapped control; the glass shows its own press. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (max-width: 560px) {
@@ -268,6 +283,8 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
   position: relative;
   flex: none;
   pointer-events: auto;
+  /* Two quick taps on Forward are two passages, never a zoom. */
+  touch-action: manipulation;
 }
 
 .rise-stage__settings { margin-left: auto; }
@@ -322,9 +339,13 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 .rise-stage__beat[data-spoken="false"][data-state="passed"]::before { opacity: 0.3; }
 .rise-stage__beat[data-spoken="false"][data-state="current"]::before { opacity: 0.7; }
 
-/* A phone: seven objects fit in 320 px without wrapping. */
+/* A phone: seven objects fit in 320 px without wrapping. The glass is 36 px; the press is 44, as a thumb needs, by a
+   box 4 px past the glass that takes no room in the row (it reaches into the 4 px gap). Settings, last in the row,
+   stops at its own right edge, or the row would reach past its box. */
 @media (max-width: 399px) {
   .rise-stage__object { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
+  .rise-stage__object::before { content: ''; position: absolute; inset: -4px; }
+  .rise-stage__settings::before { right: 0; }
   .rise-stage[data-bar="hidden"] .rise-stage__beats { transform: translateY(40px); }
   .rise-stage__row { gap: 4px; }
 }
@@ -366,6 +387,12 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 
 .rise-settings[hidden] { display: none; }
 
+/* A frame the host made shorter than the 481 px the card asks for: the sheet would leave the frame's top, so it keeps
+   inside it and its rows scroll. The one scroll in the card, and only here; at the asked height nothing scrolls. */
+@media (max-height: 480px) {
+  .rise-settings { max-height: calc(100% - 2 * var(--stage-inset) - 72px); overflow: auto; }
+}
+
 @keyframes rise-settings-open {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
@@ -404,6 +431,19 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 }
 
 .rise-settings__row + .rise-settings__row { margin-top: 4px; }
+
+/* Sign in: not a setting, so in the sheet's head beside its title, where it costs the sheet no height; a 44 px link
+   the host opens outside the card (stage-controls.js). */
+.rise-settings__account {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: -6px 4px -6px auto;
+  padding: 0 6px;
+  color: inherit;
+  font-size: 0.85rem;
+  text-underline-offset: 3px;
+}
 /* A row a passage cannot use (Intensity without an adjustable field) is gone, not greyed. */
 .rise-settings__row[hidden] { display: none; }
 .rise-settings__row > label,

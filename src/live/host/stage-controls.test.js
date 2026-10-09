@@ -536,10 +536,13 @@ describe('About this reading', () => {
 });
 
 describe('the stage as a card', () => {
-    it('nothing in it scrolls: no stage rule sets an overflow that can scroll', () => {
+    it('nothing in it scrolls in a frame of the height it asks for: no stage rule sets an overflow that can scroll', () => {
         // A clip (the three-line title) is not a scroll; `auto` and `scroll` are what "No nested scrolling" forbids.
+        // The one exception is a frame the host made shorter than the card's 481 px, where the sheet would leave the top.
         const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'LiveHost.css'), 'utf8');
-        const rules = css.match(/[^{}]*\{[^}]*\}/gu).filter(rule => /rise-stage|rise-settings|live-host--poster|live-host--embedded/u.test(rule.split('{')[0]));
+        const squeezed = css.match(/@media \(max-height: 480px\) \{([\s\S]*?)\n\}/u)?.[1] ?? '';
+        expect(squeezed.match(/[^{}]*\{[^}]*\}/gu)).toEqual([expect.stringMatching(/^\s*\.rise-settings\s*\{[^}]*max-height:[^}]*overflow:\s*auto/u)]);
+        const rules = css.replace(squeezed, '').match(/[^{}]*\{[^}]*\}/gu).filter(rule => /rise-stage|rise-settings|live-host--poster|live-host--embedded/u.test(rule.split('{')[0]));
         expect(rules.length).toBeGreaterThan(0);
         for (const rule of rules) expect(rule, rule).not.toMatch(/overflow(?:-[xy])?\s*:\s*(?:auto|scroll|overlay)/u);
     });
@@ -943,6 +946,126 @@ describe('the row on a phone', () => {
         const narrow = css.match(/@media \(max-width: 399px\) \{([\s\S]*?)\n\}/u)?.[1] ?? '';
         expect(narrow).toMatch(/\.rise-stage__object\s*\{[^}]*width:\s*36px/u);
         expect(css).toMatch(/\.rise-stage__row\s*\{[^}]*flex-wrap:\s*nowrap/u);
+    });
+
+    it('keeps a 44 px press around each 36 px glass, which takes no room in the row', () => {
+        const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'LiveHost.css'), 'utf8');
+        const narrow = css.match(/@media \(max-width: 399px\) \{([\s\S]*?)\n\}/u)?.[1] ?? '';
+        expect(narrow).toMatch(/\.rise-stage__object::before\s*\{[^}]*content:\s*''[^}]*position:\s*absolute[^}]*inset:\s*-4px/u);
+        // The last object's press stays inside the row, so the row reaches no further than its box.
+        expect(narrow).toMatch(/\.rise-stage__settings::before\s*\{\s*right:\s*0;?\s*\}/u);
+    });
+
+    it('takes a tap as a tap: no double-tap zoom on an object, no grey flash over the stage', () => {
+        const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'LiveHost.css'), 'utf8');
+        expect(css).toMatch(/\.rise-stage\s*\{[^}]*-webkit-tap-highlight-color:\s*transparent/u);
+        expect(css).toMatch(/\.rise-stage__object\s*\{[^}]*touch-action:\s*manipulation/u);
+    });
+});
+
+describe('the reading in the card, under a thumb', () => {
+    const read = path => readFileSync(join(dirname(fileURLToPath(import.meta.url)), path), 'utf8');
+    const rules = css => css.replace(/\/\*[\s\S]*?\*\//gu, '').match(/[^{}]*\{[^{}]*\}/gu) ?? [];
+    const selectors = rule => rule.split('{')[0].split(',').map(selector => selector.trim());
+    /** The bodies of every `@media <query> {…}` block, each to its closing brace at column 0. */
+    const blocks = (css, query) => css.split(`@media ${query} {`).slice(1).map(part => part.split('\n}')[0]);
+
+    it('a drag on selected words moves them and not the host; unselected words still let the host scroll', () => {
+        const chamber = read('../../components/read/Chamber.css');
+        expect(chamber).toMatch(/\.atom-display\.is-band-movable\s*\{[^}]*touch-action:\s*none/u);
+        for (const rule of rules(chamber).filter(rule => /touch-action:\s*none/u.test(rule))) {
+            for (const selector of selectors(rule)) expect(selector).toContain('.is-band-movable');
+        }
+    });
+
+    it('the phone band paints its scrim only over words it holds, and keeps its height when it holds none', () => {
+        const css = read('../../components/read/Chamber.css') + read('../../visuals/visuals.css');
+        const guard = ':where(:not(:has(.atom-display:empty)):not(:has(.atom-display[data-place])))';
+        const painting = rules(css).filter(rule => /\.atom-band:has\(\.atom-display\.glass-tile/u.test(rule.split('{')[0])
+            && /background:\s*(?!transparent)|backdrop-filter:\s*blur/u.test(rule.split('{')[1]));
+        expect(painting.length).toBe(2);
+        for (const rule of painting) for (const selector of selectors(rule)) expect(selector.endsWith(guard), selector).toBe(true);
+        // The box that holds the band's height and its move is not guarded: an empty band keeps its place.
+        const layout = rules(css).find(rule => /\.atom-band:has\(\.atom-display\.glass-tile\)\s*\{/u.test(rule) && /display:\s*block/u.test(rule));
+        expect(layout).toMatch(/translateY/u);
+        expect(layout).not.toMatch(/background|backdrop-filter/u);
+        expect(css).toMatch(/\.atom-display\.glass-tile:empty::before\s*\{\s*content:\s*"\\00a0"/u);
+    });
+
+    it('in the card the band keeps its scrim and drops its blur, which repaints with every frame of the picture', () => {
+        const host = read('LiveHost.css');
+        const phone = blocks(host, '(max-width: 640px)').join('\n');
+        const unblurred = rules(phone).find(rule => /backdrop-filter:\s*none/u.test(rule));
+        expect(unblurred).toBeDefined();
+        for (const selector of selectors(unblurred)) expect(selector).toMatch(/^html\[data-embed="mcp"\] \.chamber \.chamber-field-(?:stream|genesis|night) \.atom-band:has\(\.atom-display\.glass-tile:not\(\.is-mask\)\)/u);
+        expect(unblurred).toMatch(/-webkit-backdrop-filter:\s*none/u);
+        expect(unblurred).not.toMatch(/background/u);
+    });
+
+    it('a short card keeps the phone face and the reader’s text size: the landscape type is the Reader’s alone', () => {
+        const chamber = read('../../components/read/Chamber.css');
+        const [landscape] = blocks(chamber, '(max-width: 900px) and (max-height: 480px) and (orientation: landscape)');
+        expect(landscape).toBeDefined();
+        for (const rule of rules(landscape)) {
+            for (const selector of selectors(rule)) expect(selector.startsWith(':where(html:not([data-embed="mcp"])) '), selector).toBe(true);
+        }
+    });
+
+    it('a placed caption on a phone takes a phone size and the reader’s text size, not the desktop scale', () => {
+        const chamber = read('../../components/read/Chamber.css');
+        const phone = blocks(chamber, '(max-width: 640px)').join('\n');
+        const caption = rules(phone).find(rule => selectors(rule).includes('.atom-display[data-place="caption"]'));
+        expect(caption).toMatch(/font-size:\s*calc\(clamp\(18px, 5\.4vw, 24px\) \* var\(--font-size-intent, 1\)\)/u);
+        // After the desktop caption size, so it wins at the same specificity.
+        expect(chamber.lastIndexOf('clamp(18px, 5.4vw, 24px)')).toBeGreaterThan(chamber.indexOf('font-size: calc(72px * var(--atom-scale, 1) * var(--font-size-intent, 1) * 0.7)'));
+    });
+
+    it('a long press on the words selects nothing and raises no callout in the card; the Reader keeps its selection', () => {
+        const host = read('LiveHost.css');
+        const rule = rules(host).find(candidate => selectors(candidate).includes('html[data-embed="mcp"] #atom-display'));
+        expect(rule).toMatch(/-webkit-user-select:\s*none/u);
+        expect(rule).toMatch(/[^-]user-select:\s*none/u);
+        expect(rule).toMatch(/-webkit-touch-callout:\s*none/u);
+        expect(read('../../components/read/Chamber.css')).not.toMatch(/(?:^|\n)#atom-display\s*\{[^}]*user-select:\s*none/u);
+    });
+});
+
+describe('signing in, from the card', () => {
+    const SIGN_IN = 'https://syberlabs.io/auth/signin?next=%2Fadmin%2Freturn%3Fapp%3Drise';
+    const signIn = () => $('#rise-settings a.rise-settings__account');
+
+    it('sits in the sheet’s head between its title and its close, a link named for SyberLabs to its sign-in page, opened outside the card', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, about: () => 'about' });
+        settings().click();
+        expect(signIn()).not.toBeNull();
+        // Not a setting, and it costs the sheet no row: the head holds it.
+        expect(signIn().parentElement).toBe($('#rise-settings .rise-settings__head'));
+        expect(signIn().previousElementSibling.textContent).toBe('Settings');
+        expect(signIn().nextElementSibling.getAttribute('aria-label')).toBe('Close settings');
+        expect(signIn().textContent).toBe('Sign in to SyberLabs');
+        expect(signIn().href).toBe(SIGN_IN);
+        expect(signIn().target).toBe('_blank');
+        expect(signIn().rel).toBe('noopener');
+        // Not one of the settings: the sheet's rows are still the four it had.
+        expect([...sheet().querySelectorAll('.rise-settings__row')]).toHaveLength(4);
+    });
+
+    it('asks the host to open it, and does not follow the link inside the card', async () => {
+        const port = { hostContext: () => ({}), onHostContext: () => () => {}, openLink: vi.fn(async () => true) };
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, port });
+        settings().click();
+        const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+        signIn().dispatchEvent(click);
+        expect(click.defaultPrevented).toBe(true);
+        expect(port.openLink).toHaveBeenCalledWith(SIGN_IN);
+    });
+
+    it('with no host to ask, the link opens a new page as any link would', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {} });
+        settings().click();
+        const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+        signIn().addEventListener('click', event => { expect(event.defaultPrevented).toBe(false); event.preventDefault(); });
+        signIn().dispatchEvent(click);
     });
 });
 

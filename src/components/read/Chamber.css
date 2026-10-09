@@ -378,7 +378,11 @@
 /* Selected for moving. An outline rather than a border so the frame
    costs no layout and cannot shift the text it is drawn around. A drag
    on it moves the band and selects nothing: a selection is the browser's
-   to act on, and whatever reads one aloud stops the reading's voice. */
+   to act on, and whatever reads one aloud stops the reading's voice.
+   A touch pans the page unless touch-action says otherwise, and a pan
+   cancels the drag's pointer (preventDefault on a pointer event cannot
+   stop it), so selected words take the touch. Only selected words: on
+   unselected ones a swipe still scrolls the page around the reading. */
 .atom-display.is-band-movable {
   outline: 2px solid rgba(122, 178, 255, 0.55);
   outline-offset: 14px;
@@ -386,6 +390,7 @@
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
+  touch-action: none;
 }
 
 .atom-display.is-band-moving {
@@ -2054,6 +2059,16 @@
        band sits under field imagery and gallery paint covers the text. */
     position: relative;
     z-index: 10;
+  }
+
+  /* The band's skin, only over words it holds. Empty (a hold) or with
+     its display placed elsewhere (a caption), the band keeps its box and
+     so its height, and paints nothing: a dark stripe over no words was
+     the "black bar". The guard is in :where() so it adds no specificity
+     and the mask rule below still takes the skin off a mask. */
+  .chamber-field-stream .atom-band:has(.atom-display.glass-tile):where(:not(:has(.atom-display:empty)):not(:has(.atom-display[data-place]))),
+  .chamber-field-genesis .atom-band:has(.atom-display.glass-tile):where(:not(:has(.atom-display:empty)):not(:has(.atom-display[data-place]))),
+.chamber-field-night .atom-band:has(.atom-display.glass-tile):where(:not(:has(.atom-display:empty)):not(:has(.atom-display[data-place]))) {
     border-top: 1px solid rgba(232, 232, 236, 0.06);
     border-bottom: 1px solid rgba(232, 232, 236, 0.06);
     /* Darker and less blurred than the desktop tile: a full-width band
@@ -2171,13 +2186,16 @@
 
 /* Landscape on a phone is mostly a strip of glass with no room above or
    below it. The band gets thinner and the type smaller so the picture
-   still reads as a picture. */
+   still reads as a picture.
+   Not in a host's card: a short inline card is not a phone on its side,
+   and it keeps the phone face and the reader's text size. The guard is
+   in :where() so the Reader's rules keep their specificity. */
 @media (max-width: 900px) and (max-height: 480px) and (orientation: landscape) {
-  .chamber-field {
+  :where(html:not([data-embed="mcp"])) .chamber-field {
     padding: 0;
   }
 
-  .chamber-field .atom-display {
+  :where(html:not([data-embed="mcp"])) .chamber-field .atom-display {
     font-size: calc(clamp(17px, 3.6vh, 23px) * max(0.88, var(--atom-scale, 1)));
     line-height: 1.35;
     /* Full bleed here too. Without this the base rule's `max-width:
@@ -2190,14 +2208,14 @@
     hyphens: auto;
   }
 
-  .chamber-field .atom-display.is-word-fit,
-  .chamber-field .atom-display.is-mask.is-word-fit {
+  :where(html:not([data-embed="mcp"])) .chamber-field .atom-display.is-word-fit,
+  :where(html:not([data-embed="mcp"])) .chamber-field .atom-display.is-mask.is-word-fit {
     font-size: var(--atom-fit-px);
   }
 
-  .chamber-field-stream .atom-display.glass-tile,
-  .chamber-field-genesis .atom-display.glass-tile,
-.chamber-field-night .atom-display.glass-tile {
+  :where(html:not([data-embed="mcp"])) .chamber-field-stream .atom-display.glass-tile,
+  :where(html:not([data-embed="mcp"])) .chamber-field-genesis .atom-display.glass-tile,
+  :where(html:not([data-embed="mcp"])) .chamber-field-night .atom-display.glass-tile {
     border-radius: 0;
     border-left: 0;
     border-right: 0;
@@ -2649,6 +2667,14 @@
     translate: -50% 0;
     max-width: 92%;
     text-align: center;
+  }
+}
+/* On a phone a caption takes a phone size, near the band's phone face, and the reader's text size;
+   the desktop scale gave 28 to 33 px at 390 px wide and three lines for one sentence. */
+@media (max-width: 640px) {
+  .atom-display[data-place="caption"],
+  .atom-display[data-place="top"] {
+    font-size: calc(clamp(18px, 5.4vw, 24px) * var(--font-size-intent, 1));
   }
 }
 /* A formula is one word of the phrase (math-typeset.js); until KaTeX loads it shows as its source. */

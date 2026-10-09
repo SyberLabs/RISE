@@ -102,7 +102,9 @@ describe('what the reference says', () => {
             // McpUiUpdateModelContextRequest in ext-apps src/spec.types.ts; a request, answered with {}.
             updateModelContext: 'ui/update-model-context',
             // A request, { mode }, answered with the mode the host set (apps.mdx, Display Modes).
-            requestDisplayMode: 'ui/request-display-mode'
+            requestDisplayMode: 'ui/request-display-mode',
+            // McpUiOpenLinkRequest in ext-apps src/spec.types.ts: a request, { url }, answered with { isError? }.
+            openLink: 'ui/open-link'
         });
     });
 });
@@ -386,6 +388,19 @@ describe('asking the host for another display mode', () => {
         expect(port.hostContext().displayMode).toBe('inline');
         await expect(port.requestDisplayMode('maximised')).rejects.toThrow(/display mode/u);
         expect(sent).toHaveLength(1);
+    });
+});
+
+describe('asking the host to open a link outside the card', () => {
+    it('asks with the address, and says whether the host opened it', async () => {
+        const { port, sent, hostSays } = await connected();
+        const opening = port.openLink('https://syberlabs.io/auth/signin');
+        expect(sent[0].message).toMatchObject({ jsonrpc: '2.0', method: METHODS.openLink, params: { url: 'https://syberlabs.io/auth/signin' } });
+        hostSays({ jsonrpc: '2.0', id: sent[0].message.id, result: {} });
+        expect(await opening).toBe(true);
+        const refused = port.openLink('https://syberlabs.io/auth/signin');
+        hostSays({ jsonrpc: '2.0', id: sent[1].message.id, result: { isError: true } });
+        expect(await refused).toBe(false);
     });
 });
 

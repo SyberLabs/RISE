@@ -27,12 +27,14 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, forgedResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, forgedResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null, chat = 0 }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
+    // `chat`: px of conversation above and below the card, so the host's page scrolls as a chat does.
+    const conversation = chat ? `<div class="chat" style="height:${chat}px"></div>` : '';
     // A product host's sandbox refuses a <base> (Claude's policy carries base-uri 'self'); the frame inherits this page's policy.
-    return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="base-uri 'self'"><title>fake host</title>
+    return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="base-uri 'self'"><title>fake host</title>
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:${height}px}</style>
-<iframe id="view" sandbox="${sandbox}" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>
+${conversation}<iframe id="view" sandbox="${sandbox}" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>${conversation}
 <script>
 // Escaped so a Current that carries markup (a figure's SVG) cannot close this script.
 const CURRENT = ${JSON.stringify(current).replace(/</gu, '\\u003c')};
@@ -82,6 +84,9 @@ window.addEventListener('message', event => {
     const mode = DISPLAY_MODES && DISPLAY_MODES.includes(message.params.mode) ? message.params.mode : 'inline';
     reply(message.id, { result: { mode } });
     tell('ui/notifications/host-context-changed', { displayMode: mode });
+  } else if (message.method === 'ui/open-link') {
+    hostRequests.push({ method: message.method, params: message.params });
+    reply(message.id, { result: {} });
   }
 });
 </script>`;
@@ -109,7 +114,7 @@ async function openHost(page, baseURL, options = {}) {
   // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
   // frame keeps it because the relay frames RISE's real page.
   const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, forgedResult: options.forgedResult ?? false, height: options.height, displayModes: options.displayModes ?? null, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, forgedResult: options.forgedResult ?? false, height: options.height, displayModes: options.displayModes ?? null, chat: options.chat ?? 0, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
   return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
@@ -1270,6 +1275,133 @@ test('full screen: absent where the host shows the card inline only, and asked o
   const beats = await app.locator('.rise-stage__beats').evaluate(node => ({ ticks: node.children.length, left: node.getBoundingClientRect().left }));
   expect(beats.ticks).toBe(17);
   expect(beats.left).toBeGreaterThanOrEqual(12);
+});
+
+// ─── the card on a phone: an iPhone 14's width, pixel ratio and touch, as Chromium emulates them ───
+
+test.describe('the card on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+
+  const PHONE_LINE = 'Sunlight looks white, but it is every colour at once.';
+  /** Sky with its first line centred in the band and held, so a drag or a measure has words that stay. */
+  const steady = () => {
+    const [first, ...rest] = SKY_PREMIUM_EDUCATIONAL.beats;
+    return { ...SKY_PREMIUM_EDUCATIONAL, beats: [{ show: PHONE_LINE, hold: { ms: 60_000 }, scene: first.scene, cue: first.cue, place: 'centre' }, ...rest] };
+  };
+  /** Sky as written, with every line in the band rather than placed: its holds leave the band empty. */
+  const centred = () => ({ ...SKY_PREMIUM_EDUCATIONAL, beats: SKY_PREMIUM_EDUCATIONAL.beats.map(beat => (beat.say || beat.show ? { ...beat, place: 'centre' } : beat)) });
+
+  test('a drag on the words, once selected, moves them the whole way, and the conversation around the card does not scroll', async ({ page, baseURL }) => {
+    const app = await fieldCard(page, baseURL, { current: steady(), height: 481, chat: 600 });
+    const cdp = await page.context().newCDPSession(page);
+    await page.evaluate(() => window.scrollTo(0, 200));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(200);
+    // Where the words are, in the host page's coordinates.
+    const words = async () => {
+      const frame = await page.locator('#view').boundingBox();
+      const box = await app.locator('#atom-display').boundingBox();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2, top: box.y - frame.y };
+    };
+    const touch = (type, at) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: at ? [{ x: at.x, y: at.y }] : [] });
+    // A tap selects the words (headless Chromium sends no click after a moved touch, so the tap comes first).
+    const at = await words();
+    await touch('touchStart', at);
+    await page.waitForTimeout(60);
+    await touch('touchEnd');
+    await expect(app.locator('#atom-display')).toHaveClass(/is-band-movable/u);
+    await page.waitForTimeout(300);
+    // Then 120 px up in twelve moves, as a thumb does.
+    const before = await words();
+    await touch('touchStart', before);
+    for (let step = 1; step <= 12; step += 1) {
+      await page.waitForTimeout(16);
+      await touch('touchMove', { x: before.x, y: before.y - step * 10 });
+    }
+    await touch('touchEnd');
+    await page.waitForTimeout(300);
+    const after = await words();
+    // Measured before the change (docs mobile audit, finding 3): the host scrolled 200 -> 305 and the words moved 20 px.
+    expect(await page.evaluate(() => window.scrollY)).toBe(200);
+    expect(after.top - before.top).toBeLessThan(-108);
+    expect(after.top - before.top).toBeGreaterThan(-132);
+  });
+
+  test('the band paints no scrim while it holds no words, keeps its height, and paints it under words', async ({ page, baseURL }) => {
+    const app = await fieldCard(page, baseURL, { current: centred(), height: 481 });
+    // Everything inside the field at the band's centre that paints a background or blurs what is behind it.
+    const paint = () => app.locator('#chamber-field').evaluate(field => {
+      const band = field.querySelector('.atom-band').getBoundingClientRect();
+      const x = band.left + band.width / 2;
+      const y = band.top + band.height / 2;
+      const painted = [...field.querySelectorAll('*')].filter(node => {
+        const box = node.getBoundingClientRect();
+        if (!box.width || !box.height || x < box.left || x > box.right || y < box.top || y > box.bottom) return false;
+        const style = getComputedStyle(node);
+        return !/^(?:transparent|rgba\(0, 0, 0, 0\))$/u.test(style.backgroundColor) || style.backdropFilter !== 'none';
+      }).map(node => node.id || node.className);
+      return { words: field.querySelector('#atom-display').textContent.trim().length > 0, height: Math.round(band.height), painted };
+    });
+    const when = async words => {
+      let seen;
+      await expect.poll(async () => (seen = await paint()).words, { timeout: 20_000 }).toBe(words);
+      return seen;
+    };
+    const shown = await when(true);
+    expect(shown.painted).toContain('atom-band');
+    // Measured before the change (finding 4): a 390 x 59 px stripe of 80 % dark with a 12 px blur over the picture.
+    const empty = await when(false);
+    expect(empty.painted).toEqual([]);
+    expect(empty.height).toBeGreaterThanOrEqual(40);
+  });
+
+  test('type fits a phone: a short card keeps the band’s phone face, and a caption takes a phone size', async ({ page, baseURL }) => {
+    // Sky as written: its first line is a caption. Measured before (finding 8): 28 px at 390 wide.
+    let app = await fieldCard(page, baseURL, { height: 481 });
+    await expect(app.locator('#atom-display')).toHaveAttribute('data-place', 'caption');
+    const caption = await app.locator('#atom-display').evaluate(node => parseFloat(getComputedStyle(node).fontSize));
+    expect(caption).toBeGreaterThanOrEqual(18);
+    expect(caption).toBeLessThanOrEqual(24);
+    // A card the host keeps at 360 px tall is "landscape" to CSS. Measured before (finding 7): 14.96 to 17 px.
+    app = await fieldCard(page, baseURL, { current: steady(), height: 360 });
+    const band = await app.locator('#atom-display').evaluate(node => parseFloat(getComputedStyle(node).fontSize));
+    expect(band).toBeGreaterThanOrEqual(20);
+  });
+
+  test('each 36 px object takes a press 4 px past its glass, a tap is only a tap, and a long press selects no words', async ({ page, baseURL }) => {
+    const app = await fieldCard(page, baseURL, { current: steady(), height: 481 });
+    const objects = await app.locator('.rise-stage__row').evaluate(row => [...row.children].filter(node => !node.hidden).map(node => {
+      const box = node.getBoundingClientRect();
+      const doc = node.ownerDocument;
+      // 3 px outside the glass: above it, and beside it on the side away from its neighbours' glass.
+      const above = doc.elementFromPoint(box.left + box.width / 2, box.top - 3)?.closest('.rise-stage__object');
+      return { name: node.dataset.stage, size: Math.round(box.width), above: above === node, touchAction: getComputedStyle(node).touchAction };
+    }));
+    // Measured before (finding 9): six 36 px objects, and a press 3 px above one missed it.
+    expect(objects.length).toBe(6);
+    for (const object of objects) expect(object).toEqual({ name: object.name, size: 36, above: true, touchAction: 'manipulation' });
+    expect(await app.locator('#atom-display').evaluate(node => getComputedStyle(node).userSelect)).toBe('none');
+  });
+
+  test('a frame shorter than the card asks for keeps the whole sheet in it, scrolling its rows; Sign in opens outside the card', async ({ page, baseURL }) => {
+    const app = await fieldCard(page, baseURL, { current: steady(), height: 300 });
+    // No Sign in over the reading (finding 6): it is in the Settings sheet's head.
+    await expect(app.locator('.rise-account-control')).toHaveCount(0);
+    await app.getByRole('button', { name: 'Settings', exact: true }).click();
+    const sheet = app.locator('#rise-settings');
+    await expect(sheet).toBeVisible();
+    // Measured before (finding 12): the sheet began at about -36 px in a 300 px frame.
+    const box = await sheet.evaluate(node => ({ top: node.getBoundingClientRect().top, overflow: node.scrollHeight - node.clientHeight }));
+    expect(box.top).toBeGreaterThanOrEqual(0);
+    expect(box.overflow).toBeGreaterThan(0);
+    expect(await sheet.evaluate(node => { node.scrollTop = node.scrollHeight; return node.scrollTop; })).toBeGreaterThan(0);
+    const signIn = app.getByRole('link', { name: 'Sign in to SyberLabs', exact: true });
+    await signIn.click();
+    await expect.poll(() => page.evaluate(() => window.__host.hostRequests)).toEqual([
+      { method: 'ui/open-link', params: { url: 'https://syberlabs.io/auth/signin?next=%2Fadmin%2Freturn%3Fapp%3Drise' } }
+    ]);
+    // The card is still the reading: the link did not navigate it.
+    await expect(app.locator('#atom-display')).toContainText(PHONE_LINE);
+  });
 });
 
 // ─── sound in the card (SND-001): a bed under the reading, and a Sound control ───
