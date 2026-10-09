@@ -102,7 +102,7 @@ The axis VISION calls the one we have invested nothing in. Live's first job.
 
 Composer's card is the host's; Live's page is ours. It is the existing `LiveHost` presented as a page of the Reader site, not a card:
 
-- **Entry.** The reader brings a key (OpenRouter today, the stored key path from `USER-OWNED-AI.md`) and a question, typed or spoken. The deterministic mock adapter is the demo without a key.
+- **Entry.** The reader brings a Gemini API key, held in memory only and sent as `x-goog-api-key` (the OpenRouter token stays in memory under `USER-OWNED-AI.md` and is never persisted; `src/live/` has no OpenRouter adapter, so one would be a separate design), and a question, typed or spoken. The deterministic mock adapter is the demo without a key.
 - **The stage.** The full instrument, full screen by the browser's own API, the Look sheet and Settings the Reader already has, sound beds (SND-001), no host rules on actions.
 - **The composer's time.** A streamed Current is v1 passages today (the text-stream adapter emits segments as they arrive). Live's Currents should be **v2 beats streamed**: the line format gains a beat per line (say / show / hold / scene / cue), so holds and scenes arrive in time, not only at the end. This is the one protocol change Live needs, and it is additive to `rise.current-events.v1` (a `segment.begin` body gains a `beat`).
 - **One answer, many turns.** A Live session is a sequence of Currents in one room: the reader speaks, the model continues or composes anew, the room persists (theme, look, scene state) across turns unless the model changes it. This is Composer's "continues" idea made native.
