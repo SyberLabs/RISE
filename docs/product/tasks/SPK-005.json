@@ -78,10 +78,14 @@
     {
       "date": "2026-10-09T03:35:26.830Z",
       "summary": "Published private provider PR570 with source/RPC tests and ordered CI deployment; implementation is branch evidence only, not production acceptance."
+    },
+    {
+      "date": "2026-10-09T03:56:00.633Z",
+      "summary": "PR570 review fixes distinguish definitive private broker refusal from uncertain provider contact and perform bounded nonbillable readiness checks before reserving; source review and regression tests pass, fresh CI and deployment acceptance remain pending."
     }
   ],
-  "updatedAt": "2026-10-09T03:35:26.830Z",
-  "revision": 6,
+  "updatedAt": "2026-10-09T03:56:00.633Z",
+  "revision": 7,
   "summary": "Add verified administrator access and a conservative invoice-derived subscriber voice budget; no claim of production success or acceptance yet.",
   "blocker": "Access organization/application configuration, production credentials and spend-policy values, merged implementation PRs and real sign-in/voice evidence remain to be verified."
 }

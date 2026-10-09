@@ -240,3 +240,73 @@ describe('administrator liveness check requires a fresh Access assertion', () =>
     expect(response.status).toBe(403);
   });
 });
+
+async function usageSnapshot(e, name, period) {
+  return (await (await e.PLUS_METER.get(name).fetch('https://meter/inspect', { method: 'POST', body: JSON.stringify({ period }) })).json());
+}
+const rpcAnswer = text => { const characters = [...text], starts = characters.map((_, i) => i * .06); return Response.json({ audio_base64: btoa('audio'), alignment: { characters, character_start_times_seconds: starts, character_end_times_seconds: starts.map(t => t + .06) } }); };
+describe('private provider preflight and billing boundary', () => {
+  it.each([['subscriber', 400], ['subscriber', 503], ['admin', 400], ['admin', 503]])('returns every reservation for a definitive private pre-vendor refusal (%s/%s)', async (role, status) => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    auth.subject = role === 'admin' ? 'verified-admin' : null;
+    const ready = vi.fn(async () => ({ ready: true }));
+    const render = vi.fn().mockResolvedValueOnce({ contacted: false, status }).mockImplementation(async input => ({ contacted: true, response: rpcAnswer(input.text) }));
+    const e = env({ ELEVENLABS_API_KEY: undefined, PLUS_VOICE_PROVIDER: { ready, render }, PLUS_ADMIN_MONTHLY_USD_CENTS: '500', PLUS_ADMIN_DAILY_CHAR_CAP: '5', PLUS_SUB_DAILY_CHAR_CAP: '5', PLUS_DAILY_CHAR_CAP: '5' });
+    const state = world();
+    const send = async n => handlePlus(role === 'admin' ? adminRequest(n) : await request(e, n), e);
+    expect((await send(5)).status).toBe(503);
+    const period = role === 'admin' ? Date.UTC(2027, 0, 1) / 1000 : START;
+    expect(await usageSnapshot(e, role === 'admin' ? 'admin' : 'sub:sub_1', period)).toMatchObject({ used: 0, spentMicros: 0 });
+    expect(await usageSnapshot(e, 'global', '2027-01-15')).toMatchObject({ used: 0 });
+    expect((await send(5)).status).toBe(200); // Own day and global day were also released.
+    expect(render).toHaveBeenCalledTimes(2);
+    expect(state.vendorCalls).toBe(0);
+  });
+  it.each(['false', 'throw', 'missing'])('an intended but unready provider does not reserve or fall back to a direct key (%s)', async outcome => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const ready = outcome === 'missing' ? undefined : vi.fn(async () => { if (outcome === 'throw') throw new Error('offline'); return { ready: false }; });
+    const render = vi.fn(); const e = env({ PLUS_VOICE_PROVIDER: { ready, render } }); const state = world();
+    expect((await handlePlus(await request(e, 5), e)).status).toBe(503);
+    expect(await usageSnapshot(e, 'sub:sub_1', START)).toMatchObject({ used: 0, spentMicros: 0 });
+    const token = await PLUS_INTERNALS.sign({ c: 'cus_1', s: 'sub_1', exp: END, iat: NOW, l: true }, e.PLUS_COOKIE_SECRET);
+    const status = await handlePlus(new Request(SITE + '/api/plus/status', { headers: { Cookie: PLUS_INTERNALS.COOKIE + '=' + token } }), e);
+    expect(await status.json()).toMatchObject({ subscriber: true, available: false });
+    expect(render).not.toHaveBeenCalled(); expect(state.vendorCalls).toBe(0);
+  });
+  it.each(['throw', 'vendor-refusal', 'malformed-envelope', 'bad-no-contact-shape'])('retains every debit after an uncertain or contacted RPC outcome (%s)', async outcome => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const render = vi.fn(async () => {
+      if (outcome === 'throw') throw new Error('answer lost');
+      if (outcome === 'malformed-envelope') return { contacted: 'false', status: 503 };
+      if (outcome === 'bad-no-contact-shape') return { contacted: false, status: 503, response: new Response(null, { status: 503 }) };
+      return { contacted: true, response: new Response(null, { status: 503, headers: { 'X-Provider-Contacted': 'false' } }) };
+    });
+    const e = env({ ELEVENLABS_API_KEY: undefined, PLUS_VOICE_PROVIDER: { ready: async () => ({ ready: true }), render } }); world();
+    expect((await handlePlus(await request(e, 5), e)).status).toBe(502);
+    expect(await usageSnapshot(e, 'sub:sub_1', START)).toMatchObject({ used: 5, spentMicros: 300 });
+    expect(await usageSnapshot(e, 'global', '2027-01-15')).toMatchObject({ used: 5 });
+  });
+  it('does not accept a direct vendor response header as authority to release budget', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 }); const e = env(); world(); const upstream = fetch;
+    vi.stubGlobal('fetch', async (url, init) => new URL(url).hostname === 'api.elevenlabs.io' ? new Response(null, { status: 503, headers: { 'X-Provider-Contacted': 'false' } }) : upstream(url, init));
+    expect((await handlePlus(await request(e, 5), e)).status).toBe(502);
+    expect(await usageSnapshot(e, 'sub:sub_1', START)).toMatchObject({ used: 5, spentMicros: 300 });
+    expect(await usageSnapshot(e, 'global', '2027-01-15')).toMatchObject({ used: 5 });
+  });
+});
+
+it('bounds stalled readiness for voice and status without reserving or contacting a vendor', async () => {
+  vi.useFakeTimers({ now: NOW * 1000 }); auth.subject = 'admin';
+  const ready = vi.fn(() => new Promise(() => {})), render = vi.fn();
+  const e = env({ PLUS_VOICE_PROVIDER: { ready, render }, PLUS_ADMIN_MONTHLY_USD_CENTS: '500' }); const state = world();
+  const voicing = handlePlus(adminRequest(5), e);
+  await vi.waitFor(() => expect(ready).toHaveBeenCalledTimes(1));
+  await vi.advanceTimersByTimeAsync(5001);
+  expect((await voicing).status).toBe(503);
+  expect(await usageSnapshot(e, 'admin', Date.UTC(2027, 0, 1) / 1000)).toMatchObject({ used: 0, spentMicros: 0 });
+  const inspecting = handlePlus(new Request(SITE + '/api/plus/status'), e);
+  await vi.waitFor(() => expect(ready).toHaveBeenCalledTimes(2));
+  await vi.advanceTimersByTimeAsync(5001);
+  expect(await (await inspecting).json()).toMatchObject({ admin: true, available: false });
+  expect(render).not.toHaveBeenCalled(); expect(state.vendorCalls).toBe(0);
+});

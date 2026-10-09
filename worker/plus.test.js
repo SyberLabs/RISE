@@ -1351,9 +1351,9 @@ describe('private voice provider capability', () => {
     const render = vi.fn(async input => {
       expect(await usedIn(env, 'sub:sub_1', START)).toBe(input.text.length);
       expect(await usedIn(env, 'global', new Date(NOW * 1000).toISOString().slice(0, 10))).toBe(input.text.length);
-      return new Response(JSON.stringify(vendorAnswer(input.text)));
+      return { contacted: true, response: new Response(JSON.stringify(vendorAnswer(input.text))) };
     });
-    env.PLUS_VOICE_PROVIDER = { render };
+    env.PLUS_VOICE_PROVIDER = { render, ready: async () => ({ ready: true }) };
     const response = await worker.fetch(voiceRequest(await cookieFor(env), ['Hello world']), env);
     expect(response.status).toBe(200);
     expect(render).toHaveBeenCalledWith({ text: 'Hello world', voiceId: 'voice-1', model: 'eleven_flash_v2_5' });
@@ -1362,7 +1362,7 @@ describe('private voice provider capability', () => {
   it('does not call RPC for unauthenticated or globally capped requests', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const render = vi.fn();
-    const env = environment({ ELEVENLABS_API_KEY: undefined, PLUS_VOICE_PROVIDER: { render }, PLUS_DAILY_CHAR_CAP: '1' });
+    const env = environment({ ELEVENLABS_API_KEY: undefined, PLUS_VOICE_PROVIDER: { render, ready: async () => ({ ready: true }) }, PLUS_DAILY_CHAR_CAP: '1' });
     world();
     expect((await worker.fetch(voiceRequest(null, ['Hello']), env)).status).toBe(402);
     expect((await worker.fetch(voiceRequest(await cookieFor(env), ['Hello']), env)).status).toBe(503);
@@ -1371,8 +1371,8 @@ describe('private voice provider capability', () => {
   });
   it.each(['throw', 'bad-response'])('retains debit for uncertain RPC outcome: %s', async outcome => {
     vi.useFakeTimers({ now: NOW * 1000 });
-    const render = vi.fn(async () => { if (outcome === 'throw') throw new Error('lost response'); return new Response('{}'); });
-    const env = environment({ ELEVENLABS_API_KEY: undefined, PLUS_VOICE_PROVIDER: { render } });
+    const render = vi.fn(async () => { if (outcome === 'throw') throw new Error('lost response'); return { contacted: true, response: new Response('{}') }; });
+    const env = environment({ ELEVENLABS_API_KEY: undefined, PLUS_VOICE_PROVIDER: { render, ready: async () => ({ ready: true }) } });
     world();
     expect((await worker.fetch(voiceRequest(await cookieFor(env), ['Hello']), env)).status).toBe(502);
     expect(render).toHaveBeenCalledOnce();
@@ -1383,7 +1383,7 @@ describe('private voice provider capability', () => {
 it('status recognizes a private provider capability without invoking it or needing a local key', async () => {
   vi.useFakeTimers({ now: NOW * 1000 });
   const render = vi.fn();
-  const env = environment({ ELEVENLABS_API_KEY: undefined, PLUS_VOICE_PROVIDER: { render } });
+  const env = environment({ ELEVENLABS_API_KEY: undefined, PLUS_VOICE_PROVIDER: { render, ready: async () => ({ ready: true }) } });
   const { state } = world();
   const response = await worker.fetch(new Request(`${SITE}/api/plus/status`, { headers: { Cookie: await cookieFor(env), 'CF-Connecting-IP': '192.0.2.1' } }), env);
   expect(response.status).toBe(200);
@@ -1391,10 +1391,10 @@ it('status recognizes a private provider capability without invoking it or needi
   expect(render).not.toHaveBeenCalled();
   expect(state.vendorCalls).toBe(0);
 });
-it('a malformed provider binding does not prevent the existing direct-key adapter', async () => {
+it('an intended malformed provider binding fails closed even with an existing direct key', async () => {
   vi.useFakeTimers({ now: NOW * 1000 });
   const env = environment({ PLUS_VOICE_PROVIDER: {} });
   const { state } = world();
-  expect((await worker.fetch(voiceRequest(await cookieFor(env), ['Hello']), env)).status).toBe(200);
-  expect(state.vendorCalls).toBe(1);
+  expect((await worker.fetch(voiceRequest(await cookieFor(env), ['Hello']), env)).status).toBe(503);
+  expect(state.vendorCalls).toBe(0);
 });

@@ -471,6 +471,8 @@ async function voice(request, env, now, admin = null) {
   const text = atoms.join(' ');
   if (text.length > VOICE_MAX_CHARS) return refuse(413, 'TOO_LONG', `A voicing is at most ${VOICE_MAX_CHARS.toLocaleString('en')} characters.`);
 
+  if (!await voiceReady(env)) return unavailable(env, 'The private voice provider is not ready.');
+
   const n = text.length;
   // All administrators share one explicit monthly budget; adding administrators never multiplies it.
   const sub = admin ? 'admin' : `sub:${current.s}`;
@@ -525,11 +527,23 @@ async function voice(request, env, now, admin = null) {
   const model = env.PLUS_VOICE_MODEL || 'eleven_flash_v2_5';
   let response;
   try {
-    response = typeof env.PLUS_VOICE_PROVIDER?.render === 'function' ? await env.PLUS_VOICE_PROVIDER.render({ text, voiceId, model }) : await fetch(`${ELEVENLABS}/v1/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=mp3_44100_64`, {
-      method: 'POST',
-      headers: { 'xi-api-key': env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text, model_id: model })
-    });
+    if (typeof env.PLUS_VOICE_PROVIDER?.render === 'function') {
+      const outcome = await env.PLUS_VOICE_PROVIDER.render({ text, voiceId, model });
+      // This envelope comes only from our private broker, never from an HTTP vendor header/body.
+      if (outcome?.contacted === false && (outcome.status === 400 || outcome.status === 503)
+        && Object.keys(outcome).sort().join(',') === 'contacted,status') {
+        await meter(env, sub, 'release', own);
+        await meter(env, 'global', 'release', all);
+        return unavailable(env, 'The private voice provider refused before contacting the vendor.');
+      }
+      response = outcome?.contacted === true ? outcome.response : null;
+    } else {
+      response = await fetch(`${ELEVENLABS}/v1/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=mp3_44100_64`, {
+        method: 'POST',
+        headers: { 'xi-api-key': env.ELEVENLABS_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, model_id: model })
+      });
+    }
   } catch {
     response = null;
   }
@@ -699,7 +713,20 @@ async function cancelPlus(id, env) {
 
 const adminLoginConfigured = env => /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u.test(env.PLUS_ADMIN_ACCESS_ISSUER ?? '') && typeof env.PLUS_ADMIN_ACCESS_AUD === 'string' && Boolean(env.PLUS_ADMIN_ACCESS_AUD.trim());
 const providerReady = env => typeof env.PLUS_VOICE_PROVIDER?.render === 'function' || Boolean(env.ELEVENLABS_API_KEY);
-const voiceReady = env => Boolean(providerReady(env) && env.PLUS_VOICE_ID && voices(env) && dailyCap(env) && env.PLUS_METER && spendingPolicy(env));
+async function voiceReady(env) {
+  const allowed = voices(env);
+  if (!providerReady(env) || !env.PLUS_VOICE_ID || !allowed || !dailyCap(env) || !env.PLUS_METER || !spendingPolicy(env)) return false;
+  if (env.PLUS_VOICE_PROVIDER == null) return true;
+  if (typeof env.PLUS_VOICE_PROVIDER.render !== 'function' || typeof env.PLUS_VOICE_PROVIDER.ready !== 'function') return false;
+  let timer;
+  try {
+    const result = await Promise.race([
+      env.PLUS_VOICE_PROVIDER.ready({ voiceIds: [...allowed.values()].map(voice => voice.id), model: env.PLUS_VOICE_MODEL || 'eleven_flash_v2_5' }),
+      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Provider readiness timed out')), 5000); })
+    ]);
+    return result?.ready === true;
+  } catch { return false; } finally { clearTimeout(timer); }
+}
 
 /** A read-only entitlement view. Identity always comes from verified Access or a server-signed
  * Stripe receipt; client flags and cached browser allowance are never consulted.
@@ -711,7 +738,7 @@ async function status(request, env, now) {
   let standing, name;
   if (admin) {
     const budget = adminBudget(env, policy);
-    if (!budget || !voiceReady(env)) return reply(200, result);
+    if (!budget || !await voiceReady(env)) return reply(200, result);
     const date = new Date(now * 1000);
     standing = { start: Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1) / 1000, exp: Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1) / 1000, budgetMicros: budget.micros };
     name = 'admin';
@@ -744,7 +771,7 @@ async function status(request, env, now) {
   if (inspected.revoked) { result.subscriber = false; return reply(200, result); }
   const limit = Math.min(VOICE_ALLOWANCE, Math.floor(standing.budgetMicros / policy.rate));
   result.allowance = { used: inspected.used, limit, periodEnd: standing.exp };
-  result.available = voiceReady(env) && inspected.used < limit && (inspected.spentMicros ?? 0) + policy.rate <= standing.budgetMicros;
+  result.available = await voiceReady(env) && inspected.used < limit && (inspected.spentMicros ?? 0) + policy.rate <= standing.budgetMicros;
   return reply(200, result);
 }
 
