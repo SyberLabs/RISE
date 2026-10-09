@@ -757,7 +757,9 @@ async function routePlus(request, env) {
       return status(request, env, Math.floor(Date.now() / 1000));
     }
     if (path === '/api/plus/admin/check') {
-      const checked = await verifyAdmin(request, env);
+      // The probe forwards only a cookie. Access must inject this assertion after
+      // checking the session; without it, a deleted/misconfigured app must deny.
+      const checked = request.headers.get('Cf-Access-Jwt-Assertion') ? await verifyAdmin(request, env) : null;
       return checked ? reply(200, { subject: checked.subject }) : refuse(403, 'FORBIDDEN_ADMIN', 'Administrator sign-in is required.');
     }
     if (!(await getAdmin(request, env))) return refuse(403, 'FORBIDDEN_ADMIN', 'Administrator sign-in is required.');

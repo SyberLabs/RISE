@@ -154,7 +154,7 @@ describe('new entitlement routes reach the production Worker',()=>{
     const e=env();const status=await worker.fetch(new Request(SITE+'/api/plus/status'),e);expect(status.status).toBe(200);
     expect((await worker.fetch(new Request(SITE+'/api/plus/admin/login'),e)).status).toBe(403);
     expect((await worker.fetch(new Request(SITE+'/api/plus/admin/check'),e)).status).toBe(403);
-    auth.subject='verified';const checked=await worker.fetch(new Request(SITE+'/api/plus/admin/check'),e);expect(await checked.json()).toEqual({subject:'verified'});
+    auth.subject='verified';const checked=await worker.fetch(new Request(SITE+'/api/plus/admin/check',{headers:{'Cf-Access-Jwt-Assertion':'edge-verified-test-token'}}),e);expect(await checked.json()).toEqual({subject:'verified'});
   });
 });
 
@@ -228,5 +228,15 @@ describe('public entitlement status is rate limited before any paid or authentic
     expect(response.status).toBe(503);
     expect(auth.calls).toBe(0);
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('administrator liveness check requires a fresh Access assertion', () => {
+  it('refuses a cookie alone even when its signature would verify', async () => {
+    const e = env();
+    auth.subject = 'verified';
+    const response = await worker.fetch(new Request(SITE + '/api/plus/admin/check', { headers: { Cookie: 'CF_Authorization=previously-signed-token' } }), e);
+    expect(response.status).toBe(403);
   });
 });
