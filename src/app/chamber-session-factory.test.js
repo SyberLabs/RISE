@@ -14,12 +14,13 @@ import { offerLivePlayer } from './live-handoff.js';
 import { Chamber } from '../components/read/Chamber.js';
 import { voiceReading } from '../audio/plus-voice.js';
 import { Voice } from '../audio/voice.js';
-import { plusAllowance, plusState } from './plus.js';
+import { fetchPlusStatus, plusAllowance, plusState } from './plus.js';
 
 vi.mock('../components/read/Chamber.js', () => ({
     Chamber: vi.fn(function Chamber(container, options) { this.options = options; this.announceMovement = vi.fn(); })
 }));
 vi.mock('../audio/plus-voice.js', async importOriginal => ({ ...await importOriginal(), voiceReading: vi.fn() }));
+vi.mock('./plus.js', async importOriginal => ({ ...await importOriginal(), fetchPlusStatus: vi.fn(async () => ({ admin: false, subscriber: false, available: false, allowance: null })) }));
 vi.mock('../audio/voice.js', () => ({
     Voice: vi.fn(function Voice(options) { this.options = options; this.prepare = async () => true; this.destroy = vi.fn(); })
 }));
@@ -180,6 +181,15 @@ describe('the Plus voice at the start of a reading', () => {
         await mount(voiced(), { ...reading(), recitation: { enabled: true, pack: '/audio/recitation/el_reader/0.json' } });
         expect(voiceReading).not.toHaveBeenCalled();
         expect(Chamber.mock.calls[0][1].voice.options.packUrl).toBe('/audio/recitation/el_reader/0.json');
+    });
+
+    it('voices for a server authenticated administrator without a local Plus claim', async () => {
+        fetchPlusStatus.mockResolvedValueOnce({ admin: true, subscriber: false, available: true, allowance: null });
+        voiceReading.mockResolvedValue(VOICED);
+        const options = await mount(voiced(), reading());
+        expect(voiceReading).toHaveBeenCalledTimes(1);
+        expect(options.session.recitation.enabled).toBe(true);
+        expect(localStorage.getItem('rise.plus')).toBeNull();
     });
 
     it('voices the reading once and hands the Chamber the pack as the clock', async () => {
