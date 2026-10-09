@@ -61,6 +61,20 @@ describe('Workshop Project v1', () => {
       audio: { ...project.defaults.audio, soundscape: 'chase' } } }).defaults.audio.soundscape).toBe('night-drive');
   });
 
+  it('opens a saved score with stand-ins for parked passage sounds and fallback', () => {
+    const project = migrateWorkshopBlueprint(legacyBlueprint());
+    const experienceProgram = JSON.parse(JSON.stringify(project.experienceProgram));
+    experienceProgram.tracks.push({ id: 'saved-audio', kind: 'audio', clips: [{
+      id: 'saved-cue', anchor: { sourceIds: ['source-1'] },
+      cue: { kind: 'soundscape', soundscapeId: 'chase', gain: 0.4 }
+    }], fallback: { kind: 'soundscape', soundscapeId: 'wonder' } });
+    const restored = validateWorkshopProject({ ...project, experienceProgram });
+    const audio = restored.experienceProgram.tracks.find(track => track.kind === 'audio');
+    expect(audio.clips[0].cue.soundscapeId).toBe('night-drive');
+    expect(audio.fallback.soundscapeId).toBe('aurora');
+    expect(experienceProgram.tracks.at(-1).clips[0].cue.soundscapeId).toBe('chase');
+  });
+
   it('migrates a flat blueprint into one canonical project', () => {
     const project = migrateWorkshopBlueprint(legacyBlueprint());
 

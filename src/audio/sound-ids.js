@@ -33,3 +33,14 @@ export function soundKind(id) {
 
 /** A saved sound id as RISE plays it now: a parked one is its stand-in. */
 export const standInSound = id => Object.hasOwn(PARKED_SOUNDS, id) ? PARKED_SOUNDS[id] : id;
+
+/** Migrate saved score audio without changing the caller's persisted object. */
+export function standInScoreSounds(program) {
+  if (!Array.isArray(program?.tracks)) return program;
+  const cue = value => value?.kind === 'soundscape'
+    ? { ...value, soundscapeId: standInSound(value.soundscapeId) } : value;
+  return { ...program, tracks: program.tracks.map(track => track?.kind === 'audio'
+    ? { ...track, fallback: cue(track.fallback), clips: Array.isArray(track.clips)
+      ? track.clips.map(clip => ({ ...clip, cue: cue(clip?.cue) })) : track.clips }
+    : track) };
+}
