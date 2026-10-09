@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   deserializeVisualProgram,
+  normalizeAudioProgram,
   normalizeVisualCue,
   normalizeVisualProgram,
   serializeVisualProgram,
@@ -20,6 +21,22 @@ const program = {
   }],
   fallback: { kind: 'still' }
 };
+
+describe('a saved audio program that names a parked Feelings soundscape', () => {
+  it('reads each parked cue as its stand-in and leaves an offered one as it is', () => {
+    const saved = {
+      coordinateSpace: 'source',
+      segments: [
+        { id: 'a', match: { sourceIds: ['s1'], fromProgress: 0, toProgress: 0.5 }, cue: { kind: 'soundscape', soundscapeId: 'chase', fadeMs: 500 } },
+        { id: 'b', match: { sourceIds: ['s1'], fromProgress: 0.5, toProgress: 1 }, cue: { kind: 'soundscape', soundscapeId: 'aurora', fadeMs: 500 } }
+      ],
+      fallback: { kind: 'soundscape', soundscapeId: 'wonder' }
+    };
+    const program = normalizeAudioProgram(saved);
+    expect(program.segments.map(segment => segment.cue.soundscapeId)).toEqual(['night-drive', 'aurora']);
+    expect(program.fallback.soundscapeId).toBe('aurora');
+  });
+});
 
 describe('visual program persistence boundary', () => {
   it('round-trips an end-of-chapter range through JSON without losing Infinity', () => {

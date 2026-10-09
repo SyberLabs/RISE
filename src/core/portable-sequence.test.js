@@ -4,8 +4,33 @@ import { validateWorkshopProject, WORKSHOP_PROJECT_SCHEMA } from './workshop-pro
 import { exportPortableSequence, inspectPortableSequence, remixablePassages, remixPassage }
   from './portable-sequence.js';
 import quietExample from '../content/portable-examples/quiet.json' with { type: 'json' };
+import energeticExample from '../content/portable-examples/energetic.json' with { type: 'json' };
 
 const SOURCE_ID = 'spoon-river-anthology#12';
+
+describe('a portable sequence that names a parked Feelings soundscape', () => {
+  it('keeps the identity it was exported with, and imports each parked cue as its stand-in', async () => {
+    // The Energetic example as exported before the Feelings were parked:
+    // thrilling and chase, under the identity hashed from them.
+    const text = JSON.stringify(energeticExample)
+      .replace('"id":"portable-ccde7f0ab9c4b4d09fa07528789680b7"', '"id":"portable-8cd62918fcd03f2f8b5030e35d3635c9"')
+      .replace('"soundscapeId":"night-drive","gain":0.35', '"soundscapeId":"thrilling","gain":0.35')
+      .replace('"soundscapeId":"night-drive","gain":0.5', '"soundscapeId":"chase","gain":0.5');
+    expect(text).toContain('"chase"');
+    const { project } = await inspectPortableSequence(text);
+    expect(project.id).toBe('portable-8cd62918fcd03f2f8b5030e35d3635c9');
+    expect(project.experienceProgram.tracks.find(track => track.kind === 'audio').clips
+      .map(clip => clip.cue.soundscapeId)).toEqual(['night-drive', 'night-drive']);
+  });
+
+  it('reads a parked cue under an identity hashed from its stand-in, and refuses one hashed from neither', async () => {
+    const standIn = JSON.stringify(energeticExample)
+      .replace('"soundscapeId":"night-drive","gain":0.5', '"soundscapeId":"chase","gain":0.5');
+    expect((await inspectPortableSequence(standIn)).project.id).toBe(energeticExample.id);
+    const neither = standIn.replace(`"id":"${energeticExample.id}"`, '"id":"portable-8cd62918fcd03f2f8b5030e35d3635c9"');
+    await expect(inspectPortableSequence(neither)).rejects.toMatchObject({ code: 'PORTABLE_ID' });
+  });
+});
 
 async function authoredProject() {
   const { sources, missing, refused } = await resolveLibrarySourceIds([SOURCE_ID]);

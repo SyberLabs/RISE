@@ -12,7 +12,7 @@ import { visualFallbackCueFromConfig } from './visual-program.js';
 import { compileWorkshopScoreProgram } from './audio-score-lane.js';
 import { audioScoreAssetFromId, TONE_DELIVERIES, TONE_WAVEFORMS } from './workshop-audio.js';
 import { narrationAssignmentsFromClips } from './narration-score-lane.js';
-import { standInScoreSounds, standInSound } from '../audio/sound-ids.js';
+import { standInSound } from '../audio/sound-ids.js';
 
 export const WORKSHOP_PROJECT_SCHEMA = 'rise.workshop-project.v1';
 
@@ -244,7 +244,7 @@ function normalizeDefaults(value = {}) {
 }
 
 function validateProgram(value) {
-  return value == null ? null : validateExperienceProgram(standInScoreSounds(value));
+  return value == null ? null : validateExperienceProgram(value);
 }
 
 export function isWorkshopProject(value) {
