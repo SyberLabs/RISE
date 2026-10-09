@@ -41,6 +41,15 @@
  * start, one end, and a mark where each later sentence begins, which is the
  * only place such a voice says where it is. A voice on the device reports its
  * word boundaries (`capabilities.wordMarks`); a network voice may not.
+ *
+ * A change of rate never interrupts an utterance: cancelling one and speaking
+ * it again silences or skips a network voice, sometimes for good. The rate is
+ * kept for the next utterance (the next sentence of a voice that speaks in
+ * sentences, `capabilities.inSentences`, else the next segment). The voice
+ * reports `rateApplied` once nothing is said at the old rate any more: when
+ * the segment it was saying ends, or when the next sentence, or a held
+ * segment taken up again, begins at the new one. A rate set while nothing is
+ * under way holds at once, and `setRate` says so.
  */
 
 import { createRealClock } from '../clock.js';
@@ -79,7 +88,9 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     synth.cancel();
     const inSentences = GOOGLE.test(voice?.name ?? '');
 
-    let report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {} };
+    let report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {} };
+    /** The rate it last reported speaking at: the one it was made with, or the last that landed. */
+    let spokenRate = rate;
     let closed = false;
     let held = false;
     /** When it was last let go of, until it is heard again. */
@@ -98,8 +109,10 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     function speakFrom(item, offset) {
         const end = inSentences ? utteranceEnd(item.text, offset) : item.text.length;
         const utterance = new Utterance(item.text.slice(offset, end));
+        // Kept here, not read back: the utterance holds its rate as a single-precision float (0.8 is not 0.8).
+        const at = rate;
         utterance.lang = lang;
-        utterance.rate = rate;
+        utterance.rate = at;
         if (voice) utterance.voice = voice;
         item.utterance = utterance;
         item.offset = offset;
@@ -116,6 +129,10 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
                 const afterMs = Math.round(clock.now() - releasedAt);
                 releasedAt = null;
                 safely(report.restarted, item.id, afterMs);
+            }
+            if (at !== spokenRate) {
+                spokenRate = at;
+                safely(report.rateApplied, item.id, spokenRate);
             }
         };
         utterance.onboundary = event => {
@@ -145,6 +162,11 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             finished.set(item.id, duration);
             current = null;
             if (item.started) safely(report.end, item.id, duration);
+            if (rate !== spokenRate) {
+                // Nothing is said at the old rate any more; the next utterance is begun at the new.
+                spokenRate = rate;
+                safely(report.rateApplied, item.id, rate);
+            }
             next();
         };
         utterance.onerror = event => {
@@ -177,12 +199,12 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
 
     return {
         id: 'browser',
-        capabilities: Object.freeze({ audible: true, wordMarks: voice?.localService === true }),
+        capabilities: Object.freeze({ audible: true, wordMarks: voice?.localService === true, inSentences }),
         /** The installed voice it speaks with, for the trace: null names the browser's own default. */
         chosen: Object.freeze({ name: voice?.name ?? null, local: voice ? voice.localService === true : null }),
 
         attach(callbacks) {
-            report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, ...callbacks };
+            report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {}, ...callbacks };
         },
 
         enqueue({ id, text }) {
@@ -248,17 +270,15 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         },
 
         /**
-         * Say from now at `next` times the normal rate. What it is saying is said again from the last word heard at
-         * the new rate, at once; a held voice takes it up at the new rate when released.
+         * Say at `next` times the normal rate from the next utterance begun; what it is saying finishes at its own.
+         * A held voice takes it up at the new rate when released.
+         * @returns {boolean} whether it holds at once, because nothing is under way; else `rateApplied` says when
          */
         setRate(next) {
             rate = next;
-            if (closed || held || !current?.utterance) return;
-            current.utterance = null;
-            current.played = current.lastMarkAt;
-            current.startedAt = null;
-            synth.cancel();
-            speakFrom(current, current.lastMark);
+            if (current) return false;
+            spokenRate = next;
+            return true;
         },
 
         /** The utterance it has begun and not yet ended, or null. */

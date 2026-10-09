@@ -16,6 +16,12 @@ import { FONT_SIZE_CHIPS, resolveFontSize } from '../../core/chamber-type-size.j
  * passage, of how many), the whole reading as a list, and each committed
  * sentence while the reading is silent. It draws no reading and keeps no
  * time; it asks the runtime for things and shows what the runtime says.
+ * While the reading plays, the bar gets out of the way: 2.5 s after the
+ * pointer last moved, the objects fade (the beat line stays, faint, as
+ * progress) and the words take the room back. Any pointer movement, a touch,
+ * a key on the stage or the focus entering it brings the bar back; a paused,
+ * ended or failed reading, or the sheet open, keeps it. A touch that finds the
+ * bar hidden only brings it back: nothing unseen is pressed.
  * (docs/product/discussions/2026-10-05-embed-stage-decision.md §2–§4, and its amendment of 2026-10-08)
  */
 
@@ -38,6 +44,8 @@ const PIP_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="
 
 /** The pace object's rates, in the order one press steps through them; the keys step along them and stop at the ends. */
 const PACES = [0.8, 1, 1.25, 1.5];
+/** How long the bar stays after the pointer last moved while the reading plays. */
+const BAR_STAYS_MS = 2_500;
 const KEYS_DESCRIBED = 'Keys on the stage: Space plays or pauses; the Left and Right arrows go back or on a passage; R says the passage again; F fills the screen where it can; minus and equals, or the brackets, slow or quicken the pace.';
 
 /**
@@ -80,6 +88,7 @@ export function createStageControls({
       <p class="rise-stage__status rise-stage__sr" role="status" aria-live="polite"></p>
       <ol class="rise-stage__text rise-stage__sr" aria-label="The whole reading"></ol>
       <p class="rise-stage__said rise-stage__sr" aria-live="off"></p>
+      ${full ? '<p class="rise-stage__pace-note rise-stage__sr" aria-live="polite"></p>' : ''}
       <p class="rise-stage__alert" role="alert" hidden></p>
       <div class="rise-stage__bar">
         ${full ? '<div class="rise-stage__beats" aria-hidden="true"></div>' : ''}
@@ -142,7 +151,10 @@ export function createStageControls({
     const pace = $('[data-stage="pace"]');
     const fullscreen = $('[data-stage="fullscreen"]');
     const beats = $('.rise-stage__beats');
+    const paceNote = $('.rise-stage__pace-note');
     let destroyed = false;
+    // The pace last said and where it was to land; the first one rendered is the reading's own, not news.
+    let paceSaid = null;
     // The passages the beat line was last drawn for.
     let drawn = null;
     let listed = -1;
@@ -309,6 +321,15 @@ export function createStageControls({
         [...beats.children].forEach((tick, index) => { tick.dataset.state = index < at ? 'passed' : index === at ? 'current' : 'ahead'; });
     }
 
+    /** A new pace is said with where it lands (the voice's next sentence or passage), and again once it has. */
+    function sayPace(now, from) {
+        const said = `${now}|${from}`;
+        if (paceSaid !== null && said !== paceSaid) {
+            paceNote.textContent = from ? `Pace ${rate(now)}×, from the next ${from}.` : `Pace ${rate(now)}×.`;
+        }
+        paceSaid = said;
+    }
+
     function renderTransport(snapshot, gone) {
         const { status, position } = snapshot;
         const ready = (status === 'live' || status === 'interrupted' || status === 'ended') && Boolean(position);
@@ -319,6 +340,7 @@ export function createStageControls({
         const now = snapshot.pace ?? 1;
         pace.textContent = `${rate(now)}×`;
         pace.setAttribute('aria-label', `Pace, ${rate(now)} times`);
+        sayPace(now, snapshot.paceFrom ?? null);
         const shown = display();
         fullscreen.hidden = gone || !shown;
         if (shown) {
@@ -360,7 +382,40 @@ export function createStageControls({
             if (chosen !== null) sendIntensity(chosen);
         }
         if (!sheet.hidden) refreshIntensity();
+        if (!mayHideBar() || (root.dataset.bar !== 'hidden' && barTimer === null)) showBar();
     }
+
+    // ─── the bar, out of the way while the reading plays ──────────────
+
+    let barTimer = null;
+    // A touch that found the bar hidden: its press only brings the bar back.
+    let unseenPress = false;
+
+    const mayHideBar = () => !destroyed && runtime.status === 'live' && sheet.hidden;
+
+    /** Show the bar, and hide it again BAR_STAYS_MS from now if the reading is playing. */
+    function showBar() {
+        clearTimeout(barTimer);
+        barTimer = null;
+        root.dataset.bar = 'shown';
+        if (!mayHideBar()) return;
+        barTimer = setTimeout(() => {
+            barTimer = null;
+            if (mayHideBar()) root.dataset.bar = 'hidden';
+        }, BAR_STAYS_MS);
+    }
+
+    root.addEventListener('pointerdown', event => { unseenPress = root.dataset.bar === 'hidden' && event.pointerType !== 'mouse'; }, true);
+    root.addEventListener('click', event => {
+        if (!unseenPress) return;
+        unseenPress = false;
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+    root.addEventListener('keydown', () => { unseenPress = false; showBar(); }, true);
+    root.addEventListener('focusin', showBar);
+    doc.addEventListener('pointermove', showBar);
+    doc.addEventListener('pointerdown', showBar);
 
     // ─── the sheet ─────────────────────────────────────────────────────
     // Inside the stage, never the host's page; it does not pause the reading. Escape is heard on the
@@ -375,6 +430,7 @@ export function createStageControls({
         settings.setAttribute('aria-expanded', 'true');
         doc.addEventListener('pointerdown', outside);
         ([intensity, theme, still, sound, ...sizes].find(control => control && !control.disabled) ?? close).focus();
+        showBar();
     }
 
     function closeSheet(refocus = true) {
@@ -383,6 +439,7 @@ export function createStageControls({
         settings.setAttribute('aria-expanded', 'false');
         doc.removeEventListener('pointerdown', outside);
         if (refocus) settings.focus();
+        showBar();
     }
 
     settings.addEventListener('click', () => (sheet.hidden ? openSheet() : closeSheet()));
@@ -470,7 +527,10 @@ export function createStageControls({
         destroy() {
             if (destroyed) return;
             destroyed = true;
+            clearTimeout(barTimer);
             doc.removeEventListener('pointerdown', outside);
+            doc.removeEventListener('pointermove', showBar);
+            doc.removeEventListener('pointerdown', showBar);
             doc.removeEventListener('fullscreenchange', repaint);
             stopHostContext?.();
             off();

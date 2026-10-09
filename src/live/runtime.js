@@ -64,7 +64,7 @@ export function createLiveRuntime({
     let main = null;
     let side = null;
     let stopped = false;
-    /** The voice's rate, as the reader set it: 1 is the voice's own. */
+    /** The voice's rate, as the reader set it: 1 is the voice's own. The main run's `rate` is the one it has taken up. */
     let pace = 1;
     const journal = [];
     const listeners = new Set();
@@ -96,7 +96,13 @@ export function createLiveRuntime({
     }
 
     function snapshot() {
-        return Object.freeze({ status, error, main: summary(main), side: summary(side), pace, position: positionOf(main) });
+        return Object.freeze({ status, error, main: summary(main), side: summary(side), pace, paceFrom: paceFrom(), position: positionOf(main) });
+    }
+
+    /** Where a pace asked for and not yet taken up will land: the voice's next sentence or next passage; null once it has. */
+    function paceFrom() {
+        if (!main?.voice || main.rate === pace) return null;
+        return main.voice.capabilities?.inSentences === true ? 'sentence' : 'passage';
     }
 
     /**
@@ -263,7 +269,7 @@ export function createLiveRuntime({
         if (!run.player) {
             run.player = createPlayer(session, { role: run.role });
             run.player.setLive(true);
-            if (run.role === 'main' && pace !== 1) run.player.setSpeedFactor(1 / pace);
+            if (run.rate !== 1) run.player.setSpeedFactor(1 / run.rate);
             watchPlayer(run);
             // With no voice there is no clock but the Player’s own.
             // With a voice, the conductor is asked first: it times what no voice says, and declines the rest to the governor.
@@ -412,6 +418,8 @@ export function createLiveRuntime({
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null,
             // Passages the voice was given and has not finished or failed; the run ends when none are left.
             owed: new Set(), completedAt: null, tail: null, ended: false,
+            // The voice's rate its clock is at: the pace once the voice has taken it up (see setPace).
+            rate: 1,
             // Every passage the voice was given, in the reading's order (a seek gives the voice the rest again); the passages a seek goes to.
             given: [], passages: null
         };
@@ -435,11 +443,17 @@ export function createLiveRuntime({
             voice: run.voice ?? { playedMs: () => undefined },
             clock,
             graceMs,
-            onDegrade: ({ reason }) => note('voice.degraded', { role, reason })
+            onDegrade: ({ reason }) => {
+                note('voice.degraded', { role, reason });
+                // A pace asked for while the voice was saying something has no next utterance to land in: take it now.
+                if (role === 'main' && !run.closed) retime(run, pace);
+            }
         });
         if (role === 'main' && pace !== 1) {
+            // Nothing is said yet, so the voice takes it at once; this clock is new, at the voice's own rate.
             run.voice?.setRate?.(pace);
             run.governor.rescale(1 / pace);
+            run.rate = pace;
         }
         run.conductor = createBeatConductor({
             clock,
@@ -572,20 +586,22 @@ export function createLiveRuntime({
         },
 
         /**
-         * The voice's rate, from half to twice its own. The voice takes it at once; the speech clock rescales what
-         * it measured; the Player's timers follow it for what no voice says. Where the reader is does not move, and
-         * what is on screen goes on at the new pace: the Player re-times its atom from the rescaled clock, then the
-         * conductor its running hold.
+         * The voice's rate, from half to twice its own. The voice never stops what it is saying for it (cancelling
+         * and speaking again silences a network voice): it takes the rate at its next utterance and says when nothing
+         * is said at the old rate any more (the passage under way has ended, or the next sentence has begun). Only
+         * then is the clock re-timed (retime), so the words never run ahead of the voice's actual rate. A voice
+         * saying nothing, a voice the reading has stood down from, or no voice, takes it at once. `snapshot().pace`
+         * is the rate asked for at once; `paceFrom` says where it lands while it has not.
          */
         setPace(rate) {
             if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) throw new LiveRuntimeError('PACE', 'A pace is between half and twice the voice’s own');
-            const before = pace;
             pace = rate;
-            main?.voice?.setRate?.(rate);
-            main?.governor?.rescale(before / rate);
-            main?.player?.setSpeedFactor(1 / rate);
-            main?.conductor?.repace();
-            note('pace', { rate });
+            const run = main;
+            if (run) {
+                const atOnce = run.voice?.setRate?.(rate) !== false;
+                if (atOnce || run.governor?.degraded) retime(run, rate);
+            }
+            note('pace', { rate, applied: !run || run.rate === rate });
             set(status);
         },
 
@@ -678,6 +694,20 @@ export function createLiveRuntime({
         if (takenUp || run.player.sessionState.currentAtom?.seam) run.player.restartCurrentAtom();
     }
 
+    /**
+     * The voice speaks at `rate` now: the speech clock rescales what it measured; the Player's timers follow it for
+     * what no voice says. Where the reader is does not move, and what is on screen goes on at the new pace: the
+     * Player re-times its atom from the rescaled clock, then the conductor its running hold.
+     */
+    function retime(run, rate) {
+        if (rate === run.rate) return;
+        const before = run.rate;
+        run.rate = rate;
+        run.governor?.rescale(before / rate);
+        run.player?.setSpeedFactor(1 / rate);
+        run.conductor?.repace();
+    }
+
     /** The run a reader's seek moves: the main one, while it is read, held or ended. */
     function movable() {
         if (!main?.player || (status !== 'live' && status !== 'interrupted' && status !== 'ended')) {
@@ -755,6 +785,13 @@ export function createLiveRuntime({
                 }
             },
             restarted: (id, afterMs) => { if (!run.closed) note('voice.restarted', { role: run.role, segmentId: id, afterMs }); },
+            // Nothing is said at the old pace any more: the clock follows the new one from here.
+            rateApplied: (id, rate) => {
+                if (run.closed || rate === run.rate) return;
+                retime(run, rate);
+                note('pace.applied', { rate, segmentId: id });
+                set(status);
+            },
             fail: (id, reason) => {
                 if (run.closed) return;
                 run.governor.standDown('voice-failed');

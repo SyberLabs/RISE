@@ -162,6 +162,12 @@
 /* The full transport adds the beat line over the objects: the words clear it too. */
 html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { padding-bottom: 88px; }
 
+/* While the bar is hidden (stage-controls.js) the words take its room back, all but the faint beat line's, and
+   move into it as the bar fades, not at once. */
+html[data-embed="mcp"] .chamber-field { transition: padding-bottom 180ms ease; }
+html[data-embed="mcp"]:has(.rise-stage[data-bar="hidden"]) .chamber-field { padding-bottom: 24px; }
+html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]) .chamber-field { padding-bottom: 40px; }
+
 /* The poster: the words' own face for the title, clamped to three lines (the whole title is its label). */
 .live-host--poster { gap: 24px; }
 
@@ -200,7 +206,7 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { 
   padding: 0;
   border-radius: 50%;
   cursor: pointer;
-  transition: background-color 120ms ease, transform 80ms ease;
+  transition: background-color 120ms ease, transform 80ms ease, opacity 180ms ease;
 }
 
 .live-host--embedded .live-start { width: 64px; height: 64px; min-width: 64px; min-height: 64px; }
@@ -274,7 +280,12 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { 
   gap: 2px;
   height: 16px;
   pointer-events: auto;
+  transition: opacity 180ms ease, transform 180ms ease;
 }
+
+/* The hidden bar: the objects gone, the beat line faint and down where the row was (44 px and the 4 px gap). */
+.rise-stage[data-bar="hidden"] .rise-stage__object { opacity: 0; }
+.rise-stage[data-bar="hidden"] .rise-stage__beats { opacity: 0.45; transform: translateY(48px); }
 
 .rise-stage__beats[hidden] { display: none; }
 
@@ -311,6 +322,7 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { 
 /* A phone: seven objects fit in 320 px without wrapping. */
 @media (max-width: 399px) {
   .rise-stage__object { width: 36px; height: 36px; min-width: 36px; min-height: 36px; }
+  .rise-stage[data-bar="hidden"] .rise-stage__beats { transform: translateY(40px); }
   .rise-stage__row { gap: 4px; }
 }
 
@@ -470,6 +482,8 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { 
   .rise-settings { animation: none; }
   .live-host--embedded .live-start,
   .rise-stage__object,
+  .rise-stage__beats,
+  html[data-embed="mcp"] .chamber-field,
   .rise-settings__row input[type="checkbox"],
   .rise-settings__row input[type="checkbox"]::after { transition: none; }
 }

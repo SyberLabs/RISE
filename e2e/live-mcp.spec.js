@@ -1141,6 +1141,19 @@ test('the stage bar: a pace of 1.5 shortens a shown line measurably', async ({ p
   expect(atOneAndAHalf).toBeLessThan(atOne * 0.8);
 });
 
+test('the stage bar hides itself while the reading plays, and a moving pointer brings it back', async ({ page, baseURL }) => {
+  const app = await fieldCard(page, baseURL);
+  const stage = app.locator('#rise-stage-controls');
+  await expect(stage).toHaveAttribute('data-bar', 'shown');
+  await page.waitForTimeout(3_000);
+  await expect(stage).toHaveAttribute('data-bar', 'hidden');
+  await expect(stage.locator('[data-stage="play"]')).toHaveCSS('opacity', '0');
+  await app.locator('body').hover({ position: { x: 24, y: 24 } });
+  await expect(stage).toHaveAttribute('data-bar', 'shown');
+  await expect(stage.locator('[data-stage="play"]')).toHaveCSS('opacity', '1');
+  await expect(app.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+});
+
 test('full screen: absent where the host shows the card inline only, and asked of a host that offers it', async ({ page, baseURL }) => {
   let app = await fieldCard(page, baseURL);
   await expect(app.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
