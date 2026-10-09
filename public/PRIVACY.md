@@ -423,8 +423,8 @@ section 4 describes.
 
 ## 9. California residents
 
-RISE is published from California. Our server processing is hosting request
-data and, for Plus, the voicing and the per-subscription character count, as
+RISE is published from California. Our server processing includes hosting request
+data, explicit SyberLabs account backups and, for Plus, the voicing and the per-subscription character count, as
 described in section 4; AI requests go to the connection you chose.
 
 **We do not sell personal information**, as that term is defined in the
