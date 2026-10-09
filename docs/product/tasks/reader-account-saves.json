@@ -49,6 +49,12 @@
       "ref": "e2e/account-saves.spec.js",
       "date": "2026-10-09",
       "note": "Follow-up boundary repair: three permanent no-focus unit regressions and actual history/popstate study browser probe failed before guards. Patched account-control/CLI 84 tests pass; provider/account combined84 fast files1904 pass with2 existing skips; all5 account browser tests pass retries0. Final focused study/card/OpenAI checks and exact CI remain under review; real authenticated production acceptance remains pending."
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "date": "2026-10-09",
+      "note": "Historical c089 full Browser10/16 failed six Live cases solely on Chromium console output for the real signed-out account401. Actual response401version1signin_required and exact account URL/message verified. Follow-up recognizes only that exact expected denial; browser negative control preserves unrelated401 and runtime errors. Full Live conformance run is in progress; final exact CI/full matrix and real authenticated production acceptance remain pending."
     }
   ],
   "activity": [
@@ -71,10 +77,14 @@
     {
       "date": "2026-10-09T04:20:23.737Z",
       "summary": "Actual no-focus study navigation reproduced before repair; narrow account boundary guards and permanent regressions prepared, with production authenticated acceptance pending."
+    },
+    {
+      "date": "2026-10-09T04:35:32.252Z",
+      "summary": "Account protocol401 remains real in browser fixtures; narrow Live conformance accounting and unrelated error negative controls prepared after six actual matrix failures."
     }
   ],
-  "updatedAt": "2026-10-09T04:20:23.737Z",
-  "revision": 5,
+  "updatedAt": "2026-10-09T04:35:32.252Z",
+  "revision": 6,
   "summary": "Account isolation repair merged at c089b815; follow-up guards reject pending identity and stale account panels after same-app study navigation without focus. Final follow-up CI and authenticated production acceptance remain pending.",
   "blocker": null
 }
