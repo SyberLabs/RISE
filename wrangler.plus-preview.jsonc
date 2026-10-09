@@ -1,5 +1,6 @@
 {
-  // A workers.dev preview of the Plus routes (worker/plus.mjs) for test-mode runs.
+  // Public test-mode setup routes plus a private VoiceProvider RPC entrypoint.
+  // Public /api/plus/voice is refused: only production's metered service binding renders.
   // No secret is set here: without STRIPE_SECRET_KEY, PLUS_COOKIE_SECRET and
   // ELEVENLABS_API_KEY every /api/plus route answers 503. Set them with
   // `wrangler secret put <NAME> --config wrangler.plus-preview.jsonc`, together with
@@ -10,7 +11,7 @@
   // PLUS_COOKIE_SECRET must differ from production's, and STRIPE_SECRET_KEY is a test-mode
   // key: a cookie minted here then fails both the signature and the mode check on production.
   "name": "rise-plus-preview",
-  "main": "./worker/index.mjs",
+  "main": "./worker/plus-preview.mjs",
   "compatibility_date": "2026-09-26",
   "workers_dev": true,
   "preview_urls": false,

@@ -50,6 +50,8 @@ jobs:
           # Vite accepts (a stylesheet, a font) fails only at deploy. #518 broke every deploy
           # of main for four merges this way; the dry run fails the pull request instead.
           ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --dry-run --outdir "$RUNNER_TEMP/worker-bundle"
+          # Attest the private provider wrapper/config before root deploys the key-holding preview.
+          ./node_modules/.bin/wrangler deploy --config wrangler.plus-preview.jsonc --dry-run --outdir "$RUNNER_TEMP/voice-provider-bundle"
           wait "$tests"
           # shellcheck disable=SC2016 # JavaScript, not shell, expands ${...} here.
           FAST_TESTS_REPORT="$RUNNER_TEMP/fast-tests.json" node --input-type=module -e '
@@ -78,6 +80,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/release/worker"
           mv dist "$RUNNER_TEMP/release/dist"
           cp "$RUNNER_TEMP/worker-bundle/index.js" "$RUNNER_TEMP/release/worker/index.js"
+          cp -r "$RUNNER_TEMP/voice-provider-bundle" "$RUNNER_TEMP/release/voice-provider"
+          cp wrangler.plus-preview.jsonc "$RUNNER_TEMP/release/voice-provider/wrangler.plus-preview.jsonc"
       - uses: actions/upload-artifact@v4
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
@@ -132,6 +136,9 @@ jobs:
           # to the bundle the CI job dry-ran.
           ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --dry-run --outdir "$RUNNER_TEMP/deploy-bundle"
           cmp "$RUNNER_TEMP/release/worker/index.js" "$RUNNER_TEMP/deploy-bundle/index.js"
+          ./node_modules/.bin/wrangler deploy --config wrangler.plus-preview.jsonc --dry-run --outdir "$RUNNER_TEMP/provider-deploy-bundle"
+          cmp "$RUNNER_TEMP/release/voice-provider/plus-preview.js" "$RUNNER_TEMP/provider-deploy-bundle/plus-preview.js"
+          cmp "$RUNNER_TEMP/release/voice-provider/wrangler.plus-preview.jsonc" wrangler.plus-preview.jsonc
       - name: Record prior production versions
         run: |
           set -euo pipefail
@@ -144,6 +151,17 @@ jobs:
             echo '```'
             echo 'Roll back with `./node_modules/.bin/wrangler rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"`.'
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Deploy private voice provider before production
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+          test "$TESTED_SHA" = "$current"
+          # Retain this Worker's existing encrypted key; public test payments cannot render.
+          ./node_modules/.bin/wrangler deploy --config wrangler.plus-preview.jsonc --message "RISE private voice provider $TESTED_SHA" | tee "$RUNNER_TEMP/provider-deploy.log"
+          version=$(sed -n 's/^Current Version ID: *//p' "$RUNNER_TEMP/provider-deploy.log")
+          echo "Deployed private voice provider version: \`${version:-unknown}\` (RISE $TESTED_SHA)" >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy production
         env:
           GH_TOKEN: ${{ github.token }}
