@@ -15,6 +15,7 @@
 import { validateLivingFlameConfig } from './flame-recipe.js';
 import { validateNarrationCue } from './narration.js';
 import { READING_PACE } from './reading-limits.js';
+import { standInSound } from '../audio/sound-ids.js';
 
 export const EXPERIENCE_PROGRAM_SCHEMA = 'rise.experience-program.v1';
 
@@ -448,7 +449,7 @@ function validateVisualCue(value, path) {
   return out;
 }
 
-function validateAudioCue(value, path) {
+function validateAudioCue(value, path, { keepParkedSounds = false } = {}) {
   const source = record(value, path);
   if (!AUDIO_KINDS.has(source.kind)) {
     fail('PROGRAM_AUDIO_KIND', `Unknown audio cue kind: ${String(source.kind)}`, `${path}.kind`);
@@ -469,7 +470,8 @@ function validateAudioCue(value, path) {
       source.fadeMs, 0, EXPERIENCE_PROGRAM_LIMITS.maxFadeMs, `${path}.fadeMs`);
   }
   if (source.kind === 'soundscape') {
-    out.soundscapeId = exactId(source.soundscapeId, `${path}.soundscapeId`);
+    const soundscapeId = exactId(source.soundscapeId, `${path}.soundscapeId`);
+    out.soundscapeId = keepParkedSounds ? soundscapeId : standInSound(soundscapeId);
     if (source.gain !== undefined) out.gain = finiteRange(source.gain, 0, 1, `${path}.gain`);
   }
   if (source.kind === 'tone') {
@@ -593,7 +595,7 @@ function validateThreadCue(value, path) {
   };
 }
 
-function validateClip(value, path, kind, index) {
+function validateClip(value, path, kind, index, options) {
   const source = record(value, path);
   const clipFields = new Set(['id', 'anchor', 'syncGroup', 'metadata']);
   if (kind === 'movement') clipFields.add('data');
@@ -643,7 +645,7 @@ function validateClip(value, path, kind, index) {
   } else if (kind === 'visual') {
     clip.cue = validateVisualCue(source.cue, `${path}.cue`);
   } else if (kind === 'audio') {
-    clip.cue = validateAudioCue(source.cue, `${path}.cue`);
+    clip.cue = validateAudioCue(source.cue, `${path}.cue`, options);
   } else if (kind === 'swell') {
     clip.cue = validateSwellCue(source.cue, `${path}.cue`);
   } else if (kind === 'reading') {
@@ -851,7 +853,7 @@ function assertSameLaneExclusivity(track, path) {
   }
 }
 
-function validateTrack(value, path) {
+function validateTrack(value, path, options) {
   const source = record(value, path);
   if (!TRACK_KINDS.has(source.kind)) {
     fail('PROGRAM_TRACK_KIND', `Unknown track kind: ${String(source.kind)}`, `${path}.kind`);
@@ -866,7 +868,7 @@ function validateTrack(value, path) {
     fail('PROGRAM_TOO_MANY_CLIPS', `A ${source.kind} track accepts at most ${max} clips`, `${path}.clips`);
   }
   const clips = source.clips.map((clip, index) =>
-    validateClip(clip, `${path}.clips[${index}]`, source.kind, index));
+    validateClip(clip, `${path}.clips[${index}]`, source.kind, index, options));
   const clipIds = clips.map(clip => clip.id);
   if (new Set(clipIds).size !== clipIds.length) {
     fail('PROGRAM_DUPLICATE_CLIP', 'Clip ids must be unique within a track', `${path}.clips`);
@@ -875,7 +877,7 @@ function validateTrack(value, path) {
   if (source.kind === 'visual') {
     track.fallback = validateVisualCue(source.fallback, `${path}.fallback`);
   } else if (source.kind === 'audio') {
-    track.fallback = validateAudioCue(source.fallback, `${path}.fallback`);
+    track.fallback = validateAudioCue(source.fallback, `${path}.fallback`, options);
   }
   if (source.metadata !== undefined) {
     track.metadata = cloneMetadata(source.metadata, `${path}.metadata`);
@@ -890,8 +892,13 @@ function deepFreeze(value) {
   return value;
 }
 
-/** Validate and return a detached, deeply immutable canonical program. */
-export function validateExperienceProgram(value) {
+/**
+ * Validate and return a detached, deeply immutable canonical program. A
+ * soundscape cue naming a parked sound reads as its stand-in (PARKED_SOUNDS),
+ * unless `keepParkedSounds` asks for the program exactly as it was written,
+ * which only an identity check made before the sounds were parked needs.
+ */
+export function validateExperienceProgram(value, { keepParkedSounds = false } = {}) {
   const source = record(value, '$');
   onlyKeys(source, new Set(['schema', 'id', 'authority', 'editable', 'tracks', 'metadata']), '$');
   if (source.schema !== EXPERIENCE_PROGRAM_SCHEMA) {
@@ -916,7 +923,7 @@ export function validateExperienceProgram(value) {
     fail('PROGRAM_TOO_MANY_TRACKS',
       `A program accepts at most ${EXPERIENCE_PROGRAM_LIMITS.maxTracks} tracks`, '$.tracks');
   }
-  const tracks = source.tracks.map((track, index) => validateTrack(track, `$.tracks[${index}]`));
+  const tracks = source.tracks.map((track, index) => validateTrack(track, `$.tracks[${index}]`, { keepParkedSounds }));
   const trackIds = tracks.map(track => track.id);
   if (new Set(trackIds).size !== trackIds.length) {
     fail('PROGRAM_DUPLICATE_TRACK', 'Track ids must be unique', '$.tracks');

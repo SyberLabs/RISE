@@ -12,6 +12,7 @@ import { normalizeProceduralStyle } from './visual-style-definitions.js';
 import { isJevColorTheme } from './jev-color-themes.js';
 import { normalizeLivingFlameConfig } from './flame-recipe.js';
 import { flamePreset } from '../visuals/living-flame/flame-presets.js';
+import { standInSound } from '../audio/sound-ids.js';
 import { EXPERIENCE_PROGRAM_LIMITS, sceneCodeBytes } from './experience-program.js';
 import { standInSound } from '../audio/sound-ids.js';
 
