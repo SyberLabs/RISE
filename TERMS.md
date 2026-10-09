@@ -71,7 +71,7 @@ Anything you bring to RISE or make in it — text you paste, journals you write,
 compositions you build, media you attach — remains yours. We claim no ownership
 or licence in it.
 
-Your saved work is stored **in your browser, on your device**. Storage at the
+Your working copies are stored **in your browser, on your device**. An enabled SyberLabs account can also hold a text-work backup you explicitly choose to save; it can be downloaded or restored through Account. Backups do not automatically synchronize browser storage. Storage at the
 `.space` site stays at that origin and does not appear at `.io`. Chamber reading
 and pacing run locally. Optional AI features run on a connection you own:
 your own OpenRouter account, whose usage is billed to you by OpenRouter under
@@ -83,8 +83,8 @@ consequences follow:
 
 - **We cannot recover it.** If you clear your browser storage, use private
   browsing, switch device or browser, or your device fails, your work may be
-  gone and we have no copy. **Keep independent copies of your own source files.**
-- **We cannot moderate it.** We have no access to it, so we neither review nor
+  gone unless you separately saved an account backup of that text work. **Keep independent copies of your own source files.**
+- **We cannot moderate browser-local work.** We have no access to copies kept only on your device, so we neither review nor
   police what you keep locally.
 
 Browser storage is not a durable archive. Browsers may evict it under storage
@@ -213,7 +213,7 @@ extent caused by us.
 
 The Service is not directed at children and is not intended for anyone under
 13. We do not knowingly collect personal information from children; there is no
-account system; Stripe holds what a purchase requires, and we hold none of it. If you believe a
+age collection in SyberLabs account sign-in; Stripe holds what a Plus purchase requires. If you believe a
 child has provided us with personal information, write to
 syberlabs.software@gmail.com.
 

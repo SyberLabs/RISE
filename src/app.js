@@ -31,6 +31,7 @@ import { clampReadingWpm } from './core/reading-limits.js';
 import { createRouteManifest } from './app/route-manifest.js';
 import { preloadHome } from './app/home-preload.js';
 import { installTestBridge } from './app/test-bridge.js';
+import { mountAccountControl } from './app/account-control.js';
 
 // Not a room: the address opens today's poem in the reader (launchToday).
 const TODAY_PATH = '/today';
@@ -135,6 +136,7 @@ class App {
         // Initialize global error boundary first
         errorBoundary.init();
         this.setupErrorRecovery();
+        this._accountControl = mountAccountControl();
 
         // Arm the first-interaction listener. The engine itself arrives with
         // that interaction — the first press anywhere is the moment audio
@@ -1363,6 +1365,7 @@ class App {
      * Cleanup
      */
     destroy() {
+        this._accountControl?.destroy();
         this._audioInteractionController?.abort();
         this._utilityController?.abort();
         if (this.router) {

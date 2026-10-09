@@ -67,6 +67,9 @@
       align-items: center;
     }
 
+    .account-link { margin-left: auto; min-height: 44px; display: grid; place-items: center; padding: 0 14px; border: 1px solid #bda5ff; border-radius: 999px; color: #fff; background: linear-gradient(125deg, #342068, #172745, #4a175b); white-space: nowrap; }
+    @media (max-width: 480px) { .header-inner .lockup { font-size: 11px; letter-spacing: .08em; gap: 6px; } }
+
     .lockup {
       display: flex;
       align-items: center;
@@ -194,6 +197,7 @@
         <img src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
         <span aria-hidden="true">SYBERLABS<span class="divider"> / </span>RISE</span>
       </a>
+      <a class="account-link" href="https://syberlabs.io/auth/signin?next=%2Fadmin%2Freturn%3Fapp%3Drise" aria-label="Sign in to SyberLabs">Sign in</a>
     </div>
   </header>
   <main>

@@ -67,6 +67,9 @@
       align-items: center;
     }
 
+    .account-link { margin-left: auto; min-height: 44px; display: grid; place-items: center; padding: 0 14px; border: 1px solid #bda5ff; border-radius: 999px; color: #fff; background: linear-gradient(125deg, #342068, #172745, #4a175b); white-space: nowrap; }
+    @media (max-width: 480px) { .header-inner .lockup { font-size: 11px; letter-spacing: .08em; gap: 6px; } }
+
     .lockup {
       display: flex;
       align-items: center;
@@ -194,6 +197,7 @@
         <img src="/syberlabs-mark.webp" alt="" width="18" height="20" decoding="async">
         <span aria-hidden="true">SYBERLABS<span class="divider"> / </span>RISE</span>
       </a>
+      <a class="account-link" href="https://syberlabs.io/auth/signin?next=%2Fadmin%2Freturn%3Fapp%3Drise" aria-label="Sign in to SyberLabs">Sign in</a>
     </div>
   </header>
   <main>
@@ -220,8 +224,8 @@
     <hr>
     <h2>4. Your content stays yours</h2>
     <p>Anything you bring to RISE or make in it — text you paste, journals you write, compositions you build, media you attach — remains yours. We claim no ownership or licence in it.</p>
-    <p>Your saved work is stored <strong>in your browser, on your device</strong>. Storage at the <code>.space</code> site stays at that origin and does not appear at <code>.io</code>. Chamber reading and pacing run locally. Optional AI features run on a connection you own: your own OpenRouter account, whose usage is billed to you by OpenRouter under its terms, or Kev running on your own computer through local RISE. RISE does not pay for, resell, or proxy AI requests, except the Plus voice, which sends the text of a reading through RISE's server to ElevenLabs on our account. See the Privacy Policy for what each feature sends. These actions do not create a backup of your saved work. Two consequences follow:</p>
-    <ul><li><strong>We cannot recover it.</strong> If you clear your browser storage, use private browsing, switch device or browser, or your device fails, your work may be gone and we have no copy. <strong>Keep independent copies of your own source files.</strong></li><li><strong>We cannot moderate it.</strong> We have no access to it, so we neither review nor police what you keep locally.</li></ul>
+    <p>Your working copies are stored <strong>in your browser, on your device</strong>. An enabled SyberLabs account can also hold a text-work backup you explicitly choose to save; it can be downloaded or restored through Account. Backups do not automatically synchronize browser storage. Storage at the <code>.space</code> site stays at that origin and does not appear at <code>.io</code>. Chamber reading and pacing run locally. Optional AI features run on a connection you own: your own OpenRouter account, whose usage is billed to you by OpenRouter under its terms, or Kev running on your own computer through local RISE. RISE does not pay for, resell, or proxy AI requests, except the Plus voice, which sends the text of a reading through RISE's server to ElevenLabs on our account. See the Privacy Policy for what each feature sends. These actions do not create a backup of your saved work. Two consequences follow:</p>
+    <ul><li><strong>We cannot recover it.</strong> If you clear your browser storage, use private browsing, switch device or browser, or your device fails, your work may be gone unless you separately saved an account backup of that text work. <strong>Keep independent copies of your own source files.</strong></li><li><strong>We cannot moderate browser-local work.</strong> We have no access to copies kept only on your device, so we neither review nor police what you keep locally.</li></ul>
     <p>Browser storage is not a durable archive. Browsers may evict it under storage pressure. The Settings export is incomplete and there is no complete import path between <code>.space</code> and <code>.io</code>; do not treat it as a full backup or migration.</p>
     <hr>
     <h2>5. Acceptable use</h2>
@@ -262,7 +266,7 @@
     <p>You agree to indemnify us against claims, losses and reasonable costs arising from your breach of these terms or your misuse of the Service, save to the extent caused by us.</p>
     <hr>
     <h2>14. Children</h2>
-    <p>The Service is not directed at children and is not intended for anyone under 13. We do not knowingly collect personal information from children; there is no account system; Stripe holds what a purchase requires, and we hold none of it. If you believe a child has provided us with personal information, write to syberlabs.software@gmail.com.</p>
+    <p>The Service is not directed at children and is not intended for anyone under 13. We do not knowingly collect personal information from children; there is no age collection in SyberLabs account sign-in; Stripe holds what a Plus purchase requires. If you believe a child has provided us with personal information, write to syberlabs.software@gmail.com.</p>
     <p>Some readings are drawn from adult literary and philosophical works, and section 3 applies to everyone. If you are under the age of majority where you live, use the Service only with the involvement of a parent or guardian.</p>
     <hr>
     <h2>15. Changes</h2>
