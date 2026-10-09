@@ -167,6 +167,18 @@
       "ref": "e2e/live-mcp.spec.js",
       "note": "Branch phone-card-touch, local Chromium emulating an iPhone 14 (390 px, DPR 3, touch), one worker, whole file: 55 passed. The five phone tests failed first on main with the audit values: host scroll 200 to 305 under a drag of selected words (now 200, words move 120 px), a scrim under no words (now none, height kept), caption 28 px (now 21.06), 15 to 17 px band type at 360 tall (now 24.7), the sheet off the top at 300 tall (now inside, scrolling). Fake host, not a product host; not tried on a phone.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Phone card pass 2, local Chromium, one worker, whole file: 52 passed. New: at 390 wide and 481, 360 and 300 tall the Sky caption is whole in the card, in its lower half and above the beat line (before: bottom 196.5 at 481, the field centre); at 390x481 the scene canvas is 393 px tall and drawn at 393 (before: 481), and a tall figure ends at or above 393. The #592 bar test still holds: 0 scene resizes, canvas one size (1280x552), no dark frame.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/read/scene-layer.test.js",
+      "note": "The scene layer reports and observes its own canvas box, not the field: 2 tests pass.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -203,12 +215,16 @@
       "summary": "iOS: speech unlocked inside the Play tap; Play re-arms a stood-down voice; About this reading panel"
     },
     {
+      "date": "2026-10-09T11:34:20.149Z",
+      "summary": "phone card pass 2: captions anchored above the bar; the picture region ends at the bar's room"
+    },
+    {
       "date": "2026-10-09T11:50:27.783Z",
       "summary": "phone card pass 1: touch drag, empty scrim, type, hit areas, callout, sheet, blur, sign-in moved to Settings"
     }
   ],
-  "updatedAt": "2026-10-09T11:50:27.783Z",
-  "revision": 9,
+  "updatedAt": "2026-10-09T12:07:16.293Z",
+  "revision": 10,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

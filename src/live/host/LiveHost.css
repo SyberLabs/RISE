@@ -149,14 +149,18 @@
 }
 
 /* The Chamber's field inside the host's frame (LiveHost marks the root): the
-   centred words clear the 44 px objects along the bottom, and above the phone
-   band the picture keeps 24 px of edge, not the Chamber's 48. */
+   centred words clear the bar's room along the bottom, and above the phone
+   band the picture keeps 24 px of edge, not the Chamber's 48. The room is the
+   44 px objects, and with the full transport the beat line over them too. */
+html[data-embed="mcp"] .chamber-field { --embed-bar-room: 64px; }
+html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { --embed-bar-room: 88px; }
+
 @media (min-width: 641px) {
-  html[data-embed="mcp"] .chamber-field { padding: 24px 24px 64px; }
+  html[data-embed="mcp"] .chamber-field { padding: 24px 24px var(--embed-bar-room); }
 }
 
 @media (max-width: 640px) {
-  html[data-embed="mcp"] .chamber-field { padding-bottom: 64px; }
+  html[data-embed="mcp"] .chamber-field { padding-bottom: var(--embed-bar-room); }
 
   /* The phone band keeps its 80 % scrim and drops the blur: the scrim already hides what is behind it, and a blur
      over a picture that repaints every frame is filtered again every frame. Not yet measured on a device. */
@@ -172,8 +176,15 @@
    in the stage's hidden list for whoever needs its text; the Reader, outside a card, keeps its selection. */
 html[data-embed="mcp"] #atom-display { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 
-/* The full transport adds the beat line over the objects: the words clear it too. */
-html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { padding-bottom: 88px; }
+/* The picture ends where the bar's room begins: a generated scene is drawn to this box (scene-layer.js
+   measures its canvas) and a figure is contained in it. The room is fixed per transport and the bar's
+   hiding moves only the words, so this box never changes while a reading plays. A height, not a `bottom`:
+   both layers are replaced elements, whose auto height is their own. */
+html[data-embed="mcp"] .chamber-scene,
+html[data-embed="mcp"] .chamber-figure { height: calc(100% - var(--embed-bar-room)); }
+
+/* A caption sits just above the bar's room, not at 9 % of the field (the Reader's rule, Chamber.css). */
+html[data-embed="mcp"] .atom-display[data-place="caption"] { bottom: calc(var(--embed-bar-room) + 8px); }
 
 /* While the bar is hidden (stage-controls.js) the words move down into its room, all but the faint beat line's
    (half the padding they no longer need: 64 to 24, 88 to 40), as the bar fades, not at once. They move by the

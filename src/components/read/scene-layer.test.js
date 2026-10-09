@@ -13,16 +13,24 @@ function field(width = 640, height = 360) {
   return node;
 }
 
+/** The canvas's own box: in a host's card it ends where the bar's room begins, short of the field's bottom. */
+function canvasBox(width, height) {
+  vi.spyOn(HTMLCanvasElement.prototype, 'clientWidth', 'get').mockReturnValue(width);
+  vi.spyOn(HTMLCanvasElement.prototype, 'clientHeight', 'get').mockReturnValue(height);
+}
+
 const behind = (host, node) => host.prepend(node);
 
 afterEach(() => {
   document.body.innerHTML = '';
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 describe('the scene layer', () => {
-  it('puts a canvas behind the reading and reports the field’s size', () => {
-    const host = field();
+  it('puts a canvas behind the reading and reports the canvas’s own size, not the field’s', () => {
+    const host = field(640, 448);
+    canvasBox(640, 360);
     const sizes = [];
     const layer = mountSceneLayer({ field: host, insertBehindReading: behind, onResize: size => sizes.push(size) });
     expect(layer.canvas.tagName).toBe('CANVAS');
@@ -33,7 +41,7 @@ describe('the scene layer', () => {
     expect(sizes).toEqual([{ width: 640, height: 360 }]);
   });
 
-  it('follows the field when it can observe it, and lets go when destroyed', () => {
+  it('follows its canvas when it can observe it, and lets go when destroyed', () => {
     const observed = [];
     let callback = null;
     vi.stubGlobal('ResizeObserver', class {
@@ -41,10 +49,11 @@ describe('the scene layer', () => {
       observe(node) { observed.push(node); }
       disconnect() { observed.length = 0; }
     });
-    const host = field();
+    const host = field(640, 448);
+    canvasBox(640, 360);
     const sizes = [];
     const layer = mountSceneLayer({ field: host, insertBehindReading: behind, onResize: size => sizes.push(size) });
-    expect(observed).toEqual([host]);
+    expect(observed).toEqual([layer.canvas]);
     callback();
     expect(sizes).toEqual([{ width: 640, height: 360 }]);
     layer.destroy();
