@@ -1,5 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
-import { PLUS_DEFAULT_VOICE, PLUS_PRICE, fetchPlusPaymentLink, fetchPlusVoices, forgetPlus, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
+import { PLUS_DEFAULT_VOICE, PLUS_PRICE, fetchPlusPaymentLink, fetchPlusStatus, fetchPlusVoices, forgetPlus, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
@@ -179,7 +179,7 @@ export class Settings {
               </div>
             </div>
 
-            ${this.inSession ? '' : this.plusVoiceRow()}
+            ${this.inSession ? '' : `<div data-plus-region>${this.plusVoiceRow()}</div>`}
           </section>
 
           <section class="settings-section" aria-labelledby="safety-heading">
@@ -271,7 +271,9 @@ export class Settings {
      */
     plusVoiceRow() {
         const plus = plusState();
-        if (!plus.claimed || plus.lapsed) {
+        const admin = this.plusStatus?.available && this.plusStatus.admin;
+        const subscriber = this.plusStatus?.available && this.plusStatus.subscriber;
+        if (!admin && !subscriber && (!plus.claimed || plus.lapsed)) {
             return `
             <div class="settings-row settings-action">
               <div class="settings-label-group">
@@ -280,16 +282,17 @@ export class Settings {
                 <p class="settings-fail" ${plus.lapsed ? '' : 'hidden'}>Plus voice has lapsed.</p>
               </div>
               <a class="btn-secondary" data-plus-subscribe rel="noopener" hidden>Subscribe</a>
+              ${this.plusStatus?.adminLogin ? '<a class="btn-secondary" data-admin-login href="/api/plus/admin/login">Admin sign in</a>' : ''}
             </div>`;
         }
-        const allowance = plusAllowance();
+        const allowance = this.plusStatus?.allowance ?? plusAllowance();
         const used = allowance
             ? ` · ${allowance.used.toLocaleString('en')} of ${allowance.limit.toLocaleString('en')} characters used this period`
             : '';
         return `
             <div class="settings-row">
               <div class="settings-label-group">
-                <span class="settings-label" data-plus-status>Plus is active${used}</span>
+                <span class="settings-label" data-plus-status>${admin ? 'Admin voice is active' : 'Plus is active'}${used}</span>
                 <p class="settings-hint">Plus voices your own readings: files you add in Library → Your files, and Composer Currents.</p>
               </div>
             </div>
@@ -305,13 +308,13 @@ export class Settings {
                 <option value="${plusVoiceSlug(this.settings.plusVoiceSlug)}" selected>${plusVoiceSlug(this.settings.plusVoiceSlug) === PLUS_DEFAULT_VOICE.slug ? PLUS_DEFAULT_VOICE.label : plusVoiceSlug(this.settings.plusVoiceSlug)}</option>
               </select>
             </div>
-            <div class="settings-row settings-action">
+            ${admin ? '' : `<div class="settings-row settings-action">
               <div class="settings-label-group">
                 <span class="settings-label">Forget Plus on this browser</span>
                 <p class="settings-hint">Clears the receipt this browser holds. The subscription itself stays with Stripe.</p>
               </div>
               <button type="button" class="btn-secondary" data-action="forget-plus">Forget</button>
-            </div>`;
+            </div>`}`;
     }
 
     /** The reading's own controls, at the size the reading can spare. */
@@ -504,6 +507,11 @@ export class Settings {
             this.clearHistory();
         });
 
+        this.attachPlusEvents();
+        if (!this.inSession && !this.plusStatusLoaded) this.plusStatusLoaded = this.fillPlusStatus();
+    }
+
+    attachPlusEvents() {
         this.container.querySelector('[data-action="forget-plus"]')?.addEventListener('click', () => {
             void this.forgetPlus();
         });
@@ -520,6 +528,23 @@ export class Settings {
             this.plusVoicesLoaded = this.fillPlusVoices(voicePicker);
         }
 
+    }
+
+    async fillPlusStatus() {
+        const generation = this.plusStatusGeneration = (this.plusStatusGeneration ?? 0) + 1;
+        this.plusStatusInvalidated = false;
+        const region = this.container.querySelector('[data-plus-region]');
+        const status = await fetchPlusStatus();
+        if (!region?.isConnected || this.destroyed || generation !== this.plusStatusGeneration) return;
+        if (!this.plusStatus && !status.adminLogin && (!status.available || (!status.admin && !status.subscriber))) return;
+        this.plusStatus = status;
+        region.innerHTML = this.plusVoiceRow();
+        const toggle = region.querySelector('[data-setting="plusVoice"]');
+        toggle?.addEventListener('change', () => {
+            this.settings.plusVoice = toggle.checked;
+            this.onChange('plusVoice', toggle.checked);
+        });
+        this.attachPlusEvents();
     }
 
     /**
@@ -651,6 +676,8 @@ export class Settings {
     /** The panel is drawn again so the row shows the way to buy Plus. */
     async forgetPlus() {
         await forgetPlus();
+        this.plusStatus = null;
+        this.plusStatusLoaded = null;
         this.showToast('Plus voice forgotten on this browser.');
         this.emotions?.destroy();
         this.emotions = null;
@@ -665,6 +692,7 @@ export class Settings {
     activate() {
         if (this._active) return;
         this._active = true;
+        if (!this.inSession && (this.plusStatus?.admin || this.plusStatusInvalidated)) this.plusStatusLoaded = this.fillPlusStatus();
         document.addEventListener('keydown', this.boundKeyboardHandler);
         if (this.container.querySelector('[data-affect-toggle]')?.checked) void this.showAffect(true);
         this.scrollToAffect();
@@ -673,6 +701,8 @@ export class Settings {
     deactivate() {
         if (!this._active) return;
         this._active = false;
+        this.plusStatusGeneration = (this.plusStatusGeneration ?? 0) + 1;
+        this.plusStatusInvalidated = true;
         document.removeEventListener('keydown', this.boundKeyboardHandler);
         this.emotions?.destroy();
         this.emotions = null;
@@ -680,6 +710,7 @@ export class Settings {
     }
 
     destroy() {
+        this.destroyed = true;
         this.deactivate();
         this.emotions?.destroy();
         this.emotions = null;

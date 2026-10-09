@@ -153,3 +153,33 @@ export async function forgetPlus({ fetchImpl = globalThis.fetch?.bind(globalThis
   }
   store(null);
 }
+
+/** Server-verified entitlement; administrator authority stays in memory only. */
+export async function fetchPlusStatus({ fetchImpl = globalThis.fetch?.bind(globalThis), timeoutMs = 1500 } = {}) {
+  const unavailable = { admin: false, subscriber: false, available: false, adminLogin: false, allowance: null };
+  const controller = new AbortController();
+  let timer;
+  const read = async () => {
+    try {
+      const response = await fetchImpl('/api/plus/status', { signal: controller.signal });
+      if (!response.ok) return unavailable;
+      const body = await response.json();
+      const allowance = body?.allowance;
+      return {
+        admin: body?.admin === true, subscriber: body?.subscriber === true,
+        available: body?.available === true, adminLogin: body?.adminLogin === true,
+        allowance: Number.isFinite(allowance?.used) && Number.isFinite(allowance?.limit)
+          ? { used: allowance.used, limit: allowance.limit, periodEnd: allowance.periodEnd } : null
+      };
+    } catch {
+      return unavailable;
+    }
+  };
+  try {
+    return await Promise.race([read(), new Promise(resolve => {
+      timer = setTimeout(() => { controller.abort(); resolve(unavailable); }, timeoutMs);
+    })]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
