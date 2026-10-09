@@ -140,3 +140,26 @@ it('keeps loading and unavailable backups distinct from an empty library and ann
   dialog.querySelector('[data-refresh]').click();
   await vi.waitFor(() => expect(dialog.querySelector('[data-backup-summary]').textContent).toBe('No account backups yet.'));
 });
+
+it.each([[409, 'account_changed'], [401, 'unauthorized']])('keeps committed success and specific recovery after a %s list refusal', async (errorStatus, errorCode) => {
+  let listReads = 0;
+  vi.stubGlobal('fetch', async (url, options) => {
+    if (url.endsWith('/account')) return ok({ user: { id: 'u', label: 'Reader' } });
+    if (options.method === 'POST') return ok({ save: { id: 's1' } });
+    if (++listReads === 2) return { ok: false, status: errorStatus, json: async () => ({ version: 1, error: errorCode }) };
+    return ok({ saves: [] });
+  });
+  const dialog = openAccountPanel({ user: { id: 'u', label: 'Reader' }, store });
+  await vi.waitFor(() => expect(dialog.querySelector('[data-save]').disabled).toBe(false));
+  dialog.querySelector('[data-save]').click();
+  await vi.waitFor(() => expect(dialog.querySelector('[data-status]').textContent).toContain('Saved “A poem” to your account. Backups could not refresh.'));
+  expect(dialog.querySelector('[data-status]').textContent).not.toContain('Use Refresh');
+  if (errorStatus === 409) {
+    expect(dialog.querySelector('[data-backup-summary]').textContent).toContain('Close this panel and reopen');
+    expect(dialog.querySelector('[data-refresh]').disabled).toBe(true);
+  } else {
+    expect(dialog.querySelector('[data-backup-summary]').textContent).toContain('Sign in');
+    expect(dialog.querySelector('[data-sign-in]').hidden).toBe(false);
+  }
+  expect(dialog.querySelector('[data-restore]').disabled).toBe(true);
+});

@@ -28,6 +28,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
   let works = [];
   let saves = [];
   let remoteState = 'loading';
+  let remoteFailure = '';
   let attempt = null;
   let savedFingerprint = null;
   let busy = false;
@@ -58,7 +59,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
       ? ` · ${save.bytes < 1024 ? `${save.bytes} bytes` : `${(save.bytes / 1024).toLocaleString(undefined, { maximumFractionDigits: 1 })} KB`}` : '';
     dialog.querySelector('[data-backup-summary]').textContent = remoteState === 'loading'
       ? 'Loading account backups…'
-      : remoteState === 'unavailable' ? 'Account backups are unavailable. Use Refresh lists to try again.'
+      : remoteState === 'unavailable' ? (remoteFailure || 'Account backups are unavailable. Use Refresh lists to try again.')
         : save ? `${save.name} · Saved ${backupDate(save)}${size}` : 'No account backups yet.';
   };
   const buttons = () => {
@@ -91,8 +92,10 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     fill(localSelect, works, row => row.title, 'No imported text works yet');
     details();
   };
+  const canRefreshList = error => !invalidated && isCurrentAccount() && (error.status === 0 || error.status >= 500);
   const loadRemote = async (preferred = remoteSelect.value) => {
     remoteState = 'loading';
+    remoteFailure = '';
     replaceInput.checked = false;
     details();
     try {
@@ -105,6 +108,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
       details();
     } catch (error) {
       remoteState = 'unavailable';
+      if (!canRefreshList(error)) remoteFailure = error.message;
       if (!closed) details();
       throw error;
     }
@@ -145,7 +149,10 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     const savedMessage = `Saved “${record.title}” to your account.`;
     status.textContent = savedMessage;
     try { await loadRemote(result.save?.id); }
-    catch (error) { if (!closed) message(error, `${savedMessage} Backups could not refresh. Use Refresh lists to try again. `); }
+    catch (error) {
+      const recovery = canRefreshList(error) ? ' Use Refresh lists to try again. ' : ' ';
+      if (!closed) message(error, `${savedMessage} Backups could not refresh.${recovery}`);
+    }
   }, 'Saving your chosen text work…'));
   restoreButton.addEventListener('click', () => run(async () => {
     const saveId = remoteSelect.value;
