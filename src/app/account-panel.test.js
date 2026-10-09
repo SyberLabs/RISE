@@ -83,7 +83,14 @@ it('starts a new explicit save after an authoritative changed-account refusal', 
   button.click();
   await vi.waitFor(() => expect(dialog.querySelector('[data-status]').textContent).toContain('account changed'));
   button.click();
-  await vi.waitFor(() => expect(dialog.querySelector('[data-status]').textContent).toContain('Saved “A poem”'));
+  await vi.waitFor(() => expect(dialog.querySelector('[data-status]').textContent).toContain('no longer current'));
+  expect(attempts).toHaveLength(1);
+  dialog.close();
+  const refreshed = openAccountPanel({ user: { id: 'u', label: 'Reader' }, store });
+  const freshButton = refreshed.querySelector('[data-save]');
+  await vi.waitFor(() => expect(freshButton.disabled).toBe(false));
+  freshButton.click();
+  await vi.waitFor(() => expect(refreshed.querySelector('[data-status]').textContent).toContain('Saved “A poem”'));
   expect(attempts).toHaveLength(2);
   expect(attempts[0].id).not.toBe(attempts[1].id);
   expect(attempts.map(attempt => attempt.user)).toEqual(['u', 'u']);

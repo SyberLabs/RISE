@@ -8,6 +8,16 @@
   // or run Kev locally; the optional live integrations remain switched off.
   "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "true", "MCP_SELF_CONTAINED": "true", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_PAYMENT_LINK": "https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00",
     "PLUS_DAILY_CHAR_CAP": "500000",
+    // Cost ceilings are based on paid USD invoice revenue, not the advertised price.
+    "PLUS_VENDOR_MICRO_USD_PER_CHAR": "60",
+    "PLUS_FEE_BPS": "500",
+    "PLUS_FEE_FIXED_USD_CENTS": "50",
+    "PLUS_RESERVE_BPS": "5000",
+    // All administrators share this monthly budget and daily character cap.
+    "PLUS_ADMIN_MONTHLY_USD_CENTS": "500",
+    "PLUS_ADMIN_DAILY_CHAR_CAP": "25000",
+    // Dedicated Access audience remains unset until its admin-only application is configured.
+    "PLUS_ADMIN_ACCESS_ISSUER": "https://sweet-base-63a2.cloudflareaccess.com",
     // Production takes real money: Plus answers 503 and serves no payment link unless the Stripe key and
     // PLUS_PAYMENT_LINK are live and STRIPE_WEBHOOK_SECRET is set (worker/plus.mjs). Never set in the preview.
     "PLUS_REQUIRE_LIVE": "true",
@@ -34,7 +44,7 @@
   // ElevenLabs voice; ELEVENLABS_API_KEY for the voice route. PLUS_COOKIE_SECRET here must differ
   // from rise-plus-preview's: a cookie signed by the preview must never verify on production.
   // PLUS_DAILY_CHAR_CAP (vars) is the characters every subscriber together may voice per UTC day
-  // (500,000 is about $20 at Flash pricing); unset or not a positive number, the voice answers 503.
+  // (500,000 is budgeted at $30 using the conservative cost rate); unset or not a positive number, the voice answers 503.
   // STRIPE_WEBHOOK_SECRET (secret) is the signing secret of the Stripe webhook endpoint at
   // /api/plus/stripe-webhook (events and setup: worker/plus.mjs); unset, that route answers 503.
   // PLUS_PAYMENT_LINK (vars) is the Stripe Payment Link the Subscribe button opens: still the

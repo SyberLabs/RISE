@@ -1,0 +1,67 @@
+{
+  "id": "SPK-005",
+  "title": "Admin and paid ElevenLabs voice with invoice-derived spend caps",
+  "lane": "shared",
+  "milestone": "Speech service",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "codex-rise-voice (Seth)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A dedicated Cloudflare Access application authenticates human administrators; the Worker verifies issuer, audience, signature, token type and lifetime, while public reading remains available without sign-in.",
+    "Verified administrators can voice their own material through the Worker without a Plus purchase, sharing a separate daily character ceiling and explicitly configured monthly dollar budget no higher than $5, under the global daily cap; no browser role flag or unverified token grants authority, and no administrator subject/email is persisted.",
+    "Subscribers have an invoice-derived voice-cost ceiling of at most half the policy net collected amount, bounded by 105,000 characters per paid period and the subscriber/global daily caps; zero-paid, replayed, refunded, unrelated and outdated invoices do not mint extra budget.",
+    "Atomic reservations protect concurrent requests; historical costs retain their reservation rate, billed or uncertain vendor outcomes remain charged, and refusal leaves reading usable without the voice.",
+    "Privacy, terms and operations disclose variable allowance, admin identity processing and server financial/usage records; RISE stores no reading text or audio server-side and the provider key never reaches the client.",
+    "Required CI passes for each implementation PR, exact production release/configuration is verified, and a real administrator and paid subscriber exercise the sign-in, voicing, spend-boundary and browser-cache paths. Automated or branch evidence alone is not acceptance."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/PLUS-VOICE-OPERATIONS.md",
+      "note": "Rollout contract and conservative spend example; configuration and real production sign-in/voicing have not yet been witnessed.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/566",
+      "note": "Backend invoice-derived cost reservations, event revision fencing and verified shared administrator budget; branch implementation awaiting merge and production proof.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/563",
+      "note": "Client server-authorized admin voice and sign-in link, with bounded fail-closed status lookup; required CI passed for reviewed head 44636423, production sign-in not yet witnessed.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/smoke.spec.js",
+      "note": "Documentation branch: local browser gate 46 passed, 3 existing skips; 72 tasks validated and generated legal sources matched. This does not exercise production Access configuration or payment credentials.",
+      "date": "2026-10-09"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T02:40:40.541Z",
+      "summary": "Opened from the user request for production admin and paid ElevenLabs voice with subscriber spend caps; implementation and deployment evidence still to be linked."
+    },
+    {
+      "date": "2026-10-09T02:40:41.541Z",
+      "summary": "Claimed by codex-rise-voice (Seth); backend, client and operational documentation are in progress, not production acceptance."
+    },
+    {
+      "date": "2026-10-09T02:49:28.191Z",
+      "summary": "Linked backend #566 and client #563 implementation evidence; production verification and human acceptance remain pending."
+    },
+    {
+      "date": "2026-10-09T02:52:09.351Z",
+      "summary": "Local browser gate passed 46 tests with 3 existing skips, legal-source and 72-task checks passed. Production acceptance remains pending."
+    }
+  ],
+  "updatedAt": "2026-10-09T02:52:09.351Z",
+  "revision": 4,
+  "summary": "Add verified administrator access and a conservative invoice-derived subscriber voice budget; no claim of production success or acceptance yet.",
+  "blocker": "Access organization/application configuration, production credentials and spend-policy values, merged implementation PRs and real sign-in/voice evidence remain to be verified."
+}

@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 8 October 2026**
+**Last updated: 9 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -22,7 +22,7 @@ If you press **Speak**, your browser may use its speech service to turn your
 voice into editable text. RISE does not receive the microphone audio.
 Inside ChatGPT or Claude, RISE receives only the reading your assistant writes
 for it, plays it, and keeps nothing.
-If you subscribe to RISE Plus and its voice is on, the text of readings of your
+If you subscribe to RISE Plus or sign in as an authorized administrator and its voice is on, the text of readings of your
 own material is sent through RISE's server to ElevenLabs to be voiced, and the
 audio is kept only in your browser; see section 4.
 
@@ -36,7 +36,7 @@ Import and playback do not call the writer.
 
 The Plus service sets one cookie when you buy Plus: a signed token that carries your
 Stripe subscription number, with no name or email in it. We do not use
-analytics. RISE does not automatically upload your readings or browser history. Optional SyberLabs sign-in uses a separate host-only session cookie at `syberlabs.io` and associates chosen backups with your account. If you buy Plus, Stripe processes the payment and knows the email you
+analytics. RISE does not automatically upload your readings or browser history. Optional SyberLabs sign-in uses a separate host-only session cookie at `syberlabs.io` and associates chosen backups with your account. Administrators sign in through Cloudflare Access, which processes their identity and sets its authorization cookie (section 4). If you buy Plus, Stripe processes the payment and knows the email you
 paid with; we do not keep it. We do not sell personal information. Network
 processing occurs for hosting, external resources you request, the optional
 decision actions, and the Plus voice described below.
@@ -69,7 +69,7 @@ over generative visuals and imagery held by museums and archives. It is
 experimental software, and reading in it is free. RISE Plus, an optional
 subscription, adds a spoken voice (section 4).
 
-Reading does not require an account. Enabled SyberLabs accounts can sign in with Google or GitHub and explicitly back up text works. Plus remains a separate paid Stripe subscription and cookie; account sign-in does not purchase Plus.
+Reading does not require an account. Enabled SyberLabs accounts can sign in with Google or GitHub and explicitly back up text works. Plus remains a separate paid Stripe subscription and cookie; account sign-in does not purchase Plus. Administrator voice access requires a separate Cloudflare Access sign-in.
 
 ---
 
@@ -191,6 +191,8 @@ Google or GitHub sign-in at `syberlabs.io` identifies an enabled SyberLabs accou
 
 RISE Plus is an optional subscription, $8.99 a month, that voices readings of
 your own material when the Plus voice is on. Plus is separate from optional SyberLabs account sign-in.
+Authorized administrators may use the same voice after Cloudflare Access
+sign-in, with separate shared daily and monthly allowances.
 
 - **Payment.** Stripe processes the payment and holds the details you give it,
   under its own policy (<https://stripe.com/privacy>). RISE's server then sets
@@ -211,8 +213,21 @@ your own material when the Plus voice is on. Plus is separate from optional Sybe
   Stripe last said of the subscription (whether it is active, its customer
   number and its billing period), for one minute of use; how many voicing
   requests it made this minute; whether it was ended, refunded or disputed;
-  and the ids of the last 50 Stripe events about it. The allowance is 105,000 characters per billing period, at most 25,000 of them a day. If the
-  subscription lapses, reading continues without the voice.
+  and the ids of the last 50 Stripe events about it. The server also keeps the
+  paid-invoice budget, its cost-policy snapshot and reserved or charged voice costs used to enforce the
+  spend ceiling. The allowance is up to 105,000 characters per paid billing
+  period, at most 25,000 of them a day, and may be lower according to the
+  invoice-derived voice budget. Taxes, discounts and fee or fixed-cost reserves
+  can reduce that budget. If the subscription lapses or a limit is reached,
+  reading continues without the voice.
+- **Administrator sign-in.** Cloudflare Access authenticates approved
+  administrators and provides a signed authorization token, including their
+  email and subject identifier, under [Cloudflare's policy](https://www.cloudflare.com/privacypolicy/).
+  The Worker verifies the token; it does not persist the email, subject or token.
+  A separate Durable Object counts the administrators' shared daily voice
+  usage and monthly voice spend, enforcing their configured ceilings.
+  No reading text or audio is stored in that meter. This identity processing
+  is separate from a reader's Stripe subscription.
 - **What ElevenLabs keeps.** ElevenLabs processes the text and returns the
   audio under its own policy (<https://elevenlabs.io/privacy-policy>). By
   default it retains the text and audio of each request in the account's
@@ -350,10 +365,11 @@ transfer no longer happens.
 
 We state these plainly because the absence is the point.
 
-- **One cookie, for Plus only.** The Worker sets `__Secure-rise_plus` when you claim a
+- **Subscriber cookie.** The Worker sets `__Secure-rise_plus` when you claim a
   purchase; it is HttpOnly, read only by `/api/plus/*`, and never by page
-  script. There is no `document.cookie` call anywhere in the application.
-- **The Plus voice.** With RISE Plus and its voice on, the text of readings
+  script. Cloudflare Access sets a separate authorization cookie for
+  administrator sign-in. Neither grants authority through a browser role flag.
+- **The Plus voice.** With a Plus subscription or verified administrator access and its voice on, the text of readings
   of your own material goes through RISE's server to ElevenLabs on our account,
   and the audio is kept only in your browser. RISE's server keeps no copy of
   either (section 4).
@@ -361,8 +377,9 @@ We state these plainly because the absence is the point.
   Sentry, no product analytics of any kind. No third-party script of any kind
   runs on the page.
 - **No advertising, no pixels, no fingerprinting.**
-- **No cross-site or cross-visit tracking.** Nothing stored on your device is
-  an identifier for you; it is your own work and your own settings.
+- **No advertising or reading-history tracking across sites or visits.**
+  Subscriber and administrator authorization cookies identify their respective
+  entitlements; saved reading work and settings remain on your device.
 - **No sale or sharing of personal information**, as those terms are used in
   the California Consumer Privacy Act. Optional Scriptorium routing is for the
   action you choose, not advertising. An AI request goes to the decision
@@ -424,7 +441,8 @@ section 4 describes.
 ## 9. California residents
 
 RISE is published from California. Our server processing includes hosting request
-data, explicit SyberLabs account backups and, for Plus, the voicing and the per-subscription character count, as
+data, explicit SyberLabs account backups and, for Plus, voicing, subscription budget/usage records and
+administrator identity verification and shared daily/monthly meters, as
 described in section 4; AI requests go to the connection you chose.
 
 **We do not sell personal information**, as that term is defined in the
@@ -473,8 +491,13 @@ API request data under their own policies. OpenRouter processes the requests
 you send it under its own policy; see section 4. No provider-side retention
 guarantee is made here.
 
-For Plus, RISE's server keeps only each subscription's character count for the
-current billing period, and no text or audio. ElevenLabs retains voiced text
+For Plus, RISE's server keeps the current subscription period's character and
+financial budget/usage records, its current daily count and the standing,
+rate-limit and event records described in section 4. A newer billing period
+replaces the old period's meter; a newer day replaces the daily meter,
+including the separate shared administrator meter; a newer month replaces
+the administrator monthly spend meter. RISE stores no reading text or
+audio in these records. ElevenLabs retains voiced text
 and audio, and Stripe retains payment records, under their own policies; see
 section 4.
 

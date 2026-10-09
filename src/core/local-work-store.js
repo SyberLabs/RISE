@@ -99,7 +99,7 @@ export class LocalWorkStore {
    * in it. It also means a rename mints a NEW id and leaves the old work
    * standing — which is correct, because a score may already point at it.
    */
-  async save(record, { replaceExisting = true } = {}) {
+  async save(record, { replaceExisting = true, beforeWrite = () => {} } = {}) {
     validateLocalWork(record);
     await this.init();
     // The read, conflict check, quota check and put share one write lock.
@@ -134,6 +134,7 @@ export class LocalWorkStore {
           if (characters > MAX_STORE_CHARACTERS) {
             throw new LocalWorkError('Your own works fill the space available. Remove one to add another.', 'LOCAL_WORK_SHELF_FULL');
           }
+          beforeWrite();
           store.put({ ...record, savedAt: new Date().toISOString() });
         } catch (error) {
           failure = error;

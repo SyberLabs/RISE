@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { Session } from './models.js';
 import {
   audioAssignmentsFromProgram,
   isWorkshopProject,
@@ -152,6 +153,30 @@ describe('Workshop Project v1', () => {
     expect(visualAssignmentsFromProgram(project.experienceProgram)).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: 'visual-1', assetId: 'moon' })])
     );
+  });
+
+  it('opens a saved project whose passage cue is a parked Feelings soundscape on its stand-in, and lowers it so', () => {
+    const editor = legacyBlueprint({
+      audioScoreAssignments: [{
+        id: 'audio-1', sourceId: 'source-1', assetId: 'soundscape:faded-signal',
+        lane: 'audio', fromCharacter: 12, toCharacter: 20,
+        quoteStart: 'reflects', quoteEnd: 'reflects'
+      }]
+    });
+    const saved = structuredClone(workshopEditorDataToProject(editor, { id: editor.id }));
+    const cueOf = project => project.experienceProgram.tracks.find(track => track.kind === 'audio').clips[0].cue;
+    cueOf(saved).soundscapeId = 'chase';
+
+    const project = validateWorkshopProject(saved);
+    expect(cueOf(project)).toEqual({ kind: 'soundscape', soundscapeId: 'night-drive', fadeMs: 700 });
+    expect(audioAssignmentsFromProgram(project.experienceProgram)[0].assetId).toBe('soundscape:night-drive');
+    const session = new Session(workshopProjectToSessionConfig(project));
+    expect(session.audioProgram.segments.map(segment => segment.cue.soundscapeId).filter(Boolean)).toContain('night-drive');
+    expect(JSON.stringify(session.audioProgram)).not.toContain('chase');
+
+    // An offered id is left as it is.
+    cueOf(saved).soundscapeId = 'faded-signal';
+    expect(cueOf(validateWorkshopProject(saved)).soundscapeId).toBe('faded-signal');
   });
 
   it('round-trips passage audio independently from the project atmosphere default', () => {

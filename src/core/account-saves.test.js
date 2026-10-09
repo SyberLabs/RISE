@@ -97,6 +97,39 @@ describe('restore crosses the existing work validator', () => {
   });
 });
 
+it('refuses stale restoration after detail or while the IndexedDB shelf is loading', async () => {
+  const original = makeWork('The browser draft stays here.');
+  const remote = makeWork('A different account draft.');
+  for (const boundary of ['detail', 'store']) {
+    await store.save(original);
+    let current = true;
+    const beforeWrite = () => { if (!current) throw new Error('stale account panel'); };
+    let resume;
+    let waiting;
+    const reached = new Promise(resolve => { waiting = resolve; });
+    const originalInit = store.init.bind(store);
+    if (boundary === 'store') vi.spyOn(store, 'init').mockImplementationOnce(async () => {
+      waiting();
+      await new Promise(resolve => { resume = resolve; });
+      return originalInit();
+    });
+    const restore = restoreAccountWork('x', store, { replace: true, expectedUserId: 'u1', beforeWrite, fetcher: async () => {
+      if (boundary === 'detail') {
+        waiting();
+        await new Promise(resolve => { resume = resolve; });
+      }
+      return backup(remote);
+    } });
+    const rejected = expect(restore).rejects.toThrow('stale account panel');
+    await reached;
+    current = false;
+    resume();
+    await rejected;
+    vi.restoreAllMocks();
+    expect((await store.get(original.id)).text).toBe(original.text);
+  }
+});
+
 
 it('preserves a browser draft admitted while a restore is waiting to write', async () => {
   const remote = makeWork('Old account snapshot.');

@@ -24,7 +24,9 @@ The Feelings group held eleven soundscapes: wonder, mystery, triumph, chase, hau
 | Portable example *Energetic* | thrilling, chase | night-drive, night-drive (new identity `portable-ccde7f0ab9c4b4d09fa07528789680b7`) |
 | Open Field worked Current | mystery | faded-signal |
 
-A saved reading, a saved setup preference or a saved Workshop project that names a parked sound plays its stand-in (`PARKED_SOUNDS` and `standInSound` in `src/audio/sound-ids.js`). The fallback is applied where those are read: the `Session` model, the setup preferences (`ChamberOrbital`) and the Workshop project's defaults. Saved canonical scores also migrate audio clips and track fallbacks; legacy audio schedules migrate their segments and fallbacks during normalization. New Currents still refuse parked sounds with `BEAT_SOUND`.
+A saved reading, a saved setup preference or a saved Workshop project that names a parked sound plays its stand-in (`PARKED_SOUNDS` and `standInSound` in `src/audio/sound-ids.js`). The fallback is applied where those are read: the `Session` model, the setup preferences (`ChamberOrbital`) and the Workshop project's defaults. New Currents still refuse parked sounds with `BEAT_SOUND`.
+
+A score that names one on a passage is translated the same way wherever a saved or imported program is read: `validateExperienceProgram` (Workshop projects, imports, portable sequences, sessions) and `normalizeAudioProgram` (saved audio programs). A portable sequence exported before the parking keeps the identity it was hashed with and imports with the stand-ins. If a parked id still reaches `AudioEngine.startSoundscape`, the engine starts its stand-in and logs a warning, so a missed path plays the substitute instead of silence.
 
 | Parked | Stand-in |
 | --- | --- |

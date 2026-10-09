@@ -23,13 +23,14 @@ export async function saveAccountWork(record, requestId, expectedUserId, fetcher
   return request('/saves', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-SyberLabs-Account': 'v1', ...expectedAccountHeader(expectedUserId) }, body }, fetcher);
 }
 
-export async function restoreAccountWork(id, store, { replace = false, expectedUserId, fetcher } = {}) {
+export async function restoreAccountWork(id, store, { replace = false, expectedUserId, fetcher, beforeWrite = () => {} } = {}) {
   const body = await request(`/saves/${encodeURIComponent(id)}`, { headers: expectedAccountHeader(expectedUserId) }, fetcher);
+  beforeWrite();
   const save = body.save;
   if (save?.app !== 'rise' || save.payload?.schema !== 'rise.account-work.v1') throw new AccountError('This backup is not a RISE text work.');
   let record;
   try { record = workPayload(save.payload.work).work; }
   catch { throw new AccountError('This backup failed validation. Your browser library is unchanged.'); }
-  await store.save(record, { replaceExisting: replace });
+  await store.save(record, { replaceExisting: replace, beforeWrite });
   return record;
 }
