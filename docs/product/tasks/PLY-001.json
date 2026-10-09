@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "M2 control and replay",
   "status": "in_review",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -65,6 +65,36 @@
       "ref": "src/live/voice-sync.sweep.test.js",
       "note": "Branch pace-retimes: pace sweep, 3 voices x 6 points (0.5x and 1.5x in turn, every 2 s from 500 ms); 0 stand-downs, the voice never ends more than 1 s after the words. It also passes on the code before the change, so it guards against regressions and does not reproduce the defect. The pause sweep went from 24 points every 500 ms to 20 every 600 ms to keep the file near 12 s.",
       "date": "2026-10-08"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/549",
+      "note": "Merged as 8877fb38: runtime seek, replay and pace with the voice moving first, and the transport bar in the card (branch playback-instrument).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/551",
+      "note": "Merged as 286e7539: a pace change re-times what is on screen, the atom timer, the spoken atom watchdog and the conductor running hold (branch pace-retimes).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/553",
+      "note": "Merged as 96aee99a: a hold a scene holds keeps its time through a pace change while paused; includes 2e933c22, which lets a hold go once its scene no longer holds it.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "commit",
+      "ref": "2e9f473ff21289ab5549649a1e57f9f6f0c172a0",
+      "note": "Live release: https://rise.syberlabs.io/release.txt read 2e9f473f after main CI run 37862762796 (CI and production jobs succeeded); it contains 8877fb38, 286e7539 and 96aee99a. The run for 96aee99a itself (37862679809) stopped at the main-moved check and was superseded.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/beat-conductor.test.js",
+      "note": "The missing test for 2e933c22: a hold its scene held, asked again with onHold now null (as after a seek back), stops being fixed and is timed at its paced 6000 ms. It failed with the line reverted (expected true to be false) and passes with it; 21 passed. player.govern.test.js adds the Player consequence, a paused atom no longer fixed has its time left scaled again; the two files together, 34 passed.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -75,10 +105,14 @@
     {
       "date": "2026-10-08T23:33:31.445Z",
       "summary": "Follow-up on branch pace-retimes: a pace change re-times what is on screen (the atom's timer, a spoken atom's watchdog, the conductor's running hold); not merged, not deployed."
+    },
+    {
+      "date": "2026-10-09T00:14:17.331Z",
+      "summary": "Deployed: #549 (8877fb38), #551 (286e7539) and #553 (96aee99a) merged and live in release 2e9f473f (rise.syberlabs.io/release.txt, main CI run 37862762796); still in review, no owner witness in a real host."
     }
   ],
-  "updatedAt": "2026-10-08T23:33:31.445Z",
-  "revision": 2,
+  "updatedAt": "2026-10-09T00:14:17.331Z",
+  "revision": 3,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
-  "blocker": "Branch only: review, merge and a real-host witness (owner's witness pass, 2026-10-07) remain."
+  "blocker": "Deployed, not accepted: the owner has not witnessed it in a real host (owner witness pass, 2026-10-07)."
 }
