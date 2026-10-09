@@ -42,9 +42,12 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100){nodes{isResolved comments(first:1){nodes{author{login}}}}}}}}'
-          open=$(gh api graphql -f query="$query" -F o="$OWNER" -F r="$REPO" -F n="$PR" \
-            --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not) | select(.comments.nodes[0].author.login == "chatgpt-codex-connector")] | length')
+          query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100){nodes{id isResolved comments(first:1){nodes{author{login}}}}}}}}'
+          # The ids, not just the count: a fix that resolves one finding while Codex opens
+          # another leaves the count unchanged, and a count would not record that round.
+          ids=$(gh api graphql -f query="$query" -F o="$OWNER" -F r="$REPO" -F n="$PR" \
+            --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not) | select(.comments.nodes[0].author.login == "chatgpt-codex-connector") | .id] | join(",")')
+          open=$(printf '%s' "$ids" | awk -F, 'NF{print NF; exit} END{if(!NR)print 0}')
           rounds=$(gh api "repos/$OWNER/$REPO/issues/$PR/comments" --paginate \
             --jq '[.[] | select(.body | startswith("<!-- codex-feedback-round -->"))] | length')
           echo "unresolved Codex threads: $open · rounds already run: $rounds"
@@ -57,6 +60,8 @@ jobs:
             echo 'run=false' >> "$GITHUB_OUTPUT"
           else
             echo "round=$((rounds + 1))" >> "$GITHUB_OUTPUT"
+            echo "open=$open" >> "$GITHUB_OUTPUT"
+            echo "ids=$ids" >> "$GITHUB_OUTPUT"
             echo 'run=true' >> "$GITHUB_OUTPUT"
           fi
 
@@ -118,10 +123,24 @@ jobs:
             --max-turns 40
             --allowedTools "Read,Grep,Glob,Edit,Write,Bash"
 
-      - name: Record the round
+      - name: Record the round only if findings were actually answered
         if: steps.gate.outputs.run == 'true' && success()
         env:
           GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          PR: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ steps.gate.outputs.open }}
+          BEFORE_IDS: ${{ steps.gate.outputs.ids }}
         run: |
-          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" \
-            --body "$(printf '<!-- codex-feedback-round -->\nCodex feedback round %s answered the Codex findings on this pull request.' "${{ steps.gate.outputs.round }}")"
+          set -euo pipefail
+          query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){reviewThreads(first:100){nodes{id isResolved comments(first:1){nodes{author{login}}}}}}}}'
+          # Count how many of the threads that were open at the gate are resolved now.
+          answered=$(gh api graphql -f query="$query" -F o="$OWNER" -F r="$REPO" -F n="$PR" \
+            | jq --arg ids "$BEFORE_IDS" '($ids | split(",")) as $before | [.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved) | select(.id as $i | $before | index($i))] | length')
+          echo "Codex threads open at the gate: $BEFORE · resolved since: $answered"
+          if [ "$answered" -gt 0 ]; then
+            gh pr comment "$PR" --repo "$OWNER/$REPO" --body "$(printf '<!-- codex-feedback-round -->\nCodex feedback round %s answered %s of %s Codex finding(s).' "${{ steps.gate.outputs.round }}" "$answered" "$BEFORE")"
+          else
+            echo "::warning::No finding was resolved; this run does not count as a round."
+          fi
