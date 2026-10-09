@@ -7,6 +7,9 @@ import { collectAcrossPages, pageCount } from './page-helpers.js';
  * real chapter typeset in space while Stream rests behind it.
  */
 test('Page Mode typesets a Gospel chapter in space, and holds the stream', async ({ page }) => {
+    const browserErrors = [];
+    page.on('pageerror', error => browserErrors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error') browserErrors.push(message.text()); });
     await page.setViewportSize({ width: 1280, height: 900 });
 
     // This test is about Page COMPOSITION, pagination, figure accounting,
@@ -32,6 +35,16 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await page.locator('.chapel-book[data-book-id="matthew"]').click();
     await page.locator('[data-book-id="matthew"][data-chapter="27"]').click();
 
+    // The setup button can become enabled before its parent route has finished
+    // entering. Press Begin only once the chosen chapter and route both arrived.
+    await page.waitForFunction(() => {
+        const bridge = window.__RISE_TEST__;
+        const config = bridge?.getView('read')?.paneInstance('setup')?.config;
+        const route = bridge?.getRouterState();
+        return config?.textSource === 'The Chapel · Matthew 27'
+            && config?.sources?.[0]?.id === 'chapel-matthew-27'
+            && route?.currentView === 'read' && !route.transitioning;
+    }, null, { timeout: 20_000 });
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
     await page.locator('#begin-btn').click();
     // The notice appears only for a flashing presentation; Gallery opens
@@ -39,7 +52,16 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     const warn = page.locator('#photosensitivity-modal');
     await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
     if (await warn.isVisible()) await warn.locator('#safety-accept').click();
-    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+    try {
+        await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+    } catch (error) {
+        console.log('PAGE_LAUNCH_FAILURE', JSON.stringify({ browserErrors, state: await page.evaluate(() => ({
+            route: window.__RISE_TEST__?.getRouterState(),
+            source: window.__RISE_TEST__?.getView('read')?.paneInstance('setup')?.config?.textSource,
+            toast: document.querySelector('.toast')?.textContent
+        })) }));
+        throw error;
+    }
     await page.waitForFunction(() => window.__RISE_TEST__ && !window.__RISE_TEST__.getRouterState().transitioning);
     await page.waitForTimeout(2500);
 
