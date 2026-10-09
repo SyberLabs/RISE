@@ -63,9 +63,9 @@
  * when it begins a new billing period, which it invoices (a renewal, or an anchor reset
  * that bills the new period at once); a trial extension or a plan change that keeps the
  * anchor moves the end only, and must not mint a fresh allowance. A reservation stands
- * as spent unless the vendor refused before billing (a non-2xx answer, or no answer),
- * when both are released. So whatever the vendor billed is counted, even when the answer
- * is then refused, and a reservation lost to a crash errs toward the lab.
+ * as spent once the vendor request is sent, including an error or lost answer. Only a
+ * refusal before contacting the vendor releases it. Atomic microdollar reservations
+ * also cap vendor cost below net collected revenue after taxes, fees and a reserve.
  *
  * Refunds, disputes and cancellations: POST /api/plus/stripe-webhook. In the Stripe dashboard
  * (Developers, Webhooks, Add destination; the live and the test account each need their own),
@@ -106,6 +106,8 @@
  * test_), and STRIPE_WEBHOOK_SECRET is set. Production once served a test-mode link with a
  * test key, and Stripe's public test card then bought real ElevenLabs characters.
  */
+import { getAdmin, verifyAdmin } from './plus-admin.mjs';
+import { spendingPolicy, paidBudget, adminBudget } from './plus-budget.mjs';
 import { mapAlignment } from '../src/audio/poem-alignment.js';
 import { VOICE_PACK_SCHEMA, voiceAssetKey } from '../src/audio/voice-pack-key.js';
 
@@ -148,7 +150,7 @@ const JSON_HEADERS = {
   'X-Content-Type-Options': 'nosniff'
 };
 
-const ROUTES = new Set(['/api/plus/claim', '/api/plus/voice', '/api/plus/forget', '/api/plus/voices', '/api/plus/config', '/api/plus/stripe-webhook']);
+const ROUTES = new Set(['/api/plus/claim', '/api/plus/voice', '/api/plus/forget', '/api/plus/voices', '/api/plus/config', '/api/plus/stripe-webhook', '/api/plus/status', '/api/plus/admin/login', '/api/plus/admin/check']);
 
 export function isPlusRoute(path) {
   return ROUTES.has(path);
@@ -422,7 +424,14 @@ const subDailyCap = env => (/^\d+$/u.test(String(env.PLUS_SUB_DAILY_CHAR_CAP ?? 
 async function meter(env, name, op, body) {
   const stub = env.PLUS_METER.get(env.PLUS_METER.idFromName(name));
   const response = await stub.fetch(`https://plus-meter/${op}`, { method: 'POST', body: JSON.stringify(body) });
-  return response.json();
+  if (!response.ok) throw new Error('Plus meter unavailable');
+  const answer = await response.json();
+  if (!answer || typeof answer !== 'object' || answer.error) throw new Error('Invalid Plus meter answer');
+  if (op === 'gate' && !answer.revoked && !answer.limited && !answer.exhausted && typeof answer.fresh !== 'boolean') throw new Error('Invalid Plus gate');
+  if (op === 'inspect' && (!Number.isSafeInteger(answer.used) || answer.used < 0 || typeof answer.fresh !== 'boolean')) throw new Error('Invalid Plus inspection');
+  if (op === 'reserve' && (typeof answer.ok !== 'boolean' || !Number.isSafeInteger(answer.used) || answer.used < 0)) throw new Error('Invalid Plus reservation');
+  if (['standing', 'release', 'event'].includes(op) && answer.ok !== true) throw new Error('Invalid Plus meter acknowledgement');
+  return answer;
 }
 
 /**
@@ -431,16 +440,20 @@ async function meter(env, name, op, body) {
  * check (src/audio/poem-alignment.js) holds by construction. The pack points
  * every phrase at one audio file with its own time range; the Voice slices it.
  */
-async function voice(request, env, now) {
+async function voice(request, env, now, admin = null) {
+  const policy = spendingPolicy(env);
+  const adminCap = admin ? adminBudget(env, policy) : null;
+  const budgetPolicy = JSON.stringify(policy);
+  if (!policy || (admin && !adminCap)) return unavailable(env, 'The voice spending policy is not configured safely.');
   const allowed = voices(env);
-  const missing = ['ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_PRICE_ID', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', ...(requireLive(env) ? ['STRIPE_WEBHOOK_SECRET'] : [])]
+  const missing = ['ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', ...(!admin ? ['PLUS_PRICE_ID', ...(requireLive(env) ? ['STRIPE_WEBHOOK_SECRET'] : [])] : [])]
     .filter(name => (name === 'PLUS_DAILY_CHAR_CAP' ? dailyCap(env) === null : name === 'PLUS_VOICES' ? !allowed : !env[name]));
   if (missing.length) {
     return unavailable(env, `The Plus voice is not switched on in this deployment (${missing.join(', ')} not set).`);
   }
-  const current = await verify(cookieValue(request), env, now);
-  if (!current) return refuse(402, 'PLUS_REQUIRED', 'A Plus subscription is needed for this voice.', { 'Set-Cookie': CLEAR_COOKIE });
-  if (now > current.exp + GRACE_S) return refuse(402, 'PLUS_LAPSED', 'Your Plus subscription has lapsed.', { 'Set-Cookie': CLEAR_COOKIE });
+  const current = admin ? null : await verify(cookieValue(request), env, now);
+  if (!admin && !current) return refuse(402, 'PLUS_REQUIRED', 'A Plus subscription is needed for this voice.', { 'Set-Cookie': CLEAR_COOKIE });
+  if (!admin && now > current.exp + GRACE_S) return refuse(402, 'PLUS_LAPSED', 'Your Plus subscription has lapsed.', { 'Set-Cookie': CLEAR_COOKIE });
   if (await limited(request, env.DECISION_LIMITER, 'plus-voice')) return refuse(429, 'RATE_LIMITED', 'Too many requests were sent. Try again in a minute.');
 
   const { refusal, body } = await readJson(request);
@@ -459,9 +472,10 @@ async function voice(request, env, now) {
   if (text.length > VOICE_MAX_CHARS) return refuse(413, 'TOO_LONG', `A voicing is at most ${VOICE_MAX_CHARS.toLocaleString('en')} characters.`);
 
   const n = text.length;
-  const sub = `sub:${current.s}`;
+  // All administrators share one explicit monthly budget; adding administrators never multiplies it.
+  const sub = admin ? 'admin' : `sub:${current.s}`;
   const lapsed = () => refuse(402, 'PLUS_REQUIRED', 'This is no longer an active Plus subscription.', { 'Set-Cookie': CLEAR_COOKIE });
-  const spent = () => refuse(402, 'PLUS_ALLOWANCE', `This month's voice allowance is used up (${VOICE_ALLOWANCE.toLocaleString('en')} characters). It resets with your next billing period.`);
+  const spent = () => refuse(402, 'PLUS_ALLOWANCE', `This period's voice allowance is used up. It resets with your next billing period.`);
   // The subscription's own meter first: revoked, too many requests, or no room left costs no Stripe call.
   const gate = await meter(env, sub, 'gate', { n, limit: VOICE_ALLOWANCE, rate: SUB_RATE_PER_MINUTE, ttl: STANDING_TTL_S });
   if (gate.revoked) return lapsed();
@@ -470,26 +484,38 @@ async function voice(request, env, now) {
 
   // Stripe, at most once a minute per subscription: a cancelled, refunded or disputed subscription stops here.
   let standing;
-  if (gate.fresh && (gate.standing === null || gate.standing.l === livemode(env))) {
+  if (admin) {
+    const date = new Date(now * 1000);
+    standing = { start: Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1) / 1000, exp: Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1) / 1000, budgetMicros: adminCap.micros };
+  } else if (gate.fresh && (gate.standing === null || (gate.standing.l === livemode(env) && gate.standing.budgetPolicy === budgetPolicy))) {
     standing = gate.standing;
   } else {
     try {
-      standing = claimFor(await stripe(`/v1/subscriptions/${encodeURIComponent(current.s)}`, env), env);
+      const subscription = await stripe(`/v1/subscriptions/${encodeURIComponent(current.s)}`, env);
+      standing = claimFor(subscription, env);
+      if (standing) {
+        const budgetMicros = await paidBudget(subscription, standing, env, policy, stripe);
+        standing = budgetMicros ? { ...standing, budgetMicros, budgetPolicy: JSON.stringify(policy) } : null;
+      }
     } catch (error) {
       // 404: Stripe has no such subscription (deleted), which is an answer, not an outage.
       if (error?.status !== 404) return refuse(502, 'UPSTREAM', 'Stripe could not be reached. Try again in a moment.');
       standing = null;
     }
-    await meter(env, sub, 'standing', { standing });
+    await meter(env, sub, 'standing', { standing, revision: gate.revision });
   }
-  if (!standing || standing.s !== current.s) return lapsed();
+  if (!standing || (!admin && standing.s !== current.s)) return lapsed();
+  if (!Number.isSafeInteger(standing.budgetMicros) || standing.budgetMicros <= 0) return lapsed();
+  const limit = Math.min(VOICE_ALLOWANCE, Math.floor(standing.budgetMicros / policy.rate));
+  if (n > limit) return spent();
 
   const day = new Date(now * 1000).toISOString().slice(0, 10);
-  const own = { period: standing.start, n, limit: VOICE_ALLOWANCE, day, dayLimit: subDailyCap(env) };
+  const own = { period: standing.start, n, limit, day, dayLimit: admin ? adminCap.dayLimit : subDailyCap(env), costMicros: n * policy.rate, spendLimitMicros: standing.budgetMicros, rateMicros: policy.rate, revision: gate.revision };
   const all = { period: day, n, limit: dailyCap(env) };
   const reserved = await meter(env, sub, 'reserve', own);
+  if (reserved.changed) return unavailable(env, 'The subscription changed while its allowance was being verified.');
   if (reserved.revoked) return lapsed();
-  if (reserved.dayFull) return refuse(429, 'PLUS_DAILY_LIMIT', `Today's voice limit for this subscription is reached (${subDailyCap(env).toLocaleString('en')} characters). It resets at midnight UTC.`);
+  if (reserved.dayFull) return refuse(429, 'PLUS_DAILY_LIMIT', `Today's voice limit is reached. It resets at midnight UTC.`);
   if (!reserved.ok) return spent();
   if (!(await meter(env, 'global', 'reserve', all)).ok) {
     await meter(env, sub, 'release', own);
@@ -508,13 +534,12 @@ async function voice(request, env, now) {
     response = null;
   }
   if (!response?.ok) {
-    // Refused before billing: the reservation goes back.
-    await meter(env, sub, 'release', own);
-    await meter(env, 'global', 'release', all);
+    // A sent request can be billed even when its answer is lost or fails. Retain every debit;
+    // only a refusal before contacting the vendor (above) can release a reservation.
     return refuse(502, 'UPSTREAM', 'The voice could not be rendered. Try again in a moment.');
   }
   // From here the vendor has billed, so the reservation stands whatever happens next.
-  const allowance = { used: reserved.used, limit: VOICE_ALLOWANCE, periodEnd: standing.exp };
+  const allowance = { used: reserved.used, limit, periodEnd: standing.exp };
   let rendered;
   try {
     rendered = await response.json();
@@ -554,7 +579,7 @@ async function voice(request, env, now) {
     voiced: { hash, voice: slug, characters: n, model: `elevenlabs/${model}` },
     voices: { [slug]: { label: allowed.get(slug).label, model: `elevenlabs/${model}`, format: 'mp3', entries } }
   };
-  return reply(200, { pack, audio: rendered.audio_base64, allowance }, { 'Set-Cookie': await setCookie({ ...standing, iat: now }, env, now) });
+  return reply(200, { pack, audio: rendered.audio_base64, allowance }, admin ? {} : { 'Set-Cookie': await setCookie({ c: standing.c, s: standing.s, exp: standing.exp, start: standing.start, l: standing.l, iat: now }, env, now) });
 }
 
 /** Equal strings in a time that does not depend on where they differ. */
@@ -631,9 +656,9 @@ async function webhook(request, env) {
     } else if (event.type === 'customer.subscription.updated') {
       subscriptions = [object.id];
       change = ACTIVE.has(object.status) ? { action: 'restore' } : { action: 'revoke', kind: 'status' };
-    } else if (event.type === 'charge.refunded' && object.refunded === true) {
+    } else if (event.type === 'charge.refunded') {
       subscriptions = await subscriptionsPaidBy(object, env);
-      change = { action: 'revoke', kind: 'refund' };
+      change = object.refunded === true ? { action: 'revoke', kind: 'refund' } : { action: 'refresh' };
     } else if (event.type === 'charge.dispute.created') {
       subscriptions = await subscriptionsPaidBy(object, env);
       change = { action: 'revoke', kind: 'dispute' };
@@ -672,8 +697,63 @@ async function cancelPlus(id, env) {
   await stripe(path, env, 'DELETE');
 }
 
-export async function handlePlus(request, env) {
+const adminLoginConfigured = env => /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u.test(env.PLUS_ADMIN_ACCESS_ISSUER ?? '') && typeof env.PLUS_ADMIN_ACCESS_AUD === 'string' && Boolean(env.PLUS_ADMIN_ACCESS_AUD.trim());
+const voiceReady = env => Boolean(env.ELEVENLABS_API_KEY && env.PLUS_VOICE_ID && voices(env) && dailyCap(env) && env.PLUS_METER && spendingPolicy(env));
+
+/** A read-only entitlement view. Identity always comes from verified Access or a server-signed
+ * Stripe receipt; client flags and cached browser allowance are never consulted.
+ */
+async function status(request, env, now) {
+  const policy = spendingPolicy(env);
+  const admin = await getAdmin(request, env);
+  const result = { admin: Boolean(admin), subscriber: false, available: false, adminLogin: adminLoginConfigured(env), allowance: null };
+  let standing, name;
+  if (admin) {
+    const budget = adminBudget(env, policy);
+    if (!budget || !voiceReady(env)) return reply(200, result);
+    const date = new Date(now * 1000);
+    standing = { start: Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1) / 1000, exp: Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1) / 1000, budgetMicros: budget.micros };
+    name = 'admin';
+  } else {
+    if (!policy || !env.STRIPE_SECRET_KEY || !env.PLUS_COOKIE_SECRET || !env.PLUS_PRICE_ID || !env.PLUS_METER || notLive(env)) return reply(200, result);
+    const current = await verify(cookieValue(request), env, now);
+    if (!current || now > current.exp + GRACE_S) return reply(200, result);
+    name = `sub:${current.s}`;
+    const kept = await meter(env, name, 'inspect', { ttl: STANDING_TTL_S });
+    if (kept.revoked) return reply(200, result);
+    if (kept.fresh && kept.standing?.l === livemode(env) && kept.standing.budgetPolicy === JSON.stringify(policy)) standing = kept.standing;
+    else {
+      const subscription = await stripe(`/v1/subscriptions/${encodeURIComponent(current.s)}`, env);
+      standing = claimFor(subscription, env);
+      if (standing) {
+        const budgetMicros = await paidBudget(subscription, standing, env, policy, stripe);
+        standing = budgetMicros ? { ...standing, budgetMicros, budgetPolicy: JSON.stringify(policy) } : null;
+      }
+      await meter(env, name, 'standing', { standing, revision: kept.revision });
+    }
+    if (!standing || standing.s !== current.s || !Number.isSafeInteger(standing.budgetMicros) || standing.budgetMicros <= 0) return reply(200, result);
+    result.subscriber = true;
+  }
+  const inspected = await meter(env, name, 'inspect', { period: standing.start, ttl: STANDING_TTL_S });
+  if (inspected.revoked) { result.subscriber = false; return reply(200, result); }
+  const limit = Math.min(VOICE_ALLOWANCE, Math.floor(standing.budgetMicros / policy.rate));
+  result.allowance = { used: inspected.used, limit, periodEnd: standing.exp };
+  result.available = voiceReady(env) && inspected.used < limit && (inspected.spentMicros ?? 0) + policy.rate <= standing.budgetMicros;
+  return reply(200, result);
+}
+
+async function routePlus(request, env) {
   const path = new URL(request.url).pathname;
+  if (path === '/api/plus/status' || path === '/api/plus/admin/login' || path === '/api/plus/admin/check') {
+    if (request.method !== 'GET') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
+    if (path === '/api/plus/status') return status(request, env, Math.floor(Date.now() / 1000));
+    if (path === '/api/plus/admin/check') {
+      const checked = await verifyAdmin(request, env);
+      return checked ? reply(200, { subject: checked.subject }) : refuse(403, 'FORBIDDEN_ADMIN', 'Administrator sign-in is required.');
+    }
+    if (!(await getAdmin(request, env))) return refuse(403, 'FORBIDDEN_ADMIN', 'Administrator sign-in is required.');
+    return reply(303, null, { Location: '/settings' });
+  }
   if (path === '/api/plus/voices') {
     if (request.method !== 'GET') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
     const allowed = voices(env);
@@ -691,6 +771,8 @@ export async function handlePlus(request, env) {
     return refuse(403, 'FORBIDDEN_ORIGIN', 'Plus answers only the page it serves.');
   }
   if (path === '/api/plus/forget') return reply(204, null, { 'Set-Cookie': CLEAR_COOKIE });
+  const admin = path === '/api/plus/voice' ? await getAdmin(request, env) : null;
+  if (admin) return voice(request, env, Math.floor(Date.now() / 1000), admin);
   if (!env.STRIPE_SECRET_KEY || !env.PLUS_COOKIE_SECRET) {
     return unavailable(env, 'Plus is not switched on in this deployment (STRIPE_SECRET_KEY or PLUS_COOKIE_SECRET is not set).');
   }
@@ -711,7 +793,7 @@ export async function handlePlus(request, env) {
  *
  *   POST /reserve { period, n, limit[, day, dayLimit] }  -> { ok, used[, revoked | dayFull] }  adds n unless used + n would
  *        pass limit, or (with `day`, a UTC date) the day's count + n would pass dayLimit, or the subscription is revoked
- *   POST /release { period, n[, day] }  -> { ok, used }  gives n back (a vendor refusal before billing)
+ *   POST /release { period, n[, day] }  -> { ok, used }  gives n back only before a vendor request is sent
  *
  * A subscription's instance also keeps what decides whether it may voice, so most
  * refusals cost no Stripe call:
@@ -746,13 +828,19 @@ export class PlusMeter {
     const op = new URL(request.url).pathname;
     const body = await request.json();
     const now = Math.floor(Date.now() / 1000);
+    if (op === '/inspect') {
+      const kept = this.kv.get('standing');
+      const usage = body.period === undefined ? { used: 0 } : this.usage(body.period);
+      return Response.json({ revision: this.kv.get('revision') ?? 0, used: usage.used, spentMicros: this.kv.get('since') === body.period ? this.kv.get('spentMicros') ?? 0 : 0, revoked: Boolean(this.kv.get('revoked')), fresh: Boolean(kept) && now - kept.at < body.ttl, standing: kept?.standing ?? null });
+    }
     if (op === '/gate') return Response.json(this.gate(body, now));
     if (op === '/standing') {
+      if (body.revision !== (this.kv.get('revision') ?? 0)) return Response.json({ ok: false, changed: true });
       this.kv.put('standing', { standing: body.standing ?? null, at: now });
       return Response.json({ ok: true });
     }
     if (op === '/event') return Response.json(this.event(body));
-    const { period, n, limit, day, dayLimit } = body;
+    const { period, n, limit, day, dayLimit, costMicros, spendLimitMicros, rateMicros } = body;
     if (!Number.isInteger(n) || n < 0 || (typeof period !== 'number' && typeof period !== 'string')) {
       return Response.json({ ok: false, error: 'bad meter request' }, { status: 400 });
     }
@@ -760,7 +848,11 @@ export class PlusMeter {
     // nothing and releases nothing, so it cannot roll the count back.
     const { stale, used } = this.usage(period);
     if (op === '/reserve') {
+      if (body.revision !== undefined && body.revision !== (this.kv.get('revision') ?? 0)) return Response.json({ ok: false, used, changed: true });
       if (this.kv.get('revoked')) return Response.json({ ok: false, used, revoked: true });
+      const money = costMicros !== undefined;
+      const spentMicros = this.kv.get('since') === period ? this.kv.get('spentMicros') ?? used * rateMicros : 0;
+      if (money && (!Number.isSafeInteger(costMicros) || costMicros < 0 || !Number.isSafeInteger(spendLimitMicros) || spendLimitMicros <= 0 || !Number.isSafeInteger(rateMicros) || rateMicros < 60 || !Number.isSafeInteger(spentMicros) || spentMicros + costMicros > spendLimitMicros)) return Response.json({ ok: false, used });
       if (stale || !(used + n <= limit)) return Response.json({ ok: false, used });
       const today = this.kv.get('today');
       const dayUsed = day !== undefined && today?.day === day ? today.used : 0;
@@ -768,6 +860,7 @@ export class PlusMeter {
       if (day !== undefined) this.kv.put('today', { day, used: dayUsed + n });
       this.kv.put('since', period);
       this.kv.put('used', used + n);
+      if (money) this.kv.put('spentMicros', spentMicros + costMicros);
       return Response.json({ ok: true, used: used + n });
     }
     if (op === '/release') {
@@ -775,6 +868,7 @@ export class PlusMeter {
       if (day !== undefined && today?.day === day) this.kv.put('today', { day, used: Math.max(0, today.used - n) });
       if (stale || this.kv.get('since') !== period) return Response.json({ ok: true, used });
       this.kv.put('used', Math.max(0, used - n));
+      if (Number.isSafeInteger(costMicros) && costMicros >= 0) this.kv.put('spentMicros', Math.max(0, (this.kv.get('spentMicros') ?? used * rateMicros) - costMicros));
       return Response.json({ ok: true, used: Math.max(0, used - n) });
     }
     return Response.json({ ok: false, error: 'no such meter operation' }, { status: 404 });
@@ -793,13 +887,14 @@ export class PlusMeter {
       const { used } = this.usage(standing.start);
       if (used + n > limit) return { exhausted: true, used };
     }
-    return { fresh: Boolean(kept) && now - kept.at < ttl, standing };
+    return { revision: this.kv.get('revision') ?? 0, fresh: Boolean(kept) && now - kept.at < ttl, standing };
   }
 
   event({ id, created, action, kind }) {
     const seen = this.kv.get('events') ?? [];
     if (typeof id !== 'string' || seen.includes(id)) return { ok: true, duplicate: true };
     this.kv.put('events', [...seen, id].slice(-50));
+    this.kv.put('revision', (this.kv.get('revision') ?? 0) + 1);
     this.kv.delete('standing');
     const revoked = this.kv.get('revoked');
     if (action === 'revoke' && kind !== 'status') {
@@ -816,3 +911,8 @@ export class PlusMeter {
 }
 
 export const PLUS_INTERNALS = { sign, verify, livemode, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S, MAX_BODY_BYTES, WEBHOOK_TOLERANCE_S };
+
+/** Storage/configuration failures never fall through to a billable vendor call. */
+export async function handlePlus(request, env) {
+  try { return await routePlus(request, env); } catch { return unavailable(env, 'The Plus entitlement or spending meter could not be verified.'); }
+}
