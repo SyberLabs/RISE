@@ -226,6 +226,24 @@ describe('governing the end of an atom', () => {
         expect(player.currentAtomRemainingTime).toBeCloseTo(before * 2, 0);
     });
 
+    it('scales the time left of a paused atom again once no governor calls it fixed: a hold its scene let go is paced', async () => {
+        const timed = session();
+        for (const atom of timed.atoms) atom.duration = 1000;
+        player = new Player(timed);
+        const held = new Set([timed.atoms[0]]);
+        player.govern({ duration: () => null, completion: () => null, fixed: atom => held.has(atom) });
+        player.play();
+        await tick(400);
+        player.pause();
+        const left = player.currentAtomRemainingTime;
+        player.setSpeedFactor(2);
+        expect(player.currentAtomRemainingTime).toBe(left);
+        // The beat conductor lets the hold go when the host no longer has a scene to hold it (a seek back, say).
+        held.clear();
+        player.setSpeedFactor(4);
+        expect(player.currentAtomRemainingTime).toBeCloseTo(left * 2, 0);
+    });
+
     it('carries on for an atom that nothing governs', async () => {
         player = new Player(session());
         const shown = [];
