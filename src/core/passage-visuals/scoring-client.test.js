@@ -125,6 +125,19 @@ describe('VisualScoreCoordinator', () => {
     expect(context.director.pendingChoice(1)).toMatchObject({ treatmentId: 'solar-bloom', provenance: 'jev' });
   });
 
+  it('names Kev, not Jev, when Kev on this computer answered, fresh and from the cache', async () => {
+    const cache = new VisualScoreCache();
+    const { fetchImpl, calls } = controlledFetch();
+    const context = setup({ fetchImpl, cache });
+    await ready(context);
+    calls[0].answer({ model: 'kev-latest' });
+    await settle();
+    expect(context.director.pendingChoice(0).provenance).toBe('kev');
+    const again = setup({ fetchImpl: controlledFetch().fetchImpl, cache });
+    await ready(again, { permit: false });
+    expect(again.director.pendingChoice(0).provenance).toBe('kev');
+  });
+
   it.each([
     ['paused', { playing: false }],
     ['hidden', { visible: false }],

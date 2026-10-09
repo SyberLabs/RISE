@@ -1,0 +1,118 @@
+{
+  "id": "PLY-001",
+  "title": "Playback as a real instrument",
+  "lane": "live-sdk",
+  "milestone": "M2 control and replay",
+  "status": "in_review",
+  "delivery": "deployed",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-005"
+  ],
+  "acceptance": [
+    "The voice is the clock under every reader control: a seek re-anchors the voice at the start of a passage and the words follow it there; replay is a seek to the passage on screen; the pace is the voice's rate, the Player's timers following for what no voice says. No second clock.",
+    "The runtime offers position(), passages(), seek({ segmentId } | { delta }), replay() and setPace(rate in 0.5 to 2), each journaled (seek, replay, pace, voice.recovered); the snapshot carries pace and position. A seek while held lands on the passage's first words, shown, with nothing said; a seek from the end plays again.",
+    "The voices (browser, synthetic) seek and set their rate; the speech governor forgets passages said again and rescales to a new pace; a seek lifts a stand-down; the conductor lands the running scene's earlier cues at once (instant), which reaches a generated scene's worker.",
+    "In the card, the full transport: back, Play/Pause, forward, replay, pace (0.8x, 1x, 1.25x, 1.5x), full screen where the host or browser offers it, Settings, and a beat line of one tick per passage that seeks and shows progress; Passage N of M in the hidden status; keys on the stage (Space, arrows, R, F, minus/equals, brackets) described to assistive technology; fits 320 px in one row. transport 'minimal' keeps the two objects of the 2026-10-05 decision for ChatGPT.",
+    "Full screen asks a host card through ui/request-display-mode for a mode its host offers, the app declaring inline, fullscreen and pip at hello; the Worker's ChatGPT metadata stays inline only."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.seek.test.js",
+      "note": "Branch playback-instrument: 16 tests on the field's 17-beat Current with the synthetic voice (forward and back seeks, instant cues, seek from the end, seek while held, ten seeded seeks with no voice.degraded, recovery after a stand-down, replay, pace 2 and 0.5, holds following the pace, passages()).",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/voice-sync.sweep.test.js",
+      "note": "Seek sweep: 3 voices x 8 points, one to three passages on or back, through the first 12 s; 0 stand-downs; every run ends with the voice 4063 ms before the words (the closing shown line), as the pause sweep does.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/stage-controls.test.js",
+      "note": "Every transport control and key, disabled states, the live region's Passage N of M, the pace cycle, both transports, full screen under an inline-only host, a host offering full screen, one offering pip, and no host card with and without the browser's full screen.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Local Chromium, one worker, whole file: 45 passed. New: forward and back in the self-contained card show the passage's first words and the voice begins it there; replay; pace 1.5 holds the shown line about 840 ms against about 1250 ms; ArrowRight on the stage; full screen absent inline-only and requested of a host that offers it; seven objects in one row at 320 px. Fake host, not a product host.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-05-embed-stage-decision.md",
+      "note": "Amended 2026-10-08: the two-control rule was ChatGPT's two-action guideline; the Claude card carries the transport bar; transport 'minimal' keeps the two objects.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/player.govern.test.js",
+      "note": "Branch pace-retimes: a pace change re-times the atom on screen. A governed 1000 ms atom slowed to half at 400 ms keeps its watchdog until 400 + 1200 + 2500 ms and its governed end still advances; an ungoverned 1000 ms atom at 1.5x from 400 ms ends at 800 ms; a paused atom has only its time left scaled. All three failed before the change.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.seek.test.js",
+      "note": "Branch pace-retimes: slowed from 2x to 0.5x in the middle of a long phrase with a slow synthetic voice (80 ms per character), the next phrase waits for the voice (before the change it was shown 2.1 s ahead of it, at 15504 ms against 17656 ms); a 2000 ms hold sped to 2x 500 ms in lasts about 1250 ms (2000 before). The conductor test re-times a 3000 ms hold paced to 2x at 1000 ms to end at 2000 ms.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/voice-sync.sweep.test.js",
+      "note": "Branch pace-retimes: pace sweep, 3 voices x 6 points (0.5x and 1.5x in turn, every 2 s from 500 ms); 0 stand-downs, the voice never ends more than 1 s after the words. It also passes on the code before the change, so it guards against regressions and does not reproduce the defect. The pause sweep went from 24 points every 500 ms to 20 every 600 ms to keep the file near 12 s.",
+      "date": "2026-10-08"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/549",
+      "note": "Merged as 8877fb38: runtime seek, replay and pace with the voice moving first, and the transport bar in the card (branch playback-instrument).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/551",
+      "note": "Merged as 286e7539: a pace change re-times what is on screen, the atom timer, the spoken atom watchdog and the conductor running hold (branch pace-retimes).",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/553",
+      "note": "Merged as 96aee99a: a hold a scene holds keeps its time through a pace change while paused; includes 2e933c22, which lets a hold go once its scene no longer holds it.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "commit",
+      "ref": "2e9f473ff21289ab5549649a1e57f9f6f0c172a0",
+      "note": "Live release: https://rise.syberlabs.io/release.txt read 2e9f473f after main CI run 37862762796 (CI and production jobs succeeded); it contains 8877fb38, 286e7539 and 96aee99a. The run for 96aee99a itself (37862679809) stopped at the main-moved check and was superseded.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/beat-conductor.test.js",
+      "note": "The missing test for 2e933c22: a hold its scene held, asked again with onHold now null (as after a seek back), stops being fixed and is timed at its paced 6000 ms. It failed with the line reverted (expected true to be false) and passes with it; 21 passed. player.govern.test.js adds the Player consequence, a paused atom no longer fixed has its time left scaled again; the two files together, 34 passed.",
+      "date": "2026-10-09"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-08T23:30:00.000Z",
+      "summary": "Built on branch playback-instrument: runtime seek, replay and pace with the voice moving first, and the stage bar in the card; not merged, not deployed, no host witness."
+    },
+    {
+      "date": "2026-10-08T23:33:31.445Z",
+      "summary": "Follow-up on branch pace-retimes: a pace change re-times what is on screen (the atom's timer, a spoken atom's watchdog, the conductor's running hold); not merged, not deployed."
+    },
+    {
+      "date": "2026-10-09T00:14:17.331Z",
+      "summary": "Deployed: #549 (8877fb38), #551 (286e7539) and #553 (96aee99a) merged and live in release 2e9f473f (rise.syberlabs.io/release.txt, main CI run 37862762796); still in review, no owner witness in a real host."
+    }
+  ],
+  "updatedAt": "2026-10-09T00:14:17.331Z",
+  "revision": 3,
+  "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
+  "blocker": "Deployed, not accepted: the owner has not witnessed it in a real host (owner witness pass, 2026-10-07)."
+}

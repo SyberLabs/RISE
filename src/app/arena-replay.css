@@ -1,0 +1,86 @@
+/* The Decision Arena (arena-replay.js): one case's four deciders side by side, stacking on a phone. */
+.arena-title {
+  font-size: clamp(32px, 3.4vw, 48px);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.arena-title:focus {
+  outline: none;
+}
+
+.arena-deciders {
+  margin-top: var(--sy-space-5);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: var(--sy-space-4);
+}
+
+.arena-decider {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-3);
+  padding: var(--sy-space-4);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.arena-decider[aria-current="true"] {
+  border-color: var(--sy-accent-rise);
+}
+
+.arena-decider-title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--sy-text);
+}
+
+.arena-model {
+  display: block;
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--sy-text-2);
+  overflow-wrap: anywhere;
+}
+
+.arena-choices {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--sy-space-1) var(--sy-space-3);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.arena-choices dt {
+  color: var(--sy-text-2);
+}
+
+.arena-choices dd {
+  margin: 0;
+  color: var(--sy-text-body);
+  overflow-wrap: anywhere;
+}
+
+.arena-decider .portal-primary {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.arena-cases {
+  margin: var(--sy-space-5) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-3);
+}
+
+#arena-replay a {
+  color: var(--sy-text);
+  text-underline-offset: 3px;
+}

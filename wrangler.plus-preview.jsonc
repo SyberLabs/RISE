@@ -1,0 +1,41 @@
+{
+  // A workers.dev preview of the Plus routes (worker/plus.mjs) for test-mode runs.
+  // No secret is set here: without STRIPE_SECRET_KEY, PLUS_COOKIE_SECRET and
+  // ELEVENLABS_API_KEY every /api/plus route answers 503. Set them with
+  // `wrangler secret put <NAME> --config wrangler.plus-preview.jsonc`, together with
+  // PLUS_PRICE_ID (the test-mode Stripe price; unset, every claim is refused) and
+  // PLUS_VOICE_ID (the ElevenLabs voice; unset, /api/plus/voice answers 503).
+  // STRIPE_WEBHOOK_SECRET is the signing secret of this preview's own test-mode webhook
+  // endpoint (worker/plus.mjs); unset, /api/plus/stripe-webhook answers 503.
+  // PLUS_COOKIE_SECRET must differ from production's, and STRIPE_SECRET_KEY is a test-mode
+  // key: a cookie minted here then fails both the signature and the mode check on production.
+  "name": "rise-plus-preview",
+  "main": "./worker/index.mjs",
+  "compatibility_date": "2026-09-26",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "false", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_PAYMENT_LINK": "https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00",
+    "PLUS_DAILY_CHAR_CAP": "20000",
+    // The voices a reader may choose (worker/plus.mjs). ElevenLabs premade voice ids, not secret;
+    // "default" takes its id from the PLUS_VOICE_ID secret. GET /api/plus/voices lists slugs and labels only.
+    "PLUS_VOICES": [{ "slug": "default", "label": "Default" }, { "slug": "george", "label": "George — warm British narrator", "id": "JBFqnCBsd6RMkjVDRZzb" }, { "slug": "rachel", "label": "Rachel — calm American", "id": "21m00Tcm4TlvDq8ikWAM" }, { "slug": "daniel", "label": "Daniel — deep British", "id": "onwK4e9ZLuTAKqWW03F9" }, { "slug": "charlotte", "label": "Charlotte — soft, measured", "id": "XB0fDUnXU5powFXDhCwa" }] },
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*"]
+  },
+  // PLUS_METER holds each subscription's allowance and the daily total (SQLite-backed, free plan).
+  "durable_objects": { "bindings": [{ "name": "PLUS_METER", "class_name": "PlusMeter" }] },
+  "migrations": [{ "tag": "plus-meter-v1", "new_sqlite_classes": ["PlusMeter"] }],
+  "ratelimits": [{
+    "name": "DECISION_LIMITER",
+    "namespace_id": "2026092602",
+    "simple": { "limit": 30, "period": 60 }
+  }, {
+    // POST /api/plus/claim needs no cookie and costs a Stripe call, so each address gets 5 a minute.
+    "name": "PLUS_CLAIM_LIMITER",
+    "namespace_id": "2026100801",
+    "simple": { "limit": 5, "period": 60 }
+  }]
+}

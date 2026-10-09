@@ -34,6 +34,7 @@ import { jevColors } from '../../core/jev-palette.js';
 import { lookTheme } from '../../core/current-look.js';
 import { createLiveControls } from './controls.js';
 import { createStageControls } from './stage-controls.js';
+import { isVoiceNote, voiceLine } from '../voice-trace.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
 
@@ -417,6 +418,9 @@ export class LiveHost {
         const runtime = createLiveRuntime({
             adapter: await this.buildAdapter(clock, createMockAdapter),
             clock,
+            // The voice's trace in DevTools, always: a reader who sees the words and the voice part can copy
+            // what the clock saw (voice-trace.js), as a failed scene is reported.
+            onNote: entry => { if (isVoiceNote(entry.type)) console.info('[RISE voice]', voiceLine(entry)); },
             createPlayer: session => createSessionPlayer(session),
             voices,
             host: {
@@ -429,7 +433,7 @@ export class LiveHost {
                     return this.present.presentLive(this.router, session, player);
                 },
                 discoverVisual: ({ player }) => mountedChamber(player)?.discoverVisual?.() ?? null,
-                controlVisual: ({ player, command }) => mountedChamber(player)?.controlVisual?.(command)
+                controlVisual: ({ player, command, instant }) => mountedChamber(player)?.controlVisual?.(command, { instant: instant === true })
                     ?? { status: 'refused', code: 'NO_ACTIVE_VISUAL' },
                 holdScene: ({ player, atom }) => mountedChamber(player)?.holdScene?.(atom) ?? null,
                 dismiss: () => {}
@@ -910,7 +914,7 @@ export class LiveHost {
                 return;
             }
             this.runtime = runtime;
-            // The stage: Play/Pause and Settings, no microphone, no notice, no notes, no question. What
+            // The stage: the transport and Settings, no microphone, no notice, no notes, no question. What
             // this device cannot do goes into the hidden status, which already says a silent reading is paced.
             this.controls = createStageControls({
                 runtime,
@@ -919,7 +923,9 @@ export class LiveHost {
                 paintTheme: theme => this.paintEmbedTheme(theme ?? this.embeddedTheme),
                 audible: this.voiceKind === 'browser',
                 degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability)),
-                takeFocus
+                takeFocus,
+                // The host card: whether its host will show the card full screen, or floating.
+                port: this.port
             });
             await runtime.start('The answer the assistant presents');
         } catch (error) {

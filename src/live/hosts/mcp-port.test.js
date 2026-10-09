@@ -100,7 +100,9 @@ describe('what the reference says', () => {
             ping: 'ping',
             teardown: 'ui/resource-teardown',
             // McpUiUpdateModelContextRequest in ext-apps src/spec.types.ts; a request, answered with {}.
-            updateModelContext: 'ui/update-model-context'
+            updateModelContext: 'ui/update-model-context',
+            // A request, { mode }, answered with the mode the host set (apps.mdx, Display Modes).
+            requestDisplayMode: 'ui/request-display-mode'
         });
     });
 });
@@ -351,8 +353,9 @@ describe('saying hello', () => {
         const connecting = port.connect();
         expect(sent).toHaveLength(1);
         expect(sent[0].message).toMatchObject({ jsonrpc: '2.0', method: METHODS.initialize, params: { appInfo: { name: 'RISE' }, protocolVersion: PROTOCOL_VERSION } });
-        // "View MUST declare all display modes it supports in appCapabilities.availableDisplayModes during initialization" (apps.mdx); inline is the only one.
-        expect(sent[0].message.params.appCapabilities).toEqual({ availableDisplayModes: ['inline'] });
+        // "View MUST declare all display modes it supports in appCapabilities.availableDisplayModes during initialization" (apps.mdx):
+        // the card can fill the screen or float, where a host offers either; it is never moved to a mode it did not declare.
+        expect(sent[0].message.params.appCapabilities).toEqual({ availableDisplayModes: ['inline', 'fullscreen', 'pip'] });
         hostSays({ jsonrpc: '2.0', id: sent[0].message.id, result: { hostInfo: { name: 'a host' } } });
         expect(await connecting).toEqual({ hostInfo: { name: 'a host' } });
         expect(sent[1].message).toMatchObject({ method: METHODS.initialized });
@@ -362,6 +365,27 @@ describe('saying hello', () => {
         expect((await connected({ sampling: true })).port.canSample()).toBe(true);
         expect((await connected({ sampling: false })).port.canSample()).toBe(false);
         expect(setup().port.canSample()).toBe(false);
+    });
+});
+
+describe('asking the host for another display mode', () => {
+    it('asks with the mode, and gives back the mode the host set, which becomes the context’s', async () => {
+        const { port, sent, hostSays } = await connected({ hostContext: { displayMode: 'inline', availableDisplayModes: ['inline', 'fullscreen'] } });
+        const asking = port.requestDisplayMode('fullscreen');
+        expect(sent[0].message).toMatchObject({ jsonrpc: '2.0', method: METHODS.requestDisplayMode, params: { mode: 'fullscreen' } });
+        hostSays({ jsonrpc: '2.0', id: sent[0].message.id, result: { mode: 'fullscreen' } });
+        expect(await asking).toBe('fullscreen');
+        expect(port.hostContext()).toMatchObject({ displayMode: 'fullscreen', availableDisplayModes: ['inline', 'fullscreen'] });
+    });
+
+    it('keeps the mode it was in when the host names none, and refuses a mode that is not one', async () => {
+        const { port, sent, hostSays } = await connected({ hostContext: { displayMode: 'inline' } });
+        const asking = port.requestDisplayMode('pip');
+        hostSays({ jsonrpc: '2.0', id: sent[0].message.id, result: {} });
+        expect(await asking).toBe('inline');
+        expect(port.hostContext().displayMode).toBe('inline');
+        await expect(port.requestDisplayMode('maximised')).rejects.toThrow(/display mode/u);
+        expect(sent).toHaveLength(1);
     });
 });
 

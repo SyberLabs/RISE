@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pathForRoute, routeFromPath, ROUTE_ALIASES, ROUTE_PANES } from './route-url.js';
+import { addressIsOwnTo, pathForRoute, routeFromPath, ROUTE_ALIASES, ROUTE_PANES } from './route-url.js';
 
 describe('route urls', () => {
     it('round-trips every route id', () => {
@@ -85,6 +85,15 @@ describe('route urls', () => {
         expect(pathForRoute('make', { pane: 'visual-catalog' })).toBe('/visual-catalog');
         expect(pathForRoute('settings', { pane: 'affect' })).toBe('/emotions');
         expect(routeFromPath('/night-drive').data).toEqual({ demoMode: true });
+    });
+
+    it('opens the arena, one case, and one of the four deciders on Home, at their own addresses', () => {
+        for (const path of ['/arena', '/arena/quiet-evening', ...['openai', 'jev', 'kev', 'rules'].map(id => `/arena/quiet-evening/${id}`)]) {
+            expect(routeFromPath(path)).toEqual({ id: 'home', data: { demoMode: true } });
+            expect(addressIsOwnTo('home', path)).toBe(true);
+        }
+        expect(routeFromPath('/arena/quiet-evening/claude')).toBeNull();
+        expect(routeFromPath('/arena/quiet-evening/jev/more')).toBeNull();
     });
 
     it('leaves /today to the app, which opens today\'s poem in the reader rather than a room', () => {

@@ -58,4 +58,10 @@ describe('the self-contained card', () => {
     expect(() => cardHtml({ origin: ORIGIN, indexHtml: '<html><body></body></html>' })).toThrow('head');
     expect(() => cardHtml({ origin: ORIGIN, indexHtml: INDEX.replace('<head>', '<head><base href="/x/">') })).toThrow('base');
   });
+  it('drops the page’s manifest link: a host’s policy has no manifest-src for RISE, and the card installs nothing', () => {
+    const page = INDEX.replace('<title>RISE</title>', '<title>RISE</title><link rel="manifest" href="/site.webmanifest">');
+    const html = cardHtml({ origin: ORIGIN, indexHtml: page });
+    expect(html).not.toMatch(/rel="manifest"/u);
+    expect(html).not.toContain('site.webmanifest');
+  });
 });

@@ -1,7 +1,14 @@
 # User-owned AI in RISE
 
-RISE never spends SyberLabs inference credentials. AI features run on a
-connection the reader owns, and reading and manual settings need none.
+RISE spends no SyberLabs credential at request time for any model call: AI
+features run on a connection the reader owns, and reading and manual settings
+need none. The one exception is the Plus voice (`worker/plus.mjs`): with the
+Plus voice on, the text of a subscriber's reading of their own material goes
+through the Worker to ElevenLabs on the lab's account, is metered as a
+per-subscription character count for the billing period (105,000 characters,
+at most 25,000 a UTC day),
+and comes back as audio the reader's browser keeps in IndexedDB. The Worker
+keeps no text or audio, runs no model, and makes no decision.
 
 | Option | What runs | Who pays | Where the credential lives |
 | --- | --- | --- | --- |
@@ -46,7 +53,7 @@ Features that depended on a shared model are now either on the reader's connecti
 
 1. Merge. The frontend and Worker ship together in one production deploy, so stale tabs get a clear 410 instead of a paid call.
 2. The production workflow checks the exact release, the public catalog, and that every retired route answers 410. It no longer calls a model; the old check spent a live Jev request on every release.
-3. Only after that verification, delete the unused Worker secret `OPENROUTER_API_KEY` (`wrangler secret delete OPENROUTER_API_KEY --config wrangler.production.jsonc`), any `KEV_API_KEY`, `KEV_BASE_URL`, and `KEV_REVISION` Worker secrets, the `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` repository secrets, and the `KEV_PRODUCTION_VERIFIED`, `KEV_REVISION`, `KEV_MODEL`, and `DECISION_PROVIDER` repository variables. Remove the staging Worker's `OPENROUTER_API_KEY` and `KEV_API_KEY`, and the staging environment's `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` if nothing else uses them. Stop any `rise-kev` Modal app, and close any tunnel that exposes a local Kev. Also delete the retired catalog secrets `NEON_DATABASE_URL`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN`. Keep `CLOUDFLARE_API_TOKEN` and the unrelated `OPENAI_API_KEY` (advisory code review).
+3. Only after that verification, delete the unused Worker secret `OPENROUTER_API_KEY` (`wrangler secret delete OPENROUTER_API_KEY --config wrangler.production.jsonc`), any `KEV_API_KEY`, `KEV_BASE_URL`, and `KEV_REVISION` Worker secrets, the `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` repository secrets, and the `KEV_PRODUCTION_VERIFIED`, `KEV_REVISION`, `KEV_MODEL`, and `DECISION_PROVIDER` repository variables. Remove the staging Worker's `OPENROUTER_API_KEY` and `KEV_API_KEY`, and the staging environment's `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` if nothing else uses them. Stop any `rise-kev` Modal app, and close any tunnel that exposes a local Kev. Also delete the retired catalog secrets `NEON_DATABASE_URL`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN`. Keep `CLOUDFLARE_API_TOKEN`. An `OPENAI_API_KEY` repository secret, if one exists, has no consumer since the advisory review workflow was retired; delete it too.
 
 ## Evaluation
 
@@ -61,6 +68,8 @@ node scripts/decision-eval.mjs capture --mode local --origin http://127.0.0.1:57
 READER_OPENROUTER_KEY=… node scripts/decision-eval.mjs capture --mode live --bill-my-openrouter-account --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --output jev-live.json
 node scripts/decision-eval.mjs compare --cases scripts/jev-eval-cases.json --options scripts/jev-eval-options-candidate.json --baseline jev-live.json --candidate kev-local.json
 ```
+
+The Decision Arena (`scripts/arena/arena.mjs`) runs these cases against several deciders, including OpenAI's Decisions API, on the operator's own keys. It is operator-paid offline research, run by hand and frozen into a file (ARCHITECTURE §8.47), not a reversal of #294: no reader request reaches it, and RISE still spends no shared inference.
 
 The old staging procedure, and the `Kev staging evaluation` workflow that automated it, assumed a Worker that owned the provider key. It captured Jev on SyberLabs' OpenRouter key and reached a local Kev through a public tunnel. Both are retired, along with that assumption. The gates are unchanged: every case valid, zero out-of-menu values, explicit preferences and contrast pairs at least as good as the live Jev baseline, and every Kev answer inside the 8-second browser deadline. `compare` refuses a mocked capture on either side and requires the pinned Kev revision.
 

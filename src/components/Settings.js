@@ -1,4 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
+import { PLUS_DEFAULT_VOICE, PLUS_PRICE, fetchPlusPaymentLink, fetchPlusVoices, forgetPlus, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
@@ -177,6 +178,8 @@ export class Settings {
                 </span>
               </div>
             </div>
+
+            ${this.inSession ? '' : this.plusVoiceRow()}
           </section>
 
           <section class="settings-section" aria-labelledby="safety-heading">
@@ -258,6 +261,56 @@ export class Settings {
                 <input id="${id}" type="checkbox" data-setting="${key}" ${checked ? 'checked' : ''} />
                 <span class="toggle-switch"></span>
               </label>
+            </div>`;
+    }
+
+    /**
+     * The Plus voice: the way to buy it, or, once claimed in this browser,
+     * its switch and the way to forget it here. A lapse the Worker reported
+     * (src/app/plus.js) is said on the buying row, so the link is the way back.
+     */
+    plusVoiceRow() {
+        const plus = plusState();
+        if (!plus.claimed || plus.lapsed) {
+            return `
+            <div class="settings-row settings-action">
+              <div class="settings-label-group">
+                <span class="settings-label">Plus voice</span>
+                <p class="settings-hint">A reading of your own, read aloud. ${PLUS_PRICE}.</p>
+                <p class="settings-fail" ${plus.lapsed ? '' : 'hidden'}>Plus voice has lapsed.</p>
+              </div>
+              <a class="btn-secondary" data-plus-subscribe rel="noopener" hidden>Subscribe</a>
+            </div>`;
+        }
+        const allowance = plusAllowance();
+        const used = allowance
+            ? ` · ${allowance.used.toLocaleString('en')} of ${allowance.limit.toLocaleString('en')} characters used this period`
+            : '';
+        return `
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <span class="settings-label" data-plus-status>Plus is active${used}</span>
+                <p class="settings-hint">Plus voices your own readings: files you add in Library → Your files, and Composer Currents.</p>
+              </div>
+            </div>
+            ${this.toggleRow('plusVoice', 'Plus voice',
+                'Reads a reading of your own aloud.',
+                this.settings.plusVoice !== false)}
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <label class="settings-label" for="settings-plus-voice">Voice</label>
+                <p class="settings-hint">Changing voice voices your readings again and uses allowance.</p>
+              </div>
+              <select id="settings-plus-voice" data-plus-voice>
+                <option value="${plusVoiceSlug(this.settings.plusVoiceSlug)}" selected>${plusVoiceSlug(this.settings.plusVoiceSlug) === PLUS_DEFAULT_VOICE.slug ? PLUS_DEFAULT_VOICE.label : plusVoiceSlug(this.settings.plusVoiceSlug)}</option>
+              </select>
+            </div>
+            <div class="settings-row settings-action">
+              <div class="settings-label-group">
+                <span class="settings-label">Forget Plus on this browser</span>
+                <p class="settings-hint">Clears the receipt this browser holds. The subscription itself stays with Stripe.</p>
+              </div>
+              <button type="button" class="btn-secondary" data-action="forget-plus">Forget</button>
             </div>`;
     }
 
@@ -451,6 +504,22 @@ export class Settings {
             this.clearHistory();
         });
 
+        this.container.querySelector('[data-action="forget-plus"]')?.addEventListener('click', () => {
+            void this.forgetPlus();
+        });
+
+        const subscribe = this.container.querySelector('[data-plus-subscribe]');
+        if (subscribe) this.plusLinkLoaded = this.fillPlusLink(subscribe);
+
+        const voicePicker = this.container.querySelector('[data-plus-voice]');
+        if (voicePicker) {
+            voicePicker.addEventListener('change', () => {
+                this.settings.plusVoiceSlug = voicePicker.value;
+                this.onChange('plusVoiceSlug', voicePicker.value);
+            });
+            this.plusVoicesLoaded = this.fillPlusVoices(voicePicker);
+        }
+
     }
 
     /**
@@ -551,6 +620,42 @@ export class Settings {
             console.error('[Settings] Clear data failed:', e);
             this.showToast('Some browser data could not be cleared');
         }
+    }
+
+    /** The deployment's payment link on the Subscribe button, which stays hidden without one. */
+    async fillPlusLink(subscribe) {
+        const link = await fetchPlusPaymentLink();
+        if (!link) return;
+        subscribe.href = link;
+        subscribe.hidden = false;
+    }
+
+    /** The Worker's voices, in place of the one option the row was drawn with. */
+    async fillPlusVoices(picker) {
+        const voices = await fetchPlusVoices();
+        let chosen = plusVoiceSlug(this.settings.plusVoiceSlug);
+        if (!voices.some(({ slug }) => slug === chosen)) {
+            chosen = PLUS_DEFAULT_VOICE.slug;
+            this.settings.plusVoiceSlug = chosen;
+            this.onChange('plusVoiceSlug', chosen);
+        }
+        picker.replaceChildren(...voices.map(({ slug, label }) => {
+            const option = document.createElement('option');
+            option.value = slug;
+            option.textContent = label;
+            option.selected = slug === chosen;
+            return option;
+        }));
+    }
+
+    /** The panel is drawn again so the row shows the way to buy Plus. */
+    async forgetPlus() {
+        await forgetPlus();
+        this.showToast('Plus voice forgotten on this browser.');
+        this.emotions?.destroy();
+        this.emotions = null;
+        this.render();
+        this.attachEvents();
     }
 
     showToast(message) {

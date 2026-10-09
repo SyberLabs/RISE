@@ -14,6 +14,7 @@ import {
     compileJourney, JourneyCompileError, cueForSource, movementForSource,
     boundarySourceId, isBoundarySource
 } from './journey-compiler.js';
+import { EXPERIENCE_PROGRAM_LIMITS } from './experience-program.js';
 
 const movement = (id, passageIds, extra = {}) => ({
     id,
@@ -174,9 +175,9 @@ describe('it refuses rather than approximating', () => {
     });
 
     it('rejects movement and segment overflow instead of truncating the argument', () => {
-        const movements = Array.from({ length: 17 }, (_, index) =>
+        const movements = Array.from({ length: EXPERIENCE_PROGRAM_LIMITS.maxMovements + 1 }, (_, index) =>
             movement(`m-${index}`, [`p-${index}`]));
-        expect(() => compileJourney(journey(movements))).toThrow(/16 movements/);
+        expect(() => compileJourney(journey(movements))).toThrow(new RegExp(`${EXPERIENCE_PROGRAM_LIMITS.maxMovements} movements`));
 
         const passages = Array.from({ length: 33 }, (_, index) => `p-${index}`);
         expect(() => compileJourney(journey([movement('m', passages)])))

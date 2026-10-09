@@ -22,6 +22,9 @@ If you press **Speak**, your browser may use its speech service to turn your
 voice into editable text. RISE does not receive the microphone audio.
 Inside ChatGPT or Claude, RISE receives only the reading your assistant writes
 for it, plays it, and keeps nothing.
+If you subscribe to RISE Plus and its voice is on, the text of readings of your
+own material is sent through RISE's server to ElevenLabs to be voiced, and the
+audio is kept only in your browser; see section 4.
 
 Create's hosted writing service has been retired and is unavailable. RISE no
 longer sends thoughts or revision instructions to any writer.
@@ -31,10 +34,13 @@ thought, detail, or revision instruction. Generated prose can itself contain
 sensitive information. Text and project exports are files you deliberately save.
 Import and playback do not call the writer.
 
-We do not use cookies. We do not use analytics. We do not track you across
-sites or across visits. We have no accounts, so we do not know who you are. We
-do not sell personal information. Network processing occurs for hosting,
-external resources you request, and the optional decision actions described below.
+We set one cookie, and only when you buy Plus: a signed token that carries your
+Stripe subscription number, with no name or email in it. We do not use
+analytics. We do not track you across sites or across visits. We have no
+accounts. If you buy Plus, Stripe processes the payment and knows the email you
+paid with; we do not keep it. We do not sell personal information. Network
+processing occurs for hosting, external resources you request, the optional
+decision actions, and the Plus voice described below.
 
 Scriptorium also has separate optional model routing. It sends the typed
 composition intent and target word count to the decision connection you chose.
@@ -61,9 +67,11 @@ processing described in sections 4 and 5.
 
 RISE is a browser-based audiovisual reader. It presents public-domain texts
 over generative visuals and imagery held by museums and archives. It is
-experimental software offered without charge.
+experimental software, and reading in it is free. RISE Plus, an optional
+subscription, adds a spoken voice (section 4).
 
-There is no sign-up, no login and no user account of any kind.
+There is no sign-up, no login and no user account. Plus is a receipt, not an
+account: a paid Stripe subscription and one cookie.
 
 ---
 
@@ -72,7 +80,8 @@ There is no sign-up, no login and no user account of any kind.
 The following is written to your browser's own storage, on your own computer or
 phone. RISE does not synchronize this storage to a server, and we cannot recover
 it for you. Text selected for a reading stays in the browser as the Chamber
-presents it. Browser storage belongs to its exact site origin: saved work at
+presents it, except the text the Plus voice sends to be voiced (section 4).
+Browser storage belongs to its exact site origin: saved work at
 `rise.syberlabs.space` does not appear at `rise.syberlabs.io`.
 
 ### Local storage
@@ -115,12 +124,19 @@ Session storage is discarded when you close the tab.
 | `rise-personal-assets` | Audio and imagery you have added to your own compositions |
 | `rise-workshop-media` | Media belonging to projects you are building |
 | `rise-source-cache` | A cache of texts and catalogue responses, so the same request is not repeated |
+| `rise-plus-voice` | Plus only: the audio voiced for your own readings, so playing it again costs nothing |
+
+If you use the Plus voice, the audio voiced for your readings is stored only in
+this browser's IndexedDB. Erase clears it. Voicing the same text again on
+another device, or after Erase, uses your allowance again.
 
 ### Text you paste or upload
 
 Text you bring to RISE is processed in your browser and stored in the same
 local storage above. Chamber playback does not send excerpts, intent, feedback,
-mode, or pace to a reading service or model provider. An AI reading request
+mode, or pace to a reading service or model provider. The Plus voice, when it
+is on, sends the text of a reading of your own material to be voiced, as
+section 4 describes. An AI reading request
 sends the short preference you submit, whether typed or dictated, not the
 reading or saved work in your browser.
 
@@ -155,13 +171,83 @@ What each feature sends, and only when you use it:
 - **Visual direction** while you read: sections of the reading's text, one at
   a time as you read. For a released RISE text this happens automatically
   while you are connected; for text you brought, only after you press **Send
-  this reading to Jev** in the reading's visual panel, and it stops when you
-  press **Stop sending**. Text already sent cannot be recalled.
+  this reading to Jev** (or **to Kev**, when you run RISE locally) in the
+  reading's visual panel, and it stops when you press **Stop sending**. Text
+  already sent cannot be recalled.
 
 RISE's server publishes the public reading catalog (released editions,
 sounds, and type options, as a static file). It does
 not receive your requests or your key. Former server-side AI routes remain
-only to tell older tabs they are retired.
+only to tell older tabs they are retired. The exceptions are the optional
+OpenAI Live answer below, which is switched off on this site, and the Plus
+voice.
+
+### The Plus voice
+
+RISE Plus is an optional subscription, $8.99 a month, that voices readings of
+your own material when the Plus voice is on. There is no RISE account.
+
+- **Payment.** Stripe processes the payment and holds the details you give it,
+  under its own policy (<https://stripe.com/privacy>). RISE's server then sets
+  one signed, HttpOnly cookie, `__Secure-rise_plus`, sent only to `/api/plus`, that
+  carries your Stripe subscription number.
+- **Voicing.** To voice a reading, your browser sends its text to RISE's
+  server, which sends it to ElevenLabs on SyberLabs' account and returns the
+  audio to your browser. Before voicing, the server checks with Stripe that the
+  subscription is active, at most once a minute, and Stripe tells it when a
+  subscription ends or its payment is refunded or disputed. RISE's server
+  keeps no copy of your text or of the audio.
+- **Where the audio is kept.** Only in your browser's IndexedDB (section 3).
+  Erase clears it. Voicing the same text again on another device, or after
+  Erase, uses your allowance again.
+- **What the server keeps.** For each Stripe subscription, in a Cloudflare
+  Durable Object: the characters voiced in the current billing period and
+  in the current UTC day; what
+  Stripe last said of the subscription (whether it is active, its customer
+  number and its billing period), for one minute of use; how many voicing
+  requests it made this minute; whether it was ended, refunded or disputed;
+  and the ids of the last 50 Stripe events about it. The allowance is 105,000 characters per billing period, at most 25,000 of them a day. If the
+  subscription lapses, reading continues without the voice.
+- **What ElevenLabs keeps.** ElevenLabs processes the text and returns the
+  audio under its own policy (<https://elevenlabs.io/privacy-policy>). By
+  default it retains the text and audio of each request in the account's
+  history, and its policy sets no fixed period for that. Its zero-retention
+  mode is offered only to Enterprise customers, and RISE does not use it
+  (<https://elevenlabs.io/docs/developers/resources/zero-retention-mode>).
+  ElevenLabs states that it may use data from accounts that have not opted out
+  to improve its models. RISE does not assert a retention guarantee for
+  ElevenLabs.
+
+### Live answers (experimental)
+
+The Live Current page (`/live`) answers a typed question as a spoken, timed
+reading. By default it uses a built-in demonstration that makes no network
+request. Two providers can be chosen instead, each with a key you type into the
+page. The key is held only in that page's memory and forgotten when the session
+ends, is refused, or the page closes; it is not stored in your browser. What the
+provider receives is your prompt (up to 2,000 characters), RISE's fixed
+instructions, and, if you stop an answer to ask about a place in it, the
+new question you type (up to 2,000 characters) together with the passages of
+that answer you stopped in. Each provider bills your key and
+processes the request under its own policy.
+
+- **Google Gemini.** Your browser sends the request, with your Gemini API key
+  in a request header, directly to Google at
+  `generativelanguage.googleapis.com`. RISE's servers do not see the key or the
+  request. See <https://policies.google.com/privacy>.
+- **OpenAI Realtime.** This route is switched off on rise.syberlabs.io
+  (`LIVE_REALTIME_ENABLED` is `false`), so today it refuses every request.
+  When it is switched on, your browser sends your OpenAI key, in a request
+  header, and a WebRTC session description (connection details, not your
+  prompt) once to RISE's server at `/api/live/realtime`. The server uses the
+  key for one request to OpenAI to open the session, with RISE's fixed
+  instructions, and returns OpenAI's answer to your browser. It does not store
+  or log the key, does not put it in a URL, and does not pass on OpenAI's error
+  text, which could contain it. Your prompt and the answer then travel
+  directly between your browser and OpenAI and never reach RISE's server.
+  Session starts are counted per IP address for one minute, by Cloudflare's
+  rate limiter, to stop abuse; RISE keeps no record of them. See
+  <https://openai.com/policies/privacy-policy/>.
 
 ### RISE inside ChatGPT or Claude
 
@@ -259,8 +345,13 @@ transfer no longer happens.
 
 We state these plainly because the absence is the point.
 
-- **No cookies.** RISE sets none. There is no `document.cookie` call anywhere
-  in the application.
+- **One cookie, for Plus only.** The Worker sets `__Secure-rise_plus` when you claim a
+  purchase; it is HttpOnly, read only by `/api/plus/*`, and never by page
+  script. There is no `document.cookie` call anywhere in the application.
+- **The Plus voice.** With RISE Plus and its voice on, the text of readings
+  of your own material goes through RISE's server to ElevenLabs on our account,
+  and the audio is kept only in your browser. RISE's server keeps no copy of
+  either (section 4).
 - **No analytics.** No Google Analytics, no Tag Manager, no Plausible, no
   Sentry, no product analytics of any kind. No third-party script of any kind
   runs on the page.
@@ -320,13 +411,16 @@ For the on-device data in section 3 we cannot action such a request, because we
 have no copy to access, correct or delete. The local erase control can delete
 that copy immediately. If you connected OpenRouter, it processes your requests
 under its own policy; contact OpenRouter about its processing or retention.
+Text you voiced with Plus is retained by ElevenLabs under its own policy, as
+section 4 describes.
 
 ---
 
 ## 9. California residents
 
 RISE is published from California. Our server processing is hosting request
-data, as described in section 4; AI requests go to the connection you chose.
+data and, for Plus, the voicing and the per-subscription character count, as
+described in section 4; AI requests go to the connection you chose.
 
 **We do not sell personal information**, as that term is defined in the
 California Consumer Privacy Act. The optional Scriptorium route is disclosed in
@@ -337,7 +431,7 @@ for data.
 The CCPA's obligations attach to businesses above thresholds — annual gross
 revenue over roughly $26.6 million, or buying, selling or sharing the personal
 information of 100,000 or more California consumers, or earning half of revenue
-from selling it. RISE meets none of them, and it is free. We nonetheless
+from selling it. RISE meets none of them, and reading in it is free. We nonetheless
 describe our handling here in full, and the export and erase controls in
 section 8 are available to everybody without asking.
 
@@ -365,11 +459,19 @@ ask first.
 
 ## 11. Retention
 
-RISE does not receive or persist AI requests. An OpenRouter key is held only in
-the tab's memory and never stored. Cloudflare and Netlify handle hosting and
+RISE does not receive or persist AI requests. An OpenRouter, Gemini, or OpenAI
+key is held only in the page's memory and never stored. If the OpenAI Live route
+is switched on, RISE's server uses the reader's OpenAI key for one request to
+open a session and keeps neither the key nor the request; see section 4. Google
+and OpenAI process Live requests under their own policies. Cloudflare and Netlify handle hosting and
 API request data under their own policies. OpenRouter processes the requests
 you send it under its own policy; see section 4. No provider-side retention
 guarantee is made here.
+
+For Plus, RISE's server keeps only each subscription's character count for the
+current billing period, and no text or audio. ElevenLabs retains voiced text
+and audio, and Stripe retains payment records, under their own policies; see
+section 4.
 
 Data on your device persists until you erase it or clear your browser storage.
 
@@ -381,7 +483,8 @@ The third parties in section 5 are located in various countries, including the
 United States. Your browser contacts the listed reading and image sources
 directly. If you connect OpenRouter, your browser sends AI requests to
 OpenRouter and TypeSafe; consult their policies for processing locations and
-transfers. Local Kev keeps requests on your computer.
+transfers. The Plus voice sends text to ElevenLabs, and Stripe processes Plus
+payments; the same applies to them. Local Kev keeps requests on your computer.
 
 ---
 

@@ -39,6 +39,11 @@ describe('Cloudflare static headers', () => {
         }
     });
 
+    it('leaves /content/arena/* to the Worker, so the app shell is never labelled a run file', () => {
+        // worker/index.mjs serveArenaFile sets these headers and 404s the app shell by its text/html type.
+        expect(readFileSync(output, 'utf8')).not.toMatch(/^\/content\/arena/mu);
+    });
+
     it('revalidates the app shell and mutable content pointer', () => {
         expect(existsSync(output)).toBe(true);
         const headers = readFileSync(output, 'utf8');

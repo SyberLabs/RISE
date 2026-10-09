@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exportUserData } from '../core/user-data.js';
 import { Settings } from './Settings.js';
+import { notePlusAllowance } from '../app/plus.js';
 
 vi.mock('../core/user-data.js', () => ({
     clearUserData: vi.fn(),
@@ -383,6 +384,121 @@ describe('Settings affect section', () => {
         document.body.appendChild(container);
         const settings = new Settings(container, { scope: 'session' });
         expect(container.querySelector('[data-section="affect"]')).toBeNull();
+        settings.destroy();
+    });
+});
+
+describe('Settings Plus voice', () => {
+    afterEach(() => {
+        localStorage.clear();
+        vi.unstubAllGlobals();
+        document.body.replaceChildren();
+    });
+
+    const mount = (settings = {}) => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        return new Settings(container, { settings, onChange: vi.fn() });
+    };
+
+    const PAYMENT_LINK = 'https://buy.stripe.com/test_link1';
+
+    it('offers the deployment\'s payment link until Plus is claimed in this browser', async () => {
+        const fetchImpl = vi.fn(async () => Response.json({ paymentLink: PAYMENT_LINK }));
+        vi.stubGlobal('fetch', fetchImpl);
+        const settings = mount();
+        const subscribe = settings.container.querySelector('[data-plus-subscribe]');
+        expect(subscribe.hidden).toBe(true); // nothing to open until the link is known
+        await settings.plusLinkLoaded;
+        expect(fetchImpl).toHaveBeenCalledWith('/api/plus/config');
+        expect(subscribe.hidden).toBe(false);
+        expect(subscribe.getAttribute('href')).toBe(PAYMENT_LINK);
+        expect(settings.container.textContent).toContain('$8.99 a month');
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        expect(settings.container.querySelector('.settings-fail[hidden]')).toBeTruthy();
+        settings.destroy();
+    });
+
+    it.each([
+        ['the deployment has no link', async () => Response.json({ paymentLink: null })],
+        ['the link is not a Stripe Payment Link', async () => Response.json({ paymentLink: 'https://evil.example/pay' })],
+        ['the Worker cannot be reached', async () => { throw new Error('offline'); }]
+    ])('hides Subscribe when %s', async (_, answer) => {
+        vi.stubGlobal('fetch', vi.fn(answer));
+        const settings = mount();
+        await settings.plusLinkLoaded;
+        const subscribe = settings.container.querySelector('[data-plus-subscribe]');
+        expect(subscribe.hidden).toBe(true);
+        expect(subscribe.hasAttribute('href')).toBe(false);
+        settings.destroy();
+    });
+
+    it('shows the switch, on by default, and forgets the claim on request', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        const fetchImpl = vi.fn(async url => (url === '/api/plus/config' ? Response.json({ paymentLink: PAYMENT_LINK }) : new Response(null, { status: 204 })));
+        vi.stubGlobal('fetch', fetchImpl);
+        const settings = mount();
+        const toggle = settings.container.querySelector('[data-setting="plusVoice"]');
+        expect(toggle.checked).toBe(true);
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        expect(settings.onChange).toHaveBeenCalledWith('plusVoice', false);
+
+        await settings.forgetPlus();
+        expect(fetchImpl).toHaveBeenCalledWith('/api/plus/forget', { method: 'POST' });
+        expect(localStorage.getItem('rise.plus')).toBeNull();
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        await settings.plusLinkLoaded;
+        expect(settings.container.querySelector('a[href^="https://buy.stripe.com/"]')).toBeTruthy();
+        settings.destroy();
+    });
+
+    it('shows what the Worker last said of the allowance, once it has voiced something here', () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        let settings = mount();
+        expect(settings.container.querySelector('[data-plus-status]').textContent).toBe('Plus is active');
+        expect(settings.container.textContent).toContain('Plus voices your own readings: files you add in Library → Your files, and Composer Currents.');
+        settings.destroy();
+        document.body.replaceChildren();
+
+        notePlusAllowance({ used: 12345, limit: 105000, periodEnd: 1 });
+        settings = mount();
+        expect(settings.container.querySelector('[data-plus-status]').textContent).toBe('Plus is active · 12,345 of 105,000 characters used this period');
+        settings.destroy();
+    });
+
+    it('offers the Worker\'s voices, says that a change costs allowance, and keeps the choice', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        vi.stubGlobal('fetch', vi.fn(async () => Response.json([{ slug: 'default', label: 'Default' }, { slug: 'river', label: 'River' }])));
+        const settings = mount({ plusVoiceSlug: 'river' });
+        await settings.plusVoicesLoaded;
+        const picker = settings.container.querySelector('[data-plus-voice]');
+        expect([...picker.options].map(option => [option.value, option.textContent])).toEqual([['default', 'Default'], ['river', 'River']]);
+        expect(picker.value).toBe('river');
+        expect(settings.container.textContent).toContain('Changing voice voices your readings again and uses allowance.');
+
+        picker.value = 'default';
+        picker.dispatchEvent(new Event('change'));
+        expect(settings.onChange).toHaveBeenCalledWith('plusVoiceSlug', 'default');
+        settings.destroy();
+    });
+
+    it('offers Default alone when the voices cannot be listed', async () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+        const settings = mount();
+        await settings.plusVoicesLoaded;
+        const picker = settings.container.querySelector('[data-plus-voice]');
+        expect([...picker.options].map(option => option.value)).toEqual(['default']);
+        settings.destroy();
+    });
+
+    it('says when the Worker reported a lapse', () => {
+        localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1, lapsed: true }));
+        const settings = mount();
+        const fail = settings.container.querySelector('.settings-fail:not([hidden])');
+        expect(fail?.textContent).toBe('Plus voice has lapsed.');
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
         settings.destroy();
     });
 });

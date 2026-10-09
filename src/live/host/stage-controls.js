@@ -3,14 +3,20 @@ import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
 import { FONT_SIZE_CHIPS, resolveFontSize } from '../../core/chamber-type-size.js';
 
 /**
- * The stage inside a ChatGPT card: the reading, and two objects over it.
+ * The stage inside a host's card: the reading, and a row of objects over it.
  *
- * Play/Pause at the bottom-left and Settings at the bottom-right, and nothing
- * else visible but one sentence when the reading fails. What a screen reader
- * needs is here and hidden: the state sentence, the whole reading as a list,
- * and each committed sentence while the reading is silent. It draws no
- * reading and keeps no time; it asks the runtime for things and shows what
- * the runtime says. (docs/product/discussions/2026-10-05-embed-stage-decision.md §2–§4)
+ * The full transport (the default): back a passage, Play/Pause, forward a
+ * passage, say this passage again, the pace, full screen where the host or
+ * the browser can give it, and Settings at the right, with a thin line above
+ * them of one tick per passage that is also the progress. The minimal
+ * transport is the two objects of the 2026-10-05 decision, Play/Pause at the
+ * bottom-left and Settings at the bottom-right, kept for ChatGPT's two-action
+ * guideline. Nothing else is visible but one sentence when the reading fails.
+ * What a screen reader needs is here and hidden: the state sentence (with the
+ * passage, of how many), the whole reading as a list, and each committed
+ * sentence while the reading is silent. It draws no reading and keeps no
+ * time; it asks the runtime for things and shows what the runtime says.
+ * (docs/product/discussions/2026-10-05-embed-stage-decision.md §2–§4, and its amendment of 2026-10-08)
  */
 
 const INTENSITY = { min: 0.4, max: 0.75, step: 0.05, initial: 0.65 };
@@ -24,6 +30,15 @@ const PAUSE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden
 const SETTINGS_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 7h10M18 7h2M4 17h4M12 17h8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="16" cy="7" r="2.25" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="8" cy="17" r="2.25" fill="none" stroke="currentColor" stroke-width="1.75"/></svg>';
 const NO_VOICE_GLYPH = '<svg class="rise-stage__novoice" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false"><path d="M4 10v4h3l4 3V7l-4 3zM15 9l5 6M20 9l-5 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 const CLOSE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
+const BACK_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M7 6v12M18 6.5v11L9.5 12z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const FORWARD_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M17 6v12M6 6.5v11l8.5-5.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const REPLAY_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M17.3 3.2v3.5h-3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="1.75" fill="currentColor"/></svg>';
+const FULLSCREEN_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const PIP_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="17" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><rect x="12" y="11.5" width="6" height="5" rx="1" fill="currentColor"/></svg>';
+
+/** The pace object's rates, in the order one press steps through them; the keys step along them and stop at the ends. */
+const PACES = [0.8, 1, 1.25, 1.5];
+const KEYS_DESCRIBED = 'Keys on the stage: Space plays or pauses; the Left and Right arrows go back or on a passage; R says the passage again; F fills the screen where it can; minus and equals, or the brackets, slow or quicken the pace.';
 
 /**
  * @param {object} options
@@ -38,9 +53,16 @@ const CLOSE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden
  *   hidden status; a `speechOutput` entry marks the object as having no voice
  * @param {boolean} [options.takeFocus] the control that started the reading had the focus and is gone: the
  *   object takes it once it can be pressed, unless the reader has put the focus somewhere else meanwhile
+ * @param {'full' | 'minimal'} [options.transport] the whole transport, or only Play/Pause and Settings
+ * @param {object | null} [options.port] the host card's port (mcp-port.js), whose host may offer to show the
+ *   card full screen or floating; with none, the browser's own full screen where it allows it
  * @param {Document} [options.doc]
  */
-export function createStageControls({ runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], takeFocus = false, doc = document }) {
+export function createStageControls({
+    runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], takeFocus = false,
+    transport = 'full', port = null, doc = document
+}) {
+    const full = transport !== 'minimal';
     const noVoice = degradations.some(note => note.capability === 'speechOutput');
     const systemStill = degradations.some(note => note.capability === 'reducedMotion');
     // Why it is silent, in the object's name: the two reasons src/live/capabilities.js gives.
@@ -51,14 +73,26 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
     root.id = 'rise-stage-controls';
     root.className = 'rise-stage';
     root.setAttribute('aria-label', 'Reading controls');
+    root.dataset.transport = full ? 'full' : 'minimal';
+    const object = (name, label, glyph, keys) => `<button type="button" class="rise-stage__object rise-stage__${name}" data-stage="${name}" aria-label="${label}" aria-disabled="true"${keys ? ` aria-keyshortcuts="${keys}"` : ''}>${glyph}</button>`;
     root.innerHTML = `
       <p class="rise-stage__status rise-stage__sr" role="status" aria-live="polite"></p>
       <ol class="rise-stage__text rise-stage__sr" aria-label="The whole reading"></ol>
       <p class="rise-stage__said rise-stage__sr" aria-live="off"></p>
       <p class="rise-stage__alert" role="alert" hidden></p>
-      <button type="button" class="rise-stage__object rise-stage__play" data-stage="play"${noVoice ? ' data-voice="none"' : ''}></button>
-      <button type="button" class="rise-stage__object rise-stage__settings" data-stage="settings" aria-label="Settings" aria-expanded="false" aria-controls="rise-settings">${SETTINGS_GLYPH}</button>
-      <section id="rise-settings" class="rise-settings" role="dialog" aria-modal="false" aria-label="Settings" hidden>
+      <div class="rise-stage__bar">
+        ${full ? '<div class="rise-stage__beats" aria-hidden="true"></div>' : ''}
+        <div class="rise-stage__row">
+          ${full ? object('back', 'Back a passage', BACK_GLYPH, 'ArrowLeft') : ''}
+          <button type="button" class="rise-stage__object rise-stage__play" data-stage="play"${noVoice ? ' data-voice="none"' : ''}></button>
+          ${full ? `${object('forward', 'Forward a passage', FORWARD_GLYPH, 'ArrowRight')}${object('replay', 'Say this passage again', REPLAY_GLYPH, 'R')}
+          <button type="button" class="rise-stage__object rise-stage__pace" data-stage="pace" aria-keyshortcuts="Minus Equal"></button>
+          <button type="button" class="rise-stage__object rise-stage__fullscreen" data-stage="fullscreen" aria-pressed="false" aria-keyshortcuts="F" hidden></button>` : ''}
+          <button type="button" class="rise-stage__object rise-stage__settings" data-stage="settings" aria-label="Settings" aria-expanded="false" aria-controls="rise-settings">${SETTINGS_GLYPH}</button>
+        </div>
+      </div>
+      <section id="rise-settings" class="rise-settings" role="dialog" aria-modal="false" aria-label="Settings"${full ? ' aria-describedby="rise-settings-keys"' : ''} hidden>
+        ${full ? `<p id="rise-settings-keys" class="rise-stage__sr">${KEYS_DESCRIBED}</p>` : ''}
         <div class="rise-settings__head">
           <h2 class="rise-settings__title">Settings</h2>
           <button type="button" class="rise-settings__close" aria-label="Close settings">${CLOSE_GLYPH}</button>
@@ -96,7 +130,15 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
     const theme = $('#rise-settings-theme');
     const still = $('#rise-settings-still');
     const sizes = [...$('.rise-settings__chips').querySelectorAll('input')];
+    const back = $('[data-stage="back"]');
+    const forward = $('[data-stage="forward"]');
+    const replay = $('[data-stage="replay"]');
+    const pace = $('[data-stage="pace"]');
+    const fullscreen = $('[data-stage="fullscreen"]');
+    const beats = $('.rise-stage__beats');
     let destroyed = false;
+    // The passages the beat line was last drawn for.
+    let drawn = null;
     let listed = -1;
     let segmentId = null;
     // The reader's own intensity, kept for the reading: the director drops a control at every new cue.
@@ -191,13 +233,97 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
         for (const chip of sizes) chip.checked = chip.value === size;
     }
 
+    // ─── the transport ─────────────────────────────────────────────────
+
+    const rate = value => `${Number(value.toFixed(2))}`;
+    const disable = (control, off) => control.setAttribute('aria-disabled', off ? 'true' : 'false');
+    const enabled = control => control.getAttribute('aria-disabled') !== 'true';
+
+    /**
+     * How this card can fill the screen, or null: a host card asks its host for a display mode the host offers
+     * (full screen first, else floating); a page in no host card uses the browser's own full screen, of the whole
+     * page (the stage itself holds only the controls), where the browser allows it.
+     */
+    function display() {
+        if (port) {
+            const context = port.hostContext?.() ?? {};
+            const offered = Array.isArray(context.availableDisplayModes) ? context.availableDisplayModes : [];
+            const mode = offered.includes('fullscreen') ? 'fullscreen' : offered.includes('pip') ? 'pip' : null;
+            if (!mode || typeof port.requestDisplayMode !== 'function') return null;
+            const active = context.displayMode === mode;
+            return { mode, active, toggle: () => port.requestDisplayMode(active ? 'inline' : mode) };
+        }
+        if (doc.fullscreenEnabled !== true) return null;
+        const active = Boolean(doc.fullscreenElement);
+        return { mode: 'fullscreen', active, toggle: () => (active ? doc.exitFullscreen() : doc.documentElement.requestFullscreen()) };
+    }
+
+    function setPace(value) {
+        try { runtime.setPace(value); } catch { /* the pace stays as it was */ }
+    }
+
+    /** One step along the rates, stopping at the ends. */
+    function stepPace(direction) {
+        const now = runtime.snapshot().pace ?? 1;
+        const to = direction > 0 ? PACES.find(value => value > now) : PACES.findLast(value => value < now);
+        if (to !== undefined) setPace(to);
+    }
+
+    function seek(target) {
+        try { runtime.seek(target); } catch { /* a passage that cannot be reached leaves the reading where it is */ }
+    }
+
+    /** The beat line: one tick per passage, drawn again only when the passages change, lit by where the reader is. */
+    function drawBeats(position, gone) {
+        beats.hidden = gone || !position;
+        const passages = runtime.passages?.() ?? [];
+        const key = passages.map(passage => `${passage.segmentId}:${passage.spoken}`).join('|');
+        if (key !== drawn) {
+            drawn = key;
+            beats.replaceChildren(...passages.map(({ segmentId, spoken }) => {
+                const tick = doc.createElement('button');
+                tick.type = 'button';
+                tick.tabIndex = -1;
+                tick.className = 'rise-stage__beat';
+                tick.dataset.segmentId = segmentId;
+                tick.dataset.spoken = String(spoken);
+                tick.addEventListener('click', () => seek({ segmentId }));
+                return tick;
+            }));
+        }
+        const at = position?.segmentIndex ?? -1;
+        [...beats.children].forEach((tick, index) => { tick.dataset.state = index < at ? 'passed' : index === at ? 'current' : 'ahead'; });
+    }
+
+    function renderTransport(snapshot, gone) {
+        const { status, position } = snapshot;
+        const ready = (status === 'live' || status === 'interrupted' || status === 'ended') && Boolean(position);
+        for (const control of [back, forward, replay, pace]) control.hidden = gone;
+        disable(back, !ready || position.segmentIndex === 0);
+        disable(forward, !ready || position.segmentIndex >= position.segmentCount - 1);
+        disable(replay, !ready);
+        const now = snapshot.pace ?? 1;
+        pace.textContent = `${rate(now)}×`;
+        pace.setAttribute('aria-label', `Pace, ${rate(now)} times`);
+        const shown = display();
+        fullscreen.hidden = gone || !shown;
+        if (shown) {
+            fullscreen.innerHTML = shown.mode === 'pip' ? PIP_GLYPH : FULLSCREEN_GLYPH;
+            fullscreen.setAttribute('aria-label', shown.mode === 'pip' ? 'Pop out' : 'Full screen');
+            fullscreen.setAttribute('aria-pressed', String(shown.active));
+        }
+        drawBeats(position, gone);
+    }
+
     function render(snapshot) {
         if (destroyed) return;
         const { status } = snapshot;
         const gone = status === 'failed' || status === 'stopped';
         reachChamber();
         const stillNote = !systemStill && still.checked ? [STILL_NOTE] : [];
-        statusLine.textContent = [describeStatus(snapshot, { audible, dive: false }), ...degradations.map(note => note.effect), ...stillNote].filter(Boolean).join(' ');
+        const where = full && !gone && snapshot.position ? [`Passage ${snapshot.position.segmentIndex + 1} of ${snapshot.position.segmentCount}.`] : [];
+        statusLine.textContent = [describeStatus(snapshot, { audible, dive: false }), ...where, ...degradations.map(note => note.effect), ...stillNote].filter(Boolean).join(' ');
+        if (full) renderTransport(snapshot, gone);
         play.hidden = gone;
         settings.hidden = gone;
         if (gone) closeSheet(false);
@@ -277,6 +403,50 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
         if (runtime.status === 'live') void runtime.interrupt().catch(() => {});
     });
 
+    let stopHostContext = null;
+    const repaint = () => { if (!destroyed) render(runtime.snapshot()); };
+    if (full) {
+        back.addEventListener('click', () => { if (enabled(back)) seek({ delta: -1 }); });
+        forward.addEventListener('click', () => { if (enabled(forward)) seek({ delta: 1 }); });
+        replay.addEventListener('click', () => {
+            if (!enabled(replay)) return;
+            try { runtime.replay(); } catch { /* nothing to say again */ }
+        });
+        pace.addEventListener('click', () => {
+            const now = runtime.snapshot().pace ?? 1;
+            const at = PACES.indexOf(now);
+            setPace(at < 0 ? PACES.find(value => value > now) ?? PACES[0] : PACES[(at + 1) % PACES.length]);
+        });
+        fullscreen.addEventListener('click', () => {
+            const shown = display();
+            if (!shown) return;
+            // Asked at once, inside the press: a browser gives full screen only to a page the reader has just used.
+            try { Promise.resolve(shown.toggle()).catch(() => {}).then(repaint); } catch { /* the host or browser said no */ }
+        });
+        // Heard on the stage only, never the document; never from the sheet's controls or a field for words.
+        root.addEventListener('keydown', event => {
+            if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+            const target = event.target;
+            if (sheet.contains(target) || target.closest?.('input, select, textarea, [contenteditable]:not([contenteditable="false"])')) return;
+            let act;
+            switch (event.key) {
+                // On an object, Space is that object's own press.
+                case ' ': if (target.closest?.('button')) return; act = () => play.click(); break;
+                case 'ArrowLeft': act = () => back.click(); break;
+                case 'ArrowRight': act = () => forward.click(); break;
+                case 'r': case 'R': act = () => replay.click(); break;
+                case 'f': case 'F': if (fullscreen.hidden) return; act = () => fullscreen.click(); break;
+                case '-': case '_': case '[': act = () => stepPace(-1); break;
+                case '=': case '+': case ']': act = () => stepPace(1); break;
+                default: return;
+            }
+            event.preventDefault();
+            act();
+        });
+        stopHostContext = port?.onHostContext?.(repaint) ?? null;
+        doc.addEventListener('fullscreenchange', repaint);
+    }
+
     const off = runtime.subscribe(render);
     render(runtime.snapshot());
 
@@ -286,6 +456,8 @@ export function createStageControls({ runtime, onPlayAgain, chamber = () => null
             if (destroyed) return;
             destroyed = true;
             doc.removeEventListener('pointerdown', outside);
+            doc.removeEventListener('fullscreenchange', repaint);
+            stopHostContext?.();
             off();
             root.remove();
         }

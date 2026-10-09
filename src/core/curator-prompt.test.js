@@ -18,7 +18,7 @@ import {
     buildLibraryCatalogue,
     exportCuratorContext
 } from './curator-context.js';
-import { buildCuratorPrompt } from './curator-prompt.js';
+import { buildCuratorPrompt, curatorMovementCeiling } from './curator-prompt.js';
 import { parseCuratorPaste } from './experience-program-io.js';
 import { isBoundarySource } from './journey-compiler.js';
 import {
@@ -262,7 +262,7 @@ describe('the prompt prices an opening at the number the gate spends', () => {
                 if (index + 1 < body) return;
                 if (count <= extentReadingBound(Number.MAX_SAFE_INTEGER, ask)) return;
                 if ((clips.length + 1) * cost > budget) return;
-                if (clips.length >= EXPERIENCE_PROGRAM_LIMITS.maxMovements) return;
+                if (clips.length >= curatorMovementCeiling()) return;
                 clips.push({
                     id: `m${clips.length + 1}`,
                     anchor: { sourceIds: [`${entry.id}#${index + 1}:${ask}`] },
@@ -515,7 +515,7 @@ describe('the prompt teaches composing from several pieces', () => {
     it('states both ceilings as the constants that enforce them', () => {
         expect(prompt).toContain(`${READING_LIMITS.maxSources} sources`);
         expect(prompt).toContain(
-            `${EXPERIENCE_PROGRAM_LIMITS.maxMovements} movements in one reading`);
+            `${curatorMovementCeiling()} movements in one reading`);
     });
 
     it('holds when the movements ceiling moves under it', async () => {

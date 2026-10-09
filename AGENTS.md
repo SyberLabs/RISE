@@ -126,11 +126,12 @@ current scope; the live Realtime page stays switched off by default. See
   `npm run measure:first-load`, which holds what `dist/index.html` fetches to
   a ratcheting brotli budget declared in the script, then the browser gate
   (`npm run test:e2e:gate`, a few minutes). It runs for every pull request,
-  including prose-only changes. The exact list is in
-  `.github/workflows/ci.yml`.
-- After a merge, a separate `CI` job builds and deploys `main`. The full unit,
-  Scriptorium, and sharded browser suites run on `main` and on manual
-  dispatch; they do not hold deployment.
+  including prose-only changes. The fast unit test list, and the number of
+  files it must collect, are in `vitest.fast.config.js`.
+- After a merge, the `CI` job runs again on `main` and uploads the `dist/` it
+  built; the `production` job waits for it and deploys that artifact without
+  rebuilding. The full unit, Scriptorium, and sharded browser suites run on
+  `main` after that and on manual dispatch; they do not hold deployment.
 - `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
   `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
   `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
@@ -139,11 +140,25 @@ current scope; the live Realtime page stays switched off by default. See
   Any relative Markdown link in it must point at a file in the tree, or the
   wiki build fails.
 - The main-branch ruleset requires one check and no human approval: `CI`.
-  `Agentic review` (`.github/workflows/agentic-review.yml`, an AI code review)
-  is advisory: without an `OPENAI_API_KEY` secret it passes with a notice that
-  no review ran; with one it blocks on concrete correctness or security
-  defects. Never make a check that only runs after merge required; it blocks
-  pull requests forever.
+  It also requires every review thread resolved. Never make a check that only
+  runs after merge required; it blocks pull requests forever.
+- `Codex feedback` (`.github/workflows/codex-feedback.yml`) is not a check.
+  It runs when Codex submits a review with unresolved findings and answers
+  them under the Reviewer findings contract above. It is not required and
+  must never be.
+
+## Public dependency lookup (GitHits)
+
+- `.mcp.json` registers the hosted GitHits MCP server
+  (`https://mcp.githits.com`, OAuth on first use via `/mcp`). Headless
+  agents set `GITHITS_API_TOKEN` in the environment; never write a token to
+  a file.
+- Use it for the exact source and docs of the dependency version in
+  `package-lock.json`, and for vulnerability, changelog, and upgrade checks
+  before bumping a dependency.
+- It indexes public open-source code only. Never send it private RISE code,
+  tokens, secrets, or personal data; it cannot answer questions about this
+  repository.
 
 ## Product roadmap and task tracking
 
@@ -164,6 +179,23 @@ current scope; the live Realtime page stays switched off by default. See
   integration, and production verification with the coordinating agent.
 - Merge through the required `CI` check, then verify the exact live release.
   Do not add an agent service or another required check for fan-out.
+
+## Reviewer findings
+
+Codex reviews every pull request and opens a review thread per finding. The
+author agent, not a human, answers every thread, with exactly one of two
+replies, then resolves it:
+
+- `Fixed in <short sha>: <one line>` after the smallest correct change and the
+  narrowest test that proves it. Commit as `Codex: <what changed>`.
+- `Not a defect: <one-line reason>` when the finding is style, naming,
+  preference, or speculative hardening. A defect is something that would ship
+  a bug, a security hole, data loss, a broken build, or a failing test.
+
+A thread left unanswered is a merge blocker, not an opinion. When the author
+session is gone, `.github/workflows/codex-feedback.yml` answers in its place
+(Sonnet, bounded turns, two rounds per pull request) and arms auto-merge.
+Humans review the product at the live site, not the pull request.
 
 ## Running / manual testing
 

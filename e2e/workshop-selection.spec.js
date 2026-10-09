@@ -40,14 +40,14 @@ async function openWorkshopWithSource(page) {
  * the text had moved on by some thirty pixels, the tap landed in the box's
  * padding or on the header above it, and Chromium collapsed the selection,
  * which left nothing for `captureVisualScoreSelection` to find. The visual
- * lane never showed this only because its touch lands off-screen.
+ * lane never showed this only because its touch landed off-screen.
  *
- * So the box is measured only after the text has held one position for a
+ * So the touch is placed only after the text has held one position for a
  * stretch longer than the animation takes to begin. Two quiet frames, which
  * is Playwright's own stability check, are not enough: the scroll a click
  * starts can wait a few frames before its first step.
  */
-async function settledTextBox(page) {
+async function settledText(page) {
     await page.waitForFunction(() => {
         const top = document.querySelector('#visual-score-text')?.getBoundingClientRect().top;
         const now = performance.now();
@@ -60,7 +60,68 @@ async function settledTextBox(page) {
         window.__riseSettledText = null;
         return true;
     });
-    return page.locator('#visual-score-text').boundingBox();
+}
+
+/**
+ * SELECT THE FIRST CHARACTERS BY TOUCH, WITH THE FINGER ON THEM.
+ *
+ * A finger lifted where it landed is a tap, and Chromium follows a tap with
+ * its own mousedown, mouseup and click at that point. A tap on the selected
+ * characters leaves the selection alone; a tap anywhere else in the text
+ * collapses it at mouseup; and a tap on the row of lane tabs, which is sticky
+ * and sits over the text once the studio has scrolled, switches lanes and
+ * re-renders the text under the selection. In each case
+ * `captureVisualScoreSelection` runs, finds the selection collapsed and the
+ * palette never opens. The touch used to land at a fixed offset from the
+ * text's box, which is on the selected characters only when the studio's
+ * smooth scroll has come to rest at one particular offset — it came to rest
+ * at 219 or 572 on this machine depending on timing — and the visual lane's
+ * tap landed off-screen altogether, so only the audio lane could show it.
+ *
+ * So the finger goes where the selection will be: the first line is brought
+ * into the clear, instantly, the layout is left to settle, and the touch
+ * lands at the centre of the characters this then selects, once nothing is
+ * found covering them.
+ */
+async function touchSelectFirstCharacters(page, cdp, chars) {
+    await page.evaluate(() => {
+        const root = document.querySelector('#visual-score-text');
+        const first = document.createTreeWalker(root, NodeFilter.SHOW_TEXT).nextNode();
+        const range = document.createRange();
+        range.selectNodeContents(first);
+        const line = range.getClientRects()[0];
+        let scroller = root.parentElement;
+        while (scroller && !(/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)
+            && scroller.scrollHeight > scroller.clientHeight)) scroller = scroller.parentElement;
+        (scroller || document.scrollingElement).scrollBy({ top: line.top - innerHeight / 2, behavior: 'instant' });
+    });
+    await settledText(page);
+    const point = await page.evaluate((n) => {
+        const root = document.querySelector('#visual-score-text');
+        const first = document.createTreeWalker(root, NodeFilter.SHOW_TEXT).nextNode();
+        const range = document.createRange();
+        range.setStart(first, 0);
+        range.setEnd(first, Math.min(n, first.nodeValue.length));
+        const rect = range.getClientRects()[0];
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        const hit = document.elementFromPoint(x, y);
+        return { x, y, covered: hit && !root.contains(hit) ? `${hit.tagName}.${hit.className}` : null };
+    }, chars);
+    expect(point.covered, 'nothing may cover the characters the finger lands on').toBeNull();
+
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: point.x, y: point.y }] });
+    await page.evaluate((n) => {
+        const root = document.querySelector('#visual-score-text');
+        const first = document.createTreeWalker(root, NodeFilter.SHOW_TEXT).nextNode();
+        const range = document.createRange();
+        range.setStart(first, 0);
+        range.setEnd(first, Math.min(n, first.nodeValue.length));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }, chars);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
 }
 
 test('touch selection opens the passage palette and assigns without a synthetic mouseup', async ({ page }) => {
@@ -82,25 +143,8 @@ test('touch selection opens the passage palette and assigns without a synthetic 
     await expect(page.locator('#studio-contextual-inspector')).not.toContainText('Presentation');
     await page.getByRole('button', { name: 'Score', exact: true }).click();
 
-    const box = await settledTextBox(page);
-    expect(box).not.toBeNull();
-
     const cdp = await page.context().newCDPSession(page);
-    await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchStart',
-        touchPoints: [{ x: box.x + 24, y: box.y + 28 }]
-    });
-    await page.evaluate(() => {
-        const root = document.querySelector('#visual-score-text');
-        const firstText = document.createTreeWalker(root, NodeFilter.SHOW_TEXT).nextNode();
-        const range = document.createRange();
-        range.setStart(firstText, 0);
-        range.setEnd(firstText, Math.min(24, firstText.nodeValue.length));
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-    });
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await touchSelectFirstCharacters(page, cdp, 24);
 
     const palette = page.locator('.studio-passage-popover');
     await expect(palette).toBeVisible({ timeout: 5_000 });
@@ -121,23 +165,7 @@ test('touch selection opens the passage palette and assigns without a synthetic 
     await page.getByRole('button', { name: 'Score', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Audio', exact: true })).toHaveAttribute('aria-selected', 'true');
 
-    const audioBox = await settledTextBox(page);
-    expect(audioBox).not.toBeNull();
-    await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchStart',
-        touchPoints: [{ x: audioBox.x + 24, y: audioBox.y + 28 }]
-    });
-    await page.evaluate(() => {
-        const root = document.querySelector('#visual-score-text');
-        const candidate = document.createTreeWalker(root, NodeFilter.SHOW_TEXT).nextNode();
-        const range = document.createRange();
-        range.setStart(candidate, 0);
-        range.setEnd(candidate, Math.min(18, candidate.nodeValue.length));
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-    });
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await touchSelectFirstCharacters(page, cdp, 18);
 
     await expect(page.locator('.audio-passage-popover')).toBeVisible({ timeout: 5_000 });
     await page.locator('.audio-passage-popover').getByRole('button', { name: 'Assign audio' }).click();
@@ -148,24 +176,6 @@ test('touch selection opens the passage palette and assigns without a synthetic 
     await expect(page.locator('[aria-label="Visual assignments"]')).toBeVisible();
 });
 
-async function selectFirstWords(page, cdp, chars = 20) {
-    const box = await settledTextBox(page);
-    await cdp.send('Input.dispatchTouchEvent', {
-        type: 'touchStart', touchPoints: [{ x: box.x + 24, y: box.y + 28 }]
-    });
-    await page.evaluate((n) => {
-        const root = document.querySelector('#visual-score-text');
-        const node = document.createTreeWalker(root, NodeFilter.SHOW_TEXT).nextNode();
-        const range = document.createRange();
-        range.setStart(node, 0);
-        range.setEnd(node, Math.min(n, node.nodeValue.length));
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-    }, chars);
-    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-}
-
 test('the audio lane offers a passage picker on selection, as the visual lane does', async ({ page }) => {
     test.setTimeout(90_000);
     await openWorkshopWithSource(page);
@@ -173,7 +183,7 @@ test('the audio lane offers a passage picker on selection, as the visual lane do
     await page.getByRole('tab', { name: 'Audio', exact: true }).click();
 
     const cdp = await page.context().newCDPSession(page);
-    await selectFirstWords(page, cdp);
+    await touchSelectFirstCharacters(page, cdp, 20);
 
     // The point: choosing what to assign is possible from the selection itself.
     // Before this, the audio popover offered only "Browse audio", so the lane
@@ -194,7 +204,7 @@ test('choosing from the passage picker does not leave the Combined view', async 
     await page.getByRole('tab', { name: 'Combined', exact: true }).click();
 
     const cdp = await page.context().newCDPSession(page);
-    await selectFirstWords(page, cdp);
+    await touchSelectFirstCharacters(page, cdp, 20);
 
     const palette = page.locator('.studio-passage-popover');
     await expect(palette).toBeVisible({ timeout: 5_000 });

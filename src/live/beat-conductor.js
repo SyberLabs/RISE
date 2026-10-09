@@ -24,7 +24,12 @@
  * does (the scene runtime keeps it within ms, the scene's done and maxMs), and
  * at maxMs at the latest whatever it does. While the scene holds, the Player
  * is told the hold may last maxMs, so its own watchdog waits that long. A hold
- * with no scene to ask, or no maxMs, lasts exactly its `ms`.
+ * with no scene to ask, or no maxMs, lasts exactly its `ms`, at the Player's
+ * pace; a pace change while it runs re-times what is left of it (`repace`).
+ *
+ * A seek (`seek`) lands the cues of the earlier beats of the running scene
+ * at once, marked `instant`, as the design's replay does
+ * (docs/superpowers/specs/2026-10-08-creative-control-design.md §7).
  */
 export function createBeatConductor({ clock, onCue = null, onHold = null }) {
     let player = null;
@@ -35,6 +40,8 @@ export function createBeatConductor({ clock, onCue = null, onHold = null }) {
     let lastCued = null;
 
     const timed = atom => atom?.hold !== undefined || atom?.beatTimed === true;
+    /** What no voice says goes at the Player's pace, which follows the voice's (runtime.js setPace). */
+    const paced = atom => atom.duration * (player?.speedFactor ?? 1);
 
     function cancelWait() {
         if (waiting) { waiting.cancel?.(); waiting = null; }
@@ -42,7 +49,7 @@ export function createBeatConductor({ clock, onCue = null, onHold = null }) {
 
     function duration(atom) {
         if (!timed(atom)) return undefined;
-        return waiting?.atom === atom && waiting.held ? atom.hold.maxMs : atom.duration;
+        return waiting?.atom === atom && waiting.held ? atom.hold.maxMs : paced(atom);
     }
 
     /** The scene's promise for a hold it may end, or null when the conductor's own clock decides. */
@@ -56,10 +63,20 @@ export function createBeatConductor({ clock, onCue = null, onHold = null }) {
         }
     }
 
+    /** The holds a scene holds: real time on the scene's clock, remembered past a pause, which drops the wait. */
+    const sceneHeld = new WeakSet();
+
+    /** Whether an atom's time is the scene's, not the pace's: a hold the scene may end keeps its remainder whatever the pace. */
+    function fixed(atom) {
+        return sceneHeld.has(atom);
+    }
+
     function completion(atom) {
         if (!timed(atom)) return null;
         cancelWait();
         const held = sceneHold(atom);
+        if (held) sceneHeld.add(atom);
+        else sceneHeld.delete(atom);
         const mine = { cancel: null, atom, held: held !== null };
         waiting = mine;
         return new Promise(resolve => {
@@ -70,18 +87,35 @@ export function createBeatConductor({ clock, onCue = null, onHold = null }) {
                 stop?.();
                 resolve({ reason: 'ended' });
             };
-            stop = clock.setTimer(end, held ? atom.hold.maxMs : atom.duration);
+            /** Time the atom as one of `total` ms, `fraction` of which has passed. */
+            mine.time = (total, fraction = 0) => {
+                stop?.();
+                mine.total = total;
+                mine.startedAt = clock.now() - fraction * total;
+                stop = clock.setTimer(end, total * (1 - fraction));
+            };
+            mine.time(held ? atom.hold.maxMs : paced(atom));
             mine.cancel = () => stop();
             held?.then(end, () => {});
         });
     }
 
+    /** The Player's pace changed: a running hold or shown line goes on at it from where it is; a scene's hold keeps its maxMs. */
+    function repace() {
+        if (!waiting || waiting.held) return;
+        const fraction = waiting.total > 0 ? (clock.now() - waiting.startedAt) / waiting.total : 1;
+        if (!(fraction < 1)) return;
+        waiting.time(paced(waiting.atom), fraction);
+    }
+
     return {
+        repace,
+
         /** Take a place ahead of the speech governor on the Player's clock. */
         install(target) {
             if (player) return;
             player = target;
-            release = player.govern({ duration, completion });
+            release = player.govern({ duration, completion, fixed });
             stopWatching = player.on('state', ({ state }) => {
                 if (state === 'paused' || state === 'idle' || state === 'complete') cancelWait();
             });
@@ -93,6 +127,30 @@ export function createBeatConductor({ clock, onCue = null, onHold = null }) {
                 // After the atom's other listeners: the view mounts the scene a beat starts as the atom arrives.
                 queueMicrotask(() => { if (player) onCue?.(given); });
             });
+        },
+
+        /**
+         * The reader moved the reading to `atoms[index]`. The wait in hand is dropped; the cue of the beat there fires
+         * again when it begins; the cues of the earlier beats of the scene running there land at once (`instant`), in
+         * order, before it, so the scene is where it would have been.
+         */
+        seek(atoms, index) {
+            cancelWait();
+            lastCued = null;
+            const at = atoms.findIndex((atom, i) => i >= index && !atom.seam);
+            const target = atoms[at];
+            if (!target?.scene || target.beat?.scene !== undefined) return;
+            const earlier = [];
+            let passage = target.sourceId;
+            for (let i = at - 1; i >= 0; i -= 1) {
+                const atom = atoms[i];
+                if (atom.seam || atom.sourceId === passage) continue;
+                if (atom.scene !== target.scene) break;
+                passage = atom.sourceId;
+                if (atom.beat?.cue) earlier.unshift({ cue: atom.beat.cue, sceneId: atom.scene, commands: atom.cueCommands ?? [] });
+                if (atom.beat?.scene !== undefined) break;
+            }
+            queueMicrotask(() => { if (player) for (const given of earlier) onCue?.({ ...given, instant: true }); });
         },
 
         dispose() {

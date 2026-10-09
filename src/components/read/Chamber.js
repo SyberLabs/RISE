@@ -183,6 +183,9 @@ const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
   + `rgb(0, 0, 0) calc(100% - ${PROGRESSIVE_GLASS_FEATHER}px), `
   + 'rgba(0, 0, 0, 0) 100%)';
 
+/** What a reader is told when the Player could not go on (onPlayerError). */
+const READING_HELD_NOTICE = 'The reading could not continue here. Press play to try again.';
+
 /**
  * The words of what is shown, with its formulas each as one word (math-typeset.js) and a beat's
  * emphasis marked on the words it names, whatever their punctuation or case.
@@ -433,6 +436,7 @@ export class Chamber {
     this._movementSchedule = null;
     this._audioSchedule = null;
     this._activeMovement = null;
+    this._readingHeld = false;
 
     const movementProgram = this.session?.movementProgram;
     if (movementProgram?.movements?.length) {
@@ -1466,6 +1470,7 @@ export class Chamber {
       this._onPlayer('progress', (progress) => this.updateProgress(progress));
       this._onPlayer('complete', () => this.onSessionComplete());
       this._onPlayer('state', (state) => this.onStateChange(state));
+      this._onPlayer('error', (fault) => this.onPlayerError(fault));
       // A live reading is longer each time a segment arrives, and may already
       // have grown while this view was being built (a sealed Current arrives whole).
       this._onPlayer('extended', () => this._adoptExtendedSession());
@@ -1890,7 +1895,7 @@ export class Chamber {
     return reduced ? 0 : 1200;
   }
 
-  /** Where the scene on screen comes from: Jev, Local, Saved, or Manual. */
+  /** Where the scene on screen comes from: Jev, Kev, Local, Saved, or Manual. */
   _visualProvenanceLabel() {
     const state = this._direction;
     if (!state) return '';
@@ -1901,10 +1906,11 @@ export class Chamber {
     }
     if (state.cueSource === 'saved') return 'Direction: Saved';
     const record = state.director?.blocks[state.currentBlock]?.admitted;
-    const label = { jev: 'Jev', local: 'Local', saved: 'Saved' }[record?.provenance] || 'Local';
+    const label = { jev: 'Jev', kev: 'Kev', local: 'Local', saved: 'Saved' }[record?.provenance] || 'Local';
     const unavailable = label === 'Local' && state.lastScoring?.kind === 'failed'
       && (state.catalogVerified || state.consent);
-    return `Direction: ${label}${unavailable ? ' — Jev is unavailable, so visuals follow the text locally' : ''}`;
+    const model = connectionState().kind === 'local' ? 'Kev' : 'Jev';
+    return `Direction: ${label}${unavailable ? ` — ${model} is unavailable, so visuals follow the text locally` : ''}`;
   }
 
   attachLookSheet() {
@@ -2272,17 +2278,18 @@ export class Chamber {
     let consent = '';
     const ai = connectionState();
     const who = ai.kind === 'local' ? 'Kev on this computer' : 'Jev, through your OpenRouter account (billed to you),';
+    const name = ai.kind === 'local' ? 'Kev' : 'Jev';
     if (state.mode === 'follow' && state.director && state.scoring?.prepared && ai.kind === 'none') {
       consent = '<p class="vd-note">Visuals follow this text locally. Connect OpenRouter on Home, or run RISE locally, to let a decision model direct them.</p>';
     } else if (state.mode === 'follow' && state.director && state.scoring?.prepared) {
       if (state.catalogVerified) {
         consent = `<p class="vd-note">${who} directs this released text automatically, one section ahead of you.</p>`;
       } else if (state.consent) {
-        consent = `<div class="vd-consent"><p>Jev is directing these visuals. Sections of this reading are sent as you read; text already sent cannot be recalled.</p>
+        consent = `<div class="vd-consent"><p>${name} is directing these visuals. Sections of this reading are sent as you read; text already sent cannot be recalled.</p>
           <button type="button" data-vd="revoke">Stop sending</button></div>`;
       } else {
-        consent = `<div class="vd-consent"><p>This reading stays on your device, and visuals follow it locally. Jev can direct them more closely if the reading is sent to it, one section at a time as you read.</p>
-          <button type="button" class="vd-primary" data-vd="consent">Send this reading to Jev to direct its visuals.</button></div>`;
+        consent = `<div class="vd-consent"><p>This reading stays on your device, and visuals follow it locally. ${who} can direct them more closely if the reading is sent to it, one section at a time as you read.</p>
+          <button type="button" class="vd-primary" data-vd="consent">Send this reading to ${name} to direct its visuals.</button></div>`;
       }
     }
     host.innerHTML = `
@@ -2791,11 +2798,11 @@ export class Chamber {
       resume: () => runtime.play(),
       discoverVisual: () => (destroyed || !layer.node.isConnected ? null
         : Object.freeze({ manifest: SCENE_VISUAL_MANIFEST, current: Object.freeze({}), target: Object.freeze({}) })),
-      controlVisual: command => {
+      controlVisual: (command, { instant = false } = {}) => {
         const validated = validateVisualCommand(command, SCENE_VISUAL_MANIFEST);
         if (!validated.ok) return { status: 'refused', code: validated.code };
         if (destroyed) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
-        runtime.cue(validated.command.value);
+        runtime.cue(validated.command.value, { instant });
         return { status: 'accepted', surface: 'scene', parameter: 'cue', requested: validated.requested, effective: validated.effective };
       },
       hold: ({ ms, maxMs }) => runtime.hold({ ms, maxMs }),
@@ -3056,11 +3063,12 @@ export class Chamber {
     return this._visualFieldDirector?.discoverVisual() || null;
   }
 
-  controlVisual(command) {
+  /** `instant`: a cue landed at once after a seek past its beat (beat-conductor.js), which a scene takes to its end state. */
+  controlVisual(command, { instant = false } = {}) {
     if (!this.visualShown()) {
       return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
     }
-    return this._visualFieldDirector?.controlVisual(command)
+    return this._visualFieldDirector?.controlVisual(command, { instant })
       || { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
   }
 
@@ -4788,6 +4796,8 @@ export class Chamber {
         this.setBandMovable(true);
         return;
       }
+      // The press is the move's, not a selection's.
+      event.preventDefault();
       pointerId = event.pointerId;
       startY = event.clientY;
       startFraction = this._bandOffsetFraction;
@@ -5169,9 +5179,26 @@ export class Chamber {
     region.hidden = !title;
   }
 
+  /**
+   * The Player could not go on. A presence that failed is simply absent and
+   * the reading continues; the Player has already said so. A reading that
+   * failed is paused by the Player where it stands, and the reader is told
+   * here, in the quiet place the movement title uses — never a frozen frame
+   * under a moving clock, never nothing. Play clears it (see onStateChange).
+   */
+  onPlayerError({ phase } = {}) {
+    if (phase !== 'playback') return;
+    this._readingHeld = true;
+    this.announceMovement(READING_HELD_NOTICE);
+  }
+
   onStateChange(data) {
     const state = data.state;
     console.log('[Chamber] Player state change:', state);
+    if (state === 'playing' && this._readingHeld) {
+      this._readingHeld = false;
+      this.announceMovement(this._activeMovement?.title || null);
+    }
 
     // NO AUDIO OUTLIVES THE READING (§8.3). The engine owns its own
     // pause path for scheduled ramps; this stops the Journey's score

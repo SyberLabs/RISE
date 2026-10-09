@@ -32,6 +32,9 @@ export const VISUAL_SCORE_CACHE_LIMIT = 100;
 export const CLIENT_REQUESTS_PER_MINUTE = 6;
 const CLIENT_TIMEOUT_MS = 12_000;
 
+/** Who directed a section, by the model that answered: local Kev or Jev. */
+const directedBy = model => (model === 'kev-latest' ? 'kev' : 'jev');
+
 /** The versioned identity under which a section's choices are reusable. */
 export function scoreCacheKey(sourceDigest, sectionDigest) {
   return [sourceDigest, sectionDigest, `s${SEGMENTATION_VERSION}`, `c${TREATMENT_CATALOG_VERSION}`,
@@ -207,7 +210,7 @@ export class VisualScoreCoordinator {
     if (this.status.has(section.key)) return this.status.get(section.key) === 'scored';
     const hit = this.cache.get(scoreCacheKey(section.sourceDigest, section.digest));
     if (!hit) return false;
-    this.director.stage(hit.choices, 'jev');
+    this.director.stage(hit.choices, directedBy(hit.model));
     this.status.set(section.key, 'scored');
     this.onEvent({ kind: 'cached', section: section.key });
     return true;
@@ -294,7 +297,7 @@ export class VisualScoreCoordinator {
       });
       // Staging reaches only unentered blocks and never restarts playback,
       // so a reply that lands while paused or in Hold is still kept.
-      const staged = this.director.stage(outcome.response.choices, 'jev');
+      const staged = this.director.stage(outcome.response.choices, directedBy(outcome.response.model));
       this.status.set(section.key, 'scored');
       this.onEvent({ kind: 'scored', section: section.key, staged });
     } else {

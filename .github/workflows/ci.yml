@@ -16,7 +16,6 @@ concurrency:
 jobs:
   ci:
     name: CI
-    if: github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -33,7 +32,7 @@ jobs:
           node scripts/ci-hygiene.mjs
           npm run roadmap:check
           npm run test:roadmap
-          node --test scripts/decision-eval.test.mjs local/bridge.test.mjs local/hardware.test.mjs local/launcher.test.mjs
+          node --test scripts/decision-eval.test.mjs scripts/arena/arena.test.mjs scripts/arena/arena-file.test.mjs scripts/arena/calibration.test.mjs local/bridge.test.mjs local/hardware.test.mjs local/launcher.test.mjs
           python3 -m unittest discover -s deploy/kev -p 'test_*.py'
           npm run security:audit &
           audit=$!
@@ -41,39 +40,9 @@ jobs:
           npm run docs:diagram
           git diff --exit-code -- docs/specs/ARCHITECTURE.md
           npm run content:build
-          npx vitest run \
-            src/core/system-design.test.js \
-            worker/index.test.js \
-            worker/kev-worker-script.test.js \
-            src/core/decision \
-            src/core/jev-palette.test.js \
-            src/components/read/Chamber.jev-look.test.js \
-            src/app/jev-reading.test.js \
-            src/core/openrouter-oauth.test.js \
-            src/core/kev-client.test.js \
-            src/core/csp.test.js \
-            src/core/passage-visuals/score-provider.test.js \
-            src/core/passage-visuals/scoring-client.test.js \
-            src/components/Home.jev.test.js \
-            src/components/Home.test.js \
-            src/components/reading-backdrop.test.js \
-            src/components/home-ask.test.js \
-            src/core/roll.test.js \
-            src/components/Library.jev.test.js \
-            src/core/content-store.test.js \
-            src/core/journey-session.test.js \
-            src/audio/engine.lifecycle.test.js \
-            src/content/keystones.test.js \
-            src/enterprise \
-            src/core/rise-current.test.js \
-            src/live/protocol.test.js \
-            src/live/stream.test.js \
-            src/live/runtime.test.js \
-            src/live/adapters \
-            src/live/host \
-            src/live/hosts \
-            src/visuals/attractor.test.js \
-            worker/mcp-server.test.js &
+          # The list and the number of files it must collect live in vitest.fast.config.js.
+          npx vitest run --config vitest.fast.config.js \
+            --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/fast-tests.json" &
           tests=$!
           npx vite build
           npm run measure:first-load
@@ -82,7 +51,42 @@ jobs:
           # of main for four merges this way; the dry run fails the pull request instead.
           ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --dry-run --outdir "$RUNNER_TEMP/worker-bundle"
           wait "$tests"
+          # shellcheck disable=SC2016 # JavaScript, not shell, expands ${...} here.
+          FAST_TESTS_REPORT="$RUNNER_TEMP/fast-tests.json" node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            import { FAST_TEST_FILES } from "./vitest.fast.config.js";
+            const ran = JSON.parse(readFileSync(process.env.FAST_TESTS_REPORT, "utf8")).testResults.length;
+            if (ran !== FAST_TEST_FILES) {
+              console.error(`The fast unit tests collected ${ran} files; vitest.fast.config.js expects ${FAST_TEST_FILES}.`);
+              process.exit(1);
+            }'
           wait "$audit"
+      # The release is the dist/ built and measured above and the Worker bundle the
+      # dry run produced, both from this commit. The browser gate rebuilds dist/
+      # with test flags, so the release is moved aside before it runs. Production
+      # deploys this artifact and only after this whole job, gate included, passes.
+      - name: Stage the tested release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          TESTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(find dist/audio/recitation -type f -name '*.opus' | wc -l)" -eq 877
+          printf '%s\n' "$TESTED_SHA" > "dist/release-$TESTED_SHA.txt"
+          printf '%s\n' "$TESTED_SHA" > dist/release.txt
+          mkdir -p "$RUNNER_TEMP/release/worker"
+          mv dist "$RUNNER_TEMP/release/dist"
+          cp "$RUNNER_TEMP/worker-bundle/index.js" "$RUNNER_TEMP/release/worker/index.js"
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          name: rise-release-${{ github.sha }}
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
+          include-hidden-files: true
+          compression-level: 1
+          retention-days: 14
       # Layout, hit-testing and the reading path only show in a browser: #373
       # merged a phone star map whose targets covered each other because no
       # required check opened one. The gate is the fast browser subset.
@@ -90,6 +94,8 @@ jobs:
         run: npm run test:e2e:gate
   production:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Deploy only what the CI job above built and tested on this push.
+    needs: [ci]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # GitHub restricts this environment to main. Required PR checks gate merges.
@@ -103,32 +109,41 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
     steps:
+      # The checkout supplies wrangler, its config and the Worker source it bundles;
+      # nothing here builds dist/.
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-          cache: npm
-      - name: Build production and restore audio
-        run: |
-          set -euo pipefail
-          npm ci --no-audit &
-          install=$!
-          node scripts/hydrate-recitation.mjs &
-          hydrate=$!
-          wait "$install"
-          npm run build
-          wait "$hydrate"
-          mkdir -p dist/audio/recitation
-          cp -a public/audio/recitation/. dist/audio/recitation/
-      - name: Mark the tested release
+          name: rise-release-${{ github.sha }}
+          path: ${{ runner.temp }}/release
+      - name: Verify the tested release
         run: |
           set -euo pipefail
           [[ "$TESTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test ! -e dist
+          mv "$RUNNER_TEMP/release/dist" dist
+          test "$(cat dist/release.txt)" = "$TESTED_SHA"
+          test "$(cat "dist/release-$TESTED_SHA.txt")" = "$TESTED_SHA"
           test "$(find dist/audio/recitation -type f -name '*.opus' | wc -l)" -eq 877
-          printf '%s\n' "$TESTED_SHA" > "dist/release-$TESTED_SHA.txt"
-          printf '%s\n' "$TESTED_SHA" > dist/release.txt
+          # wrangler bundles the Worker again at deploy; it must be byte-identical
+          # to the bundle the CI job dry-ran.
+          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --dry-run --outdir "$RUNNER_TEMP/deploy-bundle"
+          cmp "$RUNNER_TEMP/release/worker/index.js" "$RUNNER_TEMP/deploy-bundle/index.js"
+      - name: Record prior production versions
+        run: |
+          set -euo pipefail
+          ./node_modules/.bin/wrangler versions list --config wrangler.production.jsonc > "$RUNNER_TEMP/prior-versions.txt"
+          # shellcheck disable=SC2016 # the backticks are Markdown.
+          {
+            echo '### Production versions before this deploy'
+            echo '```'
+            cat "$RUNNER_TEMP/prior-versions.txt"
+            echo '```'
+            echo 'Roll back with `./node_modules/.bin/wrangler rollback <VERSION_ID> --config wrangler.production.jsonc --message "RISE rollback"`.'
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy production
         env:
           GH_TOKEN: ${{ github.token }}
@@ -136,7 +151,9 @@ jobs:
           set -euo pipefail
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
           test "$TESTED_SHA" = "$current"
-          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA"
+          ./node_modules/.bin/wrangler deploy --config wrangler.production.jsonc --message "RISE $TESTED_SHA" | tee "$RUNNER_TEMP/deploy.log"
+          version=$(sed -n 's/^Current Version ID: *//p' "$RUNNER_TEMP/deploy.log")
+          echo "Deployed Worker version: \`${version:-unknown}\` (RISE $TESTED_SHA)" >> "$GITHUB_STEP_SUMMARY"
       - name: Verify public production serves the exact release
         run: |
           set -euo pipefail

@@ -15,6 +15,8 @@ import { BLACK_HOLES } from './fixtures/black-holes.js';
 import { mapAtoms } from './atom-map.js';
 import { createSpeechGovernor, GOVERNOR_LIMITS } from './speech-governor.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
+import { createBrowserVoice } from './voices/browser.js';
+import { createFakeSpeech } from '../test/fake-speech.js';
 
 const MS_PER_CHAR = 40;
 const IN_SEGMENT_BUDGET_MS = 250;
@@ -141,6 +143,100 @@ describe('when the voice is the clock', () => {
     });
 });
 
+/**
+ * The browser voice on a fake device, held and released as the runtime does it (runtime.js holdVoice): a held
+ * voice is cancelled and says its passage again, from the phrase on screen when it can, else from the last place
+ * it heard, which can be well before the words on screen.
+ */
+function setupHeld({ texts, msPerChar = 60, latencyMs = 30, latencyAfterCancelMs = null } = {}) {
+    const segments = texts.map((text, i) => ({ id: `p${i + 1}`, text }));
+    const session = compileRiseCurrent({
+        schema: 'rise.current.v1', id: 'held-1', title: 'Held', origin: { kind: 'human', name: 'Tester' }, segments
+    });
+    player = new Player(session);
+    const shown = [];
+    player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: now() }); });
+    const synth = createFakeSpeech(clock, { msPerChar, latencyMs, latencyAfterCancelMs, boundaries: false });
+    voice = createBrowserVoice({ speech: { synth, Utterance: synth.Utterance }, clock });
+    const degraded = [];
+    governor = createSpeechGovernor({ voice, clock, onDegrade: info => degraded.push(info) });
+    const voiceLog = {};
+    voice.attach({
+        start: id => { voiceLog[id] = { startedAt: now() }; },
+        mark: (id, charIndex, tMs) => governor.observe('mark', id, charIndex, tMs),
+        end: (id, durationMs) => { voiceLog[id].endedAt = now(); governor.observe('end', id, durationMs); }
+    });
+    governor.update({ atoms: session.atoms, segments });
+    governor.install(player);
+    for (const segment of segments) voice.enqueue(segment);
+    const hold = () => {
+        player.pause();
+        const phrase = player.betweenPhrases ? null : governor.restartPoint(player.sessionState.currentIndex);
+        if (voice.hold(phrase ? { resumeAt: phrase } : undefined) === true) player.restartCurrentAtom();
+    };
+    const release = () => { voice.release(); player.play(); };
+    return { segments, shown, voiceLog, degraded, hold, release, map: mapAtoms(session.atoms, segments) };
+}
+
+const FIRST = 'The first passage is a single sentence that takes a while.';
+
+describe('when the voice is held and says its passage again from further back', () => {
+    it('does not stand down while the voice is still saying the passage before: the next one waits for it', async () => {
+        const held = setupHeld({ texts: [FIRST, 'The second passage follows.', 'A third one ends it.'] });
+        player.play();
+        // Late in the first passage, before the voice has said a whole one: its speed is unknown, so it is said
+        // again from its start while the words on screen carry on from where they were.
+        await tick(3_000);
+        held.hold();
+        await tick(2_000);
+        held.release();
+        await tick(20_000);
+        expect(held.degraded).toEqual([]);
+        const second = held.map.find(entry => !entry.seam && entry.segmentId === 'p2');
+        const atom = held.shown.find(entry => entry.index === second.index);
+        expect(Math.abs(atom.at - held.voiceLog.p2.startedAt)).toBeLessThanOrEqual(SEGMENT_BOUNDARY_BUDGET_MS);
+    });
+
+    it('still stands down for a voice that began a passage and never ends it, once that passage’s time and the grace are up', async () => {
+        const segments = [{ id: 'p1', text: FIRST }, { id: 'p2', text: 'The second passage follows.' }];
+        const session = compileRiseCurrent({
+            schema: 'rise.current.v1', id: 'stuck-1', title: 'Stuck', origin: { kind: 'human', name: 'Tester' }, segments
+        });
+        player = new Player(session);
+        // Begun 30 ms in, saying p1 for ever: no end, and p2 never begins.
+        const stuck = {
+            capabilities: { wordMarks: false },
+            playedMs: id => (id === 'p1' && now() >= 30 ? now() - 30 : undefined),
+            speakingId: () => 'p1'
+        };
+        const degraded = [];
+        governor = createSpeechGovernor({ voice: stuck, clock, onDegrade: info => degraded.push(info) });
+        governor.update({ atoms: session.atoms, segments });
+        governor.install(player);
+        player.play();
+        // p1 is 58 characters: 3770 ms at the default speed, then the 1500 ms grace for p2 to begin.
+        await tick(30 + 58 * 65 + 1_500 + 300);
+        expect(degraded).toEqual([{ reason: 'voice-did-not-start' }]);
+    });
+
+    it('gives a voice the first start’s grace after a hold: a network voice can be slow to start again', async () => {
+        const msPerChar = 60;
+        const latencyMs = 400;
+        const held = setupHeld({ texts: [FIRST, 'The second passage follows.'], msPerChar, latencyMs, latencyAfterCancelMs: 3_000 });
+        player.play();
+        // Held in the moment between the passages: the first is said, the second is asked for and not yet begun.
+        await tick(latencyMs + FIRST.length * msPerChar + 200);
+        expect(held.voiceLog.p1.endedAt).toBeDefined();
+        expect(held.voiceLog.p2).toBeUndefined();
+        held.hold();
+        await tick(1_000);
+        held.release();
+        await tick(15_000);
+        expect(held.degraded).toEqual([]);
+        expect(held.voiceLog.p2.endedAt).toBeDefined();
+    });
+});
+
 describe('when the voice cannot be the clock', () => {
     it('stands down once, tells the host, and lets the reading carry on by its own timer', async () => {
         const { session, shown, degraded } = setup({ speak: false });
@@ -160,18 +256,43 @@ describe('when the voice cannot be the clock', () => {
     });
 
     it('does not make each atom wait for the grace once it has stood down', async () => {
-        setup({ speak: false });
+        const { segments, map } = setup({ speak: false });
         const done = [];
         player.on('complete', () => done.push(now()));
         player.play();
         await tick(GOVERNOR_LIMITS.firstGraceMs + 100);
         const at = now();
         await tick(60_000);
-        // The rest ran at its own pace (plus the Player's ~300 ms transition per atom), not
-        // with a grace waited out on top of every atom.
+        // The rest ran at the pace of speech (nothing was heard, so the governor's default 65 ms a character, and each
+        // seam its own time), plus the Player's ~300 ms transition per atom, not with a grace waited out on every atom.
         const atoms = player.sessionState.session.atoms;
-        const ownPace = atoms.reduce((sum, a) => sum + a.duration, 0) + atoms.length * 300;
-        expect(done[0] - at).toBeLessThan(ownPace);
+        const seams = map.filter(entry => entry.seam).reduce((sum, entry) => sum + atoms[entry.index].duration, 0);
+        const spokenPace = segments.reduce((sum, s) => sum + s.text.length * 65, 0) + seams + atoms.length * 300;
+        expect(done[0] - at).toBeLessThan(spokenPace);
+    });
+
+    it('keeps the words at the pace the voice was measured at once it has stood down, not at the pace of silent reading', async () => {
+        const msPerChar = 90;
+        const { segments, session, shown, map } = setup({ voiceOptions: { msPerChar } });
+        player.play();
+        // The first passage is heard whole, so the voice's speed is known; then the voice is given up on.
+        await tick(segments[0].text.length * msPerChar + 150 + 100);
+        governor.standDown('test');
+        await tick(60_000);
+        const last = map.filter(entry => !entry.seam && entry.segmentId === segments.at(-1).id);
+        let compared = 0;
+        for (const [i, entry] of last.slice(0, -1).entries()) {
+            const chars = entry.end - entry.start;
+            const atom = session.atoms[entry.index];
+            // The reading's own duration for the atom is far from the voice's, so the two cannot be confused.
+            expect(atom.duration).toBeLessThan(chars * msPerChar * 0.7);
+            const at = shown.find(s => s.index === entry.index).at;
+            const next = shown.find(s => s.index === last[i + 1].index).at;
+            expect(next - at, `atom ${entry.index}`).toBeGreaterThanOrEqual(chars * msPerChar * 0.85);
+            expect(next - at, `atom ${entry.index}`).toBeLessThanOrEqual(chars * msPerChar * 1.15 + 50);
+            compared += 1;
+        }
+        expect(compared).toBeGreaterThan(0);
     });
 
     it('lets go of the Player when disposed', () => {
@@ -259,6 +380,81 @@ describe('learning how fast the voice goes', () => {
         governor.observe('end', BLACK_HOLES.segments[0].id, BLACK_HOLES.segments[0].text.length * 40);
         governor.observe('mark', BLACK_HOLES.segments[1].id, 10, 10 * 90);
         expect(ends(map, 1)).toBe(BLACK_HOLES.segments[1].text.length * 90);
+    });
+});
+
+describe('a seek: passages said again from the start', () => {
+    const [a, b] = [BLACK_HOLES.segments[0], BLACK_HOLES.segments[1]];
+    const lastOf = (map, id) => map.filter(entry => !entry.seam && entry.segmentId === id).at(-1);
+
+    it('forgets what it heard of the passage it is told and every one after it, and keeps the speed it learned', () => {
+        const { map } = setup({ count: 2, speak: false });
+        const firstOfA = map.find(entry => !entry.seam && entry.segmentId === a.id);
+        governor.observe('mark', a.id, 10, 10 * 90);
+        governor.observe('end', a.id, a.text.length * 40);
+        governor.observe('mark', b.id, 10, 10 * 90);
+        const heardA = governor.endsAtMs(firstOfA.index);
+        governor.forget(b.id);
+        // b is expected at the learned speed, not at its own forgotten marks; a keeps everything it said.
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(b.text.length * 40);
+        expect(governor.endsAtMs(firstOfA.index)).toBe(heardA);
+        governor.forget(a.id);
+        expect(governor.endsAtMs(firstOfA.index)).toBe(firstOfA.end * 40);
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(b.text.length * 40);
+    });
+
+    it('times a passage said again afresh: its marks from the start are heard again', () => {
+        const { map } = setup({ count: 1, speak: false });
+        governor.observe('mark', a.id, 30, 30 * 90);
+        governor.forget(a.id);
+        governor.observe('mark', a.id, 10, 10 * 50);
+        expect(governor.endsAtMs(lastOf(map, a.id).index)).toBe(a.text.length * 50);
+    });
+
+    it('comes back from a stand-down, because a seek is a reader’s act: the clock is the voice again, and a phrase has a place to start', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.observe('end', a.id, a.text.length * 40);
+        governor.standDown('test');
+        const first = map.find(entry => !entry.seam && entry.segmentId === b.id);
+        expect(governor.restartPoint(first.index)).toBeNull();
+        governor.forget(b.id);
+        expect(governor.degraded).toBe(false);
+        expect(governor.restartPoint(first.index)).toEqual({ segmentId: b.id, charIndex: 0, tMs: 0 });
+    });
+
+    it('drops the wait it was on, for a passage the voice may now never say', async () => {
+        const { degraded } = setup({ speak: false });
+        player.play();
+        await tick(1_000);
+        governor.forget(BLACK_HOLES.segments[0].id);
+        // Untouched, the wait for the first passage would give up on the voice at the first start's grace.
+        await tick(GOVERNOR_LIMITS.firstGraceMs - 1_000 + 100);
+        expect(degraded).toEqual([]);
+    });
+});
+
+describe('a change of pace', () => {
+    const [a, b] = [BLACK_HOLES.segments[0], BLACK_HOLES.segments[1]];
+    const lastOf = (map, id) => map.filter(entry => !entry.seam && entry.segmentId === id).at(-1);
+
+    it('expects a passage it has not heard at the new pace, whether it knows the voice’s speed or only the default', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.rescale(0.5);
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(b.text.length * 65 * 0.5);
+        governor.observe('end', a.id, a.text.length * 40);
+        governor.rescale(2);
+        // 40 ms a character heard at the old pace is 80 at the new.
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBeCloseTo(b.text.length * 80, 5);
+    });
+
+    it('takes a passage it is part way through on at the new pace from the last place it heard', () => {
+        const { map } = setup({ count: 2, speak: false });
+        governor.observe('mark', b.id, 10, 10 * 90);
+        governor.rescale(0.5);
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(10 * 90 + (b.text.length - 10) * 45);
+        // Heard again at the new pace: what is left goes at the pace heard since the change, not the passage's average.
+        governor.observe('mark', b.id, 20, 10 * 90 + 10 * 45);
+        expect(governor.endsAtMs(lastOf(map, b.id).index)).toBe(10 * 90 + 10 * 45 + (b.text.length - 20) * 45);
     });
 });
 

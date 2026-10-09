@@ -21,6 +21,9 @@ import { createPaneHost } from './room-panes.js';
 import { drawRiseSigil } from './atlas.js';
 import './Library.css';
 
+/** A file the reader brought, read straight: the reader's own material (the Plus voice reads it, chamber-session-factory.js). */
+const LOCAL_TEXT = Object.freeze({ provenance: { kind: 'local-text' } });
+
 /**
  * Edition statement for display: keep link labels, drop URLs and
  * machine rights tokens (`author-death-70`); provenance already holds
@@ -522,7 +525,7 @@ export class Library {
   openAdmit(options) {
     return new Admit({
       ...options,
-      onReadNow: (text, title) => this.onSelectText(text, `Local: ${title}`),
+      onReadNow: (text, title) => this.onSelectText(text, `Local: ${title}`, LOCAL_TEXT),
       onAdmit: async record => {
         try {
           await LocalWorks.save(record);
@@ -531,7 +534,7 @@ export class Library {
           console.error('[Library] Could not shelve this work:', error);
           // The work is not lost for being unshelvable: the reader still
           // gets the reading they asked for.
-          this.onSelectText(record.text, `Local: ${record.title}`);
+          this.onSelectText(record.text, `Local: ${record.title}`, LOCAL_TEXT);
         }
       }
     });
@@ -687,7 +690,7 @@ export class Library {
       // as one undifferentiated run. `openWork` returns false for a work of
       // one part, which falls through to the whole text below.
       if (await this.openWork(id)) return;
-      return this.onSelectText(work.text, work.title);
+      return this.onSelectText(work.text, work.title, LOCAL_TEXT);
     }
     if (action === 'edit-local') return void this.openAdmit({ record: work });
     if (action === 'drop-local') {

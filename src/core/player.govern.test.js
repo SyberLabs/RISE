@@ -104,6 +104,146 @@ describe('governing the end of an atom', () => {
         expect(asked).toEqual([]);
     });
 
+    it('advances once when a governed end arrives after the watchdog has put the atom on its timer', async () => {
+        player = new Player(session());
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        // Every atom lasts 1000 ms by the governor; the first one's end comes 4000 ms in, after the watchdog
+        // (1000 ms + its 2500 ms margin) has given up on it and started the atom's timer again.
+        player.govern({
+            duration: () => 1000,
+            completion: (_atom, index) => new Promise(resolve => { setTimeout(() => resolve({ reason: 'ended' }), index === 0 ? 4000 : 1000); })
+        });
+        player.play();
+        await tick(4000 + 3 * 1000 + 100);
+        // Each atom once, in order: the session is three sentences, so three atoms.
+        expect(shown.map(entry => entry.index)).toEqual([0, 1, 2]);
+        // The atom after the late one is shown for its whole governed time, not cut short by the watchdog's leftover timer.
+        expect(shown[1].at).toBe(4000);
+        expect(shown[2].at - shown[1].at).toBe(1000);
+    });
+
+    it('lets a late end touch only the atom it was asked for, not an ungoverned atom shown after it', async () => {
+        player = new Player(session());
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        let endFirst = null;
+        // The first atom's end is held back past its watchdog; the second declines governance and runs on its own timer.
+        player.govern({
+            duration: () => 1000,
+            completion: (_atom, index) => (index === 0 ? new Promise(resolve => { endFirst = resolve; }) : index === 1 ? null
+                : new Promise(resolve => { setTimeout(() => resolve({ reason: 'ended' }), 1000); }))
+        });
+        player.play();
+        for (let i = 0; i < 200 && !shown.some(entry => entry.index === 1); i += 1) await tick(50);
+        expect(shown.some(entry => entry.index === 1)).toBe(true);
+        // The first atom's end arrives at last, while the second is on screen.
+        await tick(300);
+        endFirst({ reason: 'ended' });
+        await tick(3000);
+        expect(shown.map(entry => entry.index)).toEqual([0, 1, 2]);
+        // The second atom is shown for its whole time (its own timer runs on frames, so a frame over): the stale end did not cut it short.
+        expect(shown[2].at - shown[1].at).toBeGreaterThanOrEqual(1000);
+        expect(shown[2].at - shown[1].at).toBeLessThan(1100);
+    });
+
+    it('re-arms the watchdog from the new estimate when the pace slows mid-atom, and the governed end still advances', async () => {
+        player = new Player(session());
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        let endFirst = null;
+        // The estimate follows the pace, as the speech clock's does once rescaled: 1000 ms at 1x.
+        player.govern({
+            duration: () => 1000 * player.speedFactor,
+            completion: (_atom, index) => (index === 0 ? new Promise(resolve => { endFirst = resolve; }) : null)
+        });
+        player.play();
+        await tick(400);
+        // Half the pace at 400 ms: what remains (600 ms of 1000) takes 1200 ms, so the watchdog is due at 400 + 1200 + 2500.
+        player.setSpeedFactor(2);
+        await tick(3650);
+        expect(player.speechWatchdogId).not.toBe(null);
+        expect(player.timerId).toBe(null);
+        expect(shown.map(entry => entry.index)).toEqual([0]);
+        endFirst({ reason: 'ended' });
+        await tick(20);
+        expect(shown.map(entry => entry.index)).toEqual([0, 1]);
+    });
+
+    it('re-times an ungoverned atom on its timer: the part shown stays shown, the rest goes at the new pace', async () => {
+        const timed = session();
+        for (const atom of timed.atoms) atom.duration = 1000;
+        player = new Player(timed);
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        player.play();
+        await tick(400);
+        // 1.5x: the remaining 600 ms takes 400.
+        player.setSpeedFactor(1 / 1.5);
+        await tick(700);
+        expect(shown[1].at).toBeGreaterThanOrEqual(800);
+        expect(shown[1].at).toBeLessThan(820);
+    });
+
+    it('scales only the time left when the reading is paused', async () => {
+        const timed = session();
+        for (const atom of timed.atoms) atom.duration = 1000;
+        player = new Player(timed);
+        const shown = [];
+        player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: performance.now() }); });
+        player.play();
+        await tick(400);
+        player.pause();
+        player.setSpeedFactor(2);
+        expect(player.timerId).toBe(null);
+        expect(player.currentAtomRemainingTime).toBeCloseTo(1200, 0);
+        await tick(1000);
+        player.play();
+        await tick(1250);
+        expect(shown.map(entry => entry.index)).toEqual([0, 1]);
+        expect(shown[1].at - 1400).toBeGreaterThanOrEqual(1200);
+        expect(shown[1].at - 1400).toBeLessThan(1220);
+    });
+
+    it('leaves the time left of a paused atom alone when a governor calls it fixed: a scene’s hold is real time, not speech', async () => {
+        const timed = session();
+        for (const atom of timed.atoms) atom.duration = 1000;
+        player = new Player(timed);
+        // The beat conductor answers so for a hold a scene may end: its remainder is on the scene's clock, whatever the pace.
+        player.govern({ duration: () => null, completion: () => null, fixed: atom => atom === timed.atoms[0] });
+        player.play();
+        await tick(400);
+        player.pause();
+        const left = player.currentAtomRemainingTime;
+        player.setSpeedFactor(2);
+        expect(player.currentAtomRemainingTime).toBe(left);
+        // The next atom, which no scene holds, is paced as before.
+        player.play();
+        await tick(left + 10);
+        player.pause();
+        const before = player.currentAtomRemainingTime;
+        player.setSpeedFactor(4);
+        expect(player.currentAtomRemainingTime).toBeCloseTo(before * 2, 0);
+    });
+
+    it('scales the time left of a paused atom again once no governor calls it fixed: a hold its scene let go is paced', async () => {
+        const timed = session();
+        for (const atom of timed.atoms) atom.duration = 1000;
+        player = new Player(timed);
+        const held = new Set([timed.atoms[0]]);
+        player.govern({ duration: () => null, completion: () => null, fixed: atom => held.has(atom) });
+        player.play();
+        await tick(400);
+        player.pause();
+        const left = player.currentAtomRemainingTime;
+        player.setSpeedFactor(2);
+        expect(player.currentAtomRemainingTime).toBe(left);
+        // The beat conductor lets the hold go when the host no longer has a scene to hold it (a seek back, say).
+        held.clear();
+        player.setSpeedFactor(4);
+        expect(player.currentAtomRemainingTime).toBeCloseTo(left * 2, 0);
+    });
+
     it('carries on for an atom that nothing governs', async () => {
         player = new Player(session());
         const shown = [];

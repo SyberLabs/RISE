@@ -113,6 +113,114 @@ describe('what the conductor times', () => {
     await clock.advance(4000);
     expect(state.done).toBeNull();
   });
+
+  it('times holds and shown lines at the Player’s pace, which follows the voice’s', async () => {
+    const { clock, player } = setup();
+    player.speedFactor = 0.5;
+    expect(player.governor.duration(HOLD, 0)).toBe(1500);
+    expect(player.governor.duration(SHOWN, 1)).toBe(750);
+    const state = { done: null };
+    player.governor.completion(HOLD, 0).then(result => { state.done = result; });
+    await clock.advance(1400);
+    expect(state.done).toBeNull();
+    await clock.advance(200);
+    expect(state.done).toEqual({ reason: 'ended' });
+  });
+
+  it('re-times a running hold at a new pace: what has passed stays passed, the rest goes at the new pace', async () => {
+    const { clock, conductor, player } = setup();
+    const state = { done: null, at: null };
+    player.governor.completion(HOLD, 0).then(result => { state.done = result; state.at = clock.now(); });
+    await clock.advance(1000);
+    // 2x at a third of the way: the remaining 2000 ms takes 1000.
+    player.speedFactor = 0.5;
+    conductor.repace();
+    await clock.advance(900);
+    expect(state.done).toBeNull();
+    await clock.advance(200);
+    expect(state.done).toEqual({ reason: 'ended' });
+    expect(state.at).toBe(2000);
+  });
+
+  it('leaves a hold the scene is holding to its maxMs', async () => {
+    const { clock, conductor, player } = setup({ onHold: () => new Promise(() => {}) });
+    const held = { content: '', duration: 1000, hold: { ms: 1000, maxMs: 5000, sceneId: 'field' } };
+    const state = { done: null };
+    player.governor.completion(held, 0).then(result => { state.done = result; });
+    await clock.advance(1000);
+    player.speedFactor = 0.5;
+    conductor.repace();
+    await clock.advance(3900);
+    expect(state.done).toBeNull();
+    await clock.advance(200);
+    expect(state.done).toEqual({ reason: 'ended' });
+  });
+});
+
+describe('a seek', () => {
+  const cueOf = cue => [{ surface: 'scene', parameter: 'cue', value: cue }];
+  const said = (sourceId, extra = {}) => ({ content: `Words of ${sourceId}.`, sourceId, scene: 'sky', ...extra });
+  const ATOMS = [
+    said('beat-0', { beat: { scene: 'sky', cue: 'strip' }, cueCommands: cueOf('strip') }),
+    { content: '', seam: {} },
+    { content: '', sourceId: 'beat-1', scene: 'sky', hold: { ms: 1500, sceneId: 'sky' }, duration: 1500 },
+    { content: '', seam: {} },
+    said('beat-2'),
+    { content: '', seam: {} },
+    said('beat-3', { beat: { cue: 'curve' }, cueCommands: cueOf('curve') }),
+    said('beat-3', { beat: { cue: 'curve' }, cueCommands: cueOf('curve') }),
+    { content: '', seam: {} },
+    said('beat-4', { beat: { cue: 'pair' }, cueCommands: cueOf('pair') })
+  ];
+
+  it('lands the cues of the earlier beats of the scene running there at once, in order, and then the target’s own as it begins', async () => {
+    const cues = [];
+    const { conductor, player } = setup({ onCue: cue => cues.push(cue) });
+    player.show(ATOMS[0]);
+    await Promise.resolve();
+    conductor.seek(ATOMS, 8);
+    player.show(ATOMS[9]);
+    await Promise.resolve();
+    expect(cues.map(({ cue, instant }) => [cue, instant === true])).toEqual([
+      ['strip', false], ['strip', true], ['curve', true], ['pair', false]
+    ]);
+    expect(cues[2]).toEqual({ cue: 'curve', sceneId: 'sky', commands: cueOf('curve'), instant: true });
+  });
+
+  it('fires the cue of the beat it goes back to again, though it was the last one fired', async () => {
+    const cues = [];
+    const { conductor, player } = setup({ onCue: cue => cues.push(cue) });
+    player.show(ATOMS[6]);
+    await Promise.resolve();
+    conductor.seek(ATOMS, 6);
+    player.show(ATOMS[6]);
+    await Promise.resolve();
+    expect(cues.map(({ cue, instant }) => [cue, instant === true])).toEqual([['curve', false], ['strip', true], ['curve', false]]);
+  });
+
+  it('lands nothing from before the beat that started the scene running there', async () => {
+    const cues = [];
+    const { conductor } = setup({ onCue: cue => cues.push(cue) });
+    const atoms = [
+      said('beat-0', { beat: { scene: 'sky', cue: 'strip' }, cueCommands: cueOf('strip') }),
+      said('beat-1', { scene: 'field', beat: { scene: 'field', cue: 'calm' }, cueCommands: cueOf('calm') }),
+      said('beat-2', { scene: 'field', beat: { cue: 'bright' }, cueCommands: cueOf('bright') }),
+      said('beat-3', { scene: 'field' })
+    ];
+    conductor.seek(atoms, 3);
+    conductor.seek(atoms, 1);
+    await Promise.resolve();
+    expect(cues.map(({ cue }) => cue)).toEqual(['calm', 'bright']);
+  });
+
+  it('drops the hold it was timing', async () => {
+    const { clock, conductor, player } = setup();
+    const state = { done: null };
+    player.governor.completion(HOLD, 0).then(result => { state.done = result; });
+    conductor.seek(ATOMS, 4);
+    await clock.advance(5000);
+    expect(state.done).toBeNull();
+  });
 });
 
 describe('a hold the scene may end', () => {
@@ -150,6 +258,35 @@ describe('a hold the scene may end', () => {
     expect(state.done).toBeNull();
     await clock.advance(1);
     expect(state.done).toEqual({ reason: 'ended' });
+  });
+
+  it('calls a hold a scene holds fixed, so a pace change while paused leaves its time alone, and a hold on its own clock not', async () => {
+    const running = scene();
+    const { clock, player } = setup({ onHold: running.onHold });
+    void player.governor.completion(SCENE_HOLD, 0);
+    expect(player.governor.fixed(SCENE_HOLD)).toBe(true);
+    // Paused: the wait is dropped, and the hold is still the scene's.
+    player.set('paused');
+    expect(player.governor.fixed(SCENE_HOLD)).toBe(true);
+    const plain = { ...SCENE_HOLD, hold: { ms: 3000 } };
+    void player.governor.completion(plain, 1);
+    expect(player.governor.fixed(plain)).toBe(false);
+    await clock.advance(0);
+  });
+
+  it('stops calling a hold fixed once its scene no longer holds it, so the pace times it again', async () => {
+    let holding = true;
+    const running = scene();
+    const { clock, player } = setup({ onHold: atom => (holding ? running.onHold(atom) : null) });
+    void player.governor.completion(SCENE_HOLD, 0);
+    expect(player.governor.fixed(SCENE_HOLD)).toBe(true);
+    player.set('paused');
+    // The reader seeks back before the scene began: asked again, the host has no scene to hold it.
+    holding = false;
+    void player.governor.completion(SCENE_HOLD, 0);
+    expect(player.governor.fixed(SCENE_HOLD)).toBe(false);
+    expect(player.governor.duration(SCENE_HOLD, 0)).toBe(6000);
+    await clock.advance(0);
   });
 
   it('keeps its own clock when there is no scene to ask, or the hold has no maxMs', async () => {

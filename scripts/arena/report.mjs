@@ -1,0 +1,200 @@
+// Scores re-derived from a run's results, deterministically: the same run file
+// and the same fixtures always print the same bytes. Scores are "agreement with
+// author-written expectations", not accuracy; the cases were tuned on Jev.
+import { readFileSync } from 'node:fs';
+import { buildRecommendRequest } from '../../src/core/decision/recommend.js';
+import { scoreDecisions } from '../jev-eval.mjs';
+import { sha256Hex } from './arena-file.mjs';
+import { calibration, clusterBootstrap, pairedBootstrapDiff, wilson } from './calibration.mjs';
+
+// Option fields in the fixtures that name a different question.
+const QUESTION_OF = Object.freeze({ visualMode: 'visual', chunkMode: 'chunk', revealMode: 'reveal' });
+
+// A run records the version of calibration.mjs that scored it (the first
+// twelve hex digits of its bytes' SHA-256); a run without one is never given
+// calibration, so older runs still reproduce.
+export const CALIBRATION_VERSION = sha256Hex(readFileSync(new URL('./calibration.mjs', import.meta.url))).slice(0, 12);
+
+/** Each fixture case's `expect` as {question: acceptable choices}. */
+export const expectedChoices = item => Object.fromEntries(Object.entries(item.expect || {})
+  .map(([field, acceptable]) => [QUESTION_OF[field] || field, acceptable]));
+
+/**
+ * calibration()'s rows: one per result and question that has an acceptable
+ * set, carrying the decider's raw choice, its probabilities and confidence.
+ * @param acceptableOf caseId → {question: acceptable choices}
+ */
+export function calibrationRows(results, acceptableOf) {
+  const rows = [];
+  for (const row of results) {
+    if (!row.rawAnswers) continue;
+    for (const [question, acceptable] of Object.entries(acceptableOf(row.caseId) || {})) {
+      const answer = row.rawAnswers[question];
+      rows.push({ caseId: row.caseId, providerId: row.providerId, run: row.run, question,
+        probabilities: row.probabilities?.[question] ?? null, confidence: answer?.confidence ?? null,
+        choice: answer?.type === 'choice' ? answer.choice : null, acceptable });
+    }
+  }
+  return rows;
+}
+
+/** The choice made for each question, or the answer's type when it is not a choice. */
+const choices = row => row.rawAnswers && Object.fromEntries(Object.keys(row.rawAnswers).sort()
+  .map(name => [name, row.rawAnswers[name].type === 'choice' ? row.rawAnswers[name].choice : row.rawAnswers[name].type]));
+
+const round = (value, places = 6) => Math.round(value * 10 ** places) / 10 ** places;
+
+function percentile(sorted, p) {
+  return sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(p * sorted.length) - 1)] : null;
+}
+
+/** Question-level audit of one row's raw answers against the menu it was offered. */
+function audit(row, questions) {
+  const counts = { outOfMenu: 0, missing: 0, refusals: 0 };
+  if (!row.rawAnswers) return { valid: false, counts };
+  for (const [name, question] of Object.entries(questions)) {
+    const answer = row.rawAnswers[name];
+    if (!answer) counts.missing++;
+    else if (answer.type === 'refusal') counts.refusals++;
+    else if (answer.type !== 'choice' || !Object.hasOwn(question.criteria, answer.choice)) counts.outOfMenu++;
+  }
+  return { valid: !counts.outOfMenu && !counts.missing && !counts.refusals, counts };
+}
+
+function rawDecision(row, options) {
+  return Object.fromEntries(Object.keys(options).map(field =>
+    [field, row.rawAnswers?.[QUESTION_OF[field] || field]?.choice ?? null]));
+}
+
+function admittedDecision(row, options) {
+  const config = row.admitted.config;
+  return Object.fromEntries(Object.keys(options).map(field =>
+    [field, field === 'pace' ? String(config.wpm) : config[field]]));
+}
+
+/**
+ * @returns scores keyed by provider id, in the run's provider order. A
+ * decider that did not run gets only its status, never zeros. In a partial
+ * run each decider is scored over the cases it reached, marked partial.
+ */
+export function scoreRun(run, { cases, controls = [], options, catalog }) {
+  const questions = new Map([...cases, ...controls].map(item => [item.id, buildRecommendRequest({
+    intent: item.intent, catalog, turn: 0, nightDrive: false }).body.questions]));
+  const expected = new Map(cases.map(item => [item.id, expectedChoices(item)]));
+  const calibrated = run.calibrationVersion
+    ? calibration(calibrationRows(run.results, id => expected.get(id))) : null;
+  const scores = {};
+  for (const { id, status = 'ran' } of run.providers) {
+    if (status !== 'ran') {
+      scores[id] = { status };
+      continue;
+    }
+    const rows = run.results.filter(row => row.providerId === id)
+      .sort((a, b) => a.run - b.run);
+    const reached = run.partial ? cases.filter(item => rows.some(row => row.caseId === item.id)) : cases;
+    const counts = { outOfMenu: 0, missing: 0, refusals: 0 };
+    const rawRows = [];
+    const admittedRows = [];
+    let rawValid = 0;
+    for (const row of rows) {
+      const result = audit(row, questions.get(row.caseId));
+      for (const key of Object.keys(counts)) counts[key] += result.counts[key];
+      if (result.valid) rawValid++;
+      rawRows.push(result.valid ? { id: row.caseId, decision: rawDecision(row, options),
+        workId: row.rawAnswers.book?.choice } : { id: row.caseId });
+      admittedRows.push(row.admitted ? { id: row.caseId, decision: admittedDecision(row, options),
+        workId: row.admitted.workId } : { id: row.caseId });
+    }
+    const raw = scoreDecisions(reached, rawRows, options);
+    const admitted = scoreDecisions(reached, admittedRows, options);
+    const byCase = new Map();
+    for (const row of rows) byCase.set(row.caseId, [...(byCase.get(row.caseId) || []), row]);
+    const repeated = [...byCase.values()].filter(group => group.length > 1);
+    const same = (group, pick) => group.every(row => JSON.stringify(pick(row)) === JSON.stringify(pick(group[0])));
+    const latencies = rows.map(row => row.latencyMs).filter(Number.isFinite).sort((a, b) => a - b);
+    const costs = rows.map(row => row.costUsd).filter(Number.isFinite);
+    const total = costs.reduce((sum, value) => sum + value, 0);
+    scores[id] = {
+      ...(run.partial ? { partial: true, casesReached: reached.length } : {}),
+      results: rows.length,
+      errors: rows.filter(row => !row.rawAnswers).length,
+      valid: { raw: rawValid, admitted: rows.filter(row => row.admitted).length },
+      ...counts,
+      explicit: { raw: raw.explicit, admitted: admitted.explicit },
+      contrast: { raw: raw.contrast, admitted: admitted.contrast },
+      stability: {
+        cases: repeated.length,
+        identicalRaw: repeated.filter(group => same(group, choices)).length,
+        identicalAdmitted: repeated.filter(group => same(group, row => row.admitted)).length
+      },
+      latencyMs: { p50: percentile(latencies, 0.5), p95: percentile(latencies, 0.95) },
+      cost: { totalUsd: round(total), per1kUsd: costs.length ? round(total / costs.length * 1000) : null,
+        unreported: rows.length - costs.length },
+      ...(calibrated ? { calibration: calibrated[id] ?? null } : {})
+    };
+  }
+  return scores;
+}
+
+/** Explicit agreement over per-case rows {passed, total}: checks passed over checks made. */
+const explicitRate = rows => rows.reduce((sum, row) => sum + row.passed, 0) / rows.reduce((sum, row) => sum + row.total, 0);
+const rate = ({ passed, total }) => (total ? round(passed / total) : null);
+const roundInterval = ({ estimate, lo, hi, ...rest }) => ({ estimate: round(estimate), lo: round(lo), hi: round(hi), ...rest });
+
+/**
+ * Agreement of admitted decisions with each run stated apart, never pooled:
+ * the repeats of one decider are not independent, so pooling them narrows
+ * any interval falsely. Run 1 is the headline. Its explicit agreement carries
+ * a case-clustered 95% bootstrap interval, its contrast pairs a 95% Wilson
+ * interval, and every pair of deciders that ran a paired case-clustered
+ * difference with `withinNoise`. Computed only for the report, never stored
+ * in run.scores, so recorded scores still reproduce.
+ */
+export function agreementReport(run, { cases, options }) {
+  const ran = run.providers.filter(({ status = 'ran' }) => status === 'ran').map(({ id }) => id);
+  const deciders = {};
+  const perCase = {};
+  const notReached = [];
+  for (const id of ran) {
+    const rows = run.results.filter(row => row.providerId === id);
+    const runNumbers = [...new Set(rows.map(row => row.run))].sort((a, b) => a - b);
+    const runs = runNumbers.map(number => {
+      const mine = rows.filter(row => row.run === number);
+      const reached = run.partial ? cases.filter(item => mine.some(row => row.caseId === item.id)) : cases;
+      const admittedRows = mine.map(row => row.admitted ? { id: row.caseId, decision: admittedDecision(row, options),
+        workId: row.admitted.workId } : { id: row.caseId });
+      const scored = scoreDecisions(reached, admittedRows, options);
+      const caseRows = reached.map(item => ({ caseId: item.id,
+        ...scoreDecisions([item], admittedRows.filter(row => row.id === item.id), options).explicit }))
+        .filter(row => row.total);
+      return { run: number, explicit: { ...scored.explicit, rate: rate(scored.explicit) },
+        contrast: { ...scored.contrast, rate: rate(scored.contrast) }, caseRows };
+    });
+    const [headline] = runs;
+    if (!headline) {
+      notReached.push(id);
+      continue;
+    }
+    perCase[id] = headline.caseRows;
+    const spread = key => {
+      const rates = runs.map(item => item[key].rate).filter(value => value !== null);
+      return rates.length ? { min: Math.min(...rates), max: Math.max(...rates) } : null;
+    };
+    const { lo, hi } = wilson(headline.contrast.passed, headline.contrast.total);
+    deciders[id] = {
+      headlineRun: headline.run,
+      explicit: { ...headline.explicit, cases: headline.caseRows.length,
+        interval: { method: 'case-clustered percentile bootstrap, 95%',
+          ...roundInterval(clusterBootstrap(headline.caseRows, explicitRate)) } },
+      contrast: { ...headline.contrast,
+        interval: { method: 'Wilson score over pairs, 95%', lo: round(lo), hi: round(hi) } },
+      runs: runs.map(({ caseRows, ...item }) => item),
+      acrossRuns: { runs: runs.length, explicitRate: spread('explicit'), contrastRate: spread('contrast') }
+    };
+  }
+  const scored = ran.filter(id => perCase[id]);
+  const differences = scored.flatMap((a, index) => scored.slice(index + 1).map(b => ({ a, b,
+    metric: 'explicit agreement, a minus b, headline run, paired case-clustered bootstrap, 95%',
+    ...roundInterval(pairedBootstrapDiff(perCase[a], perCase[b], explicitRate)) })));
+  return { decisions: 'admitted', deciders, ...(notReached.length ? { notReached } : {}), differences };
+}

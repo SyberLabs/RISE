@@ -34,6 +34,8 @@ import { installTestBridge } from './app/test-bridge.js';
 
 // Not a room: the address opens today's poem in the reader (launchToday).
 const TODAY_PATH = '/today';
+/** The Checkout success page (src/app/plus-claim.js). */
+const PLUS_CLAIM_PATH = '/plus/claim';
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
 
@@ -315,6 +317,12 @@ class App {
                 this.showToast(error.message || 'Today’s poem could not be opened.', 5000);
                 await this.router.navigate('home');
             }
+        } else if (pathname === PLUS_CLAIM_PATH) {
+            const { enterFromPlusClaim } = await import('./app/plus-claim.js');
+            await enterFromPlusClaim(appLocation().search, {
+                home: () => this.router.navigate('home'),
+                notify: message => this.showToast(message, 5000)
+            });
         } else {
             // Every other address is the table's to resolve (route-url.js);
             // the cases above are not addresses: a hash, a query code, a
@@ -712,10 +720,12 @@ class App {
     }
 
     /** Resolve Jev's discrete choices against shipped text, then enter the reader. */
-    async launchJevReading(decision, { firstReadPreview = false } = {}) {
+    async launchJevReading(decision, { firstReadPreview = false, publicPath = null } = {}) {
         const { resolveJevReading } = await import('./app/jev-reading.js');
         const sessionConfig = await resolveJevReading(decision);
         if (firstReadPreview) sessionConfig.firstReadPreview = true;
+        // The address the reading keeps (an arena replay's own decider).
+        if (publicPath) sessionConfig.publicPath = publicPath;
         if (!await this.handleBeginSession(sessionConfig)) {
             throw new Error('The selected reading could not be opened. Please try again.');
         }
@@ -959,6 +969,10 @@ class App {
             // Audio
             masterVolume: 0.75,
             enableBinaural: false,
+            // The Plus voice reads a reading of the reader's own aloud; on once Plus is claimed here.
+            plusVoice: true,
+            // Which of the Worker's voices reads it (GET /api/plus/voices).
+            plusVoiceSlug: 'default',
 
             // Safety / Accessibility
             photosensitivityMode: false,
@@ -987,6 +1001,7 @@ class App {
                 'showArtworkLabels',
                 'livingText',
                 'enableBinaural',
+                'plusVoice',
                 'photosensitivityMode',
                 'reducedMotion'
             ];
@@ -1005,7 +1020,11 @@ class App {
                 defaultCurve: curves.has(merged.defaultCurve) ? merged.defaultCurve : defaultSettings.defaultCurve,
                 defaultAudioPreset: typeof merged.defaultAudioPreset === 'string'
                     ? merged.defaultAudioPreset.slice(0, 80)
-                    : defaultSettings.defaultAudioPreset
+                    : defaultSettings.defaultAudioPreset,
+                // Checked where it is used (plusVoiceSlug, src/app/plus.js).
+                plusVoiceSlug: typeof merged.plusVoiceSlug === 'string'
+                    ? merged.plusVoiceSlug.slice(0, 32)
+                    : defaultSettings.plusVoiceSlug
             };
             for (const key of booleanKeys) this.settings[key] = merged[key] === true;
         } catch (e) {

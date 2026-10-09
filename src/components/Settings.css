@@ -316,6 +316,11 @@
     width: auto;
 }
 
+/* Subscribe waits for the deployment's payment link; the button's own display would show it hidden. */
+.settings-action .btn-secondary[hidden] {
+    display: none;
+}
+
 /* Clearing is the one destructive act on the page. It is a secondary
    button like Export, set apart only by its danger text and border. No
    fill: the system has no coloured backgrounds. The confirm dialog is
@@ -506,4 +511,15 @@
 
 .settings--bar .settings-hint {
   font-size: 12px;
+}
+
+/* The Plus voice picker: the one select in Settings. */
+.settings-row select {
+    font: inherit;
+    color: var(--sy-text);
+    background: var(--sy-bg);
+    border: 1px solid var(--sy-line);
+    border-radius: 6px;
+    padding: var(--space-xs) var(--space-sm);
+    max-width: 50%;
 }

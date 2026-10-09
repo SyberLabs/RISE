@@ -20,7 +20,7 @@
 - **AI reading request** (optional) – describe what you want to read and a bounded decision model picks a book and presentation from the held catalog. Bring your own model: **Connect OpenRouter** (hosted Jev, billed to your OpenRouter account) or **Run locally** (`npm run local`: RISE and pinned Kev-4B on your GPU, no hosted bill). See [docs/USER-OWNED-AI.md](docs/USER-OWNED-AI.md) and [docs/LOCAL-RISE.md](docs/LOCAL-RISE.md).
 - **Journeys (unpublished draft)** – [Heaven and Household](docs/journey-editorial/editorial-work.md) is source-bound against Milton and Bryant and remains outside the public catalog.
 
-Reading runs entirely in the browser. Your files and saved work stay in browser storage. See [Privacy](PRIVACY.md).
+Reading runs entirely in the browser, except optional visual direction, which sends sections of the text to your own AI connection (OpenRouter or Kev on your computer). Your files and saved work stay in browser storage. See [Privacy](PRIVACY.md).
 
 ## Engineering highlights
 
@@ -29,7 +29,7 @@ Reading runs entirely in the browser. Your files and saved work stay in browser 
 - **First load held under a 64 KB brotli budget** enforced in CI; `npm run measure:first-load` prints today's size and request count.
 - **Thousands of Vitest unit and integration tests** plus Playwright browser tests, including real `ffmpeg` encoding and live Chromium rendering.
 - **Generated architecture diagram** and tested design contracts, so documentation cannot drift from the code.
-- **Edge backend:** Cloudflare Workers serve the app and a static public decision catalog. The backend runs no AI model and holds no model credential; decisions run on the reader's own connection. A GitHub Actions job runs for each push to `main`; it rebuilds, deploys and checks the live site only when its commit is still the tip of `main` at the deploy step, so superseded pushes are skipped and the newest deploys.
+- **Edge backend:** Cloudflare Workers serve the app and a static public decision catalog. The backend runs no AI model and stores no model credential; decisions run on the reader’s own connection. (The optional Live page, switched off in production, would pass a reader’s own OpenAI key through once to open a session; see PRIVACY.md.) A GitHub Actions job runs for each push to `main`; it rebuilds, deploys and checks the live site only when its commit is still the tip of `main` at the deploy step, so superseded pushes are skipped and the newest deploys.
 
 **Stack:** JavaScript (ES modules) · Vite · Web Audio API · Canvas 2D · IndexedDB · Cloudflare Workers · Vitest · Playwright · GitHub Actions
 

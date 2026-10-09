@@ -24,7 +24,9 @@ function setup(speechOptions = {}, voiceOptions = {}) {
         start: id => log.push([clock.now(), 'start', id]),
         mark: (id, charIndex, tMs) => log.push([clock.now(), 'mark', id, charIndex, tMs]),
         end: (id, durationMs) => log.push([clock.now(), 'end', id, durationMs]),
-        fail: (id, reason) => log.push([clock.now(), 'fail', id, reason])
+        fail: (id, reason) => log.push([clock.now(), 'fail', id, reason]),
+        taken: (id, reason) => log.push([clock.now(), 'taken', id, reason]),
+        restarted: (id, afterMs) => log.push([clock.now(), 'restarted', id, afterMs])
     });
     return { clock, synth, voice, log };
 }
@@ -316,6 +318,178 @@ describe('a hold told where to take up again', () => {
         expect(voice.playedMs('a')).toBe(14 * MS);
         voice.release();
         expect(said.at(-1)).toBe(TEXT.slice(14));
+    });
+});
+
+describe('an utterance taken from outside', () => {
+    // Any page's cancel() is the whole browser's (Chromium: SpeechSynthesisImpl::Cancel -> TtsController::Stop()), and
+    // so is an extension's speech: the device stops this voice's utterance without this voice asking.
+    for (const boundaries of [true, false]) {
+        it(`is reported as taken, once, and holding afterwards does not cancel the device again (${boundaries ? 'word boundaries' : 'none'})`, async () => {
+            const { clock, voice, log, synth } = setup({ boundaries });
+            voice.enqueue({ id: 'a', text: TEXT });
+            voice.enqueue({ id: 'b', text: 'never said yet' });
+            await clock.advance(30 + 9 * MS);
+            synth.cancel();
+            await clock.advance(10);
+            expect(kinds(log, 'taken')).toEqual([[expect.any(Number), 'taken', 'a', 'interrupted']]);
+            // Nothing more is said, and no time passes for it, until it is taken up again.
+            const played = voice.playedMs('a');
+            await clock.advance(5_000);
+            expect(synth.speaking).toBe(false);
+            expect(voice.playedMs('a')).toBe(played);
+            let cancels = 0;
+            const cancel = synth.cancel.bind(synth);
+            synth.cancel = () => { cancels += 1; cancel(); };
+            voice.hold();
+            expect(cancels).toBe(0);
+            voice.release();
+            await clock.runAll();
+            expect(kinds(log, 'taken')).toHaveLength(1);
+            expect(kinds(log, 'end').map(e => e[2])).toEqual(['a', 'b']);
+            expect(kinds(log, 'end', 'a')[0][3]).toBe(TEXT.length * MS);
+        });
+    }
+
+    it('is not reported when this voice cancelled it itself', async () => {
+        const { clock, voice, log } = setup();
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(30 + 9 * MS);
+        voice.hold();
+        voice.release();
+        await clock.advance(30 + 3 * MS);
+        voice.cancel();
+        await clock.runAll();
+        expect(kinds(log, 'taken')).toEqual([]);
+    });
+});
+
+describe('taking up again after a hold', () => {
+    it('reports how long after it was let go the voice was heard again, once per release', async () => {
+        const { clock, voice, log } = setup({ latencyAfterCancelMs: 2_000 });
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: 'the next one' });
+        await clock.advance(30 + 9 * MS);
+        expect(kinds(log, 'restarted')).toEqual([]);
+        voice.hold();
+        await clock.advance(5_000);
+        voice.release();
+        await clock.runAll();
+        // Heard again 2 s after Play, as the slow engine starts; not for the first start, nor for the next utterance.
+        expect(kinds(log, 'restarted').map(e => [e[2], e[3]])).toEqual([['a', 2_000]]);
+    });
+});
+
+describe('a seek, when the reader moves the reading', () => {
+    /** Every utterance the device was given. */
+    function watchSpeech(synth) {
+        const said = [];
+        const speak = synth.speak.bind(synth);
+        synth.speak = utterance => { said.push(utterance); speak(utterance); };
+        return said;
+    }
+    const B = 'the second passage';
+    const C = 'and then the third';
+
+    it('stops what it is saying, forgets the passage sent to and every one after it, and says them again from their starts', async () => {
+        const { clock, voice, log, synth } = setup();
+        const said = watchSpeech(synth);
+        for (const [id, text] of [['a', TEXT], ['b', B], ['c', C]]) voice.enqueue({ id, text });
+        await clock.advance(30 + 9 * MS);
+        voice.seek('b');
+        expect(synth.speaking).toBe(false);
+        expect(() => voice.enqueue({ id: 'a', text: TEXT })).toThrow(/already queued/u);
+        voice.enqueue({ id: 'b', text: B });
+        voice.enqueue({ id: 'c', text: C });
+        await clock.runAll();
+        expect(said.slice(1).map(utterance => utterance.text)).toEqual([B, C]);
+        expect(kinds(log, 'end', 'a')).toEqual([]);
+        expect(kinds(log, 'end').map(e => [e[2], e[3]])).toEqual([['b', B.length * MS], ['c', C.length * MS]]);
+        // Its own cancel is neither taken from outside nor a restart after a hold.
+        expect(kinds(log, 'taken')).toEqual([]);
+        expect(kinds(log, 'restarted')).toEqual([]);
+    });
+
+    it('says a passage it has finished again when sent back to it, and reports it begun and ended again', async () => {
+        const { clock, voice, log } = setup();
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: B });
+        await clock.runAll();
+        voice.seek('a');
+        expect(voice.playedMs('a')).toBeUndefined();
+        expect(voice.playedMs('b')).toBeUndefined();
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: B });
+        await clock.runAll();
+        expect(kinds(log, 'start').map(e => e[2])).toEqual(['a', 'b', 'a', 'b']);
+        expect(voice.playedMs('a')).toBe(TEXT.length * MS);
+    });
+
+    it('says nothing while held, and the passage sent to from its start once released', async () => {
+        const { clock, voice, log, synth } = setup();
+        const said = watchSpeech(synth);
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: B });
+        await clock.advance(30 + 9 * MS);
+        voice.hold();
+        voice.seek('b');
+        voice.enqueue({ id: 'b', text: B });
+        await clock.advance(5_000);
+        expect(kinds(log, 'start', 'b')).toEqual([]);
+        voice.release();
+        await clock.runAll();
+        expect(said.at(-1).text).toBe(B);
+        expect(kinds(log, 'end').map(e => e[2])).toEqual(['b']);
+    });
+
+    it('stops what it is saying and forgets nothing when sent to a passage it was never given', async () => {
+        const { clock, voice, synth } = setup();
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(30 + 9 * MS);
+        voice.seek('z');
+        expect(synth.speaking).toBe(false);
+        expect(() => voice.enqueue({ id: 'a', text: TEXT })).toThrow(/already queued/u);
+        expect(() => voice.enqueue({ id: 'z', text: B })).not.toThrow();
+    });
+});
+
+describe('a change of pace', () => {
+    function watchSpeech(synth) {
+        const said = [];
+        const speak = synth.speak.bind(synth);
+        synth.speak = utterance => { said.push(utterance); speak(utterance); };
+        return said;
+    }
+
+    it('says what it is saying again from the last word heard at the new rate, at once, and the next utterance at it too', async () => {
+        const { clock, voice, log, synth } = setup();
+        const said = watchSpeech(synth);
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: 'the next one' });
+        await clock.advance(30 + 9 * MS);          // marks at 4 and 8 have been heard
+        voice.setRate(2);
+        expect(said.at(-1).text).toBe(TEXT.slice(8));
+        expect(said.at(-1).rate).toBe(2);
+        await clock.runAll();
+        expect(said.at(-1).rate).toBe(2);
+        expect(kinds(log, 'start', 'a')).toHaveLength(1);
+        // Time is speaking time: what was said at the old rate, and the rest at the new.
+        expect(kinds(log, 'end', 'a')[0][3]).toBe(8 * MS + (TEXT.length - 8) * MS / 2);
+        expect(kinds(log, 'restarted')).toEqual([]);
+    });
+
+    it('stays silent when held, and takes up at the new rate once released', async () => {
+        const { clock, voice, synth } = setup();
+        const said = watchSpeech(synth);
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.advance(30 + 9 * MS);
+        voice.hold();
+        const before = said.length;
+        voice.setRate(0.5);
+        expect(said.length).toBe(before);
+        expect(synth.speaking).toBe(false);
+        voice.release();
+        expect(said.at(-1).rate).toBe(0.5);
     });
 });
 

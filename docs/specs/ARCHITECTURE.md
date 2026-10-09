@@ -44,10 +44,15 @@ Every decision in §8 is downstream of these. They are the axioms; everything
 else is a recommendation.
 
 1. **No shared inference.** Every model call runs on the reader's own key or
-   on the reader's own machine. RISE never pays for a reader's thinking.
+   on the reader's own machine. RISE never pays for a reader's thinking. The
+   one bounded exception is voice, not thought: a Plus subscriber's reading of
+   their own material is voiced by a speech vendor on the lab's account,
+   metered as a character count per subscription, and kept only in the
+   reader's browser (RFC 0001, decision D10).
 2. **A browser, no account.** There is no identity service and no server-side
    reader state. Nothing a reader types or reads leaves their device unless
-   they send it.
+   they send it. The Plus meter is one character count per subscription, not
+   reader state.
 3. **Content is static and content-addressed.** Editions, recitation, imagery
    and programs are files named by their hash, built from a content branch
    into `dist/`, and never part of the module graph.
@@ -72,6 +77,8 @@ else is a recommendation.
   │   Met · AIC · NASA ─▶ *-harvest.mjs ─▶ contact sheet ─▶ HUMAN PIN        │
   │                                                                         │
   │   Kokoro TTS ───────▶ build-voice-pack.mjs ─▶ recitation Opus + manifest │
+  │                                                                         │
+  │   arena.mjs ─▶ operator-paid decider capture ─▶ frozen run-<sha12>.json │
   │                                                                         │
   │   check-release-readiness.mjs  ── fails closed while any gate is open    │
   └────────────────────────────────┬────────────────────────────────────────┘
@@ -154,13 +161,13 @@ it, and CI fails when the committed copy is not what `src/` produces.
 ```mermaid
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
-    app["app<br/>composition root<br/>13 modules"]
-    audio["audio<br/>Web Audio, recitation<br/>13 modules"]
+    app["app<br/>composition root<br/>16 modules"]
+    audio["audio<br/>Web Audio, recitation<br/>15 modules"]
     components["components<br/>routed views<br/>52 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>169 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>49 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>51 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     scenes["scenes<br/>engine manifests, cues; scene runtime<br/>7 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
@@ -171,15 +178,15 @@ flowchart LR
     affect --> |7| core
     app --> |1| audio
     app -.-> |8 lazy| components
-    app --> |3| content
-    app --> |46| core
+    app --> |4| content
+    app --> |49| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
     audio --> |1| content
     audio --> |8| core
     components --> |3| affect
-    components -.-> |2 lazy| app
+    components --> |1| app
     components --> |5| audio
     components --> |23| content
     components --> |187| core
@@ -192,7 +199,7 @@ flowchart LR
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
-    core --> |9| audio
+    core --> |10| audio
     core --> |15| content
     core --> |9| scenes
     core --> |4| sources
@@ -1401,6 +1408,33 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `docs/product/discussions/2026-10-04-composer-decision.md`.
 - **Status:** settled.
 
+### 8.47 The arena is a frozen file; live runs are the reader's
+
+- **Chosen:** the Decision Arena compares deciders on RISE's own fixed cases
+  offline. An operator runs `scripts/arena/arena.mjs` by hand, on the
+  operator's own keys, under a spending cap; it refuses to run in CI, and
+  without an explicit billing flag whenever a billed decider is asked. A
+  decider left out is recorded as `not run: <reason>`, in the run and its
+  replay. The capture is frozen into one file named
+  by the hash of its bytes, served immutable beside an index that revalidates.
+  `scripts/arena/arena-file.mjs` refuses a file whose bytes do not match its
+  name or are not the one canonical encoding, whose schema is unknown, or whose harness had uncommitted changes
+  (a mock run, a pipeline check never committed, is exempt). Every decider's answers pass through the same `admitAnswers` the browser
+  uses, and both the raw and the admitted decision are kept. Beside each run
+  sits a slim `replay-<sha12>.json` under the same digits: run 1 of the fixed
+  cases, each decider's admitted decision or reject code, no controls and no
+  raw answers. It is derived from the run file alone, and the arena file
+  reader accepts it only as those exact bytes.
+- **Rejected:** live side-by-side calls from the reader's page, a shared
+  SyberLabs key for comparisons, and a reader pasting a third-party key into
+  RISE for this.
+- **Why:** a comparison anyone can check must be the same bytes for everyone,
+  and RISE spends no shared inference (§2, #294). A frozen file costs nothing
+  per view, names the commit that produced it, and cannot be edited without
+  changing its name. Nothing under `src/` imports the harness, and the built
+  app never names the OpenAI endpoint; `scripts/arena/arena.test.mjs` holds both.
+- **Status:** settled.
+
 ---
 
 ## 9. What this design costs
@@ -1424,6 +1458,9 @@ Stated plainly so it is never rediscovered as a surprise.
 - **The release is gated on people**, and cannot be hurried by engineering.
   §8.15.
 - **Access control does not exist**, by choice. §8.1, §8.41.
+- **Frozen results age.** An arena run describes the deciders on the day it
+  was captured; a vendor's later model is not in it. A newer run is a new
+  file, never an edit. §8.47.
 
 ---
 

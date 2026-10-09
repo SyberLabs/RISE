@@ -6,9 +6,28 @@ const SAMPLE_PATHS = Object.freeze({
   [NIGHT_DRIVE_PATH]: 'night-drive'
 });
 
-/** Which fixed sample a public path names, or null. */
+/** The four deciders a frozen Decision Arena result can be replayed from. */
+export const ARENA_DECIDERS = Object.freeze(['openai', 'jev', 'kev', 'rules']);
+
+/**
+ * An arena address as { caseId, decider }, either null when absent:
+ * `/arena` (the case list), `/arena/<caseId>`, `/arena/<caseId>/<decider>`.
+ * Null for anything else.
+ */
+export function arenaFromPath(pathname) {
+  const found = /^\/arena(?:\/([^/]+)(?:\/([^/]+))?)?$/u.exec(String(pathname || '').replace(/\/+$/u, ''));
+  if (!found || (found[2] !== undefined && !ARENA_DECIDERS.includes(found[2]))) return null;
+  try {
+    return { caseId: found[1] === undefined ? null : decodeURIComponent(found[1]), decider: found[2] ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/** Which fixed sample a public path names, or null. A frozen arena replay is one. */
 export function sceneSampleFromPath(pathname) {
   const path = String(pathname || '').replace(/\/+$/u, '');
+  if (arenaFromPath(path)) return 'arena';
   return Object.hasOwn(SAMPLE_PATHS, path) ? SAMPLE_PATHS[path] : null;
 }
 
