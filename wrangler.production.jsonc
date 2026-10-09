@@ -6,7 +6,8 @@
   "preview_urls": false,
   // Shared model inference is retired. Readers use their own OpenRouter account
   // or run Kev locally; the optional live integrations remain switched off.
-  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "true", "MCP_SELF_CONTAINED": "true", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_DAILY_CHAR_CAP": "500000",
+  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "true", "MCP_SELF_CONTAINED": "true", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_PAYMENT_LINK": "https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00",
+    "PLUS_DAILY_CHAR_CAP": "500000",
     // The voices a reader may choose (worker/plus.mjs). ElevenLabs premade voice ids, not secret;
     // "default" takes its id from the PLUS_VOICE_ID secret. GET /api/plus/voices lists slugs and labels only.
     "PLUS_VOICES": [{ "slug": "default", "label": "Default" }, { "slug": "george", "label": "George — warm British narrator", "id": "JBFqnCBsd6RMkjVDRZzb" }, { "slug": "rachel", "label": "Rachel — calm American", "id": "21m00Tcm4TlvDq8ikWAM" }, { "slug": "daniel", "label": "Daniel — deep British", "id": "onwK4e9ZLuTAKqWW03F9" }, { "slug": "charlotte", "label": "Charlotte — soft, measured", "id": "XB0fDUnXU5powFXDhCwa" }] },
@@ -31,6 +32,10 @@
   // from rise-plus-preview's: a cookie signed by the preview must never verify on production.
   // PLUS_DAILY_CHAR_CAP (vars) is the characters every subscriber together may voice per UTC day
   // (500,000 is about $20 at Flash pricing); unset or not a positive number, the voice answers 503.
+  // STRIPE_WEBHOOK_SECRET (secret) is the signing secret of the Stripe webhook endpoint at
+  // /api/plus/stripe-webhook (events and setup: worker/plus.mjs); unset, that route answers 503.
+  // PLUS_PAYMENT_LINK (vars) is the Stripe Payment Link the Subscribe button opens: still the
+  // test-mode link; going live is this value, not a code change.
   // PLUS_METER holds each subscription's allowance and the daily total (SQLite-backed, free plan).
   "durable_objects": { "bindings": [{ "name": "PLUS_METER", "class_name": "PlusMeter" }] },
   "migrations": [{ "tag": "plus-meter-v1", "new_sqlite_classes": ["PlusMeter"] }],
@@ -38,5 +43,10 @@
     "name": "DECISION_LIMITER",
     "namespace_id": "2026092602",
     "simple": { "limit": 30, "period": 60 }
+  }, {
+    // POST /api/plus/claim needs no cookie and costs a Stripe call, so each address gets 5 a minute.
+    "name": "PLUS_CLAIM_LIMITER",
+    "namespace_id": "2026100802",
+    "simple": { "limit": 5, "period": 60 }
   }]
 }

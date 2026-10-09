@@ -38,12 +38,27 @@ export async function fetchPlusVoices({ fetchImpl = globalThis.fetch?.bind(globa
   return [{ ...PLUS_DEFAULT_VOICE }];
 }
 
+const PLUS_CONFIG_ROUTE = '/api/plus/config';
+const PAYMENT_LINK = /^https:\/\/buy\.stripe\.com\/[A-Za-z0-9_]+$/u; // worker/plus.mjs paymentLink()
+
 /**
- * The Stripe payment link for Plus, from the Stripe dashboard (Payment links).
- * This is the TEST-mode link; swap it for the live one at go-live. Stripe
- * returns the buyer to /plus/claim?session_id={CHECKOUT_SESSION_ID}.
+ * The Stripe Payment Link for Plus, as this deployment configures it
+ * (PLUS_PAYMENT_LINK, served by GET /api/plus/config), so test and live differ by
+ * configuration, not code. Stripe returns the buyer to
+ * /plus/claim?session_id={CHECKOUT_SESSION_ID}. Null when the deployment has none,
+ * or it cannot be had: then there is nothing to subscribe with, and no button.
+ * @returns {Promise<string | null>}
  */
-export const PLUS_PAYMENT_LINK = 'https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00';
+export async function fetchPlusPaymentLink({ fetchImpl = globalThis.fetch?.bind(globalThis) } = {}) {
+  try {
+    const response = await fetchImpl(PLUS_CONFIG_ROUTE);
+    if (!response.ok) return null;
+    const link = (await response.json())?.paymentLink;
+    return typeof link === 'string' && PAYMENT_LINK.test(link) ? link : null;
+  } catch {
+    return null;
+  }
+}
 export const PLUS_PRICE = '$8.99 a month';
 /** One voicing is one vendor request (worker/plus.mjs VOICE_MAX_CHARS). */
 export const PLUS_VOICE_MAX_CHARS = 10_000;

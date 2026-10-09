@@ -316,6 +316,11 @@
     width: auto;
 }
 
+/* Subscribe waits for the deployment's payment link; the button's own display would show it hidden. */
+.settings-action .btn-secondary[hidden] {
+    display: none;
+}
+
 /* Clearing is the one destructive act on the page. It is a secondary
    button like Export, set apart only by its danger text and border. No
    fill: the system has no coloured backgrounds. The confirm dialog is

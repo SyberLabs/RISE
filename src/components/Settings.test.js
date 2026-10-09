@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exportUserData } from '../core/user-data.js';
 import { Settings } from './Settings.js';
-import { PLUS_PAYMENT_LINK, notePlusAllowance } from '../app/plus.js';
+import { notePlusAllowance } from '../app/plus.js';
 
 vi.mock('../core/user-data.js', () => ({
     clearUserData: vi.fn(),
@@ -401,19 +401,41 @@ describe('Settings Plus voice', () => {
         return new Settings(container, { settings, onChange: vi.fn() });
     };
 
-    it('offers the payment link until Plus is claimed in this browser', () => {
+    const PAYMENT_LINK = 'https://buy.stripe.com/test_link1';
+
+    it('offers the deployment\'s payment link until Plus is claimed in this browser', async () => {
+        const fetchImpl = vi.fn(async () => Response.json({ paymentLink: PAYMENT_LINK }));
+        vi.stubGlobal('fetch', fetchImpl);
         const settings = mount();
-        const link = settings.container.querySelector('a[href^="https://buy.stripe.com/"]');
-        expect(link?.getAttribute('href')).toBe(PLUS_PAYMENT_LINK);
+        const subscribe = settings.container.querySelector('[data-plus-subscribe]');
+        expect(subscribe.hidden).toBe(true); // nothing to open until the link is known
+        await settings.plusLinkLoaded;
+        expect(fetchImpl).toHaveBeenCalledWith('/api/plus/config');
+        expect(subscribe.hidden).toBe(false);
+        expect(subscribe.getAttribute('href')).toBe(PAYMENT_LINK);
         expect(settings.container.textContent).toContain('$8.99 a month');
         expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
         expect(settings.container.querySelector('.settings-fail[hidden]')).toBeTruthy();
         settings.destroy();
     });
 
+    it.each([
+        ['the deployment has no link', async () => Response.json({ paymentLink: null })],
+        ['the link is not a Stripe Payment Link', async () => Response.json({ paymentLink: 'https://evil.example/pay' })],
+        ['the Worker cannot be reached', async () => { throw new Error('offline'); }]
+    ])('hides Subscribe when %s', async (_, answer) => {
+        vi.stubGlobal('fetch', vi.fn(answer));
+        const settings = mount();
+        await settings.plusLinkLoaded;
+        const subscribe = settings.container.querySelector('[data-plus-subscribe]');
+        expect(subscribe.hidden).toBe(true);
+        expect(subscribe.hasAttribute('href')).toBe(false);
+        settings.destroy();
+    });
+
     it('shows the switch, on by default, and forgets the claim on request', async () => {
         localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
-        const fetchImpl = vi.fn(async () => new Response(null, { status: 204 }));
+        const fetchImpl = vi.fn(async url => (url === '/api/plus/config' ? Response.json({ paymentLink: PAYMENT_LINK }) : new Response(null, { status: 204 })));
         vi.stubGlobal('fetch', fetchImpl);
         const settings = mount();
         const toggle = settings.container.querySelector('[data-setting="plusVoice"]');
@@ -426,6 +448,7 @@ describe('Settings Plus voice', () => {
         expect(fetchImpl).toHaveBeenCalledWith('/api/plus/forget', { method: 'POST' });
         expect(localStorage.getItem('rise.plus')).toBeNull();
         expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        await settings.plusLinkLoaded;
         expect(settings.container.querySelector('a[href^="https://buy.stripe.com/"]')).toBeTruthy();
         settings.destroy();
     });

@@ -15,13 +15,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import worker from './index.mjs';
-import { PLUS_INTERNALS, PlusMeter, STRIPE_VERSION, VOICE_ALLOWANCE, isPlusRoute } from './plus.mjs';
+import { PLUS_INTERNALS, PlusMeter, STANDING_TTL_S, STRIPE_VERSION, SUB_RATE_PER_MINUTE, VOICE_ALLOWANCE, isPlusRoute } from './plus.mjs';
 
 const SITE = 'https://rise.example';
 const NOW = 1_800_000_000;
-const { sign, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S, MAX_BODY_BYTES } = PLUS_INTERNALS;
+const { sign, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S, MAX_BODY_BYTES, WEBHOOK_TOLERANCE_S } = PLUS_INTERNALS;
 const PRICE = 'price_plus';
 const EXP = NOW + 20 * DAY_S;
+/** The billing period started ten days ago: the allowance is keyed by this, the start of the Plus item's period. */
+const START = NOW - 10 * DAY_S;
 /** The allow-list as wrangler hands a JSON var over: parsed. */
 const VOICES = [
   { slug: 'default', label: 'Default' },
@@ -30,9 +32,9 @@ const VOICES = [
 ];
 
 /** A subscription as Stripe 2025-03-31.basil returns it: the billing period is on the item. */
-const subscription = ({ current_period_end = EXP, price = PRICE, ...overrides } = {}) => ({
+const subscription = ({ current_period_end = EXP, current_period_start = START, price = PRICE, ...overrides } = {}) => ({
   id: 'sub_1', status: 'active', customer: 'cus_1',
-  items: { object: 'list', data: [{ id: 'si_1', price: { id: price }, current_period_end }] },
+  items: { object: 'list', data: [{ id: 'si_1', price: { id: price }, current_period_start, current_period_end }] },
   ...overrides
 });
 
@@ -42,7 +44,7 @@ function meterNamespace() {
   const instance = name => {
     if (!instances.has(name)) {
       const map = new Map();
-      instances.set(name, new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); } } } }));
+      instances.set(name, new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); }, delete: key => map.delete(key) } } }));
     }
     return instances.get(name);
   };
@@ -74,6 +76,7 @@ function environment(overrides = {}) {
     PLUS_DAILY_CHAR_CAP: '1000000',
     PLUS_METER: meterNamespace(),
     DECISION_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
+    PLUS_CLAIM_LIMITER: { limit: vi.fn(async () => ({ success: true })) },
     ...overrides
   };
 }
@@ -100,8 +103,13 @@ function vendorAnswer(text) {
  * Stripe and the vendor behind one fetch. `vendor` is 'echo' (a faithful answer),
  * 'mismatch' (billed, but says something else), 'garbage' (billed, not JSON), or a status.
  */
-function world({ sub = subscription(), session = { payment_status: 'paid', subscription: sub }, vendor = 'echo', stripeDown = false } = {}) {
+function world({ sub = subscription(), session = { payment_status: 'paid', subscription: sub }, vendor = 'echo', stripeDown = false, barrier = 0 } = {}) {
   const state = { vendorCalls: 0, vendorChars: 0, stripeGets: 0, stripeWrites: 0 };
+  // barrier: the subscription GET answers only once `barrier` requests wait on it, then all at once,
+  // as Stripe's real latency lines parallel requests up. Without it WebCrypto's callbacks serialize
+  // the requests, they never overlap at the meter, and a meter with a race in it would still pass.
+  const waiting = [];
+  const held = () => (barrier > 0 ? new Promise(resolve => { waiting.push(resolve); if (waiting.length >= barrier) waiting.splice(0).forEach(go => go()); }) : null);
   const fetcher = vi.fn(async (url, init = {}) => {
     const u = new URL(url);
     if (u.hostname === 'api.elevenlabs.io') {
@@ -117,8 +125,16 @@ function world({ sub = subscription(), session = { payment_status: 'paid', subsc
       if (stripeDown) throw new Error('offline');
       if ((init.method ?? 'GET') !== 'GET') state.stripeWrites++;
       if (u.pathname.startsWith('/v1/checkout/sessions/')) return session ? Response.json(session) : new Response('', { status: 404 });
+      // A charge traced to its subscription, as the webhook does it: charge, PaymentIntent, invoice payment, invoice.
+      if (u.pathname === '/v1/charges/ch_1') return Response.json({ id: 'ch_1', payment_intent: 'pi_1' });
+      if (u.pathname === '/v1/invoice_payments') {
+        state.paymentLookups = (state.paymentLookups ?? 0) + 1;
+        const paid = u.searchParams.get('payment[payment_intent]') === 'pi_1' && u.searchParams.get('payment[type]') === 'payment_intent';
+        return Response.json({ data: paid ? [{ invoice: { id: 'in_1', parent: { subscription_details: { subscription: 'sub_1' } } } }] : [] });
+      }
       if (u.pathname.startsWith('/v1/subscriptions/')) {
         state.stripeGets++;
+        await held();
         // Each subscription id answers as itself, so several subscribers can share one Stripe.
         return sub ? Response.json({ ...sub, id: decodeURIComponent(u.pathname.split('/').pop()) }) : new Response('', { status: 404 });
       }
@@ -155,6 +171,8 @@ describe('Plus routes', () => {
     expect(isPlusRoute('/api/plus/voice')).toBe(true);
     expect(isPlusRoute('/api/plus/forget')).toBe(true);
     expect(isPlusRoute('/api/plus/voices')).toBe(true);
+    expect(isPlusRoute('/api/plus/config')).toBe(true);
+    expect(isPlusRoute('/api/plus/stripe-webhook')).toBe(true);
     expect(isPlusRoute(`/api/plus/audio/voiced/${'a'.repeat(64)}/pack.json`)).toBe(false);
     expect(isPlusRoute('/api/plus/audio/el_a/the-iliad/3/pack.json')).toBe(false);
     expect(isPlusRoute('/api/plus')).toBe(false);
@@ -205,7 +223,7 @@ describe('claim', () => {
 
   it('reads the period end from the top level for a subscription in the pre-basil shape', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
-    const legacy = { id: 'sub_1', status: 'active', customer: 'cus_1', current_period_end: NOW + 10 * DAY_S, items: { data: [{ price: { id: PRICE } }] } };
+    const legacy = { id: 'sub_1', status: 'active', customer: 'cus_1', current_period_start: NOW - DAY_S, current_period_end: NOW + 10 * DAY_S, items: { data: [{ price: { id: PRICE } }] } };
     world({ session: { payment_status: 'paid', subscription: legacy } });
     const response = await worker.fetch(claimRequest(), environment());
     expect(response.status).toBe(204);
@@ -244,12 +262,23 @@ describe('claim', () => {
     expect(setCookieOf(response)).toBeNull();
   });
 
-  it('is rate limited per address like the other routes', async () => {
+  it('is rate limited per address by its own, stricter limiter, before Stripe is asked', async () => {
     const { fetcher } = world();
-    const env = environment({ DECISION_LIMITER: { limit: vi.fn(async () => ({ success: false })) } });
+    const env = environment({ PLUS_CLAIM_LIMITER: { limit: vi.fn(async () => ({ success: false })) } });
     const response = await worker.fetch(claimRequest(), env);
     expect(response.status).toBe(429);
-    expect(env.DECISION_LIMITER.limit).toHaveBeenCalledWith({ key: 'plus:192.0.2.1' });
+    expect(env.PLUS_CLAIM_LIMITER.limit).toHaveBeenCalledWith({ key: 'plus-claim:192.0.2.1' });
+    expect(env.DECISION_LIMITER.limit).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('fails closed: a limiter that throws, or none bound, refuses the claim without asking Stripe', async () => {
+    const { fetcher } = world();
+    const down = await worker.fetch(claimRequest(), environment({ PLUS_CLAIM_LIMITER: { limit: vi.fn(async () => { throw new Error('limiter down'); }) } }));
+    expect([down.status, await codeOf(down)]).toEqual([429, 'RATE_LIMITED']);
+    const unbound = await worker.fetch(claimRequest(), environment({ PLUS_CLAIM_LIMITER: undefined }));
+    expect(unbound.status).toBe(503);
+    expect((await unbound.json()).error.message).toContain('PLUS_CLAIM_LIMITER');
     expect(fetcher).not.toHaveBeenCalled();
   });
 
@@ -325,7 +354,7 @@ describe('voice', () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
     const { state } = world();
-    await prefill(env, 'sub:sub_1', EXP, VOICE_ALLOWANCE - TEXT.length + 1);
+    await prefill(env, 'sub:sub_1', START, VOICE_ALLOWANCE - TEXT.length + 1);
     const response = await worker.fetch(voiceRequest(await cookieFor(env), ATOMS), env);
     expect(response.status).toBe(402);
     expect(await codeOf(response)).toBe('PLUS_ALLOWANCE');
@@ -335,8 +364,8 @@ describe('voice', () => {
   it('starts a new count with a new billing period', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
-    await prefill(env, 'sub:sub_1', EXP, VOICE_ALLOWANCE);
-    world({ sub: subscription({ current_period_end: EXP + 30 * DAY_S }) });
+    await prefill(env, 'sub:sub_1', START, VOICE_ALLOWANCE);
+    world({ sub: subscription({ current_period_start: EXP, current_period_end: EXP + 30 * DAY_S }) });
     const response = await worker.fetch(voiceRequest(await cookieFor(env), ATOMS), env);
     expect(response.status).toBe(200);
     expect((await response.json()).allowance).toEqual({ used: TEXT.length, limit: VOICE_ALLOWANCE, periodEnd: EXP + 30 * DAY_S });
@@ -395,7 +424,7 @@ describe('voice', () => {
       const response = await worker.fetch(voiceRequest(await cookieFor(env), ATOMS), env);
       expect(response.status).toBe(502);
       expect(await codeOf(response)).toBe('UPSTREAM');
-      expect(await usedIn(env, 'sub:sub_1', EXP)).toBe(0);
+      expect(await usedIn(env, 'sub:sub_1', START)).toBe(0);
       expect(await usedIn(env, 'global', '2027-01-15')).toBe(0);
     }
   });
@@ -458,7 +487,9 @@ describe('attacks from the security review, now refused', () => {
     const { state } = world();
     const fresh = await cookieFor(env);
     for (let i = 0; i < 10; i++) await worker.fetch(voiceRequest(fresh, [textOf(10_000, i)]), env);
+    vi.setSystemTime((NOW + 3600) * 1000); // a later claim signs a different cookie
     const reclaimed = cookiePart(await worker.fetch(claimRequest(), env));
+    expect(reclaimed).not.toBe(fresh);
     const response = await worker.fetch(voiceRequest(reclaimed, [textOf(10_000, 99)]), env);
     expect(response.status).toBe(402);
     expect(await codeOf(response)).toBe('PLUS_ALLOWANCE');
@@ -467,21 +498,24 @@ describe('attacks from the security review, now refused', () => {
 
   it('H1: ten parallel requests with room for one cannot pass the limit together', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
-    const env = environment();
-    const { state } = world();
-    await prefill(env, 'sub:sub_1', EXP, VOICE_ALLOWANCE - 10_000); // room for one more 10k voicing
-    const cookie = await cookieFor(env);
-    const results = await Promise.all(Array.from({ length: 10 }, (_, i) => worker.fetch(voiceRequest(cookie, [textOf(10_000, 100 + i)]), env)));
-    expect(results.filter(r => r.status === 200)).toHaveLength(1);
-    expect(results.filter(r => r.status === 402)).toHaveLength(9);
-    expect(state.vendorChars).toBe(10_000);
-    expect(await usedIn(env, 'sub:sub_1', EXP)).toBe(VOICE_ALLOWANCE);
+    for (let round = 0; round < 10; round++) {
+      const env = environment();
+      const { state } = world({ barrier: 10 }); // all ten are past Stripe together, then race at the meter
+      await prefill(env, 'sub:sub_1', START, VOICE_ALLOWANCE - 10_000); // room for one more 10k voicing
+      const cookie = await cookieFor(env);
+      const results = await Promise.all(Array.from({ length: 10 }, (_, i) => worker.fetch(voiceRequest(cookie, [textOf(10_000, 100 + i)]), env)));
+      expect(results.filter(r => r.status === 200)).toHaveLength(1);
+      expect(await Promise.all(results.filter(r => r.status !== 200).map(codeOf))).toEqual(Array(9).fill('PLUS_ALLOWANCE'));
+      expect(state.stripeGets).toBe(10);
+      expect(state.vendorChars).toBe(10_000);
+      expect(await usedIn(env, 'sub:sub_1', START)).toBe(VOICE_ALLOWANCE);
+    }
   });
 
   it('H1: ten parallel requests from a fresh allowance stop at the limit', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
-    const { state } = world();
+    const { state } = world({ barrier: 12 });
     const cookie = await cookieFor(env);
     const results = await Promise.all(Array.from({ length: 12 }, (_, i) => worker.fetch(voiceRequest(cookie, [textOf(10_000, i)]), env)));
     expect(results.filter(r => r.status === 200)).toHaveLength(10);
@@ -493,8 +527,14 @@ describe('attacks from the security review, now refused', () => {
     const env = environment();
     const { state } = world();
     const browsers = [];
-    for (let i = 0; i < 5; i++) browsers.push(cookiePart(await worker.fetch(claimRequest(), env)));
+    // An hour apart, as five real browsers would claim: each cookie is signed at its own time, so they differ,
+    // and a meter keyed by anything in the cookie rather than the subscription would give each its own allowance.
+    for (let i = 0; i < 5; i++) {
+      vi.setSystemTime((NOW + i * 3600) * 1000);
+      browsers.push(cookiePart(await worker.fetch(claimRequest(), env)));
+    }
     expect(browsers.every(Boolean)).toBe(true);
+    expect(new Set(browsers).size).toBe(5);
     let ok = 0;
     for (const [b, cookie] of browsers.entries()) {
       for (let i = 0; i < 10; i++) {
@@ -560,7 +600,7 @@ describe('attacks from the security review, now refused', () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
     const { state } = world({ vendor: 'mismatch' });
-    await prefill(env, 'sub:sub_1', EXP, VOICE_ALLOWANCE - 10_000);
+    await prefill(env, 'sub:sub_1', START, VOICE_ALLOWANCE - 10_000);
     const cookie = await cookieFor(env);
     const first = await worker.fetch(voiceRequest(cookie, [textOf(10_000, 1)]), env);
     expect(first.status).toBe(502);
@@ -571,7 +611,7 @@ describe('attacks from the security review, now refused', () => {
       expect(await codeOf(again)).toBe('PLUS_ALLOWANCE');
     }
     expect(state.vendorChars).toBe(10_000);
-    expect(await usedIn(env, 'sub:sub_1', EXP)).toBe(VOICE_ALLOWANCE);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(VOICE_ALLOWANCE);
   });
 
   it('M1b: a billed answer that is not JSON is metered and answered, not thrown', async () => {
@@ -581,7 +621,7 @@ describe('attacks from the security review, now refused', () => {
     const response = await worker.fetch(voiceRequest(await cookieFor(env), [textOf(10_000, 1)]), env);
     expect(response.status).toBe(502);
     expect(state.vendorChars).toBe(10_000);
-    expect(await usedIn(env, 'sub:sub_1', EXP)).toBe(10_000);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(10_000);
   });
 
   it('M2: there is no shared cache: no oracle on another reader\'s text, and nothing to read back', async () => {
@@ -591,7 +631,7 @@ describe('attacks from the security review, now refused', () => {
     const secret = ['Dear Dr. Lee, my biopsy results came back positive.'];
     const victim = await worker.fetch(voiceRequest(await cookieFor(env, { c: 'cus_victim', s: 'sub_v' }), secret), env);
     const { pack: { voiced: { hash } } } = await victim.json();
-    await prefill(env, 'sub:sub_a', EXP, VOICE_ALLOWANCE); // the attacker's allowance is used up
+    await prefill(env, 'sub:sub_a', START, VOICE_ALLOWANCE); // the attacker's allowance is used up
     const attacker = await cookieFor(env, { c: 'cus_attacker', s: 'sub_a' });
     const probe = await worker.fetch(voiceRequest(attacker, secret), env);
     const miss = await worker.fetch(voiceRequest(attacker, ['Dear Dr. Lee, my biopsy results came back negative.']), env);
@@ -675,7 +715,7 @@ describe('the daily cap across every subscriber', () => {
     const second = await worker.fetch(voiceRequest(await cookieFor(env, { s: 'sub_1' }), [textOf(10_000, 2)]), env);
     expect([second.status, await codeOf(second)]).toEqual([503, 'PLUS_DAILY_CAP']);
     expect(state.vendorCalls).toBe(1);
-    expect(await usedIn(env, 'sub:sub_1', EXP)).toBe(10_000);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(10_000);
     // The next UTC day starts again.
     vi.setSystemTime((NOW + DAY_S) * 1000);
     expect((await worker.fetch(voiceRequest(await cookieFor(env, { iat: NOW + DAY_S }), [textOf(10_000, 3)]), env)).status).toBe(200);
@@ -694,7 +734,7 @@ describe('the daily cap across every subscriber', () => {
 describe('PlusMeter', () => {
   const meter = () => {
     const map = new Map();
-    return new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); } } } });
+    return new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); }, delete: key => map.delete(key) } } });
   };
   const call = async (m, op, body) => (await m.fetch(new Request(`https://plus-meter/${op}`, { method: 'POST', body: JSON.stringify(body) }))).json();
 
@@ -712,11 +752,11 @@ describe('PlusMeter', () => {
     const map = new Map();
     const m = new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); } } } });
     for (const period of [100, 200, 300]) await call(m, 'reserve', { period, n: 10, limit: 100 });
-    expect([...map.keys()].sort()).toEqual(['period', 'used']);
-    expect([map.get('period'), map.get('used')]).toEqual([300, 10]);
+    expect([...map.keys()].sort()).toEqual(['since', 'used']);
+    expect([map.get('since'), map.get('used')]).toEqual([300, 10]);
     expect(await call(m, 'reserve', { period: 200, n: 1, limit: 100 })).toEqual({ ok: false, used: 0 });
     expect(await call(m, 'release', { period: 200, n: 10 })).toEqual({ ok: true, used: 0 });
-    expect([map.get('period'), map.get('used')]).toEqual([300, 10]);
+    expect([map.get('since'), map.get('used')]).toEqual([300, 10]);
   });
 
   it('refuses a malformed request', async () => {
@@ -767,7 +807,7 @@ describe('choosing a voice', () => {
     const response = await worker.fetch(voiceRequest(await cookieFor(env), ['hello there'], {}, { voice }), env);
     expect([response.status, await codeOf(response)]).toEqual([400, 'UNKNOWN_VOICE']);
     expect(fetcher).not.toHaveBeenCalled();
-    expect(await usedIn(env, 'sub:sub_1', EXP)).toBe(0);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(0);
   });
 
   it('cannot reach the vendor with an id smuggled in elsewhere in the body', async () => {
@@ -793,7 +833,7 @@ describe('choosing a voice', () => {
     }
     expect(ok).toBe(10);
     expect(state.vendorChars).toBe(100_000);
-    expect(await usedIn(env, 'sub:sub_1', EXP)).toBe(100_000);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(100_000);
   });
 
   it('lists slugs and labels without a cookie, and never a vendor id', async () => {
@@ -808,5 +848,306 @@ describe('choosing a voice', () => {
     expect(fetcher).not.toHaveBeenCalled();
     expect((await worker.fetch(new Request(`${SITE}/api/plus/voices`, { method: 'POST', headers: { Origin: SITE } }), env)).status).toBe(405);
     expect((await worker.fetch(new Request(`${SITE}/api/plus/voices`), environment({ PLUS_VOICES: 'nope' }))).status).toBe(503);
+  });
+});
+
+const voiceAt = (env, cookie, n, ip = '192.0.2.1', seed = n) => worker.fetch(voiceRequest(cookie, [textOf(n, seed)], { 'CF-Connecting-IP': ip }), env);
+
+describe('Stripe is asked at most once a minute per subscription (N8)', () => {
+  it('refuses an exhausted subscription from its meter, with no Stripe call, from any number of addresses, for the rest of the period', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    expect((await voiceAt(env, cookie, 100)).status).toBe(200); // Stripe asked once; the meter keeps the standing
+    await prefill(env, 'sub:sub_1', START, VOICE_ALLOWANCE);
+    for (let i = 0; i < 25; i++) {
+      const response = await voiceAt(env, cookie, 1, `198.51.100.${i}`);
+      expect([response.status, await codeOf(response)]).toEqual([402, 'PLUS_ALLOWANCE']);
+    }
+    vi.setSystemTime((NOW + 3600) * 1000); // long after the kept standing went stale: the period it named still runs
+    expect(await codeOf(await voiceAt(env, cookie, 1))).toBe('PLUS_ALLOWANCE');
+    expect(state.stripeGets).toBe(1);
+    expect(state.vendorCalls).toBe(1);
+  });
+
+  it('keeps the standing for 60 seconds, then asks Stripe again', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    vi.setSystemTime((NOW + STANDING_TTL_S - 1) * 1000);
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    expect(state.stripeGets).toBe(1);
+    vi.setSystemTime((NOW + STANDING_TTL_S) * 1000);
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    expect(state.stripeGets).toBe(2);
+  });
+
+  it('refuses a subscription cancelled in Stripe within 60 seconds without any webhook, and its replayed cookie costs one Stripe call a minute', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const live = subscription();
+    const { state } = world({ sub: live });
+    const cookie = await cookieFor(env);
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    live.status = 'canceled'; // the reader cancels in the Customer Portal
+    vi.setSystemTime((NOW + STANDING_TTL_S) * 1000);
+    const refused = await voiceAt(env, cookie, 10);
+    expect([refused.status, await codeOf(refused)]).toEqual([402, 'PLUS_REQUIRED']);
+    expect(setCookieOf(refused)).toMatch(/Max-Age=0;/u);
+    for (let i = 0; i < 20; i++) expect(await codeOf(await voiceAt(env, cookie, 10, `203.0.113.${i}`))).toBe('PLUS_REQUIRED');
+    expect(state.stripeGets).toBe(2);
+    expect(state.vendorCalls).toBe(1);
+  });
+
+  it(`limits one subscription to ${SUB_RATE_PER_MINUTE} voicing requests a minute, whatever the addresses`, async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    for (let i = 0; i < SUB_RATE_PER_MINUTE; i++) expect((await voiceAt(env, cookie, 10, `198.51.100.${i}`)).status).toBe(200);
+    const over = await voiceAt(env, cookie, 10, '198.51.100.250');
+    expect([over.status, await codeOf(over)]).toEqual([429, 'RATE_LIMITED']);
+    expect(state.vendorCalls).toBe(SUB_RATE_PER_MINUTE);
+    vi.setSystemTime((NOW + 60) * 1000);
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+  });
+
+  it('fails closed when the address limiter throws: 429, before Stripe, the meter and the vendor (L2)', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment({ DECISION_LIMITER: { limit: vi.fn(async () => { throw new Error('limiter down'); }) } });
+    const { fetcher } = world();
+    const response = await voiceAt(env, await cookieFor(env), 10);
+    expect([response.status, await codeOf(response)]).toEqual([429, 'RATE_LIMITED']);
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(0);
+  });
+});
+
+describe('the allowance is keyed by the Plus item\'s period start (N10, N11)', () => {
+  it('reads the period from the item that carries PLUS_PRICE_ID, not items[0]', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    world({ sub: subscription({ items: { data: [
+      { price: { id: 'price_addon' }, current_period_start: NOW - DAY_S, current_period_end: EXP + 999 },
+      { price: { id: PRICE }, current_period_start: START, current_period_end: EXP }
+    ] } }) });
+    const response = await voiceAt(env, await cookieFor(env), 10);
+    expect((await response.json()).allowance.periodEnd).toBe(EXP);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(10);
+  });
+
+  it('a period end moved mid-period (a trial extension, a plan change that keeps the anchor) mints no fresh allowance; a new period start does', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const live = subscription();
+    world({ sub: live });
+    const cookie = await cookieFor(env);
+    await prefill(env, 'sub:sub_1', START, VOICE_ALLOWANCE);
+    expect(await codeOf(await voiceAt(env, cookie, 10))).toBe('PLUS_ALLOWANCE');
+    live.items.data[0].current_period_end = EXP + 7 * DAY_S; // the end moves; the start does not
+    live.status = 'trialing';
+    vi.setSystemTime((NOW + 2 * STANDING_TTL_S) * 1000);
+    expect(await codeOf(await voiceAt(env, cookie, 10))).toBe('PLUS_ALLOWANCE');
+    // A new billing period, which Stripe invoices, begins a new count.
+    live.status = 'active';
+    live.items.data[0].current_period_start = EXP;
+    live.items.data[0].current_period_end = EXP + 30 * DAY_S;
+    vi.setSystemTime((EXP + 1) * 1000);
+    const renewed = await voiceAt(env, await cookieFor(env, { iat: EXP }), 10);
+    expect(renewed.status).toBe(200);
+    expect((await renewed.json()).allowance.used).toBe(10);
+  });
+});
+
+describe('a billed answer without timing (N12)', () => {
+  it('answers a handled 502 VOICE_REFUSED and stays metered', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world();
+    vi.mocked(fetch).mockImplementation(async (url, init) => {
+      if (new URL(url).hostname === 'api.elevenlabs.io') { state.vendorChars += JSON.parse(init.body).text.length; return Response.json({ audio_base64: btoa('mp3') }); }
+      if (new URL(url).hostname === 'api.stripe.com') return Response.json(subscription());
+      return new Response('', { status: 500 });
+    });
+    const response = await voiceAt(env, await cookieFor(env), 1000);
+    expect([response.status, await codeOf(response)]).toEqual([502, 'VOICE_REFUSED']);
+    expect(state.vendorChars).toBe(1000);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(1000);
+  });
+});
+
+const WEBHOOK_SECRET = 'whsec_test_secret';
+async function stripeSignature(body, { secret = WEBHOOK_SECRET, t = Math.floor(Date.now() / 1000) } = {}) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${t}.${body}`));
+  return `t=${t},v1=${Buffer.from(mac).toString('hex')}`;
+}
+let eventSeq = 0;
+const stripeEvent = (type, object, { created = Math.floor(Date.now() / 1000), livemode = false, id = `evt_${++eventSeq}` } = {}) => ({ id, type, created, livemode, data: { object } });
+async function hook(env, event, { signature, body = JSON.stringify(event) } = {}) {
+  return worker.fetch(new Request(`${SITE}/api/plus/stripe-webhook`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Stripe-Signature': signature ?? await stripeSignature(body) }, body
+  }), env);
+}
+
+describe('the Stripe webhook (N9)', () => {
+  const hooked = (overrides = {}) => environment({ STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET, ...overrides });
+
+  it('answers 503 while STRIPE_WEBHOOK_SECRET is unset, and the voice keeps working', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    world();
+    const response = await hook(env, stripeEvent('customer.subscription.deleted', { id: 'sub_1' }));
+    expect(response.status).toBe(503);
+    expect((await response.json()).error.message).toContain('STRIPE_WEBHOOK_SECRET');
+    expect((await voiceAt(env, await cookieFor(env), 10)).status).toBe(200);
+  });
+
+  it('refuses an event Stripe did not sign, one signed with another secret, and one signed outside the tolerance', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    world();
+    const event = stripeEvent('customer.subscription.deleted', { id: 'sub_1' });
+    const body = JSON.stringify(event);
+    const now = NOW;
+    const good = await stripeSignature(body);
+    const tampered = JSON.stringify({ ...event, id: 'evt_other' });
+    for (const [signature, sent] of [
+      ['', body],
+      [good, tampered],
+      [await stripeSignature(body, { secret: 'whsec_other' }), body],
+      [await stripeSignature(body, { t: now - WEBHOOK_TOLERANCE_S - 1 }), body],
+      [await stripeSignature(body, { t: now + WEBHOOK_TOLERANCE_S + 1 }), body],
+      [good.replace('v1=', 'v0='), body],
+      [`t=${now},v1=${'0'.repeat(64)}`, body]
+    ]) {
+      const response = await hook(env, event, { signature, body: sent });
+      expect([response.status, await codeOf(response)]).toEqual([400, 'BAD_SIGNATURE']);
+    }
+    // Nothing was revoked: the subscription still voices.
+    expect((await voiceAt(env, await cookieFor(env), 10)).status).toBe(200);
+    // A valid v1 among others (Stripe sends one per active secret while rolling) verifies.
+    const rolled = `${good},v1=${'f'.repeat(64)}`;
+    expect((await hook(env, event, { signature: rolled.replace(/^(t=\d+),(v1=[0-9a-f]+),(v1=f+)$/u, '$1,$3,$2') })).status).toBe(200);
+  });
+
+  it('customer.subscription.deleted refuses further voicing at once, even with a fresh kept standing, with no Stripe call', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    const response = await hook(env, stripeEvent('customer.subscription.deleted', { id: 'sub_1', status: 'canceled' }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ received: true, applied: ['sub_1'] });
+    const refused = await voiceAt(env, cookie, 10);
+    expect([refused.status, await codeOf(refused)]).toEqual([402, 'PLUS_REQUIRED']);
+    expect(state.stripeGets).toBe(1);
+    expect(state.vendorCalls).toBe(1);
+  });
+
+  it('customer.subscription.updated to a status that does not stand revokes; a later one that stands restores; an older one moves nothing', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    world();
+    const cookie = await cookieFor(env);
+    await hook(env, stripeEvent('customer.subscription.updated', { id: 'sub_1', status: 'past_due' }, { created: NOW - 10 }));
+    expect(await codeOf(await voiceAt(env, cookie, 10))).toBe('PLUS_REQUIRED');
+    await hook(env, stripeEvent('customer.subscription.updated', { id: 'sub_1', status: 'active' }, { created: NOW - 5 }));
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    // Stripe does not promise order: a past_due event older than the active one arrives late.
+    await hook(env, stripeEvent('customer.subscription.updated', { id: 'sub_1', status: 'unpaid' }, { created: NOW - 7 }));
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+  });
+
+  it('a full refund revokes the subscription the charge paid, traced through Stripe; a partial refund does not', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    await hook(env, stripeEvent('charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', refunded: false, amount_refunded: 100 }));
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    const response = await hook(env, stripeEvent('charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', refunded: true }));
+    expect(await response.json()).toEqual({ received: true, applied: ['sub_1'] });
+    expect(await codeOf(await voiceAt(env, cookie, 10))).toBe('PLUS_REQUIRED');
+    // Final: a later "active" update does not lift a refund.
+    await hook(env, stripeEvent('customer.subscription.updated', { id: 'sub_1', status: 'active' }, { created: NOW + 1 }));
+    expect(await codeOf(await voiceAt(env, cookie, 10))).toBe('PLUS_REQUIRED');
+    expect(state.paymentLookups).toBe(1);
+  });
+
+  it('charge.dispute.created revokes the subscription the disputed charge paid, through the charge when the dispute names no PaymentIntent', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    world();
+    const cookie = await cookieFor(env);
+    const response = await hook(env, stripeEvent('charge.dispute.created', { id: 'dp_1', charge: 'ch_1' }));
+    expect(await response.json()).toEqual({ received: true, applied: ['sub_1'] });
+    expect(await codeOf(await voiceAt(env, cookie, 10))).toBe('PLUS_REQUIRED');
+    // A dispute on a charge that paid no subscription changes nothing and is acknowledged.
+    expect(await (await hook(env, stripeEvent('charge.dispute.created', { id: 'dp_2', payment_intent: 'pi_other' }))).json()).toEqual({ received: true, applied: [] });
+  });
+
+  it('applies each event once, by id: a redelivered event does not forget the kept standing again', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    const update = stripeEvent('customer.subscription.updated', { id: 'sub_1', status: 'active' });
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    expect((await hook(env, update)).status).toBe(200); // a new event: the kept standing is forgotten
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    expect(state.stripeGets).toBe(2);
+    expect((await hook(env, update)).status).toBe(200); // redelivered: acknowledged, not applied again
+    expect((await voiceAt(env, cookie, 10)).status).toBe(200);
+    expect(state.stripeGets).toBe(2);
+  });
+
+  it('acknowledges other event types, refuses the other Stripe mode, and asks Stripe to retry when it cannot trace a charge', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = hooked();
+    world();
+    expect(await (await hook(env, stripeEvent('invoice.paid', { id: 'in_1' }))).json()).toEqual({ received: true, applied: [] });
+    const live = await hook(env, stripeEvent('customer.subscription.deleted', { id: 'sub_1' }, { livemode: true }));
+    expect([live.status, await codeOf(live)]).toEqual([400, 'WRONG_MODE']);
+    world({ stripeDown: true });
+    const down = await hook(env, stripeEvent('charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', refunded: true }));
+    expect(down.status).toBe(500);
+    expect((await worker.fetch(new Request(`${SITE}/api/plus/stripe-webhook`), env)).status).toBe(405);
+  });
+
+  it('a revocation that lands between the gate and the reservation still stops the voicing before the vendor', async () => {
+    const m = (() => {
+      const map = new Map();
+      return new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); }, delete: key => map.delete(key) } } });
+    })();
+    const call = async (op, body) => (await m.fetch(new Request(`https://plus-meter/${op}`, { method: 'POST', body: JSON.stringify(body) }))).json();
+    expect(await call('event', { id: 'evt_x', created: 1, action: 'revoke', kind: 'dispute' })).toEqual({ ok: true });
+    expect(await call('event', { id: 'evt_x', created: 1, action: 'revoke', kind: 'dispute' })).toEqual({ ok: true, duplicate: true });
+    expect(await call('reserve', { period: 1, n: 1, limit: 100 })).toEqual({ ok: false, used: 0, revoked: true });
+    expect(await call('gate', { n: 1, limit: 100, rate: 30, ttl: 60 })).toEqual({ revoked: true });
+  });
+});
+
+describe('the payment link is configuration (GET /api/plus/config)', () => {
+  it('serves PLUS_PAYMENT_LINK only when it is a Stripe Payment Link, without a cookie', async () => {
+    const config = async env => (await worker.fetch(new Request(`${SITE}/api/plus/config`), env)).json();
+    const link = 'https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00';
+    expect(await config(environment({ PLUS_PAYMENT_LINK: link }))).toEqual({ paymentLink: link });
+    for (const bad of [undefined, '', 'http://buy.stripe.com/x', 'https://buy.stripe.com.evil.example/x', 'https://evil.example/https://buy.stripe.com/x', 'javascript:alert(1)', 'https://buy.stripe.com/x?y=1', 'https://buy.stripe.com/']) {
+      expect(await config(environment({ PLUS_PAYMENT_LINK: bad }))).toEqual({ paymentLink: null });
+    }
+    expect((await worker.fetch(new Request(`${SITE}/api/plus/config`, { method: 'POST', headers: { Origin: SITE } }), environment())).status).toBe(405);
+  });
+
+  it('is set in both Plus deployments, as a Stripe Payment Link', async () => {
+    const { readFileSync } = await import('node:fs');
+    for (const file of ['wrangler.production.jsonc', 'wrangler.plus-preview.jsonc']) {
+      const value = readFileSync(file, 'utf8').match(/"PLUS_PAYMENT_LINK": "([^"]+)"/u)?.[1];
+      expect(value).toMatch(/^https:\/\/buy\.stripe\.com\/[A-Za-z0-9_]+$/u);
+    }
   });
 });
