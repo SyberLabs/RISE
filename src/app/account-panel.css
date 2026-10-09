@@ -1,0 +1,29 @@
+.rise-account-panel {
+  margin: auto;
+  width: min(520px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  padding: clamp(20px, 5vw, 32px);
+  overflow-y: auto;
+  color: #eee7ff;
+  border: 1px solid #ba96ff;
+  border-radius: 24px;
+  background: radial-gradient(ellipse at top right, #60217c80, transparent 65%), radial-gradient(ellipse at bottom left, #19686b55, transparent 65%), #100e28;
+  box-shadow: 0 0 70px #7c38d550;
+  font: 400 15px/1.55 var(--sy-font-sans, sans-serif);
+}
+.rise-account-panel::backdrop { background: #050415bc; backdrop-filter: blur(8px); }
+.rise-account-panel h1 { font: 400 42px var(--sy-font-serif, serif); margin: 12px 0; }
+.rise-account-panel h2 { font-size: 18px; margin-bottom: 12px; }
+.rise-account-panel section { border-top: 1px solid #a193bf50; padding-top: 12px; margin-top: 20px; }
+.account-panel-head, .account-panel-links { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.account-panel-head p { letter-spacing: .15em; font-size: 11px; }
+.rise-account-panel a { color: #9df9ef; text-underline-offset: 3px; }
+.rise-account-panel button, .rise-account-panel select { min-height: 44px; color: #fff; background: #252043; border: 1px solid #b49ada; border-radius: 12px; padding: 8px 12px; font: inherit; }
+.rise-account-panel select { width: 100%; margin: 6px 0 12px; }
+.rise-account-panel button { cursor: pointer; background: linear-gradient(125deg, #4e286d, #234459); }
+.rise-account-panel button:disabled { opacity: .5; cursor: default; }
+.rise-account-panel :focus-visible { outline: 2px solid #86ffee; outline-offset: 3px; }
+.account-panel-note { color: #b6adc8; font-size: 12px; }
+.account-replace { display: flex; align-items: center; gap: 10px; min-height: 44px; margin-bottom: 8px; }
+.account-replace input { width: 18px; height: 18px; }
+.rise-account-panel [data-status] { min-height: 3em; }

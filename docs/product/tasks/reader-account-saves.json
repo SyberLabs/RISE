@@ -1,0 +1,50 @@
+{
+  "id": "reader-account-saves",
+  "title": "Shared SyberLabs account and explicit text backups",
+  "lane": "reader",
+  "milestone": "Account portal",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex-rise-account",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Sign in is visible at upper right across reader routes.",
+    "Explicit saved text backups use central account with validated restore.",
+    "Browser data survives unavailable account service."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/core/account-saves.test.js",
+      "date": "2026-10-09",
+      "note": "12 focused account tests passed; 1734 fast tests passed, two existing skips."
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/account-saves.spec.js",
+      "date": "2026-10-09",
+      "note": "Mobile Home/Library/Make/Settings/Read/Wormhole account entrance and real IndexedDB save/restore fixture passed."
+    },
+    {
+      "kind": "document",
+      "ref": "docs/ACCOUNT-SAVES.md",
+      "date": "2026-10-09",
+      "note": "Account boundary and producer-first rollout documented."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T00:00:00Z",
+      "summary": "Claimed explicit user request for shared account access and saves."
+    },
+    {
+      "date": "2026-10-09T02:42:48.567Z",
+      "summary": "Implementation and focused validation complete; release checks and review underway."
+    }
+  ],
+  "updatedAt": "2026-10-09T02:42:48.567Z",
+  "revision": 2,
+  "summary": "Shared account entrance and explicit validated text backups implemented; production rollout depends on central account producer.",
+  "blocker": null
+}
