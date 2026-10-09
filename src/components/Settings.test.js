@@ -430,6 +430,33 @@ describe('Settings Plus voice', () => {
         settings.destroy();
     });
 
+    it('ignores an older admin result after Settings is left and reopened', async () => {
+        const status = admin => Response.json({ admin, subscriber: false, available: true, allowance: null });
+        const pending = [];
+        let first = true;
+        vi.stubGlobal('fetch', vi.fn(async url => {
+            if (url !== '/api/plus/status') return Response.json(url === '/api/plus/voices'
+                ? [{ slug: 'default', label: 'Default' }] : { paymentLink: null });
+            if (first) { first = false; return status(true); }
+            return new Promise(resolve => pending.push(resolve));
+        }));
+        const settings = mount();
+        await settings.plusStatusLoaded;
+        settings.activate();
+        const older = settings.plusStatusLoaded;
+        settings.deactivate();
+        settings.activate();
+        const newer = settings.plusStatusLoaded;
+        pending[1](status(false));
+        await newer;
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        pending[0](status(true));
+        await older;
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
+        expect(settings.container.textContent).not.toContain('Admin voice is active');
+        settings.destroy();
+    });
+
     it('offers admin sign in only when the server configured it', async () => {
         vi.stubGlobal('fetch', vi.fn(async url => Response.json(url === '/api/plus/status'
             ? { admin: false, subscriber: false, available: true, adminLogin: true, allowance: null } : { paymentLink: null })));

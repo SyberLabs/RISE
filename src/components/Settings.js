@@ -531,9 +531,11 @@ export class Settings {
     }
 
     async fillPlusStatus() {
+        const generation = this.plusStatusGeneration = (this.plusStatusGeneration ?? 0) + 1;
+        this.plusStatusInvalidated = false;
         const region = this.container.querySelector('[data-plus-region]');
         const status = await fetchPlusStatus();
-        if (!region?.isConnected || this.destroyed) return;
+        if (!region?.isConnected || this.destroyed || generation !== this.plusStatusGeneration) return;
         if (!this.plusStatus && !status.adminLogin && (!status.available || (!status.admin && !status.subscriber))) return;
         this.plusStatus = status;
         region.innerHTML = this.plusVoiceRow();
@@ -690,7 +692,7 @@ export class Settings {
     activate() {
         if (this._active) return;
         this._active = true;
-        if (this.plusStatus?.admin) this.plusStatusLoaded = this.fillPlusStatus();
+        if (!this.inSession && (this.plusStatus?.admin || this.plusStatusInvalidated)) this.plusStatusLoaded = this.fillPlusStatus();
         document.addEventListener('keydown', this.boundKeyboardHandler);
         if (this.container.querySelector('[data-affect-toggle]')?.checked) void this.showAffect(true);
         this.scrollToAffect();
@@ -699,6 +701,8 @@ export class Settings {
     deactivate() {
         if (!this._active) return;
         this._active = false;
+        this.plusStatusGeneration = (this.plusStatusGeneration ?? 0) + 1;
+        this.plusStatusInvalidated = true;
         document.removeEventListener('keydown', this.boundKeyboardHandler);
         this.emotions?.destroy();
         this.emotions = null;
