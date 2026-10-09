@@ -64,7 +64,7 @@ function compileOps() {
 describe('producer compile is final', () => {
   it('does not route compile through poster-package functions', () => {
     const producerSrc = readFileSync(join(HERE, 'producer.js'), 'utf8');
-    const intakeSrc = readFileSync(join(HERE, 'render', 'intake.js'), 'utf8');
+    const intakeSrc = readFileSync(join(HERE, '..', '..', 'tools', 'render', 'intake.js'), 'utf8');
     expect(producerSrc).toMatch(/renderArtifact/);
     expect(producerSrc).toMatch(/tier: 'final'/);
     expect(producerSrc).not.toMatch(/renderProfilePackage|renderDistributionPackages/);
