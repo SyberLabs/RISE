@@ -349,10 +349,14 @@ const shipAngle = page => page.evaluate(() => Number(document.querySelector('.wo
 const arcBetween = (from, to) => { let d = (to - from) % (2 * Math.PI); if (d > Math.PI) d -= 2 * Math.PI; if (d <= -Math.PI) d += 2 * Math.PI; return d; };
 
 test('the ship waits at the bottom of the ring, and follows the pointer round the gate', async ({ page }) => {
-  // Chromium can replay its remembered hover during navigation. Keep the
-  // pointer outside the page until the no-input idle assertion has passed.
-  await page.mouse.move(-100, -100);
   await openWormhole(page);
+  // Chromium can replay its remembered hover during navigation. Measure the
+  // actual gate, park the real pointer in its bearing dead zone, then reload
+  // a fresh scene. Replayed input cannot turn its initial idle bearing.
+  const neutral = await gate(page);
+  await page.mouse.move(neutral.x, neutral.y);
+  await page.reload();
+  await expect(page.locator('#jump')).toBeVisible({ timeout: 15_000 });
   await needsWebGL(page);
   await expect.poll(() => shipAngle(page)).toBeCloseTo(-Math.PI / 2, 1);
   const { x, y, radius } = await gate(page);
