@@ -1,0 +1,42 @@
+{
+  "id": "FND-012",
+  "title": "Keep the Wormhole ship-pointer browser checks deterministic",
+  "lane": "shared",
+  "milestone": "Release validation",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "codex deploy (Seth)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "The full-motion ship waits at the bottom with no pointer in the page.",
+    "The same browser test follows all four cardinal pointer bearings without changed tolerances.",
+    "The dead-zone check measures its held angle after the prior turn settles, without weakening its drift assertion.",
+    "A remembered hover reproducer fails before pointer setup and passes after it.",
+    "Required release checks pass without changing production pointer behavior."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/37878546077/job/113652975366",
+      "note": "Initial idle angle failed twice at 2.390 rather than -1.571.",
+      "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/wormhole.spec.js",
+      "note": "Controlled remembered-pointer hover reproduced the exact failure, then passed three runs without retries after parking outside the page. Clean motion suite: 25 passed without retries. Required release checks: hygiene, audit (no high/critical), compatibility, diagram, fast unit tests (1851 passed, 2 skipped), build, first load (61.2 KB brotli of 64 KB), and browser gate (50 passed, 3 existing skips).",
+      "date": "2026-10-09"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-09T03:41:28.959Z",
+      "summary": "Claimed isolated test-only repair via Slack MFM; integration owner confirmed no competing edits."
+    }
+  ],
+  "updatedAt": "2026-10-09T03:51:51.577504Z",
+  "revision": 2,
+  "summary": "Control the idle test input before navigation; keep the production scene and all ship-angle assertions intact.",
+  "blocker": null
+}
