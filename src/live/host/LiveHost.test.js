@@ -1767,3 +1767,78 @@ describe('the page that framed an embedded reading', () => {
         expect(framedBy({ location: {}, document: { referrer: 'not a url' } })).toBe('an unidentified page');
     });
 });
+
+describe('the beds under the reading', () => {
+    /** The app's engine as the host sees it: who it tells of a sound, what is sounding, and its ducking. */
+    function fakeEngine() {
+        return { onSoundStart: null, sounding: null, ducked: [], setVoiceDucking(on) { this.ducked.push(on); } };
+    }
+
+    function mountWith(search, environment, engine) {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        host = new LiveHost(container, { router: { navigate: async () => true, views: new Map() }, search, env: environment, ensureAudioEngine: async () => engine });
+        return host;
+    }
+
+    it('notes each bed and tone the engine starts in DevTools, and lists them under ?measure=1', async () => {
+        const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+        const environment = env();
+        const engine = fakeEngine();
+        mountWith('?measure=1&voice=paced', environment, engine);
+        await host.buildRuntime();
+        engine.sounding = { id: 'starlight', kind: 'soundscape' };
+        engine.onSoundStart({ id: 'starlight', kind: 'soundscape', trimDb: -2 });
+        engine.onSoundStart({ id: 'focus', kind: 'tone', trimDb: -12.5 });
+        const lines = info.mock.calls.filter(call => call[0] === '[RISE audio]').map(call => call[1]);
+        expect(lines).toHaveLength(2);
+        expect(lines[0]).toMatch(/^t=\d+\.\d{3}s audio\.bed id=starlight trimDb=-2$/u);
+        expect(lines[1]).toMatch(/ audio\.tone id=focus trimDb=-12\.5$/u);
+        const audio = environment.__riseLive.audio();
+        expect(audio.started.map(entry => [entry.type, entry.id])).toEqual([['audio.bed', 'starlight'], ['audio.tone', 'focus']]);
+        expect(audio.sounding).toBe('starlight');
+        info.mockRestore();
+    });
+
+    it('ducks them while the browser’s voice speaks, and lets them back up when it stops for any reason', async () => {
+        const clock = createVirtualClock();
+        const synth = createFakeSpeech(clock);
+        synth.getVoices = () => [{ name: 'a', lang: 'en-US', default: true }];
+        const environment = env({ speech: true });
+        Object.assign(environment.window, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance });
+        Object.assign(environment, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance, navigator: { language: 'en-US' } });
+        const engine = fakeEngine();
+        mountWith('?voice=browser', environment, engine);
+        await host.buildRuntime();
+        expect(host.voiceKind).toBe('browser');
+        for (const type of ['speech.start', 'speech.end', 'speech.start', 'voice.failed', 'speech.start', 'voice.taken', 'speech.start', 'voice.held', 'pace']) {
+            host.duckUnderVoice(type);
+        }
+        expect(engine.ducked).toEqual([true, false, true, false, true, false, true, false]);
+    });
+
+    it('does not duck under a silent, paced reading', async () => {
+        const engine = fakeEngine();
+        mountWith('?voice=paced', env(), engine);
+        await host.buildRuntime();
+        host.duckUnderVoice('speech.start');
+        expect(engine.ducked).toEqual([]);
+    });
+
+    it('lets go of the engine when the reading ends, with nothing left ducked', async () => {
+        const engine = fakeEngine();
+        mountWith('?voice=paced', env(), engine);
+        await host.buildRuntime();
+        expect(typeof engine.onSoundStart).toBe('function');
+        await host.ended();
+        expect(engine.onSoundStart).toBeNull();
+        expect(engine.ducked.at(-1)).toBe(false);
+    });
+
+    it('reads without beds where the page has no engine', async () => {
+        mountWith('?measure=1&voice=paced', env(), null);
+        await host.buildRuntime();
+        host.duckUnderVoice('speech.start');
+        expect(host.env.__riseLive.audio()).toEqual({ started: [], sounding: null });
+    });
+});

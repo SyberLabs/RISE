@@ -22,7 +22,8 @@
         "say": "Here is a curve: y equals one half x squared.",
         "show": "Here is a curve: $y = \\tfrac{1}{2}x^2$.",
         "scene": "curve",
-        "cue": "curve"
+        "cue": "curve",
+        "sound": "starlight"
       },
       {
         "hold": {

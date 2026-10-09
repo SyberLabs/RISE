@@ -750,3 +750,53 @@ describe('the row on a phone', () => {
         expect(css).toMatch(/\.rise-stage__row\s*\{[^}]*flex-wrap:\s*nowrap/u);
     });
 });
+
+describe('the Sound row', () => {
+    const sound = () => $('#rise-settings-sound');
+    /** A Chamber that also takes the sound choice through its look, as a reader's sound pick does. */
+    const soundChamber = saved => Object.assign(fakeChamber(saved), { changeJevLook: vi.fn() });
+
+    it('is offered only where there is an engine to play sound on', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => soundChamber() });
+        expect(sound()).toBeNull();
+        stage.destroy();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => soundChamber(), sound: true });
+        settings().click();
+        expect([...sheet().querySelectorAll('.rise-settings__row')].map(row => row.firstElementChild.textContent)).toEqual(['Intensity', 'Theme', 'Still imagery', 'Sound', 'Text size']);
+    });
+
+    it('is a switch, on until the reader turns it off; off silences the reading’s sound through the Chamber and is remembered, on gives it back', () => {
+        const chamber = soundChamber();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => chamber, sound: true });
+        settings().click();
+        expect(sound().getAttribute('role')).toBe('switch');
+        expect(sound().labels[0].textContent).toBe('Sound');
+        expect(sound().checked).toBe(true);
+        expect(chamber.changeJevLook).not.toHaveBeenCalled();
+        sound().click();
+        expect(chamber.changeJevLook).toHaveBeenLastCalledWith('jev-soundscape', 'none');
+        expect(chamber.onSettingsChange).toHaveBeenLastCalledWith('cardSound', false);
+        sound().click();
+        expect(chamber.changeJevLook).toHaveBeenLastCalledWith('jev-soundscape', 'authored');
+        expect(chamber.onSettingsChange).toHaveBeenLastCalledWith('cardSound', true);
+    });
+
+    it('opens off when the reader turned it off before, and the reading starts silent', () => {
+        const chamber = soundChamber({ cardSound: false });
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => chamber, sound: true });
+        expect(chamber.changeJevLook).toHaveBeenCalledWith('jev-soundscape', 'none');
+        settings().click();
+        expect(sound().checked).toBe(false);
+    });
+
+    it('a choice made before the Chamber is on screen reaches it when it arrives', () => {
+        let mounted = null;
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => mounted, sound: true });
+        settings().click();
+        sound().click();
+        mounted = soundChamber();
+        settings().click();
+        settings().click();
+        expect(mounted.changeJevLook).toHaveBeenCalledWith('jev-soundscape', 'none');
+    });
+});

@@ -133,7 +133,8 @@ export const LAYER_PRESETS = {
 import { PersonalSwells } from '../core/personal-swells.js';
 import { PERSONAL_BED_PREFIX } from '../core/workshop-audio.js';
 import { createSoundscape } from './soundscapes.js';
-import { PARKED_SOUNDS, standInSound } from './sound-ids.js';
+import { PARKED_SOUNDS, SOUND_IDS, standInSound } from './sound-ids.js';
+import { soundTrimDb } from './sound-levels.js';
 import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 import { siteUrl } from '../core/embed-address.js';
@@ -240,6 +241,15 @@ export class AudioEngine {
         };
 
         this.personalPool = null;
+
+        // The levelled catalogue (sound-levels.js): the gain each layer's
+        // sound is trimmed by, apart from its configured volume, and the
+        // level each layer was last sent to, which is what ducking returns to.
+        this._layerTrim = {};
+        this._layerTarget = {};
+        // The offered sound playing now, { id, kind }, or null; and who is told when one starts.
+        this.sounding = null;
+        this.onSoundStart = null;
 
         // Configuration
         this.config = {
@@ -1125,12 +1135,12 @@ export class AudioEngine {
         for (const name of affected) {
             const gain = this.layerGains?.[name]?.gain;
             if (!gain) continue;
-            if (!this._duckBaseline.has(name)) this._duckBaseline.set(name, gain.value);
+            // The level the layer was sent to, not wherever its fade-in has
+            // reached: a voice that begins during a bed's fade-in would
+            // otherwise bring it back only as far as the fade had got.
+            if (!this._duckBaseline.has(name)) this._duckBaseline.set(name, this._layerTarget?.[name] ?? gain.value);
             const baseline = this._duckBaseline.get(name);
-            let multiplier = 1;
-            for (const active of this._duckReasons.values()) {
-                if (active.layers.includes(name)) multiplier = Math.min(multiplier, active.floor);
-            }
+            const multiplier = this._duckMultiplier(name);
             gain.cancelScheduledValues(now);
             gain.setValueAtTime(gain.value, now);
             gain.linearRampToValueAtTime(baseline * multiplier, now + (multiplier < 1 ? downSec : upSec));
@@ -1138,6 +1148,21 @@ export class AudioEngine {
             // anything and the next duck reads its baseline afresh.
             if (multiplier === 1) this._duckBaseline.delete(name);
         }
+    }
+
+    /** The deepest floor any active ducking asks of a layer; 1 when none does. */
+    _duckMultiplier(name) {
+        let multiplier = 1;
+        for (const active of this._duckReasons?.values() ?? []) {
+            if (active.layers.includes(name)) multiplier = Math.min(multiplier, active.floor);
+        }
+        return multiplier;
+    }
+
+    /** Tell whoever listens that an offered sound began; a listener's failure is not the sound's. */
+    _noteSoundStart(id, kind) {
+        this.sounding = { id, kind };
+        try { this.onSoundStart?.({ id, kind, trimDb: soundTrimDb(id) }); } catch (e) { warnOnce('onSoundStart', e); }
     }
 
     setShuttleSuspension(suspended) {
@@ -1411,6 +1436,7 @@ export class AudioEngine {
             }
             handle.start();
             this.layers.soundscape = handle;
+            this._layerTrim.soundscape = 1;
             this.setLayerVolume('soundscape', this.config.layerVolumes.soundscape, true);
             console.log(`[AudioEngine] Personal bed: ${id}`);
             return;
@@ -1432,9 +1458,11 @@ export class AudioEngine {
 
         handle.start();
         this.layers.soundscape = handle;
+        this._layerTrim.soundscape = 10 ** (soundTrimDb(id) / 20);
         this.setLayerVolume('soundscape', this.config.layerVolumes.soundscape, true);
 
         console.log(`[AudioEngine] Soundscape: ${id}`);
+        if (SOUND_IDS.soundscape.includes(id)) this._noteSoundStart(id, 'soundscape');
     }
 
     /**
@@ -1500,6 +1528,7 @@ export class AudioEngine {
             this.setLayerVolume('soundscape', 0, !instant);
             this.config.layerVolumes.soundscape = configuredVolume;
             handle.stop(instant);
+            if (this.sounding?.kind === 'soundscape') this.sounding = null;
         }
     }
 
@@ -1631,7 +1660,16 @@ export class AudioEngine {
         this.buffers.ui.hiss = hissBuffer;
         this.buffers.swells = (swellBuffers || []).filter(b => b !== null);
 
-        await this.reloadPersonalSwells();
+        // A page with no storage (a host's card is an opaque origin, whose
+        // indexedDB.open throws SecurityError) has no personal swells; it
+        // still has every other sound.
+        try {
+            await this.reloadPersonalSwells();
+        } catch (e) {
+            this.personalPool = new Map();
+            this.buffers.personalSwells = [];
+            warnOnce('Personal swells', e);
+        }
 
         if (this.buffers.typing && this.buffers.typingConfig) {
             console.log('[AudioEngine] Typing system ready (sprite + config loaded)');
@@ -1892,17 +1930,24 @@ export class AudioEngine {
         if (!gain) return;
 
         this.config.layerVolumes[layer] = Math.max(0, Math.min(1, volume));
+        // The configured volume stays the reader's; the sound's trim rides on it.
+        const target = volume * (this._layerTrim[layer] ?? 1);
+        this._layerTarget[layer] = target;
+        // A layer ducked while it is sent somewhere new goes there under the same duck.
+        const ducked = this._duckBaseline?.has(layer);
+        if (ducked) this._duckBaseline.set(layer, target);
+        const level = ducked ? target * this._duckMultiplier(layer) : target;
 
         if (fade) {
             gain.gain.cancelScheduledValues(this.context.currentTime);
             gain.gain.setValueAtTime(gain.gain.value, this.context.currentTime);
             gain.gain.linearRampToValueAtTime(
-                volume,
+                level,
                 this.context.currentTime + this.config.fadeTime
             );
         } else {
             gain.gain.cancelScheduledValues(this.context.currentTime);
-            gain.gain.setValueAtTime(volume, this.context.currentTime);
+            gain.gain.setValueAtTime(level, this.context.currentTime);
         }
     }
 
@@ -1923,6 +1968,8 @@ export class AudioEngine {
 
         this.currentPreset = presetName;
         console.log(`[AudioEngine] Applying preset: ${preset.name} - ${preset.description}`);
+        const trim = 10 ** (soundTrimDb(presetName) / 20);
+        for (const layer of ['binaural', 'harmonics', 'noise', 'drone']) this._layerTrim[layer] = trim;
 
         // Binaural
         if (preset.binaural.enabled) {
@@ -1970,6 +2017,8 @@ export class AudioEngine {
         for (const layer of ['binaural', 'harmonics', 'noise', 'drone']) {
             this.setLayerVolume(layer, this.config.layerVolumes[layer], true);
         }
+        if (SOUND_IDS.tone.includes(presetName)) this._noteSoundStart(presetName, 'tone');
+        else if (this.sounding?.kind === 'tone') this.sounding = null;
     }
 
     /**

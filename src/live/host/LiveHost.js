@@ -71,6 +71,8 @@ const KEYED = Object.freeze({
     }
 });
 const VOICES = Object.freeze({ auto: 'Speak if this device can', browser: 'Speak', paced: 'Silent, paced as if spoken' });
+/** The journal notes after which the browser's voice is no longer speaking. */
+const VOICE_QUIET = new Set(['speech.end', 'voice.failed', 'voice.taken', 'voice.held']);
 
 const text = (value, fallback = '') => (typeof value === 'string' ? value : fallback);
 
@@ -111,11 +113,17 @@ export class LiveHost {
      * @param {object} options.router the shell’s router, to put a reading on screen and to come back
      * @param {string} [options.search] the query string
      * @param {object} [options.env] window-like, for capability detection
+     * @param {() => Promise<object>} [options.ensureAudioEngine] the app's audio engine, the one the Chamber plays beds on
      */
-    constructor(container, { router, onNavigate = () => {}, search = globalThis.location?.search ?? '', env = globalThis } = {}) {
+    constructor(container, { router, onNavigate = () => {}, search = globalThis.location?.search ?? '', env = globalThis, ensureAudioEngine = null } = {}) {
         this.container = container;
         this.router = router;
         this.onNavigate = onNavigate;
+        this.ensureAudioEngine = ensureAudioEngine;
+        // The engine the reading's beds play on, once a reading is built; and the beds and tones it started (?measure=1).
+        this.audioEngine = null;
+        this.audioLog = [];
+        this.onSoundStart = null;
         this.params = new URLSearchParams(search);
         this.env = env;
         this.caps = detectCapabilities(env);
@@ -414,13 +422,17 @@ export class LiveHost {
         }
         const clock = createRealClock();
         const voices = await this.buildVoices(clock);
+        await this.hearAudio(clock);
         const mountedChamber = player => this.chamberPlaying(player);
         const runtime = createLiveRuntime({
             adapter: await this.buildAdapter(clock, createMockAdapter),
             clock,
             // The voice's trace in DevTools, always: a reader who sees the words and the voice part can copy
             // what the clock saw (voice-trace.js), as a failed scene is reported.
-            onNote: entry => { if (isVoiceNote(entry.type)) console.info('[RISE voice]', voiceLine(entry)); },
+            onNote: entry => {
+                if (isVoiceNote(entry.type)) console.info('[RISE voice]', voiceLine(entry));
+                this.duckUnderVoice(entry.type);
+            },
             createPlayer: session => createSessionPlayer(session),
             voices,
             host: {
@@ -446,10 +458,44 @@ export class LiveHost {
                 startedAt: () => this.startedAt,
                 voice: () => this.spokenVoice,
                 scenes: () => [...this.sceneReports],
+                audio: () => ({ started: this.audioLog.map(entry => ({ ...entry })), sounding: this.audioEngine?.sounding?.id ?? null }),
                 now: () => performance.now()
             });
         }
         return runtime;
+    }
+
+    /**
+     * The engine the Chamber plays the reading's beds and tones on (the app's own): each one it starts is
+     * a line in DevTools (`[RISE audio]`) and, under ?measure=1, an entry in `__riseLive.audio()`.
+     */
+    async hearAudio(clock) {
+        const engine = await Promise.resolve(this.ensureAudioEngine?.()).catch(() => null);
+        if (!engine || this.destroyed) return;
+        this.releaseAudio();
+        this.audioEngine = engine;
+        this.onSoundStart = ({ id, kind, trimDb }) => {
+            const entry = { at: clock.now(), type: kind === 'tone' ? 'audio.tone' : 'audio.bed', id, trimDb };
+            console.info('[RISE audio]', voiceLine(entry));
+            if (this.params.has('measure')) this.audioLog = [...this.audioLog, entry].slice(-50);
+        };
+        engine.onSoundStart = this.onSoundStart;
+    }
+
+    /** The browser's voice is not the engine's, so the engine is told when it speaks: the beds step back under it. */
+    duckUnderVoice(type) {
+        if (!this.audioEngine || this.voiceKind !== 'browser') return;
+        if (type === 'speech.start') this.audioEngine.setVoiceDucking(true);
+        else if (VOICE_QUIET.has(type)) this.audioEngine.setVoiceDucking(false);
+    }
+
+    /** Let go of the engine: no longer told of its sounds, and nothing left ducked for a voice that is gone. */
+    releaseAudio() {
+        const engine = this.audioEngine;
+        if (!engine) return;
+        if (engine.onSoundStart === this.onSoundStart) engine.onSoundStart = null;
+        engine.setVoiceDucking?.(false);
+        this.audioEngine = null;
     }
 
     /** A failed generated scene, in RISE's words: DevTools, ?measure=1, and the host's model if the host takes its context. */
@@ -924,6 +970,8 @@ export class LiveHost {
                 audible: this.voiceKind === 'browser',
                 degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability)),
                 takeFocus,
+                // Sound, where the reading has an engine for its beds and tones.
+                sound: Boolean(this.audioEngine),
                 // The host card: whether its host will show the card full screen, or floating.
                 port: this.port
             });
@@ -992,6 +1040,7 @@ export class LiveHost {
         this.controls = null;
         await runtime?.stop();
         this.resetButton();
+        this.releaseAudio();
         await this.present?.leaveLive(this.router);
         if (this.embedded && !this.destroyed) this.say('Stopped.');
     }
@@ -1012,6 +1061,7 @@ export class LiveHost {
         this.controls = null;
         await runtime?.stop();
         this.resetButton();
+        this.releaseAudio();
         if (this.embedded && !this.destroyed) this.say('Finished.');
     }
 

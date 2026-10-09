@@ -226,6 +226,20 @@ describe('styles', () => {
         }
     });
 
+    it('Premium Educational teaches one quiet bed under the whole lesson: set on the first beat only, an atmosphere, never a tone', () => {
+        const guide = styleGuide('premium-educational');
+        expect(guide).toMatch(/one quiet bed/u);
+        expect(guide).toMatch(/"sound": "starlight"/u);
+        for (const { current } of STYLE_EXAMPLES['premium-educational']) {
+            const sounded = current.beats.map((beat, index) => [index, beat.sound]).filter(([, sound]) => sound !== undefined);
+            expect(sounded, current.id).toHaveLength(1);
+            const [[index, sound]] = sounded;
+            expect(index, current.id).toBe(0);
+            expect(['starlight', 'aurora'], current.id).toContain(sound);
+            expect(current.beats[0].hold, current.id).toBeUndefined();
+        }
+    });
+
     it('teach code scenes in both: Premium Educational writes its pictures, Open Field shows a look and a scene of its own', () => {
         for (const { current } of STYLE_EXAMPLES['premium-educational']) expect(codeScenes(current).length, current.id).toBeGreaterThan(0);
         const open = STYLE_EXAMPLES['open-field'];
