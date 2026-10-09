@@ -39,10 +39,34 @@ function watchErrors(page) {
     const errors = [];
     page.on('pageerror', error => errors.push(`pageerror: ${error.message}`));
     page.on('console', message => {
-        if (message.type() === 'error') errors.push(`console: ${message.text().slice(0, 200)}`);
+        // The shared signed-out account fixture deliberately returns the real
+        // protocol's 401. Chromium reports that response in the console; it is
+        // not a Live runtime error. Keep every other endpoint/status/error.
+        const signedOutAccount = message.location().url === 'https://syberlabs.io/admin/api/v1/account'
+            && message.text() === 'Failed to load resource: the server responded with a status of 401 (Unauthorized)';
+        if (message.type() === 'error' && !signedOutAccount) errors.push(`console: ${message.text().slice(0, 200)}`);
     });
     return errors;
 }
+
+test('expected account denial leaves unrelated HTTP and runtime errors observable', async ({ page }) => {
+    const errors = watchErrors(page);
+    const accountResponse = page.waitForResponse(response => response.url() === 'https://syberlabs.io/admin/api/v1/account');
+    await page.goto(OPEN);
+    const denied = await accountResponse;
+    expect(denied.status()).toBe(401);
+    expect(await denied.json()).toEqual({ version: 1, error: 'signin_required' });
+    await expect(page.getByRole('link', { name: 'Sign in to SyberLabs' })).toBeVisible();
+    expect(errors).toEqual([]);
+    await page.route('**/api/conformance-denial', route => route.fulfill({ status: 401, body: 'unrelated denial' }));
+    await page.evaluate(async () => {
+        await fetch('/api/conformance-denial');
+        console.error('Unrelated runtime error negative control');
+    });
+    await expect.poll(() => errors.length).toBe(2);
+    expect(errors).toContain('console: Failed to load resource: the server responded with a status of 401 (Unauthorized)');
+    expect(errors).toContain('console: Unrelated runtime error negative control');
+});
 
 async function start(page, url = OPEN) {
     await page.goto(url);
