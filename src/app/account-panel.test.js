@@ -41,3 +41,25 @@ it('retains the same request id when a failed explicit save is retried', async (
   expect(ids).toHaveLength(2);
   expect(ids[0]).toBe(ids[1]);
 });
+
+it('locks the chosen private work while account validation is pending', async () => {
+  const second = draftLocalWork({ title: 'Second private work', text: 'Another private document.' });
+  let validateAccount;
+  let posted;
+  vi.stubGlobal('fetch', async (url, options) => {
+    if (url.endsWith('/account')) return new Promise(resolve => { validateAccount = () => resolve(ok({ user: { id: 'u', label: 'Reader' } })); });
+    if (options.method === 'POST') { posted = JSON.parse(options.body); return ok({ save: { id: 's1' } }); }
+    return ok({ saves: [] });
+  });
+  const dialog = openAccountPanel({ user: { id: 'u', label: 'Reader' }, store: { ...store, all: async () => [work, second] } });
+  const button = dialog.querySelector('[data-save]');
+  await vi.waitFor(() => expect(button.disabled).toBe(false));
+  button.click();
+  const select = dialog.querySelector('#account-local-work');
+  expect(select.disabled).toBe(true);
+  expect(dialog.querySelector('#account-saved-work').disabled).toBe(true);
+  expect(dialog.querySelector('[data-replace]').disabled).toBe(true);
+  select.value = second.id; // Even a programmatic change must not switch the authorized payload.
+  validateAccount();
+  await vi.waitFor(() => expect(posted?.payload.work.id).toBe(work.id));
+});

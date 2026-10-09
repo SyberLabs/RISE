@@ -35,7 +35,11 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     for (const row of rows) { const option = document.createElement('option'); option.value = row.id; option.textContent = label(row); select.append(option); }
     if (!rows.length) { const option = document.createElement('option'); option.value = ''; option.textContent = empty; select.append(option); }
   };
-  const buttons = () => { saveButton.disabled = busy || !localSelect.value; restoreButton.disabled = busy || !remoteSelect.value; };
+  const buttons = () => {
+    saveButton.disabled = busy || !localSelect.value;
+    restoreButton.disabled = busy || !remoteSelect.value;
+    localSelect.disabled = remoteSelect.disabled = dialog.querySelector('[data-replace]').disabled = busy;
+  };
   const requireSameAccount = async () => {
     const current = await getAccount();
     if (current.id !== user.id) throw new Error('Your signed-in account changed. Close this panel and open Account again before saving or restoring.');
@@ -57,6 +61,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
   saveButton.addEventListener('click', () => run(async () => {
     const selected = localSelect.value;
     await requireSameAccount();
+    if (closed) return;
     const record = works.find(work => work.id === selected);
     if (!record) throw new Error('Select a browser work first.');
     const fingerprint = JSON.stringify(workPayload(record));
@@ -71,6 +76,7 @@ export function openAccountPanel({ user, trigger, onClose = () => {}, store = Lo
     const saveId = remoteSelect.value;
     const replace = dialog.querySelector('[data-replace]').checked;
     await requireSameAccount();
+    if (closed) return;
     const record = await restoreAccountWork(saveId, store, { replace });
     if (closed) return;
     dialog.querySelector('[data-replace]').checked = false;
