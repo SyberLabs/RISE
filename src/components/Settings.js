@@ -282,7 +282,7 @@ export class Settings {
                 <p class="settings-fail" ${plus.lapsed ? '' : 'hidden'}>Plus voice has lapsed.</p>
               </div>
               <a class="btn-secondary" data-plus-subscribe rel="noopener" hidden>Subscribe</a>
-              ${this.plusStatus?.adminLogin ? '<a class="btn-secondary" data-admin-login href="/api/plus/admin-login">Admin sign in</a>' : ''}
+              ${this.plusStatus?.adminLogin ? '<a class="btn-secondary" data-admin-login href="/api/plus/admin/login">Admin sign in</a>' : ''}
             </div>`;
         }
         const allowance = this.plusStatus?.allowance ?? plusAllowance();

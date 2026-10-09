@@ -435,7 +435,7 @@ describe('Settings Plus voice', () => {
             ? { admin: false, subscriber: false, available: true, adminLogin: true, allowance: null } : { paymentLink: null })));
         const settings = mount();
         await settings.plusStatusLoaded;
-        expect(settings.container.querySelector('[data-admin-login]').getAttribute('href')).toBe('/api/plus/admin-login');
+        expect(settings.container.querySelector('[data-admin-login]').getAttribute('href')).toBe('/api/plus/admin/login');
         settings.destroy();
     });
 
