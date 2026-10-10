@@ -1173,6 +1173,7 @@ describe('inside an MCP host', () => {
             expect(host.aboutReading()).toMatch(/^audio session: playback, silent loop playing$/mu);
             await host.stop();
             expect(made[0].paused).toBe(true);
+            expect(audioSession.type).toBe('auto');
         });
 
         it('lifts the beds by the phone level where the host says it is a phone, and says so in About this reading', async () => {
@@ -2028,6 +2029,20 @@ describe('the beds under the reading', () => {
         player.become('playing');
         player.become('complete');
         expect(engine.calls).toEqual([['in', 1.2], ['out', 0.4], ['in', 0.6], ['stop']]);
+    });
+
+    it('lets the silent loop and the playback audio session go when the reading is over', async () => {
+        const engine = sessionEngine();
+        const hosted = await hostedWith(engine);
+        const audioSession = { type: 'playback' };
+        host.env.navigator = { audioSession };
+        host.audioKeeper = { paused: false, pause() { this.paused = true; } };
+        const player = fakePlayer('idle');
+        await hosted.present({ role: 'main', session: {}, player });
+        player.become('playing');
+        player.become('complete');
+        expect(host.audioKeeper.paused).toBe(true);
+        expect(audioSession.type).toBe('auto');
     });
 
     it('brings the session up at once for a reading already playing when it is shown, and follows only the reading shown', async () => {

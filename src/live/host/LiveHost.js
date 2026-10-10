@@ -622,7 +622,7 @@ export class LiveHost {
             } else if (state === 'complete') {
                 // No audio outlives the reading; Play again opens a new session.
                 engine.stopSession?.();
-                this.audioKeeper?.pause();
+                this.releaseAudioSession();
                 up = false;
             }
         };
@@ -1088,6 +1088,12 @@ export class LiveHost {
         });
     }
 
+    /** The reading is over: the silent loop stops, and the audio session goes back to WebKit's own choice. */
+    releaseAudioSession() {
+        this.audioKeeper?.pause();
+        try { if (this.env.navigator?.audioSession) this.env.navigator.audioSession.type = 'auto'; } catch { /* WebKit's own choice already */ }
+    }
+
     /** Validate the host's sealed answer once, then wait for the reader to begin it. */
     admitEmbeddedCurrent(current) {
         if (this.destroyed || this.embeddedStartupCancelled || this.embeddedCurrentHandled) return true;
@@ -1212,7 +1218,7 @@ export class LiveHost {
         await runtime?.stop();
         this.resetButton();
         this.releaseAudio();
-        this.audioKeeper?.pause();
+        this.releaseAudioSession();
         await this.present?.leaveLive(this.router);
         if (this.embedded && !this.destroyed) this.say('Stopped.');
     }
@@ -1234,7 +1240,7 @@ export class LiveHost {
         await runtime?.stop();
         this.resetButton();
         this.releaseAudio();
-        this.audioKeeper?.pause();
+        this.releaseAudioSession();
         if (this.embedded && !this.destroyed) this.say('Finished.');
     }
 
