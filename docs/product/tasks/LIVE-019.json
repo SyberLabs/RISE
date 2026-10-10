@@ -53,6 +53,12 @@
       "ref": "docs/evals/creative-control/streamed",
       "note": "Three streamed cases (a figure, a generated scene, native scenes): npm run eval:creative reads each through the parser and reducer whole and at three cuts, the same Current each time, 0 events refused; 11 Currents, all passed.",
       "date": "2026-10-10"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/615",
+      "note": "Beats streamed, branch live-beats-streamed: open, auto-merge on the required CI check. Not merged, not deployed, not accepted.",
+      "date": "2026-10-10"
     }
   ],
   "activity": [
@@ -63,10 +69,14 @@
     {
       "date": "2026-10-10T09:30:00.000Z",
       "summary": "The scene admission (and acorn) moved out of the reducer's static imports: the text-stream adapters hand it in, so the live runtime chunk the card loads is 11.9 KB brotli rather than 41.9 KB; the venue's demo is its own module (mock-beats.js). The router no longer takes an Escape a dialog has answered as a cancel. Browser subset green twice."
+    },
+    {
+      "date": "2026-10-10T09:45:00.000Z",
+      "summary": "Opened as #615."
     }
   ],
-  "updatedAt": "2026-10-10T09:30:00.000Z",
-  "revision": 2,
+  "updatedAt": "2026-10-10T09:45:00.000Z",
+  "revision": 3,
   "summary": "Design §8 stage 3: a streamed Current is a rise.current.v2 written beat by beat, so holds and scenes arrive in time, not only at the end.",
   "blocker": null
 }
