@@ -74,15 +74,24 @@ live at e3dd1b97; the screenshots are #608, at 608ea99f.
    afterwards; (b) write to `mcp-review@anthropic.com` first and hold submission.
    Recommendation: (a). The free voice is the device's own speech synthesis; the visuals
    are code and SVG the model writes, which is closest to the allowed "diagrams, charts".
+   **Decided 2026-10-10: (a).** Submit without the Plus voice; it stays out of the Claude
+   card and all connector text, and the AI-media answer says RISE calls no media model.
 2. **Terms and Plus pricing.** `TERMS.md` sells Plus at $8.99 while `/api/plus/status`
    says `available: false` and the production payment link is Stripe's *test* link. A
    reviewer who reads the terms will notice. Either remove the Plus clause until Plus
    ships, or make it true.
+   **Decided 2026-10-10: correct the terms and remove the test link.** The terms and the
+   privacy policy now say Plus is not offered and nothing is for sale, with no price; what
+   Plus would send is kept in conditional form. Production's `PLUS_PAYMENT_LINK` is empty.
 3. **Security reporting channel.** `security.txt` points at `syberlabs.software@gmail.com`
    because no `security@` address exists and GitHub private vulnerability reporting is
    disabled on the repository. Enabling it (`gh api -X PUT
    repos/SyberLabs/RISE/private-vulnerability-reporting`) would allow a second, durable
    channel.
+   **Decided 2026-10-10: enable it.** Private vulnerability reporting is on (the API
+   answered 204; it now reads `{"enabled":true}`). `SECURITY.md` says how to report and what
+   is in scope, and `security.txt` names the advisory form as a second `Contact:` and the
+   policy as `Policy:`.
 4. **Workers plan.** No `limits.cpu_ms` is set; admission of a maximum-size Current
    measured 38 to 112 ms locally. On Workers Free (10 ms CPU) large calls can fail
    intermittently with a Cloudflare error page. If the account is on Workers Paid, set
@@ -116,10 +125,14 @@ Must have:
 - [x] Public documentation URL (`https://rise.syberlabs.io/apps`)
 - [x] Tool and server text free of run-time instruction fetching, creator names, promotion (#607)
 - [x] 3 to 5 PNG screenshots ≥ 1000 px wide, cropped to the card, prompts separate (#608)
-- [ ] At least three working example prompts (drafted below; verify in claude.ai before submitting)
-- [ ] Attest that every tool was run in MCP Inspector and as a custom connector in Claude, plus the iOS and Android apps
-- [ ] A paid Claude account in the organization that will own the listing
-- [ ] The Plus decision (section 5.1) and the AI-media acknowledgment answered truthfully
+- [x] Terms without a sale: no price, no Stripe purchase, Plus described as not offered; no test payment link in production (decision 5.2)
+- [x] A security reporting channel: GitHub private vulnerability reporting, `SECURITY.md`, `security.txt` `Policy:` (decision 5.3)
+- [ ] At least three working example prompts (drafted below; being verified through Claude by another session; prompt 5's tool calls are in [the Claude run](../../assets/directory/CLAUDE-RUN-2026-10-10.md))
+- [x] Every tool run in MCP Inspector ([the Inspector run](../../assets/directory/INSPECTOR-RUN-2026-10-10.md), 2026-10-10)
+- [x] Every tool run as a custom connector in Claude ([the Claude run](../../assets/directory/CLAUDE-RUN-2026-10-10.md), 2026-10-10, from a Claude Code session). The owner still runs the prompts in the claude.ai chat (the card rendering) and on iOS and Android before attesting.
+- [ ] The attestation itself, ticked by the owner in the portal once the item above is complete
+- [ ] A paid Claude account in the organization that will own the listing (decided: the owner submits from the paid account)
+- [x] The Plus decision (section 5.1) and the AI-media acknowledgment answered truthfully (the answer is in [the submission packet](2026-10-10-connector-submission-packet.md))
 
 Should have:
 - [ ] Allowed link URIs in the portal: `https://syberlabs.io`, `https://rise.syberlabs.io`

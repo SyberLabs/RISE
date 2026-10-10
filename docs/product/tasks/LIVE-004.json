@@ -58,6 +58,24 @@
       "ref": "docs/COMPOSER-FIRST-ROADMAP.md",
       "note": "Owner, 2026-10-09, in Claude on the deployed build, after voice hardening 2 (#535) and the playback instrument (#549, #551, #553): \"Beautiful!! Much more robust and working well on the voice side. Card behavior still needs further testing from brand new sessions.\" and \"very good. seems to be working wonderfully! Fullscreen esp is a step up.\" Recorded as observations, not as acceptance: the owner has not said they accept this task.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-10-connector-submission-packet.md",
+      "note": "Connector-directory submission packet for the owner to file; terms without a sale, no test payment link in production, a security channel. Branch, not yet merged at the time of writing.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/assets/directory/INSPECTOR-RUN-2026-10-10.md",
+      "note": "MCP Inspector 2.10.1 against the live server at a70c4437: tools listed and called, refusals, the card resource read. Tool-test path 1, not a witness.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/assets/directory/CLAUDE-RUN-2026-10-10.md",
+      "note": "Both tools called by Claude through the connector from a Claude Code session; the card rendering in claude.ai, iOS and Android is still the owner's to run.",
+      "date": "2026-10-10"
     }
   ],
   "activity": [
@@ -92,10 +110,14 @@
     {
       "date": "2026-10-10T04:00:34.182Z",
       "summary": "directory readiness: tool text describes a format reference, no creator names, no sign-in in the card, privacy states Cloudflare logging, README for Claude"
+    },
+    {
+      "date": "2026-10-10T05:17:04.575Z",
+      "summary": "connector submission packet: terms corrected, test payment link removed, security channel, Inspector run, packet for the owner"
     }
   ],
-  "updatedAt": "2026-10-10T04:00:34.182Z",
-  "revision": 8,
+  "updatedAt": "2026-10-10T05:17:04.575Z",
+  "revision": 9,
   "summary": "Integrate score, admitted host behavior and fixtures into a coherent first-use experience.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }
