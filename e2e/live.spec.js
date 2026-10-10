@@ -24,7 +24,7 @@ import { mapAtoms } from '../src/live/atom-map.js';
 import { BLACK_HOLES } from '../src/live/fixtures/black-holes.js';
 import { expect, test } from './fixtures.js';
 
-const OPEN = '/live?voice=paced';
+const OPEN = '/live?host=prompt&voice=paced';
 const MS_PER_CHAR = 62; // the synthetic voice's pace
 
 const BOUNDARY_BUDGET_MS = 100;
@@ -296,7 +296,7 @@ test.describe('when the device cannot do what a Current would like', () => {
             Object.defineProperty(window, 'speechSynthesis', { value: fake, configurable: true });
             window.SpeechSynthesisUtterance = Utterance;
         });
-        await start(page, '/live?voice=browser');
+        await start(page, '/live?host=prompt&voice=browser');
         await expect(status(page)).toContainText('The voice stopped', { timeout: 8_000 });
         await expectShown(page, 'A black hole is a region of space');
         // Not stuck: the reading goes on without the voice.
@@ -432,5 +432,72 @@ test.describe('what it costs the browser', () => {
             description: `after first cycle ${afterFirst.toFixed(2)}, after third ${afterThird.toFixed(2)}, growth ${(afterThird - afterFirst).toFixed(2)}`
         });
         expect(afterThird - afterFirst).toBeLessThanOrEqual(5);
+    });
+});
+
+test.describe('the venue: the Reader site’s /live, where RISE owns the room', () => {
+    const VENUE = '/live?voice=paced';
+
+    test('asks, reads under the whole instrument, fills the screen on F, and asks again in the same room', async ({ page }) => {
+        const errors = watchErrors(page);
+        // What full screen was asked for, counted; the browser's own full screen is not this test's to judge.
+        await page.addInitScript(() => {
+            window.__fullscreenAsked = 0;
+            Element.prototype.requestFullscreen = function requestFullscreen() { window.__fullscreenAsked += 1; return Promise.resolve(); };
+        });
+        await page.goto(VENUE);
+        await expect(page.getByRole('heading', { name: 'RISE Live' })).toBeVisible();
+        await expect(page.getByRole('radio', { name: 'Demo (no key)' })).toBeChecked();
+        await expect(page.locator('.live-venue__privacy')).toContainText('nothing you type leaves this browser');
+
+        const asked = page.locator('#live-venue-question');
+        await asked.fill('Explain black holes with RISE.');
+        await asked.press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        const stage = page.locator('#rise-stage-controls');
+        for (const name of ['Back a passage', 'Forward a passage', 'Say this passage again', 'Full screen', 'Settings']) {
+            await expect(stage.getByRole('button', { name, exact: true })).toHaveCount(1);
+        }
+
+        // The room: a theme picked in this reading is the next reading's too.
+        await stage.getByRole('button', { name: 'Settings', exact: true }).click();
+        await page.locator('#rise-settings-theme').selectOption('ember');
+        const ground = () => page.evaluate(() => document.documentElement.style.getPropertyValue('--color-void'));
+        const ember = await ground();
+        expect(ember).not.toBe('');
+        await page.locator('#rise-settings').press('Escape');
+
+        await stage.getByRole('button', { name: 'Settings', exact: true }).focus();
+        await page.keyboard.press('f');
+        await expect.poll(() => page.evaluate(() => window.__fullscreenAsked)).toBe(1);
+
+        // Held, the bar to ask again opens; the next question reads in the same page.
+        await stage.locator('[data-stage="play"]').click();
+        const again = page.getByRole('form', { name: 'Ask again' });
+        await expect(again).toBeVisible();
+        await page.locator('#live-again-question').fill('What is a quasar?');
+        await page.locator('#live-again-question').press('Enter');
+        await expectShown(page, 'This demonstration can only explain black holes.');
+        expect(await ground()).toBe(ember);
+        await stage.getByRole('button', { name: 'Settings', exact: true }).click();
+        await expect(page.locator('#rise-settings-theme')).toHaveValue('ember');
+        await page.locator('#rise-settings').press('Escape');
+
+        // The end offers the question again, and Leave goes back to the entry.
+        await expect(stage.getByRole('button', { name: /^Play again/u })).toHaveCount(1, { timeout: 20_000 });
+        await expect(again).toBeVisible();
+        await page.getByRole('button', { name: 'Leave this room' }).click();
+        await expect(page.getByRole('heading', { name: 'RISE Live' })).toBeVisible();
+        await expect(page.locator('#rise-stage-controls')).toHaveCount(0);
+        expect(await ground()).toBe('');
+        expect(new URL(page.url()).pathname).toBe('/live');
+        expect(errors).toEqual([]);
+    });
+
+    test('refuses an empty question in words, and starts nothing', async ({ page }) => {
+        await page.goto(VENUE);
+        await page.locator('#live-venue-question').press('Enter');
+        await expect(page.locator('.live-error')).toHaveText('Ask something first.');
+        await expect(page.locator('#rise-stage-controls')).toHaveCount(0);
     });
 });

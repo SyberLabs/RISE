@@ -70,11 +70,13 @@ const KEYS_DESCRIBED = 'Keys on the stage: Space plays or pauses; the Left and R
  * @param {{voices: {name: string, local: boolean}[], selected: string, choose: (name: string) => void} | null} [options.voice]
  *   the browser's installed voices for the reading's language: the sheet offers them under Voice, after Automatic
  *   (the empty name), and `choose` takes the reader's pick, which the voice speaks from its next passage
+ * @param {object | null} [options.room] where a page of many readings keeps the reader's Settings choices (theme,
+ *   intensity and the rest) from one reading's stage to the next; with none, each stage keeps its own
  * @param {Document} [options.doc]
  */
 export function createStageControls({
     runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], takeFocus = false,
-    transport = 'full', port = null, sound: offersSound = false, about = null, voice: voicePick = null, doc = document
+    transport = 'full', port = null, sound: offersSound = false, about = null, voice: voicePick = null, room = null, doc = document
 }) {
     // With Sound offered too, Voice shares its row: one row more would make the sheet scroll in a 481 px card.
     const offersVoice = (voicePick?.voices?.length ?? 0) > 0;
@@ -193,10 +195,14 @@ export function createStageControls({
     let drawn = null;
     let listed = -1;
     let segmentId = null;
-    // The reader's own intensity, kept for the reading: the director drops a control at every new cue.
-    let chosen = null;
+    // The reader's own intensity, kept for the reading (and the room): the director drops a control at every new cue.
+    let chosen = room?.intensity ?? null;
     // The other rows' choices, kept for a Chamber that is not on screen yet (one mounts as the reading starts).
-    const picked = {};
+    const picked = room ? (room.picked ??= {}) : {};
+    if (picked.theme) {
+        theme.value = picked.theme;
+        paintTheme(picked.theme);
+    }
     let reached = null;
 
     function name(status, why) {
@@ -237,6 +243,7 @@ export function createStageControls({
         const receipt = runtime.controlVisual?.({ surface: 'attractor', parameter: 'intensity', value });
         if (receipt?.status !== 'accepted') return;
         chosen = value;
+        if (room) room.intensity = value;
         root.dataset.intensity = receipt.effective.toFixed(2);
     }
 

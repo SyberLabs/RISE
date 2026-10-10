@@ -157,6 +157,8 @@ describe('createRouteManifest', () => {
     expect(received.setup.onBeginSession).toBe(operations.handleBeginSession);
     expect(received.chamber).toBe(operations.chamberSession);
     expect(received.live.router).toBe(operations.router);
+    // The app's /live is the Live venue.
+    expect(received.live.venue).toBe(true);
     expect(await received.load.chamber()).toHaveProperty('createChamberSession');
     expect(shown).toEqual([{ pane: 'live' }]);
   });

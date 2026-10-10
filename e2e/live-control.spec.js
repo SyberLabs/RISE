@@ -7,7 +7,7 @@
  */
 import { expect, test } from './fixtures.js';
 
-const OPEN = '/live?voice=paced';
+const OPEN = '/live?host=prompt&voice=paced';
 const status = page => page.locator('.live-controls__status');
 const shown = async page => (await page.locator('#atom-display').innerText()).replace(/\s+/gu, ' ').trim();
 const canvas = page => page.locator('.chamber-attractor canvas.attractor-canvas').first();

@@ -1165,3 +1165,41 @@ describe('the Voice row', () => {
         expect(select().querySelector('b')).toBeNull();
     });
 });
+
+describe('a room of many readings (the venue)', () => {
+    it('carries the reader’s theme and intensity to the next reading’s stage and Chamber, and paints the frame at once', () => {
+        const room = {};
+        const first = fakeChamber();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => first, room });
+        settings().click();
+        theme().value = 'ember';
+        change(theme());
+        intensity().value = '0.5';
+        intensity().dispatchEvent(new Event('input', { bubbles: true }));
+        stage.destroy();
+
+        const next = fakeChamber();
+        const paintTheme = vi.fn();
+        const runtime = fakeRuntime('live');
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, chamber: () => next, paintTheme, room });
+        expect(paintTheme).toHaveBeenCalledWith('ember');
+        expect(next.setColourTheme).toHaveBeenCalledWith('ember');
+        expect(runtime.controlVisual).toHaveBeenCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.5 });
+        settings().click();
+        expect(theme().value).toBe('ember');
+    });
+
+    it('keeps nothing between two stages without a room, as in a card', () => {
+        const chamber = fakeChamber();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => chamber });
+        settings().click();
+        theme().value = 'ember';
+        change(theme());
+        stage.destroy();
+        const next = fakeChamber();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => next });
+        expect(next.setColourTheme).not.toHaveBeenCalled();
+        settings().click();
+        expect(theme().value).toBe('');
+    });
+});

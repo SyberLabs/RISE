@@ -250,7 +250,7 @@ test.describe('the Gemini provider with the reader’s own key', () => {
 
     test('the default page, and the OpenAI one, reach nothing at Google: the provider is opt-in', async ({ page }) => {
         const requests = watchRequests(page);
-        await page.goto('/live?voice=paced');
+        await page.goto('/live?host=prompt&voice=paced');
         await expect(page.locator('#live-key')).toHaveCount(0);
         await expect(page.locator('#live-model')).toHaveCount(0);
         await page.locator('.live-start').click();

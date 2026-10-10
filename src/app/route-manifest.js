@@ -49,6 +49,8 @@ export function createRouteManifest(operations) {
             // The reader's own browser voice for the card is a saved setting (cardVoice).
             getSettings: operations.getSettings,
             onSettingChange: operations.handleSettingsChange,
+            // `/live` in the app is the Live venue; `?host=prompt` keeps the runtime's test page.
+            venue: true,
             // Read when the view is built: in a host's card the query is the card's, not the window's.
             get search() { return appLocation().search; }
           },
