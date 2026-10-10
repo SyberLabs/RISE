@@ -84,6 +84,12 @@ describe('an answer to an interjection (stage 4.5)', () => {
         expect(events.at(-1)).toMatchObject({ type: 'current.complete', ending: 'replace' });
     });
 
+    it('says nothing a model writes after its ending, and completes with it', async () => {
+        const events = await answered('@say The horizon is not a surface.\n@then end\n@say Thanks for asking!\n');
+        expect(events.filter(event => event.type === 'segment.text').map(event => event.text)).toEqual(['The horizon is not a surface.']);
+        expect(events.at(-1)).toMatchObject({ type: 'current.complete', ending: 'end' });
+    });
+
     it('completes with no ending when the model named none: the runtime reads that as resume', async () => {
         const events = await answered('@say The horizon is not a surface.\n');
         expect(events.at(-1).type).toBe('current.complete');

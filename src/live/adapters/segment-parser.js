@@ -51,8 +51,9 @@
  * is the reducer's to say, by the Worker's own admission.
  *
  * ENDING. An answer to an interjection ends with `@then resume|replace|end`
- * on a line of its own, in either format (docs/plans/LIVE-CURRENT.md §17);
- * the last one named is what `finish` reports, and is never words.
+ * on a line of its own, in either format (docs/plans/LIVE-CURRENT.md §17).
+ * It ends the answer: `finish` reports it, it is never words, nothing after
+ * it is read, and the parser is `full` so a provider still writing is stopped.
  */
 
 import { soundKind } from '../../audio/sound-ids.js';
@@ -448,6 +449,8 @@ export function createSegmentParser(write) {
     }
 
     function line(content) {
+        // Nothing after `@then` is read: the answer has ended.
+        if (ending !== null) return;
         // `@then …` names an ending in either format, on a line of its own; inside a scene's source it is source.
         const then = !fence && !midLine ? THEN.exec(content.trim()) : null;
         if (then) { ending = then[1].toLowerCase(); return; }
@@ -478,7 +481,7 @@ export function createSegmentParser(write) {
     return {
         /** More of the model's words. */
         push(delta) {
-            if (finished || typeof delta !== 'string' || !delta) return;
+            if (finished || ending !== null || typeof delta !== 'string' || !delta) return;
             buffer += delta.replace(/\r/gu, '');
             if (skipping) {
                 const newline = buffer.indexOf('\n');
@@ -493,6 +496,7 @@ export function createSegmentParser(write) {
                 buffer = buffer.slice(newline + 1);
                 line(complete);
             }
+            if (ending !== null) { buffer = ''; return; }
             if (buffer) {
                 // The start of a line that might be a header, and every line of a beat stream, waits for its
                 // newline; anything else is words.
@@ -545,9 +549,10 @@ export function createSegmentParser(write) {
         /** Passages, or beats, sent so far. */
         get passages() { return passages + beatCount; },
 
-        /** True once a limit means that nothing more the model writes can become words. */
+        /** True once a limit, or an ending named, means that nothing more the model writes can become words. */
         get full() {
-            return totalText >= RISE_CURRENT_LIMITS.totalText
+            return ending !== null
+                || totalText >= RISE_CURRENT_LIMITS.totalText
                 || beatCount >= PARSER_LIMITS.beats
                 || (passages >= PARSER_LIMITS.passages && (current === null || current.dropped === true));
         }
