@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'vitest';
 import { createVirtualClock } from '../clock.js';
 import { createFakeSpeech, createFakeSpeechEngine } from '../../test/fake-speech.js';
-import { BROWSER_VOICE_LIMITS, chooseVoice, createBrowserVoice, whenVoicesAvailable } from './browser.js';
+import { BROWSER_VOICE_LIMITS, chooseVoice, createBrowserVoice, voicesFor, whenVoicesAvailable } from './browser.js';
 
 const TEXT = 'one two three four five six seven';
 const MS = 50;
@@ -751,14 +751,17 @@ describe('choosing the voice', () => {
         expect(nameOf(chooseVoice(CHROME.filter(v => !v.name.startsWith('Google')), 'en-US'))).toBe('Microsoft David - English (United States)');
     });
 
-    it('leaves the browser to choose when it cannot tell which voice is the default, as in Safari', () => {
-        expect(chooseVoice(SAFARI, 'en-US')).toBeNull();
+    it('takes a real voice where Safari says every voice is the default, never a novelty one', () => {
+        expect(nameOf(chooseVoice(SAFARI, 'en-US'))).toBe('Samantha');
         expect(chooseVoice(SAFARI, 'en-GB')).toBe(SAFARI[3]);
+    });
+
+    it('takes a voice of the page’s language even when none is marked default', () => {
+        expect(nameOf(chooseVoice(CHROME.filter(v => !v.default && !v.name.startsWith('Google')), 'en-US'))).toBe('Microsoft Zira - English (United States)');
     });
 
     it('leaves the browser to choose when there is nothing in the page’s language, or nothing at all', () => {
         expect(chooseVoice(CHROME, 'de-DE')).toBeNull();
-        expect(chooseVoice(CHROME.filter(v => !v.default && !v.name.startsWith('Google')), 'en-US')).toBeNull();
         expect(chooseVoice([], 'en-US')).toBeNull();
     });
 
@@ -776,6 +779,144 @@ describe('choosing the voice', () => {
         voices = EDGE;
         for (const fn of [...listeners]) fn();
         expect(nameOf(chooseVoice(await late, 'en-US'))).toBe('Microsoft Aria Online (Natural) - English (United States)');
+    });
+});
+
+describe('ranking the voices by quality', () => {
+    // iOS 17 with two voices downloaded in Settings, Accessibility, Spoken Content.
+    const IOS = [
+        voice('Samantha', 'en-US', { isDefault: true }),
+        voice('Samantha (Enhanced)', 'en-US'),
+        voice('Ava (Premium)', 'en-US'),
+        voice('Daniel', 'en-GB')
+    ];
+    // Chrome on Android lists the Google engine's voices.
+    const ANDROID = [voice('English United States', 'en_US', { isDefault: true }), voice('Google US English', 'en-US', { local: false })];
+    // Edge on Windows: the legacy desktop voices and the online natural ones.
+    const WINDOWS_EDGE = [
+        voice('Microsoft David - English (United States)', 'en-US', { isDefault: true }),
+        voice('Microsoft Ava Online (Natural) - English (United States)', 'en-US', { local: false })
+    ];
+
+    it('takes Premium over Enhanced over the compact default on iOS', () => {
+        expect(nameOf(chooseVoice(IOS, 'en-US'))).toBe('Ava (Premium)');
+        expect(nameOf(chooseVoice(IOS.filter(v => !v.name.includes('Premium')), 'en-US'))).toBe('Samantha (Enhanced)');
+        expect(nameOf(chooseVoice(IOS.filter(v => v.name === 'Samantha' || v.name === 'Daniel'), 'en-US'))).toBe('Samantha');
+    });
+
+    it('reads Apple’s quality from the voice’s identifier when its name does not say it', () => {
+        const apple = (name, quality) => ({ name, lang: 'en-US', localService: true, default: false, voiceURI: `com.apple.voice.${quality}.en-US.${name}` });
+        expect(nameOf(chooseVoice([apple('Samantha', 'compact'), apple('Ava', 'premium'), apple('Zoe', 'enhanced')], 'en-US'))).toBe('Ava');
+        expect(nameOf(chooseVoice([apple('Samantha', 'compact'), apple('Zoe', 'enhanced')], 'en-US'))).toBe('Zoe');
+    });
+
+    it('takes the Google voice on Android Chrome', () => {
+        expect(nameOf(chooseVoice(ANDROID, 'en-US'))).toBe('Google US English');
+    });
+
+    it('takes the natural online voice over the legacy desktop one on Windows Edge', () => {
+        expect(nameOf(chooseVoice(WINDOWS_EDGE, 'en-US'))).toBe('Microsoft Ava Online (Natural) - English (United States)');
+    });
+
+    it('takes the only voice of a browser that has one, the default', () => {
+        expect(nameOf(chooseVoice([voice('Default', 'en-US', { isDefault: true })], 'en-US'))).toBe('Default');
+    });
+
+    it('ranks below plain voices the compact, eSpeak and Apple novelty voices, whatever the case', () => {
+        const list = [voice('eSpeak English', 'en-US'), voice('Fred', 'en-US', { isDefault: true }), voice('Tom COMPACT', 'en-US'), voice('Nicky', 'en-US')];
+        expect(nameOf(chooseVoice(list, 'en-US'))).toBe('Nicky');
+        expect(nameOf(chooseVoice([voice('X', 'en-US'), voice('Y natural', 'en-US')], 'en-US'))).toBe('Y natural');
+    });
+
+    it('chooses an enhanced en-US voice on an iPhone listing 68 voices, some with underscores, never null', () => {
+        const english = [
+            voice('Albert', 'en-US', { isDefault: true }), voice('Bad News', 'en_US', { isDefault: true }),
+            voice('Eddy (English (US))', 'en-US', { isDefault: true }), voice('Fred', 'en-US', { isDefault: true }),
+            voice('Samantha', 'en-US', { isDefault: true }), voice('Samantha (Enhanced)', 'en_US', { isDefault: true }),
+            voice('Nicky', 'en-US', { isDefault: true }), voice('Aaron', 'en-US', { isDefault: true }),
+            voice('Daniel', 'en-GB', { isDefault: true }), voice('Arthur', 'en_GB', { isDefault: true }),
+            voice('Karen', 'en-AU', { isDefault: true }), voice('Moira', 'en-IE', { isDefault: true }),
+            voice('Rishi', 'en-IN', { isDefault: true }), voice('Tessa', 'en-ZA', { isDefault: true })
+        ];
+        const others = Array.from({ length: 68 - english.length }, (_, i) => voice(`Other ${i}`, ['fr-FR', 'de_DE', 'es-ES', 'it-IT', 'ja-JP', 'zh-CN'][i % 6], { isDefault: true }));
+        const phone = [...others.slice(0, 20), ...english, ...others.slice(20)];
+        expect(phone).toHaveLength(68);
+        for (const lang of ['en-US', 'en_US', 'EN-us', 'en']) expect(nameOf(chooseVoice(phone, lang))).toBe('Samantha (Enhanced)');
+    });
+
+    it('honours the reader’s own voice by name, in the page’s base language, and ranks when it is not installed', () => {
+        expect(nameOf(chooseVoice(IOS, 'en-US', 'Daniel'))).toBe('Daniel');
+        expect(nameOf(chooseVoice(IOS, 'en-US', 'Gone voice'))).toBe('Ava (Premium)');
+        expect(nameOf(chooseVoice(IOS, 'en-US', ''))).toBe('Ava (Premium)');
+    });
+
+    it('lists the voices of the page’s base language, its own locale first', () => {
+        expect(voicesFor([voice('Daniel', 'en-GB'), voice('Thomas', 'fr-FR'), voice('Samantha', 'en_US')], 'en-US').map(nameOf)).toEqual(['Samantha', 'Daniel']);
+        expect(voicesFor([], 'en-US')).toEqual([]);
+    });
+});
+
+describe('a change of voice', () => {
+    const DAVID = { name: 'Microsoft David', lang: 'en-US', localService: true };
+    const ARIA = { name: 'Microsoft Aria Online (Natural)', lang: 'en-US', localService: false };
+    const GOOGLE = { name: 'Google US English', lang: 'en-US', localService: false };
+
+    function given(synth) {
+        const said = [];
+        const speak = synth.speak.bind(synth);
+        synth.speak = utterance => { said.push([utterance.text, utterance.voice]); speak(utterance); };
+        return said;
+    }
+
+    it('never interrupts what it is saying: the next utterance carries the new voice, and nothing is cancelled', async () => {
+        const { clock, voice, synth, log } = setup({}, { voice: DAVID });
+        const said = given(synth);
+        let cancels = 0;
+        const cancel = synth.cancel.bind(synth);
+        synth.cancel = () => { cancels += 1; cancel(); };
+        voice.enqueue({ id: 'a', text: TEXT });
+        voice.enqueue({ id: 'b', text: 'the next one' });
+        await clock.advance(30 + 9 * MS);
+        expect(voice.setVoice(ARIA)).toBe(false);
+        await clock.runAll();
+        expect(cancels).toBe(0);
+        expect(said.map(([, v]) => v)).toEqual([DAVID, ARIA]);
+        expect(kinds(log, 'end', 'a')).toHaveLength(1);
+        expect(voice.chosen.name).toBe(ARIA.name);
+    });
+
+    it('keeps a passage said a sentence at a time in the voice it began in', async () => {
+        const { clock, voice, synth } = setup({ boundaries: false }, { voice: GOOGLE });
+        const said = given(synth);
+        voice.enqueue({ id: 'a', text: 'First sentence here. Second one now.' });
+        voice.enqueue({ id: 'b', text: 'Then the next passage.' });
+        await clock.advance(30 + 5 * MS);
+        voice.setVoice(ARIA);
+        await clock.runAll();
+        expect(said.map(([text, v]) => [text, v.name])).toEqual([
+            ['First sentence here. ', GOOGLE.name], ['Second one now.', GOOGLE.name], ['Then the next passage.', ARIA.name]
+        ]);
+    });
+
+    it('holds at once while nothing is under way, and null gives the browser its default back', async () => {
+        const { clock, voice, synth } = setup({}, { voice: DAVID });
+        const said = given(synth);
+        expect(voice.setVoice(null)).toBe(true);
+        voice.enqueue({ id: 'a', text: TEXT });
+        await clock.runAll();
+        expect(said.map(([, v]) => v)).toEqual([null]);
+        expect(voice.chosen).toEqual({ name: null, local: null });
+    });
+
+    it('speaks a Google voice chosen later a sentence at a time, and says what it can report', async () => {
+        const { clock, voice, synth } = setup({ boundaries: false }, { voice: DAVID });
+        const said = given(synth);
+        expect(voice.capabilities.wordMarks).toBe(true);
+        voice.setVoice(GOOGLE);
+        expect(voice.capabilities).toMatchObject({ wordMarks: false, inSentences: true });
+        voice.enqueue({ id: 'a', text: 'First sentence here. Second one now.' });
+        await clock.runAll();
+        expect(said.map(([text]) => text)).toEqual(['First sentence here. ', 'Second one now.']);
     });
 });
 

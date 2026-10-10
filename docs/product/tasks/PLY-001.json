@@ -197,6 +197,12 @@
       "ref": "e2e/live-mcp.spec.js",
       "note": "Branch fullscreen-bar-room, local Chromium, one worker, whole file: 63 passed. New: an iPhone 14 (390x844, DPR 3, touch) asks the fake host for full screen, which gives the frame 844 px and safe-area insets top 47, bottom 34. Measured before: a centred line under a figure ended 14 px into the beat line (words bottom 756, beat line top 742), a caption over a scene 6 px (748); the picture began at 0, under the notch. After: both clear the beat line by the same gap as inline (20 px centred, 28 px caption), the picture runs 47 to 589, and the scene is resized once at the change and not again in 2 s of play. Fake host, not a product host.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/voices/browser.test.js",
+      "note": "Voice picker: chooseVoice ranks Premium/Natural/Neural over Enhanced over Google over plain over compact/eSpeak/legacy SAPI/Apple novelty voices (name or voiceURI), never null with a voice in the language (an iPhone listing 68 voices modelled); setVoice lands at the next passage and never cancels. With stage-controls.test.js (Sound & voice row), LiveHost.test.js (saved cardVoice honoured on Play, uninstalled name falls back to Automatic, About lists the voices) and e2e/live-mcp.spec.js (two fake voices, pick the second, the next utterance uses it, sheet does not scroll at 481 px). All failed first; 1358 passed across src/live.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -247,10 +253,14 @@
     {
       "date": "2026-10-09T23:55:03.765Z",
       "summary": "fullscreen on a phone: the words' room follows the bar's safe-area inset"
+    },
+    {
+      "date": "2026-10-10T00:11:16.737Z",
+      "summary": "the reader picks the browser voice in Settings; the default ranks enhanced/natural voices first"
     }
   ],
-  "updatedAt": "2026-10-09T23:55:03.765Z",
-  "revision": 12,
+  "updatedAt": "2026-10-10T00:11:16.737Z",
+  "revision": 13,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }
