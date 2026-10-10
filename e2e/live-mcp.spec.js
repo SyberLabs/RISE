@@ -1120,6 +1120,46 @@ test('a figure draws in the self-contained card as an image, and the hold under 
   expect(errors).toEqual([]);
 });
 
+// The card's own policy refuses nothing RISE itself loads: KaTeX's one inlined font (a data: URL in the built
+// stylesheet), a figure's blob: image, a scene's blob: worker and module, the look's field.
+test('the self-contained card’s policy refuses nothing of a reading with maths, a figure and a scene', async ({ page, baseURL }) => {
+  const errors = [];
+  const violations = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => {
+    const text = message.text();
+    if (text.startsWith('[csp-violation] ') || /Content Security Policy/u.test(text)) violations.push(text.replace('[csp-violation] ', '').replace(/base64,[^']+/u, 'base64,…'));
+  });
+  // In every frame, the card's included: each violation its document reports.
+  await page.addInitScript(() => window.addEventListener('securitypolicyviolation', event => console.log(`[csp-violation] ${event.effectiveDirective} ${event.blockedURI.slice(0, 40)}`), true));
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const current = {
+    schema: 'rise.current.v2',
+    id: 'maths-figure-scene',
+    title: 'Maths, a figure and a scene',
+    origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
+    look: 'signal',
+    scenes: [{ id: 'triangle', svg: TRIANGLE_SVG }, { id: 'orbit', code: ORBIT_CODE }],
+    beats: [
+      { say: 'A triangle.', scene: 'triangle' },
+      { say: 'A point.', scene: 'orbit' },
+      { hold: { ms: 1500, maxMs: 8000 }, cue: 'settle' },
+      { say: 'Blue scatters about four times as much as red.', show: 'Blue scatters $\\left(\\dfrac{650}{450}\\right)^4 \\approx 4.4$ times as much.', place: 'caption' },
+      { say: 'It came to rest.' }
+    ]
+  };
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await begin(app);
+  await expect(app.locator('img.chamber-figure')).toBeAttached({ timeout: 15_000 });
+  await expect(app.locator('canvas.chamber-scene')).toBeAttached({ timeout: 15_000 });
+  await expectShown(app, 'Blue scatters', 20_000);
+  await expect(app.locator('#atom-display .katex')).toHaveCount(1);
+  await expectShown(app, 'It came to rest', 20_000);
+  expect(violations).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test('a figure carrying a script is refused by the Worker with its line, and a card handed it anyway draws the look’s field and says why', async ({ page, baseURL }) => {
   const bad = TRIANGLE_SVG.replace('  <text', '  <script>parent.postMessage("figure ran", "*")</script>\n  <text');
   const current = figureBeats(bad);

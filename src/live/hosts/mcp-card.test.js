@@ -75,7 +75,7 @@ describe('the self-contained card', () => {
       'worker-src': ['blob:'],
       'connect-src': [ORIGIN],
       'img-src': [ORIGIN, 'blob:', 'data:'],
-      'font-src': [ORIGIN],
+      'font-src': [ORIGIN, 'data:'],
       'style-src': [ORIGIN, "'unsafe-inline'"],
       'media-src': [ORIGIN, 'blob:']
     });
