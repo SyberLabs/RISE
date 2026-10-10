@@ -170,7 +170,19 @@ describe('who may ask, and how', () => {
     }
   });
 
-  it('answers a tripped limit as a JSON-RPC error a client can parse, with the request’s id, and reads a bounded body first', async () => {
+  it('charges every request to the limit before its body is read, malformed and oversized ones too', async () => {
+    const limit = vi.fn(async () => ({ success: false }));
+    const env = { ...ON, DECISION_LIMITER: { limit } };
+    const headers = { 'CF-Connecting-IP': '192.0.2.1' };
+    for (const raw of ['{not json', 'x'.repeat(262_145), '[]']) {
+      const response = await post(null, { raw, headers, env });
+      expect(response.status, raw.slice(0, 10)).toBe(429);
+      expect(await json(response)).toMatchObject({ jsonrpc: '2.0', id: null, error: { code: -32000, data: { code: 'RATE_LIMITED' } } });
+    }
+    expect(limit).toHaveBeenCalledTimes(3);
+  });
+
+  it('answers a tripped limit as a JSON-RPC error a client can parse, with the request’s id', async () => {
     const env = { ...ON, DECISION_LIMITER: { limit: async () => ({ success: false }) } };
     const headers = { 'CF-Connecting-IP': '192.0.2.1' };
     const limited = await post(rpc('tools/list', undefined, 'list-7'), { headers, env });
@@ -183,8 +195,6 @@ describe('who may ask, and how', () => {
     });
     // A notification has no id to carry back; the error still parses.
     expect(await json(await post({ jsonrpc: '2.0', method: 'notifications/initialized' }, { headers, env }))).toMatchObject({ jsonrpc: '2.0', id: null, error: { code: -32000 } });
-    // The size cap still comes before any parsing.
-    expect((await post(null, { raw: 'x'.repeat(262_145), headers, env })).status).toBe(413);
   });
 });
 
