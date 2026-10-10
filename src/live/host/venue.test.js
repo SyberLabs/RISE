@@ -96,11 +96,11 @@ describe('the venue is /live in the app', () => {
         expect(container.querySelector('.live-venue__privacy').textContent).toMatch(/nothing you type leaves this browser/u);
     });
 
-    it('lists a provider with no adapter yet as soon, and does not let it be chosen', () => {
+    it('offers OpenRouter, now that its adapter is in the registry, as a provider that can be chosen', () => {
         mount();
         const openRouter = radios().find(radio => radio.value === 'openrouter');
-        expect(openRouter.disabled).toBe(true);
-        expect(openRouter.labels[0].textContent).toContain('soon');
+        expect(openRouter.disabled).toBe(false);
+        expect(openRouter.labels[0].textContent).not.toContain('soon');
     });
 
     it('keeps the runtime’s test page at ?host=prompt, with a provider or a catalog, and outside the app', () => {

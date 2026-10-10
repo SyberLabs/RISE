@@ -15,6 +15,12 @@ describe('the providers the venue offers', () => {
         expect(liveProvider('gemini')).toMatchObject({ credential: 'key', keyName: 'Gemini' });
     });
 
+    it('makes the OpenRouter text-stream adapter, which carries text for RISE to speak', async () => {
+        const adapter = await liveProvider('openrouter').adapter({ clock: createVirtualClock(), getKey: () => '' });
+        expect(adapter.id).toBe('openrouter-stream');
+        expect(adapter.capabilities.speaks).toBe('host');
+    });
+
     it('does not offer a provider whose key would pass through this site', () => {
         // The OpenAI Realtime adapter opens its session through this site's Worker route.
         expect(liveProvider('openai')).toBeNull();

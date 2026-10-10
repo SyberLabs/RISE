@@ -11,6 +11,7 @@ import { LiveHost, framedBy, sceneReportLine } from './LiveHost.js';
 import { createRealClock, createVirtualClock } from '../clock.js';
 import { createMockAdapter } from '../adapters/mock.js';
 import { BLACK_HOLES_CURRENT } from '../../test/sealed-current.js';
+import { acceptOpenRouterKey, resetConnectionForTests } from '../../core/ai-connection.js';
 import { createFakeSpeech } from '../../test/fake-speech.js';
 
 const env = ({ speech = false, recognition = false, motion = false } = {}) => ({
@@ -577,6 +578,77 @@ describe('the Gemini provider, with the reader’s own key', () => {
         container.querySelector('#live-key').value = KEY;
         expect(container.querySelector('.live-provider').textContent).not.toContain('AIza');
         expect(container.querySelector('.live-key-note').textContent).not.toContain('AIza');
+    });
+});
+
+describe('the OpenRouter provider, on the reader’s own account (RISE Live)', () => {
+    const KEY = 'sk-or-v1-livehost-test-key-0123456789abcdef';
+    const fakeRuntime = () => ({
+        status: 'live',
+        snapshot: () => ({ status: 'live', error: null, main: {}, side: null }),
+        subscribe: () => () => {},
+        composed: () => null,
+        start: async () => {},
+        stop: async () => {}
+    });
+
+    afterEach(() => {
+        resetConnectionForTests();
+        vi.unstubAllGlobals();
+    });
+
+    it('asks for no key, since the key is the reader’s OpenRouter connection, and says who pays', () => {
+        mount('?provider=openrouter&voice=paced');
+        expect(host.chosenProvider()).toBe('openrouter');
+        expect(container.querySelector('#live-key')).toBeNull();
+        expect(container.querySelector('.live-provider').textContent).toMatch(/OpenRouter, on your own account/u);
+        const note = container.querySelector('.live-key-note').textContent;
+        expect(note).toMatch(/Connect OpenRouter/u);
+        expect(note).toMatch(/billed to your OpenRouter account/u);
+        expect(note).toMatch(/RISE pays for nothing/u);
+    });
+
+    it('offers a model with the default filled in, and keeps what the reader typed, or the default when emptied', async () => {
+        mount('?provider=openrouter&voice=paced');
+        const model = container.querySelector('#live-model');
+        expect(model.value).toBe('anthropic/claude-haiku-5.5');
+        expect(model.maxLength).toBe(200);
+        host.buildRuntime = async () => fakeRuntime();
+        model.value = ' openai/gpt-5.4-nano ';
+        await host.start();
+        expect(host.model).toBe('openai/gpt-5.4-nano');
+
+        mount('?provider=openrouter&voice=paced');
+        host.buildRuntime = async () => fakeRuntime();
+        container.querySelector('#live-model').value = '  ';
+        await host.start();
+        expect(host.model).toBeUndefined();
+    });
+
+    it('builds an adapter that asks OpenRouter with the connection and the model as they are at that moment', async () => {
+        mount('?provider=openrouter&voice=paced');
+        const requests = [];
+        vi.stubGlobal('fetch', vi.fn(async (url, init) => {
+            requests.push({ url, authorization: init.headers.Authorization, model: JSON.parse(init.body).model });
+            return new Response('data: {"choices":[{"index":0,"delta":{"content":"@passage visual=still\\nHi.\\n@end\\n"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n', { status: 200 });
+        }));
+        host.providerName = 'openrouter';
+        const adapter = await host.buildAdapter({}, () => { throw new Error('the mock must not be used'); });
+        expect(adapter.id).toBe('openrouter-stream');
+        expect(adapter.capabilities.speaks).toBe('host');
+        await expect(adapter.open({ intent: 'answer', prompt: 'Hello' })).rejects.toMatchObject({ code: 'KEY_REQUIRED' });
+        expect(requests).toEqual([]);
+
+        acceptOpenRouterKey(KEY);
+        host.model = 'openai/gpt-5.4-nano';
+        await adapter.open({ intent: 'answer', prompt: 'Hello' });
+        host.model = undefined;
+        await adapter.open({ intent: 'answer', prompt: 'Again' });
+        expect(requests).toEqual([
+            { url: 'https://openrouter.ai/api/v1/chat/completions', authorization: `Bearer ${KEY}`, model: 'openai/gpt-5.4-nano' },
+            { url: 'https://openrouter.ai/api/v1/chat/completions', authorization: `Bearer ${KEY}`, model: 'anthropic/claude-haiku-5.5' }
+        ]);
+        expect(container.innerHTML).not.toContain('sk-or');
     });
 });
 

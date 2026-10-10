@@ -61,11 +61,11 @@ describe('the live layer', () => {
         expect(offenders).toEqual([]);
     });
 
-    it('keeps every provider out of the page\u2019s own chunk: the host names one statically only for its model\u2019s name, and the registry', () => {
+    it('keeps every provider out of the page\u2019s own chunk: the host names them statically only for their models\u2019 names, and the registry', () => {
         // A provider's wire and transport are loaded with import() when that provider is asked for. Anything the
         // host imports statically is in the chunk every /live visit loads, including the default offline one.
         const host = readFileSync(join(SRC, 'live/host/LiveHost.js'), 'utf8');
-        expect(staticImports(host).filter(target => /(^|\/)adapters\//u.test(target))).toEqual(['../adapters/gemini-model.js', '../adapters/registry.js']);
+        expect(staticImports(host).filter(target => /(^|\/)adapters\//u.test(target))).toEqual(['../adapters/gemini-model.js', '../adapters/openrouter-model.js', '../adapters/registry.js']);
         // The venue's registry lists the providers and loads each with import() only when it is asked for.
         expect(staticImports(readFileSync(join(SRC, 'live/adapters/registry.js'), 'utf8'))).toEqual([]);
         for (const name of ['venue.js', 'venue-entry.js']) {

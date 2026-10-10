@@ -3,8 +3,8 @@
   "title": "RISE LIVE design: the one-clock decision",
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
-  "status": "planned",
-  "delivery": "not_shipped",
+  "status": "done",
+  "delivery": "accepted",
   "owner": "Claude coordinator",
   "priority": "later",
   "dependencies": [
@@ -31,6 +31,12 @@
       "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
       "note": "The RISE LIVE design (Intent, awaiting the owner): one clock, RISE's voice over streamed text; provider audio as a second discipline, later; perception events, the venue, the model changing a playing room, interactive scenes, and the build order.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
+      "note": "Owner, 2026-10-09: accepted the RISE LIVE design and its clock decision (one clock, RISE's voice over streamed text; adapters carry text only, capabilities.speaks: 'host'), relayed by the coordinator when stage 2 began.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -41,10 +47,14 @@
     {
       "date": "2026-10-09T05:54:52.054Z",
       "summary": "Design written 2026-10-09 (Fable); the clock decision proposed: one clock, RISE's voice over streamed text; awaits the owner's acceptance"
+    },
+    {
+      "date": "2026-10-10T05:20:42.764Z",
+      "summary": "Accepted by the owner 2026-10-09: the clock decision stands (RISE's voice over streamed text, speaks: 'host'); stage 2, the venue slice, begins as LIVE-018"
     }
   ],
-  "updatedAt": "2026-10-09T05:54:52.054Z",
-  "revision": 2,
+  "updatedAt": "2026-10-10T05:20:42.764Z",
+  "revision": 3,
   "summary": "RISE LIVE, the third product of the line (owner, 2026-10-08): RISE controls the whole environment through coordinated voice streaming and realtime response. Not scheduled before the Composer release gate (LIVE-009).",
   "blocker": null
 }
