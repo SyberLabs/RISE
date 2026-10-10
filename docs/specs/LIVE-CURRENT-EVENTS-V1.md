@@ -107,7 +107,7 @@ RISE Live stage 4.5 ([the RISE Live design](../superpowers/specs/2026-10-09-rise
 |---|---|---|
 | `current.complete` | + `ending?` | `"resume"`, `"replace"` or `"end"`; any other value is refused (`EVENT_ENDING`). The reducer keeps it (`ending`, null when unnamed); only the runtime's interjection reads it, and an unnamed ending is `resume`. |
 
-The line a model writes, its own line, anywhere outside a fence, in either format (the last one named counts; anything else after `@then` is ignored):
+The line a model writes, its own line, outside a fence, in either format. It ends the answer: nothing after it is read (not said, shown or named), and a provider still writing is stopped. A line that begins `@then` and names anything else is ignored:
 
 ```text
 @then resume    the held reading is taken up again where it was

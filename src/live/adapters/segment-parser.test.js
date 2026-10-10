@@ -474,9 +474,27 @@ describe('the interjection’s ending, @then (stage 4.5)', () => {
         expect(ended('@say Briefly, no.\n@then resume please\n').ending).toBeNull();
     });
 
-    it('counts the last one named, and none inside a scene’s source', () => {
-        expect(ended('@then end\n@say Briefly, no.\n@then resume\n').ending).toBe('resume');
-        const fenced = ended('@scene f svg\n```svg\n@then end\n```\n@say Look.\n').ending;
-        expect(fenced).toBeNull();
+    it('ends the answer: nothing after it is said, shown or named, however it is cut', () => {
+        const text = '@say Briefly, no.\n@then end\n@say Thanks for asking!\nAnd a sign-off.\n@then resume\n';
+        for (const every of [1, 5, text.length]) {
+            const result = ended(text, every);
+            expect(result.ending, `cut every ${every}`).toBe('end');
+            expect(result.said).toEqual(['Briefly, no.']);
+        }
+        expect(ended('Briefly, no light escapes.\n@then replace\nIn short, nothing.\n').said).toEqual(['Briefly, no light escapes.']);
+    });
+
+    it('is full once named, so a provider still writing is stopped', () => {
+        const parser = createSegmentParser(() => {});
+        parser.push('@say Briefly, no.\n');
+        expect(parser.full).toBe(false);
+        parser.push('@then resume\n');
+        expect(parser.full).toBe(true);
+    });
+
+    it('is none inside a scene’s source', () => {
+        const fenced = ended('@scene f svg\n```svg\n@then end\n```\n@say Look.\n');
+        expect(fenced.ending).toBeNull();
+        expect(fenced.said).toEqual(['Look.']);
     });
 });
