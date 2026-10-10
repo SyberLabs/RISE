@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createVirtualClock } from '../clock.js';
 import { describeAdapterConformance } from '../../test/live-conformance.js';
+import { BLACK_HOLES_BEATS_TEXT } from '../fixtures/black-holes-beats.js';
 import { createFakeTextTransport } from '../../test/fake-text-transport.js';
 import { createTextStreamAdapter } from './text-stream.js';
 
@@ -13,7 +14,9 @@ const FAULTS = {
     'transport-loss': { lossAfter: 30 },
     'provider-failure': { failAfter: 10 },
     // A generic provider's only way to say it stopped is an error, part way through a passage.
-    'cut-short': { failAfter: 30 }
+    'cut-short': { failAfter: 30 },
+    // The answer written in beats, through the same wire.
+    beats: { textFor: () => BLACK_HOLES_BEATS_TEXT }
 };
 
 describeAdapterConformance('text-stream (fake provider)', (name) => {
@@ -28,7 +31,7 @@ describeAdapterConformance('text-stream (fake provider)', (name) => {
             connect: createFakeTextTransport({ clock, ...FAULTS[name] })
         })
     };
-}, { carries: { evidence: false, dives: false, ids: false }, resume: 'replay' });
+}, { carries: { evidence: false, dives: false, ids: false }, resume: 'replay', beats: true });
 
 describe('text-stream provider transport lifecycle', () => {
     async function openWithTransport() {

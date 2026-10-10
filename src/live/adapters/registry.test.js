@@ -10,6 +10,12 @@ describe('the providers the venue offers', () => {
         expect(typeof first.adapter).toBe('function');
     });
 
+    it('makes the demo the answer written in beats, read by the same text-stream adapter a real provider is', async () => {
+        const adapter = await LIVE_PROVIDERS[0].adapter({ clock: createVirtualClock() });
+        expect(adapter.id).toBe('mock');
+        expect(adapter.capabilities.speaks).toBe('host');
+    });
+
     it('offers OpenRouter on the site connection, and Gemini on a typed key', () => {
         expect(liveProvider('openrouter')).toMatchObject({ label: 'OpenRouter (your key)', credential: 'openrouter' });
         expect(liveProvider('gemini')).toMatchObject({ credential: 'key', keyName: 'Gemini' });

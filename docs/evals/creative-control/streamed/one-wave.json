@@ -1,0 +1,32 @@
+{
+  "prompt": "Show me where the sine wave comes from, while you explain it.",
+  "lines": [
+    "@say Take an arm of length one, pinned at the centre of a circle.",
+    "@scene wave code",
+    "```js",
+    "export const reportsCompletion = true;",
+    "export default function scene(rise) {",
+    "  const { lib } = rise;",
+    "  const plane = lib.axes({ x: [-1.5, 8], y: [-1.5, 1.5] }, { labels: false });",
+    "  const ring = Array.from({ length: 97 }, (_, i) => [Math.cos((i * Math.PI) / 48), Math.sin((i * Math.PI) / 48)]);",
+    "  const arm = lib.vector({ x: 1, y: 0, t: 0 });",
+    "  return {",
+    "    frame() {",
+    "      lib.clear();",
+    "      plane.draw();",
+    "      lib.plot(plane, ring, { color: lib.color('muted') });",
+    "      arm.draw(plane);",
+    "      lib.point(plane, [1.5 + arm.angle, Math.sin(arm.angle)]);",
+    "    },",
+    "    cue(name, { instant }) {",
+    "      if (name === 'arm') return lib.tween(arm, { t: 1 }, { ms: 900, instant });",
+    "      if (name === 'turn') return lib.tween(arm, { angle: Math.PI * 2 }, { ms: 4000, instant }).then(() => rise.done());",
+    "    }",
+    "  };",
+    "}",
+    "```",
+    "@say scene=wave cue=arm The height of its tip is the sine of the angle it has turned. => Height $= \\sin\\theta$",
+    "@hold 4000 max=5000 cue=turn",
+    "@say Round once, the height rises, falls below zero, and comes back: one whole wave."
+  ]
+}

@@ -33,10 +33,13 @@
  *   resume        'full' or 'replay'. 'replay' is a provider whose dropped stream
  *                 cannot be continued: resume replays what was received, then the
  *                 Current ends failed with everything already committed intact.
+ *   beats         true for an adapter that reads a model's text: it stages 'beats', the
+ *                 answer written in beats, one per line (fixtures/black-holes-beats.js).
  */
 import { describe, expect, it } from 'vitest';
 import { assertAdapter, assertConnection } from '../live/adapter.js';
 import { BLACK_HOLES } from '../live/fixtures/black-holes.js';
+import { BLACK_HOLES_BEATS_CURRENT } from '../live/fixtures/black-holes-beats.js';
 import { validateEvent } from '../live/protocol.js';
 import { createCurrentStream } from '../live/stream.js';
 
@@ -80,8 +83,28 @@ export function expectBlackHoles(snapshot, { evidence = true, dives = true, ids 
     expect(snapshot.origin.kind).toBe('model');
 }
 
-export function describeAdapterConformance(name, scenario, { carries = {}, resume = 'full', skip = [] } = {}) {
+export function describeAdapterConformance(name, scenario, { carries = {}, resume = 'full', skip = [], beats = false } = {}) {
     describe(`adapter conformance: ${name}`, () => {
+        // An adapter that reads a model's text (`beats: true`) stages 'beats': the black holes answer written in
+        // beats (fixtures/black-holes-beats.js), through its own wire.
+        (beats ? it : it.skip)('streams beats: a hold and a scene arrive while the answer is still being written, and it seals to the beats meant', async () => {
+            const { adapter, clock, request } = scenario('beats');
+            const connection = await adapter.open(request);
+            const stream = createCurrentStream({ admitScene: adapter.admitScene });
+            const seen = [];
+            const reading = consume(connection, stream, seen);
+            await clock.runAll();
+            expect(await reading).toBeNull();
+            expect(stream.snapshot()).toMatchObject({ phase: 'complete', refusals: 0 });
+            expect(stream.refusedScenes).toEqual([]);
+            const { scenes, beats: written } = stream.toCurrent();
+            expect({ scenes, beats: written }).toEqual(JSON.parse(JSON.stringify(BLACK_HOLES_BEATS_CURRENT)));
+            const at = predicate => seen.findIndex(predicate);
+            const complete = at(event => event.type === 'current.complete');
+            expect(at(event => event.type === 'segment.end' && event.segmentId === 'beat-1')).toBeLessThan(complete - 10);
+            expect(at(event => event.type === 'segment.begin' && event.beat?.scene === 'horizon')).toBeLessThan(complete - 10);
+        });
+
         it('meets the adapter and connection contracts', async () => {
             const { adapter, request, clock } = scenario('black-holes');
             expect(() => assertAdapter(adapter)).not.toThrow();

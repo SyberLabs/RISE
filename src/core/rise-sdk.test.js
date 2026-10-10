@@ -25,7 +25,7 @@ import { PORT_LIMITS, PROTOCOL_VERSION } from '../live/hosts/mcp-port.js';
 import { sceneReportLine } from '../live/host/LiveHost.js';
 import { SCENE_CODE_EXAMPLE, TOOL_NAME } from '../live/guide/index.js';
 import { APP_MIME, APP_URI, GUIDE_TOOL_NAME, MAX_SCENE_LINES, MCP_PATH, PROTOCOL_VERSIONS, currentJsonSchemaV2 } from '../../worker/mcp-server.mjs';
-import { admitSceneCode, describeDiagnostic } from '../../worker/scene-admission.mjs';
+import { admitSceneCode, describeDiagnostic } from './scene-admission.js';
 import { admitSvg } from './svg-admission.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -248,7 +248,7 @@ describe('generated scenes', () => {
     const code = 'export default function scene(rise) {\n  const data = fetch(\'/x\');\n  return { frame() {} };\n}';
     const [diagnostic] = admitSceneCode(code).diagnostics;
     expect(text).toContain(`Scene "vector" was refused: ${describeDiagnostic(diagnostic)}`);
-    const parses = /ecmaVersion:\s*(\d+)/u.exec(read('worker/scene-admission.mjs'))[1];
+    const parses = /ecmaVersion:\s*(\d+)/u.exec(read('src/core/scene-admission.js'))[1];
     expect(text).toContain(`ES${parses}`);
   });
 

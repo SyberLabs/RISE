@@ -185,7 +185,8 @@ export function createLiveControls({ runtime, onStop, audible = true, dive: canA
 
     function transcript(snapshot) {
         const view = runtime.composed(snapshot.status === 'diving' ? 'side' : 'main');
-        const said = view ? view.segments.filter(segment => segment.ended).map(segment => segment.text) : [];
+        // A hold beat says and shows nothing, so it has no line.
+        const said = view ? view.segments.filter(segment => segment.ended && segment.text).map(segment => segment.text) : [];
         const key = `${snapshot.status === 'diving' ? 's' : 'm'}:${said.length}`;
         if (key === shownLines) return;
         shownLines = key;

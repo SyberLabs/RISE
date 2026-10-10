@@ -1,0 +1,14 @@
+{
+  "prompt": "Say something about patience, in RISE, as it comes to you.",
+  "lines": [
+    "@show hold=2200 size=display On patience",
+    "@scene growth genesis preset=gravitational",
+    "@say scene=growth A seed does nothing you can see for a long time.",
+    "@hold 2500",
+    "@say Then, all at once, it seems, there is a stem.",
+    "@scene pendulum attractor palette=jade",
+    "@say scene=pendulum cue=calm But nothing happened all at once. => Nothing happened all at once.",
+    "@hold 2000 cue=bright",
+    "@say It was happening the whole time, out of sight."
+  ]
+}

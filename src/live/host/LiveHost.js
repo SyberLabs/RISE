@@ -500,8 +500,9 @@ export class LiveHost {
             host: {
                 present: async ({ role, session, player }) => {
                     if (this.params.has('measure')) {
-                        player.on('atom', ({ index, concealed, replayed }) => {
-                            if (!concealed && !replayed) this.atomLog.push({ at: performance.now(), index, role });
+                        player.on('atom', ({ atom, index, concealed, replayed }) => {
+                            // The passage, or beat, the atom belongs to, and the hold it is, so a beat's time can be read.
+                            if (!concealed && !replayed) this.atomLog.push({ at: performance.now(), index, role, sourceId: atom?.sourceId ?? null, ...(atom?.hold ? { holdMs: atom.hold.ms } : {}) });
                         });
                     }
                     await this.present.presentLive(this.router, session, player);

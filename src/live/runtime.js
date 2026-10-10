@@ -28,7 +28,7 @@
  * A Dive is a Current of its own. Nested Dives are not built and are refused.
  */
 
-import { compileRiseCurrent } from '../core/rise-current.js';
+import { RISE_CURRENT_SCHEMA_V2, compileRiseCurrent } from '../core/rise-current.js';
 import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
@@ -236,7 +236,8 @@ export function createLiveRuntime({
         let session;
         try {
             // A sealed Current is compiled whole (its beats never pass through the stream); a streamed one is rebuilt.
-            let current = run.connection?.sealed ?? run.stream.toCurrent();
+            const sealed = run.connection?.sealed ?? null;
+            let current = sealed ?? run.stream.toCurrent();
             // A Dive keeps the colors of the answer it comes from, whatever it said of itself.
             if (run.role === 'side') {
                 const { theme: _own, ...rest } = current;
@@ -244,7 +245,8 @@ export function createLiveRuntime({
                 const theme = answer.theme ?? lookTheme(answer.look);
                 current = theme === null ? rest : { ...rest, theme };
             }
-            session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook });
+            // Beats still being written may start scenes the reading must be ready to draw (rise-current.js `growing`).
+            session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook, growing: sealed === null && current.schema === RISE_CURRENT_SCHEMA_V2 });
         } catch (caught) {
             failRun(run, caught);
             return;
@@ -361,6 +363,16 @@ export function createLiveRuntime({
         else set(status);
     }
 
+    /**
+     * A generated scene or a figure the admission refused (stream.js): the beat that starts it plays on what was
+     * showing, and the journal keeps the Worker's sentence, once.
+     */
+    function noteRefusedScenes(run) {
+        const refused = run.stream.refusedScenes;
+        for (const item of refused.slice(run.scenesRefused)) note('scene.refused', { role: run.role, ...item });
+        run.scenesRefused = refused.length;
+    }
+
     async function pump(run) {
         let attempts = 0;
         try {
@@ -372,6 +384,7 @@ export function createLiveRuntime({
                         const result = run.stream.apply(event);
                         if (result.applied > 0) {
                             attempts = 0;
+                            noteRefusedScenes(run);
                             if (run.stream.endedCount !== run.lowered) lower(run);
                         }
                         if (run.stream.terminal) break;
@@ -394,6 +407,8 @@ export function createLiveRuntime({
                 await run.connection.resume(run.stream.resumeFrom ?? run.stream.snapshot().nextSeq);
                 note('connection.resumed', { role: run.role });
             }
+            // The answer is written, however it ended: what plays after this was all in hand.
+            note('composed', { role: run.role, phase: run.stream.phase });
             if (run.stream.phase === 'failed') throw new AdapterError(run.stream.snapshot().error?.code ?? 'FAILED', run.stream.snapshot().error?.message ?? 'The Current failed');
             run.player?.setLive(false);
             // A run that already failed (the compiler refused what the validator accepted) keeps its own reason.
@@ -414,14 +429,16 @@ export function createLiveRuntime({
      */
     async function openRun(request, role) {
         const run = {
-            role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
+            role, request, stream: createCurrentStream({ admitScene: adapter.admitScene ?? null }), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null,
             // Passages the voice was given and has not finished or failed; the run ends when none are left.
             owed: new Set(), completedAt: null, tail: null, ended: false,
             // The voice's rate its clock is at: the pace once the voice has taken it up (see setPace).
             rate: 1,
             // Every passage the voice was given, in the reading's order (a seek gives the voice the rest again); the passages a seek goes to.
-            given: [], passages: null
+            given: [], passages: null,
+            // How many of the stream's refused scenes the journal has noted.
+            scenesRefused: 0
         };
         if (role === 'main') main = run;
         else side = run;

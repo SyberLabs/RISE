@@ -1,0 +1,82 @@
+{
+  "id": "LIVE-019",
+  "title": "RISE Live: beats streamed",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-018"
+  ],
+  "acceptance": [
+    "The protocol stays rise.current-events.v1 and grows additively: segment.begin may carry a beat (the fields of a rise.current.v2 beat), and new events exist only where unavoidable; a stream without them is reduced exactly as before.",
+    "The line format a model writes gains one beat per line (say, show, hold, scene, cue and the beat's options), with code scenes and SVG figures in fences admitted at the reducer by the Worker's own admission; the instructions teach it with two worked examples, and the parser emits the beats.",
+    "Holds and scenes arrive in time: a hold beat and a scene take effect while the answer is still being written, with the voice the clock throughout; pace, seek and replay work over a streamed run; a stream that completes seals to a rise.current.v2 the Worker's rise_present accepts.",
+    "The mock, Gemini, OpenAI and OpenRouter adapters inherit it with no per-adapter change, proven by their conformance suites; the venue's demo streams beats; the card path, whose Current arrives sealed, is untouched.",
+    "The eval corpus gains streamed cases and the eval runner reports them (design §8 stage 3)."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
+      "note": "§5 'The composer's time' and §8 stage 3, the acceptance above; stage 3 approved by the owner 2026-10-10.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/specs/LIVE-CURRENT-EVENTS-V1.md",
+      "note": "'Beats streamed (added 2026-10-10, additive)': the versioning decision, segment.begin's beat, scene.declare and scene.text, admission at the reducer, what the reader sees of a refused scene, the line format and the parser's rules.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/stream.test.js",
+      "note": "Branch live-beats-streamed, local run: a beat stream lowers to a v2 Current that is a prefix of every later one, holds each beat to v2's validator with its codes, admits code and SVG scenes by the Worker's admission when a beat starts them, plays a refused scene as nothing with the Worker's sentence, and completes as a Current the Worker's rise_present accepts. With protocol.test.js, adapters/segment-parser.test.js (every cut position, one character at a time, uneven deltas, random beat lines: no refusal), openai-instructions.test.js, mock.test.js, runtime.v2.test.js and rise-current.v2.test.js; the CI fast set, 98 files, passed.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "src/test/live-conformance.js",
+      "note": "Branch live-beats-streamed: the 'beats' scenario passes, with no adapter changed, for the generic text-stream adapter and the Gemini, OpenAI Realtime and OpenRouter adapters, each through its own fake wire. Not verified against the real services.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Branch live-beats-streamed, local production build, headless Chromium, the venue's demo in beats, paced voice: first words at 1,474 ms, the 1,800 ms hold at 9,483 ms and the figure put up at 11,351 ms, all before the answer was complete at 14,719 ms (ms from Ask; the same within 40 ms over six runs). With live.spec and live-mcp -g 'venue|field|self-contained': 16 passed, twice in a row, no retries. An earlier failure of the existing venue test at Leave was the router taking the Settings sheet's Escape as a cancel of a reading still fading in; fixed in router.js with its unit test.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "docs/evals/creative-control/streamed",
+      "note": "Three streamed cases (a figure, a generated scene, native scenes): npm run eval:creative reads each through the parser and reducer whole and at three cuts, the same Current each time, 0 events refused; 11 Currents, all passed.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/615",
+      "note": "Beats streamed, branch live-beats-streamed: open, auto-merge on the required CI check. Not merged, not deployed, not accepted.",
+      "date": "2026-10-10"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-10T07:00:00.000Z",
+      "summary": "Built on branch live-beats-streamed (Claude, for Fable): segment.begin's beat, scene.declare and scene.text; the reducer seals to rise.current.v2 and admits scenes with the Worker's admission, moved to src/core/scene-admission.js so the live layer reaches it through the core; the line format and instructions in beats; the venue's demo written in beats; the runtime compiles a growing Current ready for scenes that come later and notes 'composed' and 'scene.refused'. No real provider has written beats yet."
+    },
+    {
+      "date": "2026-10-10T09:30:00.000Z",
+      "summary": "The scene admission (and acorn) moved out of the reducer's static imports: the text-stream adapters hand it in, so the live runtime chunk the card loads is 11.9 KB brotli rather than 41.9 KB; the venue's demo is its own module (mock-beats.js). The router no longer takes an Escape a dialog has answered as a cancel. Browser subset green twice."
+    },
+    {
+      "date": "2026-10-10T09:45:00.000Z",
+      "summary": "Opened as #615."
+    }
+  ],
+  "updatedAt": "2026-10-10T09:45:00.000Z",
+  "revision": 3,
+  "summary": "Design §8 stage 3: a streamed Current is a rise.current.v2 written beat by beat, so holds and scenes arrive in time, not only at the end.",
+  "blocker": null
+}

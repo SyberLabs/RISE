@@ -30,6 +30,10 @@ import { styleOf } from '../src/core/styles.js';
 import { jevColors } from '../src/core/jev-palette.js';
 import { fakeCanvasContext } from '../src/test/fake-canvas-context.js';
 import { admitSvg } from '../src/core/svg-admission.js';
+import { createEventWriter } from '../src/live/adapter.js';
+import { createCurrentStream } from '../src/live/stream.js';
+import { createSegmentParser } from '../src/live/adapters/segment-parser.js';
+import { sceneRefusal } from '../src/core/scene-admission.js';
 
 const ROOT = resolve(import.meta.dirname, '..');
 export const CORPUS_DIR = join(ROOT, 'docs', 'evals', 'creative-control');
@@ -40,19 +44,68 @@ const WARM_FRAMES = 60;
 /** The most frames a played cue is given to land: ten seconds of animation. */
 const SETTLE_FRAMES = 600;
 
-/** Every case in the corpus, in style and file order. */
+/** The cuts a streamed case is read at besides whole: a character at a time, a provider's uneven deltas, and pairs. */
+const CUTS = Object.freeze([[1], [7, 19, 3, 31, 11, 23], [2, 5]]);
+
+/** The events the parser sends for `text` cut into pieces of `sizes`, in turn, sealed into a reducer as a Current. */
+function readStreamed(text, sizes) {
+  const writer = createEventWriter('streamed');
+  const stream = createCurrentStream({ admitScene: sceneRefusal });
+  const sent = [];
+  const apply = (type, body) => {
+    const event = writer.next(type, body);
+    if (type !== 'current.open' && type !== 'current.complete') sent.push(event);
+    stream.apply(event);
+  };
+  apply('current.open', { title: 'Streamed', origin: { kind: 'model', name: 'Streamed case', provider: 'eval' } });
+  const parser = createSegmentParser(apply);
+  for (let at = 0, n = 0; at < text.length; n += 1) {
+    const size = sizes[n % sizes.length];
+    parser.push(text.slice(at, at + size));
+    at += size;
+  }
+  parser.finish();
+  apply('current.complete', {});
+  return { stream, sent: JSON.stringify(sent) };
+}
+
+/**
+ * A streamed case (`lines`, the answer a model writes in beats, one per line), read as the venue reads one: through
+ * the text-stream parser into the reducer, whole and at every cut in CUTS. `current` is the rise.current.v2 it seals
+ * to, or null when it seals to nothing.
+ */
+export function sealStreamed(lines) {
+  const text = `${lines.join('\n')}\n`;
+  const { stream, sent } = readStreamed(text, [text.length]);
+  const view = stream.snapshot();
+  let current = null;
+  try { current = stream.toCurrent(); } catch { /* nothing ended: reported as refused */ }
+  return {
+    lines, current, phase: view.phase, refusals: view.refusals, refusedScenes: stream.refusedScenes,
+    sameAtEveryCut: CUTS.every(sizes => readStreamed(text, sizes).sent === sent)
+  };
+}
+
+/** Every case in the corpus, in style and file order. A case in `streamed/` is the answer in beats, sealed here. */
 export function loadCorpus(dir = CORPUS_DIR) {
   const cases = [];
   const styles = readdirSync(dir, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
   for (const style of styles) {
     for (const name of readdirSync(join(dir, style)).filter(file => file.endsWith('.json')).sort()) {
       const file = join(dir, style, name);
-      const { prompt, current } = JSON.parse(readFileSync(file, 'utf8'));
-      cases.push({ file: relative(ROOT, file).split(sep).join('/'), style, prompt, current });
+      const { prompt, current, lines } = JSON.parse(readFileSync(file, 'utf8'));
+      const where = relative(ROOT, file).split(sep).join('/');
+      if (lines) {
+        const streamed = sealStreamed(lines);
+        cases.push({ file: where, style, prompt, current: streamed.current, streamed });
+      } else cases.push({ file: where, style, prompt, current });
     }
   }
   return cases;
 }
+
+/** Whether a streamed case was read without anything dropped, refused, or read differently at another cut. */
+const streamedOk = run => run.current !== null && run.phase === 'complete' && run.refusals === 0 && run.refusedScenes.length === 0 && run.sameAtEveryCut;
 
 /** What the Worker says to a host that calls rise_present with this Current: null when it accepts it, else its refusal. */
 async function admit(current) {
@@ -198,23 +251,36 @@ function describeScene(scene) {
   return lines.join('\n');
 }
 
+function describeStreamed(run) {
+  const beats = run.current?.beats.length ?? 0;
+  const lines = [`  streamed: ${run.lines.length} lines in beats read to ${beats} beats and ${run.current?.scenes?.length ?? 0} scenes; ${run.phase}, ${run.refusals} events refused; `
+    + `${run.sameAtEveryCut ? 'the same Current at every cut' : 'a DIFFERENT Current at some cut'} (whole, ${CUTS.map(sizes => sizes.join('/')).join(', ')})`];
+  for (const { message } of run.refusedScenes) lines.push(`    REFUSED: ${message}`);
+  return lines.join('\n');
+}
+
 async function main() {
   const corpus = loadCorpus();
   console.log(`RISE Creative Control evaluation: ${corpus.length} Currents from ${relative(ROOT, CORPUS_DIR).split(sep).join('/')}`);
   console.log(`Frame times are measured in Node over a canvas that draws no pixels: a proxy for the card's budget (${SCENE_LIMITS.frameSoftMs} ms soft, ${SCENE_LIMITS.frameHardMs} ms hard), not the card's own numbers.`);
   const reports = [];
   for (const item of corpus) {
-    const report = await evaluateCurrent(item.current);
+    const evaluated = await evaluateCurrent(item.current);
+    // A streamed case also passes only if the line format read it whole: nothing dropped, refused or cut differently.
+    const report = item.streamed ? { ...evaluated, ok: evaluated.ok && streamedOk(item.streamed) } : evaluated;
     reports.push(report);
     console.log('');
     console.log(`${item.file}: ${report.ok ? 'PASS' : 'FAIL'} (${report.accepted ? 'accepted' : 'refused'})`);
     console.log(`  asked: "${item.prompt}"`);
+    if (item.streamed) console.log(describeStreamed(item.streamed));
     if (!report.accepted) console.log(report.refusal.split('\n').map(line => `  ${line}`).join('\n'));
     for (const scene of report.scenes) console.log(describeScene(scene));
   }
   const drawn = reports.flatMap(report => report.scenes).filter(scene => scene.kind === 'code');
   const failed = reports.filter(report => !report.ok).length;
+  const streamed = corpus.filter(item => item.streamed);
   console.log('');
+  console.log(`${streamed.length} streamed: ${streamed.filter(item => streamedOk(item.streamed)).length} read whole and the same at every cut.`);
   console.log(`${reports.length} Currents: ${reports.filter(report => report.accepted).length} accepted, ${reports.filter(report => !report.accepted).length} refused; `
     + `${drawn.length} code scenes run, ${drawn.filter(scene => scene.errors.length).length} with errors, ${drawn.filter(scene => scene.wouldFallBack).length} over the budget; `
     + `slowest frame ${ms(Math.max(0, ...drawn.map(scene => scene.slowestMs)))}. ${failed ? `${failed} FAILED.` : 'All passed.'}`);

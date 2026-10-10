@@ -1,7 +1,8 @@
 import { parse } from 'acorn';
-import { BEAT_LIMITS } from '../src/core/beats.js';
-import { sceneCodeBytes } from '../src/core/experience-program.js';
-import { BANNED_SCENE_NAMES } from '../src/scenes/scene-bans.js';
+import { BEAT_LIMITS } from './beats.js';
+import { sceneCodeBytes } from './experience-program.js';
+import { BANNED_SCENE_NAMES } from '../scenes/scene-bans.js';
+import { admitSvg } from './svg-admission.js';
 
 /**
  * Static admission of a generated scene's code, before a Current that carries
@@ -129,4 +130,14 @@ export function admitSceneCode(code) {
     .sort((a, b) => (a.line ?? 0) - (b.line ?? 0) || (a.column ?? 0) - (b.column ?? 0))
     .slice(0, MAX_DIAGNOSTICS);
   return diagnostics.length ? { ok: false, diagnostics } : { ok: true };
+}
+
+/**
+ * A generated scene (`{ id, code }`) or a figure (`{ id, svg }`), held to the admission the Worker's door runs:
+ * null when it is admitted, else the Worker's sentence for its first refusal. A beat stream's reducer is handed
+ * this (src/live/stream.js) by the adapters that read a model's text, so acorn is loaded only where they are.
+ */
+export function sceneRefusal(scene) {
+  const verdict = scene.code !== undefined ? admitSceneCode(scene.code) : admitSvg(scene.svg);
+  return verdict.ok ? null : `Scene "${scene.id}" was refused: ${describeDiagnostic(verdict.diagnostics[0])}`;
 }

@@ -1,5 +1,6 @@
 import { createVirtualClock } from '../clock.js';
 import { describeAdapterConformance } from '../../test/live-conformance.js';
+import { BLACK_HOLES_BEATS_TEXT } from '../fixtures/black-holes-beats.js';
 import { createFakeGeminiTransport } from '../../test/fake-gemini-transport.js';
 import { createGeminiAdapter } from './gemini.js';
 
@@ -17,7 +18,9 @@ const FAULTS = {
     'transport-loss': { lossAfter: 30 },
     'provider-failure': { failAfter: 10 },
     // The last frame says MAX_TOKENS, part way through a passage.
-    'cut-short': { cutAfter: 30 }
+    'cut-short': { cutAfter: 30 },
+    // The answer written in beats, through the same wire.
+    beats: { textFor: () => BLACK_HOLES_BEATS_TEXT }
 };
 
 describeAdapterConformance('gemini (fake stream, documented wire)', (name) => {
@@ -28,4 +31,4 @@ describeAdapterConformance('gemini (fake stream, documented wire)', (name) => {
         interruptAfterMs: 300,
         adapter: createGeminiAdapter({ transport: createFakeGeminiTransport({ clock, ...FAULTS[name] }) })
     };
-}, { carries: { evidence: false, dives: false, ids: false }, resume: 'replay' });
+}, { carries: { evidence: false, dives: false, ids: false }, resume: 'replay', beats: true });

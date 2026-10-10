@@ -49,6 +49,27 @@ describe('Router failure containment', () => {
     router.destroy();
   });
 
+  it('leaves alone an Escape a dialog has already answered: it neither cancels a launch in progress nor leaves the room', async () => {
+    // The live stage's Settings closes on Escape while a reading is still fading in; that must not abandon the reading.
+    const reset = vi.spyOn(Router.prototype, 'reset');
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+    await router.navigate('a');
+    const answered = () => {
+      const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+      event.preventDefault();
+      document.dispatchEvent(event);
+    };
+    router.transitioning = true;
+    const revision = router.navigationRevision;
+    answered();
+    expect(router.navigationRevision).toBe(revision);
+    router.transitioning = false;
+    answered();
+    expect(reset).not.toHaveBeenCalled();
+    reset.mockRestore();
+    router.destroy();
+  });
+
   it('resolves a queued navigation only after that route finishes', async () => {
     router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
     router.registerView('b', { container: document.querySelector('#b'), init: () => ({}) });

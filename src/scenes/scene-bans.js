@@ -2,7 +2,7 @@
  * The names a generated scene may not use (docs/superpowers/specs/
  * 2026-10-08-creative-control-design.md §8, §13), declared once for the two
  * locks that enforce them: the static admission in the Worker
- * (worker/scene-admission.mjs) and the scene worker's shadowing
+ * (src/core/scene-admission.js) and the scene worker's shadowing
  * (src/scenes/scene-worker.js).
  *
  * Plain data and no imports, so both can take it and the built scene worker

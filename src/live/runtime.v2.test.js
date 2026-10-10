@@ -13,6 +13,8 @@ import { createMcpAppAdapter } from './adapters/mcp-app.js';
 import { createLiveRuntime, RUNTIME_LIMITS } from './runtime.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
 import { ATTRACTOR_VISUAL_MANIFEST } from '../core/visual-control-contract.js';
+import { createMockBeatsAdapter } from './adapters/mock-beats.js';
+import { createTextStreamAdapter } from './adapters/text-stream.js';
 
 const V2 = {
   schema: 'rise.current.v2',
@@ -250,5 +252,108 @@ describe('the end of a reading', () => {
     await tick(30_000);
     expect(endedAt(seen)).toBeGreaterThanOrEqual(lastSpeechEnd());
     expect(runtime.journal().filter(entry => entry.type === 'speech.end').map(entry => entry.segmentId)).toEqual(['beat-0', 'beat-1']);
+  });
+});
+
+describe('beats streamed: a v2 Current played as it is written', () => {
+  /** The venue's demo, written in beats at a model's pace, read by the synthetic voice; what is shown is timed. */
+  function streamedRun({ adapter, msPerChar = 30 } = {}) {
+    const clock = createRealClock();
+    const voice = createSyntheticVoice({ clock, msPerChar, breathMs: 50 });
+    const spoken = [];
+    const enqueue = voice.enqueue.bind(voice);
+    voice.enqueue = item => { spoken.push(item.id); return enqueue(item); };
+    const shown = [];
+    const commands = [];
+    const players = [];
+    const sessions = [];
+    runtime = createLiveRuntime({
+      adapter: adapter ?? createMockBeatsAdapter({ clock }), clock, voices: { create: () => voice },
+      createPlayer: session => {
+        sessions.push(session);
+        const player = new Player(session);
+        player.on('atom', ({ atom, index }) => shown.push({ at: performance.now(), atom, index }));
+        players.push(player);
+        return player;
+      },
+      host: {
+        present() {}, dismiss() {},
+        discoverVisual: () => ({ manifest: ATTRACTOR_VISUAL_MANIFEST, current: { intensity: 0.65 }, target: { intensity: 0.65 } }),
+        controlVisual: ({ command }) => { commands.push({ at: performance.now(), command }); return { status: 'accepted', surface: command.surface, parameter: command.parameter, requested: command.value, effective: command.value }; }
+      }
+    });
+    return { spoken, shown, commands, players, sessions, started: runtime.start('Explain black holes with RISE.') };
+  }
+
+  const firstShown = (shown, predicate) => shown.find(({ atom }) => predicate(atom))?.at ?? null;
+  const composedAt = () => runtime.journal().find(entry => entry.type === 'composed')?.at ?? null;
+
+  it('takes up a hold, a scene and a cue while the answer is still being written, the voice the clock throughout', async () => {
+    const { spoken, shown, commands, players, sessions, started } = streamedRun();
+    await tick(100);
+    await started;
+    await tick(60_000);
+    // The reading is put on screen with its first beat, which starts no scene: it is put up ready for the ones that follow.
+    expect(sessions[0].atoms.every(atom => atom.sourceId === 'beat-0' || atom.seam)).toBe(true);
+    expect(sessions[0].visualConfig.visualMode).toBe('interlocution');
+    expect(sessions[0].visualProgram.segments.length).toBeGreaterThan(0);
+    const composed = composedAt();
+    expect(composed).not.toBeNull();
+    expect(runtime.journal().find(entry => entry.type === 'composed')).toMatchObject({ role: 'main', phase: 'complete' });
+    // The hold after the first beat, the figure's beat and the field's cue all came before the last line was written.
+    const hold = firstShown(shown, atom => atom.sourceId === 'beat-1');
+    const figure = firstShown(shown, atom => atom.scene === 'horizon');
+    expect(shown.find(({ atom }) => atom.sourceId === 'beat-1').atom.hold).toEqual({ ms: 1800, sceneId: 'field' });
+    expect(hold).toBeLessThan(composed);
+    expect(figure).toBeLessThan(composed);
+    expect(commands[0]).toMatchObject({ command: { surface: 'attractor', parameter: 'intensity', value: 0.45 } });
+    expect(commands[0].at).toBeLessThan(composed);
+    // The hold lasted its own length: nobody spoke in it.
+    const after = firstShown(shown, atom => atom.sourceId === 'beat-2');
+    expect(after - hold).toBeGreaterThanOrEqual(1800);
+    // Only what is said is given to the voice, which was the clock throughout, and the reading ends complete.
+    expect(spoken).toEqual(['beat-0', 'beat-2', 'beat-4', 'beat-6']);
+    expect(runtime.journal().filter(entry => entry.type === 'voice.degraded')).toEqual([]);
+    expect(players).toHaveLength(1);
+    expect(players[0].sessionState.state).toBe('complete');
+    expect(runtime.status).toBe('ended');
+  });
+
+  it('seeks and replays over a streamed beat run as over a sealed one', async () => {
+    const { spoken, started } = streamedRun({ msPerChar: 10 });
+    await tick(100);
+    await started;
+    await tick(60_000);
+    expect(runtime.status).toBe('ended');
+    expect(runtime.passages().map(passage => [passage.segmentId, passage.spoken])).toEqual([
+      ['beat-0', true], ['beat-1', false], ['beat-2', true], ['beat-3', false], ['beat-4', true], ['beat-5', false], ['beat-6', true]
+    ]);
+    spoken.length = 0;
+    runtime.seek({ segmentId: 'beat-2' });
+    expect(runtime.position()).toMatchObject({ segmentId: 'beat-2', spoken: true });
+    await tick(60_000);
+    expect(spoken).toEqual(['beat-2', 'beat-4', 'beat-6']);
+    spoken.length = 0;
+    runtime.seek({ segmentId: 'beat-4' });
+    runtime.replay();
+    await tick(60_000);
+    expect(spoken[0]).toBe('beat-4');
+    expect(runtime.status).toBe('ended');
+  });
+
+  it('writes a scene the admission refused in the journal, in the Worker’s words, and reads on', async () => {
+    const text = '@say A scene that reaches out.\n@scene thief code\n```js\nexport default function scene(rise) { fetch(1); return { frame() {} }; }\n```\n@say scene=thief It is not started.\n';
+    const adapter = createTextStreamAdapter({
+      id: 'scripted', provider: 'test',
+      connect: async (_request, sink) => { setTimeout(() => { sink.delta(text); sink.done(); }, 10); return { cancel() {}, close() {} }; }
+    });
+    const { spoken, started } = streamedRun({ adapter, msPerChar: 10 });
+    await tick(100);
+    await started;
+    await tick(20_000);
+    const refused = runtime.journal().filter(entry => entry.type === 'scene.refused');
+    expect(refused).toEqual([expect.objectContaining({ role: 'main', sceneId: 'thief', message: expect.stringMatching(/^Scene "thief" was refused: line 1, column \d+: `fetch`/u) })]);
+    expect(spoken).toEqual(['beat-0', 'beat-1']);
+    expect(runtime.status).toBe('ended');
   });
 });

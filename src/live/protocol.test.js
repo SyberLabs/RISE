@@ -50,7 +50,9 @@ const VALID = {
     'branch.close': base('branch.close', 12, { branchId: 'b1' }),
     'current.cancel': base('current.cancel', 13, { reason: 'user stopped' }),
     'current.complete': base('current.complete', 14),
-    error: base('error', 15, { code: 'PROVIDER_LOST', message: 'The connection dropped.', recoverable: true })
+    error: base('error', 15, { code: 'PROVIDER_LOST', message: 'The connection dropped.', recoverable: true }),
+    'scene.declare': base('scene.declare', 16, { sceneId: 'field', engine: 'attractor', params: { palette: 'jade' } }),
+    'scene.text': base('scene.text', 17, { sceneId: 'disk', offset: 0, text: 'export default function scene(rise) {\n' })
 };
 
 const refusal = input => {
@@ -326,6 +328,75 @@ describe('speech and control events', () => {
     it('refuses a branch with a negative position', () => {
         expect(refusal(base('branch.open', 1, { branchId: 'b', parentSegmentId: 's', atCharacter: -1 }))?.code)
             .toBe('EVENT_OFFSET');
+    });
+});
+
+describe('beats streamed (additive: a segment may be one beat of a rise.current.v2)', () => {
+    const beat = (body, extra = {}) => base('segment.begin', 1, { segmentId: 'beat-0', beat: body, ...extra });
+
+    it('carries a beat’s fields as rise.current.v2 names them, and nothing else', () => {
+        const full = {
+            show: 'Shown, not said.', hold: { ms: 1200, maxMs: 4000 }, scene: 'disk', cue: 'set:intensity=0.7',
+            transition: { ms: 300 }, place: 'caption', size: 'larger', type: 'book-serif', emphasis: ['light'], sound: 'piano'
+        };
+        expect(validateEvent(beat(full)).beat).toEqual(full);
+        expect(validateEvent(beat({})).beat).toEqual({});
+        expect(refusal(beat({ say: 'The words are the segment’s own text.' }))?.code).toBe('EVENT_UNKNOWN_FIELD');
+        expect(refusal(beat({ onclick: 'x' }))?.code).toBe('EVENT_UNKNOWN_FIELD');
+    });
+
+    it('refuses a beat field of the wrong shape, with EVENT_BEAT', () => {
+        for (const [name, body] of Object.entries({
+            'hold without ms': { hold: {} },
+            'fractional hold': { hold: { ms: 1.5 } },
+            'hold with a stray key': { hold: { ms: 900, src: 'x' } },
+            'blank show': { show: ' ' },
+            'show with a marker': { show: 'A [PAUSE] here' },
+            'numeric scene': { scene: 3 },
+            'long cue': { cue: 'c'.repeat(41) },
+            'cue with a space': { cue: 'two words' },
+            'emphasis not a list': { emphasis: 'light' },
+            'nine emphases': { emphasis: Array(9).fill('a') },
+            'transition as a number': { transition: 300 },
+            'place as an object': { place: { x: 1 } }
+        })) {
+            expect(refusal(beat(body))?.code, name).toMatch(/^EVENT_(BEAT|OBJECT|UNKNOWN_FIELD|RESERVED_TEXT)$/u);
+        }
+    });
+
+    it('refuses a beat with a visual or a literal flag: a beat’s imagery is its scene', () => {
+        expect(refusal(beat({}, { visual: 'attractor' }))?.code).toBe('EVENT_BEAT');
+        expect(refusal(beat({}, { literal: true }))?.code).toBe('EVENT_BEAT');
+    });
+
+    it('declares a native scene by engine and params, or one whose source follows by form, never both', () => {
+        expect(validateEvent(base('scene.declare', 1, { sceneId: 'disk', form: 'code' }))).toMatchObject({ sceneId: 'disk', form: 'code' });
+        expect(validateEvent(base('scene.declare', 1, { sceneId: 'fig', form: 'svg' }))).toMatchObject({ form: 'svg' });
+        for (const body of [
+            { sceneId: 'x' },
+            { sceneId: 'x', form: 'html' },
+            { sceneId: 'x', engine: 'attractor', form: 'code' },
+            { sceneId: 'x', form: 'code', params: {} },
+            { sceneId: 'x', engine: 7 },
+            { sceneId: 'x', engine: 'attractor', params: { nested: { a: 1 } } },
+            { sceneId: 'x', engine: 'attractor', params: [] }
+        ]) {
+            expect(refusal(base('scene.declare', 1, body))?.code, JSON.stringify(body)).toMatch(/^EVENT_(SCENE|OBJECT)$/u);
+        }
+    });
+
+    it('carries a scene’s source in pieces of at most 2,000 characters, which are not words', () => {
+        // Source is code or markup: bars and brackets are its own, never playback markers.
+        expect(validateEvent(base('scene.text', 1, { sceneId: 'disk', offset: 0, text: 'a | b [PAUSE]\n' })).text).toBe('a | b [PAUSE]\n');
+        expect(validateEvent(base('scene.text', 1, { sceneId: 'disk', offset: 4, text: '\n' })).text).toBe('\n');
+        expect(refusal(base('scene.text', 1, { sceneId: 'disk', offset: 0, text: 'x'.repeat(EVENT_LIMITS.sceneChunk + 1) }))?.code).toBe('EVENT_SCENE');
+        expect(refusal(base('scene.text', 1, { sceneId: 'disk', offset: 0, text: '' }))?.code).toBe('EVENT_SCENE');
+        expect(refusal(base('scene.text', 1, { sceneId: 'disk', offset: -1, text: 'x' }))?.code).toBe('EVENT_OFFSET');
+    });
+
+    it('keeps a piece of the largest source inside one event on the wire', () => {
+        // The worst case JSON makes of a character is six bytes (\u0001).
+        expect(EVENT_LIMITS.sceneChunk * 6 + 200).toBeLessThan(EVENT_LIMITS.wireBytes);
     });
 });
 
