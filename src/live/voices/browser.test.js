@@ -878,6 +878,9 @@ describe('a change of voice', () => {
         voice.enqueue({ id: 'b', text: 'the next one' });
         await clock.advance(30 + 9 * MS);
         expect(voice.setVoice(ARIA)).toBe(false);
+        // The passage under way is still DAVID's, and so is what the voice claims to report.
+        expect(voice.capabilities.wordMarks).toBe(true);
+        expect(voice.chosen.name).toBe(DAVID.name);
         await clock.runAll();
         expect(cancels).toBe(0);
         expect(said.map(([, v]) => v)).toEqual([DAVID, ARIA]);

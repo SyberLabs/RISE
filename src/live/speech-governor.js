@@ -27,7 +27,9 @@
  * segment. A voice that claims marks and then goes quiet is not waited on for
  * ever: once `markPatienceMs` has passed since both the estimate fell due and
  * the voice last reported anything, the estimate stands again, for the rest of
- * the Current. A voice that is slow but still reporting is never cut off.
+ * the Current or until the voice claims marks afresh (a voice the reader picked:
+ * the claim is read each time, so a network voice is never waited on for marks).
+ * A voice that is slow but still reporting is never cut off.
  *
  * The first utterance of a reading has `firstGraceMs` to begin, because a speech
  * engine that has not yet spoken in this page starts slowly, and so does the
@@ -68,8 +70,15 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
     /** id -> { c, t, rate }: where a segment part way through was when the pace changed, and its pace from there. */
     const paced = new Map();
     let degraded = false;
-    /** Whether atoms wait for the voice's own word reports: it claims them, and has not been found without them. */
-    let followMarks = voice?.capabilities?.wordMarks === true;
+    /** Whether the voice was found without the word reports it claims; a voice the reader picks claims its own afresh. */
+    let foundWithoutMarks = false;
+    let claimed = voice?.capabilities?.wordMarks === true;
+    /** Whether atoms wait for the voice's own word reports: it claims them now, and has not been found without them. */
+    const followMarks = () => {
+        const claims = voice?.capabilities?.wordMarks === true;
+        if (claims !== claimed) { claimed = claims; foundWithoutMarks = false; }
+        return claims && !foundWithoutMarks;
+    };
     /** Whether any utterance of this reading has begun: until then the engine may be cold. */
     let begun = false;
     /** When the voice last reported anything (a start, a mark, an end), on the governor's clock. */
@@ -164,14 +173,14 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
                 if (!begun) { begun = true; lastHeardAt = Math.max(lastHeardAt, clock.now()); }
                 if (entry.seam) { finish({ reason: 'ended' }); return; }
                 const remaining = charTime(entry.segmentId, entry.end) - played;
-                if (remaining <= 0 && followMarks && !heardPast(entry)) {
+                if (remaining <= 0 && followMarks() && !heardPast(entry)) {
                     mine.dueAt ??= clock.now();
                     if (clock.now() - Math.max(mine.dueAt, lastHeardAt) < GOVERNOR_LIMITS.markPatienceMs) {
                         mine.cancel = clock.setTimer(check, POLL_MS);
                         return;
                     }
                     // It claimed its words and has not said them: from here the estimate is all there is.
-                    followMarks = false;
+                    foundWithoutMarks = true;
                 }
                 if (remaining <= 0) { finish({ reason: 'ended' }); return; }
                 mine.cancel = clock.setTimer(check, Math.min(Math.max(remaining, 1), LONGEST_WAIT_MS));

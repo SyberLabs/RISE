@@ -209,15 +209,13 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
 
     return {
         id: 'browser',
-        /** Of the voice it speaks with now, or will from its next utterance (setVoice). */
+        /** Of the voice it speaks with now: a voice picked (setVoice) counts from the passage it begins. */
         get capabilities() {
-            const now = nextVoice === undefined ? voice : nextVoice;
-            return Object.freeze({ audible: true, wordMarks: now?.localService === true, inSentences: GOOGLE.test(now?.name ?? '') });
+            return Object.freeze({ audible: true, wordMarks: voice?.localService === true, inSentences });
         },
-        /** The installed voice it speaks with, or will from its next utterance, for the trace: null names the browser's own default. */
+        /** The installed voice it speaks with now, for the trace: null names the browser's own default. */
         get chosen() {
-            const now = nextVoice === undefined ? voice : nextVoice;
-            return Object.freeze({ name: now?.name ?? null, local: now ? now.localService === true : null });
+            return Object.freeze({ name: voice?.name ?? null, local: voice ? voice.localService === true : null });
         },
 
         attach(callbacks) {
