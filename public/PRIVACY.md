@@ -88,6 +88,7 @@ Browser storage belongs to its exact site origin: saved work at
 | `rise-settings` | Your preferences: pace, colourway, audio, safety choices | yes |
 | `rise_recursions_v1` | Journals and reflections you write | yes |
 | `rise_workshop_v1` | Reading compositions ("blueprints") you build | yes |
+| `rise_workshop_media_leases_v1`, `rise_workshop_media_lease_v2:…` | Which project media each open tab is using, so media in use is not cleaned away | yes |
 | `rise_global_images_v1` | Imagery you have attached to your own work | yes |
 | `rise_sol_plan_v1` | A saved plan from a retired room, kept so it is not lost | yes |
 | `rise_orbital_prefs_v1` | Chamber layout preferences | yes |
@@ -99,29 +100,47 @@ Browser storage belongs to its exact site origin: saved work at
 | `rise_via_sound_v1` | The Via's soundscape | yes |
 | `rise_via_advance_v1` | Whether the Via advances on its own | yes |
 | `rise-stance-note-seen` | That you have dismissed a one-time notice | yes |
-| `rise-beta-session` | That you have passed the access gate | no — see below |
+| `rise_home_seen_v1` | That you have seen Home's first-visit line | yes |
+| `rise_sequence_pilot_feedback_v1` | Feedback you gave on sequenced readings, kept on this device | yes |
+| `rise.plus` | Plus only: a marker that this browser holds a Plus subscription | no — see below |
 
-`rise-beta-session` records only that you entered the beta, not who you are.
-Erase leaves it deliberately, because clearing it would sign you out of a door
-that no longer locks; it goes when the gate does. Clearing your browser's site
-data removes it along with everything else.
+`rise.plus` records only that this browser claimed Plus, not who you are.
+Erase leaves it, because the receipt itself is an HttpOnly cookie an erase
+cannot reach; **Settings > Forget Plus on this browser** removes both.
 
 ### Session storage
 
 | Key | What it holds |
 | --- | --- |
 | `rise_stale_reload` | Where you were headed, so a mid-release reload does not lose your place |
+| `rise_reloaded_for_stale_build` | Which release this tab last reloaded for, and when, so it reloads only once |
+| `rise_tab_hidden_at` | When this tab was last hidden, so a long-hidden tab can refresh |
+| `rise:audio-diag` | That audio diagnostics are on for this tab |
+| `rise:invocation-handoff:v1` | A choice made on Home, handed to the page it opens |
+| `rise.voice-demo.draft` | The text and voice of an unsent voice demonstration |
+| `rise-openrouter-pkce-v1` | While you connect OpenRouter: a one-time verifier and state (section 4) |
 
 Session storage is discarded when you close the tab.
 
 ### IndexedDB
 
-| Database | What it holds |
+| Database | What it holds | Cleared by erase |
+| --- | --- | --- |
+| `rise-personal-assets` | Audio and imagery you have added to your own compositions | yes |
+| `rise-workshop-media` | Media belonging to projects you are building | yes |
+| `rise-source-cache` | A cache of texts and catalogue responses, so the same request is not repeated | yes |
+| `rise-plus-voice` | Plus only: the audio voiced for your own readings, so playing it again costs nothing | yes |
+| `rise-local-works` | Texts you imported to read, on this device's shelf | no — removing a text from the Library deletes it |
+
+### Cache Storage
+
+| Cache | What it holds |
 | --- | --- |
-| `rise-personal-assets` | Audio and imagery you have added to your own compositions |
-| `rise-workshop-media` | Media belonging to projects you are building |
-| `rise-source-cache` | A cache of texts and catalogue responses, so the same request is not repeated |
-| `rise-plus-voice` | Plus only: the audio voiced for your own readings, so playing it again costs nothing |
+| `rise-content-v1` | RISE's published texts, once downloaded, so they open offline |
+| `kev-web-v1` | The EnterpRise page only: Kev's model files, if you load Kev in the browser |
+
+These hold RISE's own published files, nothing of yours. Clearing your
+browser's site data removes them.
 
 If you use the Plus voice, the audio voiced for your readings is stored only in
 this browser's IndexedDB. Erase clears it. Voicing the same text again on
@@ -291,7 +310,11 @@ text of its passages, and optionally a theme, a look, and short notes.
 - Settings you change in the player (theme, text size, how vivid the imagery
   is) are kept in your browser's storage for the player.
 - Requests to the tool are counted per IP address for one minute, by
-  Cloudflare's rate limiter, to stop abuse. RISE keeps no record of them.
+  Cloudflare's rate limiter, to stop abuse.
+- Cloudflare Workers observability logging is on for RISE's server: Cloudflare
+  keeps request metadata (method, path, status, timing, and the client address
+  Cloudflare sees) for its short retention window, at most 7 days (3 on its free
+  plan), to diagnose faults. No tool text or reader content is logged.
 
 Your assistant's own provider (OpenAI or Anthropic) governs your conversation
 under its own privacy policy.
@@ -347,8 +370,11 @@ The content hosts your browser may contact are:
 - **The Art Institute of Chicago** — `api.artic.edu`, `www.artic.edu`
 - **The Cleveland Museum of Art** — `openaccess-api.clevelandart.org`
 - **The Rijksmuseum** — `id.rijksmuseum.nl`
-- **corsproxy.io** — a relay used only where a source does not permit direct
-  browser requests
+- **NASA Image and Video Library** — `images-assets.nasa.gov`
+- **ESA/Hubble** — `esahubble.org`, `cdn.esahubble.org`
+- **Audubon's plates** — the Cincinnati Library's `cdm16998.contentdm.oclc.org`
+  and, for a plate's source record, `digital.cincinnatilibrary.org`; and the
+  University of Michigan Library's `quod.lib.umich.edu`
 - **Image hosts belonging to the above** — artwork files are served from the
   institutions' own image servers
 
@@ -417,9 +443,10 @@ You hold browser-local data directly. Explicit account backups have the separate
 - **Export.** Settings offers an export of some saved data. It is incomplete
   and there is no complete import path, so it cannot transfer all work from
   `.space` to `.io` or serve as a complete backup.
-- **Erase.** Settings also offers an erase that clears that storage. It
-  covers every key and database listed in section 3; an automated check
-  fails the build if a new one is ever added without being registered.
+- **Erase.** Settings also offers an erase that clears that storage: every
+  key and database section 3 marks as cleared by erase. An automated check
+  fails the build if code writes a local-storage key that the erase registry
+  does not name.
 - **Clear it yourself.** Clearing site data for this domain in your browser
   removes browser-local data for that domain. It does not remove separately saved account backups.
 
@@ -487,7 +514,10 @@ key is held only in the page's memory and never stored. If the OpenAI Live route
 is switched on, RISE's server uses the reader's OpenAI key for one request to
 open a session and keeps neither the key nor the request; see section 4. Google
 and OpenAI process Live requests under their own policies. Cloudflare and Netlify handle hosting and
-API request data under their own policies. OpenRouter processes the requests
+API request data under their own policies. Cloudflare Workers observability
+logging is on for RISE's server and keeps request metadata (method, path,
+status, timing, and the client address Cloudflare sees) for at most 7 days (3
+on Cloudflare's free plan); no tool text or reader content is logged. OpenRouter processes the requests
 you send it under its own policy; see section 4. No provider-side retention
 guarantee is made here.
 

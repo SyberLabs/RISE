@@ -26,7 +26,7 @@ const style = record => Object.freeze({
 export const STYLES = Object.freeze({
   'premium-educational': style({
     id: 'premium-educational',
-    line: 'premium-educational: a calm lesson in the manner of 3Blue1Brown, short captions under a drawn scene that explains one step at a time.',
+    line: 'premium-educational: a calm lesson of clear narrated diagrams, one idea per beat, labelled figures and short captions under a drawn scene that explains one step at a time.',
     typography: { place: 'caption', size: 'as-set', type: { text: 'book-serif', caption: 'humanist-sans' } },
     library: { ease: 'smooth', stroke: 2.5, gridAlpha: 0.12, labelFont: `15px ${family('humanist-sans')}` }
   }),

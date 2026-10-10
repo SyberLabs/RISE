@@ -46,17 +46,26 @@ npm run dev        # http://localhost:5173/
 
 In the app: **Try RISE** → pick a reading → **Begin**. Use **Page** to switch to the paginated view.
 
-### RISE in ChatGPT: Composer
+### RISE in Claude and ChatGPT
 
-In ChatGPT, RISE is a Composer: the host model composes one sealed Current in a single tool call, RISE admits it, and the reader presses Begin to see it presented. Dive and realtime Live are out of current scope ([decision](docs/product/discussions/2026-10-04-composer-decision.md)).
+Your assistant can present an answer in RISE: it writes the answer as a short reading, and RISE shows it in the chat as a card. You press **Play**; your device's own voice reads it, the words appear as they are spoken, and RISE's drawn imagery, or a diagram or figure your assistant wrote as SVG or scene code, plays behind them.
 
-`rise.current.v1` is that sealed input, compiled through the existing Session Compiler. It accepts bounded segments, a closed visual selection, and exact-span Dive notes, which the current product does not present. See the [contract](docs/specs/RISE-CURRENT-V1-SLICE.md) and [sample document](docs/examples/current-v1.json). To compile the sample locally:
+- **Add it in Claude:** **Customize > Connectors**, then **+ Add > Add custom connector**. Name it RISE, use the URL `https://rise.syberlabs.io/api/mcp`, and choose **No sign in**. Turn it on for a chat from the **+** button, under **Connectors**.
+- **Authentication:** none. No account, no key, no payment.
+- **Tools:** `rise_present` (present a reading) and `rise_guide` (the format reference for a style). Both are read-only.
+- **What to ask:** "Explain how black holes bend light, and present it in RISE." or "Give me a two-minute RISE reading on why the sky is blue, in the Signal look."
+
+More prompts, the looks, troubleshooting and the contact are at <https://rise.syberlabs.io/apps>. See also the [Privacy Policy](https://rise.syberlabs.io/privacy) and [Terms](https://rise.syberlabs.io/terms).
+
+#### Developers
+
+`rise.current.v1` is the reading an assistant writes, compiled through the existing Session Compiler. It accepts bounded segments, a closed visual selection, and exact-span Dive notes, which the current product does not present. See the [contract](docs/specs/RISE-CURRENT-V1-SLICE.md) and [sample document](docs/examples/current-v1.json). To compile the sample locally:
 
 ```bash
 node --input-type=module -e "import fs from 'node:fs'; import { compileRiseCurrent } from './src/core/rise-current.js'; const input = JSON.parse(fs.readFileSync('docs/examples/current-v1.json', 'utf8')); const session = compileRiseCurrent(input); console.log(session.atoms.length, session.experienceProgram.schema);"
 ```
 
-This input is provider-neutral and offline. It does not yet stream model tokens, synthesize or synchronize speech, or run inside ChatGPT.
+The server is `worker/mcp-server.mjs`; the card it serves is `src/live/host/`.
 
 ## Contributing
 

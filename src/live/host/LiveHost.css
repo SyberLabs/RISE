@@ -487,18 +487,6 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 
 .rise-settings__row + .rise-settings__row { margin-top: 4px; }
 
-/* Sign in: not a setting, so in the sheet's head beside its title, where it costs the sheet no height; a 44 px link
-   the host opens outside the card (stage-controls.js). */
-.rise-settings__account {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  margin: -6px 4px -6px auto;
-  padding: 0 6px;
-  color: inherit;
-  font-size: 0.85rem;
-  text-underline-offset: 3px;
-}
 /* A row a passage cannot use (Intensity without an adjustable field) is gone, not greyed. */
 .rise-settings__row[hidden] { display: none; }
 .rise-settings__row > label,
