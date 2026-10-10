@@ -1162,12 +1162,17 @@ describe('the payment link is configuration (GET /api/plus/config)', () => {
     expect((await worker.fetch(new Request(`${SITE}/api/plus/config`, { method: 'POST', headers: { Origin: SITE } }), environment())).status).toBe(405);
   });
 
-  it('is set in both Plus deployments, as a Stripe Payment Link', async () => {
-    const { readFileSync } = await import('node:fs');
-    for (const file of ['wrangler.production.jsonc', 'wrangler.plus-preview.jsonc']) {
-      const value = readFileSync(file, 'utf8').match(/"PLUS_PAYMENT_LINK": "([^"]+)"/u)?.[1];
-      expect(value).toMatch(/^https:\/\/buy\.stripe\.com\/[A-Za-z0-9_]+$/u);
-    }
+  const configured = async file => (await import('node:fs')).readFileSync(file, 'utf8').match(/"PLUS_PAYMENT_LINK": "([^"]*)"/u)?.[1];
+
+  it('is set in the preview, as a Stripe Payment Link', async () => {
+    expect(await configured('wrangler.plus-preview.jsonc')).toMatch(/^https:\/\/buy\.stripe\.com\/[A-Za-z0-9_]+$/u);
+  });
+
+  it('is empty in production, which offers no purchase: config serves no link', async () => {
+    const link = await configured('wrangler.production.jsonc');
+    expect(link).toBe('');
+    const env = environment({ PLUS_REQUIRE_LIVE: 'true', STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'webhook', PLUS_PAYMENT_LINK: link });
+    expect(await (await worker.fetch(new Request(`${SITE}/api/plus/config`), env)).json()).toEqual({ paymentLink: null });
   });
 });
 

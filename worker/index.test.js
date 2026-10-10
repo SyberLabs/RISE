@@ -97,6 +97,9 @@ describe('/.well-known/', () => {
     const text = await response.text();
     const fields = Object.fromEntries(text.trim().split('\n').filter(line => !line.startsWith('#')).map(line => line.split(/: (.*)/su).slice(0, 2)));
     expect(fields.Contact).toMatch(/^(mailto:|https:\/\/)/u);
+    const contacts = text.split('\n').filter(line => line.startsWith('Contact: ')).map(line => line.slice('Contact: '.length));
+    expect(contacts).toEqual(['mailto:syberlabs.software@gmail.com', 'https://github.com/SyberLabs/RISE/security/advisories/new']);
+    expect(fields.Policy).toBe('https://github.com/SyberLabs/RISE/blob/main/SECURITY.md');
     expect(fields['Preferred-Languages']).toBe('en');
     expect(fields.Canonical).toBe('https://rise.syberlabs.io/.well-known/security.txt');
     const expires = Date.parse(fields.Expires);
