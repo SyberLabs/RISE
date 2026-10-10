@@ -26,6 +26,7 @@ import {
     hasReservedMarker
 } from '../core/rise-current.js';
 import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES } from '../core/beats.js';
+import { INTERJECTION_ENDINGS } from './interjection.js';
 
 export const RISE_CURRENT_EVENTS_SCHEMA = 'rise.current-events.v1';
 
@@ -475,7 +476,15 @@ const BODIES = {
             ? { reason: text(e.reason, EVENT_LIMITS.reason, `${p}.reason`) }
             : {})
     },
-    'current.complete': { fields: [], read: () => ({}) },
+    // An answer to an interjection names how the held reading goes on (docs/plans/LIVE-CURRENT.md §17).
+    'current.complete': {
+        fields: ['ending'],
+        read: (e, p) => {
+            if (!Object.hasOwn(e, 'ending') || e.ending === undefined) return {};
+            if (!INTERJECTION_ENDINGS.includes(e.ending)) fail('EVENT_ENDING', `${p}.ending`, 'An ending is resume, replace or end');
+            return { ending: e.ending };
+        }
+    },
     error: {
         fields: ['code', 'message', 'recoverable'],
         read: (e, p) => {

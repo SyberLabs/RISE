@@ -62,3 +62,31 @@ describe('text-stream provider transport lifecycle', () => {
         expect(isClosed()).toBe(true);
     });
 });
+
+describe('an answer to an interjection (stage 4.5)', () => {
+    async function answered(text, request = { intent: 'interject', prompt: 'What is the horizon?', reading: { passages: ['A black hole is dark.'], at: 0 } }) {
+        let sink;
+        const adapter = createTextStreamAdapter({
+            id: 'interjected',
+            provider: 'test',
+            connect: async (_request, providerSink) => { sink = providerSink; return { cancel() {}, close() {} }; }
+        });
+        const connection = await adapter.open(request);
+        sink.delta(text);
+        sink.done();
+        const events = [];
+        for await (const event of connection.events) events.push(event);
+        return events;
+    }
+
+    it('completes with the ending the model named', async () => {
+        const events = await answered('@say The horizon is not a surface.\n@then replace\n');
+        expect(events.at(-1)).toMatchObject({ type: 'current.complete', ending: 'replace' });
+    });
+
+    it('completes with no ending when the model named none: the runtime reads that as resume', async () => {
+        const events = await answered('@say The horizon is not a surface.\n');
+        expect(events.at(-1).type).toBe('current.complete');
+        expect(events.at(-1)).not.toHaveProperty('ending');
+    });
+});

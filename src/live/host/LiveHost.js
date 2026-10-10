@@ -519,6 +519,8 @@ export class LiveHost {
         if (this.params.has('measure')) {
             this.env.__riseLive = Object.freeze({
                 journal: () => runtime.journal(),
+                // The reading's passages as read now, an interjection's answer among them.
+                passages: () => runtime.passages(),
                 atoms: () => this.atomLog.map(entry => ({ ...entry })),
                 startedAt: () => this.startedAt,
                 voice: () => this.spokenVoice,

@@ -20,7 +20,10 @@ export const SETTING_PARAMETERS = Object.freeze(['theme', 'intensity', 'still', 
 
 export const PERCEPTION_LIMITS = Object.freeze({ events: 32, quote: 120, words: 200, value: 40, name: 60, passage: 999, times: 500, earlier: 10_000, afterMs: 86_400_000 });
 
-/** One line of text, whatever it came as: no controls, no line breaks, no quotation marks that could close ours, clipped. */
+/**
+ * One line of text, whatever it came as: no controls, no line breaks, no quotation marks that could close ours, clipped.
+ * Also how an interjection quotes the reading so far (`oneLine`, openai-instructions.js promptFor).
+ */
 function line(value, length) {
     const text = String(value ?? '')
         .normalize('NFKC')
@@ -223,6 +226,8 @@ export function admitPerception(value) {
     });
     return { events: clean, earlier };
 }
+
+export { line as oneLine };
 
 // ─── the block ─────────────────────────────────────────────────────────
 

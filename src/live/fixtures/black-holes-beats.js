@@ -91,8 +91,28 @@ export const BLACK_HOLES_BEATS_CURRENT = Object.freeze({
     ]
 });
 
-/** The answer for a question: black holes, or a plain sentence that it knows nothing else. */
+/**
+ * What the demo answers when the reader interjects (docs/plans/LIVE-CURRENT.md §17): two beats inside the room, then
+ * how the reading goes on. Asked to skip, or for the short version, it replaces the rest; otherwise it resumes.
+ */
+export const INTERJECTION_ANSWERS = Object.freeze({
+    resume: [
+        '@say Good question: the horizon is not a surface you could touch.',
+        '@say It is only the distance past which light can no longer climb back out.',
+        '@then resume',
+        ''
+    ].join('\n'),
+    replace: [
+        '@say In short: a black hole is gravity so strong that not even light can leave it.',
+        '@say That is the whole of it; the rest was detail.',
+        '@then replace',
+        ''
+    ].join('\n')
+});
+
+/** The answer for a question: black holes, or a plain sentence that it knows nothing else; an interjection's, its own. */
 export function beatsTextFor(request) {
+    if (request.intent === 'interject') return /\b(skip|short)\b/iu.test(request.prompt) ? INTERJECTION_ANSWERS.replace : INTERJECTION_ANSWERS.resume;
     if (/black\s*holes?/iu.test(request.prompt)) return BLACK_HOLES_BEATS_TEXT;
     return '@say This demonstration can only explain black holes.\n';
 }

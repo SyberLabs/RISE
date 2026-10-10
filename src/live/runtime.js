@@ -26,6 +26,10 @@
  * (interruptions, Dives, where speech was) is kept here, in a bounded journal.
  *
  * A Dive is a Current of its own. Nested Dives are not built and are refused.
+ *
+ * An interjection is not (docs/plans/LIVE-CURRENT.md §17): the reader speaks while the reading plays, the voice holds,
+ * one new request goes up on the same adapter, and its answer is grafted into the main run after the passage the
+ * reader was in (graft.js), said by the same voice into the same Player. The ending it names takes the reading on.
  */
 
 import { RISE_CURRENT_SCHEMA_V2, compileRiseCurrent } from '../core/rise-current.js';
@@ -34,6 +38,8 @@ import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
 import { createBeatConductor } from './beat-conductor.js';
+import { answerBeats, arrangeRoom, closeAnswer, cutAfter, growAnswer, lowerRoom, placeBase, runningScene, takenUp } from './graft.js';
+import { endingOf, interjectionStep } from './interjection.js';
 import { SETTING_PARAMETERS } from './perception.js';
 import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
@@ -67,6 +73,8 @@ export function createLiveRuntime({
     let stopped = false;
     /** The voice's rate, as the reader set it: 1 is the voice's own. The main run's `rate` is the one it has taken up. */
     let pace = 1;
+    /** The reader's interjection (interjection.js): its state, the answer being asked for, and why the last one failed. */
+    const interjection = { state: 'none', answer: null, failed: null };
     const journal = [];
     const listeners = new Set();
 
@@ -103,7 +111,10 @@ export function createLiveRuntime({
     }
 
     function snapshot() {
-        return Object.freeze({ status, error, main: summary(main), side: summary(side), pace, paceFrom: paceFrom(), position: positionOf(main) });
+        return Object.freeze({
+            status, error, main: summary(main), side: summary(side), pace, paceFrom: paceFrom(), position: positionOf(main),
+            interjection: Object.freeze({ state: interjection.state, failed: interjection.failed })
+        });
     }
 
     /** Where a pace asked for and not yet taken up will land: the voice's next sentence or next passage; null once it has. */
@@ -236,15 +247,44 @@ export function createLiveRuntime({
         } else set(status, run.error);
     }
 
-    function lower(run) {
-        const view = run.stream.snapshot();
-        const ended = view.segments.filter(segment => segment.ended);
-        const fresh = ended.slice(run.lowered);
+    /**
+     * The run's Current as it is read now: a sealed one whole; a streamed one rebuilt from its ended segments, or, once
+     * the reader has interjected, the room arranged around the answers (graft.js). With it, the passages in reading
+     * order, { id, text, state }.
+     */
+    function readingOf(run) {
+        const sealed = run.connection?.sealed ?? null;
+        if (!run.room) {
+            const ended = run.stream.snapshot().segments.filter(segment => segment.ended);
+            return { current: sealed ?? run.stream.toCurrent(), sealed, segments: ended };
+        }
+        const base = run.stream.toCurrent();
+        run.room.arrangement = placeBase(run.room.arrangement, base.beats.length);
+        const current = lowerRoom(run.room.arrangement, { base, answers: run.room.answers });
+        const segments = current.beats.map((beat, index) => ({ id: `beat-${index}`, text: beat.say ?? beat.show ?? '', state: {} }));
+        return { current, sealed, segments };
+    }
+
+    /** Whether more of the run's reading may still come: its own answer being written, or an answer to the reader. */
+    function stillComing(run) {
+        if (run === main && (interjection.state === 'asking' || interjection.state === 'answering')) return true;
+        return !run.stream.terminal && run.room?.arrangement.tail !== 'withdrawn';
+    }
+
+    /**
+     * Compile what the run has and give it to the Player. `graft`: the reading after the head changed (an answer put in
+     * after the passage the reader was in); the Player takes it while held, and the caller sends the reading on (moveTo),
+     * which gives the voice what follows.
+     */
+    function lower(run, { graft = false } = {}) {
         let session;
+        let ended;
         try {
             // A sealed Current is compiled whole (its beats never pass through the stream); a streamed one is rebuilt.
-            const sealed = run.connection?.sealed ?? null;
-            let current = sealed ?? run.stream.toCurrent();
+            const reading = readingOf(run);
+            const { sealed } = reading;
+            ended = reading.segments;
+            let current = reading.current;
             // A Dive keeps the colors of the answer it comes from, whatever it said of itself.
             if (run.role === 'side') {
                 const { theme: _own, ...rest } = current;
@@ -268,11 +308,15 @@ export function createLiveRuntime({
         run.unspokenIds = session.unspokenIds ?? null;
         // Spoken passages that follow one of those: each is given to the voice when the reading reaches it (see speak).
         run.voiceWaitsFor = session.voiceWaitsFor ?? null;
+        run.segments = segments;
         // Words are given to the voice once the reading is on screen (see speak): a voice
         // that began while the host was still mounting would say the first words unseen.
-        run.unspoken.push(...fresh);
-        if (run.presented) speak(run);
-        run.lowered = ended.length;
+        if (!graft) {
+            run.unspoken.push(...segments.slice(run.lowered));
+            if (run.presented) speak(run);
+        }
+        run.lowered = segments.length;
+        run.baseSeen = run.stream.endedCount;
         set(status);
 
         if (!run.player) {
@@ -299,10 +343,12 @@ export function createLiveRuntime({
                     if (run.player.sessionState.state === 'idle' && !held) run.player.play();
                 })
                 .catch(caught => failRun(run, caught));
+        } else if (graft) {
+            run.player.graft(session);
         } else {
             run.player.extend(session);
         }
-        if (run.stream.terminal) run.player.setLive(false);
+        if (!stillComing(run)) run.player.setLive(false);
     }
 
     /**
@@ -392,7 +438,7 @@ export function createLiveRuntime({
                         if (result.applied > 0) {
                             attempts = 0;
                             noteRefusedScenes(run);
-                            if (run.stream.endedCount !== run.lowered) lower(run);
+                            if (run.stream.endedCount !== run.baseSeen) lower(run);
                         }
                         if (run.stream.terminal) break;
                         if (run.stream.resumeFrom !== null) {
@@ -417,7 +463,7 @@ export function createLiveRuntime({
             // The answer is written, however it ended: what plays after this was all in hand.
             note('composed', { role: run.role, phase: run.stream.phase });
             if (run.stream.phase === 'failed') throw new AdapterError(run.stream.snapshot().error?.code ?? 'FAILED', run.stream.snapshot().error?.message ?? 'The Current failed');
-            run.player?.setLive(false);
+            if (!stillComing(run)) run.player?.setLive(false);
             // A run that already failed (the compiler refused what the validator accepted) keeps its own reason.
             if (!run.player && !run.error) {
                 if (run.role === 'main') set(run.stream.phase === 'cancelled' ? 'stopped' : 'failed', run.stream.phase === 'cancelled' ? null : { code: 'EMPTY_CURRENT', message: 'Nothing was said' });
@@ -445,7 +491,11 @@ export function createLiveRuntime({
             // Every passage the voice was given, in the reading's order (a seek gives the voice the rest again); the passages a seek goes to.
             given: [], passages: null,
             // How many of the stream's refused scenes the journal has noted.
-            scenesRefused: 0
+            scenesRefused: 0,
+            // The passages as read now, in order ({ id, text }), and how many of the stream's segments have been lowered.
+            segments: [], baseSeen: 0,
+            // Once the reader has interjected: the reading arranged around the answers (graft.js), and each answer's Current.
+            room: null
         };
         if (role === 'main') main = run;
         else side = run;
@@ -582,15 +632,78 @@ export function createLiveRuntime({
          */
         resume() {
             if (status !== 'interrupted') throw new LiveRuntimeError('NOT_INTERRUPTED', 'Nothing is held');
-            note('resume', { reason: 'user', ...here() });
-            if (main.voice && main.governor.degraded && main.presented && positionOf(main)) {
-                note('voice.rearmed', { role: main.role, reason: 'play' });
-                moveTo(main, positionOf(main).segmentId, null);
+            // Play on a reading held for an interjection not yet answered gives it back, as Escape does.
+            if (interjection.state === 'held' || interjection.state === 'asking') {
+                cancelInterjection();
+                return;
             }
-            set('live');
-            main.player.play();
-            // A Player whose words are all shown does not play again, so the voice saying the last of them is let go here.
-            if (main.finished && !main.ended) main.voice?.release();
+            note('resume', { reason: 'user', ...here() });
+            playOn();
+        },
+
+        /**
+         * The reader begins to speak while the reading plays (the microphone pressed, or a first letter typed): the
+         * voice and the words hold at once where they are, the room stays, and nothing is cancelled. Their words follow
+         * with interject; cancelInterjection, or Play, gives the reading back. Only a reading written in beats, as every
+         * Live provider writes, takes one.
+         */
+        beginInterjection() {
+            if (interjection.state !== 'none') throw new LiveRuntimeError('INTERJECTING', 'The reader is already interjecting');
+            if (!main?.player || status !== 'live' || main.finished) throw new LiveRuntimeError('NOT_LIVE', 'There is nothing playing to interject in');
+            if (main.connection?.sealed || main.stream.snapshot().segments[0]?.beat === undefined) {
+                throw new LiveRuntimeError('NOT_BEATS', 'Only a reading written in beats takes an interjection');
+            }
+            main.player.pause();
+            // A Player that has not begun sends no pause, so the voice is held here too.
+            main.voice?.hold();
+            interjection.failed = null;
+            step('begin');
+            // Not a `hold`: the reader did not pause the reading, and nothing of this goes up as perception.
+            note('interjection.held', here());
+            set('interrupted');
+        },
+
+        /**
+         * The reader's words, asked inside the room: one new request on the room's adapter, with the reading so far and
+         * the passage they interrupted, and `perception`, their actions since RISE last spoke. Resolves once it is
+         * asked. The answer is grafted after that passage as it arrives (graft.js); a request that fails gives the held
+         * reading back, and the snapshot says why (`interjection.failed`).
+         */
+        async interject(words, { perception } = {}) {
+            if (interjection.state !== 'held') throw new LiveRuntimeError('NOT_HELD', 'An interjection begins before it is asked');
+            const prompt = String(words ?? '').trim();
+            if (!prompt || prompt.length > OPEN_LIMITS.prompt) throw new LiveRuntimeError('QUESTION', 'An interjection needs words');
+            const at = positionOf(main);
+            const actions = perception?.events?.length ? perception : null;
+            const answer = {
+                n: null, closed: false, connection: null, seen: 0, scenesRefused: 0, cut: false,
+                stream: createCurrentStream({ admitScene: adapter.admitScene ?? null }), abort: new AbortController()
+            };
+            interjection.answer = answer;
+            step('ask');
+            note('interjection.asked', { segmentId: at.segmentId });
+            if (actions) note('perception.sent', { count: actions.events.length, kinds: [...new Set(actions.events.map(event => event.type))] });
+            set(status);
+            const request = { intent: 'interject', prompt, reading: readingSoFar(main, at.segmentId), ...(actions ? { perception: actions } : {}) };
+            try {
+                answer.connection = await adapter.open(request, { signal: answer.abort.signal });
+            } catch (caught) {
+                failInterjection(answer, caught?.code ?? 'OPEN_FAILED');
+                return;
+            }
+            if (answer.closed) {
+                try { await answer.connection.close(); } catch { /* it was never used */ }
+                return;
+            }
+            void pumpAnswer(answer);
+        },
+
+        /** The reader takes it back before an answer (Escape, Play, a microphone that heard nothing): the reading plays on. */
+        cancelInterjection() {
+            if (interjection.state !== 'held' && interjection.state !== 'asking') {
+                throw new LiveRuntimeError('NOT_INTERJECTING', 'There is no interjection to take back');
+            }
+            cancelInterjection();
         },
 
         /** Where the reading is: { segmentId, segmentIndex, segmentCount, atomIndex, atomCount, spoken }, or null before it has words. */
@@ -598,10 +711,11 @@ export function createLiveRuntime({
             return positionOf(main);
         },
 
-        /** Every passage of the reading in order, each with whether a voice says it; empty before it has words. */
+        /** Every passage of the reading in order, each with whether a voice says it and its words; empty before it has words. */
         passages() {
             if (!main?.player) return [];
-            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, spoken: !main.unspokenIds?.has(id) }));
+            const words = new Map(main.segments.map(segment => [segment.id, segment.text]));
+            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, spoken: !main.unspokenIds?.has(id), text: words.get(id) ?? '' }));
         },
 
         /**
@@ -667,6 +781,7 @@ export function createLiveRuntime({
          */
         async dive({ question, segmentId, atCharacter } = {}) {
             if (side) throw new LiveRuntimeError('NESTED_DIVE', 'A Dive inside a Dive is not built');
+            if (interjection.state !== 'none') throw new LiveRuntimeError('INTERJECTING', 'The reader is interjecting');
             if (!main?.player || (status !== 'live' && status !== 'interrupted' && status !== 'ended')) {
                 throw new LiveRuntimeError('NOT_LIVE', 'There is nothing to dive from');
             }
@@ -726,6 +841,7 @@ export function createLiveRuntime({
         async stop() {
             if (stopped) return;
             stopped = true;
+            letAnswerGo(interjection.answer);
             const runs = [side, main];
             side = null;
             for (const run of runs) await closeRun(run);
@@ -735,6 +851,171 @@ export function createLiveRuntime({
     };
 
     // ─── helpers that need the runs above ───────────────────────────────
+
+    /** The held reading goes on from where it is, as Play takes it up (resume), noting nothing of its own. */
+    function playOn() {
+        if (main.voice && main.governor.degraded && main.presented && positionOf(main)) {
+            note('voice.rearmed', { role: main.role, reason: 'play' });
+            moveTo(main, positionOf(main).segmentId, null);
+        }
+        set('live');
+        main.player.play();
+        // A Player whose words are all shown does not play again, so the voice saying the last of them is let go here.
+        if (main.finished && !main.ended) main.voice?.release();
+    }
+
+    // ─── the interjection (docs/plans/LIVE-CURRENT.md §17) ──────────────
+
+    function step(type) {
+        interjection.state = interjectionStep(interjection.state, { type });
+    }
+
+    /** Stop asking for an answer: its connection is closed and nothing more of it is read. */
+    function letAnswerGo(answer) {
+        if (!answer || answer.closed) return;
+        answer.closed = true;
+        answer.abort.abort();
+        if (interjection.answer === answer) interjection.answer = null;
+        void Promise.resolve(answer.connection?.close()).catch(() => {});
+    }
+
+    function cancelInterjection() {
+        letAnswerGo(interjection.answer);
+        step('cancel');
+        note('interjection.cancelled', here());
+        playOn();
+    }
+
+    /**
+     * The reading so far as the request carries it: each passage with words, in reading order, at most
+     * OPEN_LIMITS.readingText long, and `at`, the last of them at or before the passage the reader interrupted.
+     */
+    function readingSoFar(run, heldId) {
+        const order = run.segments.findIndex(segment => segment.id === heldId);
+        const worded = run.segments.map((segment, index) => ({ ...segment, index })).filter(segment => segment.text.trim());
+        const at = Math.max(0, worded.findLastIndex(segment => segment.index <= order));
+        const fit = text => (text.length <= OPEN_LIMITS.readingText ? text : `${text.slice(0, OPEN_LIMITS.readingText - 1)}…`);
+        return { passages: worded.slice(0, OPEN_LIMITS.reading).map(segment => fit(segment.text)), at: Math.min(at, OPEN_LIMITS.reading - 1) };
+    }
+
+    /**
+     * Where in passage `segmentId` the voice was held: the first character of the phrase on screen, or of the next
+     * one when the head is between two; null when the passage was heard to its end.
+     */
+    function phraseAt(run, segmentId) {
+        const index = run.player.sessionState.currentIndex;
+        if (run.player.betweenPhrases) {
+            const next = run.governor.positionOf(index + 1);
+            return next?.segmentId === segmentId ? next.atCharacter : null;
+        }
+        const on = run.governor.positionOf(index);
+        return on?.segmentId === segmentId ? on.atCharacter : 0;
+    }
+
+    /** What the answer's stream has written: refused scenes into the journal, ended beats into the room. */
+    async function pumpAnswer(answer) {
+        let lost = null;
+        try {
+            for await (const event of answer.connection.events) {
+                if (answer.closed) return;
+                const result = answer.stream.apply(event);
+                if (result.applied > 0) {
+                    for (const item of answer.stream.refusedScenes.slice(answer.scenesRefused)) note('scene.refused', { role: 'main', ...item });
+                    answer.scenesRefused = answer.stream.refusedScenes.length;
+                    if (answer.stream.endedCount !== answer.seen) takeAnswer(answer);
+                }
+                if (answer.closed) return;
+                if (answer.stream.terminal) break;
+            }
+        } catch (caught) {
+            lost = caught;
+        }
+        if (answer.closed) return;
+        if (answer.stream.phase === 'complete' && answer.cut) settleAnswer(answer, endingOf(answer.stream.ending));
+        else failInterjection(answer, answer.stream.snapshot().error?.code ?? lost?.code ?? (answer.stream.phase === 'complete' ? 'EMPTY_ANSWER' : 'STREAM_ENDED'));
+    }
+
+    /**
+     * More of the answer has ended. The first of it cuts the reading after the passage the head is in: the Player takes
+     * the graft while held, the reading is sent to the answer's first beat and plays, and the same voice says it. The
+     * rest extends the reading as any streamed beat does. An arrangement a Current cannot hold fails the interjection.
+     */
+    function takeAnswer(answer) {
+        answer.seen = answer.stream.endedCount;
+        const room = main.room ?? { arrangement: null, answers: [] };
+        // Answers are numbered as they are grafted, so one that failed before any of it was heard leaves no gap.
+        if (!answer.cut) answer.n = room.answers.length;
+        const answers = [...room.answers];
+        let arrangement;
+        let cutAt = null;
+        try {
+            answers[answer.n] = answer.stream.toCurrent();
+            // An answer of nothing it can say (only literal passages) is cut into nothing; it waits for words.
+            if (answerBeats(answers[answer.n]).beats.length === 0) return;
+            const base = main.stream.toCurrent();
+            arrangement = placeBase(room.arrangement ?? arrangeRoom(0), base.beats.length);
+            if (!answer.cut) {
+                const read = lowerRoom(arrangement, { base, answers: room.answers });
+                const heldId = positionOf(main).segmentId;
+                cutAt = Number(heldId.slice('beat-'.length));
+                arrangement = cutAfter(arrangement, {
+                    after: cutAt, taken: takenUp(read.beats[cutAt], phraseAt(main, heldId)), running: runningScene(read.beats, cutAt)
+                });
+            }
+            arrangement = growAnswer(arrangement, answer.n, answerBeats(answers[answer.n]).beats.length);
+            lowerRoom(arrangement, { base, answers });
+        } catch (caught) {
+            failInterjection(answer, caught?.code ?? 'GRAFT_REFUSED');
+            return;
+        }
+        main.room = { arrangement, answers };
+        if (answer.cut) {
+            lower(main);
+            return;
+        }
+        answer.cut = true;
+        step('answer');
+        // A reading whose own answer was complete stopped waiting for words; this one has more coming.
+        main.player.setLive(true);
+        lower(main, { graft: true });
+        moveTo(main, `beat-${cutAt + 1}`, null);
+        set('live');
+        main.player.play();
+    }
+
+    /** The answer is complete: the ending it named takes the reading on, and the journal says how. */
+    function settleAnswer(answer, ending) {
+        letAnswerGo(answer);
+        const beats = main.room.arrangement.pieces.filter(piece => piece.answer === answer.n).length;
+        const sceneStarted = answerBeats(main.room.answers[answer.n]).beats.some(beat => beat.scene !== undefined);
+        main.room.arrangement = closeAnswer(main.room.arrangement, ending, { sceneStarted });
+        step('end');
+        note('interjection.answered', { beats, ending });
+        // The rest of the reading is withdrawn: the room's own answer, if still being written, is stopped.
+        if (ending !== 'resume' && !main.stream.terminal) void Promise.resolve(main.connection.interrupt()).catch(() => {});
+        lower(main);
+    }
+
+    /**
+     * The answer could not be had. Before any of it was heard the held reading is given back; part way through, what
+     * was said stays and the reading resumes after it. Either way the snapshot says why, once.
+     */
+    function failInterjection(answer, reason) {
+        if (answer.closed) return;
+        letAnswerGo(answer);
+        interjection.failed = String(reason).slice(0, 80);
+        note('interjection.failed', { reason: interjection.failed });
+        if (interjection.state === 'answering') {
+            const sceneStarted = answerBeats(main.room.answers[answer.n]).beats.some(beat => beat.scene !== undefined);
+            main.room.arrangement = closeAnswer(main.room.arrangement, 'resume', { sceneStarted });
+            step('fail');
+            lower(main);
+            return;
+        }
+        step('fail');
+        if (status === 'interrupted') playOn();
+        else set(status);
+    }
 
     /**
      * Hold a run's voice where its words are. A held voice is silenced, not paused (voices/browser.js), and is
@@ -794,8 +1075,7 @@ export function createLiveRuntime({
         run.governor.forget(to);
         if (recovered && type) note('voice.recovered', { role: run.role });
         run.segmentId = to;
-        run.unspoken = run.stream.snapshot().segments.filter(segment => segment.ended).slice(0, run.lowered)
-            .filter(segment => order.get(segment.id) >= at);
+        run.unspoken = run.segments.filter(segment => order.get(segment.id) >= at);
         if (run.presented) speak(run);
 
         const ended = status === 'ended';

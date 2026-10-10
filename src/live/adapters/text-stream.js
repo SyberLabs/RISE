@@ -124,12 +124,13 @@ export function createTextStreamAdapter({ id, provider, origin = () => ({ name: 
                 },
                 done() {
                     if (finished || closed) return;
-                    const { passages } = parser.finish();
+                    const { passages, ending } = parser.finish();
                     if (passages === 0 || !log.some(event => event.type === 'segment.end')) {
                         fail('EMPTY_ANSWER', 'The provider finished without saying anything');
                         return;
                     }
-                    emit('current.complete', {});
+                    // An answer to an interjection may have named how the held reading goes on (`@then`).
+                    emit('current.complete', ending ? { ending } : {});
                     end();
                 },
                 error(problem) {

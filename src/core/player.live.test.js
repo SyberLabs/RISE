@@ -403,3 +403,59 @@ describe('finishing', () => {
         expect(player.state).toBe('idle');
     });
 });
+
+describe('a graft (the interjection, docs/plans/LIVE-CURRENT.md §17)', () => {
+    /** Segments s1, s2, then other words in place of s3 and s4: an answer put in after s2. */
+    const grafted = () => compileRiseCurrent({
+        schema: 'rise.current.v1', id: 'live-1', title: 'Live', origin: { kind: 'human', name: 'Tester' },
+        segments: [...SENTENCES.slice(0, 2).map((text, i) => ({ id: `s${i + 1}`, text })), { id: 'a1', text: 'The horizon is a distance, not a thing.' }]
+    });
+
+    /** Held on the first atom of s2. */
+    async function heldInS2() {
+        const four = current(4);
+        player = new Player(four);
+        player.setLive(true);
+        watch(player);
+        player.play();
+        const at = four.atoms.findIndex(atom => atom.sourceId === 's2' && !atom.seam);
+        while (player.sessionState.currentIndex < at) await tick(50);
+        player.pause();
+        return { four, at };
+    }
+
+    it('takes a Session that keeps every atom up to the head and differs after it, and leaves the head where it is', async () => {
+        const { at } = await heldInS2();
+        const next = grafted();
+        player.graft(next);
+        expect(player.sessionState.session).toBe(next);
+        expect(player.sessionState.currentIndex).toBe(at);
+        expect(player.state).toBe('paused');
+        expect(events.filter(([name]) => name === 'extended').at(-1)[1]).toEqual({ atomCount: next.atoms.length, resumed: false, grafted: true });
+    });
+
+    it('then reads the new words from wherever the reader is sent, each once', async () => {
+        await heldInS2();
+        const next = grafted();
+        player.graft(next);
+        const answer = next.atoms.findIndex(atom => atom.sourceId === 'a1');
+        seen.length = 0;
+        player.seekTo(answer);
+        player.play();
+        await tick(30_000);
+        expect(seen).toEqual(next.atoms.map((_, i) => i).slice(answer));
+    });
+
+    it('is refused while the reading plays, when the head’s atom or one before it differs, and on a Player that is not live', async () => {
+        const { four } = await heldInS2();
+        expect(() => player.graft(current(1))).toThrow(RangeError);
+        player.play();
+        expect(() => player.graft(grafted())).toThrow(RangeError);
+        player.pause();
+        const other = compileRiseCurrent({ schema: 'rise.current.v1', id: 'live-1', title: 'Live', origin: { kind: 'human', name: 'Tester' }, segments: [{ id: 's1', text: 'Something else entirely.' }, { id: 's2', text: SENTENCES[1] }] });
+        expect(() => player.graft(other)).toThrow(RangeError);
+        expect(player.sessionState.session).toBe(four);
+        player.setLive(false);
+        expect(() => player.graft(grafted())).toThrow(RangeError);
+    });
+});

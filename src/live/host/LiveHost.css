@@ -779,9 +779,9 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
   font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
 }
 .live-again[hidden] { display: none; }
-/* While the reading plays, only the microphone: the reader may speak over it, and the voice holds. */
-.live-again[data-open="false"] { width: auto; border-radius: 50%; }
-.live-again[data-open="false"] > :not([data-venue="listen"]) { display: none; }
+/* While the reading plays, only the microphone and a small field: the reader may speak into it, and the voice holds. */
+.live-again[data-open="false"] { width: min(16rem, 100% - 32px); }
+.live-again[data-open="false"] > :not([data-venue="listen"]):not(input):not(.live-again__note) { display: none; }
 
 .live-again input {
   flex: 1 1 auto;

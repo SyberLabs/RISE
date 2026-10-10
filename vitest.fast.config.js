@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 99;
+export const FAST_TEST_FILES = 101;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -64,6 +64,9 @@ const FAST_TESTS = [
     'src/live/runtime.test.js',
     // What goes up to the reader's provider with their next words: a privacy boundary (perception v1).
     'src/live/perception.test.js',
+    // The interjection: its state machine, and the graft that puts an answer into the reading the reader interrupted.
+    'src/live/interjection.test.js',
+    'src/live/graft.test.js',
     'src/live/adapters/**/*.test.js',
     'src/live/host/**/*.test.js',
     'src/live/hosts/**/*.test.js',

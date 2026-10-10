@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { initialVenue, originLine, perceptionFor, venueStep } from './venue-entry.js';
+import { initialVenue, interjectionPerception, originLine, perceptionFor, venueStep } from './venue-entry.js';
 import { perceive } from '../perception.js';
 
 const ready = { connected: false, hasKey: false };
@@ -165,5 +165,33 @@ describe('who is speaking, as the About panel says it (design §1 item 7)', () =
 
     it('says nothing before the reading has said who wrote it', () => {
         expect(originLine(null)).toBe('');
+    });
+});
+
+describe('what goes up with an interjection (stage 4.5)', () => {
+    const PASSAGES = [{ segmentId: 'beat-0', text: 'One.' }, { segmentId: 'beat-1', text: 'Two.' }, { segmentId: 'beat-2', text: 'Three.' }];
+
+    it('is what the reader did in this reading since RISE last spoke, without the words they are asking with', () => {
+        const journal = [
+            { at: 0, type: 'start', prompt: 'First?' },
+            { at: 10, type: 'replay', from: 'beat-0', to: 'beat-0', reason: 'reader' },
+            { at: 20, type: 'interjection.held', segmentId: 'beat-1' },
+            { at: 25, type: 'said', words: 'what is two' }
+        ];
+        expect(interjectionPerception(journal, PASSAGES, 'What is two?')).toEqual(perceive(journal.slice(0, 2), { passages: PASSAGES }));
+    });
+
+    it('begins again after each answer: what was sent with one interjection is not sent with the next', () => {
+        const journal = [
+            { at: 0, type: 'start', prompt: 'First?' },
+            { at: 10, type: 'replay', from: 'beat-0', to: 'beat-0', reason: 'reader' },
+            { at: 20, type: 'interjection.answered', beats: 2, ending: 'resume' },
+            { at: 30, type: 'pace', rate: 1.5, applied: true }
+        ];
+        expect(interjectionPerception(journal, PASSAGES, 'Why?').events).toEqual([{ type: 'paced', rate: 1.5 }]);
+    });
+
+    it('is nothing when the reader did nothing', () => {
+        expect(interjectionPerception([{ at: 0, type: 'start' }, { at: 5, type: 'interjection.held' }], PASSAGES, 'Why?')).toBeNull();
     });
 });

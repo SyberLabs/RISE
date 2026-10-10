@@ -23,22 +23,28 @@ const env = ({ recognition = null } = {}) => ({
 
 function fakeRuntime() {
     const listeners = new Set();
-    let state = { status: 'idle', main: { segmentId: 'p1' }, position: { segmentIndex: 0, segmentCount: 2 }, pace: 1 };
+    let state = { status: 'idle', main: { segmentId: 'p1' }, position: { segmentIndex: 0, segmentCount: 2 }, pace: 1, interjection: { state: 'none', failed: null } };
     const runtime = {
         get status() { return state.status; },
         snapshot: () => state,
         subscribe: fn => { listeners.add(fn); return () => listeners.delete(fn); },
         composed: () => ({ segments: [] }),
-        passages: () => [{ segmentId: 'p1', spoken: true }, { segmentId: 'p2', spoken: true }],
+        passages: () => [{ segmentId: 'p1', spoken: true, text: 'One.' }, { segmentId: 'p2', spoken: true, text: 'Two.' }],
         journal: () => [{ type: 'start' }],
         discoverVisual: () => null,
         start: vi.fn(async () => { runtime.set('live'); }),
         stop: vi.fn(async () => { runtime.set('stopped'); }),
         hold: vi.fn(() => runtime.set('interrupted')),
-        resume: vi.fn(() => runtime.set('live')),
+        resume: vi.fn(() => runtime.set('live', 'none')),
+        beginInterjection: vi.fn(() => runtime.set('interrupted', 'held')),
+        interject: vi.fn(async () => runtime.set('interrupted', 'asking')),
+        cancelInterjection: vi.fn(() => runtime.set('live', 'none')),
         interrupt: vi.fn(async () => runtime.set('interrupted')),
         seek: vi.fn(() => runtime.set('live')),
-        set(status) { state = { ...state, status }; for (const fn of [...listeners]) fn(state); }
+        set(status, interjection = state.interjection.state, failed = null) {
+            state = { ...state, status, interjection: { state: interjection, failed } };
+            for (const fn of [...listeners]) fn(state);
+        }
     };
     return runtime;
 }
@@ -123,7 +129,9 @@ describe('ask, read, ask again', () => {
         expect($('#rise-stage-controls').dataset.transport).toBe('full');
         expect($('#rise-stage-controls [data-stage="fullscreen"]')).not.toBeNull();
         expect($('.live-again')).not.toBeNull();
-        expect($('.live-again').hidden).toBe(true);
+        // While it plays, only the microphone and a small field to speak into it (the interjection).
+        expect($('.live-again').hidden).toBe(false);
+        expect($('.live-again').dataset.open).toBe('false');
     });
 
     it('refuses an empty question in words, and builds nothing', () => {
@@ -159,13 +167,24 @@ describe('ask, read, ask again', () => {
         expect(first.id).toBe('mock');
     });
 
-    it('holds a playing reading when the reader asks while it plays', async () => {
+    it('asks inside the reading when the reader asks while it plays: an interjection, not a new reading', async () => {
         mount('?voice=paced');
         ask('First?');
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
         askAgain('Second?');
-        expect(runtimes[0].hold).toHaveBeenCalled();
+        expect(runtimes[0].beginInterjection).toHaveBeenCalled();
+        await vi.waitFor(() => expect(runtimes[0].interject).toHaveBeenCalledWith('Second?', {}));
+        expect(host.buildRuntime).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks a new reading when the reader asks while it is paused, as before', async () => {
+        mount('?voice=paced');
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        runtimes[0].hold();
+        askAgain('Second?');
         await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalledWith('Second?'));
+        expect(runtimes[0].interject).not.toHaveBeenCalled();
     });
 
     it('plays an ended reading again from its first passage, asking nothing', async () => {
@@ -176,7 +195,7 @@ describe('ask, read, ask again', () => {
         $('#rise-stage-controls [data-stage="play"]').click();
         expect(runtimes[0].seek).toHaveBeenCalledWith({ segmentId: 'p1' });
         expect(host.buildRuntime).toHaveBeenCalledTimes(1);
-        expect($('.live-again').hidden).toBe(true);
+        expect($('.live-again').dataset.open).toBe('false');
     });
 
     it('says why a question could not be asked, and goes back to the entry', async () => {
@@ -294,7 +313,7 @@ describe('the microphone', () => {
         ask('First?');
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
         $('.live-again [data-venue="listen"]').click();
-        expect(runtimes[0].hold).toHaveBeenCalled();
+        expect(runtimes[0].beginInterjection).toHaveBeenCalled();
         const recogniser = Recognition.instances.at(-1);
         recogniser.begin();
         recogniser.say('carry on', { final: true });
@@ -387,6 +406,8 @@ describe('what the reader did goes up with their next words (perception, design 
         choose('gemini');
         expect(container.querySelector('.live-venue__privacy').textContent)
             .toContain('and what you did while it played (play, pause, replay, pace, settings, words you spoke to it), sent only with your next words');
+        expect(container.querySelector('.live-venue__privacy').textContent)
+            .toContain('A question asked while it reads also carries the reading so far.');
     });
 
     it('shows in About who is speaking: RISE, through the model and service the Current names', async () => {
@@ -398,5 +419,70 @@ describe('what the reader did goes up with their next words (perception, design 
         about.open = true;
         about.dispatchEvent(new Event('toggle'));
         expect($('.rise-settings__about-text').textContent.split('\n')[0]).toBe('RISE, speaking through anthropic/claude-haiku-5.5 via OpenRouter, on your key');
+    });
+});
+
+describe('the interjection: the reader speaks while it plays (stage 4.5)', () => {
+    async function playing() {
+        mount('?voice=paced');
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        return runtimes[0];
+    }
+    const field = () => $('#live-again-question');
+    const type = words => {
+        field().value = words;
+        field().dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    it('offers a small field beside the microphone while the reading plays', async () => {
+        await playing();
+        expect($('.live-again').hidden).toBe(false);
+        expect($('.live-again').dataset.open).toBe('false');
+        expect(field().placeholder).toBe('Ask while it reads…');
+    });
+
+    it('holds the reading at the first letter typed, once, and asks with Enter inside the reading', async () => {
+        const runtime = await playing();
+        runtime.journal = () => [{ at: 0, type: 'start' }, { at: 5, type: 'replay', from: 'p1', to: 'p1', reason: 'reader' }];
+        runtime.passages = () => [{ segmentId: 'p1', spoken: true, text: 'One.' }, { segmentId: 'p2', spoken: true, text: 'Two.' }];
+        type('W');
+        type('What is two?');
+        expect(runtime.beginInterjection).toHaveBeenCalledTimes(1);
+        expect($('.live-again').dataset.open).toBe('true');
+        expect(field().placeholder).toBe('Ask RISE…');
+        $('.live-again').requestSubmit();
+        await vi.waitFor(() => expect(runtime.interject).toHaveBeenCalledWith('What is two?', {
+            perception: { events: [{ type: 'replayed', from: 1, to: 1, times: 1, quote: 'One.' }], earlier: 0 }
+        }));
+        expect(field().value).toBe('');
+        expect($('.live-again__note').textContent).toBe('Asking RISE…');
+        expect(host.buildRuntime).toHaveBeenCalledTimes(1);
+    });
+
+    it('takes it back on Escape, and the reading plays on', async () => {
+        const runtime = await playing();
+        type('Wait');
+        const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+        field().dispatchEvent(escape);
+        expect(runtime.cancelInterjection).toHaveBeenCalled();
+        expect(escape.defaultPrevented).toBe(true);
+        expect(field().value).toBe('');
+        expect(runtime.status).toBe('live');
+    });
+
+    it('asks nothing more while RISE is answering, and says why', async () => {
+        const runtime = await playing();
+        runtime.set('live', 'answering');
+        askAgain('And another?');
+        expect(runtime.interject).not.toHaveBeenCalled();
+        expect(host.buildRuntime).toHaveBeenCalledTimes(1);
+        expect($('.live-again__note').textContent).toBe('RISE is answering; ask again once it has.');
+    });
+
+    it('says in one line that RISE could not answer, and that the reading goes on', async () => {
+        const runtime = await playing();
+        runtime.set('live', 'none', 'PROVIDER_FAILED');
+        expect($('.live-again__note').textContent).toBe('RISE could not answer that just now; the reading goes on.');
     });
 });

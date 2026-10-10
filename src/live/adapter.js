@@ -36,11 +36,14 @@ export class AdapterError extends Error {
     }
 }
 
+/** `reading`, `readingText`: the passages of the reading so far an interjection carries, and the length of each. */
 export const OPEN_LIMITS = Object.freeze({
     prompt: 2_000,
     context: 5,
     contextText: 500,
-    id: 120
+    id: 120,
+    reading: 64,
+    readingText: 300
 });
 
 /** Numbers events for one Current. Every adapter writes through one. */
@@ -207,14 +210,37 @@ export function recordHostEvent({ currentId, writer, type, body = {} }) {
     return writer.next(type, body);
 }
 
+/** The reading an interjection was made in: its passages so far, in order, and the one the reader interrupted (`at`). */
+function reading(value) {
+    const source = plain(value, 'reading');
+    only(source, ['passages', 'at'], 'reading');
+    if (!Array.isArray(source.passages) || source.passages.length === 0 || source.passages.length > OPEN_LIMITS.reading) {
+        throw new AdapterError('OPEN_REQUEST', `Expected 1 to ${OPEN_LIMITS.reading} passages at reading.passages`);
+    }
+    if (!Number.isInteger(source.at) || source.at < 0 || source.at >= source.passages.length) {
+        throw new AdapterError('OPEN_REQUEST', 'Expected the passage interrupted at reading.at');
+    }
+    return {
+        passages: source.passages.map((line, i) => text(line, OPEN_LIMITS.readingText, `reading.passages[${i}]`)),
+        at: source.at
+    };
+}
+
 export function validateOpenRequest(input) {
     const source = plain(input, 'request');
-    only(source, ['intent', 'prompt', 'parent', 'perception'], 'request');
-    if (!['answer', 'dive'].includes(source.intent)) throw new AdapterError('OPEN_REQUEST', 'Unknown intent');
+    only(source, ['intent', 'prompt', 'parent', 'perception', 'reading'], 'request');
+    if (!['answer', 'dive', 'interject'].includes(source.intent)) throw new AdapterError('OPEN_REQUEST', 'Unknown intent');
     const request = { intent: source.intent, prompt: text(source.prompt, OPEN_LIMITS.prompt, 'request.prompt') };
+    if (source.intent === 'interject') {
+        // The reader spoke mid-reading: the reading so far goes up with their words (docs/plans/LIVE-CURRENT.md §17).
+        if (source.reading === undefined) throw new AdapterError('OPEN_REQUEST', 'An interjection carries the reading it was made in');
+        request.reading = reading(source.reading);
+    } else if (source.reading !== undefined) {
+        throw new AdapterError('OPEN_REQUEST', 'Only an interjection carries a reading');
+    }
     if (source.perception !== undefined) {
-        // The reader's actions in the last reading go up with their next question only (perception.js).
-        if (source.intent !== 'answer') throw new AdapterError('OPEN_REQUEST', 'Only an answer carries the reader’s actions');
+        // The reader's actions go up with their next words only (perception.js): a question, or an interjection.
+        if (source.intent === 'dive') throw new AdapterError('OPEN_REQUEST', 'Only an answer carries the reader’s actions');
         try {
             request.perception = admitPerception(source.perception);
         } catch (error) {

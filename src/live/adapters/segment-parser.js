@@ -49,6 +49,10 @@
  * scene does not take, a scene never declared) is dropped here, so the
  * reducer refuses nothing; whether a generated scene or a figure is admitted
  * is the reducer's to say, by the Worker's own admission.
+ *
+ * ENDING. An answer to an interjection ends with `@then resume|replace|end`
+ * on a line of its own, in either format (docs/plans/LIVE-CURRENT.md §17);
+ * the last one named is what `finish` reports, and is never words.
  */
 
 import { soundKind } from '../../audio/sound-ids.js';
@@ -69,6 +73,8 @@ export const PARSER_LIMITS = Object.freeze({
 
 /** A line that begins a beat or declares a scene. */
 const BEAT_DIRECTIVE = /^@(say|show|hold|scene)(?:\s|$)/iu;
+/** The line an answer to an interjection ends with: how the held reading goes on (docs/plans/LIVE-CURRENT.md §17). */
+const THEN = /^@then\s+(resume|replace|end)$/iu;
 const OPTION = /^([a-z]+)=(\S+)$/u;
 const SCENE_ID = /^[A-Za-z0-9_-]{1,40}$/u;
 const CUE = new RegExp(BEAT_CUE_PATTERN, 'u');
@@ -148,6 +154,8 @@ export function createSegmentParser(write) {
     let running = null;
     let awaitingFence = null;
     let fence = null;
+    /** The ending an `@then` line named, the last one; null if none. */
+    let ending = null;
 
     /** What a passage has gathered, as one chunk. */
     const flush = () => {
@@ -440,6 +448,9 @@ export function createSegmentParser(write) {
     }
 
     function line(content) {
+        // `@then …` names an ending in either format, on a line of its own; inside a scene's source it is source.
+        const then = !fence && !midLine ? THEN.exec(content.trim()) : null;
+        if (then) { ending = then[1].toLowerCase(); return; }
         if (mode === 'beats') { beatLine(content); return; }
         if (midLine) {
             text(content);
@@ -495,9 +506,12 @@ export function createSegmentParser(write) {
             }
         },
 
-        /** The model has said all it will. Ends what is open; emits nothing for what never had words. */
+        /**
+         * The model has said all it will. Ends what is open; emits nothing for what never had words. `ending` is what
+         * an `@then` line named, or null.
+         */
         finish() {
-            if (finished) return { passages: passages + beatCount };
+            if (finished) return { passages: passages + beatCount, ending };
             if (buffer) {
                 if (mode !== 'beats' && (midLine || !buffer.startsWith('@'))) text(buffer);
                 else line(buffer);
@@ -509,7 +523,7 @@ export function createSegmentParser(write) {
             fence = null;
             awaitingFence = null;
             finished = true;
-            return { passages: passages + beatCount };
+            return { passages: passages + beatCount, ending };
         },
 
         /**

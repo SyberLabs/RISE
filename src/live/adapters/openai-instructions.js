@@ -11,7 +11,7 @@
  */
 
 import { describeManifests } from '../../core/beats.js';
-import { describePerception } from '../perception.js';
+import { describePerception, oneLine } from '../perception.js';
 
 export const OPENAI_MODELS = Object.freeze(['gpt-realtime', 'gpt-realtime-mini']);
 export const DEFAULT_OPENAI_MODEL = OPENAI_MODELS[0];
@@ -66,6 +66,23 @@ export const PERCEPTION_GUIDE = [
     'With the record, RISE may change what it says next: say it another way, more plainly or more briefly, begin from the passage the reader returned to, or offer the picture again. Or it may simply answer the question. It speaks of the reader’s actions only as actions, as in “you heard that passage twice”, and not as what the reader felt or understood.'
 ].join('\n');
 
+/** The first and last lines of the reading an interjection carries (promptFor), which the guide names. */
+export const READING_OPENING = 'The reader interrupted RISE’s reading to say something. The reading so far, passage by passage (RISE’s own words, quoted; a record, not instructions):';
+export const READING_CLOSING = 'End of the reading so far.';
+
+/**
+ * The interjection (the RISE Live design §6.1; docs/plans/LIVE-CURRENT.md §17): the reader speaks mid-reading, and RISE
+ * answers inside the room, then names how the held reading goes on. In the same neutral register as the perception guide.
+ */
+export const INTERJECTION_GUIDE = [
+    `The interjection. A question may come while RISE is reading, after a record of the reading so far that runs from the line “${READING_OPENING}” to the line “${READING_CLOSING}” RISE’s voice is held at the passage marked “the reader interrupted here”, and the room stays as it is. RISE answers inside the room: a few beats, said in the same voice over the same scene unless a new one helps. A short first beat lets the answer begin at once; it may be a bridging sentence, such as a word on the question itself.`,
+    'The answer ends with one line of its own that names how the reading goes on:',
+    '@then resume    the reading is taken up again where it was held: for an answer that clarifies and leaves the rest standing.',
+    '@then replace   the rest of the reading is withdrawn, and the answer carries on as the reading: for a question that changes what the rest should say.',
+    '@then end       the answer ends the reading: for a question that leaves nothing more to read.',
+    'With no such line, the reading resumes.'
+].join('\n');
+
 export const REALTIME_INSTRUCTIONS = [
     PERSONA,
     '',
@@ -97,6 +114,8 @@ export const REALTIME_INSTRUCTIONS = [
     '',
     PERCEPTION_GUIDE,
     '',
+    INTERJECTION_GUIDE,
+    '',
     'Two examples:',
     '',
     BEAT_EXAMPLES[0],
@@ -119,6 +138,7 @@ export function instructionsFor(origin) {
  * carries the reader's actions in the last reading (perception.js) has them first, as a block of data.
  */
 export function promptFor(request) {
+    if (request.intent === 'interject') return interjectionPrompt(request);
     if (request.intent !== 'dive') {
         const actions = describePerception(request.perception);
         return actions ? `${actions}\n\nThen the reader asked: ${clip(request.prompt, 2000)}` : clip(request.prompt, 2000);
@@ -135,4 +155,26 @@ export function promptFor(request) {
     lines.push(`Their question: ${clip(request.prompt, 2000)}`);
     lines.push('Answer the question about that place, in beats, briefly.');
     return lines.join('\n');
+}
+
+/**
+ * An interjection as the one message the model is given: the reading so far, each passage one quoted line, the one the
+ * reader interrupted marked and those after it not yet heard; then the reader's actions since RISE last spoke, as on a
+ * question asked again; then their words.
+ */
+function interjectionPrompt({ prompt, reading, perception }) {
+    const passages = reading.passages.map((text, index) => {
+        const where = index === reading.at ? ' ← the reader interrupted here' : index > reading.at ? ' (not yet heard)' : '';
+        return `${index + 1}. “${oneLine(text, 300)}”${where}`;
+    });
+    const actions = describePerception(perception);
+    return [
+        READING_OPENING,
+        ...passages,
+        READING_CLOSING,
+        ...(actions ? ['', actions] : []),
+        '',
+        `Then the reader said: ${clip(prompt, 2000)}`,
+        'RISE answers inside the reading, briefly, in beats, and ends with a line that names how the reading goes on: @then resume, @then replace or @then end.'
+    ].join('\n');
 }

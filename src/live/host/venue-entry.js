@@ -96,6 +96,22 @@ export function perceptionFor(turns) {
     return events.length ? { events, earlier: made.earlier } : null;
 }
 
+/**
+ * The reader's actions to send up with an interjection (docs/plans/LIVE-CURRENT.md §17): what they did in the reading
+ * playing now since RISE last spoke (its start, or its last answer to them), without the words they are asking with;
+ * null when there is nothing to send.
+ * @param {object[]} journal the reading's journal (runtime.journal())
+ * @param {{segmentId: string, text: string}[]} passages the reading's passages as it is read now (runtime.passages())
+ * @param {string} words what the reader is asking
+ */
+export function interjectionPerception(journal, passages, words) {
+    const since = journal.findLastIndex(entry => entry?.type === 'interjection.answered');
+    const asked = plainWords(words);
+    const made = perceive(journal.slice(since + 1), { passages });
+    const events = made.events.filter(event => !(event.type === 'said' && plainWords(event.words) === asked));
+    return events.length ? { events, earlier: made.earlier } : null;
+}
+
 /** Who is speaking, for the About panel (design §1 item 7): RISE, through the model and service the Current names. */
 export function originLine(origin) {
     if (!origin) return '';
