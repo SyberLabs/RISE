@@ -11,7 +11,8 @@
  * believed once the answer is over or stopped.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { promptFor, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
+import { instructionsFor, promptFor } from './openai-instructions.js';
+import { GEMINI_DEFAULT_MODEL } from './gemini-model.js';
 import { buildBody, createGeminiWire, GEMINI_LIMITS } from './gemini-wire.js';
 
 const frame = (parts, extra = {}) => JSON.stringify({
@@ -35,7 +36,7 @@ describe('the request', () => {
     it('carries RISE’s instructions apart from the reader’s words, and a cap on what can be spent, and nothing else', () => {
         const body = buildBody({ intent: 'answer', prompt: 'Explain black holes.' });
         expect(body).toEqual({
-            systemInstruction: { parts: [{ text: REALTIME_INSTRUCTIONS }] },
+            systemInstruction: { parts: [{ text: instructionsFor({ name: GEMINI_DEFAULT_MODEL, provider: 'Google' }) }] },
             contents: [{ role: 'user', parts: [{ text: 'Explain black holes.' }] }],
             generationConfig: { maxOutputTokens: GEMINI_LIMITS.maxOutputTokens }
         });

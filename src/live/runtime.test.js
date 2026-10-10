@@ -633,3 +633,70 @@ describe('stopping', () => {
         expect(seen.length).toBe(count);
     });
 });
+
+describe('what the reader did, as the journal keeps it for perception (the RISE Live design, §4)', () => {
+    it('notes where the reader paused and played on, so a hold names its passage', async () => {
+        build();
+        await runtime.start(ASK);
+        await tick(1_500);
+        const at = runtime.position().segmentId;
+        runtime.hold();
+        await tick(2_000);
+        runtime.resume();
+        await runtime.interrupt();
+        const journal = runtime.journal();
+        expect(journal.find(e => e.type === 'hold')).toMatchObject({ reason: 'user', segmentId: at });
+        expect(journal.find(e => e.type === 'resume')).toMatchObject({ reason: 'user', segmentId: at });
+        expect(journal.find(e => e.type === 'resume').at - journal.find(e => e.type === 'hold').at).toBeGreaterThanOrEqual(2_000);
+        expect(journal.find(e => e.type === 'interrupt')).toMatchObject({ reason: 'user', segmentId: expect.any(String) });
+    });
+
+    it('notes a setting the reader changed, from the stage’s own list, and nothing it does not name', async () => {
+        build();
+        await runtime.start(ASK);
+        runtime.noteSetting('theme', 'ember');
+        runtime.noteSetting('intensity', 0.8);
+        runtime.noteSetting('cookie', 'abc');
+        runtime.noteSetting('theme', 'x'.repeat(500));
+        const settings = runtime.journal().filter(e => e.type === 'setting');
+        expect(settings.slice(0, 2)).toEqual([
+            expect.objectContaining({ parameter: 'theme', value: 'ember' }),
+            expect.objectContaining({ parameter: 'intensity', value: 0.8 })
+        ]);
+        expect(settings).toHaveLength(3);
+        expect(settings[2].value.length).toBeLessThanOrEqual(40);
+    });
+
+    it('notes what the reader said to the microphone, clipped, and nothing when nothing was said', async () => {
+        build();
+        await runtime.start(ASK);
+        runtime.noteSaid('carry on');
+        runtime.noteSaid('   ');
+        runtime.noteSaid('y'.repeat(5_000));
+        const said = runtime.journal().filter(e => e.type === 'said');
+        expect(said.map(e => e.words.length)).toEqual([8, 200]);
+    });
+
+    it('carries the reader’s actions to the adapter with the question, and notes what went: how many and which kinds', async () => {
+        const asked = [];
+        const adapter = createMockAdapter({ clock });
+        const open = adapter.open.bind(adapter);
+        adapter.open = (request, options) => { asked.push(request); return open(request, options); };
+        runtime = createLiveRuntime({ adapter, clock, createPlayer: session => new Player(session), voices: null, host: { present() {}, dismiss() {} } });
+        const perception = { events: [{ type: 'replayed', from: 3, to: 3, times: 2 }, { type: 'visual.changed', parameter: 'theme', value: 'ember' }, { type: 'replayed', from: 1, to: 1, times: 1 }], earlier: 0 };
+        await runtime.start(ASK, { perception });
+        expect(asked).toEqual([{ intent: 'answer', prompt: ASK, perception }]);
+        expect(runtime.journal().find(e => e.type === 'perception.sent')).toMatchObject({ count: 3, kinds: ['replayed', 'visual.changed'] });
+    });
+
+    it('asks the question alone, and notes nothing sent, when the reader did nothing', async () => {
+        const asked = [];
+        const adapter = createMockAdapter({ clock });
+        const open = adapter.open.bind(adapter);
+        adapter.open = (request, options) => { asked.push(request); return open(request, options); };
+        runtime = createLiveRuntime({ adapter, clock, createPlayer: session => new Player(session), voices: null, host: { present() {}, dismiss() {} } });
+        await runtime.start(ASK, { perception: { events: [], earlier: 0 } });
+        expect(asked).toEqual([{ intent: 'answer', prompt: ASK }]);
+        expect(runtime.journal().some(e => e.type === 'perception.sent')).toBe(false);
+    });
+});

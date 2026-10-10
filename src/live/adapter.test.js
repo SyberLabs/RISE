@@ -152,6 +152,23 @@ describe('a request to open', () => {
         expect(validateOpenRequest({ intent: 'dive', prompt: 'the event horizon', parent }).parent).toEqual(parent);
     });
 
+    it('carries the reader’s actions with an answer, as the perception door admits them (design §4)', () => {
+        const perception = { events: [{ type: 'replayed', from: 3, to: 3, times: 2, quote: 'Light bends.' }, { type: 'finished' }], earlier: 0 };
+        expect(validateOpenRequest({ intent: 'answer', prompt: 'Again?', perception })).toEqual({ intent: 'answer', prompt: 'Again?', perception });
+    });
+
+    it('refuses actions that are not the reader’s, and actions on a Dive', () => {
+        const parent = { currentId: 'a', segmentId: 's2', atCharacter: 0, context: [] };
+        for (const bad of [
+            { intent: 'answer', prompt: 'x', perception: { events: [{ type: 'mood', value: 'confused' }], earlier: 0 } },
+            { intent: 'answer', prompt: 'x', perception: { events: [{ type: 'said', words: 'hi', url: 'https://x' }], earlier: 0 } },
+            { intent: 'answer', prompt: 'x', perception: 'the reader replayed' },
+            { intent: 'dive', prompt: 'x', parent, perception: { events: [], earlier: 0 } }
+        ]) {
+            expect(() => validateOpenRequest(bad), JSON.stringify(bad)).toThrow(expect.objectContaining({ code: 'OPEN_REQUEST' }));
+        }
+    });
+
     it('refuses what it does not define, an unknown intent, and a Dive with no parent', () => {
         for (const bad of [
             { intent: 'answer', prompt: 'x', model: 'other' },

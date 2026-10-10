@@ -41,11 +41,14 @@ const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, 
 /**
  * @param {object} options
  * @param {string} options.id the adapter's name
- * @param {string} options.provider what the Current says wrote it
+ * @param {string} [options.provider] who runs the model, when `origin` does not say
+ * @param {() => {name: string, provider: string}} [options.origin] who writes this answer: the model and the service
+ *   that runs it, as the adapter knows them at the moment of the request (the RISE Live design, §1 item 7); the
+ *   Current's `origin` says it, and the venue's About shows it
  * @param {(request: object, sink: object) => Promise<{cancel: Function, close: Function}>} options.connect
  * @param {number} [options.capacity]
  */
-export function createTextStreamAdapter({ id, provider, connect, capacity = 64 }) {
+export function createTextStreamAdapter({ id, provider, origin = () => ({ name: provider, provider }), connect, capacity = 64 }) {
     if (typeof id !== 'string' || !id) throw new TypeError('A text-stream adapter has a name');
     if (typeof connect !== 'function') throw new TypeError('A text-stream adapter is given a connect function');
     let opened = 0;
@@ -106,7 +109,7 @@ export function createTextStreamAdapter({ id, provider, connect, capacity = 64 }
 
             emit('current.open', {
                 title: clip(request.prompt.replace(/\s+/gu, ' ').trim(), 120) || 'Answer',
-                origin: { kind: 'model', name: `${provider} answer`, provider }
+                origin: { kind: 'model', ...origin() }
             });
 
             const sink = {

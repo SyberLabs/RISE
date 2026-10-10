@@ -25,6 +25,7 @@
  */
 
 import { RISE_CURRENT_EVENTS_SCHEMA, validateEvent } from './protocol.js';
+import { admitPerception } from './perception.js';
 
 export class AdapterError extends Error {
     constructor(code, message, { recoverable = false } = {}) {
@@ -208,9 +209,18 @@ export function recordHostEvent({ currentId, writer, type, body = {} }) {
 
 export function validateOpenRequest(input) {
     const source = plain(input, 'request');
-    only(source, ['intent', 'prompt', 'parent'], 'request');
+    only(source, ['intent', 'prompt', 'parent', 'perception'], 'request');
     if (!['answer', 'dive'].includes(source.intent)) throw new AdapterError('OPEN_REQUEST', 'Unknown intent');
     const request = { intent: source.intent, prompt: text(source.prompt, OPEN_LIMITS.prompt, 'request.prompt') };
+    if (source.perception !== undefined) {
+        // The reader's actions in the last reading go up with their next question only (perception.js).
+        if (source.intent !== 'answer') throw new AdapterError('OPEN_REQUEST', 'Only an answer carries the reader’s actions');
+        try {
+            request.perception = admitPerception(source.perception);
+        } catch (error) {
+            throw new AdapterError('OPEN_REQUEST', String(error?.message ?? error));
+        }
+    }
     if (source.intent === 'dive') {
         if (source.parent === undefined) throw new AdapterError('OPEN_REQUEST', 'A Dive needs the parent it was taken from');
         request.parent = parent(source.parent);

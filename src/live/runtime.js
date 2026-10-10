@@ -34,6 +34,7 @@ import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
 import { createBeatConductor } from './beat-conductor.js';
+import { SETTING_PARAMETERS } from './perception.js';
 import { withExperientialState } from './state-visuals.js';
 import { createCurrentStream } from './stream.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
@@ -76,6 +77,12 @@ export function createLiveRuntime({
         journal.push(entry);
         if (journal.length > RUNTIME_LIMITS.journal) journal.shift();
         if (onNote) { try { onNote({ ...entry }); } catch { /* a listener may not break the runtime */ } }
+    }
+
+    /** The passage the reader is in, for a note of their move: { segmentId }, or nothing before the reading has words. */
+    function here() {
+        const at = positionOf(main);
+        return at ? { segmentId: at.segmentId } : {};
     }
 
     function summary(run) {
@@ -518,19 +525,24 @@ export function createLiveRuntime({
         /** The reducer's view of a run: what the provider has composed so far. */
         composed(role = 'main') { return (role === 'side' ? side : main)?.stream.snapshot() ?? null; },
 
-        /** Ask. Resolves once the Current has opened; the reading begins as words arrive. */
-        async start(prompt) {
+        /**
+         * Ask. Resolves once the Current has opened; the reading begins as words arrive. `perception` is what the
+         * reader did in the reading before (perception.js), sent with this question through the adapter and only then.
+         */
+        async start(prompt, { perception } = {}) {
             if (status !== 'idle') throw new LiveRuntimeError('ALREADY_STARTED', 'A runtime carries one conversation');
             set('starting');
+            const actions = perception?.events?.length ? perception : null;
             let run;
             try {
-                run = await openRun({ intent: 'answer', prompt }, 'main');
+                run = await openRun({ intent: 'answer', prompt, ...(actions ? { perception: actions } : {}) }, 'main');
             } catch (caught) {
                 set('failed', { code: caught?.code ?? 'OPEN_FAILED', message: String(caught?.message ?? caught).slice(0, 300) });
                 throw caught;
             }
             if (!run) return;
             note('start', { prompt: clip(prompt, 200) });
+            if (actions) note('perception.sent', { count: actions.events.length, kinds: [...new Set(actions.events.map(event => event.type))] });
             attachVoice(main);
             startPumping(main);
         },
@@ -545,7 +557,7 @@ export function createLiveRuntime({
             main.player.pause();
             // A Player that has not begun sends no pause, so the voice is held here too.
             main.voice?.hold();
-            note('hold', { reason: 'user', ...(text ? { text: clip(text, 200) } : {}) });
+            note('hold', { reason: 'user', ...here(), ...(text ? { text: clip(text, 200) } : {}) });
             set('interrupted');
         },
 
@@ -555,7 +567,7 @@ export function createLiveRuntime({
             main.player.pause();
             // A Player that has not begun sends no pause, so the voice is held here too.
             main.voice?.hold();
-            note('interrupt', { reason: 'user', ...(text ? { text: clip(text, 200) } : {}) });
+            note('interrupt', { reason: 'user', ...here(), ...(text ? { text: clip(text, 200) } : {}) });
             set('interrupted');
             if (!main.stream.terminal) {
                 try { await main.connection.interrupt({ text }); } catch { /* the reader is already held */ }
@@ -570,6 +582,7 @@ export function createLiveRuntime({
          */
         resume() {
             if (status !== 'interrupted') throw new LiveRuntimeError('NOT_INTERRUPTED', 'Nothing is held');
+            note('resume', { reason: 'user', ...here() });
             if (main.voice && main.governor.degraded && main.presented && positionOf(main)) {
                 note('voice.rearmed', { role: main.role, reason: 'play' });
                 moveTo(main, positionOf(main).segmentId, null);
@@ -589,6 +602,23 @@ export function createLiveRuntime({
         passages() {
             if (!main?.player) return [];
             return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, spoken: !main.unspokenIds?.has(id) }));
+        },
+
+        /**
+         * A Settings choice the reader made during the reading (stage-controls.js), kept in the journal for perception;
+         * a parameter the stage does not offer is not kept.
+         */
+        noteSetting(parameter, value) {
+            if (!SETTING_PARAMETERS.includes(parameter)) return;
+            const kept = typeof value === 'string' ? clip(value, 40)
+                : typeof value === 'boolean' || value === null || (typeof value === 'number' && Number.isFinite(value)) ? value : undefined;
+            if (kept !== undefined) note('setting', { parameter, value: kept });
+        },
+
+        /** Words the reader said to the microphone during the reading, as heard, kept in the journal for perception. */
+        noteSaid(words) {
+            const heard = String(words ?? '').trim();
+            if (heard) note('said', { words: clip(heard, 200) });
         },
 
         /**

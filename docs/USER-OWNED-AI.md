@@ -42,6 +42,8 @@ The same connection serves the auxiliary features: Scriptorium routing (`route.j
 
 RISE Live (`/live?provider=openrouter`, off by default) asks its live answers through the same OpenRouter connection: `src/live/adapters/openrouter.js` streams OpenRouter's chat completions with the model the reader names (default `anthropic/claude-haiku-5.5`), and carries text only; RISE's own voice speaks it. The adapter never holds the key: `getOpenRouterChat()` in `src/core/ai-connection.js` adds it to the one request, and a `401` drops it as above.
 
+What goes up from a Live reading, and where: the reader's question, and with it, only when they ask, a short record of what they did in the reading before it (play and pause, replay, going back or on, the pace, the Settings they changed, words they spoke to it), built by `src/live/perception.js` from the reading's own journal. It goes in the same one request to the provider the reader chose, on their key, through the adapter and nothing else; nothing is sent on a timer, nothing is stored, and nothing reaches a SyberLabs server. It names actions, never claims about the reader, carries nothing from the page outside the reading, and says a chosen voice only as "another voice". The venue says so before the first question. In Live the model speaks as RISE, and the instructions tell it to say plainly, when asked, which model and service it is; the About panel shows the same.
+
 ## Connect OpenRouter (OAuth PKCE)
 
 Following [OpenRouter's OAuth PKCE guide](https://openrouter.ai/docs/guides/overview/auth/oauth), `src/core/openrouter-oauth.js`:

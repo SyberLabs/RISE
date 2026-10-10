@@ -10,7 +10,11 @@ import { SCENE_ENGINES } from '../../core/beats.js';
 import { TOOL_NAME } from '../guide/index.js';
 import { createEventWriter } from '../adapter.js';
 import { createCurrentStream } from '../stream.js';
-import { BEAT_EXAMPLES, promptFor, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
+import { BEAT_EXAMPLES, instructionsFor, PERCEPTION_GUIDE, PERSONA, promptFor, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
+import { describePerception, perceive, PERCEPTION_CLOSING, PERCEPTION_OPENING } from '../perception.js';
+import { buildBody as buildOpenRouterBody } from './openrouter.js';
+import { buildBody as buildGeminiBody } from './gemini-wire.js';
+import { createOpenAIWire } from './openai-wire.js';
 import { createSegmentParser } from './segment-parser.js';
 import { sceneRefusal } from '../../core/scene-admission.js';
 
@@ -56,5 +60,66 @@ describe('the instructions', () => {
     it('ask a Dive in beats too', () => {
         const asked = promptFor({ intent: 'dive', prompt: 'Why?', parent: { context: ['Before.', 'Here.'], atCharacter: 2 } });
         expect(asked).toMatch(/in beats, briefly/u);
+    });
+});
+
+describe('RISE speaks as itself (the RISE Live design, §1 items 6 and 7)', () => {
+    it('opens with the persona, and the honesty rule follows it', () => {
+        expect(REALTIME_INSTRUCTIONS.startsWith(`${PERSONA}\n`)).toBe(true);
+        expect(PERSONA.startsWith('You are RISE.')).toBe(true);
+        expect(PERSONA).toMatch(/in a room the reader controls/u);
+        expect(PERSONA).toMatch(/through the model the reader connected, on the reader’s own key/u);
+        expect(PERSONA).toMatch(/who RISE really is.*plainly.*the model and the service that runs it/su);
+        expect(PERSONA).toMatch(/a voice, not a disguise/u);
+    });
+
+    it('names the model and who runs it, from what the adapter knows', () => {
+        const told = instructionsFor({ name: 'anthropic/claude-haiku-5.5', provider: 'OpenRouter' });
+        expect(told.startsWith(REALTIME_INSTRUCTIONS)).toBe(true);
+        expect(told.endsWith('\n\nIn this room the model is anthropic/claude-haiku-5.5, reached through OpenRouter, on the reader’s own key.')).toBe(true);
+    });
+
+    it('gives no orders in what it adds: no "you must", "always" or "never", and no sentence that begins Always, Never, Do not or Don’t', () => {
+        for (const text of [PERSONA, PERCEPTION_GUIDE]) {
+            expect(text).not.toMatch(/you must|\balways\b|\bnever\b/iu);
+            for (const sentence of text.split(/(?<=[.:])\s+|\n/u)) {
+                expect(sentence.trim(), sentence).not.toMatch(/^(?:- )?(?:Always|Never|Do not|Don’t|Don't)\b/u);
+            }
+        }
+    });
+});
+
+describe('the reader’s actions (perception v1, design §4)', () => {
+    const perception = perceive([
+        { at: 0, type: 'replay', from: 'beat-3', to: 'beat-3', reason: 'reader' },
+        { at: 1, type: 'replay', from: 'beat-3', to: 'beat-3', reason: 'reader' }
+    ], { passages: [1, 2, 3].map(n => ({ segmentId: `beat-${n}`, text: `Passage ${n}.` })) });
+
+    it('are taught in the instructions: what each event says, between the block’s own first and last lines', () => {
+        expect(REALTIME_INSTRUCTIONS).toContain(PERCEPTION_GUIDE);
+        expect(PERCEPTION_GUIDE).toContain(PERCEPTION_OPENING.split(',')[0]);
+        expect(PERCEPTION_GUIDE).toContain(PERCEPTION_CLOSING);
+        for (const said of ['replayed', 'went from', 'paused', 'the device stopped the voice', 'played on', 'pace', 'theme', 'said', 'reached the end of the reading']) {
+            expect(PERCEPTION_GUIDE, said).toContain(said);
+        }
+        expect(PERCEPTION_GUIDE).toMatch(/say it another way/u);
+        expect(PERCEPTION_GUIDE).toMatch(/offer the picture again/u);
+    });
+
+    it('go before the reader’s words, as data, and only when there are any', () => {
+        expect(promptFor({ intent: 'answer', prompt: 'Why?', perception })).toBe(`${describePerception(perception)}\n\nThen the reader asked: Why?`);
+        expect(promptFor({ intent: 'answer', prompt: 'Why?' })).toBe('Why?');
+        expect(promptFor({ intent: 'answer', prompt: 'Why?', perception: { events: [], earlier: 0 } })).toBe('Why?');
+    });
+
+    it('reach every text provider through the one message every provider is given, with no provider’s own code', () => {
+        const request = { intent: 'answer', prompt: 'Why?', perception };
+        const asked = promptFor(request);
+        expect(asked).toContain('- replayed passage 3 twice: “Passage 3.”');
+        expect(buildOpenRouterBody(request, 'anthropic/claude-haiku-5.5').messages[1]).toEqual({ role: 'user', content: asked });
+        expect(buildGeminiBody(request).contents[0].parts[0].text).toBe(asked);
+        const sent = [];
+        createOpenAIWire({ send: event => sent.push(event), sink: { delta() {}, done() {}, error() {} } }).start(request);
+        expect(sent[0].item.content[0].text).toBe(asked);
     });
 });

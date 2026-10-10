@@ -20,21 +20,24 @@
  */
 
 import { AdapterError } from '../adapter.js';
-import { buildBody, createGeminiWire } from './gemini-wire.js';
+import { GEMINI_DEFAULT_MODEL } from './gemini-model.js';
+import { buildBody, createGeminiWire, geminiOrigin } from './gemini-wire.js';
 import { createTextStreamAdapter } from './text-stream.js';
 
 export function createGeminiAdapter({ transport, capacity } = {}) {
     if (!transport || typeof transport.open !== 'function') throw new TypeError('The Gemini adapter is given a transport that can open');
+    // The model the transport will ask, as a transport that knows says it (gemini-fetch.js model()).
+    const model = () => transport.model?.() ?? GEMINI_DEFAULT_MODEL;
     return createTextStreamAdapter({
         id: 'gemini-stream',
-        provider: 'Google Gemini',
+        origin: () => geminiOrigin(model()),
         capacity,
         async connect(request, sink, { signal } = {}) {
             // Stopped before it began: nothing is asked.
             if (signal?.aborted) throw new AdapterError('ABORTED', 'The live answer was stopped before it began.');
             let connection;
             try {
-                connection = await transport.open({ body: buildBody(request), signal });
+                connection = await transport.open({ body: buildBody(request, model()), signal });
             } catch (error) {
                 throw error instanceof AdapterError ? error : new AdapterError('CONNECT_FAILED', String(error?.message ?? error).slice(0, 300));
             }

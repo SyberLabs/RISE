@@ -30,7 +30,7 @@
 import { getOpenRouterChat } from '../../core/ai-connection.js';
 import { AdapterError } from '../adapter.js';
 import { createSseParser } from './gemini-sse.js';
-import { promptFor, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
+import { instructionsFor, promptFor } from './openai-instructions.js';
 import { isOpenRouterModel, OPENROUTER_DEFAULT_MODEL } from './openrouter-model.js';
 import { createTextStreamAdapter } from './text-stream.js';
 
@@ -45,12 +45,17 @@ const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, 
 const object = value => (value && typeof value === 'object' && !Array.isArray(value) ? value : null);
 const stopped = () => new AdapterError('ABORTED', 'The live answer was stopped before it began.');
 
+/** The model the reader named, or the default when they named none. */
+const modelOf = asked => (asked === undefined || asked === null || asked === '' ? OPENROUTER_DEFAULT_MODEL : asked);
+/** Who writes the answer, as the Current's origin and the instructions say it: the model, reached through OpenRouter. */
+const originOf = model => ({ name: isOpenRouterModel(model) ? model : 'an OpenRouter model', provider: 'OpenRouter' });
+
 /** The one request that asks a question: RISE's instructions, the reader's words, a cap on what can be spent. */
 export function buildBody(request, model) {
     return {
         model,
         messages: [
-            { role: 'system', content: REALTIME_INSTRUCTIONS },
+            { role: 'system', content: instructionsFor(originOf(model)) },
             { role: 'user', content: promptFor(request) }
         ],
         stream: true,
@@ -127,12 +132,11 @@ export function createOpenRouterAdapter({
 } = {}) {
     return createTextStreamAdapter({
         id: 'openrouter-stream',
-        provider: 'OpenRouter',
+        origin: () => originOf(modelOf(getModel())),
         capacity,
         async connect(request, sink, { signal } = {}) {
             if (signal?.aborted) throw stopped();
-            const asked = getModel();
-            const model = asked === undefined || asked === null || asked === '' ? OPENROUTER_DEFAULT_MODEL : asked;
+            const model = modelOf(getModel());
             if (!isOpenRouterModel(model)) throw new AdapterError('MODEL_INVALID', 'That is not an OpenRouter model name: it looks like maker/model, for example anthropic/claude-haiku-5.5.');
             const chat = getChat();
             if (!chat || typeof chat.request !== 'function') {

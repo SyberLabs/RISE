@@ -14,6 +14,8 @@ import { createFakeGeminiTransport } from '../../test/fake-gemini-transport.js';
 import { createGeminiFetchTransport } from './gemini-fetch.js';
 import { buildBody } from './gemini-wire.js';
 import { createGeminiAdapter } from './gemini.js';
+import { GEMINI_DEFAULT_MODEL } from './gemini-model.js';
+import { instructionsFor } from './openai-instructions.js';
 
 const ASK = { intent: 'answer', prompt: 'Explain black holes.' };
 const DIVE = { intent: 'dive', prompt: 'What is the horizon?', parent: { currentId: 'answer-1', segmentId: 'horizon', atCharacter: 24, context: ['Earlier.', 'The passage.'] } };
@@ -36,6 +38,25 @@ describe('what it asks', () => {
         expect(transport.requests).toHaveLength(1);
         expect(transport.requests[0].body).toEqual(buildBody(ASK));
         expect(transport.requests[0].signal).toBeInstanceOf(AbortSignal);
+    });
+
+    it('says in the Current who wrote it: the model asked, reached through Google, and tells the model the same', async () => {
+        const clock = createVirtualClock();
+        const transport = createFakeGeminiTransport({ clock });
+        const plain = read(await createGeminiAdapter({ transport }).open(ASK));
+        const named = createFakeGeminiTransport({ clock });
+        named.model = () => 'gemini-3.5-pro';
+        const chosen = read(await createGeminiAdapter({ transport: named }).open(ASK));
+        await clock.runAll();
+        expect((await plain).origin).toEqual({ kind: 'model', name: GEMINI_DEFAULT_MODEL, provider: 'Google' });
+        expect((await chosen).origin).toEqual({ kind: 'model', name: 'gemini-3.5-pro', provider: 'Google' });
+        expect(named.requests[0].body).toEqual(buildBody(ASK, 'gemini-3.5-pro'));
+        expect(named.requests[0].body.systemInstruction.parts[0].text).toBe(instructionsFor({ name: 'gemini-3.5-pro', provider: 'Google' }));
+    });
+
+    it('knows the model its fetch transport will ask, before it asks', () => {
+        expect(createGeminiFetchTransport({ getKey: () => 'k' }).model()).toBe(GEMINI_DEFAULT_MODEL);
+        expect(createGeminiFetchTransport({ getKey: () => 'k', getModel: () => 'gemini-x' }).model()).toBe('gemini-x');
     });
 
     it('asks a Dive as a request of its own, with the place quoted', async () => {

@@ -510,20 +510,29 @@ export function createStageControls({
         intensity.setAttribute('aria-valuetext', vividness(value));
         sendIntensity(value);
     });
+    // Each choice is kept in the runtime's journal once made (perception, the RISE Live design §4); a slider once let go.
+    const remember = (parameter, value) => runtime.noteSetting?.(parameter, value);
+    intensity.addEventListener('change', () => remember('intensity', Number(intensity.value)));
     // The frame and the Chamber take a theme in one frame; "As written" (null) gives each its own back.
     theme.addEventListener('change', () => {
         paintTheme(theme.value || null);
         choose('theme', theme.value || null);
+        remember('theme', theme.value || null);
     });
     // The two saved rows go through the Chamber's settings path, which applies and keeps them.
     still.addEventListener('change', () => {
         choose('reducedMotion', still.checked);
+        remember('still', still.checked);
         render(runtime.snapshot());
     });
-    sound?.addEventListener('change', () => choose('cardSound', sound.checked));
+    sound?.addEventListener('change', () => {
+        choose('cardSound', sound.checked);
+        remember('sound', sound.checked);
+    });
     // The voice in use finishes its passage (voices/browser.js setVoice), so the change is said with where it lands.
     voiceSelect?.addEventListener('change', () => {
         voicePick.choose(voiceSelect.value);
+        remember('voice', voiceSelect.value);
         voiceNote.textContent = `Voice: ${voiceSelect.value || 'Automatic'}, from the next passage.`;
     });
     aboutPanel?.addEventListener('toggle', () => { if (aboutPanel.open) refreshAbout(); });
@@ -543,7 +552,11 @@ export function createStageControls({
         });
     });
     for (const chip of sizes) {
-        chip.addEventListener('change', () => { if (chip.checked) choose('fontSize', chip.value); });
+        chip.addEventListener('change', () => {
+            if (!chip.checked) return;
+            choose('fontSize', chip.value);
+            remember('textSize', chip.value);
+        });
     }
 
     play.addEventListener('click', () => {

@@ -27,6 +27,7 @@
     "security:compat": "node scripts/verify-security-dependencies.mjs",
     "docs:diagram": "node scripts/build-architecture-diagram.mjs",
     "eval:creative": "node scripts/eval-creative.mjs",
+    "eval:perception": "node scripts/eval-perception.mjs",
     "scriptorium": "vite-node scripts/scriptorium.mjs --",
     "scriptorium:ci": "npm run content:build && node scripts/scriptorium-ci.mjs",
     "probe:collections": "vite-node scripts/probe-collections.mjs",

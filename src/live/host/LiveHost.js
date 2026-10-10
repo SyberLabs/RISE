@@ -48,6 +48,7 @@ import { siteUrl } from '../../core/embed-address.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import { LIVE_PROVIDERS } from '../adapters/registry.js';
 import { LiveVenue } from './venue.js';
+import { originLine } from './venue-entry.js';
 import './LiveHost.css';
 
 const DEFAULT_PROMPT = 'Explain black holes with RISE.';
@@ -859,7 +860,8 @@ export class LiveHost {
             audible: this.voiceKind === 'browser',
             degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability)),
             sound: Boolean(this.audioEngine),
-            about: () => this.aboutReading(),
+            // Who is speaking comes first: RISE, through the model and service the Current names (design §1 item 7).
+            about: () => [originLine(runtime.composed?.('main')?.origin), this.aboutReading()].filter(Boolean).join('\n'),
             voice: this.voiceKind === 'browser' ? this.voicePick() : null,
             room
         });

@@ -403,6 +403,11 @@ describe('the demo that writes in beats (the venue’s)', () => {
         expect(figure).toBeLessThan(complete - 5_000);
     });
 
+    it('says in the Current that it is RISE’s own demo, with no model and no key behind it', async () => {
+        const { reducer } = await stream();
+        expect(reducer.snapshot().origin).toEqual({ kind: 'model', name: 'RISE demo', provider: 'RISE' });
+    });
+
     it('says plainly that it knows only black holes, in one beat', async () => {
         const { reducer } = await stream({ intent: 'answer', prompt: 'What is a quasar?' });
         expect(reducer.toCurrent().beats).toEqual([{ say: 'This demonstration can only explain black holes.' }]);
