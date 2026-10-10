@@ -209,7 +209,13 @@ describe('admitPerception: what the adapter door takes', () => {
         ['a setting it does not know', { events: [{ type: 'visual.changed', parameter: 'url', value: 'x' }], earlier: 0 }],
         ['a pace out of range', { events: [{ type: 'paced', rate: 9 }], earlier: 0 }],
         ['not a plain object', []],
-        ['an earlier count that is not a count', { events: [], earlier: -1 }]
+        ['an earlier count that is not a count', { events: [], earlier: -1 }],
+        ['a setting with no parameter or value', { events: [{ type: 'visual.changed' }], earlier: 0 }],
+        ['a replay with no passage it went to', { events: [{ type: 'replayed', from: 3, times: 1 }], earlier: 0 }],
+        ['a hold with no one who held it', { events: [{ type: 'held', passage: 2 }], earlier: 0 }],
+        ['words with no words', { events: [{ type: 'said' }], earlier: 0 }],
+        ['a pace with no rate', { events: [{ type: 'paced' }], earlier: 0 }],
+        ['a scene input with no value', { events: [{ type: 'scene.input', scene: 'orbit', control: 'mass' }], earlier: 0 }]
     ])('refuses %s', (_, value) => {
         expect(() => admitPerception(value)).toThrow(TypeError);
     });
