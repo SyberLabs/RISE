@@ -58,6 +58,29 @@ describe('the self-contained card', () => {
     expect(() => cardHtml({ origin: ORIGIN, indexHtml: '<html><body></body></html>' })).toThrow('head');
     expect(() => cardHtml({ origin: ORIGIN, indexHtml: INDEX.replace('<head>', '<head><base href="/x/">') })).toThrow('base');
   });
+  it('carries its own Content Security Policy, ahead of everything it loads, with no eval and no origin but RISE’s', () => {
+    const html = cardHtml({ origin: ORIGIN, indexHtml: INDEX });
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const metas = doc.querySelectorAll('meta[http-equiv="Content-Security-Policy"]');
+    expect(metas).toHaveLength(1);
+    // A <meta> policy governs only what comes after it: it is the head's first element after the charset.
+    const first = [...doc.head.children].find(node => !node.matches('meta[charset]'));
+    expect(first).toBe(metas[0]);
+    const policy = metas[0].getAttribute('content');
+    expect(policy).not.toMatch(/unsafe-eval|wasm-unsafe-eval|\*/u);
+    const directives = Object.fromEntries(policy.split(';').map(part => part.trim().split(/\s+/u)).map(([name, ...sources]) => [name, sources]));
+    expect(directives).toEqual({
+      'default-src': ["'none'"],
+      'script-src': [ORIGIN, 'blob:'],
+      'worker-src': ['blob:'],
+      'connect-src': [ORIGIN],
+      'img-src': [ORIGIN, 'blob:', 'data:'],
+      'font-src': [ORIGIN],
+      'style-src': [ORIGIN, "'unsafe-inline'"],
+      'media-src': [ORIGIN, 'blob:']
+    });
+  });
+
   it('drops the page’s manifest link: a host’s policy has no manifest-src for RISE, and the card installs nothing', () => {
     const page = INDEX.replace('<title>RISE</title>', '<title>RISE</title><link rel="manifest" href="/site.webmanifest">');
     const html = cardHtml({ origin: ORIGIN, indexHtml: page });

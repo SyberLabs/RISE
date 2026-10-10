@@ -37,6 +37,8 @@ function fakeScope() {
     fetch: () => 'network', XMLHttpRequest: class {}, WebSocket: class {}, importScripts: () => {}, indexedDB: {}, caches: {},
     navigator: { userAgent: 'x' }, FontFace: class {}, setTimeout: () => 1, setInterval: () => 1, requestAnimationFrame: () => 1,
     addEventListener: (type, fn) => { if (type === 'message') listeners.push(fn); },
+    removeEventListener: () => {}, onmessage: null, onerror: null,
+    eval: () => 'evaluated', Function: () => () => 'built', self: {}, globalThis: {},
     postMessage: message => posted.push(message),
     close: vi.fn()
   };
@@ -101,6 +103,37 @@ describe('starting a scene', () => {
     }
     // And the code cannot put them back.
     expect(() => { 'use strict'; scope.fetch = () => 'again'; }).toThrow();
+  });
+
+  // The global reaches a scene without being named (a listener's `this` or `currentTarget` is the scope), so
+  // every name on it that builds code from strings, names the global again, or is the worker's channel is locked.
+  const LOCKED = ['Function', 'eval', 'addEventListener', 'removeEventListener', 'onmessage', 'onerror', 'close', 'importScripts', 'self', 'globalThis'];
+
+  it('locks every name on the scope that builds code, names the global, or is the worker’s channel, before the code runs', async () => {
+    let seen = null;
+    const { scope, init } = setup({
+      default: () => {
+        seen = {};
+        for (const name of LOCKED) {
+          try { const value = scope[name]; if (typeof value === 'function') value('return 1'); seen[name] = value === undefined ? 'undefined' : 'reached'; } catch { seen[name] = 'refused'; }
+        }
+        return { frame() {} };
+      }
+    });
+    await init();
+    for (const name of LOCKED) expect(seen[name], name).toBe('refused');
+    for (const name of LOCKED) expect(Object.getOwnPropertyDescriptor(scope, name).configurable, name).toBe(false);
+    // And the code cannot put them back, or take the channel by assignment.
+    expect(() => { 'use strict'; scope.Function = () => 'again'; }).toThrow();
+    expect(() => { scope.onmessage = () => {}; }).toThrow();
+    expect(() => Object.defineProperty(scope, 'eval', { value: () => 'again' })).toThrow();
+  });
+
+  it('keeps the worker’s own listener, attached before the lock, answering the host', async () => {
+    const { listeners, init, of } = setup({ default: () => ({ frame() {} }) });
+    await init();
+    listeners[0]({ data: { type: TO_WORKER.frame, t: 16, dt: 16 } });
+    expect(of(TO_HOST.frameDone)).toHaveLength(1);
   });
 
   it('gives the code its canvas, size, theme, motion setting, library, done and no fonts, then runs a dry frame before it says ready', async () => {
@@ -189,6 +222,7 @@ describe('starting a scene', () => {
 describe('the routes to Function that name nothing', () => {
   const routes = {
     'a constructor of a constructor': '[].constructor.constructor("return 1")()',
+    'an arrow function': '(() => {}).constructor("return 1")()',
     'an async arrow function': '(async () => {}).constructor("return 1")()',
     'a generator function': '(function* () {}).constructor("return 1")()',
     'an async generator function': '(async function* () {}).constructor("return 1")()',
@@ -347,9 +381,11 @@ describe('cues, done, resize and dispose', () => {
 
   it('closes when disposed', async () => {
     const { init, worker, scope } = setup({ default: () => ({ frame() {} }) });
+    // The scope's own close, kept by the worker before the scene's code could reach it.
+    const { close } = scope;
     await init();
     await worker.handle({ type: TO_WORKER.dispose });
-    expect(scope.close).toHaveBeenCalled();
+    expect(close).toHaveBeenCalled();
   });
 });
 

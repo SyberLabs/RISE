@@ -139,10 +139,10 @@ describe('a scene the Worker refuses, and why', () => {
     expect(diagnostic.message).toMatch(/^`FontFace`/u);
   });
 
-  it('bans every name the scene worker shadows, and only names the scope cannot shadow besides', () => {
+  it('bans every name the scene worker shadows, and only a name that is no global of a worker besides', () => {
     expect(BANNED_GLOBALS.filter(name => !BANNED_SCENE_NAMES.includes(name))).toEqual([]);
     expect(BANNED_SCENE_NAMES.filter(name => !BANNED_GLOBALS.includes(name)).sort())
-      .toEqual(['Function', 'eval', 'globalThis', 'self', 'window']);
+      .toEqual(['window']);
   });
 
   it('refuses a banned name wherever it is a name, a local one included, and says so', () => {
