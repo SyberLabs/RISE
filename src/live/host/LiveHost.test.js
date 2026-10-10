@@ -150,12 +150,86 @@ describe('the voice the browser speaks with', () => {
         expect(environment.__riseLive.voice()).toEqual({ name: ARIA.name, lang: 'en-US' });
     });
 
-    it('is recorded as none when the browser is left to choose', async () => {
+    it('is a real voice where Safari marks every voice default, and none only when the browser has none in the language', async () => {
         const safari = [{ name: 'Albert', lang: 'en-US', default: true }, { name: 'Samantha', lang: 'en-US', default: true }];
         const { environment } = speaking(createVirtualClock(), safari);
         mount('?measure=1', environment);
         await host.buildRuntime();
-        expect(environment.__riseLive.voice()).toBeNull();
+        expect(environment.__riseLive.voice()).toEqual({ name: 'Samantha', lang: 'en-US' });
+        host.destroy();
+        const elsewhere = speaking(createVirtualClock(), [{ name: 'Thomas', lang: 'fr-FR', default: true }]);
+        mount('?measure=1', elsewhere.environment);
+        await host.buildRuntime();
+        expect(elsewhere.environment.__riseLive.voice()).toBeNull();
+    });
+
+    /** The host with the app's settings, as the shell gives them. */
+    function mountWithSettings(environment, saved = {}) {
+        const settings = { ...saved };
+        const onSettingChange = vi.fn((key, value) => { settings[key] = value; });
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        host = new LiveHost(container, { router: { navigate: async () => true, views: new Map() }, search: '?voice=browser', env: environment, getSettings: () => settings, onSettingChange });
+        return { settings, onSettingChange };
+    }
+
+    async function givenVoices(clock, synth, voices, texts) {
+        const given = [];
+        const speak = synth.speak.bind(synth);
+        synth.speak = utterance => { given.push(utterance.voice?.name ?? null); speak(utterance); };
+        const voice = voices.create();
+        for (const [index, text] of texts.entries()) voice.enqueue({ id: `s${index}`, text });
+        return { given, voice };
+    }
+
+    it('is the reader’s own, saved in Settings, on Play', async () => {
+        const clock = createVirtualClock();
+        const { environment, synth } = speaking(clock, EDGE);
+        mountWithSettings(environment, { cardVoice: EDGE[0].name });
+        const { given } = await givenVoices(clock, synth, await host.buildVoices(clock), ['hello there']);
+        await clock.runAll();
+        expect(given).toEqual([EDGE[0].name]);
+    });
+
+    it('is Automatic when the saved voice is no longer installed', async () => {
+        const clock = createVirtualClock();
+        const { environment, synth } = speaking(clock, EDGE);
+        mountWithSettings(environment, { cardVoice: 'A voice from another device' });
+        const { given } = await givenVoices(clock, synth, await host.buildVoices(clock), ['hello there']);
+        await clock.runAll();
+        expect(given).toEqual([ARIA.name]);
+    });
+
+    it('changes when the reader picks one: saved, spoken from the next passage, and Automatic gives the ranking back', async () => {
+        const clock = createVirtualClock();
+        const { environment, synth } = speaking(clock, EDGE);
+        const { onSettingChange } = mountWithSettings(environment);
+        const { given } = await givenVoices(clock, synth, await host.buildVoices(clock), ['first passage', 'second passage', 'third passage']);
+        await clock.advance(100);
+        host.chooseBrowserVoice(EDGE[0].name);
+        expect(onSettingChange).toHaveBeenLastCalledWith('cardVoice', EDGE[0].name);
+        expect(host.spokenVoice).toEqual({ name: EDGE[0].name, lang: 'en-US' });
+        await clock.advance(1_200);
+        host.chooseBrowserVoice('');
+        expect(onSettingChange).toHaveBeenLastCalledWith('cardVoice', '');
+        await clock.runAll();
+        expect(given).toEqual([ARIA.name, EDGE[0].name, ARIA.name]);
+    });
+
+    it('offers the stage the voices of the reading’s language, and names them in About this reading, at most twenty', async () => {
+        const clock = createVirtualClock();
+        const many = Array.from({ length: 25 }, (_, i) => ({ name: `Voice ${i}`, lang: i % 2 ? 'en-GB' : 'en-US', localService: true, default: false }));
+        const { environment } = speaking(clock, [...many, { name: 'Thomas', lang: 'fr-FR', localService: true, default: false }]);
+        mountWithSettings(environment, { cardVoice: 'Voice 3' });
+        await host.buildVoices(clock);
+        const pick = host.voicePick();
+        expect(pick.voices).toHaveLength(25);
+        expect(pick.voices[0]).toEqual({ name: 'Voice 0', local: true });
+        expect(pick.selected).toBe('Voice 3');
+        const listed = host.aboutReading().match(/^voices for en-US: (.*)$/mu)?.[1];
+        expect(listed.split(', ')).toHaveLength(21);
+        expect(listed).toMatch(/, and 5 more$/u);
+        expect(listed).not.toContain('Thomas');
     });
 });
 
@@ -1114,7 +1188,8 @@ describe('inside an MCP host', () => {
             await vi.waitFor(() => expect(host.runtime).toBeTruthy());
             await vi.advanceTimersByTimeAsync(3_000);
             const about = host.aboutReading();
-            expect(about).toMatch(/^voice: browser \(platform default\)$/mu);
+            expect(about).toMatch(/^voice: browser "Fake voice" en-US local=false$/mu);
+            expect(about).toMatch(/^voices for en-US: Fake voice$/mu);
             expect(about).toMatch(/^voice trouble: none$/mu);
             expect(about).toMatch(/^speech starts: [1-9]\d*$/mu);
             expect(about).toMatch(/^speechSynthesis: synthesis, 1 voices?, speaking=(true|false) pending=\S+ paused=(true|false)$/mu);

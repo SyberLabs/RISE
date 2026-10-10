@@ -46,6 +46,9 @@ export function createRouteManifest(operations) {
             onNavigate: (...args) => operations.handleNavigate(...args),
             // The engine the reading's Chamber plays its beds on, so the host can trace them and duck them under its voice.
             ensureAudioEngine: () => operations.chamberSession.ensureAudioEngine(),
+            // The reader's own browser voice for the card is a saved setting (cardVoice).
+            getSettings: operations.getSettings,
+            onSettingChange: operations.handleSettingsChange,
             // Read when the view is built: in a host's card the query is the card's, not the window's.
             get search() { return appLocation().search; }
           },

@@ -47,7 +47,8 @@ afterEach(() => {
     vi.useRealTimers();
 });
 
-function setup({ count = 3, speak = true, voiceOptions = {} } = {}) {
+/** `capabilities`: what the voice claims, read each time it is asked; `marks`: whether its word marks reach the governor. */
+function setup({ count = 3, speak = true, voiceOptions = {}, capabilities = null, marks = true } = {}) {
     const segments = BLACK_HOLES.segments.slice(0, count).map(({ id, text }) => ({ id, text }));
     const session = compileRiseCurrent({
         schema: 'rise.current.v1', id: 'gov-1', title: 'Gov', origin: { kind: 'human', name: 'Tester' }, segments
@@ -58,11 +59,12 @@ function setup({ count = 3, speak = true, voiceOptions = {} } = {}) {
 
     const voiceLog = {};
     voice = createSyntheticVoice({ clock, msPerChar: MS_PER_CHAR, breathMs: 150, ...voiceOptions });
+    if (capabilities) Object.defineProperty(voice, 'capabilities', { get: capabilities });
     const degraded = [];
     governor = createSpeechGovernor({ voice, clock, onDegrade: info => degraded.push(info) });
     voice.attach({
         start: id => { voiceLog[id] = { startedAt: now() }; },
-        mark: (id, charIndex, tMs) => governor.observe('mark', id, charIndex, tMs),
+        mark: (id, charIndex, tMs) => { if (marks) governor.observe('mark', id, charIndex, tMs); },
         end: (id, durationMs) => { voiceLog[id].endedAt = now(); governor.observe('end', id, durationMs); }
     });
     governor.update({ atoms: session.atoms, segments });
@@ -84,6 +86,24 @@ describe('when the voice is the clock', () => {
             expect(atom, `first atom of ${segment.id}`).toBeDefined();
             expect(Math.abs(atom.at - voiceLog[segment.id].startedAt)).toBeLessThanOrEqual(SEGMENT_BOUNDARY_BUDGET_MS);
         }
+    });
+
+    it('stops waiting on word marks once the voice no longer claims them, as when the reader picks a network voice', async () => {
+        /** When each atom was shown, from Play, for a voice that reports no marks and claims them until `claimsUntil` ms. */
+        async function timesFor(claimsUntil) {
+            const started = now();
+            const { segments, shown } = setup({ marks: false, capabilities: () => ({ audible: true, wordMarks: now() - started < claimsUntil }) });
+            player.play();
+            await tick(totalMs(segments) + 6_000);
+            const times = shown.map(s => [s.index, Math.round(s.at - started)]);
+            governor.dispose();
+            voice.close();
+            player.destroy();
+            return times;
+        }
+        const never = await timesFor(0);
+        // Picked before the first passage ends: from then on the words go as they would for a voice that never claimed marks.
+        expect(await timesFor(1)).toEqual(never);
     });
 
     it('keeps every atom inside a segment within the budget of where the voice was', async () => {
