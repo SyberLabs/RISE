@@ -1,6 +1,8 @@
 import {
   bandTravelPx,
   clampBandFraction,
+  clampFootFraction,
+  footTravelPx,
   readBandOffsetSetting,
   writeBandOffsetSetting
 } from '../../core/band-offset.js';
@@ -2784,6 +2786,8 @@ export class Chamber {
    */
   _markPicture(field, kind) {
     field.dataset.picture = kind;
+    // A card that now stacks the picture over the words rests them in their strip (_bandFootTravel).
+    this.applyBandOffset();
   }
 
   /**
@@ -4828,12 +4832,19 @@ export class Chamber {
     if (!field || !band) return;
 
     this._bandOffsetFraction = readBandOffsetSetting(this.getSettings());
+    // Where the words sit in a field that rests them at its foot (_bandFootTravel): per reading, never saved,
+    // so every picture reading starts with its words in the strip kept for them.
+    this._bandFootFraction = 0;
     this.applyBandOffset();
 
     const DRAG_THRESHOLD_PX = 4;
     let pointerId = null;
+    let startX = 0;
     let startY = 0;
+    let lastX = 0;
+    let lastY = 0;
     let startFraction = 0;
+    let footTravel = null;
     let moved = false;
 
     const selected = () => band.classList.contains('is-band-movable');
@@ -4843,13 +4854,17 @@ export class Chamber {
       if (!selected()) {
         // First press selects and shows the frame; it does not move.
         this.setBandMovable(true);
+        this._noteBand('band.press', { pointerType: event.pointerType, action: 'select' });
         return;
       }
       // The press is the move's, not a selection's.
       event.preventDefault();
+      this._noteBand('band.press', { pointerType: event.pointerType, action: 'grab' });
       pointerId = event.pointerId;
-      startY = event.clientY;
-      startFraction = this._bandOffsetFraction;
+      startX = lastX = event.clientX;
+      startY = lastY = event.clientY;
+      footTravel = this._bandFootTravel();
+      startFraction = footTravel === null ? this._bandOffsetFraction : this._bandFootFraction;
       moved = false;
       band.classList.add('is-band-moving');
       band.setPointerCapture?.(pointerId);
@@ -4857,30 +4872,48 @@ export class Chamber {
 
     const onMove = (event) => {
       if (pointerId === null || event.pointerId !== pointerId) return;
-      const travel = bandTravelPx(field, band);
+      const travel = footTravel ?? bandTravelPx(field, band);
       if (travel <= 0) return;
       const delta = event.clientY - startY;
       if (!moved && Math.abs(delta) < DRAG_THRESHOLD_PX) return;
       moved = true;
+      lastX = event.clientX;
+      lastY = event.clientY;
       // The pointer moves in px; the setting is a fraction of the travel
       // available, so a phone and a monitor keep the same intent.
-      this._bandOffsetFraction = clampBandFraction(startFraction + delta / travel);
+      if (footTravel === null) this._bandOffsetFraction = clampBandFraction(startFraction + delta / travel);
+      else this._bandFootFraction = clampFootFraction(startFraction + delta / travel);
       this.applyBandOffset();
       event.preventDefault();
     };
 
-    const onUp = (event) => {
+    // One move line per gesture, with its total, then how it ended: pointercancel is the browser or the
+    // host's app taking the gesture for its own scroll.
+    const end = (event, type) => {
       if (pointerId === null || event.pointerId !== pointerId) return;
       band.releasePointerCapture?.(pointerId);
       pointerId = null;
       band.classList.remove('is-band-moving');
-      if (moved) writeBandOffsetSetting(this._bandOffsetFraction, this.onSettingsChange);
+      const pointerType = event.pointerType;
+      if (moved) {
+        this._noteBand('band.move', {
+          pointerType,
+          dx: Math.round(lastX - startX),
+          dy: Math.round(lastY - startY),
+          offset: field.style.getPropertyValue('--band-offset')
+        });
+      }
+      this._noteBand(type, { pointerType, moved });
+      if (moved && footTravel === null) writeBandOffsetSetting(this._bandOffsetFraction, this.onSettingsChange);
     };
+    const onUp = (event) => end(event, 'band.release');
+    const onCancel = (event) => end(event, 'band.cancel');
 
     // Pressing away from the band puts it down again.
     const onDismiss = (event) => {
       if (!selected() || band.contains(event.target)) return;
       this.setBandMovable(false);
+      this._noteBand('band.press', { pointerType: event.pointerType, action: 'dismiss' });
     };
     const onKey = (event) => {
       if (event.key === 'Escape' && selected()) this.setBandMovable(false);
@@ -4889,7 +4922,7 @@ export class Chamber {
     band.addEventListener('pointerdown', onDown);
     band.addEventListener('pointermove', onMove);
     band.addEventListener('pointerup', onUp);
-    band.addEventListener('pointercancel', onUp);
+    band.addEventListener('pointercancel', onCancel);
     this.container.addEventListener('pointerdown', onDismiss, true);
     document.addEventListener('keydown', onKey);
 
@@ -4910,6 +4943,40 @@ export class Chamber {
     window.addEventListener('resize', this._bandResize);
   }
 
+  /**
+   * A note of the band's gestures for a live host's trace (LiveHost, "About this reading"): the page is told,
+   * as with a scene's diagnostic, so the Chamber needs no host to exist.
+   */
+  _noteBand(type, fields) {
+    this.container.ownerDocument.defaultView?.dispatchEvent(new CustomEvent('rise-band-note', { detail: { type, ...fields } }));
+  }
+
+  /**
+   * The room above words the field rests at its foot, in px, or null when it centres them. A card on a phone
+   * with a picture (LiveHost.css) aligns the band to the field's end, under the picture: there the words rest
+   * in their strip and rise from it over the picture, and the offset is that room, not the centred travel.
+   */
+  _bandFootTravel() {
+    const field = this.container.querySelector('#chamber-field');
+    const display = this.container.querySelector('#atom-display');
+    if (!field?.dataset?.picture || !display) return null;
+    const view = field.ownerDocument.defaultView;
+    if (view.getComputedStyle(field).alignItems !== 'flex-end') return null;
+    // The box that carries the offset: the phone band where it has a box, else the words themselves.
+    const band = this.container.querySelector('#atom-band');
+    const mover = band && !display.dataset.place && view.getComputedStyle(band).display !== 'contents' ? band : display;
+    let lifted = 0;
+    const transform = view.getComputedStyle(mover).transform;
+    if (transform && transform !== 'none' && view.DOMMatrixReadOnly) {
+      try { lifted = new view.DOMMatrixReadOnly(transform).m42; } catch { lifted = 0; }
+    }
+    return footTravelPx({
+      fieldTop: field.getBoundingClientRect().top,
+      wordsTop: mover.getBoundingClientRect().top,
+      offsetPx: lifted
+    });
+  }
+
   setBandMovable(on) {
     const band = this.container.querySelector('#atom-display');
     if (!band) return;
@@ -4921,6 +4988,14 @@ export class Chamber {
     const field = this.container.querySelector('#chamber-field');
     const band = this.container.querySelector('#atom-display');
     if (!field || !band) return;
+    const foot = this._bandFootTravel?.() ?? null;
+    if (foot !== null) {
+      // Rounded toward the strip, so the top edge's margin is never passed by a fraction of a pixel.
+      const px = Math.ceil(clampFootFraction(this._bandFootFraction ?? 0) * foot);
+      field.style.setProperty('--band-offset', `${px}px`);
+      void this.syncFillGlyphMask();
+      return;
+    }
     const travel = bandTravelPx(field, band);
 
     // NO ROOM IS NOT THE SAME FACT AS NO OFFSET. A stage that has not

@@ -247,10 +247,14 @@
     {
       "date": "2026-10-09T23:55:03.765Z",
       "summary": "fullscreen on a phone: the words' room follows the bar's safe-area inset"
+    },
+    {
+      "date": "2026-10-10T00:00:28.792Z",
+      "summary": "the words can be moved on a small card with a picture; band gestures traced for About"
     }
   ],
-  "updatedAt": "2026-10-09T23:55:03.765Z",
-  "revision": 12,
+  "updatedAt": "2026-10-10T00:00:28.792Z",
+  "revision": 13,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }
