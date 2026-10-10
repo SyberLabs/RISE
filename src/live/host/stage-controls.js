@@ -68,12 +68,17 @@ const KEYS_DESCRIBED = 'Keys on the stage: Space plays or pauses; the Left and R
  * @param {boolean} [options.sound] there is an engine for the reading's beds and tones: the sheet offers Sound
  * @param {(() => string) | null} [options.about] what the host knows of this reading's voice, host and device, as
  *   plain text: the sheet ends with it, collapsed, under "About this reading", with Copy
+ * @param {{voices: {name: string, local: boolean}[], selected: string, choose: (name: string) => void} | null} [options.voice]
+ *   the browser's installed voices for the reading's language: the sheet offers them under Voice, after Automatic
+ *   (the empty name), and `choose` takes the reader's pick, which the voice speaks from its next passage
  * @param {Document} [options.doc]
  */
 export function createStageControls({
     runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], takeFocus = false,
-    transport = 'full', port = null, sound: offersSound = false, about = null, doc = document
+    transport = 'full', port = null, sound: offersSound = false, about = null, voice: voicePick = null, doc = document
 }) {
+    // With Sound offered too, Voice shares its row: one row more would make the sheet scroll in a 481 px card.
+    const offersVoice = (voicePick?.voices?.length ?? 0) > 0;
     const full = transport !== 'minimal';
     const noVoice = degradations.some(note => note.capability === 'speechOutput');
     const systemStill = degradations.some(note => note.capability === 'reducedMotion');
@@ -94,6 +99,7 @@ export function createStageControls({
       <ol class="rise-stage__text rise-stage__sr" aria-label="The whole reading"></ol>
       <p class="rise-stage__said rise-stage__sr" aria-live="off"></p>
       ${full ? '<p class="rise-stage__pace-note rise-stage__sr" aria-live="polite"></p>' : ''}
+      ${offersVoice ? '<p class="rise-stage__voice-note rise-stage__sr" aria-live="polite"></p>' : ''}
       <p class="rise-stage__alert" role="alert" hidden></p>
       <div class="rise-stage__bar">
         ${full ? '<div class="rise-stage__beats" aria-hidden="true"></div>' : ''}
@@ -126,9 +132,16 @@ export function createStageControls({
           <input id="rise-settings-still" type="checkbox" role="switch"${systemStill ? ' checked disabled aria-describedby="rise-settings-still-note"' : ''}>
           <span id="rise-settings-still-note" hidden>Your system asks for reduced motion.</span>
         </div>
-        ${offersSound ? `<div class="rise-settings__row rise-settings__row--switch">
+        ${offersSound && offersVoice ? `<div class="rise-settings__row">
+          <span class="rise-settings__label" aria-hidden="true">Sound &amp; voice</span>
+          <input id="rise-settings-sound" type="checkbox" role="switch" aria-label="Sound" checked>
+          <select id="rise-settings-voice" aria-label="Voice"><option value="">Automatic</option></select>
+        </div>` : offersSound ? `<div class="rise-settings__row rise-settings__row--switch">
           <label for="rise-settings-sound">Sound</label>
           <input id="rise-settings-sound" type="checkbox" role="switch" checked>
+        </div>` : offersVoice ? `<div class="rise-settings__row">
+          <label for="rise-settings-voice">Voice</label>
+          <select id="rise-settings-voice"><option value="">Automatic</option></select>
         </div>` : ''}
         <div class="rise-settings__row rise-settings__row--chips">
           <span class="rise-settings__label" id="rise-settings-size-label">Text size</span>
@@ -155,6 +168,15 @@ export function createStageControls({
     const theme = $('#rise-settings-theme');
     const still = $('#rise-settings-still');
     const sound = $('#rise-settings-sound');
+    const voiceSelect = $('#rise-settings-voice');
+    const voiceNote = $('.rise-stage__voice-note');
+    if (voiceSelect) {
+        // The device's names, as text: never markup.
+        for (const { name: voiceName, local } of voicePick.voices) {
+            voiceSelect.add(new Option(local ? voiceName : `${voiceName} (network)`, voiceName));
+        }
+        voiceSelect.value = voicePick.voices.some(item => item.name === voicePick.selected) ? voicePick.selected : '';
+    }
     const sizes = [...$('.rise-settings__chips').querySelectorAll('input')];
     const back = $('[data-stage="back"]');
     const forward = $('[data-stage="forward"]');
@@ -456,7 +478,7 @@ export function createStageControls({
         sheet.hidden = false;
         settings.setAttribute('aria-expanded', 'true');
         doc.addEventListener('pointerdown', outside);
-        ([intensity, theme, still, sound, ...sizes].find(control => control && !control.disabled) ?? close).focus();
+        ([intensity, theme, still, sound, voiceSelect, ...sizes].find(control => control && !control.disabled) ?? close).focus();
         showBar();
     }
 
@@ -492,6 +514,11 @@ export function createStageControls({
         render(runtime.snapshot());
     });
     sound?.addEventListener('change', () => choose('cardSound', sound.checked));
+    // The voice in use finishes its passage (voices/browser.js setVoice), so the change is said with where it lands.
+    voiceSelect?.addEventListener('change', () => {
+        voicePick.choose(voiceSelect.value);
+        voiceNote.textContent = `Voice: ${voiceSelect.value || 'Automatic'}, from the next passage.`;
+    });
     aboutPanel?.addEventListener('toggle', () => { if (aboutPanel.open) refreshAbout(); });
     // Written inside the press, which the clipboard asks for; where it is refused, the text is selected for the reader to copy.
     copy?.addEventListener('click', () => {

@@ -109,6 +109,21 @@ describe('App safety orchestration', () => {
     expect(reloaded.settings.cardSound).toBe(false);
   });
 
+  it('defaults the card’s browser voice to Automatic, remembers the reader’s pick across a reload, and refuses a non-name', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.settings.cardVoice).toBe('');
+
+    app.handleSettingsChange('cardVoice', 'Ava (Premium)');
+    const reloaded = new App();
+    reloaded.loadSettings();
+    expect(reloaded.settings.cardVoice).toBe('Ava (Premium)');
+
+    localStorage.setItem('rise-settings', JSON.stringify({ cardVoice: { name: 'x' } }));
+    reloaded.loadSettings();
+    expect(reloaded.settings.cardVoice).toBe('');
+  });
+
   it('defaults artwork labels on, restores an explicit opt-out, and propagates it live', async () => {
     const app = new App();
     app.loadSettings();

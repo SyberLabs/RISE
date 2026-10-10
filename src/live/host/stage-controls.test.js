@@ -1123,3 +1123,60 @@ describe('the Sound row', () => {
         expect(mounted.changeJevLook).toHaveBeenCalledWith('jev-soundscape', 'none');
     });
 });
+
+describe('the Voice row', () => {
+    const select = () => $('#rise-settings-voice');
+    const note = () => $('#rise-stage-controls .rise-stage__voice-note');
+    const VOICES = [{ name: 'Samantha', local: true }, { name: 'Ava (Premium)', local: true }, { name: 'Google US English', local: false }];
+
+    it('lists the installed voices after Automatic, marks a network one, and shows the reader’s own as chosen', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, voice: { voices: VOICES, selected: 'Ava (Premium)', choose: () => {} } });
+        settings().click();
+        expect([...sheet().querySelectorAll('.rise-settings__row')].map(row => row.firstElementChild.textContent)).toEqual(['Intensity', 'Theme', 'Still imagery', 'Voice', 'Text size']);
+        expect([...select().options].map(option => [option.value, option.textContent])).toEqual([
+            ['', 'Automatic'], ['Samantha', 'Samantha'], ['Ava (Premium)', 'Ava (Premium)'], ['Google US English', 'Google US English (network)']
+        ]);
+        expect(select().value).toBe('Ava (Premium)');
+        expect(select().labels[0].textContent).toBe('Voice');
+    });
+
+    it('shares Sound’s row when the reading has sound too, so the sheet is no taller: the switch, then the voice', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, sound: true, voice: { voices: VOICES, selected: '', choose: () => {} } });
+        settings().click();
+        expect([...sheet().querySelectorAll('.rise-settings__row')].map(row => row.firstElementChild.textContent)).toEqual(['Intensity', 'Theme', 'Still imagery', 'Sound & voice', 'Text size']);
+        const row = $('#rise-settings-sound').closest('.rise-settings__row');
+        expect([...row.querySelectorAll('input, select')].map(control => control.id)).toEqual(['rise-settings-sound', 'rise-settings-voice']);
+        expect($('#rise-settings-sound').getAttribute('aria-label')).toBe('Sound');
+        expect(select().getAttribute('aria-label')).toBe('Voice');
+    });
+
+    it('is not offered without voices, or without a voice to choose', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, voice: { voices: [], selected: '', choose: () => {} } });
+        expect(select()).toBeNull();
+        stage.destroy();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {} });
+        expect(select()).toBeNull();
+    });
+
+    it('gives the choice to the host and says it lands with the next passage; Automatic says so too', () => {
+        const choose = vi.fn();
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, voice: { voices: VOICES, selected: '', choose } });
+        settings().click();
+        expect(note().getAttribute('aria-live')).toBe('polite');
+        expect(note().textContent).toBe('');
+        select().value = 'Ava (Premium)';
+        change(select());
+        expect(choose).toHaveBeenLastCalledWith('Ava (Premium)');
+        expect(note().textContent).toBe('Voice: Ava (Premium), from the next passage.');
+        select().value = '';
+        change(select());
+        expect(choose).toHaveBeenLastCalledWith('');
+        expect(note().textContent).toBe('Voice: Automatic, from the next passage.');
+    });
+
+    it('escapes a voice’s name: it is the device’s text, not markup', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, voice: { voices: [{ name: '<b>x</b>', local: true }], selected: '', choose: () => {} } });
+        expect(select().options[1].textContent).toBe('<b>x</b>');
+        expect(select().querySelector('b')).toBeNull();
+    });
+});

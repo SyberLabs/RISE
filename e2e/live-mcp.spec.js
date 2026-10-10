@@ -268,6 +268,68 @@ test('without an installed browser voice the embedded reader explains silent pac
   expect((await log(page)).filter(entry => entry.method === 'sampling/createMessage')).toHaveLength(0);
 });
 
+test('the reader picks the browser voice in Settings: the passage under way finishes, the next one is said in the new voice', async ({ page, baseURL }) => {
+  // A browser with two installed voices; each utterance is recorded with the voice it was given, and lasts as long as its words.
+  await page.addInitScript(() => {
+    const voices = [
+      { name: 'Fake Plain', lang: 'en-US', localService: false, default: true, voiceURI: 'fake-plain' },
+      { name: 'Fake Second', lang: 'en-US', localService: false, default: false, voiceURI: 'fake-second' }
+    ];
+    const spoken = [];
+    const queue = [];
+    let current = null;
+    const next = () => {
+      if (current || queue.length === 0) return;
+      current = queue.shift();
+      const utterance = current;
+      if (utterance.text) spoken.push([utterance.text, utterance.voice?.name ?? null]);
+      setTimeout(() => { if (current === utterance) utterance.onstart?.({}); }, 10);
+      setTimeout(() => { if (current !== utterance) return; current = null; utterance.onend?.({}); next(); }, 10 + utterance.text.length * 30);
+    };
+    const synth = {
+      get speaking() { return Boolean(current); }, get pending() { return queue.length > 0; }, paused: false,
+      getVoices: () => voices,
+      addEventListener() {}, removeEventListener() {},
+      speak(utterance) { queue.push(utterance); next(); },
+      cancel() {
+        const stopped = current;
+        queue.length = 0;
+        current = null;
+        if (stopped) setTimeout(() => stopped.onerror?.({ error: 'interrupted' }), 0);
+      },
+      pause() {}, resume() {}
+    };
+    class Utterance { constructor(text) { Object.assign(this, { text, lang: '', rate: 1, voice: null, volume: 1 }); } }
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: synth });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: Utterance });
+    window.__spoken = spoken;
+  });
+  await page.setViewportSize({ width: 900, height: 481 });
+  const app = await openHost(page, baseURL, { sampling: false, voice: 'browser', height: 481 });
+  await begin(app);
+  await expectShown(app, 'A black hole is a region of space');
+  const spoken = () => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__spoken.map(entry => [...entry]));
+  await expect.poll(async () => (await spoken()).length).toBeGreaterThan(0);
+  expect((await spoken())[0][1]).toBe('Fake Plain');
+
+  await app.getByRole('button', { name: 'Settings', exact: true }).click();
+  const voice = app.getByRole('combobox', { name: 'Voice' });
+  await expect(voice).toHaveValue('');
+  expect(await voice.locator('option').allTextContents()).toEqual(['Automatic', 'Fake Plain (network)', 'Fake Second (network)']);
+  // The row costs the sheet no scroll at the card's height.
+  await expect(app.locator('#rise-settings')).toBeInViewport({ ratio: 1 });
+  expect(await sheetScroll(app)).toBe(0);
+  await page.screenshot({ path: 'test-results/live-mcp-voice-picker.png' });
+  const before = (await spoken()).length;
+  await voice.selectOption('Fake Second');
+  await expect(app.locator('.rise-stage__voice-note')).toHaveText('Voice: Fake Second, from the next passage.');
+  // Nothing was said again: the passage under way finished in its own voice, and the next one is in the new.
+  await expect.poll(async () => (await spoken()).length, { timeout: 20_000 }).toBeGreaterThan(before);
+  const after = (await spoken()).slice(before);
+  expect(after[0][1]).toBe('Fake Second');
+  expect((await spoken()).slice(0, before).every(([, name]) => name === 'Fake Plain')).toBe(true);
+});
+
 test('the largest admitted Current crosses Worker, port and reader Play at 65,536 UTF-8 bytes', async ({ page, baseURL }) => {
   const current = workerBoundaryCurrent();
   expect(serializedUtf8Bytes(current)).toBe(65_536);

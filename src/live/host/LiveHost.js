@@ -75,6 +75,8 @@ const KEYED = Object.freeze({
 const VOICES = Object.freeze({ auto: 'Speak if this device can', browser: 'Speak', paced: 'Silent, paced as if spoken' });
 /** How many voice, audio and band trace lines "About this reading" shows. */
 const TRACE_KEPT = 20;
+/** How many installed voice names "About this reading" lists. */
+const VOICES_LISTED = 20;
 /** The journal notes after which the browser's voice is no longer speaking. */
 const VOICE_QUIET = new Set(['speech.end', 'voice.failed', 'voice.taken', 'voice.held']);
 
@@ -121,12 +123,19 @@ export class LiveHost {
      * @param {string} [options.search] the query string
      * @param {object} [options.env] window-like, for capability detection
      * @param {() => Promise<object>} [options.ensureAudioEngine] the app's audio engine, the one the Chamber plays beds on
+     * @param {() => object} [options.getSettings] the app's saved settings: the reader's own browser voice (`cardVoice`)
+     * @param {(key: string, value: unknown) => void} [options.onSettingChange] keeps a setting the reader changed here
      */
-    constructor(container, { router, onNavigate = () => {}, search = globalThis.location?.search ?? '', env = globalThis, ensureAudioEngine = null } = {}) {
+    constructor(container, {
+        router, onNavigate = () => {}, search = globalThis.location?.search ?? '', env = globalThis, ensureAudioEngine = null,
+        getSettings = () => ({}), onSettingChange = () => {}
+    } = {}) {
         this.container = container;
         this.router = router;
         this.onNavigate = onNavigate;
         this.ensureAudioEngine = ensureAudioEngine;
+        this.getSettings = getSettings;
+        this.onSettingChange = onSettingChange;
         // The engine the reading's beds play on, once a reading is built; and the beds and tones it started (?measure=1).
         this.audioEngine = null;
         this.audioLog = [];
@@ -147,6 +156,10 @@ export class LiveHost {
         this.voiceCount = null;
         // The installed voice a browser reading speaks with, by name and language; null leaves the browser's default.
         this.spokenVoice = null;
+        // A browser reading's installed voices, its language and the voice it speaks with (buildVoices), and the
+        // browser voice last made from them, which a reader's pick reaches (chooseBrowserVoice).
+        this.browserVoices = null;
+        this.madeVoice = null;
         this.destroyed = false;
         this.starting = false;
         this.embeddedStartupCancelled = false;
@@ -534,6 +547,12 @@ export class LiveHost {
             `speech starts: ${journal.filter(entry => entry.type === 'speech.start').length}`,
             `speechSynthesis: ${this.caps.speechOutput}, ${voices}${synth ? `, speaking=${synth.speaking} pending=${synth.pending} paused=${synth.paused}` : ''}`
         ];
+        if (this.browserVoices) {
+            // What the Voice row offers on this device, so a reader can say what their phone has.
+            const names = this.browserVoices.offered.map(item => item.name);
+            const more = names.length > VOICES_LISTED ? `, and ${names.length - VOICES_LISTED} more` : '';
+            lines.push(`voices for ${this.browserVoices.lang}: ${names.slice(0, VOICES_LISTED).join(', ')}${more}`);
+        }
         const context = this.port?.hostContext?.();
         if (context) {
             const { platform, displayMode, deviceCapabilities: device, containerDimensions: box } = context;
@@ -705,7 +724,7 @@ export class LiveHost {
     async buildVoices(clock) {
         const wants = this.selectedVoice();
         if (wants === 'browser') {
-            const { chooseVoice, createBrowserVoice, whenVoicesAvailable } = await import('../voices/browser.js');
+            const { chooseVoice, createBrowserVoice, voicesFor, whenVoicesAvailable } = await import('../voices/browser.js');
             const synth = this.env.speechSynthesis;
             const list = await whenVoicesAvailable(synth, { clock });
             this.voiceCount = list.length;
@@ -714,16 +733,53 @@ export class LiveHost {
                 this.showNotes();
                 const speech = { synth, Utterance: this.env.SpeechSynthesisUtterance };
                 const lang = this.env.navigator?.language || 'en';
-                const voice = chooseVoice(list, lang);
-                this.spokenVoice = voice ? Object.freeze({ name: voice.name, lang: voice.lang }) : null;
-                return { create: () => createBrowserVoice({ speech, clock, lang, voice }) };
+                this.browserVoices = { list, lang, offered: voicesFor(list, lang), choose: chooseVoice, voice: null };
+                this.useBrowserVoice(chooseVoice(list, lang, this.savedVoiceName()));
+                return {
+                    create: () => {
+                        this.madeVoice = createBrowserVoice({ speech, clock, lang, voice: this.browserVoices.voice });
+                        return this.madeVoice;
+                    }
+                };
             }
         }
+        this.browserVoices = null;
         this.spokenVoice = null;
         const { createSyntheticVoice } = await import('../voices/synthetic.js');
         this.voiceKind = 'paced';
         this.showNotes();
         return { create: () => createSyntheticVoice({ clock }) };
+    }
+
+    /** The browser voice the reader saved in Settings, by name; empty for Automatic. */
+    savedVoiceName() {
+        const saved = this.getSettings?.()?.cardVoice;
+        return typeof saved === 'string' ? saved : '';
+    }
+
+    useBrowserVoice(voice) {
+        this.browserVoices.voice = voice;
+        this.spokenVoice = voice ? Object.freeze({ name: voice.name, lang: voice.lang }) : null;
+    }
+
+    /**
+     * The reader picked a browser voice by name in Settings (empty: Automatic, the ranking). It is kept, and the
+     * voice speaking takes it from its next passage without interrupting this one (voices/browser.js setVoice).
+     */
+    chooseBrowserVoice(name) {
+        if (!this.browserVoices) return;
+        this.onSettingChange('cardVoice', name);
+        const { list, lang, choose } = this.browserVoices;
+        this.useBrowserVoice(choose(list, lang, name));
+        this.madeVoice?.setVoice(this.browserVoices.voice);
+    }
+
+    /** What the stage's Voice row offers: the installed voices of the reading's language, and the reader's own; null without them. */
+    voicePick() {
+        if (!this.browserVoices) return null;
+        const voices = this.browserVoices.offered.map(voice => ({ name: voice.name, local: voice.localService === true }));
+        const saved = this.savedVoiceName();
+        return { voices, selected: voices.some(voice => voice.name === saved) ? saved : '', choose: name => this.chooseBrowserVoice(name) };
     }
 
     // ─── the study instrument ───────────────────────────────────────────
@@ -1114,7 +1170,9 @@ export class LiveHost {
                 sound: Boolean(this.audioEngine),
                 // The host card: whether its host will show the card full screen, or floating.
                 port: this.port,
-                about: () => this.aboutReading()
+                about: () => this.aboutReading(),
+                // The reader's own browser voice, where the reading speaks with one.
+                voice: this.voiceKind === 'browser' ? this.voicePick() : null
             });
             await runtime.start('The answer the assistant presents');
         } catch (error) {
