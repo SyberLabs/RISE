@@ -51,10 +51,14 @@
     {
       "date": "2026-10-10T05:20:42.764Z",
       "summary": "Accepted by the owner 2026-10-09: the clock decision stands (RISE's voice over streamed text, speaks: 'host'); stage 2, the venue slice, begins as LIVE-018"
+    },
+    {
+      "date": "2026-10-10T07:04:39.224Z",
+      "summary": "Design amended at the owner's direction (2026-10-10): persona and honesty rules (§1 items 6–7), the interjection (§6.1, stage 4.5), the illustrator (§6.2, stage 5.5); status Accepted"
     }
   ],
-  "updatedAt": "2026-10-10T05:20:42.764Z",
-  "revision": 3,
+  "updatedAt": "2026-10-10T07:04:39.224Z",
+  "revision": 4,
   "summary": "RISE LIVE, the third product of the line (owner, 2026-10-08): RISE controls the whole environment through coordinated voice streaming and realtime response. Not scheduled before the Composer release gate (LIVE-009).",
   "blocker": null
 }
