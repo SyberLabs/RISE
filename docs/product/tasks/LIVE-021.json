@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -53,7 +53,13 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/619",
-      "note": "The interjection, branch live-interjection (a2b93531, with the diagram in 3d8d0913): open, auto-merge on the required CI check. Not merged, not deployed, not accepted.",
+      "note": "The interjection, merged as f4c32ffe and deployed (the production job passed; rise.syberlabs.io/release.txt read f4c32ffef52c94109c848807ee18e7b3b2149c55 on 2026-10-10). Not accepted.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/620",
+      "note": "Codex finding on #619 answered: @then ends the answer and nothing after it is read (1648434a). Open, auto-merge on the required CI check; not deployed.",
       "date": "2026-10-10"
     }
   ],
@@ -65,10 +71,14 @@
     {
       "date": "2026-10-10T10:57:26.508Z",
       "summary": "Opened #619 (branch live-interjection), auto-merge on the required CI check."
+    },
+    {
+      "date": "2026-10-10T11:10:50.278Z",
+      "summary": "Merged as f4c32ffe (#619) and deployed: rise.syberlabs.io/release.txt read f4c32ffef52c94109c848807ee18e7b3b2149c55 on 2026-10-10. Codex's one finding (a sign-off after @then would be spoken) is fixed in #620. Not accepted: no real model has answered an interjection, and no human has witnessed it."
     }
   ],
-  "updatedAt": "2026-10-10T10:57:26.508Z",
-  "revision": 2,
+  "updatedAt": "2026-10-10T11:10:50.278Z",
+  "revision": 3,
   "summary": "Design §8 stage 4.5: the reader speaks mid-reading, the voice holds at the phrase, the question goes up with the room, and RISE answers inside the room and resumes, replaces or ends.",
   "blocker": null
 }
