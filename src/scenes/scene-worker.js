@@ -19,6 +19,16 @@ import { SHADOWED_GLOBALS } from './scene-bans.js';
 /** Names a scene may not reach (§8); postMessage too, so a scene cannot speak for the worker. */
 export const BANNED_GLOBALS = SHADOWED_GLOBALS;
 
+/**
+ * The worker's channel, locked with the banned names once the worker's own listener is attached. The parse
+ * admits these names (a local `close` is ordinary), but the scope reaches a scene without being named, as a
+ * listener's `this` or `currentTarget`, and through it no listener may be taken, added or dropped.
+ */
+const CHANNEL_GLOBALS = Object.freeze(['addEventListener', 'removeEventListener', 'onmessage', 'onerror', 'close']);
+
+/** Names locked as a getter and a setter that throw, not as a stub to call. */
+const ACCESSED = new Set(['navigator', 'indexedDB', 'caches', 'self', 'globalThis', 'onmessage', 'onerror']);
+
 const MESSAGE_LIMIT = 300;
 const PHASES = ['load', 'init', 'frame', 'cue'];
 
@@ -31,13 +41,13 @@ export function whereIn(error, url) {
   return at ? `scene.js:${at[1]}:${at[2]}` : 'scene.js';
 }
 
-/** Replace every banned name on the scope; true only if every one was replaced. */
+/** Replace every banned name and the channel on the scope; true only if every one was replaced. */
 function shadow(scope) {
   let sealed = true;
-  for (const name of BANNED_GLOBALS) {
+  for (const name of [...BANNED_GLOBALS, ...CHANNEL_GLOBALS]) {
     const refuse = () => { throw new ReferenceError(`${name} is not available to a scene`); };
-    const descriptor = name === 'navigator' || name === 'indexedDB' || name === 'caches'
-      ? { get: refuse, configurable: false }
+    const descriptor = ACCESSED.has(name)
+      ? { get: refuse, set: refuse, configurable: false }
       : { value: refuse, writable: false, configurable: false };
     try { Object.defineProperty(scope, name, descriptor); } catch { sealed = false; }
   }
@@ -84,6 +94,7 @@ const defaultLoad = url => import(/* @vite-ignore */ url);
  */
 export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoad, functionPrototypes = realmFunctionPrototypes() } = {}) {
   const post = scope.postMessage.bind(scope);
+  const close = scope.close?.bind(scope);
   let canvas = null;
   let size = null;
   let scene = null;
@@ -233,7 +244,7 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
       fit();
     } else if (data.type === TO_WORKER.dispose) {
       scene = null;
-      scope.close?.();
+      close?.();
     }
   }
 

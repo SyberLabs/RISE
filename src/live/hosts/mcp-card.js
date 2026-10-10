@@ -20,6 +20,12 @@
  * styles, fonts and images (`resourceDomains`) and fetches (`connectDomains`).
  * It frames nothing. A Web Worker cannot start from another origin; the
  * engines that use one fall back to the main thread.
+ *
+ * The card also carries that boundary itself, as a `<meta>` policy ahead of
+ * everything it loads, so it holds whatever policy a host does or does not
+ * apply (a host's policy applies as well; the stricter of the two wins). It
+ * has no 'unsafe-eval', and a `blob:` worker inherits it: a generated scene
+ * can neither build code from a string nor load or fetch from another origin.
  */
 import { EMBED_PATH, isOrigin } from './mcp-relay.js';
 
@@ -28,6 +34,23 @@ export const CARD_PATH = EMBED_PATH;
 /** The content-security declaration of the card. */
 export function cardCsp(origin) {
   return { connectDomains: [origin], resourceDomains: [origin], frameDomains: [] };
+}
+
+/**
+ * The card's own Content Security Policy. `blob:` is for the scene worker, its module and the figures'
+ * images; `data:` images for the few the styles inline; inline styles for the Chamber's element styles.
+ */
+export function cardPolicy(origin) {
+  return [
+    "default-src 'none'",
+    `script-src ${origin} blob:`,
+    'worker-src blob:',
+    `connect-src ${origin}`,
+    `img-src ${origin} blob: data:`,
+    `font-src ${origin}`,
+    `style-src ${origin} 'unsafe-inline'`,
+    `media-src ${origin} blob:`
+  ].join('; ');
 }
 
 /**
@@ -48,6 +71,8 @@ export function cardHtml({ origin, indexHtml, path = CARD_PATH }) {
   const head = /<head(?:\s[^>]*)?>/iu.exec(html);
   if (!head) throw new TypeError('The page has no head');
   const at = head.index + head[0].length;
+  // The policy first: a <meta> policy governs only what the parser meets after it.
   // The path is an attribute value: its ampersands are written as entities and read back decoded.
-  return `${html.slice(0, at)}\n<meta name="rise-embed" content="${path.replace(/&/gu, '&amp;')}">${html.slice(at)}`;
+  return `${html.slice(0, at)}\n<meta http-equiv="Content-Security-Policy" content="${cardPolicy(origin)}">`
+    + `\n<meta name="rise-embed" content="${path.replace(/&/gu, '&amp;')}">${html.slice(at)}`;
 }

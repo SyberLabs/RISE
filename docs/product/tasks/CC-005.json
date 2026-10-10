@@ -53,10 +53,14 @@
     {
       "date": "2026-10-08T14:49:04.472Z",
       "summary": "Merged as 7ca9da94 (#520). Deployed in release eceed084 on 2026-10-08 after #524 restored production deploys."
+    },
+    {
+      "date": "2026-10-10T03:15:08.066Z",
+      "summary": "scene sandbox: the card's own CSP and a runtime lock on eval/Function/global reach, each proven by test"
     }
   ],
-  "updatedAt": "2026-10-08T14:49:04.472Z",
-  "revision": 2,
+  "updatedAt": "2026-10-10T03:15:08.066Z",
+  "revision": 3,
   "summary": "Generated scenes run in an isolated worker on the reading's clock, cued by beats, ending their holds, budgeted, flash-gated, and replaced by the reading's fallback when they fail.",
   "blocker": null
 }

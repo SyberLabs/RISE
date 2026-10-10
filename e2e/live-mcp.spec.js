@@ -1041,6 +1041,41 @@ test('a generated scene that throws gives way to the look’s field, and its hol
   expect(errors).toEqual([]);
 });
 
+// The scene sandbox holds on its own, each lock by itself: the card's own policy (mcp-card.js) refuses a module from
+// another origin, and the worker's shadowing refuses fetch. Each scene is handed to the card as admitted (the Worker
+// refuses both), here where the host's page sets no policy of its own beyond base-uri. Chromium reports a request its
+// policy blocks as a request that failed with "csp"; the route sees only what reaches the network.
+const FOREIGN = 'http://127.0.0.1:1';
+const reachingScenes = [
+  { what: 'imports a module from another origin', phase: 'load', code: `await import('${FOREIGN}/x.js');\nexport default function scene() { return { frame() {} }; }` },
+  { what: 'fetches from another origin', phase: 'init', code: `export default function scene() { fetch('${FOREIGN}/'); return { frame() {} }; }` }
+];
+for (const { what, phase, code } of reachingScenes) {
+  test(`a scene that ${what} is refused in the self-contained card: nothing leaves the page, the scene fails, the reading plays on`, async ({ page, baseURL }) => {
+    const left = [];
+    const asked = [];
+    const outcomes = [];
+    page.context().on('request', request => { if (request.url().startsWith(FOREIGN)) asked.push(request.url()); });
+    page.context().on('requestfailed', request => { if (request.url().startsWith(FOREIGN)) outcomes.push(request.failure()?.errorText); });
+    page.context().on('requestfinished', request => { if (request.url().startsWith(FOREIGN)) outcomes.push('finished'); });
+    await page.context().route(`${FOREIGN}/**`, route => { left.push(route.request().url()); return route.abort(); });
+    const errors = [];
+    const reported = [];
+    page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.text().startsWith('[RISE scene]')) reported.push(message.text()); });
+    const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+    const current = sceneBeats(code, { ms: 1500, maxMs: 8000 });
+    const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current, forgedResult: true });
+    await expect(posterTitle(app)).toHaveText(current.title);
+    await begin(app);
+    await expect.poll(() => reported, { timeout: 10_000 }).toContainEqual(expect.stringContaining(`scene "orbit": ${phase} — `));
+    await expectShown(app, 'It came to rest', 20_000);
+    expect(left).toEqual([]);
+    expect(outcomes).toEqual(asked.map(() => 'csp'));
+    expect(errors).toEqual([]);
+  });
+}
+
 // CC-009: a figure is SVG the model drew, admitted by the Worker and again by the card, and shown as an image.
 const TRIANGLE_SVG = [
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" font-family="sans-serif" font-size="16" fill="currentColor">',
