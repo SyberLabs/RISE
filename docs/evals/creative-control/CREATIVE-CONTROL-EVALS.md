@@ -10,12 +10,22 @@ model following the guide should be able to write for it, in one style.
 docs/evals/creative-control/
   premium-educational/<id>.json   { "prompt": "...", "current": { ...rise.current.v2... } }
   open-field/<id>.json
+  streamed/<id>.json              { "prompt": "...", "lines": [ "@say ...", "@hold 1500", ... ] }
 ```
 
 The worked Currents each style's guidance teaches
 (`src/live/guide/styles/*.js`, served as `ui://rise/guide/<style>`) are in
 the corpus unchanged; `src/test/eval-creative.test.js` fails if they drift
 apart. Every other case is the corpus's own.
+
+A **streamed** case (added 2026-10-10, RISE Live stage 3) is the answer a
+model writes as it thinks, in beats, one per line
+([the line format](../../specs/LIVE-CURRENT-EVENTS-V1.md), "Beats streamed").
+It is read as the Live venue reads one: through the text-stream parser into
+the reducer, whole and again cut a character at a time, in a provider's
+uneven deltas, and in pairs. It passes only if nothing is dropped or refused
+(a scene the admission refuses included), the same Current comes out at
+every cut, and that Current then passes everything below.
 
 ## Running it
 

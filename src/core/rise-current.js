@@ -294,8 +294,13 @@ function timeBeats(session, current) {
   return session;
 }
 
-/** Map validated Current data once for the durable pair and Session wrapper. */
-function materializeValidatedRiseCurrent(current, lowered = null) {
+/**
+ * Map validated Current data once for the durable pair and Session wrapper. `growing`: a v2 Current still being
+ * written (a beat stream), whose later beats may start scenes the Chamber, mounted on this Session, must be ready
+ * to draw: every beat has a visual clip (still where no scene runs) and the field is on.
+ */
+function materializeValidatedRiseCurrent(current, lowered = null, { growing = false } = {}) {
+  const open = growing && current.schema === RISE_CURRENT_SCHEMA_V2;
   // A look lowered for the card brings its theme when the Current names none.
   const themeId = current.theme ?? lowered?.theme;
   // The faces for text and captions: the style's, under the Current's own, role by role.
@@ -325,7 +330,8 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
             return [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: sceneCue(segment.scene, look?.[segment.scene.engine] ?? null) }];
           }
           if (segment.visual === undefined) {
-            return lowered ? [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: lowered.fallbackCue }] : [];
+            if (lowered) return [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: lowered.fallbackCue }];
+            return open ? [{ id: `visual-${index}`, anchor: { sourceIds: [segment.id] }, cue: { kind: 'still' } }] : [];
           }
           return [{
             id: `visual-${index}`, anchor: { sourceIds: [segment.id] },
@@ -374,7 +380,7 @@ function materializeValidatedRiseCurrent(current, lowered = null) {
     title: current.title,
     provenance: { origin: current.origin, currentId: current.id },
     visualConfig: {
-      visualMode: current.segments.some(segment => segment.visual !== undefined && segment.visual !== 'still')
+      visualMode: open || current.segments.some(segment => segment.visual !== undefined && segment.visual !== 'still')
         || (lowered !== null && lowered.fallbackCue.kind !== 'still') ? 'interlocution' : 'off',
       interlocution: lowered?.shelf ?? {
         presentation: 'continuous',
@@ -402,15 +408,17 @@ export function materializeRiseCurrent(input) {
 /**
  * Lower a sealed external answer into the existing Session playback path.
  * `lowerLook` (current-look.js) turns a named look into its field, typeface,
- * size and theme; without it a look is carried and not drawn.
+ * size and theme; without it a look is carried and not drawn. `growing`: the
+ * Current is a v2 still being written (src/live/stream.js), so the Session is
+ * made ready for scenes its later beats start; its atoms are the same.
  */
-export function compileRiseCurrent(input, { projection = 'stream', lowerLook = null } = {}) {
+export function compileRiseCurrent(input, { projection = 'stream', lowerLook = null, growing = false } = {}) {
   if (!['stream', 'page'].includes(projection)) {
     fail('CURRENT_PROJECTION', '$.projection', 'Unknown projection');
   }
   const current = validateRiseCurrent(input);
   const lowered = current.look !== undefined && typeof lowerLook === 'function' ? lowerLook(current) : null;
-  const { program, sources, title, provenance, visualConfig, ...presentation } = materializeValidatedRiseCurrent(current, lowered);
+  const { program, sources, title, provenance, visualConfig, ...presentation } = materializeValidatedRiseCurrent(current, lowered, { growing });
   const session = compileSession({
     title,
     sources,

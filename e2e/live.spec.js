@@ -500,4 +500,43 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(page.locator('.live-error')).toHaveText('Ask something first.');
         await expect(page.locator('#rise-stage-controls')).toHaveCount(0);
     });
+
+    test('plays a reading written in beats as it arrives: a hold and a scene take effect before the answer is complete', async ({ page }) => {
+        test.setTimeout(90_000);
+        const errors = watchErrors(page);
+        // When a picture is put up in the field, on the page's own clock (the journal's).
+        await page.addInitScript(() => {
+            window.__pictures = [];
+            new MutationObserver(records => {
+                for (const record of records) {
+                    const kind = record.target.dataset?.picture;
+                    if (kind && !window.__pictures.some(item => item.kind === kind)) window.__pictures.push({ kind, at: performance.now() });
+                }
+            }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-picture'] });
+        });
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+
+        const journal = () => page.evaluate(() => window.__riseLive.journal());
+        await expect.poll(async () => (await journal()).some(entry => entry.type === 'composed'), { timeout: 45_000 }).toBe(true);
+        const composed = (await journal()).find(entry => entry.type === 'composed');
+        expect(composed).toMatchObject({ role: 'main', phase: 'complete' });
+        // The hold after the first beat, and the figure the third beat starts, each took effect while the answer was still being written.
+        await expect.poll(() => page.evaluate(() => window.__pictures.some(item => item.kind === 'figure')), { timeout: 30_000 }).toBe(true);
+        const atoms = await page.evaluate(() => window.__riseLive.atoms());
+        const hold = atoms.find(atom => atom.sourceId === 'beat-1');
+        const pictures = await page.evaluate(() => window.__pictures);
+        const figure = pictures.find(item => item.kind === 'figure');
+        const startedAt = (await journal()).find(entry => entry.type === 'start').at;
+        const since = at => Math.round(at - startedAt);
+        console.log(`beats streamed (ms from Ask): first words ${since(atoms[0].at)}, hold ${since(hold.at)} (${hold.holdMs} ms), figure up ${figure ? since(figure.at) : 'never'}, answer complete ${since(composed.at)}`);
+        expect(hold.holdMs).toBe(1800);
+        expect(hold.at).toBeLessThan(composed.at);
+        expect(figure, 'the figure was put up').toBeTruthy();
+        expect(figure.at).toBeLessThan(composed.at);
+        await expect(page.locator('#chamber-field[data-picture="figure"] img, #chamber-field[data-picture="figure"] svg').first()).toBeAttached();
+        expect(errors).toEqual([]);
+    });
 });

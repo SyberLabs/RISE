@@ -1,0 +1,21 @@
+{
+  "prompt": "Why are there two tides a day? Answer live, as you think.",
+  "lines": [
+    "@say The sea rises and falls twice a day because the Moon pulls on the Earth unevenly.",
+    "@scene pull svg",
+    "```svg",
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 240 120\">",
+    "  <title>Two bulges</title>",
+    "  <ellipse cx=\"80\" cy=\"60\" rx=\"48\" ry=\"34\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"/>",
+    "  <circle cx=\"80\" cy=\"60\" r=\"28\" fill=\"currentColor\" opacity=\"0.35\"/>",
+    "  <circle cx=\"210\" cy=\"60\" r=\"10\" fill=\"currentColor\"/>",
+    "  <text x=\"210\" y=\"92\" text-anchor=\"middle\" font-size=\"10\" fill=\"currentColor\">Moon</text>",
+    "</svg>",
+    "```",
+    "@say scene=pull place=caption The near side is pulled a little more than the centre, and the far side a little less.",
+    "@hold 2000",
+    "@say So the water stretches into two bulges, one towards the Moon and one away from it.",
+    "@show hold=1800 size=display Two bulges, one turning Earth",
+    "@say As the Earth turns under both bulges, every shore passes through two high tides a day."
+  ]
+}

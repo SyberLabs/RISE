@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -73,10 +73,14 @@
     {
       "date": "2026-10-10T05:50:17.490Z",
       "summary": "OpenRouter adapter half (#612, branch live-openrouter-adapter): src/live/adapters/openrouter.js streams OpenRouter chat completions on the in-memory key (ai-connection.js getOpenRouterChat, the adapter never holds it), default model anthropic/claude-haiku-5.5, speaks: 'host'; the venue registry now makes it, so OpenRouter is no longer listed as soon. No real provider has answered."
+    },
+    {
+      "date": "2026-10-10T07:47:18.046Z",
+      "summary": "Both halves are merged and deployed: #612 and #613 are in main at 8007d370, and the live release (rise.syberlabs.io/release.txt read d849025d on 2026-10-10) contains it. Not accepted: the Gemini and OpenAI adapters are still unverified against the real services, and no human has witnessed the venue."
     }
   ],
-  "updatedAt": "2026-10-10T05:50:17.490Z",
-  "revision": 3,
+  "updatedAt": "2026-10-10T07:47:18.046Z",
+  "revision": 4,
   "summary": "Design §8 stage 2: the first time RISE Live can be felt. The venue page (this branch) and the OpenRouter text-stream adapter (a parallel branch) are its two halves.",
   "blocker": null
 }

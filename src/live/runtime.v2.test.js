@@ -266,9 +266,11 @@ describe('beats streamed: a v2 Current played as it is written', () => {
     const shown = [];
     const commands = [];
     const players = [];
+    const sessions = [];
     runtime = createLiveRuntime({
       adapter: adapter ?? createMockBeatsAdapter({ clock }), clock, voices: { create: () => voice },
       createPlayer: session => {
+        sessions.push(session);
         const player = new Player(session);
         player.on('atom', ({ atom, index }) => shown.push({ at: performance.now(), atom, index }));
         players.push(player);
@@ -280,17 +282,21 @@ describe('beats streamed: a v2 Current played as it is written', () => {
         controlVisual: ({ command }) => { commands.push({ at: performance.now(), command }); return { status: 'accepted', surface: command.surface, parameter: command.parameter, requested: command.value, effective: command.value }; }
       }
     });
-    return { spoken, shown, commands, players, started: runtime.start('Explain black holes with RISE.') };
+    return { spoken, shown, commands, players, sessions, started: runtime.start('Explain black holes with RISE.') };
   }
 
   const firstShown = (shown, predicate) => shown.find(({ atom }) => predicate(atom))?.at ?? null;
   const composedAt = () => runtime.journal().find(entry => entry.type === 'composed')?.at ?? null;
 
   it('takes up a hold, a scene and a cue while the answer is still being written, the voice the clock throughout', async () => {
-    const { spoken, shown, commands, players, started } = streamedRun();
+    const { spoken, shown, commands, players, sessions, started } = streamedRun();
     await tick(100);
     await started;
     await tick(60_000);
+    // The reading is put on screen with its first beat, which starts no scene: it is put up ready for the ones that follow.
+    expect(sessions[0].atoms.every(atom => atom.sourceId === 'beat-0' || atom.seam)).toBe(true);
+    expect(sessions[0].visualConfig.visualMode).toBe('interlocution');
+    expect(sessions[0].visualProgram.segments.length).toBeGreaterThan(0);
     const composed = composedAt();
     expect(composed).not.toBeNull();
     expect(runtime.journal().find(entry => entry.type === 'composed')).toMatchObject({ role: 'main', phase: 'complete' });

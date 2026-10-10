@@ -139,6 +139,22 @@ describe('compiling a v2 Current', () => {
     expect([...session.voiceWaitsFor]).toEqual(['beat-2', 'beat-4']);
   });
 
+  it('compiles a Current still being written ready for the scenes that come later: a field to draw in from its first beat', () => {
+    // Beats streamed: the first beats of an answer may start no scene; the Chamber is mounted on that Session,
+    // and a scene a later beat starts must find a visual schedule and a field there to draw in.
+    const first = { ...V2, scenes: undefined, beats: [{ say: 'Here is a vector.' }] };
+    const sealed = compileRiseCurrent(first);
+    expect(sealed.visualConfig.visualMode).toBe('off');
+    const growing = compileRiseCurrent(first, { growing: true });
+    expect(growing.visualConfig.visualMode).toBe('interlocution');
+    expect(growing.visualProgram.segments.length).toBeGreaterThan(0);
+    expect(cueForAtom(growing.visualProgram, growing.atoms.find(atom => atom.sourceId === 'beat-0')).cue).toEqual({ kind: 'still' });
+    // Its atoms are the sealed compile's: only what the Chamber is ready to draw differs.
+    expect(growing.atoms.map(atom => [atom.content, atom.duration])).toEqual(sealed.atoms.map(atom => [atom.content, atom.duration]));
+    // A Current that has scenes compiles the same either way.
+    expect(compileRiseCurrent(V2, { growing: true }).visualConfig).toEqual(compileRiseCurrent(V2).visualConfig);
+  });
+
   it('leaves a v1 Current exactly as it was', () => {
     const session = compileRiseCurrent({
       schema: RISE_CURRENT_SCHEMA, id: 'v1', title: 'V1', origin: { kind: 'human', name: 'T' },

@@ -28,7 +28,7 @@
  * A Dive is a Current of its own. Nested Dives are not built and are refused.
  */
 
-import { compileRiseCurrent } from '../core/rise-current.js';
+import { RISE_CURRENT_SCHEMA_V2, compileRiseCurrent } from '../core/rise-current.js';
 import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
@@ -236,7 +236,8 @@ export function createLiveRuntime({
         let session;
         try {
             // A sealed Current is compiled whole (its beats never pass through the stream); a streamed one is rebuilt.
-            let current = run.connection?.sealed ?? run.stream.toCurrent();
+            const sealed = run.connection?.sealed ?? null;
+            let current = sealed ?? run.stream.toCurrent();
             // A Dive keeps the colors of the answer it comes from, whatever it said of itself.
             if (run.role === 'side') {
                 const { theme: _own, ...rest } = current;
@@ -244,7 +245,8 @@ export function createLiveRuntime({
                 const theme = answer.theme ?? lookTheme(answer.look);
                 current = theme === null ? rest : { ...rest, theme };
             }
-            session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook });
+            // Beats still being written may start scenes the reading must be ready to draw (rise-current.js `growing`).
+            session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook, growing: sealed === null && current.schema === RISE_CURRENT_SCHEMA_V2 });
         } catch (caught) {
             failRun(run, caught);
             return;

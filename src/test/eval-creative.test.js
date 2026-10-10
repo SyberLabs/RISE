@@ -7,7 +7,7 @@
  * every worked Current the guide teaches, unchanged, and to pass.
  */
 import { describe, expect, it } from 'vitest';
-import { evaluateCurrent, loadCorpus } from '../../scripts/eval-creative.mjs';
+import { evaluateCurrent, loadCorpus, sealStreamed } from '../../scripts/eval-creative.mjs';
 import { RISE_CURRENT_STYLES } from '../core/rise-current.js';
 import { STYLE_EXAMPLES } from '../live/guide/index.js';
 
@@ -135,5 +135,29 @@ describe('the corpus', () => {
       const report = await evaluateCurrent(item.current);
       expect(report.ok, `${item.file}: ${report.refusal ?? JSON.stringify(report.scenes.flatMap(scene => scene.errors ?? []))}`).toBe(true);
     }
+  });
+
+  it('has streamed cases: answers written in beats, one per line, each sealed as the venue reads it, the same at every cut', () => {
+    const streamed = corpus.filter(item => item.streamed);
+    expect(streamed.length).toBeGreaterThanOrEqual(3);
+    for (const { file, streamed: run, current } of streamed) {
+      expect(run, file).toMatchObject({ phase: 'complete', refusals: 0, refusedScenes: [], sameAtEveryCut: true });
+      expect(current.schema, file).toBe('rise.current.v2');
+      expect(current.beats.length, file).toBe(run.lines.filter(line => /^@(say|show|hold)\b/u.test(line)).length);
+    }
+    // Between them: a hold, a figure, a generated scene and a native one, each arriving in the stream.
+    const scenes = streamed.flatMap(item => item.current.scenes ?? []);
+    expect(scenes.some(scene => typeof scene.svg === 'string')).toBe(true);
+    expect(scenes.some(scene => typeof scene.code === 'string')).toBe(true);
+    expect(scenes.some(scene => typeof scene.engine === 'string')).toBe(true);
+    expect(streamed.some(item => item.current.beats.some(beat => beat.hold && beat.show === undefined))).toBe(true);
+  });
+});
+
+describe('a streamed case the line format would cut', () => {
+  it('is reported, not passed: what was dropped, refused or read differently at another cut shows', () => {
+    const run = sealStreamed(['@say Fine.', '@scene thief code', '```js', 'export default function scene(rise) { fetch(1); return { frame() {} }; }', '```', '@say scene=thief Watch.']);
+    expect(run.refusedScenes.map(item => item.sceneId)).toEqual(['thief']);
+    expect(run.sameAtEveryCut).toBe(true);
   });
 });

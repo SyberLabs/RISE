@@ -492,6 +492,16 @@ describe('about this passage', () => {
     });
 });
 
+describe('the transcript of a reading written in beats', () => {
+    it('says what was said and shown, and leaves out a hold, which says nothing', () => {
+        const runtime = fakeRuntime('live');
+        runtime.composed = () => ({ segments: [{ text: 'First words.', ended: true }, { text: '', ended: true, beat: { hold: { ms: 900 } } }, { text: 'After the hold.', ended: true }] });
+        controls = createLiveControls({ runtime, onStop: () => {} });
+        runtime.set('diving');
+        expect([...document.querySelectorAll('.live-controls__lines li')].map(line => line.textContent)).toEqual(['First words.', 'After the hold.']);
+    });
+});
+
 describe('hostile words', () => {
     it('are shown as words: nothing a model says becomes an element, a handler or a style', () => {
         const runtime = fakeRuntime('live');
