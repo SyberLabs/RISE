@@ -61,6 +61,9 @@ vulnerabilities (the one Dependabot alert is a development-only chain).
 - **Screenshots.** Five PNGs of the card alone, at least 1000 px wide, each paired with
   its prompt, under `docs/assets/directory/`.
 
+Landed after this page was written: both are merged and done. Wording and pages is #607,
+live at e3dd1b97; the screenshots are #608, at 608ea99f.
+
 ## 5. Open decisions (owner)
 
 1. **Plus and the AI-audio rule.** Policy §4B excludes "software that uses AI models to
@@ -111,8 +114,8 @@ Must have:
 - [x] `/.well-known/security.txt`; OAuth discovery paths 404
 - [x] Privacy policy URL (`https://rise.syberlabs.io/privacy`), terms, support contact
 - [x] Public documentation URL (`https://rise.syberlabs.io/apps`)
-- [ ] Tool and server text free of run-time instruction fetching, creator names, promotion (in flight)
-- [ ] 3 to 5 PNG screenshots ≥ 1000 px wide, cropped to the card, prompts separate (in flight)
+- [x] Tool and server text free of run-time instruction fetching, creator names, promotion (#607)
+- [x] 3 to 5 PNG screenshots ≥ 1000 px wide, cropped to the card, prompts separate (#608)
 - [ ] At least three working example prompts (drafted below; verify in claude.ai before submitting)
 - [ ] Attest that every tool was run in MCP Inspector and as a custom connector in Claude, plus the iOS and Android apps
 - [ ] A paid Claude account in the organization that will own the listing
@@ -181,7 +184,7 @@ speaks it, the words appear as they are spoken, and a drawn visual plays behind 
 **Demo prompts:**
 1. "Explain how black holes bend light, and present it in RISE."
 2. "Show me what a derivative is, as a RISE reading in the premium-educational style."
-3. "Give me a two-minute RISE reading on why the sky is blue, in the Signal look."
+3. "Give me a RISE reading on why the sky is blue, in the premium-educational style."
 4. "Present a short reflection on Marcus Aurelius and the inner citadel in RISE, in the Garden look."
 5. "Show me the parts of an animal cell in RISE."
 
