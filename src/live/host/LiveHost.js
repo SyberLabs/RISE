@@ -37,6 +37,9 @@ import { createStageControls } from './stage-controls.js';
 import { isVoiceNote, voiceLine } from '../voice-trace.js';
 // Statically: Play unlocks speech synchronously inside its own tap, which a module still to be fetched cannot do.
 import { unlockSpeech } from '../voices/unlock.js';
+import { unlockAudio } from '../../audio/unlock.js';
+import { PHONE_SPEAKER_LIFT_DB } from '../../audio/sound-levels.js';
+import { siteUrl } from '../../core/embed-address.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
 import './LiveHost.css';
 
@@ -129,6 +132,12 @@ export class LiveHost {
         this.ensureAudioEngine = ensureAudioEngine;
         // The engine the reading's beds play on, once a reading is built; and the beds and tones it started (?measure=1).
         this.audioEngine = null;
+        // The same engine, known before the reader's first press, so the press can start its context (unlockAudio);
+        // the silent loop a press started (src/audio/unlock.js); and the dB the beds are lifted by on a phone.
+        this.engineAtHand = null;
+        void Promise.resolve().then(() => ensureAudioEngine?.()).then(engine => { this.engineAtHand = engine ?? null; }, () => {});
+        this.audioKeeper = null;
+        this.audioLiftDb = 0;
         this.audioLog = [];
         // The last voice and audio lines written to DevTools, for "About this reading" (aboutReading).
         this.traceLines = [];
@@ -492,6 +501,9 @@ export class LiveHost {
         if (!engine || this.destroyed) return;
         this.releaseAudio();
         this.audioEngine = engine;
+        // A phone's speaker, as the host says (hostContext.platform): the session is lifted by the phone level.
+        this.audioLiftDb = this.port?.hostContext?.()?.platform === 'mobile' ? PHONE_SPEAKER_LIFT_DB : 0;
+        engine.setSessionLift?.(this.audioLiftDb);
         this.onSoundStart = ({ id, kind, trimDb }) => {
             const entry = { at: clock.now(), type: kind === 'tone' ? 'audio.tone' : 'audio.bed', id, trimDb };
             this.trace('[RISE audio]', voiceLine(entry));
@@ -538,7 +550,14 @@ export class LiveHost {
         const view = this.env.window ?? this.env;
         lines.push(`device: ${this.env.navigator?.userAgent ?? 'unknown'}`, `viewport: ${view.innerWidth}×${view.innerHeight} @${view.devicePixelRatio ?? 1}x`);
         const engine = this.audioEngine;
-        lines.push(engine ? `audio: context ${engine.context?.state ?? 'none'}, audible=${engine.audible}, sounding=${engine.sounding?.id ?? 'none'}` : 'audio: none');
+        if (engine) {
+            const level = this.outputLevelDbfs();
+            const heard = level === null ? 'unknown' : `${Number.isFinite(level) ? level.toFixed(1) : '-inf'} dBFS`;
+            const lift = this.audioLiftDb ? `, phone level +${this.audioLiftDb} dB` : '';
+            lines.push(`audio: context ${engine.context?.state ?? 'none'}, audible=${engine.audible}, sounding=${engine.sounding?.id ?? 'none'}, level=${heard}${lift}`);
+        } else lines.push('audio: none');
+        const keeper = this.audioKeeper;
+        lines.push(`audio session: ${this.env.navigator?.audioSession?.type ?? 'none'}${keeper ? `, silent loop ${keeper.paused ? 'paused' : 'playing'}` : ''}`);
         return [...lines, '', ...this.traceLines].join('\n');
     }
 
@@ -603,6 +622,7 @@ export class LiveHost {
             } else if (state === 'complete') {
                 // No audio outlives the reading; Play again opens a new session.
                 engine.stopSession?.();
+                this.audioKeeper?.pause();
                 up = false;
             }
         };
@@ -619,6 +639,7 @@ export class LiveHost {
         if (!engine) return;
         if (engine.onSoundStart === this.onSoundStart) engine.onSoundStart = null;
         engine.setVoiceDucking?.(false);
+        engine.setSessionLift?.(0);
         this.audioEngine = null;
     }
 
@@ -1034,6 +1055,7 @@ export class LiveHost {
         play.innerHTML = PLAY_GLYPH;
         play.addEventListener('click', () => {
             this.unlockSpeech();
+            this.unlockAudio();
             void this.beginEmbedded();
         });
         main.append(heading, play);
@@ -1053,6 +1075,17 @@ export class LiveHost {
     unlockSpeech() {
         if (this.selectedVoice() !== 'browser') return;
         unlockSpeech({ synth: this.env.speechSynthesis, Utterance: this.env.SpeechSynthesisUtterance });
+    }
+
+    /** Inside a reader's press, before anything is awaited: the beds' context and, on WebKit, an audio session a ring switch does not mute. */
+    unlockAudio() {
+        this.audioKeeper = unlockAudio({
+            engine: this.audioEngine ?? this.engineAtHand,
+            navigator: this.env.navigator,
+            Audio: this.env.Audio,
+            silence: siteUrl('/audio/silence.wav'),
+            keeper: this.audioKeeper
+        });
     }
 
     /** Validate the host's sealed answer once, then wait for the reader to begin it. */
@@ -1099,6 +1132,7 @@ export class LiveHost {
                 runtime,
                 onPlayAgain: () => {
                     this.unlockSpeech();
+                    this.unlockAudio();
                     void this.playAgainEmbedded();
                 },
                 chamber: () => { const player = runtime.playerFor?.(); return player ? this.chamberPlaying(player) : null; },
@@ -1178,6 +1212,7 @@ export class LiveHost {
         await runtime?.stop();
         this.resetButton();
         this.releaseAudio();
+        this.audioKeeper?.pause();
         await this.present?.leaveLive(this.router);
         if (this.embedded && !this.destroyed) this.say('Stopped.');
     }
@@ -1199,6 +1234,7 @@ export class LiveHost {
         await runtime?.stop();
         this.resetButton();
         this.releaseAudio();
+        this.audioKeeper?.pause();
         if (this.embedded && !this.destroyed) this.say('Finished.');
     }
 

@@ -10,6 +10,7 @@
  */
 import { describe, expect, it, beforeEach } from 'vitest';
 import { AudioEngine } from './engine.js';
+import { LEVEL_BAND, PHONE_SPEAKER_LIFT_DB } from './sound-levels.js';
 
 /** A gain node recording what was scheduled, without Web Audio. */
 function fakeGain(value) {
@@ -160,5 +161,46 @@ describe('a layer ducks the bed it sounds over', () => {
         expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(0.35, 5);
         engine.setVoiceDucking(false);
         expect(engine.layerGains.soundscape.gain.value).toBeCloseTo(1.0, 5);
+    });
+});
+
+describe('the bed on a phone\'s speaker', () => {
+    /** The level a bed levelled to the catalogue's band reaches at the output, through the session and its duck. */
+    function bedDbfs(engine) {
+        const session = engine.sessionGain.gain.value;
+        const layer = engine.layerGains.soundscape.gain.value;
+        return LEVEL_BAND.rmsDbfs + 20 * Math.log10(session * layer);
+    }
+
+    function revealed(liftDb) {
+        const engine = engineWithLayers({ soundscape: 1.0 });
+        engine.sessionGain = fakeGain(0);
+        if (liftDb !== undefined) engine.setSessionLift(liftDb);
+        engine.fadeInSession(1.2);
+        engine._cancelFade();
+        return engine;
+    }
+
+    it('leaves the catalogue\'s levels as they are where no lift is asked: -29 dBFS, and about -38 under the voice', () => {
+        const engine = revealed();
+        expect(bedDbfs(engine)).toBeCloseTo(-29, 1);
+        engine.setVoiceDucking(true);
+        expect(bedDbfs(engine)).toBeCloseTo(-38.1, 1);
+    });
+
+    it('lifts the whole session by the phone level: about -23 dBFS, and -32 under the voice', () => {
+        expect(PHONE_SPEAKER_LIFT_DB).toBe(6);
+        const engine = revealed(PHONE_SPEAKER_LIFT_DB);
+        expect(bedDbfs(engine)).toBeCloseTo(-23, 1);
+        engine.setVoiceDucking(true);
+        expect(bedDbfs(engine)).toBeCloseTo(-32.1, 1);
+    });
+
+    it('returns to the catalogue\'s level when the lift is taken off', () => {
+        const engine = revealed(PHONE_SPEAKER_LIFT_DB);
+        engine.setSessionLift(0);
+        engine.fadeInSession(0.6);
+        engine._cancelFade();
+        expect(bedDbfs(engine)).toBeCloseTo(-29, 1);
     });
 });

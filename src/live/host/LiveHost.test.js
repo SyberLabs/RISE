@@ -27,10 +27,10 @@ const env = ({ speech = false, recognition = false, motion = false } = {}) => ({
 let host;
 let container;
 
-function mount(search = '', environment = env()) {
+function mount(search = '', environment = env(), options = {}) {
     container = document.createElement('div');
     document.body.appendChild(container);
-    host = new LiveHost(container, { router: { navigate: async () => true, views: new Map() }, search, env: environment });
+    host = new LiveHost(container, { router: { navigate: async () => true, views: new Map() }, search, env: environment, ...options });
     return host;
 }
 
@@ -1078,18 +1078,18 @@ describe('inside an MCP host', () => {
         afterEach(() => { vi.useRealTimers(); });
 
         /** The answer held under Play in a frame whose speech WebKit's gesture rule governs; the reading is presented to no Chamber. */
-        async function readyOnIos() {
+        async function readyOnIos({ engine = null, extras = {}, platform = 'mobile' } = {}) {
             vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame'] });
             const { environment, sent, hostSays } = framed();
             const synth = createFakeSpeech(createRealClock(), { gestureRequired: true });
             Object.assign(environment.window, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance, innerHeight: 640, devicePixelRatio: 3 });
-            Object.assign(environment, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance, navigator: { language: 'en-US' } });
+            Object.assign(environment, { speechSynthesis: synth, SpeechSynthesisUtterance: synth.Utterance, navigator: { language: 'en-US' } }, extras);
             vi.spyOn(console, 'info').mockImplementation(() => {});
-            mount('?embed=mcp', environment);
+            mount('?embed=mcp', environment, engine ? { ensureAudioEngine: async () => engine } : {});
             const loaded = await host.modules;
             host.modules = Promise.resolve([...loaded.slice(0, 4), { presentLive: async () => {}, leaveLive: async () => {}, dismissLive: () => {} }, loaded[5]]);
             await vi.waitFor(() => expect(sent).toHaveLength(1));
-            hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: { platform: 'mobile', displayMode: 'inline' } } });
+            hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: { platform, displayMode: 'inline' } } });
             await vi.waitFor(() => expect(sent.some(message => message.method === 'ui/notifications/size-changed')).toBe(true));
             answerCurrent(hostSays);
             await vi.waitFor(() => expect(container.querySelector('.live-start')?.disabled).toBe(false));
@@ -1123,6 +1123,77 @@ describe('inside an MCP host', () => {
             expect(about).toMatch(/^audio: none$/mu);
             expect(about).toMatch(/^\[RISE voice\] t=\d+\.\d{3}s voice\.chosen role=main kind=browser/mu);
             expect(container.ownerDocument.querySelector('.rise-settings__about')).not.toBeNull();
+            await host.stop();
+        });
+
+        /** The app's engine with a context under WebKit's rule (AudioContext.cpp, willBeginPlayback): only a resume() in a gesture starts it. */
+        function engineOnIos() {
+            let inGesture = false;
+            const context = { state: 'suspended', resume() { if (inGesture) context.state = 'running'; return Promise.resolve(); } };
+            const engine = {
+                context, onSoundStart: null, sounding: null, audible: true, lifts: [],
+                setVoiceDucking() {}, setSessionLift(db) { this.lifts.push(db); },
+                async resume() { if (context.state !== 'running') await context.resume(); }
+            };
+            return { engine, gesture(fn) { inGesture = true; try { fn(); } finally { inGesture = false; } } };
+        }
+
+        /** An <audio> element as the card's press uses it. */
+        function audioElements() {
+            const made = [];
+            class FakeAudio {
+                constructor(src) { this.src = src; this.loop = false; this.paused = true; made.push(this); }
+                play() { this.paused = false; return Promise.resolve(); }
+                pause() { this.paused = true; }
+            }
+            return { FakeAudio, made };
+        }
+
+        it('starts the beds’ audio context inside the Play tap itself, so a context WebKit holds suspended is running', async () => {
+            const { engine, gesture } = engineOnIos();
+            const synth = await readyOnIos({ engine });
+            gesture(() => synth.gesture(() => container.querySelector('.live-start').click()));
+            expect(engine.context.state).toBe('running');
+            await vi.waitFor(() => expect(host.runtime).toBeTruthy());
+            await host.stop();
+        });
+
+        it('asks WebKit for a playback audio session in the tap, keeps a silent loop playing under the reading, and lets it go when the reading stops', async () => {
+            const { engine, gesture } = engineOnIos();
+            const { FakeAudio, made } = audioElements();
+            const audioSession = { type: 'auto' };
+            const synth = await readyOnIos({ engine, extras: { navigator: { language: 'en-US', audioSession }, Audio: FakeAudio } });
+            gesture(() => synth.gesture(() => container.querySelector('.live-start').click()));
+            expect(audioSession.type).toBe('playback');
+            expect(made).toHaveLength(1);
+            expect(made[0]).toMatchObject({ loop: true, paused: false });
+            expect(made[0].src).toMatch(/\/audio\/silence\.wav$/u);
+            await vi.waitFor(() => expect(host.runtime).toBeTruthy());
+            await vi.advanceTimersByTimeAsync(1_000);
+            expect(host.aboutReading()).toMatch(/^audio session: playback, silent loop playing$/mu);
+            await host.stop();
+            expect(made[0].paused).toBe(true);
+        });
+
+        it('lifts the beds by the phone level where the host says it is a phone, and says so in About this reading', async () => {
+            const { engine, gesture } = engineOnIos();
+            const synth = await readyOnIos({ engine });
+            gesture(() => synth.gesture(() => container.querySelector('.live-start').click()));
+            await vi.waitFor(() => expect(host.runtime).toBeTruthy());
+            expect(engine.lifts).toEqual([6]);
+            expect(host.aboutReading()).toMatch(/^audio: context running, audible=true, sounding=none, level=unknown, phone level \+6 dB$/mu);
+            await host.stop();
+            expect(engine.lifts.at(-1)).toBe(0);
+        });
+
+        it('leaves the beds at the catalogue’s level on a computer', async () => {
+            const { engine, gesture } = engineOnIos();
+            const synth = await readyOnIos({ engine, platform: 'web' });
+            gesture(() => synth.gesture(() => container.querySelector('.live-start').click()));
+            await vi.waitFor(() => expect(host.runtime).toBeTruthy());
+            expect(engine.lifts).toEqual([0]);
+            expect(host.aboutReading()).toMatch(/^audio: context running, audible=true, sounding=none, level=unknown$/mu);
+            expect(host.aboutReading()).toMatch(/^audio session: none$/mu);
             await host.stop();
         });
 
