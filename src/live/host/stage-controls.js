@@ -478,7 +478,9 @@ export function createStageControls({
         sheet.hidden = false;
         settings.setAttribute('aria-expanded', 'true');
         doc.addEventListener('pointerdown', outside);
-        ([intensity, theme, still, sound, voiceSelect, ...sizes].find(control => control && !control.disabled) ?? close).focus();
+        // Never a list: iOS opens a <select>'s picker when it is focused inside the press that opened the sheet.
+        const first = [intensity, still, sound, ...sizes].find(control => control && !control.disabled);
+        (first ?? close).focus();
         showBar();
     }
 
