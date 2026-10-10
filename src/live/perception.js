@@ -162,6 +162,19 @@ const FIELDS = Object.freeze({
     finished: []
 });
 
+/** The fields each event cannot be said without (describePerception reads every one of them). */
+const REQUIRED = Object.freeze({
+    held: ['passage', 'by'],
+    resumed: ['passage'],
+    sought: ['from', 'to', 'times'],
+    replayed: ['from', 'to', 'times'],
+    paced: ['rate'],
+    'visual.changed': ['parameter', 'value'],
+    said: ['words'],
+    'scene.input': ['scene', 'control', 'value'],
+    finished: []
+});
+
 const passageOk = value => value === null || (Number.isInteger(value) && value >= 1 && value <= PERCEPTION_LIMITS.passage);
 const textOk = (value, max) => typeof value === 'string' && value.length > 0 && value.length <= max && line(value, max) === value;
 const plainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -197,6 +210,8 @@ export function admitPerception(value) {
     if (!isCount(earlier, PERCEPTION_LIMITS.earlier)) throw new TypeError('perception.earlier is a count');
     const clean = events.map((event, index) => {
         if (!plainObject(event) || !PERCEPTION_EVENTS.includes(event.type)) throw new TypeError(`Unknown perception event at ${index}`);
+        const missing = REQUIRED[event.type].find(key => !Object.hasOwn(event, key));
+        if (missing) throw new TypeError(`perception.events[${index}].${missing} is required`);
         const allowed = FIELDS[event.type];
         const copy = { type: event.type };
         for (const [key, field] of Object.entries(event)) {
