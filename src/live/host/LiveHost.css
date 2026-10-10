@@ -707,3 +707,123 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 .live-eval__field canvas { width: 100%; height: 100%; display: block; }
 .live-eval__guide { position: fixed; z-index: 200001; top: 0; left: 0; right: 0; padding: 0.6rem max(0.75rem, env(safe-area-inset-right)) 0.6rem max(0.75rem, env(safe-area-inset-left)); background: color-mix(in srgb, var(--color-void) 85%, transparent); color: var(--color-light); font-family: var(--sy-font-sans); display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; border-bottom: 1px solid color-mix(in srgb, var(--color-light) 18%, transparent); }
 .live-eval__guide-text { margin: 0; flex: 1 1 22rem; font-size: 0.9rem; line-height: 1.45; }
+
+/* The Live venue (venue.js): the entry page, in the host's own type and inputs, and the bar to ask again over the
+   reading, in the stage's glass. The bar sits at the top, clear of the stage's row along the bottom. */
+
+.live-host input[type="text"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--color-light) 28%, transparent);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--color-light) 6%, transparent);
+  color: var(--color-light);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.live-venue__ask { display: flex; flex-direction: column; gap: 0.75rem; }
+.live-venue__field { display: flex; gap: 0.5rem; }
+.live-venue__field input { flex: 1 1 auto; min-width: 0; }
+.live-venue__mic { display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.live-venue__mic[aria-pressed="true"] { background: var(--color-light); color: var(--color-void); }
+
+.live-venue__providers { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; border: 0; min-width: 0; }
+.live-venue__providers legend { margin-bottom: 0.35rem; padding: 0; }
+.live-venue__provider {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--color-light) 28%, transparent);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+.live-venue__provider:has(input:checked) { border-color: var(--color-light); background: color-mix(in srgb, var(--color-light) 10%, transparent); }
+.live-venue__provider:has(input:disabled) { opacity: 0.55; cursor: default; }
+.live-venue__provider:has(input:focus-visible) { outline: 2px solid var(--color-light); outline-offset: 2px; }
+.live-venue__provider input { margin: 0; accent-color: var(--color-light); }
+
+.live-venue__credential { display: flex; flex-direction: column; gap: 0.35rem; }
+.live-venue__credential:empty { display: none; }
+.live-venue__credential button { align-self: flex-start; }
+.live-venue__connected,
+.live-venue__note,
+.live-venue__privacy,
+.live-venue__heard { margin: 0; color: var(--color-fog); font-size: 0.85rem; line-height: 1.5; }
+.live-venue__heard:empty { display: none; }
+.live-venue__mic-privacy { color: var(--color-fog); font-size: 0.85rem; line-height: 1.5; }
+.live-venue__mic-privacy p { margin: 0.35rem 0 0; }
+
+.live-again {
+  position: fixed;
+  z-index: 200001;
+  top: calc(16px + var(--safe-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  width: min(36rem, 100% - 32px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid rgba(232, 232, 236, 0.08);
+  border-radius: 26px;
+  background: rgba(10, 10, 12, 0.36);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  color: var(--color-light);
+  font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+}
+.live-again[hidden] { display: none; }
+/* While the reading plays, only the microphone: the reader may speak over it, and the voice holds. */
+.live-again[data-open="false"] { width: auto; border-radius: 50%; }
+.live-again[data-open="false"] > :not([data-venue="listen"]) { display: none; }
+
+.live-again input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--color-light);
+  font: inherit;
+  font-size: 1rem;
+}
+.live-again input::placeholder { color: color-mix(in srgb, var(--color-light) 60%, var(--color-void)); }
+
+.live-again button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--color-light);
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.live-again .live-again__ask { padding: 0 16px; background: rgba(232, 232, 236, 0.14); }
+.live-again button[aria-pressed="true"] { background: var(--color-light); color: var(--color-void); }
+@media (hover: hover) {
+  .live-again button:hover { background: rgba(232, 232, 236, 0.18); }
+}
+.live-again input:focus-visible,
+.live-again button:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
+
+.live-again__note { position: absolute; top: calc(100% + 6px); left: 16px; right: 16px; margin: 0; font-size: 0.85rem; line-height: 1.4; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+.live-again__note:empty { display: none; }
+
+/* Below about 860 px the open bar reaches the top-right corner, where the account control sits: it steps aside while the bar is open. */
+@media (max-width: 860px) {
+  .has-rise-account:has(.live-again[data-open="true"]:not([hidden])) .rise-account-control { visibility: hidden; }
+}

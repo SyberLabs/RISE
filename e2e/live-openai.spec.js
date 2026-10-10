@@ -200,7 +200,7 @@ test.describe('the OpenAI provider with the reader’s own key', () => {
 
     test('the default page offers no key field and reaches nothing: the provider is opt-in', async ({ page }) => {
         const asked = await relay(page);
-        await page.goto('/live?voice=paced');
+        await page.goto('/live?host=prompt&voice=paced');
         await expect(page.locator('#live-key')).toHaveCount(0);
         await page.locator('.live-start').click();
         await expect(page.locator('#live-controls')).toBeVisible();

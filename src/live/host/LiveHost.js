@@ -1,7 +1,11 @@
 /**
  * The host for a live Current, at `/live`: the live pane of Read.
  *
- * It is a host, not a room: a prompt, a Start, and, once the answer is being
+ * In the app, `/live` is the Live venue (venue.js): the Reader site's page where RISE owns the room, a question,
+ * a provider from the registry and the stage's whole instrument, one room for many readings. The runtime's test
+ * page below stays at `?host=prompt`, and wherever the address names a provider or a catalog sample.
+ *
+ * That page is a host, not a room: a prompt, a Start, and, once the answer is being
  * presented in the Chamber, a small set of controls (interrupt, ask about this
  * place, Surface, stop) and a status line. No product chrome. It owns the
  * runtime; the Chamber owns the screen; the runtime owns time.
@@ -41,6 +45,8 @@ import { unlockAudio } from '../../audio/unlock.js';
 import { PHONE_SPEAKER_LIFT_DB } from '../../audio/sound-levels.js';
 import { siteUrl } from '../../core/embed-address.js';
 import { DelayedRunner, EvalRunner } from './EvalRunner.js';
+import { LIVE_PROVIDERS } from '../adapters/registry.js';
+import { LiveVenue } from './venue.js';
 import './LiveHost.css';
 
 const DEFAULT_PROMPT = 'Explain black holes with RISE.';
@@ -128,10 +134,12 @@ export class LiveHost {
      * @param {() => Promise<object>} [options.ensureAudioEngine] the app's audio engine, the one the Chamber plays beds on
      * @param {() => object} [options.getSettings] the app's saved settings: the reader's own browser voice (`cardVoice`)
      * @param {(key: string, value: unknown) => void} [options.onSettingChange] keeps a setting the reader changed here
+     * @param {boolean} [options.venue] the app's `/live`: the Live venue, unless the address asks for the test page
+     * @param {readonly object[]} [options.providers] the venue's provider registry
      */
     constructor(container, {
         router, onNavigate = () => {}, search = globalThis.location?.search ?? '', env = globalThis, ensureAudioEngine = null,
-        getSettings = () => ({}), onSettingChange = () => {}
+        getSettings = () => ({}), onSettingChange = () => {}, venue = false, providers = LIVE_PROVIDERS
     } = {}) {
         this.container = container;
         this.router = router;
@@ -224,13 +232,16 @@ export class LiveHost {
             this.startEval();
             return;
         }
-        this.render();
+        const venued = venue && !this.hasCatalogChoice && !this.params.has('provider') && this.params.get('host') !== 'prompt';
+        this.venue = null;
+        if (!venued) this.render();
         // While the reader is typing, fetch what starting will need, so that the time from
         // Start to the first words is the answer’s and not the network’s.
         this.modules = this.loadModules();
         this.modules.catch(() => {});
         void import('../../components/read/Chamber.js').catch(() => {});
         this.prefetchMic();
+        if (venued) this.venue = new LiveVenue(this, { providers });
     }
 
     /** Speaking to it is fetched only where the browser can recognise speech; a failure is no mic. */
@@ -709,6 +720,8 @@ export class LiveHost {
 
     /** The provider's adapter. A keyed provider's is loaded only if it is the one asked for, and the host's model only inside a host. */
     async buildAdapter(clock, createMockAdapter) {
+        // The venue asks every question of a room through the one adapter of the provider the reader chose.
+        if (this.venue) return this.venueAdapter({ clock });
         if (this.providerName === 'mcp') {
             const { createMcpAppAdapter } = await import('../adapters/mcp-app.js');
             return createMcpAppAdapter({
@@ -801,6 +814,37 @@ export class LiveHost {
         const voices = this.browserVoices.offered.map(voice => ({ name: voice.name, local: voice.localService === true }));
         const saved = this.savedVoiceName();
         return { voices, selected: voices.some(voice => voice.name === saved) ? saved : '', choose: name => this.chooseBrowserVoice(name) };
+    }
+
+    // ─── the venue ──────────────────────────────────────────────────────
+
+    /** The venue room's one adapter (venue.js). */
+    venueAdapter({ clock }) {
+        return this.venue.adapterFor({ clock });
+    }
+
+    /** The venue room's questions, each with its reading's journal once let go. */
+    venueTurns() {
+        return this.venue?.turns() ?? [];
+    }
+
+    /**
+     * The stage over a venue reading: the whole instrument, the browser's own full screen, Settings with Sound, the
+     * reader's voice and About this reading, and the room's choices carried from the reading before.
+     */
+    venueStage(runtime, { room, onPlayAgain }) {
+        return createStageControls({
+            runtime,
+            onPlayAgain,
+            chamber: () => { const player = runtime.playerFor?.(); return player ? this.chamberPlaying(player) : null; },
+            paintTheme: theme => this.paintEmbedTheme(theme ?? undefined),
+            audible: this.voiceKind === 'browser',
+            degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability)),
+            sound: Boolean(this.audioEngine),
+            about: () => this.aboutReading(),
+            voice: this.voiceKind === 'browser' ? this.voicePick() : null,
+            room
+        });
     }
 
     // ─── the study instrument ───────────────────────────────────────────
@@ -1287,6 +1331,8 @@ export class LiveHost {
 
     /** The reader left the Chamber by its own control: end what was running. */
     async ended() {
+        // In the venue that is leaving the room, back to its entry.
+        if (this.venue && !this.destroyed) return this.venue.leave();
         this.stopHearingExitListener();
         if (this.embedded) {
             this.embeddedStartupCancelled = true;
@@ -1307,7 +1353,7 @@ export class LiveHost {
     }
 
     activate() {
-        this.container.querySelector('#live-prompt')?.focus({ preventScroll: true });
+        this.container.querySelector('#live-prompt, #live-venue-question')?.focus({ preventScroll: true });
     }
 
     deactivate() {}
@@ -1320,6 +1366,7 @@ export class LiveHost {
         this.embeddedStartupCancelled = true;
         this.cancelEmbeddedPending();
         this.stopHearingExitListener();
+        this.venue?.destroy();
         void this.ended();
         this.stopFittingFrame?.();
         this.port?.close();
