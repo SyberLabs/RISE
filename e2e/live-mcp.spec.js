@@ -27,7 +27,7 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, forgedResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null, fullscreen = null, chat = 0 }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, forgedResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null, fullscreen = null, chat = 0, platform = null }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     // `chat`: px of conversation above and below the card, so the host's page scrolls as a chat does.
     const conversation = chat ? `<div class="chat" style="height:${chat}px"></div>` : '';
@@ -48,6 +48,8 @@ const FORGED_RESULT = ${JSON.stringify(forgedResult)};
 const DISPLAY_MODES = ${JSON.stringify(displayModes)};
 // A phone's host in full screen: the frame takes the screen, and the notch and home bar come as safe-area insets ({ height, safeAreaInsets }).
 const FULLSCREEN = ${JSON.stringify(fullscreen)};
+// The platform this host says it is (MCP Apps hostContext.platform; null: it says nothing of it, as before).
+const PLATFORM = ${JSON.stringify(platform)};
 const log = [];
 // What the app asked of the host beyond the handshake: each request to change its display mode.
 const hostRequests = [];
@@ -65,7 +67,7 @@ window.addEventListener('message', event => {
   log.push({ method: message.method, id: message.id, params: message.params, result: message.result });
   if (message.method === 'ui/initialize') {
     reply(message.id, { result: { protocolVersion: '2026-01-26', hostInfo: { name: 'fake host', version: '1' },
-      hostCapabilities: SAMPLING ? { sampling: {} } : {}, hostContext: DISPLAY_MODES ? { displayMode: 'inline', availableDisplayModes: DISPLAY_MODES } : {} } });
+      hostCapabilities: SAMPLING ? { sampling: {} } : {}, hostContext: { ...(DISPLAY_MODES ? { displayMode: 'inline', availableDisplayModes: DISPLAY_MODES } : {}), ...(PLATFORM ? { platform: PLATFORM } : {}) } } });
   } else if (message.method === 'ui/notifications/initialized') {
     if (!RESULT_ONLY) tell('ui/notifications/tool-input', { arguments: { current: CURRENT } });
     // As the Worker's answer would, after the input, on a later turn of the event loop.
@@ -119,7 +121,7 @@ async function openHost(page, baseURL, options = {}) {
   // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
   // frame keeps it because the relay frames RISE's real page.
   const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, forgedResult: options.forgedResult ?? false, height: options.height, displayModes: options.displayModes ?? null, fullscreen: options.fullscreen ?? null, chat: options.chat ?? 0, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, forgedResult: options.forgedResult ?? false, height: options.height, displayModes: options.displayModes ?? null, fullscreen: options.fullscreen ?? null, chat: options.chat ?? 0, platform: options.platform ?? null, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
   return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
@@ -1877,3 +1879,32 @@ test('a bed under the reading: the self-contained card starts the first beat’s
   expect(await sounding()).toBe('starlight');
   expect(errors).toEqual([]);
 });
+
+/** The median of the card's output level over a couple of seconds, once the bed is up: one quarter-second reading wavers. */
+async function bedLevel(platform, page, baseURL) {
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: SKY_UNDER_STARLIGHT, measure: true, platform });
+  await begin(app);
+  const audio = () => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__riseLive?.audio() ?? null);
+  const level = async () => (await audio())?.levelDbfs ?? -Infinity;
+  await expect.poll(level, { timeout: 5_000 }).toBeGreaterThan(-45);
+  // Past the 1.2 s reveal.
+  await page.waitForTimeout(1_500);
+  const levels = [];
+  for (let i = 0; i < 9; i += 1) {
+    levels.push(await level());
+    await page.waitForTimeout(250);
+  }
+  levels.sort((a, b) => a - b);
+  return levels[4];
+}
+
+for (const [platform, low, high] of [['mobile', -26.5, -17], ['web', -34, -25.5]]) {
+  test(`the bed on ${platform === 'mobile' ? 'a phone is lifted by the phone level' : 'a computer stays at the catalogue’s level'} (SND-001)`, async ({ page, baseURL }) => {
+    // The paced voice ducks nothing, so this is the bed's own level: -29 dBFS levelled, +6 dB where the host is a phone.
+    const median = await bedLevel(platform, page, baseURL);
+    console.log(`[bed level] platform=${platform} median ${median.toFixed(1)} dBFS`);
+    expect(median).toBeGreaterThan(low);
+    expect(median).toBeLessThan(high);
+  });
+}

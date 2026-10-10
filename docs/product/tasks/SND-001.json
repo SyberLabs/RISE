@@ -105,10 +105,14 @@
     {
       "date": "2026-10-09T08:25:56.358Z",
       "summary": "Voice-ducking floor raised from 0.18 to 0.35 so a levelled bed stays heard under speech (about -38 dBFS)."
+    },
+    {
+      "date": "2026-10-09T23:54:07.413Z",
+      "summary": "Card beds on iPhone (branch ios-audio-unlock): the Play tap resumes the engine's context and, on WebKit, asks navigator.audioSession for playback and starts a silent looping <audio> so the ring/silent switch no longer mutes Web Audio (Ambient category, MediaSessionManagerCocoa.mm); beds lifted +6 dB where hostContext.platform is mobile (e2e median -22.6 vs -28.5 dBFS on web); About adds level and audio session lines. Owner's phone check pending."
     }
   ],
-  "updatedAt": "2026-10-09T08:25:56.358Z",
-  "revision": 4,
+  "updatedAt": "2026-10-09T23:54:07.413Z",
+  "revision": 5,
   "summary": "Built on branch snd-001-card-sound (PR #585): the sixteen offered sounds levelled to -29 dBFS RMS +-2 dB through the real engine, beds and tones play in the card ducked under the browser voice, a Sound switch in Settings, Premium Educational teaches one quiet bed, and the trace notes each bed. Not yet witnessed in a real host.",
   "blocker": null
 }

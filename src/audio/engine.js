@@ -341,6 +341,8 @@ export class AudioEngine {
         // reader who comes back to an interrupted page can recover it
         // with the next thing they touch.
         this.onInterrupted = null;
+        // The session's reveal reaches this gain (setSessionLift).
+        this._sessionLift = 1;
         this._rebuilding = false;
         // Browser ownership, clock liveness and recovery policy live in
         // their own object: the engine builds and plays a graph, and
@@ -2280,6 +2282,16 @@ export class AudioEngine {
     }
 
     /**
+     * How far above full the session's reveal reaches, in dB: 0 everywhere but where a host says it plays on a
+     * phone's speaker (PHONE_SPEAKER_LIFT_DB). Applied by the next fadeInSession; the catalogue's levels are not
+     * touched. Whoever sets it sets it back to 0 when it lets the engine go, since the Reader shares this engine.
+     * @param {number} db
+     */
+    setSessionLift(db) {
+        this._sessionLift = Number.isFinite(db) ? 10 ** (db / 20) : 1;
+    }
+
+    /**
      * Fade in the session audio
      * @param {number} duration
      */
@@ -2291,7 +2303,8 @@ export class AudioEngine {
         const now = this.context.currentTime;
         // Full, not masterVolume: the reader's volume already lives on
         // masterGain downstream, and applying it here too would square it.
-        const targetVolume = 1;
+        // Lifted only where a host asked for it (setSessionLift).
+        const targetVolume = this._sessionLift;
 
         this.sessionGain.gain.cancelScheduledValues(now);
         this.sessionGain.gain.setValueAtTime(0, now);

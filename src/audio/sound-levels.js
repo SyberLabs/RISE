@@ -33,3 +33,13 @@ export const SOUND_TRIM_DB = Object.freeze({
 
 /** The trim for a sound id, in dB; 0 for one this catalogue does not level. */
 export const soundTrimDb = id => (typeof id === 'string' && Object.hasOwn(SOUND_TRIM_DB, id) ? SOUND_TRIM_DB[id] : 0);
+
+/**
+ * dB the whole session is lifted by when the host says it is a phone (MCP Apps `hostContext.platform: 'mobile'`).
+ * The band above is measured at the output, and a phone's own speaker gives little of a bed's low end back, next to
+ * a system voice the app speaks at its own level: at -29 dBFS, and about -38 under the voice, the owner heard the
+ * bed on an iPhone only just (2026-10-09). +6 dB puts it near -23, and -32 under the voice: a step a listener
+ * hears plainly as louder, with the bed still far below full scale.
+ * The catalogue's levelling is untouched; only the session's reveal reaches higher (AudioEngine.setSessionLift).
+ */
+export const PHONE_SPEAKER_LIFT_DB = 6;
