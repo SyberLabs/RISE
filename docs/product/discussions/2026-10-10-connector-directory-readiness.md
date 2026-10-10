@@ -11,9 +11,10 @@ each item, and the exact submission material.
 ## 1. Verdict
 
 RISE can be submitted as a Community connector as soon as the two pull requests in
-flight land (wording and documentation; the five screenshots) and the owner settles one
-decision: whether the Plus voice stays out of the Claude connector for the first
-submission. Everything the automated scan is known to check is addressed or in flight.
+flight land (wording and documentation; the five screenshots), the owner settles one
+decision (whether the Plus voice stays out of the Claude connector for the first
+submission), and every unchecked must-have in section 7 is done, including the
+example-prompt verification and the tool testing. Everything the automated scan is known to check is addressed or in flight.
 
 ## 2. How listing works
 
@@ -113,7 +114,7 @@ Must have:
 - [ ] Tool and server text free of run-time instruction fetching, creator names, promotion (in flight)
 - [ ] 3 to 5 PNG screenshots ≥ 1000 px wide, cropped to the card, prompts separate (in flight)
 - [ ] At least three working example prompts (drafted below; verify in claude.ai before submitting)
-- [ ] Attest that every tool was run in MCP Inspector or as a custom connector, including the iOS and Android apps
+- [ ] Attest that every tool was run in MCP Inspector and as a custom connector in Claude, plus the iOS and Android apps
 - [ ] A paid Claude account in the organization that will own the listing
 - [ ] The Plus decision (section 5.1) and the AI-media acknowledgment answered truthfully
 
