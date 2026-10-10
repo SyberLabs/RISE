@@ -67,6 +67,49 @@ describe('Cloudflare API Worker', () => {
   });
 });
 
+describe('/.well-known/', () => {
+  // An authless MCP server serves no authorization metadata, and the MCP auth spec reads a 404 as "no auth".
+  // The app shell must never answer here: a 200 page looks like metadata that does not parse.
+  it.each([
+    '/.well-known/oauth-protected-resource',
+    '/.well-known/oauth-protected-resource/api/mcp',
+    '/.well-known/oauth-authorization-server',
+    '/.well-known/openid-configuration',
+    '/.well-known/mcp.json',
+    '/.well-known/',
+    '/.well-known/security.txt/extra'
+  ])('answers %s with a JSON 404, never the app shell', async (path) => {
+    const env = { ASSETS: { fetch: vi.fn(async () => new Response('<!DOCTYPE html>', { headers: { 'Content-Type': 'text/html' } })) } };
+    for (const method of ['GET', 'HEAD', 'POST']) {
+      const response = await worker.fetch(new Request(`${SITE}${path}`, { method }), env);
+      expect(response.status, method).toBe(404);
+      expect(response.headers.get('content-type')).toContain('application/json');
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      if (method !== 'HEAD') expect(await response.json()).toEqual({ error: { code: 'NOT_FOUND', message: 'Nothing is published at this address.' } });
+    }
+    expect(env.ASSETS.fetch).not.toHaveBeenCalled();
+  });
+
+  it('publishes a security contact as RFC 9116 asks: a contact, an expiry within a year, the language, and where it lives', async () => {
+    const response = await worker.fetch(new Request(`${SITE}/.well-known/security.txt`), {});
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
+    const text = await response.text();
+    const fields = Object.fromEntries(text.trim().split('\n').filter(line => !line.startsWith('#')).map(line => line.split(/: (.*)/su).slice(0, 2)));
+    expect(fields.Contact).toMatch(/^(mailto:|https:\/\/)/u);
+    expect(fields['Preferred-Languages']).toBe('en');
+    expect(fields.Canonical).toBe('https://rise.syberlabs.io/.well-known/security.txt');
+    const expires = Date.parse(fields.Expires);
+    expect(fields.Expires).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/u);
+    // When this fails the file has expired: set Expires a year out (RFC 9116 §2.5.5) and confirm the contact still answers.
+    expect(expires, 'security.txt has expired').toBeGreaterThan(Date.now());
+    expect(expires - Date.parse('2026-10-09T00:00:00Z')).toBeLessThanOrEqual(366 * 24 * 3_600_000);
+    const head = await worker.fetch(new Request(`${SITE}/.well-known/security.txt`, { method: 'HEAD' }), {});
+    expect(head.status).toBe(200);
+    expect(await head.text()).toBe('');
+  });
+});
+
 describe('no shared inference credential in server code', () => {
   const serverFiles = ['worker', 'netlify/functions'].flatMap(dir => readdirSync(dir)
     .filter(name => /\.m?js$/.test(name) && !name.includes('.test.'))

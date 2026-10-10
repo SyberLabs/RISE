@@ -18,11 +18,14 @@ import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanati
 import worker from './index.mjs';
 import { admitSvg } from '../src/core/svg-admission.js';
 import { describeDiagnostic } from './scene-admission.mjs';
+import { DISPLAY_MODES } from '../src/live/hosts/mcp-port.js';
 import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, GUIDE_TOOL, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
 
 const SITE = 'https://rise.example';
 /** The most the tool's description may say, in characters. */
-const DESCRIPTION_BUDGET = 12_000;
+const DESCRIPTION_BUDGET = 2_000;
+/** The most tools/list may weigh, in bytes: the description, both Current schemas and the guide tool. */
+const TOOLS_LIST_BUDGET = 12_000;
 const ON = { MCP_ENABLED: 'true' };
 
 function post(body, { headers = {}, env = ON, url = `${SITE}${MCP_PATH}`, raw } = {}) {
@@ -142,19 +145,46 @@ describe('who may ask, and how', () => {
     }
   });
 
-  it('is limited per client address through the limiter live answers use, before the body is read, and is as it was without one', async () => {
+  it('is limited per client address through the limiter live answers use, and is as it was without one', async () => {
     const headers = { 'CF-Connecting-IP': '192.0.2.1' };
     const denied = { ...ON, DECISION_LIMITER: { limit: async () => ({ success: false }) } };
     const limit = vi.fn(async () => ({ success: true }));
     expect((await post(rpc('ping'), { headers, env: { ...ON, DECISION_LIMITER: { limit } } })).status).toBe(200);
     expect(limit).toHaveBeenCalledWith({ key: 'mcp:192.0.2.1' });
-    const limited = await post(null, { raw: '{not json', headers, env: denied });
-    expect(limited.status).toBe(429);
-    expect(await json(limited)).toEqual({ error: { code: 'RATE_LIMITED', message: expect.any(String) } });
+    expect((await post(rpc('ping'), { headers, env: denied })).status).toBe(429);
     // No binding (tests, a local run), no address, or a limiter that fails: the route is unchanged.
     expect((await post(rpc('ping'), { headers })).status).toBe(200);
     expect((await post(rpc('ping'), { env: denied })).status).toBe(200);
     expect((await post(rpc('ping'), { headers, env: { ...ON, DECISION_LIMITER: { limit: async () => { throw new Error('down'); } } } })).status).toBe(200);
+  });
+
+  it('never limits Anthropic’s published egress (160.79.104.0/21), which every Claude user shares, and limits the addresses beside it', async () => {
+    const limit = vi.fn(async () => ({ success: false }));
+    const env = { ...ON, DECISION_LIMITER: { limit } };
+    for (const ip of ['160.79.104.0', '160.79.104.10', '160.79.106.77', '160.79.111.255']) {
+      expect((await post(rpc('ping'), { headers: { 'CF-Connecting-IP': ip }, env })).status, ip).toBe(200);
+    }
+    expect(limit).not.toHaveBeenCalled();
+    for (const ip of ['160.79.103.255', '160.79.112.0', '160.78.104.1', '192.0.2.1', '160.79.104', '160.79.104.300', '160.079.104.1', '2001:db8::1', '::ffff:160.79.104.1']) {
+      expect((await post(rpc('ping'), { headers: { 'CF-Connecting-IP': ip }, env })).status, ip).toBe(429);
+    }
+  });
+
+  it('answers a tripped limit as a JSON-RPC error a client can parse, with the request’s id, and reads a bounded body first', async () => {
+    const env = { ...ON, DECISION_LIMITER: { limit: async () => ({ success: false }) } };
+    const headers = { 'CF-Connecting-IP': '192.0.2.1' };
+    const limited = await post(rpc('tools/list', undefined, 'list-7'), { headers, env });
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get('Retry-After')).toBe('60');
+    expect(limited.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+    expect(await json(limited)).toEqual({
+      jsonrpc: '2.0', id: 'list-7',
+      error: { code: -32000, message: expect.stringMatching(/too many requests.*from this address.*a minute/iu), data: { code: 'RATE_LIMITED', retryAfterSeconds: 60 } }
+    });
+    // A notification has no id to carry back; the error still parses.
+    expect(await json(await post({ jsonrpc: '2.0', method: 'notifications/initialized' }, { headers, env }))).toMatchObject({ jsonrpc: '2.0', id: null, error: { code: -32000 } });
+    // The size cap still comes before any parsing.
+    expect((await post(null, { raw: 'x'.repeat(262_145), headers, env })).status).toBe(413);
   });
 });
 
@@ -238,7 +268,14 @@ describe('the tool', () => {
     expect(tool.description).toMatch(/Do not use it for/u);
     // The embed takes no question, so the description promises none.
     expect(tool.description).not.toMatch(/ask about/u);
-    expect(tool.description).toContain(`\n\n${CURRENT_GUIDE}\n\n`);
+  });
+
+  it('shows a plain Current whole, the example the validator accepts, and leaves the rest of the guide to rise_guide', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    const [tool] = result.tools;
+    expect(tool.description).toContain(JSON.stringify(CURRENT_EXAMPLE));
+    expect(tool.description).not.toContain(CURRENT_GUIDE);
+    expect(tool.description).toMatch(/no markdown/u);
   });
 
   it('ends with one line per style, and says the guide tool gives each style’s full guidance', async () => {
@@ -250,10 +287,20 @@ describe('the tool', () => {
     for (const id of RISE_CURRENT_STYLES) expect(tool.description).toContain(`- ${id}: `);
   });
 
-  it('keeps the description within its budget: the worked examples are resources, not description', () => {
-    // A host reads the whole description on every turn; ~12k characters is about 3k tokens.
+  it('keeps the description and the whole listing within their budgets: the guide and the worked examples are rise_guide’s', async () => {
+    // A host reads every tool's description and schema on every turn: about 500 tokens of description, 3k for the listing.
     expect(TOOL.description.length).toBeLessThanOrEqual(DESCRIPTION_BUDGET);
     for (const id of RISE_CURRENT_STYLES) expect(TOOL.description).not.toContain(styleGuide(id));
+    const listing = await (await post(rpc('tools/list'))).text();
+    expect(new TextEncoder().encode(listing).length).toBeLessThanOrEqual(TOOLS_LIST_BUDGET);
+  });
+
+  it('steers nothing beyond presenting a reading, and promotes nothing', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    const { result: hello } = await json(await post(rpc('initialize', { protocolVersion: '2025-06-18' })));
+    for (const text of [...result.tools.map(tool => tool.description), hello.instructions]) {
+      expect(text).not.toMatch(/\bcite\b|\bsources?\b|\bPlus\b|SyberLabs|subscri|upgrade|ElevenLabs/iu);
+    }
   });
 
   it('points at the app in the extension’s key and in its older spelling, and gives the host short words for while it runs and once it is done', async () => {
@@ -268,11 +315,22 @@ describe('the tool', () => {
     expect(APP_MIME).toBe('text/html;profile=mcp-app');
   });
 
-  it('takes a valid Current, and says it is being presented', async () => {
+  it('takes a valid Current, gives the app the Current, and gives the model a one-line receipt, not the Current again', async () => {
     const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } })));
     expect(result.isError).toBeUndefined();
+    // The card admits the Current from structuredContent (src/live/hosts/mcp-port.js currentFrom).
     expect(result.structuredContent).toEqual({ current: BLACK_HOLES_CURRENT });
-    expect(result.content[0].text).toContain('accepted');
+    expect(result.content).toHaveLength(1);
+    const [{ type, text }] = result.content;
+    expect(type).toBe('text');
+    expect(text).toMatch(new RegExp(`^RISE is presenting "${BLACK_HOLES_CURRENT.title}" \\(id "${BLACK_HOLES_CURRENT.id}"\\) to the reader: ${BLACK_HOLES_CURRENT.segments.length} passages?, about \\d+ (seconds|minutes)\\. The reader starts it with Play\\.$`, 'u'));
+    expect(text).not.toContain(BLACK_HOLES_CURRENT.segments[0].text);
+  });
+
+  it('estimates a beat Current’s length from its spoken words and its holds', async () => {
+    // 27 spoken words at 150 a minute (10.8 s) and 4.5 s of holds.
+    const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current: CURRENT_EXAMPLE_V2 } })));
+    expect(result.content).toEqual([{ type: 'text', text: 'RISE is presenting "How long is a vector?" (id "vector-length") to the reader: 5 beats, about 15 seconds. The reader starts it with Play.' }]);
   });
 
   it('refuses a valid Current whose serialized UTF-8 payload exceeds the MCP-only budget', async () => {
@@ -590,9 +648,10 @@ describe('the shape of a Current, as the host’s model is told it', () => {
     expect(result.tools[0].inputSchema).toEqual({ type: 'object', properties: { current: { oneOf: [schema, currentJsonSchemaV2()] } }, required: ['current'], additionalProperties: false });
   });
 
-  it('is what the tool promises back, and what it gives back', async () => {
+  it('is what the tool promises back, named once rather than repeated, and what it gives back', async () => {
     const { result: listed } = await json(await post(rpc('tools/list')));
-    expect(listed.tools[0].outputSchema).toEqual({ type: 'object', properties: { current: { oneOf: [schema, currentJsonSchemaV2()] } }, required: ['current'] });
+    // The input schema already spells the Current out; the output names it, which keeps tools/list half the size.
+    expect(listed.tools[0].outputSchema).toEqual({ type: 'object', properties: { current: { type: 'object', description: expect.any(String) } }, required: ['current'] });
     const { result } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } })));
     expect(conforms(listed.tools[0].outputSchema, result.structuredContent)).toEqual([]);
   });
@@ -682,9 +741,10 @@ describe('the app', () => {
     expect(content._meta.ui.domain).toBeUndefined();
   });
 
-  it('tells ChatGPT on the resource that it is shown inline only, so the host picks the mode before loading it', async () => {
+  it('tells ChatGPT on the resource the same display modes the app declares at ui/initialize, inline first', async () => {
     const { result } = await json(await post(rpc('resources/read', { uri: APP_URI })));
-    expect(result.contents[0]._meta['openai/ui']).toEqual({ availableDisplayModes: ['inline'] });
+    expect(result.contents[0]._meta['openai/ui']).toEqual({ availableDisplayModes: [...DISPLAY_MODES] });
+    expect(DISPLAY_MODES[0]).toBe('inline');
   });
 
   it('follows the origin it is asked at, so a staging site frames its own page', async () => {

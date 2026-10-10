@@ -6,9 +6,9 @@
  * BEAT_LIMITS and SCENE_LIMITS, the refused names are the admission's list,
  * the module shape is the one the scene worker calls, and LIB_GUIDE names
  * exactly what createSceneLibrary gives a scene (index.test.js holds each).
- * A figure (an SVG scene) is named here in a few lines, for the tool's
- * description has little room; FIGURE_GUIDE, with the element list the
- * admission keeps, travels with every style's guidance (rise_guide).
+ * A figure (an SVG scene) is named here in a few lines, for a Dive's prompt
+ * has little room; FIGURE_GUIDE, with the element list the admission keeps,
+ * travels with every style's guidance (rise_guide).
  */
 import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_ENGINES, SCENE_LIMITS, describeManifests } from '../../core/beats.js';
 import { RISE_CURRENT_STYLES } from '../../core/rise-current.js';

@@ -37,7 +37,9 @@
     // /live reaches handleLive (worker/mcp-server.mjs), which loosens the embedded page's framing
     // headers only while MCP_ENABLED is "true"; off, the page is served exactly as the asset.
     // /content/arena/* reaches serveArenaFile, so a missing run file is a 404, not the app shell.
-    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*"]
+    // /.well-known/* reaches serveWellKnown (worker/index.mjs): security.txt, and a JSON 404 for every
+    // other probe (an authless MCP server has no OAuth metadata, and a 404 says so).
+    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*", "/.well-known/*"]
   },
   // Serves the live Realtime route (worker/live-realtime.mjs); off by default.
   // The paid voice (worker/plus.mjs). It stores no audio and no reader text, so there is no bucket.
