@@ -1203,3 +1203,38 @@ describe('a room of many readings (the venue)', () => {
         expect(theme().value).toBe('');
     });
 });
+
+describe('the reader’s Settings choices, kept for perception (the RISE Live design, §4)', () => {
+    it('notes each choice in the runtime’s journal once it is made, and the intensity once the slider is let go', () => {
+        const runtime = Object.assign(fakeRuntime('live'), { noteSetting: vi.fn() });
+        const chamber = Object.assign(fakeChamber(), { changeJevLook: vi.fn() });
+        stage = createStageControls({
+            runtime, onPlayAgain: () => {}, chamber: () => chamber, sound: true,
+            voice: { voices: [{ name: 'Samantha', local: true }], selected: '', choose: () => {} }
+        });
+        settings().click();
+        intensity().value = '0.55';
+        intensity().dispatchEvent(new Event('input', { bubbles: true }));
+        expect(runtime.noteSetting).not.toHaveBeenCalled();
+        change(intensity());
+        theme().value = 'jade';
+        change(theme());
+        theme().value = '';
+        change(theme());
+        still().click();
+        $('#rise-settings-sound').click();
+        $('#rise-settings-voice').value = 'Samantha';
+        change($('#rise-settings-voice'));
+        chips()[3].click();
+        expect(runtime.noteSetting.mock.calls).toEqual([
+            ['intensity', 0.55], ['theme', 'jade'], ['theme', null], ['still', true], ['sound', false], ['voice', 'Samantha'], ['textSize', 'xlarge']
+        ]);
+    });
+
+    it('works with a runtime that keeps no such journal', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => fakeChamber() });
+        settings().click();
+        theme().value = 'jade';
+        expect(() => change(theme())).not.toThrow();
+    });
+});

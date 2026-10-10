@@ -14,12 +14,12 @@
  */
 
 import { connectionState, subscribeConnection } from '../../core/ai-connection.js';
-import { initialVenue, venueStep } from './venue-entry.js';
+import { initialVenue, perceptionFor, venueStep } from './venue-entry.js';
 
 const MIC_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 const LEAVE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 
-const SENT = 'What is sent is your question, and later what you do in the reading. Nothing is stored; a reload forgets the key.';
+const SENT = 'What is sent is your question, and what you did while it played (play, pause, replay, pace, settings, words you spoke to it), sent only with your next words. Nothing is stored; a reload forgets the key.';
 
 /** Whose key, where it goes and what is sent, for a provider's credential (docs/USER-OWNED-AI.md). */
 function privacy(entry) {
@@ -43,8 +43,8 @@ export class LiveVenue {
         this.room = {};
         // The room's adapter, made at its first question; every question of the room is asked of it.
         this.adapter = null;
-        // The journal of each reading the room has let go, by the index of its question.
-        this.journals = [];
+        // Each reading the room has let go, by the index of its question: its journal and its passages, for perception.
+        this.readings = [];
         this.reading = null;
         this.stage = null;
         this.bar = null;
@@ -68,9 +68,9 @@ export class LiveVenue {
         this.paint();
     }
 
-    /** The questions the room has asked, each with the journal of its reading once that reading was let go. */
+    /** The questions the room has asked, each with the journal and passages of its reading once that reading was let go. */
     turns() {
-        return this.state.turns.map((turn, index) => (this.journals[index] ? { ...turn, journal: this.journals[index] } : { ...turn }));
+        return this.state.turns.map((turn, index) => ({ ...turn, ...this.readings[index] }));
     }
 
     /** The room's one adapter, made once from the chosen provider; the key is asked for at each request. */
@@ -224,14 +224,20 @@ export class LiveVenue {
         if (this.host.controls === reading?.stage) this.host.controls = null;
         if (this.host.runtime === reading?.runtime) this.host.runtime = null;
         if (!reading) return;
-        this.journals[reading.turn] = reading.runtime.journal?.() ?? [];
-        await reading.runtime.stop();
+        const { runtime } = reading;
+        const segments = runtime.composed?.('main')?.segments ?? [];
+        this.readings[reading.turn] = {
+            journal: runtime.journal?.() ?? [],
+            // The reading's passages in order, so the reader's moves can name them (perception.js).
+            passages: (runtime.passages?.() ?? []).map(({ segmentId }) => ({ segmentId, text: segments.find(segment => segment.id === segmentId)?.text ?? '' }))
+        };
+        await runtime.stop();
     }
 
     /**
      * One question, read in this room: the reading before it is let go, and a new runtime is built on the room's
-     * adapter (the host's buildAdapter asks adapterFor). The design's perception (§4, stage 4) sends the reader's
-     * actions up with the question here, from `perceptionFor(this.turns())`; until then only the question goes.
+     * adapter (the host's buildAdapter asks adapterFor). What the reader did in the reading before goes up with the
+     * question, and only with it (perception, the design's §4): rebuilt from that reading's journal, never on a timer.
      */
     async begin(question, turn) {
         const host = this.host;
@@ -249,7 +255,8 @@ export class LiveVenue {
             this.reading = { runtime, stage, turn };
             this.ensureBar();
             this.stopFollowing = runtime.subscribe(view => this.dispatch({ type: 'status', status: view.status }));
-            await runtime.start(question);
+            const perception = perceptionFor(this.turns().slice(0, turn + 1));
+            await (perception ? runtime.start(question, { perception }) : runtime.start(question));
             if (this.destroyed || this.reading?.runtime !== runtime) return;
             this.dispatch({ type: 'opened' });
             this.dispatch({ type: 'status', status: runtime.status });
@@ -281,7 +288,7 @@ export class LiveVenue {
         await this.letGo();
         this.room = {};
         this.adapter = null;
-        this.journals = [];
+        this.readings = [];
         this.host.paintEmbedTheme();
         await this.host.stop();
         if (this.destroyed) return;
@@ -415,6 +422,8 @@ export class LiveVenue {
         this.say('');
         if (this.state.phase === 'reading' && this.host.runtime) {
             const runtime = this.host.runtime;
+            // What the reader said to the reading is theirs to send with their next words (perception).
+            if (said.heard && said.intent !== 'none') runtime.noteSaid?.(said.heard);
             if (said.intent === 'none') {
                 if (held && runtime.status === 'interrupted') runtime.resume();
                 return;

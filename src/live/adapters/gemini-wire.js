@@ -24,7 +24,8 @@
  * only that the provider reported an error, and none of the provider's words.
  */
 
-import { promptFor, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
+import { GEMINI_DEFAULT_MODEL, isModelId } from './gemini-model.js';
+import { instructionsFor, promptFor } from './openai-instructions.js';
 
 /** Every provider-specific name, in one place. */
 export const WIRE = Object.freeze({
@@ -37,10 +38,16 @@ export const GEMINI_LIMITS = Object.freeze({ message: 131_072, text: 300, maxOut
 const NAME = /^[A-Z][A-Z0-9_]{0,59}$/u;
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
 
-/** The request that asks a question: RISE's instructions, the reader's words, and a cap on what can be spent. */
-export function buildBody(request) {
+/** Who writes the answer, as the Current's origin and the instructions say it: the model, reached through Google. */
+export const geminiOrigin = model => ({ name: isModelId(model) ? model : 'a Gemini model', provider: 'Google' });
+
+/**
+ * The request that asks a question: RISE's instructions naming `model`, the reader's words, and a cap on what can
+ * be spent.
+ */
+export function buildBody(request, model = GEMINI_DEFAULT_MODEL) {
     return {
-        systemInstruction: { parts: [{ text: REALTIME_INSTRUCTIONS }] },
+        systemInstruction: { parts: [{ text: instructionsFor(geminiOrigin(model)) }] },
         contents: [{ role: 'user', parts: [{ text: promptFor(request) }] }],
         generationConfig: { maxOutputTokens: GEMINI_LIMITS.maxOutputTokens }
     };

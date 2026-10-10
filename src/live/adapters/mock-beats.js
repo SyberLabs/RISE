@@ -22,7 +22,8 @@ const DELTA_SIZES = Object.freeze([7, 19, 3, 31, 11, 23]);
 export function createMockBeatsAdapter({ clock = createRealClock(), everyMs = 100 } = {}) {
     return createTextStreamAdapter({
         id: 'mock',
-        provider: 'RISE demo',
+        // RISE's own script: no model, no key.
+        origin: () => ({ name: 'RISE demo', provider: 'RISE' }),
         connect: async (request, sink) => {
             const text = beatsTextFor(request);
             const controller = new AbortController();

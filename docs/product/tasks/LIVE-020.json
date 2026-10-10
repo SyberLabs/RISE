@@ -1,0 +1,69 @@
+{
+  "id": "LIVE-020",
+  "title": "RISE Live: perception v1 and the persona",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-019"
+  ],
+  "acceptance": [
+    "The seven events of design §4 (held/resumed, sought/replayed, paced, visual.changed, said, scene.input defined and reserved, finished) are derived from a reading's journal, never accumulated apart from it: an allowlist of exactly these names, bounded in number (the last 32, with a count of the earlier ones) and length, repeats folded, in the reader's words of action and never a claim about the reader, with nothing from the page outside the reading.",
+    "They go up with the reader's next words and only then: through the adapter, in the open request the adapter admits, carried by every text-stream adapter (the demo, Gemini, OpenAI, OpenRouter) with no adapter's own code, as one delimited block the model reads as data; nothing is sent on a timer, shown by a unit test and a browser test.",
+    "The guide teaches the model what each event means and how RISE may respond (say it another way, offer the picture again), in a neutral register with no 'you must', 'always' or 'never'.",
+    "The persona lands: Live's system prompt opens 'You are RISE', with the honesty rule (RISE speaks through the model the reader connected, on their key, and says so plainly when asked, naming the model and provider); each adapter fills the streamed Current's origin from what it knows (OpenRouter the model and OpenRouter, Gemini the model and Google, the demo RISE demo and RISE), and the venue's About shows it. Composer's prompt and the card are untouched.",
+    "The measurement of design §8 stage 4 is built, not claimed: an eval that asks the same question through the real OpenRouter adapter with and without 'the reader replayed passage 3 twice', against a control, reports whether and how passage 3 changed, and skips cleanly with a stated reason without a key; the method is documented and the owner runs it with their key.",
+    "The venue says before the first question that what the reader did while it played is sent only with their next words."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
+      "note": "§1 items 2, 4, 6 and 7, §4 and §8 stage 4: the acceptance above; stage 4 approved by the owner 2026-10-10.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§16 'Perception and the persona': the journal as source, the events, the block verbatim, where it goes, the guide, the persona and origin per adapter, the measurement, what is not verified.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/evals/perception/PERCEPTION-EVAL.md",
+      "note": "The measurement's method (baseline, control, with the reader's actions; passage 3 compared word by word) and how to run it with a key; not yet run against a real model.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/perception.test.js",
+      "note": "Branch live-perception, local run: the events from a journal in order, an unknown journal type never leaks (nine kinds tried), repeats folded, the last 32 kept with a count, quotes once and clipped, a picked voice said as 'another', the block verbatim, no word for attention, feeling, understanding or intent, a reader's words and a passage cannot close the block or forge a line, the door refuses every other shape. With adapter.test.js, openai-instructions.test.js (persona, honesty, the #607 wording bar, the block carried by the OpenRouter, Gemini and OpenAI wires through promptFor), openrouter/gemini/mock tests (origin per adapter), runtime.test.js, stage-controls.test.js, venue-entry.test.js and venue.test.js (no send without a reader action, under fake timers). src/live and the evals: 70 files, 1,559 passed; the CI fast set, 99 files, 2,267 passed.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Branch live-perception, local production build, headless Chromium, the venue's demo: replay, a theme and Pause, then ask again, and the next reading's journal says perception.sent { count: 3, kinds: ['replayed', 'visual.changed', 'held'] }; a reading paused for 12 s asks nothing, starts no reading and sends no request to a provider. The whole file, 21 passed; with the card subset (live-mcp -g 'field|self-contained') and the venue on the final code, 18 passed.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/eval-perception.mjs",
+      "note": "npm run eval:perception without a key: says the measurement was skipped and why, and the scripted carriage check reports the block went up on the third request only. src/test/eval-perception.test.js holds the wiring. No real model asked.",
+      "date": "2026-10-10"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-10T09:29:51.000Z",
+      "summary": "Built on branch live-perception (Claude, for Fable): src/live/perception.js (perceive, admitPerception, describePerception); the journal gains the hold's passage, resume, setting and said; the adapter door admits perception on an answer and promptFor puts the block before the question; the persona and the perception guide in openai-instructions.js; origin per adapter; the venue sends perceptionFor with the next question and says so; scripts/eval-perception.mjs. No real model has been asked with a block."
+    }
+  ],
+  "updatedAt": "2026-10-10T09:29:51.000Z",
+  "revision": 1,
+  "summary": "Design §8 stage 4: what the reader did while a reading played goes up with their next words, the guide teaches the model what it means, and RISE speaks as itself without hiding the model.",
+  "blocker": null
+}

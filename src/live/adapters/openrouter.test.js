@@ -17,7 +17,7 @@ import { createLiveRuntime } from '../runtime.js';
 import { createCurrentStream } from '../stream.js';
 import { createSyntheticVoice } from '../voices/synthetic.js';
 import { chunk, createFakeOpenRouterFetch, finishing, USAGE } from '../../test/fake-openrouter-fetch.js';
-import { REALTIME_INSTRUCTIONS } from './openai-instructions.js';
+import { instructionsFor } from './openai-instructions.js';
 import { OPENROUTER_DEFAULT_MODEL } from './openrouter-model.js';
 import { createOpenRouterAdapter } from './openrouter.js';
 
@@ -84,10 +84,24 @@ describe('what it asks', () => {
         expect(init.signal).toBeInstanceOf(AbortSignal);
         expect(JSON.parse(init.body)).toEqual({
             model: OPENROUTER_DEFAULT_MODEL,
-            messages: [{ role: 'system', content: REALTIME_INSTRUCTIONS }, { role: 'user', content: ASK.prompt }],
+            messages: [{ role: 'system', content: instructionsFor({ name: OPENROUTER_DEFAULT_MODEL, provider: 'OpenRouter' }) }, { role: 'user', content: ASK.prompt }],
             stream: true,
             max_tokens: 4096
         });
+    });
+
+    it('says in the Current who wrote it: the model asked, reached through OpenRouter, and never a placeholder', async () => {
+        const clock = createVirtualClock();
+        const fake = createFakeOpenRouterFetch({ clock });
+        let model;
+        const adapter = createOpenRouterAdapter({ getChat: () => chat(fake.request), getModel: () => model });
+        const first = read(await adapter.open(ASK));
+        model = 'qwen/qwen3.7-flash';
+        const second = read(await adapter.open(ASK));
+        await clock.runAll();
+        expect((await first).view.origin).toEqual({ kind: 'model', name: OPENROUTER_DEFAULT_MODEL, provider: 'OpenRouter' });
+        expect((await second).view.origin).toEqual({ kind: 'model', name: 'qwen/qwen3.7-flash', provider: 'OpenRouter' });
+        expect(JSON.parse(fake.requests[1].body).messages[0].content).toBe(instructionsFor({ name: 'qwen/qwen3.7-flash', provider: 'OpenRouter' }));
     });
 
     it('asks the model the reader chose, at the moment of the request', async () => {

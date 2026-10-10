@@ -319,3 +319,84 @@ describe('the microphone', () => {
         expect(host.buildRuntime).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('what the reader did goes up with their next words (perception, design §4)', () => {
+    const JOURNAL = [
+        { at: 0, type: 'start', prompt: 'First?' },
+        { at: 10, type: 'replay', from: 'p2', to: 'p2', reason: 'reader' },
+        { at: 20, type: 'setting', parameter: 'theme', value: 'ember' },
+        { at: 30, type: 'speech.start', role: 'main', segmentId: 'p2' }
+    ];
+
+    it('carries the last reading’s actions with the next question, rebuilt from its journal, to the room’s one adapter', async () => {
+        mount('?voice=paced');
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith('First?'));
+        runtimes[0].journal = () => JOURNAL;
+        runtimes[0].composed = () => ({ segments: [{ id: 'p1', text: 'One.' }, { id: 'p2', text: 'Two.' }] });
+        runtimes[0].set('ended');
+        askAgain('Again?');
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalled());
+        expect(runtimes[1].start).toHaveBeenCalledWith('Again?', {
+            perception: {
+                events: [
+                    { type: 'replayed', from: 2, to: 2, times: 1, quote: 'Two.' },
+                    { type: 'visual.changed', parameter: 'theme', value: 'ember' }
+                ],
+                earlier: 0
+            }
+        });
+    });
+
+    it('sends nothing by itself: a reading held, or ended, for a long time asks nothing more', async () => {
+        vi.useFakeTimers();
+        try {
+            mount('?voice=paced');
+            ask('First?');
+            await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+            runtimes[0].journal = () => JOURNAL;
+            runtimes[0].set('interrupted');
+            await vi.advanceTimersByTimeAsync(10 * 60_000);
+            runtimes[0].set('ended');
+            await vi.advanceTimersByTimeAsync(10 * 60_000);
+            expect(host.buildRuntime).toHaveBeenCalledTimes(1);
+            expect(runtimes[0].start).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('keeps what the reader said to the microphone during a reading in its journal', async () => {
+        const Recognition = createFakeRecognition();
+        mount('?voice=paced', env({ recognition: Recognition }));
+        await vi.waitFor(() => expect(container.querySelector('[data-venue="listen"]')).not.toBeNull());
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        runtimes[0].noteSaid = vi.fn();
+        $('.live-again [data-venue="listen"]').click();
+        const recogniser = Recognition.instances.at(-1);
+        recogniser.begin();
+        recogniser.say('carry on', { final: true });
+        recogniser.end();
+        await vi.waitFor(() => expect(runtimes[0].resume).toHaveBeenCalled());
+        expect(runtimes[0].noteSaid).toHaveBeenCalledWith('carry on');
+    });
+
+    it('says so before the first question: what you did while it played is sent only with your next words', () => {
+        mount();
+        choose('gemini');
+        expect(container.querySelector('.live-venue__privacy').textContent)
+            .toContain('and what you did while it played (play, pause, replay, pace, settings, words you spoke to it), sent only with your next words');
+    });
+
+    it('shows in About who is speaking: RISE, through the model and service the Current names', async () => {
+        mount('?voice=paced');
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        runtimes[0].composed = () => ({ segments: [], origin: { kind: 'model', name: 'anthropic/claude-haiku-5.5', provider: 'OpenRouter' } });
+        const about = $('.rise-settings__about');
+        about.open = true;
+        about.dispatchEvent(new Event('toggle'));
+        expect($('.rise-settings__about-text').textContent.split('\n')[0]).toBe('RISE, speaking through anthropic/claude-haiku-5.5 via OpenRouter, on your key');
+    });
+});

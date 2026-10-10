@@ -91,13 +91,20 @@ async function readSome(response, limit, signal) {
  * @param {number} [options.maxBytes] the most a stream may send before it is cut off
  */
 export function createGeminiFetchTransport({ getKey, getModel = () => undefined, fetch: fetchImpl = (...args) => globalThis.fetch(...args), maxBytes = FETCH_LIMITS.stream }) {
+    /** The model the reader named, or the default when they named none. */
+    const modelOf = () => {
+        const asked = getModel();
+        return asked === undefined || asked === null || asked === '' ? GEMINI_DEFAULT_MODEL : asked;
+    };
     return {
+        /** The model the next request asks, for the Current's origin and the instructions. */
+        model: modelOf,
+
         async open({ body, signal } = {}) {
             const supplied = getKey();
             const key = typeof supplied === 'string' ? supplied.trim() : '';
             if (!key) throw new AdapterError('KEY_REQUIRED', 'A Gemini API key is needed to start a live answer.');
-            const asked = getModel();
-            const model = asked === undefined || asked === null || asked === '' ? GEMINI_DEFAULT_MODEL : asked;
+            const model = modelOf();
             if (!isModelId(model)) throw new AdapterError('MODEL_INVALID', 'That is not a model name: use letters, digits, dots and dashes.');
             if (signal?.aborted) throw new AdapterError('ABORTED', 'The live answer was stopped before it began.');
 

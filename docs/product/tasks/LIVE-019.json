@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -73,10 +73,14 @@
     {
       "date": "2026-10-10T09:45:00.000Z",
       "summary": "Opened as #615."
+    },
+    {
+      "date": "2026-10-10T09:29:51.000Z",
+      "summary": "Merged as b45e1829 (#615) and deployed: rise.syberlabs.io/release.txt read b45e182906d16aff2a28e3de773ec12b04ebfebe on 2026-10-10. Not accepted: no real model has written beats, and no human has witnessed the venue's streamed demo."
     }
   ],
-  "updatedAt": "2026-10-10T09:45:00.000Z",
-  "revision": 3,
+  "updatedAt": "2026-10-10T09:29:51.000Z",
+  "revision": 4,
   "summary": "Design §8 stage 3: a streamed Current is a rise.current.v2 written beat by beat, so holds and scenes arrive in time, not only at the end.",
   "blocker": null
 }

@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 98;
+export const FAST_TEST_FILES = 99;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -62,6 +62,8 @@ const FAST_TESTS = [
     'src/live/protocol.test.js',
     'src/live/stream.test.js',
     'src/live/runtime.test.js',
+    // What goes up to the reader's provider with their next words: a privacy boundary (perception v1).
+    'src/live/perception.test.js',
     'src/live/adapters/**/*.test.js',
     'src/live/host/**/*.test.js',
     'src/live/hosts/**/*.test.js',

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { initialVenue, perceptionFor, venueStep } from './venue-entry.js';
+import { initialVenue, originLine, perceptionFor, venueStep } from './venue-entry.js';
+import { perceive } from '../perception.js';
 
 const ready = { connected: false, hasKey: false };
 const ask = (question, extra = {}) => ({ type: 'ask', question, ...ready, ...extra });
@@ -122,8 +123,47 @@ describe('the provider choice', () => {
     });
 });
 
-describe('the perception hook', () => {
-    it('sends nothing up yet, whatever the carried turns hold (design §8 stage 4)', () => {
-        expect(perceptionFor([{ question: 'First?', journal: [{ type: 'interrupt' }] }])).toEqual([]);
+describe('the perception hook (design §4, §8 stage 4)', () => {
+    const PASSAGES = [{ segmentId: 'beat-0', text: 'One.' }, { segmentId: 'beat-1', text: 'Two.' }, { segmentId: 'beat-2', text: 'Three.' }];
+    const JOURNAL = [
+        { at: 0, type: 'start', prompt: 'First?' },
+        { at: 10, type: 'replay', from: 'beat-2', to: 'beat-2', reason: 'reader' },
+        { at: 20, type: 'setting', parameter: 'theme', value: 'ember' },
+        { at: 30, type: 'said', words: 'what about light' },
+        { at: 40, type: 'interrupt', reason: 'user', segmentId: 'beat-2' }
+    ];
+
+    it('is what the reader did in the reading before the question being asked, rebuilt from its journal', () => {
+        const turns = [{ question: 'First?', journal: JOURNAL, passages: PASSAGES }, { question: 'Second?' }];
+        expect(perceptionFor(turns)).toEqual(perceive(JOURNAL, { passages: PASSAGES }));
+        expect(perceptionFor(turns).events.map(event => event.type)).toEqual(['replayed', 'visual.changed', 'said', 'held']);
+    });
+
+    it('does not say twice the words the reader then asked with', () => {
+        const turns = [{ question: 'First?', journal: JOURNAL, passages: PASSAGES }, { question: 'What about light?' }];
+        expect(perceptionFor(turns).events.map(event => event.type)).toEqual(['replayed', 'visual.changed', 'held']);
+    });
+
+    it('is nothing for the first question, for a reading not yet let go, and for a reading in which the reader did nothing', () => {
+        expect(perceptionFor([{ question: 'First?' }])).toBeNull();
+        expect(perceptionFor([{ question: 'First?' }, { question: 'Second?' }])).toBeNull();
+        expect(perceptionFor([{ question: 'First?', journal: [{ type: 'start' }, { type: 'speech.start', role: 'main' }] }, { question: 'Second?' }])).toBeNull();
+    });
+});
+
+describe('who is speaking, as the About panel says it (design §1 item 7)', () => {
+    it('names the model and who runs it, on the reader’s key', () => {
+        expect(originLine({ kind: 'model', name: 'anthropic/claude-haiku-5.5', provider: 'OpenRouter' }))
+            .toBe('RISE, speaking through anthropic/claude-haiku-5.5 via OpenRouter, on your key');
+        expect(originLine({ kind: 'model', name: 'gemini-3.5-flash', provider: 'Google' }))
+            .toBe('RISE, speaking through gemini-3.5-flash via Google, on your key');
+    });
+
+    it('says the demo is RISE’s own script, with no model and no key', () => {
+        expect(originLine({ kind: 'model', name: 'RISE demo', provider: 'RISE' })).toBe('RISE demo: a script in this page, with no model and no key');
+    });
+
+    it('says nothing before the reading has said who wrote it', () => {
+        expect(originLine(null)).toBe('');
     });
 });

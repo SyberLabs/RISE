@@ -13,6 +13,7 @@
 
 import { OPEN_LIMITS } from '../adapter.js';
 import { LIVE_PROVIDERS } from '../adapters/registry.js';
+import { perceive } from '../perception.js';
 
 /** @returns {{phase: 'idle'|'asking'|'reading'|'ended', provider: string, held: boolean, question: string, turns: {question: string}[], error: string|null}} */
 export function initialVenue({ provider = 'mock' } = {}) {
@@ -76,13 +77,28 @@ export function venueStep(state, event, providers = LIVE_PROVIDERS) {
     }
 }
 
+/** Words as compared, not as shown: case, spacing and end punctuation set aside. */
+const plainWords = text => String(text ?? '').toLowerCase().replace(/[.!?…]+$/u, '').replace(/\s+/gu, ' ').trim();
+
 /**
- * The reader's actions to send up with the next question: the hook perception fills (design §4, §8 stage 4)
- * from the journals the room carries. Today nothing goes up; the adapter is asked the question alone.
- * @param {{question: string, journal?: object[]}[]} turns
- * @returns {object[]}
+ * The reader's actions to send up with the question being asked (the last turn): what they did in the reading
+ * before it, rebuilt from that reading's journal each time (perception.js, design §4), or null when there is
+ * nothing to send. Words the reader said to the microphone and then asked with are the question, not said twice.
+ * @param {{question: string, journal?: object[], passages?: {segmentId: string, text: string}[]}[]} turns
+ * @returns {{events: object[], earlier: number} | null}
  */
 export function perceptionFor(turns) {
-    void turns;
-    return [];
+    const before = turns.at(-2);
+    if (!before?.journal) return null;
+    const asked = plainWords(turns.at(-1)?.question);
+    const made = perceive(before.journal, { passages: before.passages ?? [] });
+    const events = made.events.filter(event => !(event.type === 'said' && plainWords(event.words) === asked));
+    return events.length ? { events, earlier: made.earlier } : null;
+}
+
+/** Who is speaking, for the About panel (design §1 item 7): RISE, through the model and service the Current names. */
+export function originLine(origin) {
+    if (!origin) return '';
+    if (origin.provider === 'RISE') return `${origin.name}: a script in this page, with no model and no key`;
+    return `RISE, speaking through ${origin.name} via ${origin.provider}, on your key`;
 }

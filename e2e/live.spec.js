@@ -539,4 +539,56 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(page.locator('#chamber-field[data-picture="figure"] img, #chamber-field[data-picture="figure"] svg').first()).toBeAttached();
         expect(errors).toEqual([]);
     });
+
+    test('carries what the reader did up with their next words: a replay, a theme and the pause go, and nothing of the voice', async ({ page }) => {
+        test.setTimeout(90_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        const stage = page.locator('#rise-stage-controls');
+        const journal = () => page.evaluate(() => window.__riseLive.journal());
+
+        await stage.getByRole('button', { name: 'Say this passage again', exact: true }).click();
+        await expect.poll(async () => (await journal()).some(entry => entry.type === 'replay')).toBe(true);
+        await stage.getByRole('button', { name: 'Settings', exact: true }).click();
+        await page.locator('#rise-settings-theme').selectOption('ember');
+        await page.locator('#rise-settings').press('Escape');
+        await stage.locator('[data-stage="play"]').click();
+        await expect(page.getByRole('form', { name: 'Ask again' })).toBeVisible();
+
+        await page.locator('#live-again-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-again-question').press('Enter');
+        await expect.poll(async () => (await journal()).find(entry => entry.type === 'perception.sent') ?? null, { timeout: 15_000 }).not.toBeNull();
+        const sent = (await journal()).find(entry => entry.type === 'perception.sent');
+        expect(sent).toMatchObject({ count: 3, kinds: ['replayed', 'visual.changed', 'held'] });
+        await expectShown(page, 'A black hole is a region of space');
+        expect(errors).toEqual([]);
+    });
+
+    test('sends nothing by itself: a reading paused for a long time asks nothing and sends nothing', async ({ page }) => {
+        test.setTimeout(60_000);
+        const errors = watchErrors(page);
+        const requested = [];
+        page.on('request', request => requested.push(request.url()));
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        const startOf = async () => (await page.evaluate(() => window.__riseLive.journal())).filter(entry => entry.type === 'start');
+        const started = await startOf();
+        expect(started).toHaveLength(1);
+        await page.locator('#rise-stage-controls [data-stage="play"]').click();
+        await expect(page.getByRole('form', { name: 'Ask again' })).toBeVisible();
+        const before = requested.length;
+        // A long pause, on the page's own timers: nothing may go up, and no reading may begin.
+        await page.waitForTimeout(12_000);
+        const journal = await page.evaluate(() => window.__riseLive.journal());
+        // The same reading, the one it began with: no other was asked.
+        expect(await startOf()).toEqual(started);
+        expect(journal.some(entry => entry.type === 'perception.sent')).toBe(false);
+        expect(requested.slice(before).filter(url => /openrouter\.ai|googleapis\.com|api\.openai\.com/u.test(url))).toEqual([]);
+        expect(errors).toEqual([]);
+    });
 });
