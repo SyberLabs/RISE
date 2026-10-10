@@ -278,7 +278,7 @@ export class Settings {
             <div class="settings-row settings-action">
               <div class="settings-label-group">
                 <span class="settings-label">Plus voice</span>
-                <p class="settings-hint">A reading of your own, read aloud. ${PLUS_PRICE}.</p>
+                <p class="settings-hint">A reading of your own, read aloud.<span data-plus-price></span></p>
                 <p class="settings-fail" ${plus.lapsed ? '' : 'hidden'}>Plus voice has lapsed.</p>
               </div>
               <a class="btn-secondary" data-plus-subscribe rel="noopener" hidden>Subscribe</a>
@@ -653,6 +653,9 @@ export class Settings {
         if (!link) return;
         subscribe.href = link;
         subscribe.hidden = false;
+        // A price is named only beside a way to pay it; with no link nothing is for sale.
+        const price = this.container.querySelector('[data-plus-price]');
+        if (price) price.textContent = ` ${PLUS_PRICE}.`;
     }
 
     /** The Worker's voices, in place of the one option the row was drawn with. */

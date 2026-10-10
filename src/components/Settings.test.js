@@ -472,6 +472,7 @@ describe('Settings Plus voice', () => {
         const settings = mount();
         const subscribe = settings.container.querySelector('[data-plus-subscribe]');
         expect(subscribe.hidden).toBe(true); // nothing to open until the link is known
+        expect(settings.container.textContent).not.toContain('$8.99'); // nor a price
         await settings.plusLinkLoaded;
         expect(fetchImpl).toHaveBeenCalledWith('/api/plus/config');
         expect(subscribe.hidden).toBe(false);
@@ -486,13 +487,14 @@ describe('Settings Plus voice', () => {
         ['the deployment has no link', async () => Response.json({ paymentLink: null })],
         ['the link is not a Stripe Payment Link', async () => Response.json({ paymentLink: 'https://evil.example/pay' })],
         ['the Worker cannot be reached', async () => { throw new Error('offline'); }]
-    ])('hides Subscribe when %s', async (_, answer) => {
+    ])('hides Subscribe and the price when %s', async (_, answer) => {
         vi.stubGlobal('fetch', vi.fn(answer));
         const settings = mount();
         await settings.plusLinkLoaded;
         const subscribe = settings.container.querySelector('[data-plus-subscribe]');
         expect(subscribe.hidden).toBe(true);
         expect(subscribe.hasAttribute('href')).toBe(false);
+        expect(settings.container.textContent).not.toContain('$8.99');
         settings.destroy();
     });
 
