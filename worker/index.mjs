@@ -36,12 +36,34 @@ async function serveArenaFile(request, env) {
   return new Response(asset.body, { status: asset.status, headers });
 }
 
+// RFC 9116. The contact is the one PRIVACY.md and terms.html publish; renew Expires before it passes
+// (worker/index.test.js fails once it has).
+const SECURITY_TXT = [
+  'Contact: mailto:syberlabs.software@gmail.com',
+  'Expires: 2027-10-09T00:00:00Z',
+  'Preferred-Languages: en',
+  'Canonical: https://rise.syberlabs.io/.well-known/security.txt',
+  ''
+].join('\n');
+
+// /.well-known/ answers only what RISE publishes. An authless MCP server has no authorization
+// metadata, and a 404 is how a client learns that; the app shell here would read as a success.
+function serveWellKnown(request, path) {
+  if (path === '/.well-known/security.txt' && (request.method === 'GET' || request.method === 'HEAD')) {
+    return new Response(request.method === 'HEAD' ? null : SECURITY_TXT, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' }
+    });
+  }
+  return error(404, 'NOT_FOUND', 'Nothing is published at this address.');
+}
+
 // Shared model inference is retired. The reader's browser connects to their
 // own provider; the Worker keeps only disabled local-key routes.
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
 
+    if (path.startsWith('/.well-known/')) return serveWellKnown(request, path);
     if (isKevWorkerScript(path)) return serveKevWorkerScript(request, env);
     if (isRetiredInferenceRoute(path)) return retiredInference();
     if (path.startsWith('/content/arena/')) return serveArenaFile(request, env);

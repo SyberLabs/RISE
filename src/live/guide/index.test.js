@@ -44,6 +44,11 @@ describe('the example', () => {
         const current = validateRiseCurrent(structuredClone(CURRENT_EXAMPLE));
         expect(new Set(current.segments.map(segment => segment.visual)).size).toBeGreaterThan(1);
     });
+
+    it('says a Current shows no sources, and tells the model nothing about its answer beyond the Current', () => {
+        expect(CURRENT_GUIDE).not.toMatch(/\bcite\b/u);
+        expect(CURRENT_GUIDE).toContain('A Current has no field for sources, and RISE shows none.');
+    });
 });
 
 describe('the numbers it states are the validator’s', () => {
@@ -238,6 +243,10 @@ describe('styles', () => {
             }
         }
         for (const id of [undefined, null, '', 'constructor', 'plain', 'premium']) expect(styleGuide(id), String(id)).toBeNull();
+    });
+
+    it('each begin with the whole guide to writing a Current, which the tool’s description no longer carries', () => {
+        for (const id of RISE_CURRENT_STYLES) expect(styleGuide(id).startsWith(`${CURRENT_GUIDE}\n\n`), id).toBe(true);
     });
 
     it('work: every worked Current is accepted, in its style, and every scene it writes is admitted', () => {

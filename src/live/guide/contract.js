@@ -37,5 +37,5 @@ export const CONTRACT_GUIDE = [
     `- "look" sets how the whole answer looks: its imagery, its typeface and its colors. Choose the one that suits the answer: ${RISE_CURRENT_LOOKS.map(id => `${id} (${LOOK_HINTS[id]})`).join(', ')}. It may be left out.`,
     `- "visual" says what a segment is like: ${RISE_CURRENT_VISUALS.join(', ')}. It may be left out; with a "look", a segment that leaves it out shows the look's imagery.`,
     `- "theme" colors the whole answer: its page, its moving light and its drawings. Choose the one that suits the subject: ${RISE_CURRENT_THEME_IDS.map(id => `${id} (${THEME_HINTS[id]})`).join(', ')}. Leave it out only if none suits; a "look" then brings its own.`,
-    '- Do not cite sources: a Current carries none.'
+    '- A Current has no field for sources, and RISE shows none.'
 ].join('\n');

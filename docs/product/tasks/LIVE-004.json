@@ -84,10 +84,14 @@
     {
       "date": "2026-10-09T03:34:37.684Z",
       "summary": "Reconciled: delivery deployed (release 3b43a3be); owner observations of 2026-10-09 in Claude recorded, not as acceptance; Claude-first blocker replaces the ChatGPT re-witness"
+    },
+    {
+      "date": "2026-10-10T03:13:08.809Z",
+      "summary": "connector review: Anthropic egress exempt from the per-IP limit, JSON-RPC 429, .well-known 404 + security.txt, tool text trimmed, display modes agree"
     }
   ],
-  "updatedAt": "2026-10-09T03:34:37.684Z",
-  "revision": 6,
+  "updatedAt": "2026-10-10T03:13:08.809Z",
+  "revision": 7,
   "summary": "Integrate score, admitted host behavior and fixtures into a coherent first-use experience.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

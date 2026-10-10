@@ -25,8 +25,8 @@ describe('the production Worker', () => {
     expect(config.compatibility_flags).not.toContain('global_fetch_private_origin');
   });
 
-  it('runs first for the API and for the page an MCP app frames', () => {
-    expect(config.assets.run_worker_first).toEqual(expect.arrayContaining(['/api/*', '/live', '/content/arena/*']));
+  it('runs first for the API, for the page an MCP app frames, and for /.well-known/, so no metadata probe gets the app shell', () => {
+    expect(config.assets.run_worker_first).toEqual(expect.arrayContaining(['/api/*', '/live', '/content/arena/*', '/.well-known/*']));
   });
 
   // The Worker turns a route on only for the exact text "true" (live-realtime.mjs,

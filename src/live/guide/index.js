@@ -2,10 +2,10 @@
  * What a host's model is told a Current is.
  *
  * In an MCP host the answer is written by the host's own model, which has never
- * seen RISE. This is the one place that tells it what to write: the MCP server
- * puts CURRENT_GUIDE in the tool's description and serves each style's full
- * guidance as a resource, and a Dive puts the guide in front of the question it
- * asks the model. Split by concern: the v1 contract (contract.js), the themes
+ * seen RISE. This is the one place that tells it what to write: the MCP server's
+ * tool description carries only the plain example, each style's guidance begins
+ * with CURRENT_GUIDE (rise_guide and the guide resources), and a Dive puts the
+ * guide in front of the question it asks the model. Split by concern: the v1 contract (contract.js), the themes
  * and looks (looks.js), beats and code scenes (beats.js), and one file per
  * style (styles/), each with worked Currents the validator accepts and
  * whose scenes the server admits; the figure rules travel with every style.
@@ -49,6 +49,8 @@ export function styleGuide(id) {
     if (typeof id !== 'string' || !RISE_CURRENT_STYLES.includes(id)) return null;
     const { GUIDANCE, EXAMPLES } = BY_STYLE[id];
     return [
+        CURRENT_GUIDE,
+        '',
         GUIDANCE,
         '',
         'The worked Currents in this style, each accepted by RISE as it stands:',

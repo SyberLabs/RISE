@@ -1,6 +1,7 @@
 import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_SCHEMA_V2, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
-import { CURRENT_GUIDE, STYLE_LINES, TOOL_NAME, styleGuide } from '../src/live/guide/index.js';
+import { CURRENT_EXAMPLE, STYLE_LINES, TOOL_NAME, styleGuide } from '../src/live/guide/index.js';
+import { DISPLAY_MODES } from '../src/live/hosts/mcp-port.js';
 import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES } from '../src/core/beats.js';
 import { SOUND_IDS } from '../src/audio/sound-ids.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
@@ -26,10 +27,10 @@ import { admitSvg } from '../src/core/svg-admission.js';
  * It is off unless MCP_ENABLED is 'true'. It answers only requests from no
  * browser origin or from its own (an MCP host's server has none; a page on
  * another site must not be able to make a browser talk to it), refuses a
- * protocol version it does not speak before reading anything, holds each client
- * address to the site's rate limiter where the platform offers one, reads a
- * bounded body, and returns nothing it was sent except a validator's message, a
- * scene parser's diagnostic (scene-admission.mjs), a figure's (svg-admission.js) or an argument's name, clipped.
+ * protocol version it does not speak before reading anything, reads a bounded
+ * body, holds each client address but Anthropic's shared egress to the site's
+ * rate limiter where the platform offers one, and returns nothing it was sent
+ * except a validator's message, a scene parser's diagnostic (scene-admission.mjs), a figure's (svg-admission.js) or an argument's name, clipped.
  *
  * CHECKED AGAINST THE REFERENCE, NOT AGAINST A PRODUCT: the shapes below were
  * compared with @modelcontextprotocol/ext-apps 2.0.3 and the SDK's own client
@@ -62,6 +63,25 @@ const JSON_HEADERS = {
 };
 
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
+
+/**
+ * Anthropic's published egress for Claude's connectors, 160.79.104.0/21
+ * (claude.com/docs/connectors/building/authentication): every Claude user's call arrives from it, so a
+ * per-address limit there would be one limit for all of them. IPv4 dotted quads only; anything else is outside.
+ */
+const ANTHROPIC_EGRESS = { network: (160 << 24 | 79 << 16 | 104 << 8) >>> 0, prefix: 21 };
+
+export function inAnthropicEgress(ip) {
+  const parts = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/u.exec(ip);
+  if (!parts) return false;
+  const octets = parts.slice(1).map(part => (part.length > 1 && part.startsWith('0') ? NaN : Number(part)));
+  if (octets.some(octet => !(octet <= 255))) return false;
+  const address = (octets[0] << 24 | octets[1] << 16 | octets[2] << 8 | octets[3]) >>> 0;
+  const shift = 32 - ANTHROPIC_EGRESS.prefix;
+  return address >>> shift === ANTHROPIC_EGRESS.network >>> shift;
+}
+
+const RETRY_AFTER_SECONDS = 60;
 
 // Conditional on the reader's request, as the directory's review asks: a server must not tell the model to call a tool the reader did not ask for.
 const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. When the reader asks for a reading, a spoken or visual explanation, or names RISE, answer by calling ${TOOL_NAME} with a Current. Before writing a Current in a named style, call ${GUIDE_TOOL_NAME} with that style to read how.`;
@@ -265,12 +285,16 @@ const CURRENT = { oneOf: [currentJsonSchema(), currentJsonSchemaV2()] };
 export const TOOL = Object.freeze({
   name: TOOL_NAME,
   title: 'Present a reading in RISE',
+  // What a model needs to decide to call it and to write a plain Current; a host reads it on every turn, so the
+  // full guide (CURRENT_GUIDE) and the worked Currents are rise_guide's, read only when a model writes in a style.
   description: [
     'Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer and shows the words as they are spoken; the reader presses Play, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.',
     '',
-    CURRENT_GUIDE,
+    'A plain spoken reading is a "rise.current.v1" Current of passages ("segments"), such as:',
+    JSON.stringify(CURRENT_EXAMPLE),
+    'Passage text is plain words meant to be heard: no markdown, lists or headings, and never | or [PAUSE], [FLASH], [HOLD]. Begin with a short passage. "origin" names you and who runs you.',
     '',
-    `Styles, for "style" on a v2 Current. Before writing in a style, call ${GUIDE_TOOL_NAME} with {"style": "<style>"} for its full guidance, worked Currents and the figure rules.`,
+    `A "rise.current.v2" Current is beats over scenes: pictures that play, code you write, SVG figures. Before writing one, or for every rule, call ${GUIDE_TOOL_NAME} with {"style": "<style>"} for the full guide, worked Currents and the figure rules. Styles, for "style" on a v2 Current:`,
     ...STYLE_LINES
   ].join('\n'),
   inputSchema: {
@@ -279,8 +303,9 @@ export const TOOL = Object.freeze({
     required: ['current'],
     additionalProperties: false
   },
-  // What structuredContent carries back: the Current, as the app admits it (src/live/hosts/mcp-port.js).
-  outputSchema: { type: 'object', properties: { current: CURRENT }, required: ['current'] },
+  // What structuredContent carries back: the Current the app admits (src/live/hosts/mcp-port.js), named rather than
+  // spelled out again, since inputSchema already does and a host reads both on every turn.
+  outputSchema: { type: 'object', properties: { current: { type: 'object', description: 'The Current as accepted, for the app that plays it.' } }, required: ['current'] },
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   // Anyone may call it: there is no account and nothing of the reader's to reach.
   securitySchemes: [{ type: 'noauth' }],
@@ -368,10 +393,26 @@ function call(id, params) {
     const text = [...refused.lines, `Repair ${refused.repair} and call ${TOOL_NAME} again with the whole Current.`].join('\n');
     return result(id, { content: [{ type: 'text', text }], isError: true });
   }
+  // The app admits the Current from structuredContent; the model, which wrote it, is told only what was accepted.
   return result(id, {
-    content: [{ type: 'text', text: 'RISE accepted this Current for presentation to the reader.' }],
+    content: [{ type: 'text', text: receipt(args.current) }],
     structuredContent: { current: args.current }
   });
+}
+
+/** A speaking pace for the receipt's estimate only; the reader sets the real one. */
+const SPOKEN_WORDS_PER_MINUTE = 150;
+
+/** One line for the model about an accepted Current: its id, title, size and about how long it plays. */
+function receipt(current) {
+  const beats = Array.isArray(current.beats);
+  const parts = beats ? current.beats : current.segments;
+  const words = parts.map(part => (beats ? part.say : part.text) ?? '').join(' ').split(/\s+/u).filter(Boolean).length;
+  const heldMs = beats ? parts.reduce((sum, beat) => sum + (beat.hold?.ms ?? 0), 0) : 0;
+  const seconds = Math.max(1, Math.round((words / SPOKEN_WORDS_PER_MINUTE) * 60 + heldMs / 1000));
+  const length = seconds < 90 ? `about ${seconds} seconds` : `about ${Math.round(seconds / 60)} minutes`;
+  const count = `${parts.length} ${beats ? 'beat' : 'passage'}${parts.length === 1 ? '' : 's'}`;
+  return `RISE is presenting "${clean(current.title, LIMITS.title)}" (id "${clean(current.id, LIMITS.id)}") to the reader: ${count}, ${length}. The reader starts it with Play.`;
 }
 
 /** rise_guide: one style's full guidance, or a refusal that names the styles and echoes nothing it was sent. */
@@ -407,8 +448,9 @@ function read(id, params, origin, witness, card) {
         // ChatGPT's dedicated origin for the app (required to submit), under ChatGPT's own key: Claude validates
         // ui.domain against its own format and would refuse RISE's origin there.
         'openai/widgetDomain': origin,
-        // Read by ChatGPT before the app loads, so that it picks the mode first; inline is the only one, and the app says the same at ui/initialize.
-        'openai/ui': { availableDisplayModes: ['inline'] },
+        // Read by ChatGPT before the app loads, so that it picks the mode first: the modes the app declares at
+        // ui/initialize (mcp-port.js), inline first; the app asks for another only when the reader does.
+        'openai/ui': { availableDisplayModes: [...DISPLAY_MODES] },
         // Read by the host's model when the app loads, so that it need not describe the app itself.
         'openai/widgetDescription': 'A spoken reading of the answer, its words and a visual shown as they are spoken, which the reader starts with Play and can pause and resume.'
       }
@@ -477,19 +519,6 @@ export async function handleMcp(request, env) {
   if (version !== null && !/^\d{4}-\d{2}-\d{2}$/u.test(version)) {
     return http(400, { error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: `This server speaks MCP ${PROTOCOL_VERSIONS.join(', ')}.` } });
   }
-  // Each client address is held to the limiter live answers use (wrangler.production.jsonc), before the
-  // body is read. Where there is no limiter or no address (tests, a local run), or the limiter itself
-  // fails, the route is as it was: the limiter is the platform's, and its absence closes nothing here.
-  const ip = request.headers.get('CF-Connecting-IP')?.trim();
-  if (ip && typeof env.DECISION_LIMITER?.limit === 'function') {
-    let allowed = true;
-    try {
-      allowed = (await env.DECISION_LIMITER.limit({ key: `mcp:${ip}` }))?.success === true;
-    } catch {
-      /* the platform's fault, not the host's */
-    }
-    if (!allowed) return http(429, { error: { code: 'RATE_LIMITED', message: 'Too many requests were sent. Try again in a minute.' } });
-  }
   let text;
   try {
     text = await readText(request, MAX_BODY_BYTES);
@@ -503,6 +532,30 @@ export async function handleMcp(request, env) {
     message = JSON.parse(text);
   } catch {
     return failure(null, -32700, 'Parse error');
+  }
+  // Each client address but Anthropic's shared egress is held to the limiter live answers use
+  // (wrangler.production.jsonc), after the bounded read so that the answer carries the request's id.
+  // It fails open: with no limiter or no address (tests, a local run), or a limiter that fails, the
+  // request is served, because the route holds nothing and spends nothing a limit would protect.
+  const ip = request.headers.get('CF-Connecting-IP')?.trim();
+  if (ip && !inAnthropicEgress(ip) && typeof env.DECISION_LIMITER?.limit === 'function') {
+    let allowed = true;
+    try {
+      allowed = (await env.DECISION_LIMITER.limit({ key: `mcp:${ip}` }))?.success === true;
+    } catch {
+      /* the platform's fault, not the host's */
+    }
+    if (!allowed) {
+      const id = typeof message?.id === 'string' || typeof message?.id === 'number' ? message.id : null;
+      return http(429, {
+        jsonrpc: '2.0', id,
+        error: {
+          code: -32000,
+          message: 'Too many requests from this address in the last minute. Try again in a minute.',
+          data: { code: 'RATE_LIMITED', retryAfterSeconds: RETRY_AFTER_SECONDS }
+        }
+      }, { 'Retry-After': String(RETRY_AFTER_SECONDS) });
+    }
   }
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
   // The self-contained card is the deployed page itself, read when the host asks for the app.
