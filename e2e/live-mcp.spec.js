@@ -27,12 +27,12 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, forgedResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null, fullscreen = null, chat = 0, platform = null }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, forgedResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null, fullscreen = null, chat = 0, platform = null, policy = "base-uri 'self'" }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     // `chat`: px of conversation above and below the card, so the host's page scrolls as a chat does.
     const conversation = chat ? `<div class="chat" style="height:${chat}px"></div>` : '';
     // A product host's sandbox refuses a <base> (Claude's policy carries base-uri 'self'); the frame inherits this page's policy.
-    return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="base-uri 'self'"><title>fake host</title>
+    return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="${policy}"><title>fake host</title>
 <style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:${height}px}</style>
 ${conversation}<iframe id="view" sandbox="${sandbox}" allow="microphone; autoplay" srcdoc="${escaped}"></iframe>${conversation}
 <script>
@@ -121,7 +121,7 @@ async function openHost(page, baseURL, options = {}) {
   // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
   // frame keeps it because the relay frames RISE's real page.
   const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, forgedResult: options.forgedResult ?? false, height: options.height, displayModes: options.displayModes ?? null, fullscreen: options.fullscreen ?? null, chat: options.chat ?? 0, platform: options.platform ?? null, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, forgedResult: options.forgedResult ?? false, height: options.height, displayModes: options.displayModes ?? null, fullscreen: options.fullscreen ?? null, chat: options.chat ?? 0, platform: options.platform ?? null, policy: options.policy, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
   return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
@@ -1120,9 +1120,10 @@ test('a figure draws in the self-contained card as an image, and the hold under 
   expect(errors).toEqual([]);
 });
 
-// The card's own policy refuses nothing RISE itself loads: KaTeX's one inlined font (a data: URL in the built
-// stylesheet), a figure's blob: image, a scene's blob: worker and module, the look's field.
-test('the self-contained card’s policy refuses nothing of a reading with maths, a figure and a scene', async ({ page, baseURL }) => {
+// Neither the card's own policy nor a host's refuses anything RISE loads: KaTeX's fonts, a figure's blob: image, a scene's
+// blob: worker and module, the look's field. The host's page sets the font-src measured in Claude's sandbox (fonts from
+// 'self' and RISE's origin only), so a font the build inlines as a data: URL is refused there whatever the card says.
+test('the self-contained card under a host’s font policy refuses nothing of a reading with maths, a figure and a scene', async ({ page, baseURL }) => {
   const errors = [];
   const violations = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -1148,7 +1149,8 @@ test('the self-contained card’s policy refuses nothing of a reading with maths
       { say: 'It came to rest.' }
     ]
   };
-  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current });
+  const policy = `base-uri 'self'; font-src 'self' ${appOrigin}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current, policy });
   await expect(posterTitle(app)).toHaveText(current.title);
   await begin(app);
   await expect(app.locator('img.chamber-figure')).toBeAttached({ timeout: 15_000 });

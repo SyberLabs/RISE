@@ -38,8 +38,7 @@ export function cardCsp(origin) {
 
 /**
  * The card's own Content Security Policy. `blob:` is for the scene worker, its module and the figures'
- * images; `data:` images for the few the styles inline, and the one font the built KaTeX stylesheet inlines
- * (KaTeX_Size3, under Vite's inline limit); inline styles for the Chamber's element styles.
+ * images; `data:` images for the few the styles inline; inline styles for the Chamber's element styles.
  */
 export function cardPolicy(origin) {
   return [
@@ -48,7 +47,7 @@ export function cardPolicy(origin) {
     'worker-src blob:',
     `connect-src ${origin}`,
     `img-src ${origin} blob: data:`,
-    `font-src ${origin} data:`,
+    `font-src ${origin}`,
     `style-src ${origin} 'unsafe-inline'`,
     `media-src ${origin} blob:`
   ].join('; ');

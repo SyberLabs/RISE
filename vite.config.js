@@ -102,6 +102,10 @@ export default defineConfig({
     // For local debugging use `vite build --sourcemap` or the dev server.
     sourcemap: false,
 
+    // A font is never inlined as a data: URL: a host's policy takes fonts only from RISE's origin (Claude's sandbox:
+    // font-src 'self' https://rise.syberlabs.io), and policies stack, so an inlined font is refused in the card.
+    assetsInlineLimit: filePath => (/\.(?:woff2?|ttf|otf)$/u.test(filePath) ? false : undefined),
+
     // Increase warning threshold slightly (visual engines are large)
     chunkSizeWarningLimit: 300,
 
