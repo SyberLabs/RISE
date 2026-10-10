@@ -206,7 +206,7 @@ html[data-embed="mcp"] .atom-display[data-place="caption"] { bottom: calc(var(--
    range; a caption moves by the same offset as the band. The picture's box never changes for a drag. */
 @media (max-width: 640px) {
   html[data-embed="mcp"] .chamber-field[data-picture] { align-items: flex-end; }
-  html[data-embed="mcp"] .chamber-field[data-picture] .atom-display:is([data-place="caption"], [data-place="left"], [data-place="right"]) {
+  html[data-embed="mcp"] .chamber-field[data-picture] .atom-display:is([data-place="caption"], [data-place="top"], [data-place="left"], [data-place="right"]) {
     transform: translateY(var(--band-offset, 0px));
   }
   html[data-embed="mcp"] .chamber-field[data-picture] .atom-display:is([data-place="left"], [data-place="right"]) {

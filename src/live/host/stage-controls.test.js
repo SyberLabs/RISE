@@ -1020,6 +1020,11 @@ describe('the reading in the card, under a thumb', () => {
         expect(chamber.lastIndexOf('clamp(18px, 5.4vw, 24px)')).toBeGreaterThan(chamber.indexOf('font-size: calc(72px * var(--atom-scale, 1) * var(--font-size-intent, 1) * 0.7)'));
     });
 
+    it('a top-placed beat on a picture card moves by the band offset like a caption', () => {
+        const host = read('LiveHost.css');
+        expect(host).toMatch(/\.atom-display:is\([^)]*\[data-place="top"\][^)]*\) \{\s*transform: translateY\(var\(--band-offset/u);
+    });
+
     it('a long press on the words selects nothing and raises no callout in the card; the Reader keeps its selection', () => {
         const host = read('LiveHost.css');
         const rule = rules(host).find(candidate => selectors(candidate).includes('html[data-embed="mcp"] #atom-display'));
