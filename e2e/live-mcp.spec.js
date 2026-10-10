@@ -1538,8 +1538,9 @@ test.describe('the card on a phone', () => {
   });
 
   test('on a small card with a figure the words rest in their strip, a tap selects them, a drag lifts them over the picture and brings them back to the strip, and the conversation stays put', async ({ page, baseURL }) => {
-    // A centred line (the band) and a caption (the premium-educational style's place) both move.
-    for (const place of ['centre', 'caption']) {
+    // A centred line (the band), a caption (the premium-educational style's place) and a top line all move;
+    // a top line rests near the field's top, so it rises only as far as the top edge allows.
+    for (const place of ['centre', 'caption', 'top']) {
       const app = await figureCard(page, baseURL, 481, { chat: 600, place });
       const cdp = await page.context().newCDPSession(page);
       await page.evaluate(() => window.scrollTo(0, 200));
@@ -1577,10 +1578,12 @@ test.describe('the card on a phone', () => {
       const lifted = await offset();
       const after = await words();
       console.log(`[stacked] ${place} drag up: offset ${lifted}px, words ${Math.round(before.top)} -> ${Math.round(after.top)}, scrollY ${await page.evaluate(() => window.scrollY)}`);
-      expect(lifted).toBeLessThan(-108);
-      expect(lifted).toBeGreaterThan(-132);
-      expect(after.top - before.top).toBeLessThan(-108);
-      expect(after.top - before.top).toBeGreaterThan(-132);
+      expect(lifted).toBeLessThan(0);
+      expect(Math.abs(after.top - before.top - lifted)).toBeLessThanOrEqual(2);
+      if (place !== 'top') {
+        expect(lifted).toBeLessThan(-108);
+        expect(lifted).toBeGreaterThan(-132);
+      }
       expect(await page.evaluate(() => window.scrollY)).toBe(200);
       expect(await figureBox()).toEqual(picture);
       // Far past the top: the words stop just under the field's top edge (8 px, plus the band's own padding).

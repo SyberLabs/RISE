@@ -203,7 +203,7 @@ html[data-embed="mcp"] .atom-display[data-place="caption"] { bottom: calc(var(--
    at the foot, never the centre. The strip is where they rest, not a cage: a reader may select them and lift
    them over the picture, up to the field's top edge, and bring them back down to the strip, never below it.
    The Chamber reads the foot from `align-items` (Chamber.js `_bandFootTravel`) and keeps the offset in that
-   range; a caption moves by the same offset as the band. The picture's box never changes for a drag. */
+   range; a caption or a top line moves by the same offset. The picture's box never changes for a drag. */
 @media (max-width: 640px) {
   html[data-embed="mcp"] .chamber-field[data-picture] { align-items: flex-end; }
   html[data-embed="mcp"] .chamber-field[data-picture] .atom-display:is([data-place="caption"], [data-place="top"], [data-place="left"], [data-place="right"]) {
