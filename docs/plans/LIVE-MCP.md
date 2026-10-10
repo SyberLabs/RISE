@@ -100,6 +100,8 @@ Then a host adds `https://<site>/api/mcp` as a connector. How each product does 
 
 `worker/mcp-server.mjs` (+ test), `src/live/hosts/mcp-relay.js`, `src/live/hosts/mcp-port.js`, `src/live/adapters/mcp-app.js`, `src/live/guide/`, `src/live/host/LiveHost.js` (`?embed=mcp`), tests beside them, `e2e/live-mcp.spec.js`, `src/test/fake-mcp-port.js` and `sealed-current.js`.
 
+The connector directory's screenshots of the card, with their paired prompts: [docs/assets/directory](../assets/directory/DIRECTORY-SCREENSHOTS.md).
+
 ## ChatGPT demonstration
 
 The reader-controlled demo uses a dedicated configuration; production MCP remains disabled. Setup, ten acceptance cases and the evidence requirements are in [CHATGPT-DEMO.md](CHATGPT-DEMO.md). Engineering tests and reference-host results are separate from real ChatGPT acceptance. A signed-in developer-mode account and explicit isolated deployment approval are required before the live demonstration.
