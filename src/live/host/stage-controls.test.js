@@ -1045,42 +1045,17 @@ describe('the reading in the card, under a thumb', () => {
     });
 });
 
-describe('signing in, from the card', () => {
-    const SIGN_IN = 'https://syberlabs.io/auth/signin?next=%2Fadmin%2Freturn%3Fapp%3Drise';
-    const signIn = () => $('#rise-settings a.rise-settings__account');
-
-    it('sits in the sheet’s head between its title and its close, a link named for SyberLabs to its sign-in page, opened outside the card', () => {
-        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, about: () => 'about' });
-        settings().click();
-        expect(signIn()).not.toBeNull();
-        // Not a setting, and it costs the sheet no row: the head holds it.
-        expect(signIn().parentElement).toBe($('#rise-settings .rise-settings__head'));
-        expect(signIn().previousElementSibling.textContent).toBe('Settings');
-        expect(signIn().nextElementSibling.getAttribute('aria-label')).toBe('Close settings');
-        expect(signIn().textContent).toBe('Sign in to SyberLabs');
-        expect(signIn().href).toBe(SIGN_IN);
-        expect(signIn().target).toBe('_blank');
-        expect(signIn().rel).toBe('noopener');
-        // Not one of the settings: the sheet's rows are still the four it had.
-        expect([...sheet().querySelectorAll('.rise-settings__row')]).toHaveLength(4);
-    });
-
-    it('asks the host to open it, and does not follow the link inside the card', async () => {
+// The stage serves only a host's card, and the connector needs no account (the directory's review): no sign-in in it.
+describe('no account in the card', () => {
+    it('offers no sign-in: the sheet’s head is its title and its close, and the sheet links nowhere', () => {
         const port = { hostContext: () => ({}), onHostContext: () => () => {}, openLink: vi.fn(async () => true) };
-        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, port });
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, about: () => 'about', port });
         settings().click();
-        const click = new MouseEvent('click', { bubbles: true, cancelable: true });
-        signIn().dispatchEvent(click);
-        expect(click.defaultPrevented).toBe(true);
-        expect(port.openLink).toHaveBeenCalledWith(SIGN_IN);
-    });
-
-    it('with no host to ask, the link opens a new page as any link would', () => {
-        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {} });
-        settings().click();
-        const click = new MouseEvent('click', { bubbles: true, cancelable: true });
-        signIn().addEventListener('click', event => { expect(event.defaultPrevented).toBe(false); event.preventDefault(); });
-        signIn().dispatchEvent(click);
+        const head = $('#rise-settings .rise-settings__head');
+        expect([...head.children].map(node => node.textContent || node.getAttribute('aria-label'))).toEqual(['Settings', 'Close settings']);
+        expect(sheet().querySelector('a[href]')).toBeNull();
+        expect(sheet().textContent).not.toMatch(/sign in|SyberLabs/iu);
+        expect(port.openLink).not.toHaveBeenCalled();
     });
 });
 

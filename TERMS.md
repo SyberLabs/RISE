@@ -39,6 +39,10 @@ product commitment.
 RISE is not a medical, therapeutic, educational, diagnostic or professional
 service, and nothing in it is advice of any kind.
 
+**RISE in ChatGPT and Claude.** If you add RISE to your assistant, the card it
+shows holds words your assistant's model wrote. RISE presents them, but does not
+author them or check them for accuracy. The card needs no account.
+
 ---
 
 ## 3. Health and safety — please read this one
@@ -130,7 +134,7 @@ Attribution and licensing for material presented in RISE is set out in
 
 ## 7. Public-domain texts
 
-Archive texts presented in RISE are public domain and remain so. Our
+Archive texts presented in RISE are public domain in the United States and remain so. Our
 presentation of them creates no new claim over the underlying work.
 
 Editorial selection, division and composition — which passage, in what order,

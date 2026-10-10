@@ -82,7 +82,7 @@ const SCENE_GUIDE = [
     ...LIB_GUIDE.map(([, line]) => `  - ${line}`),
     `- To end a hold when its animation is over, export const reportsCompletion = true; and call rise.done(). The hold then ends at done, no sooner than ${SCENE_LIMITS.earliestDoneMs} ms into it and no later than its maxMs. Without the export, done is ignored and every hold lasts its ms.`,
     `- A scene has no import of any kind, no network, no DOM, no storage and no timers: time comes only from frame. These names are refused anywhere in the code, even as your own variable names: ${BANNED_SCENE_NAMES.join(', ')}.`,
-    `- Budget: a frame should take a few milliseconds. ${SCENE_LIMITS.frameSoftCount} frames over ${SCENE_LIMITS.frameSoftMs} ms in one second, one frame over ${SCENE_LIMITS.frameHardMs} ms, or an exception ends the scene, and the reading's own field takes its place. Never flash: a scene whose brightness flickers more than three times a second is frozen.`,
+    `- Budget: a frame should take a few milliseconds. ${SCENE_LIMITS.frameSoftCount} frames over ${SCENE_LIMITS.frameSoftMs} ms in one second, one frame over ${SCENE_LIMITS.frameHardMs} ms, or an exception ends the scene, and the reading's own field takes its place. A scene whose brightness flickers more than three times a second is frozen.`,
     '- RISE checks every code scene before it accepts the Current. A refusal names the scene, the line and column, and the rule (Scene "plane" was refused: line 4, column 9: `fetch` is not available to a scene.); repair that line and call again with the whole Current.'
 ].join('\n');
 
@@ -98,7 +98,7 @@ export const FIGURE_EXAMPLE = [
     '</svg>'
 ].join('\n');
 
-const FIGURE_LINE = `Figures. A scene may instead be { "id": "...", "svg": "<svg ...>" }: one SVG document of at most ${BEAT_LIMITS.svg.toLocaleString('en-US')} bytes, shown still behind the words: a labelled diagram that needs no cues. Its root has xmlns="http://www.w3.org/2000/svg" and a viewBox; draw ink in currentColor. A figure takes no cues. Call rise_guide for the figure rules before drawing one.`;
+const FIGURE_LINE = `Figures. A scene may instead be { "id": "...", "svg": "<svg ...>" }: one SVG document of at most ${BEAT_LIMITS.svg.toLocaleString('en-US')} bytes, shown still behind the words: a labelled diagram that needs no cues. Its root has xmlns="http://www.w3.org/2000/svg" and a viewBox; draw ink in currentColor. A figure takes no cues. The figure rules are in each style's format reference (rise_guide).`;
 
 /** Everything a model is told about figures, with each style's guidance. */
 export const FIGURE_GUIDE = [

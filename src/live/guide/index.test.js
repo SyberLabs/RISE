@@ -306,3 +306,19 @@ describe('styles', () => {
         }
     });
 });
+
+// The directory refuses a server whose tools load behavioural instructions at run time; the guide is a format reference.
+describe('the wording of the guide', () => {
+    const SECOND_PERSON_ORDER = /(?:^|^- |[.:;!?]\s+)(?:You|Always|Never|Do not|Don't)\b/imu;
+    const texts = () => [...RISE_CURRENT_STYLES.map(styleGuide), STYLE_LINES.join('\n')];
+
+    it('describes fields and formats: no sentence begins with "You", "Always", "Never", "Do not" or "Don\'t"', () => {
+        for (const text of texts()) {
+            for (const line of text.split('\n')) expect(line).not.toMatch(SECOND_PERSON_ORDER);
+        }
+    });
+
+    it('names no third-party creator', () => {
+        for (const text of [...texts(), ...Object.values(STYLES).map(style => style.line)]) expect(text).not.toMatch(/3Blue1Brown/iu);
+    });
+});

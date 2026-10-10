@@ -226,7 +226,7 @@ describe('the guide tool', () => {
     expect(result.tools.map(tool => tool.name)).toEqual(['rise_present', 'rise_guide']);
     const guide = result.tools[1];
     expect(guide).toEqual(GUIDE_TOOL);
-    expect(guide.description).toBe('Read how to write a RISE Current in a named style, with worked examples, before calling rise_present in that style.');
+    expect(guide.description).toBe('Returns the format reference for one RISE style: the fields, limits, scenes and worked example Currents a rise_present Current in that style is written with.');
     expect(guide.inputSchema).toEqual({
       type: 'object', properties: { style: { type: 'string', enum: [...RISE_CURRENT_STYLES] } }, required: ['style'], additionalProperties: false
     });
@@ -292,7 +292,7 @@ describe('the tool', () => {
     const { result } = await json(await post(rpc('tools/list')));
     const [tool] = result.tools;
     expect(tool.description.endsWith(STYLE_LINES.join('\n'))).toBe(true);
-    expect(tool.description).toContain('call rise_guide with {"style": "<style>"}');
+    expect(tool.description).toContain('the format reference rise_guide returns for {"style": "<style>"}');
     expect(tool.description).not.toContain('ui://rise/guide');
     for (const id of RISE_CURRENT_STYLES) expect(tool.description).toContain(`- ${id}: `);
   });
@@ -311,6 +311,28 @@ describe('the tool', () => {
     for (const text of [...result.tools.map(tool => tool.description), hello.instructions]) {
       expect(text).not.toMatch(/\bcite\b|\bsources?\b|\bPlus\b|SyberLabs|subscri|upgrade|ElevenLabs/iu);
     }
+  });
+
+  // The directory refuses a server that directs Claude to load behavioural instructions at run time: rise_guide is described as a format reference, never as orders to fetch.
+  it('describes rise_guide as a format reference, and gives no orders: no "read how", "instructions", "you must", "always" or "never"', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    const { result: hello } = await json(await post(rpc('initialize', { protocolVersion: '2025-06-18' })));
+    expect(hello.instructions).toMatch(/rise_guide returns the format reference for a named style/u);
+    for (const text of [...result.tools.map(tool => tool.description), hello.instructions]) {
+      expect(text).not.toMatch(/read how|instructions|you must|\balways\b|\bnever\b/iu);
+    }
+  });
+
+  it('says the voice is the device’s own and the pictures are drawn by RISE or written by the model as SVG or scene code', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    expect(result.tools[0].description).toMatch(/the device’s own voice/u);
+    expect(result.tools[0].description).toMatch(/SVG or scene code, checked by RISE/u);
+  });
+
+  it('names no third-party creator', async () => {
+    const listing = await (await post(rpc('tools/list'))).text();
+    const resources = await (await post(rpc('resources/list'))).text();
+    for (const text of [listing, resources, ...RISE_CURRENT_STYLES.map(styleGuide)]) expect(text).not.toMatch(/3Blue1Brown/iu);
   });
 
   it('points at the app in the extension’s key and in its older spelling, and gives the host short words for while it runs and once it is done', async () => {

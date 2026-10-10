@@ -1,12 +1,19 @@
 # RISE in ChatGPT and Claude
 
-**Last updated: 8 October 2026**
+**Last updated: 9 October 2026**
 
 RISE turns an answer from your assistant into a short reading you watch and
 listen to. Ask ChatGPT or Claude to explain something and present it in RISE:
 the answer is spoken aloud by your device's voice, its words appear as they
 are spoken, and a moving image plays behind them, chosen to suit the subject.
 You press **Play**, and you can pause, resume, and play it again.
+
+The controls under the reading go back or forward a passage, say a passage
+again, and change the pace. **Settings** sets how vivid the imagery is, the
+theme, whether the imagery stays still, the sound, the voice and the text
+size. Where your device offers both, sound and voice share one row,
+**Sound & voice**: a switch for the sound bed and a choice of your device's
+voices.
 
 ---
 
@@ -18,14 +25,17 @@ You press **Play**, and you can pause, resume, and play it again.
 - **The voice is your device's.** RISE uses the speech voice built into your
   browser or operating system. If your device has no voice installed, the
   reading still plays, paced for reading, with every word shown.
+- **The sound bed is made in your browser.** A quiet bed of sound may play
+  under the voice. RISE synthesizes it in your browser as it plays; no AI
+  model makes it. **Settings > Sound** turns it off.
 - **The imagery is drawn, not generated.** RISE draws it live with its own
   procedural engines: line drawings that grow, a strange-attractor filament,
   soft fields of light, fractal flames, harmonic line figures, and spectral
   plates. RISE does not use AI models to make images, video or audio.
-- **A picture your assistant writes is kept apart.** When your assistant
-  writes a small program to draw a picture for the reading, RISE checks it
-  first and runs it in its own worker, with no network and no access to your
-  data.
+- **Diagrams and figures are drawn by your assistant, as code.** Your
+  assistant may draw a diagram or figure for the reading, as SVG or as a small
+  drawing program (scene code). RISE checks it first and draws it in a worker
+  of its own, with no network and no access to your data.
 - **RISE keeps nothing.** It receives only the reading your assistant writes
   for it, plays it, and stores none of it. See the
   [Privacy Policy](privacy.html).

@@ -5,8 +5,7 @@ import './account-control.css';
 /** Outside route containers, so reading and every room retain this entrance. */
 export function mountAccountControl() {
   // A host card shows the reading and its controls, nothing over them, and
-  // cannot supply the site's account session: its sign-in is the Settings
-  // sheet's head, opened outside the card (live/host/stage-controls.js).
+  // needs no account: the connector asks for none, so the card offers no sign-in.
   if (IN_HOST_CARD) return { destroy() {} };
   // The study promises no identity/network lookup. Keep its explicit sign-in
   // link, but never refresh identity just by opening/focusing it.

@@ -88,10 +88,14 @@
     {
       "date": "2026-10-10T03:13:08.809Z",
       "summary": "connector review: Anthropic egress exempt from the per-IP limit, JSON-RPC 429, .well-known 404 + security.txt, tool text trimmed, display modes agree"
+    },
+    {
+      "date": "2026-10-10T04:00:34.182Z",
+      "summary": "directory readiness: tool text describes a format reference, no creator names, no sign-in in the card, privacy states Cloudflare logging, README for Claude"
     }
   ],
-  "updatedAt": "2026-10-10T03:13:08.809Z",
-  "revision": 7,
+  "updatedAt": "2026-10-10T04:00:34.182Z",
+  "revision": 8,
   "summary": "Integrate score, admitted host behavior and fixtures into a coherent first-use experience.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }
