@@ -261,10 +261,14 @@
     {
       "date": "2026-10-10T00:11:16.737Z",
       "summary": "the reader picks the browser voice in Settings; the default ranks enhanced/natural voices first"
+    },
+    {
+      "date": "2026-10-10T01:20:09.415Z",
+      "summary": "Settings opens with focus on a switch, never a list: on iOS a focused select opened its picker (owner, 2026-10-10)"
     }
   ],
-  "updatedAt": "2026-10-10T00:11:16.737Z",
-  "revision": 14,
+  "updatedAt": "2026-10-10T01:20:09.415Z",
+  "revision": 15,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

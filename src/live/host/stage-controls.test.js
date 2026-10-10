@@ -338,8 +338,18 @@ describe('the Settings sheet', () => {
         expect(intensity().disabled).toBe(true);
         expect(intensity().closest('.rise-settings__row').hidden).toBe(true);
         expect(intensity().getAttribute('title')).toBeNull();
-        // The sheet still opened with its first enabled control focused: the Theme select.
-        expect(document.activeElement).toBe(theme());
+        // The sheet still opened with its first enabled control focused, never a list: a list focused in the
+        // press that opened the sheet opens its picker on iOS.
+        expect(document.activeElement).not.toBe(theme());
+        expect(document.activeElement).toBe(still());
+    });
+
+    it('never opens with a list focused, whatever is enabled: the first control that is not a list takes it', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live', { visual: false }), onPlayAgain: () => {}, audible: false });
+        still().disabled = true;
+        settings().click();
+        expect(document.activeElement?.tagName).not.toBe('SELECT');
+        expect(sheet().contains(document.activeElement)).toBe(true);
     });
 
     it('shows its row only for a field whose intensity changes while it runs: the attractor, not the flame', () => {
