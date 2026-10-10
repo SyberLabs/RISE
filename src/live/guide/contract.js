@@ -31,7 +31,7 @@ export const CONTRACT_GUIDE = [
     'Rules:',
     `- "schema" is exactly "${RISE_CURRENT_SCHEMA}". Use no field that is not shown above.`,
     `- "title" and every "id" are short text; ids are unique. "title" is at most ${LIMITS.title} characters.`,
-    '- "origin": you are a model, so use "kind": "model" and give your name and who runs you.',
+    '- "origin": "kind" is "model" for a Current a model wrote; "name" is the model’s name and "provider" who runs it.',
     `- 1 to ${LIMITS.segments} segments, each at most ${LIMITS.segmentText} characters and ${LIMITS.totalText} in all. Begin with a short one, so the answer starts at once.`,
     '- Segment text is plain words meant to be heard: no markdown, no lists, no headings, and never the character | or [PAUSE], [FLASH], [HOLD].',
     `- "look" sets how the whole answer looks: its imagery, its typeface and its colors. Choose the one that suits the answer: ${RISE_CURRENT_LOOKS.map(id => `${id} (${LOOK_HINTS[id]})`).join(', ')}. It may be left out.`,

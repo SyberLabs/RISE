@@ -1,5 +1,5 @@
 /**
- * Premium Educational: a calm lesson in the manner of 3Blue1Brown
+ * Premium Educational: a calm lesson of clear narrated diagrams
  * (docs/superpowers/specs/2026-10-08-creative-control-design.md §11). The
  * guidance says how to write in the style; the worked Currents (two code
  * scenes and a figure) are real ones the validator accepts and whose scenes
@@ -173,7 +173,7 @@ export const EXAMPLES = Object.freeze([
 export const GUIDANCE = [
     'Premium Educational ("style": "premium-educational")',
     '',
-    'A calm lesson in the manner of 3Blue1Brown: one idea, built up on screen a step at a time, the voice saying what the picture is doing.',
+    'A calm lesson of clear narrated diagrams: one idea per beat, built up on screen a step at a time in labelled figures, the voice saying what the picture is doing.',
     '',
     'What the style sets for you: a beat that sets no place is a caption in the lower third, at the reader\'s own size; captions are set in a humanist sans and lines shown in the centre in a book serif. In your code scene, rise.lib draws 2.5-pixel strokes, a faint grid and labels in a humanist sans, and eases every tween smoothly.',
     '',
@@ -184,7 +184,7 @@ export const GUIDANCE = [
     '- Every cue a beat names must change something the reader can see, and must land at once when instant is true.',
     '- Draw on the quiet field lib.clear() gives: the grid faint, the accent colour for the thing being explained, muted for scaffolding, highlight for the one point to look at. Nothing flashes, nothing spins for its own sake.',
     '- Keep text in the scene to a few labels; the captions carry the words.',
-    '- Lay one quiet bed under the whole lesson: "sound": "starlight" (or "aurora") on the first beat and on no other. Never a tone, never a change of sound part way through, never a sound on a hold; the voice and the picture carry the lesson.',
+    '- Sound: one quiet bed under the whole lesson, "sound": "starlight" (or "aurora") on the first beat and on no other; no tone, no change of sound part way through, no sound on a hold. The voice and the picture carry the lesson.',
     '- A labelled diagram that needs no cues (the parts of a thing, a map, a chart) is a figure: draw it as SVG in currentColor, labels and all, and let the captions walk through it.',
     '- End on a shown line ("show" with "hold", in the centre, larger) that states the result.'
 ].join('\n');

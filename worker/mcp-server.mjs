@@ -84,7 +84,7 @@ export function inAnthropicEgress(ip) {
 const RETRY_AFTER_SECONDS = 60;
 
 // Conditional on the reader's request, as the directory's review asks: a server must not tell the model to call a tool the reader did not ask for.
-const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. When the reader asks for a reading, a spoken or visual explanation, or names RISE, answer by calling ${TOOL_NAME} with a Current. Before writing a Current in a named style, call ${GUIDE_TOOL_NAME} with that style to read how.`;
+const INSTRUCTIONS = `RISE presents an answer to the reader as a spoken, visual reading. When the reader asks for a reading, a spoken or visual explanation, or names RISE, answer by calling ${TOOL_NAME} with a Current. ${GUIDE_TOOL_NAME} returns the format reference for a named style: the beats, scenes and limits a Current in that style is written with, and worked examples.`;
 
 const shortText = max => ({ type: 'string', minLength: 1, maxLength: max });
 
@@ -129,7 +129,7 @@ export function currentJsonSchemaV2() {
         type: 'object',
         properties: {
           kind: { type: 'string', enum: ['model', 'human'] },
-          name: shortText(LIMITS.name),
+          name: { ...shortText(LIMITS.name), description: 'The model’s name, or the person’s.' },
           provider: { ...shortText(LIMITS.name), description: 'Who runs the model; given with "kind": "model" and only then.' }
         },
         required: ['kind', 'name'],
@@ -225,7 +225,7 @@ export function currentJsonSchema() {
         type: 'object',
         properties: {
           kind: { type: 'string', enum: ['model', 'human'] },
-          name: shortText(LIMITS.name),
+          name: { ...shortText(LIMITS.name), description: 'The model’s name, or the person’s.' },
           provider: { ...shortText(LIMITS.name), description: 'Who runs the model; given with "kind": "model" and only then.' }
         },
         required: ['kind', 'name'],
@@ -288,13 +288,13 @@ export const TOOL = Object.freeze({
   // What a model needs to decide to call it and to write a plain Current; a host reads it on every turn, so the
   // full guide (CURRENT_GUIDE) and the worked Currents are rise_guide's, read only when a model writes in a style.
   description: [
-    'Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer and shows the words as they are spoken; the reader presses Play, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.',
+    'Use this when the reader asked for a spoken, visual explanation or reading of the answer, or named RISE. RISE speaks the answer in the device’s own voice and shows the words as they are spoken, over RISE’s own drawn imagery or the diagrams and figures the model writes as SVG or scene code, checked by RISE; the reader presses Play, can pause and resume, and can make the visual calmer or more vibrant. Call it once per answer, with the whole answer written as a Current and passed as "current". Do not use it for answers that need tables, code or live follow-up, and do not call it again for the same answer.',
     '',
     'A plain spoken reading is a "rise.current.v1" Current of passages ("segments"), such as:',
     JSON.stringify(CURRENT_EXAMPLE),
-    'Passage text is plain words meant to be heard: no markdown, lists or headings, and never | or [PAUSE], [FLASH], [HOLD]. Begin with a short passage. "origin" names you and who runs you.',
+    'Passage text is plain words meant to be heard: no markdown, lists or headings, and no | or [PAUSE], [FLASH], [HOLD]. Begin with a short passage. "origin" names the model and who runs it.',
     '',
-    `A "rise.current.v2" Current is beats over scenes: pictures that play, code you write, SVG figures. Before writing one, or for every rule, call ${GUIDE_TOOL_NAME} with {"style": "<style>"} for the full guide, worked Currents and the figure rules. Styles, for "style" on a v2 Current:`,
+    `A "rise.current.v2" Current is beats over scenes: pictures that play, scene code, SVG figures. Its fields, limits, figure rules and worked Currents are in the format reference ${GUIDE_TOOL_NAME} returns for {"style": "<style>"}. Styles, for "style" on a v2 Current:`,
     ...STYLE_LINES
   ].join('\n'),
   inputSchema: {
@@ -325,8 +325,8 @@ export const TOOL = Object.freeze({
  */
 export const GUIDE_TOOL = Object.freeze({
   name: GUIDE_TOOL_NAME,
-  title: 'Read a RISE style',
-  description: `Read how to write a RISE Current in a named style, with worked examples, before calling ${TOOL_NAME} in that style.`,
+  title: 'RISE style reference',
+  description: `Returns the format reference for one RISE style: the fields, limits, scenes and worked example Currents a ${TOOL_NAME} Current in that style is written with.`,
   inputSchema: {
     type: 'object',
     properties: { style: { type: 'string', enum: RISE_CURRENT_STYLES } },
@@ -490,10 +490,10 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
     case 'resources/list':
       return result(id, {
         resources: [
-          { uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current, spoken and shown as it is spoken.', mimeType: APP_MIME },
+          { uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current: spoken in the device’s own voice and shown as it is spoken.', mimeType: APP_MIME },
           ...[...GUIDE_URIS].map(([uri, style]) => ({
             uri, name: `rise-guide-${style}`, title: `RISE style: ${style}`,
-            description: `How to write a Current in the ${style} style, with worked Currents.`, mimeType: GUIDE_MIME
+            description: `The format reference for the ${style} style, with worked Currents.`, mimeType: GUIDE_MIME
           }))
         ]
       });

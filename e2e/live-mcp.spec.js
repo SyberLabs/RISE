@@ -1557,9 +1557,9 @@ test.describe('the card on a phone', () => {
     expect(await app.locator('#atom-display').evaluate(node => getComputedStyle(node).userSelect)).toBe('none');
   });
 
-  test('a frame shorter than the card asks for keeps the whole sheet in it, scrolling its rows; Sign in opens outside the card', async ({ page, baseURL }) => {
+  test('a frame shorter than the card asks for keeps the whole sheet in it, scrolling its rows; the card offers no sign-in', async ({ page, baseURL }) => {
     const app = await fieldCard(page, baseURL, { current: steady(), height: 300 });
-    // No Sign in over the reading (finding 6): it is in the Settings sheet's head.
+    // No Sign in over the reading (finding 6), nor in the sheet: the connector needs no account.
     await expect(app.locator('.rise-account-control')).toHaveCount(0);
     await app.getByRole('button', { name: 'Settings', exact: true }).click();
     const sheet = app.locator('#rise-settings');
@@ -1569,12 +1569,9 @@ test.describe('the card on a phone', () => {
     expect(box.top).toBeGreaterThanOrEqual(0);
     expect(box.overflow).toBeGreaterThan(0);
     expect(await sheet.evaluate(node => { node.scrollTop = node.scrollHeight; return node.scrollTop; })).toBeGreaterThan(0);
-    const signIn = app.getByRole('link', { name: 'Sign in to SyberLabs', exact: true });
-    await signIn.click();
-    await expect.poll(() => page.evaluate(() => window.__host.hostRequests)).toEqual([
-      { method: 'ui/open-link', params: { url: 'https://syberlabs.io/auth/signin?next=%2Fadmin%2Freturn%3Fapp%3Drise' } }
-    ]);
-    // The card is still the reading: the link did not navigate it.
+    await expect(sheet.getByRole('link')).toHaveCount(0);
+    await expect(sheet).not.toContainText(/sign in|SyberLabs/iu);
+    expect((await page.evaluate(() => window.__host.hostRequests)).filter(request => request.method === 'ui/open-link')).toEqual([]);
     await expect(app.locator('#atom-display')).toContainText(PHONE_LINE);
   });
 
