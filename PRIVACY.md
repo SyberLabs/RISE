@@ -208,8 +208,10 @@ Google or GitHub sign-in at `syberlabs.io` identifies an enabled SyberLabs accou
 
 ### The Plus voice
 
-RISE Plus is an optional subscription, $8.99 a month, that voices readings of
-your own material when the Plus voice is on. Plus is separate from optional SyberLabs account sign-in.
+RISE Plus, a voice tier that would voice readings of your own material when
+the Plus voice is on, is not currently offered, and nothing is for sale. What
+follows is what Plus would collect and send if it is offered; we keep it here so
+nothing is hidden. Plus is separate from optional SyberLabs account sign-in.
 Authorized administrators may use the same voice after Cloudflare Access
 sign-in, with separate shared daily and monthly allowances.
 
