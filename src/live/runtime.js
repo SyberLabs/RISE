@@ -361,6 +361,16 @@ export function createLiveRuntime({
         else set(status);
     }
 
+    /**
+     * A generated scene or a figure the admission refused (stream.js): the beat that starts it plays on what was
+     * showing, and the journal keeps the Worker's sentence, once.
+     */
+    function noteRefusedScenes(run) {
+        const refused = run.stream.refusedScenes;
+        for (const item of refused.slice(run.scenesRefused)) note('scene.refused', { role: run.role, ...item });
+        run.scenesRefused = refused.length;
+    }
+
     async function pump(run) {
         let attempts = 0;
         try {
@@ -372,6 +382,7 @@ export function createLiveRuntime({
                         const result = run.stream.apply(event);
                         if (result.applied > 0) {
                             attempts = 0;
+                            noteRefusedScenes(run);
                             if (run.stream.endedCount !== run.lowered) lower(run);
                         }
                         if (run.stream.terminal) break;
@@ -394,6 +405,8 @@ export function createLiveRuntime({
                 await run.connection.resume(run.stream.resumeFrom ?? run.stream.snapshot().nextSeq);
                 note('connection.resumed', { role: run.role });
             }
+            // The answer is written, however it ended: what plays after this was all in hand.
+            note('composed', { role: run.role, phase: run.stream.phase });
             if (run.stream.phase === 'failed') throw new AdapterError(run.stream.snapshot().error?.code ?? 'FAILED', run.stream.snapshot().error?.message ?? 'The Current failed');
             run.player?.setLive(false);
             // A run that already failed (the compiler refused what the validator accepted) keeps its own reason.
@@ -421,7 +434,9 @@ export function createLiveRuntime({
             // The voice's rate its clock is at: the pace once the voice has taken it up (see setPace).
             rate: 1,
             // Every passage the voice was given, in the reading's order (a seek gives the voice the rest again); the passages a seek goes to.
-            given: [], passages: null
+            given: [], passages: null,
+            // How many of the stream's refused scenes the journal has noted.
+            scenesRefused: 0
         };
         if (role === 'main') main = run;
         else side = run;

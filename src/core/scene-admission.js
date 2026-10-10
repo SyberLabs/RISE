@@ -1,7 +1,7 @@
 import { parse } from 'acorn';
-import { BEAT_LIMITS } from '../src/core/beats.js';
-import { sceneCodeBytes } from '../src/core/experience-program.js';
-import { BANNED_SCENE_NAMES } from '../src/scenes/scene-bans.js';
+import { BEAT_LIMITS } from './beats.js';
+import { sceneCodeBytes } from './experience-program.js';
+import { BANNED_SCENE_NAMES } from '../scenes/scene-bans.js';
 
 /**
  * Static admission of a generated scene's code, before a Current that carries

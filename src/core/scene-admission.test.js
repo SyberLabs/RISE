@@ -5,8 +5,8 @@
  * and, where the parse knows it, the line and column.
  */
 import { describe, expect, it } from 'vitest';
-import { BANNED_GLOBALS } from '../src/scenes/scene-worker.js';
-import { admitSceneCode, BANNED_SCENE_NAMES, describeDiagnostic, SCENE_CODE_BYTES } from './scene-admission.mjs';
+import { BANNED_GLOBALS } from '../scenes/scene-worker.js';
+import { admitSceneCode, BANNED_SCENE_NAMES, describeDiagnostic, SCENE_CODE_BYTES } from './scene-admission.js';
 
 const GOOD = `export const reportsCompletion = true;
 

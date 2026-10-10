@@ -13,7 +13,7 @@ import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_ENGINES, SCENE_LIMITS } from '..
 import { STYLES } from '../../core/styles.js';
 import { PARKED_SOUNDS } from '../../audio/sound-ids.js';
 import { createSceneLibrary } from '../../scenes/scene-library.js';
-import { admitSceneCode, describeDiagnostic } from '../../../worker/scene-admission.mjs';
+import { admitSceneCode, describeDiagnostic } from '../../core/scene-admission.js';
 import { admitSvg, SVG_ELEMENTS } from '../../core/svg-admission.js';
 import {
     CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, CURRENT_GUIDE_V2, DIVE_INSTRUCTIONS, FIGURE_EXAMPLE, FIGURE_GUIDE, LIB_GUIDE, LOOK_HINTS, SCENE_CODE_EXAMPLE,

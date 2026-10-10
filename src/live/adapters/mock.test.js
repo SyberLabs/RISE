@@ -12,7 +12,8 @@ import { AdapterError, assertAdapter, assertConnection } from '../adapter.js';
 import { createVirtualClock } from '../clock.js';
 import { BLACK_HOLES, HORIZON_DIVE } from '../fixtures/black-holes.js';
 import { createCurrentStream } from '../stream.js';
-import { createMockAdapter } from './mock.js';
+import { createMockAdapter, createMockBeatsAdapter } from './mock.js';
+import { BLACK_HOLES_BEATS_CURRENT } from '../fixtures/black-holes-beats.js';
 
 const ASK = { intent: 'answer', prompt: 'Explain black holes with RISE.' };
 
@@ -361,5 +362,47 @@ describe('a Dive', () => {
         expect(a.currentId).not.toBe(b.currentId);
         await a.close();
         await b.close();
+    });
+});
+
+describe('the demo that writes in beats (the venue’s)', () => {
+    async function stream(request = ASK) {
+        const clock = createVirtualClock();
+        const connection = await createMockBeatsAdapter({ clock }).open(request);
+        const reducer = createCurrentStream();
+        const arrivals = [];
+        const reading = (async () => {
+            for await (const event of connection.events) {
+                arrivals.push({ at: clock.now(), event });
+                reducer.apply(event);
+            }
+        })();
+        await clock.runAll();
+        await reading;
+        return { reducer, arrivals };
+    }
+
+    it('streams the black holes answer as the model would write it, and seals to the Current it means', async () => {
+        const { reducer } = await stream();
+        expect(reducer.snapshot()).toMatchObject({ phase: 'complete', refusals: 0 });
+        const { scenes, beats } = reducer.toCurrent();
+        expect({ scenes, beats }).toEqual(JSON.parse(JSON.stringify(BLACK_HOLES_BEATS_CURRENT)));
+    });
+
+    it('writes as a model writes, so the first beat, a hold and a scene arrive long before the answer is complete', async () => {
+        const { arrivals } = await stream();
+        const at = predicate => arrivals.find(({ event }) => predicate(event))?.at;
+        const firstBeat = at(event => event.type === 'segment.end' && event.segmentId === 'beat-0');
+        const hold = at(event => event.type === 'segment.end' && event.segmentId === 'beat-1');
+        const figure = at(event => event.type === 'segment.begin' && event.beat?.scene === 'horizon');
+        const complete = at(event => event.type === 'current.complete');
+        expect(firstBeat).toBeLessThan(1_500);
+        expect(hold).toBeLessThan(complete - 5_000);
+        expect(figure).toBeLessThan(complete - 5_000);
+    });
+
+    it('says plainly that it knows only black holes, in one beat', async () => {
+        const { reducer } = await stream({ intent: 'answer', prompt: 'What is a quasar?' });
+        expect(reducer.toCurrent().beats).toEqual([{ say: 'This demonstration can only explain black holes.' }]);
     });
 });

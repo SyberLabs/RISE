@@ -17,7 +17,7 @@ import { BEAT_CUE_PATTERN, BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
 import { admitSvg } from '../src/core/svg-admission.js';
-import { describeDiagnostic } from './scene-admission.mjs';
+import { describeDiagnostic } from '../src/core/scene-admission.js';
 import { DISPLAY_MODES } from '../src/live/hosts/mcp-port.js';
 import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, GUIDE_TOOL, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
 

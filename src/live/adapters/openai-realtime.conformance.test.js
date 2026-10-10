@@ -1,5 +1,6 @@
 import { createVirtualClock } from '../clock.js';
 import { describeAdapterConformance } from '../../test/live-conformance.js';
+import { BLACK_HOLES_BEATS_TEXT } from '../fixtures/black-holes-beats.js';
 import { createFakeOpenAITransport } from '../../test/fake-openai-transport.js';
 import { createOpenAIRealtimeAdapter } from './openai-realtime.js';
 
@@ -16,7 +17,9 @@ const FAULTS = {
     'transport-loss': { lossAfter: 30 },
     'provider-failure': { failAfter: 10 },
     // The response ends `incomplete` at its token limit, part way through a passage.
-    'cut-short': { cutAfter: 30 }
+    'cut-short': { cutAfter: 30 },
+    // The answer written in beats, through the same wire.
+    beats: { textFor: () => BLACK_HOLES_BEATS_TEXT }
 };
 
 describeAdapterConformance('openai-realtime (fake data channel, documented wire)', (name) => {
@@ -27,4 +30,4 @@ describeAdapterConformance('openai-realtime (fake data channel, documented wire)
         interruptAfterMs: 300,
         adapter: createOpenAIRealtimeAdapter({ transport: createFakeOpenAITransport({ clock, ...FAULTS[name] }) })
     };
-}, { carries: { evidence: false, dives: false, ids: false }, resume: 'replay' });
+}, { carries: { evidence: false, dives: false, ids: false }, resume: 'replay', beats: true });

@@ -447,7 +447,7 @@ Why: the code is untrusted. It runs with none of RISE's authority: no host port,
 
 ### 7.7 Admission on the server
 
-`admitSceneCode` in `worker/scene-admission.mjs` parses every `code` scene with acorn as an ES2022 module and never runs it. The rules:
+`admitSceneCode` in `src/core/scene-admission.js` parses every `code` scene with acorn as an ES2022 module and never runs it. The rules:
 
 1. At most `BEAT_LIMITS.code` bytes of UTF-8.
 2. The code parses as a module. A module is strict, so `with` is a syntax error.

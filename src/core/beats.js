@@ -55,6 +55,8 @@ export const BEAT_TYPES = TYPE_NAMES;
 export const SCENE_ENGINES = ENGINES;
 /** The guide's account of the engines, re-exported here so the live layer reaches it through the core. */
 export { describeManifests } from '../scenes/manifests.js';
+/** What a native scene's parameters and cues may be, by the same route: the line format checks them as it reads. */
+export { cueCommands, validateSceneParams } from '../scenes/manifests.js';
 /** A generated scene's frame budget, for the guide, by the same route. */
 export { SCENE_LIMITS } from '../scenes/scene-protocol.js';
 /** The names a scene may not use, declared once in scene-bans.js; the guide names them by this route. */

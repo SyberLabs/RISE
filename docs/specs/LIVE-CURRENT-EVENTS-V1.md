@@ -47,8 +47,60 @@ An event is at most 16 KB when serialised, and `decodeEvent` checks that before 
 
 `toCurrent()` returns the `rise.current.v1` of the segments that have **ended**. A segment still being written is omitted, so each result is a prefix of every later one: the same atoms come back and only more are added. That is what allows the one Player to be extended (plan §5) rather than replaced. State, evidence and speech marks are not part of `rise.current.v1`; they are held on the stream for the runtime.
 
+## Beats streamed (added 2026-10-10, additive)
+
+RISE Live stage 3 ([the RISE Live design](../superpowers/specs/2026-10-09-rise-live-design.md) §5, §8). A streamed Current used to be passages only, so a model writing as it thinks could not ask for a hold, a scene or a cue until it had finished and sealed a `rise.current.v2`. A **beat stream** carries the beats of a `rise.current.v2` one at a time, so holds and scenes arrive, and take effect, while the answer is still being written.
+
+**Versioning: still `rise.current-events.v1`.** Everything below is an optional field or a new type. A producer that sends no `beat` and no scene event sends exactly what it sent before, and the reducer reduces it exactly as before (the same refusals, the same `rise.current.v1`). There is no v2 of the events protocol because nothing in it changes meaning: the envelope, sequencing, windows, refusal budget, limits and terminal events are the same, and an old event never means something new. What a beat stream lowers into, `rise.current.v2`, already exists and is versioned on its own. A version number marks a break; this has none.
+
+### What is added
+
+| `type` | Fields | Notes |
+|---|---|---|
+| `segment.begin` | + `beat?` | The segment is one beat. `beat` carries the beat's fields as `rise.current.v2` defines them, except what it says: `show?` (shown in place of what is said; only without `hold`), `hold?` `{ms, maxMs?}`, `scene?` (starts that scene), `cue?`, `transition?` `{ms}`, `place?`, `size?`, `type?`, `emphasis?`, `sound?`. With `beat`, `visual` and `literal` are refused (`EVENT_BEAT`): a beat's imagery is its scene, and a beat has no literal form. |
+| `scene.declare` | `sceneId`, then `engine` and `params?`, or `form` | A native scene (`engine` and its manifest's `params`), or one whose source follows: `form` `"code"` (an ES module) or `"svg"` (a figure). |
+| `scene.text` | `sceneId`, `offset`, `text` (≤ 2,000) | More of a code or SVG scene's source. `offset` must equal what is already held. Source is not words: it is never checked for playback markers, and is never spoken or shown. |
+
+**Which kind of stream.** The first `segment.begin` or `scene.declare` decides: one with a `beat`, or a scene, makes a beat stream; one without, a passage stream as before. The other kind is then refused (`BEAT_MIXED`).
+
+**A beat segment.** Its id is `beat-<n>`, `n` its place from 0, which is the id the sealed `rise.current.v2` gives that beat, so a position in the stream and in the Current are the same (`BEAT_ID`). Its committed text is what is said; with a `hold`, what is shown and never said; a hold beat commits none. So the kind follows from the body and the words: no `hold` and words, a said beat; `hold` and words, a shown beat; `hold` and no words, a hold. A said beat with nothing said is refused `EMPTY_SEGMENT`. A beat stream has at most 64 segments (the beats of a `rise.current.v2`). `dive.attach` on a beat is refused `BEAT_DIVE`: a `rise.current.v2` carries no Dives, and one attached here would be lost silently.
+
+Every beat is held, as it begins and as it ends, to `rise.current.v2`'s own beat rules over the beats before it, and refused with their codes (`BEAT_SCENE`, `BEAT_CUE`, `BEAT_HOLD`, `BEAT_PLACE`, …): a cue needs a scene running that takes it; a scene must have been declared.
+
+**Scenes are declared inline.** A scene arrives in the stream, by its own event, before the first beat that starts it, never in the stream's header: the model declares a scene when it has decided to use one, and a stream that never uses one says nothing about scenes. A scene is its own event, not part of a beat, for two reasons that make it unavoidable: it spans many beats (started by one, cued by others), and a scene's source (24 KB of code, 32 KB of SVG) is larger than one event (16 KB), so it arrives in pieces the way words do. Native scenes are checked against their engine's manifest when declared (`SCENE_ENGINE`, `SCENE_PARAM`, …). At most 8 scenes (`TOO_MANY_SCENES`); an id once (`DUPLICATE_SCENE`); `scene.text` for a scene not declared with a `form` is `UNKNOWN_SCENE`, past its budget `SCENE_TOO_LARGE`.
+
+**Admission, at the reducer.** A code or SVG scene's source is sealed when the first beat that starts it begins (later `scene.text` is `SCENE_CLOSED`), and it is admitted then by the same functions the Worker's `rise_present` runs: `admitSceneCode` (`src/core/scene-admission.js`) for code, `admitSvg` (`src/core/svg-admission.js`) for a figure, after the Current's own scene rules. A refusal is the Worker's sentence: `Scene "<id>" was refused: line L, column C: <rule>.`
+
+**What the reader sees of a refused scene.** The beat that starts it is applied, and keeps its words, timing and typography; it does not start that scene, and no cue lands while the model meant that scene to be running. The reading continues on what was showing: the look's field when no scene had started. The stream lists the refusal (`refusedScenes`), and the runtime writes `scene.refused` in the journal with the Worker's sentence. A refused scene is never retried and never reaches the sealed Current.
+
+**Lowering a beat stream.** `toCurrent()` returns the `rise.current.v2` of the beats that have ended, in order, with the scenes they start that were admitted, in the order they were declared. It is validated by `validateRiseCurrent` like any sealed Current, it is a prefix of every later one (so the one Player is extended, as for passages), and the Current a beat stream completes with is one the Worker's `rise_present` accepts (a test holds it to the Worker's own door). The stream carries no `style` or `type` (a beat's own `type` does carry).
+
+### The line format a model writes
+
+The text-stream adapters (mock, Gemini, OpenAI, OpenRouter) read a model's text through one parser (`src/live/adapters/segment-parser.js`). It reads passages as before, and beats, one per line:
+
+```text
+@say [options] <words>                      said and shown
+@say [options] <words said> => <words shown> said one way, shown another
+@show hold=<ms> [options] <words>           shown, never said
+@hold <ms> [max=<ms>] [options]             time nobody speaks
+@scene <id> <engine> [<param>=<value> ...]  a native scene, declared
+@scene <id> code                            a generated scene; its module follows in a ``` fence
+@scene <id> svg                             a figure; its SVG follows in a ``` fence
+```
+
+Options come before the words, any order: `scene=<id>` (start that scene at this beat), `cue=<name>`, `place=`, `size=`, `type=`, `emphasis=<word>,<word>`, `sound=<id>`, `transition=<ms>`; a hold takes `scene`, `cue`, `sound`, `transition` and `max`. A fence opens on a line beginning with three backticks and closes on a line that is three backticks; what is between is the source, verbatim.
+
+What the parser does with what a model actually sends:
+
+- **The first line decides.** A `@passage` header or a line of words first makes a passage stream, exactly as before (a bare sentence line is still a passage); a `@say`, `@show`, `@hold` or `@scene` first makes a beat stream. The other format's directives are then ignored.
+- **A beat is a whole line.** A beat line is read at its newline, or at the end of the answer; a line cut off by a dropped connection or an interruption is not a beat, as a half-written passage is not a passage. In a beat stream a line of words with no directive is said.
+- **Bounds, not guesses.** An option the format does not name, or a value out of bounds, is dropped and the beat kept; a `@hold` or a `@show` without a valid hold is dropped. A cue the running scene cannot take is dropped; `scene=` naming a scene that was never declared, or whose declaration was dropped, is dropped, and so are cues until a scene that exists starts. A native scene keeps only the parameters its manifest admits. Words are neutralised as in passages (`|`, `[PAUSE]`, `[FLASH]`, `[HOLD]`). A beat line over 4,600 characters is skipped.
+- **Fences.** A fence left open is closed by the next line that begins a beat or a scene; a source over its budget is dropped with its scene. A `@scene … code|svg` line not followed by a fence declares nothing.
+- **Chunk-invariant.** However the same text is cut into deltas, the same events come out.
+
 ## Error codes
 
-Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_THEME`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`.
+Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_THEME`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`, `EVENT_BEAT`, `EVENT_SCENE`.
 
-Meaning: `NOT_OPEN`, `DUPLICATE_OPEN`, `WRONG_CURRENT`, `UNKNOWN_SEGMENT`, `SEGMENT_OPEN`, `SEGMENT_CLOSED`, `DUPLICATE_SEGMENT`, `TOO_MANY_SEGMENTS`, `TEXT_OFFSET`, `TEXT_TOO_LONG`, `RESERVED_TEXT`, `LITERAL_MISMATCH`, `EMPTY_SEGMENT`, `TOO_MANY_EVIDENCE`, `DUPLICATE_EVIDENCE`, `EVIDENCE_SPAN`, `TOO_MANY_DIVES`, `DUPLICATE_DIVE`, `DIVE_ANCHOR`, `SPEECH_STATE`, `SPEECH_ORDER`, `BRANCH_OPEN`, `DUPLICATE_BRANCH`, `BRANCH_POSITION`, `UNKNOWN_BRANCH`, `EMPTY_CURRENT`, `SEQ_CONFLICT`, `SEQUENCE_GAP`, `TOO_MANY_REFUSALS`, `TOO_MANY_EVENTS`, `AFTER_TERMINAL`.
+Meaning: `NOT_OPEN`, `DUPLICATE_OPEN`, `WRONG_CURRENT`, `UNKNOWN_SEGMENT`, `SEGMENT_OPEN`, `SEGMENT_CLOSED`, `DUPLICATE_SEGMENT`, `TOO_MANY_SEGMENTS`, `TEXT_OFFSET`, `TEXT_TOO_LONG`, `RESERVED_TEXT`, `LITERAL_MISMATCH`, `EMPTY_SEGMENT`, `TOO_MANY_EVIDENCE`, `DUPLICATE_EVIDENCE`, `EVIDENCE_SPAN`, `TOO_MANY_DIVES`, `DUPLICATE_DIVE`, `DIVE_ANCHOR`, `SPEECH_STATE`, `SPEECH_ORDER`, `BRANCH_OPEN`, `DUPLICATE_BRANCH`, `BRANCH_POSITION`, `UNKNOWN_BRANCH`, `EMPTY_CURRENT`, `SEQ_CONFLICT`, `SEQUENCE_GAP`, `TOO_MANY_REFUSALS`, `TOO_MANY_EVENTS`, `AFTER_TERMINAL`; for beat streams `BEAT_MIXED`, `BEAT_ID`, `BEAT_DIVE`, `DUPLICATE_SCENE`, `TOO_MANY_SCENES`, `UNKNOWN_SCENE`, `SCENE_CLOSED`, `SCENE_TOO_LARGE`, and `rise.current.v2`'s own beat and scene codes.

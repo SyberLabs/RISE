@@ -8,7 +8,7 @@ import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
 import { readText } from './live-realtime.mjs';
 import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
-import { admitSceneCode, describeDiagnostic } from './scene-admission.mjs';
+import { admitSceneCode, describeDiagnostic } from '../src/core/scene-admission.js';
 import { admitSvg } from '../src/core/svg-admission.js';
 
 /**
@@ -30,7 +30,7 @@ import { admitSvg } from '../src/core/svg-admission.js';
  * protocol version it does not speak before reading anything, holds each client
  * address but Anthropic's shared egress to the site's rate limiter where the
  * platform offers one, reads a bounded body, and returns nothing it was sent
- * except a validator's message, a scene parser's diagnostic (scene-admission.mjs), a figure's (svg-admission.js) or an argument's name, clipped.
+ * except a validator's message, a scene parser's diagnostic (src/core/scene-admission.js), a figure's (svg-admission.js) or an argument's name, clipped.
  *
  * CHECKED AGAINST THE REFERENCE, NOT AGAINST A PRODUCT: the shapes below were
  * compared with @modelcontextprotocol/ext-apps 2.0.3 and the SDK's own client
@@ -353,7 +353,7 @@ function refusal(error) {
 }
 
 /**
- * Every generated scene's code, parsed and held to the scene rules (scene-admission.mjs), and every figure's SVG,
+ * Every generated scene's code, parsed and held to the scene rules (src/core/scene-admission.js), and every figure's SVG,
  * held to the figure rules the card holds it to again (svg-admission.js): the refusal's lines, or none.
  */
 function sceneRefusals(current) {

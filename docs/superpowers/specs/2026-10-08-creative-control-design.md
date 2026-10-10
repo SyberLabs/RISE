@@ -98,7 +98,7 @@ Modules, each new unless marked, each with one job and its own tests:
 | `src/scenes/manifests/*.js` | One parameter manifest per native engine (`visual-control-contract.js` generalised) | each engine |
 | `src/components/read/scene-layer.js` | The canvas the Chamber mounts for a scene, transferred to the worker; sizing, transitions, hidden-card pause | `scene-runtime.js` |
 | `src/components/read/caption-layer.js` | Renders beats placed at caption/top/left/right with a readability scrim; collapses to caption on phones | `typography.js`, `math-typeset.js` |
-| `worker/scene-admission.mjs` | Static admission of scene code: parse (acorn), restrictions, export shape, size; diagnostics | acorn |
+| `src/core/scene-admission.js` | Static admission of scene code: parse (acorn), restrictions, export shape, size; diagnostics | acorn |
 | `src/live/guide/` | The Composer guide split by concern; `styles/premium-educational.js` first | — |
 
 Boundaries that must hold:
@@ -268,7 +268,7 @@ A **Style** is a named bundle: guidance text for the model (how to write beats a
 
 ## 12. Admission and diagnostics
 
-**On the server** (`worker/scene-admission.mjs`), for every `{ code }` scene, in order: size ≤ 24,576 bytes; parse with acorn as an ES module (`ecmaVersion: 2022`); exactly one default export, a function; no `import` declarations; no dynamic `import()`; no identifier from the banned list in any position (§8); no `with`, no labelled `debugger`; a `reportsCompletion` export, if present, a boolean. Any failure refuses the whole tool call with `isError: true` and text of the form:
+**On the server** (`src/core/scene-admission.js`), for every `{ code }` scene, in order: size ≤ 24,576 bytes; parse with acorn as an ES module (`ecmaVersion: 2022`); exactly one default export, a function; no `import` declarations; no dynamic `import()`; no identifier from the banned list in any position (§8); no `with`, no labelled `debugger`; a `reportsCompletion` export, if present, a boolean. Any failure refuses the whole tool call with `isError: true` and text of the form:
 
 ```
 Scene "vector" was refused: line 14, column 7: `fetch` is not available to a scene.

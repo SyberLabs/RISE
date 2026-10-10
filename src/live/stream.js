@@ -19,16 +19,29 @@
  *               the one Player be extended rather than replaced.
  *   BOUNDS.     Segments, text, evidence, Dives, events, buffered events,
  *               remembered events and interruptions are all capped.
+ *
+ * A beat stream (docs/specs/LIVE-CURRENT-EVENTS-V1.md, "Beats streamed") is the
+ * same reducer over segments that are each one beat of a `rise.current.v2`,
+ * with the scenes those beats start. Every beat is held to v2's own validator
+ * over the beats before it as it begins and as it ends, and a generated scene or
+ * a figure is admitted here, when a beat first starts it, by the functions the
+ * Worker's door runs. It lowers to the `rise.current.v2` of its ended beats.
  */
 
 import {
     RISE_CURRENT_LIMITS,
     RISE_CURRENT_SCHEMA,
+    RISE_CURRENT_SCHEMA_V2,
+    RiseCurrentError,
     hasLiteralForbidden,
     hasReservedMarker,
     validateDiveAnchor,
     validateRiseCurrent
 } from '../core/rise-current.js';
+import { BEAT_LIMITS, validateBeats, validateScenes } from '../core/beats.js';
+import { sceneCodeBytes } from '../core/experience-program.js';
+import { admitSvg } from '../core/svg-admission.js';
+import { admitSceneCode, describeDiagnostic } from '../core/scene-admission.js';
 import { LiveProtocolError, validateEvent } from './protocol.js';
 
 export const STREAM_LIMITS = Object.freeze({
@@ -44,8 +57,40 @@ export const STREAM_LIMITS = Object.freeze({
     dives: RISE_CURRENT_LIMITS.dives,
     segments: RISE_CURRENT_LIMITS.segments,
     segmentText: RISE_CURRENT_LIMITS.segmentText,
-    totalText: RISE_CURRENT_LIMITS.totalText
+    totalText: RISE_CURRENT_LIMITS.totalText,
+    /** A beat stream: one segment per beat of a rise.current.v2, and its scenes. */
+    beats: BEAT_LIMITS.beats,
+    scenes: BEAT_LIMITS.scenes
 });
+
+/** A `rise.current.v2` beat for a beat segment: what it says is its words; with a hold, its words are shown. */
+function v2Beat(body, words) {
+    const { show, hold, ...rest } = body;
+    const beat = hold
+        ? { ...(words ? { show: words } : {}), hold: { ...hold } }
+        : { say: words, ...(show === undefined ? {} : { show }) };
+    for (const [key, value] of Object.entries(rest)) {
+        beat[key] = Array.isArray(value) ? [...value] : value && typeof value === 'object' ? { ...value } : value;
+    }
+    return beat;
+}
+
+/**
+ * The beats as they play: a beat that starts a refused scene starts nothing, and no cue lands while the model
+ * meant a refused scene to be running. `items` are { body, words } in order.
+ */
+function playable(items, refused) {
+    let intended = null;
+    return items.map(({ body, words }) => {
+        const beat = v2Beat(body, words);
+        if (body.scene !== undefined) intended = body.scene;
+        if (intended !== null && refused(intended)) {
+            delete beat.scene;
+            delete beat.cue;
+        }
+        return beat;
+    });
+}
 
 class Refusal extends Error {
     constructor(code, message) {
@@ -89,8 +134,119 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
     const byId = new Map();
     const branches = [];
     const interruptions = [];
+    /** 'passages' or 'beats', decided by the first segment or scene; null before either. */
+    let kind = null;
+    /** Declared scenes, in order: { id, clean } for a native one or an admitted one, { id, form, source, sealed } until then. */
+    const scenes = [];
+    const sceneById = new Map();
+    const refusedScenes = [];
 
     const terminal = () => phase === 'complete' || phase === 'cancelled' || phase === 'failed';
+
+    /** Refuse the other kind of stream; the kind itself is set only once the event is applied. */
+    function expectKind(wanted) {
+        if (kind !== null && kind !== wanted) {
+            refuse('BEAT_MIXED', wanted === 'beats' ? 'This Current streams passages, not beats' : 'This Current streams beats, not passages');
+        }
+    }
+
+    const isRefused = sceneId => sceneById.get(sceneId)?.refused !== undefined;
+
+    /** The scenes a beat may name: native ones and admitted ones, as v2 writes them. */
+    const usableScenes = () => scenes.filter(scene => scene.clean).map(scene => scene.clean);
+
+    /**
+     * Hold the beats, `items` ({ body, words }), to rise.current.v2's validator, refusing with its code. `admitted`
+     * is a scene being admitted by the beat under test, and `refused` says which scenes play as refused.
+     */
+    function checkBeats(items, { refused = isRefused, admitted = null } = {}) {
+        try {
+            validateBeats(playable(items, refused), '$.beats', { scenes: admitted ? [...usableScenes(), admitted] : usableScenes() });
+        } catch (caught) {
+            if (caught instanceof RiseCurrentError) refuse(caught.code, caught.message);
+            throw caught;
+        }
+    }
+
+    const beatItems = list => list.map(segment => ({ body: segment.beat, words: segment.text }));
+
+    /** The Worker's verdict on a generated scene or a figure: { clean } or { message }, in the Worker's words. */
+    function admit(scene) {
+        const shaped = scene.form === 'code' ? { id: scene.id, code: scene.source } : { id: scene.id, svg: scene.source };
+        try {
+            validateScenes([shaped], '$.scenes');
+        } catch (caught) {
+            if (!(caught instanceof RiseCurrentError)) throw caught;
+            return { message: `Scene "${scene.id}" was refused: ${caught.message}` };
+        }
+        const verdict = scene.form === 'code' ? admitSceneCode(scene.source) : admitSvg(scene.source);
+        return verdict.ok ? { clean: shaped } : { message: `Scene "${scene.id}" was refused: ${describeDiagnostic(verdict.diagnostics[0])}` };
+    }
+
+    function beginBeat(event) {
+        expectKind('beats');
+        if (event.segmentId !== `beat-${segments.length}`) {
+            refuse('BEAT_ID', `A beat is named by its place: this one is beat-${segments.length}`);
+        }
+        if (segments.length >= STREAM_LIMITS.beats) refuse('TOO_MANY_SEGMENTS', `A Current has at most ${STREAM_LIMITS.beats} beats`);
+        const { beat } = event;
+        if (beat.hold && beat.show !== undefined) {
+            refuse('BEAT_KIND', 'A beat with a hold shows its own words; show is for a beat that says something else');
+        }
+        if (beat.show !== undefined && totalText() + shownText() + beat.show.length > STREAM_LIMITS.totalText) {
+            refuse('TEXT_TOO_LONG', 'The text is past its limit');
+        }
+        // A scene's source is sealed and admitted when a beat first starts it; nothing is kept unless the beat is applied.
+        const starting = beat.scene === undefined ? null : sceneById.get(beat.scene);
+        const verdict = starting && starting.form && !starting.sealed ? admit(starting) : null;
+        const refused = sceneId => (sceneId === starting?.id && verdict ? verdict.message !== undefined : isRefused(sceneId));
+        // What it says is not yet known: a said beat is checked as saying something, a hold as one.
+        const words = beat.hold ? '' : 'x';
+        checkBeats([...beatItems(segments), { body: beat, words }], { refused, admitted: verdict?.clean ?? null });
+        if (verdict) {
+            starting.sealed = true;
+            if (verdict.clean) starting.clean = verdict.clean;
+            else {
+                starting.refused = verdict.message;
+                refusedScenes.push({ sceneId: starting.id, message: verdict.message });
+            }
+        }
+    }
+
+    /** What beats show besides what they say. */
+    const shownText = () => segments.reduce((sum, segment) => sum + (segment.beat?.show?.length ?? 0), 0);
+
+    function declareScene(event) {
+        expectKind('beats');
+        if (sceneById.has(event.sceneId)) refuse('DUPLICATE_SCENE', `Scene ${event.sceneId} exists`);
+        if (scenes.length >= STREAM_LIMITS.scenes) refuse('TOO_MANY_SCENES', `A Current has at most ${STREAM_LIMITS.scenes} scenes`);
+        let scene;
+        if (event.form) {
+            scene = { id: event.sceneId, form: event.form, source: '', sealed: false };
+        } else {
+            try {
+                const [clean] = validateScenes([{ id: event.sceneId, engine: event.engine, ...(event.params ? { params: event.params } : {}) }], '$.scenes');
+                scene = { id: event.sceneId, clean };
+            } catch (caught) {
+                if (caught instanceof RiseCurrentError) refuse(caught.code, caught.message);
+                throw caught;
+            }
+        }
+        scenes.push(scene);
+        sceneById.set(scene.id, scene);
+        kind = 'beats';
+    }
+
+    function sceneText(event) {
+        const scene = sceneById.get(event.sceneId);
+        if (!scene?.form) refuse('UNKNOWN_SCENE', `No scene ${event.sceneId} whose source follows`);
+        if (scene.sealed) refuse('SCENE_CLOSED', `Scene ${scene.id} has started; its source is sealed`);
+        if (event.offset !== scene.source.length) refuse('TEXT_OFFSET', `Expected source at offset ${scene.source.length}, not ${event.offset}`);
+        const joined = scene.source + event.text;
+        const budget = scene.form === 'code' ? BEAT_LIMITS.code : BEAT_LIMITS.svg;
+        if (sceneCodeBytes(joined) > budget) refuse('SCENE_TOO_LARGE', `A scene's ${scene.form} is at most ${budget} bytes`);
+        scene.source = joined;
+    }
 
     function fail(code, message) {
         phase = 'failed';
@@ -136,9 +292,14 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
             case 'segment.begin': {
                 if (openSegment) refuse('SEGMENT_OPEN', `Segment ${openSegment.id} is still open`);
                 if (byId.has(event.segmentId)) refuse('DUPLICATE_SEGMENT', `Segment ${event.segmentId} exists`);
-                if (segments.length >= STREAM_LIMITS.segments) {
-                    refuse('TOO_MANY_SEGMENTS', `A Current has at most ${STREAM_LIMITS.segments} segments`);
+                if (event.beat) beginBeat(event);
+                else {
+                    expectKind('passages');
+                    if (segments.length >= STREAM_LIMITS.segments) {
+                        refuse('TOO_MANY_SEGMENTS', `A Current has at most ${STREAM_LIMITS.segments} segments`);
+                    }
                 }
+                kind = event.beat ? 'beats' : 'passages';
                 const segment = {
                     id: event.segmentId,
                     text: '',
@@ -150,6 +311,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                 };
                 if (event.visual !== undefined) segment.visual = event.visual;
                 if (event.literal === true) segment.literal = true;
+                if (event.beat) segment.beat = event.beat;
                 segments.push(segment);
                 byId.set(segment.id, segment);
                 openSegment = segment;
@@ -167,7 +329,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                     refuse('TEXT_OFFSET', `Expected text at offset ${segment.text.length}, not ${event.offset}`);
                 }
                 const joined = segment.text + event.text;
-                if (joined.length > STREAM_LIMITS.segmentText || totalText() + event.text.length > STREAM_LIMITS.totalText) {
+                if (joined.length > STREAM_LIMITS.segmentText || totalText() + shownText() + event.text.length > STREAM_LIMITS.totalText) {
                     refuse('TEXT_TOO_LONG', 'The text is past its limit');
                 }
                 // A marker can be split across two chunks; only the joined text shows it.
@@ -181,7 +343,9 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
             case 'segment.end': {
                 const segment = segmentFor(event.segmentId);
                 if (segment.ended) refuse('SEGMENT_CLOSED', `Segment ${segment.id} has already ended`);
-                if (!segment.text.trim()) refuse('EMPTY_SEGMENT', 'A segment cannot end with nothing said');
+                // A hold beat says and shows nothing; every other segment says something.
+                if (!segment.beat?.hold && !segment.text.trim()) refuse('EMPTY_SEGMENT', 'A segment cannot end with nothing said');
+                if (segment.beat) checkBeats(beatItems(segments));
                 segment.ended = true;
                 if (openSegment === segment) openSegment = null;
                 break;
@@ -212,6 +376,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
 
             case 'dive.attach': {
                 const segment = segmentFor(event.segmentId);
+                if (segment.beat) refuse('BEAT_DIVE', 'A beat carries no Dive: a rise.current.v2 has nowhere to keep one');
                 if (segment.ended) refuse('SEGMENT_CLOSED', `Segment ${segment.id} has ended`);
                 if (segment.dives.length >= STREAM_LIMITS.dives) {
                     refuse('TOO_MANY_DIVES', `A segment has at most ${STREAM_LIMITS.dives} Dives`);
@@ -291,6 +456,14 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                 branch.closed = true;
                 break;
             }
+
+            case 'scene.declare':
+                declareScene(event);
+                break;
+
+            case 'scene.text':
+                sceneText(event);
+                break;
 
             case 'current.cancel':
                 phase = 'cancelled';
@@ -443,6 +616,8 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
         },
         /** Set when an event arrived too far ahead to hold: the number to ask the provider to resume from. */
         get resumeFrom() { return resumeFrom; },
+        /** The scenes the admission refused, in order: { sceneId, message } with the Worker's sentence. */
+        get refusedScenes() { return refusedScenes.map(item => Object.freeze({ ...item })); },
 
         /** A frozen copy of everything the stream holds. */
         snapshot() {
@@ -465,6 +640,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                     ended: segment.ended,
                     visual: segment.visual,
                     ...(segment.literal ? { literal: true } : {}),
+                    ...(segment.beat ? { beat: segment.beat } : {}),
                     state: { ...segment.state },
                     evidence: segment.evidence.map(item => ({ ...item })),
                     dives: segment.dives.map(item => ({ ...item, anchor: { ...item.anchor } })),
@@ -488,6 +664,25 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
         toCurrent() {
             const ended = segments.filter(segment => segment.ended);
             if (ended.length === 0) throw new LiveProtocolError('EMPTY_CURRENT', '$.segments', 'No segment has ended');
+            if (kind === 'beats') {
+                // The `rise.current.v2` of the beats that have ended, with the scenes they start, in the order declared.
+                const beats = playable(beatItems(ended), isRefused);
+                const started = new Set(beats.map(beat => beat.scene).filter(Boolean));
+                const used = usableScenes().filter(scene => started.has(scene.id));
+                const current = {
+                    schema: RISE_CURRENT_SCHEMA_V2,
+                    id: currentId,
+                    title,
+                    ...(theme === null ? {} : { theme }),
+                    ...(look === null ? {} : { look }),
+                    origin: { ...origin },
+                    ...(used.length ? { scenes: used.map(scene => ({ ...scene, ...(scene.params ? { params: { ...scene.params } } : {}) })) } : {}),
+                    beats
+                };
+                // Returned as a model would write it, so it is the very object a host's rise_present would take.
+                validateRiseCurrent(current);
+                return deepFreeze(current);
+            }
             return validateRiseCurrent({
                 schema: RISE_CURRENT_SCHEMA,
                 id: currentId,

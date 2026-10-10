@@ -25,6 +25,7 @@ import {
     hasLiteralForbidden,
     hasReservedMarker
 } from '../core/rise-current.js';
+import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES } from '../core/beats.js';
 
 export const RISE_CURRENT_EVENTS_SCHEMA = 'rise.current-events.v1';
 
@@ -44,7 +45,10 @@ export const EVENT_LIMITS = Object.freeze({
     errorCode: 80,
     errorMessage: 500,
     /** No utterance in a Current is longer than an hour. */
-    speechMs: 3_600_000
+    speechMs: 3_600_000,
+    /** One piece of a scene's source: six bytes a character at worst in JSON, so a piece always fits `wireBytes`. */
+    sceneChunk: 2_000,
+    sceneParams: 16
 });
 
 export const EVENT_TYPES = Object.freeze([
@@ -63,7 +67,9 @@ export const EVENT_TYPES = Object.freeze([
     'branch.close',
     'current.cancel',
     'current.complete',
-    'error'
+    'error',
+    'scene.declare',
+    'scene.text'
 ]);
 
 /**
@@ -255,6 +261,87 @@ function chunk(value, path, literal = false) {
     return clean;
 }
 
+const BEAT_FIELDS = ['show', 'hold', 'scene', 'cue', 'transition', 'place', 'size', 'type', 'emphasis', 'sound'];
+const CUE = new RegExp(BEAT_CUE_PATTERN, 'u');
+const ENGINE = /^[a-z0-9-]{1,40}$/u;
+
+/** A whole number from 0 to `max`, or EVENT_BEAT. */
+function beatMs(value, max, path) {
+    if (!Number.isInteger(value) || value < 0 || value > max) fail('EVENT_BEAT', path, `Expected a whole number of milliseconds up to ${max}`);
+    return value;
+}
+
+function oneOfBeat(value, list, path) {
+    if (!list.includes(value)) fail('EVENT_BEAT', path, `Expected one of ${list.join(', ')}`);
+    return value;
+}
+
+/**
+ * One beat of a rise.current.v2, without what it says (that is the segment's text). Shapes and closed choices
+ * here; whether a scene was declared, whether the running one takes the cue and every other v2 rule is the
+ * reducer's, which holds each beat to v2's own validator (stream.js).
+ */
+function beatBody(value, path) {
+    const source = object(value, path);
+    only(source, BEAT_FIELDS, path);
+    const clean = {};
+    if (given(source, 'show')) {
+        const show = text(source.show, BEAT_LIMITS.text, `${path}.show`, 'EVENT_BEAT');
+        if (hasReservedMarker(show)) fail('EVENT_RESERVED_TEXT', `${path}.show`, 'Text contains a reserved playback marker');
+        clean.show = show;
+    }
+    if (given(source, 'hold')) {
+        const hold = object(source.hold, `${path}.hold`);
+        only(hold, ['ms', 'maxMs'], `${path}.hold`);
+        clean.hold = { ms: beatMs(hold.ms, BEAT_LIMITS.holdMaxMs, `${path}.hold.ms`) };
+        if (given(hold, 'maxMs')) clean.hold.maxMs = beatMs(hold.maxMs, BEAT_LIMITS.holdMaxMs, `${path}.hold.maxMs`);
+    }
+    if (given(source, 'scene')) {
+        if (typeof source.scene !== 'string') fail('EVENT_BEAT', `${path}.scene`, 'Expected a scene id');
+        clean.scene = id(source.scene, `${path}.scene`);
+    }
+    if (given(source, 'cue')) {
+        if (typeof source.cue !== 'string' || !CUE.test(source.cue) || source.cue.length > BEAT_LIMITS.cue) {
+            fail('EVENT_BEAT', `${path}.cue`, `A cue is a name of at most ${BEAT_LIMITS.cue} letters, digits, _, -, :, . or =`);
+        }
+        clean.cue = source.cue;
+    }
+    if (given(source, 'transition')) {
+        const transition = object(source.transition, `${path}.transition`);
+        only(transition, ['ms'], `${path}.transition`);
+        clean.transition = { ms: beatMs(transition.ms, BEAT_LIMITS.transitionMaxMs, `${path}.transition.ms`) };
+    }
+    if (given(source, 'place')) clean.place = oneOfBeat(source.place, BEAT_PLACES, `${path}.place`);
+    if (given(source, 'size')) clean.size = oneOfBeat(source.size, BEAT_SIZES, `${path}.size`);
+    if (given(source, 'type')) clean.type = oneOfBeat(source.type, BEAT_TYPES, `${path}.type`);
+    if (given(source, 'emphasis')) {
+        const words = source.emphasis;
+        if (!Array.isArray(words) || words.length > BEAT_LIMITS.emphasis
+            || words.some(word => typeof word !== 'string' || !word.trim() || word.length > BEAT_LIMITS.emphasisLength)) {
+            fail('EVENT_BEAT', `${path}.emphasis`, `At most ${BEAT_LIMITS.emphasis} words of at most ${BEAT_LIMITS.emphasisLength} characters`);
+        }
+        clean.emphasis = [...words];
+    }
+    if (given(source, 'sound')) clean.sound = text(source.sound, RISE_CURRENT_LIMITS.id, `${path}.sound`, 'EVENT_BEAT');
+    return clean;
+}
+
+/** A native scene's parameters: a flat record of numbers, words and switches. Its engine's manifest is the reducer's to apply. */
+function sceneParams(value, path) {
+    const source = object(value, path);
+    const names = Object.keys(source);
+    if (names.length > EVENT_LIMITS.sceneParams) fail('EVENT_SCENE', path, `At most ${EVENT_LIMITS.sceneParams} parameters`);
+    const clean = {};
+    for (const name of names) {
+        const item = source[name];
+        const ok = (typeof item === 'number' && Number.isFinite(item)) || typeof item === 'boolean'
+            || (typeof item === 'string' && item.length <= 80);
+        if (!ok || name.length > 40) fail('EVENT_SCENE', `${path}.${name.slice(0, 40)}`, 'A parameter is a number, a word or true or false');
+        clean[name] = item;
+    }
+    return clean;
+}
+
 /** What each type carries beyond the envelope, and how each field is checked. */
 const BODIES = {
     'current.open': {
@@ -273,13 +360,50 @@ const BODIES = {
         }
     },
     'segment.begin': {
-        fields: ['segmentId', 'visual', 'literal'],
+        fields: ['segmentId', 'visual', 'literal', 'beat'],
         read: (e, p) => {
             const clean = { segmentId: id(e.segmentId, `${p}.segmentId`), ...literalFlag(e, p) };
             if (Object.hasOwn(e, 'visual') && e.visual !== undefined) {
                 if (!RISE_CURRENT_VISUALS.includes(e.visual)) fail('EVENT_VISUAL', `${p}.visual`, 'Unknown visual selection');
                 clean.visual = e.visual;
             }
+            if (given(e, 'beat')) {
+                // A beat's imagery is its scene, and a beat has no literal form.
+                if (clean.visual !== undefined || Object.hasOwn(e, 'literal')) fail('EVENT_BEAT', `${p}.beat`, 'A beat carries neither a visual nor a literal flag');
+                clean.beat = beatBody(e.beat, `${p}.beat`);
+            }
+            return clean;
+        }
+    },
+    'scene.declare': {
+        fields: ['sceneId', 'engine', 'params', 'form'],
+        read: (e, p) => {
+            const clean = { sceneId: id(e.sceneId, `${p}.sceneId`) };
+            if (given(e, 'form') === given(e, 'engine')) fail('EVENT_SCENE', p, 'A scene is a native engine, or a form whose source follows, one of them');
+            if (given(e, 'form')) {
+                if (!['code', 'svg'].includes(e.form)) fail('EVENT_SCENE', `${p}.form`, 'A scene’s form is code or svg');
+                if (Object.hasOwn(e, 'params')) fail('EVENT_SCENE', `${p}.params`, 'Only a native engine takes params');
+                clean.form = e.form;
+                return clean;
+            }
+            if (typeof e.engine !== 'string' || !ENGINE.test(e.engine)) fail('EVENT_SCENE', `${p}.engine`, 'Expected an engine’s name');
+            clean.engine = e.engine;
+            if (given(e, 'params')) clean.params = sceneParams(e.params, `${p}.params`);
+            return clean;
+        }
+    },
+    'scene.text': {
+        fields: ['sceneId', 'offset', 'text'],
+        read: (e, p) => {
+            const clean = {
+                sceneId: id(e.sceneId, `${p}.sceneId`),
+                offset: count(e.offset, Math.max(BEAT_LIMITS.code, BEAT_LIMITS.svg), `${p}.offset`, 'EVENT_OFFSET')
+            };
+            // Source, not words: whitespace and markers are its own.
+            if (typeof e.text !== 'string' || !e.text || e.text.length > EVENT_LIMITS.sceneChunk) {
+                fail('EVENT_SCENE', `${p}.text`, `Expected source of 1 to ${EVENT_LIMITS.sceneChunk} characters`);
+            }
+            clean.text = e.text;
             return clean;
         }
     },
@@ -375,16 +499,24 @@ function deepFreeze(value) {
 
 const NOT_PLAIN = Object.freeze([]);
 const DETACH_DEPTH = 8;
+/** More items than any list an event names (a beat's emphasis is the one): enough to be refused for its length. */
+const DETACH_ITEMS = 16;
 
 /**
  * The input's own enumerable data, each property read once, so that what is checked is what
- * is returned even when the input has getters or is a proxy. Anything that is not a plain
- * object becomes a value every check refuses.
+ * is returned even when the input has getters or is a proxy. A list is copied item by item, at
+ * most DETACH_ITEMS of them. Anything else that is not a plain object becomes a value every
+ * check refuses.
  */
 function detach(value, depth = 0) {
     if (value === null || typeof value !== 'object') return value;
     const proto = Object.getPrototypeOf(value);
-    if (Array.isArray(value) || (proto !== Object.prototype && proto !== null)) return NOT_PLAIN;
+    if (Array.isArray(value)) {
+        if (depth >= DETACH_DEPTH) fail('EVENT_OBJECT', '$', 'Nested too deeply');
+        const length = Math.min(Number(value.length) || 0, DETACH_ITEMS);
+        return Array.from({ length }, (_, index) => detach(value[index], depth + 1));
+    }
+    if (proto !== Object.prototype && proto !== null) return NOT_PLAIN;
     if (depth >= DETACH_DEPTH) fail('EVENT_OBJECT', '$', 'Nested too deeply');
     const copy = {};
     for (const key of Object.keys(value)) {
