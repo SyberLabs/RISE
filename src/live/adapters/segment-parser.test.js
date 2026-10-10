@@ -13,6 +13,7 @@ import { createEventWriter } from '../adapter.js';
 import { createCurrentStream, STREAM_LIMITS } from '../stream.js';
 import { createSegmentParser, neutralise, PARSER_LIMITS } from './segment-parser.js';
 import { BLACK_HOLES_BEATS_CURRENT, BLACK_HOLES_BEATS_TEXT } from '../fixtures/black-holes-beats.js';
+import { sceneRefusal } from '../../core/scene-admission.js';
 
 /** Feed deltas through a parser into a real reducer; return what the reducer holds. */
 function run(deltas, { seed } = {}) {
@@ -266,7 +267,7 @@ describe('whatever arrives', () => {
 /** Feed deltas through a parser into a real reducer, and keep the reducer: a beat stream is read by what it seals to. */
 function beats(deltas, { finish = true } = {}) {
     const writer = createEventWriter('beats-1');
-    const stream = createCurrentStream();
+    const stream = createCurrentStream({ admitScene: sceneRefusal });
     stream.apply(writer.next('current.open', { title: 'Beats', origin: { kind: 'model', name: 'Test', provider: 'test' } }));
     const sent = [];
     const parser = createSegmentParser((type, body) => {

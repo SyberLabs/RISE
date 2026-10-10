@@ -372,6 +372,9 @@ export class Router {
      */
     handleKeydown(e) {
         if (e.key !== 'Escape' || (this.currentView === 'home' && !this.transitioning)) return;
+        // A dialog that answered the press (a sheet closing on Escape) owns it: closing it must not also
+        // abandon a reading still fading in, or leave the room.
+        if (e.defaultPrevented) return;
 
         // Mid-transition Escape has no rightful owner: the incoming
         // view's instance isn't mounted yet, so falling through would

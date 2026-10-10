@@ -25,7 +25,9 @@
  * with the scenes those beats start. Every beat is held to v2's own validator
  * over the beats before it as it begins and as it ends, and a generated scene or
  * a figure is admitted here, when a beat first starts it, by the functions the
- * Worker's door runs. It lowers to the `rise.current.v2` of its ended beats.
+ * Worker's door runs (`admitScene`, src/core/scene-admission.js sceneRefusal,
+ * handed in by the adapters that read a model's text so the parser it needs is
+ * loaded only with them). It lowers to the `rise.current.v2` of its ended beats.
  */
 
 import {
@@ -40,8 +42,6 @@ import {
 } from '../core/rise-current.js';
 import { BEAT_LIMITS, validateBeats, validateScenes } from '../core/beats.js';
 import { sceneCodeBytes } from '../core/experience-program.js';
-import { admitSvg } from '../core/svg-admission.js';
-import { admitSceneCode, describeDiagnostic } from '../core/scene-admission.js';
 import { LiveProtocolError, validateEvent } from './protocol.js';
 
 export const STREAM_LIMITS = Object.freeze({
@@ -112,7 +112,13 @@ function deepFreeze(value) {
 /** Conditions of the transport, not of the sender: they do not count against the refusal budget. */
 const NOT_HOSTILE = new Set(['SEQUENCE_GAP']);
 
-export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.refusals } = {}) {
+/**
+ * @param {object} [options]
+ * @param {number} [options.refusals] refusals a Current tolerates before it fails
+ * @param {((scene: {id: string, code?: string, svg?: string}) => string|null)|null} [options.admitScene] the Worker's
+ *   admission of a generated scene or a figure (null when admitted, else its sentence); without it, a stream admits none
+ */
+export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.refusals, admitScene = null } = {}) {
     let phase = 'idle';
     let currentId = null;
     let title = null;
@@ -179,8 +185,9 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
             if (!(caught instanceof RiseCurrentError)) throw caught;
             return { message: `Scene "${scene.id}" was refused: ${caught.message}` };
         }
-        const verdict = scene.form === 'code' ? admitSceneCode(scene.source) : admitSvg(scene.source);
-        return verdict.ok ? { clean: shaped } : { message: `Scene "${scene.id}" was refused: ${describeDiagnostic(verdict.diagnostics[0])}` };
+        // Closed when nothing can admit it: a scene is never run on trust.
+        const message = admitScene ? admitScene(shaped) : `Scene "${scene.id}" was refused: nothing here can admit a generated scene or a figure.`;
+        return message === null ? { clean: shaped } : { message };
     }
 
     function beginBeat(event) {

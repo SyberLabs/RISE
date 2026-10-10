@@ -90,7 +90,7 @@ export function describeAdapterConformance(name, scenario, { carries = {}, resum
         (beats ? it : it.skip)('streams beats: a hold and a scene arrive while the answer is still being written, and it seals to the beats meant', async () => {
             const { adapter, clock, request } = scenario('beats');
             const connection = await adapter.open(request);
-            const stream = createCurrentStream();
+            const stream = createCurrentStream({ admitScene: adapter.admitScene });
             const seen = [];
             const reading = consume(connection, stream, seen);
             await clock.runAll();

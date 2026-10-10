@@ -34,6 +34,7 @@ import {
     validateOpenRequest
 } from '../adapter.js';
 import { createSegmentParser } from './segment-parser.js';
+import { sceneRefusal } from '../../core/scene-admission.js';
 
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
 
@@ -51,6 +52,8 @@ export function createTextStreamAdapter({ id, provider, connect, capacity = 64 }
 
     return {
         id,
+        // A model's beats may carry a generated scene or a figure: the reducer admits each by the Worker's own rules.
+        admitScene: sceneRefusal,
         capabilities: Object.freeze({
             // RISE's voice speaks the text and is the clock (the RISE Live design, §2); a provider never does here.
             speaks: 'host',

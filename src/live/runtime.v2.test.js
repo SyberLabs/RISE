@@ -13,7 +13,7 @@ import { createMcpAppAdapter } from './adapters/mcp-app.js';
 import { createLiveRuntime, RUNTIME_LIMITS } from './runtime.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
 import { ATTRACTOR_VISUAL_MANIFEST } from '../core/visual-control-contract.js';
-import { createMockBeatsAdapter } from './adapters/mock.js';
+import { createMockBeatsAdapter } from './adapters/mock-beats.js';
 import { createTextStreamAdapter } from './adapters/text-stream.js';
 
 const V2 = {

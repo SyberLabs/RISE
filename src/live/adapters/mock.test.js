@@ -12,7 +12,8 @@ import { AdapterError, assertAdapter, assertConnection } from '../adapter.js';
 import { createVirtualClock } from '../clock.js';
 import { BLACK_HOLES, HORIZON_DIVE } from '../fixtures/black-holes.js';
 import { createCurrentStream } from '../stream.js';
-import { createMockAdapter, createMockBeatsAdapter } from './mock.js';
+import { createMockAdapter } from './mock.js';
+import { createMockBeatsAdapter } from './mock-beats.js';
 import { BLACK_HOLES_BEATS_CURRENT } from '../fixtures/black-holes-beats.js';
 
 const ASK = { intent: 'answer', prompt: 'Explain black holes with RISE.' };
@@ -368,8 +369,9 @@ describe('a Dive', () => {
 describe('the demo that writes in beats (the venue’s)', () => {
     async function stream(request = ASK) {
         const clock = createVirtualClock();
-        const connection = await createMockBeatsAdapter({ clock }).open(request);
-        const reducer = createCurrentStream();
+        const adapter = createMockBeatsAdapter({ clock });
+        const connection = await adapter.open(request);
+        const reducer = createCurrentStream({ admitScene: adapter.admitScene });
         const arrivals = [];
         const reading = (async () => {
             for await (const event of connection.events) {

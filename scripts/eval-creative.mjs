@@ -33,6 +33,7 @@ import { admitSvg } from '../src/core/svg-admission.js';
 import { createEventWriter } from '../src/live/adapter.js';
 import { createCurrentStream } from '../src/live/stream.js';
 import { createSegmentParser } from '../src/live/adapters/segment-parser.js';
+import { sceneRefusal } from '../src/core/scene-admission.js';
 
 const ROOT = resolve(import.meta.dirname, '..');
 export const CORPUS_DIR = join(ROOT, 'docs', 'evals', 'creative-control');
@@ -49,7 +50,7 @@ const CUTS = Object.freeze([[1], [7, 19, 3, 31, 11, 23], [2, 5]]);
 /** The events the parser sends for `text` cut into pieces of `sizes`, in turn, sealed into a reducer as a Current. */
 function readStreamed(text, sizes) {
   const writer = createEventWriter('streamed');
-  const stream = createCurrentStream();
+  const stream = createCurrentStream({ admitScene: sceneRefusal });
   const sent = [];
   const apply = (type, body) => {
     const event = writer.next(type, body);

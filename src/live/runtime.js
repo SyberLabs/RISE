@@ -429,7 +429,7 @@ export function createLiveRuntime({
      */
     async function openRun(request, role) {
         const run = {
-            role, request, stream: createCurrentStream(), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
+            role, request, stream: createCurrentStream({ admitScene: adapter.admitScene ?? null }), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null,
             // Passages the voice was given and has not finished or failed; the run ends when none are left.
             owed: new Set(), completedAt: null, tail: null, ended: false,

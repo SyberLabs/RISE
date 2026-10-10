@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { compileRiseCurrent } from '../core/rise-current.js';
 import { RISE_CURRENT_EVENTS_SCHEMA } from './protocol.js';
 import { STREAM_LIMITS, createCurrentStream } from './stream.js';
+import { sceneRefusal } from '../core/scene-admission.js';
 
 const ID = 'answer-1';
 
@@ -562,6 +563,13 @@ describe('invariants under random play', () => {
 
 describe('a beat stream (beats streamed: each segment one beat of a rise.current.v2)', () => {
     const CODE = 'export default function scene(rise) {\n  return { frame() { rise.lib.clear(); }, cue() {} };\n}\n';
+    /** A stream that admits scenes as the text-stream adapters' does. */
+    const openedBeats = () => {
+        const stream = createCurrentStream({ admitScene: sceneRefusal });
+        const send = feed(stream);
+        open(send);
+        return { stream, send };
+    };
     const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>';
 
     /** Beat `n`, whole: its begin, its words (if any) and its end. Returns the end's result. */
@@ -581,7 +589,7 @@ describe('a beat stream (beats streamed: each segment one beat of a rise.current
     };
 
     it('lowers the beats that have ended to a valid rise.current.v2, a prefix of every later one', () => {
-        const { stream, send } = opened();
+        const { stream, send } = openedBeats();
         expect(beat(send, 0, {}, 'Light carries every colour.').status).toBe('applied');
         expect(stream.toCurrent()).toMatchObject({ schema: 'rise.current.v2', beats: [{ say: 'Light carries every colour.' }] });
         send('scene.declare', { sceneId: 'field', engine: 'attractor', params: { palette: 'jade' } });
@@ -608,30 +616,30 @@ describe('a beat stream (beats streamed: each segment one beat of a rise.current
     });
 
     it('carries more beats than a passage stream has passages', () => {
-        const { stream, send } = opened();
+        const { stream, send } = openedBeats();
         for (let n = 0; n < 20; n += 1) expect(beat(send, n, n % 2 ? { hold: { ms: 300 } } : {}, n % 2 ? '' : `Beat ${n}.`).status, `beat ${n}`).toBe('applied');
         expect(stream.toCurrent().beats).toHaveLength(20);
     });
 
     it('is one kind of stream or the other: passages and beats do not mix', () => {
-        const passages = opened();
+        const passages = openedBeats();
         segment(passages.send, 's1', 'A passage.');
         expect(passages.send('segment.begin', { segmentId: 'beat-1', beat: {} })).toMatchObject({ status: 'refused', code: 'BEAT_MIXED' });
         expect(passages.send('scene.declare', { sceneId: 'f', engine: 'attractor' })).toMatchObject({ status: 'refused', code: 'BEAT_MIXED' });
-        const beats = opened();
+        const beats = openedBeats();
         beat(beats.send, 0, {}, 'A beat.');
         expect(beats.send('segment.begin', { segmentId: 's2' })).toMatchObject({ status: 'refused', code: 'BEAT_MIXED' });
     });
 
     it('names a beat by its place, the id the sealed Current gives it', () => {
-        const { send } = opened();
+        const { send } = openedBeats();
         expect(send('segment.begin', { segmentId: 'beat-1', beat: {} })).toMatchObject({ status: 'refused', code: 'BEAT_ID' });
         expect(send('segment.begin', { segmentId: 'intro', beat: {} })).toMatchObject({ status: 'refused', code: 'BEAT_ID' });
         expect(beat(send, 0, {}, 'First.').status).toBe('applied');
     });
 
     it('holds each beat to rise.current.v2’s own rules, with its codes', () => {
-        const { stream, send } = opened();
+        const { stream, send } = openedBeats();
         expect(send('segment.begin', { segmentId: 'beat-0', beat: { scene: 'nowhere' } })).toMatchObject({ code: 'BEAT_SCENE' });
         expect(send('segment.begin', { segmentId: 'beat-0', beat: { cue: 'bright' } })).toMatchObject({ code: 'BEAT_CUE' });
         expect(send('segment.begin', { segmentId: 'beat-0', beat: { hold: { ms: 50 } } })).toMatchObject({ code: 'BEAT_HOLD' });
@@ -646,7 +654,7 @@ describe('a beat stream (beats streamed: each segment one beat of a rise.current
     });
 
     it('refuses a Dive on a beat: a rise.current.v2 has nowhere to keep one', () => {
-        const { send } = opened();
+        const { send } = openedBeats();
         send('segment.begin', { segmentId: 'beat-0', beat: {} });
         send('segment.text', { segmentId: 'beat-0', offset: 0, text: 'A horizon.' });
         expect(send('dive.attach', { segmentId: 'beat-0', dive: { id: 'd', text: 'More.', anchor: { fromCharacter: 0, toCharacter: 1, quoteStart: 'A', quoteEnd: 'A' } } }))
@@ -654,7 +662,7 @@ describe('a beat stream (beats streamed: each segment one beat of a rise.current
     });
 
     it('declares scenes inline, each once, at most eight, natives against their manifest', () => {
-        const { send } = opened();
+        const { send } = openedBeats();
         expect(send('scene.declare', { sceneId: 'f', engine: 'teapot' })).toMatchObject({ code: 'SCENE_ENGINE' });
         expect(send('scene.declare', { sceneId: 'f', engine: 'attractor', params: { palette: 'tartan' } })).toMatchObject({ status: 'refused' });
         expect(send('scene.declare', { sceneId: 'f', engine: 'attractor' }).status).toBe('applied');
@@ -664,7 +672,7 @@ describe('a beat stream (beats streamed: each segment one beat of a rise.current
     });
 
     it('takes a scene’s source in order, within its budget, until a beat starts it', () => {
-        const { send } = opened();
+        const { send } = openedBeats();
         expect(send('scene.text', { sceneId: 'disk', offset: 0, text: 'x' })).toMatchObject({ code: 'UNKNOWN_SCENE' });
         send('scene.declare', { sceneId: 'field', engine: 'attractor' });
         expect(send('scene.text', { sceneId: 'field', offset: 0, text: 'x' })).toMatchObject({ code: 'UNKNOWN_SCENE' });
@@ -680,7 +688,7 @@ describe('a beat stream (beats streamed: each segment one beat of a rise.current
     });
 
     it('admits a code scene and a figure when a beat starts them, by the Worker’s own admission, and seals their source', () => {
-        const { stream, send } = opened();
+        const { stream, send } = openedBeats();
         source(send, 'disk', 'code', CODE);
         source(send, 'fig', 'svg', SVG);
         expect(beat(send, 0, { scene: 'disk', cue: 'spin' }, 'A disk of light.').status).toBe('applied');
@@ -691,7 +699,7 @@ describe('a beat stream (beats streamed: each segment one beat of a rise.current
     });
 
     it('refuses a scene the admission refuses, in the Worker’s words, and the reading goes on without it', () => {
-        const { stream, send } = opened();
+        const { stream, send } = openedBeats();
         send('scene.declare', { sceneId: 'field', engine: 'attractor' });
         beat(send, 0, { scene: 'field' }, 'A field first.');
         source(send, 'thief', 'code', 'export default function scene(rise) {\n  fetch("/x");\n  return { frame() {} };\n}\n');
@@ -719,8 +727,18 @@ describe('a beat stream (beats streamed: each segment one beat of a rise.current
         expect(stream.refusedScenes).toHaveLength(2);
     });
 
+    it('admits no generated scene and no figure when it is handed no admission: closed, never on trust', () => {
+        const stream = createCurrentStream();
+        const send = feed(stream);
+        open(send);
+        source(send, 'disk', 'code', CODE);
+        expect(beat(send, 0, { scene: 'disk' }, 'A disk.').status).toBe('applied');
+        expect(stream.refusedScenes).toEqual([{ sceneId: 'disk', message: 'Scene "disk" was refused: nothing here can admit a generated scene or a figure.' }]);
+        expect(stream.toCurrent()).not.toHaveProperty('scenes');
+    });
+
     it('completes as a Current the Worker’s rise_present accepts', async () => {
-        const { stream, send } = opened();
+        const { stream, send } = openedBeats();
         send('scene.declare', { sceneId: 'field', engine: 'attractor' });
         source(send, 'disk', 'code', CODE);
         source(send, 'fig', 'svg', SVG);

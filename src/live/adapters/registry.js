@@ -21,7 +21,7 @@ export const LIVE_PROVIDERS = Object.freeze([
         label: 'Demo (no key)',
         credential: 'none',
         // The answer written in beats, through the parser every real provider's text goes through.
-        adapter: async ({ clock }) => (await import('./mock.js')).createMockBeatsAdapter({ clock })
+        adapter: async ({ clock }) => (await import('./mock-beats.js')).createMockBeatsAdapter({ clock })
     }),
     Object.freeze({
         id: 'openrouter',

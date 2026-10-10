@@ -12,10 +12,11 @@ import { createEventWriter } from '../adapter.js';
 import { createCurrentStream } from '../stream.js';
 import { BEAT_EXAMPLES, promptFor, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
 import { createSegmentParser } from './segment-parser.js';
+import { sceneRefusal } from '../../core/scene-admission.js';
 
 function seal(text) {
     const writer = createEventWriter('example');
-    const stream = createCurrentStream();
+    const stream = createCurrentStream({ admitScene: sceneRefusal });
     stream.apply(writer.next('current.open', { title: 'Example', origin: { kind: 'model', name: 'Example', provider: 'test' } }));
     const parser = createSegmentParser((type, body) => stream.apply(writer.next(type, body)));
     parser.push(text);

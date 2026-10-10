@@ -45,7 +45,7 @@
     {
       "kind": "test",
       "ref": "e2e/live.spec.js",
-      "note": "Branch live-beats-streamed, local production build, headless Chromium, the venue's demo in beats, paced voice: first words at 1,476 ms, the 1,800 ms hold at 9,500 ms and the figure put up at 11,378 ms, all before the answer was complete at 14,837 ms (ms from Ask). With live.spec and live-mcp -g 'venue|field|self-contained': 16 passed, 1 flaky (the existing venue test failed once at Leave, then passed, and passed 4 of 4 repeated).",
+      "note": "Branch live-beats-streamed, local production build, headless Chromium, the venue's demo in beats, paced voice: first words at 1,474 ms, the 1,800 ms hold at 9,483 ms and the figure put up at 11,351 ms, all before the answer was complete at 14,719 ms (ms from Ask; the same within 40 ms over six runs). With live.spec and live-mcp -g 'venue|field|self-contained': 16 passed, twice in a row, no retries. An earlier failure of the existing venue test at Leave was the router taking the Settings sheet's Escape as a cancel of a reading still fading in; fixed in router.js with its unit test.",
       "date": "2026-10-10"
     },
     {
@@ -59,10 +59,14 @@
     {
       "date": "2026-10-10T07:00:00.000Z",
       "summary": "Built on branch live-beats-streamed (Claude, for Fable): segment.begin's beat, scene.declare and scene.text; the reducer seals to rise.current.v2 and admits scenes with the Worker's admission, moved to src/core/scene-admission.js so the live layer reaches it through the core; the line format and instructions in beats; the venue's demo written in beats; the runtime compiles a growing Current ready for scenes that come later and notes 'composed' and 'scene.refused'. No real provider has written beats yet."
+    },
+    {
+      "date": "2026-10-10T09:30:00.000Z",
+      "summary": "The scene admission (and acorn) moved out of the reducer's static imports: the text-stream adapters hand it in, so the live runtime chunk the card loads is 11.9 KB brotli rather than 41.9 KB; the venue's demo is its own module (mock-beats.js). The router no longer takes an Escape a dialog has answered as a cancel. Browser subset green twice."
     }
   ],
-  "updatedAt": "2026-10-10T07:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-10T09:30:00.000Z",
+  "revision": 2,
   "summary": "Design §8 stage 3: a streamed Current is a rise.current.v2 written beat by beat, so holds and scenes arrive in time, not only at the end.",
   "blocker": null
 }

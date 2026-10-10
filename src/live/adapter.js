@@ -8,9 +8,12 @@
  * adapter too, by `record`, so there is one source of order and no two writers
  * can collide on a sequence number. Provider peculiarities stop here.
  *
- *   adapter    { id, capabilities, open(request, { signal }) -> Promise<connection> }
+ *   adapter    { id, capabilities, open(request, { signal }) -> Promise<connection>, admitScene? }
  *              `signal` is aborted if the reader stops before the open resolves;
- *              an adapter should then ask its provider nothing more
+ *              an adapter should then ask its provider nothing more. `admitScene`,
+ *              for an adapter whose Currents may carry a generated scene or a figure
+ *              in beats, is the Worker's admission the reducer holds them to
+ *              (stream.js); without it a stream admits none
  *   connection { events: AsyncIterable<raw event>,
  *                record(type, body),      a host event, numbered in order
  *                interrupt(info),         stop generating what remains
