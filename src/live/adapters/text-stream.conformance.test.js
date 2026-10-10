@@ -61,6 +61,20 @@ describe('text-stream provider transport lifecycle', () => {
         sink.error({ code: 'PROVIDER_FAILED', message: 'Failed.', recoverable: false });
         expect(isClosed()).toBe(true);
     });
+
+    it('closes the transport when the answer ended before connect returned it', async () => {
+        let closed = false;
+        const adapter = createTextStreamAdapter({
+            id: 'early',
+            provider: 'test',
+            connect: async (_request, sink) => {
+                sink.delta('@say The horizon is not a surface.\n@then end\n');
+                return { cancel() {}, close() { closed = true; } };
+            }
+        });
+        await adapter.open(ASK);
+        expect(closed).toBe(true);
+    });
 });
 
 describe('an answer to an interjection (stage 4.5)', () => {

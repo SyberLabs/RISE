@@ -155,6 +155,8 @@ export function createTextStreamAdapter({ id, provider, origin = () => ({ name: 
                     ? error
                     : new AdapterError('CONNECT_FAILED', String(error?.message ?? error).slice(0, 300));
             }
+            // The provider may have finished while connecting, before there was a transport to close.
+            if (finished) { try { transport?.close?.(); } catch { /* it is finished here either way */ } }
 
             return {
                 currentId,
