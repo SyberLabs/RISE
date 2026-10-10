@@ -3,7 +3,7 @@
   "title": "RISE Live: the venue slice",
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
-  "status": "in_progress",
+  "status": "in_review",
   "delivery": "branch",
   "owner": "Claude coordinator",
   "priority": "now",
@@ -41,16 +41,26 @@
       "ref": "e2e/live.spec.js",
       "note": "Branch live-venue, local production build, headless Chromium, mock provider, paced voice: 'the venue' asks, reads under the whole instrument, asks full screen on F, asks again in the same room with the theme kept, and leaves; with live.spec, live-control, live-voice, live-gemini, live-openai (44 passed), live-mcp field|self-contained (13 passed), visual-catalog, live-red-team, live-eval (14 passed).",
       "date": "2026-10-10"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/613",
+      "note": "The venue page: open, auto-merge on the required CI check. Not merged, not deployed, not accepted.",
+      "date": "2026-10-10"
     }
   ],
   "activity": [
     {
       "date": "2026-10-10T05:38:17.000Z",
       "summary": "Venue page built on branch live-venue (Claude, Fable): /live in the app is the venue on the mock and the provider registry; the runtime's test page moves to ?host=prompt. OpenRouter is listed as soon until its adapter lands in the registry. OpenAI is not offered in the venue: its session opens through this site's Worker route, so its key would leave the browser for RISE. No real provider has answered the page."
+    },
+    {
+      "date": "2026-10-10T05:58:00.000Z",
+      "summary": "Venue page opened as #613 (branch live-venue); the OpenRouter adapter half is not yet in."
     }
   ],
-  "updatedAt": "2026-10-10T05:38:17.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-10T05:58:00.000Z",
+  "revision": 2,
   "summary": "Design §8 stage 2: the first time RISE Live can be felt. The venue page (this branch) and the OpenRouter text-stream adapter (a parallel branch) are its two halves.",
   "blocker": null
 }
