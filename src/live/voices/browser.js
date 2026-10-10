@@ -86,7 +86,15 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     const { synth, Utterance } = speech ?? {};
     if (!synth || typeof Utterance !== 'function') throw new TypeError('A browser voice needs speechSynthesis and its utterance');
     synth.cancel();
-    const inSentences = GOOGLE.test(voice?.name ?? '');
+    let inSentences = GOOGLE.test(voice?.name ?? '');
+    /** A voice the reader chose, kept for the next utterance; undefined while there is none to take up. */
+    let nextVoice;
+    const takeVoice = () => {
+        if (nextVoice === undefined) return;
+        voice = nextVoice;
+        nextVoice = undefined;
+        inSentences = GOOGLE.test(voice?.name ?? '');
+    };
 
     let report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {} };
     /** The rate it last reported speaking at: the one it was made with, or the last that landed. */
@@ -194,14 +202,21 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         const item = queue.shift();
         if (!item) return;
         current = item;
+        // A chosen voice begins with a passage: never part way through one, nor in a passage taken up again after a hold.
+        takeVoice();
         speakFrom(item, 0);
     }
 
     return {
         id: 'browser',
-        capabilities: Object.freeze({ audible: true, wordMarks: voice?.localService === true, inSentences }),
-        /** The installed voice it speaks with, for the trace: null names the browser's own default. */
-        chosen: Object.freeze({ name: voice?.name ?? null, local: voice ? voice.localService === true : null }),
+        /** Of the voice it speaks with now: a voice picked (setVoice) counts from the passage it begins. */
+        get capabilities() {
+            return Object.freeze({ audible: true, wordMarks: voice?.localService === true, inSentences });
+        },
+        /** The installed voice it speaks with now, for the trace: null names the browser's own default. */
+        get chosen() {
+            return Object.freeze({ name: voice?.name ?? null, local: voice ? voice.localService === true : null });
+        },
 
         attach(callbacks) {
             report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {}, ...callbacks };
@@ -281,6 +296,18 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             return true;
         },
 
+        /**
+         * Speak with `next` (an installed voice; null for the browser's default) from the next passage begun; the
+         * passage under way finishes in the voice it began in, never cancelled (the same law as setRate).
+         * @returns {boolean} whether it holds at once, because nothing is under way
+         */
+        setVoice(next) {
+            nextVoice = next ?? null;
+            if (current) return false;
+            takeVoice();
+            return true;
+        },
+
         /** The utterance it has begun and not yet ended, or null. */
         speakingId() {
             return current?.started ? current.id : null;
@@ -310,31 +337,68 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     };
 }
 
-/**
- * The voice to speak a page in `lang` with, from `getVoices()`, or null to leave
- * the browser its own default. Only the page's language counts: its exact locale
- * when any voice has it, else its base language. Among those, a natural voice
- * ("(Natural)" in the name, as Edge and Chrome OS name them), single-language
- * before multilingual, because Edge's multilingual voices stop at an "&"; else
- * Chrome's own Google voice; else the one voice marked default, and none when
- * several claim it, as every voice does in Safari. Edge's natural voices are
- * network voices that report no word boundaries, which the speech clock
- * tolerates. Chrome's Google voices stop after about fourteen seconds of one
- * utterance, which a voice made here never asks of them (it speaks them a
- * sentence at a time).
- */
-export function chooseVoice(voices, lang) {
-    const tag = value => String(value ?? '').replace(/_/gu, '-').toLowerCase();
+const tag = value => String(value ?? '').replace(/_/gu, '-').toLowerCase();
+
+/** The installed voices of `lang`'s base language ("en" for "en-US"), its exact locale first: what a reader may pick from. */
+export function voicesFor(voices, lang) {
     const wanted = tag(lang);
     const base = wanted.split('-')[0];
-    const exact = voices.filter(voice => tag(voice.lang) === wanted);
-    const same = exact.length > 0 ? exact : voices.filter(voice => tag(voice.lang).split('-')[0] === base);
-    const natural = same.filter(voice => /\(Natural\)/u.test(voice.name));
-    if (natural.length > 0) return natural.find(voice => !/Multilingual/u.test(voice.name)) ?? natural[0];
-    const google = same.find(voice => GOOGLE.test(voice.name));
-    if (google) return google;
-    const defaults = same.filter(voice => voice.default === true);
-    return defaults.length === 1 ? defaults[0] : null;
+    const same = voices.filter(voice => tag(voice.lang).split('-')[0] === base);
+    return [...same.filter(voice => tag(voice.lang) === wanted), ...same.filter(voice => tag(voice.lang) !== wanted)];
+}
+
+// Apple's novelty and Eloquence voices, which WebKit lists beside the real ones (and may mark default, as it marks every voice).
+const APPLE_NOVELTY = /^(?:Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox|Fred|Junior|Kathy|Ralph|Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley)(?: \(.*\))?$/u;
+
+/**
+ * How good a voice is likely to sound, from what its platform writes in its name or its `voiceURI`, case aside:
+ *
+ * | Rank | Signal                                                         | Where it comes from                                   |
+ * |------|----------------------------------------------------------------|-------------------------------------------------------|
+ * | 4    | "Natural", "Neural" ("Microsoft Ava Online (Natural) - …")     | Edge / Windows online voices; Chrome OS natural voices |
+ * | 4    | "Premium" ("Ava (Premium)", com.apple.voice.premium.…)         | Apple (iOS 16+, macOS 13+) downloaded voices          |
+ * | 4    | "Wavenet", "Journey", "Studio"                                 | Google Cloud voice families, where an engine names them |
+ * | 3    | "Enhanced" ("Samantha (Enhanced)", com.apple.voice.enhanced.…) | Apple downloaded voices                               |
+ * | 2    | a name beginning "Google" ("Google US English")                | Chrome's own network voices, desktop and Android      |
+ * | 1    | any other voice ("Samantha", "Daniel")                         |                                                       |
+ * | 0    | "compact" (com.apple.voice.compact.…)                          | WebKit on Apple platforms, the built-in small voices  |
+ * | 0    | Apple's novelty and Eloquence voices (Albert, Fred, Eddy, …)   | WebKit on Apple platforms                             |
+ * | 0    | "eSpeak"                                                       | Chromium on Linux (speech-dispatcher)                 |
+ * | 0    | "Microsoft …" not Online/Natural (David, Zira, Mark)           | Windows' SAPI desktop voices in Chrome and Edge       |
+ *
+ * A multilingual voice ("AvaMultilingual") ranks just below the single-language voices of its rank: Edge's stop at an "&".
+ */
+export function voiceQuality(voice) {
+    const said = `${voice?.name ?? ''} ${voice?.voiceURI ?? ''}`;
+    const name = String(voice?.name ?? '');
+    let rank = 1;
+    if (/natural|neural|premium|wavenet|journey|studio/iu.test(said)) rank = 4;
+    else if (/enhanced/iu.test(said)) rank = 3;
+    else if (GOOGLE.test(name)) rank = 2;
+    else if (/compact|espeak|speech\.synthesis\.voice|eloquence/iu.test(said) || /^Microsoft\b/iu.test(name) || APPLE_NOVELTY.test(name)) rank = 0;
+    return /multilingual/iu.test(name) ? rank - 0.5 : rank;
+}
+
+/**
+ * The voice to speak a page in `lang` with, from `getVoices()`, or null to leave the browser its own default, which
+ * happens only when no voice speaks the page's language. The reader's own voice (`preferredName`) wins when it is
+ * installed in the page's base language. Else, among the voices of the page's exact locale (or of its base language
+ * when none has the locale; a tag is read with "_" as "-", in any case): the best by `voiceQuality`, then the one the
+ * platform marks default, then the platform's order. Edge's natural voices are network voices that report no word
+ * boundaries, which the speech clock tolerates. Chrome's Google voices stop after about fourteen seconds of one
+ * utterance, which a voice made here never asks of them (it speaks them a sentence at a time).
+ */
+export function chooseVoice(voices, lang, preferredName = '') {
+    const offered = voicesFor(voices, lang);
+    if (preferredName) {
+        const own = offered.find(voice => voice.name === preferredName);
+        if (own) return own;
+    }
+    const wanted = tag(lang);
+    const exact = offered.filter(voice => tag(voice.lang) === wanted);
+    const ranked = (exact.length > 0 ? exact : offered).map((voice, index) => ({ voice, index, rank: voiceQuality(voice) }));
+    ranked.sort((a, b) => b.rank - a.rank || Number(b.voice.default === true) - Number(a.voice.default === true) || a.index - b.index);
+    return ranked[0]?.voice ?? null;
 }
 
 /**

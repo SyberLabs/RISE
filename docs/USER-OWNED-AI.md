@@ -18,6 +18,12 @@ and [SPK-005](product/tasks/SPK-005.json) for rollout status; these contracts do
 not establish that production configuration or real sign-in/voicing has been
 verified.
 
+Without the Plus voice, a card speaks with a voice installed on the reader's
+own device (`speechSynthesis`): by default the best its platform names
+(Premium, Natural or Enhanced before plain, `src/live/voices/browser.js`), and
+the reader can pick any other installed voice for the reading's language under
+Settings, Sound & voice, where the choice is kept on the device (`cardVoice`).
+
 | Option | What runs | Who pays | Where the credential lives |
 | --- | --- | --- | --- |
 | **Connect OpenRouter** | Hosted Jev (`typesafe/jev-1.13`) through OpenRouter's Decisions API, called straight from the reader's browser | The reader's OpenRouter account | In the tab's memory only; gone on reload, close, or Disconnect |

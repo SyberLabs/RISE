@@ -969,6 +969,8 @@ class App {
             showArtworkLabels: true,
             // Each Current's authored sound bed plays unless the reader turns Sound off.
             cardSound: true,
+            // The browser voice the card speaks with, by name; empty is Automatic, the best the device has (voices/browser.js).
+            cardVoice: '',
 
             // Audio
             masterVolume: 0.75,
@@ -1029,7 +1031,9 @@ class App {
                 // Checked where it is used (plusVoiceSlug, src/app/plus.js).
                 plusVoiceSlug: typeof merged.plusVoiceSlug === 'string'
                     ? merged.plusVoiceSlug.slice(0, 32)
-                    : defaultSettings.plusVoiceSlug
+                    : defaultSettings.plusVoiceSlug,
+                // Checked where it is used: a name no installed voice has is Automatic (LiveHost.js).
+                cardVoice: typeof merged.cardVoice === 'string' ? merged.cardVoice.slice(0, 200) : defaultSettings.cardVoice
             };
             for (const key of booleanKeys) this.settings[key] = merged[key] === true;
         } catch (e) {
