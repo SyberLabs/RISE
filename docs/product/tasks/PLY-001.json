@@ -191,6 +191,12 @@
       "ref": "src/components/read/Chamber.scene.test.js",
       "note": "Phone card pass 3: the field is marked data-picture=scene before the scene canvas is measured and keeps the mark after a field replaces it; with Chamber.figure.test.js (data-picture=figure on mount, none when admission refuses). Both failed first; 258 passed across the Chamber, stage-controls, scene/figure layer, director and system-design tests.",
       "date": "2026-10-09"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Branch fullscreen-bar-room, local Chromium, one worker, whole file: 63 passed. New: an iPhone 14 (390x844, DPR 3, touch) asks the fake host for full screen, which gives the frame 844 px and safe-area insets top 47, bottom 34. Measured before: a centred line under a figure ended 14 px into the beat line (words bottom 756, beat line top 742), a caption over a scene 6 px (748); the picture began at 0, under the notch. After: both clear the beat line by the same gap as inline (20 px centred, 28 px caption), the picture runs 47 to 589, and the scene is resized once at the change and not again in 2 s of play. Fake host, not a product host.",
+      "date": "2026-10-09"
     }
   ],
   "activity": [
@@ -237,10 +243,14 @@
     {
       "date": "2026-10-09T12:41:30.735Z",
       "summary": "phone card pass 3: stacked layout — on a small host card a figure or scene sits above a fixed words strip; 0 % overlap at 390×481"
+    },
+    {
+      "date": "2026-10-09T23:55:03.765Z",
+      "summary": "fullscreen on a phone: the words' room follows the bar's safe-area inset"
     }
   ],
-  "updatedAt": "2026-10-09T12:41:30.735Z",
-  "revision": 11,
+  "updatedAt": "2026-10-09T23:55:03.765Z",
+  "revision": 12,
   "summary": "Seek, replay and pace that move the voice first, and a transport bar in the Claude card; the ChatGPT edition keeps two objects.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

@@ -27,7 +27,7 @@ import { expect, test } from './fixtures.js';
 const HOST = '/__mcp-host';
 
 /** The fake host's page: a frame for the relay, and a script that plays the host. */
-function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, forgedResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null, chat = 0, platform = null }) {
+function hostPage({ relay, current, sampling = true, dive, resultOnly = false, deferToolResult = false, forgedResult = false, height = 640, sandbox = 'allow-scripts allow-same-origin', displayModes = null, fullscreen = null, chat = 0, platform = null }) {
     const escaped = relay.replace(/&/gu, '&amp;').replace(/"/gu, '&quot;');
     // `chat`: px of conversation above and below the card, so the host's page scrolls as a chat does.
     const conversation = chat ? `<div class="chat" style="height:${chat}px"></div>` : '';
@@ -46,6 +46,8 @@ const DEFER_TOOL_RESULT = ${JSON.stringify(deferToolResult)};
 const FORGED_RESULT = ${JSON.stringify(forgedResult)};
 // The display modes this host offers, as an MCP Apps host says at hello (null: it says nothing of them, as before).
 const DISPLAY_MODES = ${JSON.stringify(displayModes)};
+// A phone's host in full screen: the frame takes the screen, and the notch and home bar come as safe-area insets ({ height, safeAreaInsets }).
+const FULLSCREEN = ${JSON.stringify(fullscreen)};
 // The platform this host says it is (MCP Apps hostContext.platform; null: it says nothing of it, as before).
 const PLATFORM = ${JSON.stringify(platform)};
 const log = [];
@@ -85,7 +87,10 @@ window.addEventListener('message', event => {
     hostRequests.push({ method: message.method, params: message.params });
     const mode = DISPLAY_MODES && DISPLAY_MODES.includes(message.params.mode) ? message.params.mode : 'inline';
     reply(message.id, { result: { mode } });
-    tell('ui/notifications/host-context-changed', { displayMode: mode });
+    if (FULLSCREEN) {
+      view.style.height = mode === 'fullscreen' ? FULLSCREEN.height + 'px' : '';
+      tell('ui/notifications/host-context-changed', { displayMode: mode, safeAreaInsets: mode === 'fullscreen' ? FULLSCREEN.safeAreaInsets : { top: 0, right: 0, bottom: 0, left: 0 } });
+    } else tell('ui/notifications/host-context-changed', { displayMode: mode });
   } else if (message.method === 'ui/open-link') {
     hostRequests.push({ method: message.method, params: message.params });
     reply(message.id, { result: {} });
@@ -116,7 +121,7 @@ async function openHost(page, baseURL, options = {}) {
   // A product host gives the card an opaque origin (no allow-same-origin: the MCP Apps spec forbids it for a view); the relay's
   // frame keeps it because the relay frames RISE's real page.
   const sandbox = options.selfContained ? 'allow-scripts' : 'allow-scripts allow-same-origin';
-  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, forgedResult: options.forgedResult ?? false, height: options.height, displayModes: options.displayModes ?? null, chat: options.chat ?? 0, platform: options.platform ?? null, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
+  await page.route(`**${HOST}`, route => route.fulfill({ contentType: 'text/html', body: hostPage({ relay, sandbox, current: options.current ?? BLACK_HOLES_CURRENT, sampling: options.sampling ?? true, resultOnly: options.resultOnly ?? false, deferToolResult: options.deferToolResult ?? false, forgedResult: options.forgedResult ?? false, height: options.height, displayModes: options.displayModes ?? null, fullscreen: options.fullscreen ?? null, chat: options.chat ?? 0, platform: options.platform ?? null, dive: toSealedCurrent(HORIZON_DIVE, 'dive-answer') }) }));
   await page.goto(HOST);
   // The app is a page in a frame in the relay's frame, or the host's frame itself when self-contained.
   return options.selfContained ? page.frameLocator('#view') : page.frameLocator('#view').frameLocator('#app');
@@ -1632,6 +1637,73 @@ test.describe('the card on a phone', () => {
     expect(new Set(drawn.map(frame => frame.picture))).toEqual(new Set(['scene']));
     expect(record.resizes).toBe(0);
     expect(new Set(drawn.map(frame => frame.canvas.size)).size).toBe(1);
+  });
+
+  // Full screen on an iPhone: the host gives the frame the screen and names the home bar and the notch as safe-area
+  // insets. The bar rises by the bottom one; the words' room has to rise with it.
+  const PHONE_FULLSCREEN = { height: 844, safeAreaInsets: { top: 47, right: 0, bottom: 34, left: 0 } };
+  /** With the bar shown: the words' box, the bar's (its beat line on top), the objects row's and the picture's. */
+  const clearance = async (app, page) => {
+    await app.locator('body').evaluate(body => body.ownerDocument.dispatchEvent(new PointerEvent('pointermove')));
+    await expect(app.locator('#rise-stage-controls')).toHaveAttribute('data-bar', 'shown');
+    await page.waitForTimeout(400);
+    return app.locator('#chamber-field').evaluate(field => {
+      const doc = field.ownerDocument;
+      const outer = field.querySelector('.atom-band').getBoundingClientRect();
+      const words = outer.height ? outer : field.querySelector('#atom-display').getBoundingClientRect();
+      const bar = doc.querySelector('.rise-stage__bar').getBoundingClientRect();
+      const row = doc.querySelector('.rise-stage__row').getBoundingClientRect();
+      const picture = field.querySelector('img.chamber-figure, canvas.chamber-scene').getBoundingClientRect();
+      return {
+        height: doc.defaultView.innerHeight, place: field.querySelector('#atom-display').dataset.place ?? 'centre', picture: field.dataset.picture ?? null,
+        wordsTop: Math.round(words.top), wordsBottom: Math.round(words.bottom), barTop: Math.round(bar.top), rowTop: Math.round(row.top),
+        pictureTop: Math.round(picture.top), pictureBottom: Math.round(picture.bottom), gap: Math.round(bar.top - words.bottom)
+      };
+    });
+  };
+
+  test('in full screen the safe area lifts the bar, and the words rise with it: never under the beat line or the objects, and the scene is resized once', async ({ page, baseURL }) => {
+    const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+    for (const [name, current, picture] of [['a figure, its line centred', heldFigure(), 'img.chamber-figure'], ['a scene, its line a caption', SKY_PREMIUM_EDUCATIONAL, 'canvas.chamber-scene']]) {
+      const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current, height: 481, displayModes: ['inline', 'fullscreen'], fullscreen: PHONE_FULLSCREEN });
+      await begin(app);
+      await expectShown(app, 'Sunlight looks white');
+      await expect(app.locator(picture)).toBeAttached({ timeout: 15_000 });
+      await page.waitForTimeout(500);
+      const inline = await clearance(app, page);
+      await app.locator('body').evaluate(body => {
+        const win = body.ownerDocument.defaultView;
+        const record = win.__modeProbe = { resizes: 0 };
+        const post = win.Worker.prototype.postMessage;
+        win.Worker.prototype.postMessage = function (message, ...rest) {
+          if (message?.type === 'scene/resize') record.resizes += 1;
+          return post.call(this, message, ...rest);
+        };
+      });
+      await app.getByRole('button', { name: 'Full screen', exact: true }).click();
+      await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.innerHeight)).toBe(844);
+      await expect.poll(() => app.locator('html').evaluate(node => getComputedStyle(node).getPropertyValue('--safe-bottom').trim())).toBe('34px');
+      await page.waitForTimeout(1_000);
+      const full = await clearance(app, page);
+      // Two seconds more of play in full screen: nothing is resized again.
+      const settled = await app.locator('body').evaluate(body => body.ownerDocument.defaultView.__modeProbe.resizes);
+      await page.waitForTimeout(2_000);
+      const resizes = await app.locator('body').evaluate(body => body.ownerDocument.defaultView.__modeProbe.resizes);
+      console.log(`[fullscreen] ${name}: inline ${JSON.stringify(inline)}; full ${JSON.stringify(full)}; scene resizes ${settled} at the change, ${resizes} after 2 s`);
+      for (const at of [inline, full]) {
+        expect(at.wordsBottom, `${name} at ${at.height}`).toBeLessThan(at.barTop);
+        expect(at.wordsBottom).toBeLessThan(at.rowTop);
+      }
+      // The same breath above the bar inline and in full screen (measured before: a centred line 14 px into the beat line, a caption 6 px).
+      expect(Math.abs(full.gap - inline.gap)).toBeLessThanOrEqual(2);
+      // The picture sits below the notch and ends where the bar's room begins.
+      expect(full.pictureTop).toBeGreaterThanOrEqual(PHONE_FULLSCREEN.safeAreaInsets.top);
+      expect(full.pictureBottom).toBeLessThanOrEqual(full.wordsTop + 0.5);
+      if (picture === 'canvas.chamber-scene') {
+        expect(settled).toBeLessThanOrEqual(1);
+        expect(resizes).toBe(settled);
+      }
+    }
   });
 });
 
