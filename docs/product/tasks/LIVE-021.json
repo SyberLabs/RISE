@@ -49,16 +49,26 @@
       "ref": "e2e/live.spec.js",
       "note": "Branch live-interjection, local production build, headless Chromium, the venue's demo and the paced voice: typing into the playing reading holds it, Enter asks; the reader's words to RISE's first word of answer 539 ms and 542 ms (two runs; the demo writes about 150 characters a second); Pause during the answer holds it; resume then says the held passage from its phrase; Back from the first answer passage lands on the held passage; replace ends the reading with the answer and the rest never plays; no speech starts over another, one voice chosen. The whole file, 23 passed; the card subset (live-mcp -g 'field|self-contained'), 13 passed.",
       "date": "2026-10-10"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/619",
+      "note": "The interjection, branch live-interjection (a2b93531, with the diagram in 3d8d0913): open, auto-merge on the required CI check. Not merged, not deployed, not accepted.",
+      "date": "2026-10-10"
     }
   ],
   "activity": [
     {
       "date": "2026-10-10T10:53:14.000Z",
       "summary": "Built on branch live-interjection (Claude, for Fable): src/live/interjection.js (the state machine), src/live/graft.js (the room arranged around answers), Player.graft, runtime beginInterjection / interject / cancelInterjection, the @then line and current.complete's ending, the interject request and its prompt, the interjection guide, the venue's field and microphone path, the demo's scripted answers. No real model has answered an interjection."
+    },
+    {
+      "date": "2026-10-10T10:57:26.508Z",
+      "summary": "Opened #619 (branch live-interjection), auto-merge on the required CI check."
     }
   ],
-  "updatedAt": "2026-10-10T10:53:14.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-10T10:57:26.508Z",
+  "revision": 2,
   "summary": "Design §8 stage 4.5: the reader speaks mid-reading, the voice holds at the phrase, the question goes up with the room, and RISE answers inside the room and resumes, replaces or ends.",
   "blocker": null
 }
