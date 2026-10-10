@@ -99,8 +99,26 @@ What the parser does with what a model actually sends:
 - **Fences.** A fence left open is closed by the next line that begins a beat or a scene; a source over its budget is dropped with its scene. A `@scene … code|svg` line not followed by a fence declares nothing.
 - **Chunk-invariant.** However the same text is cut into deltas, the same events come out.
 
+## The interjection's ending (added 2026-10-10, additive)
+
+RISE Live stage 4.5 ([the RISE Live design](../superpowers/specs/2026-10-09-rise-live-design.md) §6.1; [the plan](../plans/LIVE-CURRENT.md) §17). An answer to a reader's interjection names how the held reading goes on. Still `rise.current-events.v1`: one optional field, no new type.
+
+| `type` | Fields | Notes |
+|---|---|---|
+| `current.complete` | + `ending?` | `"resume"`, `"replace"` or `"end"`; any other value is refused (`EVENT_ENDING`). The reducer keeps it (`ending`, null when unnamed); only the runtime's interjection reads it, and an unnamed ending is `resume`. |
+
+The line a model writes, its own line, anywhere outside a fence, in either format (the last one named counts; anything else after `@then` is ignored):
+
+```text
+@then resume    the held reading is taken up again where it was
+@then replace   the rest of the reading is withdrawn; the answer carries on as the reading
+@then end       the answer ends the reading
+```
+
+An answer's beats are numbered `beat-<n>` from 0 in its own stream, as every beat stream's are. Grafted into the room they are renumbered by their place in the room's reading, which is the one `rise.current.v2` the runtime lowers (`src/live/graft.js`), so ids stay unique across the whole run; the answer's scenes are named `i<n>-<id>` there.
+
 ## Error codes
 
-Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_THEME`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`, `EVENT_BEAT`, `EVENT_SCENE`.
+Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_THEME`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`, `EVENT_BEAT`, `EVENT_SCENE`, `EVENT_ENDING`.
 
 Meaning: `NOT_OPEN`, `DUPLICATE_OPEN`, `WRONG_CURRENT`, `UNKNOWN_SEGMENT`, `SEGMENT_OPEN`, `SEGMENT_CLOSED`, `DUPLICATE_SEGMENT`, `TOO_MANY_SEGMENTS`, `TEXT_OFFSET`, `TEXT_TOO_LONG`, `RESERVED_TEXT`, `LITERAL_MISMATCH`, `EMPTY_SEGMENT`, `TOO_MANY_EVIDENCE`, `DUPLICATE_EVIDENCE`, `EVIDENCE_SPAN`, `TOO_MANY_DIVES`, `DUPLICATE_DIVE`, `DIVE_ANCHOR`, `SPEECH_STATE`, `SPEECH_ORDER`, `BRANCH_OPEN`, `DUPLICATE_BRANCH`, `BRANCH_POSITION`, `UNKNOWN_BRANCH`, `EMPTY_CURRENT`, `SEQ_CONFLICT`, `SEQUENCE_GAP`, `TOO_MANY_REFUSALS`, `TOO_MANY_EVENTS`, `AFTER_TERMINAL`; for beat streams `BEAT_MIXED`, `BEAT_ID`, `BEAT_DIVE`, `DUPLICATE_SCENE`, `TOO_MANY_SCENES`, `UNKNOWN_SCENE`, `SCENE_CLOSED`, `SCENE_TOO_LARGE`, and `rise.current.v2`'s own beat and scene codes.

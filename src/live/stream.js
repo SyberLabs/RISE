@@ -132,6 +132,8 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
     let error = null;
     let lastError = null;
     let cancelReason = null;
+    /** How an answer to an interjection said the held reading goes on (current.complete), or null. */
+    let ending = null;
     let openSegment = null;
 
     const buffer = new Map();
@@ -483,6 +485,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                 if (!segments.some(segment => segment.ended)) refuse('EMPTY_CURRENT', 'Nothing was said');
                 if (branches.some(branch => !branch.closed)) refuse('BRANCH_OPEN', 'A Dive is still open');
                 phase = 'complete';
+                ending = event.ending ?? null;
                 buffer.clear();
                 break;
 
@@ -623,6 +626,8 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
         },
         /** Set when an event arrived too far ahead to hold: the number to ask the provider to resume from. */
         get resumeFrom() { return resumeFrom; },
+        /** The ending a completed answer named (`resume`, `replace` or `end`), or null: an interjection's to read. */
+        get ending() { return ending; },
         /** The scenes the admission refused, in order: { sceneId, message } with the Worker's sentence. */
         get refusedScenes() { return refusedScenes.map(item => Object.freeze({ ...item })); },
 

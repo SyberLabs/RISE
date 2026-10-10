@@ -412,4 +412,14 @@ describe('the demo that writes in beats (the venue’s)', () => {
         const { reducer } = await stream({ intent: 'answer', prompt: 'What is a quasar?' });
         expect(reducer.toCurrent().beats).toEqual([{ say: 'This demonstration can only explain black holes.' }]);
     });
+
+    it('answers an interjection in two beats and resumes, or, asked to skip, replaces the rest (stage 4.5)', async () => {
+        const reading = { passages: ['A black hole is a region of space.'], at: 0 };
+        const resumed = await stream({ intent: 'interject', prompt: 'What is the horizon, really?', reading });
+        expect(resumed.reducer.toCurrent().beats).toHaveLength(2);
+        expect(resumed.reducer.ending).toBe('resume');
+        const replaced = await stream({ intent: 'interject', prompt: 'Skip the rest: the short version.', reading });
+        expect(replaced.reducer.toCurrent().beats).toHaveLength(2);
+        expect(replaced.reducer.ending).toBe('replace');
+    });
 });

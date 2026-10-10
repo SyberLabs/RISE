@@ -221,3 +221,34 @@ describe('the contract an adapter must meet', () => {
         }
     });
 });
+
+describe('a request to interject (stage 4.5)', () => {
+    const reading = { passages: ['A black hole is a region of space.', 'Its edge is the event horizon.'], at: 0 };
+
+    it('carries the reader’s words, the reading so far with the passage they interrupted, and their actions', () => {
+        const perception = { events: [{ type: 'replayed', from: 1, to: 1, times: 1, quote: 'A black hole.' }], earlier: 0 };
+        expect(validateOpenRequest({ intent: 'interject', prompt: 'What is a region?', reading, perception }))
+            .toEqual({ intent: 'interject', prompt: 'What is a region?', reading, perception });
+        expect(validateOpenRequest({ intent: 'interject', prompt: 'Why?', reading })).toEqual({ intent: 'interject', prompt: 'Why?', reading });
+    });
+
+    it('is refused without the reading, with a reading that is not bounded, and with a parent', () => {
+        const parent = { currentId: 'a', segmentId: 's', atCharacter: 0, context: [] };
+        for (const bad of [
+            { intent: 'interject', prompt: 'Why?' },
+            { intent: 'interject', prompt: 'Why?', reading, parent },
+            { intent: 'answer', prompt: 'Why?', reading },
+            { intent: 'interject', prompt: 'Why?', reading: { passages: [], at: 0 } },
+            { intent: 'interject', prompt: 'Why?', reading: { passages: ['A.'], at: 1 } },
+            { intent: 'interject', prompt: 'Why?', reading: { passages: ['A.'], at: -1 } },
+            { intent: 'interject', prompt: 'Why?', reading: { passages: ['A.'], at: 0.5 } },
+            { intent: 'interject', prompt: 'Why?', reading: { passages: [''], at: 0 } },
+            { intent: 'interject', prompt: 'Why?', reading: { passages: ['x'.repeat(OPEN_LIMITS.readingText + 1)], at: 0 } },
+            { intent: 'interject', prompt: 'Why?', reading: { passages: Array(OPEN_LIMITS.reading + 1).fill('A.'), at: 0 } },
+            { intent: 'interject', prompt: 'Why?', reading: { passages: ['A.'], at: 0, url: 'https://x' } },
+            { intent: 'interject', prompt: 'Why?', reading: 'the reading' }
+        ]) {
+            expect(() => validateOpenRequest(bad), JSON.stringify(bad)).toThrow(expect.objectContaining({ code: 'OPEN_REQUEST' }));
+        }
+    });
+});

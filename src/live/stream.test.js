@@ -755,3 +755,18 @@ describe('a beat stream (beats streamed: each segment one beat of a rise.current
         expect(result.isError, result.content?.map(item => item.text).join('\n')).not.toBe(true);
     });
 });
+
+describe('the interjection’s ending (stage 4.5)', () => {
+    it('is kept as the answer named it when it completes, and is null when it named none', () => {
+        const named = opened();
+        segment(named.send, 's1', 'In short, nothing escapes.');
+        expect(named.stream.ending).toBeNull();
+        expect(named.send('current.complete', { ending: 'replace' }).status).toBe('applied');
+        expect(named.stream.ending).toBe('replace');
+
+        const plain = opened();
+        segment(plain.send, 's1', 'In short, nothing escapes.');
+        plain.send('current.complete');
+        expect(plain.stream.ending).toBeNull();
+    });
+});

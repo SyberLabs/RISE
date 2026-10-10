@@ -488,3 +488,18 @@ describe('random garbage', () => {
         expect(valid + refused).toBe(6000);
     });
 });
+
+describe('the interjection’s ending (stage 4.5)', () => {
+    it('may name how a held reading goes on when an answer completes', () => {
+        for (const ending of ['resume', 'replace', 'end']) {
+            expect(validateEvent(base('current.complete', 3, { ending }))).toMatchObject({ type: 'current.complete', ending });
+        }
+        expect(validateEvent(base('current.complete', 3))).not.toHaveProperty('ending');
+    });
+
+    it('names one of three, and nothing else', () => {
+        for (const ending of ['stop', '', 'RESUME', 1, null, { then: 'resume' }]) {
+            expect(refusal(base('current.complete', 3, { ending }))).toMatchObject({ code: 'EVENT_ENDING', path: '$.ending' });
+        }
+    });
+});

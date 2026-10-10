@@ -8,18 +8,22 @@
  * many readings: each question goes to the same adapter, the reader's Settings choices carry from one reading to the
  * next (the stage's `room`), and the journal of each reading is kept for perception (venue-entry.js perceptionFor).
  *
+ * While a reading plays, the reader may speak into it (the interjection, docs/plans/LIVE-CURRENT.md §17): the
+ * microphone, or a first letter typed in the bar's small field, holds the reading at once; Enter asks inside the room;
+ * Escape, or Play, takes it back. A reading paused with Play, or one that has ended, is asked again as a new reading.
+ *
  * The host (LiveHost.js) builds each runtime, the voice and the sound as it does for every reading; this owns the
  * entry state (venue-entry.js) and what the reader sees of it. A typed key is held in the host's memory (`host.key`)
  * and nowhere else: never in the state, the page, storage or a URL.
  */
 
 import { connectionState, subscribeConnection } from '../../core/ai-connection.js';
-import { initialVenue, perceptionFor, venueStep } from './venue-entry.js';
+import { initialVenue, interjectionPerception, perceptionFor, venueStep } from './venue-entry.js';
 
 const MIC_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 const LEAVE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 
-const SENT = 'What is sent is your question, and what you did while it played (play, pause, replay, pace, settings, words you spoke to it), sent only with your next words. Nothing is stored; a reload forgets the key.';
+const SENT = 'What is sent is your question, and what you did while it played (play, pause, replay, pace, settings, words you spoke to it), sent only with your next words. A question asked while it reads also carries the reading so far. Nothing is stored; a reload forgets the key.';
 
 /** Whose key, where it goes and what is sent, for a provider's credential (docs/USER-OWNED-AI.md). */
 function privacy(entry) {
@@ -202,15 +206,57 @@ export class LiveVenue {
             // Out of the page as soon as it is in memory: the field is not where it is kept.
             keyField.value = '';
         }
-        // Asked while it plays: the reading is held first, as Pause holds it.
         const runtime = this.host.runtime;
-        if (this.state.phase === 'reading' && runtime?.status === 'live') {
-            try { runtime.hold(); } catch { /* it is no longer live */ }
+        if (this.state.phase === 'reading' && runtime) {
+            const { state } = runtime.snapshot().interjection;
+            // Asked while it plays (Enter on words that came without a keystroke): an interjection all the same.
+            if (state === 'none' && runtime.status === 'live') this.beginInterjection(runtime);
+            const now = runtime.snapshot().interjection.state;
+            if (now === 'held') {
+                void this.interject(runtime, words);
+                return;
+            }
+            if (now !== 'none') {
+                this.say('RISE is answering; ask again once it has.');
+                return;
+            }
+            // A reading that takes no interjection is held first, as Pause holds it, and the question reads anew.
+            if (runtime.status === 'live') {
+                try { runtime.hold(); } catch { /* it is no longer live */ }
+            }
         }
         this.dispatch({ type: 'ask', question: words, connected: connectionState().kind === 'openrouter', hasKey: this.host.key !== '' });
         if (this.state.phase !== 'asking') return;
         if (this.bar) this.bar.elements.question.value = '';
         void this.begin(this.state.turns.at(-1).question, this.state.turns.length - 1);
+    }
+
+    /**
+     * The reader begins to speak into a playing reading: it holds at once. A reading that takes no interjection (its
+     * last words already all shown) is held as Pause holds it. Whether it was held for an interjection is returned.
+     */
+    beginInterjection(runtime) {
+        try {
+            runtime.beginInterjection();
+            return true;
+        } catch {
+            try { runtime.hold(); } catch { /* it is no longer live */ }
+            return false;
+        }
+    }
+
+    /** The reader's words, asked inside the reading, with what they did in it since RISE last spoke. */
+    async interject(runtime, words) {
+        const question = String(words ?? '').trim();
+        if (!question) {
+            this.say('Ask something first.');
+            return;
+        }
+        if (this.bar) this.bar.elements.question.value = '';
+        const perception = interjectionPerception(runtime.journal(), runtime.passages(), question);
+        try {
+            await runtime.interject(question, perception ? { perception } : {});
+        } catch { /* the reading has moved on; it plays as it was */ }
     }
 
     /** The reading that was on screen is let go: its stage, its runtime, and its journal kept for the room. */
@@ -225,11 +271,11 @@ export class LiveVenue {
         if (this.host.runtime === reading?.runtime) this.host.runtime = null;
         if (!reading) return;
         const { runtime } = reading;
-        const segments = runtime.composed?.('main')?.segments ?? [];
         this.readings[reading.turn] = {
             journal: runtime.journal?.() ?? [],
-            // The reading's passages in order, so the reader's moves can name them (perception.js).
-            passages: (runtime.passages?.() ?? []).map(({ segmentId }) => ({ segmentId, text: segments.find(segment => segment.id === segmentId)?.text ?? '' }))
+            // The reading's passages in order as it was read (answers to interjections among them), so the reader's
+            // moves can name them (perception.js).
+            passages: (runtime.passages?.() ?? []).map(({ segmentId, text }) => ({ segmentId, text: text ?? '' }))
         };
         await runtime.stop();
     }
@@ -314,6 +360,22 @@ export class LiveVenue {
             event.preventDefault();
             this.ask(bar.elements.question.value);
         });
+        const field = bar.elements.question;
+        // The first letter typed into a playing reading holds it: the reader is speaking into it.
+        field.addEventListener('input', () => {
+            const runtime = this.host.runtime;
+            if (!field.value.trim() || this.state.phase !== 'reading' || runtime?.status !== 'live') return;
+            if (runtime.snapshot().interjection.state === 'none') this.beginInterjection(runtime);
+        });
+        // Escape takes an interjection back before it is answered; nothing else hears that Escape.
+        field.addEventListener('keydown', event => {
+            const state = this.host.runtime?.snapshot().interjection.state;
+            if (event.key !== 'Escape' || (state !== 'held' && state !== 'asking')) return;
+            event.preventDefault();
+            event.stopPropagation();
+            field.value = '';
+            try { this.host.runtime.cancelInterjection(); } catch { /* it was answered meanwhile */ }
+        });
         bar.querySelector('.live-again__leave').addEventListener('click', () => { void this.leave(); });
         this.doc.body.append(bar);
         this.bar = bar;
@@ -329,14 +391,21 @@ export class LiveVenue {
         }
         if (this.startButton) this.startButton.disabled = phase === 'asking';
         if (!this.bar) return;
+        const runtime = this.host.runtime;
+        const interjection = phase === 'reading' ? runtime?.snapshot().interjection ?? null : null;
+        const interjecting = interjection?.state === 'held' || interjection?.state === 'asking';
         const open = phase === 'ended' || (phase === 'reading' && held);
         const playing = phase === 'reading' && !held;
         this.bar.dataset.open = String(open);
-        this.bar.hidden = !open && !(playing && this.mic);
-        // A failed reading is said by the stage; the bar says only what it refused.
+        this.bar.hidden = !open && !playing;
+        const field = this.bar.elements.question;
+        field.placeholder = interjecting ? 'Ask RISE…' : playing ? 'Ask while it reads…' : 'Ask again…';
+        field.setAttribute('aria-label', interjecting || playing ? 'Ask RISE while it reads' : 'Ask again');
+        // A failed reading is said by the stage; the bar says only what it refused, and how an interjection went.
         const note = this.bar.querySelector('.live-again__note');
-        const said = this.host.runtime?.status === 'failed' ? '' : error ?? '';
-        note.textContent = said;
+        if (interjection?.state === 'asking') note.textContent = 'Asking RISE…';
+        else if (interjection?.state === 'none' && interjection.failed) note.textContent = 'RISE could not answer that just now; the reading goes on.';
+        else if (interjection?.state !== 'answering') note.textContent = runtime?.status === 'failed' ? '' : error ?? '';
     }
 
     // ─── the microphone ───────────────────────────────────────────────
@@ -387,7 +456,10 @@ export class LiveVenue {
         if (target) target.textContent = sentence;
     }
 
-    /** Press to talk: a playing reading is held first, so the voice does not talk over the reader. */
+    /**
+     * Press to talk: a playing reading is held first, so the voice does not talk over the reader; what they say is
+     * then an interjection, asked inside the reading with Enter.
+     */
     listen() {
         if (this.listener.listening) {
             this.listener.stop();
@@ -396,10 +468,8 @@ export class LiveVenue {
         const runtime = this.host.runtime;
         this.heldByMic = false;
         if (this.state.phase === 'reading' && runtime?.status === 'live') {
-            try {
-                runtime.hold();
-                this.heldByMic = true;
-            } catch { /* it is no longer live; listening still works */ }
+            this.beginInterjection(runtime);
+            this.heldByMic = runtime.status === 'interrupted';
         }
         this.listener.start();
     }

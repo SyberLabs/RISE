@@ -441,3 +441,42 @@ describe('beats, one per line', () => {
         }
     });
 });
+
+describe('the interjection’s ending, @then (stage 4.5)', () => {
+    /** What the parser reports at the end, and the beats it sent, for text cut at every `every` characters. */
+    function ended(text, every = text.length) {
+        const sent = [];
+        const parser = createSegmentParser((type, body) => sent.push({ type, ...body }));
+        for (let at = 0; at < text.length; at += every) parser.push(text.slice(at, at + every));
+        return { ...parser.finish(), said: sent.filter(event => event.type === 'segment.text').map(event => event.text) };
+    }
+
+    it('reads the line that names how the reading goes on, and says nothing of it', () => {
+        for (const ending of ['resume', 'replace', 'end']) {
+            const text = `@say The horizon is not a surface.\n@say Nothing there would stop you.\n@then ${ending}\n`;
+            for (const every of [1, 7, text.length]) {
+                const result = ended(text, every);
+                expect(result.ending, `${ending} cut every ${every}`).toBe(ending);
+                expect(result.said).toEqual(['The horizon is not a surface.', 'Nothing there would stop you.']);
+            }
+        }
+    });
+
+    it('reads it as the last line with no newline, and in an answer written in passages', () => {
+        expect(ended('@say Briefly, no.\n@then end').ending).toBe('end');
+        expect(ended('Briefly, no light escapes.\n@then replace\n').ending).toBe('replace');
+        expect(ended('@passage visual=still\nBriefly.\n@end\n@then end\n').ending).toBe('end');
+    });
+
+    it('is null when none is named, or when what follows @then is not an ending', () => {
+        expect(ended('@say Briefly, no.\n').ending).toBeNull();
+        expect(ended('@say Briefly, no.\n@then stop\n').ending).toBeNull();
+        expect(ended('@say Briefly, no.\n@then resume please\n').ending).toBeNull();
+    });
+
+    it('counts the last one named, and none inside a scene’s source', () => {
+        expect(ended('@then end\n@say Briefly, no.\n@then resume\n').ending).toBe('resume');
+        const fenced = ended('@scene f svg\n```svg\n@then end\n```\n@say Look.\n').ending;
+        expect(fenced).toBeNull();
+    });
+});

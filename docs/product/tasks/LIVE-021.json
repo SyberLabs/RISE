@@ -1,0 +1,74 @@
+{
+  "id": "LIVE-021",
+  "title": "RISE Live: the interjection",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-020"
+  ],
+  "acceptance": [
+    "Hold at the boundary: while a reading plays, the reader's press of the microphone, or a first letter typed into the bar, holds the voice and the words at once where they are; the room stays as it is and nothing is cancelled.",
+    "The question goes up with the room: the reader's words go to the model in one new request on the room's adapter and the reader's key, with the reading so far (its passages in order, the one the reader interrupted marked) and the reader's actions since RISE last spoke (perception, stage 4).",
+    "The model answers inside the room: its reply streams in beats into the same reading and the same run, after the passage the reader was in, spoken by the same voice, over the same scene unless it starts another; beat ids stay unique across the whole run.",
+    "Three endings, decided by the model and named in the stream (@then resume | replace | end, an additive field on rise.current-events.v1): resume takes the held reading up where it was, replace withdraws the rest and the answer carries on as the reading, end makes the answer the end; unnamed is resume.",
+    "The reader's controls hold throughout: Pause, seek, replay and pace act on the answer as on any passage; Back from the first answer passage returns to the held passage; Escape or Play before an answer takes the interjection back and the reading plays on; a failed request gives the held reading back and the venue says so in one line.",
+    "It is not a Dive: no child reading, no second run, Player or voice.",
+    "Measured: the time from the reader's last word to RISE's first word of answer is reported; the voice never speaks two things at once; the head is where the reader expects after each of the three endings."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
+      "note": "§6.1 'The interjection' and §8 stage 4.5, added 2026-10-10 at the owner's direction: the acceptance above; stage 4.5 approved by the owner 2026-10-10.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§17 'The interjection': the state machine, the @then grammar, the request, the graft (cut after the held passage, the tail aside while the answer is written, resume and withdraw, ids as places, answer scenes named i<n>-<id>), Player.graft, the runtime and the venue, the measurement, what is not verified.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/specs/LIVE-CURRENT-EVENTS-V1.md",
+      "note": "'The interjection's ending (added 2026-10-10, additive)': an optional ending on current.complete, refused otherwise (EVENT_ENDING), and the line a model writes.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.interjection.test.js",
+      "note": "Branch live-interjection, local run, the whole runtime on fake timers (text-stream adapter, parser, reducer, Player, governor, conductor, synthetic voice): held at the boundary with nothing said and no 'hold' noted; one new request carrying the words, the reading so far with the place marked, and the actions; the voice held through the latency; resume says the answer, then the held passage from its phrase, then the rest; ids are places; unnamed resumes; Back from the first answer passage is the held passage; Pause holds the answer; replace and end end with the answer; a failed request gives the reading back and says why; cancel and Play take it back; a second interjection cuts the arranged reading. One voice made, no overlap, in every case. With interjection.test.js, graft.test.js, player.live.test.js (graft), protocol, stream, segment-parser, text-stream, adapter, openai-instructions (no orders, the block one line per passage), mock, venue-entry and venue tests: src/live with the Player, 74 files, 1,714 passed; the CI fast set collects 101 files.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Branch live-interjection, local production build, headless Chromium, the venue's demo and the paced voice: typing into the playing reading holds it, Enter asks; the reader's words to RISE's first word of answer 539 ms and 542 ms (two runs; the demo writes about 150 characters a second); Pause during the answer holds it; resume then says the held passage from its phrase; Back from the first answer passage lands on the held passage; replace ends the reading with the answer and the rest never plays; no speech starts over another, one voice chosen. The whole file, 23 passed; the card subset (live-mcp -g 'field|self-contained'), 13 passed.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/619",
+      "note": "The interjection, branch live-interjection (a2b93531, with the diagram in 3d8d0913): open, auto-merge on the required CI check. Not merged, not deployed, not accepted.",
+      "date": "2026-10-10"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-10T10:53:14.000Z",
+      "summary": "Built on branch live-interjection (Claude, for Fable): src/live/interjection.js (the state machine), src/live/graft.js (the room arranged around answers), Player.graft, runtime beginInterjection / interject / cancelInterjection, the @then line and current.complete's ending, the interject request and its prompt, the interjection guide, the venue's field and microphone path, the demo's scripted answers. No real model has answered an interjection."
+    },
+    {
+      "date": "2026-10-10T10:57:26.508Z",
+      "summary": "Opened #619 (branch live-interjection), auto-merge on the required CI check."
+    }
+  ],
+  "updatedAt": "2026-10-10T10:57:26.508Z",
+  "revision": 2,
+  "summary": "Design §8 stage 4.5: the reader speaks mid-reading, the voice holds at the phrase, the question goes up with the room, and RISE answers inside the room and resumes, replaces or ends.",
+  "blocker": null
+}

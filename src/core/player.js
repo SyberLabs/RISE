@@ -772,6 +772,39 @@ export class Player {
     }
 
     /**
+     * Take a Session that keeps the reading up to and including the atom the
+     * head is on, and differs after it: a live reading the reader interrupted
+     * with a question, whose answer goes in after the passage they were in
+     * (src/live/graft.js). Taken only while held, so nothing is scheduled from
+     * the atoms it replaces. The head does not move; the caller sends the
+     * reading on with seekTo. A Session that differs at or before the head is
+     * refused and nothing changes.
+     *
+     * @param {import('./models.js').Session} next
+     */
+    graft(next) {
+        if (!this.live) throw new RangeError('Only a live Player can take a graft');
+        if (this.sessionState.state === 'playing' || this.sessionState.state === 'interlocuting') {
+            throw new RangeError('A graft is taken while the reading is held');
+        }
+        const current = this.sessionState.session.atoms;
+        const atoms = next?.atoms;
+        const head = this.sessionState.currentIndex;
+        if (!Array.isArray(atoms) || atoms.length <= head) throw new RangeError('A grafted Session keeps the atom the head is on');
+        for (let i = 0; i <= Math.min(head, current.length - 1); i += 1) {
+            const before = current[i];
+            const after = atoms[i];
+            if (before.content !== after.content || before.duration !== after.duration
+                || before.position !== after.position || before.sourceId !== after.sourceId) {
+                throw new RangeError(`The atoms up to the head must be unchanged (atom ${i} differs)`);
+            }
+        }
+        this.sessionState.session = next;
+        this._buildPrefixDurations();
+        this.emit('extended', { atomCount: atoms.length, resumed: false, grafted: true });
+    }
+
+    /**
      * Show the atom the head is on again, to a view that has just been
      * mounted on a Player already part way through (a Dive that has come
      * back). Nothing about the reading changes: the head, the timers, the

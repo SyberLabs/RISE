@@ -591,4 +591,105 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(requested.slice(before).filter(url => /openrouter\.ai|googleapis\.com|api\.openai\.com/u.test(url))).toEqual([]);
         expect(errors).toEqual([]);
     });
+
+    /**
+     * The interjection (docs/plans/LIVE-CURRENT.md §17), on the demo and the paced voice. Measured: the reader's words
+     * to RISE's first word of answer. Held: never two voices; Pause holds the answer; after resume the reading goes on
+     * at the held phrase; after replace the rest never plays; Back from the first answer passage is the held passage.
+     */
+    const interjectionHooks = page => ({
+        journal: () => page.evaluate(() => window.__riseLive.journal()),
+        passages: () => page.evaluate(() => window.__riseLive.passages())
+    });
+
+    /** Every speech.start while another utterance was still being said and nothing silenced it: two voices at once. */
+    function overlaps(journal) {
+        let speaking = null;
+        const found = [];
+        for (const entry of journal) {
+            if (entry.type === 'speech.start') {
+                if (speaking !== null) found.push({ at: entry.at, speaking, started: entry.segmentId });
+                speaking = entry.segmentId;
+            } else if (entry.type === 'speech.end' && entry.segmentId === speaking) speaking = null;
+            else if (['voice.held', 'interjection.held', 'seek', 'replay', 'hold', 'voice.taken'].includes(entry.type)) speaking = null;
+        }
+        return found;
+    }
+
+    async function interjectIn(page, words) {
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        const hooks = interjectionHooks(page);
+        // Part way into the first passage, the reader starts typing into the playing reading: it holds at once.
+        await page.waitForTimeout(1_500);
+        const field = page.locator('#live-again-question');
+        await expect(field).toBeVisible();
+        await field.fill(words);
+        await expect.poll(async () => (await hooks.journal()).some(entry => entry.type === 'interjection.held')).toBe(true);
+        await field.press('Enter');
+        await expect.poll(async () => (await hooks.journal()).some(entry => entry.type === 'interjection.asked')).toBe(true);
+        return { errors, hooks, asked: (await hooks.journal()).find(entry => entry.type === 'interjection.asked') };
+    }
+
+    test('the interjection: RISE answers inside the room, in the same voice, and the reading resumes at the held phrase', async ({ page }) => {
+        test.setTimeout(120_000);
+        const { errors, hooks, asked } = await interjectIn(page, 'What is the horizon, really?');
+        expect(asked.segmentId).toBe('beat-0');
+        const answered = () => hooks.journal().then(journal => journal.find(entry => entry.type === 'speech.start' && entry.segmentId === 'beat-1' && entry.at > asked.at) ?? null);
+        await expect.poll(answered, { timeout: 15_000 }).not.toBeNull();
+        const first = await answered();
+        console.log(`interjection: the reader's words to RISE's first word of answer ${Math.round(first.at - asked.at)} ms`);
+        await expectShown(page, 'Good question');
+
+        // Pause during the answer holds the answer.
+        const stage = page.locator('#rise-stage-controls');
+        await stage.locator('[data-stage="play"]').click();
+        const pausedAt = await page.evaluate(() => window.__riseLive.now());
+        const onScreen = await shown(page);
+        await page.waitForTimeout(1_500);
+        expect(await shown(page)).toBe(onScreen);
+        expect((await hooks.journal()).filter(entry => entry.type === 'speech.start' && entry.at > pausedAt)).toEqual([]);
+        await stage.locator('[data-stage="play"]').click();
+
+        await expect.poll(async () => (await hooks.journal()).find(entry => entry.type === 'interjection.answered') ?? null, { timeout: 30_000 })
+            .toMatchObject({ beats: 2, ending: 'resume' });
+        const passages = await hooks.passages();
+        expect(passages.slice(1, 3).map(passage => passage.text)).toEqual([
+            'Good question: the horizon is not a surface you could touch.',
+            'It is only the distance past which light can no longer climb back out.'
+        ]);
+        // After the answer, the held passage again from the phrase the voice was held at.
+        expect(passages[0].text.endsWith(passages[3].text)).toBe(true);
+        await expect.poll(async () => (await hooks.journal()).some(entry => entry.type === 'speech.start' && entry.segmentId === 'beat-3'), { timeout: 30_000 }).toBe(true);
+        const journal = await hooks.journal();
+        expect(overlaps(journal)).toEqual([]);
+        expect(journal.filter(entry => entry.type === 'voice.chosen')).toHaveLength(1);
+        expect(errors).toEqual([]);
+    });
+
+    test('the interjection: Back from the first answer passage is the held passage; replace ends the reading with the answer', async ({ page }) => {
+        test.setTimeout(120_000);
+        const { errors, hooks, asked } = await interjectIn(page, 'Skip the rest: the short version.');
+        await expect.poll(async () => (await hooks.journal()).some(entry => entry.type === 'speech.start' && entry.segmentId === 'beat-1' && entry.at > asked.at), { timeout: 15_000 }).toBe(true);
+        const stage = page.locator('#rise-stage-controls');
+        await stage.getByRole('button', { name: 'Back a passage', exact: true }).click();
+        await expect.poll(async () => (await hooks.journal()).find(entry => entry.type === 'seek') ?? null).toMatchObject({ from: 'beat-1', to: 'beat-0' });
+        await expectShown(page, 'A black hole is a region of space');
+
+        await expect(stage.getByRole('button', { name: /^Play again/u })).toHaveCount(1, { timeout: 45_000 });
+        const journal = await hooks.journal();
+        expect(journal.find(entry => entry.type === 'interjection.answered')).toMatchObject({ beats: 2, ending: 'replace' });
+        expect((await hooks.passages()).map(passage => passage.text)).toEqual([
+            expect.stringContaining('A black hole is a region of space'),
+            'In short: a black hole is gravity so strong that not even light can leave it.',
+            'That is the whole of it; the rest was detail.'
+        ]);
+        // The rest of the room's answer never played.
+        expect(journal.filter(entry => entry.type === 'speech.start').map(entry => entry.segmentId).filter(id => !['beat-0', 'beat-1', 'beat-2'].includes(id))).toEqual([]);
+        expect(overlaps(journal)).toEqual([]);
+        expect(errors).toEqual([]);
+    });
 });
