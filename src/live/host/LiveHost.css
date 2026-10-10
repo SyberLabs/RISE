@@ -151,9 +151,10 @@
 /* The Chamber's field inside the host's frame (LiveHost marks the root): the
    centred words clear the bar's room along the bottom, and above the phone
    band the picture keeps 24 px of edge, not the Chamber's 48. The room is the
-   44 px objects, and with the full transport the beat line over them too. */
-html[data-embed="mcp"] .chamber-field { --embed-bar-room: 64px; }
-html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { --embed-bar-room: 88px; }
+   44 px objects, and with the full transport the beat line over them too, and
+   the host's bottom safe area, by which the bar rises (a phone in full screen). */
+html[data-embed="mcp"] .chamber-field { --embed-bar-room: calc(64px + var(--safe-bottom, 0px)); }
+html[data-embed="mcp"]:has(.rise-stage[data-transport="full"]) .chamber-field { --embed-bar-room: calc(88px + var(--safe-bottom, 0px)); }
 
 @media (min-width: 641px) {
   html[data-embed="mcp"] .chamber-field { padding: 24px 24px var(--embed-bar-room); }
@@ -179,9 +180,10 @@ html[data-embed="mcp"] #atom-display { -webkit-user-select: none; user-select: n
 /* The picture ends where the bar's room begins: a generated scene is drawn to this box (scene-layer.js
    measures its canvas) and a figure is contained in it. The room is fixed per transport and the bar's
    hiding moves only the words, so this box never changes while a reading plays. A height, not a `bottom`:
-   both layers are replaced elements, whose auto height is their own. */
+   both layers are replaced elements, whose auto height is their own. It begins below the host's top safe
+   area (a phone's notch in full screen). The room and that area change only with the display mode. */
 html[data-embed="mcp"] .chamber-scene,
-html[data-embed="mcp"] .chamber-figure { height: calc(100% - var(--embed-bar-room)); }
+html[data-embed="mcp"] .chamber-figure { top: var(--safe-top, 0px); height: calc(100% - var(--safe-top, 0px) - var(--embed-bar-room)); }
 
 /* A caption sits just above the bar's room, not at 9 % of the field (the Reader's rule, Chamber.css). */
 html[data-embed="mcp"] .atom-display[data-place="caption"] { bottom: calc(var(--embed-bar-room) + 8px); }
@@ -220,7 +222,7 @@ html[data-embed="mcp"] .atom-display[data-place="caption"] { bottom: calc(var(--
   }
 
   html[data-embed="mcp"] .chamber-field[data-picture] :is(.chamber-scene, .chamber-figure) {
-    height: calc(100% - var(--embed-bar-room) - var(--embed-words-strip));
+    height: calc(100% - var(--safe-top, 0px) - var(--embed-bar-room) - var(--embed-words-strip));
   }
 }
 
