@@ -372,8 +372,9 @@ The content hosts your browser may contact are:
 - **The Rijksmuseum** — `id.rijksmuseum.nl`
 - **NASA Image and Video Library** — `images-assets.nasa.gov`
 - **ESA/Hubble** — `esahubble.org`, `cdn.esahubble.org`
-- **Audubon's plates** — `cdm16998.contentdm.oclc.org` (CONTENTdm) and
-  `quod.lib.umich.edu` (University of Michigan Library)
+- **Audubon's plates** — the Cincinnati Library's `cdm16998.contentdm.oclc.org`
+  and, for a plate's source record, `digital.cincinnatilibrary.org`; and the
+  University of Michigan Library's `quod.lib.umich.edu`
 - **Image hosts belonging to the above** — artwork files are served from the
   institutions' own image servers
 
