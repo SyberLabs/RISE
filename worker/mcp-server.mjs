@@ -27,9 +27,9 @@ import { admitSvg } from '../src/core/svg-admission.js';
  * It is off unless MCP_ENABLED is 'true'. It answers only requests from no
  * browser origin or from its own (an MCP host's server has none; a page on
  * another site must not be able to make a browser talk to it), refuses a
- * protocol version it does not speak before reading anything, reads a bounded
- * body, holds each client address but Anthropic's shared egress to the site's
- * rate limiter where the platform offers one, and returns nothing it was sent
+ * protocol version it does not speak before reading anything, holds each client
+ * address but Anthropic's shared egress to the site's rate limiter where the
+ * platform offers one, reads a bounded body, and returns nothing it was sent
  * except a validator's message, a scene parser's diagnostic (scene-admission.mjs), a figure's (svg-admission.js) or an argument's name, clipped.
  *
  * CHECKED AGAINST THE REFERENCE, NOT AGAINST A PRODUCT: the shapes below were
@@ -519,6 +519,37 @@ export async function handleMcp(request, env) {
   if (version !== null && !/^\d{4}-\d{2}-\d{2}$/u.test(version)) {
     return http(400, { error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: `This server speaks MCP ${PROTOCOL_VERSIONS.join(', ')}.` } });
   }
+  // Each client address but Anthropic's shared egress is held to the limiter live answers use
+  // (wrangler.production.jsonc), before the body is read, so that every request is charged, a malformed
+  // or oversized one too. It fails open: with no limiter or no address (tests, a local run), or a limiter
+  // that fails, the request is served, because the route holds nothing and spends nothing a limit would protect.
+  const ip = request.headers.get('CF-Connecting-IP')?.trim();
+  if (ip && !inAnthropicEgress(ip) && typeof env.DECISION_LIMITER?.limit === 'function') {
+    let allowed = true;
+    try {
+      allowed = (await env.DECISION_LIMITER.limit({ key: `mcp:${ip}` }))?.success === true;
+    } catch {
+      /* the platform's fault, not the host's */
+    }
+    if (!allowed) {
+      // The bounded body is read only to carry the request's id back; anything unreadable answers with none.
+      let id = null;
+      try {
+        const sent = JSON.parse(await readText(request, MAX_BODY_BYTES))?.id;
+        if (typeof sent === 'string' || typeof sent === 'number') id = sent;
+      } catch {
+        /* too large or not JSON: the limit is answered all the same */
+      }
+      return http(429, {
+        jsonrpc: '2.0', id,
+        error: {
+          code: -32000,
+          message: 'Too many requests from this address in the last minute. Try again in a minute.',
+          data: { code: 'RATE_LIMITED', retryAfterSeconds: RETRY_AFTER_SECONDS }
+        }
+      }, { 'Retry-After': String(RETRY_AFTER_SECONDS) });
+    }
+  }
   let text;
   try {
     text = await readText(request, MAX_BODY_BYTES);
@@ -532,30 +563,6 @@ export async function handleMcp(request, env) {
     message = JSON.parse(text);
   } catch {
     return failure(null, -32700, 'Parse error');
-  }
-  // Each client address but Anthropic's shared egress is held to the limiter live answers use
-  // (wrangler.production.jsonc), after the bounded read so that the answer carries the request's id.
-  // It fails open: with no limiter or no address (tests, a local run), or a limiter that fails, the
-  // request is served, because the route holds nothing and spends nothing a limit would protect.
-  const ip = request.headers.get('CF-Connecting-IP')?.trim();
-  if (ip && !inAnthropicEgress(ip) && typeof env.DECISION_LIMITER?.limit === 'function') {
-    let allowed = true;
-    try {
-      allowed = (await env.DECISION_LIMITER.limit({ key: `mcp:${ip}` }))?.success === true;
-    } catch {
-      /* the platform's fault, not the host's */
-    }
-    if (!allowed) {
-      const id = typeof message?.id === 'string' || typeof message?.id === 'number' ? message.id : null;
-      return http(429, {
-        jsonrpc: '2.0', id,
-        error: {
-          code: -32000,
-          message: 'Too many requests from this address in the last minute. Try again in a minute.',
-          data: { code: 'RATE_LIMITED', retryAfterSeconds: RETRY_AFTER_SECONDS }
-        }
-      }, { 'Retry-After': String(RETRY_AFTER_SECONDS) });
-    }
   }
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
   // The self-contained card is the deployed page itself, read when the host asks for the app.
