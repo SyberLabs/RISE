@@ -1,6 +1,6 @@
 # RISE LIVE: design
 
-**Status: Intent.** Written 2026-10-09 for LIVE-017, at the owner's direction of 2026-10-08: RISE LIVE is the third product of the line, after the Reader and Composer. Nothing here is built. It is scheduled after the Composer edition's release gate (LIVE-009), and it opens with the one decision everything else depends on.
+**Status: Accepted** by the owner on 2026-10-09 (the clock decision, LIVE-017); **amended 2026-10-10** with the persona and honesty rules (§1, items 6 and 7), the interjection (§6.1, stage 4.5) and the illustrator (§6.2, stage 5.5), at the owner's direction of 2026-10-10. Written 2026-10-09 for LIVE-017, at the owner's direction of 2026-10-08: RISE LIVE is the third product of the line, after the Reader and Composer. Stage 2 (the venue, LIVE-018) is built and live; stage 3 is under way.
 
 Audience: the owner, and the engineer who builds the first slice.
 
@@ -20,6 +20,8 @@ Reduced to what cannot be otherwise:
 3. **One clock.** Whoever speaks is the clock; the words follow the voice; nothing else may move the reading. The whole playback instrument and voice hardening were built on this and must not be undone to fit a provider.
 4. **The reader's key, the reader's provider, no shared inference** (`docs/USER-OWNED-AI.md`). Live spends nothing of ours. The deterministic mock adapter is the demo path.
 5. **The sandbox stays the boundary.** A model's code runs where Creative Control put it: a worker, an offscreen canvas, admission, budgets, a kill switch. Interactive scenes add events in and out of that box; they never open it.
+6. **RISE speaks as itself.** (Added 2026-10-10.) In Live the reader talks to RISE, not to a tool a model calls. The system prompt says *You are RISE*; the persona belongs to the system — the runtime, the stage, the guide, the admission rules and the voice — and the intelligence is whichever model the reader brings. For the reader the distinction disappears: "RISE, tell me about black holes with an attractor visual" is answered by RISE, in RISE's voice, in RISE's room. In the architecture the distinction stays exactly where item 4 puts it: the reader's provider, the reader's key, nothing of ours spent. Composer keeps its own posture (there the host's model is the speaker and RISE is what it calls); the two never share one prompt.
+7. **The persona never hides the model.** (Added 2026-10-10.) A Current's `origin` names the model and who runs it, the About panel shows it, and a reader who asks "who are you really?" is told plainly: RISE, speaking through the model they connected, on their key. The directory's rules, `USER-OWNED-AI.md` and plain honesty all want the same sentence. The persona is a voice, not a disguise.
 
 Everything else — which provider, which transport, which widget — is a recommendation.
 
@@ -118,6 +120,29 @@ Today a model composes once; the room follows the score. Live needs rate: the mo
 - **Bounded by manifests and admission,** exactly as cues are now. The model never drives frames.
 - **Interactive scenes.** The sandbox learns to listen: pointer and key events forwarded into the worker (`rise.input`), scene state out as `scene.input` events (§4). The widget catalog VISION §2.5 wanted is then *a style of generated scene* with a tested `rise.lib` widget set (slider, draggable point, step-through), not a second format. This keeps one pipeline and still gives the model widgets it can rely on.
 
+### 6.1 The interjection (added 2026-10-10; stage 4.5)
+
+The reader speaks while the reading plays: "What do you mean by that? Show me." Today that is three half-built things; it becomes one first-class event.
+
+- **Hold at the boundary.** The microphone's press holds the voice at the current phrase (built: `runtime.hold({ text })`); the room stays as it is, the head where it was. Nothing is cancelled.
+- **The question goes up with the room.** The reader's words (`said`, §4) go to the model with the journal of this reading so far: what has been said, what is on screen, where the head is. One request on the reader's key, through the room's one adapter connection.
+- **The model answers inside the room.** Its reply is a Current fragment streamed into the same room (stage 3's beats), spoken by the same voice, over the same scene unless it changes it (§6). Then one of three endings, decided by the model and named in the stream: **resume** (take the held reading up where it was), **replace** (the rest of the reading is withdrawn; the answer continues as the reading), or **end** (the answer was the end).
+- **The reader's controls hold throughout.** Pause, seek and replay act on the interjection as on any passage; "back" from the first phrase of an interjection returns to the held phrase.
+- **It is not a Dive.** A Dive opens a child reading and returns; an interjection is the same reading, continued by the reader's question. Dive stays parked.
+- **Measure:** time from the reader's last word to RISE's first word of answer; the voice never speaks two things at once; the head is where the reader expects after each of the three endings.
+
+### 6.2 The illustrator (added 2026-10-10; stage 5.5)
+
+"Create a visual to demonstrate it." The voice must never do two things at once, so the picture is drawn by a second role, the **illustrator**: a second request to the reader's chosen provider with its own system prompt (the scene contract, `rise.lib`, the figure rules, the admission diagnostics), given the room (theme, the running scene, what was just said, what the reader asked) and returning only a picture: a cue, a figure or a scene. Rules:
+
+- **The illustrator never speaks.** It returns scene material; the conductor starts it at the next phrase boundary. One clock survives.
+- **Climb the cheapest medium first.** A native engine cue ("an attractor visual") lands at once and needs no model; a labelled diagram is an SVG figure and takes seconds; a code scene is the last resort, since a model takes ten to twenty seconds to write one. The composer's request to the illustrator names the medium it needs, and RISE answers from its own engines before it asks anyone.
+- **The voice bridges the wait honestly.** While the illustrator draws, RISE says what it is doing or goes on explaining; a shown line may say *drawing…*. Dead air is the failure, not latency.
+- **Admission is the same door.** The illustrator's scene passes `admitSceneCode` / the figure allowlist like every other; a refusal returns the line, column and rule to the illustrator, which repairs and retries, bounded (three attempts); after that the reading goes on without the picture and the journal says so.
+- **One runtime, one adapter kind.** The illustrator is a second connection on the same adapter and key, not a second runtime, service, or agent framework. Its result enters the stream as scene events (stage 3's forms), so nothing downstream knows there were two roles.
+- **Cost is the reader's, and visible.** Each illustrator request is billed to the reader's key like any turn; usage is shown with the reading's own.
+- **Measure:** request-to-picture time per medium; refusal and repair rates; whether the composer's voice ever paused for the picture.
+
 ## 7. What we refuse
 
 | Proposal | Verdict |
@@ -128,6 +153,8 @@ Today a model composes once; the room follows the score. Live needs rate: the mo
 | A host-provided venue for Live (a card) | Refused. Composer is the host product; Live owns its venue. |
 | Model-emitted HTML or UI | Refused, as VISION §5 (amended 2026-10-09) says: only sandboxed scene modules execute. |
 | Shared inference for the demo | Refused. The mock adapter is the demo. |
+| A persona that hides the model (added 2026-10-10) | Refused (§1, item 7). RISE is a voice, not a disguise; `origin`, About and a plain answer name the model. |
+| An illustrator that speaks, or that runs outside the one runtime (added 2026-10-10) | Refused (§6.2). It returns scene material through the same admission; the conductor places it; one clock. |
 
 ## 8. The order to build it in
 
@@ -136,8 +163,10 @@ Each stage leaves something true and demonstrable if the next never comes.
 1. **The clock decision recorded** (this document, accepted by the owner). Adapter capability `speaks: 'host'` named; the realtime audio path stays off.
 2. **The venue slice.** The `/live` page on the Reader site with the mock adapter and one real text provider on the reader's own credential: the **OpenRouter text-stream adapter** (new; the in-memory token flow the site already has), with the Gemini and OpenAI adapters behind a typed, in-memory provider key for readers who have one (§5). The microphone, RISE's voice, the instrument. Verify the Gemini and OpenAI adapters against the real services once (they were built against conformance fakes). *A week; the first time Live can be felt.*
 3. **Beats streamed.** The line format and the adapter emit v2 beats; holds and scenes arrive in time. The eval corpus gains streamed cases.
-4. **Perception v1.** The seven events of §4 go up with the reader's next words; the guide teaches the model what they mean. Measure: does a model change what it says when told the reader replayed?
+4. **Perception v1.** The seven events of §4 go up with the reader's next words; the guide teaches the model what they mean. The persona lands here: the Live system prompt says *You are RISE*, with the honesty rule (§1, items 6 and 7). Measure: does a model change what it says when told the reader replayed?
+4.5. **The interjection** (§6.1, added 2026-10-10). The reader speaks mid-reading; the voice holds at the phrase; the question goes up with the room; RISE answers inside the room and resumes, replaces or ends. The first moment it feels like talking to RISE. Measure: last word to first word; no two voices; the head where the reader expects.
 5. **The model changes the room.** Mid-reading `visual.control` / `look.change` / `scene.cue` events admitted and applied at phrase boundaries; the "one visual, one phrase, one second" demonstration.
+5.5. **The illustrator** (§6.2, added 2026-10-10). A second role on the reader's key draws what the composer asks for, climbing the cheapest medium first (engine cue, figure, code scene), through the same admission, while the voice goes on. Measure: request-to-picture per medium; repair rate; the voice never waits.
 6. **Interactive scenes.** `rise.input` into the worker; `scene.input` out; a widget set in `rise.lib`; the neural-network page of VISION §2.5.
 7. **A better voice under the same clock.** A provider TTS renderer with word timestamps on the reader's key, as a sibling of the browser voice.
 8. **Later, if wanted:** the second clock discipline (§2.3) as its own posture.
