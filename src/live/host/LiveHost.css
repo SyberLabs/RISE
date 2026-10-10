@@ -199,12 +199,16 @@ html[data-embed="mcp"] .atom-display[data-place="caption"] { bottom: calc(var(--
    room. The strip is sized once per card, for three lines of the band's face for a phrase that needs
    lines (its scale floor 0.88, at the default text size 1.18), plus the band's padding and edges; longer
    words rise over the picture's foot on their scrim rather than resize it. Below 350 px tall the picture
-   would be under 130 px, so it keeps the field and the words lie over its foot. Either way the words sit
-   at the foot, never the centre, and take no press: there is nowhere to move them. */
+   would be under 130 px, so it keeps the field and the words lie over its foot. Either way the words rest
+   at the foot, never the centre. The strip is where they rest, not a cage: a reader may select them and lift
+   them over the picture, up to the field's top edge, and bring them back down to the strip, never below it.
+   The Chamber reads the foot from `align-items` (Chamber.js `_bandFootTravel`) and keeps the offset in that
+   range; a caption or a top line moves by the same offset. The picture's box never changes for a drag. */
 @media (max-width: 640px) {
   html[data-embed="mcp"] .chamber-field[data-picture] { align-items: flex-end; }
-  html[data-embed="mcp"] .chamber-field[data-picture] :is(#atom-band, #atom-display) { --band-offset: 0px; }
-  html[data-embed="mcp"] .chamber-field[data-picture] #atom-display { pointer-events: none; }
+  html[data-embed="mcp"] .chamber-field[data-picture] .atom-display:is([data-place="caption"], [data-place="top"], [data-place="left"], [data-place="right"]) {
+    transform: translateY(var(--band-offset, 0px));
+  }
   html[data-embed="mcp"] .chamber-field[data-picture] .atom-display:is([data-place="left"], [data-place="right"]) {
     left: 50%;
     right: auto;

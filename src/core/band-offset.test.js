@@ -6,6 +6,8 @@ import {
     BAND_OFFSET_LIMIT,
     bandTravelPx,
     clampBandFraction,
+    clampFootFraction,
+    footTravelPx,
     readBandOffsetSetting,
     writeBandOffsetSetting
 } from './band-offset.js';
@@ -57,5 +59,23 @@ describe('the preference is read and written like the others', () => {
         const calls = [];
         writeBandOffsetSetting(12, (key, value) => calls.push([key, value]));
         expect(calls).toEqual([['bandOffset', BAND_OFFSET_LIMIT]]);
+    });
+});
+
+describe('a band resting at the field’s foot (a card on a phone with a picture above the words)', () => {
+    it('rises from where it rests to 8 px under the field’s top edge, whatever it is lifted by now', () => {
+        // Resting at 270 in a field whose top is 10: 252 px of room above it.
+        expect(footTravelPx({ fieldTop: 10, wordsTop: 270, offsetPx: 0 })).toBe(252);
+        // The same band already lifted 100 px is the same rest and the same room.
+        expect(footTravelPx({ fieldTop: 10, wordsTop: 170, offsetPx: -100 })).toBe(252);
+        // A band with no room above it has none, never a negative room.
+        expect(footTravelPx({ fieldTop: 10, wordsTop: 12, offsetPx: 0 })).toBe(0);
+    });
+
+    it('moves only up: its foot is where it rests, never below', () => {
+        expect(clampFootFraction(0.5)).toBe(0);
+        expect(clampFootFraction(-0.4)).toBe(-0.4);
+        expect(clampFootFraction(-3)).toBe(-1);
+        expect(clampFootFraction('x')).toBe(0);
     });
 });

@@ -1908,6 +1908,23 @@ describe('the line a failed scene is reported in', () => {
     });
 });
 
+describe('the band’s gestures in About this reading', () => {
+    it('keeps each note the Chamber sends as a [RISE band] trace line', () => {
+        const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+        mount('?embed=mcp&voice=paced');
+        const note = detail => window.dispatchEvent(new CustomEvent('rise-band-note', { detail }));
+        note({ type: 'band.press', pointerType: 'touch', action: 'grab' });
+        note({ type: 'band.move', pointerType: 'touch', dx: 0, dy: -120, offset: '-120px' });
+        note({ type: 'band.cancel', pointerType: 'touch', moved: true });
+        const lines = host.aboutReading().split('\n').filter(line => line.startsWith('[RISE band]'));
+        expect(lines).toHaveLength(3);
+        expect(lines[0]).toMatch(/^\[RISE band\] t=\d+\.\d{3}s band\.press pointerType=touch action=grab$/u);
+        expect(lines[1]).toMatch(/ band\.move pointerType=touch dx=0 dy=-120 offset=-120px$/u);
+        expect(lines[2]).toMatch(/ band\.cancel pointerType=touch moved=true$/u);
+        info.mockRestore();
+    });
+});
+
 describe('the page that framed an embedded reading', () => {
     it('is named from the first ancestor, or the referrer, and otherwise said to be unidentified', () => {
         expect(framedBy({ location: { ancestorOrigins: ['https://host.example'] }, document: { referrer: 'https://other.example/x' } })).toBe('https://host.example');

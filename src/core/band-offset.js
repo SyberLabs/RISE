@@ -31,6 +31,25 @@ export function bandTravelPx(field, band) {
     return Math.max(0, (fieldHeight - bandHeight) / 2);
 }
 
+/** How close a band resting at the field's foot may rise to the field's top edge, in px. */
+export const BAND_FOOT_MARGIN_PX = 8;
+
+/**
+ * The room above a band that rests at its field's foot (a card on a phone with a picture above the words,
+ * LiveHost.css), in px: from where it rests to BAND_FOOT_MARGIN_PX under the field's top edge. Measured from
+ * its box now, less whatever it is lifted by now, so a lifted band has the same room as a resting one.
+ */
+export function footTravelPx({ fieldTop, wordsTop, offsetPx }) {
+    return Math.max(0, wordsTop - offsetPx - fieldTop - BAND_FOOT_MARGIN_PX);
+}
+
+/** A band at the foot moves only up: -1 is the field's top edge, 0 the place it rests, and never below. */
+export function clampFootFraction(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(-1, Math.min(0, n));
+}
+
 export function readBandOffsetSetting(settings = {}) {
     return clampBandFraction(settings?.[BAND_OFFSET_SETTING] ?? 0);
 }

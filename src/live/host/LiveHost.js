@@ -73,7 +73,7 @@ const KEYED = Object.freeze({
     }
 });
 const VOICES = Object.freeze({ auto: 'Speak if this device can', browser: 'Speak', paced: 'Silent, paced as if spoken' });
-/** How many voice and audio trace lines "About this reading" shows. */
+/** How many voice, audio and band trace lines "About this reading" shows. */
 const TRACE_KEPT = 20;
 /** How many installed voice names "About this reading" lists. */
 const VOICES_LISTED = 20;
@@ -182,6 +182,10 @@ export class LiveHost {
         this.sceneReports = [];
         this.onSceneDiagnostic = event => this.reportScene(event.detail);
         container.ownerDocument.defaultView?.addEventListener('rise-scene-diagnostic', this.onSceneDiagnostic);
+        // The words' press, move and release on the card (Chamber.js `_noteBand`), on the voice's clock, so a
+        // field report says whether a drag reached the card or the app took it (band.cancel).
+        this.onBandNote = event => this.trace('[RISE band]', voiceLine({ at: performance.now(), ...event.detail }));
+        container.ownerDocument.defaultView?.addEventListener('rise-band-note', this.onBandNote);
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
         // Which Gemini model to ask, if the reader named one; not secret, and empty means the default.
@@ -1270,6 +1274,7 @@ export class LiveHost {
         if (this.destroyed) return;
         this.destroyed = true;
         this.container.ownerDocument.defaultView?.removeEventListener('rise-scene-diagnostic', this.onSceneDiagnostic);
+        this.container.ownerDocument.defaultView?.removeEventListener('rise-band-note', this.onBandNote);
         this.embeddedStartupCancelled = true;
         this.cancelEmbeddedPending();
         this.stopHearingExitListener();

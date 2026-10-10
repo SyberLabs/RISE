@@ -1544,10 +1544,10 @@ test.describe('the card on a phone', () => {
   // Pass 3: on a small card a figure or a scene sits above a strip kept for the words, never under them.
   const ROOM = 88;
   /** The wide triangle (400 x 260) under a centred line held long, as the audit measured it (finding 2). */
-  const heldFigure = () => ({ ...figureBeats(TRIANGLE_SVG), beats: [{ show: PHONE_LINE, hold: { ms: 60_000 }, scene: 'triangle', place: 'centre' }, { say: 'It came to rest.' }] });
-  const figureCard = async (page, baseURL, height) => {
+  const heldFigure = (place = 'centre') => ({ ...figureBeats(TRIANGLE_SVG), beats: [{ show: PHONE_LINE, hold: { ms: 60_000 }, scene: 'triangle', place }, { say: 'It came to rest.' }] });
+  const figureCard = async (page, baseURL, height, { chat = 0, place = 'centre' } = {}) => {
     const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
-    const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: heldFigure(), height });
+    const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: heldFigure(place), height, chat });
     await begin(app);
     await expectShown(app, 'Sunlight looks white');
     const figure = app.locator('img.chamber-figure');
@@ -1575,7 +1575,7 @@ test.describe('the card on a phone', () => {
     };
   });
 
-  test('on a small card a wide figure sits whole above the words, none of it under them, and the words take no press', async ({ page, baseURL }) => {
+  test('on a small card a wide figure sits whole above the words, none of it under them', async ({ page, baseURL }) => {
     const seen = {};
     for (const [width, height] of [[390, 481], [412, 481], [390, 844], [390, 360]]) {
       await page.setViewportSize({ width, height });
@@ -1588,17 +1588,6 @@ test.describe('the card on a phone', () => {
       // At the bar's room, or in it by the 24 px the words move while the bar is hidden.
       expect(at.wordsBottom).toBeGreaterThanOrEqual(height - ROOM - 2);
       expect(at.wordsBottom).toBeLessThanOrEqual(height - ROOM + 25);
-      if (width === 390 && height === 481) {
-        // A tap on the words selects nothing to move: the strip is theirs, and a drag has nowhere to take them.
-        const cdp = await page.context().newCDPSession(page);
-        const box = await app.locator('#atom-display').boundingBox();
-        const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
-        await page.waitForTimeout(60);
-        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-        await page.waitForTimeout(200);
-        await expect(app.locator('#atom-display')).not.toHaveClass(/is-band-movable/u);
-      }
     }
     // The picture region is the card less the bar's room and a strip of three lines of the band's face (134 px at 390 wide).
     expect(seen['390x481'].region).toBeGreaterThanOrEqual(255);
@@ -1608,6 +1597,71 @@ test.describe('the card on a phone', () => {
     expect(seen['412x481'].region).toBeLessThanOrEqual(262);
     expect(seen['390x360'].region).toBeGreaterThanOrEqual(130);
     expect(seen['390x360'].region).toBeLessThanOrEqual(145);
+  });
+
+  test('on a small card with a figure the words rest in their strip, a tap selects them, a drag lifts them over the picture and brings them back to the strip, and the conversation stays put', async ({ page, baseURL }) => {
+    // A centred line (the band), a caption (the premium-educational style's place) and a top line all move;
+    // a top line rests near the field's top, so it rises only as far as the top edge allows.
+    for (const place of ['centre', 'caption', 'top']) {
+      const app = await figureCard(page, baseURL, 481, { chat: 600, place });
+      const cdp = await page.context().newCDPSession(page);
+      await page.evaluate(() => window.scrollTo(0, 200));
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(200);
+      const field = app.locator('#chamber-field');
+      const offset = () => field.evaluate(node => parseFloat(node.style.getPropertyValue('--band-offset') || '0'));
+      const figureBox = () => app.locator('img.chamber-figure').boundingBox();
+      const words = async () => {
+        const frame = await page.locator('#view').boundingBox();
+        const box = await app.locator('#atom-display').boundingBox();
+        return { x: box.x + box.width / 2, y: box.y + box.height / 2, top: box.y - frame.y, bottom: box.y + box.height - frame.y };
+      };
+      const touch = (type, at) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: at ? [{ x: at.x, y: at.y }] : [] });
+      const drag = async (from, dy) => {
+        await touch('touchStart', from);
+        for (let step = 1; step <= 12; step += 1) {
+          await page.waitForTimeout(16);
+          await touch('touchMove', { x: from.x, y: from.y + (step * dy) / 12 });
+        }
+        await touch('touchEnd');
+        await page.waitForTimeout(300);
+      };
+      expect(await offset()).toBe(0);
+      const picture = await figureBox();
+      // One touch, no move: the words are selected (measured before: #596 switched the press off in this layout).
+      const rest = await words();
+      await touch('touchStart', rest);
+      await page.waitForTimeout(60);
+      await touch('touchEnd');
+      await expect(app.locator('#atom-display')).toHaveClass(/is-band-movable/u);
+      await page.waitForTimeout(300);
+      // Up 120 px over the picture.
+      const before = await words();
+      await drag(before, -120);
+      const lifted = await offset();
+      const after = await words();
+      console.log(`[stacked] ${place} drag up: offset ${lifted}px, words ${Math.round(before.top)} -> ${Math.round(after.top)}, scrollY ${await page.evaluate(() => window.scrollY)}`);
+      expect(lifted).toBeLessThan(0);
+      expect(Math.abs(after.top - before.top - lifted)).toBeLessThanOrEqual(2);
+      if (place !== 'top') {
+        expect(lifted).toBeLessThan(-108);
+        expect(lifted).toBeGreaterThan(-132);
+      }
+      expect(await page.evaluate(() => window.scrollY)).toBe(200);
+      expect(await figureBox()).toEqual(picture);
+      // Far past the top: the words stop just under the field's top edge (8 px, plus the band's own padding).
+      await drag(after, -600);
+      const top = await words();
+      console.log(`[stacked] ${place} drag past the top: words top ${Math.round(top.top)}, offset ${await offset()}px`);
+      expect(top.top).toBeGreaterThanOrEqual(8);
+      expect(top.top).toBeLessThanOrEqual(40);
+      expect(await figureBox()).toEqual(picture);
+      // Down 900 px: back to the strip, and no lower.
+      await drag(top, 900);
+      expect(await offset()).toBe(0);
+      expect((await words()).bottom).toBeLessThanOrEqual(481 - ROOM + 25);
+      expect(await page.evaluate(() => window.scrollY)).toBe(200);
+      expect(await figureBox()).toEqual(picture);
+    }
   });
 
   test('a card too short to keep a picture and the words apart lays the words over it, at its foot and never at its centre', async ({ page, baseURL }) => {
