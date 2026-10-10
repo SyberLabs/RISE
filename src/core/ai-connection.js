@@ -89,6 +89,35 @@ export function getConnection() {
   };
 }
 
+export const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+/**
+ * The reader's OpenRouter account for a live answer (src/live/adapters/openrouter.js),
+ * or null. The key stays in this module: `request` sends it in one header to
+ * OpenRouter's chat completions and nowhere else, and `scrub` cleans text of it.
+ * Once the reader disconnects, or OpenRouter answers 401, nothing more is sent.
+ */
+export function getOpenRouterChat() {
+  if (!openRouterKey) return null;
+  const key = openRouterKey;
+  return {
+    async request(init) {
+      if (openRouterKey !== key) throw new Error('OpenRouter was disconnected');
+      const response = await fetch(OPENROUTER_CHAT_URL, {
+        ...init,
+        headers: { ...init.headers, Authorization: `Bearer ${key}` },
+        credentials: 'omit',
+        referrerPolicy: 'no-referrer',
+        redirect: 'error',
+        cache: 'no-store'
+      });
+      if (response.status === 401 && openRouterKey === key) disconnect();
+      return response;
+    },
+    scrub: text => String(text).split(key).join('[key]')
+  };
+}
+
 /**
  * Local RISE only: ask the same-origin bridge whether pinned Kev is ready.
  * On the public site this route does not exist and the answer is "no".

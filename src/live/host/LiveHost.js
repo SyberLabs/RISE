@@ -32,6 +32,7 @@
  */
 
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
+import { OPENROUTER_DEFAULT_MODEL } from '../adapters/openrouter-model.js';
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
 import { admitCatalogVisual } from '../../core/visual-catalog.js';
 import { jevColors } from '../../core/jev-palette.js';
@@ -68,8 +69,11 @@ const EMBED_THEME_VARS = [['--color-void', 'background'], ['--color-light', 'tex
 const PROVIDERS = Object.freeze({
     mock: 'Deterministic demo provider (offline)',
     openai: 'OpenAI Realtime, with your own key',
-    gemini: 'Google Gemini, with your own key'
+    gemini: 'Google Gemini, with your own key',
+    openrouter: 'OpenRouter, on your own account'
 });
+/** OpenRouter's key is the reader's connection from Home (src/core/ai-connection.js), never typed here. */
+const OPENROUTER_NOTE = "Uses the OpenRouter account you connected with Connect OpenRouter on Home: the key is held in this tab's memory only and goes from this browser straight to OpenRouter, never to this site. Your prompt is billed to your OpenRouter account. RISE pays for nothing.";
 /** The providers the reader pays for with their own key: what to call it, and where the key goes. */
 const KEYED = Object.freeze({
     openai: {
@@ -290,6 +294,13 @@ export class LiveHost {
             </label>` : ''}
             <p class="live-key-note">${keyed.note}</p>
           </div>` : ''}
+          ${provider === 'openrouter' ? `
+          <div class="live-key">
+            <label class="live-label" for="live-model">Model
+              <input id="live-model" name="model" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="200" value="${OPENROUTER_DEFAULT_MODEL}">
+            </label>
+            <p class="live-key-note">${OPENROUTER_NOTE}</p>
+          </div>` : ''}
           <div class="live-row">
             <label class="live-label live-voice">Voice
               <select name="voice">
@@ -414,6 +425,7 @@ export class LiveHost {
             this.form.elements.key.value = '';
             if (this.providerName === 'gemini') this.model = text(this.form.elements.model?.value).trim() || undefined;
         }
+        if (this.providerName === 'openrouter') this.model = text(this.form.elements.model?.value).trim() || undefined;
         this.starting = true;
         this.startedAt = performance.now();
         this.errorLine.hidden = true;
@@ -736,6 +748,11 @@ export class LiveHost {
             ]);
             // The key and the model are asked for at each request, so a forgotten key is not used again.
             return createGeminiAdapter({ transport: createGeminiFetchTransport({ getKey: () => this.key, getModel: () => this.model }) });
+        }
+        if (this.providerName === 'openrouter') {
+            // The reader's connection and the model are asked for at each request (ai-connection.js holds the key).
+            const { createOpenRouterAdapter } = await import('../adapters/openrouter.js');
+            return createOpenRouterAdapter({ getModel: () => this.model });
         }
         if (this.providerName !== 'openai') {
             if (!this.hasCatalogChoice) return createMockAdapter({ clock });

@@ -5,7 +5,7 @@ import {
 } from './openrouter-oauth.js';
 import { takeConnectionNotice } from './ai-connection.js';
 import { claimOpenRouterReturn } from './openrouter-callback.js';
-import { connectionState, disconnect, getConnection, resetConnectionForTests } from './ai-connection.js';
+import { OPENROUTER_CHAT_URL, connectionState, disconnect, getConnection, getOpenRouterChat, resetConnectionForTests } from './ai-connection.js';
 import { callDecision } from './decision/call.js';
 
 const ORIGIN = 'https://rise.syberlabs.io';
@@ -171,5 +171,57 @@ describe('the reader connection', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('unauthorized', { status: 401 })));
     await expect(callDecision(getConnection(), body)).rejects.toMatchObject({ code: 'AUTH' });
     expect(connectionState().kind).toBe('none');
+  });
+});
+
+describe('the reader connection, for a live answer (RISE Live)', () => {
+  async function connect() {
+    const storage = memoryStorage();
+    const { state } = await begin(storage);
+    await completeOpenRouterConnect({ code: 'auth-code-123', state },
+      { storage, fetcher: async () => Response.json({ key: KEY }), now: () => 2_000 });
+  }
+
+  it('is not there without a connection, so nothing can be sent', () => {
+    expect(getOpenRouterChat()).toBeNull();
+  });
+
+  it('sends the key only to OpenRouter chat completions, in one header, never with cookies or a referrer', async () => {
+    await connect();
+    const fetcher = vi.fn(async () => new Response('', { status: 200 }));
+    vi.stubGlobal('fetch', fetcher);
+    const chat = getOpenRouterChat();
+    expect(JSON.stringify(chat)).not.toContain(KEY);
+    await chat.request({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    const [url, init] = fetcher.mock.calls[0];
+    expect(url).toBe(OPENROUTER_CHAT_URL);
+    expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
+    expect(init.headers.Authorization).toBe(`Bearer ${KEY}`);
+    expect(init.headers['Content-Type']).toBe('application/json');
+    expect(init).toMatchObject({ credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error', cache: 'no-store' });
+  });
+
+  it('cleans any text of the key it holds, without handing the key out', async () => {
+    await connect();
+    expect(getOpenRouterChat().scrub(`refused: Bearer ${KEY}.`)).toBe('refused: Bearer [key].');
+  });
+
+  it('drops a revoked or expired key when OpenRouter answers 401', async () => {
+    await connect();
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"error":{"code":401,"message":"no"}}', { status: 401 })));
+    const response = await getOpenRouterChat().request({ method: 'POST', headers: {}, body: '{}' });
+    expect(response.status).toBe(401);
+    expect(connectionState().kind).toBe('none');
+    expect(getOpenRouterChat()).toBeNull();
+  });
+
+  it('sends nothing once the reader has disconnected, even through a chat asked for before', async () => {
+    await connect();
+    const chat = getOpenRouterChat();
+    disconnect();
+    const fetcher = vi.fn(async () => new Response('', { status: 200 }));
+    vi.stubGlobal('fetch', fetcher);
+    await expect(chat.request({ method: 'POST', headers: {}, body: '{}' })).rejects.toThrow(/disconnected/u);
+    expect(fetcher).not.toHaveBeenCalled();
   });
 });

@@ -40,6 +40,8 @@ Settings, Sound & voice, where the choice is kept on the device (`cardVoice`).
 
 The same connection serves the auxiliary features: Scriptorium routing (`route.js`), section visual direction (`src/core/passage-visuals/score-provider.js`), and the EnterpRise "Kev (local RISE)" decider (`src/enterprise/remote-decider.js`, local only).
 
+RISE Live (`/live?provider=openrouter`, off by default) asks its live answers through the same OpenRouter connection: `src/live/adapters/openrouter.js` streams OpenRouter's chat completions with the model the reader names (default `anthropic/claude-haiku-5.5`), and carries text only; RISE's own voice speaks it. The adapter never holds the key: `getOpenRouterChat()` in `src/core/ai-connection.js` adds it to the one request, and a `401` drops it as above.
+
 ## Connect OpenRouter (OAuth PKCE)
 
 Following [OpenRouter's OAuth PKCE guide](https://openrouter.ai/docs/guides/overview/auth/oauth), `src/core/openrouter-oauth.js`:
@@ -52,7 +54,7 @@ Disconnect forgets the key in RISE. Each connection mints a new key in the reade
 
 The key goes only to `https://openrouter.ai`: the CSP `connect-src` names that exact origin. It never reaches a SyberLabs server, storage, analytics (RISE has none), logs, exports, or error reports (RISE sends none). This is not a vault: browser extensions and any script in the page can read page memory. RISE loads no third-party scripts (`script-src 'self'`) to keep that surface small, and the Home panel says so to the reader.
 
-What the reader is billed for: each Home request, each Scriptorium route, and, while connected, section visual direction as they read a released text (the reading panel says so). A repeated identical Home request in the same tab reuses the earlier answer at no charge.
+What the reader is billed for: each Home request, each Scriptorium route, while connected, section visual direction as they read a released text (the reading panel says so), and each question or Dive asked on RISE Live with OpenRouter as the provider. A repeated identical Home request in the same tab reuses the earlier answer at no charge.
 
 ## Server side
 

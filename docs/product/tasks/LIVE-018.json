@@ -47,6 +47,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/613",
       "note": "The venue page: open, auto-merge on the required CI check. Not merged, not deployed, not accepted.",
       "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/adapters/openrouter.conformance.test.js",
+      "note": "Branch live-openrouter-adapter, 2026-10-09/10: the shared adapter conformance suite (src/test/live-conformance.js) passes against the OpenRouter adapter with a fake fetch replaying the documented SSE wire; openrouter.test.js (31 tests: refusals 401/402/429 and others, byte-wise chunk splitting, abort, usage, the key absent from every note, journal, event and console line); registry.test.js makes it from the venue registry. Not verified against the real service.",
+      "date": "2026-10-10"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/612",
+      "note": "The OpenRouter text-stream adapter, on the reader's own key (branch live-openrouter-adapter), registered in the venue registry.",
+      "date": "2026-10-10"
     }
   ],
   "activity": [
@@ -57,10 +69,14 @@
     {
       "date": "2026-10-10T05:58:00.000Z",
       "summary": "Venue page opened as #613 (branch live-venue); the OpenRouter adapter half is not yet in."
+    },
+    {
+      "date": "2026-10-10T05:50:17.490Z",
+      "summary": "OpenRouter adapter half (#612, branch live-openrouter-adapter): src/live/adapters/openrouter.js streams OpenRouter chat completions on the in-memory key (ai-connection.js getOpenRouterChat, the adapter never holds it), default model anthropic/claude-haiku-5.5, speaks: 'host'; the venue registry now makes it, so OpenRouter is no longer listed as soon. No real provider has answered."
     }
   ],
-  "updatedAt": "2026-10-10T05:58:00.000Z",
-  "revision": 2,
+  "updatedAt": "2026-10-10T05:50:17.490Z",
+  "revision": 3,
   "summary": "Design §8 stage 2: the first time RISE Live can be felt. The venue page (this branch) and the OpenRouter text-stream adapter (a parallel branch) are its two halves.",
   "blocker": null
 }

@@ -52,6 +52,8 @@ export function createTextStreamAdapter({ id, provider, connect, capacity = 64 }
     return {
         id,
         capabilities: Object.freeze({
+            // RISE's voice speaks the text and is the clock (the RISE Live design, §2); a provider never does here.
+            speaks: 'host',
             providerAudio: false,
             interruption: true,
             resume: 'replay',

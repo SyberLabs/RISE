@@ -26,8 +26,8 @@ export const LIVE_PROVIDERS = Object.freeze([
         id: 'openrouter',
         label: 'OpenRouter (your key)',
         credential: 'openrouter',
-        // The OpenRouter text-stream adapter (design §8 stage 2) lands here.
-        adapter: null
+        // The key stays in ai-connection.js; the adapter asks for the connection at each request.
+        adapter: async () => (await import('./openrouter.js')).createOpenRouterAdapter()
     }),
     Object.freeze({
         id: 'gemini',
