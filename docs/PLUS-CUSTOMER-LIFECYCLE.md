@@ -10,14 +10,14 @@ Checkout is closed unless all of these are configured:
 
 - Existing Stripe key, price, webhook secret, signed-cookie secret, meter, address limiter, safe spending policy and working voice provider.
 - `PLUS_CHECKOUT_ENABLED=true` explicitly opens the new offer. Closing it does not disable subscriber voice, recovery or billing management. Production still requires `PLUS_REQUIRE_LIVE=true`; test keys cannot sell there.
-- `PLUS_PORTAL_CONFIGURATION` names the Stripe Customer Portal configuration. Enable cancellation, invoice history and payment-method updates there; do not enable upgrades or promotional offers that this initial product does not support.
+- `PLUS_PORTAL_CONFIGURATION` names the Stripe Customer Portal configuration. It must be active in the matching Stripe mode, with cancellation at the end of the paid period, invoice history and payment-method updates enabled, and subscription updates disabled. The server verifies these settings before selling.
 - `RESEND_API_KEY` and `PLUS_EMAIL_FROM` provide recovery mail through a verified sending domain.
 
 The price must be active, USD 899 cents, monthly, interval count one, licensed usage, per-unit, with exclusive tax and an active product. Checkout uses one item, quantity one, card payment and automatic tax, with no promotion codes. The conservative policy must fund the full allowance even after estimated processing fees on 30% added tax. Actual collected-revenue checks still apply to every voice; exceptional refunds, unusually high fees or policy changes can reduce available service and require owner support. Do not describe the spending guard as a way to quietly change the paid promise.
 
 A repurchase creates a fresh Stripe customer so old credits, discounts and pending invoice items cannot silently underfund it; the previous local billing identity stays intact until the new purchase is claimed. Recovery selects an active subscription across up to ten matching Stripe customers.
 
-The server caches the checked price for 60 seconds for configuration reads and checks it again when creating Checkout. Provider readiness has a five-second bound; Stripe and email requests have ten-second bounds. Address limits apply before new public lifecycle requests. No new background polling or inference is introduced.
+The server checks price and portal configuration concurrently, caches their combined readiness for 60 seconds for configuration reads, and checks both afresh when creating Checkout. Provider readiness has a five-second bound; Stripe and email requests have ten-second bounds. Address limits apply before new public lifecycle requests. No new background polling or inference is introduced.
 
 ## API contract
 
@@ -36,7 +36,7 @@ All customer POSTs require the request's own `Origin`, JSON content type and a b
 
 Checkout success returns to `/plus/claim?session_id=...`; cancellation returns to `/plus/`. The client removes the session ID after capturing it. A copied success link or lost purchasing-browser cookie returns 401 `CHECKOUT_BROWSER_REQUIRED`; direct the customer to email recovery. A recognized existing subscription returns 409 `PLUS_EXISTS` instead of starting another. Anonymous customers must be advised to restore an existing subscription before buying again; the app does not infer identity from an unverified email.
 
-Recovery email links use `/plus/restore#token=...`. The fragment does not enter ordinary server request logs. The client must immediately remove the fragment, then POST the token without putting it in local storage or telemetry. Links expire after 15 minutes and consume their proof atomically once. Successful recovery of a canceled subscription restores billing management, never paid voice access. Recovery merges the immediate exact-email customer list with a bounded case-insensitive Stripe search and checks returned email addresses itself. Search can lag a recent purchase; the exact list remains usable then. Recovery prioritizes an active subscription across matching customers. Truncated Stripe customer/subscription lists fail closed rather than selecting incomplete evidence.
+Recovery email links use `/plus/restore#token=...`. The fragment does not enter ordinary server request logs. The client must immediately remove the fragment, then POST the token without putting it in local storage or telemetry. Links expire after 15 minutes and consume their proof atomically once. Consumption records the verified subscription status, clears cached financial standing and advances its revision so an older in-flight request cannot restore stale access. Permanent refund/dispute revocations remain intact. Successful recovery of a canceled subscription restores billing management, never paid voice access. Recovery merges the immediate exact-email customer list with a bounded case-insensitive Stripe search and checks returned email addresses itself. Search can lag a recent purchase; the exact list remains usable then. Recovery prioritizes an active subscription across matching customers. Truncated Stripe customer/subscription lists fail closed rather than selecting incomplete evidence.
 
 ## Stored data and trust boundaries
 

@@ -885,11 +885,19 @@ async function checkedOffer(env, cached = false) {
   if ((OFFER.amount - fees) * (10000 - policy.reserveBps) < OFFER.characterLimit * policy.rate) return null;
   const previous = offerCache.get(env);
   if (cached && previous && Date.now() - previous.at < 60_000) return previous.offer;
-  const price = await stripe(`/v1/prices/${encodeURIComponent(env.PLUS_PRICE_ID)}?expand[]=product`, env);
+  const [price, portal] = await Promise.all([
+    stripe(`/v1/prices/${encodeURIComponent(env.PLUS_PRICE_ID)}?expand[]=product`, env),
+    stripe(`/v1/billing_portal/configurations/${encodeURIComponent(env.PLUS_PORTAL_CONFIGURATION)}`, env),
+  ]);
+  const features = portal.features;
+  const portalValid = portal.id === env.PLUS_PORTAL_CONFIGURATION && portal.active === true && portal.livemode === livemode(env)
+    && features?.subscription_cancel?.enabled === true && features.subscription_cancel.mode === 'at_period_end'
+    && features.invoice_history?.enabled === true && features.payment_method_update?.enabled === true
+    && features.subscription_update?.enabled === false;
   const valid = price.active === true && price.livemode === livemode(env) && price.currency === OFFER.currency
     && price.unit_amount === OFFER.amount && price.billing_scheme === 'per_unit' && price.tax_behavior === 'exclusive'
     && price.recurring?.interval === 'month' && price.recurring.interval_count === 1 && price.recurring.usage_type === 'licensed' && price.product?.active === true;
-  const offer = valid ? OFFER : null;
+  const offer = valid && portalValid ? OFFER : null;
   offerCache.set(env, { at: Date.now(), offer });
   return offer;
 }
@@ -1000,7 +1008,7 @@ async function restore(request, env, body, now) {
   if (!identity || identity.exp <= now || identity.exp - identity.iat !== RECOVERY_S || typeof identity.nonce !== 'string') return invalid();
   const sub = await ownedSubscription(identity, env);
   if (!sub) return invalid();
-  const used = await meter(env, `sub:${identity.s}`, 'recovery-consume', { hash: await sha256(token) });
+  const used = await meter(env, `sub:${identity.s}`, 'recovery-consume', { hash: await sha256(token), subscriptionStatus: sub.status });
   if (!used.ok) return invalid();
   const paid = claimFor(sub, env);
   const response = reply(204, null, { 'Set-Cookie': paid ? await setCookie({ ...paid, iat: now }, env, now) : CLEAR_COOKIE });
@@ -1073,6 +1081,11 @@ export class PlusMeter {
       const kept = this.kv.get('recovery');
       if (!kept || kept.exp <= now || kept.hash !== body.hash) return Response.json({ ok: false });
       this.kv.delete('recovery');
+      // The verified restore supersedes cached access and any in-flight standing
+      // refresh. Permanent refund/dispute revocation remains unchanged.
+      this.kv.delete('standing');
+      this.kv.put('subscriptionStatus', body.subscriptionStatus ?? null);
+      this.kv.put('revision', (this.kv.get('revision') ?? 0) + 1);
       return Response.json({ ok: true });
     }
     if (op === '/inspect') {
