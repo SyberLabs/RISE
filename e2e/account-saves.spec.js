@@ -47,7 +47,7 @@ test('standalone policy and app-information pages retain the upper-right sign-in
   await page.setViewportSize({ width: 320, height: 740 });
   for (const path of ['/privacy.html', '/terms.html', '/apps.html']) {
     await page.goto(path);
-    const link = page.getByRole('link', { name: 'Staff sign in to SyberLabs' });
+    const link = page.getByRole('link', { name: 'Sign in to SyberLabs' });
     await expect(link).toBeVisible();
     expect(new URL(await link.getAttribute('href')).searchParams.get('next')).toBe('/admin/return?app=rise');
     const reachable = await link.evaluate(node => {
