@@ -42,6 +42,14 @@
  * only place such a voice says where it is. A voice on the device reports its
  * word boundaries (`capabilities.wordMarks`); a network voice may not.
  *
+ * Any other network voice (`localService === false`, Edge's online "Natural" voices among them) says a passage
+ * longer than `networkPassageChars` a sentence at a time too, so a passage that goes wrong part way loses one
+ * sentence and the clock is corrected at every sentence. A network voice can also take an utterance and never
+ * begin it: no start, no error, `speaking` stuck true until a `cancel()` (Blink's queue pops only on the
+ * platform's report of an end). Whoever is waiting on it may `retry` it, once: the engine is cleared with
+ * `cancel()` and `resume()`, and after `retryDelayMs` the passage is said again from its start, a sentence at a
+ * time. Its start is then the first one this passage reports, so the clock is anchored there.
+ *
  * A change of rate never interrupts an utterance: cancelling one and speaking
  * it again silences or skips a network voice, sometimes for good. The rate is
  * kept for the next utterance (the next sentence of a voice that speaks in
@@ -54,7 +62,7 @@
 
 import { createRealClock } from '../clock.js';
 
-export const BROWSER_VOICE_LIMITS = Object.freeze({ utteranceChars: 180 });
+export const BROWSER_VOICE_LIMITS = Object.freeze({ utteranceChars: 180, networkPassageChars: 600, retryDelayMs: 120 });
 
 const GOOGLE = /^Google\b/u;
 
@@ -96,7 +104,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         inSentences = GOOGLE.test(voice?.name ?? '');
     };
 
-    let report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {} };
+    let report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {}, retried() {} };
     /** The rate it last reported speaking at: the one it was made with, or the last that landed. */
     let spokenRate = rate;
     let closed = false;
@@ -115,7 +123,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     const playedNow = item => item.played + (item.startedAt === null ? 0 : clock.now() - item.startedAt);
 
     function speakFrom(item, offset) {
-        const end = inSentences ? utteranceEnd(item.text, offset) : item.text.length;
+        const end = item.sentences ? utteranceEnd(item.text, offset) : item.text.length;
         const utterance = new Utterance(item.text.slice(offset, end));
         // Kept here, not read back: the utterance holds its rate as a single-precision float (0.8 is not 0.8).
         const at = rate;
@@ -131,7 +139,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             item.startedAt = clock.now();
             if (!item.started) {
                 item.started = true;
-                safely(report.start, item.id);
+                safely(report.start, item.id, { mode: item.sentences ? 'sentences' : 'whole' });
             }
             if (releasedAt !== null) {
                 const afterMs = Math.round(clock.now() - releasedAt);
@@ -204,6 +212,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         current = item;
         // A chosen voice begins with a passage: never part way through one, nor in a passage taken up again after a hold.
         takeVoice();
+        item.sentences = inSentences || (voice?.localService === false && item.text.length > BROWSER_VOICE_LIMITS.networkPassageChars);
         speakFrom(item, 0);
     }
 
@@ -211,7 +220,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         id: 'browser',
         /** Of the voice it speaks with now: a voice picked (setVoice) counts from the passage it begins. */
         get capabilities() {
-            return Object.freeze({ audible: true, wordMarks: voice?.localService === true, inSentences });
+            return Object.freeze({ audible: true, wordMarks: voice?.localService === true, inSentences: inSentences || current?.sentences === true });
         },
         /** The installed voice it speaks with now, for the trace: null names the browser's own default. */
         get chosen() {
@@ -219,7 +228,7 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         },
 
         attach(callbacks) {
-            report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {}, ...callbacks };
+            report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {}, retried() {}, ...callbacks };
         },
 
         enqueue({ id, text }) {
@@ -229,7 +238,8 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             if (seen.has(id)) throw new RangeError(`Utterance ${id} is already queued`);
             seen.add(id);
             queue.push({
-                id, text, offset: 0, played: 0, startedAt: null, started: false, lastMark: 0, lastMarkAt: 0, utterance: null
+                id, text, offset: 0, played: 0, startedAt: null, started: false, lastMark: 0, lastMarkAt: 0, utterance: null,
+                sentences: false, retried: false
             });
             next();
         },
@@ -306,6 +316,28 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             if (current) return false;
             takeVoice();
             return true;
+        },
+
+        /**
+         * The passage `id`, given to a network voice and never begun, is said again from its start a sentence at a
+         * time, once: the engine is cleared now, and the passage is spoken after `retryDelayMs`.
+         * @returns {'sentences'|null} how it is said again, or null when it is not (begun, not the one being said,
+         *   tried once already, or a voice on the device)
+         */
+        retry(id) {
+            const item = current;
+            if (closed || item?.id !== id || item.started || item.retried || voice?.localService !== false) return null;
+            item.retried = true;
+            item.sentences = true;
+            item.utterance = null;
+            synth.cancel();
+            synth.resume?.();
+            safely(report.retried, id, 'sentences');
+            clock.setTimer(() => {
+                // A hold, a seek or a close in the pause has taken it over.
+                if (current === item && !held && !closed && item.utterance === null) speakFrom(item, item.lastMark);
+            }, BROWSER_VOICE_LIMITS.retryDelayMs);
+            return 'sentences';
         },
 
         /** The utterance it has begun and not yet ended, or null. */

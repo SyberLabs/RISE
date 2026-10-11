@@ -720,6 +720,121 @@ describe('speaking in sentences', () => {
     });
 });
 
+describe('a network voice', () => {
+    const NATURAL = { name: 'Microsoft Ava Online (Natural) - English (United States)', lang: 'en-US', localService: false };
+    const LOCAL = { name: 'Microsoft David', lang: 'en-US', localService: true };
+    const TWO = 'First sentence here. Second one now.';
+    const LONG = 'A sentence of some length goes on here. '.repeat(Math.ceil((BROWSER_VOICE_LIMITS.networkPassageChars + 1) / 40)).trim();
+
+    /** The voice, with what it says, how each passage began, and what it tried again. */
+    function open(speechOptions = {}, voice = NATURAL) {
+        const made = setup({ boundaries: false, ...speechOptions }, { voice });
+        const said = [];
+        const speak = made.synth.speak.bind(made.synth);
+        made.synth.speak = utterance => { said.push(utterance.text); speak(utterance); };
+        const cancel = made.synth.cancel.bind(made.synth);
+        const cancels = { n: 0 };
+        made.synth.cancel = () => { cancels.n += 1; cancel(); };
+        const log = [];
+        made.voice.attach({
+            start: (id, how) => log.push(['start', id, how?.mode]),
+            mark: (id, charIndex) => log.push(['mark', id, charIndex]),
+            end: id => log.push(['end', id]),
+            retried: (id, mode) => log.push(['retried', id, mode])
+        });
+        return { ...made, said, cancels, log };
+    }
+
+    it(`says a passage longer than ${BROWSER_VOICE_LIMITS.networkPassageChars} characters a sentence at a time, with a mark where each later sentence begins`, async () => {
+        const { clock, voice, said, log } = open();
+        voice.enqueue({ id: 'a', text: LONG });
+        await clock.runAll();
+        expect(said.length).toBeGreaterThan(1);
+        expect(said.join('')).toBe(LONG);
+        expect(log.filter(e => e[0] === 'start')).toEqual([['start', 'a', 'sentences']]);
+        expect(log.filter(e => e[0] === 'mark')).toHaveLength(said.length - 1);
+        expect(log.filter(e => e[0] === 'end')).toEqual([['end', 'a']]);
+    });
+
+    it('says a shorter passage whole, and a voice on the device says any passage whole', async () => {
+        const network = open();
+        network.voice.enqueue({ id: 'a', text: TWO });
+        await network.clock.runAll();
+        expect(network.said).toEqual([TWO]);
+        expect(network.log[0]).toEqual(['start', 'a', 'whole']);
+
+        const local = open({}, LOCAL);
+        local.voice.enqueue({ id: 'a', text: LONG });
+        await local.clock.runAll();
+        expect(local.said).toEqual([LONG]);
+    });
+
+    it('tries a passage that never began again once, a sentence at a time, after clearing the engine and a short pause', async () => {
+        const { clock, voice, said, cancels, log } = open({ drops: text => text === TWO });
+        voice.enqueue({ id: 'a', text: TWO });
+        await clock.advance(1_500);
+        expect(voice.playedMs('a')).toBeUndefined();
+
+        expect(voice.retry('a')).toBe('sentences');
+        expect(cancels.n).toBe(1);
+        expect(log).toEqual([['retried', 'a', 'sentences']]);
+        await clock.advance(BROWSER_VOICE_LIMITS.retryDelayMs - 1);
+        expect(said).toEqual([TWO]);
+        await clock.runAll();
+        expect(said).toEqual([TWO, 'First sentence here. ', 'Second one now.']);
+        expect(log.filter(e => e[0] === 'start')).toEqual([['start', 'a', 'sentences']]);
+        expect(log.filter(e => e[0] === 'end')).toEqual([['end', 'a']]);
+        // Its time is counted from the retry's own start: the dropped utterance took none.
+        expect(voice.playedMs('a')).toBe(TWO.length * MS);
+        expect(voice.retry('a')).toBeNull();
+    });
+
+    it('does not try again a passage that has begun, one it is not saying, a second time, or on a voice on the device', async () => {
+        const begun = open();
+        begun.voice.enqueue({ id: 'a', text: TWO });
+        await begun.clock.advance(100);
+        expect(begun.voice.retry('a')).toBeNull();
+        expect(begun.voice.retry('b')).toBeNull();
+
+        const twice = open({ drops: () => true });
+        twice.voice.enqueue({ id: 'a', text: TWO });
+        await twice.clock.advance(1_500);
+        expect(twice.voice.retry('a')).toBe('sentences');
+        await twice.clock.advance(1_500);
+        expect(twice.voice.retry('a')).toBeNull();
+
+        const local = open({ drops: () => true }, LOCAL);
+        local.voice.enqueue({ id: 'a', text: TWO });
+        await local.clock.advance(1_500);
+        expect(local.voice.retry('a')).toBeNull();
+        expect(local.cancels.n).toBe(0);
+    });
+
+    it('says nothing stale when the reader moves the reading during the pause before a retry', async () => {
+        const { clock, voice, said } = open({ drops: text => text === TWO });
+        voice.enqueue({ id: 'a', text: TWO });
+        await clock.advance(1_500);
+        voice.retry('a');
+        voice.seek('a');
+        await clock.runAll();
+        expect(said).toEqual([TWO]);
+    });
+
+    it('says a passage tried again from its first sentence when held during the pause and released', async () => {
+        const { clock, voice, said, log } = open({ drops: text => text === TWO });
+        voice.enqueue({ id: 'a', text: TWO });
+        await clock.advance(1_500);
+        voice.retry('a');
+        voice.hold();
+        await clock.advance(1_000);
+        expect(said).toEqual([TWO]);
+        voice.release();
+        await clock.runAll();
+        expect(said).toEqual([TWO, 'First sentence here. ', 'Second one now.']);
+        expect(log.filter(e => e[0] === 'start')).toEqual([['start', 'a', 'sentences']]);
+    });
+});
+
 describe('choosing the voice', () => {
     it('takes a natural voice in the page’s own locale over the default, and a single-language one over a multilingual one', () => {
         expect(nameOf(chooseVoice(EDGE, 'en-US'))).toBe('Microsoft Aria Online (Natural) - English (United States)');

@@ -25,6 +25,11 @@
  * a user gesture is being handled, a `speak()` is dropped: nothing is queued and no event fires. `gesture(fn)`
  * is that gesture, for the synchronous call of `fn` only; the fake is stricter than WebKit, which also carries
  * a gesture through microtasks and timers fired within a second, so a fix that passes here relies on neither.
+ *
+ * `drops`: a test of an utterance's text. An utterance it holds true of is taken and never begun: no event fires,
+ * `speaking` stays true and every later utterance waits behind it, until a `cancel`. That is how a network voice
+ * whose synthesis never arrives leaves Chromium (Blink's queue pops only on the platform's report of an end, and the
+ * network engine reports nothing for a fetch that fails).
  */
 export function createFakeSpeechEngine() {
     return { paused: false };
@@ -32,7 +37,7 @@ export function createFakeSpeechEngine() {
 
 export function createFakeSpeech(clock, {
     msPerChar = 50, latencyMs = 30, boundaries = true, cancelReports = 'error', failWith = null, engine = createFakeSpeechEngine(),
-    latencyAfterCancelMs = null, gestureRequired = false
+    latencyAfterCancelMs = null, gestureRequired = false, drops = null
 } = {}) {
     const queue = [];
     let current = null;
@@ -69,7 +74,8 @@ export function createFakeSpeech(clock, {
         }
         events.push({ at: latency + total, run: () => { current = null; utterance.onend?.({}); next(); } });
         current = { utterance, events, index: 0, played: 0, since: null, cancel: null };
-        if (failWith) {
+        if (drops?.(utterance.text)) current.events = [];
+        else if (failWith) {
             current.events = [{ at: latency, run: () => { current = null; utterance.onerror?.({ error: failWith }); next(); } }];
         }
         schedule();
