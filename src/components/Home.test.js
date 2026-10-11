@@ -54,6 +54,8 @@ const portalCss = ['Home.css', 'portal-home.css']
     .map(file => readFileSync(join(dirname(fileURLToPath(import.meta.url)), file), 'utf8'))
     .join('\n');
 
+const portals = new Set();
+
 beforeEach(() => {
     sessionStorage.clear();
     stages.made.length = 0;
@@ -64,6 +66,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    // A failed assertion must not leave a day watcher or stage alive in the next test.
+    for (const portal of portals) portal.destroy();
+    portals.clear();
     vi.doUnmock('../content/library.js');
     vi.useRealTimers();
     delete window.matchMedia;
@@ -75,6 +80,7 @@ function makePortal(options = {}) {
     document.body.appendChild(container);
     const onNavigate = vi.fn();
     const portal = new Home(container, { onNavigate, ...options });
+    portals.add(portal);
     return { portal, container, onNavigate };
 }
 
@@ -172,7 +178,7 @@ describe('Home on arrival', () => {
     });
 
     it('sets nothing in motion and sounds nothing before a press', async () => {
-        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
+        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame', 'setInterval', 'clearInterval'] });
         const getAudioEngine = vi.fn(() => null);
         const { portal, container } = makePortal({ getAudioEngine });
         await arrive(portal, container);
@@ -268,7 +274,7 @@ describe('Home on arrival', () => {
     });
 
     it('turns to the next day\'s poem at midnight while it is showing', async () => {
-        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'] });
         vi.setSystemTime(new Date(2026, 9, 3, 23, 59, 30));
         const { portal, container } = makePortal();
         await arrive(portal, container);
@@ -279,7 +285,7 @@ describe('Home on arrival', () => {
     });
 
     it('shows the new day\'s poem when Home comes back after midnight', async () => {
-        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'] });
         vi.setSystemTime(new Date(2026, 9, 3, 23, 50));
         const { portal, container } = makePortal();
         await arrive(portal, container);
@@ -631,7 +637,7 @@ describe('Continue', () => {
     });
 
     it('names the new day\'s poem on the line at midnight', async () => {
-        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+        vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'requestAnimationFrame', 'cancelAnimationFrame'] });
         vi.setSystemTime(new Date(2026, 9, 3, 23, 59, 30));
         const session = held();
         const { portal, container } = makePortal({ getCurrentSession: () => session });
