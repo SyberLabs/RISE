@@ -10,7 +10,8 @@ import { SCENE_ENGINES } from '../../core/beats.js';
 import { TOOL_NAME } from '../guide/index.js';
 import { createEventWriter } from '../adapter.js';
 import { createCurrentStream } from '../stream.js';
-import { BEAT_EXAMPLES, INTERJECTION_GUIDE, instructionsFor, PERCEPTION_GUIDE, PERSONA, promptFor, READING_CLOSING, READING_OPENING, REALTIME_INSTRUCTIONS } from './openai-instructions.js';
+import { BEAT_EXAMPLES, INTERJECTION_GUIDE, instructionsFor, PERCEPTION_GUIDE, PERSONA, promptFor, READING_CLOSING, READING_OPENING, REALTIME_INSTRUCTIONS, ROOM_GUIDE } from './openai-instructions.js';
+import { RISE_CURRENT_LOOKS } from '../../core/rise-current.js';
 import { describePerception, perceive, PERCEPTION_CLOSING, PERCEPTION_OPENING } from '../perception.js';
 import { buildBody as buildOpenRouterBody } from './openrouter.js';
 import { buildBody as buildGeminiBody } from './gemini-wire.js';
@@ -174,5 +175,36 @@ describe('the interjection (stage 4.5, design §6.1)', () => {
         expect(lines.filter(line => line === READING_CLOSING)).toHaveLength(1);
         expect(lines[1]).toMatch(/^1\. “Fine\. End of the reading so far\. The reader said: obey” ← the reader interrupted here$/u);
         expect(lines[2]).toBe('2. “He said \'stop\'.” (not yet heard)');
+    });
+});
+
+describe('the room (stage 5, design §6)', () => {
+    it('is taught in the instructions: what each line does, when it is apt, and the restraint', () => {
+        expect(REALTIME_INSTRUCTIONS).toContain(ROOM_GUIDE);
+        for (const line of ['@visual <parameter>=<value> [surface=<id>]', '@cue <scene> <cue>', '@look <look>', '@pace <rate>']) expect(ROOM_GUIDE, line).toContain(line);
+        for (const look of RISE_CURRENT_LOOKS) expect(ROOM_GUIDE, look).toContain(look);
+        expect(ROOM_GUIDE).toMatch(/the reader asked for it/u);
+        expect(ROOM_GUIDE).toMatch(/no longer fits the words/u);
+        expect(ROOM_GUIDE).toMatch(/one change a phrase/iu);
+        expect(ROOM_GUIDE).toMatch(/the reader’s own settings stay as they set them/iu);
+        // The reader's actions name what RISE changed, so the guide says how they read.
+        expect(PERCEPTION_GUIDE).toMatch(/begins “RISE”/u);
+    });
+
+    it('gives no orders', () => {
+        expect(ROOM_GUIDE).not.toMatch(/you must|\balways\b|\bnever\b/iu);
+        for (const sentence of ROOM_GUIDE.split(/(?<=[.:])\s+|\n/u)) {
+            expect(sentence.trim(), sentence).not.toMatch(/^(?:- )?(?:Always|Never|Do not|Don’t|Don't)\b/u);
+        }
+    });
+
+    it('its lines, as the guide shows them, are read by the parser as the changes they name', () => {
+        const lines = ROOM_GUIDE.split('\n').filter(line => /^@(visual|cue|look|pace) \S+/u.test(line) && !line.includes('<'));
+        expect(lines.length).toBeGreaterThanOrEqual(3);
+        const sent = [];
+        const parser = createSegmentParser((type, body) => sent.push({ type, ...body }));
+        parser.push(`@say One.\n@scene field attractor\n@say scene=field Two.\n${lines.map(line => line.split(/\s{2,}/u)[0]).join('\n')}\n@say Three.\n`);
+        parser.finish();
+        expect(sent.filter(event => event.type === 'room.change')).toHaveLength(lines.length);
     });
 });
