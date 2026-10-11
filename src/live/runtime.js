@@ -543,7 +543,7 @@ export function createLiveRuntime({
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null,
             // The model's changes to the room not yet landed (landRoomChanges), how many of the stream's it has taken,
             // the atom the last one landed on (one a phrase), and the scenes the reading starts, as it names them.
-            changes: [], roomSeen: 0, roomPhrase: null, scenes: [],
+            changes: [], roomSeen: 0, roomNoted: 0, roomPhrase: null, scenes: [],
             // Passages the voice was given and has not finished or failed; the run ends when none are left.
             owed: new Set(), completedAt: null, tail: null, ended: false,
             // The voice's rate its clock is at: the pace once the voice has taken it up (see setPace).
@@ -736,7 +736,7 @@ export function createLiveRuntime({
             const at = positionOf(main);
             const actions = perception?.events?.length ? perception : null;
             const answer = {
-                n: null, closed: false, connection: null, seen: 0, scenesRefused: 0, cut: false, roomSeen: 0,
+                n: null, closed: false, connection: null, seen: 0, scenesRefused: 0, cut: false, roomSeen: 0, roomNoted: 0,
                 stream: createCurrentStream({ admitScene: adapter.admitScene ?? null }), abort: new AbortController()
             };
             interjection.answer = answer;
@@ -941,13 +941,18 @@ export function createLiveRuntime({
      * stream, named by `keyFor` as the arranged reading names it (graft.js pieceKey), so a graft does not move it.
      */
     function takeRoomChanges(stream, holder, keyFor) {
+        noteRoomAsked(stream, holder);
         const listed = stream.roomChanges;
-        for (const { before, change } of listed.slice(holder.roomSeen)) {
-            main.changes.push({ change, before, stream, keyFor, answer: holder === main ? null : holder });
-            note('room.asked', { kind: change.kind });
-        }
+        for (const { before, change } of listed.slice(holder.roomSeen)) main.changes.push({ change, before, stream, keyFor, answer: holder === main ? null : holder });
         holder.roomSeen = listed.length;
         landRoomChanges(null);
+    }
+
+    /** `room.asked` for each change as it arrives, once: when the model asked, whether or not its place is in the reading yet. */
+    function noteRoomAsked(stream, holder) {
+        const listed = stream.roomChanges;
+        for (const { change } of listed.slice(holder.roomNoted)) note('room.asked', { kind: change.kind });
+        holder.roomNoted = listed.length;
     }
 
     /** Where a change belongs in the reading, as a passage's index; -1 while that passage is not in it. */
@@ -1099,6 +1104,7 @@ export function createLiveRuntime({
                     if (answer.stream.endedCount !== answer.seen) takeAnswer(answer);
                     // Once the answer is in the reading its changes have places there; before, they wait with it.
                     if (answer.cut && !answer.closed) takeRoomChanges(answer.stream, answer, before => `i${answer.n + 1}-beat-${before}`);
+                    else noteRoomAsked(answer.stream, answer);
                 }
                 if (answer.closed) return;
                 if (answer.stream.terminal) break;

@@ -530,6 +530,8 @@ export class LiveHost {
                 startedAt: () => this.startedAt,
                 voice: () => this.spokenVoice,
                 scenes: () => [...this.sceneReports],
+                // What the venue sent up with the question this reading answers (perception.js), or null.
+                perception: () => this.venue?.sent ?? null,
                 audio: () => ({
                     started: this.audioLog.map(entry => ({ ...entry })),
                     sounding: this.audioEngine?.sounding?.id ?? null,

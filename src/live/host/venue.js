@@ -54,6 +54,8 @@ export class LiveVenue {
         // Each reading the room has let go, by the index of its question: its journal and its passages, for perception.
         this.readings = [];
         this.reading = null;
+        // The perception sent with the question the reading on screen answers, or null.
+        this.sent = null;
         this.stage = null;
         this.bar = null;
         this.stopFollowing = null;
@@ -334,6 +336,8 @@ export class LiveVenue {
             this.ensureBar();
             this.stopFollowing = runtime.subscribe(view => this.dispatch({ type: 'status', status: view.status }));
             const perception = perceptionFor(this.turns().slice(0, turn + 1));
+            // What went up with this question, for the host's measurement page (?measure=1) to read.
+            this.sent = perception;
             await (perception ? runtime.start(question, { perception }) : runtime.start(question));
             if (this.destroyed || this.reading?.runtime !== runtime) return;
             this.dispatch({ type: 'opened' });
