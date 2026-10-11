@@ -116,6 +116,27 @@ describe('the Chamber keeps its glass between phrases', () => {
     expect(band.dataset.bandState).toBeUndefined();
   });
 
+  it('a phrase placed elsewhere arrives with its own glass, not on the glass left standing', () => {
+    vi.useFakeTimers();
+    mounted = mount();
+    const { chamber, display } = mounted;
+    chamber.displayAtom({ content: 'First phrase.', duration: 1000 }, 0);
+    chamber.displayAtom({ content: 'A caption.', duration: 1000, beat: { place: 'caption' } }, 1);
+    expect(display.dataset.place).toBe('caption');
+    expect(display.querySelector('.atom-phrase')).toBeNull();
+  });
+
+  it('times a known silence at the reading\'s pace: a 2 s hold at double pace is short enough to hold', () => {
+    vi.useFakeTimers();
+    mounted = mount();
+    const { chamber, band } = mounted;
+    chamber.player = { speedFactor: 0.5, shuttle: { durationDivisor: 1 } };
+    chamber.displayAtom({ content: 'First phrase.', duration: 1000 }, 0);
+    chamber.displayAtom({ content: '', duration: 2000, tags: ['HOLD'] }, 1);
+    expect(band.dataset.bandState).toBe('holding');
+    chamber.player = null;
+  });
+
   it('a pause dissolves a held glass', () => {
     vi.useFakeTimers();
     mounted = mount();
