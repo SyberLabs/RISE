@@ -3,7 +3,7 @@
   "title": "Integrate and verify customer Plus release",
   "lane": "reader",
   "milestone": "Paid voice release",
-  "status": "in_progress",
+  "status": "in_review",
   "delivery": "branch",
   "owner": "codex-release",
   "priority": "now",
@@ -29,16 +29,38 @@
       "ref": "docs/PLUS-CUSTOMER-LIFECYCLE.md",
       "date": "2026-10-11",
       "note": "Live launch prerequisites are explicitly separate from source implementation and public deployment."
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/625",
+      "date": "2026-10-11",
+      "note": "Atomic customer client, Worker and closed-sales production release; supersedes draft implementation PRs623 and624."
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/Home.test.js",
+      "date": "2026-10-11",
+      "note": "Fixed existing fake-frame/import timing and unconditional cleanup after two reproduced full-suite failures. Final integrated full suite:566 passed files,3 skipped;7850 passed tests,64 skipped."
+    },
+    {
+      "kind": "test",
+      "ref": "playwright.config.js",
+      "date": "2026-10-11",
+      "note": "Local browser gate64 passed,3 existing skips including all4 new customer cases. Additional backend404 regression86 focused tests passed. First load62.0KB brotli under64KB."
     }
   ],
   "activity": [
     {
       "date": "2026-10-11T18:24:49.088509+00:00",
       "summary": "Own combined release, generated legal documents, production sales flag, required verification and exact deployed-release checks."
+    },
+    {
+      "date": "2026-10-11T18:33:42.165958+00:00",
+      "summary": "Integrated independent review fixes; final full unit suite passes and public browser gate passes. Required remote CI and deployment remain pending."
     }
   ],
-  "updatedAt": "2026-10-11T18:24:49.088509+00:00",
-  "revision": 1,
+  "updatedAt": "2026-10-11T18:33:42.165958+00:00",
+  "revision": 2,
   "summary": "Ship the reviewed subscription infrastructure without representing an unverified payment account as live.",
   "blocker": null
 }
