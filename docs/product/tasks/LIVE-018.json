@@ -59,6 +59,24 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/612",
       "note": "The OpenRouter text-stream adapter, on the reader's own key (branch live-openrouter-adapter), registered in the venue registry.",
       "date": "2026-10-10"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "Still not verified against the real services, as of 2026-10-11: the Gemini and OpenAI adapters (built and conformance-tested against fakes only), and the OpenRouter adapter itself. The OpenRouter probe (openrouter-live-probe.mjs, in the coordinator's scratchpad, not in the tree) is the owner's to run on the owner's own key; no agent has run it.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/openrouter-oauth.test.js",
+      "note": "Branch live-hardening, local run: a sign-in started from /live keeps a same-site path (a plain path; never another origin, a query or the callback) and the unasked question in the tab's pending sign-in; the callback lands on /live when its state is this tab's, and on Home otherwise; only /live claims it; a sign-in abandoned back on /live gives the question back. venue.test.js: the connect control stores /live and the question; coming back chooses OpenRouter, restores the question, connects and says so.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Branch live-hardening, local production build, headless Chromium, the demo with a bed on its first beat (starlight), ?measure=1: the output level is above -45 dBFS while it reads, below -60 at the end, above -45 again after Play again pressed at once, and under the next reading asked. Before the fix Play again was silent (-Infinity), twice; after it, passed twice (--repeat-each=2).",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
@@ -77,10 +95,14 @@
     {
       "date": "2026-10-10T07:47:18.046Z",
       "summary": "Both halves are merged and deployed: #612 and #613 are in main at 8007d370, and the live release (rise.syberlabs.io/release.txt read d849025d on 2026-10-10) contains it. Not accepted: the Gemini and OpenAI adapters are still unverified against the real services, and no human has witnessed the venue."
+    },
+    {
+      "date": "2026-10-11T23:21:59.300Z",
+      "summary": "Hardening after stage 4.5 (branch live-hardening): OpenRouter connect from /live now returns to /live with the question; the venue's Play again sounds the bed again. Gemini, OpenAI and OpenRouter remain unverified against the real services; the OpenRouter probe is the owner's to run."
     }
   ],
-  "updatedAt": "2026-10-10T07:47:18.046Z",
-  "revision": 4,
+  "updatedAt": "2026-10-11T23:21:59.300Z",
+  "revision": 5,
   "summary": "Design §8 stage 2: the first time RISE Live can be felt. The venue page (this branch) and the OpenRouter text-stream adapter (a parallel branch) are its two halves.",
   "blocker": null
 }
