@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { RISE_CURRENT_SCHEMA_V2, RISE_CURRENT_SCHEMA, compileRiseCurrent } from '../core/rise-current.js';
-import { arrangeRoom, closeAnswer, cutAfter, growAnswer, lowerRoom, placeBase, runningScene, takenUp } from './graft.js';
+import { arrangeRoom, closeAnswer, cutAfter, growAnswer, lowerRoom, pieceKey, placeBase, runningScene, takenUp } from './graft.js';
 
 const FIGURE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>';
 const HELD = 'Its edge is the event horizon, past which nothing returns.';
@@ -163,6 +163,17 @@ describe('a second interjection', () => {
             'The horizon is not a surface.', 'Nothing there would stop you.', 'Again: it is only a distance.',
             'Nothing there would stop you.', HELD.slice(16), '(hold)', 'The black hole itself stays dark.'
         ]);
+    });
+});
+
+describe('each piece’s own name', () => {
+    it('is kept whatever place two grafts give it, the taken-up passage’s among them', () => {
+        let room = cutAfter(arrangeRoom(5), { after: 2, taken: takenUp(ROOM.beats[2], 16), running: 'field', key: 'i1-taken' });
+        room = closeAnswer(growAnswer(room, 0, 2), 'resume', { sceneStarted: true });
+        expect(room.pieces.map(pieceKey)).toEqual(['beat-0', 'beat-1', 'beat-2', 'i1-beat-0', 'i1-beat-1', 'i1-taken', 'beat-3', 'beat-4']);
+        room = closeAnswer(growAnswer(cutAfter(room, { after: 0, taken: null, running: null }), 1, 1), 'resume', { sceneStarted: false });
+        expect(room.pieces.map(pieceKey).slice(0, 3)).toEqual(['beat-0', 'i2-beat-0', 'beat-1']);
+        expect(room.pieces.map(pieceKey).slice(6)).toEqual(['i1-taken', 'beat-3', 'beat-4']);
     });
 });
 

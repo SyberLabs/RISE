@@ -38,7 +38,7 @@ import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
 import { createBeatConductor } from './beat-conductor.js';
-import { answerBeats, arrangeRoom, closeAnswer, cutAfter, growAnswer, lowerRoom, placeBase, runningScene, takenUp } from './graft.js';
+import { answerBeats, arrangeRoom, closeAnswer, cutAfter, growAnswer, lowerRoom, pieceKey, placeBase, runningScene, takenUp } from './graft.js';
 import { endingOf, interjectionStep } from './interjection.js';
 import { SETTING_PARAMETERS } from './perception.js';
 import { withExperientialState } from './state-visuals.js';
@@ -90,7 +90,23 @@ export function createLiveRuntime({
     /** The passage the reader is in, for a note of their move: { segmentId }, or nothing before the reading has words. */
     function here() {
         const at = positionOf(main);
-        return at ? { segmentId: at.segmentId } : {};
+        return at ? { segmentId: at.segmentId, ...named(main, 'key', at.segmentId) } : {};
+    }
+
+    /**
+     * A passage's own name, which no graft changes (graft.js pieceKey): its id until the reader first interjects, then
+     * the piece it is. A note of a move keeps it beside the place (`segmentId`) wherever the two differ, so perception
+     * quotes the passage the move was made on after an answer has moved it (perception.js).
+     */
+    function keyOf(run, segmentId) {
+        const piece = run?.room?.arrangement.pieces[Number(String(segmentId).slice('beat-'.length))];
+        return piece ? pieceKey(piece) : segmentId;
+    }
+
+    /** `{ [field]: key }` for a passage whose own name is not its place; nothing otherwise. */
+    function named(run, field, segmentId) {
+        const key = keyOf(run, segmentId);
+        return key === segmentId ? {} : { [field]: key };
     }
 
     function summary(run) {
@@ -740,7 +756,7 @@ export function createLiveRuntime({
         passages() {
             if (!main?.player) return [];
             const words = new Map(main.segments.map(segment => [segment.id, segment.text]));
-            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, spoken: !main.unspokenIds?.has(id), text: words.get(id) ?? '' }));
+            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, key: keyOf(main, id), spoken: !main.unspokenIds?.has(id), text: words.get(id) ?? '' }));
         },
 
         /**
@@ -984,7 +1000,8 @@ export function createLiveRuntime({
                 const heldId = positionOf(main).segmentId;
                 cutAt = Number(heldId.slice('beat-'.length));
                 arrangement = cutAfter(arrangement, {
-                    after: cutAt, taken: takenUp(read.beats[cutAt], phraseAt(main, heldId)), running: runningScene(read.beats, cutAt)
+                    after: cutAt, taken: takenUp(read.beats[cutAt], phraseAt(main, heldId)), running: runningScene(read.beats, cutAt),
+                    key: `i${answer.n + 1}-taken`
                 });
             }
             arrangement = growAnswer(arrangement, answer.n, answerBeats(answers[answer.n]).beats.length);
@@ -1089,7 +1106,10 @@ export function createLiveRuntime({
         const list = passagesOf(run);
         const at = list.findIndex(passage => passage.id === to);
         const order = new Map(list.map((passage, index) => [passage.id, index]));
-        if (type) note(type, { from: positionOf(run).segmentId, to, reason: 'reader' });
+        if (type) {
+            const from = positionOf(run).segmentId;
+            note(type, { from, to, reason: 'reader', ...named(run, 'fromKey', from), ...named(run, 'toKey', to) });
+        }
 
         const kept = run.given.findIndex(id => order.get(id) >= at);
         run.voice?.seek(kept < 0 ? to : run.given[kept]);
@@ -1133,7 +1153,7 @@ export function createLiveRuntime({
             // holds it, rather than going on in silence; Play takes up the phrase on screen with the voice.
             taken: (id, reason) => {
                 if (run.closed) return;
-                note('voice.taken', { role: run.role, segmentId: id, reason });
+                note('voice.taken', { role: run.role, segmentId: id, reason, ...named(run, 'key', id) });
                 // Taken while saying the last words, after they were all shown: it will not go on, so the reading is over.
                 if (run.finished) endRun(run);
                 else if (run.role === 'main' && status === 'live') {

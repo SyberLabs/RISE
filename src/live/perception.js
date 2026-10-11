@@ -64,14 +64,17 @@ function same(a, b) {
 
 /**
  * The reader's actions in one reading.
+ * A passage is found by its own name (`key`, runtime.js keyOf), which an interjection's graft does not change, where
+ * the journal and the passages carry one, else by its place (`segmentId`): a move made before an answer was grafted in
+ * names the passage it was made on, wherever the graft has put it since.
  * @param {object[]} journal the runtime's journal (runtime.journal())
- * @param {{passages?: {segmentId: string, text: string}[]}} [reading] the reading's passages in order, to number them;
- *   only those with words are counted, as the model counts the lines it wrote to be said or shown
+ * @param {{passages?: {segmentId: string, key?: string, text: string}[]}} [reading] the reading's passages in order, to
+ *   number them; only those with words are counted, as the model counts the lines it wrote to be said or shown
  * @returns {{events: object[], earlier: number}} at most PERCEPTION_LIMITS.events, the latest; `earlier` counts those left out
  */
 export function perceive(journal, { passages = [] } = {}) {
     const worded = passages.filter(passage => typeof passage?.text === 'string' && passage.text.trim());
-    const order = new Map(worded.map((passage, index) => [passage.segmentId, index]));
+    const order = new Map(worded.map((passage, index) => [passage.key ?? passage.segmentId, index]));
     const quoted = new Set();
     const number = id => (order.has(id) ? order.get(id) + 1 : null);
     const quote = id => {
@@ -92,26 +95,32 @@ export function perceive(journal, { passages = [] } = {}) {
         let made = [];
         switch (entry.type) {
             case 'hold':
-            case 'interrupt':
+            case 'interrupt': {
                 heldAt = entry.at;
-                made = [{ type: 'held', passage: number(entry.segmentId), by: 'reader', ...quote(entry.segmentId) }, ...(entry.text ? said(entry.text) : [])];
+                const at = entry.key ?? entry.segmentId;
+                made = [{ type: 'held', passage: number(at), by: 'reader', ...quote(at) }, ...(entry.text ? said(entry.text) : [])];
                 break;
-            case 'voice.taken':
+            }
+            case 'voice.taken': {
                 if (entry.role !== 'main') break;
                 heldAt = entry.at;
-                made = [{ type: 'held', passage: number(entry.segmentId), by: 'device', ...quote(entry.segmentId) }];
+                const at = entry.key ?? entry.segmentId;
+                made = [{ type: 'held', passage: number(at), by: 'device', ...quote(at) }];
                 break;
+            }
             case 'resume': {
                 const afterMs = Number.isFinite(heldAt) && Number.isFinite(entry.at) ? Math.max(0, Math.round(entry.at - heldAt)) : null;
                 heldAt = null;
-                made = [{ type: 'resumed', passage: number(entry.segmentId), ...(afterMs === null ? {} : { afterMs: Math.min(afterMs, PERCEPTION_LIMITS.afterMs) }) }];
+                made = [{ type: 'resumed', passage: number(entry.key ?? entry.segmentId), ...(afterMs === null ? {} : { afterMs: Math.min(afterMs, PERCEPTION_LIMITS.afterMs) }) }];
                 break;
             }
             case 'replay':
-            case 'seek':
+            case 'seek': {
                 if (entry.reason !== 'reader') break;
-                made = [{ type: entry.type === 'replay' ? 'replayed' : 'sought', from: number(entry.from), to: number(entry.to), times: 1, ...quote(entry.to) }];
+                const to = entry.toKey ?? entry.to;
+                made = [{ type: entry.type === 'replay' ? 'replayed' : 'sought', from: number(entry.fromKey ?? entry.from), to: number(to), times: 1, ...quote(to) }];
                 break;
+            }
             case 'pace':
                 if (Number.isFinite(entry.rate) && entry.rate >= 0.5 && entry.rate <= 2) made = [{ type: 'paced', rate: entry.rate }];
                 break;

@@ -275,7 +275,7 @@ export class LiveVenue {
             journal: runtime.journal?.() ?? [],
             // The reading's passages in order as it was read (answers to interjections among them), so the reader's
             // moves can name them (perception.js).
-            passages: (runtime.passages?.() ?? []).map(({ segmentId, text }) => ({ segmentId, text: text ?? '' }))
+            passages: (runtime.passages?.() ?? []).map(({ segmentId, key, text }) => ({ segmentId, key: key ?? segmentId, text: text ?? '' }))
         };
         await runtime.stop();
     }
