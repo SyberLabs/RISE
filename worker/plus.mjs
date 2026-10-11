@@ -1011,6 +1011,10 @@ async function restore(request, env, body, now) {
   const used = await meter(env, `sub:${identity.s}`, 'recovery-consume', { hash: await sha256(token), subscriptionStatus: sub.status });
   if (!used.ok) return invalid();
   const paid = claimFor(sub, env);
+  if (!paid) {
+    const kept = await meter(env, `sub:${identity.s}`, 'inspect', { ttl: STANDING_TTL_S });
+    await meter(env, `sub:${identity.s}`, 'standing', { standing: null, revision: kept.revision, subscriptionStatus: sub.status });
+  }
   const response = reply(204, null, { 'Set-Cookie': paid ? await setCookie({ ...paid, iat: now }, env, now) : CLEAR_COOKIE });
   return withBilling(response, identity, env, now);
 }
