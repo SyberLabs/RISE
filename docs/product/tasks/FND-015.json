@@ -1,0 +1,61 @@
+{
+  "id": "FND-015",
+  "title": "Keep staff sign-in text at the readable minimum",
+  "lane": "shared",
+  "milestone": "Release validation",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "codex-rise-voice validation (Seth)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Staff sign-in text meets the existing 12px readable-text minimum.",
+    "Existing 44px control targets, secondary styling and auth behavior remain intact.",
+    "The three desktop/phone Wormhole readability cases and required browser gate pass without weakening assertions.",
+    "Required CI and independent review pass before gated integration."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38166159896/job/114549052012",
+      "note": "Exact ee88 browser shard 15 fails the existing 12px readable-text assertion at 1280x800 because new Staff sign in is 11px; built-in retry repeats the failure.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38166159896/job/114549052019",
+      "note": "Exact ee88 browser shard 16 fails the same strict assertion at 390x844 and 360x640, including retries. All four unit shards and 14 other browser shards passed.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/wormhole.spec.js:148",
+      "note": "After the one-value CSS repair, all three unchanged readability/control cases pass at 1280x800, 390x844 and 360x640 with retries=0 (9.3s). Required browser gate still running. Roadmap 91 tasks valid, 23 task tests passed; hygiene 9 checks clean.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "playwright.config.js",
+      "note": "Final required local browser gate: 64 passed, 3 existing skips (3.0m). Affected three viewport readability/control cases passed without retries (9.3s); roadmap 23 tests passed and 91 tasks valid; hygiene 9 checks clean. One CSS value changed; strict assertions, dimensions, colors and auth remain unchanged. Remote CI and independent review pending.",
+      "date": "2026-10-11"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-11T19:11:00.558929Z",
+      "summary": "Root assigned narrow CSS 11px to 12px repair after confirming no competing source owner. Claimed in signed MFM thread; isolated branch codex/staff-label-readable."
+    },
+    {
+      "date": "2026-10-11T19:12:50.472Z",
+      "summary": "Three unchanged desktop/phone browser cases pass without retries; required gate pending."
+    },
+    {
+      "date": "2026-10-11T19:15:39.144Z",
+      "summary": "All affected viewport cases and required browser gate pass; narrow repair ready for PR."
+    }
+  ],
+  "updatedAt": "2026-10-11T19:15:39.144Z",
+  "revision": 3,
+  "summary": "Restore readable staff-label text with one CSS value change; preserve strict browser assertions and 44px controls.",
+  "blocker": null
+}
