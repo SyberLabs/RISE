@@ -776,6 +776,7 @@ async function status(request, env, now) {
         }
       } catch (error) {
         if (error?.status !== 404) throw error;
+        result.canSubscribe = false;
         standing = null;
       }
       await meter(env, name, 'standing', { standing, revision: kept.revision, subscriptionStatus });

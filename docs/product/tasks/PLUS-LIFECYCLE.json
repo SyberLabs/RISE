@@ -38,6 +38,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/623",
       "date": "2026-10-11",
       "note": "Draft backend review; root owns atomic client/backend integration and production release. Initial implementation commit65c47b28,follow-up eligibility fix remains branch-only."
+    },
+    {
+      "kind": "test",
+      "ref": "worker/plus-budget.test.js",
+      "date": "2026-10-11",
+      "note": "Reviewer-reproduced stale canceled eligibility after Stripe404 failed first, then passed with explicit false reset. Focused lifecycle/budget suite:86passed. Full checks remain the prior recorded run."
     }
   ],
   "activity": [
@@ -52,10 +58,14 @@
     {
       "date": "2026-10-11T18:26:43.678Z",
       "summary": "Added cached authoritative repurchase eligibility; resolved hydrated spoken-sample check and recorded draft PR evidence."
+    },
+    {
+      "date": "2026-10-11T18:28:45.569Z",
+      "summary": "Clear stale repurchase eligibility on Stripe404; narrow regression and86focused tests passed."
     }
   ],
-  "updatedAt": "2026-10-11T18:26:43.678Z",
-  "revision": 3,
+  "updatedAt": "2026-10-11T18:28:45.569Z",
+  "revision": 4,
   "summary": "Customer lifecycle and authoritative repurchase eligibility locally verified; root integrates with client. Live Stripe verification, webhook, recovery sender and provider acceptance remain separate.",
   "blocker": null
 }
