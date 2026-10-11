@@ -151,8 +151,8 @@ speaks it, the words appear as they are spoken, and a drawn visual plays behind 
 **Description:**
 
 > Ask Claude to explain something and present it in RISE. Claude writes the answer as a
-> short reading: a title, up to 16 passages, and, if it likes, a colour theme, a look,
-> and a diagram or figure of its own. RISE shows it in the chat as a card. You press
+> short reading: a title, a few minutes of passages at most, and, if it likes, a colour
+> theme, a look, and a diagram or figure of its own. RISE shows it in the chat as a card. You press
 > Play. Your device's built-in voice reads it aloud, the words appear as they are spoken,
 > and a visual plays behind them.
 >

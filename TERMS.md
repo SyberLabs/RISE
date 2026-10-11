@@ -27,12 +27,11 @@ over generative visuals and imagery held by museums and archives.
 
 Reading is offered without charge, as an experiment, and RISE is under active
 development. RISE Plus, a voice tier that would voice readings of your own
-material, is not currently offered for live purchase. The customer page shows
-availability before offering checkout. The planned new offer is **US $8.99
-per month for 60,000 voiced characters per paid billing period**, plus any
-applicable tax disclosed at checkout. A separate limit of 25,000 characters
-per day applies. Legacy subscriptions retain their existing invoice-derived
-allowance; the amount remaining is shown in RISE Plus.
+material, is not currently offered, and nothing in the Service is for sale. If
+it is offered again, its price, allowance and any tax will be shown on the
+customer page before any checkout, and these Terms will say so. Legacy
+subscriptions retain their existing invoice-derived allowance; the amount
+remaining is shown in RISE Plus.
 
 When live checkout is enabled, Stripe processes the recurring monthly
 subscription. The checkout states the amount due before you confirm payment.
