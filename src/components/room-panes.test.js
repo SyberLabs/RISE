@@ -110,6 +110,30 @@ describe('createPaneHost', () => {
     expect(host.instance('a')).toBe(null);
   });
 
+  it('a pane closed while it is still mounting never takes the screen, and its late instance is destroyed', async () => {
+    let finish;
+    const late = new Promise(resolve => { finish = resolve; });
+    const destroyed = vi.fn();
+    const host = makeHost({
+      loaders: { a: async () => ({ Pane: WithUpdate }), slow: () => late },
+      factories: {
+        a: (el, { Pane }, data) => new Pane(el, data),
+        slow: (el, { Pane }, data) => Object.assign(new Pane(el, data), { destroy: destroyed })
+      }
+    });
+    host.activate();
+    await host.show('a', {});
+    const showing = host.show('slow', {});
+    host.close('slow');
+    finish({ Pane: WithoutUpdate });
+    await showing;
+    expect(host.active).toBe('a');
+    expect(host.instance('slow')).toBe(null);
+    expect(container.querySelector('[data-pane="slow"]')).toBe(null);
+    expect(container.querySelector('[data-pane="a"]').hidden).toBe(false);
+    expect(destroyed).toHaveBeenCalledTimes(1);
+  });
+
   it('leaves the active pane alone and rejects when a loader throws', async () => {
     const host = makeHost();
     host.activate();
