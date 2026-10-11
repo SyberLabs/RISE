@@ -38,6 +38,12 @@
       "ref": "src/components/read/Chamber.dive.test.js",
       "note": "Final harness, including a post-pause state assertion and microtask flush: focused25 passed (1.31s test time); actual unit shard142 files/1921 passed/1 existing skip (30.38s); browser gate60 passed/3 existing skips (3.0m); roadmap23 passed/87 tasks valid; hygiene9 clean. Existing5000ms timeout,30-second pause and complete atom-order assertions preserved. GitHub required CI pending.",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/622",
+      "note": "Narrow test harness and task evidence only; required CI and independent root review pending. No source runtime/config/provider changes.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
@@ -52,10 +58,14 @@
     {
       "date": "2026-10-11T18:05:43.597Z",
       "summary": "Final pause-state and complete sequence checks pass focused tests, unit shard and required browser gate."
+    },
+    {
+      "date": "2026-10-11T18:06:00.106Z",
+      "summary": "Opened narrow PR622; local checks passed, required CI and independent review pending."
     }
   ],
-  "updatedAt": "2026-10-11T18:05:43.597Z",
-  "revision": 3,
+  "updatedAt": "2026-10-11T18:06:00.106Z",
+  "revision": 4,
   "summary": "Reduce simulated post-reading frame work while retaining 30-second pause and complete atom-sequence assertions.",
   "blocker": null
 }
