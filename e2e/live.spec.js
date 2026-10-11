@@ -540,6 +540,30 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
+    // The demo ends on a said beat. A closing shown line, which no one says, is pinned streamed in src/live/last-beat.test.js:
+    // the demo's own script is not changed to show it here.
+    test('ends the reading only after the voice has said its last beat, whole', async ({ page }) => {
+        test.setTimeout(90_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        const journal = () => page.evaluate(() => window.__riseLive.journal().filter(entry => entry.role === 'main'));
+        await expect.poll(async () => (await journal()).some(entry => entry.type === 'run.finished'), { timeout: 60_000 }).toBe(true);
+        const entries = await journal();
+        const finished = entries.find(entry => entry.type === 'run.finished');
+        const last = entries.filter(entry => entry.type === 'speech.end').at(-1);
+        const words = 'The black hole itself stays dark. What we photograph is the shadow it casts on that light.';
+        expect(last).toMatchObject({ segmentId: 'beat-6' });
+        expect(last.durationMs).toBeGreaterThanOrEqual(words.length * MS_PER_CHAR);
+        // Said before the reading ended, and the words kept with it: the Player completed as the voice ended.
+        expect(last.at).toBeLessThanOrEqual(finished.at);
+        expect(finished.voiceTailMs ?? 0).toBeLessThan(250);
+        expect(entries.filter(entry => ['voice.taken', 'voice.failed', 'voice.degraded'].includes(entry.type))).toEqual([]);
+        expect(errors).toEqual([]);
+    });
+
     test('carries what the reader did up with their next words: a replay, a theme and the pause go, and nothing of the voice', async ({ page }) => {
         test.setTimeout(90_000);
         const errors = watchErrors(page);

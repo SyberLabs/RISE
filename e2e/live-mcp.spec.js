@@ -966,6 +966,53 @@ test('a Current of beats plays in the self-contained card: a hold, a shown line,
   expect(errors).toEqual([]);
 });
 
+/** The main run's journal, once the reading has ended (the card under ?measure=1). */
+async function finishedJournal(app) {
+  const journal = () => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__riseLive.journal().filter(entry => entry.role === 'main'));
+  await expect.poll(async () => (await journal()).some(entry => entry.type === 'run.finished'), { timeout: 30_000 }).toBe(true);
+  const entries = await journal();
+  return { entries, finished: entries.find(entry => entry.type === 'run.finished'), ends: entries.filter(entry => entry.type === 'speech.end') };
+}
+
+test('the card ends a reading only after the voice has said its last beat with words, whole', async ({ page, baseURL }) => {
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current: SKY_BEATS, measure: true });
+  await expect(posterTitle(app)).toHaveText(SKY_BEATS.title);
+  await begin(app);
+  const last = SKY_BEATS.beats.at(-1).say;
+  await expectShown(app, 'So blue reaches your eye', 20_000);
+  const { entries, finished, ends } = await finishedJournal(app);
+  expect(ends.at(-1)).toMatchObject({ segmentId: `beat-${SKY_BEATS.beats.length - 1}` });
+  // Its whole length at the paced voice's 62 ms a character: nothing cut it short.
+  expect(ends.at(-1).durationMs).toBeGreaterThanOrEqual(last.length * 62);
+  // Said before the end; and the words kept with the voice, so the Player completed (on which followReading stops the
+  // bed) as the voice ended: the clock's estimate may fall due a millisecond before the voice reports its end.
+  expect(ends.at(-1).at).toBeLessThanOrEqual(finished.at);
+  expect(finished.voiceTailMs ?? 0).toBeLessThan(250);
+  expect(entries.filter(entry => ['voice.taken', 'voice.failed', 'voice.degraded'].includes(entry.type))).toEqual([]);
+  await expect(app.getByRole('button', { name: 'Play again', exact: true })).toBeVisible();
+});
+
+test('a closing shown line is said by no one: the card ends its hold after the last speech, as the style designs', async ({ page, baseURL }) => {
+  // premium-educational's last rule (src/live/guide/styles/premium-educational.js): "End on a shown line ("show" with
+  // "hold", in the centre, larger) that states the result." The field's 4,070 ms from the last speech.end to
+  // run.finished is this hold and the seam before it; nothing is lost.
+  const closing = { show: 'Short waves scatter most, so the sky is blue.', hold: { ms: 3500 }, place: 'centre', size: 'larger' };
+  const current = { ...SKY_BEATS, id: 'sky-closing', beats: [...SKY_BEATS.beats, closing] };
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current, measure: true });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await begin(app);
+  await expectShown(app, 'Short waves scatter most', 30_000);
+  const { entries, finished, ends } = await finishedJournal(app);
+  const closingId = `beat-${current.beats.length - 1}`;
+  expect(entries.filter(entry => entry.type === 'speech.start' && entry.segmentId === closingId)).toEqual([]);
+  expect(ends.at(-1)).toMatchObject({ segmentId: `beat-${current.beats.length - 2}` });
+  const gap = finished.at - ends.at(-1).at;
+  expect(gap).toBeGreaterThanOrEqual(closing.hold.ms);
+  expect(gap).toBeLessThan(closing.hold.ms + 1_500);
+});
+
 // CC-005: a generated scene runs in a worker the card makes from RISE's own script, and may end its hold early.
 const ORBIT_CODE = [
   'export const reportsCompletion = true;',

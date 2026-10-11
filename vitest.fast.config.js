@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 108;
+export const FAST_TEST_FILES = 109;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -74,6 +74,8 @@ const FAST_TESTS = [
     'src/live/voice-never-starts.test.js',
     // A stored card's Current whose events the reducer refused plays whole, says what it lost, and waits on no voice.
     'src/live/sealed-lost-passages.test.js',
+    // The last beat with words is said whole before the reading ends; a closing shown line is said by no one.
+    'src/live/last-beat.test.js',
     'src/live/adapters/**/*.test.js',
     'src/live/host/**/*.test.js',
     'src/live/hosts/**/*.test.js',

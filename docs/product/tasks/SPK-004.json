@@ -58,6 +58,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/627",
       "note": "Open on branch voice-utterance-fallback (1c9a4680): a passage a network voice never begins is retried once a sentence at a time before the clock stands down; passages over 600 characters are said in sentences on network voices; About names the passage, its length and the retry. Reproduced in src/live/voice-never-starts.test.js; not yet heard on a real Edge.",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/product/tasks/SPK-004.json",
+      "note": "Owner, 2026-10-11, field trace on Edge (Windows) with Microsoft Ava Online (Natural), a stored premium-educational card: speech.end beat-22 at 108.211 s, then run.finished at 112.281 s and no speech between; asked whether the last atom was meant to be narrated.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/630",
+      "note": "Open on branch last-beat-spoken (0f03cfe2): tests only. The 4 s is premium-educational's closing shown line (show + hold 3,500 ms, said by no one by the style's design) and the seam before it; the runtime reproduces 4,063 ms. src/live/last-beat.test.js pins that the last beat with words is said whole before run.finished (sealed v1 and v2, streamed, synthetic and late-starting browser voices), plus card and venue e2e. No defect found; not yet heard on a real Edge.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
@@ -72,10 +84,14 @@
     {
       "date": "2026-10-11T19:50:44.666Z",
       "summary": "network voice: a passage that never starts is retried sentence-wise before the voice is given up on; long passages are spoken sentence-wise on network voices"
+    },
+    {
+      "date": "2026-10-11T22:06:43.764Z",
+      "summary": "field trace: a premium-educational reading's last 4 s of silence is its closing shown line by design; the last beat with words is pinned as said whole before the reading ends (#630)"
     }
   ],
-  "updatedAt": "2026-10-11T19:50:44.666Z",
-  "revision": 3,
+  "updatedAt": "2026-10-11T22:06:43.764Z",
+  "revision": 4,
   "summary": "Hardens the browser voice as the reading's clock: the words on screen wait for the word spoken, a cold engine gets a longer first grace, and Chrome readers get a Google voice spoken a sentence at a time.",
   "blocker": "Criterion 4 is a human gate: the owner or a second reader on Chrome on Windows hears a Google voice and sees no phrase pass faster than it is spoken, on the live release."
 }
