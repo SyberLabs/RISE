@@ -47,6 +47,8 @@ export const BEAT_LIMITS = Object.freeze({
   transitionDefaultMs: 600
 });
 
+/** Every field a beat may carry: what the validator admits, and what a streamed beat carries besides `say` (protocol.js). */
+export const BEAT_FIELDS = Object.freeze(['say', 'show', 'hold', 'scene', 'cue', 'transition', 'place', 'size', 'type', 'emphasis', 'sound']);
 export const BEAT_PLACES = Object.freeze(['centre', 'caption', 'top', 'left', 'right', 'none']);
 export const BEAT_SIZES = Object.freeze(['smaller', 'as-set', 'larger', 'display']);
 /** Faces by role, and the faces RISE hosts by id (typography.js). */
@@ -145,7 +147,7 @@ export function validateBeats(value, path, { scenes }) {
   return value.map((item, index) => {
     const at = `${path}[${index}]`;
     const beat = object(item, at);
-    keys(beat, ['say', 'show', 'hold', 'scene', 'cue', 'transition', 'place', 'size', 'type', 'emphasis', 'sound'], at);
+    keys(beat, BEAT_FIELDS, at);
     const has = key => beat[key] !== undefined;
     let kind;
     if (has('say') && !has('hold')) kind = 'say';

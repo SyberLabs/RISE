@@ -129,6 +129,8 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
     let resumeFrom = null;
     let received = 0;
     let refusalCount = 0;
+    /** The first refusals, as many as the budget, each with the segment or scene it was about. */
+    const refusedEvents = [];
     let error = null;
     let lastError = null;
     let cancelReason = null;
@@ -263,9 +265,14 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
         buffer.clear();
     }
 
-    function noteRefusal(code) {
+    function noteRefusal(code, event = null) {
         if (NOT_HOSTILE.has(code)) return;
         refusalCount += 1;
+        if (refusedEvents.length < refusalBudget) {
+            const about = typeof event?.segmentId === 'string' ? { segmentId: event.segmentId }
+                : typeof event?.sceneId === 'string' ? { sceneId: event.sceneId } : {};
+            refusedEvents.push({ code, ...about });
+        }
         if (refusalCount >= refusalBudget && !terminal()) {
             fail('TOO_MANY_REFUSALS', `Too many events were refused (${refusalCount}); the last was ${code}`);
         }
@@ -523,7 +530,7 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                 } catch (caught) {
                     if (!(caught instanceof Refusal)) throw caught;
                     if (outcome === null) outcome = { status: 'refused', code: caught.code };
-                    noteRefusal(caught.code);
+                    noteRefusal(caught.code, current.event);
                 }
                 recent.set(seq, current.digest);
             }
@@ -630,6 +637,8 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
         get ending() { return ending; },
         /** The scenes the admission refused, in order: { sceneId, message } with the Worker's sentence. */
         get refusedScenes() { return refusedScenes.map(item => Object.freeze({ ...item })); },
+        /** The events refused, the first as many as the refusal budget: { code } and the segmentId or sceneId it named. */
+        get refused() { return refusedEvents.map(item => Object.freeze({ ...item })); },
 
         /** A frozen copy of everything the stream holds. */
         snapshot() {

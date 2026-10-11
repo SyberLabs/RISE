@@ -32,7 +32,7 @@
  * reader was in (graft.js), said by the same voice into the same Player. The ending it names takes the reading on.
  */
 
-import { RISE_CURRENT_SCHEMA_V2, compileRiseCurrent } from '../core/rise-current.js';
+import { RISE_CURRENT_SCHEMA_V2, compileRiseCurrent, validateRiseCurrent } from '../core/rise-current.js';
 import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
@@ -42,7 +42,7 @@ import { answerBeats, arrangeRoom, closeAnswer, cutAfter, growAnswer, lowerRoom,
 import { endingOf, interjectionStep } from './interjection.js';
 import { SETTING_PARAMETERS } from './perception.js';
 import { withExperientialState } from './state-visuals.js';
-import { createCurrentStream } from './stream.js';
+import { STREAM_LIMITS, createCurrentStream } from './stream.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 
 /** voiceTailMs: how long a reading whose words have all been shown waits for its voice to finish saying them. */
@@ -106,7 +106,9 @@ export function createLiveRuntime({
             speaking: run.speaking,
             segmentId: run.segmentId,
             finished: run.finished,
-            error: run.error
+            error: run.error,
+            /** Passages of a sealed Current whose words never reached the voice (see pump). */
+            lost: run.lost ?? 0
         };
     }
 
@@ -238,7 +240,8 @@ export function createLiveRuntime({
     function failRun(run, caught) {
         if (run.closed) return;
         run.error = { code: caught?.code ?? 'FAILED', message: String(caught?.message ?? caught).slice(0, 300) };
-        note('run.failed', { role: run.role, ...run.error });
+        const refused = run.stream.refused;
+        note('run.failed', { role: run.role, ...run.error, ...(refused.length ? { refused } : {}) });
         run.player?.setLive(false);
         // What was committed is still worth reading; only a Current with nothing to show has failed.
         if (!run.player) {
@@ -280,7 +283,7 @@ export function createLiveRuntime({
         let session;
         let ended;
         try {
-            // A sealed Current is compiled whole (its beats never pass through the stream); a streamed one is rebuilt.
+            // A sealed Current is compiled whole, as it was handed over; a streamed one is rebuilt from the stream.
             const reading = readingOf(run);
             const { sealed } = reading;
             ended = reading.segments;
@@ -426,6 +429,24 @@ export function createLiveRuntime({
         run.scenesRefused = refused.length;
     }
 
+    /**
+     * The passages of a sealed Current meant to be said whose words did not reach the reducer whole, in the journal
+     * (`run.failed` with the events refused and the passages lost, each list bounded) and on the run for the stage.
+     */
+    function noteUnspoken(run) {
+        const words = new Map(run.stream.snapshot().segments.filter(segment => segment.ended).map(segment => [segment.id, segment.text]));
+        const lost = validateRiseCurrent(run.connection.sealed).segments
+            .filter(segment => segment.spoken !== null && words.get(segment.id) !== (segment.spoken ?? segment.text))
+            .map(segment => segment.id);
+        run.lost = lost.length;
+        const error = run.stream.snapshot().error;
+        note('run.failed', {
+            role: run.role, code: error?.code ?? 'EVENTS_REFUSED', message: error?.message ?? 'Events of the Current were refused',
+            refused: run.stream.refused, passages: lost.length, lost: lost.slice(0, STREAM_LIMITS.refusals)
+        });
+        set(status);
+    }
+
     async function pump(run) {
         let attempts = 0;
         try {
@@ -462,7 +483,11 @@ export function createLiveRuntime({
             }
             // The answer is written, however it ended: what plays after this was all in hand.
             note('composed', { role: run.role, phase: run.stream.phase });
-            if (run.stream.phase === 'failed') throw new AdapterError(run.stream.snapshot().error?.code ?? 'FAILED', run.stream.snapshot().error?.message ?? 'The Current failed');
+            // A sealed Current plays whole from what the host handed over, whatever the reducer refused of its events. What
+            // it refused is named, with the passages whose words never reached the voice; the Player times those.
+            const playsWhole = Boolean(run.connection?.sealed) && run.player !== null && run.stream.refused.length > 0;
+            if (playsWhole) noteUnspoken(run);
+            if (run.stream.phase === 'failed' && !playsWhole) throw new AdapterError(run.stream.snapshot().error?.code ?? 'FAILED', run.stream.snapshot().error?.message ?? 'The Current failed');
             if (!stillComing(run)) run.player?.setLive(false);
             // A run that already failed (the compiler refused what the validator accepted) keeps its own reason.
             if (!run.player && !run.error) {

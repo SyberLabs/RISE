@@ -76,6 +76,18 @@
       "ref": "docs/assets/directory/CLAUDE-RUN-2026-10-10.md",
       "note": "Both tools called by Claude through the connector from a Claude Code session; the card rendering in claude.ai, iOS and Android is still the owner's to run.",
       "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/adapters/current-events.whole.test.js",
+      "note": "Every Current the Worker admits (the guide's worked Currents, the Sky field fixture, the streamed black holes, a v1 Current, two Currents using every v2 field at its bounds with all eleven engines, a generated scene and a 13 KB figure) reaches the card's reducer with zero refusals and every beat's words; failed on main with TOO_MANY_SEGMENTS at the 17th passage.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/sealed-lost-passages.test.js",
+      "note": "A sealed Current whose events the reducer refuses plays whole, journals run.failed with the refused events and lost passages, says how many on the stage, and waits on no voice.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
@@ -114,10 +126,14 @@
     {
       "date": "2026-10-10T05:17:04.575Z",
       "summary": "connector submission packet: terms corrected, test payment link removed, security channel, Inspector run, packet for the owner"
+    },
+    {
+      "date": "2026-10-11T21:08:46.060Z",
+      "summary": "a stored card's Current lowered whole again: the reducer admits every field rise.current.v2 admits; lost events are named in About"
     }
   ],
-  "updatedAt": "2026-10-10T05:17:04.575Z",
-  "revision": 9,
+  "updatedAt": "2026-10-11T21:08:46.060Z",
+  "revision": 10,
   "summary": "Integrate score, admitted host behavior and fixtures into a coherent first-use experience.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

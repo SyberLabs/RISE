@@ -16,6 +16,8 @@ export function describeStatus(snapshot, { audible = true, question = '', dive =
     const { status, error, main, side } = snapshot;
     const voiceLost = (side ?? main)?.voiceDegraded === true;
     const quiet = voiceLost ? ' The voice stopped; the reading carries on at its own pace.' : '';
+    // A sealed Current plays whole, but passages whose words never reached the voice are said to be silent (runtime.js).
+    const lost = main?.lost > 0 ? ` ${main.lost} passage${main.lost === 1 ? '' : 's'} could not be spoken.` : '';
     // What arrived is still read, so a failure after some of it must be said, or the reading looks finished.
     const early = main?.error ? ` The answer stopped early: ${String(main.error.message ?? 'the provider failed').slice(0, 200).replace(/\.+$/u, '')}.` : '';
     switch (status) {
@@ -25,7 +27,7 @@ export function describeStatus(snapshot, { audible = true, question = '', dive =
             return dive ? 'Asking…' : 'Starting…';
         case 'live': {
             const said = audible ? 'Speaking.' : 'Reading, paced as if spoken.';
-            return `${main?.speaking || !main?.voiceDegraded ? said : 'Reading.'}${early}${quiet}`;
+            return `${main?.speaking || !main?.voiceDegraded ? said : 'Reading.'}${early}${lost}${quiet}`;
         }
         case 'interrupted':
             return dive ? 'Held where you are. Resume, or ask about this place.' : 'Paused.';
@@ -38,7 +40,7 @@ export function describeStatus(snapshot, { audible = true, question = '', dive =
         }
         case 'ended': {
             const ask = dive ? ' You can still ask about any place in it.' : '';
-            return main?.error ? `Finished reading what arrived.${early}${ask}` : `Finished.${ask}`;
+            return main?.error ? `Finished reading what arrived.${early}${lost}${ask}` : `Finished.${lost}${ask}`;
         }
         case 'failed':
             return `It could not be answered: ${error?.message ?? 'the provider failed'}.`;

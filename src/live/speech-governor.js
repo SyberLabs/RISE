@@ -44,6 +44,10 @@
  * sentence at a time): if it will, the passage has the grace once more from
  * then, and its first start, whenever it comes, is where its clock begins.
  *
+ * A passage the voice was given no words for (a sealed Current's whose events
+ * the reducer refused, runtime.js) is not waited on: the governor declines it,
+ * and the Player times it at reading pace.
+ *
  * Degrading is quiet and one way, until the reader seeks (`forget`). If the
  * voice does not begin what it was asked to say within its grace, and a retry
  * did not begin either, the governor stands down and the Player's own timer
@@ -146,7 +150,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
 
     function complete(atom, index) {
         const entry = map[index];
-        if (degraded || !entry?.segmentId) return null;
+        if (degraded || !entry?.segmentId || !segments.get(entry.segmentId)) return null;
         cancelWait();
         const mine = { dead: false, cancel: null };
         waiting = mine;
