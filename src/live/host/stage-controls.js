@@ -102,6 +102,7 @@ export function createStageControls({
       ${full ? '<p class="rise-stage__pace-note rise-stage__sr" aria-live="polite"></p>' : ''}
       ${offersVoice ? '<p class="rise-stage__voice-note rise-stage__sr" aria-live="polite"></p>' : ''}
       <p class="rise-stage__alert" role="alert" hidden></p>
+      ${full ? '<p class="rise-stage__suggest" role="status" hidden><span></span> <button type="button" class="rise-stage__keep"></button></p>' : ''}
       <div class="rise-stage__bar">
         ${full ? '<div class="rise-stage__beats" aria-hidden="true"></div>' : ''}
         <div class="rise-stage__row">
@@ -185,6 +186,7 @@ export function createStageControls({
     const fullscreen = $('[data-stage="fullscreen"]');
     const beats = $('.rise-stage__beats');
     const paceNote = $('.rise-stage__pace-note');
+    const suggest = $('.rise-stage__suggest');
     const aboutPanel = $('.rise-settings__about');
     const aboutText = $('.rise-settings__about-text');
     const copy = $('.rise-settings__copy');
@@ -382,6 +384,13 @@ export function createStageControls({
         pace.textContent = `${rate(now)}×`;
         pace.setAttribute('aria-label', `Pace, ${rate(now)} times`);
         sayPace(now, snapshot.paceFrom ?? null);
+        // A pace RISE suggested (the runtime's pace.suggest), with the reader's way back to their own.
+        const suggested = snapshot.paceSuggested ?? null;
+        suggest.hidden = gone || !suggested;
+        if (suggested) {
+            suggest.firstElementChild.textContent = `RISE suggests ${rate(suggested.rate)}×.`;
+            suggest.lastElementChild.textContent = `Keep ${rate(suggested.before)}×`;
+        }
         const shown = display();
         fullscreen.hidden = gone || !shown;
         if (shown) {
@@ -574,6 +583,11 @@ export function createStageControls({
             if (!enabled(replay)) return;
             try { runtime.replay(); } catch { /* nothing to say again */ }
         });
+        // The reader refuses RISE's pace: their own, from before it, is the pace from now on.
+        suggest.lastElementChild.addEventListener('click', () => {
+            const suggested = runtime.snapshot().paceSuggested;
+            if (suggested) setPace(suggested.before);
+        });
         pace.addEventListener('click', () => {
             const now = runtime.snapshot().pace ?? 1;
             const at = PACES.indexOf(now);
@@ -614,6 +628,25 @@ export function createStageControls({
 
     return {
         element: root,
+        /**
+         * RISE changed the room's colours (a look the model chose, docs/plans/LIVE-CURRENT.md §18): worn as the Theme
+         * row wears the reader's, shown in the row, and kept for the room's next reading. Nothing of it is the reader's
+         * choice, so nothing is noted for perception here; the runtime notes it as RISE's.
+         */
+        wearTheme(id) {
+            if (destroyed || !JEV_COLOR_THEMES.includes(id)) return { status: 'refused', code: 'INVALID_CONTROL' };
+            theme.value = id;
+            paintTheme(id);
+            choose('theme', id);
+            return { status: 'accepted', effective: id };
+        },
+        /** RISE set the imagery's intensity: kept as the reader's is, given again at each passage and to the room's next reading. */
+        keepIntensity(value) {
+            if (destroyed || !Number.isFinite(value)) return;
+            chosen = value;
+            if (room) room.intensity = value;
+            root.dataset.intensity = value.toFixed(2);
+        },
         destroy() {
             if (destroyed) return;
             destroyed = true;

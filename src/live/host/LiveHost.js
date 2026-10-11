@@ -495,6 +495,8 @@ export class LiveHost {
             onNote: entry => {
                 if (isVoiceNote(entry.type)) this.trace('[RISE voice]', voiceLine(entry));
                 this.duckUnderVoice(entry.type);
+                // An intensity RISE set is the room's now, given again at each passage as the reader's is (stage-controls.js).
+                if (entry.type === 'room.changed' && entry.kind === 'visual.control' && entry.parameter === 'intensity') this.controls?.keepIntensity?.(entry.value);
             },
             createPlayer: session => createSessionPlayer(session),
             voices,
@@ -513,6 +515,9 @@ export class LiveHost {
                 controlVisual: ({ player, command, instant }) => mountedChamber(player)?.controlVisual?.(command, { instant: instant === true })
                     ?? { status: 'refused', code: 'NO_ACTIVE_VISUAL' },
                 holdScene: ({ player, atom }) => mountedChamber(player)?.holdScene?.(atom) ?? null,
+                // A look RISE chose for the room (docs/plans/LIVE-CURRENT.md §18): its colours, worn by the stage as the
+                // reader's Theme row wears one, and kept for the room's next reading.
+                changeLook: ({ theme }) => this.controls?.wearTheme?.(theme) ?? { status: 'refused', code: 'NO_ACTIVE_VISUAL' },
                 dismiss: () => {}
             }
         });
