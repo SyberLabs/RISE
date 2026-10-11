@@ -158,7 +158,7 @@ export async function forgetPlus({ fetchImpl = globalThis.fetch?.bind(globalThis
 
 /** Server-verified entitlement; administrator authority stays in memory only. */
 export async function fetchPlusStatus({ fetchImpl = globalThis.fetch?.bind(globalThis), timeoutMs = 1500 } = {}) {
-  const unavailable = { confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, allowance: null };
+  const unavailable = { confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null };
   const controller = new AbortController();
   let timer;
   const read = async () => {
@@ -172,6 +172,7 @@ export async function fetchPlusStatus({ fetchImpl = globalThis.fetch?.bind(globa
         admin: body?.admin === true, subscriber: body?.subscriber === true,
         available: body?.available === true, adminLogin: body?.adminLogin === true,
         billingAvailable: body?.billingAvailable === true,
+        canSubscribe: body?.canSubscribe === true,
         allowance: Number.isFinite(allowance?.used) && Number.isFinite(allowance?.limit)
           ? { used: allowance.used, limit: allowance.limit, periodEnd: allowance.periodEnd } : null
       };

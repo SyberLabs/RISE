@@ -106,15 +106,15 @@ describe('the claim page', () => {
 
  describe('server voice entitlement', () => {
   it('recognizes only explicit server booleans and never persists admin authority', async () => {
-    const fetchImpl = vi.fn(async () => Response.json({ admin: true, subscriber: false, available: true, adminLogin: false, billingAvailable: false, allowance: { used: 1, limit: 2, periodEnd: 3 } }));
-    expect(await fetchPlusStatus({ fetchImpl })).toEqual({ confirmed: true, admin: true, subscriber: false, available: true, adminLogin: false, billingAvailable: false, allowance: { used: 1, limit: 2, periodEnd: 3 } });
+    const fetchImpl = vi.fn(async () => Response.json({ admin: true, subscriber: false, available: true, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: { used: 1, limit: 2, periodEnd: 3 } }));
+    expect(await fetchPlusStatus({ fetchImpl })).toEqual({ confirmed: true, admin: true, subscriber: false, available: true, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: { used: 1, limit: 2, periodEnd: 3 } });
     expect(fetchImpl).toHaveBeenCalledWith('/api/plus/status', { signal: expect.any(AbortSignal) });
     expect(localStorage.getItem('rise.plus')).toBeNull();
-    expect(await fetchPlusStatus({ fetchImpl: async () => Response.json({ admin: 'true', subscriber: 1, available: true }) })).toEqual({ confirmed: false, admin: false, subscriber: false, available: true, adminLogin: false, billingAvailable: false, allowance: null });
+    expect(await fetchPlusStatus({ fetchImpl: async () => Response.json({ admin: 'true', subscriber: 1, available: true }) })).toEqual({ confirmed: false, admin: false, subscriber: false, available: true, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null });
   });
   it('fails closed when status is unavailable', async () => {
     for (const fetchImpl of [async () => { throw new Error('offline'); }, async () => new Response(null, { status: 503 })]) {
-      expect(await fetchPlusStatus({ fetchImpl })).toEqual({ confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, allowance: null });
+      expect(await fetchPlusStatus({ fetchImpl })).toEqual({ confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null });
     }
   });
 });
@@ -124,5 +124,5 @@ describe('the claim page', () => {
    let result;
    fetchPlusStatus({ fetchImpl: () => new Promise(() => {}), timeoutMs: 20 }).then(status => { result = status; });
    await vi.advanceTimersByTimeAsync(20);
-   expect(result).toEqual({ confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, allowance: null });
+   expect(result).toEqual({ confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null });
  });

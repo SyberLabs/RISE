@@ -11,7 +11,7 @@ async function api(page, { config = offer, subscriber = false, billing = false }
     if (path.endsWith('/claim') || path.endsWith('/restore')) { subscriber = true; billing = true; return route.fulfill({ status: 204 }); }
     if (path.endsWith('/recover')) return route.fulfill({ status: 202, json: { accepted: true } });
     if (path.endsWith('/checkout')) return route.fulfill({ status: 503, json: { error: { code: 'PLUS_UNAVAILABLE', message: 'Checkout is temporarily unavailable.' } } });
-    if (path.endsWith('/status')) return route.fulfill({ json: { subscriber, available: subscriber, billingAvailable: billing, allowance: subscriber ? { used: 15, limit: 60000, periodEnd: 2000000000 } : null } });
+    if (path.endsWith('/status')) return route.fulfill({ json: { subscriber, available: subscriber, canSubscribe: !subscriber, billingAvailable: billing, allowance: subscriber ? { used: 15, limit: 60000, periodEnd: 2000000000 } : null } });
     return route.fulfill({ json: [] });
   });
   return calls;

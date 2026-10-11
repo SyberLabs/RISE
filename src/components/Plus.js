@@ -78,7 +78,7 @@ export class Plus {
     if (this.destroyed) return;
     this.config = config; this.status = status;
     const price = this.$('[data-price]');
-    const canBuy = config.checkoutAvailable && status.confirmed && !this.callback && !status.subscriber;
+    const canBuy = config.checkoutAvailable && status.confirmed && status.canSubscribe && !this.callback && !status.subscriber;
     price.textContent = config.checkoutAvailable
       ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency: config.offer.currency }).format(config.offer.amount / 100)} / month`
       : 'Subscriptions are not available yet.';
@@ -104,7 +104,7 @@ export class Plus {
     try { await task(); } finally { this.busy = false; if (!this.destroyed) button.disabled = false; }
   }
   async purchase() {
-    if (!this.config?.checkoutAvailable || !this.status?.confirmed || this.callback || this.status?.subscriber) return;
+    if (!this.config?.checkoutAvailable || !this.status?.confirmed || !this.status?.canSubscribe || this.callback || this.status?.subscriber) return;
     await this.run(this.$('[data-checkout]'), async () => {
       this.message('Opening secure checkout…');
       const result = await startPlusCheckout(this.requestId);

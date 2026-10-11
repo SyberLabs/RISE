@@ -6,7 +6,7 @@ afterEach(() => { view?.destroy(); document.body.innerHTML = ''; vi.unstubAllGlo
 const config = { checkoutAvailable: true, recoveryAvailable: true, offer: { amount: 899, currency: 'usd', interval: 'month', characterLimit: 60000 } };
 function mount(replies = {}, options = {}) {
   vi.stubGlobal('fetch', vi.fn(async (path, init) => {
-    const value = replies[path] ?? (path.endsWith('/config') ? config : { subscriber: false, available: false, billingAvailable: false });
+    const value = replies[path] ?? (path.endsWith('/config') ? config : { subscriber: false, available: false, billingAvailable: false, canSubscribe: true });
     return typeof value === 'function' ? value(init) : Response.json(value);
   }));
   const root = document.createElement('div'); document.body.append(root);
@@ -31,7 +31,7 @@ it('does not offer a second purchase to a subscriber and permits billing after e
   expect(root.querySelector('[data-billing]').hidden).toBe(false);
   expect(root.textContent).toContain('20 of 60,000');
   view.destroy();
-  const lapsed = mount({ '/api/plus/status': { subscriber: false, available: false, billingAvailable: true } });
+  const lapsed = mount({ '/api/plus/status': { subscriber: false, available: false, billingAvailable: true, canSubscribe: true } });
   await view.ready;
   expect(lapsed.querySelector('[data-billing]').hidden).toBe(false);
 });
@@ -94,9 +94,16 @@ it('keeps recovery available after a claim is refused and does not offer a dupli
   expect(root.querySelector('input[type=email]').disabled).toBe(false);
 });
 it('lets a verified former subscriber subscribe again while keeping billing management', async () => {
-  const root = mount({ '/api/plus/status': { subscriber: false, available: false, billingAvailable: true } });
+  const root = mount({ '/api/plus/status': { subscriber: false, available: false, billingAvailable: true, canSubscribe: true } });
   await view.ready;
   expect(root.querySelector('[data-checkout]').hidden).toBe(false);
   expect(root.querySelector('[data-checkout]').textContent).toContain('Subscribe again');
+  expect(root.querySelector('[data-billing]').hidden).toBe(false);
+});
+
+it('does not offer a new subscription when the server requires existing billing to be resolved', async () => {
+  const root = mount({ '/api/plus/status': { subscriber: false, available: false, billingAvailable: true, canSubscribe: false } });
+  await view.ready;
+  expect(root.querySelector('[data-checkout]').hidden).toBe(true);
   expect(root.querySelector('[data-billing]').hidden).toBe(false);
 });
