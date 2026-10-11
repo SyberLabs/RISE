@@ -38,6 +38,12 @@
       "ref": "playwright.config.js",
       "note": "Final required local browser gate: 64 passed, 3 existing skips (3.0m). Affected three viewport readability/control cases passed without retries (9.3s); roadmap 23 tests passed and 91 tasks valid; hygiene 9 checks clean. One CSS value changed; strict assertions, dimensions, colors and auth remain unchanged. Remote CI and independent review pending.",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/626",
+      "note": "Narrow staff-label CSS repair and task evidence only; local affected cases and required gate passed. Remote CI and root independent review pending.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
@@ -52,10 +58,14 @@
     {
       "date": "2026-10-11T19:15:39.144Z",
       "summary": "All affected viewport cases and required browser gate pass; narrow repair ready for PR."
+    },
+    {
+      "date": "2026-10-11T19:15:59.940Z",
+      "summary": "Opened narrow PR626 for independent review and required CI."
     }
   ],
-  "updatedAt": "2026-10-11T19:15:39.144Z",
-  "revision": 3,
+  "updatedAt": "2026-10-11T19:15:59.940Z",
+  "revision": 4,
   "summary": "Restore readable staff-label text with one CSS value change; preserve strict browser assertions and 44px controls.",
   "blocker": null
 }
