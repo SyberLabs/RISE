@@ -1,6 +1,7 @@
-import { fetchPlusStatus, fetchPlusVoices, fetchPlusPaymentLink } from '../../app/plus.js';
+import { fetchPlusStatus, fetchPlusVoices } from '../../app/plus.js';
 import { voiceDemoSession, VOICE_DEMO_SAMPLE, VOICE_DEMO_MAX_CHARS, VOICE_DEMO_LOOKS } from '../../app/voice-demo-session.js';
 import './VoiceDemo.css';
+import { takePlusContinuation } from '../../app/plus-continuation.js';
 
 const DRAFT_KEY = 'rise.voice-demo.draft';
 function readDraft() {
@@ -21,7 +22,8 @@ export class VoiceDemo {
     this.busy = false;
     this.destroyed = false;
     this.audioPrepared = false;
-    const draft = readDraft();
+    const continuation = takePlusContinuation();
+    const draft = continuation ? { ...continuation, voice: 'default' } : readDraft();
     container.innerHTML = `<section class="voice-demo" aria-labelledby="voice-demo-title">
       <a class="voice-demo-home" href="/">RISE <span>↗ Home</span></a>
       <p class="voice-demo-eyebrow">WORDS · VOICE · COLOR</p>
@@ -46,6 +48,7 @@ export class VoiceDemo {
     for (const preset of VOICE_DEMO_LOOKS) this.look.add(new Option(preset.label, preset.id));
     this.look.value = draft?.look ?? 'prism';
     this.savedVoice = draft?.voice;
+    if (continuation) this.saveDraft();
     this.status = container.querySelector('[data-status]');
     this.begin = container.querySelector('[data-begin]');
     this.events = new AbortController();
@@ -78,7 +81,7 @@ export class VoiceDemo {
   }
 
   updateBegin() {
-    this.container.querySelector('[data-count]').textContent = `${this.text.value.length.toLocaleString()} / 1,000 characters`;
+    this.container.querySelector('[data-count]').textContent = `${this.text.value.length.toLocaleString()} / ${VOICE_DEMO_MAX_CHARS.toLocaleString()} characters`;
     this.begin.disabled = this.busy || !this.audioPrepared || !this.entitled || !/[\p{L}\p{N}]/u.test(this.text.value) || this.text.value.length > VOICE_DEMO_MAX_CHARS;
   }
 
@@ -88,13 +91,13 @@ export class VoiceDemo {
     this.updateBegin();
     this.status.textContent = 'Checking voice availability…';
     let timeout;
-    const fallback = [{ admin: false, available: false, unconfirmed: true }, [{ slug: 'default', label: 'Default' }], null];
+    const fallback = [{ admin: false, available: false, unconfirmed: true }, [{ slug: 'default', label: 'Default' }]];
     const values = await Promise.race([
-      Promise.all([fetchPlusStatus(), fetchPlusVoices(), fetchPlusPaymentLink()]),
+      Promise.all([fetchPlusStatus(), fetchPlusVoices()]),
       new Promise(resolve => { timeout = setTimeout(() => resolve(fallback), 2000); })
     ]).catch(() => fallback).finally(() => clearTimeout(timeout));
     if (this.destroyed || generation !== this.generation) return;
-    const [status, voices, paymentLink] = values;
+    const [status, voices] = values;
     this.entitled = status.available === true && (status.admin === true || status.subscriber === true);
     const selected = this.voice.value || this.savedVoice;
     this.voice.replaceChildren(...voices.map(voice => new Option(voice.label, voice.slug)));
@@ -106,10 +109,7 @@ export class VoiceDemo {
     access.replaceChildren();
     const addLink = (href, label) => { const link = document.createElement('a'); link.href = href; link.textContent = label; access.append(link); };
     if (!this.entitled && status.adminLogin === true) addLink('/api/plus/admin/login?returnTo=voice-demo', 'Administrator sign-in');
-    if (!this.entitled && paymentLink) addLink(paymentLink, 'Subscribe to Plus');
-    if (!this.entitled && !status.adminLogin && !paymentLink) access.textContent = status.unconfirmed
-      ? 'Could not confirm sign-in or checkout availability. Check again to retry.'
-      : 'No administrator sign-in or Plus checkout link is available here. Check availability again.';
+    addLink('/plus/', this.entitled ? 'Manage Plus & billing' : 'Explore Plus or restore your subscription');
     this.updateBegin();
   }
 

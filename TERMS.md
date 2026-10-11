@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated: 9 October 2026**
+**Last updated: 11 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Sections 3, 11 and 12
 > in particular carry real legal consequence and are worth settling with
@@ -27,9 +27,30 @@ over generative visuals and imagery held by museums and archives.
 
 Reading is offered without charge, as an experiment, and RISE is under active
 development. RISE Plus, a voice tier that would voice readings of your own
-material, is not currently offered, and nothing in the Service is for sale. If
-it is offered, these terms will first be revised to state its price, allowance
-and billing. Administrator voice access requires separate Cloudflare
+material, is not currently offered for live purchase. The customer page shows
+availability before offering checkout. The planned new offer is **US $8.99
+per month for 60,000 voiced characters per paid billing period**, plus any
+applicable tax disclosed at checkout. A separate limit of 25,000 characters
+per day applies. Legacy subscriptions retain their existing invoice-derived
+allowance; the amount remaining is shown in RISE Plus.
+
+When live checkout is enabled, Stripe processes the recurring monthly
+subscription. The checkout states the amount due before you confirm payment.
+You can open **Manage billing** from RISE Plus to update your payment details,
+view invoices, or cancel renewal. Access continues through the paid period
+unless the payment is refunded, disputed, or otherwise invalidated. Use
+**Restore Plus** with your purchase email to recover access on another browser.
+Recovering a subscription does not restore browser-local text or audio.
+
+New voicing requests use your character allowance. Replaying audio already
+stored in the same browser does not. Changing the voice, clearing the audio,
+or voicing on another device may use the allowance again. A request the voice
+provider bills can count even if delivery fails; contact
+**syberlabs.software@gmail.com** for help with a failed paid render or a billing
+problem. If a limit or service interruption prevents voicing, free reading
+remains available. Nothing in these terms limits mandatory consumer rights.
+
+Administrator voice access requires separate Cloudflare
 Access authorization and has separate shared daily and monthly limits. If authorization lapses or
 a limit is reached, reading continues without the voice. Features appear, change and are withdrawn. Nothing here is a
 product commitment.

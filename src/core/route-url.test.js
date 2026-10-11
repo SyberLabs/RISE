@@ -156,3 +156,8 @@ describe('route urls', () => {
         expect(pathForRoute('no-such-room')).toBeNull();
     });
 });
+
+it("routes customer Plus as a settings pane without credentials in route data", () => {
+ expect(routeFromPath("/plus/")).toEqual({ id: "settings", data: { pane: "plus" } });
+ expect(pathForRoute("settings", { pane: "plus" })).toBe("/plus/");
+});

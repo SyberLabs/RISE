@@ -206,6 +206,7 @@ const ROUTES = [
     }, 'make'),
 
     fixed('settings', '/settings'),
+    pane('plus', { pattern: '/plus', build: () => '/plus/' }, 'settings'),
     pane('affect', { pattern: EMOTIONS_PATH, build: () => EMOTIONS_PATH }, 'settings')
 ];
 

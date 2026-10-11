@@ -22,6 +22,7 @@ import {
   tryTextSession
 } from '../../app/try-session.js';
 import './Try.css';
+import { savePlusContinuation } from '../../app/plus-continuation.js';
 
 const LIMIT = TRY_TEXT_MAX_CHARS.toLocaleString('en-US');
 const FAILED = 'The reading could not be prepared.';
@@ -77,7 +78,12 @@ export class Try {
     const target = event.target?.closest?.('[data-action]');
     if (!target || !this.container.contains(target)) return;
     const action = target.dataset.action;
-    if (action === 'sound') {
+    if (action === 'plus') {
+      if (!savePlusContinuation(this.text)) {
+        event.preventDefault();
+        this.container.querySelector('[data-plus-handoff]').textContent = 'This browser could not keep your draft. Copy your text before opening Plus.';
+      }
+    } else if (action === 'sound') {
       this.sound = !this.sound;
       this.sync();
     } else if (action === 'begin' && this.kind === 'sample') {
@@ -191,6 +197,7 @@ export class Try {
         <div class="try-actions">
           <a class="try-primary" href="${TRY_TEXT_PATH}" data-action="own-text">Read your own text</a>
           ${publication}
+          <a class="try-quiet" href="/plus/" data-plus>Explore Plus voice for your own text</a>
           <button class="try-quiet" type="button" data-action="replay">Replay sample</button>
         </div>
       </section>`;
@@ -202,6 +209,8 @@ export class Try {
         <button class="try-primary" type="button" data-action="again">Read again</button>
         <button class="try-secondary" type="button" data-action="edit">Edit text</button>
         ${publication}
+        <a class="try-secondary" href="/plus/" data-plus data-action="plus">Add voice to this reading</a>
+        <p class="try-note" data-plus-handoff role="status">This tab keeps your text through checkout. It is sent for voicing only when you choose Begin with ElevenLabs.</p>
       </div>
     </section>`;
   }

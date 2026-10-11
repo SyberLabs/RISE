@@ -17,3 +17,10 @@ it('refuses empty or oversized demos rather than silently trimming reader text',
   expect(() => voiceDemoSession({ text: '  ', voice: 'default' })).toThrow();
   expect(() => voiceDemoSession({ text: 'word '.repeat(2500), voice: 'default' })).toThrow();
 });
+it('continues the original sample look for an own-text upgrade without truncation', () => {
+  const text = 'An original sentence. '.repeat(180);
+  const input = voiceDemoSession({ text, look: 'sample' });
+  expect(input.text).toBe(text);
+  expect(input.visualConfig.interlocution.procedural).toEqual(['ostensoria']);
+  expect(input.origin).toMatchObject({ view: 'voice-demo', requireElevenLabs: true });
+});

@@ -1,0 +1,81 @@
+{
+  "id": "PLUS-LIFECYCLE",
+  "title": "Customer checkout, recovery and billing lifecycle",
+  "lane": "reader",
+  "milestone": "Paid voice release",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex-plus-lifecycle",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Server-authoritative checkout for the funded fixed offer with idempotent retries.",
+    "Verified email recovery and authenticated self-service billing remain separate from staff access.",
+    "New quota, legacy entitlement, renewal and spending guard regressions pass.",
+    "Live release requires separate owner configuration and live vendor acceptance."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "worker/plus-lifecycle.test.js",
+      "date": "2026-10-11",
+      "note": "25 lifecycle tests pass after observed red regressions for missing routes, copied receipt, address limiter, customer credits, case variants, cross-customer recovery, acquisition/service separation and unknown-state duplicate prevention."
+    },
+    {
+      "kind": "test",
+      "ref": "vitest.fast.config.js",
+      "date": "2026-10-11",
+      "note": "Final102 fastfiles:2361passed,four existing skipped; authoritative canSubscribe adds seven status/cache/webhook regressions. CI hygiene,build,high-severity audit gate,dependency compatibility,first-load61.8KB/64KB passed. Initial browsergate59passed3skipped1spoken-sample failure; pinned audiohydration then rebuilt targeted spoken-sample passed1test in5.5s."
+    },
+    {
+      "kind": "document",
+      "ref": "docs/PLUS-CUSTOMER-LIFECYCLE.md",
+      "date": "2026-10-11",
+      "note": "Endpoint, release configuration, signing-purpose cookies and recovery digest retention documented. No deployment or live purchase performed."
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/623",
+      "date": "2026-10-11",
+      "note": "Draft backend review; root owns atomic client/backend integration and production release. Initial implementation commit65c47b28,follow-up eligibility fix remains branch-only."
+    },
+    {
+      "kind": "test",
+      "ref": "worker/plus-budget.test.js",
+      "date": "2026-10-11",
+      "note": "Reviewer-reproduced stale canceled eligibility after Stripe404 failed first, then passed with explicit false reset. Focused lifecycle/budget suite:86passed. Full checks remain the prior recorded run."
+    },
+    {
+      "kind": "test",
+      "ref": "worker/plus-lifecycle.test.js",
+      "date": "2026-10-11",
+      "note": "Ten portal-readiness and canceled-restoration regressions observed failing before repair, then passed. Focused lifecycle, spending-budget and core Plus suite: 214 passed. Portal configuration fields checked against official Stripe documentation; actual live provider acceptance remains separate."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-11T18:11:29.107555+00:00",
+      "summary": "Claimed the approved customer lifecycle backend work; endpoint contract agreed with client owner."
+    },
+    {
+      "date": "2026-10-11T18:21:51.482Z",
+      "summary": "Implemented customer lifecycle with independent review fixes and local evidence; production acceptance stays separate."
+    },
+    {
+      "date": "2026-10-11T18:26:43.678Z",
+      "summary": "Added cached authoritative repurchase eligibility; resolved hydrated spoken-sample check and recorded draft PR evidence."
+    },
+    {
+      "date": "2026-10-11T18:28:45.569Z",
+      "summary": "Clear stale repurchase eligibility on Stripe404; narrow regression and86focused tests passed."
+    },
+    {
+      "date": "2026-10-11T18:43:54.084Z",
+      "summary": "Verify Stripe portal controls before selling and atomically invalidate stale access during restoration."
+    }
+  ],
+  "updatedAt": "2026-10-11T18:43:54.084Z",
+  "revision": 5,
+  "summary": "Customer lifecycle and authoritative repurchase eligibility locally verified; root integrates with client. Live Stripe verification, webhook, recovery sender and provider acceptance remain separate.",
+  "blocker": null
+}

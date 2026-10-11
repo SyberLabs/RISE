@@ -14,10 +14,10 @@ export function mountAccountControl() {
     return location.pathname === '/live' && new URLSearchParams(location.search).has('eval');
   };
   const link = document.createElement('a');
-  link.className = 'rise-account-control';
+  link.className = 'rise-account-control is-staff';
   link.href = ACCOUNT_SIGN_IN;
-  link.textContent = 'Sign in';
-  link.setAttribute('aria-label', 'Sign in to SyberLabs');
+  link.textContent = 'Staff sign in';
+  link.setAttribute('aria-label', 'Staff sign in to SyberLabs');
   document.body.append(link);
   document.body.classList.add('has-rise-account');
   let user = null;
@@ -29,8 +29,9 @@ export function mountAccountControl() {
     revision++;
     if (user) accountRevision++;
     user = null;
-    link.textContent = 'Sign in';
-    link.setAttribute('aria-label', 'Sign in to SyberLabs');
+    link.classList.add('is-staff');
+    link.textContent = 'Staff sign in';
+    link.setAttribute('aria-label', 'Staff sign in to SyberLabs');
   };
   const refresh = async () => {
     if (isolated()) { clearAccount(); return; }
@@ -41,8 +42,9 @@ export function mountAccountControl() {
     if (isolated()) { clearAccount(); return; }
     if (user?.id !== current?.id) accountRevision++;
     user = current;
-    link.textContent = user ? 'Account' : 'Sign in';
-    link.setAttribute('aria-label', user ? 'Open SyberLabs account' : 'Sign in to SyberLabs');
+    link.classList.toggle('is-staff', !user);
+    link.textContent = user ? 'Account' : 'Staff sign in';
+    link.setAttribute('aria-label', user ? 'Open SyberLabs account' : 'Staff sign in to SyberLabs');
   };
   const click = async event => {
     if (isolated()) {

@@ -174,7 +174,7 @@ const voiceRequest = (cookie, atoms, headers = {}, extra = {}) => new Request(`$
   method: 'POST', headers: { ...POST_HEADERS, ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: JSON.stringify({ atoms, ...extra })
 });
 const vendorVoiceOf = call => decodeURIComponent(new URL(call[0]).pathname.split('/')[3]);
-const setCookieOf = response => response.headers.get('Set-Cookie');
+const setCookieOf = response => response.headers.getSetCookie()[0] ?? null;
 const cookiePart = response => setCookieOf(response)?.split(';')[0] ?? null;
 const codeOf = async response => (await response.json()).error.code;
 
@@ -1155,9 +1155,9 @@ describe('the payment link is configuration (GET /api/plus/config)', () => {
   it('serves PLUS_PAYMENT_LINK only when it is a Stripe Payment Link, without a cookie', async () => {
     const config = async env => (await worker.fetch(new Request(`${SITE}/api/plus/config`), env)).json();
     const link = 'https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00';
-    expect(await config(environment({ PLUS_PAYMENT_LINK: link }))).toEqual({ paymentLink: link });
+    expect(await config(environment({ PLUS_PAYMENT_LINK: link }))).toMatchObject({ paymentLink: link });
     for (const bad of [undefined, '', 'http://buy.stripe.com/x', 'https://buy.stripe.com.evil.example/x', 'https://evil.example/https://buy.stripe.com/x', 'javascript:alert(1)', 'https://buy.stripe.com/x?y=1', 'https://buy.stripe.com/']) {
-      expect(await config(environment({ PLUS_PAYMENT_LINK: bad }))).toEqual({ paymentLink: null });
+      expect(await config(environment({ PLUS_PAYMENT_LINK: bad }))).toMatchObject({ paymentLink: null });
     }
     expect((await worker.fetch(new Request(`${SITE}/api/plus/config`, { method: 'POST', headers: { Origin: SITE } }), environment())).status).toBe(405);
   });
@@ -1172,7 +1172,7 @@ describe('the payment link is configuration (GET /api/plus/config)', () => {
     const link = await configured('wrangler.production.jsonc');
     expect(link).toBe('');
     const env = environment({ PLUS_REQUIRE_LIVE: 'true', STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'webhook', PLUS_PAYMENT_LINK: link });
-    expect(await (await worker.fetch(new Request(`${SITE}/api/plus/config`), env)).json()).toEqual({ paymentLink: null });
+    expect(await (await worker.fetch(new Request(`${SITE}/api/plus/config`), env)).json()).toMatchObject({ paymentLink: null });
   });
 });
 
@@ -1208,24 +1208,25 @@ describe('production requires live Stripe (PLUS_REQUIRE_LIVE)', () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const { state } = world();
     for (const env of [live({ STRIPE_SECRET_KEY: 'sk_test_x', PLUS_PAYMENT_LINK: TEST_LINK }), live({ STRIPE_SECRET_KEY: 'sk_test_x' })]) {
-      expect(await config(env)).toEqual({ paymentLink: null });
+      expect(await config(env)).toMatchObject({ paymentLink: null });
       expect(await refusedEverywhere(env, state)).toContain('STRIPE_SECRET_KEY is not a live key');
     }
   });
 
-  it('a live key with a test link refuses, and serves no link', async () => {
+  it.each([TEST_LINK, ''])('a closed or wrong-mode acquisition link does not disable existing subscriber service: %s', async link => {
     vi.useFakeTimers({ now: NOW * 1000 });
-    const { state } = world();
-    const env = live({ PLUS_PAYMENT_LINK: TEST_LINK });
-    expect(await config(env)).toEqual({ paymentLink: null });
-    expect(await refusedEverywhere(env, state)).toContain('PLUS_PAYMENT_LINK is not a live Payment Link');
+    world();
+    const env = live({ PLUS_PAYMENT_LINK: link, PLUS_CHECKOUT_ENABLED: 'false' });
+    expect(await config(env)).toMatchObject({ paymentLink: null, checkoutAvailable: false });
+    expect((await worker.fetch(claimRequest(), env)).status).toBe(204);
+    expect((await worker.fetch(voiceRequest(await cookieFor(env, { l: true }), ['hello there']), env)).status).toBe(200);
   });
 
   it('a missing webhook secret refuses, and serves no link: a refund must be able to stop the voice', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const { state } = world();
     const env = live({ STRIPE_WEBHOOK_SECRET: undefined });
-    expect(await config(env)).toEqual({ paymentLink: null });
+    expect(await config(env)).toMatchObject({ paymentLink: null });
     const lines = await refusedEverywhere(env, state);
     expect(lines).toContain('STRIPE_WEBHOOK_SECRET is not set');
   });
@@ -1254,17 +1255,17 @@ describe('production requires live Stripe (PLUS_REQUIRE_LIVE)', () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     world();
     const env = live();
-    expect(await config(env)).toEqual({ paymentLink: LIVE_LINK });
+    expect(await config(env)).toMatchObject({ paymentLink: LIVE_LINK });
     expect((await worker.fetch(claimRequest(), env)).status).toBe(204);
     expect((await worker.fetch(voiceRequest(await cookieFor(env, { l: true }), ['hello there']), env)).status).toBe(200);
-    expect(await config(live({ STRIPE_SECRET_KEY: 'rk_live_x' }))).toEqual({ paymentLink: LIVE_LINK });
+    expect(await config(live({ STRIPE_SECRET_KEY: 'rk_live_x' }))).toMatchObject({ paymentLink: LIVE_LINK });
   });
 
   it('never serves a link of the other Stripe mode, with or without it', async () => {
-    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_live_x', PLUS_PAYMENT_LINK: TEST_LINK }))).toEqual({ paymentLink: null });
-    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_test_x', PLUS_PAYMENT_LINK: LIVE_LINK }))).toEqual({ paymentLink: null });
-    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_test_x', PLUS_PAYMENT_LINK: TEST_LINK }))).toEqual({ paymentLink: TEST_LINK });
-    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_live_x', PLUS_PAYMENT_LINK: LIVE_LINK }))).toEqual({ paymentLink: LIVE_LINK });
+    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_live_x', PLUS_PAYMENT_LINK: TEST_LINK }))).toMatchObject({ paymentLink: null });
+    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_test_x', PLUS_PAYMENT_LINK: LIVE_LINK }))).toMatchObject({ paymentLink: null });
+    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_test_x', PLUS_PAYMENT_LINK: TEST_LINK }))).toMatchObject({ paymentLink: TEST_LINK });
+    expect(await config(environment({ STRIPE_SECRET_KEY: 'sk_live_x', PLUS_PAYMENT_LINK: LIVE_LINK }))).toMatchObject({ paymentLink: LIVE_LINK });
   });
 });
 

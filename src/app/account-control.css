@@ -41,3 +41,6 @@
   .source-browser-overlay.open,
   #photosensitivity-modal:not(.hidden):not([hidden])
 ) .rise-account-control { visibility: hidden; }
+
+/* Staff access is secondary to the public reader and customer Plus flow. */
+.rise-account-control.is-staff { background: #151323; border-color: #8c82a34d; color: #c8c2da; box-shadow: none; font-size: 11px; min-width: 86px; padding: 0 10px; }

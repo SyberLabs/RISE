@@ -215,7 +215,7 @@ test('same-app history entry into a study blocks a remembered account without wi
   const before = requests.length;
   // A DOM click deliberately avoids a browser focus event masking the edge.
   await page.evaluate(() => document.querySelector('.rise-account-control').click());
-  await expect(page.getByRole('link', { name: 'Sign in to SyberLabs' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Staff sign in to SyberLabs' })).toBeVisible();
   await expect(page.locator('.rise-account-panel')).toHaveCount(0);
   expect(requests.length).toBe(before);
 });

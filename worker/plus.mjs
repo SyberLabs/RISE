@@ -1,16 +1,21 @@
 /**
  * Plus: the paid voice, gated by a Stripe receipt (MasterMind RFC 0001, section 2).
- * The Worker keeps no reader text and no audio. A reader who paid holds one signed,
- * HttpOnly cookie naming their subscription; the allowance lives on the server, in
+ * The Worker keeps no reader text and no audio. A reader who paid holds a signed,
+ * HttpOnly voice cookie naming their subscription; the allowance lives on the server, in
  * one Durable Object per subscription (PlusMeter below), and Stripe is asked again
  * before every voicing.
  *
+ *   POST /api/plus/checkout { request_id } server-priced Checkout and browser binding
+ *   POST /api/plus/portal  {}             verified customer billing portal
+ *   POST /api/plus/recover { email }      generic acknowledgement; verified-email recovery
+ *   POST /api/plus/restore { token }      consumes an emailed proof once
  *   POST /api/plus/claim   { session_id }   the Checkout success page; 204 and the cookie once Stripe confirms
  *   POST /api/plus/voice   { atoms }        voices one short reading on the lab's key (contract below)
- *   POST /api/plus/forget                   clears the cookie in this browser
+ *   POST /api/plus/forget                   clears local voice and billing identity
  *   GET  /api/plus/voices                   the voices a reader may choose: [{ slug, label }], never a vendor id; no cookie needed
  *   GET  /api/plus/config                   { paymentLink }: PLUS_PAYMENT_LINK when it is an https://buy.stripe.com/ link of the
- *                                           same Stripe mode as STRIPE_SECRET_KEY (a test_ link only with a test key), else null
+ *                                           same Stripe mode as STRIPE_SECRET_KEY (a test_ link only with a test key), else null;
+ *                                           also checkoutAvailable, recoveryAvailable and the funded offer (see docs/PLUS-CUSTOMER-LIFECYCLE.md)
  *   POST /api/plus/stripe-webhook           Stripe's events (below); signed by Stripe, so it is exempt from the Origin rule
  *
  * Every other POST must carry `Origin` equal to the request's own origin (403 FORBIDDEN_ORIGIN);
@@ -102,8 +107,8 @@
  *
  * PLUS_REQUIRE_LIVE (vars, "true" in production only): the deployment takes real money, so
  * claim and voice answer 503 PLUS_UNAVAILABLE, and config serves no payment link, unless
- * STRIPE_SECRET_KEY is a live key (sk_live_/rk_live_), PLUS_PAYMENT_LINK is a live link (no
- * test_), and STRIPE_WEBHOOK_SECRET is set. Production once served a test-mode link with a
+ * STRIPE_SECRET_KEY is a live key (sk_live_/rk_live_) and STRIPE_WEBHOOK_SECRET is set.
+ * Acquisition links separately enforce their own mode and new Checkout has a readiness gate. Production once served a test-mode link with a
  * test key, and Stripe's public test card then bought real ElevenLabs characters.
  */
 import { getAdmin, verifyAdmin } from './plus-admin.mjs';
@@ -150,7 +155,8 @@ const JSON_HEADERS = {
   'X-Content-Type-Options': 'nosniff'
 };
 
-const ROUTES = new Set(['/api/plus/claim', '/api/plus/voice', '/api/plus/forget', '/api/plus/voices', '/api/plus/config', '/api/plus/stripe-webhook', '/api/plus/status', '/api/plus/admin/login', '/api/plus/admin/check']);
+const CUSTOMER_ROUTES = new Set(['/api/plus/checkout', '/api/plus/portal', '/api/plus/recover', '/api/plus/restore']);
+const ROUTES = new Set([...CUSTOMER_ROUTES, '/api/plus/claim', '/api/plus/voice', '/api/plus/forget', '/api/plus/voices', '/api/plus/config', '/api/plus/stripe-webhook', '/api/plus/status', '/api/plus/admin/login', '/api/plus/admin/check']);
 
 export function isPlusRoute(path) {
   return ROUTES.has(path);
@@ -174,15 +180,13 @@ const isTestLink = link => link.startsWith('https://buy.stripe.com/test_');
 const requireLive = env => env.PLUS_REQUIRE_LIVE === 'true';
 
 /**
- * Under PLUS_REQUIRE_LIVE, what keeps this deployment from taking real money, by name
+ * Under PLUS_REQUIRE_LIVE, what keeps subscriber service from using live Stripe, by name
  * (never a value); null when nothing does, or when the deployment does not require live.
  */
 function notLive(env) {
   if (!requireLive(env)) return null;
-  const link = env.PLUS_PAYMENT_LINK;
   const problems = [
     !livemode(env) && 'STRIPE_SECRET_KEY is not a live key',
-    (typeof link !== 'string' || !PAYMENT_LINK.test(link) || isTestLink(link)) && 'PLUS_PAYMENT_LINK is not a live Payment Link',
     !env.STRIPE_WEBHOOK_SECRET && 'STRIPE_WEBHOOK_SECRET is not set'
   ].filter(Boolean);
   return problems.length ? problems.join('; ') : null;
@@ -277,11 +281,11 @@ async function verify(value, env, now) {
   return null;
 }
 
-function cookieValue(request) {
+function cookieValue(request, cookieName = COOKIE) {
   const header = request.headers.get('Cookie') ?? '';
   for (const part of header.split(';')) {
     const [name, ...rest] = part.trim().split('=');
-    if (name === COOKIE) return rest.join('=');
+    if (name === cookieName) return rest.join('=');
   }
   return null;
 }
@@ -296,10 +300,12 @@ async function setCookie(claim, env, now) {
 
 const CLEAR_COOKIE = `${COOKIE}=; Max-Age=0; ${ATTRIBUTES}`;
 
-async function stripe(path, env, method = 'GET') {
+async function stripe(path, env, method = 'GET', fields, idempotencyKey) {
   const response = await fetch(`${STRIPE}${path}`, {
     method,
-    headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, 'Stripe-Version': STRIPE_VERSION }
+    headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`, 'Stripe-Version': STRIPE_VERSION, ...(fields ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}), ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) },
+    ...(fields ? { body: new URLSearchParams(fields).toString() } : {}),
+    signal: AbortSignal.timeout(10_000)
   });
   if (!response.ok) throw Object.assign(new Error(`Stripe answered ${response.status}`), { status: response.status });
   return response.json();
@@ -331,7 +337,7 @@ function claimFor(subscription, env) {
   const customer = typeof subscription.customer === 'string' ? subscription.customer : subscription.customer?.id;
   const { start, end: exp } = periodOf(subscription, item);
   if (!customer || typeof subscription.id !== 'string' || !Number.isFinite(exp) || !Number.isFinite(start)) return null;
-  return { c: customer, s: subscription.id, exp, start, l: livemode(env) };
+  return { c: customer, s: subscription.id, exp, start, l: livemode(env), ...(subscription.metadata?.rise_offer === OFFER_ID ? { offer: OFFER_ID } : {}) };
 }
 
 /** Whether this address is over the limiter's rate. A limiter that throws counts as over: these routes spend the lab's money, so they fail closed. */
@@ -392,7 +398,7 @@ async function readBytes(request, max) {
 }
 
 async function claim(request, env, now) {
-  // Each claim costs a Stripe call and needs no cookie, so it has its own, stricter limit, and none bound is no claim.
+  // Each claim costs a Stripe call; legacy receipts need no browser proof, so all claims have a strict address limit.
   if (!env.PLUS_CLAIM_LIMITER) return unavailable(env, 'Plus is not switched on in this deployment (PLUS_CLAIM_LIMITER is not bound).');
   if (await limited(request, env.PLUS_CLAIM_LIMITER, 'plus-claim')) return refuse(429, 'RATE_LIMITED', 'Too many requests were sent. Try again in a minute.');
   const { refusal, body } = await readJson(request);
@@ -408,9 +414,13 @@ async function claim(request, env, now) {
   } catch {
     return refuse(502, 'UPSTREAM', 'Stripe could not be reached. Try again in a moment.');
   }
+  if (session.client_reference_id?.startsWith('plus:')) {
+    const purchase = await verify(cookieValue(request, CHECKOUT_COOKIE), purposeEnv(env, 'checkout'), now);
+    if (!purchase || purchase.exp <= now || `plus:${purchase.s}` !== session.client_reference_id) return refuse(401, 'CHECKOUT_BROWSER_REQUIRED', 'Open the checkout in the browser where you started it, or restore your subscription by email.');
+  }
   const paid = session.payment_status === 'paid' && claimFor(session.subscription, env);
   if (!paid) return refuse(402, 'PLUS_REQUIRED', 'This purchase is not an active Plus subscription.');
-  return reply(204, null, { 'Set-Cookie': await setCookie({ ...paid, iat: now }, env, now) });
+  return withBilling(reply(204, null, { 'Set-Cookie': await setCookie({ ...paid, iat: now }, env, now) }), paid, env, now);
 }
 
 const sha256 = async text => [...new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(text)))].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -508,7 +518,7 @@ async function voice(request, env, now, admin = null) {
   }
   if (!standing || (!admin && standing.s !== current.s)) return lapsed();
   if (!Number.isSafeInteger(standing.budgetMicros) || standing.budgetMicros <= 0) return lapsed();
-  const limit = Math.min(VOICE_ALLOWANCE, Math.floor(standing.budgetMicros / policy.rate));
+  const limit = Math.min(characterLimit(standing), Math.floor(standing.budgetMicros / policy.rate));
   if (n > limit) return spent();
 
   const day = new Date(now * 1000).toISOString().slice(0, 10);
@@ -669,7 +679,7 @@ async function webhook(request, env) {
       change = { action: 'revoke', kind: 'deleted' };
     } else if (event.type === 'customer.subscription.updated') {
       subscriptions = [object.id];
-      change = ACTIVE.has(object.status) ? { action: 'restore' } : { action: 'revoke', kind: 'status' };
+      change = ACTIVE.has(object.status) ? { action: 'restore', subscriptionStatus: object.status } : { action: 'revoke', kind: 'status', subscriptionStatus: object.status };
     } else if (event.type === 'charge.refunded') {
       subscriptions = await subscriptionsPaidBy(object, env);
       change = object.refunded === true ? { action: 'revoke', kind: 'refund' } : { action: 'refresh' };
@@ -734,7 +744,8 @@ async function voiceReady(env) {
 async function status(request, env, now) {
   const policy = spendingPolicy(env);
   const admin = await getAdmin(request, env);
-  const result = { admin: Boolean(admin), subscriber: false, available: false, adminLogin: adminLoginConfigured(env), allowance: null };
+  const identity = await billingIdentity(request, env, now);
+  const result = { canSubscribe: !identity, billingAvailable: billingReady(env) && Boolean(identity), admin: Boolean(admin), subscriber: false, available: false, adminLogin: adminLoginConfigured(env), allowance: null };
   let standing, name;
   if (admin) {
     const budget = adminBudget(env, policy);
@@ -744,15 +755,20 @@ async function status(request, env, now) {
     name = 'admin';
   } else {
     if (!policy || !env.STRIPE_SECRET_KEY || !env.PLUS_COOKIE_SECRET || !env.PLUS_PRICE_ID || !env.PLUS_METER || notLive(env)) return reply(200, result);
-    const current = await verify(cookieValue(request), env, now);
-    if (!current || now > current.exp + GRACE_S) return reply(200, result);
+    const current = identity;
+    if (!current) return reply(200, result);
     name = `sub:${current.s}`;
     const kept = await meter(env, name, 'inspect', { ttl: STANDING_TTL_S });
+    const eligible = status => status === 'canceled' || status === 'incomplete_expired';
+    result.canSubscribe = eligible(kept.subscriptionStatus);
     if (kept.revoked) return reply(200, result);
     if (kept.fresh && (kept.standing === null || (kept.standing.l === livemode(env) && kept.standing.budgetPolicy === JSON.stringify(policy)))) standing = kept.standing;
     else {
+      let subscriptionStatus = null;
       try {
         const subscription = await stripe(`/v1/subscriptions/${encodeURIComponent(current.s)}`, env);
+        subscriptionStatus = subscription.status;
+        result.canSubscribe = eligible(subscriptionStatus);
         standing = claimFor(subscription, env);
         if (standing) {
           const budgetMicros = await paidBudget(subscription, standing, env, policy, stripe);
@@ -760,19 +776,25 @@ async function status(request, env, now) {
         }
       } catch (error) {
         if (error?.status !== 404) throw error;
+        result.canSubscribe = false;
         standing = null;
       }
-      await meter(env, name, 'standing', { standing, revision: kept.revision });
+      await meter(env, name, 'standing', { standing, revision: kept.revision, subscriptionStatus });
     }
     if (!standing || standing.s !== current.s || !Number.isSafeInteger(standing.budgetMicros) || standing.budgetMicros <= 0) return reply(200, result);
     result.subscriber = true;
   }
   const inspected = await meter(env, name, 'inspect', { period: standing.start, ttl: STANDING_TTL_S });
   if (inspected.revoked) { result.subscriber = false; return reply(200, result); }
-  const limit = Math.min(VOICE_ALLOWANCE, Math.floor(standing.budgetMicros / policy.rate));
+  const limit = Math.min(characterLimit(standing), Math.floor(standing.budgetMicros / policy.rate));
   result.allowance = { used: inspected.used, limit, periodEnd: standing.exp };
   result.available = await voiceReady(env) && inspected.used < limit && (inspected.spentMicros ?? 0) + policy.rate <= standing.budgetMicros;
-  return reply(200, result);
+  const response = reply(200, result);
+  if (result.subscriber) {
+    response.headers.append('Set-Cookie', await setCookie({ ...standing, iat: now }, env, now));
+    return withBilling(response, standing, env, now);
+  }
+  return response;
 }
 
 async function routePlus(request, env) {
@@ -801,7 +823,7 @@ async function routePlus(request, env) {
   }
   if (path === '/api/plus/config') {
     if (request.method !== 'GET') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use GET.');
-    return reply(200, { paymentLink: paymentLink(env) });
+    return lifecycleConfig(request, env);
   }
   if (request.method !== 'POST') return refuse(405, 'METHOD_NOT_ALLOWED', 'Use POST.');
   // Stripe sends no Origin; its signature is the check.
@@ -809,7 +831,12 @@ async function routePlus(request, env) {
   if (request.headers.get('Origin') !== new URL(request.url).origin) {
     return refuse(403, 'FORBIDDEN_ORIGIN', 'Plus answers only the page it serves.');
   }
-  if (path === '/api/plus/forget') return reply(204, null, { 'Set-Cookie': CLEAR_COOKIE });
+  if (path === '/api/plus/forget') {
+    const response = reply(204, null, { 'Set-Cookie': CLEAR_COOKIE });
+    response.headers.append('Set-Cookie', `${BILLING_COOKIE}=; Max-Age=0; ${ATTRIBUTES}`);
+    return response;
+  }
+  if (CUSTOMER_ROUTES.has(path)) return lifecycle(request, env, path, Math.floor(Date.now() / 1000));
   const admin = path === '/api/plus/voice' ? await getAdmin(request, env) : null;
   if (admin) return voice(request, env, Math.floor(Date.now() / 1000), admin);
   if (!env.STRIPE_SECRET_KEY || !env.PLUS_COOKIE_SECRET) {
@@ -820,6 +847,183 @@ async function routePlus(request, env) {
   const now = Math.floor(Date.now() / 1000);
   if (path === '/api/plus/claim') return claim(request, env, now);
   return voice(request, env, now);
+}
+
+// Customer lifecycle stays separate from staff Access and from voice entitlements.
+const OFFER = Object.freeze({ amount: 899, currency: 'usd', interval: 'month', characterLimit: 60_000 });
+const OFFER_ID = 'v1_60000';
+const BILLING_COOKIE = '__Secure-rise_plus_billing';
+const CHECKOUT_COOKIE = '__Secure-rise_plus_checkout';
+const RECOVERY_S = 15 * 60;
+const offerCache = new WeakMap();
+const purposeEnv = (env, purpose) => ({ ...env, PLUS_COOKIE_SECRET: `${env.PLUS_COOKIE_SECRET}:${purpose}`, PLUS_COOKIE_SECRET_PREVIOUS: env.PLUS_COOKIE_SECRET_PREVIOUS ? `${env.PLUS_COOKIE_SECRET_PREVIOUS}:${purpose}` : undefined });
+const recoveryReady = env => Boolean(env.STRIPE_SECRET_KEY && env.PLUS_COOKIE_SECRET && env.PLUS_PRICE_ID && env.PLUS_METER && env.PLUS_CLAIM_LIMITER && env.RESEND_API_KEY && typeof env.PLUS_EMAIL_FROM === 'string' && env.PLUS_EMAIL_FROM.includes('@') && !notLive(env));
+const billingReady = env => Boolean(env.STRIPE_SECRET_KEY && env.PLUS_COOKIE_SECRET && env.PLUS_PRICE_ID && env.PLUS_PORTAL_CONFIGURATION && !notLive(env));
+
+async function billingIdentity(request, env, now) {
+  const billing = await verify(cookieValue(request, BILLING_COOKIE), purposeEnv(env, 'billing'), now);
+  if (billing && billing.exp > now) return billing;
+  // Receipts issued before billing cookies shipped remain usable to manage billing.
+  return verify(cookieValue(request), env, now);
+}
+
+async function withBilling(response, claim, env, now) {
+  const token = await sign({ c: claim.c, s: claim.s, l: livemode(env), iat: now, exp: now + MAX_COOKIE_S }, `${env.PLUS_COOKIE_SECRET}:billing`);
+  response.headers.append('Set-Cookie', `${BILLING_COOKIE}=${token}; Max-Age=${MAX_COOKIE_S}; ${ATTRIBUTES}`);
+  return response;
+}
+
+/** Fixed new offer; existing subscriptions retain their original capped spending policy. */
+function characterLimit(standing) { return standing?.offer === OFFER_ID ? OFFER.characterLimit : VOICE_ALLOWANCE; }
+
+async function checkedOffer(env, cached = false) {
+  if (env.PLUS_CHECKOUT_ENABLED !== 'true' || !recoveryReady(env) || !billingReady(env) || !env.STRIPE_WEBHOOK_SECRET || !await voiceReady(env)) return null;
+  const policy = spendingPolicy(env);
+  // Exclusive tax is added to the price. Allow room for processor fees on up to
+  // 30% added tax; the actual invoice/fee guard still applies to every voice.
+  const fees = Math.ceil(Math.ceil(OFFER.amount * 1.3) * policy.feeBps / 10000) + policy.feeCents;
+  if ((OFFER.amount - fees) * (10000 - policy.reserveBps) < OFFER.characterLimit * policy.rate) return null;
+  const previous = offerCache.get(env);
+  if (cached && previous && Date.now() - previous.at < 60_000) return previous.offer;
+  const [price, portal] = await Promise.all([
+    stripe(`/v1/prices/${encodeURIComponent(env.PLUS_PRICE_ID)}?expand[]=product`, env),
+    stripe(`/v1/billing_portal/configurations/${encodeURIComponent(env.PLUS_PORTAL_CONFIGURATION)}`, env),
+  ]);
+  const features = portal.features;
+  const portalValid = portal.id === env.PLUS_PORTAL_CONFIGURATION && portal.active === true && portal.livemode === livemode(env)
+    && features?.subscription_cancel?.enabled === true && features.subscription_cancel.mode === 'at_period_end'
+    && features.invoice_history?.enabled === true && features.payment_method_update?.enabled === true
+    && features.subscription_update?.enabled === false;
+  const valid = price.active === true && price.livemode === livemode(env) && price.currency === OFFER.currency
+    && price.unit_amount === OFFER.amount && price.billing_scheme === 'per_unit' && price.tax_behavior === 'exclusive'
+    && price.recurring?.interval === 'month' && price.recurring.interval_count === 1 && price.recurring.usage_type === 'licensed' && price.product?.active === true;
+  const offer = valid && portalValid ? OFFER : null;
+  offerCache.set(env, { at: Date.now(), offer });
+  return offer;
+}
+
+async function lifecycleConfig(request, env) {
+  let offer = null;
+  if (env.PLUS_CHECKOUT_ENABLED === 'true') {
+    const blocked = await lifecycleLimit(request, env, 'plus-config');
+    if (blocked) return blocked;
+    try { offer = await checkedOffer(env, true); } catch { /* Keep the free reader usable during a provider outage. */ }
+  }
+  return reply(200, { paymentLink: paymentLink(env), checkoutAvailable: Boolean(offer), recoveryAvailable: recoveryReady(env), offer });
+}
+
+async function lifecycleLimit(request, env, key) {
+  if (typeof env.PLUS_CLAIM_LIMITER?.limit !== 'function' || !request.headers.get('CF-Connecting-IP')?.trim()) return unavailable(env, 'The Plus customer address limiter is not configured.');
+  if (await limited(request, env.PLUS_CLAIM_LIMITER, key)) return refuse(429, 'RATE_LIMITED', 'Too many requests were sent. Try again in a minute.');
+  return null;
+}
+
+async function ownedSubscription(identity, env) {
+  if (!identity) return null;
+  const subscription = await stripe(`/v1/subscriptions/${encodeURIComponent(identity.s)}`, env);
+  return idOf(subscription.customer) === identity.c && itemsOf(subscription).some(item => priceIdOf(item) === env.PLUS_PRICE_ID) ? subscription : null;
+}
+
+function hostedUrl(value, hostname) {
+  try { const url = new URL(value); return url.protocol === 'https:' && url.hostname === hostname && !url.username && !url.password ? url.href : null; } catch { return null; }
+}
+
+async function checkout(request, env, body, now) {
+  if (typeof body?.request_id !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu.test(body.request_id)) return refuse(400, 'BAD_REQUEST', 'A new checkout request id is required.');
+  if (!await checkedOffer(env)) return unavailable(env, 'The paid offer is not ready.');
+  const identity = await billingIdentity(request, env, now);
+  const existing = await ownedSubscription(identity, env);
+  if (existing && !['canceled', 'incomplete_expired'].includes(existing.status)) return refuse(409, 'PLUS_EXISTS', 'You already have a subscription. Manage billing or restore access instead.');
+  const origin = new URL(request.url).origin;
+  const fields = {
+    mode: 'subscription', client_reference_id: `plus:${body.request_id.toLowerCase()}`, 'line_items[0][price]': env.PLUS_PRICE_ID, 'line_items[0][quantity]': '1',
+    'payment_method_types[0]': 'card', allow_promotion_codes: 'false', 'automatic_tax[enabled]': 'true',
+    'subscription_data[metadata][rise_offer]': OFFER_ID,
+    // A new customer prevents historical credits, discounts and pending invoice
+    // items from silently changing the funded offer. Keep old identity until claim.
+    success_url: `${origin}/plus/claim?session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${origin}/plus/`
+  };
+  const session = await stripe('/v1/checkout/sessions', env, 'POST', fields, `rise-plus:${body.request_id.toLowerCase()}`);
+  const url = hostedUrl(session.url, 'checkout.stripe.com');
+  if (!url) return refuse(502, 'UPSTREAM', 'Checkout could not be opened. Try again.');
+  const proof = await sign({ c: 'checkout', s: body.request_id.toLowerCase(), l: livemode(env), iat: now, exp: now + DAY_S }, `${env.PLUS_COOKIE_SECRET}:checkout`);
+  return reply(200, { url }, { 'Set-Cookie': `${CHECKOUT_COOKIE}=${proof}; Max-Age=${DAY_S}; ${ATTRIBUTES}` });
+}
+
+async function portal(request, env, now) {
+  if (!billingReady(env)) return unavailable(env, 'Billing management is not configured.');
+  const identity = await billingIdentity(request, env, now);
+  if (!await ownedSubscription(identity, env)) return refuse(401, 'BILLING_REQUIRED', 'Restore your subscription to manage billing.');
+  const session = await stripe('/v1/billing_portal/sessions', env, 'POST', { customer: identity.c, configuration: env.PLUS_PORTAL_CONFIGURATION, return_url: `${new URL(request.url).origin}/plus/` });
+  const url = hostedUrl(session.url, 'billing.stripe.com');
+  return url ? reply(200, { url }) : refuse(502, 'UPSTREAM', 'Billing could not be opened. Try again.');
+}
+
+async function recover(request, env, body, now) {
+  if (!recoveryReady(env)) return unavailable(env, 'Subscription recovery is not configured.');
+  const email = typeof body?.email === 'string' ? body.email.trim() : '';
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email)) return refuse(400, 'BAD_REQUEST', 'Enter a valid email address.');
+  const accepted = () => reply(202, { accepted: true });
+  const exact = await stripe(`/v1/customers?email=${encodeURIComponent(email)}&limit=10`, env);
+  // List is current but case-sensitive. Search adds case variants; it can lag a
+  // recent purchase, so preserve the exact list and check returned emails ourselves.
+  let searched = { data: [], has_more: false };
+  try { searched = await stripe(`/v1/customers/search?query=${encodeURIComponent(`email:${JSON.stringify(email)}`)}&limit=10`, env); } catch { /* Exact-case recovery still works when search is unavailable. */ }
+  if (exact.has_more || searched.has_more || !Array.isArray(exact.data) || !Array.isArray(searched.data)) return accepted();
+  const customers = [...new Map([...exact.data, ...searched.data].filter(customer => !customer.deleted && customer.email?.toLowerCase() === email.toLowerCase()).map(customer => [customer.id, customer])).values()];
+  if (customers.length > 10) return accepted();
+  const matches = await Promise.all(customers.map(async customer => {
+    const subscriptions = await stripe(`/v1/subscriptions?customer=${encodeURIComponent(customer.id)}&status=all&limit=100`, env);
+    if (subscriptions.has_more || !Array.isArray(subscriptions.data)) return null;
+    return subscriptions.data.filter(sub => idOf(sub.customer) === customer.id && itemsOf(sub).some(item => priceIdOf(item) === env.PLUS_PRICE_ID)).map(sub => ({ customer, sub }));
+  }));
+  if (matches.some(result => result === null)) return accepted();
+  const candidates = matches.flat();
+  const chosen = candidates.find(({ sub }) => ACTIVE.has(sub.status)) ?? candidates[0];
+  if (chosen) {
+    const { customer, sub } = chosen;
+    const nonce = crypto.randomUUID();
+    const token = await sign({ c: customer.id, s: sub.id, l: livemode(env), iat: now, exp: now + RECOVERY_S, nonce }, `${env.PLUS_COOKIE_SECRET}:recovery`);
+    const issued = await meter(env, `sub:${sub.id}`, 'recovery-issue', { hash: await sha256(token), exp: now + RECOVERY_S });
+    if (!issued.ok) return accepted();
+    const from = env.PLUS_EMAIL_FROM;
+    let response;
+    try { response = await fetch('https://api.resend.com/emails', {
+      method: 'POST', signal: AbortSignal.timeout(10_000), headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, to: [customer.email], subject: 'Restore your RISE Plus subscription', text: `Use this link to restore RISE Plus and manage billing. It expires in 15 minutes and can be used once.\n\n${new URL(request.url).origin}/plus/restore#token=${token}\n\nIf you did not request this email, you can ignore it.` })
+    });
+    } catch { /* Mail transport failures must not expose whether an address exists. */ }
+    // Keep the public reply the same for absent accounts and mail-provider failures.
+    if (!response?.ok) console.error('Plus recovery email could not be delivered.');
+    return accepted();
+  }
+  return accepted();
+}
+
+async function restore(request, env, body, now) {
+  if (!recoveryReady(env)) return unavailable(env, 'Subscription recovery is not configured.');
+  const token = typeof body?.token === 'string' && body.token.length <= 2048 ? body.token : '';
+  const identity = await verify(token, purposeEnv(env, 'recovery'), now);
+  const invalid = () => refuse(400, 'RECOVERY_INVALID', 'This recovery link has expired or was already used. Request a new one.');
+  if (!identity || identity.exp <= now || identity.exp - identity.iat !== RECOVERY_S || typeof identity.nonce !== 'string') return invalid();
+  const sub = await ownedSubscription(identity, env);
+  if (!sub) return invalid();
+  const used = await meter(env, `sub:${identity.s}`, 'recovery-consume', { hash: await sha256(token), subscriptionStatus: sub.status });
+  if (!used.ok) return invalid();
+  const paid = claimFor(sub, env);
+  const response = reply(204, null, { 'Set-Cookie': paid ? await setCookie({ ...paid, iat: now }, env, now) : CLEAR_COOKIE });
+  return withBilling(response, identity, env, now);
+}
+
+async function lifecycle(request, env, path, now) {
+  const blocked = await lifecycleLimit(request, env, 'plus-customer');
+  if (blocked) return blocked;
+  const { refusal, body } = await readJson(request);
+  if (refusal) return refusal;
+  if (path === '/api/plus/checkout') return checkout(request, env, body, now);
+  if (path === '/api/plus/portal') return portal(request, env, now);
+  if (path === '/api/plus/recover') return recover(request, env, body, now);
+  return restore(request, env, body, now);
 }
 
 /**
@@ -867,15 +1071,33 @@ export class PlusMeter {
     const op = new URL(request.url).pathname;
     const body = await request.json();
     const now = Math.floor(Date.now() / 1000);
+    if (op === '/recovery-issue') {
+      const previous = this.kv.get('recovery');
+      if (previous && now - previous.issued < 60) return Response.json({ ok: false });
+      this.kv.put('recovery', { hash: body.hash, exp: body.exp, issued: now });
+      return Response.json({ ok: true });
+    }
+    if (op === '/recovery-consume') {
+      const kept = this.kv.get('recovery');
+      if (!kept || kept.exp <= now || kept.hash !== body.hash) return Response.json({ ok: false });
+      this.kv.delete('recovery');
+      // The verified restore supersedes cached access and any in-flight standing
+      // refresh. Permanent refund/dispute revocation remains unchanged.
+      this.kv.delete('standing');
+      this.kv.put('subscriptionStatus', body.subscriptionStatus ?? null);
+      this.kv.put('revision', (this.kv.get('revision') ?? 0) + 1);
+      return Response.json({ ok: true });
+    }
     if (op === '/inspect') {
       const kept = this.kv.get('standing');
       const usage = body.period === undefined ? { used: 0 } : this.usage(body.period);
-      return Response.json({ revision: this.kv.get('revision') ?? 0, used: usage.used, spentMicros: this.kv.get('since') === body.period ? this.kv.get('spentMicros') ?? 0 : 0, revoked: Boolean(this.kv.get('revoked')), fresh: Boolean(kept) && now - kept.at < body.ttl, standing: kept?.standing ?? null });
+      return Response.json({ subscriptionStatus: this.kv.get('subscriptionStatus') ?? null, revision: this.kv.get('revision') ?? 0, used: usage.used, spentMicros: this.kv.get('since') === body.period ? this.kv.get('spentMicros') ?? 0 : 0, revoked: Boolean(this.kv.get('revoked')), fresh: Boolean(kept) && now - kept.at < body.ttl, standing: kept?.standing ?? null });
     }
     if (op === '/gate') return Response.json(this.gate(body, now));
     if (op === '/standing') {
       if (body.revision !== (this.kv.get('revision') ?? 0)) return Response.json({ ok: false, changed: true });
       this.kv.put('standing', { standing: body.standing ?? null, at: now });
+      if (Object.hasOwn(body, 'subscriptionStatus')) this.kv.put('subscriptionStatus', body.subscriptionStatus);
       return Response.json({ ok: true });
     }
     if (op === '/event') return Response.json(this.event(body));
@@ -924,12 +1146,12 @@ export class PlusMeter {
     const standing = kept?.standing ?? null;
     if (standing && now < standing.exp) {
       const { used } = this.usage(standing.start);
-      if (used + n > limit) return { exhausted: true, used };
+      if (used + n > Math.min(limit, characterLimit(standing))) return { exhausted: true, used };
     }
     return { revision: this.kv.get('revision') ?? 0, fresh: Boolean(kept) && now - kept.at < ttl, standing };
   }
 
-  event({ id, created, action, kind }) {
+  event({ id, created, action, kind, subscriptionStatus }) {
     const seen = this.kv.get('events') ?? [];
     if (typeof id !== 'string' || seen.includes(id)) return { ok: true, duplicate: true };
     this.kv.put('events', [...seen, id].slice(-50));
@@ -938,10 +1160,12 @@ export class PlusMeter {
     const revoked = this.kv.get('revoked');
     if (action === 'revoke' && kind !== 'status') {
       this.kv.put('revoked', { kind, created });
+      if (kind === 'deleted') this.kv.put('subscriptionStatus', 'canceled');
     } else if (action === 'revoke' || action === 'restore') {
       // Stripe does not promise order: only the newest status event says where the status stands.
       if (created < (this.kv.get('statusAt') ?? 0)) return { ok: true, outdated: true };
       this.kv.put('statusAt', created);
+      if (typeof subscriptionStatus === 'string' && (!revoked || revoked.kind === 'status')) this.kv.put('subscriptionStatus', subscriptionStatus);
       if (action === 'revoke' && (!revoked || revoked.kind === 'status')) this.kv.put('revoked', { kind, created });
       if (action === 'restore' && revoked?.kind === 'status') this.kv.delete('revoked');
     }

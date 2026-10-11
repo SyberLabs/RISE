@@ -161,9 +161,9 @@ it, and CI fails when the committed copy is not what `src/` produces.
 ```mermaid
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
-    app["app<br/>composition root<br/>20 modules"]
+    app["app<br/>composition root<br/>23 modules"]
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
-    components["components<br/>routed views<br/>55 modules"]
+    components["components<br/>routed views<br/>56 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>173 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
@@ -186,7 +186,7 @@ flowchart LR
     audio --> |1| content
     audio --> |8| core
     components --> |3| affect
-    components --> |4| app
+    components --> |10| app
     components --> |6| audio
     components --> |23| content
     components --> |188| core
@@ -345,6 +345,7 @@ outliving its room, fails a build.
 | Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, journeys, keystones and the day's poem, with provenance on every edition |
 | Make | `src/components/Make.js` | authoring: composition, saved work, the Scriptorium, the visual lab and catalog |
 | Settings | `src/components/Settings.js` | preferences, affect, export and erase |
+| Plus | `src/components/Plus.js` | lazy customer subscription pane of Settings at `/plus/`; verified checkout, recovery and billing |
 
 `src/components/Guide.js` is onboarding, opened as an overlay over any room
 rather than routed; it is listed here because it is a place a reader can be.

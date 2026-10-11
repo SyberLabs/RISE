@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 101;
+export const FAST_TEST_FILES = 105;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -22,6 +22,7 @@ const FAST_TESTS = [
     'worker/kev-worker-script.test.js',
     // The Plus gate's meter and the attacks it refuses: the lab's vendor key is behind it.
     'worker/plus.test.js',
+    'worker/plus-lifecycle.test.js',
     // The independent attack suite: each test passes only while its attack fails.
     'worker/plus.security.test.js',
     'worker/plus-admin.test.js',
@@ -29,6 +30,9 @@ const FAST_TESTS = [
     'worker/plus-provider.test.js',
     'worker/plus-provider-rpc.test.js',
     'src/app/plus.test.js',
+    'src/app/plus-customer.test.js',
+    'src/app/plus-continuation.test.js',
+    'src/components/Plus.test.js',
     'src/app/chamber-session-factory.test.js',
     'src/app/voice-demo-session.test.js',
     'src/components/read/VoiceDemo.test.js',
