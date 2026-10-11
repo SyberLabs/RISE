@@ -20,6 +20,7 @@ import { escapeHtml } from '../../core/sanitize.js';
 import { createDive } from '../../core/dive.js';
 import { undercurrentAt } from '../../core/undercurrent.js';
 import { renderUndercurrent } from './chamber-undercurrent.js';
+import { GLASS_CONTINUITY, createGlassContinuity } from './glass-continuity.js';
 // The reveal and its emphasis notation are pure logic — no DOM, no
 // audio — so they live in core and are tested without a browser.
 import {
@@ -3450,7 +3451,9 @@ export class Chamber {
   }
 
   _progressiveGlassCanApply(atomDisplay) {
+    // Words arriving on glass that already stands do not grow a glass of their own.
     return this.progressiveRevealEnabled
+      && !this._glassStanding
       && atomDisplay?.classList.contains('glass-tile')
       && !this._prefersReducedMotion()
       && window.matchMedia?.('(max-width: 640px)').matches !== true;
@@ -3847,13 +3850,27 @@ export class Chamber {
     // a word while it is being read. The next atom sees the next artwork.
     this._fitBoxSnapshot = this._resolveWordFitBox();
     this.applyChamberMask();
+    // A silence between phrases keeps the glass, and the words that left keep its place, size and face, so it is
+    // decided before the empty atom's own typography is applied.
+    const silent = !atom.content || !atom.content.trim();
+    if (silent && !seamOf(atom) && this._glassThroughSilence(atomDisplay, atom, index)) {
+      if (this.kleeField && this.semanticTrack) this.kleeField.setSignal(this.semanticTrack[index] || null);
+      return;
+    }
+    // The glass the next words arrive on, measured before they replace the last ones; null when none is standing.
+    const glass = silent ? null : this._glassBeforeWords(atomDisplay);
     // A beat's place, size and face (Creative Control); a beat placed nowhere is heard and not seen.
     if (!this.applyBeatTypography(atomDisplay, atom)) {
+      this._clearGlass(atomDisplay);
       this.cancelReveal();
       atomDisplay.style.opacity = '0';
       atomDisplay.textContent = '';
       return;
     }
+    // On glass already standing, in the same place, the words change and the glass stays; anywhere else the
+    // words and their glass arrive together, as they always have.
+    const continuous = Boolean(glass) && (atomDisplay.dataset.place ?? 'centre') === glass.place;
+    this._glassStanding = continuous;
 
     // Genesis field follows the passage's mood when Living Text has a track
     if (this.kleeField && this.semanticTrack) {
@@ -3863,7 +3880,8 @@ export class Chamber {
     // Empty atoms (paragraph breaks, pause markers) are silence, not frames:
     // render nothing and drop opacity so no residue — like the glass tile
     // collapsing into a caret-like slab — ever pulses between tokens.
-    if (!atom.content || !atom.content.trim()) {
+    if (silent) {
+      this._clearGlass(atomDisplay);
       this.cancelReveal();
       // ONE EMPTY ATOM IS NOT LIKE THE OTHERS. A boundary between two pieces
       // carries a seam, and the reader is shown who speaks next — silently,
@@ -3914,9 +3932,9 @@ export class Chamber {
       atomDisplay.style.opacity = '1';
     } else {
       this._concealedReveal = null;
-      // Force instantaneous opacity wipe 
+      // Force instantaneous opacity wipe (of the words and, from no glass, of the glass that arrives with them)
       atomDisplay.style.transition = 'none';
-      atomDisplay.style.opacity = '0';
+      atomDisplay.style.opacity = continuous ? '1' : '0';
 
       // Inject new content. The reveal is decided here rather than in
       // paintAtomText so the budget can consult the atom's duration and
@@ -3936,12 +3954,17 @@ export class Chamber {
 
       this.applyLivingText(atomDisplay, index);
 
-      // Force synchronous DOM layout calculation (reflow)
-      void atomDisplay.offsetWidth;
+      if (continuous) {
+        // The glass is standing: only the words fade in. Revealed words arrive on their own.
+        if (!spans) this._fadeWordsIn(atomDisplay);
+      } else {
+        // Force synchronous DOM layout calculation (reflow)
+        void atomDisplay.offsetWidth;
 
-      // Restore transition for smooth fade in
-      atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
-      atomDisplay.style.opacity = '1';
+        // Restore transition for smooth fade in
+        atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
+        atomDisplay.style.opacity = '1';
+      }
 
       // Reveal AFTER the frame is laid out and fading in, so the words
       // arrive over a stable frame rather than racing the reflow.
@@ -3970,6 +3993,198 @@ export class Chamber {
     // the band has just been laid out and its height is finally known.
     this.applyBandOffset();
     void this.syncFillGlyphMask();
+    if (continuous) this._easeGlass(atomDisplay, glass.box);
+  }
+
+  // ─── The glass between phrases (glass-continuity.js decides; these paint) ───
+
+  _glassContinuity() {
+    this._glass ??= createGlassContinuity({ dissolve: () => this._dissolveGlass() });
+    return this._glass;
+  }
+
+  /** The glass is painted, and so can stand between phrases: a glass tile whose words are not a mask. */
+  _glassCanHold(atomDisplay) {
+    return atomDisplay.classList.contains('glass-tile') && !atomDisplay.classList.contains('is-mask');
+  }
+
+  /** The box the reader sees as the glass: the band on a phone, where the band has a box, else the display. */
+  _glassBox(atomDisplay) {
+    const band = atomDisplay.parentElement;
+    return band?.id === 'atom-band' && getComputedStyle(band).display !== 'contents' ? band : atomDisplay;
+  }
+
+  _setBandState(atomDisplay, state) {
+    const band = atomDisplay.parentElement;
+    if (band?.id !== 'atom-band') return;
+    if (state) band.dataset.bandState = state;
+    else delete band.dataset.bandState;
+  }
+
+  /** A fade, an ease or a dissolve; none where the platform cannot animate, and none of no length. */
+  _animateGlass(element, keyframes, ms, options = {}) {
+    if (!(ms > 0) || typeof element?.animate !== 'function') return null;
+    const animation = element.animate(keyframes, { duration: ms, easing: 'cubic-bezier(0.2, 0, 0, 1)', ...options });
+    (this._glassAnimations ??= []).push(animation);
+    return animation;
+  }
+
+  _glassMs(ms) {
+    return this._prefersReducedMotion() ? Math.min(ms, GLASS_CONTINUITY.reducedMotionMs) : ms;
+  }
+
+  _stopGlassMotion() {
+    const running = this._glassAnimations ?? [];
+    this._glassAnimations = [];
+    this._glassDissolving = false;
+    for (const animation of running) animation.cancel();
+  }
+
+  /** The display is being emptied or given a seam's mark: no glass stands any more. */
+  _clearGlass(atomDisplay) {
+    this._stopGlassMotion();
+    this._glassDisplayHolding = false;
+    this._glass?.destroy();
+    this._setBandState(atomDisplay, null);
+  }
+
+  /**
+   * How long the silence that begins at this atom is expected to last: the empty atoms from here to the next
+   * words. A silence that runs to the end of the reading has nothing coming after it.
+   */
+  _silenceAhead(atom, index) {
+    // The Player shows an atom for duration × pace ÷ shuttle, so the silence is measured the same way.
+    const pace = (this.player?.speedFactor ?? 1) / (this.player?.shuttle?.durationDivisor || 1);
+    const atoms = this.session?.atoms;
+    if (!Array.isArray(atoms) || !atoms[index] || (atoms[index].content || '').trim()) {
+      return Number.isFinite(atom?.duration) ? atom.duration * pace : null;
+    }
+    let ms = 0;
+    let at = index;
+    for (; at < atoms.length && !(atoms[at]?.content || '').trim(); at += 1) ms += (Number(atoms[at]?.duration) || 0) * pace;
+    return at >= atoms.length ? Infinity : ms;
+  }
+
+  /**
+   * An empty atom while words stand on glass. Returns true when the glass has taken it: held for the next
+   * words, or dissolving because nothing is coming soon. False leaves the display to be emptied as before.
+   */
+  _glassThroughSilence(atomDisplay, atom, index) {
+    if (this._glassDissolving) return true;
+    if (!this._glassCanHold(atomDisplay)) return false;
+    const held = this._glassContinuity().silence(this._silenceAhead(atom, index));
+    if (held !== 'hold') return held === 'dissolve';
+    if (this._glassDisplayHolding) return true;
+    // The words that leave stay, faded and hidden from assistive technology, so the glass keeps its paint and
+    // its size until the next words take their place or the glass dissolves with them.
+    this._stopGlassMotion();
+    this.cancelReveal();
+    const outgoing = document.createElement('span');
+    outgoing.dataset.outgoing = '';
+    outgoing.setAttribute('aria-hidden', 'true');
+    outgoing.append(...atomDisplay.childNodes);
+    atomDisplay.append(outgoing);
+    outgoing.style.opacity = '0';
+    this._animateGlass(outgoing, [{ opacity: 1 }, { opacity: 0 }], this._glassMs(GLASS_CONTINUITY.wordsOutMs));
+    atomDisplay.style.transition = 'none';
+    atomDisplay.style.opacity = '1';
+    this._glassDisplayHolding = true;
+    this._setBandState(atomDisplay, 'holding');
+    return true;
+  }
+
+  /**
+   * Words are about to be shown. Returns the glass they arrive on, its box and its place, or null when none
+   * stands (the first words, after a dissolve, or where no glass is painted).
+   */
+  _glassBeforeWords(atomDisplay) {
+    const dissolving = this._glassDissolving;
+    const box = this._glassBox(atomDisplay).getBoundingClientRect();
+    this._stopGlassMotion();
+    this._glassDisplayHolding = false;
+    const canHold = this._glassCanHold(atomDisplay);
+    const standing = this._glassContinuity().words() && canHold && !dissolving;
+    this._setBandState(atomDisplay, canHold ? 'words' : null);
+    return standing ? { box, place: atomDisplay.dataset.place ?? 'centre' } : null;
+  }
+
+  /** On standing glass the words alone fade in. */
+  _fadeWordsIn(atomDisplay) {
+    const phrase = document.createElement('span');
+    phrase.className = 'atom-phrase';
+    phrase.append(...atomDisplay.childNodes);
+    atomDisplay.append(phrase);
+    this._animateGlass(phrase, [{ opacity: 0 }, { opacity: 1 }], this._glassMs(GLASS_CONTINUITY.wordsInMs));
+  }
+
+  /**
+   * The glass goes from the last words' size to these words' size, which are already laid out where they will
+   * stay. Smaller: the display keeps the old size for the ease, by padding above and below (the words stay
+   * centred) and by min-width (their lines are centred), and gives it up. Larger: the new box is clipped to the
+   * old size and the clip opens. Under reduced motion the size changes at once.
+   */
+  _easeGlass(atomDisplay, from) {
+    if (this._prefersReducedMotion() || !(from.width > 0 && from.height > 0)) return;
+    const box = this._glassBox(atomDisplay);
+    const to = box.getBoundingClientRect();
+    const dx = (to.width - from.width) / 2;
+    const dy = (to.height - from.height) / 2;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    const ms = GLASS_CONTINUITY.easeMs;
+    if (dx < 0 || dy < 0) {
+      const style = getComputedStyle(atomDisplay);
+      const top = parseFloat(style.paddingTop) || 0;
+      const bottom = parseFloat(style.paddingBottom) || 0;
+      const pad = Math.max(0, -dy);
+      const start = { paddingTop: `${top + pad}px`, paddingBottom: `${bottom + pad}px` };
+      const end = { paddingTop: `${top}px`, paddingBottom: `${bottom}px` };
+      if (box === atomDisplay && dx < 0) {
+        const edges = style.boxSizing === 'border-box' ? 0
+          : (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0)
+            + (parseFloat(style.borderLeftWidth) || 0) + (parseFloat(style.borderRightWidth) || 0);
+        start.minWidth = `${from.width - edges}px`;
+        end.minWidth = `${to.width - edges}px`;
+      }
+      this._animateGlass(atomDisplay, [start, end], ms);
+    }
+    if (dx > 0 || dy > 0) {
+      const radius = getComputedStyle(box).borderTopLeftRadius || '0px';
+      this._animateGlass(box, [
+        { clipPath: `inset(${Math.max(0, dy)}px ${Math.max(0, dx)}px round ${radius})` },
+        { clipPath: `inset(0px 0px round ${radius})` }
+      ], ms);
+    }
+  }
+
+  /** Nothing is coming soon: the glass and anything on it fade, and the display is emptied as it always was. */
+  _dissolveGlass() {
+    const atomDisplay = this.container?.querySelector('#atom-display');
+    if (!atomDisplay || this._destroyed) return;
+    this._stopGlassMotion();
+    this._glassDisplayHolding = false;
+    const finish = () => {
+      this.cancelReveal();
+      atomDisplay.style.transition = 'none';
+      atomDisplay.style.opacity = '0';
+      atomDisplay.textContent = '';
+      this._stopGlassMotion();
+      this._setBandState(atomDisplay, null);
+      void this.syncFillGlyphMask();
+    };
+    const fade = this._animateGlass(this._glassBox(atomDisplay), [{ opacity: 1 }, { opacity: 0 }],
+      this._glassMs(GLASS_CONTINUITY.dissolveMs), { fill: 'forwards' });
+    if (!fade) {
+      finish();
+      return;
+    }
+    this._glassDissolving = true;
+    this._setBandState(atomDisplay, 'dissolving');
+    fade.onfinish = finish;
+  }
+
+  /** A pause, or the end of the reading: a glass held for words that are not coming soon dissolves. */
+  releaseGlass() {
+    this._glass?.release();
   }
 
   /**
@@ -5347,6 +5562,8 @@ export class Chamber {
     // the next atom speaks from its beginning. Stopping also restores
     // the ducked music, which would otherwise stay down while paused.
     if (state === 'paused' || state === 'idle') this.voice?.stop();
+    // Nothing is coming soon: a glass held between phrases dissolves (glass under words stays with them).
+    if (state === 'paused' || state === 'idle' || state === 'complete') this.releaseGlass();
 
     if (state === 'paused') this._visualFieldDirector?.pause();
     else if (state === 'playing') this._visualFieldDirector?.resume();
@@ -5477,6 +5694,8 @@ export class Chamber {
     for (const off of this._playerOffs || []) off();
     this._playerOffs = [];
     this._destroyed = true;
+    this._glass?.destroy();
+    this._stopGlassMotion();
     if (this._syncFullscreenControl) {
       document.removeEventListener('fullscreenchange', this._syncFullscreenControl);
       this._syncFullscreenControl = null;
