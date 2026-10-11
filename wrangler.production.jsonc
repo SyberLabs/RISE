@@ -10,6 +10,9 @@
   // Shared model inference is retired. Readers use their own OpenRouter account
   // or run Kev locally; the optional live integrations remain switched off.
   "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "true", "MCP_SELF_CONTAINED": "true", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_PAYMENT_LINK": "",
+    // Open only after Stripe business verification, webhook delivery, recovery mail,
+    // customer portal and the funded fixed offer are verified for this deployment.
+    "PLUS_CHECKOUT_ENABLED": "false",
     "PLUS_DAILY_CHAR_CAP": "500000",
     // Cost ceilings are based on paid USD invoice revenue, not the advertised price.
     "PLUS_VENDOR_MICRO_USD_PER_CHAR": "60",

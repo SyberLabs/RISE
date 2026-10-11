@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 9 October 2026**
+**Last updated: 11 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -34,8 +34,10 @@ thought, detail, or revision instruction. Generated prose can itself contain
 sensitive information. Text and project exports are files you deliberately save.
 Import and playback do not call the writer.
 
-The Plus service sets one cookie when you buy Plus: a signed token that carries your
-Stripe subscription number, with no name or email in it. We do not use
+The Plus service uses signed, HttpOnly cookies for voice access and billing
+management. They carry Stripe identifiers, not your name or email. If you ask
+to restore Plus, we send a short-lived recovery link to the email associated
+with your purchase through our email provider (section 4). We do not use
 analytics. RISE does not automatically upload your readings or browser history. Optional SyberLabs sign-in uses a separate host-only session cookie at `syberlabs.io` and associates chosen backups with your account. Administrators sign in through Cloudflare Access, which processes their identity and sets its authorization cookie (section 4). If you buy Plus, Stripe processes the payment and knows the email you
 paid with; we do not keep it. We do not sell personal information. Network
 processing occurs for hosting, external resources you request, the optional
@@ -118,6 +120,7 @@ cannot reach; **Settings > Forget Plus on this browser** removes both.
 | `rise:audio-diag` | That audio diagnostics are on for this tab |
 | `rise:invocation-handoff:v1` | A choice made on Home, handed to the page it opens |
 | `rise.voice-demo.draft` | The text and voice of an unsent voice demonstration |
+| `rise.plus.continuation` | Up to 5,000 characters and the selected look, saved only when you choose Add voice to this reading, so Checkout does not lose your draft; removed when handed to the voice workspace or when this tab closes |
 | `rise-openrouter-pkce-v1` | While you connect OpenRouter: a one-time verifier and state (section 4) |
 
 Session storage is discarded when you close the tab.
@@ -217,8 +220,26 @@ sign-in, with separate shared daily and monthly allowances.
 
 - **Payment.** Stripe processes the payment and holds the details you give it,
   under its own policy (<https://stripe.com/privacy>). RISE's server then sets
-  one signed, HttpOnly cookie, `__Secure-rise_plus`, sent only to `/api/plus`, that
-  carries your Stripe subscription number.
+  a signed, HttpOnly cookie, `__Secure-rise_plus`, sent only to `/api/plus`, that
+  carries your Stripe subscription number. A separate signed, HttpOnly cookie,
+  `__Secure-rise_plus_billing`, contains your Stripe customer and subscription
+  identifiers and lasts up to 40 days. It lets you open Stripe's billing portal
+  even after paid voice access ends; it does not itself authorize voicing.
+  Starting a new checkout also sets `__Secure-rise_plus_checkout`, a signed,
+  HttpOnly cookie lasting up to 24 hours. It binds the checkout confirmation
+  to the browser that started it, so copying a success URL does not transfer
+  a new subscription. Use email recovery if that browser cookie is lost.
+- **Restoring a subscription.** If you request a recovery email, RISE checks
+  the address against Stripe and sends a link through Resend
+  (<https://resend.com/legal/privacy-policy>) when an eligible purchase exists.
+  Resend receives the recipient address and the recovery email, never your
+  reading text. The link expires after 15 minutes and can be used once. RISE's
+  meter keeps only the latest token's SHA-256 hash, its expiry, and its issue
+  time to prevent reuse and limit repeated emails; it does not store the email
+  address or the raw token. The browser removes the token from the address bar
+  before sending it to RISE to restore access. Resend and Stripe retain their
+  service records under their own policies. The response does not reveal
+  whether an address has a subscription.
 - **Voicing.** To voice a reading, your browser sends its text to RISE's
   server, which sends it to ElevenLabs on SyberLabs' account and returns the
   audio to your browser. Before voicing, the server checks with Stripe that the
@@ -236,10 +257,12 @@ sign-in, with separate shared daily and monthly allowances.
   requests it made this minute; whether it was ended, refunded or disputed;
   and the ids of the last 50 Stripe events about it. The server also keeps the
   paid-invoice budget, its cost-policy snapshot and reserved or charged voice costs used to enforce the
-  spend ceiling. The allowance is up to 105,000 characters per paid billing
-  period, at most 25,000 of them a day, and may be lower according to the
-  invoice-derived voice budget. Taxes, discounts and fee or fixed-cost reserves
-  can reduce that budget. If the subscription lapses or a limit is reached,
+  spend ceiling. The new planned offer includes 60,000 characters per paid
+  billing period, with a separate daily limit of 25,000 characters. Checkout
+  remains closed until the configured offer can fund that allowance under the
+  server's cost safeguards. Earlier subscriptions retain their invoice-derived
+  allowance, bounded by 105,000 characters, which may be lower according to
+  taxes, discounts and fee or fixed-cost reserves. If the subscription lapses or a limit is reached,
   reading continues without the voice.
 - **Administrator sign-in.** Cloudflare Access authenticates approved
   administrators and provides a signed authorization token, including their
@@ -393,9 +416,10 @@ transfer no longer happens.
 
 We state these plainly because the absence is the point.
 
-- **Subscriber cookie.** The Worker sets `__Secure-rise_plus` when you claim a
-  purchase; it is HttpOnly, read only by `/api/plus/*`, and never by page
-  script. Cloudflare Access sets a separate authorization cookie for
+- **Subscriber cookies.** The Worker sets `__Secure-rise_plus` for voice
+  access and `__Secure-rise_plus_billing` for billing management. Both are
+  HttpOnly, read only by `/api/plus/*`, and never by page script. Billing
+  identity alone cannot authorize voice access. Cloudflare Access sets a separate authorization cookie for
   administrator sign-in. Neither grants authority through a browser role flag.
 - **The Plus voice.** With a Plus subscription or verified administrator access and its voice on, the text of readings
   of your own material goes through RISE's server to ElevenLabs on our account,
@@ -525,7 +549,9 @@ guarantee is made here.
 
 For Plus, RISE's server keeps the current subscription period's character and
 financial budget/usage records, its current daily count and the standing,
-rate-limit and event records described in section 4. A newer billing period
+rate-limit, recovery-token hash and event records described in section 4.
+Recovery tokens expire after 15 minutes; only the most recent recovery record
+is kept and it is replaced by a later request. A newer billing period
 replaces the old period's meter; a newer day replaces the daily meter,
 including the separate shared administrator meter; a newer month replaces
 the administrator monthly spend meter. RISE stores no reading text or

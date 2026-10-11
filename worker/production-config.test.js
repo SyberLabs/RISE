@@ -18,6 +18,12 @@ const load = file => JSON.parse(stripComments(readFileSync(file, 'utf8')));
 const config = load('wrangler.production.jsonc');
 
 describe('the production Worker', () => {
+  it('keeps new customer checkout explicitly closed until payment and recovery verification', () => {
+    expect(config.vars.PLUS_CHECKOUT_ENABLED).toBe('false');
+    expect(config.vars.PLUS_REQUIRE_LIVE).toBe('true');
+    expect(config.vars.PLUS_PAYMENT_LINK).toBe('');
+  });
+
   it('rechecks admin sessions through the public Access edge rather than the private origin', () => {
     // getAdmin probes /api/plus/admin/check on this Worker's own zone. Public
     // routing must apply Access revocation and reach that check handler.
