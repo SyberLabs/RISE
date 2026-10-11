@@ -1,6 +1,7 @@
 /**
  * The black holes answer as a model writes it beat by beat (the line format,
- * docs/specs/LIVE-CURRENT-EVENTS-V1.md "Beats streamed"): a said beat, a native
+ * docs/specs/LIVE-CURRENT-EVENTS-V1.md "Beats streamed"): a said beat that lays a
+ * bed under the reading (SND-001), a native
  * scene and a hold that cues it, a figure, a shown line nobody says, a
  * generated scene with its cues, and a last said beat. It is what the venue's
  * demo streams (adapters/mock.js), and it is written by hand, apart from the
@@ -54,7 +55,7 @@ const SAID = Object.freeze({
 
 /** What the model writes. */
 export const BLACK_HOLES_BEATS_TEXT = [
-    `@say ${SAID.what}`,
+    `@say sound=starlight ${SAID.what}`,
     '@scene field attractor palette=purple',
     '@hold 1800 scene=field cue=calm',
     '@scene horizon svg',
@@ -81,7 +82,7 @@ export const BLACK_HOLES_BEATS_CURRENT = Object.freeze({
         { id: 'disk', code: DISK }
     ],
     beats: [
-        { say: SAID.what },
+        { say: SAID.what, sound: 'starlight' },
         { hold: { ms: 1800 }, scene: 'field', cue: 'calm' },
         { say: SAID.horizon, scene: 'horizon', place: 'caption' },
         { show: 'The point of no return', hold: { ms: 1600 }, size: 'display' },

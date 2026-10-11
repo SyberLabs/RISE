@@ -2232,8 +2232,10 @@ describe('the beds under the reading', () => {
         expect(audioSession.type).toBe('auto');
     });
 
-    it('brings the session up again for a reading taken back from its end', async () => {
-        const engine = sessionEngine();
+    it('opens the session the end closed again for a reading taken back from its end, and reveals it once open', async () => {
+        // The venue's Play again plays the same runtime from its first passage: the factory opened the first session,
+        // and nothing else would open this one, so the bed the reading starts would sound into a closed session.
+        const engine = { ...sessionEngine(), startSession(options) { this.calls.push(['start', options]); return Promise.resolve({ cancelled: false }); } };
         const runtime = fakeRuntime();
         const hosted = await hostedWith(engine, runtime);
         const player = fakePlayer('playing');
@@ -2242,7 +2244,13 @@ describe('the beds under the reading', () => {
         runtime.become('ended');
         runtime.become('live');
         player.become('playing');
-        expect(engine.calls).toEqual([['in', 1.2], ['stop'], ['in', 0.6]]);
+        expect(engine.calls).toEqual([['in', 1.2], ['stop'], ['start', { entrySwell: false }]]);
+        await Promise.resolve();
+        expect(engine.calls.at(-1)).toEqual(['in', 0.6]);
+        // Paused and played again, it is the Reader's own reveal again.
+        player.become('paused');
+        player.become('playing');
+        expect(engine.calls.slice(-2)).toEqual([['out', 0.4], ['in', 0.6]]);
     });
 
     it('lets the silent loop and the playback audio session go when the reading is over', async () => {

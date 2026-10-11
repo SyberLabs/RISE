@@ -664,7 +664,10 @@ export class LiveHost {
      * where the Chamber plays nothing (hostPlays), this host. Shown after the factory has opened it, so
      * the reveal is never zeroed behind it. A visual presence's return to playing is not a new reveal.
      * It closes when the runtime's reading has ended, not when the Player completes: the voice may still be
-     * saying the last words then, and the reading ends only after it (run.finished).
+     * saying the last words then, and the reading ends only after it (run.finished). A reading taken back from its
+     * end on the same runtime (the venue's Play again) opens the session again, as the factory opened the first, and
+     * is revealed once it is open: the bed the reading starts would otherwise sound into a closed session, or be
+     * stopped by the closing still under way.
      */
     followReading(player, runtime) {
         this.stopFollowingReading?.();
@@ -684,18 +687,28 @@ export class LiveHost {
                 up = false;
             }
         };
+        const reopen = () => {
+            // The reveal is the opening's: the Player's `playing`, which follows at once, does not fade in a closed session.
+            up = true;
+            void Promise.resolve(engine.startSession?.({ entrySwell: false })).then(result => {
+                if (result?.cancelled || this.stopFollowingReading !== stop) return;
+                if (player.state === 'playing') engine.fadeInSession?.(0.6);
+                else up = false;
+            }, () => {});
+        };
         const end = ({ status }) => {
             if (status === 'ended' && !over) {
-                // No audio outlives the reading; Play again opens a new session.
+                // No audio outlives the reading.
                 engine.stopSession?.();
                 this.releaseAudioSession();
                 up = false;
-            }
+            } else if (status === 'live' && over) reopen();
             over = status === 'ended';
         };
         const stopPlayer = player.on('state', ({ state }) => follow(state));
         const stopRuntime = runtime.subscribe(end);
-        this.stopFollowingReading = () => { stopPlayer(); stopRuntime(); };
+        const stop = () => { stopPlayer(); stopRuntime(); };
+        this.stopFollowingReading = stop;
         follow(player.state);
     }
 

@@ -564,6 +564,39 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
+    // The demo's first beat lays a bed (starlight). What leaves the engine's last gate is measured, as in the card:
+    // started is not heard. With the paced voice nothing ducks it.
+    test('a bed under the reading stops with it, sounds again on Play again, and under the next reading asked', async ({ page }) => {
+        test.setTimeout(150_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        const audio = () => page.evaluate(() => window.__riseLive.audio());
+        const level = async () => (await audio()).levelDbfs ?? -Infinity;
+        await expect.poll(async () => (await audio()).sounding, { timeout: 10_000 }).toBe('starlight');
+        await expect.poll(level, { timeout: 5_000 }).toBeGreaterThan(-45);
+
+        const stage = page.locator('#rise-stage-controls');
+        const playAgain = stage.getByRole('button', { name: /^Play again/u });
+        await expect(playAgain).toHaveCount(1, { timeout: 60_000 });
+        // No audio outlives the reading (#631). Play again is pressed at once, while the session is still closing.
+        await expect.poll(level, { timeout: 5_000 }).toBeLessThan(-60);
+        await playAgain.click();
+        await expect(stage.locator('[data-stage="play"]')).toHaveAttribute('aria-label', /^Pause/u);
+        await expect.poll(level, { timeout: 5_000 }).toBeGreaterThan(-45);
+
+        // Held, the next question reads anew in the same room, on a new runtime: its bed sounds under it.
+        await stage.locator('[data-stage="play"]').click();
+        await page.locator('#live-again-question').fill('Explain black holes again.');
+        await page.locator('#live-again-question').press('Enter');
+        await expect.poll(async () => (await page.evaluate(() => window.__riseLive.journal())).some(entry => entry.type === 'start' && /again/u.test(entry.prompt)), { timeout: 10_000 }).toBe(true);
+        await expectShown(page, 'A black hole is a region of space');
+        await expect.poll(level, { timeout: 10_000 }).toBeGreaterThan(-45);
+        expect(errors).toEqual([]);
+    });
+
     test('carries what the reader did up with their next words: a replay, a theme and the pause go, and nothing of the voice', async ({ page }) => {
         test.setTimeout(90_000);
         const errors = watchErrors(page);
