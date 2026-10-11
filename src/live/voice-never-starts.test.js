@@ -104,6 +104,21 @@ describe('a passage a network voice never begins', () => {
         await until(() => entries('voice.degraded').length > 0);
         expect(entries('voice.degraded')[0]).toMatchObject({ segmentId: 'beat-0', chars: first.length, retried: 'sentences' });
     });
+
+    it('does not freeze the reading when a later sentence never begins: the clock stands down at the next passage', async () => {
+        // The retry's first sentence is said, its second never begins: the voice is stuck part way through beat-5.
+        const second = 'The shorter the wave, the more it scatters.';
+        expect(DROPPED.endsWith(second)).toBe(true);
+        open(text => text === DROPPED || text === second);
+        await runtime.start('Why is the sky blue?');
+        await until(() => entries('speech.start', 'beat-5').length > 0);
+        await until(() => entries('voice.degraded').length > 0, 60_000);
+        // The Player's speech watchdog (player.js) ends each atom the stuck voice never reaches, so the words go on.
+        expect(entries('voice.degraded')).toEqual([expect.objectContaining({ reason: 'voice-did-not-start', segmentId: 'beat-7', retried: 'none' })]);
+        expect(entries('voice.degraded')[0].at - entries('speech.start', 'beat-5')[0].at).toBeLessThan(20_000);
+        await until(() => runtime.status === 'ended');
+        expect(runtime.status).toBe('ended');
+    });
 });
 
 describe('the reader’s controls over a passage said again in sentences', () => {

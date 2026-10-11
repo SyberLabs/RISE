@@ -24,7 +24,8 @@
  * same reason a voice clears the engine with `cancel()` when it is made: some
  * other page may have left it paused.
  *
- * Time is `playedMs`: speaking time only, so a hold takes none of it.
+ * Time is `playedMs`: speaking time only, so a hold takes none of it. The moment between two sentences of a
+ * passage said a sentence at a time counts, so a later sentence that never begins does not stop that time.
  *
  * A voice stopped from outside (another page's `cancel()`, another speaker on
  * the device) is known by the `interrupted` or `canceled` error on an utterance
@@ -132,11 +133,11 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
         if (voice) utterance.voice = voice;
         item.utterance = utterance;
         item.offset = offset;
-        item.startedAt = null;
 
         utterance.onstart = () => {
             if (item.utterance !== utterance) return;
-            item.startedAt = clock.now();
+            // Between two sentences its time runs on, so a later sentence that never begins does not stop its clock.
+            item.startedAt ??= clock.now();
             if (!item.started) {
                 item.started = true;
                 safely(report.start, item.id, { mode: item.sentences ? 'sentences' : 'whole' });
@@ -163,11 +164,9 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
             if (item.utterance !== utterance) return;
             if (end < item.text.length) {
                 // A sentence of the segment is said; the next one is taken up where it begins.
-                item.played = playedNow(item);
-                item.startedAt = null;
                 if (end > item.lastMark) {
                     item.lastMark = end;
-                    item.lastMarkAt = Math.round(item.played);
+                    item.lastMarkAt = Math.round(playedNow(item));
                     safely(report.mark, item.id, end, item.lastMarkAt);
                 }
                 speakFrom(item, end);
