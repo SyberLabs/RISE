@@ -13,20 +13,39 @@ the paid account that will own the listing.
 
 ## Before you start
 
-Three things must be true before you press Submit. The first two are yours.
+**The freeze (2026-10-11).** Connector-facing code is frozen from the build this packet
+names until the submission is filed. The build to submit is the one `release.txt` shows at
+filing time; record it in the register (§7) and in LIVE-004. Nothing merges to the card, the
+Worker's MCP route, the tool text or the pages until then. The last connector change was
+#631 (a613d0e7): the bed fades out when the voice has ended.
 
-1. **Run the demo prompts in the claude.ai chat and in the Claude iOS and Android apps**,
-   with the custom connector added (`https://rise.syberlabs.io/api/mcp`). Each should show
-   the card; press Play once in each. The tool calls are already proven
-   ([the Inspector run](../../assets/directory/INSPECTOR-RUN-2026-10-10.md),
+What must be true before you press Submit. All but the last are yours, in this order.
+
+1. **A fresh chat, first thing.** Start a new chat before any other RISE use that day, with
+   the connector added (`https://rise.syberlabs.io/api/mcp`), and ask one demo prompt. The
+   card must appear without a page reload, through the permission prompt. This is the one
+   check to hold the submission for if it fails: it is a reviewer's first interaction, and
+   the "first chat of the day" blank card (LIVE-016) has never been reproduced or fixed.
+2. **One long reading, played through.** A lesson of twenty or more beats with figures and
+   holds (the potato lesson is the right shape), played start to end without seeking, on
+   your Edge voice. The sixteen-beat defect (#629) lived three days because every fixture
+   was short. Then copy "About this reading": it should show no `run.failed` and no
+   `refused:` line.
+3. **The demo prompts, each once, in the claude.ai chat and in the Claude iOS and Android
+   apps.** Each should show the card; press Play once in each. The tool calls are already
+   proven ([the Inspector run](../../assets/directory/INSPECTOR-RUN-2026-10-10.md),
    [the Claude run](../../assets/directory/CLAUDE-RUN-2026-10-10.md)); what only you can see
    is the card rendering and playing in each app. The attestation below claims all three.
-2. **Sign in with the paid Claude account that will own the listing.** The listing belongs
+4. **The negative prompts.** "Book me a table for two tomorrow night." and "Generate a
+   picture of a cat." must not call RISE. The listing's health badge counts refusals as
+   errors, so a tool called wrongly costs the listing over time.
+5. **Sign in with the paid Claude account that will own the listing.** The listing belongs
    to the organization it is submitted from.
-3. **The live site matches this packet**: `/terms` has no price, `/api/plus/status` says
+6. **The live site matches this packet**: `/terms` names no price, `/api/plus/status` says
    `available: false` and `/api/plus/config` serves no payment link,
-   `/.well-known/security.txt` names the policy. Checked after this packet's
-   pull request deployed; see the pull request for the evidence.
+   `/.well-known/security.txt` names the policy. Re-checked on 2026-10-11 against
+   a613d0e7; the terms' planned-price sentence found then is removed in the same pull
+   request as this revision.
 
 ## Server
 
@@ -50,8 +69,9 @@ speaks it, the words appear as they are spoken, and a drawn visual plays behind 
 **Description:**
 
 > Ask Claude to explain something and present it in RISE. Claude writes the answer as a
-> short reading: a title, up to 16 passages, and, if it likes, a colour theme, a look,
-> and a diagram or figure of its own. RISE shows it in the chat as a card. You press
+> reading: a title and its passages (up to 64 beats and 20,000 characters, which is about
+> twenty minutes at the longest; most readings are a minute or two), and, if it likes, a
+> colour theme, a look, and a diagram or figure of its own. RISE shows it in the chat as a card. You press
 > Play. Your device's built-in voice reads it aloud, the words appear as they are spoken,
 > and a visual plays behind them.
 >
@@ -106,7 +126,7 @@ Paste this into the reviewer-instructions field:
 | --- | --- |
 | Financial transactions | None. Nothing in RISE is for sale. |
 | AI media generation | RISE calls no media model. The voice is the device's own speech synthesis (Web Speech API); diagrams and figures are code or SVG the model writes, rendered by RISE. |
-| Conversation data | Only the tool's argument, not stored. |
+| Conversation data | Only the tool's argument, which is not stored. Cloudflare's request logs keep metadata (method, path, status, timing, the client address Cloudflare sees) for at most 7 days, as the privacy page states; no tool text is logged. |
 | Prompt injection | The tool returns a one-line receipt or a clipped validator message; `rise_guide` returns a format reference, not instructions. |
 
 The AI-media answer is the register's §8 wording without its internal note. That note
@@ -137,9 +157,9 @@ field. All five are PNG, 1140 × 753, the card alone.
 5. "Show me the parts of an animal cell in RISE."
 
 Prompt 5's tool calls are recorded in [the Claude run](../../assets/directory/CLAUDE-RUN-2026-10-10.md).
-The others are being verified through Claude by another session; its record is to be added
-beside that run. If a prompt fails there, drop it here before filing (the portal needs at
-least three).
+The others are verified by your own runs under "Before you start"; note each outcome in that
+record when done. If a prompt fails, drop it here before filing (the portal needs at least
+three).
 
 If the portal asks for cases where the connector should not be used: "Book me a table for
 two tomorrow night." "Generate a picture of a cat." "Write a 10,000-word report and read it
