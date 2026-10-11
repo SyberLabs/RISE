@@ -517,8 +517,8 @@ export function createLiveRuntime({
             voice: run.voice ?? { playedMs: () => undefined },
             clock,
             graceMs,
-            onDegrade: ({ reason }) => {
-                note('voice.degraded', { role, reason });
+            onDegrade: ({ reason, ...detail }) => {
+                note('voice.degraded', { role, reason, ...detail });
                 // A pace asked for while the voice was saying something has no next utterance to land in: take it now.
                 if (role === 'main' && !run.closed) retime(run, pace);
             }
@@ -1099,9 +1099,9 @@ export function createLiveRuntime({
         note('voice.chosen', { role: run.role, kind: run.voice.id, name: run.voice.chosen?.name ?? null, local: run.voice.chosen?.local ?? null });
         // A renderer is not trusted to stop calling once its run has closed.
         run.voice.attach({
-            start: id => {
+            start: (id, how) => {
                 if (run.closed) return;
-                run.speaking = id; note('speech.start', { role: run.role, segmentId: id }); set(status);
+                run.speaking = id; note('speech.start', { role: run.role, segmentId: id, ...(how?.mode ? { mode: how.mode } : {}) }); set(status);
             },
             mark: (id, charIndex, tMs) => { if (!run.closed) run.governor.observe('mark', id, charIndex, tMs); },
             // Something else on the device stopped the voice. The reading is held where it is, as a reader's Pause
@@ -1122,6 +1122,8 @@ export function createLiveRuntime({
                 }
             },
             restarted: (id, afterMs) => { if (!run.closed) note('voice.restarted', { role: run.role, segmentId: id, afterMs }); },
+            // A passage the voice took and never began is said again (speech-governor.js asks it to).
+            retried: (id, mode) => { if (!run.closed) note('voice.retried', { role: run.role, segmentId: id, mode }); },
             // Nothing is said at the old pace any more: the clock follows the new one from here.
             rateApplied: (id, rate) => {
                 if (run.closed || rate === run.rate) return;

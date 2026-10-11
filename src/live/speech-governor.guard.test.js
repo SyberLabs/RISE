@@ -109,6 +109,6 @@ describe('the first utterance of a reading', () => {
         const first = settled(0);
         await clock.advance(GOVERNOR_LIMITS.firstGraceMs + 100);
         expect(first.result).toEqual({ reason: 'timeout' });
-        expect(degraded).toEqual([{ reason: 'voice-did-not-start' }]);
+        expect(degraded).toEqual([{ reason: 'voice-did-not-start', segmentId: 's', chars: 18, retried: 'none' }]);
     });
 });

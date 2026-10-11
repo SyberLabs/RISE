@@ -574,8 +574,10 @@ export class LiveHost {
         const spoken = this.spokenVoice;
         const voice = this.voiceKind !== 'browser' ? this.voiceKind ?? 'not chosen yet'
             : spoken ? `browser "${spoken.name}" ${spoken.lang} local=${chosen?.local ?? 'unknown'}` : 'browser (platform default)';
+        // Which passage it gave up on, how long that passage is, and whether it was tried again (speech-governor.js).
+        const passage = trouble?.segmentId ? ` segment=${trouble.segmentId} chars=${trouble.chars} retried=${trouble.retried}` : '';
         const why = trouble
-            ? `${trouble.type} ${trouble.reason ? `reason=${trouble.reason}` : `message=${trouble.message}`} at ${(trouble.at / 1000).toFixed(1)} s`
+            ? `${trouble.type} ${trouble.reason ? `reason=${trouble.reason}` : `message=${trouble.message}`}${passage} at ${(trouble.at / 1000).toFixed(1)} s`
             : this.degradations({ pacingShown: true }).find(note => note.capability === 'speechOutput')?.effect ?? 'none';
         const synth = this.env.speechSynthesis;
         const count = this.voiceCount;

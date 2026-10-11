@@ -39,12 +39,17 @@
  * a pause) is owed the time that passage is expected to take before the grace
  * for the next one begins.
  *
+ * A voice that has not begun a passage within its grace is first asked to try
+ * it again (`voice.retry`, which a network voice answers by saying it a
+ * sentence at a time): if it will, the passage has the grace once more from
+ * then, and its first start, whenever it comes, is where its clock begins.
+ *
  * Degrading is quiet and one way, until the reader seeks (`forget`). If the
- * voice does not begin what it was asked to say within its grace, the governor
- * stands down and the Player's own timer carries on, at the pace the voice was
- * measured at, because a reading that stops is worse than a reading that is not
- * synchronised. The host is told, so it can show that the voice is not being
- * heard.
+ * voice does not begin what it was asked to say within its grace, and a retry
+ * did not begin either, the governor stands down and the Player's own timer
+ * carries on, at the pace the voice was measured at, because a reading that
+ * stops is worse than a reading that is not synchronised. The host is told, so
+ * it can show that the voice is not being heard.
  *
  * Pause. The Player does not consult a governor when it resumes from a pause,
  * so the atom that was paused finishes on the timer for what remained of it.
@@ -70,6 +75,8 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
     /** id -> { c, t, rate }: where a segment part way through was when the pace changed, and its pace from there. */
     const paced = new Map();
     let degraded = false;
+    /** id -> how the voice said it would try a passage again that it had not begun ('sentences'). */
+    const retried = new Map();
     /** Whether the voice was found without the word reports it claims; a voice the reader picks claims its own afresh. */
     let foundWithoutMarks = false;
     let claimed = voice?.capabilities?.wordMarks === true;
@@ -143,12 +150,12 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
         cancelWait();
         const mine = { dead: false, cancel: null };
         waiting = mine;
-        const beganAt = clock.now();
+        let beganAt = clock.now();
         const grace = begun ? graceMs : Math.max(graceMs, GOVERNOR_LIMITS.firstGraceMs);
         // A voice still saying an earlier passage (one held and said again from further back, say) has not failed to
         // begin this one: the grace starts when that passage should be over, by the time it is expected to take.
         const still = voice.speakingId?.() ?? null;
-        const owed = still && still !== entry.segmentId && segments.has(still)
+        let owed = still && still !== entry.segmentId && segments.has(still)
             ? Math.max(0, charTime(still, segments.get(still).length) - (voice.playedMs(still) ?? 0))
             : 0;
 
@@ -163,7 +170,20 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
                 const played = voice.playedMs(entry.segmentId);
                 if (played === undefined) {
                     if (clock.now() - beganAt >= grace + owed) {
-                        degrade('voice-did-not-start');
+                        const mode = retried.has(entry.segmentId) ? null : voice.retry?.(entry.segmentId) ?? null;
+                        if (mode) {
+                            // Tried again: the passage has the grace once more, from now.
+                            retried.set(entry.segmentId, mode);
+                            beganAt = clock.now();
+                            owed = 0;
+                            mine.cancel = clock.setTimer(check, POLL_MS);
+                            return;
+                        }
+                        degrade('voice-did-not-start', {
+                            segmentId: entry.segmentId,
+                            chars: segments.get(entry.segmentId)?.length ?? 0,
+                            retried: retried.get(entry.segmentId) ?? 'none'
+                        });
                         finish({ reason: 'timeout' });
                         return;
                     }
@@ -189,10 +209,10 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
         });
     }
 
-    function degrade(reason) {
+    function degrade(reason, detail = {}) {
         if (degraded) return;
         degraded = true;
-        onDegrade({ reason });
+        onDegrade({ reason, ...detail });
     }
 
     return {
@@ -257,6 +277,7 @@ export function createSpeechGovernor({ voice, clock, graceMs = 1500, defaultMsPe
                 for (const entry of map.slice(from)) {
                     timing.delete(entry.segmentId);
                     paced.delete(entry.segmentId);
+                    retried.delete(entry.segmentId);
                 }
             }
             degraded = false;

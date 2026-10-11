@@ -1352,7 +1352,8 @@ describe('inside an MCP host', () => {
             await vi.waitFor(() => expect(host.runtime).toBeTruthy());
             await vi.advanceTimersByTimeAsync(6_000);
             expect(synth.speaking).toBe(false);
-            expect(host.aboutReading()).toMatch(/^voice trouble: voice\.degraded reason=voice-did-not-start at \d+\.\d s$/mu);
+            // Which passage, how long it is, and whether it was tried again a sentence at a time: what a field paste needs.
+            expect(host.aboutReading()).toMatch(/^voice trouble: voice\.degraded reason=voice-did-not-start segment=\S+ chars=\d+ retried=none at \d+\.\d s$/mu);
             expect(host.aboutReading()).toMatch(/^speech starts: 0$/mu);
             await host.stop();
         });

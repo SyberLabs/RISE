@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 105;
+export const FAST_TEST_FILES = 106;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -71,6 +71,7 @@ const FAST_TESTS = [
     // The interjection: its state machine, and the graft that puts an answer into the reading the reader interrupted.
     'src/live/interjection.test.js',
     'src/live/graft.test.js',
+    'src/live/voice-never-starts.test.js',
     'src/live/adapters/**/*.test.js',
     'src/live/host/**/*.test.js',
     'src/live/hosts/**/*.test.js',

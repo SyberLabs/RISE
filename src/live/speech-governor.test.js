@@ -168,7 +168,7 @@ describe('when the voice is the clock', () => {
  * voice is cancelled and says its passage again, from the phrase on screen when it can, else from the last place
  * it heard, which can be well before the words on screen.
  */
-function setupHeld({ texts, msPerChar = 60, latencyMs = 30, latencyAfterCancelMs = null } = {}) {
+function setupHeld({ texts, msPerChar = 60, latencyMs = 30, latencyAfterCancelMs = null, drops = null, chosen = null } = {}) {
     const segments = texts.map((text, i) => ({ id: `p${i + 1}`, text }));
     const session = compileRiseCurrent({
         schema: 'rise.current.v1', id: 'held-1', title: 'Held', origin: { kind: 'human', name: 'Tester' }, segments
@@ -176,8 +176,8 @@ function setupHeld({ texts, msPerChar = 60, latencyMs = 30, latencyAfterCancelMs
     player = new Player(session);
     const shown = [];
     player.on('atom', ({ index, concealed }) => { if (!concealed) shown.push({ index, at: now() }); });
-    const synth = createFakeSpeech(clock, { msPerChar, latencyMs, latencyAfterCancelMs, boundaries: false });
-    voice = createBrowserVoice({ speech: { synth, Utterance: synth.Utterance }, clock });
+    const synth = createFakeSpeech(clock, { msPerChar, latencyMs, latencyAfterCancelMs, boundaries: false, drops });
+    voice = createBrowserVoice({ speech: { synth, Utterance: synth.Utterance }, clock, voice: chosen });
     const degraded = [];
     governor = createSpeechGovernor({ voice, clock, onDegrade: info => degraded.push(info) });
     const voiceLog = {};
@@ -236,7 +236,7 @@ describe('when the voice is held and says its passage again from further back', 
         player.play();
         // p1 is 58 characters: 3770 ms at the default speed, then the 1500 ms grace for p2 to begin.
         await tick(30 + 58 * 65 + 1_500 + 300);
-        expect(degraded).toEqual([{ reason: 'voice-did-not-start' }]);
+        expect(degraded).toEqual([{ reason: 'voice-did-not-start', segmentId: 'p2', chars: 27, retried: 'none' }]);
     });
 
     it('gives a voice the first start’s grace after a hold: a network voice can be slow to start again', async () => {
@@ -257,6 +257,38 @@ describe('when the voice is held and says its passage again from further back', 
     });
 });
 
+describe('a passage a network voice takes and never begins', () => {
+    const NATURAL = { name: 'Microsoft Ava Online (Natural) - English (United States)', lang: 'en-US', localService: false };
+    const TEXTS = [FIRST, 'The second passage is the one. It has two sentences.', 'A third one ends it.'];
+
+    it('is said again a sentence at a time, and the words follow the voice from that start, with no stand-down', async () => {
+        const held = setupHeld({ texts: TEXTS, chosen: NATURAL, drops: text => text === TEXTS[1] });
+        player.play();
+        await tick(30_000);
+        expect(held.degraded).toEqual([]);
+        expect(held.voiceLog.p2.endedAt).toBeDefined();
+        expect(held.voiceLog.p3.endedAt).toBeDefined();
+        const first = held.map.findIndex(entry => entry.segmentId === 'p2' && !entry.seam);
+        const shownAt = held.shown.find(item => item.index === first).at;
+        expect(Math.abs(shownAt - held.voiceLog.p2.startedAt)).toBeLessThanOrEqual(SEGMENT_BOUNDARY_BUDGET_MS);
+    });
+
+    it('stands the clock down when the sentences do not begin either, and says which passage, how long, and that it was tried', async () => {
+        const held = setupHeld({ texts: TEXTS, chosen: NATURAL, drops: text => TEXTS[1].includes(text) });
+        player.play();
+        await tick(30_000);
+        expect(held.degraded).toEqual([{ reason: 'voice-did-not-start', segmentId: 'p2', chars: TEXTS[1].length, retried: 'sentences' }]);
+    });
+
+    it('stands down after one grace, as before, on a voice on the device, which is not tried again', async () => {
+        const local = { name: 'Microsoft David', lang: 'en-US', localService: true };
+        const held = setupHeld({ texts: TEXTS, chosen: local, drops: text => text === TEXTS[1] });
+        player.play();
+        await tick(30_000);
+        expect(held.degraded).toEqual([{ reason: 'voice-did-not-start', segmentId: 'p2', chars: TEXTS[1].length, retried: 'none' }]);
+    });
+});
+
 describe('when the voice cannot be the clock', () => {
     it('stands down once, tells the host, and lets the reading carry on by its own timer', async () => {
         const { session, shown, degraded } = setup({ speak: false });
@@ -267,7 +299,7 @@ describe('when the voice cannot be the clock', () => {
         await tick(GOVERNOR_LIMITS.firstGraceMs - 100);
         expect(degraded).toEqual([]);
         await tick(300);
-        expect(degraded).toEqual([{ reason: 'voice-did-not-start' }]);
+        expect(degraded).toEqual([{ reason: 'voice-did-not-start', segmentId: 'what', chars: 120, retried: 'none' }]);
         await tick(60_000);
         expect(shown.map(s => s.index)).toEqual(session.atoms.map((_, i) => i));
         expect(done).toHaveLength(1);
