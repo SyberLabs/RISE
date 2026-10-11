@@ -44,6 +44,12 @@
       "ref": "worker/plus-budget.test.js",
       "date": "2026-10-11",
       "note": "Reviewer-reproduced stale canceled eligibility after Stripe404 failed first, then passed with explicit false reset. Focused lifecycle/budget suite:86passed. Full checks remain the prior recorded run."
+    },
+    {
+      "kind": "test",
+      "ref": "worker/plus-lifecycle.test.js",
+      "date": "2026-10-11",
+      "note": "Ten portal-readiness and canceled-restoration regressions observed failing before repair, then passed. Focused lifecycle, spending-budget and core Plus suite: 214 passed. Portal configuration fields checked against official Stripe documentation; actual live provider acceptance remains separate."
     }
   ],
   "activity": [
@@ -62,10 +68,14 @@
     {
       "date": "2026-10-11T18:28:45.569Z",
       "summary": "Clear stale repurchase eligibility on Stripe404; narrow regression and86focused tests passed."
+    },
+    {
+      "date": "2026-10-11T18:43:54.084Z",
+      "summary": "Verify Stripe portal controls before selling and atomically invalidate stale access during restoration."
     }
   ],
-  "updatedAt": "2026-10-11T18:28:45.569Z",
-  "revision": 4,
+  "updatedAt": "2026-10-11T18:43:54.084Z",
+  "revision": 5,
   "summary": "Customer lifecycle and authoritative repurchase eligibility locally verified; root integrates with client. Live Stripe verification, webhook, recovery sender and provider acceptance remain separate.",
   "blocker": null
 }

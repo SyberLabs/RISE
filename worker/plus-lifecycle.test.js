@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from './index.mjs';
 import { PLUS_INTERNALS, PlusMeter } from './plus.mjs';
+import { spendingPolicy } from './plus-budget.mjs';
 const SITE = 'https://rise.example';
 const NOW = 1800000000;
 const PRICE = 'price_plus';
@@ -10,7 +11,7 @@ function environment(extra = {}) {
  const instances = new Map();
  return { STRIPE_SECRET_KEY:'sk_test_x', PLUS_COOKIE_SECRET:'cookie-secret', PLUS_PRICE_ID:PRICE, STRIPE_WEBHOOK_SECRET:'whsec_x', PLUS_CHECKOUT_ENABLED:'true', PLUS_PORTAL_CONFIGURATION:'bpc_1', RESEND_API_KEY:'resend-secret', PLUS_EMAIL_FROM:'RISE <rise@example.com>', ELEVENLABS_API_KEY:'vendor-secret', PLUS_VOICE_ID:'voice', PLUS_VOICES:[{slug:'default',label:'Default'}], PLUS_DAILY_CHAR_CAP:'500000', PLUS_CLAIM_LIMITER:{limit:async()=>({success:true})}, DECISION_LIMITER:{limit:async()=>({success:true})}, PLUS_METER:{idFromName:n=>n,get(name){if(!instances.has(name)){const map=new Map();instances.set(name,new PlusMeter({storage:{kv:{get:k=>map.get(k),put:(k,v)=>map.set(k,v),delete:k=>map.delete(k)}}}));}return {fetch:(url,init)=>instances.get(name).fetch(new Request(url,init))};}}, ...extra };
 }
-function world({ sub=subscription(), customers=[{id:'cus_1',email:'reader@example.com'}], priceExtra={}, failEmail=false }={}) {
+function world({ sub=subscription(), customers=[{id:'cus_1',email:'reader@example.com'}], priceExtra={}, portalExtra={}, failEmail=false }={}) {
  const state={ mails:[], checkouts:[], portals:[], calls:[] };
  vi.stubGlobal('fetch',vi.fn(async(url,init={})=>{
   const u=new URL(url);state.calls.push(u.pathname);
@@ -19,6 +20,7 @@ function world({ sub=subscription(), customers=[{id:'cus_1',email:'reader@exampl
   if(u.pathname===`/v1/prices/${PRICE}`)return Response.json({id:PRICE,active:true,livemode:false,currency:'usd',unit_amount:899,billing_scheme:'per_unit',tax_behavior:'exclusive',recurring:{interval:'month',interval_count:1,usage_type:'licensed'},product:{id:'prod_1',active:true},...priceExtra});
   if(u.pathname==='/v1/checkout/sessions'){state.checkouts.push({body:new URLSearchParams(init.body),headers:init.headers});return Response.json({url:'https://checkout.stripe.com/c/pay/cs_test_1'});}
   if(u.pathname.startsWith('/v1/checkout/sessions/'))return Response.json({livemode:false,mode:'subscription',status:'complete',payment_status:'paid',client_reference_id:state.checkouts.at(-1)?.body.get('client_reference_id') ?? null,subscription:sub});
+  if(u.pathname==='/v1/billing_portal/configurations/bpc_1')return portalExtra===null?new Response('',{status:404}):Response.json({id:'bpc_1',active:true,livemode:false,features:{subscription_cancel:{enabled:true,mode:'at_period_end'},invoice_history:{enabled:true},payment_method_update:{enabled:true},subscription_update:{enabled:false}},...portalExtra});
   if(u.pathname==='/v1/billing_portal/sessions'){state.portals.push(new URLSearchParams(init.body));return Response.json({url:'https://billing.stripe.com/p/session/test'});}
   if(u.pathname==='/v1/customers')return Response.json({data:customers.filter(c=>c.email===u.searchParams.get('email')),has_more:false});
   if(u.pathname==='/v1/customers/search')return Response.json({data:customers,has_more:false});
@@ -56,6 +58,16 @@ describe('Plus customer lifecycle',()=>{
  });
  it('refuses checkout when the spending policy cannot fund the advertised allowance',async()=>{
   const e=environment({PLUS_VENDOR_MICRO_USD_PER_CHAR:'100'});const state=world();expect((await call(e,'checkout',{request_id:UUID})).status).toBe(503);expect(state.checkouts).toHaveLength(0);
+ });
+ it.each([null,{features:{subscription_cancel:{enabled:true,mode:'immediately'},invoice_history:{enabled:true},payment_method_update:{enabled:true},subscription_update:{enabled:false}}},{active:false},{livemode:true},{features:{subscription_cancel:{enabled:false},invoice_history:{enabled:true},payment_method_update:{enabled:true},subscription_update:{enabled:false}}},{features:{subscription_cancel:{enabled:true,mode:'at_period_end'},invoice_history:{enabled:false},payment_method_update:{enabled:true},subscription_update:{enabled:false}}},{features:{subscription_cancel:{enabled:true,mode:'at_period_end'},invoice_history:{enabled:true},payment_method_update:{enabled:false},subscription_update:{enabled:false}}},{features:{subscription_cancel:{enabled:true,mode:'at_period_end'},invoice_history:{enabled:true},payment_method_update:{enabled:true},subscription_update:{enabled:true}}}])('does not sell with an unavailable or unsupported billing portal: %j',async portalExtra=>{
+  const e=environment();const state=world({portalExtra});expect((await call(e,'checkout',{request_id:UUID})).status).toBe(503);expect(state.checkouts).toHaveLength(0);
+  expect((await (await call(e,'config')).json()).checkoutAvailable).toBe(false);
+ });
+ it('bounds portal readiness caching but rechecks the actual portal before checkout',async()=>{
+  vi.useFakeTimers({now:NOW*1000});const e=environment();const state=world();await call(e,'config');await call(e,'config');
+  expect(state.calls.filter(path=>path==='/v1/billing_portal/configurations/bpc_1')).toHaveLength(1);
+  vi.setSystemTime((NOW+61)*1000);await call(e,'config');expect(state.calls.filter(path=>path==='/v1/billing_portal/configurations/bpc_1')).toHaveLength(2);
+  const changed=world({portalExtra:{active:false}});expect((await call(e,'checkout',{request_id:UUID})).status).toBe(503);expect(changed.checkouts).toHaveLength(0);
  });
  it('rejects cross-origin writes and malformed idempotency keys',async()=>{
   const e=environment();const state=world();expect((await call(e,'checkout',{request_id:UUID},null,{Origin:'https://evil.example'})).status).toBe(403);expect((await call(e,'checkout',{request_id:'x'})).status).toBe(400);expect(state.checkouts).toHaveLength(0);
@@ -125,6 +137,17 @@ describe('Plus customer lifecycle',()=>{
   vi.useFakeTimers({now:NOW*1000});const e=environment();const state=world({sub:subscription({status:'canceled'})});await call(e,'recover',{email:'reader@example.com'});
   expect(state.mails).toHaveLength(1);const r=await call(e,'restore',{token:mailToken(state.mails[0])});expect(r.status).toBe(204);const cookie=cookies(r);
   expect((await (await call(e,'status',undefined,cookie)).json())).toMatchObject({subscriber:false,billingAvailable:true});expect((await call(e,'portal',{},cookie)).status).toBe(200);
+ });
+ it('invalidates active cached financial standing when recovery confirms cancellation',async()=>{
+  vi.useFakeTimers({now:NOW*1000});const e=environment();const state=world({sub:subscription({status:'canceled'})});
+  const meter=e.PLUS_METER.get('sub:sub_1');
+  await meter.fetch('https://plus-meter/standing',{method:'POST',body:JSON.stringify({revision:0,subscriptionStatus:'active',standing:{c:'cus_1',s:'sub_1',start:NOW-1000,exp:NOW+20*86400,l:false,budgetMicros:10000000,budgetPolicy:JSON.stringify(spendingPolicy(e))}})});
+  await call(e,'recover',{email:'reader@example.com'});expect(state.mails).toHaveLength(1);
+  const restored=await call(e,'restore',{token:mailToken(state.mails[0])});expect(restored.status).toBe(204);
+  const status=await call(e,'status',undefined,cookies(restored));expect(await status.json()).toMatchObject({subscriber:false,available:false,billingAvailable:true,canSubscribe:true});
+  expect(status.headers.getSetCookie().some(value=>/^__Secure-rise_plus=v1/u.test(value))).toBe(false);
+  const stale=await meter.fetch('https://plus-meter/standing',{method:'POST',body:JSON.stringify({revision:0,subscriptionStatus:'active',standing:{s:'sub_1'}})});
+  expect(await stale.json()).toMatchObject({ok:false,changed:true});
  });
  it('rate limits recovery email per subscription and fails closed on unavailable address limiter',async()=>{
   vi.useFakeTimers({now:NOW*1000});const e=environment();const state=world();await call(e,'recover',{email:'reader@example.com'});await call(e,'recover',{email:'reader@example.com'});expect(state.mails).toHaveLength(1);
