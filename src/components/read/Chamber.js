@@ -4053,13 +4053,15 @@ export class Chamber {
    * words. A silence that runs to the end of the reading has nothing coming after it.
    */
   _silenceAhead(atom, index) {
+    // The Player shows an atom for duration × pace ÷ shuttle, so the silence is measured the same way.
+    const pace = (this.player?.speedFactor ?? 1) / (this.player?.shuttle?.durationDivisor || 1);
     const atoms = this.session?.atoms;
     if (!Array.isArray(atoms) || !atoms[index] || (atoms[index].content || '').trim()) {
-      return Number.isFinite(atom?.duration) ? atom.duration : null;
+      return Number.isFinite(atom?.duration) ? atom.duration * pace : null;
     }
     let ms = 0;
     let at = index;
-    for (; at < atoms.length && !(atoms[at]?.content || '').trim(); at += 1) ms += Number(atoms[at]?.duration) || 0;
+    for (; at < atoms.length && !(atoms[at]?.content || '').trim(); at += 1) ms += (Number(atoms[at]?.duration) || 0) * pace;
     return at >= atoms.length ? Infinity : ms;
   }
 
