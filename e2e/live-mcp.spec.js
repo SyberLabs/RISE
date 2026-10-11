@@ -23,6 +23,7 @@ import { cardHtml } from '../src/live/hosts/mcp-card.js';
 import { serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { handleMcp } from '../worker/mcp-server.mjs';
 import { expect, test } from './fixtures.js';
+import { glassGaps, sampleGlass } from './glass-probe.js';
 
 const HOST = '/__mcp-host';
 
@@ -1982,3 +1983,51 @@ for (const [platform, low, high] of [['mobile', -26.5, -17], ['web', -34, -25.5]
     expect(median).toBeLessThan(high);
   });
 }
+
+// ─── the glass between phrases (PLY-001): one surface while the reading speaks, the words changing inside it ───
+
+/** Five said lines in the band, a 2.5 s hold after the third: four gaps between phrases, one of them a genuine silence. */
+function spokenLines({ place = 'centre' } = {}) {
+  const [first] = SKY_PREMIUM_EDUCATIONAL.beats;
+  const line = say => ({ say, ...(place ? { place } : {}) });
+  return {
+    ...SKY_PREMIUM_EDUCATIONAL,
+    beats: [
+      { ...line('Sunlight looks white, but it is every colour at once.'), scene: first.scene, cue: first.cue },
+      line('Each colour is a wave, with a wavelength of its own.'),
+      line('Violet is short, and red is long.'),
+      { hold: { ms: 2_500 } },
+      line('Air scatters the short waves the most.'),
+      line('So the sky looks blue from every side.')
+    ]
+  };
+}
+
+test.describe('the glass between phrases', () => {
+  // The owner's card in Edge: 736 x 486.
+  test.use({ viewport: { width: 736, height: 486 } });
+
+  for (const motion of ['no-preference', 'reduce']) {
+    test(`the glass stays between said phrases, its box never collapsing, and dissolves in a long hold${motion === 'reduce' ? ', under reduced motion' : ''}`, async ({ page, baseURL }) => {
+      await page.emulateMedia({ reducedMotion: motion });
+      const app = await fieldCard(page, baseURL, { current: spokenLines(), height: 486 });
+      const frames = await sampleGlass(app, 16_000);
+      const { visible, gaps } = glassGaps(frames);
+      const out = process.env.GLASS_PROBE_OUT;
+      if (out) (await import('node:fs')).writeFileSync(out.replace(/\.json$/u, `-${motion}.json`), JSON.stringify({ visible, gaps, frames }, null, 1));
+      console.log(`[glass] ${motion}: visible ${visible}; ${gaps.length} gaps: ${JSON.stringify(gaps)}`);
+      // Measured before (paced voice): the glass gone for 183, 198 and 217 ms at each of the three gaps between said
+      // phrases, and the box collapsed from 619 x 160 to 66 x 50; 3,082 ms gone over the hold.
+      const short = gaps.filter(gap => gap.ms < 1_500);
+      const long = gaps.filter(gap => gap.ms >= 2_500);
+      expect(visible).toBeGreaterThan(0.5);
+      expect(short.length).toBeGreaterThanOrEqual(3);
+      for (const gap of short) {
+        expect(gap.lowestGlass, `${gap.before} -> ${gap.after}`).toBeGreaterThanOrEqual(visible * 0.5);
+        expect(gap.lowestHeight, `${gap.before} -> ${gap.after}`).toBeGreaterThan(100);
+      }
+      expect(long).toHaveLength(1);
+      expect(long[0].lowestGlass).toBeLessThan(visible * 0.05);
+    });
+  }
+});
