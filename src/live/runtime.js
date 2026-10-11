@@ -34,6 +34,7 @@
 
 import { RISE_CURRENT_SCHEMA_V2, compileRiseCurrent, validateRiseCurrent } from '../core/rise-current.js';
 import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
+import { cueCommands } from '../core/beats.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
@@ -73,6 +74,14 @@ export function createLiveRuntime({
     let stopped = false;
     /** The voice's rate, as the reader set it: 1 is the voice's own. The main run's `rate` is the one it has taken up. */
     let pace = 1;
+    /**
+     * The room's own settings the reader made in this reading (a pace, and the Settings rows noted with noteSetting): a
+     * change the model makes to one of them is refused (docs/plans/LIVE-CURRENT.md §18). `suggested` is a pace RISE set
+     * that the reader has not answered: { rate, before }, shown by the stage with a way back.
+     */
+    let readerPaced = false;
+    const readerSettings = new Set();
+    let suggested = null;
     /** The reader's interjection (interjection.js): its state, the answer being asked for, and why the last one failed. */
     const interjection = { state: 'none', answer: null, failed: null };
     const journal = [];
@@ -131,6 +140,7 @@ export function createLiveRuntime({
     function snapshot() {
         return Object.freeze({
             status, error, main: summary(main), side: summary(side), pace, paceFrom: paceFrom(), position: positionOf(main),
+            paceSuggested: suggested ? Object.freeze({ ...suggested }) : null,
             interjection: Object.freeze({ state: interjection.state, failed: interjection.failed })
         });
     }
@@ -313,6 +323,8 @@ export function createLiveRuntime({
             }
             // Beats still being written may start scenes the reading must be ready to draw (rise-current.js `growing`).
             session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook, growing: sealed === null && current.schema === RISE_CURRENT_SCHEMA_V2 });
+            // The scenes the reading starts, as it names them, for a cue the model gives the room (landRoomChange).
+            run.scenes = current.scenes ?? [];
         } catch (caught) {
             failRun(run, caught);
             return;
@@ -394,7 +406,7 @@ export function createLiveRuntime({
 
     function watchPlayer(run) {
         // Which passage the reader is in, for whatever wants to say more about it.
-        run.player.on('atom', ({ index, concealed }) => {
+        run.player.on('atom', ({ atom, index, concealed }) => {
             if (run.closed || concealed) return;
             const at = run.governor.positionOf(index);
             if (at && at.segmentId !== run.segmentId) {
@@ -402,6 +414,9 @@ export function createLiveRuntime({
                 if (run.unspoken.length > 0) speak(run);
                 set(status);
             }
+            // A phrase begins (the seam between two passages is none): the model's changes due here land, once the
+            // atom's other listeners have run, so a scene this phrase starts is there to take them (as the conductor's cues).
+            if (run === main && !atom?.seam) queueMicrotask(() => landRoomChanges(index));
         });
         run.player.on('state', ({ state }) => {
             if (run.closed) return;
@@ -475,6 +490,7 @@ export function createLiveRuntime({
                         if (result.applied > 0) {
                             attempts = 0;
                             noteRefusedScenes(run);
+                            if (run.role === 'main') takeRoomChanges(run.stream, run, before => `beat-${before}`);
                             if (run.stream.endedCount !== run.baseSeen) lower(run);
                         }
                         if (run.stream.terminal) break;
@@ -525,6 +541,9 @@ export function createLiveRuntime({
         const run = {
             role, request, stream: createCurrentStream({ admitScene: adapter.admitScene ?? null }), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null,
+            // The model's changes to the room not yet landed (landRoomChanges), how many of the stream's it has taken,
+            // the atom the last one landed on (one a phrase), and the scenes the reading starts, as it names them.
+            changes: [], roomSeen: 0, roomPhrase: null, scenes: [],
             // Passages the voice was given and has not finished or failed; the run ends when none are left.
             owed: new Set(), completedAt: null, tail: null, ended: false,
             // The voice's rate its clock is at: the pace once the voice has taken it up (see setPace).
@@ -717,7 +736,7 @@ export function createLiveRuntime({
             const at = positionOf(main);
             const actions = perception?.events?.length ? perception : null;
             const answer = {
-                n: null, closed: false, connection: null, seen: 0, scenesRefused: 0, cut: false,
+                n: null, closed: false, connection: null, seen: 0, scenesRefused: 0, cut: false, roomSeen: 0,
                 stream: createCurrentStream({ admitScene: adapter.admitScene ?? null }), abort: new AbortController()
             };
             interjection.answer = answer;
@@ -767,7 +786,9 @@ export function createLiveRuntime({
             if (!SETTING_PARAMETERS.includes(parameter)) return;
             const kept = typeof value === 'string' ? clip(value, 40)
                 : typeof value === 'boolean' || value === null || (typeof value === 'number' && Number.isFinite(value)) ? value : undefined;
-            if (kept !== undefined) note('setting', { parameter, value: kept });
+            if (kept === undefined) return;
+            readerSettings.add(parameter);
+            note('setting', { parameter, value: kept });
         },
 
         /** Words the reader said to the microphone during the reading, as heard, kept in the journal for perception. */
@@ -806,13 +827,11 @@ export function createLiveRuntime({
          */
         setPace(rate) {
             if (!Number.isFinite(rate) || rate < 0.5 || rate > 2) throw new LiveRuntimeError('PACE', 'A pace is between half and twice the voice’s own');
-            pace = rate;
-            const run = main;
-            if (run) {
-                const atOnce = run.voice?.setRate?.(rate) !== false;
-                if (atOnce || run.governor?.degraded) retime(run, rate);
-            }
-            note('pace', { rate, applied: !run || run.rate === rate });
+            applyPace(rate);
+            // The reader's own pace: a pace RISE suggested is answered, and no later one is taken in this reading.
+            readerPaced = true;
+            suggested = null;
+            note('pace', { rate, applied: !main || main.rate === rate });
             set(status);
         },
 
@@ -905,6 +924,120 @@ export function createLiveRuntime({
         if (main.finished && !main.ended) main.voice?.release();
     }
 
+    /** The voice takes `rate` (setPace says how and when); the reading's clock follows it. */
+    function applyPace(rate) {
+        pace = rate;
+        const run = main;
+        if (run) {
+            const atOnce = run.voice?.setRate?.(rate) !== false;
+            if (atOnce || run.governor?.degraded) retime(run, rate);
+        }
+    }
+
+    // ─── the model changes the room (docs/plans/LIVE-CURRENT.md §18) ────
+
+    /**
+     * The changes a stream has made to the room since last asked, each with its place: before beat `before` of that
+     * stream, named by `keyFor` as the arranged reading names it (graft.js pieceKey), so a graft does not move it.
+     */
+    function takeRoomChanges(stream, holder, keyFor) {
+        const listed = stream.roomChanges;
+        for (const { before, change } of listed.slice(holder.roomSeen)) {
+            main.changes.push({ change, before, stream, keyFor, answer: holder === main ? null : holder });
+            note('room.asked', { kind: change.kind });
+        }
+        holder.roomSeen = listed.length;
+        landRoomChanges(null);
+    }
+
+    /** Where a change belongs in the reading, as a passage's index; -1 while that passage is not in it. */
+    function placeOf(entry) {
+        const list = passagesOf(main);
+        const at = key => list.findIndex(passage => keyOf(main, passage.id) === key);
+        const index = at(entry.keyFor(entry.before));
+        // After the last beat of a stream that has ended: it lands with that beat.
+        const ended = entry.stream.endedCount;
+        if (index < 0 && entry.stream.terminal && entry.before >= ended && ended > 0) return at(entry.keyFor(ended - 1));
+        return index;
+    }
+
+    /**
+     * Land what is due: what has arrived and whose place the reading has reached. A cue lands at once, as a beat's does;
+     * any other change only at a phrase boundary (`boundary`, the atom a phrase began on; null when nothing began), and
+     * one a phrase: a second due there waits for the next.
+     */
+    function landRoomChanges(boundary) {
+        const run = main;
+        if (!run?.player || run.closed || run.changes.length === 0) return;
+        const head = positionOf(run)?.segmentIndex;
+        if (head === undefined) return;
+        const due = entry => {
+            const index = placeOf(entry);
+            return index >= 0 && head >= index;
+        };
+        // In the order the model wrote them: every cue due, and the first other change due if this phrase has none yet.
+        let phrase = boundary !== null && run.roomPhrase !== boundary;
+        for (const entry of run.changes.filter(due)) {
+            if (entry.change.kind === 'scene.cue') landRoomChange(entry);
+            else if (phrase) {
+                phrase = false;
+                run.roomPhrase = boundary;
+                landRoomChange(entry);
+            }
+        }
+    }
+
+    /** A change, applied as the reader's own control would be, and noted: `room.changed` with what was applied, or `room.refused`. */
+    function landRoomChange(entry) {
+        main.changes.splice(main.changes.indexOf(entry), 1);
+        const { change } = entry;
+        const refused = code => note('room.refused', { kind: change.kind, code: String(code ?? 'REFUSED').slice(0, 40) });
+        if (change.kind === 'visual.control') {
+            if (change.parameter === 'intensity' && readerSettings.has('intensity')) { refused('READER_SET'); return; }
+            const surface = change.surface ?? discoverVisual()?.manifest?.surface ?? ATTRACTOR_VISUAL_MANIFEST.surface;
+            const receipt = controlVisual({ surface, parameter: change.parameter, value: change.value });
+            if (receipt.status !== 'accepted') { refused(receipt.code); return; }
+            note('room.changed', { kind: change.kind, surface, parameter: change.parameter, value: receipt.effective });
+        } else if (change.kind === 'scene.cue') {
+            const cued = sceneCue(entry);
+            if (typeof cued === 'string') { refused(cued); return; }
+            for (const command of cued.commands) {
+                const receipt = controlVisual(command);
+                if (receipt.status !== 'accepted') { refused(receipt.code); return; }
+            }
+            note('room.changed', { kind: change.kind, scene: cued.scene, cue: change.cue });
+        } else if (change.kind === 'look.change') {
+            if (readerSettings.has('theme')) { refused('READER_SET'); return; }
+            const theme = lookTheme(change.look);
+            let receipt = null;
+            try { receipt = host.changeLook?.({ role: 'main', player: main.player, look: change.look, theme }) ?? null; } catch { receipt = null; }
+            if (receipt?.status !== 'accepted') { refused(receipt?.code ?? 'NO_ACTIVE_VISUAL'); return; }
+            note('room.changed', { kind: change.kind, look: change.look, theme });
+        } else {
+            if (readerPaced) { refused('READER_SET'); return; }
+            const before = pace;
+            applyPace(change.rate);
+            suggested = { rate: change.rate, before };
+            note('room.changed', { kind: change.kind, rate: change.rate });
+        }
+        set(status);
+    }
+
+    /**
+     * A cue to a scene of the room, as the running engine's commands: the scene named in the answer that gave it first
+     * (`i<n>-<id>`), else the room's own; refused unless it is the scene running where the reading is.
+     */
+    function sceneCue(entry) {
+        const { scene, cue } = entry.change;
+        const names = entry.answer ? [`i${entry.answer.n + 1}-${scene}`, scene] : [scene];
+        const found = names.map(name => main.scenes.find(item => item.id === name)).find(Boolean);
+        const { session, currentIndex } = main.player.sessionState;
+        if (!found || found.id !== (session.atoms[currentIndex]?.scene ?? null)) return 'NOT_RUNNING';
+        if (found.code !== undefined) return { scene: found.id, commands: [{ surface: 'scene', parameter: 'cue', value: cue }] };
+        const commands = found.engine === undefined ? null : cueCommands(found.engine, cue);
+        return commands ? { scene: found.id, commands } : 'NO_CUE';
+    }
+
     // ─── the interjection (docs/plans/LIVE-CURRENT.md §17) ──────────────
 
     function step(type) {
@@ -964,6 +1097,8 @@ export function createLiveRuntime({
                     for (const item of answer.stream.refusedScenes.slice(answer.scenesRefused)) note('scene.refused', { role: 'main', ...item });
                     answer.scenesRefused = answer.stream.refusedScenes.length;
                     if (answer.stream.endedCount !== answer.seen) takeAnswer(answer);
+                    // Once the answer is in the reading its changes have places there; before, they wait with it.
+                    if (answer.cut && !answer.closed) takeRoomChanges(answer.stream, answer, before => `i${answer.n + 1}-beat-${before}`);
                 }
                 if (answer.closed) return;
                 if (answer.stream.terminal) break;
@@ -1017,6 +1152,8 @@ export function createLiveRuntime({
         }
         answer.cut = true;
         step('answer');
+        // Changes the answer made before its first beat land as it begins: they are taken before the reading moves there.
+        takeRoomChanges(answer.stream, answer, before => `i${answer.n + 1}-beat-${before}`);
         // A reading whose own answer was complete stopped waiting for words; this one has more coming.
         main.player.setLive(true);
         lower(main, { graft: true });
