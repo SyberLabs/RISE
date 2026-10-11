@@ -349,3 +349,14 @@ describe('authoritative repurchase eligibility', () => {
     expect(await r.json()).toMatchObject({subscriber:false,canSubscribe:true});
   });
 });
+
+it('clears stale canceled eligibility when Stripe no longer knows the subscription', async () => {
+  vi.useFakeTimers({now:NOW*1000});const e=env();world({subscription:{...sub,status:'canceled'}});
+  const original=await request(e,1);
+  const read=()=>handlePlus(new Request(SITE+'/api/plus/status',{headers:original.headers}),e);
+  expect((await (await read()).json()).canSubscribe).toBe(true);
+  vi.setSystemTime((NOW+61)*1000);
+  const upstream=vi.mocked(fetch).getMockImplementation();
+  vi.mocked(fetch).mockImplementation((url,init)=>new URL(url).pathname==='/v1/subscriptions/sub_1'?Promise.resolve(new Response('',{status:404})):upstream(url,init));
+  expect((await (await read()).json()).canSubscribe).toBe(false);
+});
