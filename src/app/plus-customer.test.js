@@ -51,3 +51,14 @@ it('bounds a stalled payment confirmation so the customer can retry or recover',
   expect(plusState().claimed).toBe(false);
   vi.useRealTimers();
 });
+it('keeps the deadline active while a response body is stalled', async () => {
+  vi.useFakeTimers();
+  const fetchImpl = async () => ({ ok: true, status: 200, json: () => new Promise(() => {}) });
+  let offer, checkout;
+  fetchPlusOffer({ fetchImpl, timeoutMs: 20 }).then(value => { offer = value; });
+  startPlusCheckout('request-1', { fetchImpl, timeoutMs: 20 }).then(value => { checkout = value; });
+  await vi.advanceTimersByTimeAsync(21);
+  expect(offer?.checkoutAvailable).toBe(false);
+  expect(checkout?.ok).toBe(false);
+  vi.useRealTimers();
+});

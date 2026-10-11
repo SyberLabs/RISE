@@ -4,12 +4,17 @@ const CLOSED = Object.freeze({ checkoutAvailable: false, recoveryAvailable: fals
 async function request(path, body, { fetchImpl = globalThis.fetch?.bind(globalThis), timeoutMs = 15000 } = {}) {
   const controller = new AbortController();
   let timer;
+  const read = async () => {
+    const response = await fetchImpl(`/api/plus/${path}`, body === undefined ? { signal: controller.signal } : {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), signal: controller.signal
+    });
+    const data = response.status === 204 || response.status === 202 ? null : await response.json().catch(() => null);
+    return { ok: response.ok, status: response.status, data };
+  };
   try {
     return await Promise.race([
-      fetchImpl(`/api/plus/${path}`, body === undefined ? { signal: controller.signal } : {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body), signal: controller.signal
-      }),
+      read(),
       new Promise((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error('timeout')); }, timeoutMs); })
     ]);
   } finally { clearTimeout(timer); }
@@ -20,7 +25,7 @@ export async function fetchPlusOffer(options = {}) {
   try {
     const response = await request('config', undefined, { timeoutMs: 3000, ...options });
     if (!response.ok) return { ...CLOSED };
-    const body = await response.json();
+    const body = response.data;
     const offer = body?.offer;
     const valid = Number.isSafeInteger(offer?.amount) && offer.amount > 0
       && offer.currency === 'usd' && offer.interval === 'month'
@@ -34,11 +39,11 @@ async function action(path, body, successStatus, options, redirectHost) {
   try {
     const response = await request(path, body, options);
     if (response.status !== successStatus) {
-      const data = await response.json().catch(() => null);
+      const data = response.data;
       return { ok: false, message: typeof data?.error?.message === 'string' ? data.error.message : 'This request could not be completed. Please try again.' };
     }
     if (!redirectHost) return { ok: true };
-    const { url } = await response.json();
+    const { url } = response.data ?? {};
     const target = new URL(url);
     if (target.protocol !== 'https:' || target.hostname !== redirectHost || target.username || target.password || target.port) throw new Error('Invalid redirect');
     return { ok: true, url: target.href };

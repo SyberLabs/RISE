@@ -93,3 +93,10 @@ it('keeps recovery available after a claim is refused and does not offer a dupli
   expect(root.querySelector('[data-checkout]').hidden).toBe(true);
   expect(root.querySelector('input[type=email]').disabled).toBe(false);
 });
+it('lets a verified former subscriber subscribe again while keeping billing management', async () => {
+  const root = mount({ '/api/plus/status': { subscriber: false, available: false, billingAvailable: true } });
+  await view.ready;
+  expect(root.querySelector('[data-checkout]').hidden).toBe(false);
+  expect(root.querySelector('[data-checkout]').textContent).toContain('Subscribe again');
+  expect(root.querySelector('[data-billing]').hidden).toBe(false);
+});
