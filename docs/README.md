@@ -28,6 +28,7 @@ history, not a distinction; read the status column instead.
 | [specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md](specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md) | Record | The review that produced the document above, measured against commit `bb44899` with the commands to reproduce each number. |
 | [ACCOUNT-SAVES.md](ACCOUNT-SAVES.md) | Contract | Shared account entrance, explicit text backups, validated restores, and producer-first rollout. |
 | [RELEASING.md](RELEASING.md) | Contract | Production release, required approvals and secrets, and rollback for the Cloudflare host. |
+| [PLUS-CUSTOMER-LIFECYCLE.md](PLUS-CUSTOMER-LIFECYCLE.md) | Contract | Customer checkout, email recovery, billing management, funded voice allowance and the separate requirements for opening live sales. |
 | [../AGENTS.md](../AGENTS.md) | Contract | Operating principles and project development notes, for humans and agents alike. |
 
 ## Release

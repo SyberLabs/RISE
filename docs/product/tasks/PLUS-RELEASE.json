@@ -1,0 +1,44 @@
+{
+  "id": "PLUS-RELEASE",
+  "title": "Integrate and verify customer Plus release",
+  "lane": "reader",
+  "milestone": "Paid voice release",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "codex-release",
+  "priority": "now",
+  "dependencies": [
+    "PLUS-LIFECYCLE",
+    "plus-customer-ui"
+  ],
+  "acceptance": [
+    "Combined customer client and Worker pass required CI and independent review.",
+    "Matching privacy, terms and explicit closed-sales production configuration ship with the customer route.",
+    "Exact production release and public free/customer entry points are verified after merge.",
+    "Paid launch remains closed until owner verification, configured billing/email and real vendor acceptance are complete."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "vitest.fast.config.js",
+      "date": "2026-10-11",
+      "note": "Initial integrated run:105 files,2372 passed,four existing skipped. Further review fixes require final verification."
+    },
+    {
+      "kind": "document",
+      "ref": "docs/PLUS-CUSTOMER-LIFECYCLE.md",
+      "date": "2026-10-11",
+      "note": "Live launch prerequisites are explicitly separate from source implementation and public deployment."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-11T18:24:49.088509+00:00",
+      "summary": "Own combined release, generated legal documents, production sales flag, required verification and exact deployed-release checks."
+    }
+  ],
+  "updatedAt": "2026-10-11T18:24:49.088509+00:00",
+  "revision": 1,
+  "summary": "Ship the reviewed subscription infrastructure without representing an unverified payment account as live.",
+  "blocker": null
+}
