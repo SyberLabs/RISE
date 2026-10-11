@@ -220,3 +220,45 @@ describe('admitPerception: what the adapter door takes', () => {
         expect(() => admitPerception(value)).toThrow(TypeError);
     });
 });
+
+describe('the room RISE changed (stage 5)', () => {
+    const journal = [
+        at(0, 'start', { prompt: 'Why is the sky blue?' }),
+        at(100, 'room.asked', { kind: 'look.change' }),
+        at(1_000, 'room.changed', { kind: 'look.change', look: 'flame', theme: 'ember' }),
+        at(1_500, 'setting', { parameter: 'theme', value: 'jade' }),
+        at(2_000, 'room.changed', { kind: 'visual.control', surface: 'attractor', parameter: 'intensity', value: 0.5 }),
+        at(2_100, 'room.changed', { kind: 'scene.cue', scene: 'field', cue: 'bright' }),
+        at(2_500, 'room.refused', { kind: 'look.change', code: 'READER_SET' }),
+        at(3_000, 'room.changed', { kind: 'pace.suggest', rate: 1.25 }),
+        at(3_500, 'pace', { rate: 1, applied: true })
+    ];
+
+    it('reports what RISE changed as RISE’s, apart from the reader’s, and not RISE’s own cues or refusals', () => {
+        expect(perceive(journal).events).toEqual([
+            { type: 'visual.changed', by: 'rise', parameter: 'look', value: 'flame' },
+            { type: 'visual.changed', parameter: 'theme', value: 'jade' },
+            { type: 'visual.changed', by: 'rise', parameter: 'intensity', value: 0.5 },
+            { type: 'paced', by: 'rise', rate: 1.25 },
+            { type: 'paced', rate: 1 }
+        ]);
+    });
+
+    it('says it in words as RISE’s, and the door takes it', () => {
+        const block = describePerception(admitPerception(perceive(journal)));
+        expect(block).toContain('- RISE changed the look to flame');
+        expect(block).toContain('- changed the theme to jade');
+        expect(block).toContain('- RISE set the imagery’s intensity to 0.5, on a scale of 0 to 1');
+        expect(block).toContain('- RISE suggested a pace of 1.25 times the voice’s own');
+        expect(block).toContain('- set the pace to 1 times the voice’s own');
+    });
+
+    it('the door takes `by` only as RISE’s on a change, and a reader’s change only of the reader’s settings', () => {
+        const one = event => () => admitPerception({ events: [event], earlier: 0 });
+        expect(one({ type: 'visual.changed', by: 'reader', parameter: 'theme', value: 'ember' })).toThrow(TypeError);
+        expect(one({ type: 'visual.changed', parameter: 'look', value: 'flame' })).toThrow(TypeError);
+        expect(one({ type: 'paced', by: 'device', rate: 1 })).toThrow(TypeError);
+        expect(one({ type: 'visual.changed', by: 'rise', parameter: 'energy level', value: 1 })).toThrow(TypeError);
+        expect(one({ type: 'visual.changed', by: 'rise', parameter: 'energy', value: 0.9 })).not.toThrow();
+    });
+});
