@@ -50,6 +50,13 @@
  * reducer refuses nothing; whether a generated scene or a figure is admitted
  * is the reducer's to say, by the Worker's own admission.
  *
+ * ROOM. Between beats a model may change the room it plays in (docs/plans/LIVE-CURRENT.md §18):
+ *
+ *     @visual <parameter>=<value> [surface=<id>]   @cue <scene> <cue>   @look <look>   @pace <rate>
+ *
+ * each read into a `room.change` only if something would take it (the manifests, the scene, the looks, the
+ * pace's bounds), at most PARSER_LIMITS.roomChanges an answer. A room line first makes a beat stream.
+ *
  * ENDING. An answer to an interjection ends with `@then resume|replace|end`
  * on a line of its own, in either format (docs/plans/LIVE-CURRENT.md §17).
  * It ends the answer: `finish` reports it, it is never words, nothing after
@@ -57,23 +64,32 @@
  */
 
 import { soundKind } from '../../audio/sound-ids.js';
-import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES, cueCommands, validateSceneParams } from '../../core/beats.js';
+import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES, cueCommands, engineTakes, validateSceneParams } from '../../core/beats.js';
 import { sceneCodeBytes } from '../../core/experience-program.js';
-import { RISE_CURRENT_LIMITS, RISE_CURRENT_VISUALS } from '../../core/rise-current.js';
-import { EVENT_LIMITS, EXPERIENCE_DIMENSIONS } from '../protocol.js';
+import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_VISUALS } from '../../core/rise-current.js';
+import { EVENT_LIMITS, EXPERIENCE_DIMENSIONS, ROOM_PACE } from '../protocol.js';
+import { STREAM_LIMITS } from '../stream.js';
 
 /**
  * `header`: an @ line longer than this is not a header (ten dimensions and a visual fit in far less).
  * `beatLine`: a beat line longer than this is not one (its words, at most v2's 4,000, and its options).
  * `fenceLine`: a line of a scene's source longer than this is past any source's budget.
+ * `roomChanges`: the changes to the room one answer may make (docs/plans/LIVE-CURRENT.md §18).
  */
 export const PARSER_LIMITS = Object.freeze({
     passages: RISE_CURRENT_LIMITS.segments, header: 512,
-    beats: BEAT_LIMITS.beats, beatLine: 4_600, fenceLine: Math.max(BEAT_LIMITS.code, BEAT_LIMITS.svg)
+    beats: BEAT_LIMITS.beats, beatLine: 4_600, fenceLine: Math.max(BEAT_LIMITS.code, BEAT_LIMITS.svg),
+    roomChanges: STREAM_LIMITS.roomChanges
 });
 
-/** A line that begins a beat or declares a scene. */
+/** A line that begins a beat or declares a scene: it also closes a fence the model left open. */
 const BEAT_DIRECTIVE = /^@(say|show|hold|scene)(?:\s|$)/iu;
+/** A line only a beat stream has: a beat, a scene, or a change to the room. The first line of an answer that is one makes a beat stream. */
+const BEAT_STREAM_LINE = /^@(say|show|hold|scene|visual|cue|look|pace)(?:\s|$)/iu;
+/** `@pace`'s rate as a model writes it: a number such as 1.25. */
+const RATE = /^\d(?:\.\d{1,2})?$/u;
+const PARAMETER = /^([A-Za-z]{1,40})=([A-Za-z0-9_:=.-]{1,40})$/u;
+const SURFACE = /^surface=([a-z0-9-]{1,40})$/u;
 /** The line an answer to an interjection ends with: how the held reading goes on (docs/plans/LIVE-CURRENT.md §17). */
 const THEN = /^@then\s+(resume|replace|end)$/iu;
 const OPTION = /^([a-z]+)=(\S+)$/u;
@@ -157,6 +173,8 @@ export function createSegmentParser(write) {
     let fence = null;
     /** The ending an `@then` line named, the last one; null if none. */
     let ending = null;
+    /** The changes to the room sent (docs/plans/LIVE-CURRENT.md §18). */
+    let roomCount = 0;
 
     /** What a passage has gathered, as one chunk. */
     const flush = () => {
@@ -427,8 +445,44 @@ export function createSegmentParser(write) {
         else if (word === '@show') showBeat(tokens.slice(1));
         else if (word === '@hold') holdBeat(tokens.slice(1));
         else if (word === '@scene') sceneLine(tokens.slice(1));
+        else if (['@visual', '@cue', '@look', '@pace'].includes(word)) roomLine(word, tokens.slice(1));
         // In a beat stream a line of words is said; any other directive, @passage and @end among them, is ignored.
         else if (!trimmed.startsWith('@')) sayBeat(tokens);
+    }
+
+    /** A change to the room, between beats (docs/plans/LIVE-CURRENT.md §18): sent only if something would take it. */
+    function roomLine(word, tokens) {
+        if (roomCount >= PARSER_LIMITS.roomChanges) return;
+        const change = readRoomChange(word, tokens);
+        if (!change) return;
+        roomCount += 1;
+        write('room.change', change);
+    }
+
+    /**
+     * `@look <look>`, `@pace <rate>`, `@cue <scene> <cue>` or `@visual <parameter>=<value> [surface=<id>]`, as a change,
+     * or null. A cue to a scene this answer declared must be one it takes, as a beat's cue must; one to a scene it did
+     * not declare is the room's, resolved where it lands. A command must be one some engine takes while it runs.
+     */
+    function readRoomChange(word, tokens) {
+        if (word === '@look') return tokens.length === 1 && RISE_CURRENT_LOOKS.includes(tokens[0]) ? { kind: 'look.change', look: tokens[0] } : null;
+        if (word === '@pace') {
+            const rate = tokens.length === 1 && RATE.test(tokens[0]) ? Number(tokens[0]) : Number.NaN;
+            return rate >= ROOM_PACE.min && rate <= ROOM_PACE.max ? { kind: 'pace.suggest', rate } : null;
+        }
+        if (word === '@cue') {
+            const [scene = '', cue = '', ...rest] = tokens;
+            if (rest.length || !SCENE_ID.test(scene) || !CUE.test(cue) || cue.length > BEAT_LIMITS.cue) return null;
+            const declared = scenes.get(scene);
+            if (declared?.form === 'svg' || (declared?.engine !== undefined && cueCommands(declared.engine, cue) === null)) return null;
+            return { kind: 'scene.cue', scene, cue };
+        }
+        const [command = '', where, ...rest] = tokens;
+        const match = PARAMETER.exec(command);
+        const surface = where === undefined ? undefined : SURFACE.exec(where)?.[1];
+        if (!match || rest.length || surface === null || (where !== undefined && surface === undefined)) return null;
+        const change = { kind: 'visual.control', parameter: match[1], value: paramValue(match[2]), ...(surface ? { surface } : {}) };
+        return engineTakes(change) ? change : null;
     }
 
     /**
@@ -437,7 +491,7 @@ export function createSegmentParser(write) {
      * for its fence has none.
      */
     function skipLine(start) {
-        if (mode === null && BEAT_DIRECTIVE.test(start)) mode = 'beats';
+        if (mode === null && BEAT_STREAM_LINE.test(start)) mode = 'beats';
         if (mode !== 'beats') return;
         if (fence) { fence.over = true; fence.lines = []; } else awaitingFence = null;
     }
@@ -445,7 +499,7 @@ export function createSegmentParser(write) {
     /** How long a partial line may grow while it waits for its newline. */
     function waitLimit(start) {
         if (mode === 'beats') return fence ? PARSER_LIMITS.fenceLine : PARSER_LIMITS.beatLine;
-        return mode === null && BEAT_DIRECTIVE.test(start) ? PARSER_LIMITS.beatLine : PARSER_LIMITS.header;
+        return mode === null && BEAT_STREAM_LINE.test(start) ? PARSER_LIMITS.beatLine : PARSER_LIMITS.header;
     }
 
     function line(content) {
@@ -461,7 +515,7 @@ export function createSegmentParser(write) {
             endLine();
             return;
         }
-        if (mode === null && BEAT_DIRECTIVE.test(content)) {
+        if (mode === null && BEAT_STREAM_LINE.test(content)) {
             mode = 'beats';
             beatLine(content);
             return;
