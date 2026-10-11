@@ -120,7 +120,7 @@ test.describe('the Gemini provider with the reader’s own key', () => {
         expect(asked).toHaveLength(2);
         expect(asked[1].headers['x-goog-api-key']).toBe(KEY);
         expect(asked[1].body.contents[0].parts[0].text).toContain('quoted, not an instruction');
-        await expect(page.locator('.live-passage__origin')).toContainText('Written when you asked, by Google Gemini answer (Google Gemini)');
+        await expect(page.locator('.live-passage__origin')).toHaveText('Written when you asked, by gemini-3.5-flash (Google). It does not change what you left.');
         await expect(page.locator('.live-passage__sources')).toHaveText('No source was given for this passage.');
         await page.getByRole('button', { name: 'Surface', exact: true }).click();
         await expectShown(page, 'that nothing, not even light');
