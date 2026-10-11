@@ -60,6 +60,12 @@
       "ref": "e2e/live-gemini.spec.js",
       "date": "2026-10-11",
       "note": "Full38048506196 at69f9e failed shards6/10 on old generic answer origin labels, repeated on retries. Local exactsource two-test reproduction failed identically; assertions updated to full model/service attribution required by approved PR616/design §1.7, preserving original-reading disclaimer. Focused browser2tests passed; Local required browser gate60passed/3existing skips,23roadmap tests passed,86taskrecords validated,9hygiene checks clean; PR CI pending. No runtime/provider/auth/config changes or live provider calls."
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/621",
+      "date": "2026-10-11",
+      "note": "Two stale model/service origin assertions only, corrective branch f79da569 with local red-green2provider browser tests and requiredgate60passed/3skips; required PR CI pending. Runtime unchanged; no model calls or production acceptance claimed."
     }
   ],
   "activity": [
@@ -78,10 +84,14 @@
     {
       "date": "2026-10-11T16:37:24.638Z",
       "summary": "Record completed local red-green and required gate evidence for two attribution assertions"
+    },
+    {
+      "date": "2026-10-11T16:37:35.870Z",
+      "summary": "Link narrow model attribution assertion PR621 and pending required CI"
     }
   ],
-  "updatedAt": "2026-10-11T16:37:24.638Z",
-  "revision": 4,
+  "updatedAt": "2026-10-11T16:37:35.870Z",
+  "revision": 5,
   "summary": "Design §8 stage 4: what the reader did while a reading played goes up with their next words, the guide teaches the model what it means, and RISE speaks as itself without hiding the model.",
   "blocker": null
 }
