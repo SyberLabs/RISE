@@ -65,10 +65,11 @@ beforeEach(() => {
     window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
 });
 
-afterEach(() => {
+afterEach(async () => {
     // A failed assertion must not leave a day watcher or stage alive in the next test.
     for (const portal of portals) portal.destroy();
     portals.clear();
+    await vi.dynamicImportSettled();
     vi.doUnmock('../content/library.js');
     vi.useRealTimers();
     delete window.matchMedia;
@@ -114,9 +115,17 @@ function today(date = new Date()) {
     };
 }
 
+// Timer callbacks start lazy imports without returning their promises. Settle both
+// clocks explicitly instead of racing the module loader against waitFor's deadline.
+async function advanceHome(milliseconds) {
+    await vi.advanceTimersByTimeAsync(milliseconds);
+    await vi.dynamicImportSettled();
+}
+
 /** Show Home and wait for today's poem to arrive in the slot. */
 async function arrive(portal, container) {
     portal.activate();
+    if (vi.isFakeTimers()) await advanceHome(50);
     await vi.waitFor(() => expect(words(container.querySelector('h1'))).toBe(today().title));
     await vi.waitFor(() => expect(words(epigraph(container))).not.toBe(''));
 }
@@ -279,7 +288,7 @@ describe('Home on arrival', () => {
         const { portal, container } = makePortal();
         await arrive(portal, container);
         expect(words(container.querySelector('h1'))).toBe(today(new Date(2026, 9, 3)).title);
-        vi.advanceTimersByTime(60_000);
+        await advanceHome(60_000);
         await vi.waitFor(() => expect(words(container.querySelector('h1'))).toBe(today(new Date(2026, 9, 4)).title));
         portal.destroy();
     });
@@ -293,7 +302,7 @@ describe('Home on arrival', () => {
         portal.deactivate();
         vi.setSystemTime(new Date(2026, 9, 4, 0, 10));
         portal.activate();
-        vi.advanceTimersByTime(50);
+        await advanceHome(50);
         await vi.waitFor(() => expect(words(container.querySelector('h1'))).toBe(today(new Date(2026, 9, 4)).title));
         portal.destroy();
     });
@@ -551,6 +560,7 @@ describe('Continue', () => {
     /** Show Home with a reading to resume and wait for today's poem to arrive on the line. */
     async function arriveHeld(portal, container) {
         portal.activate();
+        if (vi.isFakeTimers()) await advanceHome(50);
         await vi.waitFor(() => expect(line(container)).not.toBeNull());
     }
 
@@ -643,7 +653,7 @@ describe('Continue', () => {
         const { portal, container } = makePortal({ getCurrentSession: () => session });
         await arriveHeld(portal, container);
         expect(words(line(container))).toContain(today(new Date(2026, 9, 3)).title);
-        vi.advanceTimersByTime(60_000);
+        await advanceHome(60_000);
         await vi.waitFor(() => expect(words(line(container))).toContain(today(new Date(2026, 9, 4)).title));
         expect(label(container)).toBe('Continue');
         portal.destroy();
