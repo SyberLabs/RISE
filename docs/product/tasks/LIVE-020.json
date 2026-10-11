@@ -54,6 +54,12 @@
       "ref": "scripts/eval-perception.mjs",
       "note": "npm run eval:perception without a key: says the measurement was skipped and why, and the scripted carriage check reports the block went up on the third request only. src/test/eval-perception.test.js holds the wiring. No real model asked.",
       "date": "2026-10-10"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live-gemini.spec.js",
+      "date": "2026-10-11",
+      "note": "Full38048506196 at69f9e failed shards6/10 on old generic answer origin labels, repeated on retries. Local exactsource two-test reproduction failed identically; assertions updated to full model/service attribution required by approved PR616/design §1.7, preserving original-reading disclaimer. Focused browser2tests passed; Local required browser gate60passed/3existing skips,23roadmap tests passed,86taskrecords validated,9hygiene checks clean; PR CI pending. No runtime/provider/auth/config changes or live provider calls."
     }
   ],
   "activity": [
@@ -64,10 +70,18 @@
     {
       "date": "2026-10-10T10:53:10.241Z",
       "summary": "Merged as d3bab147 (#616), with the docs index (#617) and the Codex fix to the perception door (#618, 2e037de5), and deployed: rise.syberlabs.io/release.txt read 2e037de52c7da764bc524c7180cd0ed5ab58f7e8 on 2026-10-10. Not accepted: no real model has been asked with a block, and the owner has not run eval:perception."
+    },
+    {
+      "date": "2026-10-11T16:33:59.731Z",
+      "summary": "Record corrective browser attribution evidence for approved persona origin contract; preserve coordinator owner and acceptance"
+    },
+    {
+      "date": "2026-10-11T16:37:24.638Z",
+      "summary": "Record completed local red-green and required gate evidence for two attribution assertions"
     }
   ],
-  "updatedAt": "2026-10-10T10:53:10.241Z",
-  "revision": 2,
+  "updatedAt": "2026-10-11T16:37:24.638Z",
+  "revision": 4,
   "summary": "Design §8 stage 4: what the reader did while a reading played goes up with their next words, the guide teaches the model what it means, and RISE speaks as itself without hiding the model.",
   "blocker": null
 }

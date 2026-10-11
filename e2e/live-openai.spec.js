@@ -134,7 +134,7 @@ test.describe('the OpenAI provider with the reader’s own key', () => {
         await expectShown(page, 'The event horizon is where the speed needed to escape');
         expect(asked).toHaveLength(2);
         expect(asked[1].headers.authorization).toBe(`Bearer ${KEY}`);
-        await expect(page.locator('.live-passage__origin')).toContainText('Written when you asked, by OpenAI Realtime answer (OpenAI Realtime)');
+        await expect(page.locator('.live-passage__origin')).toHaveText('Written when you asked, by OpenAI Realtime (OpenAI Realtime). It does not change what you left.');
         // Nothing the model wrote could name a source, so none is shown, and that is said.
         await expect(page.locator('.live-passage__sources')).toHaveText('No source was given for this passage.');
         await page.getByRole('button', { name: 'Surface', exact: true }).click();
