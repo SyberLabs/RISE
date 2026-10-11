@@ -144,3 +144,20 @@ it('does not launch a stale Begin after leaving while audio resumes', async () =
   await starting;
   expect(begin).not.toHaveBeenCalled();
 });
+
+it('offers customer recovery through Plus rather than a raw payment link', async () => {
+  fetchPlusPaymentLink.mockResolvedValue('https://buy.stripe.com/example');
+  await mount({ subscriber: false, available: false });
+  expect(document.querySelector('[data-access] a[href="/plus/"]')).not.toBeNull();
+  expect(document.querySelector('[data-access] a[href^="https://buy.stripe.com"]')).toBeNull();
+});
+it('restores the full paid continuation and sample look without beginning a vendor request', async () => {
+  const text = 'My own long passage. '.repeat(150);
+  sessionStorage.setItem('rise.plus.continuation', JSON.stringify({ schema: 1, text, look: 'sample' }));
+  const begin = await mount({ subscriber: true, available: true });
+  expect(document.querySelector('textarea').value).toBe(text);
+  expect(document.querySelector('[data-look]').value).toBe('sample');
+  expect(begin).not.toHaveBeenCalled();
+  expect(sessionStorage.getItem('rise.plus.continuation')).toBeNull();
+  expect(JSON.parse(sessionStorage.getItem('rise.voice-demo.draft')).text).toBe(text);
+});

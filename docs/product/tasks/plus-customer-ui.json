@@ -1,0 +1,51 @@
+{
+  "id": "plus-customer-ui",
+  "title": "Customer Plus signup, recovery and billing journey",
+  "lane": "reader",
+  "milestone": "Paid voice customer flow",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex-plus-client",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A dedicated mobile-accessible Plus surface shows only a server-confirmed offer and leaves free reading open.",
+    "Checkout, verified callback, email recovery and billing management use the agreed Worker contract without client-side entitlement authority.",
+    "Sample and own-text completion offer a contextual Plus path; staff access is plainly labeled and authenticated cloud saves remain intact.",
+    "Focused client tests and build pass; deployed paid lifecycle and human acceptance remain separately pending."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/components/Plus.test.js",
+      "date": "2026-10-11",
+      "note": "Focused client coverage: 139 tests across 13 files, with final status-schema expectation rerun passing 12 tests. Covers checkout/restore, uncertain status, callback browser binding refusal, navigation races, sample continuation, settings and existing backups."
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/plus-customer.spec.js",
+      "date": "2026-10-11",
+      "note": "Initial three browser cases passed against mocked APIs: mobile signup/recovery and free reading, callback credential clearing, lapsed customer billing. New continuation browser case awaits coordinated server slot; no live payments/vendor calls."
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/measure-first-load.mjs",
+      "date": "2026-10-11",
+      "note": "Build passed; first-load61.9KB brotli under64KB. Roadmap and hygiene checks pass. Required CI and production paid lifecycle remain pending."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-11T18:10:49.150163Z",
+      "summary": "Claimed authorized customer client scope; Worker implementation is coordinated separately."
+    },
+    {
+      "date": "2026-10-11T18:18:34.240Z",
+      "summary": "Implemented customer surface and session-local paid continuation; record local verification without claiming launch."
+    }
+  ],
+  "updatedAt": "2026-10-11T18:18:34.240Z",
+  "revision": 2,
+  "summary": "Complete the public subscription client without gating free reading or repurposing staff access.",
+  "blocker": "Integration with Worker endpoints, required CI and deployed paid/recovery verification remain pending; branch tests do not establish production acceptance."
+}

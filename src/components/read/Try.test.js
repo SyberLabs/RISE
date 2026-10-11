@@ -134,6 +134,7 @@ describe('the completion screen (complete)', () => {
     view.update({ kind: 'sample', run: 1, stage: 'complete' });
     expect(view.stage).toBe('complete');
     expect($('h1').textContent).toBe('Now try your words.');
+    expect($('[data-plus]').getAttribute('href')).toBe('/plus/');
     expect(document.activeElement).toBe($('h1'));
     expect($('.try-lede').textContent).toBe('Bring a short excerpt and choose how it reads.');
     expect($('[data-action="own-text"]').getAttribute('href')).toBe('/try/your-text/');
@@ -212,4 +213,16 @@ describe('/try/your-text/', () => {
     expect(begin).not.toHaveBeenCalled();
     expect(view.stage).toBe('idle');
   });
+});
+it('keeps the own-text draft only after explicitly choosing the Plus continuation', async () => {
+  sessionStorage.clear();
+  await mount({ data: { kind: 'text' } });
+  view.text = 'A passage kept across checkout.';
+  view.update({ kind: 'text', stage: 'complete' });
+  expect(sessionStorage.getItem('rise.plus.continuation')).toBeNull();
+  const link = $('[data-action="plus"]');
+  link.addEventListener('click', event => event.preventDefault());
+  link.click();
+  expect(JSON.parse(sessionStorage.getItem('rise.plus.continuation')).text).toBe(view.text);
+  sessionStorage.clear();
 });

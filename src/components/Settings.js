@@ -1,5 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
-import { PLUS_DEFAULT_VOICE, PLUS_PRICE, fetchPlusPaymentLink, fetchPlusStatus, fetchPlusVoices, forgetPlus, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
+import { PLUS_DEFAULT_VOICE, fetchPlusStatus, fetchPlusVoices, forgetPlus, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
@@ -83,8 +83,10 @@ export class Settings {
         this._active = false;
         this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
-        this.render();
-        this.attachEvents();
+        if (options.pane !== 'plus') {
+            this.render();
+            this.attachEvents();
+        }
     }
 
     get inSession() {
@@ -278,10 +280,10 @@ export class Settings {
             <div class="settings-row settings-action">
               <div class="settings-label-group">
                 <span class="settings-label">Plus voice</span>
-                <p class="settings-hint">A reading of your own, read aloud.<span data-plus-price></span></p>
+                <p class="settings-hint">A reading of your own, read aloud.</p>
                 <p class="settings-fail" ${plus.lapsed ? '' : 'hidden'}>Plus voice has lapsed.</p>
               </div>
-              <a class="btn-secondary" data-plus-subscribe rel="noopener" hidden>Subscribe</a>
+              <a class="btn-secondary" data-plus-manage href="/plus/">Explore Plus &amp; manage billing</a>
               ${this.plusStatus?.adminLogin ? '<a class="btn-secondary" data-admin-login href="/api/plus/admin/login">Admin sign in</a>' : ''}
             </div>`;
         }
@@ -293,6 +295,7 @@ export class Settings {
             <div class="settings-row">
               <div class="settings-label-group">
                 <span class="settings-label" data-plus-status>${admin ? 'Admin voice is active' : 'Plus is active'}${used}</span>
+                <a class="btn-secondary" data-plus-manage href="/plus/">Manage Plus &amp; billing</a>
                 <p class="settings-hint">Plus voices your own readings: files you add in Library → Your files, and Composer Currents.</p>
               </div>
             </div>
@@ -516,8 +519,6 @@ export class Settings {
             void this.forgetPlus();
         });
 
-        const subscribe = this.container.querySelector('[data-plus-subscribe]');
-        if (subscribe) this.plusLinkLoaded = this.fillPlusLink(subscribe);
 
         const voicePicker = this.container.querySelector('[data-plus-voice]');
         if (voicePicker) {
@@ -585,6 +586,24 @@ export class Settings {
      * for `activate()`.
      */
     async update(data) {
+        const revision = this.paneRevision = (this.paneRevision ?? 0) + 1;
+        if (data?.pane === 'plus') {
+            if (!this.customerPlus) {
+                const { Plus } = await import('./Plus.js');
+                if (this.destroyed || revision !== this.paneRevision) return;
+                this.emotions?.destroy();
+                this.emotions = null;
+                this.customerPlus = new Plus(this.container);
+            } else await this.customerPlus.refresh();
+            return;
+        }
+        if (this.customerPlus) {
+            this.customerPlus.destroy();
+            this.customerPlus = null;
+            this.plusStatusLoaded = null;
+            this.render();
+            this.attachEvents();
+        }
         if (data?.pane !== 'affect') return;
         await this.showAffect(true);
         this.affectScrollPending = true;
@@ -647,17 +666,6 @@ export class Settings {
         }
     }
 
-    /** The deployment's payment link on the Subscribe button, which stays hidden without one. */
-    async fillPlusLink(subscribe) {
-        const link = await fetchPlusPaymentLink();
-        if (!link) return;
-        subscribe.href = link;
-        subscribe.hidden = false;
-        // A price is named only beside a way to pay it; with no link nothing is for sale.
-        const price = this.container.querySelector('[data-plus-price]');
-        if (price) price.textContent = ` ${PLUS_PRICE}.`;
-    }
-
     /** The Worker's voices, in place of the one option the row was drawn with. */
     async fillPlusVoices(picker) {
         const voices = await fetchPlusVoices();
@@ -695,7 +703,8 @@ export class Settings {
     activate() {
         if (this._active) return;
         this._active = true;
-        if (!this.inSession && (this.plusStatus?.admin || this.plusStatusInvalidated)) this.plusStatusLoaded = this.fillPlusStatus();
+        this.customerPlus?.activate();
+        if (!this.customerPlus && !this.inSession && (this.plusStatus?.admin || this.plusStatusInvalidated)) this.plusStatusLoaded = this.fillPlusStatus();
         document.addEventListener('keydown', this.boundKeyboardHandler);
         if (this.container.querySelector('[data-affect-toggle]')?.checked) void this.showAffect(true);
         this.scrollToAffect();
@@ -704,6 +713,7 @@ export class Settings {
     deactivate() {
         if (!this._active) return;
         this._active = false;
+        this.customerPlus?.deactivate();
         this.plusStatusGeneration = (this.plusStatusGeneration ?? 0) + 1;
         this.plusStatusInvalidated = true;
         document.removeEventListener('keydown', this.boundKeyboardHandler);
@@ -714,6 +724,8 @@ export class Settings {
 
     destroy() {
         this.destroyed = true;
+        this.customerPlus?.destroy();
+        this.customerPlus = null;
         this.deactivate();
         this.emotions?.destroy();
         this.emotions = null;

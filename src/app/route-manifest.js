@@ -164,6 +164,7 @@ export function createRouteManifest(operations) {
       // `/emotions` opens the Affect section (data.pane === 'affect').
       create: async (container, data, { Settings }) => {
         const settings = new Settings(container, {
+          pane: data?.pane,
           settings: operations.getSettings(),
           onNavigate: operations.handleNavigate,
           onChange: operations.handleSettingsChange,
