@@ -380,14 +380,20 @@ describe('with the real Player: same atom, nothing skipped', () => {
             button.click();
             expect(player.state).toBe('paused');
             const held = player.sessionState.currentIndex;
-            await vi.advanceTimersByTimeAsync(30_000);
+            // Paused playback has no async atom transitions to flush.
+            vi.advanceTimersByTime(30_000);
+            await Promise.resolve();
+            expect(player.state).toBe('paused');
             expect(player.sessionState.currentIndex).toBe(held);
             button.click();
             expect(player.state).toBe('playing');
             expect(player.sessionState.currentIndex).toBe(held);
         }
 
-        await vi.advanceTimersByTimeAsync(60_000);
+        // Cover the authored reading plus a frame per atom, rather than
+        // running Chamber animation frames for a minute after it completes.
+        const playbackBudget = session.totalDuration + 16 * (session.atoms.length + 1);
+        await vi.advanceTimersByTimeAsync(playbackBudget);
         chamber.destroy();
         return { seen, before, complete, count: session.atoms.length };
     }

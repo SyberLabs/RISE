@@ -1,0 +1,71 @@
+{
+  "id": "FND-014",
+  "title": "Bound dive playback test clock work to the authored reading",
+  "lane": "shared",
+  "milestone": "Release validation",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "codex-rise-voice validation (Seth)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Real Player presents every atom once and in order with and without a dive.",
+    "A 30-second dive holds the same atom and resumes from that atom.",
+    "Both runs complete within the existing test timeout without advancing a minute of post-reading animation frames.",
+    "Required CI and the previously failing unit shard pass."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38157443018/job/114535685672",
+      "note": "Exact d659 attempt 2 repeats the same 5000ms timeout at Chamber.dive.test.js:395; 1920 other tests pass. All 16 browser shards remain successful. Only the failed unit shard was retried.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/read/Chamber.dive.test.js",
+      "note": "Before optimization: all 25 local tests pass in 3.83s test time. After bounding completion to authored duration plus frame rounding and advancing paused time synchronously: all 25 pass in 1.35s. Existing assertions and timeout unchanged; required gate and sharded run pending.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/read/Chamber.dive.test.js",
+      "note": "Exact local shard 1/4 after optimization: 142 files, 1921 tests passed and 1 existing skip; 28.07s overall. No runtime or timeout changes. Browser gate remains in progress.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/read/Chamber.dive.test.js",
+      "note": "Final harness, including a post-pause state assertion and microtask flush: focused25 passed (1.31s test time); actual unit shard142 files/1921 passed/1 existing skip (30.38s); browser gate60 passed/3 existing skips (3.0m); roadmap23 passed/87 tasks valid; hygiene9 clean. Existing5000ms timeout,30-second pause and complete atom-order assertions preserved. GitHub required CI pending.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/622",
+      "note": "Narrow test harness and task evidence only; required CI and independent root review pending. No source runtime/config/provider changes.",
+      "date": "2026-10-11"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-11T18:02:10.765044Z",
+      "summary": "Claimed narrow test harness optimization after repeated CI timeout; isolated branch codex/dive-timer-test. No runtime/config/provider edits."
+    },
+    {
+      "date": "2026-10-11T18:03:26.163Z",
+      "summary": "Previously failing unit shard passes locally; required browser gate pending."
+    },
+    {
+      "date": "2026-10-11T18:05:43.597Z",
+      "summary": "Final pause-state and complete sequence checks pass focused tests, unit shard and required browser gate."
+    },
+    {
+      "date": "2026-10-11T18:06:00.106Z",
+      "summary": "Opened narrow PR622; local checks passed, required CI and independent review pending."
+    }
+  ],
+  "updatedAt": "2026-10-11T18:06:00.106Z",
+  "revision": 4,
+  "summary": "Reduce simulated post-reading frame work while retaining 30-second pause and complete atom-sequence assertions.",
+  "blocker": null
+}
