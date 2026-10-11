@@ -121,7 +121,7 @@ describe('authenticated administrators have a separate bounded budget',()=>{
   });
   it('reports verified status and redirects admin sign-in only after identity verification',async()=>{
     vi.useFakeTimers({now:NOW*1000});const e=env({PLUS_ADMIN_MONTHLY_USD_CENTS:'500',PLUS_ADMIN_ACCESS_ISSUER:'https://team.cloudflareaccess.com',PLUS_ADMIN_ACCESS_AUD:'aud'});world();
-    const signedOut=await handlePlus(new Request(SITE+'/api/plus/status'),e);expect(signedOut.status).toBe(200);expect(await signedOut.json()).toEqual({admin:false,subscriber:false,available:false,adminLogin:true,allowance:null});
+    const signedOut=await handlePlus(new Request(SITE+'/api/plus/status'),e);expect(signedOut.status).toBe(200);expect(await signedOut.json()).toEqual({billingAvailable:false,admin:false,subscriber:false,available:false,adminLogin:true,allowance:null});
     expect((await handlePlus(new Request(SITE+'/api/plus/admin/login'),e)).status).toBe(403);
     auth.subject='admin';const signedIn=await handlePlus(new Request(SITE+'/api/plus/status'),e);expect(await signedIn.json()).toMatchObject({admin:true,subscriber:false,available:true,allowance:{used:0,limit:83333}});
     const login=await handlePlus(new Request(SITE+'/api/plus/admin/login'),e);expect(login.status).toBe(303);expect(login.headers.get('Location')).toBe('/settings');
@@ -145,7 +145,7 @@ describe('financial standing cannot race a refund invalidation',()=>{
   });
   it('reports only server-verified subscriber allowance without spending it',async()=>{
     vi.useFakeTimers({now:NOW*1000});const e=env();const state=world();const voice=await request(e,1);const r=await handlePlus(new Request(SITE+'/api/plus/status',{headers:{Cookie:voice.headers.get('Cookie')}}),e);
-    expect(await r.json()).toEqual({admin:false,subscriber:true,available:true,adminLogin:false,allowance:{used:0,limit:67000,periodEnd:END}});expect(state.vendorCalls).toBe(0);
+    expect(await r.json()).toEqual({billingAvailable:false,admin:false,subscriber:true,available:true,adminLogin:false,allowance:{used:0,limit:67000,periodEnd:END}});expect(state.vendorCalls).toBe(0);
   });
 });
 
@@ -175,7 +175,7 @@ describe('status caches unavailable subscriptions without hiding normal signed-o
     for (let attempt = 0; attempt < 2; attempt++) {
       const response = await read();
       expect(response.status).toBe(200);
-      expect(await response.json()).toEqual({ admin: false, subscriber: false, available: false, adminLogin: false, allowance: null });
+      expect(await response.json()).toEqual({ billingAvailable: false, admin: false, subscriber: false, available: false, adminLogin: false, allowance: null });
     }
     expect(subscriptionGets).toBe(1);
     vi.setSystemTime((NOW + 61) * 1000);
@@ -310,4 +310,23 @@ it('bounds stalled readiness for voice and status without reserving or contactin
   await vi.advanceTimersByTimeAsync(5001);
   expect(await (await inspecting).json()).toMatchObject({ admin: true, available: false });
   expect(render).not.toHaveBeenCalled(); expect(state.vendorCalls).toBe(0);
+});
+
+describe('the fixed customer offer and renewal', () => {
+  it('limits the new offer to 60,000 characters while preserving the legacy spending budget', async () => {
+    vi.useFakeTimers({now:NOW*1000});const e=env();const state=world({subscription:{...sub,metadata:{rise_offer:'v1_60000'}}});
+    for(let i=0;i<6;i++) expect((await handlePlus(await request(e,10000),e)).status).toBe(200);
+    expect((await handlePlus(await request(e,1),e)).status).toBe(402);
+    expect(state.vendorChars).toBe(60000);
+    const original=await request(e,1);
+    const status=await handlePlus(new Request(SITE+'/api/plus/status',{headers:original.headers}),e);
+    expect((await status.json()).allowance.limit).toBe(60000);
+  });
+  it('refreshes a signed receipt after renewal instead of losing a still-paying customer at the old period end', async () => {
+    vi.useFakeTimers({now:NOW*1000});const e=env();world();
+    const token=await PLUS_INTERNALS.sign({c:'cus_1',s:'sub_1',exp:NOW-4*86400,iat:NOW-30*86400,l:true},e.PLUS_COOKIE_SECRET);
+    const r=await handlePlus(new Request(SITE+'/api/plus/status',{headers:{Cookie:PLUS_INTERNALS.COOKIE+'='+token,'CF-Connecting-IP':'192.0.2.1'}}),e);
+    expect((await r.json()).subscriber).toBe(true);
+    expect(r.headers.getSetCookie().some(value=>value.startsWith('__Secure-rise_plus='))).toBe(true);
+  });
 });
