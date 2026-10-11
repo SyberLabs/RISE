@@ -19,19 +19,25 @@
       "kind": "test",
       "ref": "worker/plus-lifecycle.test.js",
       "date": "2026-10-11",
-      "note": "24 lifecycle tests pass after observed red regressions for missing routes, copied receipt, address limiter, customer credits, case variants, cross-customer recovery and acquisition/service separation."
+      "note": "25 lifecycle tests pass after observed red regressions for missing routes, copied receipt, address limiter, customer credits, case variants, cross-customer recovery, acquisition/service separation and unknown-state duplicate prevention."
     },
     {
       "kind": "test",
       "ref": "vitest.fast.config.js",
       "date": "2026-10-11",
-      "note": "102 fast files: 2353 passed, four existing skipped. CI hygiene, build, high-severity audit gate, dependency compatibility and first-load61.8KB/64KB passed. Initial browser gate59passed3skipped1failure in spoken sample from unhydrated worktree; pinned audio restored, targeted rerun pending shared-port availability."
+      "note": "Final102 fastfiles:2361passed,four existing skipped; authoritative canSubscribe adds seven status/cache/webhook regressions. CI hygiene,build,high-severity audit gate,dependency compatibility,first-load61.8KB/64KB passed. Initial browsergate59passed3skipped1spoken-sample failure; pinned audiohydration then rebuilt targeted spoken-sample passed1test in5.5s."
     },
     {
       "kind": "document",
       "ref": "docs/PLUS-CUSTOMER-LIFECYCLE.md",
       "date": "2026-10-11",
       "note": "Endpoint, release configuration, signing-purpose cookies and recovery digest retention documented. No deployment or live purchase performed."
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/623",
+      "date": "2026-10-11",
+      "note": "Draft backend review; root owns atomic client/backend integration and production release. Initial implementation commit65c47b28,follow-up eligibility fix remains branch-only."
     }
   ],
   "activity": [
@@ -42,10 +48,14 @@
     {
       "date": "2026-10-11T18:21:51.482Z",
       "summary": "Implemented customer lifecycle with independent review fixes and local evidence; production acceptance stays separate."
+    },
+    {
+      "date": "2026-10-11T18:26:43.678Z",
+      "summary": "Added cached authoritative repurchase eligibility; resolved hydrated spoken-sample check and recorded draft PR evidence."
     }
   ],
-  "updatedAt": "2026-10-11T18:21:51.482Z",
-  "revision": 2,
-  "summary": "Customer lifecycle implemented and locally verified; live Stripe business verification, webhook, email sender and vendor acceptance remain separate release requirements.",
+  "updatedAt": "2026-10-11T18:26:43.678Z",
+  "revision": 3,
+  "summary": "Customer lifecycle and authoritative repurchase eligibility locally verified; root integrates with client. Live Stripe verification, webhook, recovery sender and provider acceptance remain separate.",
   "blocker": null
 }

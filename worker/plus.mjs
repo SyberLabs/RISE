@@ -679,7 +679,7 @@ async function webhook(request, env) {
       change = { action: 'revoke', kind: 'deleted' };
     } else if (event.type === 'customer.subscription.updated') {
       subscriptions = [object.id];
-      change = ACTIVE.has(object.status) ? { action: 'restore' } : { action: 'revoke', kind: 'status' };
+      change = ACTIVE.has(object.status) ? { action: 'restore', subscriptionStatus: object.status } : { action: 'revoke', kind: 'status', subscriptionStatus: object.status };
     } else if (event.type === 'charge.refunded') {
       subscriptions = await subscriptionsPaidBy(object, env);
       change = object.refunded === true ? { action: 'revoke', kind: 'refund' } : { action: 'refresh' };
@@ -744,7 +744,8 @@ async function voiceReady(env) {
 async function status(request, env, now) {
   const policy = spendingPolicy(env);
   const admin = await getAdmin(request, env);
-  const result = { billingAvailable: billingReady(env) && Boolean(await billingIdentity(request, env, now)), admin: Boolean(admin), subscriber: false, available: false, adminLogin: adminLoginConfigured(env), allowance: null };
+  const identity = await billingIdentity(request, env, now);
+  const result = { canSubscribe: !identity, billingAvailable: billingReady(env) && Boolean(identity), admin: Boolean(admin), subscriber: false, available: false, adminLogin: adminLoginConfigured(env), allowance: null };
   let standing, name;
   if (admin) {
     const budget = adminBudget(env, policy);
@@ -754,15 +755,20 @@ async function status(request, env, now) {
     name = 'admin';
   } else {
     if (!policy || !env.STRIPE_SECRET_KEY || !env.PLUS_COOKIE_SECRET || !env.PLUS_PRICE_ID || !env.PLUS_METER || notLive(env)) return reply(200, result);
-    const current = await billingIdentity(request, env, now);
+    const current = identity;
     if (!current) return reply(200, result);
     name = `sub:${current.s}`;
     const kept = await meter(env, name, 'inspect', { ttl: STANDING_TTL_S });
+    const eligible = status => status === 'canceled' || status === 'incomplete_expired';
+    result.canSubscribe = eligible(kept.subscriptionStatus);
     if (kept.revoked) return reply(200, result);
     if (kept.fresh && (kept.standing === null || (kept.standing.l === livemode(env) && kept.standing.budgetPolicy === JSON.stringify(policy)))) standing = kept.standing;
     else {
+      let subscriptionStatus = null;
       try {
         const subscription = await stripe(`/v1/subscriptions/${encodeURIComponent(current.s)}`, env);
+        subscriptionStatus = subscription.status;
+        result.canSubscribe = eligible(subscriptionStatus);
         standing = claimFor(subscription, env);
         if (standing) {
           const budgetMicros = await paidBudget(subscription, standing, env, policy, stripe);
@@ -772,7 +778,7 @@ async function status(request, env, now) {
         if (error?.status !== 404) throw error;
         standing = null;
       }
-      await meter(env, name, 'standing', { standing, revision: kept.revision });
+      await meter(env, name, 'standing', { standing, revision: kept.revision, subscriptionStatus });
     }
     if (!standing || standing.s !== current.s || !Number.isSafeInteger(standing.budgetMicros) || standing.budgetMicros <= 0) return reply(200, result);
     result.subscriber = true;
@@ -918,7 +924,7 @@ async function checkout(request, env, body, now) {
   if (!await checkedOffer(env)) return unavailable(env, 'The paid offer is not ready.');
   const identity = await billingIdentity(request, env, now);
   const existing = await ownedSubscription(identity, env);
-  if (existing && ['active', 'trialing', 'past_due', 'unpaid', 'incomplete', 'paused'].includes(existing.status)) return refuse(409, 'PLUS_EXISTS', 'You already have a subscription. Manage billing or restore access instead.');
+  if (existing && !['canceled', 'incomplete_expired'].includes(existing.status)) return refuse(409, 'PLUS_EXISTS', 'You already have a subscription. Manage billing or restore access instead.');
   const origin = new URL(request.url).origin;
   const fields = {
     mode: 'subscription', client_reference_id: `plus:${body.request_id.toLowerCase()}`, 'line_items[0][price]': env.PLUS_PRICE_ID, 'line_items[0][quantity]': '1',
@@ -1071,12 +1077,13 @@ export class PlusMeter {
     if (op === '/inspect') {
       const kept = this.kv.get('standing');
       const usage = body.period === undefined ? { used: 0 } : this.usage(body.period);
-      return Response.json({ revision: this.kv.get('revision') ?? 0, used: usage.used, spentMicros: this.kv.get('since') === body.period ? this.kv.get('spentMicros') ?? 0 : 0, revoked: Boolean(this.kv.get('revoked')), fresh: Boolean(kept) && now - kept.at < body.ttl, standing: kept?.standing ?? null });
+      return Response.json({ subscriptionStatus: this.kv.get('subscriptionStatus') ?? null, revision: this.kv.get('revision') ?? 0, used: usage.used, spentMicros: this.kv.get('since') === body.period ? this.kv.get('spentMicros') ?? 0 : 0, revoked: Boolean(this.kv.get('revoked')), fresh: Boolean(kept) && now - kept.at < body.ttl, standing: kept?.standing ?? null });
     }
     if (op === '/gate') return Response.json(this.gate(body, now));
     if (op === '/standing') {
       if (body.revision !== (this.kv.get('revision') ?? 0)) return Response.json({ ok: false, changed: true });
       this.kv.put('standing', { standing: body.standing ?? null, at: now });
+      if (Object.hasOwn(body, 'subscriptionStatus')) this.kv.put('subscriptionStatus', body.subscriptionStatus);
       return Response.json({ ok: true });
     }
     if (op === '/event') return Response.json(this.event(body));
@@ -1130,7 +1137,7 @@ export class PlusMeter {
     return { revision: this.kv.get('revision') ?? 0, fresh: Boolean(kept) && now - kept.at < ttl, standing };
   }
 
-  event({ id, created, action, kind }) {
+  event({ id, created, action, kind, subscriptionStatus }) {
     const seen = this.kv.get('events') ?? [];
     if (typeof id !== 'string' || seen.includes(id)) return { ok: true, duplicate: true };
     this.kv.put('events', [...seen, id].slice(-50));
@@ -1139,10 +1146,12 @@ export class PlusMeter {
     const revoked = this.kv.get('revoked');
     if (action === 'revoke' && kind !== 'status') {
       this.kv.put('revoked', { kind, created });
+      if (kind === 'deleted') this.kv.put('subscriptionStatus', 'canceled');
     } else if (action === 'revoke' || action === 'restore') {
       // Stripe does not promise order: only the newest status event says where the status stands.
       if (created < (this.kv.get('statusAt') ?? 0)) return { ok: true, outdated: true };
       this.kv.put('statusAt', created);
+      if (typeof subscriptionStatus === 'string' && (!revoked || revoked.kind === 'status')) this.kv.put('subscriptionStatus', subscriptionStatus);
       if (action === 'revoke' && (!revoked || revoked.kind === 'status')) this.kv.put('revoked', { kind, created });
       if (action === 'restore' && revoked?.kind === 'status') this.kv.delete('revoked');
     }
