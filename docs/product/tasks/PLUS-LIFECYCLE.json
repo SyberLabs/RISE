@@ -1,0 +1,51 @@
+{
+  "id": "PLUS-LIFECYCLE",
+  "title": "Customer checkout, recovery and billing lifecycle",
+  "lane": "reader",
+  "milestone": "Paid voice release",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex-plus-lifecycle",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Server-authoritative checkout for the funded fixed offer with idempotent retries.",
+    "Verified email recovery and authenticated self-service billing remain separate from staff access.",
+    "New quota, legacy entitlement, renewal and spending guard regressions pass.",
+    "Live release requires separate owner configuration and live vendor acceptance."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "worker/plus-lifecycle.test.js",
+      "date": "2026-10-11",
+      "note": "24 lifecycle tests pass after observed red regressions for missing routes, copied receipt, address limiter, customer credits, case variants, cross-customer recovery and acquisition/service separation."
+    },
+    {
+      "kind": "test",
+      "ref": "vitest.fast.config.js",
+      "date": "2026-10-11",
+      "note": "102 fast files: 2353 passed, four existing skipped. CI hygiene, build, high-severity audit gate, dependency compatibility and first-load61.8KB/64KB passed. Initial browser gate59passed3skipped1failure in spoken sample from unhydrated worktree; pinned audio restored, targeted rerun pending shared-port availability."
+    },
+    {
+      "kind": "document",
+      "ref": "docs/PLUS-CUSTOMER-LIFECYCLE.md",
+      "date": "2026-10-11",
+      "note": "Endpoint, release configuration, signing-purpose cookies and recovery digest retention documented. No deployment or live purchase performed."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-11T18:11:29.107555+00:00",
+      "summary": "Claimed the approved customer lifecycle backend work; endpoint contract agreed with client owner."
+    },
+    {
+      "date": "2026-10-11T18:21:51.482Z",
+      "summary": "Implemented customer lifecycle with independent review fixes and local evidence; production acceptance stays separate."
+    }
+  ],
+  "updatedAt": "2026-10-11T18:21:51.482Z",
+  "revision": 2,
+  "summary": "Customer lifecycle implemented and locally verified; live Stripe business verification, webhook, email sender and vendor acceptance remain separate release requirements.",
+  "blocker": null
+}
