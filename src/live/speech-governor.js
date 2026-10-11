@@ -46,10 +46,10 @@
  *
  * Degrading is quiet and one way, until the reader seeks (`forget`). If the
  * voice does not begin what it was asked to say within its grace, and a retry
- * did not begin either, the governor stands down and the Player's own timer carries on, at the pace the voice was
- * measured at, because a reading that stops is worse than a reading that is not
- * synchronised. The host is told, so it can show that the voice is not being
- * heard.
+ * did not begin either, the governor stands down and the Player's own timer
+ * carries on, at the pace the voice was measured at, because a reading that
+ * stops is worse than a reading that is not synchronised. The host is told, so
+ * it can show that the voice is not being heard.
  *
  * Pause. The Player does not consult a governor when it resumes from a pause,
  * so the atom that was paused finishes on the timer for what remained of it.
