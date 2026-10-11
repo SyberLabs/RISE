@@ -56,7 +56,7 @@ test('expected account denial leaves unrelated HTTP and runtime errors observabl
     const denied = await accountResponse;
     expect(denied.status()).toBe(401);
     expect(await denied.json()).toEqual({ version: 1, error: 'signin_required' });
-    await expect(page.getByRole('link', { name: 'Sign in to SyberLabs' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Staff sign in to SyberLabs' })).toBeVisible();
     expect(errors).toEqual([]);
     await page.route('**/api/conformance-denial', route => route.fulfill({ status: 401, body: 'unrelated denial' }));
     await page.evaluate(async () => {

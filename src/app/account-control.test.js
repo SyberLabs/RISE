@@ -8,7 +8,7 @@ it('keeps a sign-in entrance outside hidden route containers when account is una
   document.body.innerHTML = '<main hidden><div>Reading</div></main>';
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
   control = mountAccountControl();
-  await vi.waitFor(() => expect(document.querySelector('.rise-account-control').textContent).toBe('Sign in'));
+  await vi.waitFor(() => expect(document.querySelector('.rise-account-control').textContent).toBe('Staff sign in'));
   const link = document.querySelector('.rise-account-control');
   expect(link.parentNode).toBe(document.body);
   expect(new URL(link.href).searchParams.get('next')).toBe('/admin/return?app=rise');
@@ -65,7 +65,7 @@ it('keeps the study entrance without looking up identity on mount or focus', asy
   control = mountAccountControl();
   window.dispatchEvent(new Event('focus'));
   await new Promise(resolve => setTimeout(resolve, 0));
-  expect(document.querySelector('.rise-account-control').textContent).toBe('Sign in');
+  expect(document.querySelector('.rise-account-control').textContent).toBe('Staff sign in');
   expect(fetcher).not.toHaveBeenCalled();
 });
 
@@ -125,7 +125,7 @@ it('clears a remembered account when an authenticated page enters a study', asyn
   location.pathname = '/live'; location.search = '?eval=later';
   window.dispatchEvent(new Event('focus'));
   await new Promise(resolve => setTimeout(resolve, 0));
-  expect(link.textContent).toBe('Sign in');
+  expect(link.textContent).toBe('Staff sign in');
 });
 
 it('does not adopt a late profile after entering a study without window focus', async () => {
@@ -137,7 +137,7 @@ it('does not adopt a late profile after entering a study without window focus', 
   location.pathname = '/live'; location.search = '?eval=1';
   settle();
   await new Promise(resolve => setTimeout(resolve, 0));
-  expect(document.querySelector('.rise-account-control').textContent).toBe('Sign in');
+  expect(document.querySelector('.rise-account-control').textContent).toBe('Staff sign in');
 });
 
 it('does not open a remembered account panel in a study without window focus', async () => {
@@ -159,7 +159,7 @@ it('does not open a remembered account panel in a study without window focus', a
     await new Promise(resolve => setTimeout(resolve, 50));
     expect(document.querySelector('.rise-account-panel')).toBeNull();
     expect(fetcher).toHaveBeenCalledTimes(before);
-    expect(link.textContent).toBe('Sign in');
+    expect(link.textContent).toBe('Staff sign in');
   } finally { vi.restoreAllMocks(); }
 });
 

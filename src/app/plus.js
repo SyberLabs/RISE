@@ -93,6 +93,8 @@ function store(value) {
   }
 }
 
+export function notePlusClaimed() { store({ claimedAt: Date.now() }); }
+
 /** Whether Plus was claimed in this browser, and whether the Worker has since called it lapsed. */
 export function plusState() {
   const value = stored();
@@ -132,7 +134,7 @@ export async function claimPlus(sessionId, { fetchImpl = globalThis.fetch?.bind(
     return { ok: false, message: 'Plus could not be reached. Open this page again in a moment.' };
   }
   if (response.status === 204) {
-    store({ claimedAt: Date.now() });
+    notePlusClaimed();
     return { ok: true };
   }
   let body = null;
@@ -156,7 +158,7 @@ export async function forgetPlus({ fetchImpl = globalThis.fetch?.bind(globalThis
 
 /** Server-verified entitlement; administrator authority stays in memory only. */
 export async function fetchPlusStatus({ fetchImpl = globalThis.fetch?.bind(globalThis), timeoutMs = 1500 } = {}) {
-  const unavailable = { admin: false, subscriber: false, available: false, adminLogin: false, allowance: null };
+  const unavailable = { confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, allowance: null };
   const controller = new AbortController();
   let timer;
   const read = async () => {
@@ -166,8 +168,10 @@ export async function fetchPlusStatus({ fetchImpl = globalThis.fetch?.bind(globa
       const body = await response.json();
       const allowance = body?.allowance;
       return {
+        confirmed: typeof body?.subscriber === 'boolean' && typeof body?.available === 'boolean',
         admin: body?.admin === true, subscriber: body?.subscriber === true,
         available: body?.available === true, adminLogin: body?.adminLogin === true,
+        billingAvailable: body?.billingAvailable === true,
         allowance: Number.isFinite(allowance?.used) && Number.isFinite(allowance?.limit)
           ? { used: allowance.used, limit: allowance.limit, periodEnd: allowance.periodEnd } : null
       };

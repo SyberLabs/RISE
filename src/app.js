@@ -35,15 +35,15 @@ import { mountAccountControl } from './app/account-control.js';
 
 // Not a room: the address opens today's poem in the reader (launchToday).
 const TODAY_PATH = '/today';
-/** The Checkout success page (src/app/plus-claim.js). */
-const PLUS_CLAIM_PATH = '/plus/claim';
 import { watchTabFreshness } from './core/tab-freshness.js';
 import { takeOpenRouterReturn } from './core/openrouter-callback.js';
+import { capturePlusCallback } from './app/plus-callback.js';
 
 // FIRST, before any other work: an OpenRouter sign-in returns here with a
 // one-time authorization code in the URL. Lift it out of the address bar and
 // history now; Home exchanges it (and clears the PKCE state) when it opens.
 // Any other page load abandons a sign-in this tab started and never finished.
+capturePlusCallback();
 takeOpenRouterReturn();
 
 // THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
@@ -319,12 +319,6 @@ class App {
                 this.showToast(error.message || 'Today’s poem could not be opened.', 5000);
                 await this.router.navigate('home');
             }
-        } else if (pathname === PLUS_CLAIM_PATH) {
-            const { enterFromPlusClaim } = await import('./app/plus-claim.js');
-            await enterFromPlusClaim(appLocation().search, {
-                home: () => this.router.navigate('home'),
-                notify: message => this.showToast(message, 5000)
-            });
         } else {
             // Every other address is the table's to resolve (route-url.js);
             // the cases above are not addresses: a hash, a query code, a

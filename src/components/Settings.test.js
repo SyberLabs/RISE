@@ -466,35 +466,24 @@ describe('Settings Plus voice', () => {
         settings.destroy();
     });
 
-    it('offers the deployment\'s payment link until Plus is claimed in this browser', async () => {
-        const fetchImpl = vi.fn(async () => Response.json({ paymentLink: PAYMENT_LINK }));
-        vi.stubGlobal('fetch', fetchImpl);
+    it('directs customers to Plus management without a stale price or payment-link bypass', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => Response.json({ paymentLink: PAYMENT_LINK })));
         const settings = mount();
-        const subscribe = settings.container.querySelector('[data-plus-subscribe]');
-        expect(subscribe.hidden).toBe(true); // nothing to open until the link is known
-        expect(settings.container.textContent).not.toContain('$8.99'); // nor a price
-        await settings.plusLinkLoaded;
-        expect(fetchImpl).toHaveBeenCalledWith('/api/plus/config');
-        expect(subscribe.hidden).toBe(false);
-        expect(subscribe.getAttribute('href')).toBe(PAYMENT_LINK);
-        expect(settings.container.textContent).toContain('$8.99 a month');
-        expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
-        expect(settings.container.querySelector('.settings-fail[hidden]')).toBeTruthy();
+        const link = settings.container.querySelector('[data-plus-manage]');
+        expect(link.getAttribute('href')).toBe('/plus/');
+        expect(settings.container.textContent).not.toContain('$8.99');
+        expect(settings.container.querySelector('[data-plus-subscribe]')).toBeNull();
         settings.destroy();
     });
 
-    it.each([
-        ['the deployment has no link', async () => Response.json({ paymentLink: null })],
-        ['the link is not a Stripe Payment Link', async () => Response.json({ paymentLink: 'https://evil.example/pay' })],
-        ['the Worker cannot be reached', async () => { throw new Error('offline'); }]
-    ])('hides Subscribe and the price when %s', async (_, answer) => {
-        vi.stubGlobal('fetch', vi.fn(answer));
+    it('opens and leaves the customer pane within Settings', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => Response.json({})));
         const settings = mount();
-        await settings.plusLinkLoaded;
-        const subscribe = settings.container.querySelector('[data-plus-subscribe]');
-        expect(subscribe.hidden).toBe(true);
-        expect(subscribe.hasAttribute('href')).toBe(false);
-        expect(settings.container.textContent).not.toContain('$8.99');
+        await settings.update({ pane: 'plus' });
+        expect(settings.container.querySelector('#plus-title')).not.toBeNull();
+        await settings.update({});
+        expect(settings.container.querySelector('#settings-title')).not.toBeNull();
+        expect(settings.container.querySelector('#plus-title')).toBeNull();
         settings.destroy();
     });
 
@@ -513,8 +502,7 @@ describe('Settings Plus voice', () => {
         expect(fetchImpl).toHaveBeenCalledWith('/api/plus/forget', { method: 'POST' });
         expect(localStorage.getItem('rise.plus')).toBeNull();
         expect(settings.container.querySelector('[data-setting="plusVoice"]')).toBeNull();
-        await settings.plusLinkLoaded;
-        expect(settings.container.querySelector('a[href^="https://buy.stripe.com/"]')).toBeTruthy();
+        expect(settings.container.querySelector('a[href="/plus/"]')).toBeTruthy();
         settings.destroy();
     });
 
