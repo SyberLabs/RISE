@@ -2156,13 +2156,23 @@ describe('the beds under the reading', () => {
         };
     }
 
+    /** A runtime whose status the test moves, as the real one does: 'ended' once the voice has said its last words too. */
+    function fakeRuntime() {
+        const heard = new Set();
+        return {
+            status: 'live',
+            subscribe(listener) { heard.add(listener); return () => heard.delete(listener); },
+            become(next) { this.status = next; for (const listener of [...heard]) listener({ status: next }); }
+        };
+    }
+
     /** The host with the runtime it builds caught, so its present hook can be called as the runtime calls it. */
-    async function hostedWith(engine) {
+    async function hostedWith(engine, runtime = fakeRuntime()) {
         mountWith('?voice=paced', env(), engine);
         const loaded = await host.modules;
         let hosted = null;
         host.modules = Promise.resolve([
-            { createLiveRuntime: options => { hosted = options.host; return {}; } },
+            { createLiveRuntime: options => { hosted = options.host; return runtime; } },
             ...loaded.slice(1, 4),
             { presentLive: async () => {}, leaveLive: async () => {} },
             loaded[5]
@@ -2185,7 +2195,8 @@ describe('the beds under the reading', () => {
         // The factory opens the session at zero (startSession) and leaves the reveal to whoever plays the
         // reading; the Chamber does not play a hosted one, so the host does.
         const engine = sessionEngine();
-        const hosted = await hostedWith(engine);
+        const runtime = fakeRuntime();
+        const hosted = await hostedWith(engine, runtime);
         const player = fakePlayer('idle');
         await hosted.present({ role: 'main', session: {}, player });
         expect(engine.calls).toEqual([]);
@@ -2193,12 +2204,17 @@ describe('the beds under the reading', () => {
         player.become('paused');
         player.become('playing');
         player.become('complete');
+        runtime.become('ended');
+        runtime.become('ended');
         expect(engine.calls).toEqual([['in', 1.2], ['out', 0.4], ['in', 0.6], ['stop']]);
     });
 
-    it('lets the silent loop and the playback audio session go when the reading is over', async () => {
+    it('keeps the session under a voice still speaking after the words are all shown, and closes it when the voice has ended', async () => {
+        // A voice with no word marks, slower than the clock's estimate: the Player completes, the voice goes on
+        // (3 s, here), and the reading ends only after it (run.finished). The bed ends with the reading.
         const engine = sessionEngine();
-        const hosted = await hostedWith(engine);
+        const runtime = fakeRuntime();
+        const hosted = await hostedWith(engine, runtime);
         const audioSession = { type: 'playback' };
         host.env.navigator = { audioSession };
         host.audioKeeper = { paused: false, pause() { this.paused = true; } };
@@ -2206,13 +2222,49 @@ describe('the beds under the reading', () => {
         await hosted.present({ role: 'main', session: {}, player });
         player.become('playing');
         player.become('complete');
+        runtime.become('live');
+        expect(engine.calls).toEqual([['in', 1.2]]);
+        expect(host.audioKeeper.paused).toBe(false);
+        expect(audioSession.type).toBe('playback');
+        runtime.become('ended');
+        expect(engine.calls).toEqual([['in', 1.2], ['stop']]);
+        expect(host.audioKeeper.paused).toBe(true);
+        expect(audioSession.type).toBe('auto');
+    });
+
+    it('brings the session up again for a reading taken back from its end', async () => {
+        const engine = sessionEngine();
+        const runtime = fakeRuntime();
+        const hosted = await hostedWith(engine, runtime);
+        const player = fakePlayer('playing');
+        await hosted.present({ role: 'main', session: {}, player });
+        player.become('complete');
+        runtime.become('ended');
+        runtime.become('live');
+        player.become('playing');
+        expect(engine.calls).toEqual([['in', 1.2], ['stop'], ['in', 0.6]]);
+    });
+
+    it('lets the silent loop and the playback audio session go when the reading is over', async () => {
+        const engine = sessionEngine();
+        const runtime = fakeRuntime();
+        const hosted = await hostedWith(engine, runtime);
+        const audioSession = { type: 'playback' };
+        host.env.navigator = { audioSession };
+        host.audioKeeper = { paused: false, pause() { this.paused = true; } };
+        const player = fakePlayer('idle');
+        await hosted.present({ role: 'main', session: {}, player });
+        player.become('playing');
+        player.become('complete');
+        runtime.become('ended');
         expect(host.audioKeeper.paused).toBe(true);
         expect(audioSession.type).toBe('auto');
     });
 
     it('brings the session up at once for a reading already playing when it is shown, and follows only the reading shown', async () => {
         const engine = sessionEngine();
-        const hosted = await hostedWith(engine);
+        const runtime = fakeRuntime();
+        const hosted = await hostedWith(engine, runtime);
         const first = fakePlayer('playing');
         await hosted.present({ role: 'main', session: {}, player: first });
         expect(engine.calls).toEqual([['in', 1.2]]);
@@ -2220,9 +2272,13 @@ describe('the beds under the reading', () => {
         await hosted.present({ role: 'main', session: {}, player: again });
         first.become('paused');
         expect(engine.calls).toEqual([['in', 1.2]]);
+        runtime.become('ended');
+        expect(engine.calls).toEqual([['in', 1.2], ['stop']]);
         await host.ended();
+        runtime.become('live');
+        runtime.become('ended');
         again.become('playing');
-        expect(engine.calls).toEqual([['in', 1.2]]);
+        expect(engine.calls).toEqual([['in', 1.2], ['stop']]);
     });
 
     it('reads without beds where the page has no engine', async () => {

@@ -109,10 +109,14 @@
     {
       "date": "2026-10-09T23:54:07.413Z",
       "summary": "Card beds on iPhone (branch ios-audio-unlock): the Play tap resumes the engine's context and, on WebKit, asks navigator.audioSession for playback and starts a silent looping <audio> so the ring/silent switch no longer mutes Web Audio (Ambient category, MediaSessionManagerCocoa.mm); beds lifted +6 dB where hostContext.platform is mobile (e2e median -22.6 vs -28.5 dBFS on web); About adds level and audio session lines. Owner's phone check pending."
+    },
+    {
+      "date": "2026-10-11T22:26:10.113Z",
+      "summary": "The card's bed fades out when the voice has ended, not when the Player completes (branch bed-ends-with-voice): LiveHost.followReading stops the engine's session and releases the iOS audio session on the runtime's 'ended' (run.finished, after the voice), so a slow voice with no word marks no longer loses the bed under its last words; Pause/Play fades still follow the Player. Evidence: npx vitest run src/live/host 442/442; live-mcp bed/audible/ends/last 10/10."
     }
   ],
-  "updatedAt": "2026-10-09T23:54:07.413Z",
-  "revision": 5,
+  "updatedAt": "2026-10-11T22:26:10.113Z",
+  "revision": 6,
   "summary": "Built on branch snd-001-card-sound (PR #585): the sixteen offered sounds levelled to -29 dBFS RMS +-2 dB through the real engine, beds and tones play in the card ducked under the browser voice, a Sound switch in Settings, Premium Educational teaches one quiet bed, and the trace notes each bed. Not yet witnessed in a real host.",
   "blocker": null
 }
