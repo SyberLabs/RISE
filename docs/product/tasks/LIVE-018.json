@@ -77,6 +77,12 @@
       "ref": "e2e/live.spec.js",
       "note": "Branch live-hardening, local production build, headless Chromium, the demo with a bed on its first beat (starlight), ?measure=1: the output level is above -45 dBFS while it reads, below -60 at the end, above -45 again after Play again pressed at once, and under the next reading asked. Before the fix Play again was silent (-Infinity), twice; after it, passed twice (--repeat-each=2).",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/633",
+      "note": "The gaps after stage 4.5 (branch live-hardening). Open and held for the connector freeze: not merged, no auto-merge, not deployed.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
@@ -99,10 +105,14 @@
     {
       "date": "2026-10-11T23:21:59.300Z",
       "summary": "Hardening after stage 4.5 (branch live-hardening): OpenRouter connect from /live now returns to /live with the question; the venue's Play again sounds the bed again. Gemini, OpenAI and OpenRouter remain unverified against the real services; the OpenRouter probe is the owner's to run."
+    },
+    {
+      "date": "2026-10-11T23:31:46.971Z",
+      "summary": "Opened #633, held for the connector freeze."
     }
   ],
-  "updatedAt": "2026-10-11T23:21:59.300Z",
-  "revision": 5,
+  "updatedAt": "2026-10-11T23:31:46.971Z",
+  "revision": 6,
   "summary": "Design §8 stage 2: the first time RISE Live can be felt. The venue page (this branch) and the OpenRouter text-stream adapter (a parallel branch) are its two halves.",
   "blocker": null
 }

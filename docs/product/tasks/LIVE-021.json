@@ -73,6 +73,12 @@
       "ref": "src/live/runtime.interjection.test.js",
       "note": "Branch live-hardening: 'perception after a graft' replays passage 3, goes back to passage 1, interjects (resume) and asks perception: the replay names passage 6 (where the graft put it) and quotes it; the seek names 6 to 1. Failed before the fix (to: null, the hold now at the old place). graft.test.js holds each piece's own key through two grafts.",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/633",
+      "note": "The gaps after stage 4.5 (branch live-hardening). Open and held for the connector freeze: not merged, no auto-merge, not deployed.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
@@ -91,10 +97,14 @@
     {
       "date": "2026-10-11T23:22:00.029Z",
       "summary": "#620 (69f9e1f3) is merged and live in release a7387e6d. Branch live-hardening: perception names a move made before a graft by the passage's own key, so it quotes the right passage after an answer has moved it. Not accepted."
+    },
+    {
+      "date": "2026-10-11T23:31:47.270Z",
+      "summary": "Opened #633, held for the connector freeze."
     }
   ],
-  "updatedAt": "2026-10-11T23:22:00.029Z",
-  "revision": 4,
+  "updatedAt": "2026-10-11T23:31:47.270Z",
+  "revision": 5,
   "summary": "Design §8 stage 4.5: the reader speaks mid-reading, the voice holds at the phrase, the question goes up with the room, and RISE answers inside the room and resumes, replaces or ends.",
   "blocker": null
 }
