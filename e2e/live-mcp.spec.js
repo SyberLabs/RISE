@@ -985,8 +985,8 @@ test('the card ends a reading only after the voice has said its last beat with w
   expect(ends.at(-1)).toMatchObject({ segmentId: `beat-${SKY_BEATS.beats.length - 1}` });
   // Its whole length at the paced voice's 62 ms a character: nothing cut it short.
   expect(ends.at(-1).durationMs).toBeGreaterThanOrEqual(last.length * 62);
-  // Said before the end; and the words kept with the voice, so the Player completed (on which followReading stops the
-  // bed) as the voice ended: the clock's estimate may fall due a millisecond before the voice reports its end.
+  // Said before the end (run.finished, on which followReading stops the bed); and the words kept with the voice, so the
+  // Player completed as the voice ended: the clock's estimate may fall due a millisecond before the voice reports its end.
   expect(ends.at(-1).at).toBeLessThanOrEqual(finished.at);
   expect(finished.voiceTailMs ?? 0).toBeLessThan(250);
   expect(entries.filter(entry => ['voice.taken', 'voice.failed', 'voice.degraded'].includes(entry.type))).toEqual([]);

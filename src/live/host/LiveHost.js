@@ -507,7 +507,7 @@ export class LiveHost {
                         });
                     }
                     await this.present.presentLive(this.router, session, player);
-                    this.followReading(player);
+                    this.followReading(player, runtime);
                 },
                 discoverVisual: ({ player }) => mountedChamber(player)?.discoverVisual?.() ?? null,
                 controlVisual: ({ player, command, instant }) => mountedChamber(player)?.controlVisual?.(command, { instant: instant === true })
@@ -663,14 +663,17 @@ export class LiveHost {
      * leaves the reveal to whoever plays the reading: the Chamber's own Begin in the Reader, and here,
      * where the Chamber plays nothing (hostPlays), this host. Shown after the factory has opened it, so
      * the reveal is never zeroed behind it. A visual presence's return to playing is not a new reveal.
+     * It closes when the runtime's reading has ended, not when the Player completes: the voice may still be
+     * saying the last words then, and the reading ends only after it (run.finished).
      */
-    followReading(player) {
+    followReading(player, runtime) {
         this.stopFollowingReading?.();
         this.stopFollowingReading = null;
         const engine = this.audioEngine;
         if (!engine || this.destroyed) return;
         let heard = false;
         let up = false;
+        let over = runtime.status === 'ended';
         const follow = state => {
             if (state === 'playing' && !up) {
                 engine.fadeInSession?.(heard ? 0.6 : 1.2);
@@ -679,14 +682,20 @@ export class LiveHost {
             } else if (state === 'paused') {
                 engine.fadeOutSession?.(0.4);
                 up = false;
-            } else if (state === 'complete') {
+            }
+        };
+        const end = ({ status }) => {
+            if (status === 'ended' && !over) {
                 // No audio outlives the reading; Play again opens a new session.
                 engine.stopSession?.();
                 this.releaseAudioSession();
                 up = false;
             }
+            over = status === 'ended';
         };
-        this.stopFollowingReading = player.on('state', ({ state }) => follow(state));
+        const stopPlayer = player.on('state', ({ state }) => follow(state));
+        const stopRuntime = runtime.subscribe(end);
+        this.stopFollowingReading = () => { stopPlayer(); stopRuntime(); };
         follow(player.state);
     }
 
