@@ -84,6 +84,10 @@ describe('Plus customer lifecycle',()=>{
   vi.useFakeTimers({now:NOW*1000});const e=environment();const state=world();const cookie=await claim(e);
   expect((await call(e,'checkout',{request_id:UUID},cookie)).status).toBe(409);expect(state.checkouts).toHaveLength(0);
  });
+ it('refuses duplicate checkout when Stripe returns an unknown nonterminal subscription state',async()=>{
+  vi.useFakeTimers({now:NOW*1000});const e=environment();world();const cookie=await claim(e);const state=world({sub:subscription({status:'future_state'})});
+  expect((await call(e,'checkout',{request_id:UUID},cookie)).status).toBe(409);expect(state.checkouts).toHaveLength(0);
+ });
  it('does not grant portal access from an unverified customer ID',async()=>{
   const e=environment();const state=world();expect((await call(e,'portal',{customer:'cus_1'})).status).toBe(401);expect(state.portals).toHaveLength(0);
  });

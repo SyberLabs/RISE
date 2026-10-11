@@ -28,7 +28,7 @@ All customer POSTs require the request's own `Origin`, JSON content type and a b
 | `GET /api/plus/config` | — | Existing `paymentLink`; new `checkoutAvailable`, `recoveryAvailable`, `offer` (null while closed, otherwise `{amount:899,currency:"usd",interval:"month",characterLimit:60000}`) |
 | `POST /api/plus/checkout` | `{request_id: UUIDv4}` | `{url}` for Stripe Checkout and a 24-hour HttpOnly purchasing-browser cookie. Reuse the request ID after an uncertain network outcome. |
 | `POST /api/plus/claim` | `{session_id}` | 204 and voice/billing cookies, only after Stripe verifies payment and subscription. Newly created sessions also require the matching purchasing-browser cookie. |
-| `GET /api/plus/status` | Signed cookies | Existing status plus `billingAvailable`; a verified renewal refreshes voice/billing cookies. |
+| `GET /api/plus/status` | Signed cookies | Existing status plus `billingAvailable` and authoritative `canSubscribe` (true for signed-out readers or a verified canceled/incomplete-expired subscription); a verified renewal refreshes voice/billing cookies. |
 | `POST /api/plus/portal` | `{}` | `{url}` for Stripe Customer Portal. Customer ID is taken only from verified server-signed identity and checked against Stripe. |
 | `POST /api/plus/recover` | `{email}` | 202 `{accepted:true}`, including an unknown email or email-delivery failure. |
 | `POST /api/plus/restore` | `{token}` | 204 and cookies. An expired, used or invalid link returns 400 `RECOVERY_INVALID`. |
@@ -44,7 +44,7 @@ Recovery email links use `/plus/restore#token=...`. The fragment does not enter 
 - `__Secure-rise_plus_billing` holds signed customer/subscription IDs, Stripe mode and issued/expiry times. It lasts at most 40 days per refresh and permits billing management after paid voice lapses. It uses a different signing purpose from voice and recovery.
 - `__Secure-rise_plus_checkout` holds a signed request identifier, Stripe mode and issued/expiry times for 24 hours. Stripe's matching `client_reference_id` binds the new purchase to that browser. It is not a voice entitlement.
 - All three cookies are HttpOnly, Secure, SameSite=Lax and scoped to `/api/plus`.
-- The subscription's existing Durable Object stores only the latest recovery token SHA-256 digest, expiry and issue timestamp. Successful consumption deletes the record; later requests replace it. An expired digest is inert but is not scheduled for deletion. The record also enforces a 60-second per-subscription email cooldown.
+- The subscription's existing Durable Object also keeps the latest Stripe subscription status for cached repurchase eligibility; signed webhook status/deletion events update it. Its recovery record stores only the latest recovery token SHA-256 digest, expiry and issue timestamp. Successful consumption deletes the record; later requests replace it. An expired digest is inert but is not scheduled for deletion. The record also enforces a 60-second per-subscription email cooldown.
 - Stripe stores the customer/payment/subscription information; Resend receives the recovery email address and bearer link. The Worker stores no email address, raw recovery token, customer text or audio for this flow and does not log them. Resend's own retention applies.
 
 ## Required release evidence
