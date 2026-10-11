@@ -123,8 +123,36 @@ A Current that arrives whole (the card's, from a host's `rise_present`) enters t
 
 **When the reducer refuses an event of a sealed Current anyway.** The reading still plays whole from the sealed Current. The stream keeps the first refusals (`refused`, as many as the refusal budget: `{ code, segmentId | sceneId }`); the runtime writes `run.failed` with them, the passages meant to be said whose words did not arrive whole (`lost`, the first 8, and `passages`, how many), and the code (`TOO_MANY_REFUSALS`, or `EVENTS_REFUSED` when the stream did not fail). "About this reading" keeps that line, and the stage says "N passages could not be spoken". A passage the voice was given no words for is timed by the Player at reading pace; the speech governor does not wait on it.
 
+## The model changes the room (added 2026-10-11, additive)
+
+RISE Live stage 5 ([the RISE Live design](../superpowers/specs/2026-10-09-rise-live-design.md) §6, §8; [the plan](../plans/LIVE-CURRENT.md) §18). While a reading plays, the model may change the room it plays in. Still `rise.current-events.v1`: one new type. A producer that sends none sends exactly what it sent before.
+
+| `type` | Fields | Notes |
+|---|---|---|
+| `room.change` | `kind`, then the kind's own fields | `kind` is one of the four below; a field another kind takes is refused (`EVENT_UNKNOWN_FIELD`), a missing or out-of-bounds one `EVENT_ROOM`. |
+
+| `kind` | Fields | Bounds |
+|---|---|---|
+| `visual.control` | `parameter`, `value`, `surface?` | A command as `controlVisual` takes one: `parameter` a name (letters, at most 40), `value` a finite number or a name (the cue pattern, at most 40); `surface` an engine's surface (`[a-z0-9-]`, at most 40). With a surface, the reducer holds the command to that engine's manifest (`validateVisualCommand`): a parameter it does not change while it runs, or a value of the wrong kind, is `ROOM_CHANGE`. Without one, the running engine's manifest decides when it lands. |
+| `scene.cue` | `scene`, `cue` | `scene` an id, `cue` a beat's cue (`BEAT_CUE_PATTERN`, at most `BEAT_LIMITS.cue`). For a scene this stream declared, the cue must be one the scene takes, as a beat's cue must (`cueCommands`; a figure takes none): else `BEAT_CUE`. A scene this stream did not declare (an interjection's answer cueing the room's scene) is resolved when it lands. |
+| `look.change` | `look` | One of `rise.current.v1`'s looks (`RISE_CURRENT_LOOKS`). |
+| `pace.suggest` | `rate` | A number from 0.5 to 2. |
+
+**Which kind of stream.** Only a beat stream: a `room.change` first makes one, as a scene does, and one in a passage stream is `BEAT_MIXED`. At most 32 a stream (`TOO_MANY_CHANGES`).
+
+**Where it belongs.** The reducer anchors each change before the next beat of its stream: `before`, the number of beats begun when it arrived. It lists them (`roomChanges`: `{ before, change }`, in order) and lowers none of them: the `rise.current.v2` a stream seals to is unchanged, and a sealed Current (the card's) never carries one. The runtime applies a change when the reading reaches its place (plan §18): a cue at once, any other at a phrase boundary, one a phrase.
+
+The line a model writes, its own line between beats, outside a fence:
+
+```text
+@visual <parameter>=<value> [surface=<id>]
+@cue <scene> <cue>
+@look <look>
+@pace <rate>
+```
+
 ## Error codes
 
-Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_THEME`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`, `EVENT_BEAT`, `EVENT_SCENE`, `EVENT_ENDING`.
+Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_THEME`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`, `EVENT_BEAT`, `EVENT_SCENE`, `EVENT_ENDING`, `EVENT_ROOM`.
 
-Meaning: `NOT_OPEN`, `DUPLICATE_OPEN`, `WRONG_CURRENT`, `UNKNOWN_SEGMENT`, `SEGMENT_OPEN`, `SEGMENT_CLOSED`, `DUPLICATE_SEGMENT`, `TOO_MANY_SEGMENTS`, `TEXT_OFFSET`, `TEXT_TOO_LONG`, `RESERVED_TEXT`, `LITERAL_MISMATCH`, `EMPTY_SEGMENT`, `TOO_MANY_EVIDENCE`, `DUPLICATE_EVIDENCE`, `EVIDENCE_SPAN`, `TOO_MANY_DIVES`, `DUPLICATE_DIVE`, `DIVE_ANCHOR`, `SPEECH_STATE`, `SPEECH_ORDER`, `BRANCH_OPEN`, `DUPLICATE_BRANCH`, `BRANCH_POSITION`, `UNKNOWN_BRANCH`, `EMPTY_CURRENT`, `SEQ_CONFLICT`, `SEQUENCE_GAP`, `TOO_MANY_REFUSALS`, `TOO_MANY_EVENTS`, `AFTER_TERMINAL`; for beat streams `BEAT_MIXED`, `BEAT_ID`, `BEAT_DIVE`, `DUPLICATE_SCENE`, `TOO_MANY_SCENES`, `UNKNOWN_SCENE`, `SCENE_CLOSED`, `SCENE_TOO_LARGE`, and `rise.current.v2`'s own beat and scene codes.
+Meaning: `NOT_OPEN`, `DUPLICATE_OPEN`, `WRONG_CURRENT`, `UNKNOWN_SEGMENT`, `SEGMENT_OPEN`, `SEGMENT_CLOSED`, `DUPLICATE_SEGMENT`, `TOO_MANY_SEGMENTS`, `TEXT_OFFSET`, `TEXT_TOO_LONG`, `RESERVED_TEXT`, `LITERAL_MISMATCH`, `EMPTY_SEGMENT`, `TOO_MANY_EVIDENCE`, `DUPLICATE_EVIDENCE`, `EVIDENCE_SPAN`, `TOO_MANY_DIVES`, `DUPLICATE_DIVE`, `DIVE_ANCHOR`, `SPEECH_STATE`, `SPEECH_ORDER`, `BRANCH_OPEN`, `DUPLICATE_BRANCH`, `BRANCH_POSITION`, `UNKNOWN_BRANCH`, `EMPTY_CURRENT`, `SEQ_CONFLICT`, `SEQUENCE_GAP`, `TOO_MANY_REFUSALS`, `TOO_MANY_EVENTS`, `AFTER_TERMINAL`; for beat streams `BEAT_MIXED`, `BEAT_ID`, `BEAT_DIVE`, `DUPLICATE_SCENE`, `TOO_MANY_SCENES`, `UNKNOWN_SCENE`, `SCENE_CLOSED`, `SCENE_TOO_LARGE`, `TOO_MANY_CHANGES`, `ROOM_CHANGE`, and `rise.current.v2`'s own beat and scene codes.
