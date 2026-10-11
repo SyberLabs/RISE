@@ -58,6 +58,7 @@ const GATE = [
     '**/library-divisions.spec.js',
     '**/page-mode.spec.js',
     '**/portal-hit-test.spec.js',
+    '**/plus-customer.spec.js',
     '**/recitation.spec.js',
     '**/request-preview.spec.js',
     '**/scriptorium.spec.js',

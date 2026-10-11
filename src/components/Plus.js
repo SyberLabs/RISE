@@ -58,7 +58,7 @@ export class Plus {
         <button class="plus-secondary" type="button" data-retry hidden>Retry confirmation</button>
         <section class="plus-details" aria-label="What changes with Plus">
           <div><p class="plus-eyebrow">ALWAYS FREE</p><h2>The reading stays yours.</h2><p>Paced text, visuals, sound, and your own material remain free. Plus adds a premium voice; it does not unlock the reader.</p></div>
-          <div><p class="plus-eyebrow">KNOW YOUR ALLOWANCE</p><h2>Clear limits. No surprise top-ups.</h2><p>Up to 10,000 characters per voicing. Replaying audio already stored in this browser uses no more allowance. A new voice, another device, or erased audio requires a new voicing. A daily limit of 25,000 characters also applies.</p><p>When voice is unavailable or allowance runs out, reading continues without it.</p></div>
+          <div><p class="plus-eyebrow">KNOW YOUR ALLOWANCE</p><h2>Clear limits. No surprise top-ups.</h2><p>Up to 5,000 characters in the voice workspace. Replaying audio already stored in this browser uses no more allowance. A new voice, another device, or erased audio requires a new voicing. A daily limit of 25,000 characters also applies.</p><p>When voice is unavailable or allowance runs out, reading continues without it.</p></div>
         </section>
         <section class="plus-recovery" aria-labelledby="plus-recovery-title">
           <div><p class="plus-eyebrow">ALREADY SUBSCRIBED?</p><h2 id="plus-recovery-title">Pick up on this browser.</h2><p>Use the email you paid with to restore access or manage an existing subscription. No separate RISE password.</p></div>
@@ -78,12 +78,13 @@ export class Plus {
     if (this.destroyed) return;
     this.config = config; this.status = status;
     const price = this.$('[data-price]');
-    const canBuy = config.checkoutAvailable && status.confirmed && !this.callback && !status.subscriber && !status.billingAvailable;
+    const canBuy = config.checkoutAvailable && status.confirmed && !this.callback && !status.subscriber;
     price.textContent = config.checkoutAvailable
       ? `${new Intl.NumberFormat('en-US', { style: 'currency', currency: config.offer.currency }).format(config.offer.amount / 100)} / month`
       : 'Subscriptions are not available yet.';
     this.$('[data-offer]').textContent = config.checkoutAvailable ? `${config.offer.characterLimit.toLocaleString('en-US')} characters of narration each paid month.` : 'Free reading remains open. Existing subscribers can restore access below or contact support.';
     this.$('[data-checkout]').hidden = !canBuy;
+    this.$('[data-checkout]').textContent = status.billingAvailable ? 'Subscribe again' : 'Subscribe to Plus';
     this.$('[data-billing]').hidden = !status.billingAvailable;
     this.$('[data-voice]').hidden = !status.subscriber;
     this.$('[data-voice]').textContent = readPlusContinuation() ? 'Continue your reading →' : 'Read with your Plus voice →';
@@ -103,7 +104,7 @@ export class Plus {
     try { await task(); } finally { this.busy = false; if (!this.destroyed) button.disabled = false; }
   }
   async purchase() {
-    if (!this.config?.checkoutAvailable || !this.status?.confirmed || this.callback || this.status?.subscriber || this.status?.billingAvailable) return;
+    if (!this.config?.checkoutAvailable || !this.status?.confirmed || this.callback || this.status?.subscriber) return;
     await this.run(this.$('[data-checkout]'), async () => {
       this.message('Opening secure checkout…');
       const result = await startPlusCheckout(this.requestId);

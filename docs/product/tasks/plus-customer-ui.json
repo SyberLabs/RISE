@@ -32,6 +32,18 @@
       "ref": "scripts/measure-first-load.mjs",
       "date": "2026-10-11",
       "note": "Build passed; first-load61.9KB brotli under64KB. Roadmap and hygiene checks pass. Required CI and production paid lifecycle remain pending."
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/plus-customer.spec.js",
+      "date": "2026-10-11",
+      "note": "Four customer browser cases plus corrected standalone account expectation passed (5/5). Full gate:59 passed,3 existing skips,one test-only label mismatch corrected and rerun successfully. Sound sample passed with hydrated release audio. Customer flow now included in required browser gate."
+    },
+    {
+      "kind": "test",
+      "ref": "src/app/plus-customer.test.js",
+      "date": "2026-10-11",
+      "note": "Independent review regressions reproduced and fixed: a stalled JSON body respects deadline; verified former subscribers can subscribe again while backend rejects duplicate active subscriptions. Both focused files pass16 tests."
     }
   ],
   "activity": [
@@ -42,10 +54,14 @@
     {
       "date": "2026-10-11T18:18:34.240Z",
       "summary": "Implemented customer surface and session-local paid continuation; record local verification without claiming launch."
+    },
+    {
+      "date": "2026-10-11T18:23:59.067Z",
+      "summary": "Record browser verification and independent review fixes; production acceptance remains pending."
     }
   ],
-  "updatedAt": "2026-10-11T18:18:34.240Z",
-  "revision": 2,
+  "updatedAt": "2026-10-11T18:23:59.067Z",
+  "revision": 3,
   "summary": "Complete the public subscription client without gating free reading or repurposing staff access.",
   "blocker": "Integration with Worker endpoints, required CI and deployed paid/recovery verification remain pending; branch tests do not establish production acceptance."
 }
