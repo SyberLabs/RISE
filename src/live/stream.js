@@ -40,7 +40,7 @@ import {
     validateDiveAnchor,
     validateRiseCurrent
 } from '../core/rise-current.js';
-import { BEAT_LIMITS, validateBeats, validateScenes } from '../core/beats.js';
+import { BEAT_LIMITS, cueCommands, engineTakes, validateBeats, validateScenes } from '../core/beats.js';
 import { sceneCodeBytes } from '../core/experience-program.js';
 import { LiveProtocolError, validateEvent } from './protocol.js';
 
@@ -60,7 +60,9 @@ export const STREAM_LIMITS = Object.freeze({
     totalText: RISE_CURRENT_LIMITS.totalText,
     /** A beat stream: one segment per beat of a rise.current.v2, and its scenes. */
     beats: BEAT_LIMITS.beats,
-    scenes: BEAT_LIMITS.scenes
+    scenes: BEAT_LIMITS.scenes,
+    /** Changes to the room the model may make in one stream (docs/plans/LIVE-CURRENT.md §18). */
+    roomChanges: 32
 });
 
 /** A `rise.current.v2` beat for a beat segment: what it says is its words; with a hold, its words are shown. */
@@ -150,8 +152,31 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
     const scenes = [];
     const sceneById = new Map();
     const refusedScenes = [];
+    /** The model's changes to the room, in order, each anchored before the next beat: { before, change }. */
+    const roomChanges = [];
 
     const terminal = () => phase === 'complete' || phase === 'cancelled' || phase === 'failed';
+
+    /**
+     * A change to the room (docs/plans/LIVE-CURRENT.md §18), anchored before the next beat. A cue to a scene this stream
+     * declared is held as a beat's cue is; a command that names its engine is held to that engine's manifest. A scene
+     * this stream did not declare is the room's, and the runtime resolves it where the change lands.
+     */
+    function changeRoom(event) {
+        expectKind('beats');
+        if (roomChanges.length >= STREAM_LIMITS.roomChanges) refuse('TOO_MANY_CHANGES', `A Current changes the room at most ${STREAM_LIMITS.roomChanges} times`);
+        const { schema: _schema, currentId: _currentId, seq: _seq, type: _type, ...change } = event;
+        if (change.kind === 'scene.cue' && sceneById.has(change.scene)) {
+            const scene = sceneById.get(change.scene);
+            const takes = scene.form === 'code' || (scene.form === undefined && cueCommands(scene.clean.engine, change.cue) !== null);
+            if (!takes) refuse('BEAT_CUE', `Scene ${scene.id} does not take the cue ${change.cue}`);
+        }
+        if (change.kind === 'visual.control' && change.surface !== undefined && !engineTakes(change)) {
+            refuse('ROOM_CHANGE', `${change.surface} does not change ${change.parameter} to ${change.value} while it runs`);
+        }
+        roomChanges.push({ before: segments.length, change });
+        kind = 'beats';
+    }
 
     /** Refuse the other kind of stream; the kind itself is set only once the event is applied. */
     function expectKind(wanted) {
@@ -481,6 +506,10 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
                 sceneText(event);
                 break;
 
+            case 'room.change':
+                changeRoom(event);
+                break;
+
             case 'current.cancel':
                 phase = 'cancelled';
                 cancelReason = event.reason ?? null;
@@ -635,6 +664,8 @@ export function createCurrentStream({ refusals: refusalBudget = STREAM_LIMITS.re
         get resumeFrom() { return resumeFrom; },
         /** The ending a completed answer named (`resume`, `replace` or `end`), or null: an interjection's to read. */
         get ending() { return ending; },
+        /** The model's changes to the room, in order: { before, change }, `before` the beats begun when it came. */
+        get roomChanges() { return roomChanges.map(item => deepFreeze({ before: item.before, change: { ...item.change } })); },
         /** The scenes the admission refused, in order: { sceneId, message } with the Worker's sentence. */
         get refusedScenes() { return refusedScenes.map(item => Object.freeze({ ...item })); },
         /** The events refused, the first as many as the refusal budget: { code } and the segmentId or sceneId it named. */
