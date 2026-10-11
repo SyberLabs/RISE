@@ -25,7 +25,7 @@ import {
     hasLiteralForbidden,
     hasReservedMarker
 } from '../core/rise-current.js';
-import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES } from '../core/beats.js';
+import { BEAT_CUE_PATTERN, BEAT_FIELDS as V2_BEAT_FIELDS, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES } from '../core/beats.js';
 import { INTERJECTION_ENDINGS } from './interjection.js';
 
 export const RISE_CURRENT_EVENTS_SCHEMA = 'rise.current-events.v1';
@@ -262,7 +262,8 @@ function chunk(value, path, literal = false) {
     return clean;
 }
 
-const BEAT_FIELDS = ['show', 'hold', 'scene', 'cue', 'transition', 'place', 'size', 'type', 'emphasis', 'sound'];
+/** A beat's fields but what it says, which is its segment's text. */
+const BEAT_FIELDS = V2_BEAT_FIELDS.filter(field => field !== 'say');
 const CUE = new RegExp(BEAT_CUE_PATTERN, 'u');
 const ENGINE = /^[a-z0-9-]{1,40}$/u;
 

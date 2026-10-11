@@ -79,6 +79,14 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
         kind: 'model', name: 'Host model', provider: typeof host === 'string' && host.trim() ? clip(`MCP host at ${host.trim()}`, 120) : 'MCP host'
     });
     let opened = 0;
+    /** The generated scenes and figures of the sealed Currents this adapter has taken, as `id`, form and source. */
+    const sealedScenes = new Set();
+    const sceneKey = scene => JSON.stringify([scene.id, scene.code === undefined ? 'svg' : 'code', scene.code ?? scene.svg]);
+    const remember = current => {
+        for (const scene of Array.isArray(current?.scenes) ? current.scenes : []) {
+            if (scene.code !== undefined || scene.svg !== undefined) sealedScenes.add(sceneKey(scene));
+        }
+    };
 
     return {
         id: 'mcp-app',
@@ -86,6 +94,17 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             providerAudio: false, interruption: true, resume: 'replay', microphone: false,
             evidence: false, dives: Boolean(port.canSample?.()), streaming: false
         }),
+
+        /**
+         * The reducer's admission of a generated scene or a figure in a sealed v2 Current's beat stream
+         * (current-events.js). What plays is compiled from the sealed Current itself, so the stream's verdict must
+         * agree with it: a scene is admitted exactly when it is, byte for byte, one of a Current taken here sealed and
+         * validated. Where it is drawn it is held again (a figure by svg-admission.js in the Chamber, code by the
+         * scene worker's guard).
+         */
+        admitScene(scene) {
+            return sealedScenes.has(sceneKey(scene)) ? null : `Scene "${scene.id}" was refused: it is not a scene of the Current the host handed over.`;
+        },
 
         async open(input) {
             const request = validateOpenRequest(input);
@@ -99,7 +118,7 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             const writer = createEventWriter(currentId);
             const log = [];
             let channel = createChannel({ capacity });
-            /** The Current as it was handed over, whole: what the runtime compiles (beats ride here, not in events). */
+            /** The Current as it was handed over, whole: what the runtime compiles; the events give the voice its words. */
             let sealed = null;
             let closed = false;
             let finished = false;
@@ -139,6 +158,7 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
                 try {
                     const events = currentToEvents(current);
                     sealed = current;
+                    remember(current);
                     return acceptEvents(events);
                 } catch (error) {
                     fail('INVALID_CURRENT', `The Current was refused: ${String(error?.message ?? error)}`);
@@ -151,9 +171,10 @@ export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs
             const timer = clock.setTimer(() => fail('NO_ANSWER', 'The host did not answer in time'), timeoutMs);
             stopWaiting = () => { off?.(); timer(); };
             // A host that admitted the Current itself hands it over whole with its events, so the runtime compiles the
-            // sealed Current (its beats never pass through the stream) exactly as when the port delivers one.
+            // sealed Current exactly as when the port delivers one.
             if (!isDive && admittedEvents) {
                 sealed = admittedCurrent;
+                remember(admittedCurrent);
                 acceptEvents(admittedEvents);
             }
             // A Current the host had already handed over was delivered as we subscribed.

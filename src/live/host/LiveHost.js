@@ -588,6 +588,14 @@ export class LiveHost {
             `speech starts: ${journal.filter(entry => entry.type === 'speech.start').length}`,
             `speechSynthesis: ${this.caps.speechOutput}, ${voices}${synth ? `, speaking=${synth.speaking} pending=${synth.pending} paused=${synth.paused}` : ''}`
         ];
+        // What the reducer refused of the Current, and the passages whose words never reached the voice (runtime.js):
+        // kept here, since the trace below keeps only its last lines.
+        const refused = journal.findLast(entry => entry.type === 'run.failed' && Array.isArray(entry.refused));
+        if (refused) {
+            const events = refused.refused.map(item => [item.code, item.segmentId ?? item.sceneId].filter(Boolean).join(' ')).join(', ');
+            const lost = refused.lost?.length ? `; ${refused.passages} not spoken: ${refused.lost.join(', ')}${refused.passages > refused.lost.length ? ', …' : ''}` : '';
+            lines.push(`refused: ${refused.code} (${events})${lost}`);
+        }
         if (this.browserVoices) {
             // What the Voice row offers on this device, so a reader can say what their phone has.
             const names = this.browserVoices.offered.map(item => item.name);
