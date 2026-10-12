@@ -20,8 +20,11 @@ import { OPEN_LIMITS } from './adapter.js';
 /** Attempts in all for one picture; pictures one reading may ask for. */
 export const ILLUSTRATOR_LIMITS = Object.freeze({ attempts: OPEN_LIMITS.attempts, perReading: 4 });
 
-/** A brief that asks for motion: a code scene, unless the composer preferred a figure. */
-const MOTION = /\b(?:animat\w*|motion|moving|moves?|simulat\w*)\b/iu;
+/**
+ * A brief that asks for motion: a code scene, unless the composer preferred a figure. Only words that name motion as
+ * the picture (a labelled diagram of heat "moving" between states is still a figure).
+ */
+const MOTION = /\b(?:animat\w*|simulat\w*|in motion)\b/iu;
 /** A brief that asks for a drawn thing: the illustrator's, even where it names an engine or one of its cues. */
 const DRAWN = /\b(?:diagram\w*|chart\w*|graph\w*|label\w*|plot\w*|maps?|figures?|sketch\w*|drawing\w*|tables?)\b/iu;
 /** The endings a cue's name takes in a brief: `brighter` is `bright`, `calmer` is `calm`, `surging` is `surge`. */

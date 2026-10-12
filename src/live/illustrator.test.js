@@ -40,7 +40,9 @@ describe('the ladder: RISE first, a model second', () => {
         expect(modelMedium('a labelled diagram of the three states of water')).toBe('figure');
         expect(modelMedium('a labelled diagram', 'cue')).toBe('figure');
         expect(modelMedium('a diagram', 'scene')).toBe('scene');
-        expect(modelMedium('molecules moving faster as water warms')).toBe('scene');
+        expect(modelMedium('a labelled diagram of water, with heat moving between the states')).toBe('figure');
+        expect(modelMedium('a simulation of molecules as water warms')).toBe('scene');
+        expect(modelMedium('the planets in motion')).toBe('scene');
         expect(modelMedium('an animation of a wave')).toBe('scene');
         expect(modelMedium('an animation of a wave', 'figure')).toBe('figure');
     });

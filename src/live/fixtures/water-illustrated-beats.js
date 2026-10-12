@@ -42,6 +42,12 @@ export const WATER_FIGURE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 
 /** The same figure, with what no figure may carry: the admission refuses it by name. */
 export const WATER_FIGURE_REFUSED = WATER_FIGURE.replace('</svg>', '  <script>document.title = "drawn"</script>\n</svg>');
 
+/** A tesseract the demo's illustrator cannot draw admissibly: small, and with a <script> every time. */
+export const TESSERACT_REFUSED = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect x="20" y="20" width="60" height="60" fill="none" stroke="currentColor"/>
+  <script>rotate()</script>
+</svg>`;
+
 const fence = svg => ['@scene picture svg', '```svg', svg, '```', ''].join('\n');
 
 /** What the composer writes, asked about the states of water. */
@@ -87,7 +93,7 @@ export const DIAGRAM_ANSWER = [
  */
 export function illustratorTextFor(request) {
     const { attempt } = request.illustration;
-    if (/tesseract/iu.test(request.prompt)) return fence(WATER_FIGURE_REFUSED);
+    if (/tesseract/iu.test(request.prompt)) return fence(TESSERACT_REFUSED);
     if (/three states of water/iu.test(request.prompt) && attempt === 1) return `@say Here is your diagram.\n${fence(WATER_FIGURE_REFUSED)}`;
     return fence(WATER_FIGURE);
 }

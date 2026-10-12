@@ -17,8 +17,8 @@ import { createTextStreamAdapter } from './text-stream.js';
 
 /** Uneven pieces, as a provider's deltas come. */
 const DELTA_SIZES = Object.freeze([7, 19, 3, 31, 11, 23]);
-/** A picture is written in larger pieces, as a model writes markup: some 600 characters a second at the default. */
-const PICTURE_SCALE = 4;
+/** A picture is written in larger pieces, as a model writes markup: some 300 characters a second at the default. */
+const PICTURE_SCALE = 2;
 
 /** `everyMs` between deltas: at the default, some 150 characters a second, about the pace a model writes. */
 export function createMockBeatsAdapter({ clock = createRealClock(), everyMs = 100 } = {}) {

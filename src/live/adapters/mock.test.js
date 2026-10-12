@@ -470,8 +470,8 @@ describe('the demo that writes in beats (the venue’s)', () => {
         for (const attempt of [1, 2, 3]) expect(illustratorTextFor({ prompt: 'a tesseract unfolding', illustration: { attempt } })).toContain('<script>');
         const { reducer, arrivals } = await stream({ intent: 'illustrate', prompt: 'a labelled diagram of ice, water and steam', illustration: { medium: 'figure', attempt: 1, said: [] } });
         expect(arrivals.map(({ event }) => event.type).filter(type => type !== 'scene.text')).toEqual(['current.open', 'scene.declare', 'current.complete']);
-        // A picture is written faster than words: the figure is whole within a few seconds.
-        expect(arrivals.at(-1).at).toBeLessThan(4_000);
+        // A picture is written faster than words, as a model writes markup: the figure is whole within seconds.
+        expect(arrivals.at(-1).at).toBeLessThan(10_000);
         expect(reducer.snapshot().phase).not.toBe('failed');
     });
 });
