@@ -36,6 +36,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/646",
       "note": "Branch live-face. Local: vitest src/scenes + src/live/host 625 passed; e2e/live.spec.js (full) 37 passed, plus the one scene test rerun green after the face canvas got its own class; card subset 13 passed; face worker frame median 0.40 ms; blink brightness step 0.010; hidden 623-640 ms after the first atom. Merged as b1689a66; deployed (release.txt b1689a66, 2026-10-13). Not accepted by a human.",
       "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/648",
+      "note": "The home screen as a room, commit d21fef21 on branch live-home-revamp. Local: vitest src/live/host 490 passed; e2e/live.spec.js (full, whole file) 39 passed, including the new room test (repeated 6x green); e2e/live-mcp.spec.js field|self-contained 13 passed; ci-hygiene, vite build, first load 62.2 KB br, docs:diagram unchanged. Rendered: no edge at the eye square on all four skins (inside vs outside within 1 level); smallest text 5.73-6.24:1. Not merged, deployed or accepted by a human at this record.",
+      "date": "2026-10-12"
     }
   ],
   "activity": [
@@ -54,10 +60,14 @@
     {
       "date": "2026-10-12T23:02:27.040Z",
       "summary": "The Live home screen revamped as a room: one ground with the face, the question as a single line, providers and voice as a quiet line (branch live-home-revamp)"
+    },
+    {
+      "date": "2026-10-12T23:37:05.581Z",
+      "summary": "PR #648 opened (d21fef21) with local verification evidence for the home-screen revamp"
     }
   ],
-  "updatedAt": "2026-10-12T23:02:27.040Z",
-  "revision": 4,
+  "updatedAt": "2026-10-12T23:37:05.581Z",
+  "revision": 5,
   "summary": "RISE's own face in the Live venue: the approved Sophia study as a native scene engine the venue runs behind its ask bar, resting at arrival, listening, thinking until the first words, stepping back while a reading speaks, and at rest after it.",
   "blocker": null
 }
