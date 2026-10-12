@@ -23,7 +23,7 @@ import {
 const MESSAGE_LIMIT = 300;
 const PHASES = ['load', 'init', 'frame', 'cue', 'input'];
 const MAX_STEP_MS = 100;
-/** Inputs waiting behind the pointer's rate, at most; a press or a release is never the one let go. */
+/** Coalescible inputs waiting behind the pointer's rate; a press or release is never the one let go. */
 const POINTER_QUEUE = 16;
 /** Refusal notes one scene may cause, at most: each control and reason once. */
 const REFUSAL_NOTES = 16;
@@ -126,7 +126,16 @@ export function createSceneRuntime({
     else pointerQueue.push(message);
     if (pointerQueue.length > POINTER_QUEUE) {
       const move = pointerQueue.findIndex(item => item.kind === 'pointermove');
-      pointerQueue.splice(move < 0 ? 0 : move, 1);
+      const latest = pointerQueue.findLastIndex(item => item.kind === 'pointermove');
+      if (move >= 0 && move !== latest) pointerQueue.splice(move, 1);
+    }
+    // At most one second's delivery can wait. Overflow ends the scene instead of losing a release and leaving a drag active.
+    if (pointerQueue.length > SCENE_LIMITS.inputPointerPerSecond) {
+      stopPointer?.();
+      stopPointer = null;
+      pointerQueue.length = 0;
+      fail('input', 'The scene received too many queued pointer inputs');
+      return;
     }
     pumpPointer();
   }

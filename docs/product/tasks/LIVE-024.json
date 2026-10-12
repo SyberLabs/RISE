@@ -70,6 +70,18 @@
       "ref": "https://github.com/SyberLabs/RISE/commit/a39cd515",
       "note": "PR #641 squash-merged to main as a39cd515; release.txt on the live site reads a39cd515 (2026-10-12). Deployed; not accepted by a human.",
       "date": "2026-10-12"
+    },
+    {
+      "kind": "test",
+      "ref": "src/scenes/scene-runtime.test.js",
+      "note": "Narrow PR641 pointer queue P2 repair on codex/pointer-release-queue at01b3789f. Real runtime probe red:20 discrete inputs delivered17; three integrated regressions red before change, and a fourth latest-move regression red before preserving its position. Four focused runtime/worker/widgets/layer files107 tests pass. Final fast121files2746 passed/4 existing skips; hygiene9, roadmap95, security threshold/compatibility, unchanged architecture diagram and first-load62.1KB br/64budget pass. Repair evicts only older moves at16soft slots, keeps ordered presses/releases/cancel and latest coalesced move at120/s, and terminates overloaded scene through existing fallback rather than lose a discrete input or grow beyond120queued inputs. Final browser gate61passed/3skipped/3failed; failed-only retry Gallery passed, two audible-audio assertions repeated on pristine01b baseline. Linux exact PR CI pending; no audio source/test edits. task source owner/deployed/human acceptance metadata retained.",
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/645",
+      "note": "Root-authorized narrow PR641 pointer queue P2 repair. Runtime, four regressions and appended task evidence only; no source-owner replacement or human acceptance. Required exact-head Linux CI/root independent review pending. Local gate baseline audio limitation disclosed.",
+      "date": "2026-10-12"
     }
   ],
   "activity": [
@@ -84,10 +96,26 @@
     {
       "date": "2026-10-12T07:23:14.075Z",
       "summary": "PR #641 merged as a39cd515 and deployed (release.txt a39cd515, 2026-10-12); delivery deployed"
+    },
+    {
+      "date": "2026-10-12T14:39:11.558Z",
+      "summary": "Root-authorized narrow pointer queue P2 repair: preserve discrete order and bound overload; source owner/deployed metadata retained, local focused106 tests pass, integration pending"
+    },
+    {
+      "date": "2026-10-12T14:46:59.889Z",
+      "summary": "Preserved latest coalesced move amid discrete backlog;107 focused and2746 fast tests pass, bounded overflow verified, exact final browser gate pending"
+    },
+    {
+      "date": "2026-10-12T15:06:43.514Z",
+      "summary": "Final local gate failures attributed: Gallery retry passed; two audio checks also fail pristine01b, no unrelated audio edits; exact Linux PR CI required"
+    },
+    {
+      "date": "2026-10-12T15:07:50.103Z",
+      "summary": "Opened narrow PR645 for discrete pointer queue repair; root review/exact CI pending, broader interactive ownership and deployed task status retained"
     }
   ],
-  "updatedAt": "2026-10-12T07:23:14.075Z",
-  "revision": 3,
+  "updatedAt": "2026-10-12T15:07:50.103Z",
+  "revision": 7,
   "summary": "Design §8 stage 6: rise.input into the scene worker, scene.input out, a widget set in rise.lib, and the neural-network page of VISION §2.5, with the sandbox kept as the boundary.",
   "blocker": null
 }
