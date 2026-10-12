@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 /**
  * The Plus routes (worker/plus.mjs), with Stripe and the vendor behind a stubbed fetch.
  *
@@ -171,8 +172,14 @@ const POST_HEADERS = { Origin: SITE, 'Content-Type': 'application/json', 'CF-Con
 const claimRequest = (body = { session_id: 'cs_test_1' }, headers = {}) => new Request(`${SITE}/api/plus/claim`, {
   method: 'POST', headers: { ...POST_HEADERS, ...headers }, body: JSON.stringify(body)
 });
+const scopeForCookie = cookie => {
+  try {
+    const claim = JSON.parse(Buffer.from(cookie.split(';')[0].split('=')[1].split('.')[1], 'base64url').toString());
+    return createHash('sha256').update(JSON.stringify(['customer', claim.l, claim.c])).digest('hex');
+  } catch { return undefined; }
+};
 const voiceRequest = (cookie, atoms, headers = {}, extra = {}) => new Request(`${SITE}/api/plus/voice`, {
-  method: 'POST', headers: { ...POST_HEADERS, ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: JSON.stringify({ atoms, ...extra })
+  method: 'POST', headers: { ...POST_HEADERS, ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: JSON.stringify({ atoms, audioScope: scopeForCookie(cookie), ...extra })
 });
 const vendorVoiceOf = call => decodeURIComponent(new URL(call[0]).pathname.split('/')[3]);
 const setCookieOf = response => response.headers.getSetCookie()[0] ?? null;
@@ -1485,7 +1492,7 @@ describe('durable account-private audio', () => {
 });
 
 describe('saved audio access and erasure', () => {
-  const erase = (cookie, headers = {}) => new Request(`${SITE}/api/plus/audio/erase`, { method: 'POST', headers: { ...POST_HEADERS, Cookie: cookie, ...headers }, body: '{}' });
+  const erase = (cookie, headers = {}) => new Request(`${SITE}/api/plus/audio/erase`, { method: 'POST', headers: { ...POST_HEADERS, Cookie: cookie, ...headers }, body: JSON.stringify({ audioScope: scopeForCookie(cookie) }) });
 
   it('erases only the authenticated owner and never regenerates the deleted render', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
@@ -1507,6 +1514,25 @@ describe('saved audio access and erasure', () => {
     expect(state.vendorCalls).toBe(2);
   });
 
+  it('rejects stale or missing deletion scope after account A changes to B, leaving both recordings intact', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world({ customers: { sub_other: 'cus_other' } });
+    const first = await cookieFor(env);
+    const other = await cookieFor(env, { s: 'sub_other', c: 'cus_other' });
+    const saved = await (await worker.fetch(voiceRequest(first, ['Hello']), env)).json();
+    await (await worker.fetch(voiceRequest(other, ['Hello']), env)).json();
+    for (const audioScope of [saved.cache.scope, undefined]) {
+      const stale = new Request(`${SITE}/api/plus/audio/erase`, { method: 'POST', headers: { ...POST_HEADERS, Cookie: other }, body: JSON.stringify({ audioScope }) });
+      const refused = await worker.fetch(stale, env);
+      expect([refused.status, await codeOf(refused)]).toEqual([409, 'PLUS_SESSION_CHANGED']);
+    }
+    for (const cookie of [first, other]) {
+      expect((await (await worker.fetch(voiceRequest(cookie, ['Hello']), env)).json()).cache.hit).toBe(true);
+    }
+    expect(state.vendorCalls).toBe(2);
+  });
+
   it('denies erased-audio control without verified identity and same origin', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
@@ -1514,6 +1540,24 @@ describe('saved audio access and erasure', () => {
     expect((await worker.fetch(erase(''), env)).status).toBe(402);
     expect((await worker.fetch(erase(await cookieFor(env), { Origin: 'https://other.example' }), env)).status).toBe(403);
     expect(state.vendorCalls).toBe(0);
+  });
+
+  it('rejects missing or stale generation scope before claiming or debiting either account', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world({ customers: { sub_other: 'cus_other' } });
+    const first = await cookieFor(env);
+    const other = await cookieFor(env, { s: 'sub_other', c: 'cus_other' });
+    for (const audioScope of [scopeForCookie(first), undefined]) {
+      const refused = await worker.fetch(voiceRequest(other, ['Hello'], {}, { audioScope }), env);
+      expect([refused.status, await codeOf(refused)]).toEqual([409, 'PLUS_SESSION_CHANGED']);
+    }
+    expect(state.vendorCalls).toBe(0);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(0);
+    expect(await usedIn(env, 'sub:sub_other', START)).toBe(0);
+    // Neither failed precondition left a reservation or no-repeat tombstone.
+    for (const cookie of [first, other]) expect((await worker.fetch(voiceRequest(cookie, ['Hello']), env)).status).toBe(200);
+    expect(state.vendorCalls).toBe(2);
   });
 
   it('new text and different server-authorized voice ids generate distinct renders', async () => {

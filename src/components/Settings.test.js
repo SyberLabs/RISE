@@ -430,7 +430,7 @@ describe('Settings Plus voice', () => {
 
     it('deletes saved audio only after confirmation and reports server success separately from browser forget', async () => {
         const fetchImpl = vi.fn(async url => Response.json(url === '/api/plus/status'
-            ? { admin: true, subscriber: false, available: false, allowance: null }
+            ? { admin: true, subscriber: false, available: false, allowance: null, audioScope: 'a'.repeat(64) }
             : url === '/api/plus/audio/erase' ? { erased: true } : [{ slug: 'default', label: 'Default' }]));
         vi.stubGlobal('fetch', fetchImpl);
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
@@ -440,10 +440,14 @@ describe('Settings Plus voice', () => {
         expect(button).not.toBeNull();
         button.click();
         expect(fetchImpl.mock.calls.filter(([url]) => url === '/api/plus/audio/erase')).toHaveLength(0);
-        confirm.mockReturnValue(true);
+        confirm.mockImplementation(() => {
+            settings.plusStatus.audioScope = 'b'.repeat(64);
+            return true;
+        });
         button.click();
         await vi.waitFor(() => expect(settings.container.querySelector('[data-plus-audio-status]').textContent).toContain('deleted'));
         expect(fetchImpl.mock.calls.filter(([url]) => url === '/api/plus/audio/erase')).toHaveLength(1);
+        expect(JSON.parse(fetchImpl.mock.calls.find(([url]) => url === '/api/plus/audio/erase')[1].body)).toEqual({ audioScope: 'a'.repeat(64) });
         expect(fetchImpl.mock.calls.some(([url]) => url === '/api/plus/forget')).toBe(false);
         settings.destroy();
         confirm.mockRestore();

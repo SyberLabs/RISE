@@ -11,8 +11,8 @@
  *   POST /api/plus/recover { email }      generic acknowledgement; verified-email recovery
  *   POST /api/plus/restore { token }      consumes an emailed proof once
  *   POST /api/plus/claim   { session_id }   the Checkout success page; 204 and the cookie once Stripe confirms
- *   POST /api/plus/voice   { atoms }        voices one short reading on the lab's key (contract below)
- *   POST /api/plus/audio/erase {}           deletes this verified account's saved audio and timing, fencing unfinished writes
+ *   POST /api/plus/voice   { atoms, audioScope } voices one short reading on the lab's key (contract below)
+ *   POST /api/plus/audio/erase { audioScope } deletes this verified account's saved audio and timing, fencing unfinished writes
  *   POST /api/plus/forget                   clears voice and billing identity cookies
  *   GET  /api/plus/voices                   the voices a reader may choose: [{ slug, label }], never a vendor id; no cookie needed
  *   GET  /api/plus/config                   { paymentLink }: PLUS_PAYMENT_LINK when it is an https://buy.stripe.com/ link of the
@@ -115,7 +115,7 @@
  * test key, and Stripe's public test card then bought real ElevenLabs characters.
  */
 import { getAdmin, verifyAdmin } from './plus-admin.mjs';
-import { PlusAudio } from './plus-audio.mjs';
+import { PlusAudio, audioJson } from './plus-audio.mjs';
 import { spendingPolicy, paidBudget, adminBudget } from './plus-budget.mjs';
 import { mapAlignment } from '../src/audio/poem-alignment.js';
 import { VOICE_PACK_SCHEMA, voiceAssetKey } from '../src/audio/voice-pack-key.js';
@@ -437,7 +437,7 @@ const subDailyCap = env => (/^\d+$/u.test(String(env.PLUS_SUB_DAILY_CHAR_CAP ?? 
 /** One meter: a Durable Object instance by name. */
 async function meter(env, name, op, body) {
   const stub = env.PLUS_METER.get(env.PLUS_METER.idFromName(name));
-  const response = await stub.fetch(`https://plus-meter/${op}`, { method: 'POST', body: JSON.stringify(body) });
+  const response = await stub.fetch(`https://plus-meter/${op}`, { method: 'POST', body: op === 'audio/complete' ? audioJson(body) : JSON.stringify(body), duplex: 'half' });
   if (!response.ok) throw new Error('Plus meter unavailable');
   const answer = await response.json();
   if (!answer || typeof answer !== 'object' || answer.error) throw new Error('Invalid Plus meter answer');
@@ -522,16 +522,19 @@ async function voice(request, env, now, admin = null) {
   if (!Number.isSafeInteger(standing.budgetMicros) || standing.budgetMicros <= 0) return lapsed();
   const limit = Math.min(characterLimit(standing), Math.floor(standing.budgetMicros / policy.rate));
   const scope = await audioScope(admin, standing, env);
+  // A stale tab must not spend or read under credentials changed by another tab.
+  // This is only an intent precondition; the owner above comes from verified identity.
+  if (body.audioScope !== scope) return refuse(409, 'PLUS_SESSION_CHANGED', 'Your Plus account changed. Open this reading again to check access.');
   const model = env.PLUS_VOICE_MODEL || 'eleven_flash_v2_5';
   // Version every output-affecting default, including the vendor endpoint and format.
   // The principal is a verified billing customer (test/live separated), never a client id.
   const hash = await sha256(JSON.stringify(['rise.plus.audio.v1', scope, 'elevenlabs', '/v1/text-to-speech/with-timestamps', voiceId, model, 'mp3_44100_64', 'vendor-default-settings-v1', text]));
   const cacheName = `audio:v1:${scope}`;
   const cached = await meter(env, cacheName, 'audio/claim', { render: hash });
-  const responseFor = async (mapped, audio, allowance, expiresAt, hit) => reply(200, {
+  const responseFor = async (mapped, audio, allowance, expiresAt, hit) => new Response(audioJson({
     pack: voicePack(mapped, hash, slug, allowed.get(slug).label, model, n), audio, allowance,
     cache: { hit, expiresAt, scope }
-  }, admin ? {} : { 'Set-Cookie': await setCookie({ ...standing, iat: now }, env, now) });
+  }), { headers: { ...JSON_HEADERS, ...(admin ? {} : { 'Set-Cookie': await setCookie({ ...standing, iat: now }, env, now) }) } });
   if (cached.state === 'ready') {
     const mapped = mapSavedTiming(atoms, text, cached.timings);
     if (!mapped.ok) return audioRefusal('unavailable');
@@ -598,8 +601,15 @@ async function voice(request, env, now, admin = null) {
   const allowance = { used: reserved.used, limit, periodEnd: standing.exp };
   let rendered;
   try {
-    const bounded = await readBytes(response, 24 * 1024 * 1024);
-    rendered = bounded.bytes ? JSON.parse(new TextDecoder().decode(bounded.bytes)) : null;
+    // Let the runtime parse the bounded stream directly. Collecting chunks,
+    // concatenating and TextDecoder-decoding first retains several full copies.
+    let received = 0;
+    const bounded = response.body.pipeThrough(new TransformStream({ transform(chunk, controller) {
+      received += chunk.byteLength;
+      if (received > 24 * 1024 * 1024) throw new Error('Voice response too large');
+      controller.enqueue(chunk);
+    } }));
+    rendered = await new Response(bounded).json();
   } catch {
     rendered = null;
   }
@@ -904,11 +914,12 @@ async function routePlus(request, env) {
     return response;
   }
   if (path === '/api/plus/audio/erase') {
-    const { refusal } = await readJson(request);
+    const { refusal, body } = await readJson(request);
     if (refusal) return refusal;
     if (await limited(request, env.DECISION_LIMITER, 'plus-audio-erase')) return refuse(429, 'RATE_LIMITED', 'Too many requests were sent. Try again in a minute.');
     const identity = await (await status(request, env, Math.floor(Date.now() / 1000))).json();
     if (!identity.audioScope) return refuse(402, 'PLUS_REQUIRED', 'An active Plus account is needed to delete its saved voice.');
+    if (body?.audioScope !== identity.audioScope) return refuse(409, 'PLUS_SESSION_CHANGED', 'Your Plus account changed. Reopen Settings before deleting saved audio.');
     const erased = await meter(env, `audio:v1:${identity.audioScope}`, 'audio/erase', {});
     return erased.erased === true ? reply(200, { erased: true }) : unavailable(env, 'Saved voice could not be deleted.');
   }
@@ -1153,7 +1164,7 @@ export class PlusMeter {
     const op = new URL(request.url).pathname;
     const body = await request.json();
     const now = Math.floor(Date.now() / 1000);
-    if (op.startsWith('/audio/')) return Response.json(await this.audio.handle(op.slice(7), body, now));
+    if (op.startsWith('/audio/')) return new Response(audioJson(await this.audio.handle(op.slice(7), body, now)), { headers: { 'Content-Type': 'application/json' } });
     const response = this.storage.transactionSync(() => this.handle(op, body, now));
     await this.storage.sync();
     return response;

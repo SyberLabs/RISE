@@ -25,7 +25,8 @@ async function installProvider(page, { refusal = false, malformed = false, entit
   await page.route('**/api/plus/voice', route => {
     calls++;
     if (refusal) return route.fulfill({ status: 402, json: { error: { code: 'PLUS_ALLOWANCE', message: 'Voice allowance used up.' } } });
-    const { atoms, voice } = route.request().postDataJSON();
+    const { atoms, voice, audioScope } = route.request().postDataJSON();
+    expect(audioScope).toBe(scope);
     expect(voice).toBe('river');
     const entries = Object.fromEntries(atoms.map((text, i) => [voiceAssetKey(text), { text, asset: '/api/plus/audio/demo.mp3', mimeType: 'audio/mpeg', fromMs: i * 3000, toMs: (i + 1) * 3000, onsetsMs: [0] }]));
     return route.fulfill({ json: { pack: { schema: 'rise.recitation-voice-pack.v1', voices: { [voice]: { model: 'elevenlabs/test', entries } } }, audio: malformed ? 'bm90LWF1ZGlv' : tone(), cache: { scope, hit: false, expiresAt: Math.floor(Date.now() / 1000) + 86400 } } });

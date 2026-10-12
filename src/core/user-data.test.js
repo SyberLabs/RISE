@@ -112,7 +112,7 @@ describe('personal data inventory', () => {
         const clearPlusVoices = vi.spyOn(PlusVoices, 'clear').mockResolvedValue(undefined);
 
         let finish;
-        const pending = voiceReading(['Private words'], { fetchImpl: () => new Promise(resolve => { finish = resolve; }) });
+        const pending = voiceReading(['Private words'], { audioScope: 'a'.repeat(64), fetchImpl: () => new Promise(resolve => { finish = resolve; }) });
         await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
         sessionStorage.setItem('rise.voice-demo.draft', 'private words');
         await clearUserData();

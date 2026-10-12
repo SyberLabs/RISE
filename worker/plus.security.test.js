@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { audioStorage } from './plus-test-storage.mjs';
 /**
  * The independent attack suite against worker/plus.mjs (the 2026-10-08 security review and
@@ -81,8 +82,9 @@ function meterNamespace() {
       fetch: async (url, init) => {
         await jitter();
         if (ns.failNext > 0 && (!ns.failOp || new URL(url).pathname === ns.failOp)) { ns.failNext--; throw new Error('Durable Object reset'); }
-        ns.calls.push([id.name, new URL(url).pathname, JSON.parse(init.body)]);
-        const res = await ns.instance(id.name).fetch(new Request(url, init));
+        const request = new Request(url, init);
+        ns.calls.push([id.name, new URL(url).pathname, await request.clone().json()]);
+        const res = await ns.instance(id.name).fetch(request);
         await jitter();
         return res;
       }
@@ -169,8 +171,14 @@ function env(overrides = {}) {
 const cookieFor = async (e, claim = {}) => `${COOKIE}=${await sign({ c: 'cus_1', s: 'sub_1', exp: EXP, iat: NOW, l: false, ...claim }, e.PLUS_COOKIE_SECRET)}`;
 const claimOf = cookie => JSON.parse(Buffer.from(cookie.split('=')[1].split('.')[1], 'base64url').toString());
 const LEGIT = { Origin: SITE, 'Content-Type': 'application/json', 'CF-Connecting-IP': '192.0.2.1' };
+const scopeForCookie = cookie => {
+  try {
+    const claim = JSON.parse(Buffer.from(cookie.split(';')[0].split('=')[1].split('.')[1], 'base64url').toString());
+    return createHash('sha256').update(JSON.stringify(['customer', claim.l, claim.c])).digest('hex');
+  } catch { return undefined; }
+};
 const voiceReq = (cookie, atoms, headers = {}, extra = {}) => new Request(`${SITE}/api/plus/voice`, {
-  method: 'POST', headers: { ...LEGIT, ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: JSON.stringify({ atoms, ...extra })
+  method: 'POST', headers: { ...LEGIT, ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: JSON.stringify({ atoms, audioScope: scopeForCookie(cookie), ...extra })
 });
 const rawVoiceReq = (cookie, body, headers = {}) => new Request(`${SITE}/api/plus/voice`, {
   method: 'POST', headers: { ...LEGIT, Cookie: cookie, ...headers }, body
@@ -536,7 +544,7 @@ describe('NEW: attacks on the new design', () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const e = env();
     const s = world();
-    const r = await worker.fetch(rawVoiceReq(await cookieFor(e), JSON.stringify({ atoms: ['hello there'], voice: null, voice_id: 'evil', model_id: 'eleven_v3', text: 'x'.repeat(40_000), __proto__: { voice: 'evil' } })), e);
+    const r = await worker.fetch(rawVoiceReq(await cookieFor(e), JSON.stringify({ atoms: ['hello there'], audioScope: scopeForCookie(await cookieFor(e)), voice: null, voice_id: 'evil', model_id: 'eleven_v3', text: 'x'.repeat(40_000), __proto__: { voice: 'evil' } })), e);
     expect(r.status).toBe(200);
     expect(s.vendorVoiceIds).toEqual(['voice-1']);
     expect(JSON.parse(vi.mocked(fetch).mock.calls.find(([u]) => String(u).includes('elevenlabs'))[1].body)).toEqual({ text: 'hello there', model_id: 'eleven_flash_v2_5' });

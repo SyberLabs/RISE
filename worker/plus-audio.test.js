@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest';
 import { PlusMeter } from './plus.mjs';
+import { audioJson } from './plus-audio.mjs';
 
 import { audioStorage } from './plus-test-storage.mjs';
 const render = 'a'.repeat(64);
@@ -154,4 +155,24 @@ it('caps safety-record growth even after audio erasure', async () => {
   expect(await call(obj, 'claim')).toMatchObject({ state: 'full' });
   await call(obj, 'erase');
   expect(await call(obj, 'claim')).toMatchObject({ state: 'full' });
+});
+
+it.each(['', 'a', 'aaa', 'a===', '====', 'YW=J', 'YWJj\n', 'YWJ!'])('refuses malformed base64 %j without completing its claim', async audio => {
+  const obj = new PlusMeter({ storage: audioStorage() });
+  const { token } = await call(obj, 'claim');
+  expect(await call(obj, 'complete', { token, audio, timings })).toMatchObject({ state: 'unavailable' });
+});
+
+it.each(['YQ==', 'YWI=', 'YWJj'])('round-trips valid base64 padding %s', async audio => {
+  const obj = new PlusMeter({ storage: audioStorage() });
+  const { token } = await call(obj, 'claim');
+  expect(await call(obj, 'complete', { token, audio, timings })).toMatchObject({ state: 'ready' });
+  expect(await call(obj, 'claim')).toMatchObject({ state: 'ready', audio });
+});
+
+it('streams JSON without changing quotes, backslashes or chunk-boundary string contents', async () => {
+  const audio = 'a'.repeat(32 * 1024 - 1) + '\"\\\n' + 'b'.repeat(32 * 1024);
+  for (const body of [{ audio }, { state: 'ready', audio, timings }, { state: 'unavailable' }]) {
+    expect(await new Response(audioJson(body)).json()).toEqual(body);
+  }
 });

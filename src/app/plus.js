@@ -184,11 +184,11 @@ export async function forgetPlus({ fetchImpl = globalThis.fetch?.bind(globalThis
 }
 
 /** Explicit account deletion; forgetting a browser never calls this endpoint. */
-export async function erasePlusAudio({ fetchImpl = globalThis.fetch?.bind(globalThis) } = {}) {
+export async function erasePlusAudio({ audioScope, fetchImpl = globalThis.fetch?.bind(globalThis) } = {}) {
   invalidatePlusAudio();
   try {
     const response = await fetchImpl('/api/plus/audio/erase', {
-      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}'
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ audioScope })
     });
     const body = await response.json().catch(() => null);
     if (!response.ok || body?.erased !== true) return { ok: false, message: body?.error?.message ?? 'Saved audio deletion could not be confirmed. Check access and try again.' };

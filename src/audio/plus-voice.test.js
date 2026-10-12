@@ -4,7 +4,7 @@
 // intact; see workshop-media.store.test.js for why jsdom does not.
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { spokenAtoms, voiceReading } from './plus-voice.js';
+import { spokenAtoms, voiceReading as requestVoiceReading } from './plus-voice.js';
 import { erasePlusAudio, forgetPlus, notePlusClaimed } from '../app/plus.js';
 import { PlusVoices } from './plus-voice-store.js';
 import { recitationPackUrl, voiceAssetKey } from './voice-pack-key.js';
@@ -15,6 +15,7 @@ const MP3 = new Uint8Array([0x49, 0x44, 0x33, 4, 0, 7]);
 const base64 = bytes => btoa(String.fromCharCode(...bytes));
 
 const SCOPE = 'a'.repeat(64);
+const voiceReading = (atoms, options) => requestVoiceReading(atoms, { audioScope: SCOPE, ...options });
 function answer(text = 'A phrase') {
   return Response.json({
     pack: {
@@ -47,7 +48,13 @@ describe('voiceReading', () => {
     const second = await voiceReading(atoms, { fetchImpl });
     expect(second).toMatchObject({ ok: true, allowance: { used: 8 } });
     expect(fetchImpl.mock.calls.filter(([url]) => url === '/api/plus/voice')).toHaveLength(2);
-    expect(fetchImpl).toHaveBeenCalledWith('/api/plus/voice', expect.objectContaining({ method: 'POST', credentials: 'same-origin', body: JSON.stringify({ atoms: ['One stressed phrase'], voice: 'default' }) }));
+    expect(fetchImpl).toHaveBeenCalledWith('/api/plus/voice', expect.objectContaining({ method: 'POST', credentials: 'same-origin', body: JSON.stringify({ atoms: ['One stressed phrase'], voice: 'default', audioScope: SCOPE }) }));
+  });
+
+  it('refuses generation without a captured account scope before sending a request', async () => {
+    const fetchImpl = authenticated();
+    expect(await voiceReading(['A phrase'], { fetchImpl, audioScope: undefined })).toMatchObject({ ok: false, code: 'PLUS_SESSION_CHANGED' });
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('cannot replay a previous account after the server refuses authentication', async () => {
@@ -65,7 +72,7 @@ describe('voiceReading', () => {
     expect((await voiced.fetchImpl('/unrelated')).status).toBe(404);
     await voiceReading(['A', 'phrase'], { fetchImpl, voice: 'ember' });
     const requests = fetchImpl.mock.calls.filter(([url]) => url === '/api/plus/voice').map(([, options]) => JSON.parse(options.body));
-    expect(requests).toEqual([{ atoms: ['A phrase'], voice: 'river' }, { atoms: ['A', 'phrase'], voice: 'ember' }]);
+    expect(requests).toEqual([{ atoms: ['A phrase'], voice: 'river', audioScope: SCOPE }, { atoms: ['A', 'phrase'], voice: 'ember', audioScope: SCOPE }]);
   });
 
   it('rejects audio when the authenticated account changed while the render was pending', async () => {
@@ -105,7 +112,7 @@ describe('voiceReading', () => {
     localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1, allowance: { used: 8, limit: 100 } }));
     let finish;
     const pending = voiceReading(['A phrase'], { fetchImpl: authenticated(() => new Promise(resolve => { finish = resolve; })) });
-    expect(await erasePlusAudio({ fetchImpl: async () => Response.json({ erased: true }) })).toEqual({ ok: true, localCleared: true });
+    expect(await erasePlusAudio({ audioScope: SCOPE, fetchImpl: async () => Response.json({ erased: true }) })).toEqual({ ok: true, localCleared: true });
     finish(answer());
     expect(await pending).toMatchObject({ ok: false, code: 'PLUS_SESSION_CHANGED' });
     expect(JSON.parse(localStorage.getItem('rise.plus'))).toEqual({ claimedAt: 1, allowance: { used: 8, limit: 100 } });

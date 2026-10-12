@@ -698,6 +698,7 @@ export class Settings {
 
     async erasePlusAudio() {
         if (this.erasingPlusAudio) return;
+        const audioScope = this.plusStatus?.audioScope;
         if (!window.confirm('Delete all saved Plus audio for your current account? This cannot be undone. Your subscription and used allowance stay unchanged. Deleted recordings will not be generated or charged again automatically.')) return;
         const button = this.container.querySelector('[data-action="erase-plus-audio"]');
         const status = this.container.querySelector('[data-plus-audio-status]');
@@ -705,7 +706,7 @@ export class Settings {
         button.disabled = true;
         status.textContent = 'Deleting saved Plus audio…';
         try {
-            const result = await erasePlusAudio();
+            const result = await erasePlusAudio({ audioScope });
             if (this.destroyed || !status.isConnected) return;
             status.textContent = result.ok
                 ? `Saved Plus audio deleted. Your subscription and used allowance are unchanged.${result.localCleared ? '' : ' Older browser audio could not be cleared; clear browser data in Settings.'}`

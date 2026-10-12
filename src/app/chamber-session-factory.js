@@ -195,7 +195,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 plusRefused = 'TOO_LONG';
             } else {
                 ui.updateLoadingStatus('Asking for the Plus voice...');
-                const voiced = await voiceReading(session.atoms, { voice: plusVoiceSlug(requiredVoice ? session.origin.voice : operations.getSettings()?.plusVoiceSlug) });
+                const voiced = await voiceReading(session.atoms, { audioScope: entitlement?.audioScope, voice: plusVoiceSlug(requiredVoice ? session.origin.voice : operations.getSettings()?.plusVoiceSlug) });
                 assertCurrent();
                 if (voiced.ok) {
                     plusVoicing = voiced;

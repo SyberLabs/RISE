@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { audioStorage } from './plus-test-storage.mjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from './index.mjs';
@@ -40,7 +41,7 @@ function world({ bill = invoice(), refund = 0, fee = 56, subscription = sub, tra
 }
 async function request(e,n, char = 'a') {
   const token = await PLUS_INTERNALS.sign({ c:'cus_1',s:'sub_1',exp:END,iat:NOW,l:true },e.PLUS_COOKIE_SECRET);
-  return new Request(SITE+'/api/plus/voice',{method:'POST',headers:{Origin:SITE,'Content-Type':'application/json',Cookie:PLUS_INTERNALS.COOKIE+'='+token,'CF-Connecting-IP':'192.0.2.1'},body:JSON.stringify({atoms:[char.repeat(n)]})});
+  return new Request(SITE+'/api/plus/voice',{method:'POST',headers:{Origin:SITE,'Content-Type':'application/json',Cookie:PLUS_INTERNALS.COOKIE+'='+token,'CF-Connecting-IP':'192.0.2.1'},body:JSON.stringify({atoms:[char.repeat(n)],audioScope:createHash('sha256').update(JSON.stringify(['customer',true,'cus_1'])).digest('hex')})});
 }
 afterEach(()=>{auth.subject = null; auth.calls = 0;vi.unstubAllGlobals();vi.useRealTimers();});
 
@@ -97,10 +98,10 @@ describe('subscriber vendor spend is funded by collected revenue',()=>{
 });
 
 
-const adminRequest = (n, char = 'a') => new Request(SITE+'/api/plus/voice',{method:'POST',headers:{Origin:SITE,'Content-Type':'application/json','CF-Connecting-IP':'192.0.2.1'},body:JSON.stringify({atoms:[char.repeat(n)]})});
+const adminRequest = (e, n, char = 'a') => new Request(SITE+'/api/plus/voice',{method:'POST',headers:{Origin:SITE,'Content-Type':'application/json','CF-Connecting-IP':'192.0.2.1'},body:JSON.stringify({atoms:[char.repeat(n)],audioScope:createHash('sha256').update(JSON.stringify(['admin',e.PLUS_ADMIN_ACCESS_ISSUER,auth.subject])).digest('hex')})});
 describe('authenticated administrators have a separate bounded budget',()=>{
   it('does not require Stripe readiness, while sharing the $5 monthly budget across administrators',async()=>{
-    vi.useFakeTimers({now:NOW*1000});const e=env({STRIPE_SECRET_KEY:undefined,PLUS_COOKIE_SECRET:undefined,STRIPE_WEBHOOK_SECRET:undefined,PLUS_ADMIN_MONTHLY_USD_CENTS:'500',PLUS_ADMIN_DAILY_CHAR_CAP:'25000'});const state=world();auth.subject='admin-one';let sequence=0;const next=n=>adminRequest(n,String.fromCharCode(97+sequence++));
+    vi.useFakeTimers({now:NOW*1000});const e=env({STRIPE_SECRET_KEY:undefined,PLUS_COOKIE_SECRET:undefined,STRIPE_WEBHOOK_SECRET:undefined,PLUS_ADMIN_MONTHLY_USD_CENTS:'500',PLUS_ADMIN_DAILY_CHAR_CAP:'25000'});const state=world();auth.subject='admin-one';let sequence=0;const next=n=>adminRequest(e, n,String.fromCharCode(97+sequence++));
     const first=await handlePlus(next(10000),e);expect(first.status).toBe(200);expect((await first.json()).allowance.limit).toBe(83333);
     auth.subject='admin-two';expect((await handlePlus(next(10000),e)).status).toBe(200);
     const dayOver=await handlePlus(next(10000),e);expect(dayOver.status).toBe(429);
@@ -111,7 +112,7 @@ describe('authenticated administrators have a separate bounded budget',()=>{
     expect((await handlePlus(next(1),e)).status).toBe(402);expect(state.vendorChars).toBe(83333);
   });
   it.each([undefined,'0','501','bogus'])('fails closed without a safe explicit admin monthly cap (%s)',async cap=>{
-    vi.useFakeTimers({now:NOW*1000});const e=env({PLUS_ADMIN_MONTHLY_USD_CENTS:cap});const state=world();auth.subject='admin';expect((await handlePlus(adminRequest(1),e)).status).toBe(503);expect(state.vendorCalls).toBe(0);
+    vi.useFakeTimers({now:NOW*1000});const e=env({PLUS_ADMIN_MONTHLY_USD_CENTS:cap});const state=world();auth.subject='admin';expect((await handlePlus(adminRequest(e, 1),e)).status).toBe(503);expect(state.vendorCalls).toBe(0);
   });
   it('does not accept an administrator role sent in a request or an unverified cookie',async()=>{
     vi.useFakeTimers({now:NOW*1000});const e=env({PLUS_ADMIN_MONTHLY_USD_CENTS:'500'});const state=world();
@@ -119,7 +120,7 @@ describe('authenticated administrators have a separate bounded budget',()=>{
     expect(r.status).toBe(402);expect(state.vendorCalls).toBe(0);
   });
   it('counts administrator requests against the shared global cap',async()=>{
-    vi.useFakeTimers({now:NOW*1000});const e=env({PLUS_ADMIN_MONTHLY_USD_CENTS:'500',PLUS_DAILY_CHAR_CAP:'1'});const state=world();auth.subject='admin';expect((await handlePlus(adminRequest(1),e)).status).toBe(200);expect((await handlePlus(adminRequest(1,'b'),e)).status).toBe(503);expect(state.vendorChars).toBe(1);
+    vi.useFakeTimers({now:NOW*1000});const e=env({PLUS_ADMIN_MONTHLY_USD_CENTS:'500',PLUS_DAILY_CHAR_CAP:'1'});const state=world();auth.subject='admin';expect((await handlePlus(adminRequest(e, 1),e)).status).toBe(200);expect((await handlePlus(adminRequest(e, 1,'b'),e)).status).toBe(503);expect(state.vendorChars).toBe(1);
   });
   it('reports verified status and redirects admin sign-in only after identity verification',async()=>{
     vi.useFakeTimers({now:NOW*1000});const e=env({PLUS_ADMIN_MONTHLY_USD_CENTS:'500',PLUS_ADMIN_ACCESS_ISSUER:'https://team.cloudflareaccess.com',PLUS_ADMIN_ACCESS_AUD:'aud'});world();
@@ -131,7 +132,7 @@ describe('authenticated administrators have a separate bounded budget',()=>{
   });
   it('preserves dollar debits when the configured vendor rate is lowered after earlier spending',async()=>{
     vi.useFakeTimers({now:NOW*1000});const e=env({PLUS_ADMIN_MONTHLY_USD_CENTS:'1',PLUS_VENDOR_MICRO_USD_PER_CHAR:'100'});world();auth.subject='admin';
-    expect((await handlePlus(adminRequest(100),e)).status).toBe(200);e.PLUS_VENDOR_MICRO_USD_PER_CHAR='60';expect((await handlePlus(adminRequest(1),e)).status).toBe(402);
+    expect((await handlePlus(adminRequest(e, 100),e)).status).toBe(200);e.PLUS_VENDOR_MICRO_USD_PER_CHAR='60';expect((await handlePlus(adminRequest(e, 1),e)).status).toBe(402);
   });
 });
 
@@ -256,7 +257,7 @@ describe('private provider preflight and billing boundary', () => {
     const render = vi.fn().mockResolvedValueOnce({ contacted: false, status }).mockImplementation(async input => ({ contacted: true, response: rpcAnswer(input.text) }));
     const e = env({ ELEVENLABS_API_KEY: undefined, PLUS_VOICE_PROVIDER: { ready, render }, PLUS_ADMIN_MONTHLY_USD_CENTS: '500', PLUS_ADMIN_DAILY_CHAR_CAP: '5', PLUS_SUB_DAILY_CHAR_CAP: '5', PLUS_DAILY_CHAR_CAP: '5' });
     const state = world();
-    const send = async n => handlePlus(role === 'admin' ? adminRequest(n) : await request(e, n), e);
+    const send = async n => handlePlus(role === 'admin' ? adminRequest(e, n) : await request(e, n), e);
     expect((await send(5)).status).toBe(503);
     const period = role === 'admin' ? Date.UTC(2027, 0, 1) / 1000 : START;
     expect(await usageSnapshot(e, role === 'admin' ? 'admin' : 'sub:sub_1', period)).toMatchObject({ used: 0, spentMicros: 0 });
@@ -302,7 +303,7 @@ it('bounds stalled readiness on a voice miss without blocking status or reservin
   vi.useFakeTimers({ now: NOW * 1000 }); auth.subject = 'admin';
   const ready = vi.fn(() => new Promise(() => {})), render = vi.fn();
   const e = env({ PLUS_VOICE_PROVIDER: { ready, render }, PLUS_ADMIN_MONTHLY_USD_CENTS: '500' }); const state = world();
-  const voicing = handlePlus(adminRequest(5), e);
+  const voicing = handlePlus(adminRequest(e, 5), e);
   await vi.waitFor(() => expect(ready).toHaveBeenCalledTimes(1));
   await vi.advanceTimersByTimeAsync(5001);
   expect((await voicing).status).toBe(503);
@@ -370,14 +371,14 @@ it('isolates administrator audio by verified issuer and subject despite the shar
   for (const [issuer, subject] of [['https://one.cloudflareaccess.com', 'admin-one'], ['https://one.cloudflareaccess.com', 'admin-two'], ['https://two.cloudflareaccess.com', 'admin-one']]) {
     e.PLUS_ADMIN_ACCESS_ISSUER = issuer;
     auth.subject = subject;
-    const response = await handlePlus(adminRequest(5), e);
+    const response = await handlePlus(adminRequest(e, 5), e);
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.cache.hit).toBe(false);
     scopes.push(body.cache.scope);
   }
   expect(new Set(scopes).size).toBe(3);
-  const replay = await handlePlus(adminRequest(5), e);
+  const replay = await handlePlus(adminRequest(e, 5), e);
   expect((await replay.json()).cache.hit).toBe(true);
   expect(state.vendorCalls).toBe(3);
 });
@@ -389,9 +390,9 @@ it('serves saved audio and confirms its owner without waiting for a stalled prov
   const render = vi.fn(async input => ({ contacted: true, response: rpcAnswer(input.text) }));
   const e = env({ PLUS_VOICE_PROVIDER: { ready, render }, PLUS_ADMIN_MONTHLY_USD_CENTS: '500' });
   world();
-  expect((await handlePlus(adminRequest(5), e)).status).toBe(200);
+  expect((await handlePlus(adminRequest(e, 5), e)).status).toBe(200);
   ready.mockImplementation(() => new Promise(() => {}));
-  const replay = await handlePlus(adminRequest(5), e);
+  const replay = await handlePlus(adminRequest(e, 5), e);
   expect(replay.status).toBe(200);
   const saved = await replay.json();
   expect(saved.cache.hit).toBe(true);

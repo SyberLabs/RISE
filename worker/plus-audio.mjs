@@ -16,6 +16,28 @@ const encodeAudio = bytes => {
   return encoded;
 };
 
+/** Large audio crosses three JSON boundaries. Stream its escaped string in small
+ * pieces instead of retaining another full JSON string and UTF-8 body each time. */
+export function audioJson(body) {
+  if (typeof body?.audio !== 'string') return JSON.stringify(body);
+  const { audio, ...metadata } = body;
+  const encoder = new TextEncoder();
+  const prefix = JSON.stringify(metadata);
+  let offset = -1;
+  return new ReadableStream({ pull(controller) {
+    if (offset === -1) {
+      controller.enqueue(encoder.encode(`${prefix.slice(0, -1)}${prefix.length > 2 ? ',' : ''}"audio":"`));
+      offset = 0;
+    } else if (offset < audio.length) {
+      controller.enqueue(encoder.encode(JSON.stringify(audio.slice(offset, offset + 32 * 1024)).slice(1, -1)));
+      offset += 32 * 1024;
+    } else {
+      controller.enqueue(encoder.encode('"}'));
+      controller.close();
+    }
+  } });
+}
+
 export class PlusAudio {
   constructor(storage) { this.storage = storage; this.kv = storage.kv; }
 
@@ -87,22 +109,36 @@ export class PlusAudio {
     }
     if (op === 'complete') {
       if (typeof body.audio !== 'string' || body.audio.length > Math.ceil(RENDER_BYTES / 3) * 4
-        || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(body.audio)
+        || !body.audio.length || body.audio.length % 4
         || !Array.isArray(body.timings) || !body.timings.length || body.timings.length > MAX_TIMINGS
         || body.timings.length % 2 || !body.timings.every(t => Number.isFinite(t) && t >= 0)) return { state: 'unavailable' };
-      const audio = Uint8Array.from(atob(body.audio), c => c.charCodeAt(0));
+      // Validate without a repeated regexp group: V8 exhausts its regexp stack on
+      // valid multi-megabyte audio. Padding is allowed only in the final quartet.
+      const padding = body.audio.endsWith('==') ? 2 : body.audio.endsWith('=') ? 1 : 0;
+      const end = body.audio.length - padding;
+      for (let i = 0; i < end; i++) {
+        const c = body.audio.charCodeAt(i);
+        if (!(c >= 65 && c <= 90 || c >= 97 && c <= 122 || c >= 48 && c <= 57 || c === 43 || c === 47)) return { state: 'unavailable' };
+      }
+      const audioBytes = body.audio.length / 4 * 3 - padding;
       const timings = new Float64Array(body.timings);
-      const bytes = new Uint8Array(audio.byteLength + timings.byteLength);
-      if (!audio.length || bytes.length > RENDER_BYTES) return { state: 'unavailable' };
-      bytes.set(audio);
-      bytes.set(new Uint8Array(timings.buffer), audio.byteLength);
+      if (audioBytes + timings.byteLength > RENDER_BYTES) return { state: 'unavailable' };
+      const bytes = new Uint8Array(audioBytes + timings.byteLength);
+      // Avoid Uint8Array.from(string), which allocates an enormous intermediate
+      // iterable array. Decode bounded quartets directly into the final buffer.
+      for (let i = 0; i < body.audio.length; i += 32 * 1024) {
+        const binary = atob(body.audio.slice(i, i + 32 * 1024));
+        const offset = i / 4 * 3;
+        for (let j = 0; j < binary.length; j++) bytes[offset + j] = binary.charCodeAt(j);
+      }
+      bytes.set(new Uint8Array(timings.buffer), audioBytes);
       const hash = await digest(bytes);
       const result = this.storage.transactionSync(() => {
         const record = this.kv.get(`render:${render}`);
         if (record?.state !== 'pending' || record.token !== token || record.generation !== (this.kv.get('generation') ?? 0)) return { state: 'unavailable' };
         const chunks = Math.ceil(bytes.byteLength / CHUNK_BYTES);
         for (let i = 0; i < chunks; i++) this.kv.put(`chunk:${render}:${i}`, bytes.slice(i * CHUNK_BYTES, (i + 1) * CHUNK_BYTES));
-        const complete = { state: 'ready', expiresAt: now + RETENTION_S, chunks, bytes: bytes.byteLength, audioBytes: audio.byteLength, hash, generation: record.generation };
+        const complete = { state: 'ready', expiresAt: now + RETENTION_S, chunks, bytes: bytes.byteLength, audioBytes, hash, generation: record.generation };
         this.kv.put(`render:${render}`, complete);
         return complete;
       });

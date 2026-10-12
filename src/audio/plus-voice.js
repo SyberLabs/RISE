@@ -40,18 +40,20 @@ function playable({ pack, audio }, signal) {
  *   `manifest` and `fetchImpl` are what the Voice is built with. `allowance`
  *   comes from the authenticated Worker response.
  */
-export async function voiceReading(atoms, { voice = 'default', fetchImpl = globalThis.fetch?.bind(globalThis) } = {}) {
+export async function voiceReading(atoms, { voice = 'default', audioScope, fetchImpl = globalThis.fetch?.bind(globalThis) } = {}) {
   const signal = plusAudioSession();
   const changed = () => ({ ok: false, code: 'PLUS_SESSION_CHANGED', message: 'Your voice session changed. Open this reading again to check access.' });
   const spoken = spokenAtoms(atoms);
   if (!spoken.length) return { ok: false, code: 'NOTHING_TO_SAY', message: 'There is nothing to read aloud.' };
+
+  if (!/^[a-f0-9]{64}$/u.test(audioScope ?? '')) return changed();
 
   let response;
   try {
     response = await fetchImpl(PLUS_VOICE_ROUTE, {
       method: 'POST', credentials: 'same-origin', cache: 'no-store', signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ atoms: spoken, voice })
+      body: JSON.stringify({ atoms: spoken, voice, audioScope })
     });
   } catch {
     if (signal.aborted) return changed();
@@ -84,6 +86,6 @@ export async function voiceReading(atoms, { voice = 'default', fetchImpl = globa
   if (!status.audioScope || !/^[a-f0-9]{64}$/u.test(body?.cache?.scope ?? '')) {
     return { ok: false, code: 'PLUS_AUDIO_AUTH', message: 'Could not confirm access to saved audio. Sign in and try again; saved audio will not be voiced or charged again.' };
   }
-  if (status.audioScope !== body.cache.scope) return changed();
+  if (status.audioScope !== audioScope || body.cache.scope !== audioScope) return changed();
   return { ...playable({ pack, audio }, signal), allowance: body.allowance ?? null };
 }
