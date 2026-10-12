@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 11 October 2026**
+**Last updated: 12 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy

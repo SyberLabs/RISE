@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated: 11 October 2026**
+**Last updated: 12 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Sections 3, 11 and 12
 > in particular carry real legal consequence and are worth settling with
