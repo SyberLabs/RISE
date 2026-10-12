@@ -17,8 +17,12 @@
  * and nowhere else: never in the state, the page, storage or a URL.
  */
 
-import { connectionState, subscribeConnection } from '../../core/ai-connection.js';
+import { connectionState, subscribeConnection, takeConnectionNotice } from '../../core/ai-connection.js';
+import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { initialVenue, interjectionPerception, perceptionFor, venueStep } from './venue-entry.js';
+
+/** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
+const LIVE_PATH = '/live';
 
 const MIC_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 const LEAVE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
@@ -50,6 +54,8 @@ export class LiveVenue {
         // Each reading the room has let go, by the index of its question: its journal and its passages, for perception.
         this.readings = [];
         this.reading = null;
+        // The perception sent with the question the reading on screen answers, or null.
+        this.sent = null;
         this.stage = null;
         this.bar = null;
         this.stopFollowing = null;
@@ -60,6 +66,8 @@ export class LiveVenue {
         this.render();
         // Connecting or disconnecting OpenRouter elsewhere in the tab is shown here at once.
         this.stopConnection = subscribeConnection(() => { if (this.chosen()?.credential === 'openrouter') this.renderCredential(); });
+        const returned = claimOpenRouterReturn(LIVE_PATH);
+        if (returned) void this.welcomeBack(returned);
         void Promise.resolve(host.buildMic()).then(mic => { if (mic && !this.destroyed) this.useMic(mic); }, () => {});
     }
 
@@ -175,20 +183,46 @@ export class LiveVenue {
                 connect.addEventListener('click', () => { void this.connectOpenRouter(); });
                 const note = this.doc.createElement('p');
                 note.className = 'live-venue__note';
-                note.textContent = 'Connecting goes to OpenRouter and brings you back to RISE’s Home, connected; then open Live again.';
+                note.textContent = 'Connecting goes to OpenRouter and brings you back here, connected, with your question; this tab keeps the question only until you are back.';
                 this.credential.append(connect, note);
             }
         }
     }
 
-    /** The site's own sign-in (docs/USER-OWNED-AI.md): the key it mints stays in this tab's memory. */
+    /**
+     * The site's own sign-in (docs/USER-OWNED-AI.md): the key it mints stays in this tab's memory. It comes back to
+     * this page, with the question typed so far, kept in this tab's session storage for the round trip only.
+     */
     async connectOpenRouter() {
         try {
             const { beginOpenRouterConnect } = await import('../../core/openrouter-oauth.js');
-            await beginOpenRouterConnect();
+            await beginOpenRouterConnect({ returnTo: LIVE_PATH, draft: this.field.value });
         } catch {
             this.errorLine.textContent = 'OpenRouter could not be connected in this browser.';
             this.errorLine.hidden = false;
+        }
+    }
+
+    /**
+     * Back from an OpenRouter sign-in started here: OpenRouter chosen, the question where it was, and the outcome said
+     * here (the notice is taken, so Home does not say it again later).
+     */
+    async welcomeBack(returned) {
+        if (this.providers.some(entry => entry.id === 'openrouter' && entry.adapter)) {
+            this.dispatch({ type: 'choose', provider: 'openrouter' });
+            for (const radio of this.form.querySelectorAll('input[name="live-venue-provider"]')) radio.checked = radio.value === 'openrouter';
+            this.renderCredential();
+        }
+        if (returned.draft) this.field.value = returned.draft;
+        let code = null;
+        try {
+            const { finishOpenRouterReturn, outcomeMessage } = await import('../../core/openrouter-oauth.js');
+            code = await finishOpenRouterReturn(returned);
+            takeConnectionNotice();
+            if (this.destroyed) return;
+            this.heardLine.textContent = code === 'CONNECTED' ? 'OpenRouter connected. What you ask here is billed to your OpenRouter account.' : outcomeMessage(code);
+        } catch {
+            if (!this.destroyed) this.heardLine.textContent = 'OpenRouter could not be connected in this browser.';
         }
     }
 
@@ -275,7 +309,7 @@ export class LiveVenue {
             journal: runtime.journal?.() ?? [],
             // The reading's passages in order as it was read (answers to interjections among them), so the reader's
             // moves can name them (perception.js).
-            passages: (runtime.passages?.() ?? []).map(({ segmentId, text }) => ({ segmentId, text: text ?? '' }))
+            passages: (runtime.passages?.() ?? []).map(({ segmentId, key, text }) => ({ segmentId, key: key ?? segmentId, text: text ?? '' }))
         };
         await runtime.stop();
     }
@@ -302,6 +336,8 @@ export class LiveVenue {
             this.ensureBar();
             this.stopFollowing = runtime.subscribe(view => this.dispatch({ type: 'status', status: view.status }));
             const perception = perceptionFor(this.turns().slice(0, turn + 1));
+            // What went up with this question, for the host's measurement page (?measure=1) to read.
+            this.sent = perception;
             await (perception ? runtime.start(question, { perception }) : runtime.start(question));
             if (this.destroyed || this.reading?.runtime !== runtime) return;
             this.dispatch({ type: 'opened' });

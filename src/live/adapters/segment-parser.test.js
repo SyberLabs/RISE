@@ -498,3 +498,92 @@ describe('the interjection’s ending, @then (stage 4.5)', () => {
         expect(fenced.said).toEqual(['Look.']);
     });
 });
+
+describe('the model changes the room, between beats (stage 5)', () => {
+    const changes = text => beats([text]).stream.roomChanges;
+
+    it('reads the four lines into room changes, each anchored before the next beat, and the reducer refuses none', () => {
+        const text = [
+            '@look flame',
+            '@say The sky is blue.',
+            '@scene field attractor palette=blue',
+            '@say scene=field Light scatters.',
+            '@visual intensity=0.7',
+            '@cue field bright',
+            '@pace 1.25',
+            '@visual energy=0.9 surface=living-flame',
+            '@say So the sky is blue.',
+            ''
+        ].join('\n');
+        const { stream, refusals } = beats([text]);
+        expect(refusals).toBe(0);
+        expect(stream.roomChanges).toEqual([
+            { before: 0, change: { kind: 'look.change', look: 'flame' } },
+            { before: 2, change: { kind: 'visual.control', parameter: 'intensity', value: 0.7 } },
+            { before: 2, change: { kind: 'scene.cue', scene: 'field', cue: 'bright' } },
+            { before: 2, change: { kind: 'pace.suggest', rate: 1.25 } },
+            { before: 2, change: { kind: 'visual.control', parameter: 'energy', value: 0.9, surface: 'living-flame' } }
+        ]);
+        expect(stream.toCurrent().beats).toHaveLength(3);
+    });
+
+    it('drops what no engine, scene, look or pace would take, and keeps the beats', () => {
+        const text = [
+            '@say One.',
+            '@scene field attractor',
+            '@scene fig svg',
+            '```svg',
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+            '```',
+            '@say scene=field Two.',
+            '@visual speed=2',
+            '@visual intensity=bright',
+            '@visual intensity=0.6 surface=genesis',
+            '@visual intensity',
+            '@visual <script>=1',
+            '@cue field spin',
+            '@cue fig bright',
+            '@cue field',
+            '@look neon',
+            '@pace 3',
+            '@pace fast',
+            '@say Three.',
+            ''
+        ].join('\n');
+        const { stream, refusals } = beats([text]);
+        expect(refusals).toBe(0);
+        expect(stream.roomChanges).toEqual([]);
+        expect(stream.toCurrent().beats.map(beat => beat.say)).toEqual(['One.', 'Two.', 'Three.']);
+    });
+
+    it('keeps a cue to a scene this answer did not declare, for the room to resolve', () => {
+        expect(changes('@say Again.\n@cue disk spin\n@say On.\n')).toEqual([{ before: 1, change: { kind: 'scene.cue', scene: 'disk', cue: 'spin' } }]);
+    });
+
+    it('a room line first makes a beat stream', () => {
+        const { stream } = beats(['@visual intensity=0.75\nBrighter, then.\n']);
+        expect(stream.roomChanges).toHaveLength(1);
+        expect(stream.toCurrent().beats).toEqual([{ say: 'Brighter, then.' }]);
+    });
+
+    it('is source inside a fence, and ignored in a passage stream', () => {
+        const fenced = beats(['@say One.\n@scene disk code\n```js\n@look flame\nexport default function scene(rise) { return { frame() {}, cue() {} }; }\n```\n@say scene=disk Two.\n']);
+        expect(fenced.stream.roomChanges).toEqual([]);
+        const passages = beats(['@passage visual=still\nOne.\n@look flame\n@end\n']);
+        expect(passages.stream.roomChanges).toEqual([]);
+        expect(passages.refusals).toBe(0);
+    });
+
+    it('is chunk-invariant', () => {
+        const text = '@say One.\n@look flame\n@say Two.\n@pace 1.5\n@visual intensity=0.5\n@say Three.\n';
+        const whole = JSON.stringify(beats([text]).sent);
+        for (let at = 1; at < text.length; at += 1) expect(JSON.stringify(beats([text.slice(0, at), text.slice(at)]).sent), String(at)).toBe(whole);
+    });
+
+    it('takes at most 32 a stream', () => {
+        const text = `${Array.from({ length: 40 }, () => '@pace 1.25').join('\n')}\n@say One.\n`;
+        const { stream, refusals } = beats([text]);
+        expect(stream.roomChanges).toHaveLength(32);
+        expect(refusals).toBe(0);
+    });
+});

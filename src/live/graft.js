@@ -32,17 +32,29 @@ export function placeBase(room, count) {
 
 /**
  * Cut the reading after the piece at `after` (the passage the reader was in) for the next answer. `taken` is that
- * passage's beat to take up again on resume, or null; `running` the scene running there, or null.
+ * passage's beat to take up again on resume, or null; `running` the scene running there, or null; `key` the taken
+ * passage's own name (pieceKey), which no later graft changes.
  */
-export function cutAfter(room, { after, taken, running }) {
+export function cutAfter(room, { after, taken, running, key }) {
     if (room.aside) throw new RangeError('One interjection at a time: an answer is still being written');
     if (!Number.isInteger(after) || after < 0 || after >= room.pieces.length) throw new RangeError(`There is no passage ${after} to cut after`);
     return {
         ...room,
         pieces: room.pieces.slice(0, after + 1),
         tail: 'aside',
-        aside: { pieces: room.pieces.slice(after + 1), tail: room.tail, taken, running }
+        aside: { pieces: room.pieces.slice(after + 1), tail: room.tail, taken, running, key }
     };
+}
+
+/**
+ * A piece's own name, which no graft changes, unlike its place (`beat-<n>`): the room's beat i is `beat-<i>`, its id in
+ * the room's own stream and so its id before any graft; beat j of the n-th answer is `i<n+1>-beat-<j>`, as its scenes
+ * are named; a passage taken up again is named by the cut that made it.
+ */
+export function pieceKey(piece) {
+    if (piece.taken) return piece.key;
+    if (piece.answer !== undefined) return `i${piece.answer + 1}-beat-${piece.beat}`;
+    return `beat-${piece.base}`;
 }
 
 /** The `n`-th answer has written `count` beats: those not yet placed go at the end. */
@@ -61,12 +73,12 @@ export function growAnswer(room, n, count) {
  */
 export function closeAnswer(room, ending, { sceneStarted }) {
     if (!room.aside) throw new RangeError('No answer is being written');
-    const { pieces, tail, taken, running } = room.aside;
+    const { pieces, tail, taken, running, key } = room.aside;
     if (ending !== 'resume') return { ...room, tail: 'withdrawn', aside: null };
-    const resumed = [...(taken ? [{ taken }] : []), ...pieces];
+    const resumed = [...(taken ? [{ taken, key }] : []), ...pieces];
     if (sceneStarted && running !== null && resumed.length) {
         const [first] = resumed;
-        resumed[0] = first.taken ? { taken: { ...first.taken, scene: first.taken.scene ?? running } } : { ...first, restore: running };
+        resumed[0] = first.taken ? { ...first, taken: { ...first.taken, scene: first.taken.scene ?? running } } : { ...first, restore: running };
     }
     return { ...room, pieces: [...room.pieces, ...resumed], tail, aside: null };
 }

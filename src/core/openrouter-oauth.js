@@ -10,7 +10,7 @@
  * else happens. The key goes straight to memory (ai-connection.js).
  */
 import { acceptOpenRouterKey, postConnectionNotice } from './ai-connection.js';
-import { CALLBACK_PATH, PENDING_KEY, sessionStorageOrNull, takeOpenRouterReturn } from './openrouter-callback.js';
+import { CALLBACK_PATH, DRAFT_LIMIT, PENDING_KEY, returnPath, sessionStorageOrNull, takeOpenRouterReturn } from './openrouter-callback.js';
 
 export { CALLBACK_PATH, PENDING_KEY, takeOpenRouterReturn };
 export const AUTH_URL = 'https://openrouter.ai/auth';
@@ -45,19 +45,27 @@ export async function codeChallenge(verifier, cryptoImpl = globalThis.crypto) {
   return base64url(new Uint8Array(digest));
 }
 
-/** Start the redirect. Returns the authorization URL it navigated to. */
+/**
+ * Start the redirect. Returns the authorization URL it navigated to. `returnTo` is a page of this site to come back
+ * to instead of Home (openrouter-callback.js returnPath), with `draft`, the reader's question not yet asked; both are
+ * kept in this tab's session storage only for the round trip, and removed with the rest when the callback is read.
+ */
 export async function beginOpenRouterConnect({
   storage = sessionStorageOrNull(),
   origin = globalThis.location?.origin,
   navigate = url => globalThis.location.assign(url),
   cryptoImpl = globalThis.crypto,
-  now = Date.now
+  now = Date.now,
+  returnTo = null,
+  draft = ''
 } = {}) {
   const verifier = base64url(cryptoImpl.getRandomValues(new Uint8Array(32)));
   const state = base64url(cryptoImpl.getRandomValues(new Uint8Array(24)));
   const challenge = await codeChallenge(verifier, cryptoImpl);
+  const back = returnPath(returnTo);
+  const question = back && typeof draft === 'string' ? draft.trim().slice(0, DRAFT_LIMIT) : '';
   // Throws in a storage-less private window; the caller shows the error.
-  storage.setItem(PENDING_KEY, JSON.stringify({ verifier, state, createdAt: now() }));
+  storage.setItem(PENDING_KEY, JSON.stringify({ verifier, state, createdAt: now(), ...(back ? { returnTo: back } : {}), ...(question ? { draft: question } : {}) }));
   const callback = new URL(`${CALLBACK_PATH}/${state}`, origin);
   const url = new URL(AUTH_URL);
   url.searchParams.set('callback_url', callback.href);
@@ -125,7 +133,7 @@ export async function completeOpenRouterConnect(taken, {
   return acceptOpenRouterKey(body?.key) ? { code: 'CONNECTED' } : { code: 'EXCHANGE_FAILED' };
 }
 
-/** Finish what takeOpenRouterReturn found on page load, and tell Home. */
+/** Finish what takeOpenRouterReturn found on page load, and tell the page that claimed it (takeConnectionNotice). */
 export async function finishOpenRouterReturn(found, options) {
   const { callback, abandoned } = found || {};
   if (!callback && !abandoned) return null;

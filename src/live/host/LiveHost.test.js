@@ -2232,8 +2232,10 @@ describe('the beds under the reading', () => {
         expect(audioSession.type).toBe('auto');
     });
 
-    it('brings the session up again for a reading taken back from its end', async () => {
-        const engine = sessionEngine();
+    it('opens the session the end closed again for a reading taken back from its end, and reveals it once open', async () => {
+        // The venue's Play again plays the same runtime from its first passage: the factory opened the first session,
+        // and nothing else would open this one, so the bed the reading starts would sound into a closed session.
+        const engine = { ...sessionEngine(), startSession(options) { this.calls.push(['start', options]); return Promise.resolve({ cancelled: false }); } };
         const runtime = fakeRuntime();
         const hosted = await hostedWith(engine, runtime);
         const player = fakePlayer('playing');
@@ -2242,7 +2244,13 @@ describe('the beds under the reading', () => {
         runtime.become('ended');
         runtime.become('live');
         player.become('playing');
-        expect(engine.calls).toEqual([['in', 1.2], ['stop'], ['in', 0.6]]);
+        expect(engine.calls).toEqual([['in', 1.2], ['stop'], ['start', { entrySwell: false }]]);
+        await Promise.resolve();
+        expect(engine.calls.at(-1)).toEqual(['in', 0.6]);
+        // Paused and played again, it is the Reader's own reveal again.
+        player.become('paused');
+        player.become('playing');
+        expect(engine.calls.slice(-2)).toEqual([['out', 0.4], ['in', 0.6]]);
     });
 
     it('lets the silent loop and the playback audio session go when the reading is over', async () => {
@@ -2312,5 +2320,25 @@ describe('the beds under the reading', () => {
         expect(taps[0].fftSize).toBe(8192);
         await host.ended();
         expect(gate.connected).toEqual([]);
+    });
+
+    it('hands the room RISE changed to the stage: a look’s colours to wear, an intensity to keep (stage 5)', async () => {
+        mountWith('?voice=paced', env(), fakeEngine());
+        const loaded = await host.modules;
+        let options = null;
+        host.modules = Promise.resolve([
+            { createLiveRuntime: given => { options = given; return fakeRuntime(); } },
+            ...loaded.slice(1, 4),
+            { presentLive: async () => {}, leaveLive: async () => {} },
+            loaded[5]
+        ]);
+        await host.buildRuntime();
+        expect(options.host.changeLook({ look: 'flame', theme: 'ember' })).toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        host.controls = { wearTheme: vi.fn(() => ({ status: 'accepted', effective: 'ember' })), keepIntensity: vi.fn(), destroy: vi.fn() };
+        expect(options.host.changeLook({ look: 'flame', theme: 'ember' })).toEqual({ status: 'accepted', effective: 'ember' });
+        expect(host.controls.wearTheme).toHaveBeenCalledWith('ember');
+        options.onNote({ type: 'room.changed', kind: 'visual.control', surface: 'attractor', parameter: 'intensity', value: 0.5 });
+        options.onNote({ type: 'room.changed', kind: 'visual.control', surface: 'living-flame', parameter: 'energy', value: 0.9 });
+        expect(host.controls.keepIntensity.mock.calls).toEqual([[0.5]]);
     });
 });

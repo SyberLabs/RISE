@@ -564,6 +564,39 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
+    // The demo's first beat lays a bed (starlight). What leaves the engine's last gate is measured, as in the card:
+    // started is not heard. With the paced voice nothing ducks it.
+    test('a bed under the reading stops with it, sounds again on Play again, and under the next reading asked', async ({ page }) => {
+        test.setTimeout(150_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        const audio = () => page.evaluate(() => window.__riseLive.audio());
+        const level = async () => (await audio()).levelDbfs ?? -Infinity;
+        await expect.poll(async () => (await audio()).sounding, { timeout: 10_000 }).toBe('starlight');
+        await expect.poll(level, { timeout: 5_000 }).toBeGreaterThan(-45);
+
+        const stage = page.locator('#rise-stage-controls');
+        const playAgain = stage.getByRole('button', { name: /^Play again/u });
+        await expect(playAgain).toHaveCount(1, { timeout: 60_000 });
+        // No audio outlives the reading (#631). Play again is pressed at once, while the session is still closing.
+        await expect.poll(level, { timeout: 5_000 }).toBeLessThan(-60);
+        await playAgain.click();
+        await expect(stage.locator('[data-stage="play"]')).toHaveAttribute('aria-label', /^Pause/u);
+        await expect.poll(level, { timeout: 5_000 }).toBeGreaterThan(-45);
+
+        // Held, the next question reads anew in the same room, on a new runtime: its bed sounds under it.
+        await stage.locator('[data-stage="play"]').click();
+        await page.locator('#live-again-question').fill('Explain black holes again.');
+        await page.locator('#live-again-question').press('Enter');
+        await expect.poll(async () => (await page.evaluate(() => window.__riseLive.journal())).some(entry => entry.type === 'start' && /again/u.test(entry.prompt)), { timeout: 10_000 }).toBe(true);
+        await expectShown(page, 'A black hole is a region of space');
+        await expect.poll(level, { timeout: 10_000 }).toBeGreaterThan(-45);
+        expect(errors).toEqual([]);
+    });
+
     test('carries what the reader did up with their next words: a replay, a theme and the pause go, and nothing of the voice', async ({ page }) => {
         test.setTimeout(90_000);
         const errors = watchErrors(page);
@@ -714,6 +747,102 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         // The rest of the room's answer never played.
         expect(journal.filter(entry => entry.type === 'speech.start').map(entry => entry.segmentId).filter(id => !['beat-0', 'beat-1', 'beat-2'].includes(id))).toEqual([]);
         expect(overlaps(journal)).toEqual([]);
+        expect(errors).toEqual([]);
+    });
+
+    /**
+     * The model changes the room while it plays (docs/plans/LIVE-CURRENT.md §18), on the demo's sky reading and the
+     * paced voice. Measured on the page's own clock: when each change landed against the phrase it landed on.
+     */
+    const roomHooks = page => ({
+        journal: () => page.evaluate(() => window.__riseLive.journal()),
+        atoms: () => page.evaluate(() => window.__riseLive.atoms().filter(entry => entry.role === 'main'))
+    });
+
+    test('the model changes the room: a look and a cue as the passage after them begins, a second change one phrase on, a pace with a way back, and RISE’s changes go up as RISE’s', async ({ page }) => {
+        test.setTimeout(150_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Why is the sky blue?');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'Sunlight carries every colour at once.');
+        const hooks = roomHooks(page);
+        const changed = async () => (await hooks.journal()).filter(entry => entry.type === 'room.changed');
+        await expect.poll(async () => (await changed()).length, { timeout: 60_000 }).toBeGreaterThanOrEqual(3);
+        const [look, cue, visual] = await changed();
+        const phrases = (await hooks.atoms()).filter(entry => entry.sourceId === 'beat-2');
+        expect(look).toMatchObject({ kind: 'look.change', look: 'flame', theme: 'ember' });
+        expect(cue).toMatchObject({ kind: 'scene.cue', scene: 'sky', cue: 'calm' });
+        expect(visual).toMatchObject({ kind: 'visual.control', parameter: 'intensity', value: 0.7 });
+        expect(phrases.length).toBeGreaterThanOrEqual(2);
+        const since = (entry, phrase) => Math.round(entry.at - phrase.at);
+        console.log(`room changes (ms after the phrase they landed on): look ${since(look, phrases[0])} and cue ${since(cue, phrases[0])} at the passage's first phrase; the second change ${since(visual, phrases[1])} after its second phrase began, ${since(visual, phrases[0])} after the first`);
+        for (const [entry, phrase] of [[look, phrases[0]], [cue, phrases[0]], [visual, phrases[1]]]) {
+            expect(entry.at).toBeGreaterThanOrEqual(phrase.at);
+            expect(entry.at - phrase.at).toBeLessThan(250);
+        }
+        // The room wears the look's colours, as the reader's Theme row would show them.
+        await expect(page.locator('#rise-settings-theme')).toHaveValue('ember');
+
+        // RISE suggests a pace before the last beat; the reader keeps their own.
+        const suggest = page.locator('.rise-stage__suggest');
+        await expect(suggest).toContainText('RISE suggests 1.25×', { timeout: 60_000 });
+        await suggest.getByRole('button', { name: 'Keep 1×' }).click();
+        await expect(suggest).toBeHidden();
+        const stage = page.locator('#rise-stage-controls');
+        await expect(stage.locator('[data-stage="pace"]')).toHaveText('1×');
+
+        // Asked again, the next question carries what RISE changed, as RISE's, beside what the reader did.
+        await expect(stage.getByRole('button', { name: /^Play again/u })).toHaveCount(1, { timeout: 60_000 });
+        await page.locator('#live-again-question').fill('What is a quasar?');
+        await page.locator('#live-again-question').press('Enter');
+        await expectShown(page, 'This demonstration can only explain black holes.');
+        const sent = await page.evaluate(() => window.__riseLive.perception());
+        expect(sent.events).toEqual(expect.arrayContaining([
+            { type: 'visual.changed', by: 'rise', parameter: 'look', value: 'flame' },
+            { type: 'visual.changed', by: 'rise', parameter: 'intensity', value: 0.7 },
+            { type: 'paced', by: 'rise', rate: 1.25 },
+            { type: 'paced', rate: 1 }
+        ]));
+        expect(errors).toEqual([]);
+    });
+
+    test('the model changes the room in an answer to the reader: the visual lands as the answer begins, within a second; the reader’s own pace is not overridden', async ({ page }) => {
+        test.setTimeout(150_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Why is the sky blue?');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'Sunlight carries every colour at once.');
+        const hooks = roomHooks(page);
+        // The reader sets their own pace before RISE suggests one.
+        const stage = page.locator('#rise-stage-controls');
+        await stage.locator('[data-stage="pace"]').click();
+        await expect(stage.locator('[data-stage="pace"]')).toHaveText('1.25×');
+        // In the passage with the sky, the reader asks for more vibrant imagery.
+        await expect.poll(async () => (await hooks.journal()).some(entry => entry.type === 'speech.start' && entry.segmentId === 'beat-1'), { timeout: 30_000 }).toBe(true);
+        await page.waitForTimeout(1_000);
+        const field = page.locator('#live-again-question');
+        await field.fill('Make it more vibrant.');
+        await expect.poll(async () => (await hooks.journal()).some(entry => entry.type === 'interjection.held')).toBe(true);
+        await field.press('Enter');
+        const brighter = async () => (await hooks.journal()).find(entry => entry.type === 'room.changed' && entry.value === 0.75) ?? null;
+        await expect.poll(brighter, { timeout: 15_000 }).not.toBeNull();
+        const journal = await hooks.journal();
+        const asked = journal.find(entry => entry.type === 'interjection.asked');
+        const requested = journal.find(entry => entry.type === 'room.asked' && entry.at > asked.at);
+        const landed = await brighter();
+        const answer = (await hooks.atoms()).find(entry => entry.sourceId === 'beat-2' && entry.at > asked.at);
+        console.log(`room change in an answer: requested ${Math.round(requested.at - asked.at)} ms after the question, landed ${Math.round(landed.at - requested.at)} ms after it was requested, ${Math.round(landed.at - answer.at)} ms after the answer's first phrase began`);
+        expect(landed.at - requested.at).toBeLessThan(1_000);
+        expect(landed.at).toBeGreaterThanOrEqual(answer.at);
+        expect(landed.at - answer.at).toBeLessThan(250);
+
+        // The reading resumes and reaches RISE's pace: refused, as the reader set their own.
+        await expect.poll(async () => (await hooks.journal()).find(entry => entry.type === 'room.refused' && entry.kind === 'pace.suggest') ?? null, { timeout: 90_000 })
+            .toMatchObject({ code: 'READER_SET' });
+        await expect(stage.locator('[data-stage="pace"]')).toHaveText('1.25×');
+        await expect(page.locator('.rise-stage__suggest')).toBeHidden();
         expect(errors).toEqual([]);
     });
 });

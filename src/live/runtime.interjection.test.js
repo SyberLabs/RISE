@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Player } from '../core/player.js';
 import { createRealClock } from './clock.js';
 import { createLiveRuntime } from './runtime.js';
+import { perceive } from './perception.js';
 import { createTextStreamAdapter } from './adapters/text-stream.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
 
@@ -259,6 +260,25 @@ describe('the reader’s controls hold throughout', () => {
         runtime.resume();
         await until(() => room.said.length > count);
         expect(room.overlaps()).toBe(0);
+    });
+});
+
+describe('perception after a graft', () => {
+    it('names a move made before the answer by the passage it was made on, wherever the graft put that passage', async () => {
+        await open();
+        await into('beat-4', { chars: 10 });
+        runtime.replay();
+        runtime.seek({ segmentId: 'beat-0' });
+        await tick(30 * MS_PER_CHAR);
+        expect(runtime.position().segmentId).toBe('beat-0');
+        runtime.beginInterjection();
+        await runtime.interject('What is gravity?');
+        await until(() => runtime.status === 'ended');
+        // The answer and the taken-up passage now stand where the replayed passage stood: it is passage 6 of the reading.
+        const passages = runtime.passages();
+        const { events } = perceive(runtime.journal(), { passages });
+        expect(events.find(event => event.type === 'replayed')).toMatchObject({ to: 6, quote: 'The black hole itself stays dark.' });
+        expect(events.find(event => event.type === 'sought')).toMatchObject({ from: 6, to: 1 });
     });
 });
 

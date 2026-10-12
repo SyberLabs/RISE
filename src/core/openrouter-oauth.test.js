@@ -137,6 +137,55 @@ describe('Connect OpenRouter (PKCE S256)', () => {
   });
 });
 
+describe('coming back to the page that asked to connect (RISE Live)', () => {
+  /** A history that rewrites the location it was given, as the browser does. */
+  const browser = location => ({ location, history: { replaceState: vi.fn((_state, _title, url) => { location.pathname = url; location.href = `${ORIGIN}${url}`; }) } });
+
+  it('keeps a same-site path and the reader’s question for the round trip, and nothing else', async () => {
+    const storage = memoryStorage();
+    await beginOpenRouterConnect({ storage, origin: ORIGIN, navigate: () => {}, returnTo: '/live', draft: 'Why is the sky blue?' });
+    expect(JSON.parse(storage.getItem(PENDING_KEY))).toMatchObject({ returnTo: '/live', draft: 'Why is the sky blue?' });
+    for (const returnTo of ['//evil.example', 'https://evil.example/live', '/live?x=1', '/\\evil.example', '/connect/openrouter/x', '/a b', 42]) {
+      await beginOpenRouterConnect({ storage, origin: ORIGIN, navigate: () => {}, returnTo });
+      expect(JSON.parse(storage.getItem(PENDING_KEY)).returnTo, String(returnTo)).toBeUndefined();
+    }
+    await beginOpenRouterConnect({ storage, origin: ORIGIN, navigate: () => {}, returnTo: '/live', draft: 'x'.repeat(5_000) });
+    expect(JSON.parse(storage.getItem(PENDING_KEY)).draft).toHaveLength(2_000);
+  });
+
+  it('lands the callback on that path, with the question, and only that page claims it', async () => {
+    const storage = memoryStorage();
+    await beginOpenRouterConnect({ storage, origin: ORIGIN, navigate: () => {}, returnTo: '/live', draft: 'Why is the sky blue?' });
+    const { state } = JSON.parse(storage.getItem(PENDING_KEY));
+    const { location, history } = browser(callbackLocation(state, { code: 'abc12345' }));
+    const taken = takeOpenRouterReturn(location, history, storage);
+    expect(history.replaceState).toHaveBeenCalledWith(null, '', '/live');
+    expect(taken).toEqual({ callback: { code: 'abc12345', state }, returnTo: '/live', draft: 'Why is the sky blue?' });
+    // Home does not take a return meant for Live; Live takes it once.
+    expect(claimOpenRouterReturn()).toBeNull();
+    expect(claimOpenRouterReturn('/live')).toEqual(taken);
+    expect(claimOpenRouterReturn('/live')).toBeNull();
+    // The pending sign-in is still there for the exchange, which removes it.
+    expect(storage.getItem(PENDING_KEY)).not.toBeNull();
+  });
+
+  it('lands on Home when the callback’s state is not this tab’s sign-in', async () => {
+    const storage = memoryStorage();
+    await beginOpenRouterConnect({ storage, origin: ORIGIN, navigate: () => {}, returnTo: '/live' });
+    const { location, history } = browser(callbackLocation('B'.repeat(32), { code: 'abc12345' }));
+    expect(takeOpenRouterReturn(location, history, storage)).toEqual({ callback: { code: 'abc12345', state: 'B'.repeat(32) } });
+    expect(history.replaceState).toHaveBeenCalledWith(null, '', '/');
+  });
+
+  it('gives the question back to the page the reader returned to without signing in', async () => {
+    const storage = memoryStorage();
+    await beginOpenRouterConnect({ storage, origin: ORIGIN, navigate: () => {}, returnTo: '/live', draft: 'Why?' });
+    const back = { pathname: '/live', href: `${ORIGIN}/live` };
+    expect(takeOpenRouterReturn(back, { replaceState: vi.fn() }, storage)).toEqual({ abandoned: true, returnTo: '/live', draft: 'Why?' });
+    expect(storage.getItem(PENDING_KEY)).toBeNull();
+  });
+});
+
 describe('the reader connection', () => {
   async function connect() {
     const storage = memoryStorage();

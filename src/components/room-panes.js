@@ -22,6 +22,7 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
 
   const instance = name => panes.get(name)?.instance || null;
 
+  /** Resolves false when the pane was closed while it mounted: it then shows nothing and keeps nothing. */
   async function mount(name, data) {
     let entry = panes.get(name);
     if (!entry) {
@@ -30,9 +31,10 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
       element.dataset.pane = name;
       element.hidden = true;
       container.appendChild(element);
-      entry = { element, instance: null, data: null };
+      entry = { element, instance: null, data: null, closes: 0 };
       panes.set(name, entry);
     }
+    const closes = entry.closes;
     if (entry.instance && !sameData(entry.data, data)) {
       if (typeof entry.instance.update === 'function') {
         await entry.instance.update(data);
@@ -41,12 +43,19 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
         entry.instance = null;
       }
     }
+    if (entry.closes !== closes) return false;
     if (!entry.instance) {
       const module = await loaders[name]();
       // A factory may be async (a reading prepares before it shows).
-      entry.instance = await factories[name](entry.element, module, data);
+      const built = await factories[name](entry.element, module, data);
+      if (entry.closes !== closes) {
+        built?.destroy?.();
+        return false;
+      }
+      entry.instance = built;
     }
     entry.data = data;
+    return true;
   }
 
   const host = {
@@ -58,7 +67,8 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
 
     /**
      * Show a pane, or the room's home when `name` is not a pane. Resolves
-     * false when that pane already shows with that data, true otherwise.
+     * false when that pane already shows with that data, or was closed
+     * while it mounted (what showed before stays), true otherwise.
      */
     async show(name, data = {}) {
       if (!loaders[name]) name = null;
@@ -68,7 +78,7 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
       const wasActive = activated;
       host.deactivate();
       try {
-        if (name) await mount(name, next);
+        if (name && !await mount(name, next)) return false;
         active = name;
         if (home) home.hidden = Boolean(name);
         for (const [paneName, pane] of panes) pane.element.hidden = paneName !== name;
@@ -92,6 +102,8 @@ export function createPaneHost({ container, loaders, factories, home = null, onK
     close(name, which = instance(name), { keepElement = false } = {}) {
       const entry = panes.get(name);
       if (!entry || entry.instance !== which) return;
+      // A mount still under way for this pane is let go when it resolves (mount).
+      entry.closes += 1;
       if (which) {
         if (active === name && activated) which.deactivate?.();
         which.destroy?.();

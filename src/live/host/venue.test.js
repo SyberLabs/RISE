@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LiveHost } from './LiveHost.js';
 import { createFakeRecognition, open } from '../../test/fake-recognition.js';
 import { acceptOpenRouterKey, resetConnectionForTests } from '../../core/ai-connection.js';
+import { PENDING_KEY, takeOpenRouterReturn } from '../../core/openrouter-callback.js';
 
 const env = ({ recognition = null } = {}) => ({
     window: {
@@ -281,6 +282,31 @@ describe('whose key', () => {
         expect(container.querySelector('.live-venue__credential').textContent).toMatch(/Connected/u);
         ask('Why?');
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith('Why?'));
+    });
+
+    it('connecting keeps /live and the question for the round trip in this tab', async () => {
+        mount();
+        choose('openrouter');
+        question().value = 'Why is the sky blue?';
+        container.querySelector('[data-venue="connect"]').click();
+        await vi.waitFor(() => expect(sessionStorage.getItem(PENDING_KEY)).not.toBeNull());
+        expect(JSON.parse(sessionStorage.getItem(PENDING_KEY))).toMatchObject({ returnTo: '/live', draft: 'Why is the sky blue?' });
+        expect(container.querySelector('.live-venue__note').textContent).toMatch(/brings you back here/u);
+        sessionStorage.clear();
+    });
+
+    it('comes back from OpenRouter to the room: OpenRouter chosen, connected, and the question where it was', async () => {
+        sessionStorage.setItem(PENDING_KEY, JSON.stringify({ verifier: 'v'.repeat(43), state: 'S'.repeat(32), createdAt: Date.now(), returnTo: '/live', draft: 'Why is the sky blue?' }));
+        const location = { pathname: `/connect/openrouter/${'S'.repeat(32)}`, href: `https://rise.example/connect/openrouter/${'S'.repeat(32)}?code=abc12345` };
+        takeOpenRouterReturn(location, { replaceState: () => {} }, sessionStorage);
+        vi.stubGlobal('fetch', vi.fn(async () => Response.json({ key: 'sk-or-v1-0123456789abcdef0123' })));
+        mount();
+        expect(radios().find(radio => radio.checked).value).toBe('openrouter');
+        expect(question().value).toBe('Why is the sky blue?');
+        await vi.waitFor(() => expect(container.querySelector('.live-venue__credential').textContent).toMatch(/Connected/u));
+        expect(container.querySelector('.live-venue__heard').textContent).toMatch(/OpenRouter connected/u);
+        expect(sessionStorage.getItem(PENDING_KEY)).toBeNull();
+        vi.unstubAllGlobals();
     });
 });
 

@@ -1,12 +1,15 @@
 /**
  * The black holes answer as a model writes it beat by beat (the line format,
- * docs/specs/LIVE-CURRENT-EVENTS-V1.md "Beats streamed"): a said beat, a native
+ * docs/specs/LIVE-CURRENT-EVENTS-V1.md "Beats streamed"): a said beat that lays a
+ * bed under the reading (SND-001), a native
  * scene and a hold that cues it, a figure, a shown line nobody says, a
  * generated scene with its cues, and a last said beat. It is what the venue's
  * demo streams (adapters/mock.js), and it is written by hand, apart from the
  * Current it must seal to (BLACK_HOLES_BEATS_CURRENT), so a test of one against
  * the other is not a parser checked against itself.
  */
+
+import { SKY_ROOM_TEXT, VIBRANT_ANSWER } from './sky-room-beats.js';
 
 const DISK = `export default function scene(rise) {
   const { lib } = rise;
@@ -54,7 +57,7 @@ const SAID = Object.freeze({
 
 /** What the model writes. */
 export const BLACK_HOLES_BEATS_TEXT = [
-    `@say ${SAID.what}`,
+    `@say sound=starlight ${SAID.what}`,
     '@scene field attractor palette=purple',
     '@hold 1800 scene=field cue=calm',
     '@scene horizon svg',
@@ -81,7 +84,7 @@ export const BLACK_HOLES_BEATS_CURRENT = Object.freeze({
         { id: 'disk', code: DISK }
     ],
     beats: [
-        { say: SAID.what },
+        { say: SAID.what, sound: 'starlight' },
         { hold: { ms: 1800 }, scene: 'field', cue: 'calm' },
         { say: SAID.horizon, scene: 'horizon', place: 'caption' },
         { show: 'The point of no return', hold: { ms: 1600 }, size: 'display' },
@@ -110,9 +113,16 @@ export const INTERJECTION_ANSWERS = Object.freeze({
     ].join('\n')
 });
 
-/** The answer for a question: black holes, or a plain sentence that it knows nothing else; an interjection's, its own. */
+/**
+ * The answer for a question: black holes, the sky (the room changed while it plays, sky-room-beats.js), or a plain
+ * sentence that it knows nothing else; an interjection's, its own.
+ */
 export function beatsTextFor(request) {
-    if (request.intent === 'interject') return /\b(skip|short)\b/iu.test(request.prompt) ? INTERJECTION_ANSWERS.replace : INTERJECTION_ANSWERS.resume;
+    if (request.intent === 'interject') {
+        if (/\b(vibrant|brighter)\b/iu.test(request.prompt)) return VIBRANT_ANSWER;
+        return /\b(skip|short)\b/iu.test(request.prompt) ? INTERJECTION_ANSWERS.replace : INTERJECTION_ANSWERS.resume;
+    }
     if (/black\s*holes?/iu.test(request.prompt)) return BLACK_HOLES_BEATS_TEXT;
+    if (/\bsky\b/iu.test(request.prompt)) return SKY_ROOM_TEXT;
     return '@say This demonstration can only explain black holes.\n';
 }
