@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -73,10 +73,14 @@
     {
       "date": "2026-10-12T05:08:49.944Z",
       "summary": "Opened #638 (branch live-illustrator), auto-merge on CI."
+    },
+    {
+      "date": "2026-10-12T05:23:54.663Z",
+      "summary": "PR #638 merged as cb6ce33e and deployed (release.txt cb6ce33e, 2026-10-12); delivery deployed"
     }
   ],
-  "updatedAt": "2026-10-12T05:08:49.944Z",
-  "revision": 2,
+  "updatedAt": "2026-10-12T05:23:54.663Z",
+  "revision": 3,
   "summary": "Design §8 stage 5.5: a second role on the reader's key draws what the composer asks for, cheapest medium first, through the same admission, while the voice goes on.",
   "blocker": null
 }
