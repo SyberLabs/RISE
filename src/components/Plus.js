@@ -65,7 +65,7 @@ export class Plus {
           <form data-recovery><label for="plus-email">Your checkout email</label><input id="plus-email" name="email" type="email" autocomplete="email" required maxlength="254" disabled><button class="plus-secondary" type="submit" disabled>Send a recovery link</button><p class="plus-caption" data-recovery-state>Checking recovery availability…</p></form>
         </section>
       </main>
-      <footer class="plus-footer"><a href="mailto:syberlabs.software@gmail.com">Get help</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="https://syberlabs.io/">SyberLabs</a></footer>
+      <footer class="plus-footer"><a href="mailto:syberlabs.support@gmail.com">Get help</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="https://syberlabs.io/">SyberLabs</a></footer>
     </div>`;
   }
   message(text) { if (!this.destroyed) this.$('[data-message]').textContent = text; }

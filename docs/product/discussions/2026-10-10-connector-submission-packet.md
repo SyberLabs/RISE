@@ -1,5 +1,10 @@
 # RISE connector submission packet
 
+**Filed 2026-10-11** from the paid account, live build a7387e6d; Community listing pending the
+automated scan. The portal had no field for the screenshots or the allowed link URIs; they
+are kept ready in `docs/assets/directory/` and under **Server** below. Recorded in
+[the readiness register](2026-10-10-connector-directory-readiness.md) §7 and in LIVE-004.
+
 Date: 2026-10-10. For: Mateo (SyberLabs), who files it. Source:
 [the readiness register](2026-10-10-connector-directory-readiness.md) (§5 decisions, §7
 checklist, §8 listing copy, §9 questions) and
@@ -102,7 +107,7 @@ speaks it, the words appear as they are spoken, and a drawn visual plays behind 
 | Documentation URL | `https://rise.syberlabs.io/apps` |
 | Privacy policy URL | `https://rise.syberlabs.io/privacy` |
 | Terms URL (if asked) | `https://rise.syberlabs.io/terms` |
-| Support contact | `syberlabs.software@gmail.com` |
+| Support contact | `syberlabs.support@gmail.com` |
 | Security contact (if asked) | `https://github.com/SyberLabs/RISE/security/advisories/new`, policy at `https://github.com/SyberLabs/RISE/blob/main/SECURITY.md` |
 
 ## Test and launch instructions

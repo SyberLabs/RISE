@@ -39,7 +39,7 @@ async function serveArenaFile(request, env) {
 // RFC 9116. The email is the one PRIVACY.md and terms.html publish; the advisory form and the
 // policy are SECURITY.md's. Renew Expires before it passes (worker/index.test.js fails once it has).
 const SECURITY_TXT = [
-  'Contact: mailto:syberlabs.software@gmail.com',
+  'Contact: mailto:syberlabs.support@gmail.com',
   'Contact: https://github.com/SyberLabs/RISE/security/advisories/new',
   'Policy: https://github.com/SyberLabs/RISE/blob/main/SECURITY.md',
   'Expires: 2027-10-09T00:00:00Z',

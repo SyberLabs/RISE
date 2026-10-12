@@ -89,4 +89,4 @@ and **Inlay** (fractal flames behind the words, in a heavy face).
 ## Contact
 
 For help, questions about your data, or to report a problem, write to
-**syberlabs.software@gmail.com**.
+**syberlabs.support@gmail.com**.

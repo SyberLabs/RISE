@@ -57,7 +57,7 @@ RISE is published by **Mateo Robles**, doing business as **SyberLabs**
 ("we", "us"), in California, United States.
 
 For any question about this policy or your data, contact
-**syberlabs.software@gmail.com**.
+**syberlabs.support@gmail.com**.
 
 Under the UK GDPR and EU GDPR we are the *controller* for the limited
 processing described in sections 4 and 5.
@@ -207,7 +207,7 @@ Google or GitHub sign-in at `syberlabs.io` identifies an enabled SyberLabs accou
 
 **Save to account** sends only the chosen imported text work, its title, named divisions, and display metadata to `syberlabs.io`, where it is stored privately under your account. Text can contain sensitive information; each upload is your explicit choice. Journals, settings, images, audio, video and provider keys are not included. There is no automatic upload or synchronization. Backups are limited to 1 MB each, with a shared limit of 50 saves and 10 MB per account.
 
-**Restore** downloads a chosen backup and validates it before adding it to the browser library. Replacing a different existing browser copy requires your explicit selection. Browser erase does not delete account backups. Download backups through the account portal; for removal of account data, contact **syberlabs.software@gmail.com**. Account backups remain stored until removed; they are separate from Plus billing and voice processing.
+**Restore** downloads a chosen backup and validates it before adding it to the browser library. Replacing a different existing browser copy requires your explicit selection. Browser erase does not delete account backups. Download backups through the account portal; for removal of account data, contact **syberlabs.support@gmail.com**. Account backups remain stored until removed; they are separate from Plus billing and voice processing.
 
 ### The Plus voice
 
@@ -479,7 +479,7 @@ You hold browser-local data directly. Explicit account backups have the separate
 If you are in the UK, EU or another jurisdiction granting data-subject rights,
 those rights — access, rectification, erasure, restriction, portability,
 objection — concern the server processing described in section 4. Write to
-**syberlabs.software@gmail.com**. You also have the right to complain to your
+**syberlabs.support@gmail.com**. You also have the right to complain to your
 supervisory authority; in the UK that is the Information Commissioner's Office.
 
 For the on-device data in section 3 we cannot action such a request, because we
@@ -582,7 +582,7 @@ chooses model routing may include personal information in the intent sent as
 described in section 4.
 SyberLabs account sign-in does not ask for age information. If you
 believe a child has provided us with personal information, write to
-syberlabs.software@gmail.com. We will review data held by RISE and explain the
+syberlabs.support@gmail.com. We will review data held by RISE and explain the
 available deletion steps. Requests sent through a reader's own OpenRouter
 account are processed by OpenRouter and TypeSafe; contact OpenRouter about them.
 
@@ -603,5 +603,5 @@ after a change means the revised policy applies.
 ## 15. Contact
 
 **Mateo Robles**, doing business as **SyberLabs**
-**syberlabs.software@gmail.com**
+**syberlabs.support@gmail.com**
 <https://rise.syberlabs.io/>

@@ -116,6 +116,11 @@ live at e3dd1b97; the screenshots are #608, at 608ea99f.
 
 ## 7. Submission checklist
 
+Submitted 2026-10-11 from the paid account; live build a7387e6d; Community listing pending
+the automated scan; the portal had no field for screenshots or allowed link URIs (kept ready
+in `docs/assets/directory/`); the attestation was ticked on the Inspector run and the Claude
+run (the portal's wording: MCP Inspector or a custom connector in Claude).
+
 Must have:
 - [x] Streamable HTTP MCP server, no auth, tools with titles, descriptions, annotations
 - [x] Self-contained card (`frameDomains: []`); own CSP; display modes agree
@@ -129,13 +134,13 @@ Must have:
 - [x] A security reporting channel: GitHub private vulnerability reporting, `SECURITY.md`, `security.txt` `Policy:` (decision 5.3)
 - [ ] At least three working example prompts (drafted below; being verified through Claude by another session; prompt 5's tool calls are in [the Claude run](../../assets/directory/CLAUDE-RUN-2026-10-10.md))
 - [x] Every tool run in MCP Inspector ([the Inspector run](../../assets/directory/INSPECTOR-RUN-2026-10-10.md), 2026-10-10)
-- [x] Every tool run as a custom connector in Claude ([the Claude run](../../assets/directory/CLAUDE-RUN-2026-10-10.md), 2026-10-10, from a Claude Code session). The owner still runs the prompts in the claude.ai chat (the card rendering) and on iOS and Android before attesting.
-- [ ] The attestation itself, ticked by the owner in the portal once the item above is complete
-- [ ] A paid Claude account in the organization that will own the listing (decided: the owner submits from the paid account)
+- [x] Every tool run as a custom connector in Claude ([the Claude run](../../assets/directory/CLAUDE-RUN-2026-10-10.md), 2026-10-10, from a Claude Code session). The claude.ai chat and phone runs: done by the owner's use during the mobile pass; the five demo prompts on phones remain to be recorded.
+- [x] The attestation itself, ticked by the owner in the portal on the Inspector run and the Claude run (2026-10-11)
+- [x] A paid Claude account in the organization that will own the listing (the owner submitted from the paid account, 2026-10-11)
 - [x] The Plus decision (section 5.1) and the AI-media acknowledgment answered truthfully (the answer is in [the submission packet](2026-10-10-connector-submission-packet.md))
 
 Should have:
-- [ ] Allowed link URIs in the portal: `https://syberlabs.io`, `https://rise.syberlabs.io`
+- [ ] Allowed link URIs in the portal: `https://syberlabs.io`, `https://rise.syberlabs.io` (the portal had no field for them on 2026-10-11)
 - [ ] Light theme check of the card against the host's tokens; WCAG AA contrast; keyboard control
 - [ ] Card assets accept `Origin: *.claudemcpcontent.com` and never depend on `Referer` (iOS)
 - [ ] `structuredContent` well under 150,000 characters (true: a Current is capped far below)
@@ -183,7 +188,7 @@ speaks it, the words appear as they are spoken, and a drawn visual plays behind 
 **Authentication:** none. **API:** our own (Cloudflare Workers at rise.syberlabs.io).
 **Icon:** `public/android-chrome-512x512.png`.
 **Documentation:** `https://rise.syberlabs.io/apps`. **Privacy:** `https://rise.syberlabs.io/privacy`.
-**Support:** `syberlabs.software@gmail.com`.
+**Support:** `syberlabs.support@gmail.com`.
 
 **Compliance answers:**
 - Financial transactions: none.
