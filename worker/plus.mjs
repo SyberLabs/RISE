@@ -461,7 +461,7 @@ async function voice(request, env, now, admin = null) {
   if (!policy || (admin && !adminCap)) return unavailable(env, 'The voice spending policy is not configured safely.');
   const allowed = voices(env);
   const missing = ['PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_METER', ...(!admin ? ['PLUS_PRICE_ID', ...(requireLive(env) ? ['STRIPE_WEBHOOK_SECRET'] : [])] : [])]
-    .filter(name => (name === 'ELEVENLABS_API_KEY' ? !providerReady(env) : name === 'PLUS_DAILY_CHAR_CAP' ? dailyCap(env) === null : name === 'PLUS_VOICES' ? !allowed : !env[name]));
+    .filter(name => name === 'PLUS_VOICES' ? !allowed : !env[name]);
   if (missing.length) {
     return unavailable(env, `The Plus voice is not switched on in this deployment (${missing.join(', ')} not set).`);
   }
@@ -783,11 +783,15 @@ async function cancelPlus(id, env) {
 
 const adminLoginConfigured = env => /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u.test(env.PLUS_ADMIN_ACCESS_ISSUER ?? '') && typeof env.PLUS_ADMIN_ACCESS_AUD === 'string' && Boolean(env.PLUS_ADMIN_ACCESS_AUD.trim());
 const providerReady = env => typeof env.PLUS_VOICE_PROVIDER?.render === 'function' || Boolean(env.ELEVENLABS_API_KEY);
+/** Local eligibility only: status must not wait on a provider to authorize saved audio. */
+function voiceConfigured(env) {
+  if (!providerReady(env) || !env.PLUS_VOICE_ID || !voices(env) || !dailyCap(env) || !env.PLUS_METER || !spendingPolicy(env)) return false;
+  return env.PLUS_VOICE_PROVIDER == null || (typeof env.PLUS_VOICE_PROVIDER.render === 'function' && typeof env.PLUS_VOICE_PROVIDER.ready === 'function');
+}
 async function voiceReady(env) {
-  const allowed = voices(env);
-  if (!providerReady(env) || !env.PLUS_VOICE_ID || !allowed || !dailyCap(env) || !env.PLUS_METER || !spendingPolicy(env)) return false;
+  if (!voiceConfigured(env)) return false;
   if (env.PLUS_VOICE_PROVIDER == null) return true;
-  if (typeof env.PLUS_VOICE_PROVIDER.render !== 'function' || typeof env.PLUS_VOICE_PROVIDER.ready !== 'function') return false;
+  const allowed = voices(env);
   let timer;
   try {
     const result = await Promise.race([
@@ -851,7 +855,7 @@ async function status(request, env, now) {
   result.audioScope = await audioScope(admin, standing, env);
   const limit = Math.min(characterLimit(standing), Math.floor(standing.budgetMicros / policy.rate));
   result.allowance = { used: inspected.used, limit, periodEnd: standing.exp };
-  result.available = await voiceReady(env) && inspected.used < limit && (inspected.spentMicros ?? 0) + policy.rate <= standing.budgetMicros;
+  result.available = voiceConfigured(env) && inspected.used < limit && (inspected.spentMicros ?? 0) + policy.rate <= standing.budgetMicros;
   const response = reply(200, result);
   if (result.subscriber) {
     response.headers.append('Set-Cookie', await setCookie({ ...standing, iat: now }, env, now));

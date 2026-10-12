@@ -273,7 +273,7 @@ describe('private provider preflight and billing boundary', () => {
     expect(await usageSnapshot(e, 'sub:sub_1', START)).toMatchObject({ used: 0, spentMicros: 0 });
     const token = await PLUS_INTERNALS.sign({ c: 'cus_1', s: 'sub_1', exp: END, iat: NOW, l: true }, e.PLUS_COOKIE_SECRET);
     const status = await handlePlus(new Request(SITE + '/api/plus/status', { headers: { Cookie: PLUS_INTERNALS.COOKIE + '=' + token } }), e);
-    expect(await status.json()).toMatchObject({ subscriber: true, available: false });
+    expect(await status.json()).toMatchObject({ subscriber: true, available: outcome !== 'missing' }); // Status is advisory; the miss still performed the actual preflight above.
     expect(render).not.toHaveBeenCalled(); expect(state.vendorCalls).toBe(0);
   });
   it.each(['throw', 'vendor-refusal', 'malformed-envelope', 'bad-no-contact-shape'])('retains every debit after an uncertain or contacted RPC outcome (%s)', async outcome => {
@@ -298,7 +298,7 @@ describe('private provider preflight and billing boundary', () => {
   });
 });
 
-it('bounds stalled readiness for voice and status without reserving or contacting a vendor', async () => {
+it('bounds stalled readiness on a voice miss without blocking status or reserving allowance', async () => {
   vi.useFakeTimers({ now: NOW * 1000 }); auth.subject = 'admin';
   const ready = vi.fn(() => new Promise(() => {})), render = vi.fn();
   const e = env({ PLUS_VOICE_PROVIDER: { ready, render }, PLUS_ADMIN_MONTHLY_USD_CENTS: '500' }); const state = world();
@@ -307,10 +307,9 @@ it('bounds stalled readiness for voice and status without reserving or contactin
   await vi.advanceTimersByTimeAsync(5001);
   expect((await voicing).status).toBe(503);
   expect(await usageSnapshot(e, 'admin', Date.UTC(2027, 0, 1) / 1000)).toMatchObject({ used: 0, spentMicros: 0 });
-  const inspecting = handlePlus(new Request(SITE + '/api/plus/status'), e);
-  await vi.waitFor(() => expect(ready).toHaveBeenCalledTimes(2));
-  await vi.advanceTimersByTimeAsync(5001);
-  expect(await (await inspecting).json()).toMatchObject({ admin: true, available: false });
+  const inspecting = await handlePlus(new Request(SITE + '/api/plus/status'), e);
+  expect(await inspecting.json()).toMatchObject({ admin: true, available: true });
+  expect(ready).toHaveBeenCalledTimes(1);
   expect(render).not.toHaveBeenCalled(); expect(state.vendorCalls).toBe(0);
 });
 
@@ -381,4 +380,25 @@ it('isolates administrator audio by verified issuer and subject despite the shar
   const replay = await handlePlus(adminRequest(5), e);
   expect((await replay.json()).cache.hit).toBe(true);
   expect(state.vendorCalls).toBe(3);
+});
+
+it('serves saved audio and confirms its owner without waiting for a stalled provider', async () => {
+  vi.useFakeTimers({ now: NOW * 1000 });
+  auth.subject = 'admin';
+  const ready = vi.fn(async () => ({ ready: true }));
+  const render = vi.fn(async input => ({ contacted: true, response: rpcAnswer(input.text) }));
+  const e = env({ PLUS_VOICE_PROVIDER: { ready, render }, PLUS_ADMIN_MONTHLY_USD_CENTS: '500' });
+  world();
+  expect((await handlePlus(adminRequest(5), e)).status).toBe(200);
+  ready.mockImplementation(() => new Promise(() => {}));
+  const replay = await handlePlus(adminRequest(5), e);
+  expect(replay.status).toBe(200);
+  const saved = await replay.json();
+  expect(saved.cache.hit).toBe(true);
+  let status;
+  const inspecting = handlePlus(new Request(SITE + '/api/plus/status'), e).then(async response => { status = await response.json(); });
+  await vi.waitFor(() => expect(status).toMatchObject({ admin: true, available: true, audioScope: saved.cache.scope }), { timeout: 100, interval: 10 });
+  await inspecting;
+  expect(ready).toHaveBeenCalledTimes(1);
+  expect(render).toHaveBeenCalledTimes(1);
 });

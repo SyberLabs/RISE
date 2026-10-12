@@ -3,7 +3,7 @@
   "title": "Reuse saved Plus audio across devices",
   "lane": "reader",
   "milestone": "Paid voice release",
-  "status": "in_progress",
+  "status": "in_review",
   "delivery": "branch",
   "owner": "codex-account-audio-cache",
   "priority": "now",
@@ -15,15 +15,38 @@
     "Finite storage and retention, explicit deletion, unchanged entitlement policies and browser logout behavior are tested and disclosed.",
     "Required PR checks and exact deployment evidence are recorded separately from real-device/live-provider acceptance; checkout remains disabled."
   ],
-  "evidence": [],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/637",
+      "date": "2026-10-12",
+      "note": "Draft review; not merged or deployed. Private-provider credentials remain a separate blocker."
+    },
+    {
+      "kind": "test",
+      "ref": "worker/plus-audio-runtime.test.js",
+      "date": "2026-10-12",
+      "note": "Real SQLite runtime proves concurrent single claim, binary chunk persistence across restart, owner isolation and deletion fencing. No live provider call."
+    },
+    {
+      "kind": "test",
+      "ref": "vitest.fast.config.js",
+      "date": "2026-10-12",
+      "note": "Required 115-file subset passed 2,562 tests with 4 existing skips, including stalled-provider replay/status regression."
+    }
+  ],
   "activity": [
     {
       "date": "2026-10-12T04:38:58.975596Z",
       "summary": "Claimed Seth\u2019s cross-device audio reuse request; isolated backend/client ownership and existing-subscription scope agreed. No shared checkout, credential or permission changes."
+    },
+    {
+      "date": "2026-10-12T04:55:21.158542Z",
+      "summary": "Published draft PR #637, verified durable storage and current focused/full-fast checks, and fixed provider-readiness status coupling before independent review. No live-device acceptance claimed."
     }
   ],
-  "updatedAt": "2026-10-12T04:38:58.975596Z",
-  "revision": 1,
-  "summary": "Implementing bounded durable audio reuse under verified Plus billing identity and per-administrator identity. Re-purchase continuity with central SyberLabs accounts is outside this first phase.",
+  "updatedAt": "2026-10-12T04:55:21.158542Z",
+  "revision": 2,
+  "summary": "Draft PR #637 implements bounded private audio reuse under verified billing and individual administrator identities. Unit/runtime checks pass; protected CI, independent review and deployment remain pending. Checkout stays disabled.",
   "blocker": null
 }
