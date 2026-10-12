@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Last updated: 11 October 2026**
+**Last updated: 12 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Sections 3, 11 and 12
 > in particular carry real legal consequence and are worth settling with
@@ -45,7 +45,7 @@ New voicing requests use your character allowance. Replaying audio already
 stored in the same browser does not. Changing the voice, clearing the audio,
 or voicing on another device may use the allowance again. A request the voice
 provider bills can count even if delivery fails; contact
-**syberlabs.software@gmail.com** for help with a failed paid render or a billing
+**syberlabs.support@gmail.com** for help with a failed paid render or a billing
 problem. If a limit or service interruption prevents voicing, free reading
 remains available. Nothing in these terms limits mandatory consumer rights.
 
@@ -240,7 +240,7 @@ The Service is not directed at children and is not intended for anyone under
 age collection in SyberLabs account sign-in; if Plus is offered, Stripe would
 hold what a Plus purchase requires. If you believe a
 child has provided us with personal information, write to
-syberlabs.software@gmail.com.
+syberlabs.support@gmail.com.
 
 Some readings are drawn from adult literary and philosophical works, and
 section 3 applies to everyone. If you are under the age of majority where you
@@ -278,5 +278,5 @@ ASSET-LICENSES.md, are the entire agreement between us about the Service.
 ## 18. Contact
 
 **Mateo Robles**, doing business as **SyberLabs**
-**syberlabs.software@gmail.com**
+**syberlabs.support@gmail.com**
 <https://rise.syberlabs.io/>

@@ -1,6 +1,6 @@
 # RISE in ChatGPT and Claude
 
-**Last updated: 9 October 2026**
+**Last updated: 12 October 2026**
 
 RISE turns an answer from your assistant into a short reading you watch and
 listen to. Ask ChatGPT or Claude to explain something and present it in RISE:
@@ -89,4 +89,4 @@ and **Inlay** (fractal flames behind the words, in a heavy face).
 ## Contact
 
 For help, questions about your data, or to report a problem, write to
-**syberlabs.software@gmail.com**.
+**syberlabs.support@gmail.com**.

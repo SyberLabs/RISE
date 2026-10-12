@@ -88,6 +88,12 @@
       "ref": "src/live/sealed-lost-passages.test.js",
       "note": "A sealed Current whose events the reducer refuses plays whole, journals run.failed with the refused events and lost passages, says how many on the stage, and waits on no voice.",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-10-connector-directory-readiness.md",
+      "note": "Claude connector directory submission filed by the owner on 2026-10-11 from the paid account, live build a7387e6d; Community listing pending the automated scan. The portal had no field for screenshots or allowed link URIs; the attestation was ticked on the Inspector run and the Claude run. Recorded in the register §7; a filing, not an acceptance of this task.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
@@ -130,10 +136,14 @@
     {
       "date": "2026-10-11T21:08:46.060Z",
       "summary": "a stored card's Current lowered whole again: the reducer admits every field rise.current.v2 admits; lost events are named in About"
+    },
+    {
+      "date": "2026-10-12T03:44:16.348Z",
+      "summary": "Claude connector directory submission filed 2026-10-11 from build a7387e6d; Community listing pending"
     }
   ],
-  "updatedAt": "2026-10-11T21:08:46.060Z",
-  "revision": 10,
+  "updatedAt": "2026-10-12T03:44:16.348Z",
+  "revision": 11,
   "summary": "Integrate score, admitted host behavior and fixtures into a coherent first-use experience.",
   "blocker": "Claude-first acceptance awaits the owner's explicit witness decision (the 2026-10-09 observations are not an acceptance). The card's first-chat-of-the-day failure (the card does not appear until reload on the first new RISE chat of the day) remains open: a host-boundary defect to reproduce with the owner (LIVE-016)."
 }

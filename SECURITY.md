@@ -5,7 +5,7 @@
 Please report a vulnerability privately, by either of these:
 
 - **GitHub's private advisory form:** <https://github.com/SyberLabs/RISE/security/advisories/new>
-- **Email:** syberlabs.software@gmail.com
+- **Email:** syberlabs.support@gmail.com
 
 Do not open a public issue for a vulnerability. Say what you found, where, and how to
 reproduce it. A short proof of concept helps more than a long write-up.
