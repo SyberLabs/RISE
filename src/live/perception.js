@@ -9,7 +9,9 @@
  * What goes up is a privacy boundary, so it is an allowlist: exactly the events below, each with its own fields,
  * bounded in number and length. They are the reader's actions in their own words of action, never a claim about the
  * reader: nothing about attention, understanding or mood, and nothing from the page outside the reading. A voice
- * the reader picks is said as "another voice", never by the device's name for it.
+ * the reader picks is said as "another voice", never by the device's name for it. What RISE itself changed in the
+ * room (docs/plans/LIVE-CURRENT.md §18) goes up beside them, marked as RISE's (`by: 'rise'`), so the next turn knows
+ * what the room is now and never takes it for the reader's.
  */
 
 /** The events of §4, and the only names that may go up. `scene.input` is defined for interactive scenes (§6); nothing sends it yet. */
@@ -46,14 +48,34 @@ function settingValue(parameter, value) {
     return undefined;
 }
 
+/** A parameter RISE may change in the room: a look, or a running engine's parameter (src/scenes/manifests.js names them). */
+const ROOM_PARAMETER = /^[A-Za-z]{1,40}$/u;
+
+/**
+ * What RISE changed in the room (runtime.js `room.changed`, docs/plans/LIVE-CURRENT.md §18), as RISE's (`by: 'rise'`),
+ * so the next turn knows what the room is now: its look, an engine's parameter, a pace it suggested. A cue is the
+ * model's own score and does not go up.
+ */
+function roomChanged(entry) {
+    if (entry.kind === 'look.change' && typeof entry.look === 'string' && ROOM_PARAMETER.test(entry.look)) {
+        return [{ type: 'visual.changed', by: 'rise', parameter: 'look', value: entry.look }];
+    }
+    if (entry.kind === 'visual.control' && ROOM_PARAMETER.test(entry.parameter ?? '')
+        && ((typeof entry.value === 'number' && Number.isFinite(entry.value)) || (typeof entry.value === 'string' && ROOM_PARAMETER.test(entry.value)))) {
+        return [{ type: 'visual.changed', by: 'rise', parameter: entry.parameter, value: entry.value }];
+    }
+    if (entry.kind === 'pace.suggest' && Number.isFinite(entry.rate) && entry.rate >= 0.5 && entry.rate <= 2) return [{ type: 'paced', by: 'rise', rate: entry.rate }];
+    return [];
+}
+
 /** Whether two events are one action repeated, and so folded into one. */
 function same(a, b) {
     if (a.type !== b.type) return false;
     switch (a.type) {
         case 'replayed': case 'sought': return a.from === b.from && a.to === b.to;
-        // A pace or a setting changed again: only where it ended matters.
-        case 'paced': return true;
-        case 'visual.changed': return a.parameter === b.parameter;
+        // A pace or a setting changed again, by the same hand: only where it ended matters.
+        case 'paced': return a.by === b.by;
+        case 'visual.changed': return a.parameter === b.parameter && a.by === b.by;
         case 'held': return a.passage === b.passage && a.by === b.by;
         case 'said': return a.words === b.words;
         case 'scene.input': return a.scene === b.scene && a.control === b.control;
@@ -144,6 +166,9 @@ export function perceive(journal, { passages = [] } = {}) {
             case 'run.finished':
                 if (entry.role === 'main') made = [{ type: 'finished' }];
                 break;
+            case 'room.changed':
+                made = roomChanged(entry);
+                break;
             default:
                 break;
         }
@@ -167,8 +192,8 @@ const FIELDS = Object.freeze({
     resumed: ['passage', 'afterMs'],
     sought: ['from', 'to', 'times', 'quote'],
     replayed: ['from', 'to', 'times', 'quote'],
-    paced: ['rate'],
-    'visual.changed': ['parameter', 'value'],
+    paced: ['rate', 'by'],
+    'visual.changed': ['parameter', 'value', 'by'],
     said: ['words'],
     'scene.input': ['scene', 'control', 'value'],
     finished: []
@@ -192,15 +217,20 @@ const textOk = (value, max) => typeof value === 'string' && value.length > 0 && 
 const plainObject = value => value !== null && typeof value === 'object' && !Array.isArray(value)
     && [Object.prototype, null].includes(Object.getPrototypeOf(value));
 
-function fieldOk(type, key, value) {
+/**
+ * One field of an event, as perceive makes it. `by` is the reader's or the device's on a hold, and only ever RISE's on a
+ * change or a pace (a change the reader made carries none); the parameter of a change is a reader's setting, or, by
+ * RISE, a look or an engine's parameter.
+ */
+function fieldOk(type, key, value, event) {
     switch (key) {
         case 'passage': case 'from': case 'to': return passageOk(value);
-        case 'by': return value === 'reader' || value === 'device';
+        case 'by': return type === 'held' ? value === 'reader' || value === 'device' : value === 'rise';
+        case 'parameter': return event.by === 'rise' ? ROOM_PARAMETER.test(value ?? '') : SETTING_PARAMETERS.includes(value);
         case 'afterMs': return isCount(value, PERCEPTION_LIMITS.afterMs);
         case 'times': return Number.isInteger(value) && value >= 1 && value <= PERCEPTION_LIMITS.times;
         case 'quote': return textOk(value, PERCEPTION_LIMITS.quote);
         case 'rate': return Number.isFinite(value) && value >= 0.5 && value <= 2;
-        case 'parameter': return SETTING_PARAMETERS.includes(value);
         case 'words': return textOk(value, PERCEPTION_LIMITS.words);
         case 'scene': case 'control': return textOk(value, PERCEPTION_LIMITS.name);
         case 'value':
@@ -228,7 +258,7 @@ export function admitPerception(value) {
         const copy = { type: event.type };
         for (const [key, field] of Object.entries(event)) {
             if (key === 'type') continue;
-            if (!allowed.includes(key) || !fieldOk(event.type, key, field)) throw new TypeError(`perception.events[${index}].${key} is not allowed`);
+            if (!allowed.includes(key) || !fieldOk(event.type, key, field, event)) throw new TypeError(`perception.events[${index}].${key} is not allowed`);
             copy[key] = field;
         }
         return copy;
@@ -258,6 +288,13 @@ const SETTING_SAID = Object.freeze({
     voice: value => (value === 'automatic' ? 'went back to the automatic voice' : 'chose another voice')
 });
 
+/** A change RISE made to the room, said as RISE's: the reader's own are said without a subject. */
+function riseChanged({ parameter, value }) {
+    if (parameter === 'look') return `RISE changed the look to ${value}`;
+    if (parameter === 'intensity') return `RISE set the imagery’s intensity to ${value}, on a scale of 0 to 1`;
+    return `RISE set the imagery’s ${parameter} to ${value}`;
+}
+
 /** One event in plain words of action. */
 function sentence(event) {
     switch (event.type) {
@@ -265,8 +302,10 @@ function sentence(event) {
         case 'resumed': return event.afterMs === undefined ? 'played on' : `played on after ${seconds(event.afterMs)}`;
         case 'replayed': return `replayed ${passageName(event.to)}${times(event.times)}${quoted(event)}`;
         case 'sought': return `went from ${passageName(event.from)} to ${passageName(event.to)}${times(event.times)}${quoted(event)}`;
-        case 'paced': return `set the pace to ${Number(event.rate.toFixed(2))} times the voice’s own`;
-        case 'visual.changed': return SETTING_SAID[event.parameter](event.value);
+        case 'paced': return event.by === 'rise'
+            ? `RISE suggested a pace of ${Number(event.rate.toFixed(2))} times the voice’s own`
+            : `set the pace to ${Number(event.rate.toFixed(2))} times the voice’s own`;
+        case 'visual.changed': return event.by === 'rise' ? riseChanged(event) : SETTING_SAID[event.parameter](event.value);
         case 'said': return `said: “${event.words}”`;
         case 'scene.input': return `set ${event.control} in the scene ${event.scene} to ${event.value}`;
         case 'finished': return 'reached the end of the reading';

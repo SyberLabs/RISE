@@ -426,6 +426,33 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 .rise-stage[data-transport="full"] .rise-stage__alert { bottom: calc(var(--stage-inset) + var(--safe-bottom, 0px) + 76px); }
 .rise-stage[data-transport="full"] .rise-settings { bottom: calc(var(--stage-inset) + var(--safe-bottom, 0px) + 72px); }
 
+/* A pace RISE suggested and the reader's way back: one line above the beat line, at the stage's left. */
+.rise-stage__suggest {
+  position: absolute;
+  left: calc(var(--stage-inset) + var(--safe-left, 0px));
+  bottom: calc(var(--stage-inset) + var(--safe-bottom, 0px) + 76px);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  pointer-events: auto;
+  color: var(--color-light);
+  font-size: 0.875rem;
+}
+
+.rise-stage__suggest[hidden] { display: none; }
+
+.rise-stage__keep {
+  min-height: 44px;
+  padding: 0 0.875rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 /* The Settings sheet: inside the stage, 8 px above the Settings object, one 44 px row per setting. */
 .rise-settings {
   position: absolute;

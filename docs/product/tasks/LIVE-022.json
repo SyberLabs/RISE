@@ -1,0 +1,74 @@
+{
+  "id": "LIVE-022",
+  "title": "RISE Live: the model changes the room",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-021"
+  ],
+  "acceptance": [
+    "Events: room.change is additive to rise.current-events.v1, one of visual.control {surface?, parameter, value} (a manifest command, as controlVisual takes one), scene.cue {scene, cue}, look.change {look} and pace.suggest {rate} (0.5 to 2), each bounded by the manifests and beats.js as a beat's cue is; the line format reads @visual, @cue, @look and @pace between beats, in a main stream or an interjection's answer.",
+    "The reducer admits them, anchored before the next beat; the sealed Current carries none.",
+    "The runtime applies a cue at once and every other change at a phrase boundary, one a phrase (a second waits for the next), where the model put it; what manifests, scenes or the reader's own settings refuse is a journal note (room.refused), never a stall (design §6, §8 stage 5: one visual, one phrase, one second).",
+    "A suggested pace applies only if the reader has not set a pace in this reading; the stage says RISE suggests it and the reader can refuse it.",
+    "The journal notes room.asked and room.changed; perception reports RISE's changes as RISE's, apart from the reader's; the room's persisted state (theme, intensity) follows.",
+    "REALTIME_INSTRUCTIONS teaches the room without orders: what each line does, when it is apt, and the restraint.",
+    "Demonstrated in the venue: a look and a cue mid-stream, an interjection answer that changes the visual, each landing at the next phrase boundary with the timings reported; a reader-set pace not overridden; the perception block names RISE's change."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
+      "note": "§6 and §8 stage 5: the acceptance above.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§18 The model changes the room: the lines, the event, when a change lands, what each does, the reader's settings, perception, the guide, the demonstration, measurements and limits.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/specs/LIVE-CURRENT-EVENTS-V1.md",
+      "note": "The model changes the room (added 2026-10-11, additive): room.change, its four kinds and bounds, EVENT_ROOM, ROOM_CHANGE, TOO_MANY_CHANGES.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.room.test.js",
+      "note": "Branch live-room-changes, the whole runtime on fake timers: a change lands at the start of the beat after its line, not when it arrives; one a phrase, a cue at once; an interjection's change at the answer's first beat within a second; refusals noted and the reading ends; the reader's intensity, theme and pace win; a suggested pace and the reader's way back. With protocol, stream, segment-parser, perception, openai-instructions, mock, stage-controls and LiveHost tests.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Branch live-room-changes, local production build, headless Chromium, the demo and the paced voice: look and cue landed 3 and 4 ms after the first phrase of the passage after them; the second change 1 ms after the next phrase began; an answer's change arrived 223 ms after the question and landed 438 ms later, 3 ms after the answer's first phrase; a reader-set pace refused RISE's (READER_SET); Keep 1× took a suggested pace back; the next question carried RISE's changes as RISE's.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/634",
+      "note": "Stage 5 (branch live-room-changes), stacked on #633 (base live-hardening). Open and held for the connector freeze: not merged, no auto-merge, not deployed.",
+      "date": "2026-10-11"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-11T17:30:00.000Z",
+      "summary": "Built on branch live-room-changes (stacked on live-hardening, #633), held for the connector freeze. No real model has written a room line."
+    },
+    {
+      "date": "2026-10-12T00:15:18.662Z",
+      "summary": "Opened #634 on #633, held for the connector freeze."
+    }
+  ],
+  "updatedAt": "2026-10-12T00:15:18.662Z",
+  "revision": 2,
+  "summary": "Design §8 stage 5: the model changes the room while it plays, at phrase boundaries, within the manifests, the reader's own settings winning.",
+  "blocker": null
+}

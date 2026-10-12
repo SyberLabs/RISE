@@ -2321,4 +2321,24 @@ describe('the beds under the reading', () => {
         await host.ended();
         expect(gate.connected).toEqual([]);
     });
+
+    it('hands the room RISE changed to the stage: a look’s colours to wear, an intensity to keep (stage 5)', async () => {
+        mountWith('?voice=paced', env(), fakeEngine());
+        const loaded = await host.modules;
+        let options = null;
+        host.modules = Promise.resolve([
+            { createLiveRuntime: given => { options = given; return fakeRuntime(); } },
+            ...loaded.slice(1, 4),
+            { presentLive: async () => {}, leaveLive: async () => {} },
+            loaded[5]
+        ]);
+        await host.buildRuntime();
+        expect(options.host.changeLook({ look: 'flame', theme: 'ember' })).toEqual({ status: 'refused', code: 'NO_ACTIVE_VISUAL' });
+        host.controls = { wearTheme: vi.fn(() => ({ status: 'accepted', effective: 'ember' })), keepIntensity: vi.fn(), destroy: vi.fn() };
+        expect(options.host.changeLook({ look: 'flame', theme: 'ember' })).toEqual({ status: 'accepted', effective: 'ember' });
+        expect(host.controls.wearTheme).toHaveBeenCalledWith('ember');
+        options.onNote({ type: 'room.changed', kind: 'visual.control', surface: 'attractor', parameter: 'intensity', value: 0.5 });
+        options.onNote({ type: 'room.changed', kind: 'visual.control', surface: 'living-flame', parameter: 'energy', value: 0.9 });
+        expect(host.controls.keepIntensity.mock.calls).toEqual([[0.5]]);
+    });
 });

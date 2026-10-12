@@ -770,3 +770,75 @@ describe('the interjection’s ending (stage 4.5)', () => {
         expect(plain.stream.ending).toBeNull();
     });
 });
+
+describe('the model changes the room (stage 5)', () => {
+    const opened5 = () => {
+        const stream = createCurrentStream({ admitScene: sceneRefusal });
+        const send = feed(stream);
+        open(send);
+        return { stream, send };
+    };
+    const beat = (send, n, body, words) => {
+        send('segment.begin', { segmentId: `beat-${n}`, beat: body });
+        if (words) send('segment.text', { segmentId: `beat-${n}`, offset: 0, text: words });
+        return send('segment.end', { segmentId: `beat-${n}` });
+    };
+    const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>';
+
+    it('anchors each change before the next beat, lists them in order, and lowers none into the Current', () => {
+        const { stream, send } = opened5();
+        expect(send('room.change', { kind: 'look.change', look: 'flame' }).status).toBe('applied');
+        beat(send, 0, {}, 'Light carries every colour.');
+        send('scene.declare', { sceneId: 'field', engine: 'attractor' });
+        beat(send, 1, { scene: 'field' }, 'The sky scatters blue.');
+        send('room.change', { kind: 'scene.cue', scene: 'field', cue: 'bright' });
+        send('room.change', { kind: 'visual.control', parameter: 'intensity', value: 0.5 });
+        send('room.change', { kind: 'pace.suggest', rate: 1.25 });
+        beat(send, 2, {}, 'So the sky is blue.');
+        expect(stream.roomChanges).toEqual([
+            { before: 0, change: { kind: 'look.change', look: 'flame' } },
+            { before: 2, change: { kind: 'scene.cue', scene: 'field', cue: 'bright' } },
+            { before: 2, change: { kind: 'visual.control', parameter: 'intensity', value: 0.5 } },
+            { before: 2, change: { kind: 'pace.suggest', rate: 1.25 } }
+        ]);
+        const current = stream.toCurrent();
+        expect(current.beats).toHaveLength(3);
+        expect(JSON.stringify(current)).not.toMatch(/flame|pace|intensity/u);
+        expect(send('current.complete').status).toBe('applied');
+    });
+
+    it('a change first makes a beat stream, and one in a passage stream is refused', () => {
+        const { stream, send } = opened5();
+        send('room.change', { kind: 'pace.suggest', rate: 1.5 });
+        expect(send('segment.begin', { segmentId: 'p1' })).toMatchObject({ status: 'refused', code: 'BEAT_MIXED' });
+        const passages = opened5();
+        segment(passages.send, 'p1', 'A passage.');
+        expect(passages.send('room.change', { kind: 'pace.suggest', rate: 1.5 })).toMatchObject({ status: 'refused', code: 'BEAT_MIXED' });
+        expect(stream.roomChanges).toHaveLength(1);
+    });
+
+    it('holds a cue to a scene it declared, and a command with a surface to that engine’s manifest, as a beat’s cue is held', () => {
+        const { stream, send } = opened5();
+        send('scene.declare', { sceneId: 'field', engine: 'attractor' });
+        send('scene.declare', { sceneId: 'fig', form: 'svg' });
+        send('scene.text', { sceneId: 'fig', offset: 0, text: SVG });
+        beat(send, 0, { scene: 'fig' }, 'A figure.');
+        expect(send('room.change', { kind: 'scene.cue', scene: 'field', cue: 'spin' })).toMatchObject({ status: 'refused', code: 'BEAT_CUE' });
+        expect(send('room.change', { kind: 'scene.cue', scene: 'fig', cue: 'bright' })).toMatchObject({ status: 'refused', code: 'BEAT_CUE' });
+        expect(send('room.change', { kind: 'scene.cue', scene: 'field', cue: 'set:intensity=0.5' }).status).toBe('applied');
+        // A scene this stream never declared is the room's: resolved where it lands.
+        expect(send('room.change', { kind: 'scene.cue', scene: 'disk', cue: 'spin' }).status).toBe('applied');
+        expect(send('room.change', { kind: 'visual.control', parameter: 'speed', value: 2, surface: 'attractor' })).toMatchObject({ status: 'refused', code: 'ROOM_CHANGE' });
+        expect(send('room.change', { kind: 'visual.control', parameter: 'intensity', value: 'gold', surface: 'attractor' })).toMatchObject({ status: 'refused', code: 'ROOM_CHANGE' });
+        expect(send('room.change', { kind: 'visual.control', parameter: 'intensity', value: 0.6, surface: 'nowhere' })).toMatchObject({ status: 'refused', code: 'ROOM_CHANGE' });
+        expect(send('room.change', { kind: 'visual.control', parameter: 'energy', value: 0.9, surface: 'living-flame' }).status).toBe('applied');
+        expect(stream.roomChanges.map(item => item.change.kind)).toEqual(['scene.cue', 'scene.cue', 'visual.control']);
+    });
+
+    it('takes at most 32 a stream', () => {
+        const { stream, send } = opened5();
+        for (let n = 0; n < STREAM_LIMITS.roomChanges; n += 1) expect(send('room.change', { kind: 'pace.suggest', rate: 1 }).status).toBe('applied');
+        expect(send('room.change', { kind: 'pace.suggest', rate: 1 })).toMatchObject({ status: 'refused', code: 'TOO_MANY_CHANGES' });
+        expect(stream.roomChanges).toHaveLength(32);
+    });
+});

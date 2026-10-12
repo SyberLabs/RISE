@@ -422,4 +422,24 @@ describe('the demo that writes in beats (the venue’s)', () => {
         expect(replaced.reducer.toCurrent().beats).toHaveLength(2);
         expect(replaced.reducer.ending).toBe('replace');
     });
+
+    it('changes the room while it plays, asked why the sky is blue: a look and a cue mid-stream, a second change, a pace (stage 5)', async () => {
+        const { reducer } = await stream({ intent: 'answer', prompt: 'Why is the sky blue?' });
+        expect(reducer.snapshot()).toMatchObject({ phase: 'complete', refusals: 0 });
+        expect(reducer.roomChanges).toEqual([
+            { before: 2, change: { kind: 'look.change', look: 'flame' } },
+            { before: 2, change: { kind: 'scene.cue', scene: 'sky', cue: 'calm' } },
+            { before: 2, change: { kind: 'visual.control', parameter: 'intensity', value: 0.7 } },
+            { before: 3, change: { kind: 'pace.suggest', rate: 1.25 } }
+        ]);
+        expect(reducer.toCurrent().beats).toHaveLength(4);
+    });
+
+    it('answers “more vibrant” inside the room by changing the visual first, then two beats, and resumes', async () => {
+        const reading = { passages: ['Sunlight carries every colour at once.'], at: 0 };
+        const { reducer } = await stream({ intent: 'interject', prompt: 'Make it more vibrant.', reading });
+        expect(reducer.roomChanges).toEqual([{ before: 0, change: { kind: 'visual.control', parameter: 'intensity', value: 0.75 } }]);
+        expect(reducer.toCurrent().beats).toHaveLength(2);
+        expect(reducer.ending).toBe('resume');
+    });
 });

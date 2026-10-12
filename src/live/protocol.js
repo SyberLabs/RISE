@@ -70,8 +70,24 @@ export const EVENT_TYPES = Object.freeze([
     'current.complete',
     'error',
     'scene.declare',
-    'scene.text'
+    'scene.text',
+    'room.change'
 ]);
+
+/**
+ * What the model may change in a room that is playing (docs/plans/LIVE-CURRENT.md §18), and the fields each takes:
+ * a command to the running engine (as controlVisual takes one), a cue to a running scene (as a beat's cue), a look's
+ * colours, and a pace it suggests. Whether the engine or the scene takes it is the reducer's and the runtime's to say.
+ */
+export const ROOM_CHANGE_FIELDS = Object.freeze({
+    'visual.control': Object.freeze(['parameter', 'value', 'surface']),
+    'scene.cue': Object.freeze(['scene', 'cue']),
+    'look.change': Object.freeze(['look']),
+    'pace.suggest': Object.freeze(['rate'])
+});
+export const ROOM_CHANGE_KINDS = Object.freeze(Object.keys(ROOM_CHANGE_FIELDS));
+/** A suggested pace, as the reader's own is bounded (runtime.js setPace). */
+export const ROOM_PACE = Object.freeze({ min: 0.5, max: 2 });
 
 /**
  * The intended experiential condition of a segment. These describe what the
@@ -344,8 +360,56 @@ function sceneParams(value, path) {
     return clean;
 }
 
+/** A parameter's or a surface's name, and a word a parameter may take (visual-control-contract.js holds the same names). */
+const ROOM_NAME = /^[A-Za-z]{1,40}$/u;
+const ROOM_SURFACE = /^[a-z0-9-]{1,40}$/u;
+const ROOM_WORD = /^[A-Za-z0-9_:=.-]{1,40}$/u;
+
+/** One room change: its kind's fields and no other, each in bounds (ROOM_CHANGE_FIELDS). */
+function roomChange(e, p) {
+    if (typeof e.kind !== 'string' || !Object.hasOwn(ROOM_CHANGE_FIELDS, e.kind)) fail('EVENT_ROOM', `${p}.kind`, `A room change is one of ${ROOM_CHANGE_KINDS.join(', ')}`);
+    const fields = ROOM_CHANGE_FIELDS[e.kind];
+    for (const key of Object.keys(e)) {
+        if (!['schema', 'currentId', 'seq', 'type', 'kind', ...fields].includes(key)) fail('EVENT_UNKNOWN_FIELD', `${p}.${key}`, `A ${e.kind} carries no ${key}`);
+    }
+    const clean = { kind: e.kind };
+    switch (e.kind) {
+        case 'visual.control':
+            if (typeof e.parameter !== 'string' || !ROOM_NAME.test(e.parameter)) fail('EVENT_ROOM', `${p}.parameter`, 'Expected a parameter’s name');
+            if (!(typeof e.value === 'number' && Number.isFinite(e.value)) && !(typeof e.value === 'string' && ROOM_WORD.test(e.value))) {
+                fail('EVENT_ROOM', `${p}.value`, 'Expected a number or one word');
+            }
+            clean.parameter = e.parameter;
+            clean.value = e.value;
+            if (given(e, 'surface')) {
+                if (typeof e.surface !== 'string' || !ROOM_SURFACE.test(e.surface)) fail('EVENT_ROOM', `${p}.surface`, 'Expected an engine’s surface');
+                clean.surface = e.surface;
+            }
+            break;
+        case 'scene.cue':
+            clean.scene = id(e.scene, `${p}.scene`);
+            if (typeof e.cue !== 'string' || !CUE.test(e.cue) || e.cue.length > BEAT_LIMITS.cue) {
+                fail('EVENT_ROOM', `${p}.cue`, `A cue is a name of at most ${BEAT_LIMITS.cue} letters, digits, _, -, :, . or =`);
+            }
+            clean.cue = e.cue;
+            break;
+        case 'look.change':
+            if (!RISE_CURRENT_LOOKS.includes(e.look)) fail('EVENT_ROOM', `${p}.look`, `A look is one of ${RISE_CURRENT_LOOKS.join(', ')}`);
+            clean.look = e.look;
+            break;
+        default:
+            if (typeof e.rate !== 'number' || !Number.isFinite(e.rate) || e.rate < ROOM_PACE.min || e.rate > ROOM_PACE.max) {
+                fail('EVENT_ROOM', `${p}.rate`, `A pace is from ${ROOM_PACE.min} to ${ROOM_PACE.max}`);
+            }
+            clean.rate = e.rate;
+    }
+    return clean;
+}
+
 /** What each type carries beyond the envelope, and how each field is checked. */
 const BODIES = {
+    // The model changes the room it is playing in (docs/plans/LIVE-CURRENT.md §18).
+    'room.change': { fields: ['kind', 'surface', 'parameter', 'value', 'scene', 'cue', 'look', 'rate'], read: roomChange },
     'current.open': {
         fields: ['title', 'origin', 'theme', 'look'],
         read: (e, p) => {

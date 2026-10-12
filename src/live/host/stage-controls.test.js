@@ -18,7 +18,7 @@ import { manifestFor } from '../../scenes/manifests.js';
 
 const snapshot = (status, extra = {}) => ({
     status, error: null, main: { voiceDegraded: false, speaking: null, segmentId: 's1', ...extra.main }, side: null, ...(extra.error ? { error: extra.error } : {}),
-    pace: extra.pace ?? 1, paceFrom: extra.paceFrom ?? null, position: extra.position ?? null
+    pace: extra.pace ?? 1, paceFrom: extra.paceFrom ?? null, position: extra.position ?? null, paceSuggested: extra.paceSuggested ?? null
 });
 
 const SEGMENTS = [{ text: 'first line', ended: true }, { text: 'second line', ended: true }, { text: 'still being written', ended: false }];
@@ -1236,5 +1236,48 @@ describe('the reader’s Settings choices, kept for perception (the RISE Live de
         settings().click();
         theme().value = 'jade';
         expect(() => change(theme())).not.toThrow();
+    });
+});
+
+describe('the room RISE changed (stage 5)', () => {
+    it('wears a look’s colours as the Theme row does, keeps them for the room, and notes nothing as the reader’s', () => {
+        const room = {};
+        const runtime = Object.assign(fakeRuntime('live'), { noteSetting: vi.fn() });
+        const chamber = fakeChamber();
+        const paintTheme = vi.fn();
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, chamber: () => chamber, paintTheme, room });
+        expect(stage.wearTheme('ember')).toEqual({ status: 'accepted', effective: 'ember' });
+        expect(chamber.setColourTheme).toHaveBeenLastCalledWith('ember');
+        expect(paintTheme).toHaveBeenLastCalledWith('ember');
+        expect(room.picked.theme).toBe('ember');
+        settings().click();
+        expect(theme().value).toBe('ember');
+        expect(runtime.noteSetting).not.toHaveBeenCalled();
+        expect(stage.wearTheme('neon')).toEqual({ status: 'refused', code: 'INVALID_CONTROL' });
+    });
+
+    it('keeps an intensity RISE set for the next passage and the room, as the reader’s own is kept', () => {
+        const room = {};
+        const runtime = fakeRuntime('live', { position: { segmentIndex: 0, segmentCount: 2 } });
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, chamber: () => fakeChamber(), room });
+        stage.keepIntensity(0.5);
+        expect(room.intensity).toBe(0.5);
+        runtime.set('live', { main: { segmentId: 's2' } });
+        expect(runtime.controlVisual).toHaveBeenLastCalledWith({ surface: 'attractor', parameter: 'intensity', value: 0.5 });
+    });
+
+    it('says a pace RISE suggests, and Keep is the reader’s own pace back', () => {
+        const runtime = fakeRuntime('live');
+        stage = createStageControls({ runtime, onPlayAgain: () => {}, chamber: () => fakeChamber() });
+        const suggestion = () => $('#rise-stage-controls .rise-stage__suggest');
+        expect(suggestion().hidden).toBe(true);
+        runtime.set('live', { pace: 1.25, paceSuggested: { rate: 1.25, before: 1 } });
+        expect(suggestion().hidden).toBe(false);
+        expect(suggestion().textContent).toMatch(/RISE suggests 1\.25×/u);
+        const keep = suggestion().querySelector('button');
+        expect(keep.textContent).toBe('Keep 1×');
+        keep.click();
+        expect(runtime.setPace).toHaveBeenLastCalledWith(1);
+        expect(suggestion().hidden).toBe(true);
     });
 });

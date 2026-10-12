@@ -52,7 +52,8 @@ const VALID = {
     'current.complete': base('current.complete', 14),
     error: base('error', 15, { code: 'PROVIDER_LOST', message: 'The connection dropped.', recoverable: true }),
     'scene.declare': base('scene.declare', 16, { sceneId: 'field', engine: 'attractor', params: { palette: 'jade' } }),
-    'scene.text': base('scene.text', 17, { sceneId: 'disk', offset: 0, text: 'export default function scene(rise) {\n' })
+    'scene.text': base('scene.text', 17, { sceneId: 'disk', offset: 0, text: 'export default function scene(rise) {\n' }),
+    'room.change': base('room.change', 18, { kind: 'visual.control', parameter: 'intensity', value: 0.7 })
 };
 
 const refusal = input => {
@@ -500,6 +501,50 @@ describe('the interjection’s ending (stage 4.5)', () => {
     it('names one of three, and nothing else', () => {
         for (const ending of ['stop', '', 'RESUME', 1, null, { then: 'resume' }]) {
             expect(refusal(base('current.complete', 3, { ending }))).toMatchObject({ code: 'EVENT_ENDING', path: '$.ending' });
+        }
+    });
+});
+
+describe('the model changes the room (stage 5)', () => {
+    const room = body => base('room.change', 5, body);
+
+    it('carries one of four changes, each with its own fields, copied as named', () => {
+        for (const body of [
+            { kind: 'visual.control', parameter: 'intensity', value: 0.7 },
+            { kind: 'visual.control', parameter: 'palette', value: 'gold', surface: 'attractor' },
+            { kind: 'scene.cue', scene: 'disk', cue: 'set:intensity=0.5' },
+            { kind: 'look.change', look: 'flame' },
+            { kind: 'pace.suggest', rate: 1.25 }
+        ]) {
+            expect(validateEvent(structuredClone(room(body)))).toEqual(room(body));
+        }
+    });
+
+    it('refuses a field another kind takes, and a kind it does not know', () => {
+        expect(refusal(room({ kind: 'look.change', look: 'flame', rate: 1 }))).toMatchObject({ code: 'EVENT_UNKNOWN_FIELD', path: '$.rate' });
+        expect(refusal(room({ kind: 'pace.suggest', rate: 1, look: 'flame' }))).toMatchObject({ code: 'EVENT_UNKNOWN_FIELD', path: '$.look' });
+        expect(refusal(room({ kind: 'html', html: '<b>' }))).toMatchObject({ code: 'EVENT_UNKNOWN_FIELD' });
+        expect(refusal(room({ kind: 'theme.change', look: 'flame' }))).toMatchObject({ code: 'EVENT_ROOM', path: '$.kind' });
+        expect(refusal(room({ look: 'flame' }))).toMatchObject({ code: 'EVENT_ROOM', path: '$.kind' });
+    });
+
+    it('holds each to its bounds', () => {
+        for (const [body, path] of [
+            [{ kind: 'visual.control', parameter: 'intensity' }, '$.value'],
+            [{ kind: 'visual.control', parameter: 'in tensity', value: 1 }, '$.parameter'],
+            [{ kind: 'visual.control', parameter: 'intensity', value: Number.NaN }, '$.value'],
+            [{ kind: 'visual.control', parameter: 'intensity', value: 'two words' }, '$.value'],
+            [{ kind: 'visual.control', parameter: 'intensity', value: true }, '$.value'],
+            [{ kind: 'visual.control', parameter: 'intensity', value: 0.5, surface: 'Attractor!' }, '$.surface'],
+            [{ kind: 'scene.cue', scene: 'disk' }, '$.cue'],
+            [{ kind: 'scene.cue', scene: 'disk', cue: 'a b' }, '$.cue'],
+            [{ kind: 'scene.cue', scene: ' disk', cue: 'spin' }, '$.scene'],
+            [{ kind: 'look.change', look: 'neon' }, '$.look'],
+            [{ kind: 'pace.suggest', rate: 0.4 }, '$.rate'],
+            [{ kind: 'pace.suggest', rate: 2.5 }, '$.rate'],
+            [{ kind: 'pace.suggest', rate: '1.25' }, '$.rate']
+        ]) {
+            expect(refusal(room(body)), JSON.stringify(body)).toMatchObject({ code: path === '$.scene' ? 'EVENT_ID' : 'EVENT_ROOM', path });
         }
     });
 });

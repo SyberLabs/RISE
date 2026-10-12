@@ -9,6 +9,8 @@
  * the other is not a parser checked against itself.
  */
 
+import { SKY_ROOM_TEXT, VIBRANT_ANSWER } from './sky-room-beats.js';
+
 const DISK = `export default function scene(rise) {
   const { lib } = rise;
   const disk = { spin: 0.2, glow: 0.35 };
@@ -111,9 +113,16 @@ export const INTERJECTION_ANSWERS = Object.freeze({
     ].join('\n')
 });
 
-/** The answer for a question: black holes, or a plain sentence that it knows nothing else; an interjection's, its own. */
+/**
+ * The answer for a question: black holes, the sky (the room changed while it plays, sky-room-beats.js), or a plain
+ * sentence that it knows nothing else; an interjection's, its own.
+ */
 export function beatsTextFor(request) {
-    if (request.intent === 'interject') return /\b(skip|short)\b/iu.test(request.prompt) ? INTERJECTION_ANSWERS.replace : INTERJECTION_ANSWERS.resume;
+    if (request.intent === 'interject') {
+        if (/\b(vibrant|brighter)\b/iu.test(request.prompt)) return VIBRANT_ANSWER;
+        return /\b(skip|short)\b/iu.test(request.prompt) ? INTERJECTION_ANSWERS.replace : INTERJECTION_ANSWERS.resume;
+    }
     if (/black\s*holes?/iu.test(request.prompt)) return BLACK_HOLES_BEATS_TEXT;
+    if (/\bsky\b/iu.test(request.prompt)) return SKY_ROOM_TEXT;
     return '@say This demonstration can only explain black holes.\n';
 }

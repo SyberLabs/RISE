@@ -28,7 +28,8 @@ import { soundKind } from '../audio/sound-ids.js';
 import { fail, id, keys, object, spokenText } from './current-validation.js';
 import { TYPE_NAMES } from './typography.js';
 import { EXPERIENCE_PROGRAM_LIMITS, sceneCodeBytes } from './experience-program.js';
-import { cueCommands, manifestFor, SCENE_ENGINES as ENGINES, validateSceneParams } from '../scenes/manifests.js';
+import { cueCommands, manifestFor, SCENE_ENGINES as ENGINES, SCENE_MANIFESTS, validateSceneParams } from '../scenes/manifests.js';
+import { validateVisualCommand } from './visual-control-contract.js';
 
 export const BEAT_LIMITS = Object.freeze({
   beats: 64,
@@ -59,6 +60,16 @@ export const SCENE_ENGINES = ENGINES;
 export { describeManifests } from '../scenes/manifests.js';
 /** What a native scene's parameters and cues may be, by the same route: the line format checks them as it reads. */
 export { cueCommands, validateSceneParams } from '../scenes/manifests.js';
+
+/**
+ * Whether some engine takes a command while it runs, as controlVisual takes one: with a surface, that engine; without,
+ * any engine that changes the parameter in place. Held to the manifests, so a model's `@visual` line and the reducer
+ * (docs/plans/LIVE-CURRENT.md §18) refuse exactly what the running engine would.
+ */
+export function engineTakes({ surface, parameter, value }) {
+  return SCENE_MANIFESTS.some(manifest => (surface === undefined || manifest.surface === surface)
+    && validateVisualCommand({ surface: manifest.surface, parameter, value }, manifest).ok);
+}
 /** A generated scene's frame budget, for the guide, by the same route. */
 export { SCENE_LIMITS } from '../scenes/scene-protocol.js';
 /** The names a scene may not use, declared once in scene-bans.js; the guide names them by this route. */
