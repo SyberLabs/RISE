@@ -55,6 +55,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/634",
       "note": "Stage 5 (branch live-room-changes), stacked on #633 (base live-hardening). Open and held for the connector freeze: not merged, no auto-merge, not deployed.",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/634",
+      "note": "Not by the coordinator: after answering Codex's one finding (aa93c705, Keep returns to the reader's own pace across successive suggestions), the Codex feedback workflow armed auto-merge, and with base live-hardening (no required check) #634 was squash-merged into live-hardening as 9aae06f4 on 2026-10-12. Nothing reached main: stage 5 now rides in #633, still open and held. A regression test for the finding was added after it.",
+      "date": "2026-10-12"
     }
   ],
   "activity": [
@@ -65,10 +71,14 @@
     {
       "date": "2026-10-12T00:15:18.662Z",
       "summary": "Opened #634 on #633, held for the connector freeze."
+    },
+    {
+      "date": "2026-10-12T00:27:33.006Z",
+      "summary": "#634 was merged into live-hardening by the Codex feedback workflow; stage 5 now rides in #633, held for the connector freeze."
     }
   ],
-  "updatedAt": "2026-10-12T00:15:18.662Z",
-  "revision": 2,
+  "updatedAt": "2026-10-12T00:27:33.006Z",
+  "revision": 3,
   "summary": "Design §8 stage 5: the model changes the room while it plays, at phrase boundaries, within the manifests, the reader's own settings winning.",
   "blocker": null
 }

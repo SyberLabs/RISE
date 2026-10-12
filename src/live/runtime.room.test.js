@@ -226,4 +226,17 @@ describe('a suggested pace', () => {
         runtime.setPace(1);
         expect(runtime.snapshot()).toMatchObject({ pace: 1, paceSuggested: null });
     });
+
+    it('a second suggestion before the reader answers keeps the reader’s own pace as the way back', async () => {
+        await open([
+            '@say Sunlight carries every colour at once.',
+            '@pace 1.25',
+            '@say The air scatters blue light far more than red.',
+            '@pace 1.5',
+            '@say So the sky is blue.',
+            ''
+        ].join('\n'));
+        await until(() => runtime.snapshot().paceSuggested?.rate === 1.5);
+        expect(runtime.snapshot().paceSuggested).toEqual({ rate: 1.5, before: 1 });
+    });
 });
