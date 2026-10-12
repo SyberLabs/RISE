@@ -352,13 +352,16 @@ test('nothing under src/ imports the arena harness', () => {
   assert.deepEqual(offenders, []);
 });
 
-test('the reader app never names the OpenAI Decisions endpoint or model', () => {
+// The Decisions endpoint is the operator-paid capture's alone. The reader app may reach OpenAI only on the reader's
+// own key, through chat completions (src/live/adapters/openai-chat.js), so the endpoint is what is held here; the
+// model's name is a public one the reader may choose.
+test('the reader app never names the OpenAI Decisions endpoint', () => {
   const frozen = full => /[/\\]content[/\\]arena$/u.test(full);
   const files = [...walk(join(ROOT, 'src')), ...walk(join(ROOT, 'public'), frozen), ...walk(join(ROOT, 'dist'), frozen)]
     .filter(file => /\.(?:m?js|html|json|css|txt)$/u.test(file) || basename(file) === '_headers')
     .filter(file => !/\.test\.m?js$/u.test(file) && !/[/\\]src[/\\]test[/\\]/u.test(file));
   assert.ok(files.length > 100, 'no app files were read');
-  const offenders = files.filter(file => /api\.openai\.com|gpt-6-luna/u.test(readFileSync(file, 'utf8')))
+  const offenders = files.filter(file => /\/v1\/decisions/u.test(readFileSync(file, 'utf8')))
     .map(file => relative(ROOT, file));
   assert.deepEqual(offenders, []);
 });

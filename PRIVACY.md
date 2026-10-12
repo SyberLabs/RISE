@@ -286,7 +286,7 @@ sign-in, with separate shared daily and monthly allowances.
 
 The Live Current page (`/live`) answers a typed question as a spoken, timed
 reading. By default it uses a built-in demonstration that makes no network
-request. Two providers can be chosen instead, each with a key you type into the
+request. Other providers can be chosen instead, each with a key you type into the
 page. The key is held only in that page's memory and forgotten when the session
 ends, is refused, or the page closes; it is not stored in your browser. What the
 provider receives is your prompt (up to 2,000 characters), RISE's fixed
@@ -299,6 +299,19 @@ processes the request under its own policy.
   in a request header, directly to Google at
   `generativelanguage.googleapis.com`. RISE's servers do not see the key or the
   request. See <https://policies.google.com/privacy>.
+- **Anthropic.** Your browser sends the request, with your Anthropic API key in
+  a request header, directly to Anthropic at `api.anthropic.com`. RISE's
+  servers do not see the key or the request. See
+  <https://www.anthropic.com/legal/privacy>.
+- **OpenAI chat.** Your browser sends the request, with your OpenAI API key in
+  a request header, directly to OpenAI at `api.openai.com`. RISE's servers do
+  not see the key or the request. See
+  <https://openai.com/policies/privacy-policy/>.
+- **ElevenLabs voice.** If you choose ElevenLabs under "Who speaks" and type
+  your ElevenLabs API key, your browser sends the words of each passage, with
+  the key in a request header, directly to ElevenLabs at `api.elevenlabs.io` to
+  be spoken, billed per character to your account. RISE's servers do not see
+  the key or the words. See <https://elevenlabs.io/privacy-policy>.
 - **OpenAI Realtime.** This route is switched off on rise.syberlabs.io
   (`LIVE_REALTIME_ENABLED` is `false`), so today it refuses every request.
   When it is switched on, your browser sends your OpenAI key, in a request

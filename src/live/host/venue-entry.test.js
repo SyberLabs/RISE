@@ -97,7 +97,9 @@ describe('the provider choice', () => {
     it('chooses a provider the registry offers, before the first question only', () => {
         expect(run({ type: 'choose', provider: 'gemini' }).provider).toBe('gemini');
         expect(run({ type: 'choose', provider: 'nonsense' }).provider).toBe('mock');
-        expect(run({ type: 'choose', provider: 'openai' }).provider).toBe('mock');
+        expect(run({ type: 'choose', provider: 'openai' }).provider).toBe('openai');
+        expect(run({ type: 'choose', provider: 'anthropic' }).provider).toBe('anthropic');
+        expect(run({ type: 'choose', provider: 'openai-realtime' }).provider).toBe('mock');
         expect(run(ask('First?'), { type: 'choose', provider: 'gemini' }).provider).toBe('mock');
     });
 
