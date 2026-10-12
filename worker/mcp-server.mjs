@@ -306,7 +306,8 @@ export const TOOL = Object.freeze({
   // What structuredContent carries back: the Current the app admits (src/live/hosts/mcp-port.js), named rather than
   // spelled out again, since inputSchema already does and a host reads both on every turn.
   outputSchema: { type: 'object', properties: { current: { type: 'object', description: 'The Current as accepted, for the app that plays it.' } }, required: ['current'] },
-  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  // annotations.title repeats title: a directory reads the name from the annotations, a host from the top level.
+  annotations: { title: 'Present a reading in RISE', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   // Anyone may call it: there is no account and nothing of the reader's to reach.
   securitySchemes: [{ type: 'noauth' }],
   _meta: {
@@ -333,7 +334,7 @@ export const GUIDE_TOOL = Object.freeze({
     required: ['style'],
     additionalProperties: false
   },
-  annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  annotations: { title: 'RISE style reference', readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   securitySchemes: [{ type: 'noauth' }]
 });
 

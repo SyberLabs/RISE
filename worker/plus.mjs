@@ -745,7 +745,9 @@ async function status(request, env, now) {
   const policy = spendingPolicy(env);
   const admin = await getAdmin(request, env);
   const identity = await billingIdentity(request, env, now);
-  const result = { canSubscribe: !identity, billingAvailable: billingReady(env) && Boolean(identity), admin: Boolean(admin), subscriber: false, available: false, adminLogin: adminLoginConfigured(env), allowance: null };
+  // Nothing is for sale without a served payment link or checkout, so nobody can subscribe.
+  const forSale = paymentLink(env) !== null || env.PLUS_CHECKOUT_ENABLED === 'true';
+  const result = { canSubscribe: forSale && !identity, billingAvailable: billingReady(env) && Boolean(identity), admin: Boolean(admin), subscriber: false, available: false, adminLogin: adminLoginConfigured(env), allowance: null };
   let standing, name;
   if (admin) {
     const budget = adminBudget(env, policy);
@@ -759,7 +761,7 @@ async function status(request, env, now) {
     if (!current) return reply(200, result);
     name = `sub:${current.s}`;
     const kept = await meter(env, name, 'inspect', { ttl: STANDING_TTL_S });
-    const eligible = status => status === 'canceled' || status === 'incomplete_expired';
+    const eligible = status => forSale && (status === 'canceled' || status === 'incomplete_expired');
     result.canSubscribe = eligible(kept.subscriptionStatus);
     if (kept.revoked) return reply(200, result);
     if (kept.fresh && (kept.standing === null || (kept.standing.l === livemode(env) && kept.standing.budgetPolicy === JSON.stringify(policy)))) standing = kept.standing;

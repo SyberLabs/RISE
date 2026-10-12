@@ -1174,6 +1174,15 @@ describe('the payment link is configuration (GET /api/plus/config)', () => {
     const env = environment({ PLUS_REQUIRE_LIVE: 'true', STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'webhook', PLUS_PAYMENT_LINK: link });
     expect(await (await worker.fetch(new Request(`${SITE}/api/plus/config`), env)).json()).toMatchObject({ paymentLink: null });
   });
+
+  it('lets status offer a subscription only while something is for sale: a served link, or checkout', async () => {
+    const status = async env => (await worker.fetch(new Request(`${SITE}/api/plus/status`), env)).json();
+    const production = { PLUS_REQUIRE_LIVE: 'true', STRIPE_SECRET_KEY: 'sk_live_x', STRIPE_WEBHOOK_SECRET: 'webhook', PLUS_CHECKOUT_ENABLED: 'false' };
+    expect(await status(environment({ ...production, PLUS_PAYMENT_LINK: await configured('wrangler.production.jsonc') }))).toMatchObject({ canSubscribe: false });
+    expect(await status(environment({ ...production, PLUS_PAYMENT_LINK: 'https://buy.stripe.com/test_aFa7sL5HpfHD0K5bIP9MY00' }))).toMatchObject({ canSubscribe: false });
+    expect(await status(environment({ ...production, PLUS_PAYMENT_LINK: 'https://buy.stripe.com/aFa7sL5HpfHD0K5bIP9MY00' }))).toMatchObject({ canSubscribe: true });
+    expect(await status(environment({ ...production, PLUS_PAYMENT_LINK: '', PLUS_CHECKOUT_ENABLED: 'true' }))).toMatchObject({ canSubscribe: true });
+  });
 });
 
 describe('production requires live Stripe (PLUS_REQUIRE_LIVE)', () => {
