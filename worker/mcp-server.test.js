@@ -297,6 +297,16 @@ describe('the tool', () => {
     for (const id of RISE_CURRENT_STYLES) expect(tool.description).toContain(`- ${id}: `);
   });
 
+  // A directory reads the display name from annotations.title, a host from the top-level title: both carry the same name.
+  it('names each tool twice, the same: the top-level title and annotations.title', async () => {
+    const { result } = await json(await post(rpc('tools/list')));
+    expect(result.tools.map(tool => [tool.name, tool.annotations.title])).toEqual([
+      ['rise_present', 'Present a reading in RISE'],
+      ['rise_guide', 'RISE style reference']
+    ]);
+    for (const tool of result.tools) expect(tool.annotations.title).toBe(tool.title);
+  });
+
   it('keeps the description and the whole listing within their budgets: the guide and the worked examples are rise_guide’s', async () => {
     // A host reads every tool's description and schema on every turn: about 500 tokens of description, 3k for the listing.
     expect(TOOL.description.length).toBeLessThanOrEqual(DESCRIPTION_BUDGET);
