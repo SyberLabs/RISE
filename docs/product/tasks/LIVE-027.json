@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -46,10 +46,14 @@
     {
       "date": "2026-10-12T21:12:14.542Z",
       "summary": "PR #646 opened on branch live-face with local verification evidence"
+    },
+    {
+      "date": "2026-10-12T21:33:37.331Z",
+      "summary": "PR #646 merged as b1689a66 and deployed (release.txt b1689a66, 2026-10-13); delivery deployed"
     }
   ],
-  "updatedAt": "2026-10-12T21:12:14.542Z",
-  "revision": 2,
+  "updatedAt": "2026-10-12T21:33:37.331Z",
+  "revision": 3,
   "summary": "RISE's own face in the Live venue: the approved Sophia study as a native scene engine the venue runs behind its ask bar, resting at arrival, listening, thinking until the first words, stepping back while a reading speaks, and at rest after it.",
   "blocker": null
 }
