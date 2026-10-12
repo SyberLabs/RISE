@@ -132,9 +132,32 @@ describe('perceive: the reader’s actions, from the journal', () => {
     });
 
     it('defines scene.input for the scenes that will send it (design §6), and reads it when a scene does', () => {
-        expect(PERCEPTION_EVENTS).toEqual(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished']);
+        expect(PERCEPTION_EVENTS).toEqual(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished', 'drew']);
         const { events } = perceive([at(0, 'scene.input', { scene: 'orbit', control: 'mass', value: 3 })]);
         expect(events).toEqual([{ type: 'scene.input', scene: 'orbit', control: 'mass', value: 3 }]);
+    });
+
+    it('reports a picture RISE put in the room as RISE’s own, never the reader’s, and says it so (stage 5.5)', () => {
+        const journal = [
+            at(0, 'illustration.asked', { n: 1, brief: 'a labelled diagram of water', rung: 'figure' }),
+            at(1, 'illustration.refused', { n: 1, attempt: 1, rule: 'figure', line: 1, column: 6 }),
+            at(2, 'illustrated', { n: 1, medium: 'figure', brief: 'a labelled diagram of the three states of water', ms: 4100, waitedMs: 900 }),
+            at(3, 'illustrated', { n: 2, medium: 'cue', brief: 'brighter attractor', ms: 3, waitedMs: 0 }),
+            at(4, 'illustrated', { n: 3, medium: 'video', brief: 'x' }),
+            at(5, 'illustration.failed', { n: 4, reason: 'REFUSED', attempts: 3 })
+        ];
+        const perception = perceive(journal);
+        expect(perception.events).toEqual([
+            { type: 'drew', by: 'rise', medium: 'figure', brief: 'a labelled diagram of the three states of water' },
+            { type: 'drew', by: 'rise', medium: 'cue', brief: 'brighter attractor' }
+        ]);
+        expect(admitPerception(perception)).toEqual(perception);
+        const said = describePerception(perception);
+        expect(said).toContain('- RISE drew a figure: “a labelled diagram of the three states of water”');
+        expect(said).toContain('- RISE drew from its own imagery: “brighter attractor”');
+        for (const forged of [{ type: 'drew', medium: 'figure', brief: 'x' }, { type: 'drew', by: 'reader', medium: 'figure', brief: 'x' }, { type: 'drew', by: 'rise', medium: 'video', brief: 'x' }, { type: 'drew', by: 'rise', medium: 'figure', brief: 'two\nlines' }]) {
+            expect(() => admitPerception({ events: [forged], earlier: 0 }), JSON.stringify(forged)).toThrow(TypeError);
+        }
     });
 });
 
