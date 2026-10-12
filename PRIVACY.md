@@ -307,6 +307,11 @@ processes the request under its own policy.
   a request header, directly to OpenAI at `api.openai.com`. RISE's servers do
   not see the key or the request. See
   <https://openai.com/policies/privacy-policy/>.
+- **ElevenLabs voice.** If you choose ElevenLabs under "Who speaks" and type
+  your ElevenLabs API key, your browser sends the words of each passage, with
+  the key in a request header, directly to ElevenLabs at `api.elevenlabs.io` to
+  be spoken, billed per character to your account. RISE's servers do not see
+  the key or the words. See <https://elevenlabs.io/privacy-policy>.
 - **OpenAI Realtime.** This route is switched off on rise.syberlabs.io
   (`LIVE_REALTIME_ENABLED` is `false`), so today it refuses every request.
   When it is switched on, your browser sends your OpenAI key, in a request
