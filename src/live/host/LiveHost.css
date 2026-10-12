@@ -854,3 +854,69 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 @media (max-width: 860px) {
   .has-rise-account:has(.live-again[data-open="true"]:not([hidden])) .rise-account-control { visibility: hidden; }
 }
+
+/* RISE's face (venue.js, face-layer.js; docs/plans/LIVE-CURRENT.md §22). In the entry it rests above the title; over
+   the room it lies above the reading and below the stage and the bar, in the skin's dark. It withdraws over 600 ms
+   while a reading has the stage, then is hidden, and comes back the same way. The still eye shows until the
+   engine has drawn, then gives way to it over 400 ms. */
+.live-face {
+  --face-dark: rgb(10, 10, 15);
+  transition: opacity 600ms ease, visibility 0s;
+}
+.live-face[data-face-state="speaking"] {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 600ms ease, visibility 0s linear 600ms;
+}
+.live-venue__face { display: flex; justify-content: center; }
+.live-venue__face:empty { display: none; }
+/* On a phone the site's sign-in sits over the page's top corner: the face rests below it. */
+@media (max-width: 600px) { .live-venue__face { margin-top: 1.75rem; } }
+.live-face__disc {
+  position: relative;
+  width: min(60vw, 40vh, 420px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--face-dark);
+}
+.live-face--room {
+  position: fixed;
+  inset: 0;
+  z-index: 199999;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--face-dark) 88%, transparent);
+}
+.live-face--room .live-face__disc { width: min(92vw, 70vh, 760px); }
+.live-face__still,
+.live-face .live-face__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.live-face__still { transition: opacity 400ms ease, visibility 0s; }
+.live-face .live-face__canvas {
+  opacity: 0;
+  pointer-events: auto;
+  touch-action: auto;
+  transition: opacity 400ms ease;
+}
+.live-face[data-face-drawn="true"] .live-face__canvas { opacity: 1; }
+.live-face[data-face-drawn="true"] .live-face__still { opacity: 0; visibility: hidden; transition: opacity 400ms ease, visibility 0s linear 400ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .live-face,
+  .live-face[data-face-state="speaking"],
+  .live-face__still,
+  .live-face .live-face__canvas,
+  .live-face[data-face-drawn="true"] .live-face__still { transition: none; }
+}
+:root.reduced-motion .live-face,
+:root.reduced-motion .live-face[data-face-state="speaking"],
+:root.reduced-motion .live-face__still,
+:root.reduced-motion .live-face .live-face__canvas,
+:root.reduced-motion .live-face[data-face-drawn="true"] .live-face__still { transition: none; }

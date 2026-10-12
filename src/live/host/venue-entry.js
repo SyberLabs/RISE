@@ -79,6 +79,24 @@ export function venueStep(state, event, providers = LIVE_PROVIDERS) {
     }
 }
 
+/**
+ * What RISE's face is doing (docs/plans/LIVE-CURRENT.md §22), from what the room is doing: at arrival before a
+ * question, listening while the reader types or speaks one, thinking from the ask until the reading's first words
+ * are shown (the request is out; no timer stands in for it), withdrawn (`speaking`) while the reading has the stage,
+ * forward again for an interjection, and at rest once a reading has ended or a question failed.
+ * @param {{phase: string, interjection?: 'none'|'held'|'asking'|'answering', wordsShown?: boolean, typing?: boolean, failed?: boolean}} room
+ * @returns {'arrival'|'listening'|'thinking'|'speaking'|'rest'}
+ */
+export function faceStateOf({ phase, interjection = 'none', wordsShown = false, typing = false, failed = false }) {
+    if (phase === 'idle') return typing ? 'listening' : failed ? 'rest' : 'arrival';
+    if (phase === 'asking') return 'thinking';
+    if (phase === 'ended') return typing ? 'listening' : 'rest';
+    if (interjection === 'held') return 'listening';
+    if (interjection === 'asking') return 'thinking';
+    if (interjection === 'answering') return 'speaking';
+    return wordsShown ? 'speaking' : 'thinking';
+}
+
 /** Words as compared, not as shown: case, spacing and end punctuation set aside. */
 const plainWords = text => String(text ?? '').toLowerCase().replace(/[.!?…]+$/u, '').replace(/\s+/gu, ' ').trim();
 

@@ -965,6 +965,8 @@ class App {
             cardSound: true,
             // The browser voice the card speaks with, by name; empty is Automatic, the best the device has (voices/browser.js).
             cardVoice: '',
+            // RISE's face in the Live venue, by skin (src/live/host/face-still.js FACE_SKINS); Sophia unless the reader chose.
+            liveFace: 'sophia',
 
             // Audio
             masterVolume: 0.75,
@@ -1027,7 +1029,9 @@ class App {
                     ? merged.plusVoiceSlug.slice(0, 32)
                     : defaultSettings.plusVoiceSlug,
                 // Checked where it is used: a name no installed voice has is Automatic (LiveHost.js).
-                cardVoice: typeof merged.cardVoice === 'string' ? merged.cardVoice.slice(0, 200) : defaultSettings.cardVoice
+                cardVoice: typeof merged.cardVoice === 'string' ? merged.cardVoice.slice(0, 200) : defaultSettings.cardVoice,
+                // Checked where it is used: a skin the face does not have is Sophia (src/live/host/venue.js).
+                liveFace: typeof merged.liveFace === 'string' ? merged.liveFace.slice(0, 20) : defaultSettings.liveFace
             };
             for (const key of booleanKeys) this.settings[key] = merged[key] === true;
         } catch (e) {

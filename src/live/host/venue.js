@@ -12,6 +12,10 @@
  * microphone, or a first letter typed in the bar's small field, holds the reading at once; Enter asks inside the room;
  * Escape, or Play, takes it back. A reading paused with Play, or one that has ended, is asked again as a new reading.
  *
+ * RISE's face (docs/plans/LIVE-CURRENT.md §22) is the room's resting picture: in the entry before a question, over
+ * the room while RISE listens, thinks or rests, and withdrawn while a reading has the stage. It is the venue's own
+ * layer (face-layer.js), never part of a reading: no Current, journal or perception knows it is there.
+ *
  * The host (LiveHost.js) builds each runtime, the voice and the sound as it does for every reading; this owns the
  * entry state (venue-entry.js) and what the reader sees of it. A typed key is held in the host's memory (`host.key`)
  * and nowhere else: never in the state, the page, storage or a URL.
@@ -19,7 +23,8 @@
 
 import { connectionState, subscribeConnection, takeConnectionNotice } from '../../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
-import { addUsage, emptyUsage, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
+import { addUsage, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
+import { FACE_SKINS, faceDark, faceStill } from './face-still.js';
 
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
@@ -70,8 +75,21 @@ export class LiveVenue {
         this.mic = null;
         this.listener = null;
         this.heldByMic = false;
+        this.micActive = false;
+        // Whether the reader is typing a question: words typed and not yet asked or taken back.
+        this.typing = false;
         this.destroyed = false;
+        // The face: its element, its engine once loaded, whether the last question failed, and (?measure=1) its states.
+        const saved = host.getSettings?.()?.liveFace;
+        this.faceSkin = FACE_SKINS.includes(saved) ? saved : 'sophia';
+        this.face = this.makeFace();
+        this.faceEngine = null;
+        this.faceSleep = null;
+        this.failedAsk = false;
+        this.faceLog = [{ state: 'arrival', at: performance.now() }];
         this.render();
+        void this.wakeFace();
+        if (host.params?.has('measure')) this.measureFace();
         // Connecting or disconnecting OpenRouter elsewhere in the tab is shown here at once.
         this.stopConnection = subscribeConnection(() => { if (this.chosen()?.credential === 'openrouter') this.renderCredential(); });
         const returned = claimOpenRouterReturn(LIVE_PATH);
@@ -121,6 +139,7 @@ export class LiveVenue {
         const container = this.host.container;
         container.innerHTML = `
       <main class="live-host live-venue" aria-labelledby="live-venue-title">
+        <div class="live-venue__face"></div>
         <h1 class="live-title" id="live-venue-title">RISE Live</h1>
         <p class="live-lede">Ask anything. The answer comes as a reading: said in RISE’s voice, shown as it is said, and yours to pause, replay and ask about again.</p>
         <form class="live-venue__ask" novalidate>
@@ -191,6 +210,8 @@ export class LiveVenue {
             event.preventDefault();
             this.ask(this.field.value);
         });
+        // The face listens while the reader types a question.
+        this.field.addEventListener('input', () => this.typed(this.field));
         if (this.mic) this.addMic(this.form.querySelector('.live-venue__field'));
         this.showMicPrivacy();
         this.renderVoiceCredential();
@@ -289,6 +310,7 @@ export class LiveVenue {
     /** The reader asked, by Enter or the Ask button: inside their press, so the voice and the sound may begin. */
     ask(words) {
         if (this.destroyed) return;
+        this.typing = false;
         this.host.unlockSpeech();
         this.host.unlockAudio();
         const keyField = this.credential?.querySelector('#live-venue-key');
@@ -328,6 +350,7 @@ export class LiveVenue {
             voice: this.host.voiceChoice, hasVoiceKey: this.host.voiceKey !== ''
         });
         if (this.state.phase !== 'asking') return;
+        this.failedAsk = false;
         if (this.bar) this.bar.elements.question.value = '';
         void this.begin(this.state.turns.at(-1).question, this.state.turns.length - 1);
     }
@@ -397,7 +420,10 @@ export class LiveVenue {
                 return;
             }
             host.runtime = runtime;
-            const stage = host.venueStage(runtime, { room: this.room, onPlayAgain: () => this.playAgain(runtime) });
+            const stage = host.venueStage(runtime, {
+                room: this.room, onPlayAgain: () => this.playAgain(runtime),
+                face: { skins: FACE_SKINS, skin: this.faceSkin, choose: name => this.chooseFace(name) }
+            });
             host.controls = stage;
             this.stage = stage;
             this.reading = { runtime, stage, turn };
@@ -415,6 +441,7 @@ export class LiveVenue {
             await this.letGo().catch(() => {});
             // A key that was refused is no use to keep.
             if (error?.code === 'KEY_REFUSED') host.forgetKey();
+            this.failedAsk = true;
             this.dispatch({ type: 'failed', message: `Could not start: ${String(error?.message ?? 'unknown error').slice(0, 200)}` });
         }
     }
@@ -434,6 +461,7 @@ export class LiveVenue {
         this.listener?.cancel();
         this.bar?.remove();
         this.bar = null;
+        this.typing = false;
         this.dispatch({ type: 'leave' });
         await this.letGo();
         this.room = {};
@@ -471,6 +499,8 @@ export class LiveVenue {
             if (!field.value.trim() || this.state.phase !== 'reading' || runtime?.status !== 'live') return;
             if (runtime.snapshot().interjection.state === 'none') this.beginInterjection(runtime);
         });
+        // After a reading has ended, the face listens while the reader types the next question.
+        field.addEventListener('input', () => this.typed(field));
         // Escape takes an interjection back before it is answered; nothing else hears that Escape.
         field.addEventListener('keydown', event => {
             const state = this.host.runtime?.snapshot().interjection.state;
@@ -478,6 +508,7 @@ export class LiveVenue {
             event.preventDefault();
             event.stopPropagation();
             field.value = '';
+            this.typing = false;
             try { this.host.runtime.cancelInterjection(); } catch { /* it was answered meanwhile */ }
         });
         bar.querySelector('.live-again__leave').addEventListener('click', () => { void this.leave(); });
@@ -488,6 +519,7 @@ export class LiveVenue {
     }
 
     paint() {
+        this.paintFace();
         const { phase, held, error } = this.state;
         if (this.errorLine) {
             this.errorLine.textContent = phase === 'idle' ? error ?? '' : '';
@@ -515,6 +547,116 @@ export class LiveVenue {
         else if (interjection?.state !== 'answering') note.textContent = runtime?.status === 'failed' ? '' : error ?? '';
     }
 
+    // ─── the face ──────────────────────────────────────────────────────
+
+    /** The face's element: the still eye at once, the engine's canvas over it once loaded. Decorative, so hidden from assistive technology. */
+    makeFace() {
+        const face = this.doc.createElement('div');
+        face.className = 'live-face';
+        face.setAttribute('aria-hidden', 'true');
+        Object.assign(face.dataset, { faceState: 'arrival', faceSkin: this.faceSkin, faceDrawn: 'false' });
+        face.style.setProperty('--face-dark', faceDark(this.faceSkin));
+        face.innerHTML = `<div class="live-face__disc">${faceStill(this.faceSkin)}</div>`;
+        return face;
+    }
+
+    /** Whether the face holds still: the device's reduced motion, or the app's own (and photosensitivity) setting. */
+    faceHoldsStill() {
+        const root = this.doc.documentElement.classList;
+        return this.host.caps?.reducedMotion === true || root.contains('reduced-motion') || root.contains('photosensitivity-mode');
+    }
+
+    /**
+     * The face's engine, loaded after the entry is on screen. Until it draws, and wherever it cannot run (no worker,
+     * no offscreen canvas, a frame over budget), the still eye is the face.
+     */
+    async wakeFace() {
+        let mountFace;
+        try {
+            ({ mountFace } = await import('./face-layer.js'));
+        } catch {
+            return;
+        }
+        if (this.destroyed || this.faceEngine) return;
+        const state = this.face.dataset.faceState;
+        this.faceEngine = mountFace({
+            host: this.face.querySelector('.live-face__disc'),
+            skin: this.faceSkin,
+            state,
+            reducedMotion: this.faceHoldsStill(),
+            onFirstFrame: () => { this.face.dataset.faceDrawn = 'true'; },
+            onFailure: diagnostic => {
+                this.face.dataset.faceDrawn = 'false';
+                this.host.trace?.('[RISE face]', `${diagnostic.phase}: ${diagnostic.message}`);
+            }
+        });
+        if (state !== 'speaking') this.faceEngine.play();
+    }
+
+    /**
+     * The face follows the room (venue-entry.js faceStateOf): placed in the entry before a question and over the room
+     * after one, cued with its state, and paused once it has withdrawn so a reading pays nothing for it.
+     */
+    /** Words typed into a question field: the face listens while there are some. */
+    typed(field) {
+        this.typing = field.value.trim() !== '';
+        this.paint();
+    }
+
+    paintFace() {
+        const { phase, held } = this.state;
+        const view = phase === 'reading' ? this.host.runtime?.snapshot() ?? null : null;
+        const state = faceStateOf({
+            phase, held,
+            interjection: view?.interjection?.state ?? 'none',
+            wordsShown: Boolean(view?.main?.segmentId || view?.main?.speaking),
+            typing: this.typing || this.micActive,
+            failed: this.failedAsk
+        });
+        const slot = phase === 'idle' ? this.host.container.querySelector('.live-venue__face') : null;
+        const parent = slot ?? this.doc.body;
+        this.face.classList.toggle('live-face--room', !slot);
+        if (this.face.parentElement !== parent) parent.append(this.face);
+        if (state === this.face.dataset.faceState) return;
+        this.face.dataset.faceState = state;
+        this.faceLog = [...this.faceLog, { state, at: performance.now() }].slice(-40);
+        this.faceEngine?.cue(state);
+        clearTimeout(this.faceSleep);
+        if (state !== 'speaking') {
+            this.faceEngine?.play();
+            return;
+        }
+        // It withdraws over the cross-fade (LiveHost.css), then stops drawing.
+        this.faceSleep = setTimeout(() => {
+            if (this.face.dataset.faceState === 'speaking') this.faceEngine?.pause();
+        }, this.faceHoldsStill() ? 0 : 700);
+    }
+
+    /** The reader chose a face in Settings: kept as a setting, worn at once. The model never chooses it. */
+    chooseFace(name) {
+        if (!FACE_SKINS.includes(name) || name === this.faceSkin) return;
+        this.faceSkin = name;
+        this.host.onSettingChange?.('liveFace', name);
+        this.face.dataset.faceSkin = name;
+        this.face.style.setProperty('--face-dark', faceDark(name));
+        this.face.querySelector('.live-face__still')?.remove();
+        this.face.querySelector('.live-face__disc').insertAdjacentHTML('afterbegin', faceStill(name));
+        this.faceEngine?.setSkin(name);
+    }
+
+    /** ?measure=1: what the face did and when, its frame times and brightness, and a blink on demand. */
+    measureFace() {
+        this.host.env.__riseFace = Object.freeze({
+            state: () => this.face.dataset.faceState,
+            log: () => this.faceLog.map(entry => ({ ...entry })),
+            drawn: () => this.face.dataset.faceDrawn === 'true',
+            frames: () => this.faceEngine?.frameTimes() ?? [],
+            lumas: () => this.faceEngine?.lumas() ?? [],
+            frozen: () => this.faceEngine?.frozen() ?? false,
+            blink: () => this.faceEngine?.cue('blink')
+        });
+    }
+
     // ─── the microphone ───────────────────────────────────────────────
 
     useMic(mic) {
@@ -525,6 +667,8 @@ export class LiveVenue {
             onState: state => {
                 const active = state === 'starting' || state === 'listening';
                 for (const button of this.doc.querySelectorAll('[data-venue="listen"]')) button.setAttribute('aria-pressed', String(active));
+                this.micActive = active;
+                this.paint();
                 this.say(state === 'idle' ? '' : mic.describe(state));
                 // A microphone that would not listen gives the reading back.
                 if (!active && state !== 'idle' && this.heldByMic) this.giveBack();
@@ -627,6 +771,11 @@ export class LiveVenue {
         this.stopFollowing = null;
         this.bar?.remove();
         this.bar = null;
+        clearTimeout(this.faceSleep);
+        this.faceEngine?.destroy();
+        this.faceEngine = null;
+        this.face.remove();
+        if (this.host.env?.__riseFace) this.host.env.__riseFace = undefined;
         this.host.paintEmbedTheme();
     }
 }

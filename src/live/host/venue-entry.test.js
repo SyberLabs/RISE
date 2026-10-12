@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addUsage, emptyUsage, initialVenue, interjectionPerception, originLine, perceptionFor, usageLine, venueStep } from './venue-entry.js';
+import { addUsage, emptyUsage, faceStateOf, initialVenue, interjectionPerception, originLine, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { perceive } from '../perception.js';
 
 const ready = { connected: false, hasKey: false };
@@ -231,5 +231,35 @@ describe('the voice the reader chose (design §8 stage 7)', () => {
     it('asks nothing of the device’s voice', () => {
         const asked = venueStep(initialVenue({ provider: 'mock' }), { type: 'ask', question: 'Why?', voice: 'device', hasVoiceKey: false }, providers);
         expect(asked.phase).toBe('asking');
+    });
+});
+
+describe('the face: what RISE is doing, from what the room is doing (docs/plans/LIVE-CURRENT.md §22)', () => {
+    const face = (phase, extra = {}) => faceStateOf({ phase, held: false, interjection: 'none', wordsShown: false, typing: false, failed: false, ...extra });
+
+    it('rests at arrival, and listens while the reader types or speaks before asking', () => {
+        expect(face('idle')).toBe('arrival');
+        expect(face('idle', { typing: true })).toBe('listening');
+    });
+
+    it('thinks from the ask until the reading’s first words, and withdraws once they are shown', () => {
+        expect(face('asking')).toBe('thinking');
+        expect(face('reading')).toBe('thinking');
+        expect(face('reading', { wordsShown: true })).toBe('speaking');
+        // Paused is still the reading's stage: the face stays back.
+        expect(face('reading', { wordsShown: true, held: true })).toBe('speaking');
+    });
+
+    it('comes forward for an interjection: listening while held, thinking while asked, back as the answer comes', () => {
+        expect(face('reading', { wordsShown: true, held: true, interjection: 'held' })).toBe('listening');
+        expect(face('reading', { wordsShown: true, held: true, interjection: 'asking' })).toBe('thinking');
+        expect(face('reading', { wordsShown: true, interjection: 'answering' })).toBe('speaking');
+    });
+
+    it('rests when the reading has ended or the question failed, and listens to the next', () => {
+        expect(face('ended')).toBe('rest');
+        expect(face('ended', { typing: true })).toBe('listening');
+        expect(face('idle', { failed: true })).toBe('rest');
+        expect(face('idle', { failed: true, typing: true })).toBe('listening');
     });
 });

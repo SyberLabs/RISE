@@ -1356,3 +1356,27 @@ describe('a scene that listens (stage 6, docs/plans/LIVE-CURRENT.md §20)', () =
         expect(status().textContent).not.toContain('Weight 1');
     });
 });
+
+describe('the face (the venue only, docs/plans/LIVE-CURRENT.md §22)', () => {
+    it('offers the venue’s Face choice in Settings, showing the reader’s, and gives their pick back', () => {
+        const chosen = [];
+        stage = createStageControls({
+            runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => fakeChamber(), room: {},
+            face: { skins: ['sophia', 'ember', 'jade', 'silver'], skin: 'jade', choose: name => chosen.push(name) }
+        });
+        const face = $('#rise-settings-face');
+        expect(face.labels[0].textContent).toBe('Face');
+        expect([...face.options].map(option => [option.value, option.textContent])).toEqual([['sophia', 'Sophia'], ['ember', 'Ember'], ['jade', 'Jade'], ['silver', 'Silver']]);
+        expect(face.value).toBe('jade');
+        face.value = 'silver';
+        change(face);
+        expect(chosen).toEqual(['silver']);
+        // The Theme row is still the sheet's first choice.
+        expect(theme().id).toBe('rise-settings-theme');
+    });
+
+    it('is never in a card’s Settings', () => {
+        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {}, chamber: () => fakeChamber() });
+        expect($('#rise-settings-face')).toBeNull();
+    });
+});

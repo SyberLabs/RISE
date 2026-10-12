@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 121;
+export const FAST_TEST_FILES = 124;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -88,6 +88,8 @@ const FAST_TESTS = [
     'src/scenes/scene-worker.test.js',
     'src/scenes/scene-runtime.test.js',
     'src/scenes/scene-widgets.test.js',
+    // RISE's face in the Live venue: its states, its blink, its gaze, and that it says nothing (docs/plans/LIVE-CURRENT.md §22).
+    'src/scenes/engines/oracle.test.js',
     'src/live/adapters/**/*.test.js',
     'src/live/host/**/*.test.js',
     'src/live/hosts/**/*.test.js',

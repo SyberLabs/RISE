@@ -124,6 +124,21 @@ describe('App safety orchestration', () => {
     expect(reloaded.settings.cardVoice).toBe('');
   });
 
+  it('defaults the Live venue’s face to Sophia, remembers the reader’s pick across a reload, and refuses a non-name', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.settings.liveFace).toBe('sophia');
+
+    app.handleSettingsChange('liveFace', 'ember');
+    const reloaded = new App();
+    reloaded.loadSettings();
+    expect(reloaded.settings.liveFace).toBe('ember');
+
+    localStorage.setItem('rise-settings', JSON.stringify({ liveFace: ['jade'] }));
+    reloaded.loadSettings();
+    expect(reloaded.settings.liveFace).toBe('sophia');
+  });
+
   it('defaults artwork labels on, restores an explicit opt-out, and propagates it live', async () => {
     const app = new App();
     app.loadSettings();

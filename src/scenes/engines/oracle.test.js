@@ -1,0 +1,257 @@
+/**
+ * The oracle: RISE's own face, a native engine the Live venue runs in the scene worker
+ * (docs/plans/LIVE-CURRENT.md §22; the approved study, docs/assets/live/sophia-face-study.html).
+ *
+ * Driven here as the worker drives it: the default export given a `rise`, then frames in milliseconds, cues
+ * and the reader's pointer. The canvas is a fake that answers every call, so what is held is the face's own
+ * arithmetic (states eased, the blink's phases, the gaze clamped), that it never speaks for the reader, and
+ * what a frame costs before any pixel is drawn.
+ */
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import oracle, { ORACLE_MANIFEST, ORACLE_SKINS, ORACLE_STATES, blinkClosure } from './oracle.js';
+import { SCENE_ENGINES } from '../manifests.js';
+
+/** A 2D context that does nothing, counting what a frame would allocate. */
+function fakeContext() {
+    const counts = { gradients: 0, opaqueFills: 0 };
+    const gradient = () => { counts.gradients += 1; return { addColorStop() {} }; };
+    const ctx = {
+        counts,
+        fillStyle: '', strokeStyle: '', lineWidth: 1, globalAlpha: 1, globalCompositeOperation: 'source-over',
+        save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, setTransform() {},
+        beginPath() {}, closePath() {}, moveTo() {}, lineTo() {}, arc() {}, bezierCurveTo() {}, clip() {}, fill() {}, stroke() {},
+        fillRect() { if (/, 1\)$/u.test(String(ctx.fillStyle))) counts.opaqueFills += 1; },
+        createLinearGradient: gradient, createRadialGradient: gradient
+    };
+    return ctx;
+}
+
+function make({ skin, state, reducedMotion = false, width = 400, height = 400, dpr = 2 } = {}) {
+    const ctx = fakeContext();
+    const rise = {
+        ctx, size: { width, height, dpr }, theme: { ...(skin ? { skin } : {}), ...(state ? { state } : {}) }, reducedMotion,
+        listen: vi.fn(), emit: vi.fn(), done: vi.fn()
+    };
+    const scene = oracle(rise);
+    let t = 0;
+    scene.frame(0, 0);
+    /** Frames of `dt` ms, until `ms` have passed. */
+    const run = (ms, dt = 1000 / 60) => {
+        for (let gone = 0; gone < ms - 1e-9; gone += dt) {
+            t += dt;
+            scene.frame(t, dt);
+        }
+    };
+    return { rise, ctx, scene, run, now: () => t };
+}
+
+afterEach(() => vi.restoreAllMocks());
+
+describe('what the face is', () => {
+    it('is the study’s four skins and five states, exactly', () => {
+        expect(Object.keys(ORACLE_SKINS)).toEqual(['sophia', 'ember', 'jade', 'silver']);
+        expect(ORACLE_SKINS.sophia).toEqual({ core: [245, 245, 220], iris: [135, 206, 235], glow: [176, 196, 222], deep: [25, 25, 112], trail: [10, 10, 15] });
+        expect(ORACLE_SKINS.silver.trail).toEqual([9, 9, 11]);
+        expect(Object.keys(ORACLE_STATES)).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest']);
+        expect(ORACLE_STATES.thinking).toEqual({ open: 0.80, orbit: 0.55, spin: 0.40, field: 1.6, tight: 0.62, glow: 1.00, presence: 1.0 });
+        expect(ORACLE_STATES.speaking).toEqual({ open: 0.70, orbit: 0.10, spin: 0.06, field: 0.6, tight: 1.10, glow: 0.35, presence: 0.22 });
+    });
+
+    it('states its parameters and cues as a manifest does, and is not an engine the model may name', () => {
+        expect(ORACLE_MANIFEST.parameters.skin.values).toEqual(['sophia', 'ember', 'jade', 'silver']);
+        expect(ORACLE_MANIFEST.parameters.state.values).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest']);
+        expect(Object.keys(ORACLE_MANIFEST.cues)).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest', 'blink']);
+        expect(ORACLE_MANIFEST.cues.thinking).toEqual({ state: 'thinking' });
+        expect(SCENE_ENGINES).not.toContain('oracle');
+    });
+
+    it('begins in the skin and state it is given, and in Sophia at arrival when given none it knows', () => {
+        expect(make({ skin: 'jade', state: 'rest' }).scene.inspect()).toMatchObject({ skin: 'jade', state: 'rest', live: ORACLE_STATES.rest });
+        expect(make({ skin: 'gold', state: 'dancing' }).scene.inspect()).toMatchObject({ skin: 'sophia', state: 'arrival', live: ORACLE_STATES.arrival });
+    });
+});
+
+describe('it listens to the pointer and says nothing', () => {
+    it('asks for the pointer before its first frame, and never emits whatever the reader does', () => {
+        const { rise, scene, run } = make();
+        expect(rise.listen).toHaveBeenCalledWith('pointer');
+        for (const type of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) {
+            scene.input({ type, x: 10, y: 20, buttons: 1, key: null, modifiers: {} });
+            run(50);
+        }
+        scene.cue('thinking', { instant: false });
+        scene.cue('blink', { instant: false });
+        run(1000);
+        expect(rise.emit).not.toHaveBeenCalled();
+        expect(rise.done).not.toHaveBeenCalled();
+    });
+});
+
+describe('states are eased', () => {
+    it('moves toward a cued state with a 0.18 s time constant, and arrives', () => {
+        const { scene, run } = make();
+        scene.cue('thinking', { instant: false });
+        const from = ORACLE_STATES.arrival.orbit;
+        const to = ORACLE_STATES.thinking.orbit;
+        run(180, 1);
+        const travelled = (scene.inspect().live.orbit - from) / (to - from);
+        expect(travelled).toBeGreaterThan(0.6);
+        expect(travelled).toBeLessThan(0.66);
+        run(3000);
+        for (const [key, value] of Object.entries(ORACLE_STATES.thinking)) expect(scene.inspect().live[key]).toBeCloseTo(value, 4);
+        expect(scene.inspect().state).toBe('thinking');
+    });
+
+    it('takes a state at once when the cue is instant, and by `set:state=`', () => {
+        const { scene } = make();
+        scene.cue('speaking', { instant: true });
+        expect(scene.inspect().live).toEqual(ORACLE_STATES.speaking);
+        scene.cue('set:state=rest', { instant: true });
+        expect(scene.inspect().live).toEqual(ORACLE_STATES.rest);
+        scene.cue('set:state=dancing', { instant: true });
+        expect(scene.inspect().state).toBe('rest');
+    });
+
+    it('changes skin by `set:skin=`, repainting its dark at once, and ignores a skin it does not have', () => {
+        const { scene, ctx, run } = make();
+        const before = ctx.counts.opaqueFills;
+        scene.cue('set:skin=ember', { instant: false });
+        run(17);
+        expect(scene.inspect().skin).toBe('ember');
+        expect(ctx.counts.opaqueFills).toBeGreaterThan(before);
+        scene.cue('set:skin=gold', { instant: false });
+        expect(scene.inspect().skin).toBe('ember');
+    });
+});
+
+describe('the blink: the iris closing on itself', () => {
+    it('closes in 220 ms (smoothstep), holds 70 ms, opens in 360 ms', () => {
+        expect(blinkClosure(0, false)).toBe(0);
+        expect(blinkClosure(0.11, false)).toBeCloseTo(0.5, 6);
+        expect(blinkClosure(0.22, false)).toBe(1);
+        expect(blinkClosure(0.25, false)).toBe(1);
+        expect(blinkClosure(0.29 + 0.18, false)).toBeCloseTo(0.5, 6);
+        expect(blinkClosure(0.649, false)).toBeLessThan(0.001);
+        expect(blinkClosure(0.65, false)).toBeNull();
+    });
+
+    it('is 1.2 times slower while thinking, the hold unchanged', () => {
+        expect(blinkClosure(0.132, true)).toBeCloseTo(0.5, 6);
+        expect(blinkClosure(0.264, true)).toBe(1);
+        expect(blinkClosure(0.264 + 0.07 + 0.216, true)).toBeCloseTo(0.5, 6);
+        expect(blinkClosure(0.264 + 0.07 + 0.432, true)).toBeNull();
+    });
+
+    it('blinks when cued: closed at the hold, open again after 650 ms', () => {
+        const { scene, run } = make();
+        scene.cue('blink', { instant: false });
+        run(250, 1);
+        expect(scene.inspect().closed).toBe(1);
+        run(400, 1);
+        expect(scene.inspect().closed).toBe(0);
+    });
+
+    it('blinks on its own, first between 3 and 7 s, then every 4 to 8 s', () => {
+        vi.spyOn(Math, 'random').mockReturnValue(0);
+        const { scene, run } = make();
+        const closings = [];
+        let was = 0;
+        for (let ms = 0; ms < 20_000; ms += 10) {
+            run(10, 10);
+            const { closed } = scene.inspect();
+            if (closed > 0 && was === 0) closings.push(ms);
+            was = closed;
+        }
+        expect(closings[0]).toBeGreaterThanOrEqual(2990);
+        expect(closings[0]).toBeLessThanOrEqual(3010);
+        const gaps = closings.slice(1).map((at, i) => at - closings[i]);
+        // A blink lasts 650 ms, and the next is 4 s after it ends.
+        for (const gap of gaps) expect(gap).toBeGreaterThanOrEqual(4600);
+        expect(gaps.length).toBeGreaterThan(1);
+    });
+});
+
+describe('reduced motion', () => {
+    it('never blinks, takes every state at once, and neither orbits nor drifts', () => {
+        const { scene, run } = make({ reducedMotion: true });
+        const nodes = scene.inspect().nodes;
+        scene.cue('blink', { instant: false });
+        scene.cue('thinking', { instant: false });
+        run(17);
+        expect(scene.inspect().live).toEqual(ORACLE_STATES.thinking);
+        for (let ms = 0; ms < 20_000; ms += 50) {
+            run(50, 50);
+            expect(scene.inspect().closed).toBe(0);
+        }
+        expect(scene.inspect().nodes).toEqual(nodes);
+        expect(scene.inspect().drift).toBe(0);
+    });
+});
+
+describe('the gaze', () => {
+    it('follows the pointer eased over about 0.35 s, clamped to the face', () => {
+        const { scene, run } = make({ width: 400, height: 400 });
+        scene.input({ type: 'pointermove', x: 4000, y: 200, buttons: 0, key: null, modifiers: {} });
+        expect(scene.inspect().aim).toEqual({ x: 1, y: 0, depth: 0 });
+        run(350, 1);
+        expect(scene.inspect().gaze.x).toBeGreaterThan(0.6);
+        expect(scene.inspect().gaze.x).toBeLessThan(0.66);
+        run(3000);
+        expect(scene.inspect().gaze.x).toBeCloseTo(1, 3);
+        expect(scene.inspect().gaze.x).toBeLessThanOrEqual(1);
+    });
+
+    it('draws nearer as the pointer comes to the centre, and looks ahead again when it leaves', () => {
+        const { scene, run } = make({ width: 400, height: 400 });
+        scene.input({ type: 'pointermove', x: 200, y: 200, buttons: 0, key: null, modifiers: {} });
+        expect(scene.inspect().aim.depth).toBe(1);
+        run(3000);
+        expect(scene.inspect().gaze.depth).toBeCloseTo(1, 2);
+        scene.input({ type: 'pointercancel', x: 200, y: 200, buttons: 0, key: null, modifiers: {} });
+        expect(scene.inspect().aim).toEqual({ x: 0, y: 0, depth: 0 });
+    });
+
+    it('takes no key, and nothing that is not a number', () => {
+        const { scene } = make();
+        scene.input({ type: 'keydown', x: null, y: null, buttons: 0, key: 'a', modifiers: {} });
+        scene.input({ type: 'pointermove', x: Number.NaN, y: 3, buttons: 0, key: null, modifiers: {} });
+        expect(scene.inspect().aim).toEqual({ x: 0, y: 0, depth: 0 });
+    });
+});
+
+describe('what a frame costs', () => {
+    it('builds the torus once per size, and again only when the size changes', () => {
+        const { rise, scene, run, ctx } = make();
+        run(500);
+        expect(scene.inspect().torusBuilds).toBe(1);
+        const fills = ctx.counts.opaqueFills;
+        Object.assign(rise.size, { width: 600, height: 500 });
+        run(500);
+        expect(scene.inspect().torusBuilds).toBe(2);
+        expect(ctx.counts.opaqueFills).toBe(fills + 1);
+    });
+
+    it('makes a dozen gradients a frame with the eye open, and draws a frame in a few milliseconds', () => {
+        const { scene, ctx, run } = make({ width: 760, height: 760, dpr: 2 });
+        run(100);
+        const before = ctx.counts.gradients;
+        run(1000 / 60);
+        // Three petal layers, seven nodes, the pupil: the socket and the seed are not drawn while the eye is open.
+        expect(ctx.counts.gradients - before).toBe(11);
+        scene.cue('thinking', { instant: true });
+        const times = [];
+        let t = 1000;
+        for (let i = 0; i < 400; i += 1) {
+            if (i % 100 === 0) scene.cue('blink', { instant: false });
+            const began = performance.now();
+            t += 1000 / 60;
+            scene.frame(t, 1000 / 60);
+            times.push(performance.now() - began);
+        }
+        times.sort((a, b) => a - b);
+        const median = times[times.length >> 1];
+        const p95 = times[Math.floor(times.length * 0.95)];
+        console.log(`oracle frame on the fake canvas, 760 px at 2x, thinking, with blinks: median ${median.toFixed(3)} ms, p95 ${p95.toFixed(3)} ms`);
+        expect(median).toBeLessThan(4);
+    });
+});
