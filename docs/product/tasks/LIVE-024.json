@@ -64,6 +64,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/641",
       "note": "Stage 6 on branch live-interactive-scenes, opened ready with squash auto-merge on the required CI check. Not merged, not deployed, not accepted.",
       "date": "2026-10-12"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/a39cd515",
+      "note": "PR #641 squash-merged to main as a39cd515; release.txt on the live site reads a39cd515 (2026-10-12). Deployed; not accepted by a human.",
+      "date": "2026-10-12"
     }
   ],
   "activity": [
