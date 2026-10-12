@@ -57,16 +57,26 @@
       "ref": "scripts/eval-illustrator.mjs",
       "note": "npm run eval:illustrator: without OPENROUTER_API_KEY it measures nothing, says so, and checks the carriage on a scripted provider through the real OpenRouter adapter (instructions, refusal and repair carried; the repair admitted on attempt 2). No real model asked.",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/638",
+      "note": "Stage 5.5 on branch live-illustrator, opened ready with squash auto-merge on the required CI check. Not merged, not deployed, not accepted.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
     {
       "date": "2026-10-11T20:30:00.000Z",
       "summary": "Claimed and built on branch live-illustrator (Claude, for Fable): design note first, then the grammar, the illustrator's request and instructions, the runtime's ladder, admission and repair, the landing, the venue's cost line and the demo."
+    },
+    {
+      "date": "2026-10-12T05:08:49.944Z",
+      "summary": "Opened #638 (branch live-illustrator), auto-merge on CI."
     }
   ],
-  "updatedAt": "2026-10-11T20:30:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-12T05:08:49.944Z",
+  "revision": 2,
   "summary": "Design §8 stage 5.5: a second role on the reader's key draws what the composer asks for, cheapest medium first, through the same admission, while the voice goes on.",
   "blocker": null
 }
