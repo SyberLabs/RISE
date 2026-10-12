@@ -275,6 +275,23 @@ describe('trailing room change after the final phrase began', () => {
 });
 
 describe('terminal phrase safeguards', () => {
+    it('an illustrator cue leaves the phrase slot available for a room command', async () => {
+        const room = await open([
+            '@say Sunlight carries every colour.',
+            '@scene field attractor palette=blue',
+            '@say scene=field The air scatters blue light.',
+            '@illustrate medium=cue brighter attractor',
+            '@visual intensity=0.5',
+            '@say The sky is blue.',
+            ''
+        ].join('\n'));
+        await until(() => runtime.status === 'ended');
+        expect(room.landed.map(item => item.command.value)).toEqual([0.75, 0.5]);
+        expect(room.landed.map(item => item.atom)).toEqual([room.firstAtomOf('beat-2').index, room.firstAtomOf('beat-2').index]);
+        expect(room.journal('illustrated')).toEqual([expect.objectContaining({ medium: 'cue' })]);
+        expect(room.journal('room.changed')).toEqual([expect.objectContaining({ kind: 'visual.control', value: 0.5 })]);
+    });
+
     it('keeps reader overrides for a trailing command', async () => {
         let model = null;
         const room = await open('', { connect: async (_request, sink) => {
