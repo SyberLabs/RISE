@@ -70,13 +70,16 @@ const KEYS_DESCRIBED = 'Keys on the stage: Space plays or pauses; the Left and R
  * @param {{voices: {name: string, local: boolean}[], selected: string, choose: (name: string) => void} | null} [options.voice]
  *   the browser's installed voices for the reading's language: the sheet offers them under Voice, after Automatic
  *   (the empty name), and `choose` takes the reader's pick, which the voice speaks from its next passage
+ * @param {{skins: string[], skin: string, choose: (name: string) => void} | null} [options.face] the Live venue's face
+ *   (docs/plans/LIVE-CURRENT.md §22): the sheet offers its skins under Face and gives the reader's pick to `choose`;
+ *   a card has none, and its pick is no setting of the reading's, so it is never journaled
  * @param {object | null} [options.room] where a page of many readings keeps the reader's Settings choices (theme,
  *   intensity and the rest) from one reading's stage to the next; with none, each stage keeps its own
  * @param {Document} [options.doc]
  */
 export function createStageControls({
     runtime, onPlayAgain, chamber = () => null, paintTheme = () => {}, audible = true, degradations = [], takeFocus = false,
-    transport = 'full', port = null, sound: offersSound = false, about = null, voice: voicePick = null, room = null, doc = document
+    transport = 'full', port = null, sound: offersSound = false, about = null, voice: voicePick = null, room = null, face = null, doc = document
 }) {
     // With Sound offered too, Voice shares its row: one row more would make the sheet scroll in a 481 px card.
     const offersVoice = (voicePick?.voices?.length ?? 0) > 0;
@@ -129,6 +132,10 @@ export function createStageControls({
           <label for="rise-settings-theme">Theme</label>
           <select id="rise-settings-theme"><option value="">As written</option>${JEV_COLOR_THEMES.map(id => `<option value="${id}">${id[0].toUpperCase()}${id.slice(1)}</option>`).join('')}</select>
         </div>
+        ${face ? `<div class="rise-settings__row">
+          <label for="rise-settings-face">Face</label>
+          <select id="rise-settings-face">${face.skins.map(id => `<option value="${id}">${id[0].toUpperCase()}${id.slice(1)}</option>`).join('')}</select>
+        </div>` : ''}
         <div class="rise-settings__row rise-settings__row--switch">
           <label for="rise-settings-still">Still imagery</label>
           <input id="rise-settings-still" type="checkbox" role="switch"${systemStill ? ' checked disabled aria-describedby="rise-settings-still-note"' : ''}>
@@ -529,6 +536,12 @@ export function createStageControls({
         choose('theme', theme.value || null);
         remember('theme', theme.value || null);
     });
+    // RISE's face is the venue's, and the reader's choice: kept by the venue, never the reading's to journal.
+    const faceSelect = $('#rise-settings-face');
+    if (faceSelect) {
+        faceSelect.value = face.skin;
+        faceSelect.addEventListener('change', () => face.choose(faceSelect.value));
+    }
     // The two saved rows go through the Chamber's settings path, which applies and keeps them.
     still.addEventListener('change', () => {
         choose('reducedMotion', still.checked);

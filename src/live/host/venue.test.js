@@ -12,6 +12,21 @@ import { createFakeRecognition, open } from '../../test/fake-recognition.js';
 import { acceptOpenRouterKey, resetConnectionForTests } from '../../core/ai-connection.js';
 import { PENDING_KEY, takeOpenRouterReturn } from '../../core/openrouter-callback.js';
 
+// The face's engine is a worker's to draw (face-layer.test.js holds it); here it is a fake that records its cues.
+const faces = vi.hoisted(() => []);
+vi.mock('./face-layer.js', () => ({
+    mountFace: options => {
+        const face = {
+            options, cues: [], skins: [], playing: false, destroyed: false,
+            cue(name) { face.cues.push(name); }, setSkin(name) { face.skins.push(name); },
+            play() { face.playing = true; }, pause() { face.playing = false; }, destroy() { face.destroyed = true; },
+            frameTimes: () => [], lumas: () => [], frozen: () => false
+        };
+        faces.push(face);
+        return face;
+    }
+}));
+
 const env = ({ recognition = null } = {}) => ({
     window: {
         ...(recognition ? { SpeechRecognition: recognition } : {}),
@@ -22,9 +37,9 @@ const env = ({ recognition = null } = {}) => ({
     document: { createElement: () => ({ getContext: () => ({}) }), fullscreenEnabled: true }
 });
 
-function fakeRuntime() {
+function fakeRuntime({ segmentId = 'p1' } = {}) {
     const listeners = new Set();
-    let state = { status: 'idle', main: { segmentId: 'p1' }, position: { segmentIndex: 0, segmentCount: 2 }, pace: 1, interjection: { state: 'none', failed: null } };
+    let state = { status: 'idle', main: { segmentId }, position: { segmentIndex: 0, segmentCount: 2 }, pace: 1, interjection: { state: 'none', failed: null } };
     const runtime = {
         get status() { return state.status; },
         snapshot: () => state,
@@ -45,10 +60,18 @@ function fakeRuntime() {
         set(status, interjection = state.interjection.state, failed = null) {
             state = { ...state, status, interjection: { state: interjection, failed } };
             for (const fn of [...listeners]) fn(state);
+        },
+        /** The reading's first atom is shown: the runtime names the passage the reader is in. */
+        shows(id) {
+            state = { ...state, main: { ...state.main, segmentId: id } };
+            for (const fn of [...listeners]) fn(state);
         }
     };
     return runtime;
 }
+
+/** What the next runtime built is made with (fakeRuntime's options). */
+let nextRuntime = {};
 
 let host;
 let container;
@@ -60,7 +83,7 @@ function mount(search = '', environment = env(), options = {}) {
     host = new LiveHost(container, { router: { navigate: async () => true, views: new Map() }, search, env: environment, venue: true, ...options });
     runtimes = [];
     host.buildRuntime = vi.fn(async () => {
-        const runtime = fakeRuntime();
+        const runtime = fakeRuntime(nextRuntime);
         runtimes.push(runtime);
         return runtime;
     });
@@ -87,6 +110,8 @@ beforeEach(() => resetConnectionForTests());
 afterEach(() => {
     host?.destroy();
     host = null;
+    nextRuntime = {};
+    faces.length = 0;
     document.body.replaceChildren();
     vi.restoreAllMocks();
 });
@@ -618,5 +643,120 @@ describe('who speaks (design §8 stage 7)', () => {
         voiceRadio('device').checked = true;
         voiceRadio('device').dispatchEvent(new Event('change', { bubbles: true }));
         expect(host.voiceKey).toBe('');
+    });
+});
+
+describe('the face: RISE rests in the room, listens, thinks, and steps back while the reading speaks (§22)', () => {
+    const face = () => $('.live-face');
+    const engine = () => faces.at(-1);
+    const typeIn = (field, words) => {
+        field.value = words;
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+
+    it('rests in the entry at arrival, the still eye shown in Sophia until the engine has drawn', async () => {
+        mount();
+        expect(container.querySelector('.live-venue .live-face')).toBe(face());
+        expect(face().dataset.faceState).toBe('arrival');
+        expect(face().getAttribute('aria-hidden')).toBe('true');
+        expect(face().querySelector('svg.live-face__still').dataset.skin).toBe('sophia');
+        await vi.waitFor(() => expect(engine()).toBeTruthy());
+        expect(engine().options).toMatchObject({ host: face().querySelector('.live-face__disc'), skin: 'sophia', state: 'arrival' });
+        expect(engine().playing).toBe(true);
+        expect(face().dataset.faceDrawn).toBe('false');
+        engine().options.onFirstFrame();
+        expect(face().dataset.faceDrawn).toBe('true');
+    });
+
+    it('wears the skin the reader kept, and keeps the one they choose in Settings', async () => {
+        const kept = [];
+        mount('?voice=paced', env(), { getSettings: () => ({ liveFace: 'jade' }), onSettingChange: (key, value) => kept.push([key, value]) });
+        expect(face().dataset.faceSkin).toBe('jade');
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        const choice = $('#rise-settings-face');
+        expect([...choice.options].map(option => option.textContent)).toEqual(['Sophia', 'Ember', 'Jade', 'Silver']);
+        expect(choice.value).toBe('jade');
+        choice.value = 'ember';
+        choice.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(kept).toEqual([['liveFace', 'ember']]);
+        expect(face().dataset.faceSkin).toBe('ember');
+        expect(face().querySelector('svg.live-face__still').dataset.skin).toBe('ember');
+        await vi.waitFor(() => expect(engine()?.skins).toEqual(['ember']));
+    });
+
+    it('listens while the reader types, thinks from the ask until the first words, then withdraws', async () => {
+        nextRuntime = { segmentId: null };
+        mount('?voice=paced');
+        await vi.waitFor(() => expect(engine()).toBeTruthy());
+        typeIn(question(), 'Why');
+        expect(face().dataset.faceState).toBe('listening');
+        typeIn(question(), '');
+        expect(face().dataset.faceState).toBe('arrival');
+        ask('Why is the sky blue?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        // Over the room now, not in the entry: the stage and the bar above it.
+        expect(face().parentElement).toBe(document.body);
+        expect(face().classList.contains('live-face--room')).toBe(true);
+        expect(face().dataset.faceState).toBe('thinking');
+        runtimes[0].shows('p1');
+        expect(face().dataset.faceState).toBe('speaking');
+        await vi.waitFor(() => expect(engine()?.cues).toEqual(['listening', 'arrival', 'thinking', 'speaking']));
+        runtimes[0].set('ended');
+        expect(face().dataset.faceState).toBe('rest');
+        expect(engine().playing).toBe(true);
+    });
+
+    it('comes forward over a held reading for an interjection, and withdraws as the answer comes', async () => {
+        mount('?voice=paced');
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        const runtime = runtimes[0];
+        expect(face().dataset.faceState).toBe('speaking');
+        typeIn($('#live-again-question'), 'Wait');
+        expect(face().dataset.faceState).toBe('listening');
+        $('.live-again').requestSubmit();
+        await vi.waitFor(() => expect(face().dataset.faceState).toBe('thinking'));
+        runtime.set('live', 'answering');
+        expect(face().dataset.faceState).toBe('speaking');
+    });
+
+    it('rests when a question fails, and is gone with the room', async () => {
+        mount('?voice=paced');
+        host.buildRuntime = vi.fn(async () => { throw new Error('no'); });
+        ask('First?');
+        await vi.waitFor(() => expect(container.querySelector('.live-error').hidden).toBe(false));
+        expect(face().dataset.faceState).toBe('rest');
+        expect(container.querySelector('.live-venue .live-face')).toBe(face());
+        await vi.waitFor(() => expect(engine()).toBeTruthy());
+        host.destroy();
+        expect(face()).toBeNull();
+        expect(engine().destroyed).toBe(true);
+        host = null;
+    });
+
+    it('holds still as soon as the reader asks for still imagery, without a reload', async () => {
+        mount();
+        await vi.waitFor(() => expect(engine()).toBeTruthy());
+        const first = engine();
+        expect(first.options.reducedMotion).toBe(false);
+        document.documentElement.classList.add('reduced-motion');
+        try {
+            await vi.waitFor(() => expect(faces).toHaveLength(2));
+            expect(first.destroyed).toBe(true);
+            expect(engine().options).toMatchObject({ reducedMotion: true, state: 'arrival', skin: 'sophia' });
+        } finally {
+            document.documentElement.classList.remove('reduced-motion');
+        }
+        await vi.waitFor(() => expect(faces).toHaveLength(3));
+        expect(engine().options.reducedMotion).toBe(false);
+    });
+
+    it('is never the model’s: the reading’s scenes and journal are not touched by it', async () => {
+        mount('?voice=paced');
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith('First?'));
+        expect(runtimes[0].journal()).toEqual([{ type: 'start' }]);
+        expect(document.querySelector('#chamber-field .live-face')).toBeNull();
     });
 });

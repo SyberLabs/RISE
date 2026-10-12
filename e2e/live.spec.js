@@ -565,6 +565,94 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
+    // RISE's face (docs/plans/LIVE-CURRENT.md §22): the room's resting picture, which steps back while a reading speaks.
+    /** When the face was first put on the page, whether the still eye was in it and the engine had not yet drawn. */
+    const recordFirstFace = page => page.addInitScript(() => {
+        window.__firstFace = null;
+        new MutationObserver((records, observer) => {
+            const face = document.querySelector('.live-face');
+            if (!face) return;
+            window.__firstFace = { still: Boolean(face.querySelector('svg.live-face__still')), drawn: face.dataset.faceDrawn };
+            observer.disconnect();
+        }).observe(document, { subtree: true, childList: true });
+    });
+    /** The page's clock when the face has finished stepping back: hidden, not only transparent. */
+    const faceHiddenAt = page => page.waitForFunction(() => {
+        const face = document.querySelector('.live-face');
+        return face && getComputedStyle(face).visibility === 'hidden' ? performance.now() : false;
+    }, null, { timeout: 15_000 }).then(handle => handle.jsonValue());
+
+    test('the face rests at arrival, listens, thinks on Ask, steps back within a second of the first words, and rests at the end', async ({ page }) => {
+        test.setTimeout(150_000);
+        const errors = watchErrors(page);
+        await recordFirstFace(page);
+        await page.goto(`${VENUE}&measure=1`);
+        const face = page.locator('.live-face');
+        const hooks = () => page.evaluate(() => ({ state: window.__riseFace.state(), log: window.__riseFace.log() }));
+        await expect(face).toHaveAttribute('data-face-state', 'arrival');
+        await expect(face).toBeVisible();
+        // The still eye was the face before the engine drew, and gives way to it once it has.
+        expect(await page.evaluate(() => window.__firstFace)).toEqual({ still: true, drawn: 'false' });
+        await expect.poll(() => page.evaluate(() => window.__riseFace.drawn()), { timeout: 15_000 }).toBe(true);
+        await expect(page.locator('svg.live-face__still')).toBeHidden();
+
+        // Its own frames, in the worker, at the venue's size; and a blink the flash gate lets through.
+        await page.waitForTimeout(2_000);
+        const before = (await page.evaluate(() => window.__riseFace.lumas())).length;
+        await page.evaluate(() => window.__riseFace.blink());
+        await page.waitForTimeout(1_000);
+        const frames = (await page.evaluate(() => window.__riseFace.frames())).sort((a, b) => a - b);
+        const lumas = (await page.evaluate(() => window.__riseFace.lumas())).slice(before - 1);
+        const median = frames[frames.length >> 1];
+        const step = Math.max(...lumas.slice(1).map((value, i) => Math.abs(value - lumas[i])));
+        console.log(`face frames: ${frames.length}, median ${median.toFixed(2)} ms, p95 ${frames[Math.floor(frames.length * 0.95)].toFixed(2)} ms; largest brightness step across a blink ${step.toFixed(4)} over ${lumas.length} samples`);
+        expect(median).toBeLessThan(24);
+        expect(await page.evaluate(() => window.__riseFace.frozen())).toBe(false);
+        expect(step).toBeLessThan(0.1);
+
+        // The reader types: it listens. Ask: it thinks until the reading's first words, then steps back.
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await expect(face).toHaveAttribute('data-face-state', 'listening');
+        await page.locator('#live-venue-question').press('Enter');
+        await expect(face).toHaveAttribute('data-face-state', /thinking|speaking/u);
+        const hidden = faceHiddenAt(page);
+        await expectShown(page, 'A black hole is a region of space');
+        const hiddenAt = await hidden;
+        const firstWords = (await page.evaluate(() => window.__riseLive.atoms()))[0].at;
+        const { log } = await hooks();
+        const at = state => log.find(entry => entry.state === state)?.at;
+        console.log(`face hand-offs (ms): Ask to thinking ${Math.round(at('thinking') - at('listening'))} after listening; thinking to first words ${Math.round(firstWords - at('thinking'))}; first words to speaking ${Math.round(at('speaking') - firstWords)}; first words to hidden ${Math.round(hiddenAt - firstWords)}`);
+        expect(log.map(entry => entry.state).slice(0, 4)).toEqual(['arrival', 'listening', 'thinking', 'speaking']);
+        // The same atom: the runtime hears it a fraction of a millisecond before the measuring page's listener does.
+        expect(at('speaking')).toBeGreaterThanOrEqual(firstWords - 5);
+        expect(hiddenAt - firstWords).toBeLessThan(1_000);
+
+        // The end: it comes back, at rest.
+        await expect(face).toHaveAttribute('data-face-state', 'rest', { timeout: 90_000 });
+        await expect(face).toBeVisible();
+        expect(errors).toEqual([]);
+    });
+
+    test('the face under reduced motion: still drawn, every change at once, and out of the way of the reading', async ({ page }) => {
+        test.setTimeout(90_000);
+        const errors = watchErrors(page);
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.goto(`${VENUE}&measure=1`);
+        const face = page.locator('.live-face');
+        await expect(face).toHaveAttribute('data-face-state', 'arrival');
+        await expect.poll(() => page.evaluate(() => window.__riseFace.drawn()), { timeout: 15_000 }).toBe(true);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        const hidden = faceHiddenAt(page);
+        await expectShown(page, 'A black hole is a region of space');
+        const firstWords = (await page.evaluate(() => window.__riseLive.atoms()))[0].at;
+        const hiddenAt = await hidden;
+        console.log(`face under reduced motion: first words to hidden ${Math.round(hiddenAt - firstWords)} ms`);
+        expect(hiddenAt - firstWords).toBeLessThan(400);
+        expect(await page.evaluate(() => window.__riseFace.frozen())).toBe(false);
+        expect(errors).toEqual([]);
+    });
+
     // The demo's first beat lays a bed (starlight). What leaves the engine's last gate is measured, as in the card:
     // started is not heard. With the paced voice nothing ducks it.
     test('a bed under the reading stops with it, sounds again on Play again, and under the next reading asked', async ({ page }) => {

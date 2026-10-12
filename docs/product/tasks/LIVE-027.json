@@ -1,0 +1,55 @@
+{
+  "id": "LIVE-027",
+  "title": "RISE Live: the face",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-025"
+  ],
+  "acceptance": [
+    "The approved study (docs/assets/live/sophia-face-study.html, version 6) is ported faithfully as a native engine, `oracle` (src/scenes/engines/oracle.js), run in the scene worker like every scene: the central eye (three layers of 36 petals drifting at their own paces, core-to-iris colours, a breathing pupil that narrows with the pointer's nearness, a catchlight set against the gaze), seven orbiting pulsing nodes, the 24-line spiral field, the torus built once per size (48 by 24), phi recursion circles to depth 3, the trail in the skin's dark; geometry, colours and timings unchanged.",
+    "The blink is the eye's own geometry closing like a flower: layers fold outer to inner (220 ms in, 70 ms hold, 360 ms out, 1.2 times slower while thinking), petals draw in to 8% reach twisting, the pupil to a point, the catchlight fades, a seed of light where the petals meet, and beneath them a socket in the room's near-black and nine S-curved shutter blades in the iris's palette, turning a few degrees; no lids, no concentric rings; every 4 to 8 s.",
+    "Five states eased with a 0.18 s time constant (arrival, listening, thinking, speaking withdrawn at presence 0.22, rest) and four skins (Sophia, Ember, Jade, Silver), exactly as the study's STATES and SKINS; the gaze follows the reader's pointer eased (about 0.35 s) and clamped; reduced motion: no orbit, drift or blink, and every state at once. The face listens to the pointer only and emits nothing: no rise.emit, no perception, no journal entry.",
+    "Within the frame budget and the flash gate (a blink does not trip it), with the pixel ratio capped at 2; a still SVG face is shown before the worker's first frame and as the poster, and cross-fades out (about 400 ms) once the engine has drawn; neither the engine nor the still is in the first load.",
+    "The venue owns the face as its own scene layer, never injected into a reading's Current: arrival at idle; listening while the reader types or the microphone listens; thinking from the ask until the reading's first words are shown (the real pending request, no timer); withdrawn (speaking, then hidden, cross-faded about 600 ms) once the reading's first words are shown, the reading's canvas never resized at the hand-off; forward again over a held reading for an interjection (listening, then thinking while asked) and withdrawn as the answer comes; rest when a reading ends or a question fails.",
+    "Settings in the venue only offers Face (Sophia, Ember, Jade, Silver), kept as the `liveFace` setting, default Sophia; the theme does not change it and the model never does (no room change kind for it). The card, the Worker, the tool text and Composer's guide are unchanged; `oracle` is not in the model-facing engine list."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/assets/live/sophia-face-study.html",
+      "note": "The approved study, version 6 of the owner's design artifact (2026-10-12): the design reference the engine ports.",
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§22 The face: design, states, skins, what it never does, and what was measured.",
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/646",
+      "note": "Branch live-face. Local: vitest src/scenes + src/live/host 625 passed; e2e/live.spec.js (full) 37 passed, plus the one scene test rerun green after the face canvas got its own class; card subset 13 passed; face worker frame median 0.40 ms; blink brightness step 0.010; hidden 623-640 ms after the first atom. Not merged, not deployed, not accepted by a human.",
+      "date": "2026-10-12"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-12T12:00:00.000Z",
+      "summary": "Claimed and built on branch live-face (owner-approved design, one PR): the oracle engine, the still face, the venue's face layer and states, the Face row in Settings."
+    },
+    {
+      "date": "2026-10-12T21:12:14.542Z",
+      "summary": "PR #646 opened on branch live-face with local verification evidence"
+    }
+  ],
+  "updatedAt": "2026-10-12T21:12:14.542Z",
+  "revision": 2,
+  "summary": "RISE's own face in the Live venue: the approved Sophia study as a native scene engine the venue runs behind its ask bar, resting at arrival, listening, thinking until the first words, stepping back while a reading speaks, and at rest after it.",
+  "blocker": null
+}

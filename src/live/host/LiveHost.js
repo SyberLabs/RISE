@@ -955,7 +955,7 @@ export class LiveHost {
      * The stage over a venue reading: the whole instrument, the browser's own full screen, Settings with Sound, the
      * reader's voice and About this reading, and the room's choices carried from the reading before.
      */
-    venueStage(runtime, { room, onPlayAgain }) {
+    venueStage(runtime, { room, onPlayAgain, face = null }) {
         return createStageControls({
             runtime,
             onPlayAgain,
@@ -968,7 +968,9 @@ export class LiveHost {
             // the reading has cost the reader, the illustrator's requests among it (docs/plans/LIVE-CURRENT.md §19).
             about: () => [originLine(runtime.composed?.('main')?.origin), this.venue?.usageLine?.() ?? '', this.aboutReading()].filter(Boolean).join('\n'),
             voice: this.voiceKind === 'browser' ? this.voicePick() : null,
-            room
+            room,
+            // RISE's face, the venue's own (docs/plans/LIVE-CURRENT.md §22): the reader's choice of skin, never the card's.
+            face
         });
     }
 
