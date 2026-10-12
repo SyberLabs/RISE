@@ -41,6 +41,10 @@ function setup(options = {}) {
   const raf = frames();
   const failures = [];
   const lumas = [];
+  const listened = [];
+  const inputs = [];
+  const refused = [];
+  const mirrored = [];
   const offscreen = { offscreen: true };
   const canvas = { transferControlToOffscreen: () => offscreen };
   const runtime = createSceneRuntime({
@@ -48,9 +52,13 @@ function setup(options = {}) {
     canvas, clock, theme: { accent: '#ff0000' }, reducedMotion: false, ...(options.library ? { library: options.library } : {}),
     onFailure: diagnostic => failures.push(diagnostic),
     onLuma: (value, t) => lumas.push([value, t]),
+    onListen: kinds => listened.push(kinds),
+    onInput: told => inputs.push(told),
+    onInputRefused: told => refused.push(told),
+    onWidgets: list => mirrored.push(list),
     requestFrame: raf.request, cancelFrame: raf.cancel
   });
-  return { clock, worker, raf, failures, lumas, offscreen, runtime };
+  return { clock, worker, raf, failures, lumas, listened, inputs, refused, mirrored, offscreen, runtime };
 }
 
 /** Started, ready, playing. */
@@ -353,5 +361,159 @@ describe('disposing', () => {
     await started;
     expect(worker.terminated).toBe(true);
     expect(worker.of(TO_WORKER.init)).toEqual([]);
+  });
+});
+
+describe('a scene that listens (docs/plans/LIVE-CURRENT.md §20)', () => {
+  const NONE = { shift: false, alt: false, ctrl: false, meta: false };
+  const at = (type, x, y, buttons = 1) => ({ type, x, y, buttons, key: null, modifiers: NONE });
+  const key = (type, name) => ({ type, x: null, y: null, buttons: 0, key: name, modifiers: NONE });
+
+  /** Started, sized 400 by 300, ready with what it listens to, playing. */
+  async function listening(listens = ['pointer', 'keys']) {
+    const parts = setup();
+    parts.runtime.resize(400, 300, 1);
+    await parts.runtime.start(SCENE);
+    parts.worker.say({ type: TO_HOST.ready, reportsCompletion: false, listens });
+    parts.runtime.play();
+    return parts;
+  }
+  const sentInputs = parts => parts.worker.of(TO_WORKER.input);
+
+  it('gives nothing to a scene that did not declare, and asks for no listening', async () => {
+    const parts = await running();
+    parts.runtime.input(at('pointerdown', 10, 10));
+    parts.runtime.input(key('keydown', 'a'));
+    expect(sentInputs(parts)).toEqual([]);
+    expect(parts.listened).toEqual([]);
+  });
+
+  it('says once what a ready scene listens to, and ignores what it cannot listen to', async () => {
+    const parts = await listening(['keys', 'mouse']);
+    expect(parts.listened).toEqual([{ pointer: false, keys: true }]);
+    const odd = setup();
+    await odd.runtime.start(SCENE);
+    odd.worker.say({ type: TO_HOST.ready, reportsCompletion: false, listens: 'pointer' });
+    expect(odd.listened).toEqual([]);
+  });
+
+  it('builds each input from the event’s own numbers, clamped to the canvas, and sends only the kinds it listens to', async () => {
+    const parts = await listening(['pointer']);
+    parts.runtime.input({ ...at('pointerdown', -20, 900, 99), target: { nodeName: 'CANVAS' }, modifiers: { shift: true, ctrl: 'yes' } });
+    parts.runtime.input(key('keydown', 'a'));
+    parts.runtime.input(at('click', 1, 1));
+    expect(sentInputs(parts)).toEqual([{
+      type: TO_WORKER.input, kind: 'pointerdown', x: 0, y: 300, buttons: 31, key: null, modifiers: { shift: true, alt: false, ctrl: false, meta: false }
+    }]);
+  });
+
+  it('coalesces pointer moves to at most inputPointerPerSecond, the latest kept, and never drops a press or a release', async () => {
+    const parts = await listening();
+    parts.runtime.input(at('pointerdown', 10, 10));
+    for (let x = 11; x < 20; x += 1) parts.runtime.input(at('pointermove', x, 10));
+    parts.runtime.input(at('pointerup', 20, 10, 0));
+    await parts.clock.advance(100);
+    expect(sentInputs(parts).map(({ kind, x }) => [kind, x])).toEqual([['pointerdown', 10], ['pointermove', 19], ['pointerup', 20]]);
+    const before = sentInputs(parts).length;
+    for (let ms = 0; ms < 1000; ms += 1) {
+      parts.runtime.input(at('pointermove', ms % 400, 10));
+      await parts.clock.advance(1);
+    }
+    expect(sentInputs(parts).length - before).toBeLessThanOrEqual(SCENE_LIMITS.inputPointerPerSecond + 1);
+  });
+
+  it('drops keys beyond inputKeysPerSecond, and never sends the instrument’s keys', async () => {
+    const parts = await listening(['keys']);
+    for (const name of [' ', 'r', 'F', '-', '=', '[', ']', 'Escape', 'Tab', 'Enter']) parts.runtime.input(key('keydown', name));
+    expect(sentInputs(parts)).toEqual([]);
+    for (let ms = 0; ms < 1000; ms += 5) {
+      parts.runtime.input(key('keydown', 'ArrowRight'));
+      await parts.clock.advance(5);
+    }
+    expect(sentInputs(parts).length).toBeLessThanOrEqual(SCENE_LIMITS.inputKeysPerSecond);
+    expect(sentInputs(parts).length).toBeGreaterThanOrEqual(SCENE_LIMITS.inputKeysPerSecond - 1);
+  });
+
+  it('draws one frame at the same scene time for an input while paused, and none while playing', async () => {
+    const parts = await listening();
+    frame(parts, 0);
+    frame(parts, 40);
+    parts.runtime.pause();
+    parts.runtime.input(at('pointerdown', 5, 5));
+    parts.runtime.input(key('keydown', 'a'));
+    expect(parts.worker.of(TO_WORKER.frame).map(({ t, dt }) => [t, dt])).toEqual([[0, 0], [40, 40], [40, 0]]);
+    parts.worker.say({ type: TO_HOST.frameDone, t: 40, ms: 2 });
+    await parts.clock.advance(50);
+    parts.runtime.input(key('keydown', 'b'));
+    expect(parts.worker.of(TO_WORKER.frame)).toHaveLength(4);
+    parts.worker.say({ type: TO_HOST.frameDone, t: 40, ms: 2 });
+    parts.runtime.play();
+    parts.runtime.input(key('keydown', 'c'));
+    expect(parts.worker.of(TO_WORKER.frame)).toHaveLength(4);
+  });
+
+  it('tells what the reader set, with its widget’s label, only within a second of an input it delivered', async () => {
+    const parts = await listening();
+    parts.worker.say({ type: TO_HOST.widgets, widgets: [{ id: 'mass', kind: 'slider', label: 'Mass', value: 0.5, rect: [90, 34, 220, 32] }] });
+    parts.worker.say({ type: TO_HOST.emit, changes: [['mass', 0.6]], refused: [] });
+    expect(parts.inputs).toEqual([]);
+    expect(parts.refused).toEqual([{ control: 'mass', reason: 'unprompted' }]);
+    parts.runtime.input(at('pointerdown', 200, 50));
+    parts.worker.say({ type: TO_HOST.emit, changes: [['mass', 0.7]], refused: [] });
+    expect(parts.inputs).toEqual([{ control: 'mass', value: 0.7, label: 'Mass' }]);
+    await parts.clock.advance(SCENE_LIMITS.emitAfterInputMs + 1);
+    parts.worker.say({ type: TO_HOST.emit, changes: [['mass', 0.9]], refused: [] });
+    expect(parts.inputs).toHaveLength(1);
+  });
+
+  it('holds each control to emitPerSecond, keeps the trailing value, and gives it on dispose', async () => {
+    const parts = await listening();
+    for (let i = 1; i <= 30; i += 1) {
+      parts.runtime.input(key('keydown', 'ArrowRight'));
+      parts.worker.say({ type: TO_HOST.emit, changes: [['mass', i]], refused: [] });
+      await parts.clock.advance(34);
+    }
+    const told = parts.inputs.map(({ value }) => value);
+    expect(told.length).toBeLessThanOrEqual(SCENE_LIMITS.emitPerSecond + 1);
+    expect(told[0]).toBe(1);
+    await parts.clock.advance(200);
+    expect(parts.inputs.at(-1).value).toBe(30);
+    parts.runtime.input(key('keydown', 'ArrowRight'));
+    parts.worker.say({ type: TO_HOST.emit, changes: [['mass', 31]], refused: [] });
+    parts.worker.say({ type: TO_HOST.emit, changes: [['mass', 32]], refused: [] });
+    parts.runtime.dispose();
+    expect(parts.inputs.at(-1).value).toBe(32);
+  });
+
+  it('reads an emit again as untrusted: a bad id, a bad value, too many controls, the worker’s own refusals, each noted once', async () => {
+    const parts = await listening();
+    parts.runtime.input(key('keydown', 'a'));
+    const many = Array.from({ length: 70 }, (_, i) => [`c${i}`, i]);
+    parts.worker.say({ type: TO_HOST.emit, changes: [['Bad', 1], ['ok', { a: 1 }], ['long', 'x'.repeat(81)], ...many], refused: [['note', 'value'], ['x', 'nonsense'], 'junk'] });
+    parts.worker.say({ type: TO_HOST.emit, changes: [['Bad', 1], ['ok', { a: 1 }]], refused: [['note', 'value']] });
+    // A message is read to emitControls changes at most: the first 64 here, three of them refused.
+    expect(parts.inputs.map(({ control }) => control)).toEqual(many.slice(0, 61).map(([control]) => control));
+    parts.worker.say({ type: TO_HOST.emit, changes: many.slice(61), refused: [] });
+    expect(parts.inputs).toHaveLength(SCENE_LIMITS.emitControls);
+    expect(parts.refused).toEqual(expect.arrayContaining([
+      { control: null, reason: 'control' }, { control: 'ok', reason: 'value' }, { control: 'long', reason: 'value' }, { control: 'note', reason: 'value' },
+      { control: 'c64', reason: 'controls' }
+    ]));
+    expect(parts.refused.filter(({ control, reason }) => control === 'ok' && reason === 'value')).toHaveLength(1);
+    expect(parts.refused.length).toBeLessThanOrEqual(16);
+  });
+
+  it('mirrors its widgets, read field by field: a label clipped and made one line, a region inside the canvas, the rest dropped', async () => {
+    const parts = await listening();
+    parts.worker.say({
+      type: TO_HOST.widgets,
+      widgets: [
+        { id: 'mass', kind: 'slider', label: `Mass\n${'m'.repeat(60)}`, value: 0.5, rect: [-10, 280, 220, 32] },
+        { id: 'weird', kind: 'dial', label: 'x', value: 1, rect: [0, 0, 1, 1] },
+        { id: 'p', kind: 'point', label: 'P', value: '0.1, 0.2', rect: [0, 0, Number.NaN, 1] },
+        'junk'
+      ]
+    });
+    expect(parts.mirrored).toEqual([[{ id: 'mass', kind: 'slider', label: `Mass ${'m'.repeat(35)}`, value: 0.5, rect: [0, 280, 210, 20] }]]);
   });
 });

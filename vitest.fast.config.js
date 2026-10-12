@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 112;
+export const FAST_TEST_FILES = 115;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -81,6 +81,10 @@ const FAST_TESTS = [
     'src/live/sealed-lost-passages.test.js',
     // The last beat with words is said whole before the reading ends; a closing shown line is said by no one.
     'src/live/last-beat.test.js',
+    // The scene sandbox's boundary, both ways: what a scene is given, what it may say the reader set, and the bounds on both.
+    'src/scenes/scene-worker.test.js',
+    'src/scenes/scene-runtime.test.js',
+    'src/scenes/scene-widgets.test.js',
     'src/live/adapters/**/*.test.js',
     'src/live/host/**/*.test.js',
     'src/live/hosts/**/*.test.js',

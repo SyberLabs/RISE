@@ -167,6 +167,12 @@ The line a model writes, its own line between beats, outside a fence:
 
 What answers it is the runtime's (the plan, §19): an engine's cue or an engine RISE already has, else a second request on the room's adapter (intent `illustrate`), whose answer is read by the same parser and whose picture is held to the same admission. The picture enters the reading as a scene of the arranged `rise.current.v2`, so nothing downstream knows there were two roles.
 
+## Interactive scenes (added 2026-10-11, no change to the stream)
+
+RISE Live stage 6 ([the RISE Live design](../superpowers/specs/2026-10-09-rise-live-design.md) §6, §8 stage 6; [the plan](../plans/LIVE-CURRENT.md) §20). A code scene may listen to the reader and say what they set. Nothing of it is a stream event, and `rise.current-events.v1` is unchanged: no event, field, kind or line is added, and a Current carries a listening scene as any other `{ id, code }` scene, admitted by the same `admitSceneCode` (the declaration is ordinary code: `export const listens = [...]` or `rise.listen(...)`).
+
+The reader's input goes into the scene worker and what they set comes out of it over the scene worker protocol ([RiseSDK](RISE-SDK.md) §7.10–§7.11: `scene/input`, `scene/emit`, `scene/widgets`), never over this stream. The runtime keeps each move in its journal as `scene.input { scene, control, value }` (a control's consecutive moves as one entry) and each dropped emit as `scene.input.refused { scene, control, reason }`. The first goes up with the reader's next words as the perception event `scene.input`, which stage 4 defined with the same three fields; the second never goes up. Both are the journal's and the perception door's (`admitPerception`), not this contract's.
+
 ## Error codes
 
 Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_THEME`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`, `EVENT_BEAT`, `EVENT_SCENE`, `EVENT_ENDING`, `EVENT_ROOM`.

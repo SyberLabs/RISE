@@ -208,6 +208,12 @@ export class LiveHost {
         // field report says whether a drag reached the card or the app took it (band.cancel).
         this.onBandNote = event => this.trace('[RISE band]', voiceLine({ at: performance.now(), ...event.detail }));
         container.ownerDocument.defaultView?.addEventListener('rise-band-note', this.onBandNote);
+        // A scene that listens (Chamber.js `_mountSceneCue`; docs/plans/LIVE-CURRENT.md §20): the stage takes its keys
+        // first, and what the reader set is journaled for perception and said in the stage's hidden live region.
+        this.onSceneListen = () => this.controls?.hearScene?.();
+        this.onSceneInput = event => this.sceneInput(event.detail);
+        container.ownerDocument.defaultView?.addEventListener('rise-scene-listen', this.onSceneListen);
+        container.ownerDocument.defaultView?.addEventListener('rise-scene-input', this.onSceneInput);
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
         // Which Gemini model to ask, if the reader named one; not secret, and empty means the default.
@@ -739,6 +745,21 @@ export class LiveHost {
         console.warn('[RISE scene]', line);
         if (this.params.has('measure')) this.sceneReports = [...this.sceneReports, line].slice(-20);
         this.port?.report(line);
+    }
+
+    /**
+     * What the reader set in a listening scene, or an emit the scene's runtime refused: journaled by the reading's runtime
+     * (which holds each field to its bounds again), and a move said in the stage's live region ("Weight 1 0.7").
+     */
+    sceneInput(detail) {
+        if (this.destroyed || !detail || typeof detail !== 'object') return;
+        const { sceneId: scene, control } = detail;
+        if (typeof detail.refused === 'string') {
+            this.runtime?.noteSceneInputRefused?.({ scene, control, reason: detail.refused });
+            return;
+        }
+        this.runtime?.noteSceneInput?.({ scene, control, value: detail.value });
+        this.controls?.announceScene?.(`${typeof detail.label === 'string' && detail.label ? detail.label : control} ${detail.value}`);
     }
 
     /**
@@ -1425,6 +1446,8 @@ export class LiveHost {
         this.destroyed = true;
         this.container.ownerDocument.defaultView?.removeEventListener('rise-scene-diagnostic', this.onSceneDiagnostic);
         this.container.ownerDocument.defaultView?.removeEventListener('rise-band-note', this.onBandNote);
+        this.container.ownerDocument.defaultView?.removeEventListener('rise-scene-listen', this.onSceneListen);
+        this.container.ownerDocument.defaultView?.removeEventListener('rise-scene-input', this.onSceneInput);
         this.embeddedStartupCancelled = true;
         this.cancelEmbeddedPending();
         this.stopHearingExitListener();

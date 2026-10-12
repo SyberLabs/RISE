@@ -19,6 +19,7 @@ import {
     CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, CURRENT_GUIDE_V2, DIVE_INSTRUCTIONS, FIGURE_EXAMPLE, FIGURE_GUIDE, LIB_GUIDE, LOOK_HINTS, SCENE_CODE_EXAMPLE,
     STYLE_EXAMPLES, STYLE_LINES, THEME_HINTS, TOOL_NAME, styleGuide
 } from './index.js';
+import { WIDGET_GUIDE } from './beats.js';
 
 describe('the example', () => {
     it('is a Current the strict validator accepts', () => {
@@ -182,13 +183,20 @@ describe('code scenes, as the guide teaches them', () => {
         expect(CURRENT_GUIDE_V2).toMatch(/maxMs/u);
     });
 
-    it('lists exactly the library a scene is given, one line each', () => {
+    it('lists exactly the library a scene is given, one line each: the drawing here, the widget set in Live’s guide', () => {
         const ctx = new Proxy({}, { get: () => () => {} });
         const lib = createSceneLibrary({ ctx, size: { width: 100, height: 100, dpr: 1 }, theme: {} });
         // tick is the worker's, and moving a count for tests: neither is the scene's to call.
         const given = Object.keys(lib).filter(name => !['tick', 'moving'].includes(name)).sort();
-        expect(LIB_GUIDE.map(([name]) => name).sort()).toEqual(given);
+        expect([...new Set([...LIB_GUIDE, ...WIDGET_GUIDE].map(([name]) => name))].sort()).toEqual(given);
         for (const [, line] of LIB_GUIDE) expect(CURRENT_GUIDE_V2).toContain(line);
+    });
+
+    it('teaches no widget, no listening and no emit to a host’s model while the connector is under review (stage 6)', () => {
+        for (const text of [CURRENT_GUIDE, DIVE_INSTRUCTIONS, ...['premium-educational', 'open-field'].map(styleGuide)]) {
+            for (const [, line] of WIDGET_GUIDE) expect(text).not.toContain(line);
+            expect(text).not.toMatch(/rise\.listen|rise\.emit|lib\.slider/u);
+        }
     });
 
     it('says a refusal names the line and column, and that the model repairs and calls again', () => {

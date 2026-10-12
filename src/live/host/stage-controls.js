@@ -101,6 +101,7 @@ export function createStageControls({
       <p class="rise-stage__said rise-stage__sr" aria-live="off"></p>
       ${full ? '<p class="rise-stage__pace-note rise-stage__sr" aria-live="polite"></p>' : ''}
       ${offersVoice ? '<p class="rise-stage__voice-note rise-stage__sr" aria-live="polite"></p>' : ''}
+      <p class="rise-stage__scene-note rise-stage__sr" aria-live="polite"></p>
       <p class="rise-stage__alert" role="alert" hidden></p>
       ${full ? '<p class="rise-stage__suggest" role="status" hidden><span></span> <button type="button" class="rise-stage__keep"></button></p>' : ''}
       <div class="rise-stage__bar">
@@ -610,11 +611,7 @@ export function createStageControls({
                 case ' ': if (target.closest?.('button')) return; act = () => play.click(); break;
                 case 'ArrowLeft': act = () => back.click(); break;
                 case 'ArrowRight': act = () => forward.click(); break;
-                case 'r': case 'R': act = () => replay.click(); break;
-                case 'f': case 'F': if (fullscreen.hidden) return; act = () => fullscreen.click(); break;
-                case '-': case '_': case '[': act = () => stepPace(-1); break;
-                case '=': case '+': case ']': act = () => stepPace(1); break;
-                default: return;
+                default: act = instrument(event.key); if (!act) return;
             }
             event.preventDefault();
             act();
@@ -622,6 +619,39 @@ export function createStageControls({
         stopHostContext = port?.onHostContext?.(repaint) ?? null;
         doc.addEventListener('fullscreenchange', repaint);
     }
+
+    /** The instrument's keys other than the arrows (scene-protocol.js INSTRUMENT_KEYS names the same set). */
+    function instrument(key) {
+        switch (key) {
+            case ' ': return () => play.click();
+            case 'r': case 'R': return () => replay.click();
+            case 'f': case 'F': return fullscreen.hidden ? null : () => fullscreen.click();
+            case '-': case '_': case '[': return () => stepPace(-1);
+            case '=': case '+': case ']': return () => stepPace(1);
+            default: return null;
+        }
+    }
+
+    /**
+     * A listening scene's canvas has the focus (src/components/read/scene-layer.js), outside the stage: its keys are
+     * taken here first, in the capture phase, so the instrument's stay the stage's and Escape gives the focus back to
+     * Play (and no one else takes that Escape). The arrows and every other key are the scene's. Bound on the document
+     * only once a scene listens (hearScene), and heard only from a scene's canvas.
+     */
+    let hearing = false;
+    const onSceneKey = event => {
+        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || !event.target?.matches?.('canvas.chamber-scene')) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            play.focus({ preventScroll: true });
+            return;
+        }
+        const act = full ? instrument(event.key) : null;
+        if (!act) return;
+        event.preventDefault();
+        act();
+    };
+    const sceneNote = $('.rise-stage__scene-note');
 
     const off = runtime.subscribe(render);
     render(runtime.snapshot());
@@ -647,10 +677,22 @@ export function createStageControls({
             if (room) room.intensity = value;
             root.dataset.intensity = value.toFixed(2);
         },
+        /** A scene in this reading listens: from now on the stage takes its keys from the scene's canvas first. */
+        hearScene() {
+            if (destroyed || hearing) return;
+            hearing = true;
+            doc.addEventListener('keydown', onSceneKey, true);
+        },
+        /** What the reader set in a listening scene, said in the stage's own hidden live region ("Weight 1 0.7"). */
+        announceScene(text) {
+            if (destroyed) return;
+            sceneNote.textContent = String(text ?? '').slice(0, 120);
+        },
         destroy() {
             if (destroyed) return;
             destroyed = true;
             clearTimeout(barTimer);
+            doc.removeEventListener('keydown', onSceneKey, true);
             doc.removeEventListener('pointerdown', outside);
             doc.removeEventListener('pointermove', showBar);
             doc.removeEventListener('pointerdown', showBar);

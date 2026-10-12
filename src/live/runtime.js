@@ -34,7 +34,7 @@
 
 import { RISE_CURRENT_SCHEMA_V2, compileRiseCurrent, validateRiseCurrent } from '../core/rise-current.js';
 import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
-import { BEAT_LIMITS, cueCommands } from '../core/beats.js';
+import { BEAT_LIMITS, CONTROL_PATTERN, EMIT_REFUSALS, cueCommands, emitValue } from '../core/beats.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
@@ -59,6 +59,8 @@ export class LiveRuntimeError extends Error {
 }
 
 const clip = (text, length) => (text.length <= length ? text : text.slice(0, length));
+/** A scene's id as a Current names it: what a scene.input note may carry. */
+const sceneNamed = id => typeof id === 'string' && id.length > 0 && id.length <= BEAT_LIMITS.id;
 
 export function createLiveRuntime({
     adapter, createPlayer, host = {}, voices = null, clock = createRealClock(), graceMs, reconnects = RUNTIME_LIMITS.reconnects,
@@ -834,6 +836,25 @@ export function createLiveRuntime({
         noteSaid(words) {
             const heard = String(words ?? '').trim();
             if (heard) note('said', { words: clip(heard, 200) });
+        },
+
+        /**
+         * What the reader set in a listening scene (docs/plans/LIVE-CURRENT.md §20), kept in the journal for perception.
+         * Each control keeps one entry, its latest move, where it was made: a scene of 64 controls moved again and again
+         * holds at most 64 entries, and cannot push the reading's other actions out of the bounded journal. Anything but
+         * a scene's id, a control's id and a value it may carry is not kept.
+         */
+        noteSceneInput({ scene, control, value } = {}) {
+            if (!sceneNamed(scene) || typeof control !== 'string' || !CONTROL_PATTERN.test(control) || !emitValue(value)) return;
+            const earlier = journal.findLastIndex(entry => entry.type === 'scene.input' && entry.scene === scene && entry.control === control);
+            if (earlier >= 0) journal.splice(earlier, 1);
+            note('scene.input', { scene, control, value });
+        },
+
+        /** An emit the scene's runtime refused, by its reason: kept in the journal, never sent up. */
+        noteSceneInputRefused({ scene, control, reason } = {}) {
+            if (!sceneNamed(scene) || !EMIT_REFUSALS.includes(reason)) return;
+            note('scene.input.refused', { scene, control: typeof control === 'string' && CONTROL_PATTERN.test(control) ? control : null, reason });
         },
 
         /**

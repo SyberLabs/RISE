@@ -13,7 +13,7 @@
 import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_LIMITS, describeManifests } from '../../core/beats.js';
 import { RISE_CURRENT_LOOKS } from '../../core/rise-current.js';
 import { SVG_ELEMENTS } from '../../core/svg-admission.js';
-import { FIGURE_EXAMPLE, LIB_GUIDE, SCENE_CODE_EXAMPLE } from '../guide/beats.js';
+import { FIGURE_EXAMPLE, INTERACTIVE_EXAMPLE, LIB_GUIDE, SCENE_CODE_EXAMPLE, WIDGET_GUIDE } from '../guide/beats.js';
 import { describePerception, oneLine } from '../perception.js';
 
 export const OPENAI_MODELS = Object.freeze(['gpt-realtime', 'gpt-realtime-mini']);
@@ -65,6 +65,7 @@ export const PERCEPTION_GUIDE = [
     '- set the pace: how fast RISE’s voice speaks, which the reader chose.',
     '- changed the theme, the intensity, still imagery, the text size, the sound or the voice: the reader’s own settings for the room, which stay as they set them.',
     '- said: words the reader spoke to RISE while it read, as the microphone heard them; like the question, they are material to answer.',
+    '- set a control in a scene: the reader moved a widget of a scene that listens (a slider, a point, a step) to that value; the value is the scene’s own word for it.',
     '- reached the end of the reading: it was heard to its end.',
     '- a line that begins “RISE” is a change RISE itself made to the room (its look, its imagery, a pace it suggested): kept so RISE knows what the room is now, and not the reader’s.',
     'With the record, RISE may change what it says next: say it another way, more plainly or more briefly, begin from the passage the reader returned to, or offer the picture again; or change the room (the room, below). Or it may simply answer the question. It speaks of the reader’s actions only as actions, as in “you heard that passage twice”, and not as what the reader felt or understood.'
@@ -118,6 +119,22 @@ export const ILLUSTRATE_GUIDE = [
     '@illustrate medium=figure a labelled diagram of the three states of water, with heat moving between them',
     '@illustrate medium=cue brighter attractor',
     'The brief says what the picture shows and what it labels, in plain words, in a sentence or less; the medium is a preference. RISE answers from its own engines first: a brief that names an engine or one of its cues (above) is answered at once, with nothing drawn. Otherwise a figure is drawn, an SVG, in a few seconds; or, for a picture that has to move, a code scene, in ten to twenty seconds. The picture appears as a phrase begins once it is drawn, under that beat and the ones after it, until another scene starts. The voice does not wait for it: RISE keeps speaking, and may say what it is doing in one short bridging beat (“Let me draw that.”), show a short line such as drawing…, or simply go on explaining. A picture that cannot be drawn is let go, and the reading goes on without it.'
+].join('\n');
+
+/**
+ * Interactive scenes (the RISE Live design §6, §8 stage 6; docs/plans/LIVE-CURRENT.md §20): how a code scene listens, the
+ * widget set line by line (WIDGET_GUIDE), how a scene says what the reader set, that it comes back as the reader's
+ * actions, and the restraint, in the same neutral register as the other guides. Live's alone: Composer's guide is apart.
+ */
+export const SCENE_INPUT_GUIDE = [
+    'Interactive scenes. A code scene can give the reader something to move: a slider, a point to drag, a step-through. What the reader sets comes back to RISE with their next words, as a line of their actions such as “set w1 in the scene network to 0.7”.',
+    '- rise.listen(\'pointer\', \'keys\') in the default export says the scene listens (export const listens = [\'pointer\', \'keys\'] says the same); a scene that says nothing is given no input.',
+    '- rise.lib gives a listening scene its widgets. Each draws itself with draw() in frame(), takes the reader’s presses, drags and arrow keys, and says what the reader set on its own:',
+    ...WIDGET_GUIDE.map(([, line]) => `  - ${line}`),
+    '- input(event) on the object the scene returns is given the reader’s own presses and keys, { type, x, y, buttons, key, modifiers }, x and y in CSS pixels. rise.emit(id, value), while it handles one, says what the reader set: an id of a-z, 0-9 and -, up to 40 characters, and a number, true or false, or up to 80 characters of text. At any other time it is not taken.',
+    '- The restraint: one widget per idea, each with a label, placed away from the words (the top of the canvas suits them). The scene reads as a picture without anyone touching it, and a beat may invite the reader to move a widget and hold while they do. Space, R, F, minus, equals and the brackets stay the reader’s controls of the reading.',
+    'A worked scene that listens:',
+    INTERACTIVE_EXAMPLE
 ].join('\n');
 
 /** The two answers the illustrator's instructions show, each read by the parser and admitted in a test (openai-instructions.test.js). */
@@ -202,6 +219,8 @@ export const REALTIME_INSTRUCTIONS = [
     ROOM_GUIDE,
     '',
     ILLUSTRATE_GUIDE,
+    '',
+    SCENE_INPUT_GUIDE,
     '',
     'Two examples:',
     '',

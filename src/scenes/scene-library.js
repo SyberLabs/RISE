@@ -14,6 +14,8 @@
  * completes every tween in one step.
  */
 
+import { createWidgets } from './scene-widgets.js';
+
 export const EASE = Object.freeze({
   linear: t => t,
   smooth: t => t * t * (3 - 2 * t),
@@ -32,8 +34,10 @@ export const LIBRARY_DEFAULTS = Object.freeze({ ease: 'smooth', stroke: 2, gridA
  * @param {object} options.theme the reading's colours: background, text, accent, muted, highlight
  * @param {boolean} [options.reducedMotion] every tween completes at once
  * @param {object} [options.defaults] a style's library defaults; a key the library does not read, or a value of another kind, is ignored
+ * @param {(kit: object) => object} [options.widgets] makes the widget set from { ctx, size, palette, font, stroke }
+ *   (scene-widgets.js); the scene worker passes one that emits, so it can hand the set the reader's inputs
  */
-export function createSceneLibrary({ ctx, size, theme, reducedMotion = false, defaults = {} }) {
+export function createSceneLibrary({ ctx, size, theme, reducedMotion = false, defaults = {}, widgets: makeWidgets = createWidgets }) {
   const DEFAULTS = { ...LIBRARY_DEFAULTS };
   for (const key of Object.keys(LIBRARY_DEFAULTS)) {
     if (typeof defaults?.[key] === typeof LIBRARY_DEFAULTS[key]) DEFAULTS[key] = defaults[key];
@@ -42,6 +46,7 @@ export function createSceneLibrary({ ctx, size, theme, reducedMotion = false, de
   const tweens = new Set();
   const palette = { background: '#06051a', text: '#f4f2ff', accent: '#8ab4ff', muted: '#8b88a6', highlight: '#ffd166', ...theme };
   const px = value => value * size.dpr;
+  const widgets = makeWidgets({ ctx, size, palette: Object.freeze({ ...palette }), font: DEFAULTS.labelFont, stroke: DEFAULTS.stroke });
 
   function clear(color = palette.background) {
     ctx.save();
@@ -159,7 +164,13 @@ export function createSceneLibrary({ ctx, size, theme, reducedMotion = false, de
     return Object.assign(state, { draw });
   }
 
-  function point(frame, [x, y], { color = palette.highlight, radius = 5, label: name = null } = {}) {
+  /** A dot on a frame, point(frame, [x, y], options); or, given one object with an id, a draggable point (scene-widgets.js). */
+  function point(frame, at, options) {
+    if (at === undefined && typeof frame?.id === 'string') return widgets.point(frame);
+    return dot(frame, at, options);
+  }
+
+  function dot(frame, [x, y], { color = palette.highlight, radius = 5, label: name = null } = {}) {
     fill(() => { ctx.beginPath(); ctx.arc(frame.toX(x), frame.toY(y), px(radius), 0, Math.PI * 2); }, { color });
     if (name) label(name, { at: [frame.toX(x) / size.dpr + 8, frame.toY(y) / size.dpr - 8], color });
   }
@@ -217,6 +228,8 @@ export function createSceneLibrary({ ctx, size, theme, reducedMotion = false, de
 
   return Object.freeze({
     clear, axes, grid, plot, vector, point, line, arc, polygon, label, tween, tick, ease: EASE, color, palette: Object.freeze({ ...palette }),
+    // The widget set (scene-widgets.js): what a listening scene gives the reader to move.
+    slider: widgets.slider, step: widgets.step, focusable: widgets.focusable,
     /** How many tweens are still moving. */
     get moving() { return tweens.size; }
   });

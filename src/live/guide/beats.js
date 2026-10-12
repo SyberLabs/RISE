@@ -71,6 +71,36 @@ export const LIB_GUIDE = Object.freeze([
     ['palette', 'palette: the theme colours by name.']
 ]);
 
+/**
+ * The widget set `rise.lib` gives a scene that listens (docs/plans/LIVE-CURRENT.md §20), one line each, by name. Taught
+ * in Live's instructions only (openai-instructions.js SCENE_INPUT_GUIDE): no host's model is told of it while the
+ * connector submission is under review, so BEATS_GUIDE and every style's guidance stay as they were.
+ */
+export const WIDGET_GUIDE = Object.freeze([
+    ['slider', 'slider({ id, x, y, w, min, max, value, step, label }): a horizontal slider at CSS pixels; .value is its number, to its step.'],
+    ['point', 'point({ id, x, y, draggable: true, label, frame }): a point the reader drags, in the frame’s units (a frame from axes), or CSS pixels without one; .value is [x, y].'],
+    ['step', 'step({ id, steps, index, label, x, y }): a step-through with back and on either side of its label; steps is a count or a list of short labels; .value is the index.'],
+    ['focusable', 'focusable(a, b, ...): the order the number keys 1 to 9 choose widgets in; the arrows move the one chosen, or the one last touched.']
+]);
+
+/** A scene that listens, as a model writes it: admitted, and kept by the reducer (held by openai-instructions.test.js). */
+export const INTERACTIVE_EXAMPLE = [
+    'export default function scene(rise) {',
+    "  rise.listen('pointer', 'keys');",
+    '  const { lib } = rise;',
+    '  const plane = lib.axes({ x: [-2, 2], y: [-2, 2] });',
+    "  const slope = lib.slider({ id: 'slope', x: 24, y: 40, w: 180, min: -2, max: 2, value: 1, step: 0.1, label: 'Slope' });",
+    '  return {',
+    '    frame() {',
+    '      lib.clear();',
+    '      plane.draw();',
+    '      lib.plot(plane, x => slope.value * x);',
+    '      slope.draw();',
+    '    }',
+    '  };',
+    '}'
+].join('\n');
+
 const SCENE_GUIDE = [
     `Code scenes. A scene may instead be { "id": "...", "code": "..." }: a picture you write, drawn by RISE in a worker of its own behind the words. "code" is the text of one ES module of at most ${BEAT_LIMITS.code.toLocaleString('en-US')} bytes whose one default export function receives rise and returns { frame(t, dt), cue(name, { instant }) }:`,
     '',

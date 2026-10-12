@@ -55,12 +55,12 @@ function makeChamber(extra = {}) {
 /** Let the lazily imported worker factory resolve and the scene start. */
 const settle = async () => { for (let i = 0; i < 10; i += 1) await new Promise(resolve => setTimeout(resolve, 0)); };
 
-async function mounted(extra) {
+async function mounted(extra, ready = {}) {
   const { chamber, container } = makeChamber(extra);
   chamber._visualFieldDirector.applyCue(SCENE, { transitionMs: 0 });
   await settle();
   const [worker] = workers;
-  worker.say({ type: TO_HOST.ready, reportsCompletion: true });
+  worker.say({ type: TO_HOST.ready, reportsCompletion: true, ...ready });
   return { chamber, container, worker, record: chamber._visualFieldDirector.active };
 }
 
@@ -169,5 +169,37 @@ describe('a generated scene in the Chamber', () => {
     expect(chamber.sceneDiagnostics.map(item => item.phase)).toEqual(['flash']);
     expect(worker.terminated).toBe(false);
     chamber.destroy();
+  });
+});
+
+describe('a generated scene that listens (docs/plans/LIVE-CURRENT.md §20)', () => {
+  const press = (node, clientX, clientY) => node.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX, clientY, buttons: 1 }));
+
+  it('a scene that does not say it listens is given nothing, and its canvas stays hidden and inert', async () => {
+    const { chamber, record, worker } = await mounted();
+    press(record.node, 10, 10);
+    expect(worker.of(TO_WORKER.input)).toEqual([]);
+    expect(record.node.getAttribute('aria-hidden')).toBe('true');
+    expect(record.node.dataset.listens).toBeUndefined();
+    chamber.destroy();
+  });
+
+  it('passes the reader’s press in, and tells the page what they set, with the scene, the control, the value and its label', async () => {
+    const told = [];
+    const hear = event => told.push(event.detail);
+    window.addEventListener('rise-scene-input', hear);
+    const { chamber, record, worker } = await mounted(undefined, { listens: ['pointer', 'keys'] });
+    expect(record.node.dataset.listens).toBe('pointer keys');
+    press(record.node, 10, 10);
+    expect(worker.of(TO_WORKER.input)).toHaveLength(1);
+    worker.say({ type: TO_HOST.widgets, widgets: [{ id: 'mass', kind: 'slider', label: 'Mass', value: 0.5, rect: [0, 0, 100, 32] }] });
+    worker.say({ type: TO_HOST.emit, changes: [['mass', 0.7]], refused: [['shape', 'value']] });
+    expect(told).toEqual([
+      { sceneId: 'vector', control: 'shape', refused: 'value' },
+      { sceneId: 'vector', control: 'mass', value: 0.7, label: 'Mass' }
+    ]);
+    window.removeEventListener('rise-scene-input', hear);
+    chamber.destroy();
+    expect(document.querySelector('.chamber-scene-controls')).toBeNull();
   });
 });

@@ -384,6 +384,7 @@ export default function scene(rise) {
 - `frame(t, dt)` draws the whole picture each time it is called.
 - `cue(name, { instant })` is optional. It may return a promise; a rejected promise counts as a failure.
 - `export const reportsCompletion = true` (a boolean literal, nothing else) declares that the scene calls `rise.done()`. Without it, `done` is ignored and a scene cannot end a hold by accident (§3.3).
+- `input(event)` is optional, and called only in a scene that listens (§7.11). `export const listens = ['pointer', 'keys']` (either or both) declares that it listens, as `rise.listen` does.
 
 ### 7.2 The `rise` object
 
@@ -398,6 +399,8 @@ export default function scene(rise) {
 | `fonts` | An empty list in this version. Labels draw in the system's faces. |
 | `lib` | The drawing library (§7.3), with the style's defaults. |
 | `done()` | Says the current hold may end (§3.3). |
+| `listen(...kinds)` | Says the scene listens to the reader's `'pointer'`, `'keys'`, or both (also as one array). Before the first frame only; anything else throws (§7.11). |
+| `emit(control, value)` | Says what the reader set, while the scene handles their input (§7.11). Never throws; what is not taken is refused with a reason. |
 
 ### 7.3 `rise.lib`
 
@@ -410,7 +413,7 @@ Coordinates: `axes` returns a *frame*, the mapping from scene units to device pi
 | `grid` | `grid(frame, { step, color, alpha }?)` | Grid lines at every `step`. |
 | `plot` | `plot(frame, fn or points, { color, width, samples, to }?)` | A curve of `x => y` or `[[x, y], …]`; tween `to` (0 to 1) to draw it. |
 | `vector` | `vector({ x, y, from, color, label, t, angle, width })` | An arrow; returns its state with `draw(frame)`. Tween `t` (how much is drawn) and `angle` (radians). |
-| `point` | `point(frame, [x, y], { color, radius, label }?)` | A dot. |
+| `point` | `point(frame, [x, y], { color, radius, label }?)`, or `point({ id, x, y, draggable: true, label, frame? })` | A dot; or, given one object with an `id`, a point the reader drags (§7.11). |
 | `line` | `line(frame, [x0, y0], [x1, y1], { color, width, dash }?)` | A segment. |
 | `arc` | `arc(frame, [cx, cy], radius, from, to, { color, width }?)` | An arc; angles in radians. |
 | `polygon` | `polygon(frame, [[x, y], …], { color, alpha, outline }?)` | A filled shape. |
@@ -421,6 +424,9 @@ Coordinates: `axes` returns a *frame*, the mapping from scene units to device pi
 | `color` | `color(name, alpha?)` | A theme colour by name, with an alpha. |
 | `palette` | `palette` | The theme colours by name. |
 | `moving` | `moving` | How many tweens are still running. |
+| `slider` | `slider({ id, x, y, w, min, max, value, step?, label })` | A horizontal slider the reader moves, at CSS pixels; `.value` is its number, to its step (§7.11). |
+| `step` | `step({ id, steps, index, label, x?, y? })` | A step-through: back and on targets either side of its label; `steps` a count or a list of labels; `.value` the index (§7.11). |
+| `focusable` | `focusable(...widgets)` | The order the number keys choose widgets in; the default is the order they were made (§7.11). |
 
 ### 7.4 The clock
 
@@ -474,8 +480,16 @@ Scene "vector" was refused: line 2, column 16: `fetch` is not available to a sce
 | `SCENE_LIMITS.earliestDoneMs` | 200 | The soonest into a hold that `done` may end it. |
 | `SCENE_LIMITS.lumaEveryMs` | 100 | How often, in scene time, the worker samples brightness for the flash gate. |
 | `SCENE_LIMITS.maxDpr` | 2 | The device pixel ratio a scene draws at, at most. |
+| `SCENE_LIMITS.inputPointerPerSecond` | 120 | Pointer inputs a listening scene is given a second; moves beyond it are coalesced, the latest kept (§7.11). |
+| `SCENE_LIMITS.inputKeysPerSecond` | 30 | Key inputs a listening scene is given a second; keys beyond it are dropped. |
+| `SCENE_LIMITS.emitPerSecond` | 10 | What the reader set, taken from one control a second; the trailing value is kept. |
+| `SCENE_LIMITS.emitControls` | 64 | Distinct controls, and widgets, one scene may have. |
+| `SCENE_LIMITS.emitAfterInputMs` | 1,000 | An emit is taken only this soon after an input the card delivered. |
+| `SCENE_LIMITS.controlLength` | 40 | A control's id, at most, of `[a-z0-9-]`. |
+| `SCENE_LIMITS.valueLength` | 80 | A string value, at most. |
+| `SCENE_LIMITS.labelLength` | 40 | A widget's label as the card mirrors it, at most. |
 
-An exception in loading, `init`, a frame or a cue is also a failure. On failure the card terminates the worker and shows the reading's fallback visual (the look's field, or a still) for that scene's beats, and it does not run that scene again in that reading. Any open hold runs on its `ms`. The failure is reported (§8.4).
+An exception in loading, `init`, a frame, a cue or an input is also a failure. On failure the card terminates the worker and shows the reading's fallback visual (the look's field, or a still) for that scene's beats, and it does not run that scene again in that reading. Any open hold runs on its `ms`. The failure is reported (§8.4).
 
 **Photosensitivity.** The worker samples its own picture every `SCENE_LIMITS.lumaEveryMs` (an 8×8 average brightness) and reports it to the card. The card feeds the samples to the same flash gate every RISE visual answers to (`VisualFlashGate`). A scene that would flash is frozen on its last frame, its holds run on `ms`, and the freeze is reported. A scene cannot opt out.
 
@@ -493,13 +507,30 @@ Messages are plain objects with a `type`. A receiver drops any message whose typ
 | `TO_WORKER.frame` | `scene/frame` | `t`, `dt` (milliseconds) |
 | `TO_WORKER.cue` | `scene/cue` | `name`, `instant` |
 | `TO_WORKER.resize` | `scene/resize` | `width`, `height`, `dpr` |
+| `TO_WORKER.input` | `scene/input` | `kind`, `x`, `y`, `buttons`, `key`, `modifiers` (§7.11); sent only to a scene that listens to its kind |
 | `TO_WORKER.dispose` | `scene/dispose` | none |
-| `TO_HOST.ready` | `scene/ready` | `reportsCompletion` |
+| `TO_HOST.ready` | `scene/ready` | `reportsCompletion`, and `listens` (`'pointer'`, `'keys'`) only for a scene that listens |
 | `TO_HOST.frameDone` | `scene/frame-done` | `t`, `ms` (how long the frame took) |
 | `TO_HOST.cued` | `scene/cued` | `name` |
 | `TO_HOST.done` | `scene/done` | none |
 | `TO_HOST.luma` | `scene/luma` | `value` (0 to 1), `t` |
-| `TO_HOST.error` | `scene/error` | `message`, `where` (`scene.js:line:column` or `null`), `phase` (`load`, `init`, `frame` or `cue`) |
+| `TO_HOST.emit` | `scene/emit` | `changes` (`[control, value]`, at most `SCENE_LIMITS.emitControls`), `refused` (`[control or null, reason]`, at most 8) |
+| `TO_HOST.widgets` | `scene/widgets` | `widgets` (`{ id, kind, label, value, rect }` each, `rect` `[x, y, w, h]` in CSS pixels), only from a scene that listens |
+| `TO_HOST.error` | `scene/error` | `message`, `where` (`scene.js:line:column` or `null`), `phase` (`load`, `init`, `frame`, `cue` or `input`) |
+
+### 7.11 Interactive scenes
+
+A scene may give the reader something to move, and say what they set ([plan](../plans/LIVE-CURRENT.md) §20). Events go into the sandbox and out of it; the sandbox is not opened.
+
+**Listening.** A scene declares it once, before its first frame: `export const listens = ['pointer', 'keys']`, or `rise.listen('pointer', 'keys')` in its default export. A scene that does not is given no input at all: no `scene/input` is posted to its worker, its canvas lets every press through and stays hidden from assistive technology, and its messages are as before. A scene that listens to keys gets them only while its canvas has the focus, which only the reader gives it (a press, or Tab), with a visible ring.
+
+**What comes in.** `{ type, x, y, buttons, key, modifiers }`, frozen, made by the card from the DOM event's numbers and never the event: `type` one of `pointerdown`, `pointermove`, `pointerup`, `pointercancel`, `keydown`, `keyup`; `x`, `y` in the canvas's CSS pixels, clamped to it (`null` for a key); `buttons` 0 to 31; `key` an arrow or one printable character (`null` for a pointer); `modifiers` `{ shift, alt, ctrl, meta }`. Never the instrument's keys: Space, `r`, `R`, `f`, `F`, `-`, `_`, `=`, `+`, `[`, `]` and Escape stay the reading's (Escape returns the focus to the reading's controls), and a key with Ctrl, Alt or Meta is the browser's. Pointer moves beyond `SCENE_LIMITS.inputPointerPerSecond` are coalesced, the latest kept; presses and releases are never dropped. Keys beyond `SCENE_LIMITS.inputKeysPerSecond` are dropped. While the reading is paused, an input draws one frame at the same scene time (`dt` 0), sampled for the flash gate like any other.
+
+**What goes out.** `rise.emit(control, value)`: `control` matches `[a-z0-9-]{1,40}`; `value` is a finite number, a boolean, or a string of at most `SCENE_LIMITS.valueLength` characters. It is taken only while the scene handles the reader's input (its widgets, or its own `input`), so a scene cannot say the reader did what they did not. The latest value per control is sent after each input, at most `SCENE_LIMITS.emitControls` controls a scene. The card reads it again: within `SCENE_LIMITS.emitAfterInputMs` of an input it delivered, at most `SCENE_LIMITS.emitPerSecond` a second per control with the trailing value kept. Anything else is dropped and noted once per control and reason (`control`, `value`, `controls`, `unprompted`), at most 16 a scene. Nothing is sent on a timer. In RISE Live, what the reader set reaches the model with their next words, as "set w1 in the scene network to 0.7"; in a host's card it is kept and goes nowhere.
+
+**The widgets.** `slider`, `point({ id, … })` and `step` (§7.3) draw themselves with `draw()` in `frame()`, take the presses, drags and arrow keys the worker hands them, keep their value (`.value`), and emit it on change: a slider its number, a point `"x, y"`, a step what the reader sees (its label, or `"2 / 5"`). A value the scene sets is not the reader's and emits nothing. A press takes the widget under it (the last made wins) until release. A focused scene's arrows adjust the widget last pointed at, or the first in `focusable` order: a slider or a step by one step, a point by a fiftieth of its frame; the number keys 1 to 9 choose another, which is ringed. An id outside `[a-z0-9-]{1,40}`, a repeated id, more than `SCENE_LIMITS.emitControls` widgets, or a slider whose `min` is not below its `max`, throws at creation. The card mirrors the widgets in a hidden list (`aria-live="off"`), says each move in the reading's live region, and holds touch only over each widget's region, so a swipe elsewhere still scrolls the page.
+
+**Where it is taught.** RISE Live's instructions teach it. The guide a host's model reads (`rise_guide`, the tool's description) does not yet; a scene that listens runs in the card all the same.
 
 ## 8. The host protocol (MCP)
 
@@ -568,7 +599,8 @@ An embedder imports the contract's values from `src/core/rise-sdk.js`, which hol
 - **ChatGPT is unmeasured.** Whether ChatGPT's sandbox allows `blob:` workers and `ui/update-model-context` has not been measured (CC-001, pending). Until it is, generated scenes are promised for Claude only, and native scenes everywhere.
 - **Figures in a host are unmeasured.** A figure is an image of a `blob:` URL. Whether a host's sandbox lets the card show a `blob:` image has not been measured in Claude or ChatGPT; where it does not, the figure fails as an image and the reading's own field shows instead.
 - **The internal score is not the contract.** How a Current lowers to RISE's Experience Program and Session (`compileRiseCurrent`) may change without a version bump.
-- **Not in this version:** reader interaction inside scenes, an imagery lookup a model can call, fonts inside the scene worker, WebGPU, instant cue replay on seek, and Dive or realtime Live.
+- **Interactive scenes are taught in RISE Live only** (§7.11). No host's model is told of them yet, so in a host's card they appear only if a model writes one unprompted.
+- **Not in this version:** an imagery lookup a model can call, fonts inside the scene worker, WebGPU, instant cue replay on seek, and Dive or realtime Live.
 
 ## 11. How this document is kept true
 

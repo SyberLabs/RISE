@@ -398,3 +398,153 @@ describe('where an error happened', () => {
     expect(whereIn({}, url)).toBeNull();
   });
 });
+
+describe('a scene that listens (docs/plans/LIVE-CURRENT.md §20)', () => {
+  const NONE = Object.freeze({ shift: false, alt: false, ctrl: false, meta: false });
+  const pointer = (kind, x, y, buttons = 1) => ({ type: TO_WORKER.input, kind, x, y, buttons, key: null, modifiers: NONE });
+  const keyed = (kind, key) => ({ type: TO_WORKER.input, kind, x: null, y: null, buttons: 0, key, modifiers: NONE });
+
+  it('a scene that does not declare is given nothing, and says what it always said', async () => {
+    const seen = [];
+    const { init, worker, of } = setup({ default: () => ({ frame() {}, input: event => seen.push(event) }) });
+    await init();
+    await worker.handle(pointer('pointerdown', 10, 10));
+    await worker.handle(keyed('keydown', 'ArrowLeft'));
+    expect(seen).toEqual([]);
+    expect(of(TO_HOST.ready)).toEqual([{ type: TO_HOST.ready, reportsCompletion: false }]);
+    expect(of(TO_HOST.emit)).toEqual([]);
+    expect(of(TO_HOST.widgets)).toEqual([]);
+  });
+
+  it('declared by export, is given only what it listens to, as a frozen plain event', async () => {
+    const seen = [];
+    const { init, worker, of } = setup({ listens: ['pointer'], default: () => ({ frame() {}, input: event => seen.push(event) }) });
+    await init();
+    expect(of(TO_HOST.ready)).toEqual([{ type: TO_HOST.ready, reportsCompletion: false, listens: ['pointer'] }]);
+    await worker.handle(pointer('pointerdown', 12, 34));
+    await worker.handle(keyed('keydown', 'ArrowLeft'));
+    expect(seen).toEqual([{ type: 'pointerdown', x: 12, y: 34, buttons: 1, key: null, modifiers: NONE }]);
+    expect(Object.isFrozen(seen[0])).toBe(true);
+    expect(Object.isFrozen(seen[0].modifiers)).toBe(true);
+  });
+
+  it('declared by rise.listen in its default export; rise.listen later, or of anything else, is an error', async () => {
+    const both = setup({ default: rise => { rise.listen('pointer', 'keys'); return { frame() {} }; } });
+    await both.init();
+    expect(both.of(TO_HOST.ready)[0].listens).toEqual(['pointer', 'keys']);
+    const listed = setup({ default: rise => { rise.listen(['keys']); return { frame() {} }; } });
+    await listed.init();
+    expect(listed.of(TO_HOST.ready)[0].listens).toEqual(['keys']);
+    const late = setup({ default: rise => ({ frame() { rise.listen('pointer'); } }) });
+    await late.init();
+    expect(late.of(TO_HOST.error)[0]).toMatchObject({ phase: 'frame', message: expect.stringMatching(/before the first frame/u) });
+    const odd = setup({ default: rise => { rise.listen('mouse'); return { frame() {} }; } });
+    await odd.init();
+    expect(odd.of(TO_HOST.error)[0]).toMatchObject({ phase: 'init', message: expect.stringMatching(/"pointer" or "keys"/u) });
+  });
+
+  it('ignores an export that is not a list of what it may listen to', async () => {
+    const { init, of } = setup({ listens: 'pointer', default: () => ({ frame() {} }) });
+    await init();
+    expect(of(TO_HOST.ready)).toEqual([{ type: TO_HOST.ready, reportsCompletion: false }]);
+  });
+
+  it('drops an input it cannot read: an unknown kind, a pointer without coordinates, a key that is not a scene’s', async () => {
+    const seen = [];
+    const { init, worker } = setup({ listens: ['pointer', 'keys'], default: () => ({ frame() {}, input: event => seen.push(event.type) }) });
+    await init();
+    for (const message of [
+      pointer('click', 1, 1), pointer('pointerdown', Number.NaN, 1), { ...pointer('pointerdown', 1, 1), modifiers: null },
+      keyed('keydown', ' '), keyed('keydown', 'Escape'), keyed('keydown', 'Tab'), keyed('keydown', 'ab'), keyed('keydown', 7)
+    ]) await worker.handle(message);
+    await worker.handle(keyed('keydown', 'a'));
+    expect(seen).toEqual(['keydown']);
+  });
+
+  it('takes what the reader set only while it handles their input, the latest per control, and says what it refused', async () => {
+    let rise = null;
+    const { init, worker, of } = setup({
+      listens: ['pointer'],
+      default: given => {
+        rise = given;
+        return {
+          frame() { rise.emit('mass', 1); },
+          input() {
+            for (let i = 0; i < 1000; i += 1) rise.emit('mass', i / 1000);
+            rise.emit('shape', { not: 'a value' });
+            rise.emit('note', 'x'.repeat(500));
+            rise.emit('Bad Id', 1);
+            rise.emit('on', true);
+          }
+        };
+      }
+    });
+    await init();
+    expect(of(TO_HOST.emit)).toEqual([{ type: TO_HOST.emit, changes: [], refused: [['mass', 'unprompted']] }]);
+    await worker.handle(pointer('pointerdown', 5, 5));
+    expect(of(TO_HOST.emit).at(-1)).toEqual({
+      type: TO_HOST.emit,
+      changes: [['mass', 0.999], ['on', true]],
+      refused: [['shape', 'value'], ['note', 'value'], [null, 'control']]
+    });
+    await worker.handle({ type: TO_WORKER.frame, t: 16, dt: 16 });
+    expect(of(TO_HOST.emit).at(-1)).toEqual({ type: TO_HOST.emit, changes: [], refused: [['mass', 'unprompted']] });
+  });
+
+  it('reports at most emitControls controls, and refuses the rest by name', async () => {
+    let rise = null;
+    const { init, worker, of } = setup({
+      listens: ['keys'],
+      default: given => { rise = given; return { frame() {}, input() { for (let i = 0; i < 70; i += 1) rise.emit(`c${i}`, i); } }; }
+    });
+    await init();
+    await worker.handle(keyed('keydown', 'a'));
+    const [message] = of(TO_HOST.emit);
+    expect(message.changes).toHaveLength(SCENE_LIMITS.emitControls);
+    expect(message.refused).toContainEqual(['c64', 'controls']);
+    expect(message.refused.length).toBeLessThanOrEqual(8);
+  });
+
+  it('hands the reader’s input to its widgets, which emit, and mirrors the widgets when they change', async () => {
+    let slider = null;
+    const { init, worker, of } = setup({
+      listens: ['pointer', 'keys'],
+      default: rise => {
+        slider = rise.lib.slider({ id: 'mass', x: 100, y: 50, w: 200, min: 0, max: 1, value: 0.5, step: 0.1, label: 'Mass' });
+        return { frame() { slider.draw(); } };
+      }
+    });
+    await init();
+    expect(of(TO_HOST.widgets)).toEqual([{ type: TO_HOST.widgets, widgets: [{ id: 'mass', kind: 'slider', label: 'Mass', value: 0.5, rect: [90, 34, 220, 32] }] }]);
+    await worker.handle(pointer('pointerdown', 240, 50));
+    expect(of(TO_HOST.emit)).toEqual([{ type: TO_HOST.emit, changes: [['mass', 0.7]], refused: [] }]);
+    expect(of(TO_HOST.widgets).at(-1).widgets[0].value).toBe(0.7);
+    await worker.handle({ type: TO_WORKER.frame, t: 16, dt: 16 });
+    await worker.handle(keyed('keydown', 'ArrowRight'));
+    expect(slider.value).toBe(0.8);
+    expect(of(TO_HOST.widgets)).toHaveLength(3);
+    expect(of(TO_HOST.emit).at(-1).changes).toEqual([['mass', 0.8]]);
+  });
+
+  it('reports an input handler that throws, at input, and draws no more', async () => {
+    const { init, worker, of } = setup({ listens: ['pointer'], default: () => ({ frame() {}, input() { throw new Error('no'); } }) });
+    await init();
+    await worker.handle(pointer('pointerdown', 1, 1));
+    expect(of(TO_HOST.error)[0]).toMatchObject({ phase: 'input', message: 'Error: no' });
+    await worker.handle({ type: TO_WORKER.frame, t: 16, dt: 16 });
+    expect(of(TO_HOST.frameDone)).toEqual([]);
+  });
+
+  it('samples its picture on a frame drawn for an input while the reading is paused (no step), so a drag cannot flash unseen', async () => {
+    const listening = setup({ listens: ['pointer'], default: () => ({ frame() {} }) });
+    await listening.init();
+    await listening.worker.handle({ type: TO_WORKER.frame, t: 500, dt: 16 });
+    await listening.worker.handle({ type: TO_WORKER.frame, t: 500, dt: 0 });
+    expect(listening.of(TO_HOST.luma)).toHaveLength(2);
+    const plain = setup({ default: () => ({ frame() {} }) });
+    await plain.init();
+    await plain.worker.handle({ type: TO_WORKER.frame, t: 500, dt: 16 });
+    await plain.worker.handle({ type: TO_WORKER.frame, t: 500, dt: 0 });
+    expect(plain.of(TO_HOST.luma)).toHaveLength(1);
+  });
+});

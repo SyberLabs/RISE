@@ -15,8 +15,8 @@
  */
 
 /**
- * The events of §4, and the only names that may go up. `scene.input` is defined for interactive scenes (§6); nothing
- * sends it yet. `drew` is a picture RISE put in the room (docs/plans/LIVE-CURRENT.md §19), only ever RISE's.
+ * The events of §4, and the only names that may go up. `scene.input` is what the reader set in a listening scene
+ * (docs/plans/LIVE-CURRENT.md §20). `drew` is a picture RISE put in the room (§19), only ever RISE's.
  */
 export const PERCEPTION_EVENTS = Object.freeze(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished', 'drew']);
 
@@ -323,7 +323,8 @@ function sentence(event) {
             : `set the pace to ${Number(event.rate.toFixed(2))} times the voice’s own`;
         case 'visual.changed': return event.by === 'rise' ? riseChanged(event) : SETTING_SAID[event.parameter](event.value);
         case 'said': return `said: “${event.words}”`;
-        case 'scene.input': return `set ${event.control} in the scene ${event.scene} to ${event.value}`;
+        // A string is the scene's word for what the reader set, so it is quoted (it holds no quotation mark to close).
+        case 'scene.input': return `set ${event.control} in the scene ${event.scene} to ${typeof event.value === 'string' ? `“${event.value}”` : event.value}`;
         case 'finished': return 'reached the end of the reading';
         case 'drew': return `RISE drew ${{ figure: 'a figure', scene: 'a moving scene', cue: 'from its own imagery' }[event.medium]}: “${event.brief}”`;
         default: return '';

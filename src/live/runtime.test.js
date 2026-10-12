@@ -667,6 +667,38 @@ describe('what the reader did, as the journal keeps it for perception (the RISE 
         expect(settings[2].value.length).toBeLessThanOrEqual(40);
     });
 
+    it('notes what the reader set in a scene, each control’s latest move only, where it was made, and nothing malformed', async () => {
+        build();
+        await runtime.start(ASK);
+        runtime.noteSceneInput({ scene: 'network', control: 'w1', value: 0.2 });
+        runtime.noteSceneInput({ scene: 'network', control: 'w1', value: 0.5 });
+        runtime.noteSceneInput({ scene: 'network', control: 'input', value: '0.3, 0.7' });
+        runtime.noteSceneInput({ scene: 'network', control: 'w1', value: 0.7 });
+        runtime.noteSceneInput({ scene: 'network', control: 'Bad Id', value: 1 });
+        runtime.noteSceneInput({ scene: 'network', control: 'w2', value: { a: 1 } });
+        runtime.noteSceneInput({ scene: 'network', control: 'w2', value: 'x'.repeat(81) });
+        runtime.noteSceneInput({ scene: '', control: 'w2', value: 1 });
+        expect(runtime.journal().filter(e => e.type === 'scene.input').map(({ scene, control, value }) => [scene, control, value])).toEqual([
+            ['network', 'input', '0.3, 0.7'], ['network', 'w1', 0.7]
+        ]);
+        for (let round = 0; round < 20; round += 1) {
+            for (let c = 0; c < 64; c += 1) runtime.noteSceneInput({ scene: 'busy', control: `c${c}`, value: round });
+        }
+        expect(runtime.journal().filter(e => e.type === 'scene.input' && e.scene === 'busy')).toHaveLength(64);
+        expect(runtime.journal().some(e => e.type === 'start')).toBe(true);
+    });
+
+    it('notes an emit the scene’s runtime refused, by its reason, and nothing it cannot name', async () => {
+        build();
+        await runtime.start(ASK);
+        runtime.noteSceneInputRefused({ scene: 'network', control: 'shape', reason: 'value' });
+        runtime.noteSceneInputRefused({ scene: 'network', control: null, reason: 'control' });
+        runtime.noteSceneInputRefused({ scene: 'network', control: 'x', reason: 'because' });
+        expect(runtime.journal().filter(e => e.type === 'scene.input.refused').map(({ scene, control, reason }) => [scene, control, reason])).toEqual([
+            ['network', 'shape', 'value'], ['network', null, 'control']
+        ]);
+    });
+
     it('notes what the reader said to the microphone, clipped, and nothing when nothing was said', async () => {
         build();
         await runtime.start(ASK);

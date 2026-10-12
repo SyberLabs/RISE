@@ -15,11 +15,21 @@
  * runs on its ms. A scene the flash gate stops is frozen instead: its last
  * frame stays and its holds run on their ms.
  */
-import { SCENE_LIMITS, SCENE_PROTOCOL_VERSION, TO_HOST, TO_WORKER, knownMessage } from './scene-protocol.js';
+import {
+  CONTROL_PATTERN, EMIT_REFUSALS, SCENE_INPUTS, SCENE_LIMITS, SCENE_LISTENS, SCENE_PROTOCOL_VERSION, SCENE_WIDGETS, TO_HOST, TO_WORKER,
+  emitValue, knownMessage, sceneKey
+} from './scene-protocol.js';
 
 const MESSAGE_LIMIT = 300;
-const PHASES = ['load', 'init', 'frame', 'cue'];
+const PHASES = ['load', 'init', 'frame', 'cue', 'input'];
 const MAX_STEP_MS = 100;
+/** Inputs waiting behind the pointer's rate, at most; a press or a release is never the one let go. */
+const POINTER_QUEUE = 16;
+/** Refusal notes one scene may cause, at most: each control and reason once. */
+const REFUSAL_NOTES = 16;
+
+const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
+const oneLine = text => text.replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, ' ').replace(/\s+/gu, ' ').trim();
 
 /** What a running generated scene takes through the visual-control path: a cue, by name. */
 export const SCENE_VISUAL_MANIFEST = Object.freeze({
@@ -42,9 +52,14 @@ const wallClock = Object.freeze({
  * @param {object} [options.library] the reading's style's library defaults (src/core/styles.js)
  * @param {(diagnostic: {sceneId: string, phase: string, message: string, where: string|null}) => void} [options.onFailure]
  * @param {(value: number, t: number) => void} [options.onLuma] a brightness sample 0..1 at scene time t
+ * @param {(kinds: {pointer: boolean, keys: boolean}) => void} [options.onListen] the ready scene listens (docs/plans/LIVE-CURRENT.md §20)
+ * @param {(told: {control: string, value: number|boolean|string, label: string|null}) => void} [options.onInput] what the reader set
+ * @param {(told: {control: string|null, reason: string}) => void} [options.onInputRefused] an emit dropped, once per control and reason
+ * @param {(widgets: object[]) => void} [options.onWidgets] the scene's widgets, read field by field, for the mirror and the touch regions
  */
 export function createSceneRuntime({
   createWorker, canvas, clock = wallClock, theme = {}, reducedMotion = false, library = {}, onFailure = () => {}, onLuma = () => {},
+  onListen = () => {}, onInput = () => {}, onInputRefused = () => {}, onWidgets = () => {},
   requestFrame = callback => requestAnimationFrame(callback), cancelFrame = id => cancelAnimationFrame(id)
 }) {
   let worker = null;
@@ -64,9 +79,138 @@ export function createSceneRuntime({
   let slow = [];
   const queued = [];
   const holds = new Set();
+  // What the ready scene listens to (null: nothing, and it is given nothing), and the reader's input on its way in.
+  let listening = null;
+  let lastInputAt = -Infinity;
+  const pointerQueue = [];
+  let pointerAt = -Infinity;
+  let stopPointer = null;
+  let keyAt = -Infinity;
+  // What the reader set, on its way out: each control's rate, the controls seen, the refusals noted, the widgets' labels.
+  const gates = new Map();
+  const controls = new Set();
+  const noted = new Set();
+  let labels = new Map();
 
   const post = message => { try { worker?.postMessage(message); } catch { /* a worker that is gone answers nothing, which the silence watch sees */ } };
   const live = () => worker !== null && !failed && !frozen && !disposed;
+
+  /** A frame to the worker, and the watch for its answer. */
+  function sendFrame(dt) {
+    pending = true;
+    post({ type: TO_WORKER.frame, t, dt });
+    stopSilence = clock.setTimer(() => fail('frame', 'The scene stopped answering'), SCENE_LIMITS.silenceMs);
+  }
+
+  /** One input to the worker. While paused, the scene draws it at once, at the same scene time. */
+  function deliver(message) {
+    post(message);
+    lastInputAt = clock.now();
+    if (!playing && !pending && live()) sendFrame(0);
+  }
+
+  function pumpPointer() {
+    if (stopPointer || pointerQueue.length === 0) return;
+    const wait = pointerAt + 1000 / SCENE_LIMITS.inputPointerPerSecond - clock.now();
+    if (wait > 0) {
+      stopPointer = clock.setTimer(() => { stopPointer = null; pumpPointer(); }, wait);
+      return;
+    }
+    pointerAt = clock.now();
+    deliver(pointerQueue.shift());
+    pumpPointer();
+  }
+
+  function queuePointer(message) {
+    if (message.kind === 'pointermove' && pointerQueue.at(-1)?.kind === 'pointermove') pointerQueue[pointerQueue.length - 1] = message;
+    else pointerQueue.push(message);
+    if (pointerQueue.length > POINTER_QUEUE) {
+      const move = pointerQueue.findIndex(item => item.kind === 'pointermove');
+      pointerQueue.splice(move < 0 ? 0 : move, 1);
+    }
+    pumpPointer();
+  }
+
+  /** An emit dropped: told once per control and reason, at most REFUSAL_NOTES a scene. */
+  function refuse(control, reason) {
+    const key = `${control}|${reason}`;
+    if (noted.has(key) || noted.size >= REFUSAL_NOTES) return;
+    noted.add(key);
+    onInputRefused({ control, reason });
+  }
+
+  const tell = (control, value) => onInput({ control, value, label: labels.get(control) ?? null });
+
+  /** At most emitPerSecond a control; inside the gap the latest value waits, and is told when the gap ends. */
+  function gate(control, value) {
+    const held = gates.get(control) ?? { at: -Infinity, value: undefined, stop: null };
+    gates.set(control, held);
+    const now = clock.now();
+    const every = 1000 / SCENE_LIMITS.emitPerSecond;
+    if (!held.stop && now - held.at >= every) {
+      held.at = now;
+      tell(control, value);
+      return;
+    }
+    held.value = value;
+    held.stop ??= clock.setTimer(() => { held.stop = null; held.at = clock.now(); tell(control, held.value); }, Math.max(0, held.at + every - now));
+  }
+
+  /** The values still waiting are the reader's: told now, as the scene goes. */
+  function settleEmits() {
+    for (const [control, held] of gates) {
+      if (!held.stop) continue;
+      held.stop();
+      held.stop = null;
+      tell(control, held.value);
+    }
+    stopPointer?.();
+    stopPointer = null;
+  }
+
+  /** What the worker says the reader set, read again as untrusted. */
+  function emitted({ changes, refused }) {
+    if (Array.isArray(refused)) {
+      for (const item of refused.slice(0, REFUSAL_NOTES)) {
+        if (!Array.isArray(item) || !EMIT_REFUSALS.includes(item[1])) continue;
+        refuse(typeof item[0] === 'string' && CONTROL_PATTERN.test(item[0]) ? item[0] : null, item[1]);
+      }
+    }
+    if (!Array.isArray(changes)) return;
+    const prompted = clock.now() - lastInputAt <= SCENE_LIMITS.emitAfterInputMs;
+    for (const item of changes.slice(0, SCENE_LIMITS.emitControls)) {
+      if (!Array.isArray(item)) continue;
+      const [control, value] = item;
+      if (typeof control !== 'string' || !CONTROL_PATTERN.test(control)) { refuse(null, 'control'); continue; }
+      if (!emitValue(value)) { refuse(control, 'value'); continue; }
+      if (!prompted) { refuse(control, 'unprompted'); continue; }
+      if (!controls.has(control)) {
+        if (controls.size >= SCENE_LIMITS.emitControls) { refuse(control, 'controls'); continue; }
+        controls.add(control);
+      }
+      gate(control, value);
+    }
+  }
+
+  /** One widget as the worker described it, or null: its region clamped to the canvas, its label one short line. */
+  function readWidget(item) {
+    if (!item || typeof item !== 'object') return null;
+    const { id, kind, label, value, rect } = item;
+    if (typeof id !== 'string' || !CONTROL_PATTERN.test(id) || !SCENE_WIDGETS.includes(kind) || !emitValue(value)) return null;
+    if (!Array.isArray(rect) || rect.length !== 4 || !rect.every(Number.isFinite)) return null;
+    const [x, y, w, h] = rect;
+    const [x0, y0] = [clamp(x, 0, size.width), clamp(y, 0, size.height)];
+    const [x1, y1] = [clamp(x + w, 0, size.width), clamp(y + h, 0, size.height)];
+    const said = typeof label === 'string' ? oneLine(label).slice(0, SCENE_LIMITS.labelLength) : '';
+    return { id, kind, label: said || id, value, rect: [x0, y0, x1 - x0, y1 - y0] };
+  }
+
+  function mirrored(widgets) {
+    if (!Array.isArray(widgets)) return;
+    const list = widgets.slice(0, SCENE_LIMITS.emitControls).map(readWidget).filter(Boolean);
+    labels = new Map(list.map(widget => [widget.id, widget.label]));
+    onWidgets(list);
+  }
 
   function stopFrames() {
     if (frameId !== null) cancelFrame(frameId);
@@ -85,9 +229,7 @@ export function createSceneRuntime({
       const dt = lastStamp === null ? 0 : Math.min(MAX_STEP_MS, Math.max(0, stamp - lastStamp));
       lastStamp = stamp;
       t += dt;
-      pending = true;
-      post({ type: TO_WORKER.frame, t, dt });
-      stopSilence = clock.setTimer(() => fail('frame', 'The scene stopped answering'), SCENE_LIMITS.silenceMs);
+      sendFrame(dt);
     }
     loop();
   }
@@ -104,6 +246,7 @@ export function createSceneRuntime({
     stopSilence?.();
     try { worker?.terminate(); } catch { /* already gone */ }
     holdsOnMs();
+    settleEmits();
     onFailure({ sceneId, phase, message: String(message).slice(0, MESSAGE_LIMIT), where });
   }
 
@@ -129,8 +272,18 @@ export function createSceneRuntime({
         if (ready) return;
         ready = true;
         reportsCompletion = data.reportsCompletion === true;
+        if (Array.isArray(data.listens) && SCENE_LISTENS.some(kind => data.listens.includes(kind))) {
+          listening = new Set(SCENE_LISTENS.filter(kind => data.listens.includes(kind)));
+          onListen({ pointer: listening.has('pointer'), keys: listening.has('keys') });
+        }
         for (const message of queued.splice(0)) post(message);
         loop();
+        return;
+      case TO_HOST.emit:
+        emitted(data);
+        return;
+      case TO_HOST.widgets:
+        if (listening) mirrored(data.widgets);
         return;
       case TO_HOST.frameDone:
         answered(data);
@@ -179,6 +332,33 @@ export function createSceneRuntime({
 
     pause() { playing = false; stopFrames(); },
 
+    /**
+     * One of the reader's inputs (the scene layer's plain object, never the DOM event), to a ready scene that listens to
+     * its kind: rebuilt from its own numbers, the pointer clamped to the canvas, at the rates SCENE_LIMITS sets.
+     */
+    input(event) {
+      if (!listening || !ready || !live()) return;
+      const kind = event?.type;
+      const family = typeof kind === 'string' && Object.hasOwn(SCENE_INPUTS, kind) ? SCENE_INPUTS[kind] : null;
+      if (!family || !listening.has(family)) return;
+      const held = event.modifiers ?? {};
+      const modifiers = { shift: held.shift === true, alt: held.alt === true, ctrl: held.ctrl === true, meta: held.meta === true };
+      if (family === 'keys') {
+        const now = clock.now();
+        if (!sceneKey(event.key) || now - keyAt < 1000 / SCENE_LIMITS.inputKeysPerSecond) return;
+        keyAt = now;
+        deliver({ type: TO_WORKER.input, kind, x: null, y: null, buttons: 0, key: event.key, modifiers });
+        return;
+      }
+      if (!Number.isFinite(event.x) || !Number.isFinite(event.y)) return;
+      queuePointer({
+        type: TO_WORKER.input, kind,
+        x: clamp(event.x, 0, size.width), y: clamp(event.y, 0, size.height),
+        buttons: Number.isInteger(event.buttons) ? clamp(event.buttons, 0, 31) : 0,
+        key: null, modifiers
+      });
+    },
+
     cue(name, { instant = false } = {}) {
       if (failed || disposed) return;
       const message = { type: TO_WORKER.cue, name, instant: instant === true };
@@ -225,6 +405,7 @@ export function createSceneRuntime({
       try { worker?.terminate(); } catch { /* already gone */ }
       disposed = true;
       holdsOnMs();
+      settleEmits();
     }
   };
 }

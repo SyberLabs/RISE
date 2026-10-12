@@ -2780,6 +2780,11 @@ export class Chamber {
     this.container.ownerDocument.defaultView?.dispatchEvent(new CustomEvent('rise-scene-diagnostic', { detail: { ...diagnostic } }));
   }
 
+  /** What the reader set in a listening scene, or an emit its runtime refused, told to the page (LiveHost journals it). */
+  _noteSceneInput(detail) {
+    this.container.ownerDocument.defaultView?.dispatchEvent(new CustomEvent('rise-scene-input', { detail }));
+  }
+
   /**
    * Marks the field as holding a picture (a figure or a generated scene), before the picture is inserted and
    * measured: a host card on a phone keeps the words in a strip below it (LiveHost.css). The mark stays for
@@ -2845,7 +2850,16 @@ export class Chamber {
         if (!watch(value, t)) return;
         runtime.freeze();
         this._noteScene({ sceneId: cue.sceneId, phase: 'flash', message: 'Frozen: the scene would flash more than three times a second', where: null });
-      }
+      },
+      // A scene that listens (docs/plans/LIVE-CURRENT.md §20): the reader's input in through the layer, and what they
+      // set told to the page, as a diagnostic is, so a live host journals it without the Chamber knowing one exists.
+      onListen: kinds => {
+        layer.listen({ ...kinds, onInput: event => runtime.input(event) });
+        this.container.ownerDocument.defaultView?.dispatchEvent(new CustomEvent('rise-scene-listen', { detail: { sceneId: cue.sceneId, ...kinds } }));
+      },
+      onWidgets: list => layer.widgets(list),
+      onInput: ({ control, value, label }) => this._noteSceneInput({ sceneId: cue.sceneId, control, value, label }),
+      onInputRefused: ({ control, reason }) => this._noteSceneInput({ sceneId: cue.sceneId, control, refused: reason })
     });
     layer.resize();
     void runtime.start({ id: cue.sceneId, code: cue.code });
