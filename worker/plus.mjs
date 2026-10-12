@@ -1,6 +1,7 @@
 /**
  * Plus: the paid voice, gated by a Stripe receipt (MasterMind RFC 0001, section 2).
- * The Worker keeps no reader text and no audio. A reader who paid holds a signed,
+ * The Worker keeps no raw reader text. Account-private audio and numeric timing
+ * are saved for 30 days in the existing SQLite Durable Object namespace. A reader who paid holds a signed,
  * HttpOnly voice cookie naming their subscription; the allowance lives on the server, in
  * one Durable Object per subscription (PlusMeter below), and Stripe is asked again
  * before every voicing.
@@ -11,7 +12,8 @@
  *   POST /api/plus/restore { token }      consumes an emailed proof once
  *   POST /api/plus/claim   { session_id }   the Checkout success page; 204 and the cookie once Stripe confirms
  *   POST /api/plus/voice   { atoms }        voices one short reading on the lab's key (contract below)
- *   POST /api/plus/forget                   clears local voice and billing identity
+ *   POST /api/plus/audio/erase {}           deletes this verified account's saved audio and timing, fencing unfinished writes
+ *   POST /api/plus/forget                   clears voice and billing identity cookies
  *   GET  /api/plus/voices                   the voices a reader may choose: [{ slug, label }], never a vendor id; no cookie needed
  *   GET  /api/plus/config                   { paymentLink }: PLUS_PAYMENT_LINK when it is an https://buy.stripe.com/ link of the
  *                                           same Stripe mode as STRIPE_SECRET_KEY (a test_ link only with a test key), else null;
@@ -37,9 +39,11 @@
  *       "allowance": { "used": n, "limit": n, "periodEnd": <unix seconds> } }
  *     `text` stays in each entry because the Voice admits an entry only when its text
  *     matches the phrase (src/audio/voice-pack.js resolveVoicePackEntry). `asset` is an
- *     opaque id, not a URL: the server keeps no copy, so the client stores the audio and
- *     answers that id itself. Nothing is cached server-side; the same text sent twice is
- *     voiced, and metered, twice. The response re-signs the cookie.
+ *     opaque id, not a public URL. After current entitlement verification, an exact
+ *     account/text/provider/voice/model/settings hit reuses saved audio without spending.
+ *     `cache: { hit, expiresAt, scope }` describes the private render; the response
+ *     re-signs the cookie. Expired, erased, corrupt or uncertain renders cannot silently
+ *     regenerate. Pending renders return 409; account storage capacity returns 507.
  *   errors   { "error": { "code", "message" } }
  *     400 BAD_REQUEST, 400 UNKNOWN_VOICE (a slug not in the allow-list), 413 TOO_LONG | TOO_LARGE, 415 BAD_CONTENT_TYPE, 403 FORBIDDEN_ORIGIN,
  *     402 PLUS_REQUIRED (no valid cookie, or Stripe no longer has an active Plus subscription;
@@ -57,9 +61,8 @@
  * the last standing Stripe gave (active or not, price, period, mode) for STANDING_TTL_S
  * seconds, so a cancellation Stripe reports is refused within a minute even without the
  * webhook, and at once with it. Before Stripe is asked at all, the meter refuses a revoked
- * subscription, more than SUB_RATE_PER_MINUTE requests a minute, and a request that would
- * pass the allowance of the period it last saw: an exhausted or cancelled subscription
- * costs no Stripe call.
+ * subscription and more than SUB_RATE_PER_MINUTE requests a minute. Active standing
+ * is checked even for a replay with an exhausted allowance; only a cache miss spends.
  *
  * Metering: before the vendor is called, the characters are reserved atomically in the
  * subscription's meter (per billing period, keyed by the current_period_start of the
@@ -112,6 +115,7 @@
  * test key, and Stripe's public test card then bought real ElevenLabs characters.
  */
 import { getAdmin, verifyAdmin } from './plus-admin.mjs';
+import { PlusAudio } from './plus-audio.mjs';
 import { spendingPolicy, paidBudget, adminBudget } from './plus-budget.mjs';
 import { mapAlignment } from '../src/audio/poem-alignment.js';
 import { VOICE_PACK_SCHEMA, voiceAssetKey } from '../src/audio/voice-pack-key.js';
@@ -156,7 +160,7 @@ const JSON_HEADERS = {
 };
 
 const CUSTOMER_ROUTES = new Set(['/api/plus/checkout', '/api/plus/portal', '/api/plus/recover', '/api/plus/restore']);
-const ROUTES = new Set([...CUSTOMER_ROUTES, '/api/plus/claim', '/api/plus/voice', '/api/plus/forget', '/api/plus/voices', '/api/plus/config', '/api/plus/stripe-webhook', '/api/plus/status', '/api/plus/admin/login', '/api/plus/admin/check']);
+const ROUTES = new Set([...CUSTOMER_ROUTES, '/api/plus/claim', '/api/plus/voice', '/api/plus/audio/erase', '/api/plus/forget', '/api/plus/voices', '/api/plus/config', '/api/plus/stripe-webhook', '/api/plus/status', '/api/plus/admin/login', '/api/plus/admin/check']);
 
 export function isPlusRoute(path) {
   return ROUTES.has(path);
@@ -456,8 +460,8 @@ async function voice(request, env, now, admin = null) {
   const budgetPolicy = JSON.stringify(policy);
   if (!policy || (admin && !adminCap)) return unavailable(env, 'The voice spending policy is not configured safely.');
   const allowed = voices(env);
-  const missing = ['ELEVENLABS_API_KEY', 'PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_DAILY_CHAR_CAP', 'PLUS_METER', ...(!admin ? ['PLUS_PRICE_ID', ...(requireLive(env) ? ['STRIPE_WEBHOOK_SECRET'] : [])] : [])]
-    .filter(name => (name === 'ELEVENLABS_API_KEY' ? !providerReady(env) : name === 'PLUS_DAILY_CHAR_CAP' ? dailyCap(env) === null : name === 'PLUS_VOICES' ? !allowed : !env[name]));
+  const missing = ['PLUS_VOICE_ID', 'PLUS_VOICES', 'PLUS_METER', ...(!admin ? ['PLUS_PRICE_ID', ...(requireLive(env) ? ['STRIPE_WEBHOOK_SECRET'] : [])] : [])]
+    .filter(name => name === 'PLUS_VOICES' ? !allowed : !env[name]);
   if (missing.length) {
     return unavailable(env, `The Plus voice is not switched on in this deployment (${missing.join(', ')} not set).`);
   }
@@ -481,15 +485,13 @@ async function voice(request, env, now, admin = null) {
   const text = atoms.join(' ');
   if (text.length > VOICE_MAX_CHARS) return refuse(413, 'TOO_LONG', `A voicing is at most ${VOICE_MAX_CHARS.toLocaleString('en')} characters.`);
 
-  if (!await voiceReady(env)) return unavailable(env, 'The private voice provider is not ready.');
-
   const n = text.length;
   // All administrators share one explicit monthly budget; adding administrators never multiplies it.
   const sub = admin ? 'admin' : `sub:${current.s}`;
   const lapsed = () => refuse(402, 'PLUS_REQUIRED', 'This is no longer an active Plus subscription.', { 'Set-Cookie': CLEAR_COOKIE });
   const spent = () => refuse(402, 'PLUS_ALLOWANCE', `This period's voice allowance is used up. It resets with your next billing period.`);
   // The subscription's own meter first: revoked, too many requests, or no room left costs no Stripe call.
-  const gate = await meter(env, sub, 'gate', { n, limit: VOICE_ALLOWANCE, rate: SUB_RATE_PER_MINUTE, ttl: STANDING_TTL_S });
+  const gate = await meter(env, sub, 'gate', { n: 0, limit: VOICE_ALLOWANCE, rate: SUB_RATE_PER_MINUTE, ttl: STANDING_TTL_S, accessOnly: true });
   if (gate.revoked) return lapsed();
   if (gate.limited) return refuse(429, 'RATE_LIMITED', 'Too many requests were sent. Try again in a minute.');
   if (gate.exhausted) return spent();
@@ -516,25 +518,55 @@ async function voice(request, env, now, admin = null) {
     }
     await meter(env, sub, 'standing', { standing, revision: gate.revision });
   }
-  if (!standing || (!admin && standing.s !== current.s)) return lapsed();
+  if (!standing || (!admin && (standing.s !== current.s || standing.c !== current.c))) return lapsed();
   if (!Number.isSafeInteger(standing.budgetMicros) || standing.budgetMicros <= 0) return lapsed();
   const limit = Math.min(characterLimit(standing), Math.floor(standing.budgetMicros / policy.rate));
-  if (n > limit) return spent();
+  const scope = await audioScope(admin, standing, env);
+  const model = env.PLUS_VOICE_MODEL || 'eleven_flash_v2_5';
+  // Version every output-affecting default, including the vendor endpoint and format.
+  // The principal is a verified billing customer (test/live separated), never a client id.
+  const hash = await sha256(JSON.stringify(['rise.plus.audio.v1', scope, 'elevenlabs', '/v1/text-to-speech/with-timestamps', voiceId, model, 'mp3_44100_64', 'vendor-default-settings-v1', text]));
+  const cacheName = `audio:v1:${scope}`;
+  const cached = await meter(env, cacheName, 'audio/claim', { render: hash });
+  const responseFor = async (mapped, audio, allowance, expiresAt, hit) => reply(200, {
+    pack: voicePack(mapped, hash, slug, allowed.get(slug).label, model, n), audio, allowance,
+    cache: { hit, expiresAt, scope }
+  }, admin ? {} : { 'Set-Cookie': await setCookie({ ...standing, iat: now }, env, now) });
+  if (cached.state === 'ready') {
+    const mapped = mapSavedTiming(atoms, text, cached.timings);
+    if (!mapped.ok) return audioRefusal('unavailable');
+    const inspected = await meter(env, sub, 'inspect', { period: standing.start, ttl: STANDING_TTL_S });
+    if (inspected.revoked || inspected.revision !== gate.revision) return lapsed();
+    return responseFor(mapped, cached.audio, { used: inspected.used, limit, periodEnd: standing.exp }, cached.expiresAt, true);
+  }
+  if (cached.state !== 'claimed' || typeof cached.token !== 'string') return audioRefusal(cached.state);
+  const cacheClaim = { render: hash, token: cached.token };
+  const abandonClaim = async response => {
+    await meter(env, cacheName, 'audio/abandon', cacheClaim);
+    return response;
+  };
+  const releaseClaim = async response => {
+    await meter(env, cacheName, 'audio/release', cacheClaim);
+    return response;
+  };
+  if (n > limit) return releaseClaim(spent());
+  if (!providerReady(env)) return releaseClaim(unavailable(env, 'ELEVENLABS_API_KEY or the private voice provider is not set.'));
+  if (dailyCap(env) === null) return releaseClaim(unavailable(env, 'PLUS_DAILY_CHAR_CAP is not set safely.'));
+  if (!await voiceReady(env)) return releaseClaim(unavailable(env, 'The private voice provider is not ready.'));
 
   const day = new Date(now * 1000).toISOString().slice(0, 10);
-  const own = { period: standing.start, n, limit, day, dayLimit: admin ? adminCap.dayLimit : subDailyCap(env), costMicros: n * policy.rate, spendLimitMicros: standing.budgetMicros, rateMicros: policy.rate, revision: gate.revision };
-  const all = { period: day, n, limit: dailyCap(env) };
+  const own = { period: standing.start, n, limit, day, dayLimit: admin ? adminCap.dayLimit : subDailyCap(env), costMicros: n * policy.rate, spendLimitMicros: standing.budgetMicros, rateMicros: policy.rate, revision: gate.revision, operation: cached.token };
+  const all = { period: day, n, limit: dailyCap(env), operation: cached.token };
   const reserved = await meter(env, sub, 'reserve', own);
-  if (reserved.changed) return unavailable(env, 'The subscription changed while its allowance was being verified.');
-  if (reserved.revoked) return lapsed();
-  if (reserved.dayFull) return refuse(429, 'PLUS_DAILY_LIMIT', `Today's voice limit is reached. It resets at midnight UTC.`);
-  if (!reserved.ok) return spent();
+  if (reserved.changed) return releaseClaim(unavailable(env, 'The subscription changed while its allowance was being verified.'));
+  if (reserved.revoked) return releaseClaim(lapsed());
+  if (reserved.dayFull) return releaseClaim(refuse(429, 'PLUS_DAILY_LIMIT', `Today's voice limit is reached. It resets at midnight UTC.`));
+  if (!reserved.ok) return releaseClaim(spent());
   if (!(await meter(env, 'global', 'reserve', all)).ok) {
     await meter(env, sub, 'release', own);
-    return refuse(503, 'PLUS_DAILY_CAP', 'The Plus voice has reached today\'s limit. Try again tomorrow.');
+    return releaseClaim(refuse(503, 'PLUS_DAILY_CAP', 'The Plus voice has reached today\'s limit. Try again tomorrow.'));
   }
 
-  const model = env.PLUS_VOICE_MODEL || 'eleven_flash_v2_5';
   let response;
   try {
     if (typeof env.PLUS_VOICE_PROVIDER?.render === 'function') {
@@ -544,7 +576,7 @@ async function voice(request, env, now, admin = null) {
         && Object.keys(outcome).sort().join(',') === 'contacted,status') {
         await meter(env, sub, 'release', own);
         await meter(env, 'global', 'release', all);
-        return unavailable(env, 'The private voice provider refused before contacting the vendor.');
+        return releaseClaim(unavailable(env, 'The private voice provider refused before contacting the vendor.'));
       }
       response = outcome?.contacted === true ? outcome.response : null;
     } else {
@@ -560,18 +592,19 @@ async function voice(request, env, now, admin = null) {
   if (!response?.ok) {
     // A sent request can be billed even when its answer is lost or fails. Retain every debit;
     // only a refusal before contacting the vendor (above) can release a reservation.
-    return refuse(502, 'UPSTREAM', 'The voice could not be rendered. Try again in a moment.');
+    return abandonClaim(refuse(502, 'UPSTREAM', 'The voice could not be confirmed. It will not be generated or charged again automatically.'));
   }
   // From here the vendor has billed, so the reservation stands whatever happens next.
   const allowance = { used: reserved.used, limit, periodEnd: standing.exp };
   let rendered;
   try {
-    rendered = await response.json();
+    const bounded = await readBytes(response, 24 * 1024 * 1024);
+    rendered = bounded.bytes ? JSON.parse(new TextDecoder().decode(bounded.bytes)) : null;
   } catch {
     rendered = null;
   }
   if (typeof rendered?.audio_base64 !== 'string' || !rendered.audio_base64) {
-    return refuse(502, 'UPSTREAM', 'The voice could not be rendered. Try again in a moment.');
+    return abandonClaim(refuse(502, 'UPSTREAM', 'The voice could not be confirmed. It will not be generated or charged again automatically.'));
   }
   // The raw alignment names the characters sent; normalized_alignment names what the voice said instead and would fail the letter check.
   let mapped;
@@ -580,30 +613,57 @@ async function voice(request, env, now, admin = null) {
   } catch {
     mapped = { ok: false, reason: 'it came without timing' }; // billed all the same, so it stays metered
   }
-  if (!mapped.ok) return refuse(502, 'VOICE_REFUSED', `The performance did not match the text (${mapped.reason}).`);
+  if (!mapped.ok) return abandonClaim(refuse(502, 'VOICE_REFUSED', `The performance did not match the text (${mapped.reason}).`));
 
-  const hash = await sha256(`${voiceId}\n${model}\n${slug}\n${text}`);
+  const timings = canonicalTiming(rendered.alignment);
+  if (!timings) return abandonClaim(refuse(502, 'VOICE_REFUSED', 'The performance came without valid timing.'));
+  const saved = await meter(env, cacheName, 'audio/complete', { ...cacheClaim, audio: rendered.audio_base64, timings });
+  if (saved.state !== 'ready') return audioRefusal('unavailable');
+  const inspected = await meter(env, sub, 'inspect', { period: standing.start, ttl: STANDING_TTL_S });
+  if (inspected.revoked || inspected.revision !== gate.revision) return lapsed();
+  return responseFor(mapped, rendered.audio_base64, allowance, saved.expiresAt, false);
+}
+
+async function audioScope(admin, standing, env) {
+  const identity = admin ? ['admin', env.PLUS_ADMIN_ACCESS_ISSUER, admin.subject] : ['customer', standing.l, standing.c];
+  return sha256(JSON.stringify(identity));
+}
+
+function audioRefusal(state) {
+  if (state === 'full') return refuse(507, 'PLUS_AUDIO_FULL', 'Saved voice storage is full. No new voice was charged. Contact support; deleting audio cannot clear the safety-record limit.');
+  if (state === 'pending') return refuse(409, 'PLUS_AUDIO_PENDING', 'This voice is already being prepared. No second voice was charged. Try replaying it shortly.');
+  return refuse(409, 'PLUS_AUDIO_UNAVAILABLE', 'This saved voice is expired, deleted, or could not be confirmed. It will not be generated or charged again automatically. Contact support.');
+}
+
+const spokenLetters = text => String(text).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+function canonicalTiming(alignment) {
+  const timings = [];
+  if (!Array.isArray(alignment?.characters) || !Array.isArray(alignment.character_start_times_seconds) || !Array.isArray(alignment.character_end_times_seconds)) return null;
+  for (let i = 0; i < alignment.characters.length; i++) {
+    const start = alignment.character_start_times_seconds[i], end = alignment.character_end_times_seconds[i];
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start) return null;
+    for (const _letter of spokenLetters(alignment.characters[i])) timings.push(start, end);
+  }
+  return timings;
+}
+function mapSavedTiming(atoms, text, timings) {
+  const characters = [...spokenLetters(text)];
+  if (!Array.isArray(timings) || timings.length !== characters.length * 2) return { ok: false };
+  return mapAlignment({ atoms, alignment: { characters, character_start_times_seconds: characters.map((_, i) => timings[2 * i]), character_end_times_seconds: characters.map((_, i) => timings[2 * i + 1]) } });
+}
+function voicePack(mapped, hash, slug, label, model, n) {
   const asset = `voiced:${hash}`;
   const entries = {};
   for (const atom of mapped.atoms) {
     const key = voiceAssetKey(atom.text);
     if (entries[key]) continue;
     entries[key] = {
-      text: atom.text,
-      asset,
-      mimeType: 'audio/mpeg',
-      fromMs: Math.round(atom.startMs),
-      toMs: Math.round(atom.endMs),
-      durationMs: Math.round(atom.endMs - atom.startMs),
-      onsetsMs: atom.onsetsMs.map(t => Math.max(0, Math.round(t - atom.startMs)))
+      text: atom.text, asset, mimeType: 'audio/mpeg', fromMs: Math.round(atom.startMs), toMs: Math.round(atom.endMs),
+      durationMs: Math.round(atom.endMs - atom.startMs), onsetsMs: atom.onsetsMs.map(t => Math.max(0, Math.round(t - atom.startMs)))
     };
   }
-  const pack = {
-    schema: VOICE_PACK_SCHEMA,
-    voiced: { hash, voice: slug, characters: n, model: `elevenlabs/${model}` },
-    voices: { [slug]: { label: allowed.get(slug).label, model: `elevenlabs/${model}`, format: 'mp3', entries } }
-  };
-  return reply(200, { pack, audio: rendered.audio_base64, allowance }, admin ? {} : { 'Set-Cookie': await setCookie({ c: standing.c, s: standing.s, exp: standing.exp, start: standing.start, l: standing.l, iat: now }, env, now) });
+  return { schema: VOICE_PACK_SCHEMA, voiced: { hash, voice: slug, characters: n, model: `elevenlabs/${model}` },
+    voices: { [slug]: { label, model: `elevenlabs/${model}`, format: 'mp3', entries } } };
 }
 
 /** Equal strings in a time that does not depend on where they differ. */
@@ -723,11 +783,15 @@ async function cancelPlus(id, env) {
 
 const adminLoginConfigured = env => /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/u.test(env.PLUS_ADMIN_ACCESS_ISSUER ?? '') && typeof env.PLUS_ADMIN_ACCESS_AUD === 'string' && Boolean(env.PLUS_ADMIN_ACCESS_AUD.trim());
 const providerReady = env => typeof env.PLUS_VOICE_PROVIDER?.render === 'function' || Boolean(env.ELEVENLABS_API_KEY);
+/** Local eligibility only: status must not wait on a provider to authorize saved audio. */
+function voiceConfigured(env) {
+  if (!providerReady(env) || !env.PLUS_VOICE_ID || !voices(env) || !dailyCap(env) || !env.PLUS_METER || !spendingPolicy(env)) return false;
+  return env.PLUS_VOICE_PROVIDER == null || (typeof env.PLUS_VOICE_PROVIDER.render === 'function' && typeof env.PLUS_VOICE_PROVIDER.ready === 'function');
+}
 async function voiceReady(env) {
-  const allowed = voices(env);
-  if (!providerReady(env) || !env.PLUS_VOICE_ID || !allowed || !dailyCap(env) || !env.PLUS_METER || !spendingPolicy(env)) return false;
+  if (!voiceConfigured(env)) return false;
   if (env.PLUS_VOICE_PROVIDER == null) return true;
-  if (typeof env.PLUS_VOICE_PROVIDER.render !== 'function' || typeof env.PLUS_VOICE_PROVIDER.ready !== 'function') return false;
+  const allowed = voices(env);
   let timer;
   try {
     const result = await Promise.race([
@@ -751,7 +815,7 @@ async function status(request, env, now) {
   let standing, name;
   if (admin) {
     const budget = adminBudget(env, policy);
-    if (!budget || !await voiceReady(env)) return reply(200, result);
+    if (!budget) return reply(200, result);
     const date = new Date(now * 1000);
     standing = { start: Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1) / 1000, exp: Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1) / 1000, budgetMicros: budget.micros };
     name = 'admin';
@@ -783,14 +847,15 @@ async function status(request, env, now) {
       }
       await meter(env, name, 'standing', { standing, revision: kept.revision, subscriptionStatus });
     }
-    if (!standing || standing.s !== current.s || !Number.isSafeInteger(standing.budgetMicros) || standing.budgetMicros <= 0) return reply(200, result);
+    if (!standing || standing.s !== current.s || standing.c !== current.c || !Number.isSafeInteger(standing.budgetMicros) || standing.budgetMicros <= 0) return reply(200, result);
     result.subscriber = true;
   }
   const inspected = await meter(env, name, 'inspect', { period: standing.start, ttl: STANDING_TTL_S });
   if (inspected.revoked) { result.subscriber = false; return reply(200, result); }
+  result.audioScope = await audioScope(admin, standing, env);
   const limit = Math.min(characterLimit(standing), Math.floor(standing.budgetMicros / policy.rate));
   result.allowance = { used: inspected.used, limit, periodEnd: standing.exp };
-  result.available = await voiceReady(env) && inspected.used < limit && (inspected.spentMicros ?? 0) + policy.rate <= standing.budgetMicros;
+  result.available = voiceConfigured(env) && inspected.used < limit && (inspected.spentMicros ?? 0) + policy.rate <= standing.budgetMicros;
   const response = reply(200, result);
   if (result.subscriber) {
     response.headers.append('Set-Cookie', await setCookie({ ...standing, iat: now }, env, now));
@@ -837,6 +902,15 @@ async function routePlus(request, env) {
     const response = reply(204, null, { 'Set-Cookie': CLEAR_COOKIE });
     response.headers.append('Set-Cookie', `${BILLING_COOKIE}=; Max-Age=0; ${ATTRIBUTES}`);
     return response;
+  }
+  if (path === '/api/plus/audio/erase') {
+    const { refusal } = await readJson(request);
+    if (refusal) return refusal;
+    if (await limited(request, env.DECISION_LIMITER, 'plus-audio-erase')) return refuse(429, 'RATE_LIMITED', 'Too many requests were sent. Try again in a minute.');
+    const identity = await (await status(request, env, Math.floor(Date.now() / 1000))).json();
+    if (!identity.audioScope) return refuse(402, 'PLUS_REQUIRED', 'An active Plus account is needed to delete its saved voice.');
+    const erased = await meter(env, `audio:v1:${identity.audioScope}`, 'audio/erase', {});
+    return erased.erased === true ? reply(200, { erased: true }) : unavailable(env, 'Saved voice could not be deleted.');
   }
   if (CUSTOMER_ROUTES.has(path)) return lifecycle(request, env, path, Math.floor(Date.now() / 1000));
   const admin = path === '/api/plus/voice' ? await getAdmin(request, env) : null;
@@ -1053,15 +1127,21 @@ async function lifecycle(request, env, path, now) {
  *        'restore'. Older events than the last status event applied do not move the status.
  *        Every event forgets the kept standing.
  *
- * One period and one count, never a history: a newer period overwrites the old count; the
+ * Meter reservation/release operation IDs are retained only for their current period
+ * (at most 65,536); older periods cannot debit or refund the current one.
+ * One period and one count: a newer period overwrites the old count; the
  * same for the day's count (`today`), which a newer day overwrites.
  * (Stored as `since`: the earlier `period` held a period end and is ignored.)
  * Everything an instance keeps is listed in PRIVACY.md ("What the server keeps").
  */
 export class PlusMeter {
   constructor(ctx) {
+    this.storage = ctx.storage;
     this.kv = ctx.storage.kv;
+    this.audio = new PlusAudio(ctx.storage);
   }
+
+  async alarm() { await this.audio.alarm(); }
 
   /** What is used in `period`: 0 for a newer period, and `stale` for an older one. */
   usage(period) {
@@ -1073,6 +1153,13 @@ export class PlusMeter {
     const op = new URL(request.url).pathname;
     const body = await request.json();
     const now = Math.floor(Date.now() / 1000);
+    if (op.startsWith('/audio/')) return Response.json(await this.audio.handle(op.slice(7), body, now));
+    const response = this.storage.transactionSync(() => this.handle(op, body, now));
+    await this.storage.sync();
+    return response;
+  }
+
+  handle(op, body, now) {
     if (op === '/recovery-issue') {
       const previous = this.kv.get('recovery');
       if (previous && now - previous.issued < 60) return Response.json({ ok: false });
@@ -1110,7 +1197,13 @@ export class PlusMeter {
     // A request still carrying an older period, as one can at a renewal, reserves
     // nothing and releases nothing, so it cannot roll the count back.
     const { stale, used } = this.usage(period);
+    const operationKey = typeof body.operation === 'string' && /^[a-zA-Z0-9-]{1,64}$/u.test(body.operation) ? `operation:${body.operation}` : null;
+    if (body.operation !== undefined && !operationKey) return Response.json({ ok: false, used });
+    const fingerprint = JSON.stringify([period, n, day ?? null, costMicros ?? null, rateMicros ?? null]);
+    const operation = operationKey ? this.kv.get(operationKey) : null;
+    if (operation && operation.fingerprint !== fingerprint) return Response.json({ ok: false, used });
     if (op === '/reserve') {
+      if (operation) return Response.json({ ok: operation.state === 'reserved', used });
       if (body.revision !== undefined && body.revision !== (this.kv.get('revision') ?? 0)) return Response.json({ ok: false, used, changed: true });
       if (this.kv.get('revoked')) return Response.json({ ok: false, used, revoked: true });
       const money = costMicros !== undefined;
@@ -1120,6 +1213,17 @@ export class PlusMeter {
       const today = this.kv.get('today');
       const dayUsed = day !== undefined && today?.day === day ? today.used : 0;
       if (day !== undefined && !(dayUsed + n <= dayLimit)) return Response.json({ ok: false, used, dayFull: true });
+      if (operationKey) {
+        if (this.kv.get('operationPeriod') !== period) {
+          this.kv.put('operationPeriod', period);
+          for (const [key] of this.kv.list({ prefix: 'operation:' })) this.kv.delete(key);
+          this.kv.put('operationCount', 0);
+        }
+        const count = this.kv.get('operationCount') ?? 0;
+        if (count >= 65_536) return Response.json({ ok: false, used });
+        this.kv.put(operationKey, { fingerprint, state: 'reserved' });
+        this.kv.put('operationCount', count + 1);
+      }
       if (day !== undefined) this.kv.put('today', { day, used: dayUsed + n });
       this.kv.put('since', period);
       this.kv.put('used', used + n);
@@ -1127,6 +1231,10 @@ export class PlusMeter {
       return Response.json({ ok: true, used: used + n });
     }
     if (op === '/release') {
+      if (operationKey) {
+        if (operation?.state !== 'reserved') return Response.json({ ok: true, used });
+        this.kv.put(operationKey, { ...operation, state: 'released' });
+      }
       const today = this.kv.get('today');
       if (day !== undefined && today?.day === day) this.kv.put('today', { day, used: Math.max(0, today.used - n) });
       if (stale || this.kv.get('since') !== period) return Response.json({ ok: true, used });
@@ -1137,7 +1245,7 @@ export class PlusMeter {
     return Response.json({ ok: false, error: 'no such meter operation' }, { status: 404 });
   }
 
-  gate({ n, limit, rate, ttl }, now) {
+  gate({ n, limit, rate, ttl, accessOnly }, now) {
     if (this.kv.get('revoked')) return { revoked: true };
     const minute = Math.floor(now / 60);
     const counted = this.kv.get('rate');
@@ -1146,7 +1254,7 @@ export class PlusMeter {
     if (count > rate) return { limited: true };
     const kept = this.kv.get('standing');
     const standing = kept?.standing ?? null;
-    if (standing && now < standing.exp) {
+    if (!accessOnly && standing && now < standing.exp) {
       const { used } = this.usage(standing.start);
       if (used + n > Math.min(limit, characterLimit(standing))) return { exhausted: true, used };
     }

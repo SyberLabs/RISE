@@ -10,6 +10,24 @@ const PLUS_FORGET_ROUTE = '/api/plus/forget';
 const PLUS_VOICES_ROUTE = '/api/plus/voices';
 const VOICE_SLUG = /^[a-z0-9_-]{1,32}$/u; // worker/plus.mjs voices()
 
+let audioSession = new AbortController();
+
+/** Logout, account restoration and local/server erasure revoke pending and loaded audio. */
+export function invalidatePlusAudio() {
+  audioSession.abort();
+  audioSession = new AbortController();
+}
+export function plusAudioSession() { return audioSession.signal; }
+
+// Another tab can forget or restore Plus. Allowance updates are not a login change.
+globalThis.window?.addEventListener('storage', event => {
+  if (event.key === null) { invalidatePlusAudio(); return; }
+  if (event.key !== PLUS_KEY) return;
+  try {
+    if (JSON.parse(event.oldValue)?.claimedAt !== JSON.parse(event.newValue)?.claimedAt) invalidatePlusAudio();
+  } catch { invalidatePlusAudio(); }
+});
+
 /** The voice the Worker reads in when the reader has chosen none, or the list cannot be had. */
 export const PLUS_DEFAULT_VOICE = Object.freeze({ slug: 'default', label: 'Default' });
 
@@ -68,6 +86,12 @@ const NOTICES = {
   PLUS_REQUIRED: 'Plus voice has lapsed. Reading continues silently.',
   PLUS_LAPSED: 'Plus voice has lapsed. Reading continues silently.',
   PLUS_ALLOWANCE: 'This month\'s voice allowance is used up. Reading continues silently.',
+  PLUS_AUDIO_PENDING: 'This audio is still being prepared. Try opening it again later; RISE will not start a duplicate voicing. Reading continues silently.',
+  PLUS_AUDIO_UNAVAILABLE: 'Saved audio is expired, deleted or unavailable. RISE will not voice or charge it again automatically. Reading continues silently.',
+  PLUS_AUDIO_STORAGE: 'Saved audio is temporarily unavailable. Try again later. RISE will not start a duplicate voicing. Reading continues silently.',
+  PLUS_AUDIO_FULL: 'Your saved voice capacity is full. Contact support for help. Reading continues silently.',
+  PLUS_AUDIO_AUTH: 'Could not confirm access to saved audio. Sign in and open this reading again. Reading continues silently.',
+  PLUS_SESSION_CHANGED: 'Your voice session changed. Open this reading again to check access. Reading continues silently.',
   TOO_LONG: 'This reading is too long for the Plus voice.'
 };
 
@@ -93,7 +117,7 @@ function store(value) {
   }
 }
 
-export function notePlusClaimed() { store({ claimedAt: Date.now() }); }
+export function notePlusClaimed() { invalidatePlusAudio(); store({ claimedAt: Date.now() }); }
 
 /** Whether Plus was claimed in this browser, and whether the Worker has since called it lapsed. */
 export function plusState() {
@@ -123,6 +147,7 @@ export function markPlusLapsed() {
  * @returns {{ ok: true } | { ok: false, message: string }}
  */
 export async function claimPlus(sessionId, { fetchImpl = globalThis.fetch?.bind(globalThis) } = {}) {
+  invalidatePlusAudio();
   let response;
   try {
     response = await fetchImpl(PLUS_CLAIM_ROUTE, {
@@ -148,17 +173,37 @@ export async function claimPlus(sessionId, { fetchImpl = globalThis.fetch?.bind(
 
 /** Clears the cookie and the page's memory of the claim. The subscription itself stays with Stripe. */
 export async function forgetPlus({ fetchImpl = globalThis.fetch?.bind(globalThis) } = {}) {
+  invalidatePlusAudio();
   try {
     await fetchImpl(PLUS_FORGET_ROUTE, { method: 'POST' });
   } catch {
     /* offline: the cookie outlives this, the page's memory does not */
   }
   store(null);
+  invalidatePlusAudio();
+}
+
+/** Explicit account deletion; forgetting a browser never calls this endpoint. */
+export async function erasePlusAudio({ fetchImpl = globalThis.fetch?.bind(globalThis) } = {}) {
+  invalidatePlusAudio();
+  try {
+    const response = await fetchImpl('/api/plus/audio/erase', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}'
+    });
+    const body = await response.json().catch(() => null);
+    if (!response.ok || body?.erased !== true) return { ok: false, message: body?.error?.message ?? 'Saved audio deletion could not be confirmed. Check access and try again.' };
+    invalidatePlusAudio();
+    const { PlusVoices } = await import('../audio/plus-voice-store.js');
+    const localCleared = await PlusVoices.clear().then(() => true, () => false);
+    return { ok: true, localCleared };
+  } catch {
+    return { ok: false, message: 'Saved audio deletion could not be confirmed. Check your connection and try again.' };
+  }
 }
 
 /** Server-verified entitlement; administrator authority stays in memory only. */
 export async function fetchPlusStatus({ fetchImpl = globalThis.fetch?.bind(globalThis), timeoutMs = 1500 } = {}) {
-  const unavailable = { confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null };
+  const unavailable = { confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null, audioScope: null };
   const controller = new AbortController();
   let timer;
   const read = async () => {
@@ -173,6 +218,7 @@ export async function fetchPlusStatus({ fetchImpl = globalThis.fetch?.bind(globa
         available: body?.available === true, adminLogin: body?.adminLogin === true,
         billingAvailable: body?.billingAvailable === true,
         canSubscribe: body?.canSubscribe === true,
+        audioScope: (body?.admin === true || body?.subscriber === true) && /^[a-f0-9]{64}$/u.test(body?.audioScope ?? '') ? body.audioScope : null,
         allowance: Number.isFinite(allowance?.used) && Number.isFinite(allowance?.limit)
           ? { used: allowance.used, limit: allowance.limit, periodEnd: allowance.periodEnd } : null
       };

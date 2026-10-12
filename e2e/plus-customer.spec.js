@@ -59,6 +59,31 @@ test('closed checkout is honest while canceled customers can still manage billin
   await expect(page.getByLabel('Your checkout email')).toBeDisabled();
 });
 
+test('saved audio deletion is a separate confirmed mobile action and preserves Plus access', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await api(page, { subscriber: true, billing: true });
+  let deletes = 0;
+  await page.route('**/api/plus/audio/erase', route => {
+    deletes++;
+    return route.fulfill({ json: { erased: true } });
+  });
+  await page.goto('/settings');
+  const remove = page.getByRole('button', { name: 'Delete saved Plus audio' });
+  await expect(remove).toBeVisible();
+  await remove.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: test.info().outputPath('saved-audio-mobile.png'), fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  page.once('dialog', dialog => dialog.dismiss());
+  await remove.click();
+  expect(deletes).toBe(0);
+  page.once('dialog', dialog => dialog.accept());
+  await remove.click();
+  await expect(page.locator('[data-plus-audio-status]')).toContainText('Saved Plus audio deleted');
+  await expect(remove).toBeFocused();
+  expect(deletes).toBe(1);
+  await expect(page.getByRole('button', { name: 'Forget', exact: true })).toBeVisible();
+});
+
 test('an own-text draft survives the checkout return and awaits an explicit voice Begin', async ({ page }) => {
   const calls = await api(page);
   await page.goto('/try/your-text/');

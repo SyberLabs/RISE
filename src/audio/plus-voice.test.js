@@ -3,8 +3,9 @@
 // Node, for a real IndexedDB (fake-indexeddb) that clones the stored bytes
 // intact; see workshop-media.store.test.js for why jsdom does not.
 import 'fake-indexeddb/auto';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { spokenAtoms, voiceReading, voicingKey } from './plus-voice.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { spokenAtoms, voiceReading } from './plus-voice.js';
+import { erasePlusAudio, forgetPlus, notePlusClaimed } from '../app/plus.js';
 import { PlusVoices } from './plus-voice-store.js';
 import { recitationPackUrl, voiceAssetKey } from './voice-pack-key.js';
 import { Voice } from './voice.js';
@@ -13,6 +14,7 @@ const ASSET = 'voiced:abc';
 const MP3 = new Uint8Array([0x49, 0x44, 0x33, 4, 0, 7]);
 const base64 = bytes => btoa(String.fromCharCode(...bytes));
 
+const SCOPE = 'a'.repeat(64);
 function answer(text = 'A phrase') {
   return Response.json({
     pack: {
@@ -21,103 +23,123 @@ function answer(text = 'A phrase') {
       voices: { el_plus: { entries: { [voiceAssetKey(text)]: { text, asset: ASSET, mimeType: 'audio/mpeg', fromMs: 0, toMs: 400 } } } }
     },
     audio: base64(MP3),
+    cache: { hit: true, scope: SCOPE, expiresAt: 1_800_000_000 },
     allowance: { used: 8, limit: 105000, periodEnd: 1_800_000_000 }
   });
 }
 
-afterEach(async () => {
-  await PlusVoices.clear();
+beforeEach(() => {
+  const values = new Map();
+  vi.stubGlobal('localStorage', { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) });
 });
+afterEach(async () => { await PlusVoices.clear(); vi.unstubAllGlobals(); });
+
+const authenticated = (reply = answer) => vi.fn(async url => url === '/api/plus/status'
+  ? Response.json({ admin: false, subscriber: true, available: false, audioScope: SCOPE }) : reply());
 
 describe('voiceReading', () => {
-  it('sends the spoken phrases once, keeps the voicing, and asks nothing the second time', async () => {
-    const fetchImpl = vi.fn(async () => answer('One stressed phrase'));
+  it('asks the authenticated server for every load, including after browser audio is cleared', async () => {
+    const fetchImpl = authenticated(() => answer('One stressed phrase'));
     const atoms = [{ content: 'One *stressed* phrase' }, { content: '[PAUSE]' }, { content: '…' }];
-
     const first = await voiceReading(atoms, { fetchImpl });
     expect(first).toMatchObject({ ok: true, voiceId: 'el_plus', allowance: { used: 8, limit: 105000 } });
-    expect(first.manifest.voices.el_plus.entries).toBeTruthy();
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(fetchImpl).toHaveBeenCalledWith('/api/plus/voice', expect.objectContaining({ method: 'POST', body: JSON.stringify({ atoms: ['One stressed phrase'], voice: 'default' }) }));
-    expect(await PlusVoices.get(await voicingKey(['One stressed phrase'], 'default'))).toMatchObject({ pack: first.manifest });
-
+    await PlusVoices.clear();
     const second = await voiceReading(atoms, { fetchImpl });
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(second).toMatchObject({ ok: true, voiceId: 'el_plus', manifest: first.manifest });
-    expect(second.allowance).toBeUndefined();
+    expect(second).toMatchObject({ ok: true, allowance: { used: 8 } });
+    expect(fetchImpl.mock.calls.filter(([url]) => url === '/api/plus/voice')).toHaveLength(2);
+    expect(fetchImpl).toHaveBeenCalledWith('/api/plus/voice', expect.objectContaining({ method: 'POST', credentials: 'same-origin', body: JSON.stringify({ atoms: ['One stressed phrase'], voice: 'default' }) }));
   });
 
-  it('serves the kept audio for the pack\'s own asset and nothing else', async () => {
-    await voiceReading(['A phrase'], { fetchImpl: async () => answer() });
-    const network = vi.fn();
-    const kept = await voiceReading(['A phrase'], { fetchImpl: network });
-    expect(network).not.toHaveBeenCalled();
-
-    const response = await kept.fetchImpl(ASSET);
-    expect(response.ok).toBe(true);
-    expect(new Uint8Array(await response.arrayBuffer())).toEqual(MP3);
-    // A second read of the same clip is answered again (the Voice may retry).
-    expect((await (await kept.fetchImpl(ASSET)).arrayBuffer()).byteLength).toBe(MP3.length);
-    expect((await kept.fetchImpl('/api/plus/audio/voiced/x/audio.mp3')).status).toBe(404);
+  it('cannot replay a previous account after the server refuses authentication', async () => {
+    const first = await voiceReading(['A phrase'], { fetchImpl: authenticated() });
+    expect(first.ok).toBe(true);
+    const denied = vi.fn(async () => Response.json({ error: { code: 'PLUS_REQUIRED', message: 'Sign in.' } }, { status: 402 }));
+    expect(await voiceReading(['A phrase'], { fetchImpl: denied })).toMatchObject({ ok: false, code: 'PLUS_REQUIRED' });
+    expect(denied).toHaveBeenCalledTimes(1);
   });
 
-  it('is a pack the Voice admits, and its clip comes through the Voice\'s fetch hook', async () => {
-    const voiced = await voiceReading(['A phrase'], { fetchImpl: async () => answer() });
-    const voice = new Voice({ voiceId: voiced.voiceId, manifest: voiced.manifest, fetchImpl: voiced.fetchImpl });
+  it('serves only the returned pack asset and uses the current server pack for each voice and segmentation', async () => {
+    const fetchImpl = authenticated();
+    const voiced = await voiceReading(['A phrase'], { fetchImpl, voice: 'river' });
+    expect(new Uint8Array(await (await voiced.fetchImpl(ASSET)).arrayBuffer())).toEqual(MP3);
+    expect((await voiced.fetchImpl('/unrelated')).status).toBe(404);
+    await voiceReading(['A', 'phrase'], { fetchImpl, voice: 'ember' });
+    const requests = fetchImpl.mock.calls.filter(([url]) => url === '/api/plus/voice').map(([, options]) => JSON.parse(options.body));
+    expect(requests).toEqual([{ atoms: ['A phrase'], voice: 'river' }, { atoms: ['A', 'phrase'], voice: 'ember' }]);
+  });
+
+  it('rejects audio when the authenticated account changed while the render was pending', async () => {
+    const fetchImpl = vi.fn(async url => url === '/api/plus/status'
+      ? Response.json({ subscriber: true, available: true, audioScope: 'b'.repeat(64) }) : answer());
+    expect(await voiceReading(['A phrase'], { fetchImpl })).toMatchObject({ ok: false, code: 'PLUS_SESSION_CHANGED' });
+  });
+
+  it('does not admit audio if the post-render identity check fails', async () => {
+    const fetchImpl = vi.fn(async url => url === '/api/plus/status' ? new Response(null, { status: 503 }) : answer());
+    expect(await voiceReading(['A phrase'], { fetchImpl })).toMatchObject({ ok: false, code: 'PLUS_AUDIO_AUTH' });
+  });
+
+  it.each(['forget', 'claim'])('discards an in-flight response after %s changes the session', async action => {
+    let finish;
+    const fetchImpl = authenticated(() => new Promise(resolve => { finish = resolve; }));
+    const pending = voiceReading(['A phrase'], { fetchImpl });
+    await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+    if (action === 'forget') await forgetPlus({ fetchImpl: async () => new Response(null, { status: 204 }) });
+    else notePlusClaimed();
+    finish(answer());
+    expect(await pending).toMatchObject({ ok: false, code: 'PLUS_SESSION_CHANGED' });
+  });
+
+  it('revokes a request started while forgetting Plus is still pending', async () => {
+    let finishForget;
+    const forgetting = forgetPlus({ fetchImpl: () => new Promise(resolve => { finishForget = resolve; }) });
+    let finishVoice;
+    const pending = voiceReading(['A phrase'], { fetchImpl: authenticated(() => new Promise(resolve => { finishVoice = resolve; })) });
+    finishForget(new Response(null, { status: 204 }));
+    await forgetting;
+    finishVoice(answer());
+    expect(await pending).toMatchObject({ ok: false, code: 'PLUS_SESSION_CHANGED' });
+  });
+
+  it('deleting account audio revokes pending playback without forgetting the receipt or allowance', async () => {
+    localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1, allowance: { used: 8, limit: 100 } }));
+    let finish;
+    const pending = voiceReading(['A phrase'], { fetchImpl: authenticated(() => new Promise(resolve => { finish = resolve; })) });
+    expect(await erasePlusAudio({ fetchImpl: async () => Response.json({ erased: true }) })).toEqual({ ok: true, localCleared: true });
+    finish(answer());
+    expect(await pending).toMatchObject({ ok: false, code: 'PLUS_SESSION_CHANGED' });
+    expect(JSON.parse(localStorage.getItem('rise.plus'))).toEqual({ claimedAt: 1, allowance: { used: 8, limit: 100 } });
+  });
+
+  it('revokes previously admitted playback when Plus is forgotten', async () => {
+    const voiced = await voiceReading(['A phrase'], { fetchImpl: authenticated() });
+    const voice = new Voice({ voiceId: voiced.voiceId, manifest: voiced.manifest, fetchImpl: voiced.fetchImpl, signal: voiced.signal });
+    voice.enabled = true;
     expect(await voice.load()).toBe(true);
+    expect(voice.available).toBe(true);
     voice._decode = async bytes => bytes;
     expect(new Uint8Array(await voice._sharedBuffer(ASSET))).toEqual(MP3);
+    await forgetPlus({ fetchImpl: async () => new Response(null, { status: 204 }) });
+    expect((await voiced.fetchImpl(ASSET)).status).toBe(401);
+    expect(voice.available).toBe(false);
   });
 
-  it('sends the chosen voice, and keeps each voice apart: another voice is voiced again', async () => {
-    const fetchImpl = vi.fn(async () => answer());
-    await voiceReading(['A phrase'], { fetchImpl, voice: 'river' });
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ atoms: ['A phrase'], voice: 'river' });
-    await voiceReading(['A phrase'], { fetchImpl, voice: 'river' });
+  it.each([
+    ['PLUS_AUDIO_PENDING', 409], ['PLUS_AUDIO_UNAVAILABLE', 409], ['PLUS_AUDIO_STORAGE', 503], ['PLUS_AUDIO_FULL', 507], ['UPSTREAM', 502]
+  ])('preserves %s without automatically retrying generation', async (code, status) => {
+    const fetchImpl = vi.fn(async () => Response.json({ error: { code, message: 'A clear server explanation.' } }, { status }));
+    expect(await voiceReading(['A phrase'], { fetchImpl })).toEqual({ ok: false, code, message: 'A clear server explanation.' });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    await voiceReading(['A phrase'], { fetchImpl, voice: 'ember' });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
-    expect(await voicingKey(['A phrase'], 'river')).not.toBe(await voicingKey(['A phrase'], 'ember'));
   });
 
-  it('asks again for a different text, and after the store is erased', async () => {
-    const fetchImpl = vi.fn(async () => answer());
-    await voiceReading(['A phrase'], { fetchImpl });
-    await voiceReading(['A phrase', 'and one more'], { fetchImpl });
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
-
-    await PlusVoices.clear();
-    await voiceReading(['A phrase'], { fetchImpl });
-    expect(fetchImpl).toHaveBeenCalledTimes(3);
-  });
-
-  it('hands back the Worker\'s own code when it refuses, and keeps nothing', async () => {
-    const refused = vi.fn(async () => Response.json({ error: { code: 'PLUS_ALLOWANCE', message: 'used up' } }, { status: 402 }));
-    expect(await voiceReading(['A phrase'], { fetchImpl: refused })).toEqual({ ok: false, code: 'PLUS_ALLOWANCE', message: 'used up' });
-    const upstream = vi.fn(async () => Response.json({ error: { code: 'UPSTREAM', message: 'later' } }, { status: 502 }));
-    expect((await voiceReading(['A phrase'], { fetchImpl: upstream })).code).toBe('UPSTREAM');
-    expect(await PlusVoices.get(await voicingKey(['A phrase']))).toBeNull();
-  });
-
-  it('refuses an answer that is not a pack with audio', async () => {
-    const noAudio = async () => Response.json({ pack: { schema: 'rise.recitation-voice-pack.v1', voices: { el_plus: { entries: {} } } } });
+  it('refuses malformed audio, and never asks for silence', async () => {
+    const noAudio = authenticated(() => Response.json({ pack: { schema: 'rise.recitation-voice-pack.v1', voices: { el_plus: { entries: {} } } } }));
     expect((await voiceReading(['A phrase'], { fetchImpl: noAudio })).code).toBe('BAD_PACK');
-    const oldShape = async () => Response.json({ schema: 'rise.recitation-voice-pack.v1', voices: { el_plus: { entries: {} } } });
-    expect((await voiceReading(['A phrase'], { fetchImpl: oldShape })).code).toBe('BAD_PACK');
-  });
-
-  it('still plays a voicing the store cannot keep', async () => {
-    const store = { get: async () => { throw new Error('private mode'); }, put: async () => { throw new Error('full'); } };
-    const result = await voiceReading(['A phrase'], { fetchImpl: async () => answer(), store });
-    expect(result.ok).toBe(true);
-    expect((await (await result.fetchImpl(ASSET)).arrayBuffer()).byteLength).toBe(MP3.length);
-  });
-
-  it('never asks for silence, and reports an unreachable voice', async () => {
     const fetchImpl = vi.fn(async () => { throw new Error('offline'); });
     expect((await voiceReading(['...', '[HOLD]'], { fetchImpl })).code).toBe('NOTHING_TO_SAY');
     expect(fetchImpl).not.toHaveBeenCalled();
     expect((await voiceReading(['A phrase'], { fetchImpl })).code).toBe('OFFLINE');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(spokenAtoms(null)).toEqual([]);
   });
 });

@@ -32,9 +32,12 @@ it('starts from the same screen with chosen voice, editable text and visual pres
   await vi.waitFor(() => expect(document.querySelector('[data-status]').textContent).toContain('allowance'));
   expect(input.value).toBe('An editable beam of light.');
 });
-it('does not enable Begin for an unavailable provider even with verified identity', async () => {
-  await mount({ admin: true, available: false, adminLogin: true });
-  expect(document.querySelector('[data-begin]').disabled).toBe(true);
+it('lets a verified account ask for saved audio while generation is unavailable', async () => {
+  const begin = await mount({ admin: true, available: false, adminLogin: true });
+  expect(document.querySelector('[data-begin]').disabled).toBe(false);
+  expect(document.querySelector('[data-status]').textContent).toContain('saved');
+  await demo.start();
+  expect(begin).toHaveBeenCalledTimes(1);
 });
 it('keeps Begin disabled when status cannot be confirmed', async () => {
   fetchPlusStatus.mockRejectedValueOnce(new Error('offline'));
