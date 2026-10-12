@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -74,10 +74,14 @@
     {
       "date": "2026-10-12T07:30:00.000Z",
       "summary": "Opened #641 (branch live-interactive-scenes), auto-merge on CI."
+    },
+    {
+      "date": "2026-10-12T07:23:14.075Z",
+      "summary": "PR #641 merged as a39cd515 and deployed (release.txt a39cd515, 2026-10-12); delivery deployed"
     }
   ],
-  "updatedAt": "2026-10-12T07:30:00.000Z",
-  "revision": 2,
+  "updatedAt": "2026-10-12T07:23:14.075Z",
+  "revision": 3,
   "summary": "Design §8 stage 6: rise.input into the scene worker, scene.input out, a widget set in rise.lib, and the neural-network page of VISION §2.5, with the sandbox kept as the boundary.",
   "blocker": null
 }
