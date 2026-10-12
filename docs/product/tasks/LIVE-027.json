@@ -28,7 +28,13 @@
     {
       "kind": "document",
       "ref": "docs/plans/LIVE-CURRENT.md",
-      "note": "§22 The face: design, states, skins, what it never does.",
+      "note": "§22 The face: design, states, skins, what it never does, and what was measured.",
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/646",
+      "note": "Branch live-face. Local: vitest src/scenes + src/live/host 625 passed; e2e/live.spec.js (full) 37 passed, plus the one scene test rerun green after the face canvas got its own class; card subset 13 passed; face worker frame median 0.40 ms; blink brightness step 0.010; hidden 623-640 ms after the first atom. Not merged, not deployed, not accepted by a human.",
       "date": "2026-10-12"
     }
   ],
@@ -36,10 +42,14 @@
     {
       "date": "2026-10-12T12:00:00.000Z",
       "summary": "Claimed and built on branch live-face (owner-approved design, one PR): the oracle engine, the still face, the venue's face layer and states, the Face row in Settings."
+    },
+    {
+      "date": "2026-10-12T21:12:14.542Z",
+      "summary": "PR #646 opened on branch live-face with local verification evidence"
     }
   ],
-  "updatedAt": "2026-10-12T12:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-12T21:12:14.542Z",
+  "revision": 2,
   "summary": "RISE's own face in the Live venue: the approved Sophia study as a native scene engine the venue runs behind its ask bar, resting at arrival, listening, thinking until the first words, stepping back while a reading speaks, and at rest after it.",
   "blocker": null
 }
