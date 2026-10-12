@@ -1020,7 +1020,7 @@ export function createLiveRuntime({
             note('room.changed', { kind: change.kind, look: change.look, theme });
         } else {
             if (readerPaced) { refused('READER_SET'); return; }
-            const before = pace;
+            const before = suggested ? suggested.before : pace;
             applyPace(change.rate);
             suggested = { rate: change.rate, before };
             note('room.changed', { kind: change.kind, rate: change.rate });
