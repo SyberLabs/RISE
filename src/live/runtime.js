@@ -440,7 +440,10 @@ export function createLiveRuntime({
             // A phrase begins (the seam between two passages is none): the model's changes due here land, once the
             // atom's other listeners have run, so a scene this phrase starts is there to take them (as the conductor's cues).
             if (run === main && !atom?.seam) {
-                queueMicrotask(() => landRoomChanges(index));
+                queueMicrotask(() => {
+                    run.lastPhrase = index;
+                    landRoomChanges(index);
+                });
                 followPictures(index);
             }
         });
@@ -575,7 +578,7 @@ export function createLiveRuntime({
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null,
             // The model's changes to the room not yet landed (landRoomChanges), how many of the stream's it has taken,
             // the atom the last one landed on (one a phrase), and the scenes the reading starts, as it names them.
-            changes: [], roomSeen: 0, roomNoted: 0, roomPhrase: null, scenes: [],
+            changes: [], roomSeen: 0, roomNoted: 0, roomPhrase: null, lastPhrase: null, scenes: [],
             // Passages the voice was given and has not finished or failed; the run ends when none are left.
             owed: new Set(), completedAt: null, tail: null, ended: false,
             // The voice's rate its clock is at: the pace once the voice has taken it up (see setPace).
@@ -1023,12 +1026,14 @@ export function createLiveRuntime({
             return index >= 0 && head >= index;
         };
         // In the order the model wrote them: every cue due, and the first other change due if this phrase has none yet.
-        let phrase = boundary !== null && run.roomPhrase !== boundary;
         for (const entry of run.changes.filter(due)) {
+            // A trailing change has no next beat. Once its stream ends, use the final phrase already reached,
+            // at most once as for any boundary; earlier changes still wait for the next actual phrase.
+            const trailing = entry.stream.terminal && entry.before >= entry.stream.endedCount;
+            const phrase = boundary ?? (trailing && head === placeOf(entry) ? run.lastPhrase : null);
             if (entry.change.kind === 'scene.cue' || entry.change.kind === 'illustration.cue') landRoomChange(entry);
-            else if (phrase) {
-                phrase = false;
-                run.roomPhrase = boundary;
+            else if (phrase !== null && run.roomPhrase !== phrase) {
+                run.roomPhrase = phrase;
                 landRoomChange(entry);
             }
         }

@@ -67,6 +67,24 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/633",
       "note": "Stage 5 rode in #633, merged as e0332586 and deployed: rise.syberlabs.io/release.txt read e033258683234305aebc4c4c54aa52252b3c9c76 on 2026-10-11 (the production job passed). Not accepted: no real model has written a room line.",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.room.test.js",
+      "note": "Narrow post-merge PR633 trailing-room-change repair, codex/trailing-room-terminal (codex-rise-voice validation, Seth), authorized root claim after source-owner handoff. Original delayed final visual command reproduced red (asked but never landed); terminal catch-up uses final reached phrase at most once, preserving earlier-boundary waiting, reader overrides, cue handling and occupied-final-phrase dedupe. Focused runtime room/interjection/seek/runtime/stream tests: 5 files, 171 passed locally. Existing owner/status/delivery and real-model acceptance remain unchanged; PR/CI/deployment evidence pending. Final room tests: 12 passed; fast suite 110 files, 2482 passed/4 existing skips; local browser gate 64 passed/3 existing skips, hygiene/security checks/diagram stability/62.1KB first-load budget passed. Required exact-head CI and root review pending.",
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/639",
+      "note": "Narrow terminal-boundary repair of PR633 post-merge P2, implementation 180876bc; 12 room tests and 171 focused runtime tests pass, fast release checks and local browser gate pass. Required exact-head CI/root review pending. Broader task owner/status/delivery and real-model acceptance are preserved.",
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.room.test.js",
+      "note": "PR639 rebased onto illustrator main cb6ce33e after root review. Conflicts reconciled without altering followPictures or immediate illustration.cue handling. Added a coexistence test proving native illustrator cue and a room command share a phrase without consuming or reopening the non-cue slot. Seven focused files (including illustrator tests) passed 195 tests; fast suite: 112 files, 2528 passed and 4 existing skips. Author deployed metadata and broader ownership preserved; refreshed local browser gate: 64 passed and 3 existing skips; required exact-head CI and renewed root review pending.",
+      "date": "2026-10-12"
     }
   ],
   "activity": [
@@ -85,10 +103,22 @@
     {
       "date": "2026-10-12T04:57:59.823Z",
       "summary": "Merged in #633 as e0332586 and deployed (release.txt read e0332586 on 2026-10-11). Not accepted."
+    },
+    {
+      "date": "2026-10-12T05:09:42.214Z",
+      "summary": "Root claimed only PR633 terminal-boundary P2 repair after signed source-owner handoff; red reproduced and bounded final-phrase fix tested in PR639. Existing broader owner/status and author deployed delivery preserved during rebase onto illustrator main cb6ce33e."
+    },
+    {
+      "date": "2026-10-12T05:23:20.660Z",
+      "summary": "Reconciled PR639 onto cb6ce33e illustrator main; preserve author deployed delivery and illustration cue semantics; focused195 and fast2528 tests passed."
+    },
+    {
+      "date": "2026-10-12T05:24:33.965Z",
+      "summary": "Rebased local gate passed 64 tests with three existing skips; renewed exact-head CI and root review pending."
     }
   ],
-  "updatedAt": "2026-10-12T04:57:59.823Z",
-  "revision": 4,
+  "updatedAt": "2026-10-12T05:24:33.965Z",
+  "revision": 7,
   "summary": "Design §8 stage 5: the model changes the room while it plays, at phrase boundaries, within the manifests, the reader's own settings winning.",
   "blocker": null
 }

@@ -42,14 +42,14 @@ afterEach(async () => {
  * A room on a scripted model writing `text`; `answer` what it writes to an interjection. The host takes the attractor's
  * commands and a look's theme, and records when each landed against which atom the Player was on.
  */
-async function open(text, { answer = '@say Of course.\n@then resume\n', look = () => ({ status: 'accepted' }) } = {}) {
+async function open(text, { answer = '@say Of course.\n@then resume\n', look = () => ({ status: 'accepted' }), connect = null } = {}) {
     const clock = createRealClock();
     const adapter = createTextStreamAdapter({
         id: 'scripted', provider: 'test',
-        connect: async (request, sink) => {
+        connect: connect ?? (async (request, sink) => {
             const timer = setTimeout(() => { sink.delta(request.intent === 'interject' ? answer : text); sink.done(); }, 50);
             return { cancel: () => clearTimeout(timer), close: () => clearTimeout(timer) };
-        }
+        })
     });
     const landed = [];
     const atoms = [];
@@ -238,5 +238,96 @@ describe('a suggested pace', () => {
         ].join('\n'));
         await until(() => runtime.snapshot().paceSuggested?.rate === 1.5);
         expect(runtime.snapshot().paceSuggested).toEqual({ rate: 1.5, before: 1 });
+    });
+});
+
+// A final beat has no next phrase for a trailing command: its existing final phrase is the only slot.
+describe('trailing room change after the final phrase began', () => {
+    it('control: the same change before the final beat lands at that phrase', async () => {
+        const room = await open('@say Sunlight carries every colour.\n@visual intensity=0.5\n@say The sky is blue.\n');
+        await until(() => runtime.status === 'ended');
+        expect(room.landed).toEqual([expect.objectContaining({ kind: 'visual', command: expect.objectContaining({ parameter: 'intensity', value: 0.5 }) })]);
+        expect(room.landed[0].atom).toBe(room.firstAtomOf('beat-1').index);
+    });
+
+    it('lands with the final beat rather than remaining queued forever', async () => {
+        let model = null;
+        const room = await open('', { connect: async (_request, sink) => {
+            model = sink;
+            const timer = setTimeout(() => sink.delta('@say The sky is blue.\n'), 50);
+            return { cancel: () => clearTimeout(timer), close: () => clearTimeout(timer) };
+        } });
+        await until(() => room.atoms.length > 0);
+        expect(room.atoms).toHaveLength(1);
+        expect(room.landed).toEqual([]);
+        await tick(100);
+        model.delta('@visual intensity=0.5\n');
+        await tick(20);
+        expect(room.journal('room.asked')).toHaveLength(1);
+        expect(room.landed).toEqual([]); // Until completion, another beat could still provide the next boundary.
+        model.done();
+        await until(() => runtime.status === 'ended');
+        expect(room.journal('room.asked')).toEqual([expect.objectContaining({ kind: 'visual.control' })]);
+        expect(room.journal('run.finished')).toHaveLength(1);
+        expect(room.landed).toEqual([expect.objectContaining({ kind: 'visual', command: expect.objectContaining({ parameter: 'intensity', value: 0.5 }) })]);
+        expect(room.journal('room.changed')).toEqual([expect.objectContaining({ kind: 'visual.control', value: 0.5 })]);
+    });
+});
+
+describe('terminal phrase safeguards', () => {
+    it('an illustrator cue leaves the phrase slot available for a room command', async () => {
+        const room = await open([
+            '@say Sunlight carries every colour.',
+            '@scene field attractor palette=blue',
+            '@say scene=field The air scatters blue light.',
+            '@illustrate medium=cue brighter attractor',
+            '@visual intensity=0.5',
+            '@say The sky is blue.',
+            ''
+        ].join('\n'));
+        await until(() => runtime.status === 'ended');
+        expect(room.landed.map(item => item.command.value)).toEqual([0.75, 0.5]);
+        expect(room.landed.map(item => item.atom)).toEqual([room.firstAtomOf('beat-2').index, room.firstAtomOf('beat-2').index]);
+        expect(room.journal('illustrated')).toEqual([expect.objectContaining({ medium: 'cue' })]);
+        expect(room.journal('room.changed')).toEqual([expect.objectContaining({ kind: 'visual.control', value: 0.5 })]);
+    });
+
+    it('keeps reader overrides for a trailing command', async () => {
+        let model = null;
+        const room = await open('', { connect: async (_request, sink) => {
+            model = sink;
+            const timer = setTimeout(() => sink.delta('@say The sky is blue.\n'), 50);
+            return { cancel: () => clearTimeout(timer), close: () => clearTimeout(timer) };
+        } });
+        runtime.noteSetting('intensity', 0.7);
+        model.delta('@visual intensity=0.5\n');
+        model.done();
+        await until(() => runtime.status === 'ended');
+        expect(room.landed).toEqual([]);
+        expect(room.journal('room.refused')).toEqual([expect.objectContaining({ kind: 'visual.control', code: 'READER_SET' })]);
+    });
+
+    it('does not reopen a final phrase that already took a change', async () => {
+        let model = null;
+        const room = await open('', { connect: async (_request, sink) => {
+            model = sink;
+            const timer = setTimeout(() => sink.delta('@say Sunlight carries every colour.\n@look flame\n@say The sky is blue.\n'), 50);
+            return { cancel: () => clearTimeout(timer), close: () => clearTimeout(timer) };
+        } });
+        await until(() => room.landed.length === 1);
+        expect(room.landed[0]).toMatchObject({ kind: 'look', look: 'flame' });
+        model.delta('@visual intensity=0.5\n');
+        model.done();
+        await until(() => runtime.status === 'ended');
+        expect(room.landed).toHaveLength(1);
+        expect(room.journal('room.changed')).toEqual([expect.objectContaining({ kind: 'look.change' })]);
+    });
+
+    it('lands at most one non-cue in the final phrase while still handling cues', async () => {
+        const room = await open('@say The sky is blue.\n@visual intensity=0.5\n@look flame\n@cue elsewhere spin\n');
+        await until(() => runtime.status === 'ended');
+        expect(room.landed).toEqual([expect.objectContaining({ kind: 'visual', command: expect.objectContaining({ value: 0.5 }) })]);
+        expect(room.journal('room.changed')).toEqual([expect.objectContaining({ kind: 'visual.control' })]);
+        expect(room.journal('room.refused')).toEqual([expect.objectContaining({ kind: 'scene.cue', code: 'NOT_RUNNING' })]);
     });
 });
