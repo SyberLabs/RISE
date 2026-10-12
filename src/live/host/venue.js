@@ -89,6 +89,10 @@ export class LiveVenue {
         this.faceLog = [{ state: 'arrival', at: performance.now() }];
         this.render();
         void this.wakeFace();
+        // Still imagery, photosensitivity or the system's reduced motion, turned on or off while the face draws: the
+        // app marks the root (app.js applyAccessibilitySettings), and the face is started again to match.
+        this.stillWatch = typeof MutationObserver === 'function' ? new MutationObserver(() => this.followStillness()) : null;
+        this.stillWatch?.observe(this.doc.documentElement, { attributes: true, attributeFilter: ['class'] });
         if (host.params?.has('measure')) this.measureFace();
         // Connecting or disconnecting OpenRouter elsewhere in the tab is shown here at once.
         this.stopConnection = subscribeConnection(() => { if (this.chosen()?.credential === 'openrouter') this.renderCredential(); });
@@ -579,11 +583,12 @@ export class LiveVenue {
         }
         if (this.destroyed || this.faceEngine) return;
         const state = this.face.dataset.faceState;
+        this.faceStillness = this.faceHoldsStill();
         this.faceEngine = mountFace({
             host: this.face.querySelector('.live-face__disc'),
             skin: this.faceSkin,
             state,
-            reducedMotion: this.faceHoldsStill(),
+            reducedMotion: this.faceStillness,
             onFirstFrame: () => { this.face.dataset.faceDrawn = 'true'; },
             onFailure: diagnostic => {
                 this.face.dataset.faceDrawn = 'false';
@@ -591,6 +596,15 @@ export class LiveVenue {
             }
         });
         if (state !== 'speaking') this.faceEngine.play();
+    }
+
+    /** The engine is told reduced motion once, at its start: a change is a new engine, in the same skin and state. */
+    followStillness() {
+        if (!this.faceEngine || this.faceHoldsStill() === this.faceStillness) return;
+        this.faceEngine.destroy();
+        this.faceEngine = null;
+        this.face.dataset.faceDrawn = 'false';
+        void this.wakeFace();
     }
 
     /**
@@ -772,6 +786,7 @@ export class LiveVenue {
         this.bar?.remove();
         this.bar = null;
         clearTimeout(this.faceSleep);
+        this.stillWatch?.disconnect();
         this.faceEngine?.destroy();
         this.faceEngine = null;
         this.face.remove();

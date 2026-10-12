@@ -735,6 +735,23 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         host = null;
     });
 
+    it('holds still as soon as the reader asks for still imagery, without a reload', async () => {
+        mount();
+        await vi.waitFor(() => expect(engine()).toBeTruthy());
+        const first = engine();
+        expect(first.options.reducedMotion).toBe(false);
+        document.documentElement.classList.add('reduced-motion');
+        try {
+            await vi.waitFor(() => expect(faces).toHaveLength(2));
+            expect(first.destroyed).toBe(true);
+            expect(engine().options).toMatchObject({ reducedMotion: true, state: 'arrival', skin: 'sophia' });
+        } finally {
+            document.documentElement.classList.remove('reduced-motion');
+        }
+        await vi.waitFor(() => expect(faces).toHaveLength(3));
+        expect(engine().options.reducedMotion).toBe(false);
+    });
+
     it('is never the model’s: the reading’s scenes and journal are not touched by it', async () => {
         mount('?voice=paced');
         ask('First?');
