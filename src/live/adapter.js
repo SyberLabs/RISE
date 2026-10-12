@@ -26,6 +26,8 @@
 
 import { RISE_CURRENT_EVENTS_SCHEMA, validateEvent } from './protocol.js';
 import { admitPerception } from './perception.js';
+import { RISE_CURRENT_LOOKS, RISE_CURRENT_THEME_IDS } from '../core/rise-current.js';
+import { BEAT_LIMITS, SCENE_ENGINES } from '../core/beats.js';
 
 export class AdapterError extends Error {
     constructor(code, message, { recoverable = false } = {}) {
@@ -36,14 +38,24 @@ export class AdapterError extends Error {
     }
 }
 
-/** `reading`, `readingText`: the passages of the reading so far an interjection carries, and the length of each. */
+/**
+ * `reading`, `readingText`: the passages of the reading so far an interjection carries, and the length of each.
+ * `said`, `attempts`, `diagnostics`, `diagnostic`, `source`: what an illustrator's request carries (illustration): the
+ * beats just said (each at most `readingText`), the attempts in all, a refusal's diagnostics and each one's sentence,
+ * and the refused source, as long as any scene may be.
+ */
 export const OPEN_LIMITS = Object.freeze({
     prompt: 2_000,
     context: 5,
     contextText: 500,
     id: 120,
     reading: 64,
-    readingText: 300
+    readingText: 300,
+    said: 2,
+    attempts: 3,
+    diagnostics: 10,
+    diagnostic: 300,
+    source: Math.max(BEAT_LIMITS.code, BEAT_LIMITS.svg)
 });
 
 /** Numbers events for one Current. Every adapter writes through one. */
@@ -226,11 +238,80 @@ function reading(value) {
     };
 }
 
+/** One diagnostic of a refused picture, as the admission gives it (src/core/scene-admission.js). */
+function diagnostic(value, i) {
+    const path = `illustration.repair.diagnostics[${i}]`;
+    const source = plain(value, path);
+    only(source, ['line', 'column', 'rule', 'message'], path);
+    for (const key of ['line', 'column']) {
+        if (source[key] !== null && (!Number.isInteger(source[key]) || source[key] < 1)) throw new AdapterError('OPEN_REQUEST', `Expected a line or column, or null, at ${path}.${key}`);
+    }
+    if (typeof source.rule !== 'string' || !/^[a-z][a-z-]{0,39}$/u.test(source.rule)) throw new AdapterError('OPEN_REQUEST', `Expected a rule's name at ${path}.rule`);
+    return { line: source.line, column: source.column, rule: source.rule, message: text(source.message, OPEN_LIMITS.diagnostic, `${path}.message`) };
+}
+
+/**
+ * What the illustrator is given (docs/plans/LIVE-CURRENT.md §19): the medium to draw in, which attempt this is, the
+ * room (its theme and look, the scene running where the picture was asked for, the beats just said, the reader's words
+ * when an answer to them asked for it), and on a repair what was refused and why.
+ */
+function illustration(value) {
+    const source = plain(value, 'illustration');
+    only(source, ['medium', 'attempt', 'theme', 'look', 'running', 'said', 'asked', 'repair'], 'illustration');
+    if (!['figure', 'scene'].includes(source.medium)) throw new AdapterError('OPEN_REQUEST', 'An illustrator draws a figure or a scene');
+    if (!Number.isInteger(source.attempt) || source.attempt < 1 || source.attempt > OPEN_LIMITS.attempts) {
+        throw new AdapterError('OPEN_REQUEST', `Expected an attempt from 1 to ${OPEN_LIMITS.attempts}`);
+    }
+    const clean = { medium: source.medium, attempt: source.attempt };
+    if (source.theme !== undefined) {
+        if (!RISE_CURRENT_THEME_IDS.includes(source.theme)) throw new AdapterError('OPEN_REQUEST', 'Unknown theme at illustration.theme');
+        clean.theme = source.theme;
+    }
+    if (source.look !== undefined) {
+        if (!RISE_CURRENT_LOOKS.includes(source.look)) throw new AdapterError('OPEN_REQUEST', 'Unknown look at illustration.look');
+        clean.look = source.look;
+    }
+    if (source.running !== undefined) {
+        const running = plain(source.running, 'illustration.running');
+        only(running, ['id', 'engine', 'form'], 'illustration.running');
+        const scene = { id: text(running.id, OPEN_LIMITS.id, 'illustration.running.id') };
+        if ((running.engine === undefined) === (running.form === undefined)) throw new AdapterError('OPEN_REQUEST', 'A running scene is an engine or a form');
+        if (running.engine !== undefined && !SCENE_ENGINES.includes(running.engine)) throw new AdapterError('OPEN_REQUEST', 'Unknown engine at illustration.running');
+        if (running.form !== undefined && !['svg', 'code'].includes(running.form)) throw new AdapterError('OPEN_REQUEST', 'Unknown form at illustration.running');
+        clean.running = running.engine !== undefined ? { ...scene, engine: running.engine } : { ...scene, form: running.form };
+    }
+    if (!Array.isArray(source.said) || source.said.length > OPEN_LIMITS.said) throw new AdapterError('OPEN_REQUEST', `Expected at most ${OPEN_LIMITS.said} beats at illustration.said`);
+    clean.said = source.said.map((line, i) => text(line, OPEN_LIMITS.readingText, `illustration.said[${i}]`));
+    if (source.asked !== undefined) clean.asked = text(source.asked, OPEN_LIMITS.prompt, 'illustration.asked');
+    if (source.repair !== undefined) {
+        const repair = plain(source.repair, 'illustration.repair');
+        only(repair, ['source', 'diagnostics'], 'illustration.repair');
+        if (!Array.isArray(repair.diagnostics) || repair.diagnostics.length === 0 || repair.diagnostics.length > OPEN_LIMITS.diagnostics) {
+            throw new AdapterError('OPEN_REQUEST', `Expected 1 to ${OPEN_LIMITS.diagnostics} diagnostics at illustration.repair`);
+        }
+        clean.repair = {
+            ...(repair.source === undefined ? {} : { source: text(repair.source, OPEN_LIMITS.source, 'illustration.repair.source') }),
+            diagnostics: repair.diagnostics.map(diagnostic)
+        };
+    }
+    return clean;
+}
+
 export function validateOpenRequest(input) {
     const source = plain(input, 'request');
-    only(source, ['intent', 'prompt', 'parent', 'perception', 'reading'], 'request');
-    if (!['answer', 'dive', 'interject'].includes(source.intent)) throw new AdapterError('OPEN_REQUEST', 'Unknown intent');
+    only(source, ['intent', 'prompt', 'parent', 'perception', 'reading', 'illustration'], 'request');
+    if (!['answer', 'dive', 'interject', 'illustrate'].includes(source.intent)) throw new AdapterError('OPEN_REQUEST', 'Unknown intent');
     const request = { intent: source.intent, prompt: text(source.prompt, OPEN_LIMITS.prompt, 'request.prompt') };
+    if (source.intent === 'illustrate') {
+        // A picture asked for: the brief is the prompt; nothing a question carries goes with it (docs/plans/LIVE-CURRENT.md §19).
+        if (source.illustration === undefined) throw new AdapterError('OPEN_REQUEST', 'An illustrator is given what to draw and the room');
+        for (const key of ['reading', 'perception', 'parent']) {
+            if (source[key] !== undefined) throw new AdapterError('OPEN_REQUEST', `An illustrator is given no ${key}`);
+        }
+        request.illustration = illustration(source.illustration);
+        return request;
+    }
+    if (source.illustration !== undefined) throw new AdapterError('OPEN_REQUEST', 'Only an illustrator is given an illustration');
     if (source.intent === 'interject') {
         // The reader spoke mid-reading: the reading so far goes up with their words (docs/plans/LIVE-CURRENT.md §17).
         if (source.reading === undefined) throw new AdapterError('OPEN_REQUEST', 'An interjection carries the reading it was made in');

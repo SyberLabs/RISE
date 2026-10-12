@@ -10,7 +10,13 @@ import { SCENE_ENGINES } from '../../core/beats.js';
 import { TOOL_NAME } from '../guide/index.js';
 import { createEventWriter } from '../adapter.js';
 import { createCurrentStream } from '../stream.js';
-import { BEAT_EXAMPLES, INTERJECTION_GUIDE, instructionsFor, PERCEPTION_GUIDE, PERSONA, promptFor, READING_CLOSING, READING_OPENING, REALTIME_INSTRUCTIONS, ROOM_GUIDE } from './openai-instructions.js';
+import {
+    BEAT_EXAMPLES, ILLUSTRATE_GUIDE, ILLUSTRATOR_EXAMPLES, ILLUSTRATOR_INSTRUCTIONS, INTERJECTION_GUIDE, instructionsFor, PERCEPTION_GUIDE, PERSONA,
+    promptFor, READING_CLOSING, READING_OPENING, REALTIME_INSTRUCTIONS, ROOM_GUIDE
+} from './openai-instructions.js';
+import { FIGURE_EXAMPLE, LIB_GUIDE, SCENE_CODE_EXAMPLE } from '../guide/beats.js';
+import { SVG_ELEMENTS } from '../../core/svg-admission.js';
+import { BANNED_SCENE_NAMES } from '../../core/scene-admission.js';
 import { RISE_CURRENT_LOOKS } from '../../core/rise-current.js';
 import { describePerception, perceive, PERCEPTION_CLOSING, PERCEPTION_OPENING } from '../perception.js';
 import { buildBody as buildOpenRouterBody } from './openrouter.js';
@@ -206,5 +212,99 @@ describe('the room (stage 5, design §6)', () => {
         parser.push(`@say One.\n@scene field attractor\n@say scene=field Two.\n${lines.map(line => line.split(/\s{2,}/u)[0]).join('\n')}\n@say Three.\n`);
         parser.finish();
         expect(sent.filter(event => event.type === 'room.change')).toHaveLength(lines.length);
+    });
+});
+
+describe('the illustrator (stage 5.5, design §6.2)', () => {
+    const noOrders = text => {
+        expect(text).not.toMatch(/you must|\balways\b|\bnever\b/iu);
+        for (const sentence of text.split(/(?<=[.:])\s+|\n/u)) {
+            expect(sentence.trim(), sentence).not.toMatch(/^(?:- )?(?:Always|Never|Do not|Don’t|Don't|Answer|Write|Say|Use)\b/u);
+        }
+    };
+    const read = text => {
+        const sent = [];
+        const parser = createSegmentParser((type, body) => sent.push({ type, ...body }));
+        parser.push(text);
+        parser.finish();
+        return sent;
+    };
+    const room = { medium: 'figure', attempt: 1, theme: 'cobalt', running: { id: 'field', engine: 'attractor' }, said: ['Water comes in three states.', 'Which one depends on “heat”.\nSecond line'], asked: 'Show me that as a diagram.' };
+
+    it('the composer is taught to ask: the line, the brief, RISE’s engines first, and that the voice goes on', () => {
+        expect(REALTIME_INSTRUCTIONS).toContain(ILLUSTRATE_GUIDE);
+        expect(ILLUSTRATE_GUIDE).toContain('@illustrate [medium=cue|figure|scene] <brief>');
+        expect(ILLUSTRATE_GUIDE).toMatch(/engines first/u);
+        expect(ILLUSTRATE_GUIDE).toMatch(/RISE keeps speaking/u);
+        expect(ILLUSTRATE_GUIDE).toMatch(/drawing…/u);
+        noOrders(ILLUSTRATE_GUIDE);
+        const examples = ILLUSTRATE_GUIDE.split('\n').filter(line => /^@illustrate \S/u.test(line) && !line.includes('<'));
+        expect(examples.length).toBeGreaterThanOrEqual(2);
+        const changes = read(`@say One.\n${examples.join('\n')}\n@say Two.\n`).filter(event => event.type === 'room.change');
+        expect(changes.map(change => change.kind)).toEqual(examples.map(() => 'illustrate'));
+    });
+
+    it('the illustrator is told who it is, that it draws and does not speak, and the forms, built from the guide’s own pieces', () => {
+        expect(ILLUSTRATOR_INSTRUCTIONS.startsWith('You are RISE’s illustrator.')).toBe(true);
+        expect(ILLUSTRATOR_INSTRUCTIONS).not.toContain(PERSONA);
+        expect(ILLUSTRATOR_INSTRUCTIONS).toMatch(/say nothing/u);
+        for (const form of ['@scene picture svg', '@scene picture code', '@cue <scene> <cue>', '@visual <parameter>=<value>']) expect(ILLUSTRATOR_INSTRUCTIONS, form).toContain(form);
+        for (const [, line] of LIB_GUIDE) expect(ILLUSTRATOR_INSTRUCTIONS, line).toContain(line);
+        for (const element of SVG_ELEMENTS) expect(ILLUSTRATOR_INSTRUCTIONS, element).toContain(element);
+        for (const name of BANNED_SCENE_NAMES) expect(ILLUSTRATOR_INSTRUCTIONS, name).toContain(name);
+        expect(ILLUSTRATOR_INSTRUCTIONS).toContain(FIGURE_EXAMPLE);
+        expect(ILLUSTRATOR_INSTRUCTIONS).toContain(SCENE_CODE_EXAMPLE);
+        expect(ILLUSTRATOR_INSTRUCTIONS).toMatch(/Three attempts in all/u);
+        noOrders(ILLUSTRATOR_INSTRUCTIONS);
+    });
+
+    it('its worked answers are read as one picture and nothing said, and RISE’s admission takes them', () => {
+        expect(ILLUSTRATOR_EXAMPLES).toHaveLength(2);
+        for (const example of ILLUSTRATOR_EXAMPLES) {
+            expect(ILLUSTRATOR_INSTRUCTIONS).toContain(example);
+            const sent = read(example);
+            expect(sent.filter(event => event.type.startsWith('segment.'))).toEqual([]);
+            const declared = sent.filter(event => event.type === 'scene.declare');
+            expect(declared).toHaveLength(1);
+            const source = sent.filter(event => event.type === 'scene.text').map(event => event.text).join('');
+            expect(sceneRefusal(declared[0].form === 'svg' ? { id: 'picture', svg: source } : { id: 'picture', code: source })).toBeNull();
+        }
+    });
+
+    it('each provider gives the illustrator its own instructions, and the composer its own', () => {
+        const origin = { name: 'anthropic/claude-haiku-5.5', provider: 'OpenRouter' };
+        expect(instructionsFor(origin, 'illustrate').startsWith(ILLUSTRATOR_INSTRUCTIONS)).toBe(true);
+        expect(instructionsFor(origin, 'illustrate').endsWith('In this room the model is anthropic/claude-haiku-5.5, reached through OpenRouter, on the reader’s own key.')).toBe(true);
+        expect(instructionsFor(origin, 'answer')).toBe(instructionsFor(origin));
+        const request = { intent: 'illustrate', prompt: 'a labelled diagram of the three states of water', illustration: room };
+        const body = buildOpenRouterBody(request, 'anthropic/claude-haiku-5.5');
+        expect(body.messages[0].content.startsWith(ILLUSTRATOR_INSTRUCTIONS)).toBe(true);
+        expect(body.messages[1].content).toBe(promptFor(request));
+        expect(buildGeminiBody(request).systemInstruction.parts[0].text.startsWith(ILLUSTRATOR_INSTRUCTIONS)).toBe(true);
+        expect(buildOpenRouterBody({ intent: 'answer', prompt: 'Why?' }, 'anthropic/claude-haiku-5.5').messages[0].content.startsWith(REALTIME_INSTRUCTIONS)).toBe(true);
+    });
+
+    it('is asked with the brief and the room, each quoted on one line', () => {
+        const asked = promptFor({ intent: 'illustrate', prompt: 'a labelled diagram of the three states of water', illustration: room });
+        expect(asked).toContain('What to draw (RISE’s brief, quoted): “a labelled diagram of the three states of water”');
+        expect(asked).toContain('Medium: a figure');
+        expect(asked).toContain('the theme is cobalt');
+        expect(asked).toContain('the scene “field” is running, the attractor engine');
+        expect(asked).toContain('1. “Water comes in three states.”');
+        expect(asked).toContain('2. “Which one depends on \'heat\'. Second line”');
+        expect(asked).toContain('The reader asked (quoted): “Show me that as a diagram.”');
+        expect(asked).not.toMatch(/refused/u);
+        noOrders(asked.split('\n').at(-1));
+    });
+
+    it('is asked again with each refusal and the source it refused, and the attempt', () => {
+        const repair = { source: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>x</script></svg>', diagnostics: [{ line: 1, column: 63, rule: 'element', message: '<script> is not an element a figure may use' }] };
+        const asked = promptFor({ intent: 'illustrate', prompt: 'water', illustration: { ...room, attempt: 2, repair } });
+        expect(asked).toContain('Attempt 2 of 3. RISE refused the last picture:');
+        expect(asked).toContain('- line 1, column 63 (element): <script> is not an element a figure may use.');
+        expect(asked).toContain(`\`\`\`\n${repair.source}\n\`\`\``);
+        const nothing = promptFor({ intent: 'illustrate', prompt: 'water', illustration: { ...room, attempt: 3, repair: { diagnostics: [{ line: null, column: null, rule: 'nothing-drawn', message: 'the answer drew no picture' }] } } });
+        expect(nothing).toContain('- (nothing-drawn): the answer drew no picture.');
+        noOrders(asked.split('\n').at(-1));
     });
 });

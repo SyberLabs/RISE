@@ -11,6 +11,8 @@ import {
     EVENT_LIMITS,
     EVENT_TYPES,
     EXPERIENCE_DIMENSIONS,
+    ILLUSTRATION_LIMITS,
+    ILLUSTRATION_MEDIA,
     LiveProtocolError,
     RISE_CURRENT_EVENTS_SCHEMA,
     decodeEvent,
@@ -545,6 +547,39 @@ describe('the model changes the room (stage 5)', () => {
             [{ kind: 'pace.suggest', rate: '1.25' }, '$.rate']
         ]) {
             expect(refusal(room(body)), JSON.stringify(body)).toMatchObject({ code: path === '$.scene' ? 'EVENT_ID' : 'EVENT_ROOM', path });
+        }
+    });
+});
+
+describe('the composer asks for a picture (stage 5.5)', () => {
+    const room = body => base('room.change', 5, body);
+
+    it('carries a brief, and a medium when one is preferred', () => {
+        for (const body of [
+            { kind: 'illustrate', brief: 'a labelled diagram of the three states of water' },
+            { kind: 'illustrate', brief: 'brighter attractor', medium: 'cue' },
+            { kind: 'illustrate', brief: 'a pendulum swinging', medium: 'scene' },
+            { kind: 'illustrate', brief: 'x'.repeat(ILLUSTRATION_LIMITS.brief), medium: 'figure' }
+        ]) {
+            expect(validateEvent(structuredClone(room(body)))).toEqual(room(body));
+        }
+        expect(ILLUSTRATION_MEDIA).toEqual(['cue', 'figure', 'scene']);
+    });
+
+    it('holds the brief to one bounded line and the medium to the three', () => {
+        for (const [body, path, code = 'EVENT_ROOM'] of [
+            [{ kind: 'illustrate' }, '$.brief'],
+            [{ kind: 'illustrate', brief: '' }, '$.brief'],
+            [{ kind: 'illustrate', brief: '   ' }, '$.brief'],
+            [{ kind: 'illustrate', brief: 'x'.repeat(ILLUSTRATION_LIMITS.brief + 1) }, '$.brief'],
+            [{ kind: 'illustrate', brief: 'two\nlines' }, '$.brief'],
+            [{ kind: 'illustrate', brief: 'a [PAUSE] here' }, '$.brief'],
+            [{ kind: 'illustrate', brief: 'a | bar' }, '$.brief'],
+            [{ kind: 'illustrate', brief: 42 }, '$.brief'],
+            [{ kind: 'illustrate', brief: 'water', medium: 'video' }, '$.medium'],
+            [{ kind: 'illustrate', brief: 'water', look: 'flame' }, '$.look', 'EVENT_UNKNOWN_FIELD']
+        ]) {
+            expect(refusal(room(body)), JSON.stringify(body)).toMatchObject({ code, path });
         }
     });
 });

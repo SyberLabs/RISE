@@ -83,11 +83,16 @@ export const ROOM_CHANGE_FIELDS = Object.freeze({
     'visual.control': Object.freeze(['parameter', 'value', 'surface']),
     'scene.cue': Object.freeze(['scene', 'cue']),
     'look.change': Object.freeze(['look']),
-    'pace.suggest': Object.freeze(['rate'])
+    'pace.suggest': Object.freeze(['rate']),
+    // A picture the composer asks for while it goes on speaking (docs/plans/LIVE-CURRENT.md §19): what to draw, and the medium it prefers.
+    illustrate: Object.freeze(['brief', 'medium'])
 });
 export const ROOM_CHANGE_KINDS = Object.freeze(Object.keys(ROOM_CHANGE_FIELDS));
 /** A suggested pace, as the reader's own is bounded (runtime.js setPace). */
 export const ROOM_PACE = Object.freeze({ min: 0.5, max: 2 });
+/** The media a picture may be asked for in, cheapest first: an engine's cue, a figure (SVG), a code scene. */
+export const ILLUSTRATION_MEDIA = Object.freeze(['cue', 'figure', 'scene']);
+export const ILLUSTRATION_LIMITS = Object.freeze({ brief: 300 });
 
 /**
  * The intended experiential condition of a segment. These describe what the
@@ -397,6 +402,15 @@ function roomChange(e, p) {
             if (!RISE_CURRENT_LOOKS.includes(e.look)) fail('EVENT_ROOM', `${p}.look`, `A look is one of ${RISE_CURRENT_LOOKS.join(', ')}`);
             clean.look = e.look;
             break;
+        case 'illustrate':
+            clean.brief = text(e.brief, ILLUSTRATION_LIMITS.brief, `${p}.brief`, 'EVENT_ROOM');
+            // One line of words: no control or line-breaking character, and none of the playback markers.
+            if (/[\p{Cc}\p{Zl}\p{Zp}]/u.test(clean.brief) || hasReservedMarker(clean.brief)) fail('EVENT_ROOM', `${p}.brief`, 'A brief is one line of plain words');
+            if (given(e, 'medium')) {
+                if (!ILLUSTRATION_MEDIA.includes(e.medium)) fail('EVENT_ROOM', `${p}.medium`, `A medium is one of ${ILLUSTRATION_MEDIA.join(', ')}`);
+                clean.medium = e.medium;
+            }
+            break;
         default:
             if (typeof e.rate !== 'number' || !Number.isFinite(e.rate) || e.rate < ROOM_PACE.min || e.rate > ROOM_PACE.max) {
                 fail('EVENT_ROOM', `${p}.rate`, `A pace is from ${ROOM_PACE.min} to ${ROOM_PACE.max}`);
@@ -409,7 +423,7 @@ function roomChange(e, p) {
 /** What each type carries beyond the envelope, and how each field is checked. */
 const BODIES = {
     // The model changes the room it is playing in (docs/plans/LIVE-CURRENT.md §18).
-    'room.change': { fields: ['kind', 'surface', 'parameter', 'value', 'scene', 'cue', 'look', 'rate'], read: roomChange },
+    'room.change': { fields: ['kind', 'surface', 'parameter', 'value', 'scene', 'cue', 'look', 'rate', 'brief', 'medium'], read: roomChange },
     'current.open': {
         fields: ['title', 'origin', 'theme', 'look'],
         read: (e, p) => {

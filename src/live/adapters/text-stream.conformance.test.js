@@ -110,3 +110,45 @@ describe('an answer to an interjection (stage 4.5)', () => {
         expect(events.at(-1)).not.toHaveProperty('ending');
     });
 });
+
+describe('a picture asked of the illustrator (stage 5.5)', () => {
+    const FIGURE = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>';
+    const REQUEST = { intent: 'illustrate', prompt: 'a circle', illustration: { medium: 'figure', attempt: 1, said: [] } };
+
+    async function drawn(text) {
+        let sink;
+        const adapter = createTextStreamAdapter({
+            id: 'illustrator', provider: 'test',
+            connect: async (_request, providerSink) => { sink = providerSink; return { cancel() {}, close() {} }; }
+        });
+        const connection = await adapter.open(REQUEST);
+        sink.delta(text);
+        sink.done();
+        const events = [];
+        for await (const event of connection.events) events.push(event);
+        return { events, adapter };
+    }
+
+    it('completes with the scene it drew and no beat at all, on a Current of its own', async () => {
+        const { events } = await drawn(`@scene picture svg\n\`\`\`svg\n${FIGURE}\n\`\`\`\n`);
+        expect(events.map(event => event.type)).toEqual(['current.open', 'scene.declare', 'scene.text', 'current.complete']);
+        expect(events[0].currentId).toMatch(/^illustration-illustrator-/u);
+        expect(events[1]).toMatchObject({ sceneId: 'picture', form: 'svg' });
+    });
+
+    it('completes with a cue it gave instead, and fails as an empty answer when it drew nothing', async () => {
+        expect((await drawn('@cue field bright\n')).events.map(event => event.type)).toEqual(['current.open', 'room.change', 'current.complete']);
+        const { events } = await drawn('');
+        expect(events.at(-1)).toMatchObject({ type: 'error', code: 'EMPTY_ANSWER', recoverable: false });
+    });
+
+    it('gives each of the admission’s diagnostics for a picture, by the functions the reducer and the Worker run', async () => {
+        const { adapter } = await drawn('');
+        expect(adapter.diagnoseScene({ id: 'picture', svg: FIGURE })).toEqual([]);
+        const refused = adapter.diagnoseScene({ id: 'picture', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>alert(1)</script></svg>' });
+        expect(refused[0]).toMatchObject({ line: 1, rule: expect.any(String), message: expect.stringContaining('script') });
+        expect(adapter.admitScene({ id: 'picture', svg: FIGURE })).toBeNull();
+        const code = adapter.diagnoseScene({ id: 'picture', code: 'export default function scene(rise) { fetch("x"); return { frame() {} }; }' });
+        expect(code.map(item => item.rule)).toContain('banned-name');
+    });
+});

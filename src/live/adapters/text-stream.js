@@ -34,9 +34,21 @@ import {
     validateOpenRequest
 } from '../adapter.js';
 import { createSegmentParser } from './segment-parser.js';
-import { sceneRefusal } from '../../core/scene-admission.js';
+import { admitSceneCode, sceneRefusal } from '../../core/scene-admission.js';
+import { admitSvg } from '../../core/svg-admission.js';
 
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
+
+/**
+ * Every diagnostic the admission gives a generated scene or a figure (`{ line, column, rule, message }`, at most ten),
+ * or none when it is admitted: the functions `sceneRefusal` wraps, which the reducer and the Worker's door run, for
+ * the illustrator's repair (docs/plans/LIVE-CURRENT.md §19).
+ */
+function diagnoseScene(scene) {
+    const verdict = scene.code !== undefined ? admitSceneCode(scene.code) : admitSvg(scene.svg);
+    // A figure's diagnostics name no rule of their own: the figure rules are one rule to the illustrator.
+    return verdict.ok ? [] : verdict.diagnostics.map(({ line, column, rule, message }) => ({ line, column, rule: rule ?? 'figure', message }));
+}
 
 /**
  * @param {object} options
@@ -57,6 +69,8 @@ export function createTextStreamAdapter({ id, provider, origin = () => ({ name: 
         id,
         // A model's beats may carry a generated scene or a figure: the reducer admits each by the Worker's own rules.
         admitScene: sceneRefusal,
+        // The same admission, every diagnostic of it: what the illustrator is asked to repair.
+        diagnoseScene,
         capabilities: Object.freeze({
             // RISE's voice speaks the text and is the clock (the RISE Live design, §2); a provider never does here.
             speaks: 'host',
@@ -70,7 +84,8 @@ export function createTextStreamAdapter({ id, provider, origin = () => ({ name: 
 
         async open(input, { signal } = {}) {
             const request = validateOpenRequest(input);
-            const currentId = `${request.intent === 'dive' ? 'dive' : 'answer'}-${id}-${opened}`;
+            const kind = { dive: 'dive', illustrate: 'illustration' }[request.intent] ?? 'answer';
+            const currentId = `${kind}-${id}-${opened}`;
             opened += 1;
 
             const writer = createEventWriter(currentId);
@@ -125,7 +140,9 @@ export function createTextStreamAdapter({ id, provider, origin = () => ({ name: 
                 done() {
                     if (finished || closed) return;
                     const { passages, ending } = parser.finish();
-                    if (passages === 0 || !log.some(event => event.type === 'segment.end')) {
+                    // An illustrator answers with a picture, a scene or a cue, and says nothing (docs/plans/LIVE-CURRENT.md §19).
+                    const drew = request.intent === 'illustrate' && log.some(event => event.type === 'scene.declare' || event.type === 'room.change');
+                    if (!drew && (passages === 0 || !log.some(event => event.type === 'segment.end'))) {
                         fail('EMPTY_ANSWER', 'The provider finished without saying anything');
                         return;
                     }

@@ -53,9 +53,11 @@
  * ROOM. Between beats a model may change the room it plays in (docs/plans/LIVE-CURRENT.md §18):
  *
  *     @visual <parameter>=<value> [surface=<id>]   @cue <scene> <cue>   @look <look>   @pace <rate>
+ *     @illustrate [medium=cue|figure|scene] <brief>   (a picture asked for, docs/plans/LIVE-CURRENT.md §19)
  *
  * each read into a `room.change` only if something would take it (the manifests, the scene, the looks, the
- * pace's bounds), at most PARSER_LIMITS.roomChanges an answer. A room line first makes a beat stream.
+ * pace's bounds, a brief of words in bounds), at most PARSER_LIMITS.roomChanges an answer. A room line first makes a
+ * beat stream.
  *
  * ENDING. An answer to an interjection ends with `@then resume|replace|end`
  * on a line of its own, in either format (docs/plans/LIVE-CURRENT.md §17).
@@ -67,7 +69,7 @@ import { soundKind } from '../../audio/sound-ids.js';
 import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES, cueCommands, engineTakes, validateSceneParams } from '../../core/beats.js';
 import { sceneCodeBytes } from '../../core/experience-program.js';
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_VISUALS } from '../../core/rise-current.js';
-import { EVENT_LIMITS, EXPERIENCE_DIMENSIONS, ROOM_PACE } from '../protocol.js';
+import { EVENT_LIMITS, EXPERIENCE_DIMENSIONS, ILLUSTRATION_LIMITS, ILLUSTRATION_MEDIA, ROOM_PACE } from '../protocol.js';
 import { STREAM_LIMITS } from '../stream.js';
 
 /**
@@ -85,7 +87,9 @@ export const PARSER_LIMITS = Object.freeze({
 /** A line that begins a beat or declares a scene: it also closes a fence the model left open. */
 const BEAT_DIRECTIVE = /^@(say|show|hold|scene)(?:\s|$)/iu;
 /** A line only a beat stream has: a beat, a scene, or a change to the room. The first line of an answer that is one makes a beat stream. */
-const BEAT_STREAM_LINE = /^@(say|show|hold|scene|visual|cue|look|pace)(?:\s|$)/iu;
+const BEAT_STREAM_LINE = /^@(say|show|hold|scene|visual|cue|look|pace|illustrate)(?:\s|$)/iu;
+/** `@illustrate`'s preferred medium, when it names one (docs/plans/LIVE-CURRENT.md §19). */
+const MEDIUM = /^medium=(\S*)$/u;
 /** `@pace`'s rate as a model writes it: a number such as 1.25. */
 const RATE = /^\d(?:\.\d{1,2})?$/u;
 const PARAMETER = /^([A-Za-z]{1,40})=([A-Za-z0-9_:=.-]{1,40})$/u;
@@ -445,7 +449,7 @@ export function createSegmentParser(write) {
         else if (word === '@show') showBeat(tokens.slice(1));
         else if (word === '@hold') holdBeat(tokens.slice(1));
         else if (word === '@scene') sceneLine(tokens.slice(1));
-        else if (['@visual', '@cue', '@look', '@pace'].includes(word)) roomLine(word, tokens.slice(1));
+        else if (['@visual', '@cue', '@look', '@pace', '@illustrate'].includes(word)) roomLine(word, tokens.slice(1));
         // In a beat stream a line of words is said; any other directive, @passage and @end among them, is ignored.
         else if (!trimmed.startsWith('@')) sayBeat(tokens);
     }
@@ -465,6 +469,14 @@ export function createSegmentParser(write) {
      * not declare is the room's, resolved where it lands. A command must be one some engine takes while it runs.
      */
     function readRoomChange(word, tokens) {
+        if (word === '@illustrate') {
+            // A picture asked for: the medium it prefers, if it names one of the three, then what to draw, as words.
+            const named = MEDIUM.exec(tokens[0] ?? '');
+            if (named && !ILLUSTRATION_MEDIA.includes(named[1])) return null;
+            const brief = words(tokens.slice(named ? 1 : 0).join(' '));
+            if (!brief || brief.length > ILLUSTRATION_LIMITS.brief) return null;
+            return { kind: 'illustrate', brief, ...(named ? { medium: named[1] } : {}) };
+        }
         if (word === '@look') return tokens.length === 1 && RISE_CURRENT_LOOKS.includes(tokens[0]) ? { kind: 'look.change', look: tokens[0] } : null;
         if (word === '@pace') {
             const rate = tokens.length === 1 && RATE.test(tokens[0]) ? Number(tokens[0]) : Number.NaN;

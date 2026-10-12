@@ -587,3 +587,53 @@ describe('the model changes the room, between beats (stage 5)', () => {
         expect(refusals).toBe(0);
     });
 });
+
+describe('the composer asks for a picture, @illustrate (stage 5.5)', () => {
+    const changes = text => beats([text]).stream.roomChanges;
+
+    it('reads the brief, and the medium it prefers, into a room change anchored before the next beat', () => {
+        const text = [
+            '@say Water comes in three states.',
+            '@illustrate a labelled diagram of the three states of water',
+            '@illustrate medium=cue brighter attractor',
+            '@illustrate medium=scene a pendulum swinging',
+            '@say Ice, water and steam.',
+            ''
+        ].join('\n');
+        const { stream, refusals } = beats([text]);
+        expect(refusals).toBe(0);
+        expect(stream.roomChanges).toEqual([
+            { before: 1, change: { kind: 'illustrate', brief: 'a labelled diagram of the three states of water' } },
+            { before: 1, change: { kind: 'illustrate', brief: 'brighter attractor', medium: 'cue' } },
+            { before: 1, change: { kind: 'illustrate', brief: 'a pendulum swinging', medium: 'scene' } }
+        ]);
+        expect(stream.toCurrent().beats.map(beat => beat.say)).toEqual(['Water comes in three states.', 'Ice, water and steam.']);
+    });
+
+    it('neutralises the brief as words, and drops an empty one, an unknown medium and one past its bound', () => {
+        expect(changes('@say One.\n@illustrate   the  [PAUSE] sky |  at dusk  \n@say Two.\n')).toEqual([
+            { before: 1, change: { kind: 'illustrate', brief: 'the (PAUSE) sky / at dusk' } }
+        ]);
+        const dropped = [
+            '@say One.',
+            '@illustrate',
+            '@illustrate medium=figure',
+            '@illustrate medium=video the sky',
+            `@illustrate ${'x'.repeat(301)}`,
+            '@say Two.',
+            ''
+        ].join('\n');
+        const { stream, refusals } = beats([dropped]);
+        expect(refusals).toBe(0);
+        expect(stream.roomChanges).toEqual([]);
+        expect(stream.toCurrent().beats).toHaveLength(2);
+    });
+
+    it('first makes a beat stream, is source inside a fence, and is chunk-invariant', () => {
+        expect(beats(['@illustrate the sky\nBlue, then.\n']).stream.roomChanges).toHaveLength(1);
+        expect(beats(['@say One.\n@scene disk code\n```js\n@illustrate the sky\nexport default function scene(rise) { return { frame() {}, cue() {} }; }\n```\n@say scene=disk Two.\n']).stream.roomChanges).toEqual([]);
+        const text = '@say One.\n@illustrate medium=figure a labelled diagram of water\n@say Two.\n';
+        const whole = JSON.stringify(beats([text]).sent);
+        for (let at = 1; at < text.length; at += 1) expect(JSON.stringify(beats([text.slice(0, at), text.slice(at)]).sent), String(at)).toBe(whole);
+    });
+});
