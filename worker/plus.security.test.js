@@ -1,3 +1,4 @@
+import { audioStorage } from './plus-test-storage.mjs';
 /**
  * The independent attack suite against worker/plus.mjs (the 2026-10-08 security review and
  * its verification), kept in the repo so every change to the paid voice runs it.
@@ -71,7 +72,7 @@ function meterNamespace() {
     instance(name) {
       if (!instances.has(name)) {
         const map = new Map();
-        instances.set(name, new PlusMeter({ storage: { kv: { get: k => map.get(k), put: (k, v) => { map.set(k, v); }, delete: k => map.delete(k) } } }));
+        instances.set(name, new PlusMeter({ storage: audioStorage() }));
       }
       return instances.get(name);
     },
@@ -276,7 +277,7 @@ describe('allowance integrity (original exploits, valid plumbing)', () => {
       const r = await worker.fetch(voiceReq(cookie, [textOf(10_000, 1)]), e);
       out.push(`${r.status} ${await code(r)}`);
     }
-    expect(out).toEqual(['502 VOICE_REFUSED', ...Array(4).fill('402 PLUS_ALLOWANCE')]);
+    expect(out).toEqual(['502 VOICE_REFUSED', ...Array(4).fill('409 PLUS_AUDIO_UNAVAILABLE')]);
     expect(s.vendorChars).toBe(10_000);
     expect(await used(e, 'sub:sub_1', START)).toBe(VOICE_ALLOWANCE);
     expect(await used(e, 'global', DAY)).toBe(10_000);
@@ -310,7 +311,7 @@ describe('privacy (M2: premise gone, no shared cache)', () => {
   it('M2: no oracle, no read-back route, no other reader\'s text in any response', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const e = env();
-    const s = world();
+    const s = world({ subsById: { sub_v: subscription({ id: 'sub_v', latest_invoice: 'in_sub_v', customer: 'cus_victim' }), sub_a: subscription({ id: 'sub_a', latest_invoice: 'in_sub_a', customer: 'cus_attacker' }), sub_r: subscription({ id: 'sub_r', latest_invoice: 'in_sub_r', customer: 'cus_rich' }) } });
     const secret = ['Dear Dr. Lee, my biopsy results came back positive.'];
     const victim = await worker.fetch(voiceReq(await cookieFor(e, { c: 'cus_victim', s: 'sub_v' }), secret), e);
     const { pack: { voiced: { hash } } } = await victim.json();
@@ -400,14 +401,15 @@ describe('cookie mechanics', () => {
     expect((await worker.fetch(voiceReq(old, ['hello there']), e)).status).toBe(402);
   });
 
-  it('(was: cache hit is free) the same text twice is voiced and metered twice; an exhausted cookie gets nothing', async () => {
+  it('a verified account can replay saved audio after its allowance is exhausted', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const e = env();
     const s = world();
     await worker.fetch(voiceReq(await cookieFor(e), ['same words']), e);
     await prefill(e, 'sub:sub_1', START, VOICE_ALLOWANCE);
     const r = await worker.fetch(voiceReq(await cookieFor(e), ['same words']), e);
-    expect([r.status, await code(r)]).toEqual([402, 'PLUS_ALLOWANCE']);
+    expect(r.status).toBe(200);
+    expect((await r.json()).cache.hit).toBe(true);
     expect(s.vendorCalls).toBe(1);
   });
 
@@ -599,7 +601,7 @@ describe('NEW: attacks on the new design', () => {
     expect((await worker.fetch(voiceReq(await cookieFor(live, { l: true }), ['hello there']), live)).status).toBe(200);
   });
 
-  it('N8: an exhausted subscription costs no Stripe call, from any number of addresses (the meter answers first)', async () => {
+  it('N8: exhausted accounts refresh active entitlement at most once a minute and cannot synthesize new text', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const e = env();
     const s = world();
@@ -613,7 +615,7 @@ describe('NEW: attacks on the new design', () => {
         expect(await code(r)).toBe('PLUS_ALLOWANCE');
       }
     }
-    expect(s.stripeGets).toBe(1);
+    expect(s.stripeGets).toBe(6);
     expect(s.vendorCalls).toBe(1);
   });
 
@@ -646,7 +648,7 @@ describe('NEW: attacks on the new design', () => {
     for (let i = 0; i < SUB_RATE_PER_MINUTE + 20; i++) results.push(await worker.fetch(voiceReq(cookie, ['a b'], { 'CF-Connecting-IP': `198.51.100.${i}` }), e));
     expect(results.filter(r => r.status === 200)).toHaveLength(SUB_RATE_PER_MINUTE);
     expect(await Promise.all(results.slice(SUB_RATE_PER_MINUTE).map(code))).toEqual(Array(20).fill('RATE_LIMITED'));
-    expect(s.vendorCalls).toBe(SUB_RATE_PER_MINUTE);
+    expect(s.vendorCalls).toBe(1); // Requests are replayed without another vendor call.
   });
 
   it('N8b RESIDUAL: a claim needs no cookie, so each costs one Stripe call; the brake is the strict per-address claim limiter, which fails closed', async () => {

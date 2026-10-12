@@ -1,0 +1,29 @@
+{
+  "id": "PLUS-AUDIO-CACHE",
+  "title": "Reuse saved Plus audio across devices",
+  "lane": "reader",
+  "milestone": "Paid voice release",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "codex-account-audio-cache",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Same verified Plus billing account or individual administrator can retrieve an unchanged successful render across devices without a second provider call or debit.",
+    "Concurrent misses, lost responses, ambiguous provider outcomes and deletion races cannot create duplicate spending.",
+    "Cache identity covers effective text and synthesis settings, canonical timings rebuild different phrase segmentation, and owner isolation holds on every read and delete.",
+    "Finite storage and retention, explicit deletion, unchanged entitlement policies and browser logout behavior are tested and disclosed.",
+    "Required PR checks and exact deployment evidence are recorded separately from real-device/live-provider acceptance; checkout remains disabled."
+  ],
+  "evidence": [],
+  "activity": [
+    {
+      "date": "2026-10-12T04:38:58.975596Z",
+      "summary": "Claimed Seth\u2019s cross-device audio reuse request; isolated backend/client ownership and existing-subscription scope agreed. No shared checkout, credential or permission changes."
+    }
+  ],
+  "updatedAt": "2026-10-12T04:38:58.975596Z",
+  "revision": 1,
+  "summary": "Implementing bounded durable audio reuse under verified Plus billing identity and per-administrator identity. Re-purchase continuity with central SyberLabs accounts is outside this first phase.",
+  "blocker": null
+}

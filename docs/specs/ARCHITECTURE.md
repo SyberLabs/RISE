@@ -183,6 +183,7 @@ flowchart LR
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
+    audio --> |1| app
     audio --> |1| content
     audio --> |8| core
     components --> |3| affect
@@ -199,6 +200,7 @@ flowchart LR
     content --> |15| core
     content --> |10| sources
     content --> |1| visuals
+    core --> |1| app
     core --> |14| audio
     core --> |15| content
     core --> |11| scenes

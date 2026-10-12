@@ -417,6 +417,52 @@ describe('Settings Plus voice', () => {
         settings.destroy();
     });
 
+    it('offers saved-audio controls to a verified subscriber when generation is unavailable', async () => {
+        vi.stubGlobal('fetch', vi.fn(async url => Response.json(url === '/api/plus/status'
+            ? { admin: false, subscriber: true, available: false, allowance: null }
+            : [{ slug: 'default', label: 'Default' }])));
+        const settings = mount();
+        await settings.plusStatusLoaded;
+        expect(settings.container.querySelector('[data-setting="plusVoice"]')).not.toBeNull();
+        expect(settings.container.querySelector('[data-action="erase-plus-audio"]')).not.toBeNull();
+        settings.destroy();
+    });
+
+    it('deletes saved audio only after confirmation and reports server success separately from browser forget', async () => {
+        const fetchImpl = vi.fn(async url => Response.json(url === '/api/plus/status'
+            ? { admin: true, subscriber: false, available: false, allowance: null }
+            : url === '/api/plus/audio/erase' ? { erased: true } : [{ slug: 'default', label: 'Default' }]));
+        vi.stubGlobal('fetch', fetchImpl);
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        const settings = mount();
+        await settings.plusStatusLoaded;
+        const button = settings.container.querySelector('[data-action="erase-plus-audio"]');
+        expect(button).not.toBeNull();
+        button.click();
+        expect(fetchImpl.mock.calls.filter(([url]) => url === '/api/plus/audio/erase')).toHaveLength(0);
+        confirm.mockReturnValue(true);
+        button.click();
+        await vi.waitFor(() => expect(settings.container.querySelector('[data-plus-audio-status]').textContent).toContain('deleted'));
+        expect(fetchImpl.mock.calls.filter(([url]) => url === '/api/plus/audio/erase')).toHaveLength(1);
+        expect(fetchImpl.mock.calls.some(([url]) => url === '/api/plus/forget')).toBe(false);
+        settings.destroy();
+        confirm.mockRestore();
+    });
+
+    it('does not claim saved audio was deleted when the server refuses', async () => {
+        vi.stubGlobal('fetch', vi.fn(async url => url === '/api/plus/audio/erase'
+            ? Response.json({ error: { code: 'PLUS_REQUIRED', message: 'Sign in again before deleting saved audio.' } }, { status: 402 })
+            : Response.json(url === '/api/plus/status' ? { admin: true, available: true } : [{ slug: 'default', label: 'Default' }])));
+        const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+        const settings = mount();
+        await settings.plusStatusLoaded;
+        settings.container.querySelector('[data-action="erase-plus-audio"]').click();
+        await vi.waitFor(() => expect(settings.container.querySelector('[data-plus-audio-status]').textContent).toContain('Sign in again'));
+        expect(settings.container.querySelector('[data-action="erase-plus-audio"]').disabled).toBe(false);
+        settings.destroy();
+        confirm.mockRestore();
+    });
+
     it('removes admin controls when a fresh server check refuses the identity', async () => {
         let admin = true;
         vi.stubGlobal('fetch', vi.fn(async url => Response.json(url === '/api/plus/status'
@@ -520,7 +566,7 @@ describe('Settings Plus voice', () => {
         settings.destroy();
     });
 
-    it('offers the Worker\'s voices, says that a change costs allowance, and keeps the choice', async () => {
+    it('offers the Worker\'s voices and keeps the choice', async () => {
         localStorage.setItem('rise.plus', JSON.stringify({ claimedAt: 1 }));
         vi.stubGlobal('fetch', vi.fn(async () => Response.json([{ slug: 'default', label: 'Default' }, { slug: 'river', label: 'River' }])));
         const settings = mount({ plusVoiceSlug: 'river' });
@@ -528,7 +574,7 @@ describe('Settings Plus voice', () => {
         const picker = settings.container.querySelector('[data-plus-voice]');
         expect([...picker.options].map(option => [option.value, option.textContent])).toEqual([['default', 'Default'], ['river', 'River']]);
         expect(picker.value).toBe('river');
-        expect(settings.container.textContent).toContain('Changing voice voices your readings again and uses allowance.');
+        expect(settings.container.textContent).toContain('A new voice uses allowance only when no matching saved audio exists.');
 
         picker.value = 'default';
         picker.dispatchEvent(new Event('change'));

@@ -76,6 +76,13 @@ describe('an explicitly requested ElevenLabs demo', () => {
         expect(reading.origin.voiceFailure).toContain('allowance');
         expect(Chamber).not.toHaveBeenCalled();
     });
+    it.each([{ admin: true }, { subscriber: true }])('checks saved audio for verified access even when generation is unavailable: %j', async identity => {
+        fetchPlusStatus.mockResolvedValueOnce({ ...identity, available: false });
+        voiceReading.mockResolvedValueOnce({ ok: true, voiceId: 'eleven', manifest: {}, fetchImpl: vi.fn() });
+        const options = await mount(operations(), demo());
+        expect(options.voice.options.voiceId).toBe('eleven');
+        expect(voiceReading).toHaveBeenCalledTimes(1);
+    });
     it('uses the explicitly chosen voice even when the saved preference is off', async () => {
         fetchPlusStatus.mockResolvedValueOnce({ subscriber: true, available: true });
         voiceReading.mockResolvedValueOnce({ ok: true, voiceId: 'eleven', manifest: {}, fetchImpl: vi.fn() });

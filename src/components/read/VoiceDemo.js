@@ -34,7 +34,7 @@ export class VoiceDemo {
       <p class="voice-demo-count" data-count></p>
       <div class="voice-demo-choices"><label>ElevenLabs voice<select data-voice aria-label="ElevenLabs voice"></select></label>
       <label>Visual preset<select data-look aria-label="Visual preset"></select></label></div>
-      <p class="voice-demo-note">Your text goes to ElevenLabs when you Begin. This tab keeps your draft through sign-in. The voiced reading stays in this browser for replay. Reset the draft here, or clear all browser data in Settings. Voice limits apply.</p>
+      <p class="voice-demo-note">Begin checks for saved audio on your Plus account first. New voicings send your text to ElevenLabs. Successful audio is saved for 30 days for replay across devices with active access. This tab keeps your draft through sign-in. Reset the draft here; delete saved Plus audio separately in Settings. Voice limits apply.</p>
       <p data-status role="status" aria-live="polite">Checking voice availability…</p>
       <div data-access class="voice-demo-access"></div>
       <button data-begin type="submit" disabled>Begin with ElevenLabs <span aria-hidden="true">↗</span></button>
@@ -98,11 +98,12 @@ export class VoiceDemo {
     ]).catch(() => fallback).finally(() => clearTimeout(timeout));
     if (this.destroyed || generation !== this.generation) return;
     const [status, voices] = values;
-    this.entitled = status.available === true && (status.admin === true || status.subscriber === true);
+    this.entitled = status.admin === true || status.subscriber === true;
     const selected = this.voice.value || this.savedVoice;
     this.voice.replaceChildren(...voices.map(voice => new Option(voice.label, voice.slug)));
     if (voices.some(voice => voice.slug === selected)) this.voice.value = selected;
-    this.status.textContent = this.entitled ? 'Voice access confirmed. Begin when you are ready to listen.'
+    this.status.textContent = this.entitled ? (status.available ? 'Voice access confirmed. Begin when you are ready to listen.'
+      : 'New voicing is unavailable. Begin to check for saved audio on your account.')
       : status.unconfirmed || status.admin || status.subscriber ? 'Could not confirm ElevenLabs availability. Try checking again; your text stays here.'
         : 'Voice access is not ready. A signed-in administrator or active Plus subscription is required. Check again after signing in.';
     const access = this.container.querySelector('[data-access]');
