@@ -151,6 +151,22 @@ The line a model writes, its own line between beats, outside a fence:
 @pace <rate>
 ```
 
+## The illustrator (added 2026-10-11, additive)
+
+RISE Live stage 5.5 ([the RISE Live design](../superpowers/specs/2026-10-09-rise-live-design.md) §6.2; [the plan](../plans/LIVE-CURRENT.md) §19). The composer asks for a picture while it goes on speaking. Still `rise.current-events.v1`: a fifth kind of `room.change`, held to the same rules as the other four (a beat stream only, anchored before the next beat, at most 32 room changes a stream, never lowered).
+
+| `kind` | Fields | Bounds |
+|---|---|---|
+| `illustrate` | `brief`, `medium?` | `brief` one line of text, 1 to 300 characters, with no control characters and none of the playback markers; `medium` one of `cue`, `figure`, `scene`. Anything else is `EVENT_ROOM`. |
+
+The line a model writes, its own line between beats, outside a fence:
+
+```text
+@illustrate [medium=cue|figure|scene] <brief>
+```
+
+What answers it is the runtime's (the plan, §19): an engine's cue or an engine RISE already has, else a second request on the room's adapter (intent `illustrate`), whose answer is read by the same parser and whose picture is held to the same admission. The picture enters the reading as a scene of the arranged `rise.current.v2`, so nothing downstream knows there were two roles.
+
 ## Error codes
 
 Protocol: `EVENT_LITERAL`, `EVENT_OBJECT`, `EVENT_SCHEMA`, `EVENT_TYPE`, `EVENT_ID`, `EVENT_SEQ`, `EVENT_UNKNOWN_FIELD`, `EVENT_ORIGIN`, `EVENT_THEME`, `EVENT_VISUAL`, `EVENT_TEXT`, `EVENT_RESERVED_TEXT`, `EVENT_OFFSET`, `EVENT_STATE`, `EVENT_EVIDENCE_KIND`, `EVENT_EVIDENCE_URI`, `EVENT_SPAN`, `EVENT_TIMING`, `EVENT_INTERRUPT`, `EVENT_ERROR`, `EVENT_TOO_LARGE`, `EVENT_JSON`, `EVENT_BEAT`, `EVENT_SCENE`, `EVENT_ENDING`, `EVENT_ROOM`.

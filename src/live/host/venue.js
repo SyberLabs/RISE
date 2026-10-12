@@ -19,7 +19,7 @@
 
 import { connectionState, subscribeConnection, takeConnectionNotice } from '../../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
-import { initialVenue, interjectionPerception, perceptionFor, venueStep } from './venue-entry.js';
+import { addUsage, emptyUsage, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
@@ -56,6 +56,8 @@ export class LiveVenue {
         this.reading = null;
         // The perception sent with the question the reading on screen answers, or null.
         this.sent = null;
+        // What the reading on screen has cost the reader: every request the room made for it, and what was reported.
+        this.usage = emptyUsage();
         this.stage = null;
         this.bar = null;
         this.stopFollowing = null;
@@ -85,10 +87,26 @@ export class LiveVenue {
         return this.state.turns.map((turn, index) => ({ ...turn, ...this.readings[index] }));
     }
 
-    /** The room's one adapter, made once from the chosen provider; the key is asked for at each request. */
+    /**
+     * The room's one adapter, made once from the chosen provider; the key is asked for at each request. Every request it
+     * opens is the reader's, the illustrator's among them (docs/plans/LIVE-CURRENT.md §19), so each is counted for the
+     * reading on screen, with what the provider reports it cost.
+     */
     adapterFor({ clock }) {
-        this.adapter ??= Promise.resolve(this.chosen().adapter({ clock, getKey: () => this.host.key }));
+        this.adapter ??= Promise.resolve(this.chosen().adapter({ clock, getKey: () => this.host.key, onUsage: report => { this.usage = addUsage(this.usage, { report }); } }))
+            .then(adapter => ({
+                ...adapter,
+                open: (request, options) => {
+                    this.usage = addUsage(this.usage, { intent: request?.intent });
+                    return adapter.open(request, options);
+                }
+            }));
         return this.adapter;
+    }
+
+    /** What the reading on screen has cost, for About this reading; the demo says it spends nothing. */
+    usageLine() {
+        return usageLine(this.usage, { demo: this.chosen()?.credential === 'none' });
     }
 
     // ─── the entry page ────────────────────────────────────────────────
@@ -322,6 +340,7 @@ export class LiveVenue {
     async begin(question, turn) {
         const host = this.host;
         await this.letGo();
+        this.usage = emptyUsage();
         try {
             const runtime = await host.buildRuntime();
             if (this.destroyed) {
@@ -429,6 +448,7 @@ export class LiveVenue {
         if (!this.bar) return;
         const runtime = this.host.runtime;
         const interjection = phase === 'reading' ? runtime?.snapshot().interjection ?? null : null;
+        const illustration = phase === 'reading' ? runtime?.snapshot().illustration ?? null : null;
         const interjecting = interjection?.state === 'held' || interjection?.state === 'asking';
         const open = phase === 'ended' || (phase === 'reading' && held);
         const playing = phase === 'reading' && !held;
@@ -441,6 +461,8 @@ export class LiveVenue {
         const note = this.bar.querySelector('.live-again__note');
         if (interjection?.state === 'asking') note.textContent = 'Asking RISE…';
         else if (interjection?.state === 'none' && interjection.failed) note.textContent = 'RISE could not answer that just now; the reading goes on.';
+        // A picture the illustrator could not draw admissibly (docs/plans/LIVE-CURRENT.md §19): one line, and the reading goes on.
+        else if (illustration?.failed) note.textContent = 'RISE could not draw that picture; the reading goes on.';
         else if (interjection?.state !== 'answering') note.textContent = runtime?.status === 'failed' ? '' : error ?? '';
     }
 

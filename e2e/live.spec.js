@@ -845,4 +845,136 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(page.locator('.rise-stage__suggest')).toBeHidden();
         expect(errors).toEqual([]);
     });
+
+    /**
+     * The illustrator (docs/plans/LIVE-CURRENT.md §19), on the demo's water and tesseract readings and the paced voice.
+     * Measured on the page's own clock: when each picture was asked for, drawn, admitted and put up, against the phrase
+     * it landed on; and whether the voice ever waited for one.
+     */
+    async function illustrated(page, question) {
+        const errors = watchErrors(page);
+        // When a picture is put up in the field, on the page's own clock (the journal's).
+        await page.addInitScript(() => {
+            window.__pictures = [];
+            new MutationObserver(records => {
+                for (const record of records) {
+                    const kind = record.target.dataset?.picture;
+                    if (kind) window.__pictures.push({ kind, at: performance.now() });
+                }
+            }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-picture'] });
+        });
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill(question);
+        await page.locator('#live-venue-question').press('Enter');
+        return { errors, hooks: roomHooks(page), stage: page.locator('#rise-stage-controls') };
+    }
+
+    /** The longest silence between the end of one utterance and the start of the next, in the reading's own voice. */
+    function longestGap(journal) {
+        let gap = 0;
+        let ended = null;
+        for (const entry of journal.filter(item => item.role === 'main')) {
+            if (entry.type === 'speech.end') ended = entry.at;
+            else if (entry.type === 'speech.start' && ended !== null) { gap = Math.max(gap, entry.at - ended); ended = null; }
+        }
+        return Math.round(gap);
+    }
+
+    const beatOf = sourceId => Number(String(sourceId).slice('beat-'.length));
+
+    test('the illustrator: RISE’s own cue at once with no request, then a figure refused, repaired and put up at a phrase, while the voice goes on; the cost is shown', async ({ page }) => {
+        test.setTimeout(180_000);
+        const { errors, hooks, stage } = await illustrated(page, 'What are the three states of water?');
+        await expectShown(page, 'Water comes in three states');
+        const of = (journal, n) => journal.filter(entry => entry.n === n);
+        await expect.poll(async () => of(await hooks.journal(), 2).some(entry => entry.type === 'illustrated'), { timeout: 90_000 }).toBe(true);
+        let journal = await hooks.journal();
+        const atoms = await hooks.atoms();
+
+        // The cue: the attractor's own, as the beat after its line began, and no request for it.
+        expect(of(journal, 1).map(entry => entry.type)).toEqual(['illustration.asked', 'illustrated']);
+        const [cueAsked, cue] = of(journal, 1);
+        expect(cueAsked).toMatchObject({ rung: 'cue', medium: 'cue', brief: 'brighter attractor' });
+        const cuePlace = atoms.find(entry => entry.sourceId === 'beat-2');
+        expect(cue.at - cuePlace.at).toBeGreaterThanOrEqual(0);
+        expect(cue.at - cuePlace.at).toBeLessThan(250);
+        expect(journal.find(entry => entry.type === 'visual.control' && entry.parameter === 'intensity' && entry.at >= cuePlace.at)).toMatchObject({ status: 'accepted', effective: 0.75 });
+
+        // The figure: a sentence dropped and a <script> refused, the repair admitted, put up as a phrase began.
+        expect(of(journal, 2).map(entry => entry.type)).toEqual([
+            'illustration.asked', 'illustration.requested', 'illustrator.spoke', 'illustration.refused', 'illustration.requested', 'illustration.admitted', 'illustrated'
+        ]);
+        const [asked, first, , refused, second, admitted, landed] = of(journal, 2);
+        expect(asked).toMatchObject({ rung: 'figure', brief: 'a labelled diagram of the three states of water' });
+        expect(refused).toMatchObject({ attempt: 1, rule: 'figure' });
+        expect(admitted).toMatchObject({ attempt: 2, medium: 'figure' });
+        // It lands at the first phrase that began once it was admitted, at or after its line's place (beat 3).
+        const phrase = atoms.find(entry => entry.at >= admitted.at && beatOf(entry.sourceId) >= 3);
+        expect(landed.at - phrase.at).toBeGreaterThanOrEqual(0);
+        expect(landed.at - phrase.at).toBeLessThan(250);
+        await expect.poll(() => page.evaluate(() => window.__pictures.some(item => item.kind === 'figure')), { timeout: 10_000 }).toBe(true);
+        const figure = (await page.evaluate(() => window.__pictures)).find(item => item.kind === 'figure');
+        expect(figure.at).toBeGreaterThanOrEqual(phrase.at - 50);
+        expect(figure.at - phrase.at).toBeLessThan(500);
+        await expect(page.locator('#chamber-field[data-picture="figure"] img, #chamber-field[data-picture="figure"] svg').first()).toBeAttached();
+        const ms = at => Math.round(at - asked.at);
+        console.log(`illustrator (ms from the line's arrival): cue landed ${Math.round(cue.at - cueAsked.at)} with no request, ${Math.round(cue.at - cuePlace.at)} ms after its beat began; figure requested ${ms(first.at)}, refused ${ms(refused.at)} (${refused.rule}), asked again ${ms(second.at)}, admitted ${ms(admitted.at)} (drawn in ${admitted.ms}), put up ${ms(figure.at)}, landed ${ms(landed.at)} ${Math.round(landed.at - phrase.at)} ms after its phrase began (${landed.waitedMs} ms after the reading reached its place)`);
+
+        // The voice never waited: nothing held it, and no silence between phrases beyond its own breath and the seam.
+        await expect(stage.getByRole('button', { name: /^Play again/u })).toHaveCount(1, { timeout: 90_000 });
+        journal = await hooks.journal();
+        expect(journal.filter(entry => ['hold', 'voice.held', 'interjection.held'].includes(entry.type))).toEqual([]);
+        const gap = longestGap(journal);
+        console.log(`illustrator: the longest silence between two utterances, ${gap} ms`);
+        expect(gap).toBeLessThan(1_000);
+
+        // What it cost: three requests, the illustrator's two among them; the demo spends nothing.
+        await stage.getByRole('button', { name: 'Settings', exact: true }).click();
+        await page.locator('.rise-settings__about summary').click();
+        await expect(page.locator('.rise-settings__about-text')).toContainText('requests: 3 (1 answer, 2 illustrator), tokens: none reported (the demo spends nothing)');
+        expect(errors).toEqual([]);
+    });
+
+    test('the illustrator: a picture refused three times is let go in one line, and the reading goes on to its end', async ({ page }) => {
+        test.setTimeout(150_000);
+        const { errors, hooks, stage } = await illustrated(page, 'What is a tesseract?');
+        await expectShown(page, 'A tesseract is a cube in four dimensions.');
+        await expect.poll(async () => (await hooks.journal()).find(entry => entry.type === 'illustration.failed') ?? null, { timeout: 60_000 })
+            .toMatchObject({ n: 1, reason: 'REFUSED', attempts: 3 });
+        await expect(page.locator('.live-again__note')).toHaveText('RISE could not draw that picture; the reading goes on.');
+        const journal = await hooks.journal();
+        expect(journal.filter(entry => entry.type === 'illustration.refused').map(entry => entry.attempt)).toEqual([1, 2, 3]);
+        expect(journal.filter(entry => entry.type === 'illustration.requested')).toHaveLength(3);
+        await expect(stage.getByRole('button', { name: /^Play again/u })).toHaveCount(1, { timeout: 90_000 });
+        const ended = await hooks.journal();
+        expect(ended.filter(entry => entry.type === 'illustrated')).toEqual([]);
+        expect(ended.filter(entry => ['hold', 'voice.held'].includes(entry.type))).toEqual([]);
+        expect(longestGap(ended)).toBeLessThan(1_000);
+        expect(await page.evaluate(() => window.__pictures.filter(item => item.kind === 'figure'))).toEqual([]);
+        expect(errors).toEqual([]);
+    });
+
+    test('the illustrator: asked “show me that as a diagram” while it reads, the answer asks for one and it is put up in the reading', async ({ page }) => {
+        test.setTimeout(150_000);
+        const { errors, hooks } = await illustrated(page, 'What are the three states of water?');
+        await expectShown(page, 'Water comes in three states');
+        // Part way into the first passage, the reader types into the playing reading, and asks.
+        await page.waitForTimeout(1_500);
+        const field = page.locator('#live-again-question');
+        await field.fill('Show me that as a diagram.');
+        await expect.poll(async () => (await hooks.journal()).some(entry => entry.type === 'interjection.held')).toBe(true);
+        await field.press('Enter');
+        const BRIEF = 'a labelled diagram of ice, water and steam side by side';
+        const answered = async () => (await hooks.journal()).find(entry => entry.type === 'illustrated' && entry.brief === BRIEF) ?? null;
+        await expect.poll(answered, { timeout: 90_000 }).toMatchObject({ medium: 'figure' });
+        const journal = await hooks.journal();
+        const askedAt = journal.find(entry => entry.type === 'interjection.asked').at;
+        const { n, at } = await answered();
+        // Drawn on the first request, from the answer to the reader, while the reading went on.
+        expect(journal.filter(entry => entry.type === 'illustration.requested' && entry.n === n)).toHaveLength(1);
+        expect(journal.find(entry => entry.type === 'illustration.asked' && entry.n === n).at).toBeGreaterThan(askedAt);
+        await expect.poll(() => page.evaluate(() => window.__pictures.some(item => item.kind === 'figure')), { timeout: 10_000 }).toBe(true);
+        console.log(`illustrator in an answer to the reader: put up ${Math.round(at - askedAt)} ms after the reader asked`);
+        expect(errors).toEqual([]);
+    });
 });

@@ -512,3 +512,51 @@ describe('the interjection: the reader speaks while it plays (stage 4.5)', () =>
         expect($('.live-again__note').textContent).toBe('RISE could not answer that just now; the reading goes on.');
     });
 });
+
+describe('the illustrator, as the venue shows it (stage 5.5)', () => {
+    async function reading() {
+        mount('?voice=paced');
+        ask('What are the three states of water?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        return runtimes[0];
+    }
+    const about = () => {
+        const panel = $('.rise-settings__about');
+        panel.open = true;
+        panel.dispatchEvent(new Event('toggle'));
+        return $('.rise-settings__about-text').textContent.split('\n');
+    };
+
+    it('says in one line that RISE could not draw the picture, and that the reading goes on', async () => {
+        const runtime = await reading();
+        const state = runtime.snapshot();
+        runtime.snapshot = () => ({ ...state, illustration: { drawing: 0, failed: 'REFUSED' } });
+        runtime.set('live');
+        expect($('.live-again__note').textContent).toBe('RISE could not draw that picture; the reading goes on.');
+    });
+
+    it('counts every request the room opens for the reading, the illustrator’s among them, and shows it in About', async () => {
+        await reading();
+        const adapter = await host.venueAdapter({});
+        expect(adapter.id).toBe('mock');
+        const connections = await Promise.all([
+            adapter.open({ intent: 'answer', prompt: 'What are the three states of water?' }),
+            adapter.open({ intent: 'illustrate', prompt: 'water', illustration: { medium: 'figure', attempt: 1, said: [] } }),
+            adapter.open({ intent: 'illustrate', prompt: 'water', illustration: { medium: 'figure', attempt: 2, said: [] } })
+        ]);
+        await Promise.all(connections.map(connection => connection.close()));
+        expect(about()).toContain('requests: 3 (1 answer, 2 illustrator), tokens: none reported (the demo spends nothing)');
+    });
+
+    it('passes the provider a way to say what each request cost, and adds it to the reading’s', async () => {
+        await reading();
+        host.venue.usage = { requests: { answer: 1, interject: 0, illustrate: 1, dive: 0 }, promptTokens: 0, completionTokens: 0, totalTokens: 0, cost: 0, reported: false };
+        const told = [];
+        const providers = [{ id: 'mock', label: 'x', credential: 'none', adapter: async options => { told.push(options); return { id: 'mock', capabilities: {}, open: async () => ({}) }; } }];
+        host.venue.providers = providers;
+        host.venue.adapter = null;
+        await host.venueAdapter({});
+        told[0].onUsage({ model: 'a/b', promptTokens: 900, completionTokens: 100, totalTokens: 1_000, cost: 0.001 });
+        expect(host.venue.usageLine()).toBe('requests: 2 (1 answer, 1 illustrator), tokens: 1,000 (900 in, 100 out), $0.0010');
+    });
+});

@@ -10,7 +10,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 110;
+export const FAST_TEST_FILES = 112;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -73,6 +73,9 @@ const FAST_TESTS = [
     'src/live/graft.test.js',
     // The model changes the room while it plays: where each change lands, one a phrase, and the reader's settings win.
     'src/live/runtime.room.test.js',
+    // The illustrator: RISE's engines first, the picture admitted and repaired, landed at a phrase, the voice never waiting.
+    'src/live/illustrator.test.js',
+    'src/live/runtime.illustrator.test.js',
     'src/live/voice-never-starts.test.js',
     // A stored card's Current whose events the reducer refused plays whole, says what it lost, and waits on no voice.
     'src/live/sealed-lost-passages.test.js',

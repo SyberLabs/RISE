@@ -8,8 +8,9 @@
  *               'key'         a key the reader types into the page for `keyName`, held in the page's
  *                             memory only and handed to the adapter through `getKey` at each request;
  *                             it goes to `keyGoesTo` and nowhere else
- *   adapter     async ({ clock, getKey }) => adapter (src/live/adapter.js), loaded only when asked; null
- *               lists the provider as coming soon
+ *   adapter     async ({ clock, getKey, onUsage }) => adapter (src/live/adapter.js), loaded only when asked; null
+ *               lists the provider as coming soon. `onUsage` is told what the provider reported each request
+ *               cost, where it reports it (OpenRouter), for the venue's About this reading
  *
  * A provider is offered here only if its key goes from the browser to that provider and nowhere else.
  * OpenAI Realtime is not: its session is opened through this site's Worker route (worker/live-realtime.mjs).
@@ -27,8 +28,8 @@ export const LIVE_PROVIDERS = Object.freeze([
         id: 'openrouter',
         label: 'OpenRouter (your key)',
         credential: 'openrouter',
-        // The key stays in ai-connection.js; the adapter asks for the connection at each request.
-        adapter: async () => (await import('./openrouter.js')).createOpenRouterAdapter()
+        // The key stays in ai-connection.js; the adapter asks for the connection at each request, and says what each cost.
+        adapter: async ({ onUsage } = {}) => (await import('./openrouter.js')).createOpenRouterAdapter({ onUsage })
     }),
     Object.freeze({
         id: 'gemini',

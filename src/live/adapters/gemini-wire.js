@@ -47,7 +47,7 @@ export const geminiOrigin = model => ({ name: isModelId(model) ? model : 'a Gemi
  */
 export function buildBody(request, model = GEMINI_DEFAULT_MODEL) {
     return {
-        systemInstruction: { parts: [{ text: instructionsFor(geminiOrigin(model)) }] },
+        systemInstruction: { parts: [{ text: instructionsFor(geminiOrigin(model), request.intent) }] },
         contents: [{ role: 'user', parts: [{ text: promptFor(request) }] }],
         generationConfig: { maxOutputTokens: GEMINI_LIMITS.maxOutputTokens }
     };

@@ -17,6 +17,8 @@ import { createTextStreamAdapter } from './text-stream.js';
 
 /** Uneven pieces, as a provider's deltas come. */
 const DELTA_SIZES = Object.freeze([7, 19, 3, 31, 11, 23]);
+/** A picture is written in larger pieces, as a model writes markup: some 300 characters a second at the default. */
+const PICTURE_SCALE = 2;
 
 /** `everyMs` between deltas: at the default, some 150 characters a second, about the pace a model writes. */
 export function createMockBeatsAdapter({ clock = createRealClock(), everyMs = 100 } = {}) {
@@ -26,12 +28,13 @@ export function createMockBeatsAdapter({ clock = createRealClock(), everyMs = 10
         origin: () => ({ name: 'RISE demo', provider: 'RISE' }),
         connect: async (request, sink) => {
             const text = beatsTextFor(request);
+            const scale = request.intent === 'illustrate' ? PICTURE_SCALE : 1;
             const controller = new AbortController();
             void (async () => {
                 try {
                     for (let at = 0, n = 0; at < text.length; n += 1) {
                         await clock.sleep(everyMs, { signal: controller.signal });
-                        const size = DELTA_SIZES[n % DELTA_SIZES.length];
+                        const size = DELTA_SIZES[n % DELTA_SIZES.length] * scale;
                         sink.delta(text.slice(at, at + size));
                         at += size;
                     }

@@ -252,3 +252,58 @@ describe('a request to interject (stage 4.5)', () => {
         }
     });
 });
+
+describe('a request to illustrate (stage 5.5)', () => {
+    const illustration = {
+        medium: 'figure', attempt: 1, theme: 'cobalt', look: 'signal', running: { id: 'field', engine: 'attractor' },
+        said: ['Water comes in three states.', 'Which one depends on heat.'], asked: 'Show me that as a diagram.'
+    };
+    const repair = { source: '<svg><script>x</script></svg>', diagnostics: [{ line: 1, column: 6, rule: 'element', message: '<script> is not an element a figure may use' }] };
+
+    it('carries the brief, the medium, the attempt and the room, and on a repair the refused source with its diagnostics', () => {
+        const request = { intent: 'illustrate', prompt: 'a labelled diagram of the three states of water', illustration };
+        expect(validateOpenRequest(request)).toEqual(request);
+        const again = { intent: 'illustrate', prompt: 'water', illustration: { medium: 'scene', attempt: 2, said: [], running: { id: 'fig', form: 'svg' }, repair } };
+        expect(validateOpenRequest(again)).toEqual(again);
+        const nothing = { intent: 'illustrate', prompt: 'water', illustration: { medium: 'figure', attempt: 3, said: [], repair: { diagnostics: [{ line: null, column: null, rule: 'nothing-drawn', message: 'no scene was drawn' }] } } };
+        expect(validateOpenRequest(nothing)).toEqual(nothing);
+    });
+
+    it('is refused without its illustration, with anything unbounded, and with what other intents carry', () => {
+        const reading = { passages: ['A.'], at: 0 };
+        const perception = { events: [{ type: 'finished' }], earlier: 0 };
+        const parent = { currentId: 'a', segmentId: 's', atCharacter: 0, context: [] };
+        const with_ = patch => ({ intent: 'illustrate', prompt: 'water', illustration: { ...illustration, ...patch } });
+        for (const bad of [
+            { intent: 'illustrate', prompt: 'water' },
+            { intent: 'answer', prompt: 'water', illustration },
+            { intent: 'illustrate', prompt: 'water', illustration, reading },
+            { intent: 'illustrate', prompt: 'water', illustration, perception },
+            { intent: 'illustrate', prompt: 'water', illustration, parent },
+            with_({ medium: 'cue' }),
+            with_({ medium: 'video' }),
+            with_({ attempt: 0 }),
+            with_({ attempt: 4 }),
+            with_({ attempt: 1.5 }),
+            with_({ theme: 'neon' }),
+            with_({ look: 'neon' }),
+            with_({ running: { id: 'field' } }),
+            with_({ running: { id: 'field', engine: 'attractor', form: 'svg' } }),
+            with_({ running: { id: 'field', engine: 'teapot' } }),
+            with_({ running: { id: 'field', form: 'html' } }),
+            with_({ said: ['A.', 'B.', 'C.'] }),
+            with_({ said: ['x'.repeat(OPEN_LIMITS.readingText + 1)] }),
+            with_({ said: 'A.' }),
+            with_({ asked: '' }),
+            with_({ url: 'https://x' }),
+            with_({ repair: { diagnostics: [] } }),
+            with_({ repair: { source: 'x'.repeat(OPEN_LIMITS.source + 1), diagnostics: repair.diagnostics } }),
+            with_({ repair: { diagnostics: Array(11).fill(repair.diagnostics[0]) } }),
+            with_({ repair: { diagnostics: [{ ...repair.diagnostics[0], rule: 'Not A Rule' }] } }),
+            with_({ repair: { diagnostics: [{ ...repair.diagnostics[0], line: -1 }] } }),
+            with_({ repair: { diagnostics: [{ ...repair.diagnostics[0], extra: 1 }] } })
+        ]) {
+            expect(() => validateOpenRequest(bad), JSON.stringify(bad).slice(0, 200)).toThrow(expect.objectContaining({ code: 'OPEN_REQUEST' }));
+        }
+    });
+});

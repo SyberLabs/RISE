@@ -14,8 +14,14 @@
  * what the room is now and never takes it for the reader's.
  */
 
-/** The events of §4, and the only names that may go up. `scene.input` is defined for interactive scenes (§6); nothing sends it yet. */
-export const PERCEPTION_EVENTS = Object.freeze(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished']);
+/**
+ * The events of §4, and the only names that may go up. `scene.input` is defined for interactive scenes (§6); nothing
+ * sends it yet. `drew` is a picture RISE put in the room (docs/plans/LIVE-CURRENT.md §19), only ever RISE's.
+ */
+export const PERCEPTION_EVENTS = Object.freeze(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished', 'drew']);
+
+/** The media a picture RISE drew went up in (protocol.js ILLUSTRATION_MEDIA). */
+const DRAWN_IN = Object.freeze(['cue', 'figure', 'scene']);
 
 /** The reader's Settings a `visual.changed` may name (stage-controls.js). */
 export const SETTING_PARAMETERS = Object.freeze(['theme', 'intensity', 'still', 'textSize', 'sound', 'voice']);
@@ -169,6 +175,12 @@ export function perceive(journal, { passages = [] } = {}) {
             case 'room.changed':
                 made = roomChanged(entry);
                 break;
+            case 'illustrated': {
+                // A picture RISE put in the room, so the next turn knows it is there.
+                const brief = line(entry.brief, PERCEPTION_LIMITS.quote);
+                if (brief && DRAWN_IN.includes(entry.medium)) made = [{ type: 'drew', by: 'rise', medium: entry.medium, brief }];
+                break;
+            }
             default:
                 break;
         }
@@ -196,7 +208,8 @@ const FIELDS = Object.freeze({
     'visual.changed': ['parameter', 'value', 'by'],
     said: ['words'],
     'scene.input': ['scene', 'control', 'value'],
-    finished: []
+    finished: [],
+    drew: ['by', 'medium', 'brief']
 });
 
 /** The fields each event cannot be said without (describePerception reads every one of them). */
@@ -209,7 +222,8 @@ const REQUIRED = Object.freeze({
     'visual.changed': ['parameter', 'value'],
     said: ['words'],
     'scene.input': ['scene', 'control', 'value'],
-    finished: []
+    finished: [],
+    drew: ['by', 'medium', 'brief']
 });
 
 const passageOk = value => value === null || (Number.isInteger(value) && value >= 1 && value <= PERCEPTION_LIMITS.passage);
@@ -233,6 +247,8 @@ function fieldOk(type, key, value, event) {
         case 'rate': return Number.isFinite(value) && value >= 0.5 && value <= 2;
         case 'words': return textOk(value, PERCEPTION_LIMITS.words);
         case 'scene': case 'control': return textOk(value, PERCEPTION_LIMITS.name);
+        case 'medium': return DRAWN_IN.includes(value);
+        case 'brief': return textOk(value, PERCEPTION_LIMITS.quote);
         case 'value':
             return typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))
                 || (typeof value === 'string' && value.length <= PERCEPTION_LIMITS.value && line(value, PERCEPTION_LIMITS.value) === value);
@@ -309,6 +325,7 @@ function sentence(event) {
         case 'said': return `said: “${event.words}”`;
         case 'scene.input': return `set ${event.control} in the scene ${event.scene} to ${event.value}`;
         case 'finished': return 'reached the end of the reading';
+        case 'drew': return `RISE drew ${{ figure: 'a figure', scene: 'a moving scene', cue: 'from its own imagery' }[event.medium]}: “${event.brief}”`;
         default: return '';
     }
 }

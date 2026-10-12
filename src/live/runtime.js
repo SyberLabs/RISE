@@ -34,13 +34,14 @@
 
 import { RISE_CURRENT_SCHEMA_V2, compileRiseCurrent, validateRiseCurrent } from '../core/rise-current.js';
 import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
-import { cueCommands } from '../core/beats.js';
+import { BEAT_LIMITS, cueCommands } from '../core/beats.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
 import { createBeatConductor } from './beat-conductor.js';
 import { answerBeats, arrangeRoom, closeAnswer, cutAfter, growAnswer, lowerRoom, pieceKey, placeBase, runningScene, takenUp } from './graft.js';
 import { endingOf, interjectionStep } from './interjection.js';
+import { ILLUSTRATOR_LIMITS, draw, modelMedium, nativeAnswer, pictureCue, withPictureClips, withPictures } from './illustrator.js';
 import { SETTING_PARAMETERS } from './perception.js';
 import { withExperientialState } from './state-visuals.js';
 import { STREAM_LIMITS, createCurrentStream } from './stream.js';
@@ -84,6 +85,12 @@ export function createLiveRuntime({
     let suggested = null;
     /** The reader's interjection (interjection.js): its state, the answer being asked for, and why the last one failed. */
     const interjection = { state: 'none', answer: null, failed: null };
+    /**
+     * The pictures the composer asked for (illustrator.js; docs/plans/LIVE-CURRENT.md §19), in the order asked: each
+     * `{ n, brief, medium, entry, askedAt, reachedAt, state, controller?, picture? }`, `state` one of drawing, waiting
+     * (admitted, not yet placed), placed, landed, failed, dropped; and why the last one failed, for the stage.
+     */
+    const illustrations = { items: [], failed: null };
     const journal = [];
     const listeners = new Set();
 
@@ -141,7 +148,8 @@ export function createLiveRuntime({
         return Object.freeze({
             status, error, main: summary(main), side: summary(side), pace, paceFrom: paceFrom(), position: positionOf(main),
             paceSuggested: suggested ? Object.freeze({ ...suggested }) : null,
-            interjection: Object.freeze({ state: interjection.state, failed: interjection.failed })
+            interjection: Object.freeze({ state: interjection.state, failed: interjection.failed }),
+            illustration: Object.freeze({ drawing: illustrations.items.filter(item => item.state === 'drawing').length, failed: illustrations.failed })
         });
     }
 
@@ -308,6 +316,7 @@ export function createLiveRuntime({
     function lower(run, { graft = false } = {}) {
         let session;
         let ended;
+        let placed = null;
         try {
             // A sealed Current is compiled whole, as it was handed over; a streamed one is rebuilt from the stream.
             const reading = readingOf(run);
@@ -321,6 +330,12 @@ export function createLiveRuntime({
                 const theme = answer.theme ?? lookTheme(answer.look);
                 current = theme === null ? rest : { ...rest, theme };
             }
+            // The pictures the composer asked for, where they landed (illustrator.js): each scene from the beat after.
+            run.sceneCount = current.scenes?.length ?? 0;
+            if (run.pictures.length) {
+                current = withPictures(current, run.pictures, index => keyOf(run, `beat-${index}`));
+                placed = new Map(current.beats.map((_, index) => [keyOf(run, `beat-${index}`), `beat-${index}`]));
+            }
             // Beats still being written may start scenes the reading must be ready to draw (rise-current.js `growing`).
             session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook, growing: sealed === null && current.schema === RISE_CURRENT_SCHEMA_V2 });
             // The scenes the reading starts, as it names them, for a cue the model gives the room (landRoomChange).
@@ -333,6 +348,12 @@ export function createLiveRuntime({
         // the sealed Current itself never carries it.
         const conditions = new Map(ended.map(segment => [segment.id, segment.state]));
         session.visualProgram = withExperientialState(session.visualProgram, id => conditions.get(id));
+        // And in the passage each lands in, from the phrase it lands on: the schedule changes cue exactly there.
+        if (placed) {
+            session.visualProgram = withPictureClips(session.visualProgram, run.pictures, {
+                atoms: session.atoms, cueOf: scene => run.pictures.find(picture => picture.scene === scene).cue, sourceIdOf: key => placed.get(key)
+            });
+        }
         const segments = ended.map(({ id, text }) => ({ id, text }));
         run.governor.update({ atoms: session.atoms, segments });
         // Passages no voice says: a hold, or a beat shown for a while (rise-current.js).
@@ -377,6 +398,8 @@ export function createLiveRuntime({
         } else if (graft) {
             run.player.graft(session);
         } else {
+            // A picture placed once the answer was written changes only the imagery ahead: taken as more words would be.
+            if (run.player.live === false) run.player.setLive(true);
             run.player.extend(session);
         }
         if (!stillComing(run)) run.player.setLive(false);
@@ -416,7 +439,10 @@ export function createLiveRuntime({
             }
             // A phrase begins (the seam between two passages is none): the model's changes due here land, once the
             // atom's other listeners have run, so a scene this phrase starts is there to take them (as the conductor's cues).
-            if (run === main && !atom?.seam) queueMicrotask(() => landRoomChanges(index));
+            if (run === main && !atom?.seam) {
+                queueMicrotask(() => landRoomChanges(index));
+                followPictures(index);
+            }
         });
         run.player.on('state', ({ state }) => {
             if (run.closed) return;
@@ -445,6 +471,8 @@ export function createLiveRuntime({
         run.tail?.();
         run.tail = null;
         const voiceTailMs = Math.round(clock.now() - run.completedAt);
+        // A picture the reading ended before is let go, and a request still out for one is closed.
+        if (run === main) letPicturesGo('ended');
         note('run.finished', { role: run.role, ...(voiceTailMs > 0 ? { voiceTailMs } : {}) });
         if (run.role === 'main' && (status === 'live' || status === 'interrupted')) set('ended');
         else set(status);
@@ -491,7 +519,11 @@ export function createLiveRuntime({
                             attempts = 0;
                             noteRefusedScenes(run);
                             if (run.role === 'main') takeRoomChanges(run.stream, run, before => `beat-${before}`);
-                            if (run.stream.endedCount !== run.baseSeen) lower(run);
+                            if (run.stream.endedCount !== run.baseSeen) {
+                                lower(run);
+                                // A picture waiting for its place, or for more of the reading, may have one now.
+                                if (run === main) placePictures();
+                            }
                         }
                         if (run.stream.terminal) break;
                         if (run.stream.resumeFrom !== null) {
@@ -555,7 +587,9 @@ export function createLiveRuntime({
             // The passages as read now, in order ({ id, text }), and how many of the stream's segments have been lowered.
             segments: [], baseSeen: 0,
             // Once the reader has interjected: the reading arranged around the answers (graft.js), and each answer's Current.
-            room: null
+            room: null,
+            // The pictures placed in the reading (illustrator.js), and how many scenes the reading has of its own.
+            pictures: [], sceneCount: 0
         };
         if (role === 'main') main = run;
         else side = run;
@@ -736,6 +770,8 @@ export function createLiveRuntime({
             const at = positionOf(main);
             const actions = perception?.events?.length ? perception : null;
             const answer = {
+                // The reader's words, for a picture the answer asks for (§19).
+                prompt,
                 n: null, closed: false, connection: null, seen: 0, scenesRefused: 0, cut: false, roomSeen: 0, roomNoted: 0,
                 stream: createCurrentStream({ admitScene: adapter.admitScene ?? null }), abort: new AbortController()
             };
@@ -902,6 +938,7 @@ export function createLiveRuntime({
             if (stopped) return;
             stopped = true;
             letAnswerGo(interjection.answer);
+            for (const item of illustrations.items) item.controller?.abort();
             const runs = [side, main];
             side = null;
             for (const run of runs) await closeRun(run);
@@ -943,7 +980,12 @@ export function createLiveRuntime({
     function takeRoomChanges(stream, holder, keyFor) {
         noteRoomAsked(stream, holder);
         const listed = stream.roomChanges;
-        for (const { before, change } of listed.slice(holder.roomSeen)) main.changes.push({ change, before, stream, keyFor, answer: holder === main ? null : holder });
+        for (const { before, change } of listed.slice(holder.roomSeen)) {
+            const entry = { change, before, stream, keyFor, answer: holder === main ? null : holder };
+            // A picture asked for is answered as it is asked, so it can be drawn while the reading goes on (§19).
+            if (change.kind === 'illustrate') illustrate(entry);
+            else main.changes.push(entry);
+        }
         holder.roomSeen = listed.length;
         landRoomChanges(null);
     }
@@ -983,7 +1025,7 @@ export function createLiveRuntime({
         // In the order the model wrote them: every cue due, and the first other change due if this phrase has none yet.
         let phrase = boundary !== null && run.roomPhrase !== boundary;
         for (const entry of run.changes.filter(due)) {
-            if (entry.change.kind === 'scene.cue') landRoomChange(entry);
+            if (entry.change.kind === 'scene.cue' || entry.change.kind === 'illustration.cue') landRoomChange(entry);
             else if (phrase) {
                 phrase = false;
                 run.roomPhrase = boundary;
@@ -996,6 +1038,7 @@ export function createLiveRuntime({
     function landRoomChange(entry) {
         main.changes.splice(main.changes.indexOf(entry), 1);
         const { change } = entry;
+        if (change.kind === 'illustration.cue') { landPictureCue(entry); return; }
         const refused = code => note('room.refused', { kind: change.kind, code: String(code ?? 'REFUSED').slice(0, 40) });
         if (change.kind === 'visual.control') {
             if (change.parameter === 'intensity' && readerSettings.has('intensity')) { refused('READER_SET'); return; }
@@ -1041,6 +1084,236 @@ export function createLiveRuntime({
         if (found.code !== undefined) return { scene: found.id, commands: [{ surface: 'scene', parameter: 'cue', value: cue }] };
         const commands = found.engine === undefined ? null : cueCommands(found.engine, cue);
         return commands ? { scene: found.id, commands } : 'NO_CUE';
+    }
+
+    // ─── the illustrator (docs/plans/LIVE-CURRENT.md §19) ───────────────
+
+    /**
+     * The composer asked for a picture: RISE answers from its own engines if it can (a cue lands as a room cue does; an
+     * engine is placed as a picture), else a second request on the room's adapter draws it (illustrator.js draw) while the
+     * reading goes on. Nothing here holds the reading or the voice.
+     */
+    function illustrate(entry) {
+        const { brief, medium } = entry.change;
+        const n = illustrations.items.length + 1;
+        const item = { n, brief: clip(brief, 120), medium: null, entry, askedAt: clock.now(), reachedAt: null, state: 'drawing', controller: null, picture: null, attempts: 0 };
+        illustrations.items.push(item);
+        illustrations.failed = null;
+        if (n > ILLUSTRATOR_LIMITS.perReading) { failPicture(item, 'TOO_MANY'); return; }
+        const running = runningAt(entry);
+        const native = nativeAnswer(brief, { running: running?.engine ?? null, medium });
+        const rung = native?.rung ?? modelMedium(brief, medium);
+        note('illustration.asked', { n, brief: item.brief, ...(medium ? { medium } : {}), rung });
+        reached(item, positionOf(main));
+        if (native?.rung === 'cue') {
+            item.medium = 'cue';
+            item.state = 'waiting';
+            main.changes.push({ ...entry, change: { kind: 'illustration.cue', n, engine: native.engine, cue: native.cue } });
+            return;
+        }
+        if (native?.rung === 'engine') {
+            admitPicture(item, { engine: native.engine, ...(Object.keys(native.params).length ? { params: native.params } : {}) }, 'cue');
+            return;
+        }
+        item.medium = rung;
+        item.controller = new AbortController();
+        set(status);
+        void Promise.resolve()
+            .then(() => draw({
+                adapter, brief, medium: rung, room: illustrationRoom(entry, running), signal: item.controller.signal,
+                now: () => clock.now(), onNote: (type, body) => note(type, { n, ...body })
+            }))
+            .catch(caught => ({ status: 'failed', reason: String(caught?.code ?? 'FAILED').slice(0, 80), attempts: 0 }))
+            .then(result => drawn(item, result));
+    }
+
+    /** The scene running where a line was written (the beat before its place, or the last one so far): `{ id, engine }` or `{ id, form }`. */
+    function runningAt(entry) {
+        const session = main?.player?.sessionState.session;
+        if (!session?.beats) return null;
+        const list = passagesOf(main);
+        const place = placeOf(entry);
+        const before = list[place >= 0 ? place - 1 : list.length - 1]?.id;
+        const index = before === undefined ? -1 : Number(before.slice('beat-'.length));
+        const id = index >= 0 ? runningScene(session.beats, index) : null;
+        const scene = id === null ? null : (session.scenes ?? []).find(item => item.id === id);
+        if (!scene) return null;
+        if (scene.engine !== undefined) return scene.engine === 'still' ? null : { id: scene.id, engine: scene.engine };
+        return { id: scene.id, form: scene.svg !== undefined ? 'svg' : 'code' };
+    }
+
+    /** What the illustrator is given of the room: its theme and look, the scene running, the last two beats said, the reader's words. */
+    function illustrationRoom(entry, running) {
+        const view = main.stream.snapshot();
+        const head = positionOf(main)?.segmentIndex ?? -1;
+        const words = new Map(main.segments.map(segment => [segment.id, segment.text]));
+        const said = (main.player ? passagesOf(main) : []).slice(0, head + 1)
+            .filter(passage => !main.unspokenIds?.has(passage.id) && words.get(passage.id)?.trim())
+            .slice(-2)
+            .map(passage => { const text = words.get(passage.id).trim(); return text.length <= OPEN_LIMITS.readingText ? text : `${text.slice(0, OPEN_LIMITS.readingText - 1)}…`; });
+        return {
+            ...(view.theme ? { theme: view.theme } : {}), ...(view.look ? { look: view.look } : {}),
+            ...(running ? { running } : {}),
+            said,
+            ...(entry.answer?.prompt ? { asked: entry.answer.prompt } : {})
+        };
+    }
+
+    /** The illustrator has answered: a picture admitted, a cue to the running scene, or nothing RISE can show. */
+    function drawn(item, result) {
+        item.controller = null;
+        item.attempts = result.attempts ?? 0;
+        if (stopped || item.state !== 'drawing' || result.status === 'aborted') return;
+        if (result.status === 'failed') { failPicture(item, result.reason); return; }
+        if (result.status === 'cue') {
+            item.medium = 'cue';
+            item.state = 'waiting';
+            main.changes.push({ ...item.entry, change: { kind: 'illustration.cue', n: item.n, change: result.change } });
+            set(status);
+            landRoomChanges(null);
+            return;
+        }
+        note('illustration.admitted', { n: item.n, attempt: result.attempts, medium: result.medium, ms: Math.round(result.ms) });
+        admitPicture(item, result.scene, result.medium);
+    }
+
+    /** A picture RISE may show: named so it meets no scene of the room, and placed as soon as it has a place. */
+    function admitPicture(item, scene, medium) {
+        const taken = new Set([...(main.scenes ?? []).map(each => each.id), ...main.pictures.map(picture => picture.scene.id)]);
+        let id = `picture-${item.n}`;
+        while (taken.has(id)) id = `${id}x`;
+        item.picture = { n: item.n, scene: { id, ...scene }, cue: null, key: null, progress: 0 };
+        item.medium = medium;
+        item.state = 'waiting';
+        set(status);
+        placePictures();
+    }
+
+    /**
+     * Where an admitted picture lands: its line's place while the reading has not reached it, else the next phrase after
+     * the head (`{ key, progress }`, the passage's own name and the phrase's start in it); null while it waits for its
+     * place or for more of the reading; 'ended' when no phrase is left for it and none will come.
+     */
+    function landingOf(item) {
+        const run = main;
+        const place = placeOf(item.entry);
+        const position = positionOf(run);
+        if (place < 0 || !position) return null;
+        const list = passagesOf(run);
+        if (position.segmentIndex < place) return { key: keyOf(run, list[place].id), progress: 0 };
+        const { atoms } = run.player.sessionState.session;
+        const next = atoms.findIndex((atom, index) => index > position.atomIndex && atom.sourceId && !atom.seam);
+        if (next >= 0) return { key: keyOf(run, atoms[next].sourceId), progress: atoms[next].sourceProgress ?? 0 };
+        return stillComing(run) || status === 'interrupted' ? null : 'ended';
+    }
+
+    /** Put each admitted picture in the reading where it lands, and give the Player the reading with it. */
+    function placePictures() {
+        const run = main;
+        if (!run?.player || run.closed || run.ended) return;
+        let placed = false;
+        for (const item of illustrations.items.filter(each => each.state === 'waiting' && each.picture)) {
+            const where = landingOf(item);
+            if (where === null) continue;
+            if (where === 'ended') { dropPicture(item, 'ended'); continue; }
+            if (run.sceneCount + run.pictures.length >= BEAT_LIMITS.scenes) { dropPicture(item, 'TOO_MANY_SCENES'); continue; }
+            const view = run.stream.snapshot();
+            Object.assign(item.picture, where, { cue: pictureCue(item.picture.scene, { theme: view.theme ?? undefined, look: view.look ?? undefined }) });
+            run.pictures.push(item.picture);
+            item.state = 'placed';
+            placed = true;
+        }
+        if (placed) lower(run);
+    }
+
+    /** A phrase began: whether a picture's place has been reached, and whether a placed picture is on screen now. */
+    function followPictures(index) {
+        const at = positionOf(main);
+        for (const item of illustrations.items) {
+            if (item.state === 'drawing' || item.state === 'waiting' || item.state === 'placed') reached(item, at);
+            if (item.state === 'placed' && shows(item.picture, index)) {
+                item.state = 'landed';
+                noteIllustrated(item);
+            }
+        }
+        placePictures();
+    }
+
+    /** The reading has reached the line's place: the moment a picture is waited for from. */
+    function reached(item, at) {
+        if (item.reachedAt !== null || !at) return;
+        const place = placeOf(item.entry);
+        if (place >= 0 && at.segmentIndex >= place) item.reachedAt = clock.now();
+    }
+
+    /** Whether the phrase at atom `index` is at or past where the picture landed. */
+    function shows(picture, index) {
+        const atom = main.player.sessionState.session.atoms[index];
+        const list = passagesOf(main);
+        const here = list.findIndex(passage => passage.id === atom?.sourceId);
+        const there = list.findIndex(passage => keyOf(main, passage.id) === picture.key);
+        if (here < 0 || there < 0) return false;
+        return here > there || (here === there && (atom.sourceProgress ?? 0) >= picture.progress);
+    }
+
+    function noteIllustrated(item) {
+        const now = clock.now();
+        note('illustrated', { n: item.n, medium: item.medium, brief: item.brief, ms: Math.round(now - item.askedAt), waitedMs: Math.round(now - (item.reachedAt ?? now)) });
+    }
+
+    /** A cue RISE answered a picture with, landing as a room cue does: through the host, as the reader's own control goes. */
+    function landPictureCue(entry) {
+        const item = illustrations.items[entry.change.n - 1];
+        if (item?.state !== 'waiting') return;
+        const commands = pictureCommands(entry);
+        if (typeof commands === 'string') { failPicture(item, commands); return; }
+        for (const command of commands) {
+            const receipt = controlVisual(command);
+            if (receipt.status !== 'accepted') { failPicture(item, receipt.code); return; }
+        }
+        item.state = 'landed';
+        noteIllustrated(item);
+    }
+
+    /** The engine's commands a picture's cue is, or why it cannot be given: its engine is no longer the one running. */
+    function pictureCommands(entry) {
+        const { change } = entry;
+        if (change.engine !== undefined) {
+            const { session, currentIndex } = main.player.sessionState;
+            const running = main.scenes.find(scene => scene.id === session.atoms[currentIndex]?.scene);
+            return running?.engine === change.engine ? cueCommands(change.engine, change.cue) ?? 'NO_CUE' : 'NOT_RUNNING';
+        }
+        const asked = change.change;
+        if (asked.kind === 'scene.cue') {
+            const cued = sceneCue({ ...entry, change: asked });
+            return typeof cued === 'string' ? cued : cued.commands;
+        }
+        if (asked.parameter === 'intensity' && readerSettings.has('intensity')) return 'READER_SET';
+        return [{ surface: asked.surface ?? discoverVisual()?.manifest?.surface ?? ATTRACTOR_VISUAL_MANIFEST.surface, parameter: asked.parameter, value: asked.value }];
+    }
+
+    function failPicture(item, reason) {
+        item.state = 'failed';
+        illustrations.failed = String(reason ?? 'FAILED').slice(0, 80);
+        note('illustration.failed', { n: item.n, reason: illustrations.failed, attempts: item.attempts });
+        set(status);
+    }
+
+    function dropPicture(item, reason) {
+        item.controller?.abort();
+        item.controller = null;
+        item.state = 'dropped';
+        note('illustration.dropped', { n: item.n, reason });
+        set(status);
+    }
+
+    /** The reading is over: a picture not yet on screen is let go, and a request still out for one is closed. */
+    function letPicturesGo(reason) {
+        main.changes = main.changes.filter(entry => entry.change.kind !== 'illustration.cue');
+        for (const item of illustrations.items) {
+            if (item.state === 'drawing' || item.state === 'waiting') dropPicture(item, reason);
+            else if (item.state === 'placed') dropPicture(item, 'withdrawn');
+        }
     }
 
     // ─── the interjection (docs/plans/LIVE-CURRENT.md §17) ──────────────
@@ -1101,7 +1374,10 @@ export function createLiveRuntime({
                 if (result.applied > 0) {
                     for (const item of answer.stream.refusedScenes.slice(answer.scenesRefused)) note('scene.refused', { role: 'main', ...item });
                     answer.scenesRefused = answer.stream.refusedScenes.length;
-                    if (answer.stream.endedCount !== answer.seen) takeAnswer(answer);
+                    if (answer.stream.endedCount !== answer.seen) {
+                        takeAnswer(answer);
+                        placePictures();
+                    }
                     // Once the answer is in the reading its changes have places there; before, they wait with it.
                     if (answer.cut && !answer.closed) takeRoomChanges(answer.stream, answer, before => `i${answer.n + 1}-beat-${before}`);
                     else noteRoomAsked(answer.stream, answer);

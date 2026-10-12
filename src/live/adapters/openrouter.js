@@ -50,12 +50,15 @@ const modelOf = asked => (asked === undefined || asked === null || asked === '' 
 /** Who writes the answer, as the Current's origin and the instructions say it: the model, reached through OpenRouter. */
 const originOf = model => ({ name: isOpenRouterModel(model) ? model : 'an OpenRouter model', provider: 'OpenRouter' });
 
-/** The one request that asks a question: RISE's instructions, the reader's words, a cap on what can be spent. */
+/**
+ * The one request that asks a question: RISE's instructions (the illustrator's own, for a picture asked for), the
+ * reader's words, a cap on what can be spent.
+ */
 export function buildBody(request, model) {
     return {
         model,
         messages: [
-            { role: 'system', content: instructionsFor(originOf(model)) },
+            { role: 'system', content: instructionsFor(originOf(model), request.intent) },
             { role: 'user', content: promptFor(request) }
         ],
         stream: true,
