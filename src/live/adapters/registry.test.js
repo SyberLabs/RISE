@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { LIVE_PROVIDERS, liveProvider } from './registry.js';
 import { assertAdapter } from '../adapter.js';
 import { createVirtualClock } from '../clock.js';
+import { createFakeAnthropicFetch, createFakeOpenAIChatFetch } from '../../test/fake-direct-fetch.js';
 
 describe('the providers the venue offers', () => {
     it('lists the demo first, needing no key', () => {
@@ -27,10 +28,33 @@ describe('the providers the venue offers', () => {
         expect(adapter.capabilities.speaks).toBe('host');
     });
 
+    it('lists the demo, OpenRouter, then the direct providers on a typed key, in that order', () => {
+        expect(LIVE_PROVIDERS.map(entry => entry.id)).toEqual(['mock', 'openrouter', 'anthropic', 'openai', 'gemini']);
+        expect(liveProvider('anthropic')).toMatchObject({ label: 'Anthropic (your key)', credential: 'key', keyName: 'Anthropic', keyGoesTo: 'Anthropic' });
+        expect(liveProvider('openai')).toMatchObject({ label: 'OpenAI (your key)', credential: 'key', keyName: 'OpenAI', keyGoesTo: 'OpenAI' });
+    });
+
+    it('makes each direct provider a text-stream adapter that RISE speaks, naming the model and who runs it', async () => {
+        for (const [id, adapterId, fake, origin] of [
+            ['anthropic', 'anthropic-stream', createFakeAnthropicFetch, { kind: 'model', name: 'claude-haiku-5-5', provider: 'Anthropic' }],
+            ['openai', 'openai-chat-stream', createFakeOpenAIChatFetch, { kind: 'model', name: 'gpt-6-luna', provider: 'OpenAI' }]
+        ]) {
+            const clock = createVirtualClock();
+            vi.stubGlobal('fetch', fake({ clock }).fetch);
+            const adapter = await liveProvider(id).adapter({ clock, getKey: () => 'typed-key' });
+            expect(adapter.id).toBe(adapterId);
+            expect(adapter.capabilities.speaks).toBe('host');
+            const connection = await adapter.open({ intent: 'answer', prompt: 'Why?' });
+            const { value: first } = await connection.events[Symbol.asyncIterator]().next();
+            expect(first).toMatchObject({ type: 'current.open', origin });
+            await connection.close();
+            vi.unstubAllGlobals();
+        }
+    });
+
     it('does not offer a provider whose key would pass through this site', () => {
-        // The OpenAI Realtime adapter opens its session through this site's Worker route.
-        expect(liveProvider('openai')).toBeNull();
-        expect(LIVE_PROVIDERS.every(entry => entry.id !== 'openai')).toBe(true);
+        // The OpenAI Realtime adapter opens its session through this site's Worker route; the OpenAI entry is chat completions, browser to OpenAI.
+        expect(LIVE_PROVIDERS.some(entry => entry.id === 'openai-realtime')).toBe(false);
     });
 
     it('says no for an id it does not know, or one inherited from Object', () => {

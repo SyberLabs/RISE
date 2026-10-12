@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -23,16 +23,32 @@
       "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
       "note": "§2.2 reason 4 and §8 stage 7: a provider TTS renderer with word timestamps on the reader's key, as a sibling of the browser voice; stage 7 approved by the owner.",
       "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/643",
+      "note": "Stage 7 on branch live-provider-voice, squash-merged on the required CI check.",
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/90ec56b9",
+      "note": "PR #643 squash-merged to main as 90ec56b9; release.txt on the live site reads 90ec56b9 (2026-10-12). Deployed; not accepted by a human.",
+      "date": "2026-10-12"
     }
   ],
   "activity": [
     {
       "date": "2026-10-12T07:49:04.532Z",
       "summary": "Claimed and built on branch live-provider-voice by Fable directly (the owner asked for no subagents): voices/elevenlabs.js (the request, PCM, the alignment to marks, refusals scrubbed of the key), voices/provider-tts.js (the renderer), the venue's Who speaks choice with the in-memory key, the host building it and naming it in About."
+    },
+    {
+      "date": "2026-10-12T08:51:28.988Z",
+      "summary": "PR #643 merged as 90ec56b9 and deployed (release.txt 90ec56b9, 2026-10-12); delivery deployed"
     }
   ],
-  "updatedAt": "2026-10-12T07:49:04.532Z",
-  "revision": 1,
+  "updatedAt": "2026-10-12T08:51:28.988Z",
+  "revision": 2,
   "summary": "Design §8 stage 7: a provider text-to-speech renderer (ElevenLabs on the reader's key) as a sibling of the browser voice under the same clock, with word marks and an exact hold.",
   "blocker": null
 }

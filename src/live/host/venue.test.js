@@ -97,7 +97,7 @@ describe('the venue is /live in the app', () => {
         expect(container.querySelector('h1').textContent).toBe('RISE Live');
         expect(question().type).toBe('text');
         expect(question().labels[0].textContent).toBe('Your question');
-        expect(radios().map(radio => radio.value)).toEqual(['mock', 'openrouter', 'gemini']);
+        expect(radios().map(radio => radio.value)).toEqual(['mock', 'openrouter', 'anthropic', 'openai', 'gemini']);
         expect(radios().find(radio => radio.checked).value).toBe('mock');
         expect(radios()[0].labels[0].textContent).toContain('Demo (no key)');
         expect(container.querySelector('.live-venue__privacy').textContent).toMatch(/nothing you type leaves this browser/u);
@@ -241,6 +241,20 @@ describe('whose key', () => {
         expect(container.querySelector('.live-venue__privacy').textContent).toMatch(/Gemini key stays in this page’s memory/u);
         ask('Why?');
         expect(container.querySelector('.live-error').textContent).toBe('Enter your Gemini key to use this provider.');
+        expect(host.buildRuntime).not.toHaveBeenCalled();
+    });
+
+    it('asks for your own Anthropic or OpenAI key the same way, and says the key goes to that company alone', () => {
+        mount();
+        for (const [id, name] of [['anthropic', 'Anthropic'], ['openai', 'OpenAI']]) {
+            choose(id);
+            expect($('#live-venue-key').type).toBe('password');
+            expect(container.querySelector('label[for="live-venue-key"]').textContent).toBe(`Your ${name} key`);
+            expect(container.querySelector('.live-venue__privacy').textContent)
+                .toContain(`Your ${name} key stays in this page’s memory and goes only to ${name}, billed to your key.`);
+            ask('Why?');
+            expect(container.querySelector('.live-error').textContent).toBe(`Enter your ${name} key to use this provider.`);
+        }
         expect(host.buildRuntime).not.toHaveBeenCalled();
     });
 

@@ -109,10 +109,14 @@
     {
       "date": "2026-10-11T23:31:46.971Z",
       "summary": "Opened #633, held for the connector freeze."
+    },
+    {
+      "date": "2026-10-12T08:51:33.187Z",
+      "summary": "Direct Anthropic and OpenAI providers on typed keys; OpenRouter kept (branch live-direct-keys)"
     }
   ],
-  "updatedAt": "2026-10-11T23:31:46.971Z",
-  "revision": 6,
+  "updatedAt": "2026-10-12T08:51:33.187Z",
+  "revision": 7,
   "summary": "Design §8 stage 2: the first time RISE Live can be felt. The venue page (this branch) and the OpenRouter text-stream adapter (a parallel branch) are its two halves.",
   "blocker": null
 }
