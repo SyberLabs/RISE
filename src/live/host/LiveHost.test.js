@@ -2365,3 +2365,50 @@ describe('a scene that listens (stage 6, docs/plans/LIVE-CURRENT.md §20)', () =
         expect(runtime.noteSceneInput).toHaveBeenCalledTimes(2);
     });
 });
+
+describe('a provider’s voice on the reader’s key (design §8 stage 7)', () => {
+    /** An AudioContext that remembers what was made of it; nothing plays in this document. */
+    function fakeAudioContext() {
+        return {
+            destination: {},
+            createBuffer: (channels, length, sampleRate) => ({ duration: length / sampleRate, copyToChannel() {} }),
+            createBufferSource: () => ({ playbackRate: { value: 1 }, connect() {}, start() {}, stop() {} })
+        };
+    }
+
+    it('is built when chosen with a key, is audible, speaks as ElevenLabs on the engine’s context, and is named in About with what it was sent', async () => {
+        const environment = env({ speech: true });
+        environment.AudioContext = function Context() { return fakeAudioContext(); };
+        environment.fetch = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ audio_base64: 'AAAAAA==', alignment: null }) }));
+        mount('', environment);
+        host.voiceChoice = 'elevenlabs';
+        host.voiceKey = 'xi-test-key';
+        const clock = createVirtualClock();
+        const voices = await host.buildVoices(clock);
+        expect(host.voiceKind).toBe('elevenlabs');
+        expect(host.audible()).toBe(true);
+        expect(host.spokenVoice).toEqual({ name: 'ElevenLabs Rachel', lang: 'en' });
+        const voice = voices.create();
+        expect(voice.chosen).toEqual({ name: 'ElevenLabs Rachel', local: false });
+        expect(voice.capabilities.wordMarks).toBe(true);
+        voice.enqueue({ id: 'p1', text: 'One line.' });
+        await clock.advance(10);
+        expect(environment.fetch).toHaveBeenCalledTimes(1);
+        expect(environment.fetch.mock.calls[0][1].headers['xi-api-key']).toBe('xi-test-key');
+        expect(host.aboutReading()).toMatch(/^voice: elevenlabs "ElevenLabs Rachel" model=eleven_flash_v2_5 chars=9 \(your key\)/mu);
+        expect(host.aboutReading()).not.toContain('xi-test-key');
+    });
+
+    it('is not built without the key, nor when the device’s voice is chosen: the browser’s voice speaks as before', async () => {
+        const environment = env({ speech: true });
+        Object.assign(environment, { speechSynthesis: environment.window.speechSynthesis, SpeechSynthesisUtterance: environment.window.SpeechSynthesisUtterance });
+        mount('', environment);
+        host.voiceChoice = 'elevenlabs';
+        await host.buildVoices(createVirtualClock());
+        expect(host.voiceKind).toBe('browser');
+        host.voiceChoice = 'device';
+        host.voiceKey = 'xi-test-key';
+        await host.buildVoices(createVirtualClock());
+        expect(host.voiceKind).toBe('browser');
+    });
+});

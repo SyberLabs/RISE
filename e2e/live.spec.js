@@ -1137,3 +1137,89 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 });
+
+test.describe('a provider voice on the reader’s key (design §8 stage 7)', () => {
+    /** ElevenLabs as the venue would reach it: silence of 40 ms a character, with the alignment that spells the text. */
+    async function serveElevenLabs(page) {
+        const requests = [];
+        await page.route('https://api.elevenlabs.io/**', async route => {
+            const body = route.request().postDataJSON();
+            requests.push({ text: body.text, speed: body.voice_settings?.speed, key: route.request().headers()['xi-api-key'] });
+            const msPerChar = 40;
+            const samples = Math.round((body.text.length * msPerChar / 1000) * 22050);
+            const audio_base64 = Buffer.alloc(samples * 2).toString('base64');
+            const characters = [...body.text];
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    audio_base64,
+                    alignment: {
+                        characters,
+                        character_start_times_seconds: characters.map((_, i) => (i * msPerChar) / 1000),
+                        character_end_times_seconds: characters.map((_, i) => ((i + 1) * msPerChar) / 1000)
+                    }
+                })
+            });
+        });
+        return requests;
+    }
+
+    test('speaks each passage from the provider, holds and takes up exactly, replays from what was fetched, and says so in About', async ({ page }) => {
+        test.setTimeout(120_000);
+        const errors = watchErrors(page);
+        const requests = await serveElevenLabs(page);
+        await page.goto(`/live?measure=1`);
+        await page.locator('input[name="live-venue-voice"][value="elevenlabs"]').check();
+        await page.locator('#live-venue-voice-key').fill('xi-e2e-key');
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        // Out of the page as soon as it is in memory: the field is emptied at Ask.
+        await expect(page.locator('#live-venue-voice-key')).toHaveValue('');
+        await expectShown(page, 'A black hole is a region of space');
+        const journal = () => page.evaluate(() => window.__riseLive.journal().filter(entry => entry.role === 'main'));
+        await expect.poll(async () => (await journal()).filter(entry => entry.type === 'speech.start').length, { timeout: 20_000 }).toBeGreaterThanOrEqual(2);
+        const chosen = (await journal()).find(entry => entry.type === 'voice.chosen');
+        expect(chosen).toMatchObject({ kind: 'elevenlabs', name: 'ElevenLabs Rachel', local: false });
+        expect(requests.length).toBeGreaterThanOrEqual(2);
+        expect(requests.every(request => request.key === 'xi-e2e-key')).toBe(true);
+        // The provider's clock: a passage of n characters ends about 40 ms × n after it began.
+        const ended = (await journal()).find(entry => entry.type === 'speech.end');
+        const said = requests.find(request => request.text.length * 40 > 0);
+        expect(ended.durationMs).toBeGreaterThan(said.text.length * 40 * 0.8);
+
+        const stage = page.locator('#rise-stage-controls');
+        const play = stage.locator('[data-stage="play"]');
+        await play.click();
+        await expect.poll(async () => (await journal()).some(entry => entry.type === 'voice.held'), { timeout: 5_000 }).toBe(true);
+        const fetchedBeforeReplay = requests.length;
+        await play.click();
+        await expect(play).toHaveAttribute('aria-label', /^Pause/u);
+        await stage.locator('[data-stage="replay"]').click();
+        await expect.poll(() => page.evaluate(() => window.__riseLive.journal().filter(entry => entry.type === 'replay').length), { timeout: 5_000 }).toBeGreaterThanOrEqual(1);
+        await page.waitForTimeout(500);
+        // What was fetched is kept for the reading: a replay asks the provider for nothing.
+        expect(requests.length).toBe(fetchedBeforeReplay);
+
+        await stage.locator('[data-stage="settings"]').click();
+        await stage.locator('.rise-settings__about summary').click();
+        await expect(stage.locator('.rise-settings__about-text')).toContainText(/voice: elevenlabs "ElevenLabs Rachel" model=eleven_flash_v2_5 chars=\d+ \(your key\)/u);
+        await expect(stage.locator('.rise-settings__about-text')).not.toContainText('xi-e2e-key');
+        expect(errors).toEqual([]);
+    });
+
+    test('a refused key is said in the reader’s words, and the reading goes on paced', async ({ page }) => {
+        test.setTimeout(90_000);
+        await page.route('https://api.elevenlabs.io/**', route => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ detail: { status: 'invalid_api_key' } }) }));
+        await page.goto(`/live?measure=1`);
+        await page.locator('input[name="live-venue-voice"][value="elevenlabs"]').check();
+        await page.locator('#live-venue-voice-key').fill('xi-bad-key');
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        const journal = () => page.evaluate(() => window.__riseLive.journal().filter(entry => entry.role === 'main'));
+        await expect.poll(async () => (await journal()).find(entry => entry.type === 'voice.failed')?.message ?? '', { timeout: 20_000 }).toContain('ElevenLabs did not accept the key');
+        await expect.poll(async () => (await journal()).some(entry => entry.type === 'voice.degraded'), { timeout: 20_000 }).toBe(true);
+        await expectShown(page, 'that nothing, not even light', 30_000);
+    });
+});

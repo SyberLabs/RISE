@@ -21,13 +21,15 @@ export function initialVenue({ provider = 'mock' } = {}) {
 }
 
 /** Why a question cannot be asked now, in the reader's words; null when it can. */
-function refusal(state, { question, connected, hasKey }, providers) {
+function refusal(state, { question, connected, hasKey, voice, hasVoiceKey }, providers) {
     if (!question) return 'Ask something first.';
     const entry = providers.find(item => item.id === state.provider);
     if (!entry) return 'Choose a provider first.';
     if (!entry.adapter) return `${entry.label.replace(/ \(.*\)$/u, '')} is coming soon. Choose another provider.`;
     if (entry.credential === 'openrouter' && connected !== true) return 'Connect OpenRouter first, or choose the demo.';
     if (entry.credential === 'key' && hasKey !== true) return `Enter your ${entry.keyName} key to use this provider.`;
+    // The voice's key is the same posture as a provider's (voices/elevenlabs.js): asked before a question spends it.
+    if (voice === 'elevenlabs' && hasVoiceKey !== true) return 'Enter your ElevenLabs key to hear that voice, or choose your device’s voice.';
     return null;
 }
 

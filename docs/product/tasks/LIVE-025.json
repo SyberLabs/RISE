@@ -1,0 +1,38 @@
+{
+  "id": "LIVE-025",
+  "title": "RISE Live: a better voice under the same clock",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-024"
+  ],
+  "acceptance": [
+    "A provider text-to-speech renderer on the reader's own key is a sibling of the browser voice under the one clock (design §2.2 reason 4, §8 stage 7): the voice contract unchanged (attach/enqueue/hold/release/seek/setRate/cancel/close/playedMs), RISE's runtime the clock, the provider only rendering what RISE says when RISE says it.",
+    "Each passage is fetched as samples with character timestamps and played through Web Audio: a mark at the start of every word; an exact hold that stops the sound where it is and takes up from the same sample; a seek and a replay that play from what was fetched with no second request; the next passage fetched while this one plays.",
+    "The key is the reader's, typed into the venue, held in the page's memory only, sent in one header to the provider and nowhere else, never in a page, a log, About or an error; the venue says whose key the voice is on and that each passage's words go to the provider to be spoken; a question is refused until the key is typed.",
+    "A change of rate never interrupts a passage: the next is fetched at the provider's speed within what it takes (0.7 to 1.2) and the rest is made up by the playback rate; a provider refusal (key, credit, rate, network) fails the passage with the provider's reason in the reader's words and the reading goes on paced, as a browser passage fails.",
+    "About this reading names the voice, its model and the characters sent; the bed ducks under it as under the browser's voice; the card is untouched."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
+      "note": "§2.2 reason 4 and §8 stage 7: a provider TTS renderer with word timestamps on the reader's key, as a sibling of the browser voice; stage 7 approved by the owner.",
+      "date": "2026-10-12"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-12T07:49:04.532Z",
+      "summary": "Claimed and built on branch live-provider-voice by Fable directly (the owner asked for no subagents): voices/elevenlabs.js (the request, PCM, the alignment to marks, refusals scrubbed of the key), voices/provider-tts.js (the renderer), the venue's Who speaks choice with the in-memory key, the host building it and naming it in About."
+    }
+  ],
+  "updatedAt": "2026-10-12T07:49:04.532Z",
+  "revision": 1,
+  "summary": "Design §8 stage 7: a provider text-to-speech renderer (ElevenLabs on the reader's key) as a sibling of the browser voice under the same clock, with word marks and an exact hold.",
+  "blocker": null
+}
