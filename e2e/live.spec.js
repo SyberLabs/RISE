@@ -448,7 +448,8 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         });
         await page.goto(VENUE);
         await expect(page.getByRole('heading', { name: 'RISE Live' })).toBeVisible();
-        await expect(page.getByRole('radio', { name: 'Demo (no key)' })).toBeChecked();
+        await expect(page.getByRole('button', { name: 'Who answers: Demo' })).toBeVisible();
+        await expect(page.getByRole('radio', { name: 'Demo (no key)', includeHidden: true })).toBeChecked();
         await expect(page.locator('.live-venue__privacy')).toContainText('nothing you type leaves this browser');
 
         const asked = page.locator('#live-venue-question');
@@ -500,6 +501,64 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await page.locator('#live-venue-question').press('Enter');
         await expect(page.locator('.live-error')).toHaveText('Ask something first.');
         await expect(page.locator('#rise-stage-controls')).toHaveCount(0);
+    });
+
+    test('the entry is a room: the face on one ground, the question a single line, the choices a quiet line, what is sent folded at the foot', async ({ page }) => {
+        await page.goto(VENUE);
+        await expect(page.locator('.live-venue .live-face')).toBeAttached();
+        // No disc, box or edge around the face: neither it nor its square draws a background or border of its own,
+        // and the room's ground is the face's own dark.
+        const looks = await page.evaluate(() => {
+            const style = selector => getComputedStyle(document.querySelector(selector));
+            const edges = selector => {
+                const s = style(selector);
+                return { background: s.backgroundColor, border: [s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth].join(' '), radius: s.borderTopLeftRadius, shadow: s.boxShadow, outline: s.outlineStyle };
+            };
+            return { ground: style('.live-venue').backgroundColor, body: style('body').backgroundColor, slot: edges('.live-venue__face'), face: edges('.live-face'), disc: edges('.live-face__disc'), scheme: style('.live-venue').colorScheme };
+        });
+        expect(looks.ground).toBe('rgb(10, 10, 15)');
+        expect(looks.body).toBe(looks.ground);
+        expect(looks.scheme).toBe('dark');
+        for (const part of [looks.slot, looks.face, looks.disc]) {
+            expect(part).toEqual({ background: 'rgba(0, 0, 0, 0)', border: '0px 0px 0px 0px', radius: '0px', shadow: 'none', outline: 'none' });
+        }
+
+        // The question is one focusable line, and Enter asks it.
+        // The page gives the line focus once its route has settled (LiveHost activate).
+        const question = page.getByRole('textbox', { name: 'Your question' });
+        await expect(question).toBeFocused();
+        await expect(page.locator('.live-start')).toBeHidden();
+        await question.fill('Explain black holes with RISE.');
+        await expect(page.getByRole('button', { name: 'Ask', exact: true })).toBeVisible();
+
+        // Who answers: a radio group under its name, reached and moved by keyboard; Anthropic asks for its key.
+        const answered = page.getByRole('button', { name: 'Who answers: Demo' });
+        await answered.focus();
+        await page.keyboard.press('Enter');
+        await expect(answered).toHaveAttribute('aria-expanded', 'true');
+        const group = page.getByRole('group', { name: 'Who answers' });
+        await expect(group.getByRole('radio', { name: 'Demo (no key)' })).toBeFocused();
+        await page.keyboard.press('ArrowDown');
+        await expect(group.getByRole('radio', { name: 'OpenRouter (your key)' })).toBeChecked();
+        await page.keyboard.press('ArrowDown');
+        await expect(group.getByRole('radio', { name: 'Anthropic (your key)' })).toBeChecked();
+        await expect(page.getByLabel('Your Anthropic key')).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(group).toBeHidden();
+        await expect(page.getByRole('button', { name: 'Who answers: Anthropic' })).toBeFocused();
+
+        // What is sent: one small line at the foot, the sentences behind it.
+        const sent = page.locator('.live-venue__sent');
+        await expect(sent.locator('.live-venue__privacy')).toBeHidden();
+        await sent.getByText('What is sent, and to whom').click();
+        await expect(sent.locator('.live-venue__privacy')).toBeVisible();
+        await expect(sent.locator('.live-venue__privacy')).toContainText('Your Anthropic key stays in this page’s memory');
+
+        // Back on the demo, Enter on the line asks.
+        await page.getByRole('button', { name: 'Who answers: Anthropic' }).click();
+        await group.getByRole('radio', { name: 'Demo (no key)' }).check();
+        await question.press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
     });
 
     test('plays a reading written in beats as it arrives: a hold and a scene take effect before the answer is complete', async ({ page }) => {
@@ -1258,6 +1317,7 @@ test.describe('a provider voice on the reader’s key (design §8 stage 7)', () 
         const errors = watchErrors(page);
         const requests = await serveElevenLabs(page);
         await page.goto(`/live?measure=1`);
+        await page.getByRole('button', { name: /^Who speaks/u }).click();
         await page.locator('input[name="live-venue-voice"][value="elevenlabs"]').check();
         await page.locator('#live-venue-voice-key').fill('xi-e2e-key');
         await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
@@ -1300,6 +1360,7 @@ test.describe('a provider voice on the reader’s key (design §8 stage 7)', () 
         test.setTimeout(90_000);
         await page.route('https://api.elevenlabs.io/**', route => route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ detail: { status: 'invalid_api_key' } }) }));
         await page.goto(`/live?measure=1`);
+        await page.getByRole('button', { name: /^Who speaks/u }).click();
         await page.locator('input[name="live-venue-voice"][value="elevenlabs"]').check();
         await page.locator('#live-venue-voice-key').fill('xi-bad-key');
         await page.locator('#live-venue-question').fill('Explain black holes with RISE.');

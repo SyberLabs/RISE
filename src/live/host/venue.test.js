@@ -128,6 +128,30 @@ describe('the venue is /live in the app', () => {
         expect(container.querySelector('.live-venue__privacy').textContent).toMatch(/nothing you type leaves this browser/u);
     });
 
+    it('names who answers and who speaks in one quiet line, each name opening its choices, and the key under its provider', () => {
+        mount();
+        const answered = $('[data-venue-open="providers"]');
+        const spoken = $('[data-venue-open="voices"]');
+        expect($('.live-venue__choices').textContent).toBe('Answered by Demo · spoken by your device');
+        const panel = $('#live-venue-providers-panel');
+        expect(panel.hidden).toBe(true);
+        answered.click();
+        expect(panel.hidden).toBe(false);
+        expect(answered.getAttribute('aria-expanded')).toBe('true');
+        expect(document.activeElement).toBe(radios()[0]);
+        choose('anthropic');
+        expect(answered.textContent).toBe('Anthropic');
+        expect(answered.getAttribute('aria-label')).toBe('Who answers: Anthropic');
+        // The key field sits directly under the chosen provider.
+        expect(radios().find(radio => radio.value === 'anthropic').closest('label').nextElementSibling.querySelector('#live-venue-key')).not.toBeNull();
+        spoken.click();
+        expect(panel.hidden).toBe(true);
+        expect($('#live-venue-voices-panel').hidden).toBe(false);
+        $('.live-venue').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        expect($('#live-venue-voices-panel').hidden).toBe(true);
+        expect(document.activeElement).toBe(spoken);
+    });
+
     it('offers OpenRouter, now that its adapter is in the registry, as a provider that can be chosen', () => {
         mount();
         const openRouter = radios().find(radio => radio.value === 'openrouter');
@@ -672,6 +696,9 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         const kept = [];
         mount('?voice=paced', env(), { getSettings: () => ({ liveFace: 'jade' }), onSettingChange: (key, value) => kept.push([key, value]) });
         expect(face().dataset.faceSkin).toBe('jade');
+        // The room wears the skin: its ground is the face's own dark.
+        const rootStyle = () => document.documentElement.style;
+        expect(rootStyle().getPropertyValue('--live-ground')).toBe('rgb(7, 12, 10)');
         ask('First?');
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
         const choice = $('#rise-settings-face');
@@ -683,6 +710,11 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         expect(face().dataset.faceSkin).toBe('ember');
         expect(face().querySelector('svg.live-face__still').dataset.skin).toBe('ember');
         await vi.waitFor(() => expect(engine()?.skins).toEqual(['ember']));
+        expect(rootStyle().getPropertyValue('--live-ground')).toBe('rgb(14, 9, 8)');
+        expect(rootStyle().getPropertyValue('--live-iris')).toBe('rgb(240, 163, 107)');
+        host.destroy();
+        host = null;
+        expect(rootStyle().getPropertyValue('--live-ground')).toBe('');
     });
 
     it('listens while the reader types, thinks from the ask until the first words, then withdraws', async () => {
