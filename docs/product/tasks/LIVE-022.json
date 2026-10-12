@@ -49,16 +49,26 @@
       "ref": "e2e/live.spec.js",
       "note": "Branch live-room-changes, local production build, headless Chromium, the demo and the paced voice: look and cue landed 3 and 4 ms after the first phrase of the passage after them; the second change 1 ms after the next phrase began; an answer's change arrived 223 ms after the question and landed 438 ms later, 3 ms after the answer's first phrase; a reader-set pace refused RISE's (READER_SET); Keep 1× took a suggested pace back; the next question carried RISE's changes as RISE's.",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/634",
+      "note": "Stage 5 (branch live-room-changes), stacked on #633 (base live-hardening). Open and held for the connector freeze: not merged, no auto-merge, not deployed.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
     {
       "date": "2026-10-11T17:30:00.000Z",
       "summary": "Built on branch live-room-changes (stacked on live-hardening, #633), held for the connector freeze. No real model has written a room line."
+    },
+    {
+      "date": "2026-10-12T00:15:18.662Z",
+      "summary": "Opened #634 on #633, held for the connector freeze."
     }
   ],
-  "updatedAt": "2026-10-11T17:30:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-12T00:15:18.662Z",
+  "revision": 2,
   "summary": "Design §8 stage 5: the model changes the room while it plays, at phrase boundaries, within the manifests, the reader's own settings winning.",
   "blocker": null
 }
