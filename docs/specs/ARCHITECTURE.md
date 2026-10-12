@@ -167,9 +167,9 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
     core["core<br/>session, player, router<br/>173 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>65 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>66 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
-    scenes["scenes<br/>engine manifests, cues; scene runtime<br/>7 modules"]
+    scenes["scenes<br/>engine manifests, cues; scene runtime<br/>8 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>59 modules"]
@@ -191,7 +191,7 @@ flowchart LR
     components --> |23| content
     components --> |188| core
     components -.-> |1 lazy| page
-    components --> |2| scenes
+    components --> |3| scenes
     components --> |4| sources
     components -.-> |2 lazy| vendor
     components --> |18| visuals
@@ -201,7 +201,7 @@ flowchart LR
     content --> |1| visuals
     core --> |14| audio
     core --> |15| content
-    core --> |11| scenes
+    core --> |12| scenes
     core --> |4| sources
     core --> |7| visuals
     live -.-> |3 lazy| app

@@ -1354,6 +1354,41 @@
   pointer-events: none;
 }
 
+/* A scene that listens (scene-layer.js; docs/plans/LIVE-CURRENT.md §20) takes the reader's presses, and its focus is
+   ringed. Its touch rules stay the field's, so a swipe across it still scrolls the page around a card (#595). */
+.chamber-scene[data-listens] { pointer-events: auto; }
+.chamber-scene[data-listens]:focus { outline: none; }
+.chamber-scene[data-listens]:focus-visible { outline: 2px solid rgba(122, 178, 255, 0.85); outline-offset: -3px; }
+
+/* Touch is held only over a listening scene's widgets: one region each, above the canvas and below the words. */
+.chamber-scene-hits {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.chamber-scene-hit {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+.chamber-scene-hit[data-kind="step"] { cursor: pointer; }
+
+/* The widgets, mirrored for assistive technology only. */
+.chamber-scene-controls {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* A figure: the model's SVG, admitted, shown whole and centred as an image. */
 .chamber-figure {
   position: absolute;

@@ -72,6 +72,8 @@ export function engineTakes({ surface, parameter, value }) {
 }
 /** A generated scene's frame budget, for the guide, by the same route. */
 export { SCENE_LIMITS } from '../scenes/scene-protocol.js';
+/** What a listening scene may say the reader set (docs/plans/LIVE-CURRENT.md §20), for the live journal by the same route. */
+export { CONTROL_PATTERN, EMIT_REFUSALS, emitValue } from '../scenes/scene-protocol.js';
 /** The names a scene may not use, declared once in scene-bans.js; the guide names them by this route. */
 export { BANNED_SCENE_NAMES } from '../scenes/scene-bans.js';
 /** The one source text that chunks to a single silent, timed atom (chunker.js PAUSE_DURATIONS). */

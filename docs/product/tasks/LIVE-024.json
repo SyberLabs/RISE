@@ -1,0 +1,83 @@
+{
+  "id": "LIVE-024",
+  "title": "RISE Live: interactive scenes",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-023"
+  ],
+  "acceptance": [
+    "The sandbox learns to listen and is not opened (design §1 item 5): the reader's pointer and keys go into a generated scene's worker as rise.input (scene/input), built by RISE from the event's own numbers ({ type, x, y, buttons, key, modifiers }, x and y in the canvas's CSS pixels), never a DOM node, element reference or event object, at most 120 pointer inputs a second (moves coalesced, presses and releases never dropped) and 30 keys a second.",
+    "Only a scene that declares it listens (export const listens or rise.listen at init) is given input; a scene that does not is given nothing, its canvas stays inert and hidden, and it behaves exactly as before (no scene/input in the worker's message log).",
+    "Keys reach a scene only while its canvas has the focus, which only the reader gives it, with a visible ring; never the instrument's keys (Space, R, F, minus, equals, brackets, Escape): Space still pauses from a focused scene, the arrows go to it, and Escape returns the focus to the stage.",
+    "What the reader set comes out as scene.input { scene, control, value } via rise.emit: control [a-z0-9-]{1,40}, value a finite number, a boolean or a string of at most 80 characters, 10 a second per control with the trailing value kept, at most 64 controls a scene, taken only while the scene handles the reader's input; anything else is dropped with a scene.input.refused note, and a scene emitting junk never stalls the reading.",
+    "The runtime journals scene.input; perception carries it with the reader's next words in words of action; nothing goes up on a timer; the card journals it and has no perception.",
+    "A tested widget set in rise.lib (design §6): slider, a draggable point in a frame's coordinates, a step-through; each draws in the style's defaults, hit-tests the delivered inputs, keeps and exposes .value, emits on change, and takes a focused scene's arrows; rise.lib.focusable orders several. Not a second format.",
+    "Touch is held (touch-action: none) only over the widgets' hit regions, never a dead zone for scrolling the chat around a card; the words' band keeps its own drag over a scene.",
+    "Accessibility: every scene.input is announced in the stage's hidden live region, and the widgets' labels and values are mirrored in a hidden list (aria-live off).",
+    "The guide teaches Live's model rise.listen, the widget set, rise.emit, that the reader's moves come back as perception, and the restraint; the card's tool text and the Worker are unchanged.",
+    "The demonstration (VISION §2.5's neural-network page): a generated scene of a two-weight network with sliders for the weights, a draggable input point and the output drawn live, written as a mock-beats reading that invites the reader to move it; venue e2e holds the round trip from a move to the journal to the perception line, the keys, the band, the inert undeclared scene and the junk scene; the card's e2e passes with the non-interactive fixtures unchanged."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
+      "note": "§1 item 5, §4 scene.input, §6 'Interactive scenes', §7 (model-emitted HTML or UI refused), §8 stage 6: the acceptance above; stage 6 approved by the owner.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§20 Interactive scenes: what crosses in and out, the declaration, the instrument's keys, emits and their bounds, the mirror, touch, paused input, the threat model and its bounds, the widget set, the journal and perception, the guide, the demonstration.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/specs/RISE-SDK.md",
+      "note": "§7.1–§7.3, §7.8, §7.10 and the new §7.11 Interactive scenes: rise.listen, rise.emit, input(event), the widget rows of rise.lib, the eight new SCENE_LIMITS rows and the three new worker messages, held to the code by src/core/rise-sdk.test.js.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/specs/LIVE-CURRENT-EVENTS-V1.md",
+      "note": "Interactive scenes (added 2026-10-11, no change to the stream): scene.input is the journal's and perception's, carried over the scene worker protocol, never rise.current-events.v1.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "src/scenes/scene-runtime.test.js",
+      "note": "Branch live-interactive-scenes: nothing to an undeclared scene; inputs rebuilt from numbers and clamped; pointer coalesced to 120/s with presses and releases kept; keys 30/s, never the instrument's; one frame at the same scene time while paused; emits only within 1 s of an input, 10/s per control with the trailing value (given on dispose), 64 controls, refusals once per control and reason (16 at most); the widget mirror read field by field. With scene-worker (listen, emit, input, unprompted, junk, luma on paused frames), scene-widgets, scene-layer, Chamber.scene, runtime, perception, stage-controls, LiveHost, openai-instructions, guide index, rise-sdk, boundary and neural-network-beats tests; the fast CI subset, 115 files, passed.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Branch live-interactive-scenes, local production build, headless Chromium, the demo and the paced voice: a press on Weight 1 to scene.input journaled in 13 to 18 ms (four runs); the input point's drag and the arrow key journaled, announced in the live region, mirrored, and carried with the next question ('set w1 in the scene network to -0.9'); Space paused from the focused scene, Escape returned the focus to Play; the band dragged over the scene with no input; an undeclared scene was posted no scene/input; the junk scene bounded with refusal notes and the reading ended. The four interactive tests passed twice each, and the whole file, 34 tests, passed; e2e/live-mcp.spec.js, the whole card file, 73 passed and 1 flaky (the pace test's __riseLive race, unrelated).",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/641",
+      "note": "Stage 6 on branch live-interactive-scenes, opened ready with squash auto-merge on the required CI check. Not merged, not deployed, not accepted.",
+      "date": "2026-10-12"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-12T06:00:00.000Z",
+      "summary": "Claimed and built on branch live-interactive-scenes (Claude, for Fable): design note and threat model first, then the protocol, the widget set, the worker, the scene runtime's bounds, the scene layer, the stage's keys and live region, the journal and perception, Live's guide and the demonstration."
+    },
+    {
+      "date": "2026-10-12T07:30:00.000Z",
+      "summary": "Opened #641 (branch live-interactive-scenes), auto-merge on CI."
+    }
+  ],
+  "updatedAt": "2026-10-12T07:30:00.000Z",
+  "revision": 2,
+  "summary": "Design §8 stage 6: rise.input into the scene worker, scene.input out, a widget set in rise.lib, and the neural-network page of VISION §2.5, with the sandbox kept as the boundary.",
+  "blocker": null
+}

@@ -12,8 +12,11 @@
  * as text and started from a `blob:` URL (create-scene-worker.js), where no
  * other chunk can be imported. It may import only modules Vite inlines.
  */
-import { SCENE_LIMITS, TO_HOST, TO_WORKER, knownMessage } from './scene-protocol.js';
+import {
+  CONTROL_PATTERN, SCENE_INPUTS, SCENE_LIMITS, SCENE_LISTENS, TO_HOST, TO_WORKER, emitValue, knownMessage, sceneKey
+} from './scene-protocol.js';
 import { createSceneLibrary } from './scene-library.js';
+import { createWidgets } from './scene-widgets.js';
 import { SHADOWED_GLOBALS } from './scene-bans.js';
 
 /** Names a scene may not reach (§8); postMessage too, so a scene cannot speak for the worker. */
@@ -30,7 +33,23 @@ const CHANNEL_GLOBALS = Object.freeze(['addEventListener', 'removeEventListener'
 const ACCESSED = new Set(['navigator', 'indexedDB', 'caches', 'self', 'globalThis', 'onmessage', 'onerror']);
 
 const MESSAGE_LIMIT = 300;
-const PHASES = ['load', 'init', 'frame', 'cue'];
+const PHASES = ['load', 'init', 'frame', 'cue', 'input'];
+/** Refusals one emit message carries, at most: the host notes each control and reason once. */
+const REFUSALS_A_MESSAGE = 8;
+
+/** The reader's input as the scene sees it, from a message read field by field; null for anything else. */
+function readInput(data) {
+  const family = Object.hasOwn(SCENE_INPUTS, data.kind) ? SCENE_INPUTS[data.kind] : null;
+  const held = data.modifiers;
+  if (!family || !held || typeof held !== 'object') return null;
+  const modifiers = Object.freeze({ shift: held.shift === true, alt: held.alt === true, ctrl: held.ctrl === true, meta: held.meta === true });
+  if (family === 'pointer') {
+    if (!Number.isFinite(data.x) || !Number.isFinite(data.y) || !Number.isInteger(data.buttons) || data.buttons < 0 || data.buttons > 31) return null;
+    return Object.freeze({ type: data.kind, x: data.x, y: data.y, buttons: data.buttons, key: null, modifiers });
+  }
+  if (!sceneKey(data.key)) return null;
+  return Object.freeze({ type: data.kind, x: null, y: null, buttons: 0, key: data.key, modifiers });
+}
 
 /** Where in the scene's own module an error was thrown, as `scene.js:line:column`, or null. */
 export function whereIn(error, url) {
@@ -103,6 +122,15 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
   let started = false;
   let lastLuma = -Infinity;
   let sampler = null;
+  // What the scene listens to (docs/plans/LIVE-CURRENT.md §20): with nothing, it is given nothing and says nothing new.
+  const listens = new Set();
+  // True only while the scene handles the reader's input: an emit at any other time is not the reader's doing.
+  let handling = false;
+  const pending = new Map();
+  const refusals = new Map();
+  const controls = new Set();
+  let widgetSet = null;
+  let lastWidgets = '';
 
   const report = (phase, error) => {
     post({
@@ -116,6 +144,41 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
   function fit() {
     canvas.width = Math.round(size.width * size.dpr);
     canvas.height = Math.round(size.height * size.dpr);
+  }
+
+  /** A dropped emit, said once a message; the host notes each control and reason once a scene. */
+  function refuse(control, reason) {
+    const key = `${control}|${reason}`;
+    if (refusals.size < REFUSALS_A_MESSAGE && !refusals.has(key)) refusals.set(key, [control, reason]);
+  }
+
+  /** What the scene says the reader set: kept, the latest per control, only while it handles their input. */
+  function emit(control, value) {
+    const named = typeof control === 'string' && CONTROL_PATTERN.test(control);
+    if (!handling) return refuse(named ? control : null, 'unprompted');
+    if (!named) return refuse(null, 'control');
+    if (!emitValue(value)) return refuse(control, 'value');
+    if (!controls.has(control)) {
+      if (controls.size >= SCENE_LIMITS.emitControls) return refuse(control, 'controls');
+      controls.add(control);
+    }
+    pending.set(control, value);
+    return undefined;
+  }
+
+  /** After each thing the scene handled: what the reader set, in one message, and its widgets when they changed. */
+  function flush() {
+    if (pending.size || refusals.size) {
+      post({ type: TO_HOST.emit, changes: [...pending], refused: [...refusals.values()] });
+      pending.clear();
+      refusals.clear();
+    }
+    if (!listens.size || !widgetSet?.count) return;
+    const widgets = widgetSet.describe();
+    const said = JSON.stringify(widgets);
+    if (said === lastWidgets) return;
+    lastWidgets = said;
+    post({ type: TO_HOST.widgets, widgets });
   }
 
   function luma() {
@@ -164,10 +227,23 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
         return gl;
       },
       get lib() {
-        lib ??= createSceneLibrary({ ctx: rise.ctx, size, theme: rise.theme, reducedMotion: rise.reducedMotion, defaults: data.library });
+        lib ??= createSceneLibrary({
+          ctx: rise.ctx, size, theme: rise.theme, reducedMotion: rise.reducedMotion, defaults: data.library,
+          widgets: kit => (widgetSet = createWidgets({ ...kit, emit }))
+        });
         return lib;
       },
-      done() { post({ type: TO_HOST.done }); }
+      done() { post({ type: TO_HOST.done }); },
+      /** Says the scene listens to the reader's pointer, keys, or both; before the first frame only. */
+      listen(...kinds) {
+        if (started) throw new Error('rise.listen is called before the first frame');
+        for (const kind of kinds.flat()) {
+          if (!SCENE_LISTENS.includes(kind)) throw new TypeError('rise.listen takes "pointer" or "keys"');
+          listens.add(kind);
+        }
+      },
+      /** What the reader set, while the scene handles their input: a control id and a number, a boolean or short text. */
+      emit(control, value) { emit(control, value); }
     };
 
     let module;
@@ -187,6 +263,8 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
       if (typeof module?.default !== 'function') throw new TypeError('A scene is an ES module with a default export function');
       made = module.default(rise);
       if (!made || typeof made.frame !== 'function') throw new TypeError('A scene returns { frame(t, dt) } from its default export');
+      const declared = module.listens;
+      if (Array.isArray(declared) && declared.every(kind => SCENE_LISTENS.includes(kind))) for (const kind of declared) listens.add(kind);
     } catch (error) {
       report('init', error);
       return;
@@ -199,7 +277,27 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
       return;
     }
     scene = made;
-    post({ type: TO_HOST.ready, reportsCompletion: module.reportsCompletion === true });
+    const heard = SCENE_LISTENS.filter(kind => listens.has(kind));
+    post({ type: TO_HOST.ready, reportsCompletion: module.reportsCompletion === true, ...(heard.length ? { listens: heard } : {}) });
+    flush();
+  }
+
+  /** The reader's input, to a scene that listens to its kind: its widgets first, then its own `input`. */
+  function input(data) {
+    const event = scene && listens.size ? readInput(data) : null;
+    if (!event || !listens.has(SCENE_INPUTS[event.type])) return;
+    handling = true;
+    try {
+      widgetSet?.dispatch(event);
+      scene.input?.(event);
+    } catch (error) {
+      scene = null;
+      report('input', error);
+      return;
+    } finally {
+      handling = false;
+    }
+    flush();
   }
 
   function frame({ t, dt }) {
@@ -214,11 +312,14 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
       return;
     }
     post({ type: TO_HOST.frameDone, t, ms: performance.now() - begun });
-    if (t - lastLuma >= SCENE_LIMITS.lumaEveryMs) {
+    // A listening scene's frame with no step is one drawn for the reader's input while paused: sampled too, so a scene
+    // cannot flash under a drag where scene time stands still.
+    if (t - lastLuma >= SCENE_LIMITS.lumaEveryMs || (listens.size && dt === 0)) {
       lastLuma = t;
       const value = luma();
       if (value !== null) post({ type: TO_HOST.luma, value, t });
     }
+    flush();
   }
 
   function cue({ name, instant }) {
@@ -230,6 +331,7 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
       report('cue', error);
     }
     post({ type: TO_HOST.cued, name });
+    flush();
   }
 
   async function handle(data) {
@@ -238,6 +340,7 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
       if (canvas === null) await init(data);
     } else if (data.type === TO_WORKER.frame) frame(data);
     else if (data.type === TO_WORKER.cue) cue(data);
+    else if (data.type === TO_WORKER.input) input(data);
     else if (data.type === TO_WORKER.resize) {
       if (!size || ![data.width, data.height, data.dpr].every(Number.isFinite)) return;
       Object.assign(size, { width: data.width, height: data.height, dpr: Math.min(SCENE_LIMITS.maxDpr, data.dpr) });

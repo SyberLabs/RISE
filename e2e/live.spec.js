@@ -22,6 +22,7 @@
 import { compileRiseCurrent } from '../src/core/rise-current.js';
 import { mapAtoms } from '../src/live/atom-map.js';
 import { BLACK_HOLES } from '../src/live/fixtures/black-holes.js';
+import { describePerception } from '../src/live/perception.js';
 import { expect, test } from './fixtures.js';
 
 const OPEN = '/live?host=prompt&voice=paced';
@@ -975,6 +976,164 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(journal.find(entry => entry.type === 'illustration.asked' && entry.n === n).at).toBeGreaterThan(askedAt);
         await expect.poll(() => page.evaluate(() => window.__pictures.some(item => item.kind === 'figure')), { timeout: 10_000 }).toBe(true);
         console.log(`illustrator in an answer to the reader: put up ${Math.round(at - askedAt)} ms after the reader asked`);
+        expect(errors).toEqual([]);
+    });
+
+    /**
+     * Interactive scenes (docs/plans/LIVE-CURRENT.md §20), on the demo and the paced voice. Every message the page posts
+     * to a worker is logged by type, so what a scene was given is read from the worker's own message log.
+     */
+    async function listening(page, question) {
+        const errors = watchErrors(page);
+        await page.addInitScript(() => {
+            window.__workerLog = [];
+            const post = Worker.prototype.postMessage;
+            Worker.prototype.postMessage = function postMessage(message, transfer) {
+                window.__workerLog.push(message?.type ?? null);
+                return post.call(this, message, transfer);
+            };
+        });
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill(question);
+        await page.locator('#live-venue-question').press('Enter');
+        const journal = () => page.evaluate(() => window.__riseLive.journal());
+        const inputs = async () => (await journal()).filter(entry => entry.type === 'scene.input');
+        const delivered = () => page.evaluate(() => window.__workerLog.filter(type => type === 'scene/input').length);
+        return { errors, journal, inputs, delivered };
+    }
+
+    test('interactive scenes: the reader drags the input and moves a weight, by pointer and by key; each move is journaled, said, and goes up with the next question', async ({ page }) => {
+        test.setTimeout(120_000);
+        const { errors, journal, inputs, delivered } = await listening(page, 'How does a neural network learn?');
+        await expectShown(page, 'A neural network is a machine for weighing evidence.');
+        // The scene's code arrives at a model's pace, behind the three beats said while it is written.
+        const canvas = page.locator('canvas.chamber-scene[data-listens="pointer keys"]');
+        await expect(canvas).toBeAttached({ timeout: 45_000 });
+        await expect(page.locator('.chamber-scene-controls li')).toHaveText(['Weight 1, slider: 1', 'Weight 2, slider: -0.5', 'Input, point: 0.5, 0.5'], { timeout: 10_000 });
+        await expect(canvas).toHaveAttribute('role', 'application');
+
+        // The input point, dragged by its region; the journal keeps the drag's last value, once its trailing value is in.
+        const point = await page.locator('.chamber-scene-hit[data-control="input"]').boundingBox();
+        const [px, py] = [point.x + point.width / 2, point.y + point.height / 2];
+        expect(await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.dataset.control, [px, py])).toBe('input');
+        await page.mouse.move(px, py);
+        await page.mouse.down();
+        await page.mouse.move(px - 60, py + 40, { steps: 6 });
+        await page.mouse.up();
+        await page.waitForTimeout(400);
+        const dragged = (await inputs()).find(entry => entry.control === 'input');
+        expect(dragged).toMatchObject({ scene: 'network', value: expect.stringMatching(/^-?\d+(\.\d+)?, -?\d+(\.\d+)?$/u) });
+        expect(dragged.value).not.toBe('0.5, 0.5');
+        await expect(page.locator('.chamber-scene-controls li').nth(2)).toHaveText(`Input, point: ${dragged.value}`);
+
+        // Weight 1, pressed a quarter of the way along its track (x 28 to 198): -1, said in the stage's live region. One press
+        // is one input and one move: its round trip, from the press to the journal, on the page's own clock.
+        const w1 = await page.locator('.chamber-scene-hit[data-control="w1"]').boundingBox();
+        const pressedAt = await page.evaluate(() => performance.now());
+        await page.mouse.click(w1.x + 10 + 170 * 0.25, w1.y + w1.height / 2);
+        await expect.poll(async () => (await inputs()).find(entry => entry.control === 'w1')?.value ?? null).toBe(-1);
+        const weighed = (await inputs()).find(entry => entry.control === 'w1');
+        console.log(`interactive scene: a press on Weight 1 to scene.input journaled ${Math.round(weighed.at - pressedAt)} ms (the drag of the input ended at ${dragged.value})`);
+        expect(weighed.at - pressedAt).toBeLessThan(1_000);
+        await expect(page.locator('.rise-stage__scene-note')).toHaveText('Weight 1 -1');
+        await expect(canvas).toBeFocused();
+
+        // The arrows are the focused scene's; Space is still the stage's; Escape gives the focus back to Play.
+        await page.keyboard.press('ArrowRight');
+        await expect.poll(async () => (await inputs()).find(entry => entry.control === 'w1')?.value ?? null).toBe(-0.9);
+        await expect(page.locator('.chamber-scene-controls li').first()).toHaveText('Weight 1, slider: -0.9');
+        expect((await journal()).some(entry => entry.type === 'seek')).toBe(false);
+        await page.keyboard.press('Space');
+        await expect.poll(async () => (await journal()).some(entry => entry.type === 'interrupt')).toBe(true);
+        await page.keyboard.press('Escape');
+        await expect(page.locator('#rise-stage-controls [data-stage="play"]')).toBeFocused();
+        expect(new URL(page.url()).pathname).toBe('/live');
+        expect(await delivered()).toBeGreaterThan(0);
+
+        // Asked again, the moves go up as the reader's, in words of action.
+        await expect(page.getByRole('form', { name: 'Ask again' })).toBeVisible();
+        await page.locator('#live-again-question').fill('What did my weights do?');
+        await page.locator('#live-again-question').press('Enter');
+        await expect.poll(() => page.evaluate(() => window.__riseLive.perception()), { timeout: 15_000 }).not.toBeNull();
+        const sent = await page.evaluate(() => window.__riseLive.perception());
+        expect(sent.events).toEqual(expect.arrayContaining([
+            { type: 'scene.input', scene: 'network', control: 'input', value: dragged.value },
+            { type: 'scene.input', scene: 'network', control: 'w1', value: -0.9 }
+        ]));
+        const block = describePerception(sent);
+        expect(block).toContain('- set w1 in the scene network to -0.9');
+        expect(block).toContain(`- set input in the scene network to “${dragged.value}”`);
+        console.log(`interactive scene: the next question carried\n${block}`);
+        expect(errors).toEqual([]);
+    });
+
+    test('interactive scenes: the words keep their own drag over a listening scene, and a press on them is no input to it', async ({ page }) => {
+        test.setTimeout(90_000);
+        const { errors, inputs } = await listening(page, 'How does a neural network learn?');
+        await expect(page.locator('canvas.chamber-scene[data-listens]')).toBeAttached({ timeout: 45_000 });
+        await expectShown(page, 'Here is the smallest one there is');
+        const band = page.locator('#atom-display');
+        const offset = () => page.evaluate(() => parseFloat(getComputedStyle(document.querySelector('#chamber-field')).getPropertyValue('--band-offset')) || 0);
+        const drag = async dy => {
+            const box = await band.boundingBox();
+            const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+            expect(await page.evaluate(([X, Y]) => document.querySelector('#atom-display').contains(document.elementFromPoint(X, Y)), [x, y])).toBe(true);
+            await page.mouse.move(x, y);
+            await page.mouse.down();
+            await page.mouse.move(x, y + dy, { steps: 8 });
+            await page.mouse.up();
+        };
+        await drag(0);
+        await expect(band).toHaveClass(/is-band-movable/u);
+        const before = await offset();
+        await drag(-80);
+        expect(await offset()).toBeLessThan(before - 10);
+        expect(await inputs()).toEqual([]);
+        expect(errors).toEqual([]);
+    });
+
+    test('interactive scenes: a scene that does not declare it listens is given nothing, and its canvas stays inert and hidden', async ({ page }) => {
+        test.setTimeout(90_000);
+        const { errors, delivered, inputs } = await listening(page, 'Explain black holes with RISE.');
+        const canvas = page.locator('canvas.chamber-scene');
+        await expect(canvas).toBeAttached({ timeout: 40_000 });
+        await expect(canvas).not.toHaveAttribute('data-listens', /./u);
+        await expect(canvas).toHaveAttribute('aria-hidden', 'true');
+        const box = await canvas.boundingBox();
+        const [x, y] = [box.x + box.width / 2, box.y + box.height * 0.3];
+        expect(await page.evaluate(([X, Y]) => document.elementFromPoint(X, Y)?.matches('canvas.chamber-scene') ?? false, [x, y])).toBe(false);
+        await page.mouse.click(x, y);
+        await page.mouse.move(x + 40, y + 20, { steps: 5 });
+        await canvas.evaluate(node => node.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 10, clientY: 10 })));
+        await page.keyboard.press('a');
+        expect(await delivered()).toBe(0);
+        expect(await inputs()).toEqual([]);
+        expect(await page.locator('.chamber-scene-controls, .chamber-scene-hits').count()).toBe(0);
+        expect(errors).toEqual([]);
+    });
+
+    test('interactive scenes: a scene that emits junk, a thousand values a press, is bounded with refusal notes, and the reading goes on to its end', async ({ page }) => {
+        test.setTimeout(120_000);
+        const { errors, journal, inputs } = await listening(page, 'Show me a scene that misbehaves');
+        const canvas = page.locator('canvas.chamber-scene[data-listens="pointer keys"]');
+        await expect(canvas).toBeAttached({ timeout: 20_000 });
+        const box = await canvas.boundingBox();
+        for (let i = 0; i < 12; i += 1) await page.mouse.click(box.x + box.width / 2, box.y + box.height * 0.3, { delay: 10 });
+        await expect.poll(async () => (await journal()).filter(entry => entry.type === 'scene.input.refused').map(entry => entry.reason), { timeout: 10_000 })
+            .toEqual(expect.arrayContaining(['controls', 'unprompted', 'value']));
+        const refused = (await journal()).filter(entry => entry.type === 'scene.input.refused');
+        expect(refused.length).toBeLessThanOrEqual(16);
+        expect(refused).toEqual(expect.arrayContaining([
+            expect.objectContaining({ scene: 'unruly', control: 'shape', reason: 'value' }),
+            expect.objectContaining({ scene: 'unruly', control: 'note', reason: 'value' }),
+            expect.objectContaining({ scene: 'unruly', control: 'count', reason: 'unprompted' })
+        ]));
+        const moved = await inputs();
+        expect(moved.length).toBeLessThanOrEqual(64);
+        expect(new Set(moved.map(entry => entry.control)).size).toBe(moved.length);
+        await expectShown(page, 'Whatever it says, the reading goes on.', 40_000);
+        await expect.poll(async () => (await journal()).some(entry => entry.type === 'run.finished'), { timeout: 30_000 }).toBe(true);
+        expect((await journal()).some(entry => entry.type === 'scene.refused')).toBe(false);
         expect(errors).toEqual([]);
     });
 });

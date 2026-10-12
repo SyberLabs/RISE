@@ -2342,3 +2342,26 @@ describe('the beds under the reading', () => {
         expect(host.controls.keepIntensity.mock.calls).toEqual([[0.5]]);
     });
 });
+
+describe('a scene that listens (stage 6, docs/plans/LIVE-CURRENT.md §20)', () => {
+    it('gives the stage its keys, journals what the reader set and says it in the stage’s live region; a refusal is journaled only', () => {
+        mount('?voice=paced');
+        host.runtime = { noteSceneInput: vi.fn(), noteSceneInputRefused: vi.fn(), stop: vi.fn(async () => {}) };
+        host.controls = { hearScene: vi.fn(), announceScene: vi.fn(), destroy: vi.fn() };
+        const say = (type, detail) => window.dispatchEvent(new CustomEvent(type, { detail }));
+        say('rise-scene-listen', { sceneId: 'network', pointer: true, keys: true });
+        expect(host.controls.hearScene).toHaveBeenCalledTimes(1);
+        say('rise-scene-input', { sceneId: 'network', control: 'w1', value: 0.7, label: 'Weight 1' });
+        say('rise-scene-input', { sceneId: 'network', control: 'input', value: '0.3, -0.2', label: null });
+        say('rise-scene-input', { sceneId: 'network', control: 'shape', refused: 'value' });
+        expect(host.runtime.noteSceneInput.mock.calls).toEqual([
+            [{ scene: 'network', control: 'w1', value: 0.7 }], [{ scene: 'network', control: 'input', value: '0.3, -0.2' }]
+        ]);
+        expect(host.controls.announceScene.mock.calls).toEqual([['Weight 1 0.7'], ['input 0.3, -0.2']]);
+        expect(host.runtime.noteSceneInputRefused.mock.calls).toEqual([[{ scene: 'network', control: 'shape', reason: 'value' }]]);
+        const { runtime } = host;
+        host.destroy();
+        say('rise-scene-input', { sceneId: 'network', control: 'w1', value: 0.9, label: 'Weight 1' });
+        expect(runtime.noteSceneInput).toHaveBeenCalledTimes(2);
+    });
+});

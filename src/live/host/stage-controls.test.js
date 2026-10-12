@@ -983,9 +983,12 @@ describe('the reading in the card, under a thumb', () => {
     it('a drag on selected words moves them and not the host; unselected words still let the host scroll', () => {
         const chamber = read('../../components/read/Chamber.css');
         expect(chamber).toMatch(/\.atom-display\.is-band-movable\s*\{[^}]*touch-action:\s*none/u);
+        // Touch is held only by selected words, and by a listening scene's widget regions, each only as large as its
+        // widget (scene-layer.js; docs/plans/LIVE-CURRENT.md §20): never by the canvas or the field.
         for (const rule of rules(chamber).filter(rule => /touch-action:\s*none/u.test(rule))) {
-            for (const selector of selectors(rule)) expect(selector).toContain('.is-band-movable');
+            for (const selector of selectors(rule)) expect(selector.includes('.is-band-movable') || selector === '.chamber-scene-hit', selector).toBe(true);
         }
+        expect(chamber).not.toMatch(/\.chamber-scene[^{-]*\{[^}]*touch-action/u);
     });
 
     it('the phone band paints its scrim only over words it holds, and keeps its height when it holds none', () => {
@@ -1279,5 +1282,77 @@ describe('the room RISE changed (stage 5)', () => {
         keep.click();
         expect(runtime.setPace).toHaveBeenLastCalledWith(1);
         expect(suggestion().hidden).toBe(true);
+    });
+});
+
+describe('a scene that listens (stage 6, docs/plans/LIVE-CURRENT.md §20)', () => {
+    /** A listening scene's canvas, focused: it lives in the Chamber's field, outside the stage. */
+    function sceneCanvas() {
+        const canvas = document.createElement('canvas');
+        canvas.className = 'chamber-scene';
+        canvas.tabIndex = 0;
+        document.body.appendChild(canvas);
+        canvas.focus();
+        return canvas;
+    }
+
+    it('binds its key handler on the document only once a scene listens, in the capture phase', () => {
+        const added = vi.spyOn(document, 'addEventListener');
+        stage = createStageControls({ runtime: reading('live', 2), onPlayAgain: () => {} });
+        expect(added.mock.calls.filter(([type]) => type.startsWith('key'))).toEqual([]);
+        stage.hearScene();
+        stage.hearScene();
+        expect(added.mock.calls.filter(([type]) => type.startsWith('key')).map(([type, , capture]) => [type, capture])).toEqual([['keydown', true]]);
+        added.mockRestore();
+    });
+
+    it('keeps the instrument’s keys for the stage while a scene has the focus, and leaves the arrows to the scene', () => {
+        const runtime = reading('live', 2);
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        stage.hearScene();
+        const canvas = sceneCanvas();
+        expect(press('r', canvas)).toBe(false);
+        expect(press('=', canvas)).toBe(false);
+        expect(press('ArrowLeft', canvas)).toBe(true);
+        expect(press('a', canvas)).toBe(true);
+        expect(press(' ', canvas)).toBe(false);
+        expect(runtime.calls).toEqual([['replay'], ['setPace', 1.25], ['interrupt']]);
+    });
+
+    it('gives the focus back to the stage on Escape, and keeps that Escape from anyone else, in either transport', () => {
+        for (const transport of ['full', 'minimal']) {
+            stage = createStageControls({ runtime: reading('live', 2), onPlayAgain: () => {}, transport });
+            stage.hearScene();
+            const canvas = sceneCanvas();
+            expect(press('Escape', canvas), transport).toBe(false);
+            expect(document.activeElement, transport).toBe(play());
+            stage.destroy();
+            document.body.replaceChildren();
+        }
+        stage = null;
+    });
+
+    it('hears no key of the page’s other canvases, and none once it is gone', () => {
+        const runtime = reading('live', 2);
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
+        stage.hearScene();
+        const other = document.createElement('canvas');
+        document.body.appendChild(other);
+        expect(press(' ', other)).toBe(true);
+        const canvas = sceneCanvas();
+        stage.destroy();
+        stage = null;
+        expect(press(' ', canvas)).toBe(true);
+        expect(runtime.calls).toEqual([]);
+    });
+
+    it('says what the reader set, in its own hidden live region', () => {
+        stage = createStageControls({ runtime: reading('live', 2), onPlayAgain: () => {} });
+        const note = $('#rise-stage-controls .rise-stage__scene-note');
+        expect(note.getAttribute('aria-live')).toBe('polite');
+        expect(note.classList.contains('rise-stage__sr')).toBe(true);
+        stage.announceScene('Weight 1 0.7');
+        expect(note.textContent).toBe('Weight 1 0.7');
+        expect(status().textContent).not.toContain('Weight 1');
     });
 });

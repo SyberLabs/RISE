@@ -12,9 +12,10 @@ import { createEventWriter } from '../adapter.js';
 import { createCurrentStream } from '../stream.js';
 import {
     BEAT_EXAMPLES, ILLUSTRATE_GUIDE, ILLUSTRATOR_EXAMPLES, ILLUSTRATOR_INSTRUCTIONS, INTERJECTION_GUIDE, instructionsFor, PERCEPTION_GUIDE, PERSONA,
-    promptFor, READING_CLOSING, READING_OPENING, REALTIME_INSTRUCTIONS, ROOM_GUIDE
+    promptFor, READING_CLOSING, READING_OPENING, REALTIME_INSTRUCTIONS, ROOM_GUIDE, SCENE_INPUT_GUIDE
 } from './openai-instructions.js';
-import { FIGURE_EXAMPLE, LIB_GUIDE, SCENE_CODE_EXAMPLE } from '../guide/beats.js';
+import { FIGURE_EXAMPLE, INTERACTIVE_EXAMPLE, LIB_GUIDE, SCENE_CODE_EXAMPLE, WIDGET_GUIDE } from '../guide/beats.js';
+import { admitSceneCode } from '../../core/scene-admission.js';
 import { SVG_ELEMENTS } from '../../core/svg-admission.js';
 import { BANNED_SCENE_NAMES } from '../../core/scene-admission.js';
 import { RISE_CURRENT_LOOKS } from '../../core/rise-current.js';
@@ -306,5 +307,34 @@ describe('the illustrator (stage 5.5, design §6.2)', () => {
         const nothing = promptFor({ intent: 'illustrate', prompt: 'water', illustration: { ...room, attempt: 3, repair: { diagnostics: [{ line: null, column: null, rule: 'nothing-drawn', message: 'the answer drew no picture' }] } } });
         expect(nothing).toContain('- (nothing-drawn): the answer drew no picture.');
         noOrders(asked.split('\n').at(-1));
+    });
+});
+
+describe('interactive scenes (stage 6, docs/plans/LIVE-CURRENT.md §20)', () => {
+    it('are taught in Live’s instructions: rise.listen, the widget set line by line, rise.emit, and that the moves come back', () => {
+        expect(REALTIME_INSTRUCTIONS).toContain(SCENE_INPUT_GUIDE);
+        for (const [, line] of WIDGET_GUIDE) expect(SCENE_INPUT_GUIDE, line).toContain(line);
+        for (const name of ['rise.listen(', 'rise.emit(', 'input(event)', 'focusable']) expect(SCENE_INPUT_GUIDE, name).toContain(name);
+        expect(SCENE_INPUT_GUIDE).toContain('set w1 in the scene network to 0.7');
+        expect(PERCEPTION_GUIDE).toMatch(/set .* in a scene/u);
+    });
+
+    it('teach the restraint: a widget per idea, each labelled, away from the words, a picture that reads untouched', () => {
+        expect(SCENE_INPUT_GUIDE).toMatch(/one widget per idea/iu);
+        expect(SCENE_INPUT_GUIDE).toMatch(/label/u);
+        expect(SCENE_INPUT_GUIDE).toMatch(/away from the words/u);
+        expect(SCENE_INPUT_GUIDE).toMatch(/without anyone touching it/u);
+        expect(SCENE_INPUT_GUIDE).not.toMatch(/you must|\balways\b|\bnever\b/iu);
+        for (const sentence of SCENE_INPUT_GUIDE.split(/(?<=[.:])\s+|\n/u)) {
+            expect(sentence.trim(), sentence).not.toMatch(/^(?:- )?(?:Always|Never|Do not|Don’t|Don't)\b/u);
+        }
+    });
+
+    it('show a worked scene that listens, which the admission takes and the reducer keeps', () => {
+        expect(admitSceneCode(INTERACTIVE_EXAMPLE)).toEqual({ ok: true });
+        expect(SCENE_INPUT_GUIDE).toContain(INTERACTIVE_EXAMPLE);
+        const stream = seal(['@say A line has a slope.', '@scene slope code', '```js', INTERACTIVE_EXAMPLE, '```', '@say scene=slope Move it.', ''].join('\n'));
+        expect(stream.refusedScenes).toEqual([]);
+        expect(stream.toCurrent().scenes).toEqual([{ id: 'slope', code: INTERACTIVE_EXAMPLE }]);
     });
 });
