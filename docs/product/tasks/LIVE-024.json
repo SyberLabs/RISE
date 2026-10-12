@@ -58,16 +58,26 @@
       "ref": "e2e/live.spec.js",
       "note": "Branch live-interactive-scenes, local production build, headless Chromium, the demo and the paced voice: a press on Weight 1 to scene.input journaled in 13 to 18 ms (four runs); the input point's drag and the arrow key journaled, announced in the live region, mirrored, and carried with the next question ('set w1 in the scene network to -0.9'); Space paused from the focused scene, Escape returned the focus to Play; the band dragged over the scene with no input; an undeclared scene was posted no scene/input; the junk scene bounded with refusal notes and the reading ended. The four interactive tests passed twice each, and the whole file, 34 tests, passed; e2e/live-mcp.spec.js, the whole card file, 73 passed and 1 flaky (the pace test's __riseLive race, unrelated).",
       "date": "2026-10-11"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/641",
+      "note": "Stage 6 on branch live-interactive-scenes, opened ready with squash auto-merge on the required CI check. Not merged, not deployed, not accepted.",
+      "date": "2026-10-12"
     }
   ],
   "activity": [
     {
       "date": "2026-10-12T06:00:00.000Z",
       "summary": "Claimed and built on branch live-interactive-scenes (Claude, for Fable): design note and threat model first, then the protocol, the widget set, the worker, the scene runtime's bounds, the scene layer, the stage's keys and live region, the journal and perception, Live's guide and the demonstration."
+    },
+    {
+      "date": "2026-10-12T07:30:00.000Z",
+      "summary": "Opened #641 (branch live-interactive-scenes), auto-merge on CI."
     }
   ],
-  "updatedAt": "2026-10-12T06:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-12T07:30:00.000Z",
+  "revision": 2,
   "summary": "Design §8 stage 6: rise.input into the scene worker, scene.input out, a widget set in rise.lib, and the neural-network page of VISION §2.5, with the sandbox kept as the boundary.",
   "blocker": null
 }
