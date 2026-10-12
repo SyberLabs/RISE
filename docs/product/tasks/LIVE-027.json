@@ -34,7 +34,7 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/646",
-      "note": "Branch live-face. Local: vitest src/scenes + src/live/host 625 passed; e2e/live.spec.js (full) 37 passed, plus the one scene test rerun green after the face canvas got its own class; card subset 13 passed; face worker frame median 0.40 ms; blink brightness step 0.010; hidden 623-640 ms after the first atom. Not merged, not deployed, not accepted by a human.",
+      "note": "Branch live-face. Local: vitest src/scenes + src/live/host 625 passed; e2e/live.spec.js (full) 37 passed, plus the one scene test rerun green after the face canvas got its own class; card subset 13 passed; face worker frame median 0.40 ms; blink brightness step 0.010; hidden 623-640 ms after the first atom. Merged as b1689a66; deployed (release.txt b1689a66, 2026-10-13). Not accepted by a human.",
       "date": "2026-10-12"
     }
   ],
