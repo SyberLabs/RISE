@@ -560,3 +560,49 @@ describe('the illustrator, as the venue shows it (stage 5.5)', () => {
         expect(host.venue.usageLine()).toBe('requests: 2 (1 answer, 1 illustrator), tokens: 1,000 (900 in, 100 out), $0.0010');
     });
 });
+
+describe('who speaks (design §8 stage 7)', () => {
+    const voiceRadio = value => $(`input[name="live-venue-voice"][value="${value}"]`);
+
+    it('offers the device’s voice, chosen, and ElevenLabs on the reader’s key, whose field appears only when chosen', () => {
+        mount();
+        expect(voiceRadio('device').checked).toBe(true);
+        expect($('#live-venue-voice-key')).toBeNull();
+        expect($('.live-venue__privacy').textContent).toMatch(/The voice is your device’s own/u);
+        voiceRadio('elevenlabs').checked = true;
+        voiceRadio('elevenlabs').dispatchEvent(new Event('change', { bubbles: true }));
+        expect(host.voiceChoice).toBe('elevenlabs');
+        const field = $('#live-venue-voice-key');
+        expect(field.type).toBe('password');
+        expect($('label[for="live-venue-voice-key"]').textContent).toBe('Your ElevenLabs key');
+        expect($('.live-venue__privacy').textContent).toMatch(/goes only to ElevenLabs, billed per character/u);
+        voiceRadio('device').checked = true;
+        voiceRadio('device').dispatchEvent(new Event('change', { bubbles: true }));
+        expect($('#live-venue-voice-key')).toBeNull();
+    });
+
+    it('refuses to ask without the key, then keeps a typed key in the host’s memory and out of the page', async () => {
+        mount();
+        voiceRadio('elevenlabs').checked = true;
+        voiceRadio('elevenlabs').dispatchEvent(new Event('change', { bubbles: true }));
+        ask('Why is the sky blue?');
+        expect($('.live-error').textContent).toMatch(/Enter your ElevenLabs key/u);
+        expect(runtimes).toHaveLength(0);
+        $('#live-venue-voice-key').value = ' xi-test-key ';
+        ask('Why is the sky blue?');
+        expect(host.voiceKey).toBe('xi-test-key');
+        expect($('#live-venue-voice-key')?.value ?? '').toBe('');
+        expect(document.body.innerHTML).not.toContain('xi-test-key');
+        await vi.waitFor(() => expect(runtimes).toHaveLength(1));
+        host.venue.destroy?.();
+    });
+
+    it('forgets the key when the device’s voice is chosen again', () => {
+        mount();
+        host.voiceChoice = 'elevenlabs';
+        host.voiceKey = 'xi-test-key';
+        voiceRadio('device').checked = true;
+        voiceRadio('device').dispatchEvent(new Event('change', { bubbles: true }));
+        expect(host.voiceKey).toBe('');
+    });
+});

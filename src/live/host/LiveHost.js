@@ -216,6 +216,11 @@ export class LiveHost {
         container.ownerDocument.defaultView?.addEventListener('rise-scene-input', this.onSceneInput);
         // The reader's own key, in memory and nowhere else; see forgetKey.
         this.key = '';
+        // The venue's voice: the device's own, or a provider's on the reader's key, held in memory as `key` is
+        // (voices/provider-tts.js; docs/superpowers/specs/2026-10-09-rise-live-design.md §8 stage 7).
+        this.voiceChoice = 'device';
+        this.voiceKey = '';
+        this.providerSpeech = null;
         // Which Gemini model to ask, if the reader named one; not secret, and empty means the default.
         this.model = undefined;
         this.embedded = this.params.get('embed') === 'mcp' && !this.params.has('eval');
@@ -445,7 +450,7 @@ export class LiveHost {
             this.runtime = runtime;
             const mic = await this.buildMic();
             if (this.destroyed) return;
-            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.voiceKind === 'browser', mic });
+            this.controls = createLiveControls({ runtime, onStop: () => this.stop(), audible: this.audible(), mic });
             await runtime.start(prompt);
         } catch (error) {
             if (this.destroyed) return;
@@ -464,6 +469,16 @@ export class LiveHost {
     /** The key is forgotten when the session ends, or is refused. */
     forgetKey() {
         this.key = '';
+    }
+
+    /** The reader chose the device's voice again, or left: the provider's key is not kept. */
+    forgetVoiceKey() {
+        this.voiceKey = '';
+    }
+
+    /** Whether the reading is heard: the browser's voice or a provider's, as against the paced clock. */
+    audible() {
+        return this.voiceKind === 'browser' || this.voiceKind === 'elevenlabs';
     }
 
     resetButton() {
@@ -585,8 +600,10 @@ export class LiveHost {
         const chosen = journal.findLast(entry => entry.type === 'voice.chosen');
         const trouble = journal.findLast(entry => entry.type === 'voice.degraded' || entry.type === 'voice.failed');
         const spoken = this.spokenVoice;
-        const voice = this.voiceKind !== 'browser' ? this.voiceKind ?? 'not chosen yet'
-            : spoken ? `browser "${spoken.name}" ${spoken.lang} local=${chosen?.local ?? 'unknown'}` : 'browser (platform default)';
+        const voice = this.voiceKind === 'elevenlabs'
+            ? `elevenlabs "${spoken?.name ?? 'provider voice'}" model=${this.providerSpeech?.modelId ?? 'unknown'} chars=${this.providerSpeech?.chars ?? 0} (your key)`
+            : this.voiceKind !== 'browser' ? this.voiceKind ?? 'not chosen yet'
+                : spoken ? `browser "${spoken.name}" ${spoken.lang} local=${chosen?.local ?? 'unknown'}` : 'browser (platform default)';
         // Which passage it gave up on, how long that passage is, and whether it was tried again (speech-governor.js).
         const passage = trouble?.segmentId ? ` segment=${trouble.segmentId} chars=${trouble.chars} retried=${trouble.retried}` : '';
         const why = trouble
@@ -634,9 +651,9 @@ export class LiveHost {
         return [...lines, '', ...this.traceLines].join('\n');
     }
 
-    /** The browser's voice is not the engine's, so the engine is told when it speaks: the beds step back under it. */
+    /** A spoken voice is not the engine's, so the engine is told when it speaks: the beds step back under it. */
     duckUnderVoice(type) {
-        if (!this.audioEngine || this.voiceKind !== 'browser') return;
+        if (!this.audioEngine || !this.audible()) return;
         if (type === 'speech.start') this.audioEngine.setVoiceDucking(true);
         else if (VOICE_QUIET.has(type)) this.audioEngine.setVoiceDucking(false);
     }
@@ -838,6 +855,31 @@ export class LiveHost {
 
     async buildVoices(clock) {
         const wants = this.selectedVoice();
+        if (this.voiceChoice === 'elevenlabs' && this.voiceKey) {
+            // A provider's voice on the reader's key: the same clock, a mark at every word, an exact hold.
+            const [{ createProviderVoice }, { createElevenLabsSpeech }] = await Promise.all([
+                import('../voices/provider-tts.js'),
+                import('../voices/elevenlabs.js')
+            ]);
+            const speech = createElevenLabsSpeech({
+                getKey: () => this.voiceKey,
+                fetch: (...args) => (this.env.fetch ?? globalThis.fetch)(...args)
+            });
+            this.providerSpeech = speech;
+            this.browserVoices = null;
+            this.voiceCount = null;
+            this.voiceKind = 'elevenlabs';
+            this.spokenVoice = Object.freeze({ name: speech.name, lang: this.env.navigator?.language || 'en' });
+            this.showNotes();
+            return {
+                create: () => {
+                    // The engine's context, already started inside the reader's press (unlockAudio); its own only without one.
+                    const context = this.audioEngine?.context ?? new this.env.AudioContext();
+                    this.madeVoice = createProviderVoice({ speech, context, clock });
+                    return this.madeVoice;
+                }
+            };
+        }
         if (wants === 'browser') {
             const { chooseVoice, createBrowserVoice, voicesFor, whenVoicesAvailable } = await import('../voices/browser.js');
             const synth = this.env.speechSynthesis;
@@ -919,7 +961,7 @@ export class LiveHost {
             onPlayAgain,
             chamber: () => { const player = runtime.playerFor?.(); return player ? this.chamberPlaying(player) : null; },
             paintTheme: theme => this.paintEmbedTheme(theme ?? undefined),
-            audible: this.voiceKind === 'browser',
+            audible: this.audible(),
             degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability)),
             sound: Boolean(this.audioEngine),
             // Who is speaking comes first: RISE, through the model and service the Current names (design §1 item 7); then what
@@ -989,7 +1031,7 @@ export class LiveHost {
                 const runtime = await this.buildRuntime();
                 this.runtime = runtime;
                 note('voice', this.voiceKind);
-                this.controls = createLiveControls({ runtime, onStop: finish, audible: this.voiceKind === 'browser' });
+                this.controls = createLiveControls({ runtime, onStop: finish, audible: this.audible() });
                 runtime.subscribe(view => {
                     if (runtime.journal().some(entry => entry.type === 'branch.open')) note('dived', true);
                     if (view.status === 'ended' && !view.side) carry.hidden = false;
@@ -1330,7 +1372,7 @@ export class LiveHost {
                 },
                 chamber: () => { const player = runtime.playerFor?.(); return player ? this.chamberPlaying(player) : null; },
                 paintTheme: theme => this.paintEmbedTheme(theme ?? this.embeddedTheme),
-                audible: this.voiceKind === 'browser',
+                audible: this.audible(),
                 degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability)),
                 takeFocus,
                 // Sound, where the reading has an engine for its beds and tones.

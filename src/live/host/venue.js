@@ -36,6 +36,12 @@ function privacy(entry) {
     return 'The demo answers from a script in this page: nothing you type leaves this browser, and no key is needed.';
 }
 
+/** Whose key the voice is on, for the voice the reader chose (voices/elevenlabs.js). */
+function voicePrivacy(choice) {
+    if (choice === 'elevenlabs') return 'The voice is ElevenLabs on your key, which stays in this page’s memory and goes only to ElevenLabs, billed per character to your account: each passage’s words are sent to it to be spoken.';
+    return 'The voice is your device’s own; nothing of the reading leaves this browser to be spoken.';
+}
+
 export class LiveVenue {
     /**
      * @param {object} host the LiveHost presenting this page
@@ -126,6 +132,12 @@ export class LiveVenue {
             <legend class="live-label">Who answers</legend>
           </fieldset>
           <div class="live-venue__credential"></div>
+          <fieldset class="live-venue__voices">
+            <legend class="live-label">Who speaks</legend>
+            <label class="live-venue__provider"><input type="radio" name="live-venue-voice" value="device" checked><span>Your device’s voice</span></label>
+            <label class="live-venue__provider"><input type="radio" name="live-venue-voice" value="elevenlabs"><span>ElevenLabs (your key)</span></label>
+          </fieldset>
+          <div class="live-venue__voice-credential"></div>
           <div class="live-row"><button type="submit" class="live-start">Ask</button></div>
         </form>
         <p class="live-error" role="alert" hidden></p>
@@ -140,6 +152,18 @@ export class LiveVenue {
         this.heardLine = $('.live-venue__heard');
         this.privacyLine = $('.live-venue__privacy');
         this.credential = $('.live-venue__credential');
+        this.voiceCredential = $('.live-venue__voice-credential');
+        for (const radio of container.querySelectorAll('input[name="live-venue-voice"]')) {
+            radio.checked = radio.value === this.host.voiceChoice;
+            radio.addEventListener('change', () => {
+                if (!radio.checked) return;
+                this.host.voiceChoice = radio.value;
+                // A key typed for the provider's voice is not kept once the device's is chosen.
+                if (radio.value !== 'elevenlabs') this.host.forgetVoiceKey();
+                this.renderVoiceCredential();
+                this.renderCredential();
+            });
+        }
         this.startButton = $('.live-start');
         const choices = $('.live-venue__providers');
         for (const entry of this.providers) {
@@ -169,14 +193,30 @@ export class LiveVenue {
         });
         if (this.mic) this.addMic(this.form.querySelector('.live-venue__field'));
         this.showMicPrivacy();
+        this.renderVoiceCredential();
         this.renderCredential();
         this.paint();
+    }
+
+    /** The voice's credential: a typed ElevenLabs key, held in the host's memory only, when that voice is chosen. */
+    renderVoiceCredential() {
+        if (!this.voiceCredential) return;
+        this.voiceCredential.replaceChildren();
+        if (this.host.voiceChoice !== 'elevenlabs') return;
+        const label = this.doc.createElement('label');
+        label.className = 'live-label';
+        label.htmlFor = 'live-venue-voice-key';
+        label.textContent = 'Your ElevenLabs key';
+        const key = this.doc.createElement('input');
+        Object.assign(key, { id: 'live-venue-voice-key', type: 'password', autocomplete: 'off', spellcheck: false, maxLength: 300 });
+        key.setAttribute('autocapitalize', 'off');
+        this.voiceCredential.append(label, key);
     }
 
     /** The chosen provider's credential: a typed key, the OpenRouter connection, or nothing; and whose key it is. */
     renderCredential() {
         const entry = this.chosen();
-        this.privacyLine.textContent = privacy(entry);
+        this.privacyLine.textContent = `${privacy(entry)} ${voicePrivacy(this.host.voiceChoice)}`;
         this.credential.replaceChildren();
         if (entry?.credential === 'key') {
             const label = this.doc.createElement('label');
@@ -258,6 +298,12 @@ export class LiveVenue {
             // Out of the page as soon as it is in memory: the field is not where it is kept.
             keyField.value = '';
         }
+        const voiceKeyField = this.voiceCredential?.querySelector('#live-venue-voice-key');
+        if (voiceKeyField) {
+            const typed = voiceKeyField.value.trim();
+            if (typed) this.host.voiceKey = typed;
+            voiceKeyField.value = '';
+        }
         const runtime = this.host.runtime;
         if (this.state.phase === 'reading' && runtime) {
             const { state } = runtime.snapshot().interjection;
@@ -277,7 +323,10 @@ export class LiveVenue {
                 try { runtime.hold(); } catch { /* it is no longer live */ }
             }
         }
-        this.dispatch({ type: 'ask', question: words, connected: connectionState().kind === 'openrouter', hasKey: this.host.key !== '' });
+        this.dispatch({
+            type: 'ask', question: words, connected: connectionState().kind === 'openrouter', hasKey: this.host.key !== '',
+            voice: this.host.voiceChoice, hasVoiceKey: this.host.voiceKey !== ''
+        });
         if (this.state.phase !== 'asking') return;
         if (this.bar) this.bar.elements.question.value = '';
         void this.begin(this.state.turns.at(-1).question, this.state.turns.length - 1);

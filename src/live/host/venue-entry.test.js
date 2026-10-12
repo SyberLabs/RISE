@@ -212,3 +212,22 @@ describe('what a reading cost the reader (stage 5.5)', () => {
         expect(usageLine(usage)).toBe('requests: 3 (1 answer, 1 interjection, 1 illustrator), tokens: 1,834 (1,500 in, 334 out), $0.0015');
     });
 });
+
+describe('the voice the reader chose (design §8 stage 7)', () => {
+    const providers = [{ id: 'mock', label: 'Demo (no key)', credential: 'none', adapter: () => ({}) }];
+
+    it('refuses a question until the ElevenLabs key is typed, and asks once it is', () => {
+        const idle = initialVenue({ provider: 'mock' });
+        const refused = venueStep(idle, { type: 'ask', question: 'Why?', voice: 'elevenlabs', hasVoiceKey: false }, providers);
+        expect(refused.phase).toBe('idle');
+        expect(refused.error).toBe('Enter your ElevenLabs key to hear that voice, or choose your device’s voice.');
+        const asked = venueStep(idle, { type: 'ask', question: 'Why?', voice: 'elevenlabs', hasVoiceKey: true }, providers);
+        expect(asked.phase).toBe('asking');
+        expect(asked.error).toBe(null);
+    });
+
+    it('asks nothing of the device’s voice', () => {
+        const asked = venueStep(initialVenue({ provider: 'mock' }), { type: 'ask', question: 'Why?', voice: 'device', hasVoiceKey: false }, providers);
+        expect(asked.phase).toBe('asking');
+    });
+});
