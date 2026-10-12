@@ -118,3 +118,39 @@ export function originLine(origin) {
     if (origin.provider === 'RISE') return `${origin.name}: a script in this page, with no model and no key`;
     return `RISE, speaking through ${origin.name} via ${origin.provider}, on your key`;
 }
+
+/** What a reading has cost the reader so far: no requests, no tokens (docs/plans/LIVE-CURRENT.md §19). */
+export function emptyUsage() {
+    return { requests: { answer: 0, interject: 0, illustrate: 0, dive: 0 }, promptTokens: 0, completionTokens: 0, totalTokens: 0, cost: 0, reported: false };
+}
+
+/** A request the room opened, by its intent, or what the provider reported one cost, added to the reading's usage. */
+export function addUsage(usage, { intent, report } = {}) {
+    const next = { ...usage, requests: { ...usage.requests } };
+    if (intent && Object.hasOwn(next.requests, intent)) next.requests[intent] += 1;
+    if (report) {
+        for (const field of ['promptTokens', 'completionTokens', 'totalTokens', 'cost']) {
+            if (Number.isFinite(report[field]) && report[field] >= 0) next[field] += report[field];
+        }
+        next.reported = true;
+    }
+    return next;
+}
+
+const KIND_SAID = Object.freeze({ answer: 'answer', interject: 'interjection', illustrate: 'illustrator', dive: 'Dive' });
+const count = n => n.toLocaleString('en-US');
+
+/**
+ * The reading's cost, for the About panel: every request it made, by kind (the composer's answer, an interjection, the
+ * illustrator), and the tokens and money the provider reported; the demo spends nothing and says so. Empty before any.
+ */
+export function usageLine(usage, { demo = false } = {}) {
+    const kinds = Object.entries(usage?.requests ?? {}).filter(([, n]) => n > 0);
+    const total = kinds.reduce((sum, [, n]) => sum + n, 0);
+    if (total === 0) return '';
+    const requests = `requests: ${total} (${kinds.map(([kind, n]) => `${n} ${KIND_SAID[kind]}`).join(', ')})`;
+    if (!usage.reported) return `${requests}, tokens: none reported${demo ? ' (the demo spends nothing)' : ''}`;
+    const tokens = usage.totalTokens || usage.promptTokens + usage.completionTokens;
+    const money = usage.cost > 0 ? `, $${usage.cost.toFixed(4)}` : '';
+    return `${requests}, tokens: ${count(tokens)} (${count(usage.promptTokens)} in, ${count(usage.completionTokens)} out)${money}`;
+}

@@ -10,6 +10,7 @@
  */
 
 import { SKY_ROOM_TEXT, VIBRANT_ANSWER } from './sky-room-beats.js';
+import { DIAGRAM_ANSWER, illustratorTextFor, TESSERACT_TEXT, WATER_TEXT } from './water-illustrated-beats.js';
 
 const DISK = `export default function scene(rise) {
   const { lib } = rise;
@@ -114,15 +115,20 @@ export const INTERJECTION_ANSWERS = Object.freeze({
 });
 
 /**
- * The answer for a question: black holes, the sky (the room changed while it plays, sky-room-beats.js), or a plain
- * sentence that it knows nothing else; an interjection's, its own.
+ * The answer for a question: black holes, the sky (the room changed while it plays, sky-room-beats.js), water and
+ * the tesseract (pictures asked for, water-illustrated-beats.js), or a plain sentence that it knows nothing else; an
+ * interjection's, its own; the illustrator's, a picture.
  */
 export function beatsTextFor(request) {
+    if (request.intent === 'illustrate') return illustratorTextFor(request);
     if (request.intent === 'interject') {
         if (/\b(vibrant|brighter)\b/iu.test(request.prompt)) return VIBRANT_ANSWER;
+        if (/\bdiagram\b/iu.test(request.prompt)) return DIAGRAM_ANSWER;
         return /\b(skip|short)\b/iu.test(request.prompt) ? INTERJECTION_ANSWERS.replace : INTERJECTION_ANSWERS.resume;
     }
     if (/black\s*holes?/iu.test(request.prompt)) return BLACK_HOLES_BEATS_TEXT;
     if (/\bsky\b/iu.test(request.prompt)) return SKY_ROOM_TEXT;
+    if (/\bwater\b/iu.test(request.prompt)) return WATER_TEXT;
+    if (/\btesseract\b/iu.test(request.prompt)) return TESSERACT_TEXT;
     return '@say This demonstration can only explain black holes.\n';
 }

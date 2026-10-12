@@ -15,6 +15,7 @@ import { createCurrentStream } from '../stream.js';
 import { createMockAdapter } from './mock.js';
 import { createMockBeatsAdapter } from './mock-beats.js';
 import { BLACK_HOLES_BEATS_CURRENT } from '../fixtures/black-holes-beats.js';
+import { illustratorTextFor, WATER_FIGURE, WATER_FIGURE_REFUSED } from '../fixtures/water-illustrated-beats.js';
 
 const ASK = { intent: 'answer', prompt: 'Explain black holes with RISE.' };
 
@@ -441,5 +442,36 @@ describe('the demo that writes in beats (the venue’s)', () => {
         expect(reducer.roomChanges).toEqual([{ before: 0, change: { kind: 'visual.control', parameter: 'intensity', value: 0.75 } }]);
         expect(reducer.toCurrent().beats).toHaveLength(2);
         expect(reducer.ending).toBe('resume');
+    });
+
+    it('asks for pictures while it reads about water: the attractor’s own cue, then a diagram (stage 5.5)', async () => {
+        const { reducer } = await stream({ intent: 'answer', prompt: 'What are the three states of water?' });
+        expect(reducer.snapshot()).toMatchObject({ phase: 'complete', refusals: 0 });
+        expect(reducer.roomChanges).toEqual([
+            { before: 2, change: { kind: 'illustrate', brief: 'brighter attractor', medium: 'cue' } },
+            { before: 3, change: { kind: 'illustrate', brief: 'a labelled diagram of the three states of water' } }
+        ]);
+        const tesseract = await stream({ intent: 'answer', prompt: 'What is a tesseract?' });
+        expect(tesseract.reducer.roomChanges).toEqual([{ before: 1, change: { kind: 'illustrate', brief: 'a picture of a tesseract unfolding into cubes' } }]);
+        const reading = { passages: ['Water comes in three states.'], at: 0 };
+        const diagram = await stream({ intent: 'interject', prompt: 'Show me that as a diagram.', reading });
+        expect(diagram.reducer.roomChanges.map(item => item.change.kind)).toEqual(['illustrate']);
+        expect(diagram.reducer.ending).toBe('resume');
+    });
+
+    it('draws as its illustrator: refused first with a sentence and a <script>, then repaired; the tesseract refused every time', async () => {
+        const adapter = createMockBeatsAdapter({ clock: createVirtualClock() });
+        const water = attempt => illustratorTextFor({ prompt: 'a labelled diagram of the three states of water', illustration: { attempt } });
+        expect(water(1)).toMatch(/^@say Here is your diagram\.\n@scene picture svg\n/u);
+        expect(adapter.admitScene({ id: 'picture', svg: WATER_FIGURE_REFUSED })).toMatch(/<script>/u);
+        expect(adapter.admitScene({ id: 'picture', svg: WATER_FIGURE })).toBeNull();
+        expect(water(2)).toContain(WATER_FIGURE);
+        expect(water(2)).not.toContain('<script>');
+        for (const attempt of [1, 2, 3]) expect(illustratorTextFor({ prompt: 'a tesseract unfolding', illustration: { attempt } })).toContain('<script>');
+        const { reducer, arrivals } = await stream({ intent: 'illustrate', prompt: 'a labelled diagram of ice, water and steam', illustration: { medium: 'figure', attempt: 1, said: [] } });
+        expect(arrivals.map(({ event }) => event.type).filter(type => type !== 'scene.text')).toEqual(['current.open', 'scene.declare', 'current.complete']);
+        // A picture is written faster than words: the figure is whole within a few seconds.
+        expect(arrivals.at(-1).at).toBeLessThan(4_000);
+        expect(reducer.snapshot().phase).not.toBe('failed');
     });
 });

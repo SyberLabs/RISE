@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { initialVenue, interjectionPerception, originLine, perceptionFor, venueStep } from './venue-entry.js';
+import { addUsage, emptyUsage, initialVenue, interjectionPerception, originLine, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { perceive } from '../perception.js';
 
 const ready = { connected: false, hasKey: false };
@@ -193,5 +193,22 @@ describe('what goes up with an interjection (stage 4.5)', () => {
 
     it('is nothing when the reader did nothing', () => {
         expect(interjectionPerception([{ at: 0, type: 'start' }, { at: 5, type: 'interjection.held' }], PASSAGES, 'Why?')).toBeNull();
+    });
+});
+
+describe('what a reading cost the reader (stage 5.5)', () => {
+    it('counts each request by kind, and says the demo spends nothing', () => {
+        let usage = emptyUsage();
+        expect(usageLine(usage)).toBe('');
+        for (const intent of ['answer', 'illustrate', 'illustrate', 'unknown']) usage = addUsage(usage, { intent });
+        expect(usageLine(usage, { demo: true })).toBe('requests: 3 (1 answer, 2 illustrator), tokens: none reported (the demo spends nothing)');
+        expect(usageLine(usage)).toBe('requests: 3 (1 answer, 2 illustrator), tokens: none reported');
+    });
+
+    it('adds what the provider reported each request cost, the illustrator’s with the answer’s', () => {
+        let usage = addUsage(addUsage(emptyUsage(), { intent: 'answer' }), { intent: 'interject' });
+        usage = addUsage(usage, { report: { model: 'a/b', promptTokens: 1_200, completionTokens: 300, totalTokens: 1_500, cost: 0.0015 } });
+        usage = addUsage(usage, { intent: 'illustrate', report: { model: 'a/b', promptTokens: 300, completionTokens: 34, totalTokens: 334, cost: -1 } });
+        expect(usageLine(usage)).toBe('requests: 3 (1 answer, 1 interjection, 1 illustrator), tokens: 1,834 (1,500 in, 334 out), $0.0015');
     });
 });

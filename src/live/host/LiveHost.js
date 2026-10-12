@@ -901,8 +901,9 @@ export class LiveHost {
             audible: this.voiceKind === 'browser',
             degradations: this.degradations({ pacingShown: true }).filter(note => STAGE_NOTES.includes(note.capability)),
             sound: Boolean(this.audioEngine),
-            // Who is speaking comes first: RISE, through the model and service the Current names (design §1 item 7).
-            about: () => [originLine(runtime.composed?.('main')?.origin), this.aboutReading()].filter(Boolean).join('\n'),
+            // Who is speaking comes first: RISE, through the model and service the Current names (design §1 item 7); then what
+            // the reading has cost the reader, the illustrator's requests among it (docs/plans/LIVE-CURRENT.md §19).
+            about: () => [originLine(runtime.composed?.('main')?.origin), this.venue?.usageLine?.() ?? '', this.aboutReading()].filter(Boolean).join('\n'),
             voice: this.voiceKind === 'browser' ? this.voicePick() : null,
             room
         });
