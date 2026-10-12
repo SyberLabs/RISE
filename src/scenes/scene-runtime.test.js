@@ -422,6 +422,69 @@ describe('a scene that listens (docs/plans/LIVE-CURRENT.md §20)', () => {
     expect(sentInputs(parts).length - before).toBeLessThanOrEqual(SCENE_LIMITS.inputPointerPerSecond + 1);
   });
 
+  it('keeps a discrete burst larger than the move queue in order at the pointer delivery rate', async () => {
+    const parts = await listening(['pointer']);
+    const wanted = Array.from({ length: 20 }, (_, x) => [x % 2 ? 'pointerup' : 'pointerdown', x]);
+    wanted.push(['pointercancel', 20]);
+    for (const [kind, x] of wanted) parts.runtime.input(at(kind, x, 10, kind === 'pointerdown' ? 1 : 0));
+    expect(sentInputs(parts).map(({ kind, x }) => [kind, x])).toEqual(wanted.slice(0, 1));
+    await parts.clock.advance(1000 / SCENE_LIMITS.inputPointerPerSecond - 0.01);
+    expect(sentInputs(parts)).toHaveLength(1);
+    await parts.clock.advance(0.02);
+    expect(sentInputs(parts)).toHaveLength(2);
+    await parts.clock.advance(200);
+    expect(sentInputs(parts).map(({ kind, x }) => [kind, x])).toEqual(wanted);
+    expect(parts.failures).toEqual([]);
+  });
+
+  it('evicts coalescible moves before a discrete input when the queue fills', async () => {
+    const parts = await listening(['pointer']);
+    const wanted = [];
+    for (let x = 0; x < 24; x += 1) {
+      const kind = x % 2 ? 'pointerup' : 'pointerdown';
+      wanted.push([kind, x]);
+      parts.runtime.input(at(kind, x, 10, kind === 'pointerup' ? 0 : 1));
+      parts.runtime.input(at('pointermove', x, 10));
+    }
+    await parts.clock.advance(500);
+    expect(sentInputs(parts).filter(({ kind }) => kind !== 'pointermove').map(({ kind, x }) => [kind, x])).toEqual(wanted);
+    expect(parts.failures).toEqual([]);
+  });
+
+  it('keeps the latest coalesced move before its release behind a long discrete burst', async () => {
+    const parts = await listening(['pointer']);
+    const wanted = Array.from({ length: 19 }, (_, x) => [x % 2 ? 'pointerup' : 'pointerdown', x]);
+    for (const [kind, x] of wanted) parts.runtime.input(at(kind, x, 10, kind === 'pointerup' ? 0 : 1));
+    for (let x = 50; x < 100; x += 1) parts.runtime.input(at('pointermove', x, 10));
+    parts.runtime.input(at('pointerup', 100, 10, 0));
+    await parts.clock.advance(250);
+    expect(sentInputs(parts).map(({ kind, x }) => [kind, x])).toEqual([...wanted, ['pointermove', 99], ['pointerup', 100]]);
+  });
+
+  it('ends an overloaded scene instead of dropping a discrete input or growing the backlog without bound', async () => {
+    const parts = await listening(['pointer']);
+    parts.worker.say({ type: TO_HOST.ready, reportsCompletion: true, listens: ['pointer'] });
+    let held = null;
+    parts.runtime.hold({ ms: 500, maxMs: 5000 }).then(result => { held = result; });
+    for (let x = 0; x < SCENE_LIMITS.inputPointerPerSecond + 1; x += 1) {
+      parts.runtime.input(at(x % 2 ? 'pointerup' : 'pointerdown', x, 10, x % 2 ? 0 : 1));
+    }
+    expect(parts.failures).toEqual([]);
+    parts.runtime.input(at('pointerup', 200, 10, 0));
+    expect(parts.failures).toEqual([{ sceneId: SCENE.id, phase: 'input', message: 'The scene received too many queued pointer inputs', where: null }]);
+    expect(parts.worker.terminated).toBe(true);
+    const delivered = sentInputs(parts).length;
+    await parts.clock.advance(499);
+    expect(sentInputs(parts)).toHaveLength(delivered);
+    expect(held).toBeNull();
+    await parts.clock.advance(1);
+    expect(held).toEqual({ reason: 'ended' });
+    parts.runtime.input(at('pointerdown', 1, 1));
+    await parts.clock.advance(1000);
+    expect(sentInputs(parts)).toHaveLength(delivered);
+    expect(parts.failures).toHaveLength(1);
+  });
+
   it('drops keys beyond inputKeysPerSecond, and never sends the instrument’s keys', async () => {
     const parts = await listening(['keys']);
     for (const name of [' ', 'r', 'F', '-', '=', '[', ']', 'Escape', 'Tab', 'Enter']) parts.runtime.input(key('keydown', name));
