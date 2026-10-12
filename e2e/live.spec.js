@@ -918,7 +918,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(figure.at - phrase.at).toBeLessThan(500);
         await expect(page.locator('#chamber-field[data-picture="figure"] img, #chamber-field[data-picture="figure"] svg').first()).toBeAttached();
         const ms = at => Math.round(at - asked.at);
-        console.log(`illustrator (ms from the line's arrival): cue landed ${Math.round(cue.at - cueAsked.at)} with no request; figure requested ${ms(first.at)}, refused ${ms(refused.at)} (${refused.rule}), asked again ${ms(second.at)}, admitted ${ms(admitted.at)} (drawn in ${admitted.ms}), put up ${ms(figure.at)}, landed ${ms(landed.at)} ${Math.round(landed.at - phrase.at)} ms after its phrase began (${landed.waitedMs} ms after the reading reached its place)`);
+        console.log(`illustrator (ms from the line's arrival): cue landed ${Math.round(cue.at - cueAsked.at)} with no request, ${Math.round(cue.at - cuePlace.at)} ms after its beat began; figure requested ${ms(first.at)}, refused ${ms(refused.at)} (${refused.rule}), asked again ${ms(second.at)}, admitted ${ms(admitted.at)} (drawn in ${admitted.ms}), put up ${ms(figure.at)}, landed ${ms(landed.at)} ${Math.round(landed.at - phrase.at)} ms after its phrase began (${landed.waitedMs} ms after the reading reached its place)`);
 
         // The voice never waited: nothing held it, and no silence between phrases beyond its own breath and the seam.
         await expect(stage.getByRole('button', { name: /^Play again/u })).toHaveCount(1, { timeout: 90_000 });

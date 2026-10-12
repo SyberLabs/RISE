@@ -1,0 +1,72 @@
+{
+  "id": "LIVE-023",
+  "title": "RISE Live: the illustrator",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-022"
+  ],
+  "acceptance": [
+    "The composer asks for a picture with a line of its own between beats, @illustrate [medium=cue|figure|scene] <brief>, read into an additive room.change { kind: 'illustrate', brief, medium? } on rise.current-events.v1; the medium is a preference, not a command.",
+    "RISE answers from its own engines first: a cue the running engine takes, or an engine the brief names, lands with no model request; only otherwise is a second request made.",
+    "The illustrator is a second request on the reader's chosen provider, the room's adapter and the reader's key (intent illustrate), with its own system prompt built from the guide's pieces (the scene contract, rise.lib, the figure rules, the admission's wording), given the room (theme, look, the running scene, the beats just said, the reader's words when it came from an interjection) and the brief; one runtime, one adapter kind, never a second runtime, service or agent framework.",
+    "The illustrator never speaks: it returns only scene material in the existing stream forms, read by the same parser; anything it says is dropped and noted (illustrator.spoke).",
+    "Admission is the same door: the picture is held to admitSvg / admitSceneCode; a refusal returns line, column and rule to the illustrator in a repair request, at most three attempts; after that the reading goes on without the picture, the journal says so (illustration.failed) and the venue says so in one line.",
+    "The picture lands at the next phrase boundary once admitted (at its line's place if the reading is not there yet), under that beat and the ones after it; the voice never waits for it, and RISE adds no words of its own; a reading that ends first lets it go (illustration.dropped) and closes the request.",
+    "Cost is the reader's and visible: every request a reading makes, the illustrator's among them, is counted and shown in About this reading with the usage the provider reports.",
+    "Perception reports a picture RISE drew as RISE's own change, never the reader's.",
+    "Measured (design §6.2): request-to-picture time per medium; refusal and repair rates; whether the composer's voice ever paused for the picture."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-09-rise-live-design.md",
+      "note": "§6.2 'The illustrator', §7 (an illustrator that speaks, or runs outside the one runtime, is refused) and §8 stage 5.5, added 2026-10-10: the acceptance above; stage 5.5 approved by the owner.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§19 The illustrator: the line, the event, the ladder's rules, the request, admission and repair, where a picture lands, the journal, perception, cost, the guide, the demonstration, measurements and limits.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/specs/LIVE-CURRENT-EVENTS-V1.md",
+      "note": "The illustrator (added 2026-10-11, additive): room.change kind illustrate { brief, medium? }, its bounds, and the line a model writes.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.illustrator.test.js",
+      "note": "Branch live-illustrator, the whole runtime on fake timers with a visual schedule following the Player: the cue lands as its beat begins with no request; refused, repaired, admitted, and the schedule changes cue as the first phrase after admission begins; no hold, no silence beyond the breath; three refusals let go and the reading ends; a reading that ends first drops the picture and closes the request; an answer to the reader carries their words. With illustrator, protocol, segment-parser, adapter, text-stream, openai-instructions, mock, perception, venue and venue-entry tests.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Branch live-illustrator, local production build, headless Chromium, the demo and the paced voice (two runs): cue landed 5 ms after its beat began, no request; figure refused at 7,144 ms (figure: <script>), its sentence dropped, admitted at 14,318 ms, landed 0 ms after the first phrase after admission (19,129 ms), put up 4 ms later; voice never held, longest silence 293 ms; tesseract refused three times, let go in one line, reading ended; an answer to the reader put a figure up 6,511 ms after the question; About: requests: 3 (1 answer, 2 illustrator). The whole file, 30 tests, passed; the card subset (live-mcp field|self-contained) 13 passed.",
+      "date": "2026-10-11"
+    },
+    {
+      "kind": "document",
+      "ref": "scripts/eval-illustrator.mjs",
+      "note": "npm run eval:illustrator: without OPENROUTER_API_KEY it measures nothing, says so, and checks the carriage on a scripted provider through the real OpenRouter adapter (instructions, refusal and repair carried; the repair admitted on attempt 2). No real model asked.",
+      "date": "2026-10-11"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-11T20:30:00.000Z",
+      "summary": "Claimed and built on branch live-illustrator (Claude, for Fable): design note first, then the grammar, the illustrator's request and instructions, the runtime's ladder, admission and repair, the landing, the venue's cost line and the demo."
+    }
+  ],
+  "updatedAt": "2026-10-11T20:30:00.000Z",
+  "revision": 1,
+  "summary": "Design §8 stage 5.5: a second role on the reader's key draws what the composer asks for, cheapest medium first, through the same admission, while the voice goes on.",
+  "blocker": null
+}

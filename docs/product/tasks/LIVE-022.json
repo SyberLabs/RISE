@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -61,6 +61,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/634",
       "note": "Not by the coordinator: after answering Codex's one finding (aa93c705, Keep returns to the reader's own pace across successive suggestions), the Codex feedback workflow armed auto-merge, and with base live-hardening (no required check) #634 was squash-merged into live-hardening as 9aae06f4 on 2026-10-12. Nothing reached main: stage 5 now rides in #633, still open and held. A regression test for the finding was added after it.",
       "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/633",
+      "note": "Stage 5 rode in #633, merged as e0332586 and deployed: rise.syberlabs.io/release.txt read e033258683234305aebc4c4c54aa52252b3c9c76 on 2026-10-11 (the production job passed). Not accepted: no real model has written a room line.",
+      "date": "2026-10-11"
     }
   ],
   "activity": [
@@ -75,10 +81,14 @@
     {
       "date": "2026-10-12T00:27:33.006Z",
       "summary": "#634 was merged into live-hardening by the Codex feedback workflow; stage 5 now rides in #633, held for the connector freeze."
+    },
+    {
+      "date": "2026-10-12T04:57:59.823Z",
+      "summary": "Merged in #633 as e0332586 and deployed (release.txt read e0332586 on 2026-10-11). Not accepted."
     }
   ],
-  "updatedAt": "2026-10-12T00:27:33.006Z",
-  "revision": 3,
+  "updatedAt": "2026-10-12T04:57:59.823Z",
+  "revision": 4,
   "summary": "Design §8 stage 5: the model changes the room while it plays, at phrase boundaries, within the manifests, the reader's own settings winning.",
   "blocker": null
 }
