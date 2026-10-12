@@ -50,10 +50,14 @@
     {
       "date": "2026-10-12T21:33:37.331Z",
       "summary": "PR #646 merged as b1689a66 and deployed (release.txt b1689a66, 2026-10-13); delivery deployed"
+    },
+    {
+      "date": "2026-10-12T23:02:27.040Z",
+      "summary": "The Live home screen revamped as a room: one ground with the face, the question as a single line, providers and voice as a quiet line (branch live-home-revamp)"
     }
   ],
-  "updatedAt": "2026-10-12T21:33:37.331Z",
-  "revision": 3,
+  "updatedAt": "2026-10-12T23:02:27.040Z",
+  "revision": 4,
   "summary": "RISE's own face in the Live venue: the approved Sophia study as a native scene engine the venue runs behind its ask bar, resting at arrival, listening, thinking until the first words, stepping back while a reading speaks, and at rest after it.",
   "blocker": null
 }

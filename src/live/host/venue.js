@@ -24,7 +24,7 @@
 import { connectionState, subscribeConnection, takeConnectionNotice } from '../../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { addUsage, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
-import { FACE_SKINS, faceDark, faceStill } from './face-still.js';
+import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
 
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
@@ -139,36 +139,54 @@ export class LiveVenue {
 
     // ─── the entry page ────────────────────────────────────────────────
 
+    /**
+     * The entry is a room, not a form: the face, the name, one line for the question, and one quiet sentence naming
+     * who answers and who speaks, each name the button that opens its choices. Whose key it is and what is sent sit
+     * folded at the foot. The room is drawn in the face's skin (facePalette), dark in either site theme.
+     */
     render() {
         const container = this.host.container;
+        // The arrival plays once, when the page is first opened; the entry returned to after a reading is simply there.
+        const arriving = !this.arrived;
+        this.arrived = true;
         container.innerHTML = `
-      <main class="live-host live-venue" aria-labelledby="live-venue-title">
-        <div class="live-venue__face"></div>
-        <h1 class="live-title" id="live-venue-title">RISE Live</h1>
-        <p class="live-lede">Ask anything. The answer comes as a reading: said in RISE’s voice, shown as it is said, and yours to pause, replay and ask about again.</p>
+      <main class="live-host live-venue${arriving ? ' live-venue--arriving' : ''}" aria-labelledby="live-venue-title">
+        <div class="live-venue__face"><div class="live-venue__bloom" aria-hidden="true"></div></div>
+        <h1 class="live-venue__mark" id="live-venue-title">RISE <span>Live</span></h1>
+        <p class="live-venue__lede">Ask, and the answer becomes a reading.</p>
         <form class="live-venue__ask" novalidate>
-          <label class="live-label" for="live-venue-question">Your question</label>
+          <label class="live-venue__sr" for="live-venue-question">Your question</label>
           <div class="live-venue__field">
-            <input id="live-venue-question" name="question" type="text" maxlength="2000" autocomplete="off" enterkeyhint="go">
+            <input id="live-venue-question" name="question" type="text" maxlength="2000" autocomplete="off" enterkeyhint="go" placeholder="Ask anything.">
+            <button type="submit" class="live-start">Ask <span aria-hidden="true">→</span></button>
           </div>
-          <fieldset class="live-venue__providers">
-            <legend class="live-label">Who answers</legend>
-          </fieldset>
-          <div class="live-venue__credential"></div>
-          <fieldset class="live-venue__voices">
-            <legend class="live-label">Who speaks</legend>
-            <label class="live-venue__provider"><input type="radio" name="live-venue-voice" value="device" checked><span>Your device’s voice</span></label>
-            <label class="live-venue__provider"><input type="radio" name="live-venue-voice" value="elevenlabs"><span>ElevenLabs (your key)</span></label>
-          </fieldset>
-          <div class="live-venue__voice-credential"></div>
-          <div class="live-row"><button type="submit" class="live-start">Ask</button></div>
+          <p class="live-venue__choices">Answered by <button type="button" class="live-venue__choice" data-venue-open="providers" aria-expanded="false" aria-controls="live-venue-providers-panel"></button><span aria-hidden="true"> · </span>spoken by <button type="button" class="live-venue__choice" data-venue-open="voices" aria-expanded="false" aria-controls="live-venue-voices-panel"></button></p>
+          <div class="live-venue__panel" id="live-venue-providers-panel" data-panel="providers" hidden>
+            <fieldset class="live-venue__providers">
+              <legend class="live-venue__legend">Who answers</legend>
+            </fieldset>
+            <div class="live-venue__credential"></div>
+          </div>
+          <div class="live-venue__panel" id="live-venue-voices-panel" data-panel="voices" hidden>
+            <fieldset class="live-venue__voices">
+              <legend class="live-venue__legend">Who speaks</legend>
+              <label class="live-venue__provider"><input type="radio" name="live-venue-voice" value="device" checked><span>Your device’s voice</span></label>
+              <label class="live-venue__provider"><input type="radio" name="live-venue-voice" value="elevenlabs"><span>ElevenLabs (your key)</span></label>
+            </fieldset>
+            <div class="live-venue__voice-credential"></div>
+          </div>
         </form>
         <p class="live-error" role="alert" hidden></p>
         <p class="live-venue__heard" role="status" aria-live="polite"></p>
-        <p class="live-venue__privacy"></p>
-        <details class="live-venue__mic-privacy" hidden><summary></summary><p></p></details>
+        <details class="live-venue__sent">
+          <summary>What is sent, and to whom</summary>
+          <p class="live-venue__privacy"></p>
+          <p class="live-venue__mic-privacy" hidden></p>
+        </details>
       </main>`;
         const $ = selector => container.querySelector(selector);
+        this.root = $('.live-venue');
+        this.paintSkin();
         this.form = $('.live-venue__ask');
         this.field = $('#live-venue-question');
         this.errorLine = $('.live-error');
@@ -188,6 +206,7 @@ export class LiveVenue {
             });
         }
         this.startButton = $('.live-start');
+        this.wirePanels();
         const choices = $('.live-venue__providers');
         for (const entry of this.providers) {
             const label = this.doc.createElement('label');
@@ -223,10 +242,72 @@ export class LiveVenue {
         this.paint();
     }
 
+    /**
+     * The face's skin, worn by the room: its ground, bloom, hairlines and accents (LiveHost.css `.live-venue`). Set on
+     * the document's root, not the venue's, so the page behind the app's own fade-in wears the same ground.
+     */
+    paintSkin() {
+        for (const [name, value] of Object.entries(facePalette(this.faceSkin))) this.doc.documentElement.style.setProperty(name, value);
+    }
+
+    /**
+     * The quiet line's two names open their choices: a small panel rising from the line (a sheet from the foot on a phone),
+     * one at a time. Escape, or a press anywhere else in the room, closes it and gives focus back to its name.
+     */
+    wirePanels() {
+        const root = this.root;
+        this.openedPanel = null;
+        for (const trigger of root.querySelectorAll('[data-venue-open]')) {
+            trigger.addEventListener('click', () => this.openPanel(trigger.getAttribute('aria-expanded') === 'true' ? null : trigger.dataset.venueOpen));
+        }
+        root.addEventListener('keydown', event => {
+            if (event.key !== 'Escape' || !this.openedPanel) return;
+            // Answered here: the router leaves the page only on an Escape nothing has prevented.
+            event.preventDefault();
+            this.openPanel(null, { refocus: true });
+        });
+        // Back to the question: the choices give it the room.
+        this.field.addEventListener('focus', () => { if (this.openedPanel) this.openPanel(null); });
+        root.addEventListener('pointerdown', event => {
+            if (!this.openedPanel || event.target.closest?.('.live-venue__panel, [data-venue-open]')) return;
+            this.openPanel(null);
+        });
+    }
+
+    /** Opens the named panel (and closes the other), or closes whichever is open for null. */
+    openPanel(name, { refocus = false } = {}) {
+        const was = this.openedPanel;
+        this.openedPanel = name;
+        for (const panel of this.root.querySelectorAll('.live-venue__panel')) panel.hidden = panel.dataset.panel !== name;
+        for (const trigger of this.root.querySelectorAll('[data-venue-open]')) trigger.setAttribute('aria-expanded', String(trigger.dataset.venueOpen === name));
+        if (name) {
+            const panel = this.root.querySelector(`.live-venue__panel[data-panel="${name}"]`);
+            (panel.querySelector('input[type="radio"]:checked') ?? panel.querySelector('input'))?.focus({ preventScroll: true });
+        } else if (refocus && was) {
+            this.root.querySelector(`[data-venue-open="${was}"]`)?.focus({ preventScroll: true });
+        }
+    }
+
+    /** The quiet line names the current choices: the provider's short name, and whose voice. */
+    renderChoices() {
+        const entry = this.chosen();
+        const answered = this.root?.querySelector('[data-venue-open="providers"]');
+        const spoken = this.root?.querySelector('[data-venue-open="voices"]');
+        if (!answered || !spoken) return;
+        const name = (entry?.label ?? 'Demo').replace(/\s*\(.*\)$/u, '');
+        answered.textContent = name;
+        answered.setAttribute('aria-label', `Who answers: ${name}`);
+        const voice = this.host.voiceChoice === 'elevenlabs' ? 'ElevenLabs' : 'your device';
+        spoken.textContent = voice;
+        spoken.setAttribute('aria-label', `Who speaks: ${voice}`);
+    }
+
     /** The voice's credential: a typed ElevenLabs key, held in the host's memory only, when that voice is chosen. */
     renderVoiceCredential() {
         if (!this.voiceCredential) return;
         this.voiceCredential.replaceChildren();
+        // Under the chosen voice, inline.
+        this.voiceCredential.closest('.live-venue__panel')?.querySelector('input[name="live-venue-voice"]:checked')?.closest('label')?.after(this.voiceCredential);
         if (this.host.voiceChoice !== 'elevenlabs') return;
         const label = this.doc.createElement('label');
         label.className = 'live-label';
@@ -242,7 +323,10 @@ export class LiveVenue {
     renderCredential() {
         const entry = this.chosen();
         this.privacyLine.textContent = `${privacy(entry)} ${voicePrivacy(this.host.voiceChoice)}`;
+        this.renderChoices();
         this.credential.replaceChildren();
+        // Under the chosen provider, inline.
+        this.credential.closest('.live-venue__panel')?.querySelector('input[name="live-venue-provider"]:checked')?.closest('label')?.after(this.credential);
         if (entry?.credential === 'key') {
             const label = this.doc.createElement('label');
             label.className = 'live-label';
@@ -629,8 +713,19 @@ export class LiveVenue {
         });
         const slot = phase === 'idle' ? this.host.container.querySelector('.live-venue__face') : null;
         const parent = slot ?? this.doc.body;
+        const disc = this.face.querySelector('.live-face__disc');
+        const from = this.face.parentElement !== parent && this.face.isConnected ? disc.getBoundingClientRect() : null;
         this.face.classList.toggle('live-face--room', !slot);
         if (this.face.parentElement !== parent) parent.append(this.face);
+        // The eye travels from where it rested to where it waits, rather than appearing there: one ground, one eye.
+        if (from?.width && !this.faceHoldsStill() && typeof disc.animate === 'function') {
+            const to = disc.getBoundingClientRect();
+            if (to.width) {
+                const dx = from.left + from.width / 2 - (to.left + to.width / 2);
+                const dy = from.top + from.height / 2 - (to.top + to.height / 2);
+                disc.animate([{ transform: `translate(${dx}px, ${dy}px) scale(${from.width / to.width})` }, { transform: 'none' }], { duration: 700, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
+            }
+        }
         if (state === this.face.dataset.faceState) return;
         this.face.dataset.faceState = state;
         this.faceLog = [...this.faceLog, { state, at: performance.now() }].slice(-40);
@@ -653,6 +748,7 @@ export class LiveVenue {
         this.host.onSettingChange?.('liveFace', name);
         this.face.dataset.faceSkin = name;
         this.face.style.setProperty('--face-dark', faceDark(name));
+        this.paintSkin();
         this.face.querySelector('.live-face__still')?.remove();
         this.face.querySelector('.live-face__disc').insertAdjacentHTML('afterbegin', faceStill(name));
         this.faceEngine?.setSkin(name);
@@ -708,11 +804,10 @@ export class LiveVenue {
     }
 
     showMicPrivacy() {
-        const details = this.host.container.querySelector('.live-venue__mic-privacy');
-        if (!details || !this.mic) return;
-        details.querySelector('summary').textContent = this.mic.privacyLead;
-        details.querySelector('p').textContent = this.mic.privacy;
-        details.hidden = false;
+        const line = this.host.container.querySelector('.live-venue__mic-privacy');
+        if (!line || !this.mic) return;
+        line.textContent = `${this.mic.privacyLead}. ${this.mic.privacy}`;
+        line.hidden = false;
     }
 
     /** Where the microphone's sentences go: the entry's status line, or the bar's. */
@@ -790,6 +885,7 @@ export class LiveVenue {
         this.faceEngine?.destroy();
         this.faceEngine = null;
         this.face.remove();
+        for (const name of Object.keys(facePalette(this.faceSkin))) this.doc.documentElement.style.removeProperty(name);
         if (this.host.env?.__riseFace) this.host.env.__riseFace = undefined;
         this.host.paintEmbedTheme();
     }

@@ -17,6 +17,12 @@ export function faceDark(name) {
     return rgb(ORACLE_SKINS[FACE_SKINS.includes(name) ? name : 'sophia'].trail);
 }
 
+/** A skin's colours as CSS custom properties, for the room the face rests in; Sophia's for a skin it does not know. */
+export function facePalette(name) {
+    const skin = ORACLE_SKINS[FACE_SKINS.includes(name) ? name : 'sophia'];
+    return { '--live-ground': rgb(skin.trail), '--live-iris': rgb(skin.iris), '--live-core': rgb(skin.core), '--live-glow': rgb(skin.glow) };
+}
+
 /** The still eye in a skin, as SVG markup; Sophia for a skin it does not know. */
 export function faceStill(name) {
     const skinName = FACE_SKINS.includes(name) ? name : 'sophia';
