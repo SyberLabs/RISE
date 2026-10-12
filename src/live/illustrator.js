@@ -14,6 +14,7 @@
  */
 
 import { cueCommands, SCENE_ENGINES, validateScenes } from '../core/beats.js';
+import { lowerCurrentLook } from '../core/current-look.js';
 import { compileRiseCurrent, RISE_CURRENT_SCHEMA_V2 } from '../core/rise-current.js';
 import { OPEN_LIMITS } from './adapter.js';
 
@@ -73,15 +74,16 @@ export function nativeAnswer(brief, { running = null, medium } = {}) {
 }
 
 /**
- * The visual cue a picture's scene lowers to in a reading of this theme and look: compiled as a beat that starts it is,
- * so the clip of the phrase it lands on and the clips of the beats after it carry the same cue.
+ * The visual cue a picture's scene lowers to in a reading of this theme and look: compiled as the runtime compiles a
+ * beat that starts it (a look lowered to its theme), so the clip of the phrase it lands on and the clips of the beats
+ * after it carry the same cue.
  */
 export function pictureCue(scene, { theme, look } = {}) {
     const session = compileRiseCurrent({
         schema: RISE_CURRENT_SCHEMA_V2, id: 'picture', title: 'Picture', origin: { kind: 'model', name: 'RISE', provider: 'RISE' },
         ...(theme ? { theme } : {}), ...(look ? { look } : {}),
         scenes: [scene], beats: [{ say: 'Picture.', scene: scene.id }]
-    });
+    }, { lowerLook: lowerCurrentLook });
     return session.visualProgram.segments.find(segment => segment.match?.sourceIds?.includes('beat-0'))?.cue ?? { kind: 'still' };
 }
 

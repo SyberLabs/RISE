@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { cueForAtom } from '../core/visual-scheduler.js';
 import { compileRiseCurrent } from '../core/rise-current.js';
+import { lowerCurrentLook } from '../core/current-look.js';
 import { createTextStreamAdapter } from './adapters/text-stream.js';
 import { draw, ILLUSTRATOR_LIMITS, modelMedium, nativeAnswer, pictureCue, readDrawing, withPictureClips, withPictures } from './illustrator.js';
 
@@ -216,8 +217,11 @@ describe('where a picture enters the reading', () => {
     it('gives the phrase it lands on the very cue the beats after it carry, for a figure and for an engine in the reading’s theme', () => {
         expect(pictureCue({ id: 'picture-1', svg: FIGURE }, current)).toEqual({ kind: 'scene', sceneId: 'picture-1', svg: FIGURE });
         const engine = { id: 'picture-2', engine: 'attractor', params: { intensity: 0.75 } };
-        const session = compileRiseCurrent(withPictures(current, [{ n: 2, scene: engine, key: 'beat-0', progress: 0.5 }], keyAt));
-        const next = session.atoms.find(atom => atom.sourceId === 'beat-1' && !atom.seam);
-        expect(pictureCue(engine, current)).toEqual(cueForAtom(session.visualProgram, next).cue);
+        // As the runtime compiles the reading: a look lowered to its theme where the reading names none.
+        for (const reading of [current, { ...current, theme: undefined, look: 'signal' }]) {
+            const session = compileRiseCurrent(withPictures(reading, [{ n: 2, scene: engine, key: 'beat-0', progress: 0.5 }], keyAt), { lowerLook: lowerCurrentLook });
+            const next = session.atoms.find(atom => atom.sourceId === 'beat-1' && !atom.seam);
+            expect(pictureCue(engine, reading)).toEqual(cueForAtom(session.visualProgram, next).cue);
+        }
     });
 });
