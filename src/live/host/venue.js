@@ -848,11 +848,16 @@ export class LiveVenue {
             }
         }
         const { frame, a, cut } = framing.director.at(framing.clock);
-        // A face that is not drawing frames nothing: the visual is the room's, full-bleed, and the still eye steps aside.
+        // A face that is not drawing frames nothing: a visual is the room's, full-bleed, and the still eye steps aside;
+        // with none, the still eye is the room, the words at its foot.
         if (this.face.dataset.faceDrawn !== 'true') {
             framing.geometry = null;
             this.unframe();
-            if (framing.key) this.face.dataset.faceAside = 'true';
+            if (frameOf(framing.cue)) this.face.dataset.faceAside = 'true';
+            else {
+                this.measureRoom();
+                this.doc.documentElement.dataset.liveFrame = 'none';
+            }
             return;
         }
         const layout = this.measureRoom();
