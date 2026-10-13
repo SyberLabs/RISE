@@ -36,16 +36,26 @@
       "ref": "e2e/live.spec.js",
       "note": "Command: npx playwright test e2e/live.spec.js -g \"catalog words\". 1 passed (46.1 s) on the demo provider: 'attractor' typed while the figure holds the full frame shows the attractor in the outer shell, the bar says 'Showing the attractor.', no interjection request is journalled and the demo's later disk scene is held. With the venue's wiring removed the same test fails (note empty).",
       "date": "2026-10-13"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/660",
+      "note": "Draft PR on branch live-catalog-words, code at b92f3efa, with the local evidence above. Not merged, deployed or accepted by a human.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
     {
       "date": "2026-10-13T05:39:00.000Z",
       "summary": "Claimed and built on branch live-catalog-words (after LIVE-026's #655 merged): the recogniser, the runtime's chooseVisual and hold, perception's chose and withheld, the venue's local answer and note, LIVE-CURRENT §25."
+    },
+    {
+      "date": "2026-10-13T05:39:58.733Z",
+      "summary": "Draft PR #660 opened on branch live-catalog-words with local verification evidence"
     }
   ],
-  "updatedAt": "2026-10-13T05:39:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-13T05:39:58.733Z",
+  "revision": 2,
   "summary": "In RISE Live, a reader who names one of RISE's own visuals during a reading gets it at once, with no model call; RISE's own scene changes after it in that reading are held, and the next request is told.",
   "blocker": null
 }
