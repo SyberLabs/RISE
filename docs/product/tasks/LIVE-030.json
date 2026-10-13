@@ -1,0 +1,45 @@
+{
+  "id": "LIVE-030",
+  "title": "RISE Live: the ask bar at the room's foot",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-028"
+  ],
+  "acceptance": [
+    "In the room (once a question has been asked), bottom to top: the stage's instrument (transport row and passage ticks), the ask bar 8 px above it, a line kept for the bar's note, the spoken words' two lines, then the face's square; nothing overlaps at 1440x900 or 390x844, in the eye, the shell and the full frame, collapsed while it plays and open while an interjection is typed. The entry before a question is unchanged and has no bar.",
+    "One geometry: roomLayout (src/live/host/frames.js) computes the bar's place, the words' foot and size, the face's square, the dock and the full frame's safe rectangle from the instrument's top, the bar's box, its note and the keyboard; the venue only measures those and sets --live-bar-foot, --live-words-foot and --live-words-size, which LiveHost.css reads.",
+    "In the full frame the face docks 48 px wide within 40 px of the bar's left end, centred on the bar and wholly on screen; a fitted figure or generated scene lies between the room's top (12 px below the corner's sign-in link) and 12 px above the words' zone; the words lie above the bar.",
+    "On a phone, while the bar's field has focus, an on-screen keyboard reaching above the bar's place lifts the bar to 8 px above it (window.visualViewport), the words above the bar; it comes down when the field loses focus. Emulated in Playwright with a reduced visualViewport height; a real iPhone or Android keyboard is unverified until seen on a device.",
+    "At 390x844 the corner's \"Staff sign in\" link no longer meets the bar; the rule that hid it while the bar was open is gone.",
+    "Every existing behaviour is kept: an interjection typed into the bar holds the reading, the microphone, the bar's note line, Ask again and Leave, reduced motion, focus order and screen-reader labels; the Settings sheet opens whole over the bar."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/assets/live/sophia-aperture-study.html",
+      "note": "The owner's approved study: the ask bar at the room's foot with Sophia's slot at its left end, the words above it.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§23 The three frames: the ask bar at the foot (the stack, one layout function, the keyboard, the Settings sheet over the bar), the words above the bar, the safe rectangle below the corner's link.",
+      "date": "2026-10-13"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-13T07:30:00.000Z",
+      "summary": "Claimed and built on branch live-ask-bar-bottom after the owner's decision of 2026-10-13: the ask bar moves to the room's foot, as in the study."
+    }
+  ],
+  "updatedAt": "2026-10-13T07:30:00.000Z",
+  "revision": 1,
+  "summary": "In RISE Live's room the ask bar sits at the foot, above the stage's instrument (or an on-screen keyboard), with Sophia docked at its left end in the full frame and the spoken words above it, as in the approved study; the entry is unchanged.",
+  "blocker": null
+}
