@@ -26,7 +26,7 @@ import { connectionState, subscribeConnection, takeConnectionNotice } from '../.
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
-import { createFrameDirector, frameGeometry, frameOf, roomLayout, visualTransform } from './frames.js';
+import { createFrameDirector, frameGeometry, frameOf, holdsContent, roomLayout, visualTransform } from './frames.js';
 
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
@@ -826,6 +826,7 @@ export class LiveVenue {
     /** The Chamber's visual whole and unmoved, and the root unmarked: as the Reader and the card always have it. */
     unframe() {
         delete this.doc.documentElement.dataset.liveFrame;
+        delete this.doc.documentElement.dataset.liveFit;
         delete this.face.dataset.faceAside;
         const field = this.doc.querySelector('#chamber-field');
         for (const name of ['--live-vx', '--live-vy', '--live-vk']) field?.style.removeProperty(name);
@@ -861,10 +862,12 @@ export class LiveVenue {
             return;
         }
         const layout = this.measureRoom();
-        const geometry = frameGeometry({ frame, a, cut, layout });
+        const geometry = frameGeometry({ frame, a, cut, layout, content: holdsContent(framing.cue) });
         framing.geometry = geometry;
         const move = visualTransform(geometry, layout);
         this.doc.documentElement.dataset.liveFrame = frame;
+        if (geometry.fit) this.doc.documentElement.dataset.liveFit = 'true';
+        else delete this.doc.documentElement.dataset.liveFit;
         const field = this.doc.querySelector('#chamber-field');
         field?.style.setProperty('--live-vx', `${move.x}px`);
         field?.style.setProperty('--live-vy', `${move.y}px`);

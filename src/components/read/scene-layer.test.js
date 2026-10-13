@@ -106,6 +106,14 @@ describe('a scene that listens (docs/plans/LIVE-CURRENT.md §20)', () => {
     ]);
   });
 
+  it('drawn scaled (a room that fits the scene between its bar and its words), still forwards the canvas’s own CSS pixels', () => {
+    const { layer, canvas, inputs, onInput } = mounted();
+    canvas.getBoundingClientRect.mockReturnValue({ left: 100, top: 50, width: 200, height: 150, right: 300, bottom: 200, x: 100, y: 50 });
+    layer.listen({ pointer: true, keys: false, onInput });
+    press(canvas, 'pointerdown', 150, 80);
+    expect(inputs).toEqual([{ type: 'pointerdown', x: 100, y: 60, buttons: 1, key: null, modifiers: NONE }]);
+  });
+
   it('listening to keys, is focusable, said as an interactive scene, and takes arrows and printable keys but not the instrument’s', () => {
     const { layer, canvas, inputs, onInput } = mounted();
     layer.listen({ pointer: false, keys: true, onInput });

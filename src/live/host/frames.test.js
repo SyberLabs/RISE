@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    CUT_MS, FRAME_OF, FRAME_OPEN_MS, createFrameDirector, cutAmount, frameGeometry, frameOf, roomLayout, visualTransform
+    CUT_MS, FRAME_OF, FRAME_OPEN_MS, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, roomLayout, visualTransform
 } from './frames.js';
 
 const W = 1440;
@@ -31,6 +31,16 @@ describe('the visual chooses the frame', () => {
         expect(frameOf({ kind: 'sourced', collections: ['rijksmuseum'] })).toBe('full');
         expect(frameOf({ kind: 'scene', sceneId: 'h', svg: '<svg/>' })).toBe('full');
         expect(frameOf({ kind: 'scene', sceneId: 'd', code: 'export default () => ({})' })).toBe('full');
+    });
+
+    it('knows a picture with content of its own (a figure, a generated scene) from a field, a texture or an image', () => {
+        expect(holdsContent({ kind: 'scene', sceneId: 'h', svg: '<svg/>' })).toBe(true);
+        expect(holdsContent({ kind: 'scene', sceneId: 'd', code: 'export default () => ({})' })).toBe(true);
+        expect(holdsContent({ kind: 'field', renderer: 'genesis', config: {} })).toBe(false);
+        expect(holdsContent({ kind: 'procedural', collections: ['fractal'] })).toBe(false);
+        expect(holdsContent({ kind: 'sourced', collections: ['rijksmuseum'] })).toBe(false);
+        expect(holdsContent({ kind: 'field', renderer: 'attractor', config: {} })).toBe(false);
+        expect(holdsContent(null)).toBe(false);
     });
 
     it('gives no frame to no visual, or to a still, which draws nothing in a Live reading: the eye stays', () => {
@@ -226,9 +236,44 @@ describe('one geometry: the aperture at its phase boundaries', () => {
         expect(visualTransform(folding, { width: W, height: H }).k * Math.min(W, H) / 2).toBeCloseTo(c.s * 0.36 * 0.92, 9);
     });
 
-    it('leaves the visual whole and unmoved in the full frame and with no frame', () => {
+    it('leaves a field, a texture or an image whole and unmoved in the full frame, and any visual with no frame', () => {
         expect(visualTransform(frameGeometry({ frame: 'full', a: 0.5, cut: 0, layout }), { width: W, height: H })).toEqual({ x: 0, y: 0, k: 1 });
-        expect(visualTransform(frameGeometry({ frame: 'none', a: 0, cut: 0, layout }), { width: W, height: H })).toEqual({ x: 0, y: 0, k: 1 });
+        expect(visualTransform(frameGeometry({ frame: 'full', a: 1, cut: 0, layout, content: false }), { width: W, height: H })).toEqual({ x: 0, y: 0, k: 1 });
+        expect(frameGeometry({ frame: 'full', a: 1, cut: 0, layout, content: false }).fit).toBe(null);
+        expect(visualTransform(frameGeometry({ frame: 'none', a: 0, cut: 0, layout, content: true }), { width: W, height: H })).toEqual({ x: 0, y: 0, k: 1 });
+    });
+
+    /** The room's own box after the transform: where every visual layer the size of the room is drawn. */
+    const placed = (t, width, height) => ({
+        left: width / 2 + t.x - (width * t.k) / 2, right: width / 2 + t.x + (width * t.k) / 2,
+        top: height / 2 + t.y - (height * t.k) / 2, bottom: height / 2 + t.y + (height * t.k) / 2
+    });
+
+    it('fits a figure or a generated scene in the full frame into the safe rectangle, between the bar and the words, aspect kept', () => {
+        // 1440 by 900: the bar's foot at 70 and the docked face's at 70.6, the words' zone from 690.
+        const g = frameGeometry({ frame: 'full', a: 1, cut: 0, layout, content: true });
+        expect(layout.safe).toMatchObject({ x: 720, w: W - 32 });
+        expect(layout.safe.y - layout.safe.h / 2).toBeCloseTo(43 + (48 * 1.15) / 2 + 12, 9);
+        expect(layout.safe.y + layout.safe.h / 2).toBeCloseTo(690 - 12, 9);
+        const t = visualTransform(g, { width: W, height: H });
+        expect(t.k).toBeCloseTo(Math.min((W - 32) / W, layout.safe.h / H), 9);
+        const box = placed(t, W, H);
+        expect(box.top).toBeCloseTo(layout.safe.y - layout.safe.h / 2, 6);
+        expect(box.bottom).toBeCloseTo(690 - 12, 6);
+        expect((box.left + box.right) / 2).toBeCloseTo(W / 2, 9);
+        expect(box.left).toBeGreaterThanOrEqual(16);
+        // The same fit while the frame opens, so the visual waits where it will be seen.
+        expect(visualTransform(frameGeometry({ frame: 'full', a: 0.3, cut: 0.5, layout, content: true }), { width: W, height: H })).toEqual(t);
+
+        // A phone, 390 by 844: the width binds no more than the height does.
+        const phone = roomLayout({ width: 390, height: 844, bar: { left: 67, top: 16, width: 256, height: 54 }, wordsTop: 650 });
+        const p = visualTransform(frameGeometry({ frame: 'full', a: 1, cut: 0, layout: phone, content: true }), { width: 390, height: 844 });
+        expect(p.k).toBeCloseTo(Math.min(358 / 390, phone.safe.h / 844), 9);
+        const small = placed(p, 390, 844);
+        expect(small.top).toBeGreaterThanOrEqual(70.6 + 12 - 1e-9);
+        expect(small.bottom).toBeLessThanOrEqual(650 - 12 + 1e-9);
+        expect(small.left).toBeGreaterThanOrEqual(16);
+        expect(small.right).toBeLessThanOrEqual(390 - 16);
     });
 
     it('is the same numbers wherever it is asked for: one function, no state', () => {

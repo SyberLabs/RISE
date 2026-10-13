@@ -1267,8 +1267,12 @@ body:has(.live-venue) { background: var(--live-ground); }
 /* The three frames (§23). The venue marks the root while its face holds the room (data-live-frame: none, inner, shell
    or full) and sets the field's --live-vx, --live-vy and --live-vk from the one geometry (frames.js): in the inner eye
    and the shell, the Chamber's visual layers are moved and scaled so the circle inscribed in their square is the
-   aperture. Nothing here applies to the Reader or the card, whose root is never marked. */
-html:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field > :not(.atom-band, .movement-title) {
+   aperture. In the full frame a picture with content (data-live-fit) is fitted the same way into the room's safe
+   rectangle, between the bar and the words: only the picture and its touch regions, so the ground beneath it (a bed,
+   a vignette, a field fading out) stays full-bleed. Nothing here applies to the Reader or the card, whose root is
+   never marked. */
+html:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field > :not(.atom-band, .movement-title),
+html[data-live-frame="full"][data-live-fit] #chamber-field > :is(.chamber-figure, .chamber-scene, .chamber-scene-hits) {
   transform: translate(var(--live-vx, 0px), var(--live-vy, 0px)) scale(var(--live-vk, 1));
   transform-origin: 50% 50%;
 }
