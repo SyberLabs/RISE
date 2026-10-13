@@ -752,10 +752,11 @@ export class AttractorField {
             this.swarmTheta = swarmTheta(this._swarmTick / SWARM_TICK_HZ);
         }
         // A frame between ticks shows what is already presented.
-        if (!reduced && !oneShot && this._presented === this._swarmTick && this._presentedAt === this.intensity && this._presentedTo === this.canvas.width) return;
+        if (!reduced && !oneShot && this._presented === this._swarmTick && this._presentedAt === this.intensity && this._presentedTo === this.canvas.width && this._presentedHigh === this.canvas.height) return;
         this._presented = reduced ? null : this._swarmTick;
         this._presentedAt = this.intensity;
         this._presentedTo = this.canvas.width;
+        this._presentedHigh = this.canvas.height;
         this.presentSwarm(this.trailCanvas);
     }
 
