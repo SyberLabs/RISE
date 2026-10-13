@@ -195,6 +195,10 @@ describe('the illustrator draws, RISE admits and repairs, and the picture lands 
         expect(longestGap(journal)).toBeLessThan(BREATH_MS * 4);
         // The picture went up as RISE's own change.
         expect(perceive(journal).events).toEqual(expect.arrayContaining([{ type: 'drew', by: 'rise', medium: 'figure', brief: 'a labelled diagram of the three states of water' }]));
+        // The passages name the scenes the reading's own Current starts; the picture is remembered by its brief, not as one.
+        const scenes = runtime.passages().map(passage => passage.scene).filter(scene => scene !== undefined);
+        expect(scenes).toContain('field');
+        expect(scenes).not.toContain('picture-2');
     });
 
     it('a third refusal lets the picture go: the reading goes on and ends, and the snapshot says why', async () => {

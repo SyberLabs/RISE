@@ -498,15 +498,13 @@ export class LiveVenue {
         if (this.host.runtime === reading?.runtime) this.host.runtime = null;
         if (!reading) return;
         const { runtime } = reading;
-        // The scene each of the reading's own passages started, by its name, for the room's memory (earlierFor).
-        const scenes = new Map((runtime.composed?.('main')?.segments ?? []).filter(segment => segment.beat?.scene).map(segment => [segment.id, segment.beat.scene]));
         this.readings[reading.turn] = {
             journal: runtime.journal?.() ?? [],
             // The reading's passages in order as it was read (answers to interjections among them), so the reader's
-            // moves can name them (perception.js), and what RISE said in it can be remembered (earlierFor).
+            // moves can name them (perception.js), and what RISE said and showed in it can be remembered (earlierFor).
             passages: (runtime.passages?.() ?? []).map(({ segmentId, key, text, spoken, scene }) => ({
                 segmentId, key: key ?? segmentId, text: text ?? '', spoken: spoken !== false,
-                ...(scene ?? scenes.get(key ?? segmentId) ? { scene: scene ?? scenes.get(key ?? segmentId) } : {})
+                ...(typeof scene === 'string' ? { scene } : {})
             })),
             // Where the reading stood when let go: what was said before a cut ends there.
             reached: runtime.snapshot?.()?.position?.segmentIndex ?? null
