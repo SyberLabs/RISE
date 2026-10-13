@@ -172,7 +172,7 @@ flowchart LR
     scenes["scenes<br/>engine manifests, cues; scene runtime<br/>9 modules"]
     sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
-    visuals["visuals<br/>procedural generation<br/>59 modules"]
+    visuals["visuals<br/>procedural generation<br/>60 modules"]
     wormhole["wormhole<br/>7 modules"]
 
     affect --> |7| core
