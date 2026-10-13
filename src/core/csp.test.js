@@ -89,8 +89,13 @@ describe('content security policy', () => {
     });
 
     it('keeps scripts self-hosted, with no executable CDN', () => {
+        // blob: is the page's own scene module: a generated scene and RISE's face are loaded by import() of a
+        // blob: URL inside the blob: scene worker, which inherits this policy (src/scenes/scene-worker.js). Without
+        // it every scene on the site failed in production while the e2e preview, which applies no headers, passed.
         const script = directive('script-src');
-        expect(script).toBe("script-src 'self'");
+        expect(script).toBe("script-src 'self' blob:");
+        expect(directive('worker-src')).toBe("worker-src 'self' blob:");
+        expect(script).not.toMatch(/unsafe-eval|unsafe-inline|https?:/u);
         expect(directive('object-src')).toBe("object-src 'none'");
         expect(directive('frame-ancestors')).toBe("frame-ancestors 'none'");
     });
