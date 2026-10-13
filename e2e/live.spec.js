@@ -780,6 +780,12 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(figure.width / figure.height).toBeCloseTo(viewport.width / viewport.height, 2);
         const words = await page.locator('#atom-display').boundingBox();
         expect(figure.y + figure.height).toBeLessThanOrEqual(words.y);
+        // A figure has no ground of its own and its label reaches its box's foot: it is not feathered.
+        const mask = await page.locator('#chamber-field img.chamber-figure').evaluate(node => {
+            const style = getComputedStyle(node);
+            return style.maskImage || style.webkitMaskImage;
+        });
+        expect(mask).toBe('none');
         expect(errors).toEqual([]);
     });
 
@@ -1297,6 +1303,13 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         const w1 = await page.locator('.chamber-scene-hit[data-control="w1"]').boundingBox();
         const k = await page.evaluate(() => window.__riseFace.frame()?.fit?.k ?? 1);
         expect(k).toBeLessThan(1);
+        // The fitted scene's edges dissolve into the room; its widgets' regions keep their exact box, unmasked.
+        const masks = await page.evaluate(() => ['canvas.chamber-scene', '.chamber-scene-hits'].map(selector => {
+            const style = getComputedStyle(document.querySelector(`#chamber-field ${selector}`));
+            return style.maskImage || style.webkitMaskImage;
+        }));
+        expect(masks[0]).toMatch(/linear-gradient.*linear-gradient/u);
+        expect(masks[1]).toBe('none');
         const pressedAt = await page.evaluate(() => performance.now());
         await page.mouse.click(w1.x + (10 + 170 * 0.25) * k, w1.y + w1.height / 2);
         await expect.poll(async () => (await inputs()).find(entry => entry.control === 'w1')?.value ?? null).toBe(-1);

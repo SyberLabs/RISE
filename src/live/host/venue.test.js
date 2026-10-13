@@ -6,6 +6,9 @@
  * asking, what is refused in words, that a typed key is never kept anywhere but the page's memory, and that
  * one room holds many readings on one adapter.
  */
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LiveHost } from './LiveHost.js';
 import { createFakeRecognition, open } from '../../test/fake-recognition.js';
@@ -965,6 +968,21 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(root().dataset.liveFit).toBe('true');
         await host.venue.leave();
         expect(root().dataset.liveFit).toBeUndefined();
+    });
+
+    it('dissolves a fitted scene’s edges into the room, only while the fit marker is held; never a figure’s or the touch regions’', () => {
+        const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'LiveHost.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//gu, '');
+        const masked = (css.match(/[^{}]*\{[^{}]*\}/gu) ?? []).filter(rule => /#chamber-field|chamber-scene|chamber-figure/u.test(rule.split('{')[0]) && /mask-image/u.test(rule.split('{')[1]));
+        expect(masked).toHaveLength(1);
+        const [head, body] = masked[0].split('{');
+        const selectors = head.split(',').map(selector => selector.trim());
+        expect(selectors).toEqual(['html[data-live-frame="full"][data-live-fit] #chamber-field > .chamber-scene']);
+        // A rectangular feather: two gradients, across and down, each clear at its ends over 6% of the box, intersected.
+        const feather = /linear-gradient\(to right, transparent, #000 6%, #000 94%, transparent\),\s*linear-gradient\(to bottom, transparent, #000 6%, #000 94%, transparent\)/u;
+        expect(body).toMatch(new RegExp(`-webkit-mask-image:\\s*${feather.source}`, 'u'));
+        expect(body).toMatch(new RegExp(`(^|[;\\s])mask-image:\\s*${feather.source}`, 'u'));
+        expect(body).toMatch(/-webkit-mask-composite:\s*source-in/u);
+        expect(body).toMatch(/(^|[;\s])mask-composite:\s*intersect/u);
     });
 
     it('stands the frame still while the reader holds the reading, and goes on when they take it up', async () => {
