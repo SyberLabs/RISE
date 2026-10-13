@@ -372,8 +372,28 @@ describe('VisualCortex Klee delegation', () => {
             kind: 'procedural', collections: ['harmonograph'], config: { climate: 'jadeVeil' }
         });
         expect(cortex.config).toMatchObject({
-            activeTypes: ['harmonograph'], harmonographClimate: 'jadeVeil'
+            activeTypes: ['harmonograph'], harmonographClimate: 'jadeVeil', harmonographPendulums: 'lateral'
         });
+
+        cortex.applyCue({
+            kind: 'procedural', collections: ['harmonograph'], config: { climate: 'jadeVeil', pendulums: 'rotary' }
+        });
+        expect(cortex.config).toMatchObject({
+            activeTypes: ['harmonograph'], harmonographClimate: 'jadeVeil', harmonographPendulums: 'rotary'
+        });
+    });
+
+    it('starts a fresh Gallery figure when a cue changes the pendulums, and only then', () => {
+        const cortex = new VisualCortex();
+        cortex.applyCue({ kind: 'procedural', collections: ['harmonograph'], config: { climate: 'jadeVeil' } });
+        cortex._harmonographField = { rotateNow: vi.fn() };
+        cortex.applyCue({ kind: 'procedural', collections: ['harmonograph'], config: { climate: 'emberDawn' } });
+        expect(cortex._harmonographField.rotateNow).not.toHaveBeenCalled();
+        cortex.applyCue({ kind: 'procedural', collections: ['harmonograph'], config: { climate: 'emberDawn', pendulums: 'rotary' } });
+        expect(cortex._harmonographField.rotateNow).toHaveBeenCalledTimes(1);
+        cortex.applyCue({ kind: 'procedural', collections: ['harmonograph'], config: { climate: 'emberDawn', pendulums: 'rotary' } });
+        expect(cortex._harmonographField.rotateNow).toHaveBeenCalledTimes(1);
+        cortex._harmonographField = null;
     });
 
     it('re-arms current-pool hydration on every sourced cue activation', async () => {
@@ -2354,8 +2374,19 @@ describe('Continuous Field (Gallery) wiring', () => {
             await cortex._renderContinuousProceduralWork('harmonograph');
 
             expect(cortex.harmonograph.generate.mock.calls[0][2]).toEqual({
-                climate: 'auto', anchors: accentFlameAnchors(JEV_PALETTES.amethyst)
+                climate: 'auto', anchors: accentFlameAnchors(JEV_PALETTES.amethyst), pendulums: 'lateral'
             });
+            cortex.destroy();
+        });
+
+        it('the Harmonograph still draws rotary pendulums when the cue chose them', async () => {
+            const cortex = stubbedEngines();
+            cortex.beginSessionVisualIdentity({});
+            cortex.config.harmonographPendulums = 'rotary';
+
+            await cortex._renderContinuousProceduralWork('harmonograph');
+
+            expect(cortex.harmonograph.generate.mock.calls[0][2].pendulums).toBe('rotary');
             cortex.destroy();
         });
 
@@ -2366,7 +2397,7 @@ describe('Continuous Field (Gallery) wiring', () => {
             await cortex._renderContinuousProceduralWork('harmonograph');
 
             expect(cortex.harmonograph.generate.mock.calls[0][2])
-                .toEqual({ climate: 'auto', anchors: null });
+                .toEqual({ climate: 'auto', anchors: null, pendulums: 'lateral' });
             cortex.destroy();
         });
 
@@ -2622,7 +2653,7 @@ describe('Continuous Field (Gallery) wiring', () => {
         });
         expect(cortex._harmonographField?.running).toBe(true);
         expect(generate.mock.calls.at(-1)[2]).toEqual({
-            climate: 'auto', anchors: accentFlameAnchors(JEV_PALETTES.amethyst)
+            climate: 'auto', anchors: accentFlameAnchors(JEV_PALETTES.amethyst), pendulums: 'lateral'
         });
         generate.mockRestore();
         cortex.destroy();

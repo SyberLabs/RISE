@@ -51,6 +51,19 @@ describe('a scene’s parameters', () => {
     refuses('living-flame', { symmetry: 2.5 }, 'SCENE_PARAM');
     refuses('nope', {}, 'SCENE_ENGINE');
   });
+
+  it('take the swarm and the rotary pendulums as start-only choices, each defaulting to the engine as it was', () => {
+    expect(manifestFor('attractor').parameters.trace).toEqual({ type: 'enum', values: ['filament', 'swarm'], default: 'filament', cueable: false });
+    expect(manifestFor('harmonograph').parameters.pendulums).toEqual({ type: 'enum', values: ['lateral', 'rotary'], default: 'lateral', cueable: false });
+    expect(validateSceneParams('attractor', { trace: 'swarm', system: 'thomas' }, '$')).toEqual({ trace: 'swarm', system: 'thomas' });
+    expect(validateSceneParams('harmonograph', { pendulums: 'rotary', climate: 'jadeVeil' }, '$')).toEqual({ pendulums: 'rotary', climate: 'jadeVeil' });
+    expect(refuses('attractor', { trace: 'ribbon' }, 'SCENE_PARAM').message).toContain('trace is one of filament, swarm');
+    expect(refuses('harmonograph', { pendulums: 'triple' }, 'SCENE_PARAM').message).toContain('pendulums is one of lateral, rotary');
+    expect(cueCommands('attractor', 'set:trace=swarm')).toBeNull();
+    expect(cueCommands('harmonograph', 'set:pendulums=rotary')).toBeNull();
+    expect(sceneCue({ engine: 'harmonograph', params: { pendulums: 'rotary' } }))
+      .toEqual({ kind: 'procedural', collections: ['harmonograph'], config: { pendulums: 'rotary' } });
+  });
 });
 
 describe('cues', () => {
@@ -104,5 +117,15 @@ describe('the guide’s account', () => {
     expect(text).toContain('turrell: no parameters');
     expect(text).toContain('cues calm, surge, warm, cool');
     expect(text).not.toContain('still:');
+    expect(text).toContain('trace (filament|swarm)');
+    expect(text).toContain('pendulums (lateral|rotary)');
+  });
+
+  it('leaves out the parameters it is asked to withhold, and nothing else', () => {
+    const text = describeManifests({ withheld: ['trace', 'pendulums'] });
+    expect(text).not.toMatch(/trace|pendulums|swarm|rotary/u);
+    expect(text).toContain('speed (0.25..4); cues calm, bright');
+    expect(text).toContain('harmonograph: climate (auto|emberDawn|solarFlare|midnightWater|stormViolet|jadeVeil|whiteHeat)\n');
+    expect(text.split('\n')).toHaveLength(describeManifests().split('\n').length);
   });
 });

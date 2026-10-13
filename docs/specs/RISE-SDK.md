@@ -329,6 +329,7 @@ A parameter that is `cueable` changes while the engine runs. Every other paramet
 | `attractor` | `form` | enum | `mirror`, `kaleido`, `bilateral` | `mirror` | no |
 | `attractor` | `intensity` | number | 0.4 to 0.75 | 0.65 | yes |
 | `attractor` | `speed` | number | 0.25 to 4 | 1 | no |
+| `attractor` | `trace` | enum | `filament`, `swarm` | `filament` | no |
 | `genesis` | `preset` | enum | `harmonic`, `chaotic`, `twittering`, `architectural`, `gravitational` | `harmonic` | no |
 | `living-flame` | `preset` | enum | `ember-cathedral`, `violet-nebula`, `glacial-silk`, `solar-bloom`, `verdant-current`, `prismatic-knot` | `ember-cathedral` | no |
 | `living-flame` | `energy` | number | 0 to 1 | 0.35 | yes |
@@ -337,6 +338,7 @@ A parameter that is `cueable` changes while the engine runs. Every other paramet
 | `living-flame` | `symmetry` | integer | 1 to 8 | 1 | no |
 | `living-flame` | `intensity` | number | 0 to 1 | 0.35 | no |
 | `harmonograph` | `climate` | enum | `auto`, `emberDawn`, `solarFlare`, `midnightWater`, `stormViolet`, `jadeVeil`, `whiteHeat` | `auto` | no |
+| `harmonograph` | `pendulums` | enum | `lateral`, `rotary` | `lateral` | no |
 | `ostensoria` | `palette` | enum | `auto`, `iris`, `reliquary`, `ember`, `ice`, `verdant`, `lilac`, `teal`, `sepia`, `peacock`, `rose`, `citrine` | `auto` | no |
 | `apparitio` | `palette` | enum | `auto`, `prism`, `marian`, `ember`, `holo` | `auto` | no |
 

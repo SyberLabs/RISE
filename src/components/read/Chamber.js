@@ -2955,6 +2955,7 @@ export class Chamber {
         system: look.system || 'aizawa',
         palette: look.palette,
         form: look.form,
+        trace: config.trace,
         ...(Number.isFinite(config.intensity) ? { intensity: config.intensity } : {}),
         ...(Number.isFinite(config.speed) ? { speed: config.speed } : {})
       });

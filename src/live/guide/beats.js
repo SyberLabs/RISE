@@ -71,6 +71,9 @@ export const LIB_GUIDE = Object.freeze([
     ['palette', 'palette: the theme colours by name.']
 ]);
 
+/** Engine parameters taught in Live's instructions only, while the connector submission is under review. */
+export const HOST_WITHHELD_PARAMETERS = Object.freeze(['trace', 'pendulums']);
+
 /**
  * The widget set `rise.lib` gives a scene that listens (docs/plans/LIVE-CURRENT.md §20), one line each, by name. Taught
  * in Live's instructions only (openai-instructions.js SCENE_INPUT_GUIDE): no host's model is told of it while the
@@ -161,7 +164,7 @@ export const BEATS_GUIDE = [
     '- Prefer v2 when the reader asks for a lesson, a walkthrough, or an animation; v1 (passages) is fine for a plain spoken reading.',
     '',
     'Scenes, their parameters ("params", each within its bounds) and their cues ("cue" on a later beat: a named cue, or set:<parameter>=<value> on a cueable one):',
-    describeManifests(),
+    describeManifests({ withheld: HOST_WITHHELD_PARAMETERS }),
     '',
     SCENE_GUIDE,
     '',

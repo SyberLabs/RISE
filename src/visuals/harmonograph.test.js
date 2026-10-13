@@ -193,3 +193,119 @@ describe('Harmonograph engine', () => {
             .toBeGreaterThan(short.ctx.stroke.mock.calls.length);
     });
 });
+
+describe('Harmonograph rotary pendulums', () => {
+    function rotary(seed, options = {}) {
+        const hg = new Harmonograph();
+        hg.generate(null, seed, { pendulums: 'rotary', ...options });
+        return hg;
+    }
+
+    it('is lateral unless rotary is chosen', () => {
+        const hg = new Harmonograph();
+        hg.generate(null, 'plain');
+        expect(hg.pendulums).toBe('lateral');
+        expect(hg.drawMs).toBeNull();
+        expect(rotary('r').pendulums).toBe('rotary');
+    });
+
+    it('draws two pendulums turning opposite ways, with the study\'s ranges', () => {
+        for (let i = 0; i < 40; i++) {
+            const { f1, f2, d1, d2 } = rotary(`range-${i}`).pair;
+            expect([2, 3]).toContain(f1);
+            const turn = Math.round(-f2);
+            expect([3, 4]).toContain(turn);
+            expect(Math.abs(-f2 - turn)).toBeLessThanOrEqual(0.02);
+            for (const d of [d1, d2]) {
+                expect(d).toBeGreaterThanOrEqual(0.010);
+                expect(d).toBeLessThanOrEqual(0.018);
+            }
+        }
+    });
+
+    it('is deterministic under a seed and differs between seeds', () => {
+        const a = rotary('same');
+        const b = rotary('same');
+        expect(Array.from(a.trace)).toEqual(Array.from(b.trace));
+        expect(a.pair).toEqual(b.pair);
+        expect(Array.from(rotary('other').trace.slice(0, 20))).not.toEqual(Array.from(a.trace.slice(0, 20)));
+    });
+
+    it('loses energy until under 5%, and stops there', () => {
+        for (const seed of ['e1', 'e2', 'e3', 'e4']) {
+            const { envelope } = rotary(seed);
+            expect(envelope[0]).toBeCloseTo(1, 6);
+            for (let i = 1; i < envelope.length; i++) expect(envelope[i]).toBeLessThan(envelope[i - 1]);
+            expect(envelope.at(-1)).toBeLessThan(0.05);
+            expect(envelope.at(-2)).toBeGreaterThanOrEqual(0.05);
+        }
+    });
+
+    it('takes about 18 units of pendulum time a second to draw', () => {
+        const hg = rotary('pace');
+        const units = (hg.envelope.length - 1) * 0.01;
+        expect(hg.drawMs).toBeCloseTo((units / 18) * 1000, 6);
+        expect(hg.drawMs).toBeGreaterThan(9_000);
+        expect(hg.drawMs).toBeLessThan(17_000);
+    });
+
+    it('keeps every point inside the circle inscribed in the frame', () => {
+        for (const [w, h] of [[600, 600], [1200, 700], [390, 844]]) {
+            for (const seed of ['c1', 'c2', 'c3']) {
+                const canvas = makeCanvas(w, h);
+                rotary(seed).render(canvas);
+                const radius = Math.min(w, h) / 2;
+                const points = [...canvas.ctx.moveTo.mock.calls, ...canvas.ctx.lineTo.mock.calls];
+                expect(points.length).toBeGreaterThan(1000);
+                for (const [x, y] of points) {
+                    expect(Math.hypot(x - w / 2, y - h / 2)).toBeLessThanOrEqual(radius * 0.88 + 1e-6);
+                }
+            }
+        }
+    });
+
+    it('strokes the pen additively at 0.55 over a wide glow understroke, never with shadowBlur', () => {
+        const canvas = makeCanvas(600, 600);
+        const modes = [];
+        const styles = [];
+        canvas.ctx.stroke = vi.fn(() => {
+            modes.push(canvas.ctx.globalCompositeOperation);
+            styles.push([canvas.ctx.strokeStyle, canvas.ctx.lineWidth]);
+        });
+        rotary('look').render(canvas);
+        expect(styles[0][0]).toMatch(/, 0\.10\)$/);
+        expect(styles[0][1]).toBeGreaterThan(styles[1][1]);
+        const pen = styles.slice(1);
+        expect(pen.length).toBeGreaterThan(100);
+        for (const [style] of pen) expect(style).toMatch(/, 0\.55\)$/);
+        expect(modes.slice(1).every(mode => mode === 'lighter')).toBe(true);
+        expect(canvas.ctx.globalCompositeOperation).toBe('source-over');
+        expect(canvas.ctx.shadowBlur).toBeUndefined();
+    });
+
+    it('moves from the palette\'s iris toward its core as energy is lost', () => {
+        const anchors = [[0, 0, 0], [10, 10, 10], [20, 20, 20], [100, 0, 0], [0, 0, 200]];
+        const canvas = makeCanvas(600, 600);
+        const styles = [];
+        canvas.ctx.stroke = vi.fn(() => styles.push(canvas.ctx.strokeStyle));
+        rotary('colour', { anchors }).render(canvas);
+        const rgb = style => style.match(/\d+/g).slice(0, 3).map(Number);
+        const first = rgb(styles[1]);
+        const last = rgb(styles.at(-1));
+        expect(first[0]).toBeGreaterThan(90);
+        expect(first[2]).toBeLessThan(15);
+        expect(last[2]).toBeGreaterThan(180);
+        expect(last[0]).toBeLessThan(10);
+    });
+
+    it('draws only part of the pen at partial progress', () => {
+        const hg = rotary('partial');
+        const half = makeCanvas(400, 400);
+        const full = makeCanvas(400, 400);
+        hg.render(half, { progress: 0.5 });
+        hg.render(full);
+        const ratio = half.ctx.lineTo.mock.calls.length / full.ctx.lineTo.mock.calls.length;
+        expect(ratio).toBeGreaterThan(0.45);
+        expect(ratio).toBeLessThan(0.55);
+    });
+});

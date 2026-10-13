@@ -644,10 +644,11 @@ const stage = {
 
   async paintHarmonograph(ctx) {
     const climate = ctx.cue?.config?.climate || 'auto';
-    const key = `harmonograph:${climate}:${ctx.seed}`;
+    const pendulums = ctx.cue?.config?.pendulums === 'rotary' ? 'rotary' : 'lateral';
+    const key = `harmonograph:${climate}:${pendulums}:${ctx.seed}`;
     const painter = await this.ensure(key, () => {
       const engine = new Harmonograph();
-      engine.generate(null, `${ctx.seed}:harmonograph`, { climate });
+      engine.generate(null, `${ctx.seed}:harmonograph`, { climate, pendulums });
       return { engine, destroy() {} };
     });
     painter.engine.render(ctx.canvas, {
@@ -800,24 +801,30 @@ const stage = {
 
   async paintAttractor(ctx) {
     const config = ctx.cue?.config || {};
-    const key = `attractor:${config.system}:${config.palette}:${config.form}:${ctx.seed}`;
+    const key = `attractor:${config.system}:${config.palette}:${config.form}:${config.trace}:${ctx.seed}`;
     const painter = await this.ensure(key, () => {
       this.canvas.style.display = 'none';
       const field = new AttractorField(this.host, {
         system: config.system,
         palette: config.palette,
         form: config.form,
+        trace: config.trace,
         adaptive: false
       });
-      field.pause();
+      cancelAnimationFrame(field.rafId);
+      field.rafId = null;
       return {
         field,
         destroy() { field.destroy(); }
       };
     });
-    painter.field.pause();
+    // The stage's clock drives the field: a running field reads its motion
+    // from the timestamp it is given (a paused one holds its clock), so a
+    // swarm evolves and a filament turns with the score. Its own frame loop
+    // is cancelled after each paint.
     painter.field.tick(painter.field.t0 + ctx.elapsedMs);
-    painter.field.pause();
+    cancelAnimationFrame(painter.field.rafId);
+    painter.field.rafId = null;
   },
 
   async paintFocal(ctx) {

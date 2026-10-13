@@ -35,6 +35,17 @@ describe('visual style definitions', () => {
       .toEqual({ palette: 'marian' });
     expect(normalizeProceduralStyle(['fractal'], { preset: 'harmonic' })).toEqual({});
   });
+
+  it('keeps the rotary pendulums and the swarm only when chosen, so every saved cue normalizes as before', () => {
+    expect(normalizeProceduralStyle(['harmonograph'], { climate: 'jadeVeil', pendulums: 'rotary' }))
+      .toEqual({ climate: 'jadeVeil', pendulums: 'rotary' });
+    expect(normalizeProceduralStyle(['harmonograph'], { pendulums: 'lateral' })).toEqual({ climate: 'auto' });
+    expect(normalizeProceduralStyle(['harmonograph'], { pendulums: 'triple' })).toEqual({ climate: 'auto' });
+    expect(normalizeFieldStyle('attractor', { trace: 'swarm' }))
+      .toEqual({ system: 'aizawa', palette: 'white', form: 'mirror', trace: 'swarm' });
+    expect(normalizeFieldStyle('attractor', { trace: 'filament' })).toEqual({ system: 'aizawa', palette: 'white', form: 'mirror' });
+    expect(normalizeFieldStyle('attractor', { trace: 'ribbon' })).toEqual({ system: 'aizawa', palette: 'white', form: 'mirror' });
+  });
 });
 
 describe('attractor night-drive options', () => {

@@ -1,0 +1,57 @@
+{
+  "id": "SCR-007",
+  "title": "The attractor swarm and the rotary harmonograph",
+  "lane": "live-sdk",
+  "milestone": "Score stage 2",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "The attractor takes `trace: 'filament' | 'swarm'`, default 'filament', so every existing reading is unchanged. The swarm is the approved study's: 700 particles each integrated live through the chosen system (three Euler substeps a tick, sixty ticks a second of motion), plotted as small squares (max(1.2, side/500) px) added as light into a trail that fades 7% a tick, coloured by height along six steps from the palette's halo hue to its light core at alpha 0.5, mirrored left and right, turning 0.18 rad a second; particles start in a seeded ball about the system's seed point and are warmed 300 steps.",
+    "The swarm works for Aizawa, Thomas and Halvorsen, centred on each system's centroid and scaled by its widest reach (radius 0.38 of the shorter side), so every plotted square stays inside the inscribed circle. Mirror and bilateral draw the study's left-right reflection; kaleido draws a sixth of the swarm into the engine's six reflected sectors at the mirror's weight.",
+    "The swarm honours intensity (0.65 is the study's look; other values scale the presented trail), speed (scales the turn and the integration pace), pause (no tick is due while the field's clock is held; a held frame is never blank) and reduced motion (one accumulated still of ninety plots at a held angle; nothing moves or fades); it has no flicker, so photosensitivity mode has nothing to calm. Its frame cost stays within the filament's.",
+    "The harmonograph takes `pendulums: 'lateral' | 'rotary'`, default 'lateral'. Rotary is the study's machine, deterministic under the engine's seeded random: f1 in {2, 3}, f2 = -(3 or 4) within 0.02, random phases, damping 0.010 to 0.018 a unit, amplitudes 0.55 and 0.45, extent 0.44 of the shorter side, traced until the energy is under 5%, stroked additively at 0.55 over the engine's wide glow understroke (never shadowBlur), coloured from the climate's iris toward its core as energy is lost.",
+    "Rotary works wherever lateral does: flashes, continuous and behind-stream stills (the finished figure), ASCII frames, the offline Chamber stage (paced by the score), and the gallery field, where the pen travels at 18 units a second, the finished figure rests 1.6 s, dissolves, and a fresh pair begins.",
+    "Both parameters are enum, not cueable and applied when the scene starts, in src/scenes/manifests.js (and so in the Worker's admission, Live's instructions and docs/specs/RISE-SDK.md); the host guide (rise_guide, BEATS_GUIDE, every style's guidance) withholds both and stays byte-for-byte as on main while the connector submission is under review; normalized cues keep them only when chosen; the running attractor's visual control refuses the trace. No new engine ids."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "https://claude.ai/artifact/1eLTgEHqGe8sPm4eanLKUg",
+      "note": "The approved design study (sophia-aperture): its attractor swarm and rotary harmonograph are the reference the port matches.",
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/652",
+      "note": "Draft, branch visuals-swarm-rotary, code at 1bbadff9. Local: vitest on the touched suites (attractor, attractor-manifest, harmonograph, harmonograph-field, manifests, visual-style-definitions, Chamber.theme-engines, rise-sdk, visual-cortex, src/live/guide, worker/mcp-server, openai-instructions, rise-current) 13 files, 557 passed; importer suites all passed (engine-lists alone, system-design after content:build); ci-hygiene clean, vite build ok, first load 62.2 KB br of 64.0. Rendered in headless Chromium 149 and compared with the study: swarm on all three systems, white/gold/blue, mirror and kaleido; rotary for two seeds mid-draw and at the end. Frame cost at 1440x900 with 700 particles: swarm 4.3 ms tick / 16.7 ms frame against the filament's 1.9 / 33.3 (2x: 14.8 / 33.2 against 2.0 / 66.6), software raster. Not merged, deployed or seen by a human.",
+      "date": "2026-10-12"
+    },
+    {
+      "kind": "commit",
+      "ref": "e73f7851",
+      "note": "PR #652: the host guide withholds trace and pendulums (HOST_WITHHELD_PARAMETERS in src/live/guide/beats.js, describeManifests({ withheld })); Live's instructions name both; admission unchanged. Local: vitest manifests, src/live/guide, openai-instructions, worker/mcp-server, rise-current, rise-sdk, beats 7 files, 284 passed; SHA-256 of CURRENT_GUIDE, DIVE_INSTRUCTIONS and both style guides equal to main's (Live's instructions differ, as intended); ci-hygiene clean; docs:diagram unchanged.",
+      "date": "2026-10-12"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-12T21:30:00.000Z",
+      "summary": "Claimed and built on branch visuals-swarm-rotary: the swarm trace, the rotary pendulums, their manifests and every render path."
+    },
+    {
+      "date": "2026-10-12T21:45:00.000Z",
+      "summary": "Draft PR #652 opened with local verification evidence and renders."
+    },
+    {
+      "date": "2026-10-12T22:15:00.000Z",
+      "summary": "The host guide withholds the two new parameters while the connector submission is under review; Live teaches them (e73f7851)."
+    }
+  ],
+  "updatedAt": "2026-10-12T22:15:00.000Z",
+  "revision": 3,
+  "summary": "The two visuals the owner kept from the design study, ported as engine options: the attractor as a live swarm, and the harmonograph as rotary pendulums.",
+  "blocker": null
+}
