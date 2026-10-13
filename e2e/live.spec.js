@@ -740,6 +740,46 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
+    // The face's trails fade back to its ground exactly (src/scenes/engines/oracle.js): after the eye has opened into the
+    // shell and held it, the room around the shell, where the eye's field once was, is the ground of the far room.
+    test('the room around the shell is the ground itself after the face has moved: no shadow of its trails stays', async ({ page }) => {
+        test.setTimeout(90_000);
+        await page.goto(`${VENUE}&measure=1`);
+        await expect.poll(() => page.evaluate(() => window.__riseFace?.drawn() ?? false), { timeout: 15_000 }).toBe(true);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        await page.locator('#live-again-question').fill('swarm');
+        await page.locator('#live-again-question').press('Enter');
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.aperture?.hole ?? 0), { timeout: 15_000 }).toBe(1);
+        await page.waitForTimeout(10_000);
+        const { big } = await page.evaluate(() => window.__riseFace.frame());
+        const shot = (await page.screenshot()).toString('base64');
+        const levels = await page.evaluate(async ({ shot, big }) => {
+            const image = new Image();
+            image.src = `data:image/png;base64,${shot}`;
+            await image.decode();
+            const canvas = document.createElement('canvas');
+            canvas.width = image.width;
+            canvas.height = image.height;
+            const g = canvas.getContext('2d');
+            g.drawImage(image, 0, 0);
+            const scale = image.width / innerWidth;
+            // The mean luma of a 9 by 9 patch about a point in CSS pixels.
+            const luma = (x, y) => {
+                const { data } = g.getImageData(Math.round(x * scale) - 4, Math.round(y * scale) - 4, 9, 9);
+                let sum = 0;
+                for (let i = 0; i < data.length; i += 4) sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+                return sum / (data.length / 4);
+            };
+            // Beyond the shell's rim, crown and lights (0.41 to about 0.47 of the face's square), inside where the eye's
+            // field reached; and the room's far edge, where the face never drew.
+            const near = [0.25, 0.75, 1.25, 1.75].map(turn => luma(big.x + Math.cos(turn * Math.PI) * big.s * 0.58, big.y + Math.sin(turn * Math.PI) * big.s * 0.58));
+            return { near, far: luma(12, big.y) };
+        }, { shot, big });
+        for (const level of levels.near) expect(Math.abs(level - levels.far)).toBeLessThanOrEqual(1);
+    });
+
     test('the frames: an attractor is held in the outer shell, scaled to its aperture, the words below it', async ({ page }) => {
         test.setTimeout(90_000);
         const errors = watchErrors(page);

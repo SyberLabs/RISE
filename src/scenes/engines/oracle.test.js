@@ -27,7 +27,8 @@ function fakeContext() {
         beginPath() {}, closePath() {}, moveTo() {}, lineTo() {}, arc(x, y, r) { counts.arcs.push([x, y, r]); }, bezierCurveTo() {}, clip() {}, stroke() {},
         fill() { if (ctx.globalCompositeOperation === 'destination-out') counts.cleared += 1; },
         fillRect() {
-            if (ctx.globalCompositeOperation === 'destination-over') counts.under += 1;
+            // The ground laid under the trails, or back over them by each channel's maximum.
+            if (ctx.globalCompositeOperation === 'destination-over' || ctx.globalCompositeOperation === 'lighten') counts.under += 1;
             else if (/, 1\)$/u.test(String(ctx.fillStyle))) counts.opaqueFills += 1;
         },
         createLinearGradient: gradient, createRadialGradient: gradient
@@ -55,6 +56,92 @@ function make({ skin, state, reducedMotion = false, width = 400, height = 400, d
 }
 
 afterEach(() => vi.restoreAllMocks());
+
+/**
+ * An 8-bit RGBA raster that composites the frame's whole-canvas fills as the GPU does (each channel rounded to a
+ * level) and draws nothing else: what is left of a stroke is only what the fades leave of it.
+ */
+function rasterContext(width, height) {
+    const pixels = new Uint8ClampedArray(width * height * 4);
+    const kept = [];
+    const ctx = {
+        ...fakeContext(),
+        pixels,
+        save() { kept.push([ctx.globalCompositeOperation, ctx.globalAlpha]); },
+        restore() { [ctx.globalCompositeOperation, ctx.globalAlpha] = kept.pop() ?? [ctx.globalCompositeOperation, ctx.globalAlpha]; },
+        fillRect(x, y, w, h) {
+            const style = /^rgba\((\d+), (\d+), (\d+), ([\d.]+)\)$/u.exec(String(ctx.fillStyle));
+            if (!style || x > 0 || y > 0 || w < width || h < height) return;
+            const [r, g, b, a] = style.slice(1).map(Number);
+            const alpha = a * ctx.globalAlpha;
+            for (let i = 0; i < pixels.length; i += 4) {
+                const source = [r, g, b];
+                for (let c = 0; c < 3; c += 1) {
+                    const under = pixels[i + c];
+                    if (ctx.globalCompositeOperation === 'lighten') pixels[i + c] = Math.round(Math.max(source[c], under) * alpha + under * (1 - alpha));
+                    else if (ctx.globalCompositeOperation === 'source-over') pixels[i + c] = Math.round(source[c] * alpha + under * (1 - alpha));
+                }
+                if (ctx.globalCompositeOperation !== 'destination-out') pixels[i + 3] = 255;
+            }
+        },
+        /** A stroke of light over the whole canvas. */
+        paint(rgb) {
+            for (let i = 0; i < pixels.length; i += 4) pixels.set([...rgb, 255], i);
+        }
+    };
+    return ctx;
+}
+
+describe('the ground, in 8 bits', () => {
+    const W = 48;
+    const H = 32;
+    const sophia = ORACLE_SKINS.sophia.trail;
+    const furthest = ctx => {
+        let worst = 0;
+        for (let i = 0; i < ctx.pixels.length; i += 4) for (let c = 0; c < 3; c += 1) worst = Math.max(worst, Math.abs(ctx.pixels[i + c] - sophia[c]));
+        return worst;
+    };
+    const raster = () => {
+        const ctx = rasterContext(W, H);
+        const scene = oracle({ ctx, size: { width: W, height: H, dpr: 1 }, theme: { state: 'speaking' }, reducedMotion: false, listen: vi.fn(), emit: vi.fn(), done: vi.fn() });
+        let t = 0;
+        scene.frame(0, 0);
+        const run = frames => { for (let i = 0; i < frames; i += 1) { t += 1000 / 60; scene.frame(t, 1000 / 60); } };
+        return { ctx, scene, run };
+    };
+    const layout = roomLayout({ width: 1440, height: 900, bar: { left: 592, top: 16, width: 256, height: 54 }, wordsTop: 690 });
+
+    it('fades every stroke back to exactly its ground, in the room and in its own square: nothing is left a few levels above it', () => {
+        for (const inRoom of [false, true]) {
+            const { ctx, scene, run } = raster();
+            if (inRoom) scene.cue(`aperture:${JSON.stringify(frameGeometry({ frame: 'shell', a: 1, cut: 0, layout }))}`);
+            run(1);
+            for (const stroke of [[200, 220, 240], [40, 46, 52], [16, 17, 22]]) {
+                ctx.paint(stroke);
+                run(180);
+                expect(furthest(ctx), `${inRoom ? 'room' : 'square'} after ${stroke}`).toBeLessThanOrEqual(1);
+            }
+        }
+    });
+
+    it('keeps the study’s 8% trail: a stroke dims as it did, darker only by what fading 8 levels lower adds up to, and never below the ground', () => {
+        const { ctx, run } = raster();
+        run(1);
+        ctx.paint([200, 220, 240]);
+        let study = [200, 220, 240];
+        for (let frame = 1; frame <= 60; frame += 1) {
+            run(1);
+            study = study.map((v, c) => Math.round(sophia[c] * 0.08 + v * 0.92));
+            // Toward a dark 8 levels below the ground, a trail darkens by at most 0.64 of a level a frame more, never
+            // past 8 and never below the ground (two levels more for the rounding of each).
+            for (let c = 0; c < 3; c += 1) {
+                const darker = study[c] - ctx.pixels[c];
+                expect(darker).toBeGreaterThanOrEqual(-1);
+                expect(darker).toBeLessThanOrEqual(Math.min(8, Math.ceil(8 * (1 - 0.92 ** frame)) + 2));
+                expect(ctx.pixels[c]).toBeGreaterThanOrEqual(sophia[c]);
+            }
+        }
+    });});
 
 describe('what the face is', () => {
     it('is the study’s four skins and five states, exactly', () => {
