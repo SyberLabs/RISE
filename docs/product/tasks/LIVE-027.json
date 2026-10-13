@@ -42,6 +42,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/648",
       "note": "The home screen as a room, commit d21fef21 on branch live-home-revamp. Local: vitest src/live/host 490 passed; e2e/live.spec.js (full, whole file) 39 passed, including the new room test (repeated 6x green); e2e/live-mcp.spec.js field|self-contained 13 passed; ci-hygiene, vite build, first load 62.2 KB br, docs:diagram unchanged. Rendered: no edge at the eye square on all four skins (inside vs outside within 1 level); smallest text 5.73-6.24:1. Merged as 860318af; deployed (release.txt 860318af, 2026-10-13; production job green, voice-provider failing as known). Not accepted by a human.",
       "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/649",
+      "note": "Home polish from the art director review, commit 4426a547 on branch live-home-polish: the sign-in as a quiet link (5.73-6.23:1), the panels in the skin (legend 5.09-6.72:1), the phone group centred (390x600 no scroll; desktop geometry unchanged). Local: vitest src/live/host 490 passed; e2e/live.spec.js (full, whole file) 39 passed; live-mcp field|self-contained 13 passed; ci-hygiene, vite build, first load 62.1 KB br. Not merged, deployed or accepted by a human.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
@@ -68,10 +74,14 @@
     {
       "date": "2026-10-13T00:10:06.714Z",
       "summary": "PR #648 (the home screen as a room) merged as 860318af and deployed (release.txt 860318af); delivery stays deployed"
+    },
+    {
+      "date": "2026-10-13T00:10:39.164Z",
+      "summary": "PR #649 opened: the home screen's sign-in link, panels and phone rhythm polished to the room (art director review of #648)"
     }
   ],
-  "updatedAt": "2026-10-13T00:10:06.714Z",
-  "revision": 6,
+  "updatedAt": "2026-10-13T00:10:39.164Z",
+  "revision": 7,
   "summary": "RISE's own face in the Live venue: the approved Sophia study as a native scene engine the venue runs behind its ask bar, resting at arrival, listening, thinking until the first words, stepping back while a reading speaks, and at rest after it.",
   "blocker": null
 }
