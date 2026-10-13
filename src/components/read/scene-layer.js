@@ -50,10 +50,13 @@ export function mountSceneLayer({ field, insertBehindReading, onResize = () => {
 
   const modifiers = event => ({ shift: event.shiftKey === true, alt: event.altKey === true, ctrl: event.ctrlKey === true, meta: event.metaKey === true });
 
-  /** A press, move or release on the canvas or a widget's region, in the canvas's CSS pixels. */
+  /** A press, move or release on the canvas or a widget's region, in the canvas's CSS pixels, however the page scales it. */
   function pointed(event) {
     const box = canvas.getBoundingClientRect();
-    forward?.({ type: event.type, x: event.clientX - box.left, y: event.clientY - box.top, buttons: event.buttons ?? 0, key: null, modifiers: modifiers(event) });
+    // A box with no size has no scale to undo.
+    const x = (event.clientX - box.left) * (box.width ? canvas.clientWidth / box.width : 1);
+    const y = (event.clientY - box.top) * (box.height ? canvas.clientHeight / box.height : 1);
+    forward?.({ type: event.type, x, y, buttons: event.buttons ?? 0, key: null, modifiers: modifiers(event) });
   }
 
   function capture(node, event) {
