@@ -902,7 +902,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
     });
 
     // Catalog words (docs/plans/LIVE-CURRENT.md §25): a visual the reader names is shown at once, with no request.
-    test('catalog words: “attractor” typed during the figure shows the attractor in the outer shell at once, and asks nothing', async ({ page }) => {
+    test('catalog words: “attractor” typed during the figure shows the attractor in the outer shell at once, “genesis” then the full frame, and asks nothing', async ({ page }) => {
         test.setTimeout(90_000);
         const errors = watchErrors(page);
         await page.goto(`${VENUE}&measure=1`);
@@ -923,7 +923,17 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.aperture?.hole ?? 0), { timeout: 10_000 }).toBe(1);
         await expect(page.locator('.live-again__note')).toHaveText('Showing the attractor.');
         await expect(page.locator('.live-again__note')).toHaveText('', { timeout: 3_000 });
-        expect((await journal()).filter(entry => entry.type === 'visual.chosen')).toEqual([expect.objectContaining({ engine: 'attractor' })]);
+        // From the shell, “genesis” opens the full frame as soon as the shell has closed (1.6 s), not at the next phrase.
+        await field.fill('genesis');
+        await field.press('Enter');
+        await expect(page.locator('.live-again__note')).toHaveText('Showing the genesis.');
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.frame), { timeout: 2_500 }).toBe('full');
+        await expect(page.locator('#chamber-field .chamber-genesis')).toBeAttached();
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.wipe?.hole ?? 0), { timeout: 5_000 }).toBe(1);
+        await expect(page.locator('.live-again__note')).toHaveText('', { timeout: 3_000 });
+        expect((await journal()).filter(entry => entry.type === 'visual.chosen')).toEqual([
+            expect.objectContaining({ engine: 'attractor' }), expect.objectContaining({ engine: 'genesis' })
+        ]);
         // The reading goes on to its end with the reader's choice: the disk the demo starts later is held, and no
         // request was opened for the words.
         await expect.poll(async () => (await journal()).some(entry => entry.type === 'run.finished'), { timeout: 60_000 }).toBe(true);

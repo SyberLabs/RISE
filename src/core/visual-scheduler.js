@@ -136,6 +136,7 @@ export class VisualScheduleController {
         this._activeCueId = null;
         this._generation = 0;
         this._cueDurations = this._indexCueDurations(atoms);
+        this._shownAtom = null;
     }
 
     _indexCueDurations(atoms) {
@@ -167,11 +168,15 @@ export class VisualScheduleController {
      * Take a longer program. A live reading is compiled again as each
      * segment arrives, and the program grows at its end; what has already
      * been cued is unchanged, so the active cue and its generation carry over
-     * and the next atom does not re-emit what is already showing.
+     * and the next atom does not re-emit what is already showing. The one
+     * exception is the atom on screen itself: a longer program that gives it
+     * another cue (the reader chose a visual on that phrase) shows it now,
+     * not when the next atom comes.
      */
     extend(program, atoms = []) {
         this.program = program || null;
         this._cueDurations = this._indexCueDurations(atoms);
+        if (this._shownAtom) this.observe(this._shownAtom);
     }
 
     /** True when there is a program that is enabled. */
@@ -202,6 +207,7 @@ export class VisualScheduleController {
         const coordinated = readCoordinate(this.program.coordinateSpace, atom) !== null;
         if (!coordinated) return null; // hold: structural silence
 
+        this._shownAtom = atom;
         const { id, cue } = cueForAtom(this.program, atom);
         if (id !== this._activeCueId) {
             this._activeCueId = id;
@@ -270,5 +276,6 @@ export class VisualScheduleController {
     /** Reset so the next atom re-emits (e.g. on session restart). */
     reset() {
         this._activeCueId = null;
+        this._shownAtom = null;
     }
 }

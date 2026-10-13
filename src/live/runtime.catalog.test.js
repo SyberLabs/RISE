@@ -17,6 +17,9 @@ import { createLiveRuntime } from './runtime.js';
 import { createTextStreamAdapter } from './adapters/text-stream.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
 import { admitPerception, describePerception, perceive } from './perception.js';
+import { recogniseVisual } from './catalog-words.js';
+import { createFrameDirector, FRAME_OF, FRAME_OPEN_MS, frameOf, visualOf } from './host/frames.js';
+import { SCENE_MANIFESTS } from '../core/beats.js';
 
 const MS_PER_CHAR = 20;
 const LONG = 'So the sky is blue, and a sunset is red, because the light of evening crosses far more air, and the blue is scattered away before it reaches you.';
@@ -232,6 +235,43 @@ describe('the reader names an engine', () => {
         expect(room.runtime.snapshot().interjection.state).toBe('held');
         expect(room.runtime.chooseVisual({ engine: 'attractor', params: { trace: 'swarm' } })).toBe(true);
         expect(room.runtime.snapshot().interjection.state).toBe('none');
+    });
+});
+
+/** A field under one long hold: a single phrase on screen for nine seconds, the next only after it. */
+const HELD = running => ['@say The room is quiet.', `@scene field ${running}`, '@hold 9000 scene=field', '@say And the reading goes on.', ''].join('\n');
+const NAMED = SCENE_MANIFESTS.map(manifest => manifest.id).filter(id => id !== 'still' && id !== 'oracle');
+
+describe('every engine the reader names is on screen within the frame’s own transition, not at the next phrase', () => {
+    it.each(NAMED)('%s', async engine => {
+        const running = engine === 'attractor' ? 'genesis' : 'attractor';
+        const room = await open(HELD(running));
+        const director = createFrameDirector();
+        let fed = 0;
+        // As the venue's animation frames do: each frame, the visual on screen is seen, then the room is drawn.
+        const frames = async ms => {
+            for (let elapsed = 0; elapsed < ms; elapsed += 16) {
+                await tick(16);
+                for (; fed < room.cues.length; fed += 1) director.see(frameOf(room.cues[fed].cue), room.cues[fed].at);
+                director.at(performance.now());
+            }
+        };
+        await until(() => room.atoms.some(atom => atom.sourceId === 'beat-1'));
+        await frames(2000);
+        expect(visualOf(room.cues.at(-1).cue)).toBe(running);
+        expect(director.settled(performance.now())).toBe(true);
+
+        room.runtime.beginInterjection();
+        const at = performance.now();
+        const chosen = recogniseVisual(engine.split('-').join(' '), { running: room.runtime.visualEngine() });
+        expect(chosen).toMatchObject({ engine, params: {} });
+        expect(room.runtime.chooseVisual(chosen)).toBe(true);
+        await frames(FRAME_OPEN_MS[FRAME_OF[running]] + FRAME_OPEN_MS[FRAME_OF[engine]] + 50);
+        expect(room.atoms.at(-1).sourceId).toBe('beat-1');
+        expect(visualOf(room.cues.at(-1).cue)).toBe(engine);
+        expect(room.cues.at(-1).at - at).toBeLessThan(50);
+        expect(director.at(performance.now())).toMatchObject({ frame: FRAME_OF[engine], a: 1 });
+        expect(director.settled(performance.now())).toBe(true);
     });
 });
 

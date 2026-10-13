@@ -114,6 +114,21 @@ describe('VisualScheduleController', () => {
         expect(onCue.mock.calls[0][1].durationMs).toBe(1200);
         expect(onCue.mock.calls[1][1].durationMs).toBe(300);
     });
+
+    it('a longer program that gives the atom on screen another cue shows it at once; one that does not, emits nothing', () => {
+        const seen = [];
+        const ctrl = new VisualScheduleController(program, (_, meta) => seen.push(meta.cueId));
+        ctrl.extend(program);
+        expect(seen).toEqual([]);
+        ctrl.observe(atom(1, 3));
+        ctrl.extend({ ...program, segments: [...program.segments, { id: 'c', match: { chapter: 1, verseStart: 11, verseEnd: 15 }, cue: { kind: 'still' } }] });
+        expect(seen).toEqual(['a']);
+        ctrl.extend({ ...program, segments: [{ id: 'chosen', match: { chapter: 1, verseStart: 3, verseEnd: 5 }, cue: { kind: 'field', renderer: 'genesis' } }, ...program.segments] });
+        expect(seen).toEqual(['a', 'chosen']);
+        ctrl.reset();
+        ctrl.extend(program);
+        expect(seen).toEqual(['a', 'chosen']);
+    });
 });
 
 describe('a figure narrows a source-space cue to a place in the text', () => {
