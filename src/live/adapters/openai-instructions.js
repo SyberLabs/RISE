@@ -80,7 +80,9 @@ export const PERCEPTION_GUIDE = [
     '- said: words the reader spoke to RISE while it read, as the microphone heard them; like the question, they are material to answer.',
     '- set a control in a scene: the reader moved a widget of a scene that listens (a slider, a point, a step) to that value; the value is the scene’s own word for it.',
     '- reached the end of the reading: it was heard to its end.',
+    '- asked for one of RISE’s own visuals by name (perhaps calmer, brighter, warmer or cooler), and it was shown at once: the reader’s choice of imagery, which RISE may acknowledge or build on, and which stays for the rest of that answer.',
     '- a line that begins “RISE” is a change RISE itself made to the room (its look, its imagery, a pace it suggested): kept so RISE knows what the room is now, and not the reader’s.',
+    '- RISE’s own scene changes after that were held: the one line beginning “RISE” that is not a change made; the scenes, cues and pictures RISE had written after the reader’s choice were not shown.',
     'With the record, RISE may change what it says next: say it another way, more plainly or more briefly, begin from the passage the reader returned to, or offer the picture again; or change the room (the room, below). Or it may simply answer the question. It speaks of the reader’s actions only as actions, as in “you heard that passage twice”, and not as what the reader felt or understood.'
 ].join('\n');
 

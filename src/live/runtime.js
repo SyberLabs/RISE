@@ -34,7 +34,7 @@
 
 import { RISE_CURRENT_SCHEMA_V2, compileRiseCurrent, validateRiseCurrent } from '../core/rise-current.js';
 import { lookTheme, lowerCurrentLook } from '../core/current-look.js';
-import { BEAT_LIMITS, CONTROL_PATTERN, EMIT_REFUSALS, cueCommands, emitValue } from '../core/beats.js';
+import { BEAT_LIMITS, CONTROL_PATTERN, EMIT_REFUSALS, cueCommands, emitValue, manifestFor, validateScenes } from '../core/beats.js';
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
@@ -332,6 +332,8 @@ export function createLiveRuntime({
                 const theme = answer.theme ?? lookTheme(answer.look);
                 current = theme === null ? rest : { ...rest, theme };
             }
+            // The reader chose a visual (chooseVisual): no beat of the model's after that passage starts a scene or cues one.
+            if (run.held) current = heldFrom(run, current);
             // The pictures the composer asked for, where they landed (illustrator.js): each scene from the beat after.
             run.sceneCount = current.scenes?.length ?? 0;
             if (run.pictures.length) {
@@ -595,6 +597,8 @@ export function createLiveRuntime({
             segments: [], baseSeen: 0,
             // Once the reader has interjected: the reading arranged around the answers (graft.js), and each answer's Current.
             room: null,
+            // Once the reader has chosen a visual: the passage it was chosen in, and the beats whose scenes were held.
+            held: null,
             // The pictures placed in the reading (illustrator.js), and how many scenes the reading has of its own.
             pictures: [], sceneCount: 0
         };
@@ -802,6 +806,25 @@ export function createLiveRuntime({
             }
             void pumpAnswer(answer);
         },
+
+        /**
+         * The reader named one of RISE's own visuals while the reading was held for their words (catalog-words.js): it
+         * is shown at once and the reading plays on, with no request. `{ engine, params }` starts that engine from the
+         * phrase on screen, as a picture is placed; `{ engine, cue }` cues the engine running. From the passage it was
+         * chosen in to the end of the reading, the model's own scenes, cues, visual changes and pictures are held
+         * (docs/plans/LIVE-CURRENT.md §24). Returns whether it was shown: false leaves the reading held, and nothing changed.
+         */
+        chooseVisual({ engine, params, cue } = {}) {
+            if (interjection.state !== 'held') throw new LiveRuntimeError('NOT_HELD', 'A visual is chosen while the reading is held for the reader');
+            const shown = params === undefined ? cueChosen(engine, cue) : engineChosen(engine, params, cue);
+            if (!shown) return false;
+            step('cancel');
+            playOn();
+            return true;
+        },
+
+        /** The engine on screen, as the reader would name it: the running visual's own, else the scene the reading is in; or null. */
+        visualEngine,
 
         /** The reader takes it back before an answer (Escape, Play, a microphone that heard nothing): the reading plays on. */
         cancelInterjection() {
@@ -1070,7 +1093,8 @@ export function createLiveRuntime({
         main.changes.splice(main.changes.indexOf(entry), 1);
         const { change } = entry;
         if (change.kind === 'illustration.cue') { landPictureCue(entry); return; }
-        const refused = code => note('room.refused', { kind: change.kind, code: String(code ?? 'REFUSED').slice(0, 40) });
+        if (main.held && (change.kind === 'visual.control' || change.kind === 'scene.cue')) { holdChange(change.kind); return; }
+        const refused =code => note('room.refused', { kind: change.kind, code: String(code ?? 'REFUSED').slice(0, 40) });
         if (change.kind === 'visual.control') {
             if (change.parameter === 'intensity' && readerSettings.has('intensity')) { refused('READER_SET'); return; }
             const surface = change.surface ?? discoverVisual()?.manifest?.surface ?? ATTRACTOR_VISUAL_MANIFEST.surface;
@@ -1117,6 +1141,110 @@ export function createLiveRuntime({
         return commands ? { scene: found.id, commands } : 'NO_CUE';
     }
 
+    // ─── the reader's own visual (docs/plans/LIVE-CURRENT.md §24) ──────
+
+    /** A change of the model's to the room's visual, held because the reader chose one: noted, and nothing applied. */
+    function holdChange(kind) {
+        note('room.held', { kind });
+        set(status);
+    }
+
+    /** The reading's Current with no scene started or cued by a beat after the passage the reader chose in; each held scene noted once. */
+    function heldFrom(run, current) {
+        const keyAt = index => keyOf(run, `beat-${index}`);
+        const from = current.beats.findIndex((_, index) => keyAt(index) === run.held.key);
+        if (from < 0) return current;
+        const beats = current.beats.map((beat, index) => {
+            if (index <= from || (beat.scene === undefined && beat.cue === undefined)) return beat;
+            if (beat.scene !== undefined && !run.held.scenes.has(keyAt(index))) {
+                run.held.scenes.add(keyAt(index));
+                note('room.held', { kind: 'scene', scene: beat.scene });
+            }
+            const { scene: _scene, cue: _cue, ...rest } = beat;
+            return rest;
+        });
+        return { ...current, beats };
+    }
+
+    /** The pictures the model asked for that are not on screen yet. */
+    function unshownPictures() {
+        return illustrations.items.filter(item => item.state === 'drawing' || item.state === 'waiting' || item.state === 'placed');
+    }
+
+    /**
+     * The hold begins at the passage the reader is in, the first time they choose; the pictures the model asked for and
+     * not yet shown are let go, each noted as held.
+     */
+    function holdFromHere() {
+        main.held ??= { key: keyOf(main, positionOf(main).segmentId), scenes: new Set() };
+        for (const item of unshownPictures()) {
+            main.pictures = main.pictures.filter(picture => picture !== item.picture);
+            dropPicture(item, 'READER_CHOSE');
+            note('room.held', { kind: 'illustrate' });
+        }
+    }
+
+    function visualEngine() {
+        const surface = discoverVisual()?.manifest?.surface;
+        if (typeof surface === 'string' && manifestFor(surface)) return surface;
+        const state = main?.player?.sessionState;
+        const id = state?.session.atoms[state.currentIndex]?.scene;
+        return state?.session.scenes?.find(scene => scene.id === id)?.engine ?? null;
+    }
+
+    /** A cue of the engine running, as the reader's own control: each of its commands through controlVisual. */
+    function cueChosen(engine, cue) {
+        const cues = manifestFor(engine)?.cues;
+        if (typeof cue !== 'string' || !cues || !Object.hasOwn(cues, cue) || engine !== visualEngine()) return false;
+        for (const command of cueCommands(engine, cue)) {
+            if (controlVisual(command).status !== 'accepted') return false;
+        }
+        holdFromHere();
+        note('visual.chosen', { engine, cue });
+        lower(main);
+        return !main.error;
+    }
+
+    /** The phrase on screen, where a chosen engine begins: `{ key, progress }`, the next phrase between two, or null. */
+    function phraseOnScreen() {
+        const { session, currentIndex } = main.player.sessionState;
+        const atom = session.atoms[currentIndex];
+        const at = atom?.sourceId && !atom.seam && !main.player.betweenPhrases
+            ? currentIndex
+            : session.atoms.findIndex((each, index) => index > currentIndex && each.sourceId && !each.seam);
+        if (at < 0) return null;
+        return { key: keyOf(main, session.atoms[at].sourceId), progress: session.atoms[at].sourceProgress ?? 0 };
+    }
+
+    /**
+     * An engine the reader chose, placed as a picture is (withPictures) on the phrase on screen. The pictures the model
+     * asked for and not yet shown are let go; with no room left for another scene, nothing is placed.
+     */
+    function engineChosen(engine, params, cue) {
+        const manifest = manifestFor(engine);
+        if (!manifest || manifest.kind === 'still' || params === null || typeof params !== 'object' || Array.isArray(params)) return false;
+        const chosen = { ...params };
+        const scene = { engine, ...(Object.keys(chosen).length ? { params: chosen } : {}) };
+        try { validateScenes([{ id: 'chosen', ...scene }], '$.scenes'); } catch { return false; }
+        if (!positionOf(main)) return false;
+        const landing = phraseOnScreen();
+        if (!landing) return false;
+        const unshown = unshownPictures();
+        const kept = main.pictures.filter(picture => !unshown.some(item => item.picture === picture));
+        if (main.sceneCount + kept.length >= BEAT_LIMITS.scenes) return false;
+        holdFromHere();
+        const taken = new Set([...main.scenes.map(each => each.id), ...main.pictures.map(picture => picture.scene.id)]);
+        let n = 1;
+        while (taken.has(`reader-${n}`)) n += 1;
+        const view = main.stream.snapshot();
+        const picture = { n: `reader-${n}`, scene: { id: `reader-${n}`, ...scene }, ...landing };
+        picture.cue = pictureCue(picture.scene, { theme: view.theme ?? undefined, look: view.look ?? undefined });
+        main.pictures.push(picture);
+        note('visual.chosen', { engine, ...(scene.params ? { params: { ...scene.params } } : {}), ...(typeof cue === 'string' && Object.hasOwn(manifest.cues, cue) ? { cue } : {}) });
+        lower(main);
+        return !main.error;
+    }
+
     // ─── the illustrator (docs/plans/LIVE-CURRENT.md §19) ───────────────
 
     /**
@@ -1125,6 +1253,7 @@ export function createLiveRuntime({
      * reading goes on. Nothing here holds the reading or the voice.
      */
     function illustrate(entry) {
+        if (main.held) { holdChange('illustrate'); return; }
         const { brief, medium } = entry.change;
         const n = illustrations.items.length + 1;
         const item = { n, brief: clip(brief, 120), medium: null, entry, askedAt: clock.now(), reachedAt: null, state: 'drawing', controller: null, picture: null, attempts: 0 };

@@ -132,7 +132,7 @@ describe('perceive: the reader’s actions, from the journal', () => {
     });
 
     it('defines scene.input for the scenes that will send it (design §6), and reads it when a scene does', () => {
-        expect(PERCEPTION_EVENTS).toEqual(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished', 'drew']);
+        expect(PERCEPTION_EVENTS).toEqual(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished', 'drew', 'chose', 'withheld']);
         const { events } = perceive([at(0, 'scene.input', { scene: 'orbit', control: 'mass', value: 3 })]);
         expect(events).toEqual([{ type: 'scene.input', scene: 'orbit', control: 'mass', value: 3 }]);
     });
@@ -301,5 +301,62 @@ describe('the room RISE changed (stage 5)', () => {
         expect(one({ type: 'paced', by: 'device', rate: 1 })).toThrow(TypeError);
         expect(one({ type: 'visual.changed', by: 'rise', parameter: 'energy level', value: 1 })).toThrow(TypeError);
         expect(one({ type: 'visual.changed', by: 'rise', parameter: 'energy', value: 0.9 })).not.toThrow();
+    });
+});
+
+describe('the reader named a visual, and RISE’s own changes after it were held (catalog words, §24)', () => {
+    const journal = [
+        at(0, 'start', { prompt: 'Why is the sky blue?' }),
+        at(10, 'visual.chosen', { engine: 'attractor', params: { trace: 'swarm', palette: 'gold' } }),
+        at(20, 'room.held', { kind: 'visual.control' }),
+        at(30, 'room.held', { kind: 'scene', scene: 'gen' }),
+        at(40, 'visual.chosen', { engine: 'attractor', cue: 'calm' }),
+        at(50, 'room.held', { kind: 'illustrate' }),
+        at(60, 'visual.chosen', { engine: 'living-flame', params: { energy: 0.15 }, cue: 'calm' })
+    ];
+
+    it('says what the reader asked for, the values they named, and one line for what was held after each', () => {
+        expect(perceive(journal).events).toEqual([
+            { type: 'chose', engine: 'attractor', values: ['swarm', 'gold'] },
+            { type: 'withheld', by: 'rise' },
+            { type: 'chose', engine: 'attractor', cue: 'calm' },
+            { type: 'withheld', by: 'rise' },
+            { type: 'chose', engine: 'living-flame', cue: 'calm' }
+        ]);
+        expect(describePerception(perceive(journal)).split('\n').slice(1, -1)).toEqual([
+            '- asked for the attractor (swarm, gold), and it was shown at once',
+            '- RISE’s own scene changes after that were held',
+            '- asked for the attractor, calmer, and it was shown at once',
+            '- RISE’s own scene changes after that were held',
+            '- asked for the living flame, calmer, and it was shown at once'
+        ]);
+    });
+
+    it('takes only an engine RISE shows by name, its own values and cues, and nothing the reader typed', () => {
+        const kept = perceive([
+            at(0, 'visual.chosen', { engine: 'oracle' }),
+            at(1, 'visual.chosen', { engine: 'still' }),
+            at(2, 'visual.chosen', { engine: 'attractor', params: { trace: 'smoke' }, words: 'show me the attractor' }),
+            at(3, 'visual.chosen', { engine: 'attractor', cue: 'warm' }),
+            at(4, 'room.held', { kind: 'scene' })
+        ]).events;
+        expect(kept).toEqual([{ type: 'chose', engine: 'attractor' }, { type: 'withheld', by: 'rise' }]);
+    });
+
+    it('the door takes the shapes perceive makes, bounded, and nothing else', () => {
+        const one = event => () => admitPerception({ events: [event], earlier: 0 });
+        expect(admitPerception(perceive(journal))).toEqual(perceive(journal));
+        expect(one({ type: 'chose', engine: 'oracle' })).toThrow(TypeError);
+        expect(one({ type: 'chose', engine: 'attractor', values: ['smoke'] })).toThrow(TypeError);
+        expect(one({ type: 'chose', engine: 'attractor', values: [] })).toThrow(TypeError);
+        expect(one({ type: 'chose', engine: 'attractor', values: ['swarm', 'gold', 'thomas', 'mirror', 'swarm'] })).toThrow(TypeError);
+        expect(one({ type: 'chose', engine: 'attractor', values: 'swarm' })).toThrow(TypeError);
+        expect(one({ type: 'chose', engine: 'attractor', cue: 'warm' })).toThrow(TypeError);
+        expect(one({ type: 'chose', engine: 'attractor', cue: 'calm', words: 'calmer' })).toThrow(TypeError);
+        expect(one({ type: 'chose' })).toThrow(TypeError);
+        expect(one({ type: 'withheld' })).toThrow(TypeError);
+        expect(one({ type: 'withheld', by: 'reader' })).toThrow(TypeError);
+        expect(one({ type: 'withheld', by: 'rise', count: 3 })).toThrow(TypeError);
+        expect(one({ type: 'chose', engine: 'harmonograph', values: ['rotary'] })).not.toThrow();
     });
 });

@@ -8,7 +8,7 @@
  * The reader's words are untrusted: bounded, folded to plain lower-case letters, and looked up only in Maps.
  */
 
-import { SCENE_MANIFESTS, manifestFor } from '../scenes/manifests.js';
+import { SCENE_MANIFESTS, manifestFor } from '../core/beats.js';
 
 export const CATALOG_LIMITS = Object.freeze({ length: 120 });
 
@@ -132,7 +132,7 @@ export function chosenValues(params = {}) {
 /** The bar's one line for a local answer: what is shown, in plain words from the catalog. */
 export function catalogNote({ engine, params, cue }) {
     const name = catalogName(engine);
-    if (params === undefined) return `Making ${name} ${cue === 'surge' ? 'surge' : CUE_SAID[cue]}.`;
+    if (params === undefined) return `Making ${name} ${cue === 'surge' ? 'surge' : CUE_SAID[cue] ?? cue}.`;
     const named = chosenValues(params);
-    return `Showing ${name}${named.length ? ` (${named.join(', ')})` : ''}${cue ? `, ${CUE_SAID[cue]}` : ''}.`;
+    return `Showing ${name}${named.length ? ` (${named.join(', ')})` : ''}${cue ? `, ${CUE_SAID[cue] ?? cue}` : ''}.`;
 }
