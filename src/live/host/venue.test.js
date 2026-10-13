@@ -153,6 +153,16 @@ describe('the venue is /live in the app', () => {
         expect(document.activeElement).toBe(spoken);
     });
 
+    it('keeps a choice opened while the page fades in: the arrival gives the question focus only when the reader has not moved into the room', () => {
+        mount();
+        host.activate();
+        expect(document.activeElement).toBe(question());
+        $('[data-venue-open="voices"]').click();
+        host.activate();
+        expect($('#live-venue-voices-panel').hidden).toBe(false);
+        expect(document.activeElement).toBe($('input[name="live-venue-voice"][value="device"]'));
+    });
+
     it('offers OpenRouter, now that its adapter is in the registry, as a provider that can be chosen', () => {
         mount();
         const openRouter = radios().find(radio => radio.value === 'openrouter');
