@@ -6,7 +6,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TO_HOST, TO_WORKER } from '../../scenes/scene-protocol.js';
-import { mountFace } from './face-layer.js';
+import { facePixelRatio, mountFace } from './face-layer.js';
 
 function fakeWorker() {
     return {
@@ -96,6 +96,25 @@ describe('the face’s layer', () => {
         expect(worker.of(TO_WORKER.cue).map(message => message.name)).toEqual(['thinking', 'blink', 'set:skin=ember']);
     });
 
+    it('gives the engine the room’s geometry once it has drawn, and never before (docs/plans/LIVE-CURRENT.md §23)', async () => {
+        const { worker } = await mounted();
+        const geometry = { frame: 'shell', face: { x: 1, y: 2, s: 3 } };
+        face.place(geometry);
+        expect(worker.of(TO_WORKER.cue)).toEqual([]);
+        worker.say({ type: TO_HOST.frameDone, t: 0, ms: 3 });
+        face.place(geometry);
+        face.place(null);
+        expect(worker.of(TO_WORKER.cue).map(message => message.name)).toEqual([`aperture:${JSON.stringify(geometry)}`, 'aperture:null']);
+    });
+
+    it('gives the engine the pointer anywhere in the room, in the canvas’s own pixels', async () => {
+        const { worker, canvas } = await mounted();
+        vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ left: 10, top: 20, width: 400, height: 300 });
+        face.point(110, 70);
+        await vi.waitFor(() => expect(worker.of(TO_WORKER.input)).toHaveLength(1));
+        expect(worker.of(TO_WORKER.input)[0]).toMatchObject({ kind: 'pointermove' });
+    });
+
     it('freezes the face rather than let it flash', async () => {
         const { worker } = await mounted();
         let t = 0;
@@ -112,5 +131,17 @@ describe('the face’s layer', () => {
         expect(worker.terminated).toBe(true);
         expect(host.querySelector('canvas')).toBeNull();
         face = null;
+    });
+});
+
+describe('the face’s pixels, now that it covers the room (docs/plans/LIVE-CURRENT.md §23)', () => {
+    it('is the device’s ratio up to 2, held to the pixels of a 1440 by 900 room at 1.5, and never under 1', () => {
+        expect(facePixelRatio(420, 420, 2)).toBe(2);
+        expect(facePixelRatio(390, 844, 3)).toBe(2);
+        expect(facePixelRatio(1440, 900, 2)).toBeCloseTo(1.5, 9);
+        expect(facePixelRatio(1440, 900, 1)).toBe(1);
+        expect(facePixelRatio(1920, 1080, 2)).toBeCloseTo(Math.sqrt((1440 * 900 * 2.25) / (1920 * 1080)), 9);
+        expect(facePixelRatio(3840, 2160, 2)).toBe(1);
+        expect(facePixelRatio(0, 0, 2)).toBe(2);
     });
 });

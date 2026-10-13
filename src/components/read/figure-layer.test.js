@@ -3,7 +3,7 @@
  * reading, from a blob: URL it owns and lets go of.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { inkFigure, mountFigureLayer } from './figure-layer.js';
+import { hexOfColor, inkFigure, mountFigureLayer } from './figure-layer.js';
 
 const NS = 'xmlns="http://www.w3.org/2000/svg"';
 const SVG = `<svg ${NS} viewBox="0 0 4 3"><path d="M0,3 L4,3 z" stroke="currentColor"/></svg>`;
@@ -90,5 +90,20 @@ describe('the ink a figure draws in', () => {
     expect(inkFigure(own, '#fff')).toBe(own);
     expect(inkFigure(SVG, null)).toBe(SVG);
     expect(inkFigure(SVG, 'red" onload="x')).toBe(SVG);
+  });
+});
+
+describe('the words’ ink, as a figure takes it when the reading names no theme', () => {
+  it('is the computed colour of the words, as hex', () => {
+    expect(hexOfColor('rgb(238, 240, 255)')).toBe('#eef0ff');
+    expect(hexOfColor('rgb(0, 10, 255)')).toBe('#000aff');
+    expect(hexOfColor('rgba(238, 240, 255, 1)')).toBe('#eef0ff');
+  });
+
+  it('is nothing when the colour is not a solid one it can read', () => {
+    expect(hexOfColor('rgba(238, 240, 255, 0.5)')).toBe(null);
+    expect(hexOfColor('canvastext')).toBe(null);
+    expect(hexOfColor('')).toBe(null);
+    expect(hexOfColor(undefined)).toBe(null);
   });
 });

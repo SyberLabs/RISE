@@ -26,6 +26,15 @@ export function inkFigure(svg, ink) {
   return `${head[0]} color="${ink}"${svg.slice(head[0].length)}`;
 }
 
+const SOLID = /^rgba?\(\s*(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*1(?:\.0+)?)?\s*\)$/u;
+
+/** A computed CSS colour (`rgb(…)`, or `rgba(…, 1)`) as hex, for inkFigure; null for anything else. */
+export function hexOfColor(color) {
+  const match = SOLID.exec(String(color ?? '').trim());
+  if (!match) return null;
+  return `#${match.slice(1, 4).map(part => Math.min(255, Number(part)).toString(16).padStart(2, '0')).join('')}`;
+}
+
 export function mountFigureLayer({ field, insertBehindReading, svg, ink = null, onError = () => {} }) {
   const img = document.createElement('img');
   img.className = 'chamber-figure';

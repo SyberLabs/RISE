@@ -18,6 +18,19 @@ const KEPT = 240;
 
 const defaultWorker = () => import('../../scenes/create-scene-worker.js').then(module => module.createSceneWorker());
 
+/** The most pixels the face draws: a 1440 by 900 room at 1.5 (docs/plans/LIVE-CURRENT.md §23). */
+const FACE_PIXELS = 1440 * 900 * 1.5 * 1.5;
+
+/**
+ * The face's pixel ratio for a canvas of this size: the device's, at most 2 as every scene's, and in a room so large
+ * that it would draw more than FACE_PIXELS, as many as that allows; never under 1.
+ */
+export function facePixelRatio(width, height, device) {
+    const ratio = Math.min(2, device || 1);
+    if (!(width > 0 && height > 0)) return ratio;
+    return Math.max(1, Math.min(ratio, Math.sqrt(FACE_PIXELS / (width * height))));
+}
+
 /**
  * @param {object} options
  * @param {HTMLElement} options.host the face's element; the canvas is put in it
@@ -39,7 +52,7 @@ export function mountFace({
     const layer = mountSceneLayer({
         field: host,
         insertBehindReading: (parent, node) => parent.append(node),
-        onResize: ({ width, height }) => runtime?.resize(width, height, host.ownerDocument.defaultView?.devicePixelRatio || 1)
+        onResize: ({ width, height }) => runtime?.resize(width, height, facePixelRatio(width, height, host.ownerDocument.defaultView?.devicePixelRatio))
     });
     // The face's own class only: it is not a reading's scene, and nothing that looks for one may find it.
     layer.canvas.className = 'live-face__canvas';
@@ -103,6 +116,18 @@ export function mountFace({
         started,
         canvas: layer.canvas,
         cue: (name, { instant = false } = {}) => runtime.cue(name, { instant }),
+        /**
+         * The room's geometry for this animation frame (frames.js frameGeometry), or null for the face's own square.
+         * Sent only once the engine draws: a runtime that is not ready would queue one a frame.
+         */
+        place(geometry) {
+            if (drawn && !frozen) runtime.cue(`aperture:${JSON.stringify(geometry)}`);
+        },
+        /** The reader's pointer anywhere in the room, in the page's pixels: where the eye looks. */
+        point(clientX, clientY) {
+            const box = layer.canvas.getBoundingClientRect();
+            runtime.input({ type: 'pointermove', x: clientX - box.left, y: clientY - box.top, buttons: 0, key: null, modifiers: { shift: false, alt: false, ctrl: false, meta: false } });
+        },
         setSkin: name => runtime.cue(`set:skin=${name}`),
         play: () => runtime.play(),
         pause: () => runtime.pause(),

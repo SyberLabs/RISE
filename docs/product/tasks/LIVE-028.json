@@ -1,0 +1,67 @@
+{
+  "id": "LIVE-028",
+  "title": "RISE Live: the three frames",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-027"
+  ],
+  "acceptance": [
+    "Every visual a Live reading shows is held by Sophia in one of three frames, chosen by the visual on screen (the Chamber's current cue, never a timer) from one table keyed by engine and scene kind (src/live/host/frames.js FRAME_OF): a single drawn object the inner eye, a radial moving field the outer shell, a picture that needs the room the full frame; a still takes no frame; the model does not choose one and the beat grammar, Current, Worker and Composer's guide are unchanged.",
+    "Inner eye opens over 1100 ms (fold 0-0.25, dilate to radius 0.36 of the face's square 0.25-0.6, nine S-curve blades drawn back through a nine-sided opening 0.6-1), the face dimmed to 45% and drawn 12% outward, a two-layer crown and a thin iris ring; outer shell over 1600 ms (fold 0-0.1, shrink 0.1-0.4, field, torus, lights and petals travel to the rim 0.15-0.75, dilate to 0.41 0.4-0.7, open 0.7-1); full frame over 1900 ms (close 0-0.15, travel to a 48 px dock at the ask bar's left end 0.1-0.55, reopen 0.5-0.65, a nine-sided aperture from the eye past every corner 0.2-1), the docked eye 0.28 of its face and blinking every 4 to 8 s, a scrim of the ground behind the words; smoothstep within each phase, as the approved study (docs/assets/live/sophia-aperture-study.html).",
+    "A change of visual in the same frame is one blink of the open aperture (shut 220 ms, hold 70 ms, open 360 ms); a change of frame shuts the aperture, closes the frame and opens the next; under reduced motion (device, app setting or photosensitivity) every change is instant and nothing blinks.",
+    "In the inner eye and the shell the visual's layers are scaled so the circle inscribed in their own square is the aperture, settling from 92% to 100% as it opens, with an inner fade from 86% to 100% of the radius; one geometry (frameGeometry) drives the scale and is sent whole to the face's engine, which computes none of its own; the transitions run on the venue's clock, which stands still while the reading is held.",
+    "Sophia never leaves the room: the eye speaking with no visual, holding the visual in its frame, listening and thinking in place for an interjection, at rest when held or ended; the words sit at the foot of the room in every frame, below the circle, never over a circle's visual.",
+    "The face's canvas covers the room between the visual layers and the words, takes no press, keeps within the scene frame budget and flash gate with its pixel ratio held to a 1440 by 900 room at 1.5; a face that is not drawing frames nothing and the visual is shown whole. The Reader and the card are unchanged: nothing applies unless the venue marks the root, and Chamber.visualCue() only reads."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/assets/live/sophia-aperture-study.html",
+      "note": "The owner's approved design study for the three frames (2026-10-13), kept beside the face's study as the design reference.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§23 The three frames: design, architecture (one geometry, one clock, layers), the by-visual table, and what was measured; §22 marked superseded where she used to withdraw.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/frames.test.js",
+      "note": "Command: npx vitest run src/live/host src/scenes/engines src/components/read/Chamber.live.test.js src/components/read/Chamber.figure.test.js src/components/read/Chamber.scene.test.js src/core/rise-current.test.js src/core/system-design.test.js. Branch live-three-frames, local: 20 files, 663 tests passed (frames.test.js geometry at every phase boundary, the table and the director; faceStateOf; the venue's frame loop with hand-cranked animation frames; the engine drawing from the geometry alone; the face's pixel ratio; Chamber.visualCue only reads and the Reader's field is untouched).",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Command: npx playwright test e2e/live.spec.js -g \"the face rests|the frames|interactive scenes|asks, reads under the whole instrument|the interjection: RISE answers\". Branch live-three-frames, local production build, headless Chromium: the face test, the shell test (aperture and scaled attractor layer agree to a pixel), the full-frame test (face docked within 40 px of the bar), the reduced-motion test, the four interactive-scene tests, the canonical venue flow and the interjection all passed. Face worker frame median 0.40 ms at 1440x900. Not merged, deployed or accepted by a human.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/653",
+      "note": "Draft PR on branch live-three-frames at acb90151, with the local evidence above. Not merged, deployed or accepted by a human.",
+      "date": "2026-10-13"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-13T06:00:00.000Z",
+      "summary": "Claimed and built on branch live-three-frames from the owner's approved aperture study and decisions of 2026-10-13: the inner eye, the outer shell and the full frame, chosen by the visual."
+    },
+    {
+      "date": "2026-10-13T04:45:29.537Z",
+      "summary": "Draft PR #653 opened on branch live-three-frames (acb90151) with local verification evidence and renders"
+    }
+  ],
+  "updatedAt": "2026-10-13T04:45:29.537Z",
+  "revision": 2,
+  "summary": "Every visual of a Live reading held by Sophia in one of three frames (inner eye, outer shell, full frame), the visual choosing which; she never leaves the room.",
+  "blocker": null
+}

@@ -1196,20 +1196,16 @@ body:has(.live-venue) { background: var(--live-ground); }
   .has-rise-account:has(.live-again[data-open="true"]:not([hidden])) .rise-account-control { visibility: hidden; }
 }
 
-/* RISE's face (venue.js, face-layer.js; docs/plans/LIVE-CURRENT.md §22). In the entry it rests above the name; over
-   the room it lies above the reading and below the stage and the bar, in the skin's dark. It withdraws over 600 ms
-   while a reading has the stage, then is hidden, and comes back the same way. The still eye shows until the
-   engine has drawn, then gives way to it over 400 ms. */
+/* RISE's face (venue.js, face-layer.js; docs/plans/LIVE-CURRENT.md §22, §23). In the entry it rests above the name.
+   In the room it covers the whole room for the whole reading, between the Chamber's visual layers (z-index 1 to 5)
+   and the reading's words (10), below the stage and the bar: ground everywhere but the aperture its engine leaves
+   open, through which the visual shows. It takes no press there; the venue gives it the pointer for its gaze. The
+   still eye shows until the engine has drawn, then gives way to it over 400 ms; a face that is not drawing steps
+   aside while a visual is on screen, which is then shown whole, as before. */
 .live-face {
   --face-dark: rgb(10, 10, 15);
-  transition: opacity 600ms ease, visibility 0s;
 }
-.live-face[data-face-state="speaking"] {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 600ms ease, visibility 0s linear 600ms;
-}
+.live-face[data-face-aside="true"] { visibility: hidden; }
 /* The eye's square has no edge: it fades to nothing well inside its rim, so the ground it rests on runs through. */
 .live-face__disc {
   position: relative;
@@ -1222,14 +1218,22 @@ body:has(.live-venue) { background: var(--live-ground); }
 .live-face--room {
   position: fixed;
   inset: 0;
-  z-index: 199999;
-  display: grid;
-  place-items: center;
+  z-index: 6;
   background: color-mix(in srgb, var(--face-dark) 88%, transparent);
   animation: live-room-in 600ms ease-out;
+  pointer-events: none;
 }
 @keyframes live-room-in { from { background-color: transparent; } }
-.live-face--room .live-face__disc { width: min(92vw, 70vh, 760px); }
+/* Drawn, the face's canvas is the room's ground itself, and its aperture is clear through to the visual. */
+.live-face--room[data-face-drawn="true"] { background: none; }
+.live-face--room .live-face__disc {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  aspect-ratio: auto;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
 .live-face__still,
 .live-face .live-face__canvas {
   position: absolute;
@@ -1245,20 +1249,71 @@ body:has(.live-venue) { background: var(--live-ground); }
   touch-action: auto;
   transition: opacity 400ms ease;
 }
+.live-face--room .live-face__canvas { pointer-events: none; }
 .live-face[data-face-drawn="true"] .live-face__canvas { opacity: 1; }
 .live-face[data-face-drawn="true"] .live-face__still { opacity: 0; visibility: hidden; transition: opacity 400ms ease, visibility 0s linear 400ms; }
 
+/* The three frames (§23). The venue marks the root while its face holds the room (data-live-frame: none, inner, shell
+   or full) and sets the field's --live-vx, --live-vy and --live-vk from the one geometry (frames.js): in the inner eye
+   and the shell, the Chamber's visual layers are moved and scaled so the circle inscribed in their square is the
+   aperture. Nothing here applies to the Reader or the card, whose root is never marked. */
+html:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field > :not(.atom-band, .movement-title) {
+  transform: translate(var(--live-vx, 0px), var(--live-vy, 0px)) scale(var(--live-vk, 1));
+  transform-origin: 50% 50%;
+}
+/* An engine's name, set at the gallery's corner, has no corner in a circle. A credit a museum image requires is shown,
+   in the full frame, where such an image always is. */
+html:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field .continuous-field-label { visibility: hidden; }
+/* The words sit at the foot of the room, above the instrument, in every frame: below the circle, never over the
+   visual; in the full frame over the scrim the face draws behind them. Two lines of them fit where the venue says. */
+html[data-live-frame] #chamber-field {
+  align-items: flex-end;
+  padding-bottom: var(--live-words-foot, 90px);
+}
+html[data-live-frame] #chamber-field .atom-display,
+html[data-live-frame] #chamber-field .atom-display.is-word-fit {
+  font-size: min(calc(72px * var(--atom-scale, 1) * var(--font-size-intent, 1)), calc(var(--live-words-size, 34px) * var(--font-size-intent, 1)));
+  line-height: 1.4;
+}
+/* A beat's placement (a caption, the top, a side) is the same place in this room: the foot. */
+html[data-live-frame] #chamber-field .atom-display[data-place] {
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: var(--live-words-foot, 90px);
+  translate: -50% 0;
+  width: max-content;
+  max-width: min(80%, 40em);
+  padding: 0;
+  text-align: center;
+  background: none;
+}
+/* No glass in this room: below a circle the words are on the ground, and in the full frame on the face's scrim. */
+html[data-live-frame] #chamber-field :is(.atom-display, .atom-band) {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+html[data-live-frame] #chamber-field .atom-display.glass-tile::before { content: none; }
+html[data-live-frame="full"] #chamber-field .atom-display { text-shadow: 0 1px 14px rgba(4, 4, 8, 0.9), 0 0 3px rgba(4, 4, 8, 0.9); }
+/* In the full frame the face waits in a 48 px slot at the bar's left end. On a phone the open bar reaches the left
+   edge, so it steps right to give the slot room. */
+@media (max-width: 640px) {
+  html[data-live-frame] .live-again { transition: left 400ms ease, width 400ms ease; }
+  html[data-live-frame="full"] .live-again[data-open="true"] { left: calc(50% + 28px); width: calc(100% - 88px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .live-face,
-  .live-face[data-face-state="speaking"],
   .live-face__still,
   .live-face .live-face__canvas,
-  .live-face[data-face-drawn="true"] .live-face__still { transition: none; }
+  .live-face[data-face-drawn="true"] .live-face__still,
+  html[data-live-frame] .live-again { transition: none; }
   .live-face--room { animation: none; }
 }
 :root.reduced-motion .live-face--room { animation: none; }
-:root.reduced-motion .live-face,
-:root.reduced-motion .live-face[data-face-state="speaking"],
 :root.reduced-motion .live-face__still,
 :root.reduced-motion .live-face .live-face__canvas,
-:root.reduced-motion .live-face[data-face-drawn="true"] .live-face__still { transition: none; }
+:root.reduced-motion .live-face[data-face-drawn="true"] .live-face__still,
+:root.reduced-motion[data-live-frame] .live-again { transition: none; }

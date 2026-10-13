@@ -624,7 +624,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
-    // RISE's face (docs/plans/LIVE-CURRENT.md §22): the room's resting picture, which steps back while a reading speaks.
+    // RISE's face (docs/plans/LIVE-CURRENT.md §22, §23): the room's resting picture, which holds the reading's visuals.
     /** When the face was first put on the page, whether the still eye was in it and the engine had not yet drawn. */
     const recordFirstFace = page => page.addInitScript(() => {
         window.__firstFace = null;
@@ -635,13 +635,19 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
             observer.disconnect();
         }).observe(document, { subtree: true, childList: true });
     });
-    /** The page's clock when the face has finished stepping back: hidden, not only transparent. */
-    const faceHiddenAt = page => page.waitForFunction(() => {
-        const face = document.querySelector('.live-face');
-        return face && getComputedStyle(face).visibility === 'hidden' ? performance.now() : false;
-    }, null, { timeout: 15_000 }).then(handle => handle.jsonValue());
+    /** Every frame the venue framed, as the face reports it, on the page's clock: frame, how open, how far docked. */
+    const recordFrames = page => page.evaluate(() => {
+        window.__framesSeen = [];
+        const look = () => {
+            const g = window.__riseFace?.frame?.();
+            if (g) window.__framesSeen.push({ at: performance.now(), frame: g.frame, hole: g.aperture?.hole ?? g.wipe?.hole ?? 0, small: g.small, face: g.face, wipe: g.wipe ? { r: g.wipe.r } : null });
+            requestAnimationFrame(look);
+        };
+        requestAnimationFrame(look);
+    });
+    const framesSeen = page => page.evaluate(() => window.__framesSeen);
 
-    test('the face rests at arrival, listens, thinks on Ask, steps back within a second of the first words, and rests at the end', async ({ page }) => {
+    test('the face rests at arrival, listens, thinks on Ask, speaks the reading in the room, never hidden, and rests at the end', async ({ page }) => {
         test.setTimeout(150_000);
         const errors = watchErrors(page);
         await recordFirstFace(page);
@@ -652,7 +658,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(face).toBeVisible();
         // The still eye was the face before the engine drew, and gives way to it once it has.
         expect(await page.evaluate(() => window.__firstFace)).toEqual({ still: true, drawn: 'false' });
-        await expect.poll(() => page.evaluate(() => window.__riseFace.drawn()), { timeout: 15_000 }).toBe(true);
+        await expect.poll(() => page.evaluate(() => window.__riseFace?.drawn() ?? false), { timeout: 15_000 }).toBe(true);
         await expect(page.locator('svg.live-face__still')).toBeHidden();
 
         // Its own frames, in the worker, at the venue's size; and a blink the flash gate lets through.
@@ -669,45 +675,124 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(await page.evaluate(() => window.__riseFace.frozen())).toBe(false);
         expect(step).toBeLessThan(0.1);
 
-        // The reader types: it listens. Ask: it thinks until the reading's first words, then steps back.
+        // The reader types: it listens. Ask: it thinks until the reading's first words, then speaks them, in the room.
         await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
         await expect(face).toHaveAttribute('data-face-state', 'listening');
         await page.locator('#live-venue-question').press('Enter');
         await expect(face).toHaveAttribute('data-face-state', /thinking|speaking/u);
-        const hidden = faceHiddenAt(page);
         await expectShown(page, 'A black hole is a region of space');
-        const hiddenAt = await hidden;
         const firstWords = (await page.evaluate(() => window.__riseLive.atoms()))[0].at;
         const { log } = await hooks();
         const at = state => log.find(entry => entry.state === state)?.at;
-        console.log(`face hand-offs (ms): Ask to thinking ${Math.round(at('thinking') - at('listening'))} after listening; thinking to first words ${Math.round(firstWords - at('thinking'))}; first words to speaking ${Math.round(at('speaking') - firstWords)}; first words to hidden ${Math.round(hiddenAt - firstWords)}`);
+        console.log(`face hand-offs (ms): Ask to thinking ${Math.round(at('thinking') - at('listening'))} after listening; thinking to first words ${Math.round(firstWords - at('thinking'))}; first words to speaking ${Math.round(at('speaking') - firstWords)}`);
         expect(log.map(entry => entry.state).slice(0, 4)).toEqual(['arrival', 'listening', 'thinking', 'speaking']);
         // The same atom: the runtime hears it a fraction of a millisecond before the measuring page's listener does.
         expect(at('speaking')).toBeGreaterThanOrEqual(firstWords - 5);
-        expect(hiddenAt - firstWords).toBeLessThan(1_000);
+        // She does not leave: with no visual yet she is the eye, the words below her.
+        await page.waitForTimeout(800);
+        await expect(face).toBeVisible();
+        expect(await page.evaluate(() => window.__riseFace.frame()?.frame)).toBe('none');
+        const eye = await page.evaluate(() => window.__riseFace.frame().face);
+        const words = await page.locator('#atom-display').boundingBox();
+        expect(words.y).toBeGreaterThan(eye.y + eye.s / 2 - 1);
 
-        // The end: it comes back, at rest.
+        // The end: it is at rest, the frame closed to the eye.
         await expect(face).toHaveAttribute('data-face-state', 'rest', { timeout: 90_000 });
         await expect(face).toBeVisible();
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.frame), { timeout: 5_000 }).toBe('none');
         expect(errors).toEqual([]);
     });
 
-    test('the face under reduced motion: still drawn, every change at once, and out of the way of the reading', async ({ page }) => {
+    test('the frames: an attractor is held in the outer shell, scaled to its aperture, the words below it', async ({ page }) => {
+        test.setTimeout(90_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await expect.poll(() => page.evaluate(() => window.__riseFace?.drawn() ?? false), { timeout: 15_000 }).toBe(true);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        // The demo's second beat holds its attractor: the shell opens around it. Caught on the animation frame it is
+        // first wholly open, with the attractor's layer as the page then lays it out.
+        await page.evaluate(() => {
+            window.__shellOpen = null;
+            const look = () => {
+                const g = window.__riseFace?.frame?.();
+                const layer = document.querySelector('#chamber-field .chamber-attractor');
+                if (g?.frame === 'shell' && g.aperture?.hole === 1 && layer) {
+                    const words = document.querySelector('#atom-display').getBoundingClientRect();
+                    window.__shellOpen = { g, box: layer.getBoundingClientRect().toJSON(), wordsTop: words.top, marked: document.documentElement.dataset.liveFrame };
+                    return;
+                }
+                requestAnimationFrame(look);
+            };
+            requestAnimationFrame(look);
+        });
+        await expect.poll(() => page.evaluate(() => window.__shellOpen !== null), { timeout: 25_000 }).toBe(true);
+        const shell = await page.evaluate(() => window.__shellOpen);
+        const { aperture } = shell.g;
+        expect(shell.marked).toBe('shell');
+        // The circle inscribed in the attractor's own square is the aperture: its centre, and its radius, to a pixel.
+        expect(aperture.r).toBeCloseTo(shell.g.big.s * 0.41, 6);
+        expect(shell.box.x + shell.box.width / 2).toBeCloseTo(aperture.x, 0);
+        expect(shell.box.y + shell.box.height / 2).toBeCloseTo(aperture.y, 0);
+        expect(Math.min(shell.box.width, shell.box.height) / 2).toBeCloseTo(aperture.r, 0);
+        // The words' place is below the circle.
+        expect(shell.wordsTop).toBeGreaterThan(aperture.y + aperture.r);
+        expect(errors).toEqual([]);
+    });
+
+    test('the frames: a figure takes the full frame, the face docked by the bar, the words over the scrim', async ({ page }) => {
+        test.setTimeout(90_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await expect.poll(() => page.evaluate(() => window.__riseFace?.drawn() ?? false), { timeout: 15_000 }).toBe(true);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        await recordFrames(page);
+        // The third beat puts up the event horizon as a figure: the shell closes, the full frame opens.
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.wipe?.hole ?? 0), { timeout: 25_000 }).toBe(1);
+        const seen = await framesSeen(page);
+        const order = seen.map(entry => entry.frame).filter((frame, i, all) => frame !== all[i - 1]);
+        expect(order.slice(-2)).toEqual(['shell', 'full']);
+        const full = seen.filter(entry => entry.frame === 'full');
+        // Opening over its own time: about 1.9 s from the eye to past every corner, passing through the middle.
+        expect(full.some(entry => entry.hole > 0.3 && entry.hole < 0.7)).toBe(true);
+        expect(full.at(-1).at - full[0].at).toBeGreaterThan(1_500);
+        const { face } = full.at(-1);
+        const bar = await page.locator('.live-again').boundingBox();
+        expect(face.s).toBeCloseTo(48 * 1.15, 6);
+        expect(face.x).toBeLessThan(bar.x);
+        expect(bar.x - face.x).toBeLessThan(40);
+        expect(Math.abs(face.y - (bar.y + bar.height / 2))).toBeLessThan(2);
+        expect(await page.evaluate(() => document.documentElement.dataset.liveFrame)).toBe('full');
+        // The figure itself is not moved or scaled in the full frame.
+        const figure = await page.locator('#chamber-field img.chamber-figure').boundingBox();
+        const viewport = page.viewportSize();
+        expect(figure).toMatchObject({ x: 0, y: 0, width: viewport.width, height: viewport.height });
+        expect(errors).toEqual([]);
+    });
+
+    test('the frames under reduced motion: every change at once, no blinks, the face still drawn and never hidden', async ({ page }) => {
         test.setTimeout(90_000);
         const errors = watchErrors(page);
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.goto(`${VENUE}&measure=1`);
         const face = page.locator('.live-face');
         await expect(face).toHaveAttribute('data-face-state', 'arrival');
-        await expect.poll(() => page.evaluate(() => window.__riseFace.drawn()), { timeout: 15_000 }).toBe(true);
+        await expect.poll(() => page.evaluate(() => window.__riseFace?.drawn() ?? false), { timeout: 15_000 }).toBe(true);
         await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
         await page.locator('#live-venue-question').press('Enter');
-        const hidden = faceHiddenAt(page);
         await expectShown(page, 'A black hole is a region of space');
-        const firstWords = (await page.evaluate(() => window.__riseLive.atoms()))[0].at;
-        const hiddenAt = await hidden;
-        console.log(`face under reduced motion: first words to hidden ${Math.round(hiddenAt - firstWords)} ms`);
-        expect(hiddenAt - firstWords).toBeLessThan(400);
+        await recordFrames(page);
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.frame), { timeout: 25_000 }).toBe('full');
+        const seen = await framesSeen(page);
+        // Each frame was open from the first animation frame it was shown in, and never part-way.
+        const framed = seen.filter(entry => entry.frame !== 'none');
+        expect(framed.map(entry => entry.frame)).toContain('shell');
+        for (const entry of framed) expect(entry.hole).toBe(1);
+        expect(framed.filter(entry => entry.frame === 'full').every(entry => entry.small === 1)).toBe(true);
+        await expect(face).toBeVisible();
         expect(await page.evaluate(() => window.__riseFace.frozen())).toBe(false);
         expect(errors).toEqual([]);
     });
@@ -1136,7 +1221,10 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
             window.__workerLog = [];
             const post = Worker.prototype.postMessage;
             Worker.prototype.postMessage = function postMessage(message, transfer) {
-                window.__workerLog.push(message?.type ?? null);
+                // RISE's face runs in a worker of its own and is given the pointer anywhere in the room (§23): its
+                // messages are not the reading's scene's.
+                if (message?.type === 'scene/init' && String(message.code).includes('export default function oracle(rise)')) this.isFace = true;
+                if (!this.isFace) window.__workerLog.push(message?.type ?? null);
                 return post.call(this, message, transfer);
             };
         });

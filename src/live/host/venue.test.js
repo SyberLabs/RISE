@@ -17,8 +17,9 @@ const faces = vi.hoisted(() => []);
 vi.mock('./face-layer.js', () => ({
     mountFace: options => {
         const face = {
-            options, cues: [], skins: [], playing: false, destroyed: false,
+            options, cues: [], skins: [], places: [], playing: false, destroyed: false,
             cue(name) { face.cues.push(name); }, setSkin(name) { face.skins.push(name); },
+            place(geometry) { face.places.push(geometry); }, point() {},
             play() { face.playing = true; }, pause() { face.playing = false; }, destroy() { face.destroyed = true; },
             frameTimes: () => [], lumas: () => [], frozen: () => false
         };
@@ -790,5 +791,122 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith('First?'));
         expect(runtimes[0].journal()).toEqual([{ type: 'start' }]);
         expect(document.querySelector('#chamber-field .live-face')).toBeNull();
+    });
+});
+
+describe('the three frames: the face holds each visual the reading shows (§23)', () => {
+    const engine = () => faces.at(-1);
+    const root = () => document.documentElement;
+
+    /** A window whose animation frames are cranked by hand, at the time given. */
+    function cranked() {
+        let due = new Map();
+        let next = 1;
+        const window = {
+            ...env().window,
+            requestAnimationFrame: callback => { const id = next; next += 1; due.set(id, callback); return id; },
+            cancelAnimationFrame: id => due.delete(id)
+        };
+        const run = now => { const ready = due; due = new Map(); for (const callback of ready.values()) callback(now); };
+        return { environment: { ...env(), window }, run, pending: () => due.size };
+    }
+
+    /** A room with a reading on screen, its Chamber showing `cue`; the engine drawn. */
+    async function room(cue) {
+        const frames = cranked();
+        mount('?voice=paced', frames.environment);
+        const field = document.createElement('div');
+        field.id = 'chamber-field';
+        document.body.append(field);
+        const chamber = { cue, visualCue: () => chamber.cue };
+        host.chamberPlaying = () => chamber;
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        runtimes[0].playerFor = () => 'player';
+        await vi.waitFor(() => expect(engine()).toBeTruthy());
+        engine().options.onFirstFrame();
+        let now = 0;
+        const crank = (ms, step = 16) => { for (let gone = 0; gone < ms; gone += step) { now += step; frames.run(now); } };
+        crank(16);
+        return { frames, field, chamber, crank, runtime: runtimes[0] };
+    }
+
+    afterEach(() => {
+        delete root().dataset.liveFrame;
+        root().removeAttribute('style');
+    });
+
+    it('frames the visual on screen as it chooses: the root marked, the layers scaled by the one geometry the face is sent', async () => {
+        const { field, crank } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        crank(1700);
+        expect(root().dataset.liveFrame).toBe('shell');
+        const geometry = engine().places.at(-1);
+        expect(geometry).toMatchObject({ frame: 'shell', aperture: { hole: 1, settle: 1 } });
+        const half = Math.min(window.innerWidth, window.innerHeight) / 2;
+        expect(Number(field.style.getPropertyValue('--live-vk'))).toBeCloseTo(geometry.aperture.r / half, 9);
+        expect(field.style.getPropertyValue('--live-vx')).toBe(`${geometry.aperture.x - window.innerWidth / 2}px`);
+    });
+
+    it('opens the full frame for a figure, the face travelling to the dock by the bar', async () => {
+        const { crank } = await room({ kind: 'scene', sceneId: 'h', svg: '<svg/>' });
+        crank(2000);
+        expect(root().dataset.liveFrame).toBe('full');
+        const geometry = engine().places.at(-1);
+        // jsdom lays nothing out, so the bar has no box: the dock is its place without one, at the top left.
+        expect(geometry.small).toBe(1);
+        expect(geometry.face.x).toBeCloseTo(40, 9);
+        expect(geometry.face.y).toBeCloseTo(40, 9);
+        expect(geometry.wipe).toMatchObject({ hole: 1 });
+    });
+
+    it('stands the frame still while the reader holds the reading, and goes on when they take it up', async () => {
+        const { crank, runtime } = await room({ kind: 'procedural', collections: ['harmonograph'], config: {} });
+        crank(320);
+        const at = () => engine().places.at(-1);
+        runtime.set('interrupted');
+        const held = at();
+        crank(2000);
+        expect(at()).toEqual(held);
+        runtime.set('live');
+        crank(2000);
+        expect(at()).toMatchObject({ frame: 'inner', aperture: { hole: 1 } });
+    });
+
+    it('changes the visual within a frame by one blink of the aperture, and the frame by closing it and opening the next', async () => {
+        const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        crank(1700);
+        chamber.cue = { kind: 'procedural', collections: ['turrell'], config: {} };
+        crank(160);
+        expect(engine().places.at(-1)).toMatchObject({ frame: 'shell' });
+        expect(engine().places.at(-1).aperture.hole).toBeLessThan(0.5);
+        crank(600);
+        expect(engine().places.at(-1).aperture.hole).toBe(1);
+        chamber.cue = { kind: 'procedural', collections: ['harmonograph'], config: {} };
+        crank(800);
+        expect(engine().places.at(-1).frame).toBe('shell');
+        crank(2000);
+        expect(engine().places.at(-1)).toMatchObject({ frame: 'inner', aperture: { hole: 1 } });
+    });
+
+    it('closes to the eye when the reading ends, and leaves the root unmarked when the room is left', async () => {
+        const { crank, runtime, field } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        crank(1700);
+        runtime.set('ended');
+        crank(1700);
+        expect(root().dataset.liveFrame).toBe('none');
+        expect(field.style.getPropertyValue('--live-vk')).toBe('1');
+        await host.venue.leave();
+        expect(root().dataset.liveFrame).toBeUndefined();
+        expect(field.style.getPropertyValue('--live-vk')).toBe('');
+        expect(engine().places.at(-1)).toBe(null);
+    });
+
+    it('frames nothing while the face is not drawing: the visual whole, and the still eye aside', async () => {
+        const { crank, field } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        engine().options.onFailure({ phase: 'frame', message: 'slow' });
+        crank(1700);
+        expect(root().dataset.liveFrame).toBeUndefined();
+        expect(field.style.getPropertyValue('--live-vk')).toBe('');
+        expect($('.live-face').dataset.faceAside).toBe('true');
     });
 });

@@ -234,7 +234,7 @@ describe('the voice the reader chose (design §8 stage 7)', () => {
     });
 });
 
-describe('the face: what RISE is doing, from what the room is doing (docs/plans/LIVE-CURRENT.md §22)', () => {
+describe('the face: what RISE is doing, from what the room is doing (docs/plans/LIVE-CURRENT.md §22, §23)', () => {
     const face = (phase, extra = {}) => faceStateOf({ phase, held: false, interjection: 'none', wordsShown: false, typing: false, failed: false, ...extra });
 
     it('rests at arrival, and listens while the reader types or speaks before asking', () => {
@@ -242,12 +242,15 @@ describe('the face: what RISE is doing, from what the room is doing (docs/plans/
         expect(face('idle', { typing: true })).toBe('listening');
     });
 
-    it('thinks from the ask until the reading’s first words, and withdraws once they are shown', () => {
+    it('thinks from the ask until the reading’s first words, and speaks them, never leaving the room', () => {
         expect(face('asking')).toBe('thinking');
         expect(face('reading')).toBe('thinking');
         expect(face('reading', { wordsShown: true })).toBe('speaking');
-        // Paused is still the reading's stage: the face stays back.
-        expect(face('reading', { wordsShown: true, held: true })).toBe('speaking');
+    });
+
+    it('rests in place while the reader holds the reading, and listens if they type into it', () => {
+        expect(face('reading', { wordsShown: true, held: true })).toBe('rest');
+        expect(face('reading', { wordsShown: true, held: true, typing: true })).toBe('listening');
     });
 
     it('comes forward for an interjection: listening while held, thinking while asked, back as the answer comes', () => {
