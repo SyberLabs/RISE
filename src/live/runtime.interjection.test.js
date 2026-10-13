@@ -29,6 +29,7 @@ const ANSWERS = {
     resume: '@say The horizon is not a surface.\n@say Nothing there would stop you.\n@then resume\n',
     replace: '@say In short, light cannot leave it.\n@say That is the whole of it.\n@then replace\n',
     end: '@say That is all there is to say.\n@then end\n',
+    scene: '@scene horizon attractor palette=purple\n@say scene=horizon The horizon is not a surface.\n@say Nothing there would stop you.\n@then resume\n',
     unnamed: '@say The horizon is not a surface.\n'
 };
 
@@ -200,6 +201,17 @@ describe('the question goes up with the room', () => {
         expect(room.journal('interjection.answering')).toEqual([expect.objectContaining({ n: 0, words: 'What is the horizon, really?' })]);
         expect(runtime.passages().filter(passage => passage.key.startsWith('i1-beat-')).map(passage => passage.text))
             .toEqual(['The horizon is not a surface.', 'Nothing there would stop you.']);
+    });
+
+    it('names the scene each passage starts, an answer’s by the name it gave it, for the room’s memory (LIVE-026)', async () => {
+        await open({ answer: () => ANSWERS.scene });
+        await into('beat-2');
+        runtime.beginInterjection();
+        await runtime.interject('What is the horizon, really?');
+        await until(() => runtime.snapshot().interjection.state === 'none');
+        const started = runtime.passages().filter(passage => passage.scene !== undefined).map(passage => [passage.key, passage.scene]);
+        // The rest of the held passage, after the answer, puts the room's own scene back.
+        expect(started).toEqual([['beat-1', 'field'], ['i1-beat-0', 'horizon'], ['i1-taken', 'field']]);
     });
 
     it('keeps the voice held through the request: nothing is said until the answer’s first beat', async () => {

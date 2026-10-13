@@ -517,8 +517,8 @@ describe('the room remembers what was said in it, until the reader leaves (LIVE-
     const FINISHED = [{ at: 0, type: 'start' }, { at: 50, type: 'run.finished', role: 'main' }];
     const answered = (runtime, passages) => {
         runtime.journal = () => FINISHED;
-        runtime.passages = () => passages;
-        runtime.composed = () => ({ segments: [{ id: 'p1', text: passages[0].text, beat: { scene: 'field' } }] });
+        // The first passage starts the scene field, as the runtime reports it (runtime.passages).
+        runtime.passages = () => passages.map((passage, index) => (index === 0 ? { ...passage, scene: 'field' } : passage));
         runtime.set('ended');
     };
 

@@ -325,6 +325,12 @@ export function createLiveRuntime({
             const { sealed } = reading;
             ended = reading.segments;
             let current = reading.current;
+            // The scene each passage starts, by the name its own Current gave it (an answer's without the room's prefix).
+            run.sceneOf = new Map((current.beats ?? []).map((beat, index) => {
+                const piece = run.room?.arrangement.pieces[index];
+                const scene = piece?.answer === undefined ? beat.scene : answerBeats(run.room.answers[piece.answer]).beats[piece.beat]?.scene;
+                return [`beat-${index}`, scene];
+            }).filter(([, scene]) => scene !== undefined));
             // A Dive keeps the colors of the answer it comes from, whatever it said of itself.
             if (run.role === 'side') {
                 const { theme: _own, ...rest } = current;
@@ -342,8 +348,6 @@ export function createLiveRuntime({
             session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook, growing: sealed === null && current.schema === RISE_CURRENT_SCHEMA_V2 });
             // The scenes the reading starts, as it names them, for a cue the model gives the room (landRoomChange).
             run.scenes = current.scenes ?? [];
-            // The scene each beat starts, by the passage's key, so an answer's own scenes are seen as the base's are.
-            run.sceneStarts = new Map((current.beats ?? []).flatMap((beat, index) => beat.scene ? [[keyOf(run, `beat-${index}`), beat.scene]] : []));
         } catch (caught) {
             failRun(run, caught);
             return;
@@ -816,12 +820,17 @@ export function createLiveRuntime({
             return positionOf(main);
         },
 
-        /** Every passage of the reading in order, each with whether a voice says it and its words; empty before it has words. */
+        /**
+         * Every passage of the reading in order, each with whether a voice says it, its words, and the scene it starts
+         * if it starts one (an interjection answer's among them); empty before it has words.
+         */
         passages() {
             if (!main?.player) return [];
             const words = new Map(main.segments.map(segment => [segment.id, segment.text]));
-            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, key: keyOf(main, id), spoken: !main.unspokenIds?.has(id), text: words.get(id) ?? '',
-                ...(main.sceneStarts?.has(keyOf(main, id)) ? { scene: main.sceneStarts.get(keyOf(main, id)) } : {}) }));
+            return passagesOf(main).map(({ id }) => Object.freeze({
+                segmentId: id, key: keyOf(main, id), spoken: !main.unspokenIds?.has(id), text: words.get(id) ?? '',
+                ...(main.sceneOf?.has(id) ? { scene: main.sceneOf.get(id) } : {})
+            }));
         },
 
         /**

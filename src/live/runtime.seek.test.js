@@ -141,9 +141,12 @@ describe('where the reader is', () => {
         expect(runtime.snapshot().pace).toBe(1);
     });
 
-    it('lists every passage in order, each with whether a voice says it, for a stage that draws them', async () => {
+    it('lists every passage in order, each with whether a voice says it and the scene it starts, for a stage that draws them', async () => {
         await open();
-        expect(runtime.passages()).toEqual(SKY.beats.map((beat, index) => ({ segmentId: `beat-${index}`, key: `beat-${index}`, spoken: beat.say !== undefined, text: beat.say ?? beat.show ?? '' })));
+        expect(runtime.passages()).toEqual(SKY.beats.map((beat, index) => ({
+            segmentId: `beat-${index}`, key: `beat-${index}`, spoken: beat.say !== undefined, text: beat.say ?? beat.show ?? '',
+            ...(beat.scene === undefined ? {} : { scene: beat.scene })
+        })));
     });
 });
 
