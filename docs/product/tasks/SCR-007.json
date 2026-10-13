@@ -40,6 +40,12 @@
       "ref": "f06eb986",
       "note": "PR #652, after Codex review (two P1 threads, both answered by claude[bot] in 7bec888b and resolved): the offline Chamber stage now ticks the unpaused attractor at the score timestamp, so an exported swarm evolves and the filament turns (7bec888b had sampled a fresh swarm per frame); a changed pendulums cue crossfades the Gallery harmonograph at once. Local: vitest chamber-stage.attractor, harmonograph-field, visual-cortex, attractor 4 files, 247 passed; CI green on f06eb986.",
       "date": "2026-10-13"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/668",
+      "note": "Branch swarm-one-batch, code at 7c9a3321: each tick of the swarm is drawn into an 8-bit scratch square and added to the float16 trail in one drawImage (one float16 draw a tick instead of 1,400 unbatched ones); the scene worker samples luma on the GPU. Real GPU (ANGLE D3D11, AMD RX 5700, Chromium 149 headless, 144 Hz): swarm steady in the shell 16.4 -> 143.9 fps at 1440x900 DPR 1, 10.4 -> 105.2 at DPR 2, 3.7 -> 102.3 on a 390x844 DPR 3 + 4x CPU emulation; frames over 33.3 ms 18-78% -> 0; long animation frames up to 691 ms -> none. Look against before (seeded swarm, 240 ticks, shown at the shell scale): mean per-pixel difference 3.9-6.6 of 255 (one tick of motion is 9.7-10.7), brightness +2.5 to +3.9%. Local: attractor 58, scene-worker 46, every importer 12 files 281 passed; fast set 125 files passed; e2e GPU sampler test passed; ci-hygiene, vite build, first load within budget. Not merged yet; not accepted by a human.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
@@ -58,10 +64,14 @@
     {
       "date": "2026-10-13T04:55:45.748Z",
       "summary": "PR #652 merged as 2f13e80a and deployed (release.txt 2f13e80a, 2026-10-13); delivery deployed; not accepted by a human"
+    },
+    {
+      "date": "2026-10-13T09:26:16.031Z",
+      "summary": "PR #668: the swarm adds each tick to its trail in one draw (measured 5-16 fps -> 102-144 fps); not merged"
     }
   ],
-  "updatedAt": "2026-10-13T04:55:45.748Z",
-  "revision": 4,
+  "updatedAt": "2026-10-13T09:26:16.031Z",
+  "revision": 5,
   "summary": "The two visuals the owner kept from the design study, ported as engine options: the attractor as a live swarm, and the harmonograph as rotary pendulums.",
   "blocker": null
 }
