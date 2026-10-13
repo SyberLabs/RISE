@@ -502,9 +502,9 @@ export class LiveVenue {
             journal: runtime.journal?.() ?? [],
             // The reading's passages in order as it was read (answers to interjections among them), so the reader's
             // moves can name them (perception.js), and what RISE said in it can be remembered (earlierFor).
-            passages: (runtime.passages?.() ?? []).map(({ segmentId, key, text, spoken }) => ({
+            passages: (runtime.passages?.() ?? []).map(({ segmentId, key, text, spoken, scene }) => ({
                 segmentId, key: key ?? segmentId, text: text ?? '', spoken: spoken !== false,
-                ...(scenes.has(key ?? segmentId) ? { scene: scenes.get(key ?? segmentId) } : {})
+                ...(scene ?? scenes.get(key ?? segmentId) ? { scene: scene ?? scenes.get(key ?? segmentId) } : {})
             })),
             // Where the reading stood when let go: what was said before a cut ends there.
             reached: runtime.snapshot?.()?.position?.segmentIndex ?? null

@@ -342,6 +342,8 @@ export function createLiveRuntime({
             session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook, growing: sealed === null && current.schema === RISE_CURRENT_SCHEMA_V2 });
             // The scenes the reading starts, as it names them, for a cue the model gives the room (landRoomChange).
             run.scenes = current.scenes ?? [];
+            // The scene each beat starts, by the passage's key, so an answer's own scenes are seen as the base's are.
+            run.sceneStarts = new Map((current.beats ?? []).flatMap((beat, index) => beat.scene ? [[keyOf(run, `beat-${index}`), beat.scene]] : []));
         } catch (caught) {
             failRun(run, caught);
             return;
@@ -818,7 +820,8 @@ export function createLiveRuntime({
         passages() {
             if (!main?.player) return [];
             const words = new Map(main.segments.map(segment => [segment.id, segment.text]));
-            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, key: keyOf(main, id), spoken: !main.unspokenIds?.has(id), text: words.get(id) ?? '' }));
+            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, key: keyOf(main, id), spoken: !main.unspokenIds?.has(id), text: words.get(id) ?? '',
+                ...(main.sceneStarts?.has(keyOf(main, id)) ? { scene: main.sceneStarts.get(keyOf(main, id)) } : {}) }));
         },
 
         /**
