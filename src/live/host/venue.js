@@ -12,9 +12,10 @@
  * microphone, or a first letter typed in the bar's small field, holds the reading at once; Enter asks inside the room;
  * Escape, or Play, takes it back. A reading paused with Play, or one that has ended, is asked again as a new reading.
  *
- * RISE's face (docs/plans/LIVE-CURRENT.md §22) is the room's resting picture: in the entry before a question, over
- * the room while RISE listens, thinks or rests, and withdrawn while a reading has the stage. It is the venue's own
- * layer (face-layer.js), never part of a reading: no Current, journal or perception knows it is there.
+ * RISE's face (docs/plans/LIVE-CURRENT.md §22) is the room's resting picture: in the entry before a question, and in
+ * the room for the whole of every reading, holding each visual the reading shows in one of three frames, the visual
+ * choosing which (§23, frames.js). It is the venue's own layer (face-layer.js), never part of a reading: no Current,
+ * journal or perception knows it is there.
  *
  * The host (LiveHost.js) builds each runtime, the voice and the sound as it does for every reading; this owns the
  * entry state (venue-entry.js) and what the reader sees of it. A typed key is held in the host's memory (`host.key`)
@@ -25,6 +26,7 @@ import { connectionState, subscribeConnection, takeConnectionNotice } from '../.
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { addUsage, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
+import { createFrameDirector, frameGeometry, frameOf, roomLayout, visualTransform } from './frames.js';
 
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
@@ -84,7 +86,8 @@ export class LiveVenue {
         this.faceSkin = FACE_SKINS.includes(saved) ? saved : 'sophia';
         this.face = this.makeFace();
         this.faceEngine = null;
-        this.faceSleep = null;
+        // The room's frame while the face is in the room (§23): its director, clock and animation frame, or null.
+        this.framing = null;
         this.failedAsk = false;
         this.faceLog = [{ state: 'arrival', at: performance.now() }];
         this.render();
@@ -679,28 +682,32 @@ export class LiveVenue {
                 this.host.trace?.('[RISE face]', `${diagnostic.phase}: ${diagnostic.message}`);
             }
         });
-        if (state !== 'speaking') this.faceEngine.play();
+        this.faceEngine.play();
     }
 
-    /** The engine is told reduced motion once, at its start: a change is a new engine, in the same skin and state. */
+    /**
+     * The engine is told reduced motion once, at its start: a change is a new engine, in the same skin and state, and
+     * the room's frame follows it at once.
+     */
     followStillness() {
         if (!this.faceEngine || this.faceHoldsStill() === this.faceStillness) return;
         this.faceEngine.destroy();
         this.faceEngine = null;
         this.face.dataset.faceDrawn = 'false';
+        if (this.framing) Object.assign(this.framing, { director: createFrameDirector({ reduced: this.faceHoldsStill() }), key: undefined, cue: undefined });
         void this.wakeFace();
     }
 
-    /**
-     * The face follows the room (venue-entry.js faceStateOf): placed in the entry before a question and over the room
-     * after one, cued with its state, and paused once it has withdrawn so a reading pays nothing for it.
-     */
     /** Words typed into a question field: the face listens while there are some. */
     typed(field) {
         this.typing = field.value.trim() !== '';
         this.paint();
     }
 
+    /**
+     * The face follows the room (venue-entry.js faceStateOf): placed in the entry before a question and in the room
+     * after one, where it frames the reading's visuals, and cued with its state.
+     */
     paintFace() {
         const { phase, held } = this.state;
         const view = phase === 'reading' ? this.host.runtime?.snapshot() ?? null : null;
@@ -717,28 +724,128 @@ export class LiveVenue {
         const from = this.face.parentElement !== parent && this.face.isConnected ? disc.getBoundingClientRect() : null;
         this.face.classList.toggle('live-face--room', !slot);
         if (this.face.parentElement !== parent) parent.append(this.face);
-        // The eye travels from where it rested to where it waits, rather than appearing there: one ground, one eye.
-        if (from?.width && !this.faceHoldsStill() && typeof disc.animate === 'function') {
-            const to = disc.getBoundingClientRect();
-            if (to.width) {
-                const dx = from.left + from.width / 2 - (to.left + to.width / 2);
-                const dy = from.top + from.height / 2 - (to.top + to.height / 2);
-                disc.animate([{ transform: `translate(${dx}px, ${dy}px) scale(${from.width / to.width})` }, { transform: 'none' }], { duration: 700, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
-            }
+        if (slot) this.stopFrames();
+        else this.startFrames();
+        // The eye travels from where it rested to its place in the room, rather than appearing there: one ground, one eye.
+        if (from?.width && !slot && !this.faceHoldsStill() && typeof disc.animate === 'function') {
+            const { big } = this.measureRoom();
+            const dx = from.left + from.width / 2 - big.x;
+            const dy = from.top + from.height / 2 - big.y;
+            const k = from.width / big.s;
+            disc.animate([
+                { transformOrigin: `${big.x}px ${big.y}px`, transform: `translate(${dx}px, ${dy}px) scale(${k})` },
+                { transformOrigin: `${big.x}px ${big.y}px`, transform: 'none' }
+            ], { duration: 700, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' });
         }
         if (state === this.face.dataset.faceState) return;
         this.face.dataset.faceState = state;
         this.faceLog = [...this.faceLog, { state, at: performance.now() }].slice(-40);
         this.faceEngine?.cue(state);
-        clearTimeout(this.faceSleep);
-        if (state !== 'speaking') {
-            this.faceEngine?.play();
+    }
+
+    // ─── the frames (docs/plans/LIVE-CURRENT.md §23) ──────────────────
+
+    /** The Chamber on screen for the reading in the room, or null. */
+    chamber() {
+        const player = this.host.runtime?.playerFor?.();
+        return player ? this.host.chamberPlaying?.(player) ?? null : null;
+    }
+
+    /**
+     * Where the words sit and the face's square ends, for this room: the words at the foot, just above the stage's
+     * instrument, at most two lines of a size the room sets (LiveHost.css reads both from the root).
+     */
+    measureRoom() {
+        const win = this.doc.defaultView;
+        const width = win.innerWidth;
+        const height = win.innerHeight;
+        const size = width < 640 ? 26 : 34;
+        const instrument = this.doc.querySelector('.rise-stage__bar')?.getBoundingClientRect();
+        const foot = instrument?.height ? height - instrument.top + 10 : width < 640 ? 76 : 90;
+        const root = this.doc.documentElement.style;
+        if (root.getPropertyValue('--live-words-foot') !== `${foot}px`) root.setProperty('--live-words-foot', `${foot}px`);
+        if (root.getPropertyValue('--live-words-size') !== `${size}px`) root.setProperty('--live-words-size', `${size}px`);
+        const box = this.bar && !this.bar.hidden ? this.bar.getBoundingClientRect() : null;
+        const bar = box?.width ? { left: box.left, top: box.top, width: box.width, height: box.height } : null;
+        return roomLayout({ width, height, bar, wordsTop: height - foot - 2 * 1.4 * size });
+    }
+
+    /**
+     * The room's frame, while the face is in the room: on each animation frame, the visual the Chamber has on screen
+     * chooses the frame, the frame moves on the venue's clock (standing still while the reading is held), and one
+     * geometry scales the Chamber's visual layers and is drawn by the face. The reader's pointer anywhere in the room
+     * is where the eye looks.
+     */
+    startFrames() {
+        // The host's window: where there are no animation frames there is nothing to animate, and nothing is framed.
+        const view = this.host.env?.window ?? this.host.env;
+        if (this.framing || this.destroyed || typeof view?.requestAnimationFrame !== 'function') return;
+        const framing = { view, director: createFrameDirector({ reduced: this.faceHoldsStill() }), clock: 0, last: null, cue: undefined, key: undefined, raf: 0, geometry: null };
+        this.framing = framing;
+        const tick = now => {
+            if (this.framing !== framing) return;
+            framing.raf = view.requestAnimationFrame(tick);
+            this.frameStep(now);
+        };
+        framing.raf = view.requestAnimationFrame(tick);
+        framing.point = event => this.faceEngine?.point?.(event.clientX, event.clientY);
+        this.doc.defaultView.addEventListener('pointermove', framing.point, { passive: true });
+    }
+
+    stopFrames() {
+        const framing = this.framing;
+        if (!framing) return;
+        this.framing = null;
+        framing.view.cancelAnimationFrame?.(framing.raf);
+        this.doc.defaultView.removeEventListener('pointermove', framing.point);
+        this.unframe();
+        for (const name of ['--live-words-foot', '--live-words-size']) this.doc.documentElement.style.removeProperty(name);
+        this.faceEngine?.place?.(null);
+    }
+
+    /** The Chamber's visual whole and unmoved, and the root unmarked: as the Reader and the card always have it. */
+    unframe() {
+        delete this.doc.documentElement.dataset.liveFrame;
+        delete this.face.dataset.faceAside;
+        const field = this.doc.querySelector('#chamber-field');
+        for (const name of ['--live-vx', '--live-vy', '--live-vk']) field?.style.removeProperty(name);
+    }
+
+    frameStep(now) {
+        const framing = this.framing;
+        const { phase, held } = this.state;
+        if (framing.last !== null && !(phase === 'reading' && held)) framing.clock += Math.max(0, Math.min(now - framing.last, 100));
+        framing.last = now;
+        // The visual on screen, never a timer: none while a question is asked or once the reading has ended.
+        const cue = phase === 'reading' ? this.chamber()?.visualCue?.() ?? null : null;
+        if (cue !== framing.cue) {
+            framing.cue = cue;
+            // The same visual given again (a look laid over it) is not a change of visual.
+            const key = cue ? JSON.stringify({ ...cue, colorTheme: undefined }) : null;
+            if (key !== framing.key) {
+                framing.key = key;
+                framing.director.see(frameOf(cue), framing.clock);
+            }
+        }
+        const { frame, a, cut } = framing.director.at(framing.clock);
+        // A face that is not drawing frames nothing: the visual is the room's, full-bleed, and the still eye steps aside.
+        if (this.face.dataset.faceDrawn !== 'true') {
+            framing.geometry = null;
+            this.unframe();
+            if (framing.key) this.face.dataset.faceAside = 'true';
             return;
         }
-        // It withdraws over the cross-fade (LiveHost.css), then stops drawing.
-        this.faceSleep = setTimeout(() => {
-            if (this.face.dataset.faceState === 'speaking') this.faceEngine?.pause();
-        }, this.faceHoldsStill() ? 0 : 700);
+        const layout = this.measureRoom();
+        const geometry = frameGeometry({ frame, a, cut, layout });
+        framing.geometry = geometry;
+        const move = visualTransform(geometry, layout);
+        this.doc.documentElement.dataset.liveFrame = frame;
+        const field = this.doc.querySelector('#chamber-field');
+        field?.style.setProperty('--live-vx', `${move.x}px`);
+        field?.style.setProperty('--live-vy', `${move.y}px`);
+        field?.style.setProperty('--live-vk', String(move.k));
+        delete this.face.dataset.faceAside;
+        this.faceEngine?.place?.(geometry);
     }
 
     /** The reader chose a face in Settings: kept as a setting, worn at once. The model never chooses it. */
@@ -763,7 +870,9 @@ export class LiveVenue {
             frames: () => this.faceEngine?.frameTimes() ?? [],
             lumas: () => this.faceEngine?.lumas() ?? [],
             frozen: () => this.faceEngine?.frozen() ?? false,
-            blink: () => this.faceEngine?.cue('blink')
+            blink: () => this.faceEngine?.cue('blink'),
+            // The room's frame (§23): the geometry the face drew and the visual was scaled by in the last animation frame.
+            frame: () => (this.framing?.geometry ? JSON.parse(JSON.stringify(this.framing.geometry)) : null)
         });
     }
 
@@ -880,7 +989,7 @@ export class LiveVenue {
         this.stopFollowing = null;
         this.bar?.remove();
         this.bar = null;
-        clearTimeout(this.faceSleep);
+        this.stopFrames();
         this.stillWatch?.disconnect();
         this.faceEngine?.destroy();
         this.faceEngine = null;

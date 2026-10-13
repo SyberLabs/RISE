@@ -3132,6 +3132,11 @@ export class Chamber {
     return this._visualFieldDirector?.discoverVisual() || null;
   }
 
+  /** The cue on screen, or null: read by the Live venue to choose its frame (docs/plans/LIVE-CURRENT.md §23). Only reads. */
+  visualCue() {
+    return this._currentVisualCue;
+  }
+
   /** `instant`: a cue landed at once after a seek past its beat (beat-conductor.js), which a scene takes to its end state. */
   controlVisual(command, { instant = false } = {}) {
     if (!this.visualShown()) {

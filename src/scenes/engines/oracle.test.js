@@ -10,17 +10,26 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import oracle, { ORACLE_MANIFEST, ORACLE_SKINS, ORACLE_STATES, blinkClosure } from './oracle.js';
 import { SCENE_ENGINES } from '../manifests.js';
+import { frameGeometry, roomLayout } from '../../live/host/frames.js';
 
 /** A 2D context that does nothing, counting what a frame would allocate. */
 function fakeContext() {
-    const counts = { gradients: 0, opaqueFills: 0 };
+    const counts = { gradients: 0, opaqueFills: 0, cleared: 0, under: 0, arcs: [] };
     const gradient = () => { counts.gradients += 1; return { addColorStop() {} }; };
+    const kept = [];
     const ctx = {
         counts,
         fillStyle: '', strokeStyle: '', lineWidth: 1, globalAlpha: 1, globalCompositeOperation: 'source-over',
-        save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, setTransform() {},
-        beginPath() {}, closePath() {}, moveTo() {}, lineTo() {}, arc() {}, bezierCurveTo() {}, clip() {}, fill() {}, stroke() {},
-        fillRect() { if (/, 1\)$/u.test(String(ctx.fillStyle))) counts.opaqueFills += 1; },
+        // What a real context keeps across save and restore that a frame's counts depend on.
+        save() { kept.push([ctx.globalCompositeOperation, ctx.globalAlpha]); },
+        restore() { [ctx.globalCompositeOperation, ctx.globalAlpha] = kept.pop() ?? [ctx.globalCompositeOperation, ctx.globalAlpha]; },
+        translate() {}, rotate() {}, scale() {}, setTransform() {},
+        beginPath() {}, closePath() {}, moveTo() {}, lineTo() {}, arc(x, y, r) { counts.arcs.push([x, y, r]); }, bezierCurveTo() {}, clip() {}, stroke() {},
+        fill() { if (ctx.globalCompositeOperation === 'destination-out') counts.cleared += 1; },
+        fillRect() {
+            if (ctx.globalCompositeOperation === 'destination-over') counts.under += 1;
+            else if (/, 1\)$/u.test(String(ctx.fillStyle))) counts.opaqueFills += 1;
+        },
         createLinearGradient: gradient, createRadialGradient: gradient
     };
     return ctx;
@@ -53,8 +62,9 @@ describe('what the face is', () => {
         expect(ORACLE_SKINS.sophia).toEqual({ core: [245, 245, 220], iris: [135, 206, 235], glow: [176, 196, 222], deep: [25, 25, 112], trail: [10, 10, 15] });
         expect(ORACLE_SKINS.silver.trail).toEqual([9, 9, 11]);
         expect(Object.keys(ORACLE_STATES)).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest']);
-        expect(ORACLE_STATES.thinking).toEqual({ open: 0.80, orbit: 0.55, spin: 0.40, field: 1.6, tight: 0.62, glow: 1.00, presence: 1.0 });
-        expect(ORACLE_STATES.speaking).toEqual({ open: 0.70, orbit: 0.10, spin: 0.06, field: 0.6, tight: 1.10, glow: 0.35, presence: 0.22 });
+        expect(ORACLE_STATES.thinking).toEqual({ open: 0.80, orbit: 0.55, spin: 0.40, field: 1.6, tight: 0.62, glow: 1.00 });
+        // She no longer withdraws while a reading speaks (§23): speaking is the aperture study's, wholly present.
+        expect(ORACLE_STATES.speaking).toEqual({ open: 0.70, orbit: 0.10, spin: 0.06, field: 0.6, tight: 1.10, glow: 0.35 });
     });
 
     it('states its parameters and cues as a manifest does, and is not an engine the model may name', () => {
@@ -252,6 +262,104 @@ describe('what a frame costs', () => {
         const median = times[times.length >> 1];
         const p95 = times[Math.floor(times.length * 0.95)];
         console.log(`oracle frame on the fake canvas, 760 px at 2x, thinking, with blinks: median ${median.toFixed(3)} ms, p95 ${p95.toFixed(3)} ms`);
+        expect(median).toBeLessThan(4);
+    });
+});
+
+describe('the room: the three frames, drawn from the venue’s geometry alone (docs/plans/LIVE-CURRENT.md §23)', () => {
+    const W = 1440;
+    const H = 900;
+    const layout = roomLayout({ width: W, height: H, bar: { left: 592, top: 16, width: 256, height: 54 }, wordsTop: 690 });
+    const room = (frame, a, cut = 0) => `aperture:${JSON.stringify(frameGeometry({ frame, a, cut, layout }))}`;
+    const inRoom = (options = {}) => make({ width: W, height: H, dpr: 1, state: 'speaking', ...options });
+
+    it('takes the geometry it is given, and goes back to its own square when told there is none', () => {
+        const { scene, run } = inRoom();
+        scene.cue(room('shell', 0.5));
+        run(17);
+        expect(scene.inspect().room).toEqual(frameGeometry({ frame: 'shell', a: 0.5, cut: 0, layout }));
+        scene.cue('aperture:null');
+        run(17);
+        expect(scene.inspect().room).toBe(null);
+        scene.cue('aperture:{not json');
+        scene.cue('aperture:"a string"');
+        run(17);
+        expect(scene.inspect().room).toBe(null);
+    });
+
+    it('covers the room but for the aperture: opaque every frame, the hole cleared only while it is open', () => {
+        const { scene, run, ctx } = inRoom();
+        scene.cue(room('inner', 0.4));
+        run(17);
+        expect(ctx.counts.under).toBeGreaterThan(0);
+        expect(ctx.counts.cleared).toBe(0);
+        for (const frame of ['inner', 'shell', 'full']) {
+            const before = ctx.counts.cleared;
+            scene.cue(room(frame, 1));
+            // One frame: one hole cleared.
+            run(16);
+            expect(ctx.counts.cleared - before).toBe(1);
+        }
+        const shut = ctx.counts.cleared;
+        scene.cue(room('shell', 1, 1));
+        run(17);
+        expect(ctx.counts.cleared).toBe(shut);
+    });
+
+    it('draws the open inner eye’s rim where the geometry puts it, at its radius', () => {
+        const { scene, run, ctx } = inRoom();
+        const g = frameGeometry({ frame: 'inner', a: 1, cut: 0, layout });
+        scene.cue(room('inner', 1));
+        ctx.counts.arcs.length = 0;
+        run(17);
+        expect(ctx.counts.arcs).toContainEqual([g.aperture.x, g.aperture.y, g.aperture.r]);
+    });
+
+    it('keeps blinking docked in the full frame, and does not start a blink while a frame opens', () => {
+        vi.spyOn(Math, 'random').mockReturnValue(0);
+        const opening = inRoom();
+        opening.scene.cue(room('inner', 0.5));
+        for (let ms = 0; ms < 10_000; ms += 20) {
+            opening.run(20, 20);
+            expect(opening.scene.inspect().closed).toBe(1);
+        }
+        const docked = inRoom();
+        docked.scene.cue(room('full', 1));
+        let blinked = false;
+        for (let ms = 0; ms < 10_000; ms += 20) {
+            docked.run(20, 20);
+            if (docked.scene.inspect().closed > 0.5) blinked = true;
+        }
+        expect(blinked).toBe(true);
+    });
+
+    it('looks toward the pointer from where the face is in the room, not from the canvas’s centre', () => {
+        const { scene, run } = inRoom();
+        scene.cue(room('none', 0));
+        run(17);
+        const { x, y, s } = layout.big;
+        scene.input({ type: 'pointermove', x, y, buttons: 0, key: null, modifiers: {} });
+        expect(scene.inspect().aim).toEqual({ x: 0, y: 0, depth: 1 });
+        scene.input({ type: 'pointermove', x: x + s / 2, y, buttons: 0, key: null, modifiers: {} });
+        expect(scene.inspect().aim.x).toBe(1);
+    });
+
+    it('draws a whole room in a few milliseconds on the fake canvas, in every frame open and opening', () => {
+        const { scene, ctx } = inRoom({ dpr: 1.5 });
+        const times = [];
+        let t = 0;
+        for (const [frame, a] of [['inner', 0.8], ['inner', 1], ['shell', 0.5], ['shell', 1], ['full', 0.4], ['full', 1]]) {
+            scene.cue(room(frame, a));
+            for (let i = 0; i < 60; i += 1) {
+                const began = performance.now();
+                t += 1000 / 60;
+                scene.frame(t, 1000 / 60);
+                times.push(performance.now() - began);
+            }
+        }
+        times.sort((a, b) => a - b);
+        const median = times[times.length >> 1];
+        console.log(`oracle room frame on the fake canvas, ${W}x${H} at 1.5x, every frame: median ${median.toFixed(3)} ms, p95 ${times[Math.floor(times.length * 0.95)].toFixed(3)} ms; ${ctx.counts.gradients} gradients`);
         expect(median).toBeLessThan(4);
     });
 });

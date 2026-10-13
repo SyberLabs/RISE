@@ -136,3 +136,34 @@ describe('a figure in the Chamber', () => {
     chamber.destroy();
   });
 });
+
+describe('the visual on screen, as the Live venue reads it (docs/plans/LIVE-CURRENT.md §23)', () => {
+  it('says which cue is on screen, null before any and after its fallback replaced it, and only reads', async () => {
+    const { chamber, container } = makeChamber();
+    expect(chamber.visualCue()).toBeNull();
+    chamber.applyScheduledVisualCue(FIGURE, { transitionMs: 0 });
+    await settle();
+    const field = container.querySelector('#chamber-field');
+    const record = chamber._visualFieldDirector.active;
+    const before = field.outerHTML;
+    expect(chamber.visualCue()).toBe(FIGURE);
+    expect(chamber.visualCue()).toBe(FIGURE);
+    expect(field.outerHTML).toBe(before);
+    expect(chamber._visualFieldDirector.active).toBe(record);
+    chamber.applyScheduledVisualCue(BAD, { transitionMs: 0 });
+    await settle();
+    expect(chamber.visualCue()).toBe(FALLBACK);
+    chamber.destroy();
+  });
+
+  it('leaves the Reader’s and the card’s field as it was: no layer is moved, scaled or masked by the Chamber', async () => {
+    const { chamber, container } = makeChamber();
+    chamber.applyScheduledVisualCue(FIGURE, { transitionMs: 0 });
+    await settle();
+    const field = container.querySelector('#chamber-field');
+    expect(document.documentElement.hasAttribute('data-live-frame')).toBe(false);
+    expect(field.getAttribute('style')).toBeNull();
+    for (const layer of field.children) expect(layer.style.transform).toBe('');
+    chamber.destroy();
+  });
+});
