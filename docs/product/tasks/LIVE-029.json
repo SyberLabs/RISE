@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -40,7 +40,13 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/660",
-      "note": "Draft PR on branch live-catalog-words, code at b92f3efa, with the local evidence above. Not merged, deployed or accepted by a human.",
+      "note": "PR #660 on branch live-catalog-words: the hold ends at the reader's own later question (review), a Codex finding answered (Fixed in 431d72e8 by claude[bot]: a held beat cue is journalled; covered by a test in 84c301a0), CI green on feebf55c. Squash-merged as 8df83ce7; deployed in release b48ef88e (release.txt b48ef88e35db, 2026-10-13), which contains it. Not accepted by a human.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "test",
+      "ref": "https://rise.syberlabs.io/live?voice=paced&measure=1",
+      "note": "Production check on release b48ef88e, headless Chromium at 1440x900, the demo reading: 'attractor' typed while the figure held the full frame; the frame went from full to shell with the attractor open in it, the bar read 'Showing the attractor.', one visual.chosen and no interjection.asked in the journal, no page errors. Screenshots kept locally (prod-words-1440x900.png, prod-words-1440x900-note.png). A scripted check, not a human acceptance.",
       "date": "2026-10-13"
     }
   ],
@@ -56,10 +62,14 @@
     {
       "date": "2026-10-13T05:47:10.551Z",
       "summary": "Review of #660: the hold ends when the reader's own later question is first answered; a new choice starts a new hold"
+    },
+    {
+      "date": "2026-10-13T06:31:32.962Z",
+      "summary": "PR #660 merged as 8df83ce7 and deployed in release b48ef88e; seen on production by a scripted check; delivery deployed, not accepted by a human"
     }
   ],
-  "updatedAt": "2026-10-13T05:47:10.551Z",
-  "revision": 3,
+  "updatedAt": "2026-10-13T06:31:32.962Z",
+  "revision": 4,
   "summary": "In RISE Live, a reader who names one of RISE's own visuals during a reading gets it at once, with no model call; RISE's own scene changes after it in that reading are held, and the next request is told.",
   "blocker": null
 }
