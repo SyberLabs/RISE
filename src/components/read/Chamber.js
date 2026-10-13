@@ -132,7 +132,7 @@ import { manifestFor } from '../../scenes/manifests.js';
 import { createFlashWatch, createSceneRuntime, SCENE_VISUAL_MANIFEST } from '../../scenes/scene-runtime.js';
 import { VisualFlashGate } from '../../core/visual-safety.js';
 import { mountSceneLayer } from './scene-layer.js';
-import { mountFigureLayer } from './figure-layer.js';
+import { hexOfColor, mountFigureLayer } from './figure-layer.js';
 import { admitSvg } from '../../core/svg-admission.js';
 import './Chamber.css';
 
@@ -2893,7 +2893,8 @@ export class Chamber {
       field,
       insertBehindReading: (host, node) => this._insertBehindReading(host, node),
       svg: cue.svg,
-      ink: colors?.text ?? null,
+      // A reading that names no theme draws its figure in its words' own ink: currentColor in an image is otherwise black.
+      ink: colors?.text ?? hexOfColor(getComputedStyle(field.querySelector('#atom-display') ?? field).color),
       onError: () => {
         failed('image', 'the figure could not be drawn as an image');
         if (this._visualFieldDirector?.active === record) this.applyScheduledVisualCue(this._sceneFallbackCue(), {});

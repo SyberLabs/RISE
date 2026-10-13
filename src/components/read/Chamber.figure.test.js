@@ -167,3 +167,15 @@ describe('the visual on screen, as the Live venue reads it (docs/plans/LIVE-CURR
     chamber.destroy();
   });
 });
+
+describe('the ink of a figure in a reading that names no theme', () => {
+  it('is the words’ own colour, so a figure drawn in currentColor is never dark on the dark ground', async () => {
+    const { chamber, container } = makeChamber();
+    container.querySelector('#atom-display').style.color = 'rgb(238, 240, 255)';
+    chamber.applyScheduledVisualCue(FIGURE, { transitionMs: 0 });
+    await settle();
+    const text = await new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(blobs[0]); });
+    expect(text).toContain('<svg color="#eef0ff" ');
+    chamber.destroy();
+  });
+});
