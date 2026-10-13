@@ -769,7 +769,7 @@ body:has(.live-venue) { background: var(--live-ground); }
   --live-faint: color-mix(in srgb, var(--live-core) 56%, var(--live-ground));
   --live-line: color-mix(in srgb, var(--live-iris) 35%, transparent);
   --live-line-lit: color-mix(in srgb, var(--live-iris) 70%, transparent);
-  --live-raised: color-mix(in srgb, var(--live-core) 5%, var(--live-ground));
+  --live-raised: color-mix(in srgb, var(--live-iris) 4%, var(--live-ground));
   /* The eye's square: as large as the room allows once the name, the line and the quiet line have theirs. */
   --eye: max(150px, min(64dvh, 86vw, 680px, 100dvh - 340px));
   color-scheme: dark;
@@ -947,9 +947,9 @@ body:has(.live-venue) { background: var(--live-ground); }
   padding: 6px;
   text-align: left;
   background: var(--live-raised);
-  border: 1px solid color-mix(in srgb, var(--live-iris) 16%, transparent);
-  border-radius: 14px;
-  box-shadow: 0 28px 64px -24px rgb(0 0 0 / 0.85);
+  border: 1px solid color-mix(in srgb, var(--live-iris) 22%, transparent);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px -16px color-mix(in srgb, var(--live-ground) 90%, transparent);
   animation: live-panel-open 200ms ease-out;
 }
 .live-venue__panel[hidden] { display: none; }
@@ -961,7 +961,8 @@ body:has(.live-venue) { background: var(--live-ground); }
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--live-faint);
+  /* The iris at the foot line's contrast: 5.1:1 or better on the panel of every skin. */
+  color: color-mix(in srgb, var(--live-iris) 72%, var(--live-ground));
 }
 .live-venue .live-venue__provider {
   display: flex;
@@ -1064,9 +1065,10 @@ body:has(.live-venue) { background: var(--live-ground); }
 @keyframes live-rise { from { opacity: 0; transform: translateY(6px); } }
 
 @media (max-width: 600px) {
-  /* The site's sign-in sits over the top corner: the face rests below it. */
-  .live-venue__face { margin-top: 36px; }
-  .live-venue { --eye: max(150px, min(64dvh, 86vw, 680px, 100dvh - 360px)); }
+  /* The eye, the name and the line are one group, centred between the top and the foot line: the free height is
+     shared equally above the face and above the foot (whose own margin is auto). */
+  .live-venue__face { margin-top: auto; }
+  .live-venue { --eye: max(150px, min(64dvh, 86vw, 680px, 100dvh - 330px)); }
   .live-venue__panel {
     position: fixed;
     top: auto;
@@ -1166,6 +1168,28 @@ body:has(.live-venue) { background: var(--live-ground); }
 
 .live-again__note { position: absolute; top: calc(100% + 6px); left: 16px; right: 16px; margin: 0; font-size: 0.85rem; line-height: 1.4; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
 .live-again__note:empty { display: none; }
+
+/* In the room, the site's sign-in is a quiet word in the corner, set like the foot line (the skin's core 56% toward
+   its ground: 5.7:1 or better on every skin). Same link, name and place; only its dress is the room's. */
+.has-rise-account:has(.live-venue) .rise-account-control {
+  min-width: 0;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  box-shadow: none;
+  color: color-mix(in srgb, var(--live-core) 56%, var(--live-ground));
+  font: 400 0.75rem/1.6 var(--sy-font-sans, sans-serif);
+  letter-spacing: 0.08em;
+  text-decoration: underline 1px transparent;
+  text-underline-offset: 5px;
+  transition: color 200ms ease, text-decoration-color 200ms ease;
+}
+.has-rise-account:has(.live-venue) .rise-account-control:is(:hover, :focus-visible) {
+  color: color-mix(in srgb, var(--live-core) 72%, var(--live-ground));
+  text-decoration-color: color-mix(in srgb, var(--live-iris) 70%, transparent);
+}
+.has-rise-account:has(.live-venue) .rise-account-control:focus-visible { outline: 1.5px solid color-mix(in srgb, var(--live-iris) 70%, transparent); outline-offset: 2px; }
 
 /* Below about 860 px the open bar reaches the top-right corner, where the account control sits: it steps aside while the bar is open. */
 @media (max-width: 860px) {
