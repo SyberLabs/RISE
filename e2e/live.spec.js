@@ -1003,7 +1003,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         // From the shell, “genesis” opens the full frame as soon as the shell has closed (1.6 s), not at the next phrase.
         await field.fill('genesis');
         await field.press('Enter');
-        await expect(page.locator('.live-again__note')).toHaveText('Showing the genesis.');
+        await expect(page.locator('.live-again__note')).toHaveText('Showing Genesis.');
         await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.frame), { timeout: 2_500 }).toBe('full');
         await expect(page.locator('#chamber-field .chamber-genesis')).toBeAttached();
         await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.wipe?.hole ?? 0), { timeout: 5_000 }).toBe(1);

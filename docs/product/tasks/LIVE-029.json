@@ -60,6 +60,12 @@
       "kind": "test",
       "ref": "src/live/runtime.catalog.test.js",
       "note": "Branch live-catalog-frame-switch, commit c5ad86c6: a catalog word typed while held now reaches the screen at once. Cause: the chosen engine was placed on the phrase already on screen, but the visual schedule takes a cue only when the Player shows an atom, so the change waited for the next phrase (genesis and fractal under the attractor: the shell and the attractor stayed seconds, 12 s on one measured run; every engine alike). Fix: src/core/visual-scheduler.js extend shows the atom on screen the cue the longer program gives it. Local: npx vitest run src/live/runtime.catalog.test.js, 21 passed (10 new, one per named engine: attractor, genesis, living-flame, fractal, turrell, neural, rockgarden, harmonograph, ostensoria, apparitio, chosen in a 9 s hold; cue on screen within 50 ms, the frame open and at rest within the two frames transition times; all 10 failed before the fix); src/core/visual-scheduler.test.js 17 passed; npx playwright test e2e/live.spec.js -g \"catalog words\" passed with genesis from the shell reaching the full frame within 2.5 s (failed before the fix: frame stayed shell). Not merged, deployed or accepted by a human."
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/671",
+      "note": "Branch catalog-note-names, code at f9df3a05: the bar's note names each engine as the Reader's catalog does, a proper name without \"the\" (Genesis, Turrell Fields, Ostensoria, Apparitio) and a common noun with it (the attractor, the harmonograph, the fractal, the living flame, the rock garden, the neural network); the same names go up with the reader's next words. Local: catalog-words every-engine note test (red before), catalog-words importers 3 files 109 passed, venue tests, fast set 125 files, e2e catalog words passed; ci-hygiene, vite build, first load within budget. Not merged yet; not accepted by a human.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
@@ -86,10 +92,14 @@
     {
       "date": "2026-10-13T09:21:02.930Z",
       "summary": "A catalog word reaches the screen at once, not at the next phrase (branch live-catalog-frame-switch)"
+    },
+    {
+      "date": "2026-10-13T11:31:16.560Z",
+      "summary": "PR #671: the catalog note names engines as the Reader's catalog does; not merged"
     }
   ],
-  "updatedAt": "2026-10-13T09:21:02.930Z",
-  "revision": 6,
+  "updatedAt": "2026-10-13T11:31:16.560Z",
+  "revision": 7,
   "summary": "In RISE Live, a reader who names one of RISE's own visuals during a reading gets it at once, with no model call; RISE's own scene changes after it in that reading are held, and the next request is told.",
   "blocker": null
 }

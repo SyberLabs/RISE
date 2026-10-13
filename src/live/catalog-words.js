@@ -33,8 +33,19 @@ const ALIASES = Object.freeze([
 /** The words around a request that ask for nothing themselves. */
 const FILLER = Object.freeze(['show me', 'show', 'the', 'a', 'an', 'visual', 'now', 'please', 'make it', 'switch to', 'go to', 'can you', 'use']);
 
-/** An engine as the reader is told it is shown; the rest are `the <id>`, its hyphens as spaces. */
-const NAMES = Object.freeze({ rockgarden: 'the rock garden' });
+/**
+ * An engine as the reader is told it is shown, as the Reader's catalog names it (src/core/visual-registry.js): a
+ * proper name without "the" (Genesis, Turrell Fields, Ostensoria, Apparitio); the rest are `the <id>`, its hyphens as
+ * spaces.
+ */
+const NAMES = Object.freeze({
+    genesis: 'Genesis',
+    turrell: 'Turrell Fields',
+    ostensoria: 'Ostensoria',
+    apparitio: 'Apparitio',
+    neural: 'the neural network',
+    rockgarden: 'the rock garden'
+});
 
 /** A cue as the reader is told it was taken. */
 export const CUE_SAID = Object.freeze({ calm: 'calmer', bright: 'brighter', warm: 'warmer', cool: 'cooler', surge: 'surging' });
@@ -119,7 +130,7 @@ export function recogniseVisual(words, { running = null } = {}) {
     return Object.hasOwn(cued, cue) ? { engine, params: { ...params, ...cued[cue] }, cue } : null;
 }
 
-/** An engine in the reader's words: `the attractor`, `the living flame`. */
+/** An engine in the reader's words: `the attractor`, `the living flame`, `Genesis`. */
 export function catalogName(engine) {
     return NAMES[engine] ?? `the ${phrase(engine)}`;
 }
