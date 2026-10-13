@@ -64,13 +64,13 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/661",
-      "note": "Branch live-full-frame-fit: in the full frame a figure or a generated code scene is fitted, aspect kept, into the room’s safe rectangle (12 px below the bar and the docked face to 12 px above the words’ two reserved lines, 16 px in from the sides; frameGeometry fit, holdsContent), fields, textures and images full-bleed as before; a listening scene’s pointer is mapped to its own CSS pixels at any scale. Local: 9 vitest files, 366 passed; e2e/live.spec.js \"the frames\" 3 passed (the figure wholly between the bar’s foot and the words’ zone) and \"interactive scenes\" 4 passed (Weight 1 pressed at the fitted scale gives -1); docs:diagram unchanged, ci-hygiene clean, first load 62.2 KB br of 64.0. Renders kept by the coordinator: frames-renders/fit-horizon, fit-disk, fit-water, fit-code, fit-genesis at 1440x900 and 390x844. Not merged, deployed or accepted by a human.",
+      "note": "Branch live-full-frame-fit: in the full frame a figure or a generated code scene is fitted, aspect kept, into the room’s safe rectangle (12 px below the bar and the docked face to 12 px above the words’ two reserved lines, 16 px in from the sides; frameGeometry fit, holdsContent), fields, textures and images full-bleed as before; a listening scene’s pointer is mapped to its own CSS pixels at any scale. Local: 9 vitest files, 366 passed; e2e/live.spec.js \"the frames\" 3 passed (the figure wholly between the bar’s foot and the words’ zone) and \"interactive scenes\" 4 passed (Weight 1 pressed at the fitted scale gives -1); docs:diagram unchanged, ci-hygiene clean, first load 62.2 KB br of 64.0. Renders kept by the coordinator: frames-renders/fit-horizon, fit-disk, fit-water, fit-code, fit-genesis at 1440x900 and 390x844. Merged as 23a40081; deployed (release.txt b48ef88e, which contains it, 2026-10-13). Not accepted by a human.",
       "date": "2026-10-13"
     },
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/663",
-      "note": "Branch live-fit-feather, after #661 (merged as 23a40081): a fitted generated scene’s canvas carries a rectangular feather under the fit marker (two linear-gradient masks over 6% of its box, intersected), held with the marker through an outgoing scene’s 1200 ms fade; the touch regions keep their exact box, unmasked; a figure, a transparent image whose label sits in its box’s bottom 6%, is not feathered. Local: venue, stage-controls, LiveHost, system-design 297 passed; e2e/live.spec.js \"the frames|interactive scenes\" 7 passed; edge of the demo disk scene in renders: luma step 0.93 (1440x900) and 0.59 (390x844), blue channel step 0.1 (7.5 before). Renders kept by the coordinator: frames-renders/feather-disk and feather-horizon at both sizes. Not merged, deployed or accepted by a human.",
+      "note": "Branch live-fit-feather, after #661 (merged as 23a40081): a fitted generated scene’s canvas carries a rectangular feather under the fit marker (two linear-gradient masks over 6% of its box, intersected), held with the marker through an outgoing scene’s 1200 ms fade; the touch regions keep their exact box, unmasked; a figure, a transparent image whose label sits in its box’s bottom 6%, is not feathered. Local: venue, stage-controls, LiveHost, system-design 297 passed; e2e/live.spec.js \"the frames|interactive scenes\" 7 passed; edge of the demo disk scene in renders: luma step 0.93 (1440x900) and 0.59 (390x844), blue channel step 0.1 (7.5 before). Renders kept by the coordinator: frames-renders/feather-disk and feather-horizon at both sizes. Merged as b48ef88e; deployed (release.txt b48ef88e, 2026-10-13). Not accepted by a human.",
       "date": "2026-10-13"
     }
   ],
@@ -94,10 +94,14 @@
     {
       "date": "2026-10-13T06:12:02.919Z",
       "summary": "PR #663 opened: a fitted generated scene's edges dissolve into the room"
+    },
+    {
+      "date": "2026-10-13T06:37:07.849Z",
+      "summary": "#661 merged as 23a40081 and #663 as b48ef88e, both live in release b48ef88e (2026-10-13); not accepted by a human"
     }
   ],
-  "updatedAt": "2026-10-13T06:12:02.919Z",
-  "revision": 5,
+  "updatedAt": "2026-10-13T06:37:07.849Z",
+  "revision": 6,
   "summary": "Every visual of a Live reading held by Sophia in one of three frames (inner eye, outer shell, full frame), the visual choosing which; she never leaves the room.",
   "blocker": null
 }

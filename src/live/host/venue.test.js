@@ -694,7 +694,10 @@ describe('catalog words: the reader names one of RISE’s own visuals (§25)', (
             expect(host.venue.usage.requests).toEqual({ answer: 0, interject: 0, illustrate: 0, dive: 0 });
             runtime.set('live');
             expect(note()).toBe('Showing the attractor.');
-            vi.advanceTimersByTime(4_000);
+            // With no frames to follow (no animation frames here), the note stays a short beat after the switch.
+            vi.advanceTimersByTime(1_400);
+            expect(note()).toBe('Showing the attractor.');
+            vi.advanceTimersByTime(100);
             expect(note()).toBe('');
         } finally {
             vi.useRealTimers();
@@ -1012,11 +1015,86 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         crank(2000);
         expect(root().dataset.liveFrame).toBe('full');
         const geometry = engine().places.at(-1);
-        // jsdom lays nothing out, so the bar has no box: the dock is its place without one, at the top left.
+        // jsdom lays nothing out, so the bar has no box and the stage no instrument: the dock is at the left end of the
+        // bar's place at the room's foot, 80 px for the instrument and 8 px above it.
         expect(geometry.small).toBe(1);
         expect(geometry.face.x).toBeCloseTo(40, 9);
-        expect(geometry.face.y).toBeCloseTo(40, 9);
+        expect(geometry.face.y).toBeCloseTo(window.innerHeight - 88 - 27, 9);
         expect(geometry.wipe).toMatchObject({ hole: 1 });
+    });
+
+    it('has no ask bar before a question: the entry keeps its own question, where it was', () => {
+        mount('?voice=paced');
+        expect($('.live-again')).toBeNull();
+        expect(question()).not.toBeNull();
+        expect(root().style.getPropertyValue('--live-bar-foot')).toBe('');
+    });
+
+    it('places the ask bar at the room’s foot, above the instrument, the words above the bar', async () => {
+        const { crank } = await room(null);
+        crank(16);
+        expect($('.live-again')).not.toBeNull();
+        expect(root().style.getPropertyValue('--live-bar-foot')).toBe('88px');
+        // The words' foot: above the bar's top (88 + 54 from the foot) and a line for the bar's note.
+        expect(root().style.getPropertyValue('--live-words-foot')).toBe(`${88 + 54 + 32}px`);
+        await host.venue.leave();
+        expect(root().style.getPropertyValue('--live-bar-foot')).toBe('');
+    });
+
+    it('keeps a catalog word’s note until the frame has opened onto the visual it named, then a short beat more', async () => {
+        const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        crank(1700);
+        const note = () => $('.live-again__note').textContent;
+        askAgain('genesis');
+        expect(note()).toBe('Showing the genesis.');
+        // The attractor is still on screen: the note waits for the visual it named.
+        crank(2000);
+        expect(note()).toBe('Showing the genesis.');
+        chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+        // The shell closes (1.6 s) and the full frame opens (1.9 s): the note stays through all of it.
+        let opened = 0;
+        while (engine().places.at(-1)?.wipe?.hole !== 1 && opened < 6000) { crank(16); opened += 16; }
+        expect(opened).toBeGreaterThan(3000);
+        expect(note()).toBe('Showing the genesis.');
+        crank(1400);
+        expect(note()).toBe('Showing the genesis.');
+        crank(200);
+        expect(note()).toBe('');
+    });
+
+    it('under reduced motion, lets a catalog word’s note go a short beat after the switch', async () => {
+        root().classList.add('reduced-motion');
+        try {
+            const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+            crank(32);
+            const note = () => $('.live-again__note').textContent;
+            askAgain('genesis');
+            chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+            crank(1400);
+            expect(note()).toBe('Showing the genesis.');
+            crank(200);
+            expect(note()).toBe('');
+        } finally {
+            root().classList.remove('reduced-motion');
+        }
+    });
+
+    it('lifts the bar above an on-screen keyboard while its field has focus, and lets it down after', async () => {
+        const { crank } = await room(null);
+        Object.defineProperty(window, 'visualViewport', { configurable: true, value: { height: window.innerHeight - 300, offsetTop: 0 } });
+        try {
+            crank(16);
+            expect(root().style.getPropertyValue('--live-bar-foot')).toBe('88px');
+            $('#live-again-question').focus();
+            crank(16);
+            expect(root().style.getPropertyValue('--live-bar-foot')).toBe('308px');
+            expect(root().style.getPropertyValue('--live-words-foot')).toBe(`${308 + 54 + 32}px`);
+            $('#live-again-question').blur();
+            crank(16);
+            expect(root().style.getPropertyValue('--live-bar-foot')).toBe('88px');
+        } finally {
+            delete window.visualViewport;
+        }
     });
 
     it('fits a figure in the full frame into the safe rectangle, and leaves a field there full-bleed', async () => {

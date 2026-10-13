@@ -27,11 +27,11 @@ import { connectionState, subscribeConnection, takeConnectionNotice } from '../.
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
-import { createFrameDirector, frameGeometry, frameOf, holdsContent, roomLayout, visualTransform } from './frames.js';
+import { createFrameDirector, frameGeometry, frameOf, holdsContent, roomLayout, visualOf, visualTransform } from './frames.js';
 import { catalogNote, recogniseVisual } from '../catalog-words.js';
 
-/** How long the bar says what a reader's catalog word showed. */
-const CHOSEN_NOTE_MS = 4_000;
+/** How long the bar still says what a reader's catalog word showed once the room is at rest on it. */
+const CHOSEN_BEAT_MS = 1_500;
 
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
@@ -92,6 +92,8 @@ export class LiveVenue {
         // What the bar says of a visual the reader named (showChosen), until its timer lets it go.
         this.chosenNote = null;
         this.chosenTimer = 0;
+        // The visual a catalog word named, while its note waits for the room to come to rest on it, then the beat's end.
+        this.chosenWait = null;
         this.destroyed = false;
         // The face: its element, its engine once loaded, whether the last question failed, and (?measure=1) its states.
         const saved = host.getSettings?.()?.liveFace;
@@ -479,8 +481,9 @@ export class LiveVenue {
 
     /**
      * Words that only name one of RISE's own visuals (catalog-words.js, docs/plans/LIVE-CURRENT.md §25): shown at once
-     * by the runtime, the reading taken up again, with no request and nothing counted; the bar says what is shown for a
-     * few seconds. Whether they were: anything else, or what the reading cannot show, is asked of the model as before.
+     * by the runtime, the reading taken up again, with no request and nothing counted; the bar says what is shown until
+     * the room's frame has opened onto it (frameStep), and a short beat more; with no frames to follow, a short beat
+     * after the switch. Whether they were: anything else, or what the reading cannot show, is asked of the model as before.
      */
     showChosen(runtime, words) {
         const chosen = recogniseVisual(words, { running: runtime.visualEngine?.() ?? null });
@@ -493,12 +496,17 @@ export class LiveVenue {
         this.chosenNote = catalogNote(chosen);
         const win = this.doc.defaultView;
         win.clearTimeout(this.chosenTimer);
-        this.chosenTimer = win.setTimeout(() => {
-            this.chosenNote = null;
-            this.paint();
-        }, CHOSEN_NOTE_MS);
+        this.chosenWait = null;
+        if (this.framing) this.chosenWait = { engine: chosen.engine, until: null };
+        else this.chosenTimer = win.setTimeout(() => this.letChosenGo(), CHOSEN_BEAT_MS);
         this.paint();
         return true;
+    }
+
+    letChosenGo() {
+        this.chosenWait = null;
+        this.chosenNote = null;
+        this.paint();
     }
 
     /** The reader's words, asked inside the reading, with what they did in it since RISE last spoke. */
@@ -554,6 +562,7 @@ export class LiveVenue {
         await this.letGo();
         this.usage = emptyUsage();
         this.chosenNote = null;
+        this.chosenWait = null;
         try {
             const runtime = await host.buildRuntime();
             if (this.destroyed) {
@@ -805,22 +814,31 @@ export class LiveVenue {
     }
 
     /**
-     * Where the words sit and the face's square ends, for this room: the words at the foot, just above the stage's
-     * instrument, at most two lines of a size the room sets (LiveHost.css reads both from the root).
+     * The room's layout from its foot up (roomLayout): what is measured here is only the stage's instrument, the bar's
+     * box and its note, and how much of the room an on-screen keyboard covers while the bar's field has focus (the
+     * visual viewport's foot above the window's). LiveHost.css places the bar and the words from the root's
+     * --live-bar-foot, --live-words-foot and --live-words-size.
      */
     measureRoom() {
         const win = this.doc.defaultView;
         const width = win.innerWidth;
         const height = win.innerHeight;
-        const size = width < 640 ? 26 : 34;
         const instrument = this.doc.querySelector('.rise-stage__bar')?.getBoundingClientRect();
-        const foot = instrument?.height ? height - instrument.top + 10 : width < 640 ? 76 : 90;
-        const root = this.doc.documentElement.style;
-        if (root.getPropertyValue('--live-words-foot') !== `${foot}px`) root.setProperty('--live-words-foot', `${foot}px`);
-        if (root.getPropertyValue('--live-words-size') !== `${size}px`) root.setProperty('--live-words-size', `${size}px`);
         const box = this.bar && !this.bar.hidden ? this.bar.getBoundingClientRect() : null;
-        const bar = box?.width ? { left: box.left, top: box.top, width: box.width, height: box.height } : null;
-        return roomLayout({ width, height, bar, wordsTop: height - foot - 2 * 1.4 * size });
+        const viewport = win.visualViewport;
+        const typing = viewport && this.bar && this.doc.activeElement === this.bar.elements.question;
+        const layout = roomLayout({
+            width, height,
+            instrumentTop: instrument?.height ? instrument.top : undefined,
+            bar: box?.width ? { left: box.left, width: box.width, height: box.height } : null,
+            keyboard: typing ? Math.max(0, height - viewport.height - viewport.offsetTop) : 0,
+            note: this.bar?.querySelector('.live-again__note')?.getBoundingClientRect().height ?? 0
+        });
+        const root = this.doc.documentElement.style;
+        for (const [name, value] of [['--live-bar-foot', layout.barFoot], ['--live-words-foot', layout.wordsFoot], ['--live-words-size', layout.wordsSize]]) {
+            if (root.getPropertyValue(name) !== `${value}px`) root.setProperty(name, `${value}px`);
+        }
+        return layout;
     }
 
     /**
@@ -852,7 +870,7 @@ export class LiveVenue {
         framing.view.cancelAnimationFrame?.(framing.raf);
         this.doc.defaultView.removeEventListener('pointermove', framing.point);
         this.unframe();
-        for (const name of ['--live-words-foot', '--live-words-size']) this.doc.documentElement.style.removeProperty(name);
+        for (const name of ['--live-bar-foot', '--live-words-foot', '--live-words-size']) this.doc.documentElement.style.removeProperty(name);
         this.faceEngine?.place?.(null);
     }
 
@@ -885,19 +903,20 @@ export class LiveVenue {
             }
         }
         const { frame, a, cut } = framing.director.at(framing.clock);
+        // A catalog word's note: kept until the visual it named is on screen and the room is at rest on it, then a beat.
+        const wait = this.chosenWait;
+        if (wait?.until === null && visualOf(framing.cue) === wait.engine && framing.director.settled(framing.clock)) wait.until = framing.clock + CHOSEN_BEAT_MS;
+        else if (wait && wait.until !== null && framing.clock >= wait.until) this.letChosenGo();
+        const layout = this.measureRoom();
         // A face that is not drawing frames nothing: a visual is the room's, full-bleed, and the still eye steps aside;
         // with none, the still eye is the room, the words at its foot.
         if (this.face.dataset.faceDrawn !== 'true') {
             framing.geometry = null;
             this.unframe();
             if (frameOf(framing.cue)) this.face.dataset.faceAside = 'true';
-            else {
-                this.measureRoom();
-                this.doc.documentElement.dataset.liveFrame = 'none';
-            }
+            else this.doc.documentElement.dataset.liveFrame = 'none';
             return;
         }
-        const layout = this.measureRoom();
         const geometry = frameGeometry({ frame, a, cut, layout, content: holdsContent(framing.cue) || framing.clock < framing.fitUntil });
         framing.geometry = geometry;
         const move = visualTransform(geometry, layout);

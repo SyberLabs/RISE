@@ -41,7 +41,7 @@ const DOCK = 48;
  * The table's key for a cue as the Chamber has it on screen: a field by its renderer, a pattern by its engine, a
  * figure or a generated scene by its kind. A still draws nothing in a Live reading, so it is no visual. Null for none.
  */
-function visualOf(cue) {
+export function visualOf(cue) {
     if (!cue || typeof cue !== 'object' || cue.kind === 'still') return null;
     if (cue.kind === 'field') return cue.renderer ?? null;
     if (cue.kind === 'procedural') return cue.collections?.[0] ?? null;
@@ -131,32 +131,55 @@ export function createFrameDirector({ reduced = false } = {}) {
                 }
             }
             return { frame, a: frame === 'none' ? 0 : aperture(now), cut };
+        },
+
+        /** Whether, as `at` last left it, the room is at rest on the visual last seen: nothing pending, no cut, open. */
+        settled(now) {
+            return pending === null && cutStart < 0 && (frame === 'none' || (tween.to === 1 && aperture(now) === 1));
         }
     };
 }
 
+/** The ask bar's height when it has no box yet: a 44 px field in 4 px of padding and a 1 px border. */
+const BAR = 54;
+/** One line of the bar's note (0.85rem at 1.4), kept between the bar and the words, 6 px from each. */
+const NOTE = 20;
+/** The foot of the corner's sign-in link (10 px down, 44 px tall), which a fitted picture stays 12 px below. */
+const CORNER = 54;
+
 /**
- * The room as the face sees it: its square between the ask bar and the words (the eye at its centre, the circle
- * frames inside it), the dock at the bar's left end, where the words begin, the distance from the square's centre to
- * the farthest corner, which the full frame's aperture must pass, and the safe rectangle (centre and size) a picture
- * with content is fitted into in the full frame: 16 px in from the sides, 12 px below the bar and the docked face,
- * 12 px above the words' zone. The words' zone is the two lines the venue reserves, so the rectangle does not move
- * with the words.
- * @param {{width: number, height: number, bar: {left: number, top: number, width: number, height: number}|null, wordsTop: number}} room
+ * The room from its foot up, as the venue lays it out and the face sees it: the stage's instrument at the foot; the
+ * ask bar 8 px above it (or 8 px above an on-screen keyboard that reaches higher); a line for the bar's note; the
+ * spoken words' zone, two lines of the room's size; and above them, from 16 px down to 12 px above the words' zone,
+ * the face's square (the eye at its centre, the circle frames inside it). The dock is the slot at the bar's left end,
+ * centred on the bar. `far` is the distance from the square's centre to the farthest corner, which the full frame's
+ * aperture must pass. The safe rectangle (centre and size) is where a picture with content is fitted in the full
+ * frame: 16 px in from the sides, 12 px below the corner's link, 12 px above the words' zone, so it is clear of the
+ * words, the bar and the docked face, and does not move with the words.
+ *
+ *   barFoot, barTop     the bar's distance from the room's foot, and its top edge
+ *   wordsFoot           the words' distance from the room's foot; wordsSize their size; wordsTop their zone's top
+ *
+ * @param {{width: number, height: number, instrumentTop?: number, bar: {left: number, width: number, height: number}|null,
+ *   keyboard?: number, note?: number}} room  the instrument's top edge (by default where the stage puts it), the bar's
+ *   box (null with none on screen: its place is kept, so nothing moves when it comes), how much of the room's foot an
+ *   on-screen keyboard covers, and the height of the bar's note while it says something
  */
-export function roomLayout({ width, height, bar, wordsTop }) {
-    // Without a bar, where the bar's foot would be (16 px down, 54 px tall), so the face does not move when it comes.
-    const top = bar ? bar.top + bar.height + 12 : 82;
+export function roomLayout({ width, height, instrumentTop = height - (width < 640 ? 68 : 80), bar, keyboard = 0, note = 0 }) {
+    const barBottom = Math.min(instrumentTop - 8, keyboard > 0 ? height - keyboard - 8 : Infinity);
+    const barTop = barBottom - (bar?.height || BAR);
+    const wordsFoot = height - barTop + 6 + Math.max(NOTE, note) + 6;
+    const wordsSize = width < 640 ? 26 : 34;
+    const wordsTop = height - wordsFoot - 2 * 1.4 * wordsSize;
+    const top = 16;
     const bottom = wordsTop - 12;
     const s = Math.max(80, Math.min(width - 32, bottom - top));
     const big = { x: width / 2, y: top + (bottom - top) / 2, s };
-    const dock = bar
-        ? { x: bar.left - 8 - DOCK / 2, y: bar.top + bar.height / 2, s: DOCK * 1.15 }
-        : { x: 16 + DOCK / 2, y: 16 + DOCK / 2, s: DOCK * 1.15 };
+    const dock = { x: bar ? bar.left - 8 - DOCK / 2 : 16 + DOCK / 2, y: (barTop + barBottom) / 2, s: DOCK * 1.15 };
     const far = Math.max(...[[0, 0], [width, 0], [0, height], [width, height]].map(([x, y]) => Math.hypot(x - big.x, y - big.y)));
-    const safeTop = Math.max(top, dock.y + dock.s / 2 + 12);
+    const safeTop = Math.max(top, CORNER + 12);
     const safe = { x: width / 2, y: (safeTop + bottom) / 2, w: Math.max(0, width - 32), h: Math.max(0, bottom - safeTop) };
-    return { width, height, big, dock, wordsTop, far, safe };
+    return { width, height, barFoot: height - barBottom, barTop, wordsFoot, wordsSize, wordsTop, big, dock, far, safe };
 }
 
 /**

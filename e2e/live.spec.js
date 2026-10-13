@@ -759,22 +759,34 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         // Opening over its own time: about 1.9 s from the eye to past every corner, passing through the middle.
         expect(full.some(entry => entry.hole > 0.3 && entry.hole < 0.7)).toBe(true);
         expect(full.at(-1).at - full[0].at).toBeGreaterThan(1_500);
-        const { face } = full.at(-1);
+        await expectFullFrameLaidOut(page, full.at(-1).face);
+        expect(errors).toEqual([]);
+    });
+
+    /**
+     * The room in the full frame, from its foot up: the instrument, the ask bar above it, the words above the bar, the
+     * fitted figure above the words; the face docked at the bar's left end.
+     */
+    async function expectFullFrameLaidOut(page, face) {
+        const viewport = page.viewportSize();
         const bar = await page.locator('.live-again').boundingBox();
+        const instrument = await page.locator('.rise-stage__bar').boundingBox();
+        expect(bar.y).toBeGreaterThan(viewport.height / 2);
+        expect(bar.y + bar.height).toBeLessThanOrEqual(instrument.y);
         expect(face.s).toBeCloseTo(48 * 1.15, 6);
         expect(face.x).toBeLessThan(bar.x);
         expect(bar.x - face.x).toBeLessThan(40);
+        expect(face.x - face.s / 2).toBeGreaterThanOrEqual(0);
         expect(Math.abs(face.y - (bar.y + bar.height / 2))).toBeLessThan(2);
         expect(await page.evaluate(() => document.documentElement.dataset.liveFrame)).toBe('full');
-        // The figure has content of its own: it is fitted, aspect kept, wholly between the bar's foot and the top of
-        // the two lines the words' zone keeps at the room's foot, so its own labels are clear of the words.
+        // The figure has content of its own: it is fitted, aspect kept, wholly between the room's top and the top of
+        // the two lines the words' zone keeps above the bar, so its own labels are clear of the words and the bar.
         const figure = await page.locator('#chamber-field img.chamber-figure').boundingBox();
-        const viewport = page.viewportSize();
         const zoneTop = await page.evaluate(() => {
             const root = getComputedStyle(document.documentElement);
             return innerHeight - parseFloat(root.getPropertyValue('--live-words-foot')) - 2 * 1.4 * parseFloat(root.getPropertyValue('--live-words-size'));
         });
-        expect(figure.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+        expect(figure.y).toBeGreaterThanOrEqual(0);
         expect(figure.y + figure.height).toBeLessThanOrEqual(zoneTop);
         expect(figure.x + figure.width / 2).toBeCloseTo(viewport.width / 2, 0);
         expect(figure.width / figure.height).toBeCloseTo(viewport.width / viewport.height, 2);
@@ -786,7 +798,83 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
             return style.maskImage || style.webkitMaskImage;
         });
         expect(mask).toBe('none');
+        expect(words.y + words.height).toBeLessThanOrEqual(bar.y);
+    }
+
+    /** The ask bar at the room's foot: above the instrument, the words above it, clear of the corner's sign-in link. */
+    async function expectBarAtFoot(page) {
+        const viewport = page.viewportSize();
+        const bar = await page.locator('.live-again').boundingBox();
+        const instrument = await page.locator('.rise-stage__bar').boundingBox();
+        const words = await page.locator('#atom-display').boundingBox();
+        const link = await page.locator('.rise-account-control').boundingBox();
+        expect(bar.y).toBeGreaterThan(viewport.height / 2);
+        expect(bar.y + bar.height).toBeLessThanOrEqual(instrument.y);
+        expect(words.y + words.height).toBeLessThanOrEqual(bar.y);
+        expect(link.y + link.height).toBeLessThan(bar.y);
+        return bar;
+    }
+
+    test('the ask bar: at the room’s foot above the instrument, the words above it; an interjection typed there holds the reading', async ({ page }) => {
+        test.setTimeout(60_000);
+        const errors = watchErrors(page);
+        await page.goto(VENUE);
+        // Before a question the entry keeps its own question; there is no bar.
+        await expect(page.locator('#live-venue-question')).toBeVisible();
+        await expect(page.locator('.live-again')).toHaveCount(0);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        await expectBarAtFoot(page);
+        const field = page.locator('#live-again-question');
+        await field.pressSequentially('Wait');
+        // Open while the reading is held: the reader is speaking into it.
+        await expect(page.locator('.live-again')).toHaveAttribute('data-open', 'true');
+        await expectBarAtFoot(page);
         expect(errors).toEqual([]);
+    });
+
+    test.describe('on a phone', () => {
+        test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+        test('the frames: a figure takes the full frame, the face docked at the bar’s left end, the figure above the words, the words above the bar', async ({ page }) => {
+            test.setTimeout(90_000);
+            const errors = watchErrors(page);
+            await page.goto(`${VENUE}&measure=1`);
+            await expect.poll(() => page.evaluate(() => window.__riseFace?.drawn() ?? false), { timeout: 15_000 }).toBe(true);
+            await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+            await page.locator('#live-venue-question').press('Enter');
+            await expectShown(page, 'A black hole is a region of space');
+            await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.wipe?.hole ?? 0), { timeout: 25_000 }).toBe(1);
+            await expectFullFrameLaidOut(page, await page.evaluate(() => window.__riseFace.frame().face));
+            expect(errors).toEqual([]);
+        });
+
+        test('the ask bar: clear of the sign-in link, and above an on-screen keyboard while its field has focus', async ({ page }) => {
+            test.setTimeout(60_000);
+            const errors = watchErrors(page);
+            await page.goto(VENUE);
+            await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+            await page.locator('#live-venue-question').press('Enter');
+            await expectShown(page, 'A black hole is a region of space');
+            const resting = await expectBarAtFoot(page);
+            // A keyboard 336 px tall, as the visual viewport reports one: Playwright opens no real keyboard.
+            await page.evaluate(() => Object.defineProperty(window.visualViewport, 'height', { configurable: true, get: () => innerHeight - 336 }));
+            const field = page.locator('#live-again-question');
+            await field.focus();
+            await expect.poll(async () => {
+                const box = await page.locator('.live-again').boundingBox();
+                return box.y + box.height;
+            }).toBeLessThanOrEqual(844 - 336);
+            await expect(field).toBeInViewport();
+            const lifted = await page.locator('.live-again').boundingBox();
+            const words = await page.locator('#atom-display').boundingBox();
+            expect(words.y + words.height).toBeLessThanOrEqual(lifted.y);
+            expect(words.y).toBeGreaterThanOrEqual(0);
+            await field.blur();
+            await expect.poll(async () => (await page.locator('.live-again').boundingBox()).y).toBeCloseTo(resting.y, 0);
+            expect(errors).toEqual([]);
+        });
     });
 
     test('the frames under reduced motion: every change at once, no blinks, the face still drawn and never hidden', async ({ page }) => {
@@ -831,6 +919,10 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(page.locator('.live-again__note')).toHaveText('Showing the attractor.');
         await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.frame), { timeout: 10_000 }).toBe('shell');
         await expect(page.locator('#chamber-field .chamber-attractor')).toBeAttached();
+        // The note stays until the shell has opened onto the attractor, and goes a short beat (1.5 s) after.
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.aperture?.hole ?? 0), { timeout: 10_000 }).toBe(1);
+        await expect(page.locator('.live-again__note')).toHaveText('Showing the attractor.');
+        await expect(page.locator('.live-again__note')).toHaveText('', { timeout: 3_000 });
         expect((await journal()).filter(entry => entry.type === 'visual.chosen')).toEqual([expect.objectContaining({ engine: 'attractor' })]);
         // The reading goes on to its end with the reader's choice: the disk the demo starts later is held, and no
         // request was opened for the words.
