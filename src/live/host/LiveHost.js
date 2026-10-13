@@ -1480,6 +1480,8 @@ export class LiveHost {
     }
 
     activate() {
+        // The router activates after its fade-in; a reader who has already moved into the room keeps the focus there.
+        if (this.container.contains(this.container.ownerDocument.activeElement)) return;
         this.container.querySelector('#live-prompt, #live-venue-question')?.focus({ preventScroll: true });
     }
 
