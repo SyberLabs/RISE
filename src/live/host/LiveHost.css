@@ -1250,6 +1250,17 @@ body:has(.live-venue) { background: var(--live-ground); }
   transition: opacity 400ms ease;
 }
 .live-face--room .live-face__canvas { pointer-events: none; }
+/* The still eye stays a poster in the room, its square fading to nothing before its rim, as it was before the canvas
+   took the whole room: it is the face only until the engine draws, or where the engine cannot. */
+.live-face--room .live-face__still {
+  inset: 50% auto auto 50%;
+  width: min(92vw, 70vh, 760px);
+  height: auto;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  -webkit-mask-image: radial-gradient(closest-side, #000 76%, transparent);
+  mask-image: radial-gradient(closest-side, #000 76%, transparent);
+}
 .live-face[data-face-drawn="true"] .live-face__canvas { opacity: 1; }
 .live-face[data-face-drawn="true"] .live-face__still { opacity: 0; visibility: hidden; transition: opacity 400ms ease, visibility 0s linear 400ms; }
 
