@@ -642,6 +642,8 @@ export class VisualCortex {
             if (cue.collections.includes('apparitio')) {
                 proceduralConfig.apparitioPalette = cue.config?.palette || 'auto';
             }
+            const pendulumsChanged = 'harmonographPendulums' in proceduralConfig
+                && proceduralConfig.harmonographPendulums !== this.config.harmonographPendulums;
             const styleChanged = Object.keys(proceduralConfig)
                 .some(key => proceduralConfig[key] !== this.config[key]);
             const poolUnchanged = cue.collections.length === this.config.activeTypes.length
@@ -660,6 +662,7 @@ export class VisualCortex {
             if (styleChanged && poolUnchanged && this._continuousField?.running) {
                 this._notifyContinuousPoolChanged();
             }
+            if (pendulumsChanged) this._harmonographField?.rotateNow();
             return;
         }
         // Leaving a procedural cue leaves its figure behind with it.

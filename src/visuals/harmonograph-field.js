@@ -263,6 +263,13 @@ export class HarmonographField {
         this._active = this._planes.indexOf(incoming);
     }
 
+    /** Crossfade to a fresh figure now, so a start-only parameter applies at once. */
+    rotateNow() {
+        if (!this.running || this.paused) return;
+        this._rotate(false);
+        this._nextRotateAt = performance.now() + this._planeDwellMs();
+    }
+
     _advance(plane, dt) {
         if (!plane?.engine) return;
         let remaining = dt;

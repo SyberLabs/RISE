@@ -818,6 +818,11 @@ const stage = {
       };
     });
     painter.field.pause();
+    if (config.trace === 'swarm') {
+      // A paused field holds its clock; a sample renders the swarm at the score's time.
+      painter.field.sampleAt(ctx.elapsedMs / 1000);
+      return;
+    }
     painter.field.tick(painter.field.t0 + ctx.elapsedMs);
     painter.field.pause();
   },
