@@ -11,6 +11,7 @@
  * While a reading plays, the reader may speak into it (the interjection, docs/plans/LIVE-CURRENT.md §17): the
  * microphone, or a first letter typed in the bar's small field, holds the reading at once; Enter asks inside the room;
  * Escape, or Play, takes it back. A reading paused with Play, or one that has ended, is asked again as a new reading.
+ * Words asked inside the room that only name one of RISE's own visuals are shown at once, with no request (§24).
  *
  * RISE's face (docs/plans/LIVE-CURRENT.md §22) is the room's resting picture: in the entry before a question, and in
  * the room for the whole of every reading, holding each visual the reading shows in one of three frames, the visual
@@ -27,6 +28,10 @@ import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
 import { createFrameDirector, frameGeometry, frameOf, roomLayout, visualTransform } from './frames.js';
+import { catalogNote, recogniseVisual } from '../catalog-words.js';
+
+/** How long the bar says what a reader's catalog word showed. */
+const CHOSEN_NOTE_MS = 4_000;
 
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
@@ -82,6 +87,9 @@ export class LiveVenue {
         this.micActive = false;
         // Whether the reader is typing a question: words typed and not yet asked or taken back.
         this.typing = false;
+        // What the bar says of a visual the reader named (showChosen), until its timer lets it go.
+        this.chosenNote = null;
+        this.chosenTimer = 0;
         this.destroyed = false;
         // The face: its element, its engine once loaded, whether the last question failed, and (?measure=1) its states.
         const saved = host.getSettings?.()?.liveFace;
@@ -431,7 +439,7 @@ export class LiveVenue {
             if (state === 'none' && runtime.status === 'live') this.beginInterjection(runtime);
             const now = runtime.snapshot().interjection.state;
             if (now === 'held') {
-                void this.interject(runtime, words);
+                if (!this.showChosen(runtime, words)) void this.interject(runtime, words);
                 return;
             }
             if (now !== 'none') {
@@ -465,6 +473,30 @@ export class LiveVenue {
             try { runtime.hold(); } catch { /* it is no longer live */ }
             return false;
         }
+    }
+
+    /**
+     * Words that only name one of RISE's own visuals (catalog-words.js, docs/plans/LIVE-CURRENT.md §24): shown at once
+     * by the runtime, the reading taken up again, with no request and nothing counted; the bar says what is shown for a
+     * few seconds. Whether they were: anything else, or what the reading cannot show, is asked of the model as before.
+     */
+    showChosen(runtime, words) {
+        const chosen = recogniseVisual(words, { running: runtime.visualEngine?.() ?? null });
+        if (!chosen) return false;
+        let shown = false;
+        try { shown = runtime.chooseVisual(chosen) === true; } catch { /* it is no longer held */ }
+        if (!shown) return false;
+        if (this.bar) this.bar.elements.question.value = '';
+        this.typing = false;
+        this.chosenNote = catalogNote(chosen);
+        const win = this.doc.defaultView;
+        win.clearTimeout(this.chosenTimer);
+        this.chosenTimer = win.setTimeout(() => {
+            this.chosenNote = null;
+            this.paint();
+        }, CHOSEN_NOTE_MS);
+        this.paint();
+        return true;
     }
 
     /** The reader's words, asked inside the reading, with what they did in it since RISE last spoke. */
@@ -521,6 +553,7 @@ export class LiveVenue {
         const host = this.host;
         await this.letGo();
         this.usage = emptyUsage();
+        this.chosenNote = null;
         try {
             const runtime = await host.buildRuntime();
             if (this.destroyed) {
@@ -655,7 +688,7 @@ export class LiveVenue {
         else if (interjection?.state === 'none' && interjection.failed) note.textContent = 'RISE could not answer that just now; the reading goes on.';
         // A picture the illustrator could not draw admissibly (docs/plans/LIVE-CURRENT.md §19): one line, and the reading goes on.
         else if (illustration?.failed) note.textContent = 'RISE could not draw that picture; the reading goes on.';
-        else if (interjection?.state !== 'answering') note.textContent = runtime?.status === 'failed' ? '' : error ?? '';
+        else if (interjection?.state !== 'answering') note.textContent = runtime?.status === 'failed' ? '' : this.chosenNote ?? error ?? '';
     }
 
     // ─── the face ──────────────────────────────────────────────────────
@@ -1009,6 +1042,7 @@ export class LiveVenue {
         if (this.destroyed) return;
         this.destroyed = true;
         this.stopConnection();
+        this.doc.defaultView.clearTimeout(this.chosenTimer);
         this.listener?.destroy();
         this.stopFollowing?.();
         this.stopFollowing = null;
