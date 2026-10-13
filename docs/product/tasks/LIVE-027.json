@@ -40,7 +40,7 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/648",
-      "note": "The home screen as a room, commit d21fef21 on branch live-home-revamp. Local: vitest src/live/host 490 passed; e2e/live.spec.js (full, whole file) 39 passed, including the new room test (repeated 6x green); e2e/live-mcp.spec.js field|self-contained 13 passed; ci-hygiene, vite build, first load 62.2 KB br, docs:diagram unchanged. Rendered: no edge at the eye square on all four skins (inside vs outside within 1 level); smallest text 5.73-6.24:1. Not merged, deployed or accepted by a human at this record.",
+      "note": "The home screen as a room, commit d21fef21 on branch live-home-revamp. Local: vitest src/live/host 490 passed; e2e/live.spec.js (full, whole file) 39 passed, including the new room test (repeated 6x green); e2e/live-mcp.spec.js field|self-contained 13 passed; ci-hygiene, vite build, first load 62.2 KB br, docs:diagram unchanged. Rendered: no edge at the eye square on all four skins (inside vs outside within 1 level); smallest text 5.73-6.24:1. Merged as 860318af; deployed (release.txt 860318af, 2026-10-13; production job green, voice-provider failing as known). Not accepted by a human.",
       "date": "2026-10-12"
     }
   ],
@@ -64,10 +64,14 @@
     {
       "date": "2026-10-12T23:37:05.581Z",
       "summary": "PR #648 opened (d21fef21) with local verification evidence for the home-screen revamp"
+    },
+    {
+      "date": "2026-10-13T00:10:06.714Z",
+      "summary": "PR #648 (the home screen as a room) merged as 860318af and deployed (release.txt 860318af); delivery stays deployed"
     }
   ],
-  "updatedAt": "2026-10-12T23:37:05.581Z",
-  "revision": 5,
+  "updatedAt": "2026-10-13T00:10:06.714Z",
+  "revision": 6,
   "summary": "RISE's own face in the Live venue: the approved Sophia study as a native scene engine the venue runs behind its ask bar, resting at arrival, listening, thinking until the first words, stepping back while a reading speaks, and at rest after it.",
   "blocker": null
 }
