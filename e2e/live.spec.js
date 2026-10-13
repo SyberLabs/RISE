@@ -807,6 +807,34 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
+    // Catalog words (docs/plans/LIVE-CURRENT.md §25): a visual the reader names is shown at once, with no request.
+    test('catalog words: “attractor” typed during the figure shows the attractor in the outer shell at once, and asks nothing', async ({ page }) => {
+        test.setTimeout(90_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await expect.poll(() => page.evaluate(() => window.__riseFace?.drawn() ?? false), { timeout: 15_000 }).toBe(true);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        // The demo's third beat puts up the event horizon as a figure: the full frame.
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.frame), { timeout: 25_000 }).toBe('full');
+        const journal = () => page.evaluate(() => window.__riseLive.journal());
+        const field = page.locator('#live-again-question');
+        await field.fill('attractor');
+        await field.press('Enter');
+        await expect(page.locator('.live-again__note')).toHaveText('Showing the attractor.');
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.frame), { timeout: 10_000 }).toBe('shell');
+        await expect(page.locator('#chamber-field .chamber-attractor')).toBeAttached();
+        expect((await journal()).filter(entry => entry.type === 'visual.chosen')).toEqual([expect.objectContaining({ engine: 'attractor' })]);
+        // The reading goes on to its end with the reader's choice: the disk the demo starts later is held, and no
+        // request was opened for the words.
+        await expect.poll(async () => (await journal()).some(entry => entry.type === 'run.finished'), { timeout: 60_000 }).toBe(true);
+        const entries = await journal();
+        expect(entries.filter(entry => entry.type === 'room.held' && entry.kind === 'scene').map(entry => entry.scene)).toEqual(['disk']);
+        expect(entries.some(entry => entry.type.startsWith('interjection.') && entry.type !== 'interjection.held')).toBe(false);
+        expect(errors).toEqual([]);
+    });
+
     // The demo's first beat lays a bed (starlight). What leaves the engine's last gate is measured, as in the card:
     // started is not heard. With the paced voice nothing ducks it.
     test('a bed under the reading stops with it, sounds again on Play again, and under the next reading asked', async ({ page }) => {

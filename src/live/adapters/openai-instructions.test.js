@@ -107,7 +107,7 @@ describe('the reader’s actions (perception v1, design §4)', () => {
         expect(REALTIME_INSTRUCTIONS).toContain(PERCEPTION_GUIDE);
         expect(PERCEPTION_GUIDE).toContain(PERCEPTION_OPENING.split(',')[0]);
         expect(PERCEPTION_GUIDE).toContain(PERCEPTION_CLOSING);
-        for (const said of ['replayed', 'went from', 'paused', 'the device stopped the voice', 'played on', 'pace', 'theme', 'said', 'reached the end of the reading']) {
+        for (const said of ['replayed', 'went from', 'paused', 'the device stopped the voice', 'played on', 'pace', 'theme', 'said', 'reached the end of the reading', 'asked for one of RISE’s own visuals', 'were held']) {
             expect(PERCEPTION_GUIDE, said).toContain(said);
         }
         expect(PERCEPTION_GUIDE).toMatch(/say it another way/u);

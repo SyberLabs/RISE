@@ -1,0 +1,65 @@
+{
+  "id": "LIVE-029",
+  "title": "RISE Live: catalog words",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-028"
+  ],
+  "acceptance": [
+    "During a reading, words asked in the bar (typed, or heard and asked with Enter) that are nothing but one of RISE's own visuals are answered by the venue with no model call: the visual is shown, the reading is taken up again at once, no request is opened or counted, and the bar says what is shown in plain catalog words for about 4 seconds (\"Showing the attractor.\", \"Making the attractor calmer.\").",
+    "The recogniser (src/live/catalog-words.js) is pure and draws its vocabulary from the manifests (engine ids, parameter values, cues) plus one small alias table: fractal flame and flame (living flame), pendulum(s) (harmonograph), swarm and filament (attractor trace), rotary (harmonograph pendulums), calmer, brighter, warmer, cooler (cues); a system or palette sets that parameter beside its engine; only the closed filler list may surround them. Anything else, two engines or cues, a value without its engine, a cue the engine on screen does not take, still or oracle, and any input over 120 characters is null and goes to the model unchanged; matching is case-insensitive and folds accents and full-width letters.",
+    "Before a reading and after one, every question goes to RISE as before; a reading the runtime cannot show it in (no room for another scene, a cue the engine on screen does not take) sends the words to the model as an interjection.",
+    "An engine is shown through the runtime's existing picture path (withPictures, withPictureClips) from the phrase on screen, so the journal, the three frames and perception see it; a cue goes through the running engine's own control.",
+    "The hold protects the reader's choice from the model's pre-planned changes, not from the reader's own later requests: from the passage it was chosen in, no beat starts or cues a scene and the model's @visual, @cue, @illustrate and pictures not yet shown are held and journalled as room.held; when the reader then asks RISE something inside the reading, the hold ends where that answer is first heard and the answer's scenes, changes and pictures apply; a new catalog choice starts a new hold; the next question, a new reading, holds nothing. Looks and paces are not held.",
+    "Perception carries the request and the hold to the next request: chose { engine, values?, cue? } and withheld { by: 'rise' }, admitted by admitPerception with bounds (an engine the venue shows by name, at most four of its own values, one of its cues), said as \"asked for the attractor (swarm), and it was shown at once\" and \"RISE’s own scene changes after that were held\", and explained in Live's perception guide. The beat grammar, the Current schema, the Worker, the host guide and the Composer card are unchanged."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§25 Catalog words: the recogniser, where it is asked, how it is shown, the precedence rule, what the next request is told, and what is not verified.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/runtime.catalog.test.js",
+      "note": "Command: npx vitest run src/live/catalog-words.test.js src/live/runtime.catalog.test.js src/live/perception.test.js src/live/host/venue.test.js src/live/adapters/openai-instructions.test.js. Branch live-catalog-words, written first and watched failing: catalog-words 16, runtime.catalog 10 (after review: the reader's later question ends the hold, a new choice holds again, and an answer naming one of RISE's engines before its first beat is grafted, a latent STREAM_ENDED fixed in takeAnswer), perception 36, venue 61, openai-instructions 35, all passed. npx vitest run src/live: 1994 passed, 1 failed (runtime.seek 'lists every passage in order' fails on origin/main af117d0b as well). Tests importing core/beats.js (8 files) 196 passed.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Command: npx playwright test e2e/live.spec.js -g \"catalog words\". 1 passed (46.1 s) on the demo provider: 'attractor' typed while the figure holds the full frame shows the attractor in the outer shell, the bar says 'Showing the attractor.', no interjection request is journalled and the demo's later disk scene is held. With the venue's wiring removed the same test fails (note empty).",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/660",
+      "note": "Draft PR on branch live-catalog-words, code at b92f3efa, with the local evidence above. Not merged, deployed or accepted by a human.",
+      "date": "2026-10-13"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-13T05:39:00.000Z",
+      "summary": "Claimed and built on branch live-catalog-words (after LIVE-026's #655 merged): the recogniser, the runtime's chooseVisual and hold, perception's chose and withheld, the venue's local answer and note, LIVE-CURRENT §25."
+    },
+    {
+      "date": "2026-10-13T05:39:58.733Z",
+      "summary": "Draft PR #660 opened on branch live-catalog-words with local verification evidence"
+    },
+    {
+      "date": "2026-10-13T05:47:10.551Z",
+      "summary": "Review of #660: the hold ends when the reader's own later question is first answered; a new choice starts a new hold"
+    }
+  ],
+  "updatedAt": "2026-10-13T05:47:10.551Z",
+  "revision": 3,
+  "summary": "In RISE Live, a reader who names one of RISE's own visuals during a reading gets it at once, with no model call; RISE's own scene changes after it in that reading are held, and the next request is told.",
+  "blocker": null
+}

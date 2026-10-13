@@ -14,11 +14,34 @@
  * what the room is now and never takes it for the reader's.
  */
 
+import { CUE_SAID, catalogName, chosenValues } from './catalog-words.js';
+import { manifestFor } from '../core/beats.js';
+
 /**
  * The events of §4, and the only names that may go up. `scene.input` is what the reader set in a listening scene
- * (docs/plans/LIVE-CURRENT.md §20). `drew` is a picture RISE put in the room (§19), only ever RISE's.
+ * (docs/plans/LIVE-CURRENT.md §20). `drew` is a picture RISE put in the room (§19), only ever RISE's. `chose` is one of
+ * RISE's own visuals the reader named and was shown at once, and `withheld` that RISE's own changes to the visual after
+ * it were held (§25).
  */
-export const PERCEPTION_EVENTS = Object.freeze(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished', 'drew']);
+export const PERCEPTION_EVENTS = Object.freeze(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished', 'drew', 'chose', 'withheld']);
+
+/** How many values a `chose` names: one for each parameter the reader can name with an engine. */
+const CHOSEN_VALUES = 4;
+
+/** The manifest of an engine the venue shows by name, or null. */
+const shownEngine = engine => (typeof engine === 'string' && engine !== 'still' ? manifestFor(engine) : null);
+/** Whether `value` is one of the values an engine's parameters take. */
+const valueOf = (manifest, value) => Object.values(manifest.parameters).some(spec => spec.type === 'enum' && spec.values.includes(value));
+const cueOf = (manifest, cue) => typeof cue === 'string' && Object.hasOwn(manifest.cues, cue);
+
+/** What the reader chose (runtime.js `visual.chosen`), as it may go up: the engine, the values they named, a cue; or none. */
+function chose(entry) {
+    const manifest = shownEngine(entry.engine);
+    if (!manifest || (entry.cue !== undefined && !cueOf(manifest, entry.cue))) return [];
+    const params = entry.params !== null && typeof entry.params === 'object' ? entry.params : {};
+    const values = chosenValues(params).filter(value => valueOf(manifest, value)).slice(0, CHOSEN_VALUES);
+    return [{ type: 'chose', engine: manifest.id, ...(values.length ? { values } : {}), ...(entry.cue !== undefined ? { cue: entry.cue } : {}) }];
+}
 
 /** The media a picture RISE drew went up in (protocol.js ILLUSTRATION_MEDIA). */
 const DRAWN_IN = Object.freeze(['cue', 'figure', 'scene']);
@@ -117,6 +140,8 @@ export function perceive(journal, { passages = [] } = {}) {
     };
 
     let heldAt = null;
+    // Whether the reader's last choice has had its line for what was held after it.
+    let withheld = true;
     const events = [];
     for (const entry of Array.isArray(journal) ? journal : []) {
         if (!entry || typeof entry !== 'object') continue;
@@ -175,6 +200,14 @@ export function perceive(journal, { passages = [] } = {}) {
             case 'room.changed':
                 made = roomChanged(entry);
                 break;
+            case 'visual.chosen':
+                made = chose(entry);
+                if (made.length) withheld = false;
+                break;
+            case 'room.held':
+                if (!withheld) made = [{ type: 'withheld', by: 'rise' }];
+                withheld = true;
+                break;
             case 'illustrated': {
                 // A picture RISE put in the room, so the next turn knows it is there.
                 const brief = line(entry.brief, PERCEPTION_LIMITS.quote);
@@ -209,7 +242,9 @@ const FIELDS = Object.freeze({
     said: ['words'],
     'scene.input': ['scene', 'control', 'value'],
     finished: [],
-    drew: ['by', 'medium', 'brief']
+    drew: ['by', 'medium', 'brief'],
+    chose: ['engine', 'values', 'cue'],
+    withheld: ['by']
 });
 
 /** The fields each event cannot be said without (describePerception reads every one of them). */
@@ -223,7 +258,9 @@ const REQUIRED = Object.freeze({
     said: ['words'],
     'scene.input': ['scene', 'control', 'value'],
     finished: [],
-    drew: ['by', 'medium', 'brief']
+    drew: ['by', 'medium', 'brief'],
+    chose: ['engine'],
+    withheld: ['by']
 });
 
 const passageOk = value => value === null || (Number.isInteger(value) && value >= 1 && value <= PERCEPTION_LIMITS.passage);
@@ -249,6 +286,12 @@ function fieldOk(type, key, value, event) {
         case 'scene': case 'control': return textOk(value, PERCEPTION_LIMITS.name);
         case 'medium': return DRAWN_IN.includes(value);
         case 'brief': return textOk(value, PERCEPTION_LIMITS.quote);
+        case 'engine': return shownEngine(value) !== null;
+        case 'values': {
+            const manifest = shownEngine(event.engine);
+            return Boolean(manifest) && Array.isArray(value) && value.length >= 1 && value.length <= CHOSEN_VALUES && value.every(each => valueOf(manifest, each));
+        }
+        case 'cue': return Boolean(shownEngine(event.engine)) && cueOf(shownEngine(event.engine), value);
         case 'value':
             return typeof value === 'boolean' || (typeof value === 'number' && Number.isFinite(value))
                 || (typeof value === 'string' && value.length <= PERCEPTION_LIMITS.value && line(value, PERCEPTION_LIMITS.value) === value);
@@ -275,7 +318,7 @@ export function admitPerception(value) {
         for (const [key, field] of Object.entries(event)) {
             if (key === 'type') continue;
             if (!allowed.includes(key) || !fieldOk(event.type, key, field, event)) throw new TypeError(`perception.events[${index}].${key} is not allowed`);
-            copy[key] = field;
+            copy[key] = Array.isArray(field) ? [...field] : field;
         }
         return copy;
     });
@@ -326,6 +369,8 @@ function sentence(event) {
         // A string is the scene's word for what the reader set, so it is quoted (it holds no quotation mark to close).
         case 'scene.input': return `set ${event.control} in the scene ${event.scene} to ${typeof event.value === 'string' ? `“${event.value}”` : event.value}`;
         case 'finished': return 'reached the end of the reading';
+        case 'chose': return `asked for ${catalogName(event.engine)}${event.values ? ` (${event.values.join(', ')})` : ''}${event.cue ? `, ${CUE_SAID[event.cue] ?? event.cue}` : ''}, and it was shown at once`;
+        case 'withheld': return 'RISE’s own scene changes after that were held';
         case 'drew': return `RISE drew ${{ figure: 'a figure', scene: 'a moving scene', cue: 'from its own imagery' }[event.medium]}: “${event.brief}”`;
         default: return '';
     }

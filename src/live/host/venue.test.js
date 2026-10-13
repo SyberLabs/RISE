@@ -38,7 +38,7 @@ const env = ({ recognition = null } = {}) => ({
     document: { createElement: () => ({ getContext: () => ({}) }), fullscreenEnabled: true }
 });
 
-function fakeRuntime({ segmentId = 'p1' } = {}) {
+function fakeRuntime({ segmentId = 'p1', running = null, chooses = true } = {}) {
     const listeners = new Set();
     let state = { status: 'idle', main: { segmentId }, position: { segmentIndex: 0, segmentCount: 2 }, pace: 1, interjection: { state: 'none', failed: null } };
     const runtime = {
@@ -56,6 +56,11 @@ function fakeRuntime({ segmentId = 'p1' } = {}) {
         beginInterjection: vi.fn(() => runtime.set('interrupted', 'held')),
         interject: vi.fn(async () => runtime.set('interrupted', 'asking')),
         cancelInterjection: vi.fn(() => runtime.set('live', 'none')),
+        visualEngine: vi.fn(() => running),
+        chooseVisual: vi.fn(() => {
+            if (chooses) runtime.set('live', 'none');
+            return chooses;
+        }),
         interrupt: vi.fn(async () => runtime.set('interrupted')),
         seek: vi.fn(() => runtime.set('live')),
         set(status, interjection = state.interjection.state, failed = null) {
@@ -659,6 +664,72 @@ describe('the interjection: the reader speaks while it plays (stage 4.5)', () =>
         const runtime = await playing();
         runtime.set('live', 'none', 'PROVIDER_FAILED');
         expect($('.live-again__note').textContent).toBe('RISE could not answer that just now; the reading goes on.');
+    });
+});
+
+describe('catalog words: the reader names one of RISE’s own visuals (§25)', () => {
+    async function playing(options = {}) {
+        nextRuntime = options;
+        mount('?voice=paced');
+        ask('Why is the sky blue?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        return runtimes[0];
+    }
+    const note = () => $('.live-again__note').textContent;
+
+    it('shows it at once: the reading goes on, nothing is asked of the model, and the bar says so for a few seconds', async () => {
+        const runtime = await playing();
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+        try {
+            askAgain('Show me the attractor.');
+            expect(runtime.beginInterjection).toHaveBeenCalledTimes(1);
+            expect(runtime.chooseVisual).toHaveBeenCalledWith({ engine: 'attractor', params: {} });
+            expect(runtime.interject).not.toHaveBeenCalled();
+            expect(runtime.status).toBe('live');
+            expect($('#live-again-question').value).toBe('');
+            expect(note()).toBe('Showing the attractor.');
+            expect(host.venue.usage.requests).toEqual({ answer: 0, interject: 0, illustrate: 0, dive: 0 });
+            runtime.set('live');
+            expect(note()).toBe('Showing the attractor.');
+            vi.advanceTimersByTime(4_000);
+            expect(note()).toBe('');
+        } finally {
+            vi.useRealTimers();
+        }
+        expect(host.buildRuntime).toHaveBeenCalledTimes(1);
+    });
+
+    it('takes a cue on the engine running, in plain words', async () => {
+        const runtime = await playing({ running: 'attractor' });
+        askAgain('calmer');
+        expect(runtime.chooseVisual).toHaveBeenCalledWith({ engine: 'attractor', cue: 'calm' });
+        expect(note()).toBe('Making the attractor calmer.');
+        expect(runtime.interject).not.toHaveBeenCalled();
+    });
+
+    it('asks the model as before for anything else, and for what the reading could not show', async () => {
+        const runtime = await playing();
+        askAgain('attractor, and why does it never repeat?');
+        expect(runtime.chooseVisual).not.toHaveBeenCalled();
+        await vi.waitFor(() => expect(runtime.interject).toHaveBeenCalledWith('attractor, and why does it never repeat?', expect.any(Object)));
+        host.destroy();
+        const refused = await playing({ chooses: false });
+        askAgain('fractal flame');
+        expect(refused.chooseVisual).toHaveBeenCalledWith({ engine: 'living-flame', params: {} });
+        await vi.waitFor(() => expect(refused.interject).toHaveBeenCalledWith('fractal flame', expect.any(Object)));
+    });
+
+    it('before a reading and after one, a catalog word is a question for RISE, and the next reading is the model’s again', async () => {
+        mount('?voice=paced');
+        ask('attractor');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith('attractor'));
+        askAgain('swarm');
+        expect(runtimes[0].chooseVisual).toHaveBeenCalledWith({ engine: 'attractor', params: { trace: 'swarm' } });
+        runtimes[0].set('ended');
+        askAgain('attractor');
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalledWith('attractor', expect.any(Object)));
+        expect(runtimes[1].chooseVisual).not.toHaveBeenCalled();
+        expect(runtimes[0].chooseVisual).toHaveBeenCalledTimes(1);
     });
 });
 
