@@ -261,6 +261,18 @@ describe('the reader names a cue', () => {
 });
 
 describe('the next request is told (perception)', () => {
+    it('a beat’s own cue held after the choice is said as held too', async () => {
+        const CUED = ['@say Light scattered by air is the whole story.', '@scene field attractor palette=blue', `@say scene=field ${LONG}`, '@say cue=bright And now the field brightens.', ''].join('\n');
+        const room = await open(CUED);
+        const at = await heldInTheField(room);
+        room.runtime.chooseVisual({ engine: 'attractor', cue: 'calm' });
+        await until(() => room.journal('run.finished').length > 0);
+        expect(room.landed.filter(entry => entry.at >= at).map(entry => entry.command.value)).toEqual([0.45]);
+        expect(room.journal('room.held')).toEqual([expect.objectContaining({ kind: 'scene.cue' })]);
+        const { events } = perceive(room.runtime.journal(), { passages: room.runtime.passages() });
+        expect(events.filter(event => event.type === 'withheld')).toEqual([{ type: 'withheld', by: 'rise' }]);
+    });
+
     it('carries the reader’s request and that RISE’s own changes after it were held', async () => {
         const room = await open();
         await heldInTheField(room);
