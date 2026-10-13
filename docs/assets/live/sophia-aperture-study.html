@@ -1,0 +1,1005 @@
+<title>Sophia Aperture Study</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+  /* Layout: one room as RISE Live has it (the visual's place, the spoken line, the typing bar), one instrument bar below. */
+  :root {
+    --ground: #08080d;
+    --ink: #e6e2d6;
+    --ink-dim: #8e8b80;
+    --line: rgba(230, 226, 214, 0.14);
+    --raised: rgba(230, 226, 214, 0.06);
+    --shade: rgba(4, 4, 8, 0.9);
+    --accent: #87ceeb;
+    --font-display: "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --font-ui: "Instrument Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    display: grid;
+    grid-template-rows: auto auto auto;
+    align-content: start;
+    gap: 12px;
+    min-height: 100%;
+    padding-inline: 16px;
+    padding-block: 14px 16px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; }
+  h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(24px, 3vw, 32px); margin: 0; letter-spacing: 0.02em; }
+  h1 em { color: var(--accent); }
+  .readout { font-size: 13px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .readout b { font-weight: 500; color: var(--accent); }
+  .room {
+    position: relative;
+    width: min(100%, calc(74vh * 1.6));
+    aspect-ratio: 16 / 10;
+    max-width: 100%;
+    justify-self: center;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--ground);
+  }
+  .room canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .words {
+    position: absolute;
+    left: 50%;
+    bottom: 76px;
+    transform: translateX(-50%);
+    width: min(86%, 34ch);
+    min-height: 2.6em;
+    margin: 0;
+    display: grid;
+    align-items: end;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(18px, 2.1vw, 23px);
+    line-height: 1.3;
+    text-align: center;
+    text-wrap: balance;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+  }
+  .words.swap { opacity: 0; }
+  .room[data-frame="full"] .words { text-shadow: 0 1px 14px var(--shade), 0 0 3px var(--shade); }
+  .ask { position: absolute; left: 14px; right: 14px; bottom: 14px; display: flex; gap: 8px; align-items: center; margin: 0; }
+  .slot { width: 48px; height: 48px; flex: none; }
+  .ask input {
+    flex: 1; min-width: 0; height: 46px; box-sizing: border-box;
+    border-radius: 999px; border: 1px solid var(--line); background: var(--raised);
+    color: var(--ink); font: inherit; font-size: 15px; padding: 0 18px;
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  .ask input::placeholder { color: var(--ink-dim); }
+  .ask input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ask button { width: 46px; height: 46px; padding: 0; display: grid; place-items: center; flex: none; background: var(--raised); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .note { margin: 0; justify-self: center; text-align: center; color: var(--ink-dim); font-size: 13px; line-height: 1.5; max-width: 72ch; }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; justify-content: center; padding-top: 12px; border-top: 1px solid var(--line); }
+  .group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .group-label { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim); margin-right: 4px; }
+  button {
+    font: inherit; font-size: 13px; color: var(--ink); background: transparent;
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; cursor: pointer; min-height: 32px;
+  }
+  button:hover { border-color: var(--ink-dim); }
+  button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--sw, var(--accent)); }
+  @media (max-width: 640px) {
+    .room { aspect-ratio: 3 / 4; width: 100%; }
+    .words { bottom: 72px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .words { transition: none; } }
+</style>
+
+<header>
+  <h1>RISE <em>Sophia</em> · three frames</h1>
+  <span class="readout" id="readout" aria-live="polite"><b>Outer shell</b> · the visual is 82% of the eye</span>
+</header>
+
+<div class="room" id="room" data-frame="shell">
+  <canvas id="canvas" role="img" aria-label="RISE's room: Sophia, the visual she holds, and the typing bar"></canvas>
+  <p class="words" id="words">Three equations, and a path that never quite repeats.</p>
+  <form class="ask" id="ask">
+    <span class="slot" id="slot" aria-hidden="true"></span>
+    <label class="sr" for="ask-input">Ask RISE</label>
+    <input id="ask-input" name="ask" autocomplete="off" placeholder="Try: attractor, harmonograph, figure, eye">
+    <button type="submit" aria-label="Ask"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </form>
+</div>
+
+<p class="note">By visual, each piece picks its frame: a moving field fills the outer shell, a single object sits in the inner eye, and a step-by-step figure takes the whole room while Sophia waits by the typing bar. Every cut is a blink.</p>
+
+<div class="bar">
+  <div class="group" role="group" aria-label="Visual">
+    <span class="group-label">Visual</span>
+    <button type="button" data-visual="eye" aria-pressed="false">Eye</button>
+    <button type="button" data-visual="attractor" aria-pressed="true">Attractor</button>
+    <button type="button" data-visual="harmonograph" aria-pressed="false">Harmonograph</button>
+    <button type="button" data-visual="figure" aria-pressed="false">Figure</button>
+    <button type="button" id="play" aria-pressed="false">Play a reading</button>
+  </div>
+  <div class="group" role="group" aria-label="Frame">
+    <span class="group-label">Frame</span>
+    <button type="button" data-frame="auto" aria-pressed="true">By visual</button>
+    <button type="button" data-frame="inner" aria-pressed="false">Inner eye</button>
+    <button type="button" data-frame="shell" aria-pressed="false">Outer shell</button>
+    <button type="button" data-frame="full" aria-pressed="false">Full frame</button>
+  </div>
+  <div class="group" role="group" aria-label="Skin">
+    <span class="group-label">Skin</span>
+    <button type="button" data-skin="sophia" aria-pressed="true"><span class="swatch" style="--sw:#87ceeb"></span>Sophia</button>
+    <button type="button" data-skin="ember" aria-pressed="false"><span class="swatch" style="--sw:#f0a36b"></span>Ember</button>
+    <button type="button" data-skin="jade" aria-pressed="false"><span class="swatch" style="--sw:#8fd3b5"></span>Jade</button>
+    <button type="button" data-skin="silver" aria-pressed="false"><span class="swatch" style="--sw:#cfd3da"></span>Silver</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const TAU = Math.PI * 2;
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+  const smooth = v => { const u = clamp01(v); return u * u * (3 - 2 * u); };
+  const mix = (a, b, k) => a + (b - a) * k;
+
+  // Skins: core (the pupil's heart), iris, glow (field and nodes), deep (the pupil's depth), trail (the ground).
+  const SKINS = {
+    sophia: { core: [245, 245, 220], iris: [135, 206, 235], glow: [176, 196, 222], deep: [25, 25, 112], trail: [10, 10, 15] },
+    ember:  { core: [255, 236, 210], iris: [240, 163, 107], glow: [214, 120, 92],  deep: [70, 20, 20],  trail: [14, 9, 8] },
+    jade:   { core: [236, 245, 230], iris: [143, 211, 181], glow: [120, 180, 150], deep: [10, 50, 40],  trail: [7, 12, 10] },
+    silver: { core: [250, 250, 250], iris: [207, 211, 218], glow: [160, 166, 176], deep: [30, 32, 40],  trail: [9, 9, 11] }
+  };
+  const rgba = (c, a) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
+  const tint = (a, b, k) => [0, 1, 2].map(i => Math.round(mix(a[i], b[i], k)));
+  let skin = SKINS.sophia;
+
+  const STATES = {
+    arrival:  { open: 0.55, orbit: 0.10, spin: 0.08, field: 0.9, tight: 1.00, glow: 0.55 },
+    thinking: { open: 0.80, orbit: 0.55, spin: 0.40, field: 1.6, tight: 0.62, glow: 1.00 },
+    speaking: { open: 0.70, orbit: 0.10, spin: 0.06, field: 0.6, tight: 1.10, glow: 0.35 },
+    rest:     { open: 0.45, orbit: 0.07, spin: 0.05, field: 0.7, tight: 1.05, glow: 0.45 }
+  };
+
+  const FRAMES = {
+    inner: { name: 'Inner eye', measure: 'the visual is 72% of the eye', open: 1100 },
+    shell: { name: 'Outer shell', measure: 'the visual is 82% of the eye', open: 1600 },
+    full:  { name: 'Full frame', measure: 'the visual takes the whole room', open: 1900 }
+  };
+  const BY_VISUAL = { attractor: 'shell', harmonograph: 'inner', figure: 'full' };
+
+  const roomEl = document.getElementById('room');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const wordsEl = document.getElementById('words');
+  const slotEl = document.getElementById('slot');
+  let t = 0;
+
+  // ─── The visual's own canvas, the room's size: a circle frame takes its centre square, the full frame all of it.
+  // Each visual keeps what it must show inside the circle inscribed in that square; only the figure lays itself
+  // out again for the whole room, as a walkthrough.
+  const vis = document.createElement('canvas');
+  const g = vis.getContext('2d');
+  let BW = 1, BH = 1, BS = 1, BX = 0.5, BY = 0.5, q = 1;
+  function ground(alpha) {
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = rgba(skin.trail, alpha);
+    g.fillRect(0, 0, BW, BH);
+  }
+
+  function aizawa(p, h) {
+    const { x, y, z } = p;
+    const dx = (z - 0.7) * x - 3.5 * y;
+    const dy = 3.5 * x + (z - 0.7) * y;
+    const dz = 0.6 + 0.95 * z - (z * z * z) / 3 - (x * x + y * y) * (1 + 0.25 * z) + 0.1 * z * x * x * x;
+    p.x += dx * h; p.y += dy * h; p.z += dz * h;
+  }
+
+  const attractor = {
+    reset() {
+      ground(1);
+      this.theta = 0.6;
+      this.ps = Array.from({ length: 700 }, () => {
+        const p = { x: 0.1 + (Math.random() - 0.5) * 0.5, y: (Math.random() - 0.5) * 0.5, z: (Math.random() - 0.5) * 0.5 };
+        for (let i = 0; i < 300; i += 1) aizawa(p, 0.01);
+        return p;
+      });
+      this.colours = Array.from({ length: 6 }, (_, i) => rgba(tint(skin.iris, skin.core, i / 5), 0.5));
+      if (reduced) for (let k = 0; k < 90; k += 1) this.plot(0);
+    },
+    plot(turn) {
+      this.theta += turn;
+      const s = BS * 0.25, cos = Math.cos(this.theta), sin = Math.sin(this.theta), dot = Math.max(1.2, BS / 500);
+      g.globalCompositeOperation = 'lighter';
+      for (const p of this.ps) {
+        for (let i = 0; i < 3; i += 1) aizawa(p, 0.008);
+        const X = p.x * cos - p.y * sin, Y = p.z - 0.65;
+        g.fillStyle = this.colours[Math.min(5, Math.max(0, Math.round(((p.z + 0.3) / 2.1) * 5)))];
+        g.fillRect(BX + X * s, BY - Y * s, dot, dot);
+        g.fillRect(BX - X * s, BY - Y * s, dot, dot);
+      }
+    },
+    step(dt) {
+      if (reduced) return;
+      ground(0.07);
+      this.plot(dt * 0.18);
+    }
+  };
+
+  const harmonograph = {
+    reset() {
+      ground(1);
+      const r = Math.random;
+      this.f1 = 2 + (r() < 0.5 ? 0 : 1);
+      this.f2 = -(3 + (r() < 0.5 ? 0 : 1)) + (r() - 0.5) * 0.04;
+      this.p1 = r() * TAU; this.p2 = r() * TAU;
+      this.d1 = 0.010 + r() * 0.008; this.d2 = 0.010 + r() * 0.008;
+      this.tau = 0; this.done = false; this.hold = 0;
+      if (reduced) while (!this.done) this.draw(0.05);
+    },
+    at(tau) {
+      const e1 = Math.exp(-this.d1 * tau) * 0.55, e2 = Math.exp(-this.d2 * tau) * 0.45;
+      const x = e1 * Math.cos(this.f1 * tau + this.p1) + e2 * Math.cos(this.f2 * tau + this.p2);
+      const y = e1 * Math.sin(this.f1 * tau + this.p1) + e2 * Math.sin(this.f2 * tau + this.p2);
+      return [BX + x * BS * 0.44, BY + y * BS * 0.44, e1 + e2];
+    },
+    draw(dt) {
+      const n = 30, h = Math.min(18 * dt, 0.9) / n;
+      g.globalCompositeOperation = 'lighter';
+      g.lineWidth = Math.max(1, BS * 0.0017);
+      const [x0, y0] = this.at(this.tau);
+      g.beginPath();
+      g.moveTo(x0, y0);
+      let energy = 1;
+      for (let i = 0; i < n; i += 1) {
+        this.tau += h;
+        const [x, y, e] = this.at(this.tau);
+        g.lineTo(x, y);
+        energy = e;
+      }
+      g.strokeStyle = rgba(tint(skin.iris, skin.core, clamp01(1 - energy)), 0.55);
+      g.stroke();
+      if (energy < 0.05) this.done = true;
+    },
+    step(dt) {
+      if (reduced) return;
+      if (!this.done) { this.draw(dt); return; }
+      this.hold += dt;
+      if (this.hold > 1.6) ground(0.06);
+      if (this.hold > 3.4) this.reset();
+    }
+  };
+
+  /**
+   * The figure: Schwarzschild's clock rate, sqrt(1 - rs / r), for a clock held still near a mass. In a circle it
+   * is one picture laid out inside the inscribed circle; in the full frame it is a walkthrough, three steps beside
+   * the plot, the marked clock moving to each as it is read.
+   */
+  const STEPS = [
+    { x: 6, text: 'Six Schwarzschild radii out, a clock held still ticks at 0.91 of the rate far away.' },
+    { x: 3, text: 'At three radii, it ticks at 0.82.' },
+    { x: 1, text: 'At the horizon, the rate falls to zero.' }
+  ];
+  const figure = {
+    reset() { this.t0 = t; this.dotX = 6; },
+    step(dt, layout) {
+      ground(1);
+      g.globalCompositeOperation = 'source-over';
+      const k = reduced ? 1 : smooth((t - this.t0) / 1.8);
+      const active = reduced ? 1 : Math.max(0, Math.floor((t - this.t0 - 1.8) / 3.4)) % 3;
+      this.dotX = reduced ? STEPS[active].x : mix(this.dotX, STEPS[active].x, 1 - Math.exp(-dt / 0.4));
+      if (layout === 'full') this.full(k, active); else this.circle(k);
+    },
+    circle(k) {
+      const U = BS;
+      const box = { L: BX - U * 0.27, R: BX + U * 0.29, T: BY - U * 0.20, B: BY + U * 0.20 };
+      this.plot(box, U, k);
+      g.textAlign = 'center';
+      g.font = `italic ${Math.round(U * 0.036)}px "Instrument Serif", Georgia, serif`;
+      g.fillStyle = rgba(skin.core, 0.9);
+      g.fillText('Time runs slower near a mass', BX, BY - U * 0.29);
+    },
+    full(k, active) {
+      const wide = BW >= BH * 1.1;
+      const U = wide ? Math.min(BH, BW * 0.62) : BW;
+      const box = wide
+        ? { L: BW * 0.10, R: BW * 0.54, T: BH * 0.22, B: BH * 0.60 }
+        : { L: BW * 0.17, R: BW * 0.90, T: BH * 0.13, B: BH * 0.36 };
+      this.plot(box, U, k);
+      g.font = `italic ${Math.round(U * 0.052)}px "Instrument Serif", Georgia, serif`;
+      g.fillStyle = rgba(skin.core, 0.92);
+      if (wide) { g.textAlign = 'left'; g.fillText('Time runs slower near a mass', box.L - U * 0.02, BH * 0.12); }
+      else { g.textAlign = 'center'; g.fillText('Time runs slower near a mass', BW / 2, BH * 0.07); }
+      // On a tall screen only the step being read is shown, so the spoken line below never meets it.
+      const col = wide ? { x: BW * 0.62, y: BH * 0.24, w: BW * 0.32 } : { x: BW * 0.10, y: BH * 0.47, w: BW * 0.80 };
+      const fs = Math.round(U * (wide ? 0.034 : 0.042));
+      let y = col.y;
+      STEPS.forEach((step, i) => {
+        if (!wide && i !== active) return;
+        const on = i === active && k >= 1;
+        g.textAlign = 'left';
+        g.font = `italic ${Math.round(fs * 1.5)}px "Instrument Serif", Georgia, serif`;
+        g.fillStyle = rgba(on ? skin.iris : skin.core, on ? 1 : 0.35);
+        g.fillText(String(i + 1), col.x, y + fs * 0.9);
+        g.font = `400 ${fs}px "Instrument Sans", "Segoe UI", sans-serif`;
+        g.fillStyle = rgba(skin.core, on ? 0.95 : 0.4);
+        const lines = wrap(step.text, col.w - fs * 1.8);
+        lines.forEach((line, j) => g.fillText(line, col.x + fs * 1.6, y + fs + j * fs * 1.35));
+        y += lines.length * fs * 1.35 + fs * 1.1;
+      });
+    },
+    plot({ L, R, T, B }, U, k) {
+      const xOf = x => L + ((x - 1) / 5) * (R - L);
+      const yOf = y => B - y * (B - T);
+      const sans = px => `400 ${Math.round(U * px)}px "Instrument Sans", "Segoe UI", sans-serif`;
+      g.lineWidth = 1;
+      g.strokeStyle = rgba(skin.iris, 0.12);
+      g.beginPath();
+      for (let x = 1; x <= 6; x += 1) { g.moveTo(xOf(x), T); g.lineTo(xOf(x), B); }
+      for (const y of [0.25, 0.5, 0.75]) { g.moveTo(L, yOf(y)); g.lineTo(R, yOf(y)); }
+      g.stroke();
+      g.strokeStyle = rgba(skin.iris, 0.6);
+      g.lineWidth = Math.max(1, U * 0.002);
+      g.beginPath(); g.moveTo(L, T); g.lineTo(L, B); g.lineTo(R, B); g.stroke();
+      g.setLineDash([U * 0.01, U * 0.01]);
+      g.strokeStyle = rgba(skin.iris, 0.45);
+      g.beginPath(); g.moveTo(L, yOf(1)); g.lineTo(R, yOf(1)); g.stroke();
+      g.setLineDash([]);
+      g.fillStyle = rgba(skin.core, 0.6);
+      g.font = sans(0.024);
+      g.textAlign = 'center';
+      for (let x = 1; x <= 6; x += 1) g.fillText(String(x), xOf(x), B + U * 0.035);
+      g.textAlign = 'right';
+      for (const y of [0, 0.5, 1]) g.fillText(y.toFixed(1), L - U * 0.014, yOf(y) + U * 0.008);
+      g.fillText('far from the mass', R, yOf(1) - U * 0.014);
+      g.textAlign = 'center';
+      g.font = sans(0.021);
+      g.fillStyle = rgba(skin.core, 0.5);
+      g.fillText('distance from the mass, in Schwarzschild radii', (L + R) / 2, B + U * 0.08);
+      g.save();
+      g.translate(L - U * 0.075, (T + B) / 2);
+      g.rotate(-Math.PI / 2);
+      g.fillText('clock rate', 0, 0);
+      g.restore();
+      const end = 1 + 5 * k;
+      const curve = () => {
+        g.beginPath();
+        for (let i = 0; i <= 160; i += 1) {
+          const x = 1 + (end - 1) * (i / 160);
+          const y = Math.sqrt(Math.max(0, 1 - 1 / x));
+          if (i === 0) g.moveTo(xOf(x), yOf(y)); else g.lineTo(xOf(x), yOf(y));
+        }
+      };
+      curve(); g.strokeStyle = rgba(skin.iris, 0.22); g.lineWidth = U * 0.014; g.stroke();
+      curve(); g.strokeStyle = rgba(skin.core, 0.95); g.lineWidth = Math.max(1.5, U * 0.004); g.stroke();
+      if (k >= 1) {
+        const rate = Math.sqrt(Math.max(0, 1 - 1 / this.dotX));
+        g.beginPath(); g.arc(xOf(this.dotX), yOf(rate), U * 0.009, 0, TAU);
+        g.fillStyle = rgba(skin.core, 1); g.fill();
+        g.font = sans(0.024);
+        g.textAlign = 'left';
+        g.fillStyle = rgba(skin.core, 0.85);
+        g.fillText(`${rate.toFixed(2)}×`, xOf(this.dotX) + U * 0.018, yOf(rate) - U * 0.018);
+      }
+    }
+  };
+  function wrap(text, width) {
+    const lines = [];
+    let line = '';
+    for (const word of text.split(' ')) {
+      const next = line ? `${line} ${word}` : word;
+      if (line && g.measureText(next).width > width) { lines.push(line); line = word; } else line = next;
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  const VISUALS = { attractor, harmonograph, figure };
+  let visual = null;
+  function setVisual(id) { visual = VISUALS[id] ?? null; visual?.reset(); }
+
+  // ─── The cut: every change of visual within a frame is one blink of the open aperture.
+  let cutStart = -1;
+  function cutAmount(now) {
+    if (cutStart < 0 || reduced) return 0;
+    const b = (now - cutStart) / 1000, close = 0.22, hold = 0.07, open = 0.36;
+    if (b < close) return smooth(b / close);
+    if (b < close + hold) return 1;
+    if (b < close + hold + open) return 1 - smooth((b - close - hold) / open);
+    cutStart = -1;
+    return 0;
+  }
+
+  // ─── The room.
+  const room = {
+    frame: 'shell',
+    pending: null,
+    live: { ...STATES.speaking },
+    target: { ...STATES.speaking },
+    nodes: Array.from({ length: 7 }, (_, i) => ({ angle: (i / 7) * TAU, phase: Math.random() * TAU, pace: 0.5 + Math.random() * 0.5, lit: 0.5 })),
+    gaze: { x: 0, y: 0, aimX: 0, aimY: 0, depth: 0, aimDepth: 0 },
+    nextBlink: 3, blinkAt: -1,
+    tween: { from: 1, to: 1, start: 0, dur: 0 },
+    f: { x: 0, y: 0, s: 1 }, small: 0,
+    W: 1, H: 1, big: { x: 0, y: 0, s: 1 }, dock: { x: 0, y: 0, s: 1 },
+
+    fit() {
+      const r = roomEl.getBoundingClientRect();
+      const W = Math.max(1, Math.round(r.width)), H = Math.max(1, Math.round(r.height));
+      const dpr = Math.min(2, devicePixelRatio || 1);
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      q = Math.min(1.5, dpr);
+      vis.width = Math.round(W * q); vis.height = Math.round(H * q);
+      g.setTransform(q, 0, 0, q, 0, 0);
+      BW = W; BH = H; BS = Math.min(W, H); BX = W / 2; BY = H / 2;
+      this.W = W; this.H = H;
+      const words = wordsEl.getBoundingClientRect(), slot = slotEl.getBoundingClientRect();
+      const top = 14, bottom = words.top - r.top - 10;
+      const s = Math.max(80, Math.min(W - 32, bottom - top));
+      this.big = { x: W / 2, y: top + (bottom - top) / 2, s };
+      this.dock = { x: slot.left - r.left + slot.width / 2, y: slot.top - r.top + slot.height / 2, s: slot.width * 1.15 };
+      ctx.fillStyle = rgba(skin.trail, 1);
+      ctx.fillRect(0, 0, W, H);
+      visual?.reset();
+    },
+    aim(cx, cy) {
+      const r = roomEl.getBoundingClientRect();
+      const dx = (cx - r.left - this.f.x) / this.f.s, dy = (cy - r.top - this.f.y) / this.f.s;
+      Object.assign(this.gaze, { aimX: Math.max(-1, Math.min(1, dx * 2)), aimY: Math.max(-1, Math.min(1, dy * 2)), aimDepth: 1 - Math.min(Math.hypot(dx, dy) / 0.45, 1) });
+    },
+    setState(name) { this.target = { ...STATES[name] }; },
+    aperture(now) {
+      const { from, to, start, dur } = this.tween;
+      return dur <= 0 ? to : mix(from, to, clamp01((now - start) / dur));
+    },
+    openTo(to, now) {
+      const from = this.aperture(now);
+      this.tween = { from, to, start: now, dur: reduced ? 0 : FRAMES[this.frame].open * Math.abs(to - from) };
+    },
+    blink(idle) {
+      if (reduced || !idle) return 0;
+      if (this.blinkAt < 0 && t > this.nextBlink) this.blinkAt = t;
+      if (this.blinkAt < 0) return 0;
+      const b = t - this.blinkAt, close = 0.22, hold = 0.07, open = 0.36;
+      if (b < close) return smooth(b / close);
+      if (b < close + hold) return 1;
+      if (b < close + hold + open) return 1 - smooth((b - close - hold) / open);
+      this.blinkAt = -1;
+      this.nextBlink = t + 4 + Math.random() * 4;
+      return 0;
+    },
+    /** The eye at the face's centre; small, it is most of the face, so a docked Sophia is still an eye. */
+    eyeGeometry() {
+      const { f, gaze, live } = this;
+      const R = mix(f.s * (0.075 + live.open * 0.035) + gaze.depth * f.s * 0.015, f.s * 0.28, this.small);
+      return { ex: f.x + gaze.x * f.s * 0.045 * (1 - this.small), ey: f.y + gaze.y * f.s * 0.045 * (1 - this.small), R, open: live.open };
+    },
+
+    frameStep(now, dt) {
+      const k = reduced ? 1 : 1 - Math.exp(-dt / 0.18);
+      for (const key of Object.keys(this.live)) this.live[key] = mix(this.live[key], this.target[key], k);
+      const gz = this.gaze, kg = 1 - Math.exp(-dt / 0.35);
+      gz.x = mix(gz.x, gz.aimX, kg); gz.y = mix(gz.y, gz.aimY, kg); gz.depth = mix(gz.depth, gz.aimDepth, 1 - Math.exp(-dt / 0.4));
+      for (const node of this.nodes) node.angle += (reduced ? 0 : this.live.orbit) * 0.4 * dt;
+      let a = this.aperture(now);
+      if (this.pending && a === 0 && this.tween.to === 0) {
+        const { frame, id } = this.pending;
+        this.pending = null;
+        this.frame = frame;
+        roomEl.dataset.frame = frame;
+        setVisual(id);
+        this.openTo(1, now);
+        this.setState('speaking');
+        say(id);
+        readout();
+        a = this.aperture(now);
+      }
+      if (a > 0 && visual) visual.step(dt, this.frame === 'full' ? 'full' : 'circle');
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = rgba(skin.trail, reduced ? 1 : 0.08);
+      ctx.fillRect(0, 0, this.W, this.H);
+      const cut = cutAmount(now);
+      if (this.frame === 'full') this.drawFull(a, cut);
+      else this.drawCircle(a, cut);
+    },
+
+    /**
+     * Inner eye: the iris folds shut, the closed shutter dilates to the aperture and its blades draw back; the face
+     * stays around it, dimmed and drawn a little outward. Outer shell: the eye folds to a seed while the field,
+     * torus, petals and lights travel to the rim and become the frame; the seed dilates to fill it, and opens.
+     */
+    drawCircle(a, cut) {
+      const shell = this.frame === 'shell';
+      const c = this.big;
+      this.f = { ...c };
+      this.small = 0;
+      const travel = shell ? smooth((a - 0.15) / 0.6) : 0;
+      const held = smooth(a);
+      ctx.save();
+      if (!shell) {
+        ctx.globalAlpha = 1 - 0.55 * held;
+        ctx.translate(c.x, c.y); ctx.scale(1 + 0.12 * held, 1 + 0.12 * held); ctx.translate(-c.x, -c.y);
+      }
+      this.drawField(travel, mix(1, 0.75, travel));
+      this.drawRecursion(c.x, c.y, c.s * 0.34 * this.live.tight, 3, t * 0.5 * this.live.spin, 1 - travel);
+      this.drawTorus(travel);
+      this.drawNodes(travel);
+      ctx.restore();
+      const Rf = c.s * (shell ? 0.41 : 0.36);
+      if (shell) this.drawCrown(c.x, c.y, Rf, travel, 3);
+      const eye = this.eyeGeometry();
+      const shutAt = shell ? 0.1 : 0.25;
+      const close = smooth(a / shutAt);
+      if (a <= shutAt) { this.drawEye(eye.ex, eye.ey, eye.R, Math.max(this.blink(a === 0), close), eye.open); return; }
+      const shrink = shell ? smooth((a - 0.1) / 0.3) : 0;
+      const grow = shell ? smooth((a - 0.4) / 0.3) : smooth((a - 0.25) / 0.35);
+      const open = shell ? smooth((a - 0.7) / 0.3) : smooth((a - 0.6) / 0.4);
+      const R = mix(eye.R * (1 - 0.7 * shrink), Rf, grow);
+      const along = shell ? shrink : grow;
+      const x = mix(eye.ex, c.x, along), y = mix(eye.ey, c.y, along);
+      const hole = open * (1 - cut);
+      if (!shell) this.drawCrown(x, y, R, open, 2);
+      if (hole <= 0) { this.drawEye(x, y, R, 1, eye.open); return; }
+      this.drawVisual(x, y, R, hole);
+      this.drawShutter(x, y, R, 1, hole);
+      if (open < 1) this.drawPetals(x, y, R, 1, eye.open, 1 - open);
+      this.ring(x, y, R, (shell ? 0.45 : 0.5) * open);
+    },
+
+    /**
+     * Full frame: the eye blinks shut and Sophia travels, shrinking, to her place beside the typing bar, where she
+     * opens again and keeps blinking; behind her, where she was, the shutter opens across the whole room.
+     */
+    drawFull(a, cut) {
+      const close = smooth(a / 0.15), travel = smooth((a - 0.1) / 0.45), reopen = smooth((a - 0.5) / 0.15), wipe = smooth((a - 0.2) / 0.8);
+      const hole = wipe * (1 - cut);
+      if (hole > 0) this.drawWipe(hole);
+      const { big, dock } = this;
+      this.f = { x: mix(big.x, dock.x, travel), y: mix(big.y, dock.y, travel), s: mix(big.s, dock.s, travel) };
+      this.small = travel;
+      const f = this.f;
+      this.drawField(0, mix(1, 0.6, travel));
+      this.drawRecursion(f.x, f.y, f.s * 0.34 * this.live.tight, 3, t * 0.5 * this.live.spin, 1 - travel);
+      this.drawTorus(0);
+      this.drawNodes(0);
+      const eye = this.eyeGeometry();
+      const closed = a < 0.5 ? Math.max(close, this.blink(a === 0)) : Math.max(1 - reopen, this.blink(a === 1));
+      this.drawEye(eye.ex, eye.ey, eye.R, closed, eye.open);
+    },
+
+    /** The room's own aperture: nine sides, opening from where the eye was until it is past every corner. */
+    drawWipe(hole) {
+      const { big, W, H } = this;
+      const far = Math.max(...[[0, 0], [W, 0], [0, H], [W, H]].map(([x, y]) => Math.hypot(x - big.x, y - big.y)));
+      const hr = (hole * far * 1.08) / Math.cos(Math.PI / 9), turn = hole * 1.2;
+      const path = () => {
+        ctx.beginPath();
+        for (let k = 0; k <= 9; k += 1) {
+          const ang = (k / 9) * TAU + turn;
+          const x = big.x + hr * Math.cos(ang), y = big.y + hr * Math.sin(ang);
+          if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+      };
+      ctx.save();
+      path(); ctx.clip();
+      ctx.globalAlpha = clamp01(hole * 2);
+      ctx.drawImage(vis, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+      const words = wordsEl.offsetTop;
+      const scrim = ctx.createLinearGradient(0, words - 30, 0, H);
+      scrim.addColorStop(0, rgba(skin.trail, 0));
+      scrim.addColorStop(1, rgba(skin.trail, 0.82));
+      ctx.fillStyle = scrim;
+      ctx.fillRect(0, words - 30, W, H - words + 30);
+      ctx.restore();
+      if (hole < 0.98) { path(); ctx.strokeStyle = rgba(skin.iris, 0.5 * (1 - hole)); ctx.lineWidth = 1.2; ctx.stroke(); }
+    },
+
+    /** The visual's centre square, scaled so its circle is exactly the aperture once open. */
+    drawVisual(x, y, R, hole) {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(x, y, R, 0, TAU); ctx.clip();
+      const D = 2 * R * (0.92 + 0.08 * hole);
+      ctx.globalAlpha = clamp01(hole * 1.6);
+      ctx.drawImage(vis, (BX - BS / 2) * q, (BY - BS / 2) * q, BS * q, BS * q, x - D / 2, y - D / 2, D, D);
+      ctx.globalAlpha = 1;
+      const edge = ctx.createRadialGradient(x, y, R * 0.86, x, y, R);
+      edge.addColorStop(0, rgba(skin.trail, 0));
+      edge.addColorStop(1, rgba(skin.trail, 0.85));
+      ctx.fillStyle = edge;
+      ctx.fillRect(x - R, y - R, 2 * R, 2 * R);
+      ctx.restore();
+    },
+
+    ring(x, y, R, alpha) {
+      if (alpha <= 0.01) return;
+      ctx.beginPath(); ctx.arc(x, y, R, 0, TAU);
+      ctx.strokeStyle = rgba(skin.iris, alpha); ctx.lineWidth = 1.2; ctx.stroke();
+    },
+
+    /** The petals moved to an edge: slivers of the eye's own layers, pointing outward from radius R. */
+    drawCrown(x, y, R, alpha, layers) {
+      if (alpha <= 0.01) return;
+      ctx.save();
+      ctx.translate(x, y);
+      for (let layer = 0; layer < layers; layer += 1) {
+        ctx.rotate((reduced ? 0 : t) * (0.02 + layer * 0.015) + layer * 0.7);
+        const r0 = R * (1.0 + layer * 0.018), r1 = R * (1.045 + layer * 0.022);
+        for (let i = 0; i < 48; i += 1) {
+          const ang = (i / 48) * TAU;
+          ctx.beginPath();
+          ctx.moveTo(r0 * Math.cos(ang - 0.035), r0 * Math.sin(ang - 0.035));
+          ctx.lineTo(r0 * Math.cos(ang + 0.035), r0 * Math.sin(ang + 0.035));
+          ctx.lineTo(r1 * Math.cos(ang + 0.09), r1 * Math.sin(ang + 0.09));
+          ctx.closePath();
+          ctx.fillStyle = rgba(tint(skin.core, skin.iris, layer / 2), (0.34 - layer * 0.08) * alpha);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    },
+
+    drawField(m, alphaK) {
+      const { f, live } = this;
+      const lines = 24, pts = 40, amp = live.field;
+      for (let i = 0; i < lines; i += 1) {
+        const a = (i / lines) * TAU;
+        ctx.beginPath();
+        for (let j = 0; j <= pts; j += 1) {
+          const u = j / pts;
+          const wave = Math.sin(t * 2 * amp + a * 3 + u * Math.PI * 4) * 0.1;
+          const spiral = u * TAU + t * 0.6 * amp + a;
+          const r = mix(f.s * 0.10 + u * f.s * 0.35 * live.tight * (1 + wave), f.s * (0.43 + u * 0.03 + wave * 0.12), m);
+          const px = f.x + r * Math.cos(spiral), py = f.y + r * Math.sin(spiral);
+          if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = rgba(skin.iris, (0.10 + 0.10 * live.glow) * alphaK);
+        ctx.lineWidth = Math.max(0.4, (0.8 + Math.sin(t + a) * 0.4) * Math.min(1, f.s / 300));
+        ctx.stroke();
+      }
+    },
+
+    drawRecursion(x, y, radius, depthLeft, phase, alphaK) {
+      if (depthLeft <= 0 || radius < 3 || alphaK <= 0.01) return;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(phase);
+      const child = radius / 1.618033988749895;
+      for (let i = 0; i < 6; i += 1) {
+        const a = (i / 6) * TAU;
+        this.drawRecursion(radius * Math.cos(a), radius * Math.sin(a), child, depthLeft - 1, phase + a, alphaK);
+      }
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, TAU);
+      ctx.strokeStyle = rgba(skin.glow, 0.05 * (depthLeft / 3) * (0.6 + this.live.glow) * alphaK);
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+      ctx.restore();
+    },
+
+    drawTorus(m) {
+      const { f, live } = this;
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.strokeStyle = rgba(skin.glow, mix(0.04 + this.gaze.depth * 0.08 + live.glow * 0.03, 0.16, m));
+      ctx.lineWidth = 0.5;
+      const R = mix(f.s * 0.30 * live.tight, f.s * 0.445, m), r = mix(f.s * 0.09 * live.tight, f.s * 0.014, m);
+      for (let i = 0; i < 48; i += 1) {
+        const u = (i / 48) * TAU;
+        ctx.beginPath();
+        for (let j = 0; j <= 24; j += 1) {
+          const v = (j / 24) * TAU;
+          const w = Math.sin(t * 0.8 * (0.5 + live.spin) + u * 2 + v) * 0.2;
+          const rr = r * (1 + w);
+          const px = f.x + (R + rr * Math.cos(v)) * Math.cos(u + t * 0.05);
+          const py = f.y + (R + rr * Math.cos(v)) * Math.sin(u + t * 0.05);
+          if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+
+    drawNodes(m) {
+      const { f, live, gaze } = this;
+      const orbitR = mix(f.s * 0.25 * live.tight, f.s * 0.452, m), scale = mix(1, 0.42, m) * (f.s / 600);
+      for (const node of this.nodes) {
+        const x = f.x + orbitR * Math.cos(node.angle), y = f.y + orbitR * Math.sin(node.angle);
+        const near = Math.max(0, 1 - Math.hypot(gaze.x * f.s * 0.5 + f.x - x, gaze.y * f.s * 0.5 + f.y - y) / (f.s * 0.2));
+        node.lit = mix(node.lit, 0.45 + near * 0.35 + live.glow * 0.3, 0.1);
+        const pulse = Math.max(1, (16 + Math.sin(t * node.pace * (1 + live.orbit) + node.phase) * 8 * node.lit) * scale);
+        for (let ring = 3; ring > 0; ring -= 1) {
+          ctx.beginPath();
+          ctx.arc(x, y, pulse * ring * 0.5, 0, TAU);
+          ctx.strokeStyle = rgba(skin.iris, (0.08 / ring) * node.lit);
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, pulse);
+        glow.addColorStop(0, rgba(skin.core, 0.7 * node.lit));
+        glow.addColorStop(0.4, rgba(skin.glow, 0.5 * node.lit));
+        glow.addColorStop(0.7, rgba(skin.iris, 0.3 * node.lit));
+        glow.addColorStop(1, rgba(skin.iris, 0));
+        ctx.beginPath(); ctx.arc(x, y, pulse, 0, TAU);
+        ctx.fillStyle = glow; ctx.fill();
+      }
+    },
+
+    /** The face study's nine S-curve blades; `hole` opens a nine-sided aperture at their centre, turning them. */
+    drawShutter(ex, ey, R, show, hole = 0) {
+      if (show <= 0.02 || hole >= 0.999) return;
+      const blades = 9, rim = R;
+      const turn = (1 - show) * 0.6 + hole * 0.9;
+      ctx.save();
+      ctx.translate(ex, ey);
+      ctx.beginPath();
+      ctx.arc(0, 0, rim * 1.02, 0, TAU);
+      if (hole > 0.001) {
+        const hr = hole * rim * 1.12;
+        for (let k = 0; k <= blades; k += 1) {
+          const ang = (k / blades) * TAU + turn * 1.3;
+          if (k === 0) ctx.moveTo(hr * Math.cos(ang), hr * Math.sin(ang)); else ctx.lineTo(hr * Math.cos(ang), hr * Math.sin(ang));
+        }
+        ctx.closePath();
+      }
+      ctx.clip('evenodd');
+      if (hole > 0.001) { ctx.fillStyle = rgba(skin.trail, 0.92); ctx.fillRect(-rim * 1.1, -rim * 1.1, rim * 2.2, rim * 2.2); }
+      const seam = k => {
+        const a = (k / blades) * TAU + turn;
+        return {
+          a,
+          p1: [rim * 0.30 * Math.cos(a + 0.95), rim * 0.30 * Math.sin(a + 0.95)],
+          p2: [rim * 0.72 * Math.cos(a - 0.22), rim * 0.72 * Math.sin(a - 0.22)],
+          p3: [rim * 1.02 * Math.cos(a + 0.08), rim * 1.02 * Math.sin(a + 0.08)]
+        };
+      };
+      for (let k = 0; k < blades; k += 1) {
+        const s0 = seam(k), s1 = seam(k + 1);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(s0.p1[0], s0.p1[1], s0.p2[0], s0.p2[1], s0.p3[0], s0.p3[1]);
+        ctx.arc(0, 0, rim * 1.02, s0.a + 0.08, s1.a + 0.08);
+        ctx.bezierCurveTo(s1.p2[0], s1.p2[1], s1.p1[0], s1.p1[1], 0, 0);
+        ctx.closePath();
+        const mid = (s0.a + s1.a) / 2;
+        ctx.fillStyle = rgba(skin.trail, 0.94 * show);
+        ctx.fill();
+        const radial = ctx.createRadialGradient(0, 0, 0, 0, 0, rim);
+        radial.addColorStop(0, rgba(skin.core, 0.30 * show));
+        radial.addColorStop(0.45, rgba(skin.iris, 0.18 * show));
+        radial.addColorStop(1, rgba(skin.iris, 0.07 * show));
+        ctx.fillStyle = radial;
+        ctx.fill();
+        const shade = ctx.createLinearGradient(rim * 0.9 * Math.cos(s0.a + 0.5), rim * 0.9 * Math.sin(s0.a + 0.5), rim * 0.9 * Math.cos(mid - 0.15), rim * 0.9 * Math.sin(mid - 0.15));
+        shade.addColorStop(0, rgba(skin.trail, 0.55 * show));
+        shade.addColorStop(1, rgba(skin.trail, 0));
+        ctx.fillStyle = shade;
+        ctx.fill();
+      }
+      for (let k = 0; k < blades; k += 1) {
+        const { p1, p2, p3 } = seam(k);
+        const line = ctx.createLinearGradient(0, 0, p3[0], p3[1]);
+        line.addColorStop(0, rgba(skin.core, 0.5 * show));
+        line.addColorStop(0.5, rgba(skin.iris, 0.32 * show));
+        line.addColorStop(1, rgba(skin.iris, 0.14 * show));
+        ctx.strokeStyle = line;
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]);
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+
+    drawPetals(ex, ey, R, closed, open, alpha = 1) {
+      ctx.save();
+      ctx.translate(ex, ey);
+      for (let layer = 0; layer < 3; layer += 1) {
+        const order = 2 - layer;
+        const fold = clamp01((closed - order * 0.18) / 0.64);
+        ctx.rotate((reduced ? 0 : t) * (0.06 + layer * 0.04) * (0.6 + this.live.spin) + layer + fold * 0.9);
+        const reach = 1 - fold * 0.92, flare = 0.1 + fold * 0.07;
+        for (let i = 0; i < 36; i += 1) {
+          const a = (i / 36) * TAU;
+          const r1 = R * (0.3 + layer * 0.3) * reach, r2 = R * (0.5 + layer * 0.3) * reach;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(r1 * Math.cos(a), r1 * Math.sin(a));
+          ctx.lineTo(r2 * Math.cos(a + flare), r2 * Math.sin(a + flare));
+          const fill = ctx.createLinearGradient(0, 0, r2 * Math.cos(a), r2 * Math.sin(a));
+          fill.addColorStop(0, rgba(skin.core, (0.32 - layer * 0.1) * (0.5 + open * 0.5) * alpha));
+          fill.addColorStop(1, rgba(skin.iris, (0.12 - layer * 0.03) * (0.5 + open * 0.5) * alpha));
+          ctx.fillStyle = fill;
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+      if (closed > 0.6) {
+        const seed = ctx.createRadialGradient(ex, ey, 0, ex, ey, R * 0.12);
+        seed.addColorStop(0, rgba(skin.core, (closed - 0.6) * 1.2 * alpha));
+        seed.addColorStop(1, rgba(skin.core, 0));
+        ctx.beginPath(); ctx.arc(ex, ey, R * 0.12, 0, TAU);
+        ctx.fillStyle = seed; ctx.fill();
+      }
+    },
+
+    drawEye(ex, ey, R, closed, open) {
+      const socket = ctx.createRadialGradient(ex, ey, 0, ex, ey, R * 1.02);
+      socket.addColorStop(0, rgba(skin.trail, 0.9 * closed));
+      socket.addColorStop(0.8, rgba(skin.trail, 0.85 * closed));
+      socket.addColorStop(1, rgba(skin.trail, 0));
+      ctx.beginPath(); ctx.arc(ex, ey, R * 1.02, 0, TAU);
+      ctx.fillStyle = socket; ctx.fill();
+      this.drawShutter(ex, ey, R, closed);
+      this.drawPetals(ex, ey, R, closed, open);
+      const depth = this.gaze.depth;
+      const pupil = R * (0.34 - depth * 0.08) * (1 + Math.sin(t * 0.9) * 0.05) * (1 - closed * 0.9);
+      const pg = ctx.createRadialGradient(ex, ey, 0, ex, ey, Math.max(1, pupil));
+      pg.addColorStop(0, rgba(skin.deep, 0.95));
+      pg.addColorStop(0.55, rgba(skin.glow, 0.55));
+      pg.addColorStop(1, rgba(skin.iris, 0.25));
+      ctx.beginPath(); ctx.arc(ex, ey, Math.max(0.5, pupil), 0, TAU);
+      ctx.fillStyle = pg; ctx.fill();
+      ctx.beginPath();
+      ctx.arc(ex - pupil * 0.35 - this.gaze.x * 2, ey - pupil * 0.38 - this.gaze.y * 2, Math.max(0.5, pupil * 0.16), 0, TAU);
+      ctx.fillStyle = rgba(skin.core, (0.55 + open * 0.3) * (1 - closed));
+      ctx.fill();
+    }
+  };
+
+  canvas.addEventListener('pointermove', e => room.aim(e.clientX, e.clientY));
+  canvas.addEventListener('pointerleave', () => Object.assign(room.gaze, { aimX: 0, aimY: 0, aimDepth: 0 }));
+
+  // ─── The instrument.
+  const LINES = {
+    arrival: 'Ask anything.',
+    rest: 'Ask again, when you like.',
+    thinking: 'Thinking it through.',
+    unknown: 'RISE would draw that. This study knows four words: attractor, harmonograph, figure, eye.',
+    attractor: 'Three equations, and a path that never quite repeats.',
+    harmonograph: 'Two pendulums, losing energy together, drawing their own decay.',
+    figure: 'Near a mass, a clock runs slower than one far away.'
+  };
+  function say(key) {
+    const text = LINES[key];
+    if (wordsEl.textContent === text) return;
+    if (reduced) { wordsEl.textContent = text; return; }
+    wordsEl.classList.add('swap');
+    setTimeout(() => { wordsEl.textContent = text; wordsEl.classList.remove('swap'); }, 300);
+  }
+
+  let frameChoice = 'auto';
+  let current = 'attractor';
+  const frameFor = id => (frameChoice === 'auto' ? BY_VISUAL[id] : frameChoice);
+  function readout() {
+    const el = document.getElementById('readout');
+    if (current === 'eye') { el.innerHTML = '<b>The eye</b> · at rest'; return; }
+    const frame = FRAMES[room.pending?.frame ?? room.frame];
+    el.innerHTML = `<b>${frame.name}</b> · ${frame.measure}`;
+  }
+  function press() {
+    for (const b of document.querySelectorAll('[data-visual]')) b.setAttribute('aria-pressed', String(b.dataset.visual === current));
+    for (const b of document.querySelectorAll('[data-frame]')) b.setAttribute('aria-pressed', String(b.dataset.frame === frameChoice));
+  }
+
+  /** Show a visual, or the eye: a cut within the same frame, or close and reopen in another. */
+  function show(id, force = false) {
+    if (id === current && !force) return;
+    const now = performance.now();
+    current = id;
+    if (id === 'eye') {
+      room.pending = null;
+      room.openTo(0, now);
+      room.setState('rest');
+      say('rest');
+    } else {
+      const frame = frameFor(id);
+      const a = room.aperture(now);
+      if (a === 0 && room.tween.to === 0) {
+        room.pending = { frame, id };
+      } else if (room.tween.to === 1 && frame === room.frame && !room.pending) {
+        cutStart = now;
+        setTimeout(() => { setVisual(id); say(id); }, reduced ? 0 : 290);
+      } else {
+        room.pending = { frame, id };
+        room.openTo(0, now);
+      }
+    }
+    press();
+    readout();
+  }
+
+  let timers = [];
+  const playButton = document.getElementById('play');
+  function stopReading() {
+    for (const id of timers) clearTimeout(id);
+    timers = [];
+    playButton.setAttribute('aria-pressed', 'false');
+  }
+  function playReading() {
+    stopReading();
+    playButton.setAttribute('aria-pressed', 'true');
+    const lead = current === 'eye' ? 0 : 2200;
+    show('eye');
+    const at = (ms, fn) => timers.push(setTimeout(fn, lead + ms));
+    at(0, () => { room.setState('thinking'); say('thinking'); });
+    at(1800, () => show('attractor'));
+    at(9300, () => show('figure'));
+    at(21300, () => show('harmonograph'));
+    at(30300, () => { show('eye'); stopReading(); });
+  }
+  playButton.addEventListener('click', () => (timers.length ? stopReading() : playReading()));
+  for (const b of document.querySelectorAll('[data-visual]')) b.addEventListener('click', () => { stopReading(); show(b.dataset.visual); });
+  for (const b of document.querySelectorAll('[data-frame]')) {
+    b.addEventListener('click', () => {
+      frameChoice = b.dataset.frame;
+      press();
+      if (current !== 'eye' && frameFor(current) !== (room.pending?.frame ?? room.frame)) show(current, true);
+      readout();
+    });
+  }
+  for (const b of document.querySelectorAll('[data-skin]')) {
+    b.addEventListener('click', () => {
+      skin = SKINS[b.dataset.skin];
+      document.documentElement.style.setProperty('--accent', rgba(skin.iris, 1));
+      for (const other of document.querySelectorAll('[data-skin]')) other.setAttribute('aria-pressed', String(other === b));
+      visual?.reset();
+    });
+  }
+
+  // The bar: the words a reader would say. A word RISE draws itself changes the visual at once, with no model.
+  const WORDS = [
+    [/attractor|aizawa|chaos/u, 'attractor'],
+    [/harmonograph|pendulum/u, 'harmonograph'],
+    [/figure|clock|time|mass|gravity|walkthrough/u, 'figure'],
+    [/\beye\b|rest|stop|sophia/u, 'eye']
+  ];
+  const FRAME_WORDS = [[/inner/u, 'inner'], [/shell|circle/u, 'shell'], [/full|whole|room/u, 'full']];
+  const input = document.getElementById('ask-input');
+  document.getElementById('ask').addEventListener('submit', event => {
+    event.preventDefault();
+    const said = input.value.toLowerCase().trim();
+    input.value = '';
+    if (!said) return;
+    stopReading();
+    const frame = FRAME_WORDS.find(([pattern]) => pattern.test(said));
+    const found = WORDS.find(([pattern]) => pattern.test(said));
+    if (frame) { frameChoice = frame[1]; press(); }
+    if (found) show(found[1], Boolean(frame));
+    else if (frame && current !== 'eye') show(current, true);
+    else say('unknown');
+  });
+
+  setVisual('attractor');
+  press();
+  readout();
+  room.fit();
+  new ResizeObserver(() => room.fit()).observe(roomEl);
+
+  let last = performance.now(), running = true;
+  function loop(now) {
+    if (!running) return;
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    t += dt;
+    room.frameStep(now, dt);
+    requestAnimationFrame(loop);
+  }
+  document.addEventListener('visibilitychange', () => {
+    running = !document.hidden;
+    if (running) { last = performance.now(); requestAnimationFrame(loop); }
+  });
+  requestAnimationFrame(loop);
+})();
+</script>
