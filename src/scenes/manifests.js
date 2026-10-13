@@ -182,10 +182,13 @@ export function sceneCue(scene, themeConfig = null) {
   return { kind: 'procedural', collections: [manifest.id], config: { ...params } };
 }
 
-/** The guide's account of every engine and its parameters, one line each. */
-export function describeManifests() {
+/**
+ * The guide's account of every engine and its parameters, one line each,
+ * leaving out the parameters named in `withheld` (admission still takes them).
+ */
+export function describeManifests({ withheld = [] } = {}) {
   return SCENE_MANIFESTS.filter(manifest => manifest.id !== 'still').map(manifest => {
-    const parameters = Object.entries(manifest.parameters).map(([name, spec]) => {
+    const parameters = Object.entries(manifest.parameters).filter(([name]) => !withheld.includes(name)).map(([name, spec]) => {
       const bounds = spec.type === 'enum' ? spec.values.join('|') : `${spec.minimum}..${spec.maximum}`;
       return `${name} (${bounds}${spec.cueable ? ', cueable' : ''})`;
     });

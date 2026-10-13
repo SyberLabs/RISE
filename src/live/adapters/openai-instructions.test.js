@@ -310,6 +310,13 @@ describe('the illustrator (stage 5.5, design §6.2)', () => {
     });
 });
 
+describe('the native engines in Live’s instructions', () => {
+    it('teach every parameter, the swarm and the rotary pendulums with them', () => {
+        expect(REALTIME_INSTRUCTIONS).toContain('trace (filament|swarm)');
+        expect(REALTIME_INSTRUCTIONS).toContain('pendulums (lateral|rotary)');
+    });
+});
+
 describe('interactive scenes (stage 6, docs/plans/LIVE-CURRENT.md §20)', () => {
     it('are taught in Live’s instructions: rise.listen, the widget set line by line, rise.emit, and that the moves come back', () => {
         expect(REALTIME_INSTRUCTIONS).toContain(SCENE_INPUT_GUIDE);

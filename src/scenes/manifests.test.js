@@ -120,4 +120,12 @@ describe('the guide’s account', () => {
     expect(text).toContain('trace (filament|swarm)');
     expect(text).toContain('pendulums (lateral|rotary)');
   });
+
+  it('leaves out the parameters it is asked to withhold, and nothing else', () => {
+    const text = describeManifests({ withheld: ['trace', 'pendulums'] });
+    expect(text).not.toMatch(/trace|pendulums|swarm|rotary/u);
+    expect(text).toContain('speed (0.25..4); cues calm, bright');
+    expect(text).toContain('harmonograph: climate (auto|emberDawn|solarFlare|midnightWater|stormViolet|jadeVeil|whiteHeat)\n');
+    expect(text.split('\n')).toHaveLength(describeManifests().split('\n').length);
+  });
 });

@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../../core/rise-current.js';
-import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_ENGINES, SCENE_LIMITS } from '../../core/beats.js';
+import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_ENGINES, SCENE_LIMITS, describeManifests } from '../../core/beats.js';
 import { STYLES } from '../../core/styles.js';
 import { PARKED_SOUNDS } from '../../audio/sound-ids.js';
 import { createSceneLibrary } from '../../scenes/scene-library.js';
@@ -19,7 +19,7 @@ import {
     CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, CURRENT_GUIDE_V2, DIVE_INSTRUCTIONS, FIGURE_EXAMPLE, FIGURE_GUIDE, LIB_GUIDE, LOOK_HINTS, SCENE_CODE_EXAMPLE,
     STYLE_EXAMPLES, STYLE_LINES, THEME_HINTS, TOOL_NAME, styleGuide
 } from './index.js';
-import { WIDGET_GUIDE } from './beats.js';
+import { HOST_WITHHELD_PARAMETERS, WIDGET_GUIDE } from './beats.js';
 
 describe('the example', () => {
     it('is a Current the strict validator accepts', () => {
@@ -137,6 +137,23 @@ describe('the guide to beats', () => {
         expect(() => validateRiseCurrent(structuredClone(CURRENT_EXAMPLE_V2))).not.toThrow();
         expect(CURRENT_GUIDE_V2).toContain(JSON.stringify(CURRENT_EXAMPLE_V2, null, 2));
         expect(CURRENT_GUIDE).toContain(CURRENT_GUIDE_V2);
+    });
+
+    it('teaches a host\'s model neither the swarm nor the rotary pendulums while the connector submission is under review', () => {
+        expect(HOST_WITHHELD_PARAMETERS).toEqual(['trace', 'pendulums']);
+        for (const text of [CURRENT_GUIDE, DIVE_INSTRUCTIONS, ...RISE_CURRENT_STYLES.map(id => styleGuide(id))]) {
+            expect(text).not.toMatch(/\btrace\b|pendulums|filament\|swarm|lateral\|rotary/u);
+        }
+        expect(CURRENT_GUIDE_V2).toContain(`${describeManifests({ withheld: HOST_WITHHELD_PARAMETERS })}\n`);
+        // Admission is unchanged: a Current that names them is still accepted.
+        const current = structuredClone(CURRENT_EXAMPLE_V2);
+        current.scenes = [
+            { id: 'field', engine: 'attractor', params: { trace: 'swarm' } },
+            { id: 'calm', engine: 'harmonograph', params: { pendulums: 'rotary' } }
+        ];
+        const admitted = validateRiseCurrent(current);
+        expect(admitted.scenes[0].params).toEqual({ trace: 'swarm' });
+        expect(admitted.scenes[1].params).toEqual({ pendulums: 'rotary' });
     });
 
     it('names every engine a scene may name, and says what "style" does', () => {
