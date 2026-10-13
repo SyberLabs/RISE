@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "Score stage 2",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
@@ -26,7 +26,7 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/652",
-      "note": "Draft, branch visuals-swarm-rotary, code at 1bbadff9. Local: vitest on the touched suites (attractor, attractor-manifest, harmonograph, harmonograph-field, manifests, visual-style-definitions, Chamber.theme-engines, rise-sdk, visual-cortex, src/live/guide, worker/mcp-server, openai-instructions, rise-current) 13 files, 557 passed; importer suites all passed (engine-lists alone, system-design after content:build); ci-hygiene clean, vite build ok, first load 62.2 KB br of 64.0. Rendered in headless Chromium 149 and compared with the study: swarm on all three systems, white/gold/blue, mirror and kaleido; rotary for two seeds mid-draw and at the end. Frame cost at 1440x900 with 700 particles: swarm 4.3 ms tick / 16.7 ms frame against the filament's 1.9 / 33.3 (2x: 14.8 / 33.2 against 2.0 / 66.6), software raster. Not merged, deployed or seen by a human.",
+      "note": "Branch visuals-swarm-rotary, code at 1bbadff9. Local: vitest on the touched suites (attractor, attractor-manifest, harmonograph, harmonograph-field, manifests, visual-style-definitions, Chamber.theme-engines, rise-sdk, visual-cortex, src/live/guide, worker/mcp-server, openai-instructions, rise-current) 13 files, 557 passed; importer suites all passed (engine-lists alone, system-design after content:build); ci-hygiene clean, vite build ok, first load 62.2 KB br of 64.0. Rendered in headless Chromium 149 and compared with the study: swarm on all three systems, white/gold/blue, mirror and kaleido; rotary for two seeds mid-draw and at the end. Frame cost at 1440x900 with 700 particles: swarm 4.3 ms tick / 16.7 ms frame against the filament's 1.9 / 33.3 (2x: 14.8 / 33.2 against 2.0 / 66.6), software raster. Merged as 2f13e80a; deployed (release.txt 2f13e80a, 2026-10-13). Not accepted by a human.",
       "date": "2026-10-12"
     },
     {
@@ -34,6 +34,12 @@
       "ref": "e73f7851",
       "note": "PR #652: the host guide withholds trace and pendulums (HOST_WITHHELD_PARAMETERS in src/live/guide/beats.js, describeManifests({ withheld })); Live's instructions name both; admission unchanged. Local: vitest manifests, src/live/guide, openai-instructions, worker/mcp-server, rise-current, rise-sdk, beats 7 files, 284 passed; SHA-256 of CURRENT_GUIDE, DIVE_INSTRUCTIONS and both style guides equal to main's (Live's instructions differ, as intended); ci-hygiene clean; docs:diagram unchanged.",
       "date": "2026-10-12"
+    },
+    {
+      "kind": "commit",
+      "ref": "f06eb986",
+      "note": "PR #652, after Codex review (two P1 threads, both answered by claude[bot] in 7bec888b and resolved): the offline Chamber stage now ticks the unpaused attractor at the score timestamp, so an exported swarm evolves and the filament turns (7bec888b had sampled a fresh swarm per frame); a changed pendulums cue crossfades the Gallery harmonograph at once. Local: vitest chamber-stage.attractor, harmonograph-field, visual-cortex, attractor 4 files, 247 passed; CI green on f06eb986.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
@@ -48,10 +54,14 @@
     {
       "date": "2026-10-12T22:15:00.000Z",
       "summary": "The host guide withholds the two new parameters while the connector submission is under review; Live teaches them (e73f7851)."
+    },
+    {
+      "date": "2026-10-13T04:55:45.748Z",
+      "summary": "PR #652 merged as 2f13e80a and deployed (release.txt 2f13e80a, 2026-10-13); delivery deployed; not accepted by a human"
     }
   ],
-  "updatedAt": "2026-10-12T22:15:00.000Z",
-  "revision": 3,
+  "updatedAt": "2026-10-13T04:55:45.748Z",
+  "revision": 4,
   "summary": "The two visuals the owner kept from the design study, ported as engine options: the attractor as a live swarm, and the harmonograph as rotary pendulums.",
   "blocker": null
 }
