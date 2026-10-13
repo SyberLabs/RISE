@@ -262,4 +262,22 @@ describe('HarmonographField with rotary pendulums', () => {
         expect(Harmonograph.prototype.generate).toHaveBeenCalledTimes(1);
         field.destroy();
     });
+
+    it('crossfades to a fresh figure at once when asked, on the new figure\'s own clock', () => {
+        let pendulums = 'lateral';
+        const field = rotaryField({ getPendulums: () => pendulums });
+        field.start();
+        for (let t = 16; t <= 1_000; t += 16) frame(t);
+        pendulums = 'rotary';
+        field.rotateNow();
+        const generate = Harmonograph.prototype.generate;
+        expect(generate).toHaveBeenCalledTimes(2);
+        expect(generate.mock.calls[1][2].pendulums).toBe('rotary');
+        // fade 1.2 s + draw 5 s + rest 1.6 s from now (performance.now() is 0 here)
+        expect(field._nextRotateAt).toBe(7_800);
+        field.pause();
+        field.rotateNow();
+        expect(generate).toHaveBeenCalledTimes(2);
+        field.destroy();
+    });
 });

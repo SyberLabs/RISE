@@ -811,20 +811,20 @@ const stage = {
         trace: config.trace,
         adaptive: false
       });
-      field.pause();
+      cancelAnimationFrame(field.rafId);
+      field.rafId = null;
       return {
         field,
         destroy() { field.destroy(); }
       };
     });
-    painter.field.pause();
-    if (config.trace === 'swarm') {
-      // A paused field holds its clock; a sample renders the swarm at the score's time.
-      painter.field.sampleAt(ctx.elapsedMs / 1000);
-      return;
-    }
+    // The stage's clock drives the field: a running field reads its motion
+    // from the timestamp it is given (a paused one holds its clock), so a
+    // swarm evolves and a filament turns with the score. Its own frame loop
+    // is cancelled after each paint.
     painter.field.tick(painter.field.t0 + ctx.elapsedMs);
-    painter.field.pause();
+    cancelAnimationFrame(painter.field.rafId);
+    painter.field.rafId = null;
   },
 
   async paintFocal(ctx) {

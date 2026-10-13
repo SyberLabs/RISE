@@ -383,6 +383,19 @@ describe('VisualCortex Klee delegation', () => {
         });
     });
 
+    it('starts a fresh Gallery figure when a cue changes the pendulums, and only then', () => {
+        const cortex = new VisualCortex();
+        cortex.applyCue({ kind: 'procedural', collections: ['harmonograph'], config: { climate: 'jadeVeil' } });
+        cortex._harmonographField = { rotateNow: vi.fn() };
+        cortex.applyCue({ kind: 'procedural', collections: ['harmonograph'], config: { climate: 'emberDawn' } });
+        expect(cortex._harmonographField.rotateNow).not.toHaveBeenCalled();
+        cortex.applyCue({ kind: 'procedural', collections: ['harmonograph'], config: { climate: 'emberDawn', pendulums: 'rotary' } });
+        expect(cortex._harmonographField.rotateNow).toHaveBeenCalledTimes(1);
+        cortex.applyCue({ kind: 'procedural', collections: ['harmonograph'], config: { climate: 'emberDawn', pendulums: 'rotary' } });
+        expect(cortex._harmonographField.rotateNow).toHaveBeenCalledTimes(1);
+        cortex._harmonographField = null;
+    });
+
     it('re-arms current-pool hydration on every sourced cue activation', async () => {
         const cortex = new VisualCortex();
         cortex.config.enabled = true;
