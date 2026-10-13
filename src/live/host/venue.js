@@ -805,22 +805,31 @@ export class LiveVenue {
     }
 
     /**
-     * Where the words sit and the face's square ends, for this room: the words at the foot, just above the stage's
-     * instrument, at most two lines of a size the room sets (LiveHost.css reads both from the root).
+     * The room's layout from its foot up (roomLayout): what is measured here is only the stage's instrument, the bar's
+     * box and its note, and how much of the room an on-screen keyboard covers while the bar's field has focus (the
+     * visual viewport's foot above the window's). LiveHost.css places the bar and the words from the root's
+     * --live-bar-foot, --live-words-foot and --live-words-size.
      */
     measureRoom() {
         const win = this.doc.defaultView;
         const width = win.innerWidth;
         const height = win.innerHeight;
-        const size = width < 640 ? 26 : 34;
         const instrument = this.doc.querySelector('.rise-stage__bar')?.getBoundingClientRect();
-        const foot = instrument?.height ? height - instrument.top + 10 : width < 640 ? 76 : 90;
-        const root = this.doc.documentElement.style;
-        if (root.getPropertyValue('--live-words-foot') !== `${foot}px`) root.setProperty('--live-words-foot', `${foot}px`);
-        if (root.getPropertyValue('--live-words-size') !== `${size}px`) root.setProperty('--live-words-size', `${size}px`);
         const box = this.bar && !this.bar.hidden ? this.bar.getBoundingClientRect() : null;
-        const bar = box?.width ? { left: box.left, top: box.top, width: box.width, height: box.height } : null;
-        return roomLayout({ width, height, bar, wordsTop: height - foot - 2 * 1.4 * size });
+        const viewport = win.visualViewport;
+        const typing = viewport && this.bar && this.doc.activeElement === this.bar.elements.question;
+        const layout = roomLayout({
+            width, height,
+            instrumentTop: instrument?.height ? instrument.top : undefined,
+            bar: box?.width ? { left: box.left, width: box.width, height: box.height } : null,
+            keyboard: typing ? Math.max(0, height - viewport.height - viewport.offsetTop) : 0,
+            note: this.bar?.querySelector('.live-again__note')?.getBoundingClientRect().height ?? 0
+        });
+        const root = this.doc.documentElement.style;
+        for (const [name, value] of [['--live-bar-foot', layout.barFoot], ['--live-words-foot', layout.wordsFoot], ['--live-words-size', layout.wordsSize]]) {
+            if (root.getPropertyValue(name) !== `${value}px`) root.setProperty(name, `${value}px`);
+        }
+        return layout;
     }
 
     /**
@@ -852,7 +861,7 @@ export class LiveVenue {
         framing.view.cancelAnimationFrame?.(framing.raf);
         this.doc.defaultView.removeEventListener('pointermove', framing.point);
         this.unframe();
-        for (const name of ['--live-words-foot', '--live-words-size']) this.doc.documentElement.style.removeProperty(name);
+        for (const name of ['--live-bar-foot', '--live-words-foot', '--live-words-size']) this.doc.documentElement.style.removeProperty(name);
         this.faceEngine?.place?.(null);
     }
 
@@ -885,19 +894,16 @@ export class LiveVenue {
             }
         }
         const { frame, a, cut } = framing.director.at(framing.clock);
+        const layout = this.measureRoom();
         // A face that is not drawing frames nothing: a visual is the room's, full-bleed, and the still eye steps aside;
         // with none, the still eye is the room, the words at its foot.
         if (this.face.dataset.faceDrawn !== 'true') {
             framing.geometry = null;
             this.unframe();
             if (frameOf(framing.cue)) this.face.dataset.faceAside = 'true';
-            else {
-                this.measureRoom();
-                this.doc.documentElement.dataset.liveFrame = 'none';
-            }
+            else this.doc.documentElement.dataset.liveFrame = 'none';
             return;
         }
-        const layout = this.measureRoom();
         const geometry = frameGeometry({ frame, a, cut, layout, content: holdsContent(framing.cue) || framing.clock < framing.fitUntil });
         framing.geometry = geometry;
         const move = visualTransform(geometry, layout);

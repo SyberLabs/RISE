@@ -1012,11 +1012,48 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         crank(2000);
         expect(root().dataset.liveFrame).toBe('full');
         const geometry = engine().places.at(-1);
-        // jsdom lays nothing out, so the bar has no box: the dock is its place without one, at the top left.
+        // jsdom lays nothing out, so the bar has no box and the stage no instrument: the dock is at the left end of the
+        // bar's place at the room's foot, 80 px for the instrument and 8 px above it.
         expect(geometry.small).toBe(1);
         expect(geometry.face.x).toBeCloseTo(40, 9);
-        expect(geometry.face.y).toBeCloseTo(40, 9);
+        expect(geometry.face.y).toBeCloseTo(window.innerHeight - 88 - 27, 9);
         expect(geometry.wipe).toMatchObject({ hole: 1 });
+    });
+
+    it('has no ask bar before a question: the entry keeps its own question, where it was', () => {
+        mount('?voice=paced');
+        expect($('.live-again')).toBeNull();
+        expect(question()).not.toBeNull();
+        expect(root().style.getPropertyValue('--live-bar-foot')).toBe('');
+    });
+
+    it('places the ask bar at the room’s foot, above the instrument, the words above the bar', async () => {
+        const { crank } = await room(null);
+        crank(16);
+        expect($('.live-again')).not.toBeNull();
+        expect(root().style.getPropertyValue('--live-bar-foot')).toBe('88px');
+        // The words' foot: above the bar's top (88 + 54 from the foot) and a line for the bar's note.
+        expect(root().style.getPropertyValue('--live-words-foot')).toBe(`${88 + 54 + 32}px`);
+        await host.venue.leave();
+        expect(root().style.getPropertyValue('--live-bar-foot')).toBe('');
+    });
+
+    it('lifts the bar above an on-screen keyboard while its field has focus, and lets it down after', async () => {
+        const { crank } = await room(null);
+        Object.defineProperty(window, 'visualViewport', { configurable: true, value: { height: window.innerHeight - 300, offsetTop: 0 } });
+        try {
+            crank(16);
+            expect(root().style.getPropertyValue('--live-bar-foot')).toBe('88px');
+            $('#live-again-question').focus();
+            crank(16);
+            expect(root().style.getPropertyValue('--live-bar-foot')).toBe('308px');
+            expect(root().style.getPropertyValue('--live-words-foot')).toBe(`${308 + 54 + 32}px`);
+            $('#live-again-question').blur();
+            crank(16);
+            expect(root().style.getPropertyValue('--live-bar-foot')).toBe('88px');
+        } finally {
+            delete window.visualViewport;
+        }
     });
 
     it('fits a figure in the full frame into the safe rectangle, and leaves a field there full-bleed', async () => {

@@ -736,7 +736,7 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 .live-eval__guide-text { margin: 0; flex: 1 1 22rem; font-size: 0.9rem; line-height: 1.45; }
 
 /* The Live venue (venue.js): the entry page, in the host's own type and inputs, and the bar to ask again over the
-   reading, in the stage's glass. The bar sits at the top, clear of the stage's row along the bottom. */
+   reading, in the stage's glass. The bar sits at the room's foot, above the stage's instrument. */
 
 .live-host input[type="text"] {
   box-sizing: border-box;
@@ -1104,10 +1104,13 @@ body:has(.live-venue) { background: var(--live-ground); }
 :root.reduced-motion .live-venue *,
 :root.reduced-motion .live-venue *::after { animation: none !important; transition: none !important; }
 
+/* The bar sits at the room's foot, above the stage's instrument or an on-screen keyboard, the spoken words above it:
+   the venue lays the room out (frames.js roomLayout) and sets --live-bar-foot. It is under the stage's layer, so the
+   Settings sheet, which opens upward over it, is whole. */
 .live-again {
   position: fixed;
-  z-index: 200001;
-  top: calc(16px + var(--safe-top, 0px));
+  z-index: 199999;
+  bottom: var(--live-bar-foot, calc(88px + var(--safe-bottom, 0px)));
   left: 50%;
   transform: translateX(-50%);
   box-sizing: border-box;
@@ -1166,7 +1169,21 @@ body:has(.live-venue) { background: var(--live-ground); }
 .live-again input:focus-visible,
 .live-again button:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
 
-.live-again__note { position: absolute; top: calc(100% + 6px); left: 16px; right: 16px; margin: 0; font-size: 0.85rem; line-height: 1.4; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); }
+/* The note is the line between the bar and the words, which the room keeps for it; wider than the small bar, so it
+   seldom wraps, and the room gives a longer one its height. */
+.live-again__note {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  translate: -50% 0;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
 .live-again__note:empty { display: none; }
 
 /* In the room, the site's sign-in is a quiet word in the corner, set like the foot line (the skin's core 56% toward
@@ -1190,11 +1207,6 @@ body:has(.live-venue) { background: var(--live-ground); }
   text-decoration-color: color-mix(in srgb, var(--live-iris) 70%, transparent);
 }
 .has-rise-account:has(.live-venue) .rise-account-control:focus-visible { outline: 1.5px solid color-mix(in srgb, var(--live-iris) 70%, transparent); outline-offset: 2px; }
-
-/* Below about 860 px the open bar reaches the top-right corner, where the account control sits: it steps aside while the bar is open. */
-@media (max-width: 860px) {
-  .has-rise-account:has(.live-again[data-open="true"]:not([hidden])) .rise-account-control { visibility: hidden; }
-}
 
 /* RISE's face (venue.js, face-layer.js; docs/plans/LIVE-CURRENT.md §22, §23). In the entry it rests above the name.
    In the room it covers the whole room for the whole reading, between the Chamber's visual layers (z-index 1 to 5)
@@ -1268,7 +1280,7 @@ body:has(.live-venue) { background: var(--live-ground); }
    or full) and sets the field's --live-vx, --live-vy and --live-vk from the one geometry (frames.js): in the inner eye
    and the shell, the Chamber's visual layers are moved and scaled so the circle inscribed in their square is the
    aperture. In the full frame a picture with content (data-live-fit) is fitted the same way into the room's safe
-   rectangle, between the bar and the words: only the picture and its touch regions, so the ground beneath it (a bed,
+   rectangle, above the words: only the picture and its touch regions, so the ground beneath it (a bed,
    a vignette, a field fading out) stays full-bleed. Nothing here applies to the Reader or the card, whose root is
    never marked. */
 html:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field > :not(.atom-band, .movement-title),
@@ -1289,7 +1301,7 @@ html[data-live-frame="full"][data-live-fit] #chamber-field > .chamber-scene {
 /* An engine's name, set at the gallery's corner, has no corner in a circle. A credit a museum image requires is shown,
    in the full frame, where such an image always is. */
 html:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field .continuous-field-label { visibility: hidden; }
-/* The words sit at the foot of the room, above the instrument, in every frame: below the circle, never over the
+/* The words sit at the foot of the room, above the ask bar, in every frame: below the circle, never over the
    visual; in the full frame over the scrim the face draws behind them. Two lines of them fit where the venue says. */
 html[data-live-frame] #chamber-field {
   align-items: flex-end;

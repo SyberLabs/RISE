@@ -9,7 +9,8 @@ import {
 
 const W = 1440;
 const H = 900;
-const layout = roomLayout({ width: W, height: H, bar: { left: 592, top: 16, width: 256, height: 54 }, wordsTop: 690 });
+// 1440 by 900: the stage's instrument from 820 (16 px in, a 44 px row, a 16 px beat line), the open bar 576 px wide.
+const layout = roomLayout({ width: W, height: H, instrumentTop: 820, bar: { left: 432, width: 576, height: 54 } });
 const smooth = u => { const v = Math.max(0, Math.min(1, u)); return v * v * (3 - 2 * v); };
 
 describe('the visual chooses the frame', () => {
@@ -134,17 +135,53 @@ describe('the room’s frame, on the venue’s clock', () => {
 });
 
 describe('the room’s layout', () => {
-    it('gives the face its square between the ask bar and the words, and the dock at the bar’s left end', () => {
-        expect(layout.big).toEqual({ x: 720, y: 82 + (678 - 82) / 2, s: 678 - 82 });
-        expect(layout.dock).toEqual({ x: 592 - 8 - 24, y: 43, s: 48 * 1.15 });
-        expect(layout.wordsTop).toBe(690);
+    it('stacks the room from its foot: the instrument, the ask bar 8 px above it, a line for the bar’s note, the words, the face’s square', () => {
+        expect(layout).toMatchObject({ barTop: 758, barFoot: 88, wordsFoot: 900 - 758 + 32, wordsSize: 34 });
+        expect(layout.wordsTop).toBeCloseTo(900 - 174 - 2 * 1.4 * 34, 9);
+        // The bar is wholly above the instrument, the words' zone wholly above the bar and its note.
+        expect(H - layout.barFoot).toBeLessThanOrEqual(820 - 8);
+        expect(H - layout.wordsFoot).toBeLessThanOrEqual(layout.barTop - 26);
+        const bottom = layout.wordsTop - 12;
+        expect(layout.big).toEqual({ x: 720, y: 16 + (bottom - 16) / 2, s: bottom - 16 });
         expect(layout.far).toBeCloseTo(Math.hypot(720, 900 - layout.big.y), 6);
     });
 
-    it('is narrower than the room on a phone, never smaller than 80 px', () => {
-        const phone = roomLayout({ width: 390, height: 844, bar: { left: 67, top: 16, width: 256, height: 54 }, wordsTop: 650 });
+    it('docks the face at the bar’s left end, centred on the bar, wherever the bar is', () => {
+        expect(layout.dock).toEqual({ x: 432 - 8 - 24, y: 758 + 27, s: 48 * 1.15 });
+        expect(432 - layout.dock.x).toBeLessThan(40);
+        expect(layout.dock.x + 24).toBeLessThanOrEqual(432);
+    });
+
+    it('on a phone, 390 by 844: the same stack, the square narrower than the room, the docked face on screen', () => {
+        // The instrument's 36 px row from 776; in the full frame the open bar steps right to x 72 to give the dock room.
+        const phone = roomLayout({ width: 390, height: 844, instrumentTop: 776, bar: { left: 72, width: 302, height: 54 } });
+        expect(phone).toMatchObject({ barTop: 714, barFoot: 76, wordsFoot: 844 - 714 + 32, wordsSize: 26 });
         expect(phone.big.s).toBe(390 - 32);
-        expect(roomLayout({ width: 300, height: 200, bar: null, wordsTop: 60 }).big.s).toBe(80);
+        expect(phone.big.y + phone.big.s / 2).toBeLessThanOrEqual(phone.wordsTop - 12 + 1e-9);
+        expect(phone.dock).toEqual({ x: 40, y: 714 + 27, s: 48 * 1.15 });
+        expect(phone.dock.x - phone.dock.s / 2).toBeGreaterThanOrEqual(0);
+        expect(roomLayout({ width: 300, height: 200, instrumentTop: 140, bar: null }).big.s).toBe(80);
+    });
+
+    it('lifts the bar above an on-screen keyboard, the words above it, and lets it down when the keyboard goes', () => {
+        const typing = roomLayout({ width: 390, height: 844, instrumentTop: 776, bar: { left: 67, width: 256, height: 54 }, keyboard: 336 });
+        expect(typing).toMatchObject({ barFoot: 336 + 8, barTop: 844 - 344 - 54 });
+        expect(844 - typing.wordsFoot).toBe(typing.barTop - 32);
+        expect(typing.big.y + typing.big.s / 2).toBeLessThanOrEqual(typing.wordsTop - 12 + 1e-9);
+        // A keyboard lower than the bar's own place moves nothing.
+        expect(roomLayout({ width: 390, height: 844, instrumentTop: 776, bar: null, keyboard: 40 }).barFoot).toBe(76);
+    });
+
+    it('gives a bar note longer than a line its room, so it never meets the words', () => {
+        const noted = roomLayout({ width: 390, height: 844, instrumentTop: 776, bar: null, note: 38 });
+        expect(844 - noted.wordsFoot).toBe(noted.barTop - 6 - 38 - 6);
+        expect(roomLayout({ width: 390, height: 844, instrumentTop: 776, bar: null, note: 19 }).wordsFoot).toBe(844 - 714 + 32);
+    });
+
+    it('without a bar on screen, keeps the bar’s place, so nothing moves when it comes', () => {
+        const bare = roomLayout({ width: W, height: H, instrumentTop: 820, bar: null });
+        expect(bare).toMatchObject({ barTop: 758, barFoot: 88, wordsFoot: layout.wordsFoot, big: layout.big });
+        expect(bare.dock).toEqual({ x: 16 + 24, y: 785, s: 48 * 1.15 });
     });
 });
 
@@ -212,7 +249,7 @@ describe('one geometry: the aperture at its phase boundaries', () => {
         const open = at(1);
         expect(open).toMatchObject({ small: 1, eyeClosed: 0, blink: true });
         near(open.face, layout.dock);
-        expect(open.wipe).toMatchObject({ x: c.x, y: c.y, hole: 1, fade: 1, ring: 0, turn: 1.2, scrimTop: 690 - 30 });
+        expect(open.wipe).toMatchObject({ x: c.x, y: c.y, hole: 1, fade: 1, ring: 0, turn: 1.2, scrimTop: layout.wordsTop - 30 });
         // Past every corner: the nine-gon's inscribed circle reaches beyond the farthest one.
         expect(open.wipe.r * Math.cos(Math.PI / 9)).toBeGreaterThan(layout.far);
     });
@@ -250,28 +287,31 @@ describe('one geometry: the aperture at its phase boundaries', () => {
     });
 
     it('fits a figure or a generated scene in the full frame into the safe rectangle, between the bar and the words, aspect kept', () => {
-        // 1440 by 900: the bar's foot at 70 and the docked face's at 70.6, the words' zone from 690.
+        // 1440 by 900: from 12 px below the corner's sign-in link (10 px down, 44 px tall) to 12 px above the words' zone,
+        // which is above the bar and the docked face.
         const g = frameGeometry({ frame: 'full', a: 1, cut: 0, layout, content: true });
         expect(layout.safe).toMatchObject({ x: 720, w: W - 32 });
-        expect(layout.safe.y - layout.safe.h / 2).toBeCloseTo(43 + (48 * 1.15) / 2 + 12, 9);
-        expect(layout.safe.y + layout.safe.h / 2).toBeCloseTo(690 - 12, 9);
+        expect(layout.safe.y - layout.safe.h / 2).toBeCloseTo(66, 9);
+        expect(layout.safe.y + layout.safe.h / 2).toBeCloseTo(layout.wordsTop - 12, 9);
+        expect(layout.safe.y + layout.safe.h / 2).toBeLessThan(layout.dock.y - layout.dock.s / 2);
         const t = visualTransform(g, { width: W, height: H });
         expect(t.k).toBeCloseTo(Math.min((W - 32) / W, layout.safe.h / H), 9);
         const box = placed(t, W, H);
         expect(box.top).toBeCloseTo(layout.safe.y - layout.safe.h / 2, 6);
-        expect(box.bottom).toBeCloseTo(690 - 12, 6);
+        expect(box.bottom).toBeCloseTo(layout.wordsTop - 12, 6);
         expect((box.left + box.right) / 2).toBeCloseTo(W / 2, 9);
         expect(box.left).toBeGreaterThanOrEqual(16);
         // The same fit while the frame opens, so the visual waits where it will be seen.
         expect(visualTransform(frameGeometry({ frame: 'full', a: 0.3, cut: 0.5, layout, content: true }), { width: W, height: H })).toEqual(t);
 
         // A phone, 390 by 844: the width binds no more than the height does.
-        const phone = roomLayout({ width: 390, height: 844, bar: { left: 67, top: 16, width: 256, height: 54 }, wordsTop: 650 });
+        const phone = roomLayout({ width: 390, height: 844, instrumentTop: 776, bar: { left: 72, width: 302, height: 54 } });
         const p = visualTransform(frameGeometry({ frame: 'full', a: 1, cut: 0, layout: phone, content: true }), { width: 390, height: 844 });
         expect(p.k).toBeCloseTo(Math.min(358 / 390, phone.safe.h / 844), 9);
         const small = placed(p, 390, 844);
-        expect(small.top).toBeGreaterThanOrEqual(70.6 + 12 - 1e-9);
-        expect(small.bottom).toBeLessThanOrEqual(650 - 12 + 1e-9);
+        expect(small.top).toBeGreaterThanOrEqual(66 - 1e-9);
+        expect(small.bottom).toBeLessThanOrEqual(phone.wordsTop - 12 + 1e-9);
+        expect(small.bottom).toBeLessThan(phone.barTop);
         expect(small.left).toBeGreaterThanOrEqual(16);
         expect(small.right).toBeLessThanOrEqual(390 - 16);
     });
