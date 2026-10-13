@@ -4,9 +4,9 @@
  * (docs/superpowers/specs/2026-10-08-creative-control-design.md §9).
  *
  * A manifest states only what the engine honours today, read from the
- * engine's own code: the attractor's systems, palettes and forms; Genesis's
- * presets; the Living Flame recipe's macros; the climate a harmonograph
- * follows; the palettes the plates take. Nothing here is a promise an engine
+ * engine's own code: the attractor's systems, palettes, forms and trace;
+ * Genesis's presets; the Living Flame recipe's macros; the climate a
+ * harmonograph follows and its pendulums; the palettes the plates take. Nothing here is a promise an engine
  * does not keep. A parameter is `cueable` only where the running engine
  * changes it in place (attractor intensity, the flame's macros); the rest
  * apply when the scene starts.
@@ -31,7 +31,8 @@ const ATTRACTOR = Object.freeze({
     palette: choice(['white', 'red', 'blue', 'gold', 'purple', 'neon', 'jade', 'rose', 'citrine', 'silver'], 'gold'),
     form: choice(['mirror', 'kaleido', 'bilateral'], 'mirror'),
     intensity: number(0.4, 0.75, 0.65, true),
-    speed: number(0.25, 4, 1)
+    speed: number(0.25, 4, 1),
+    trace: choice(['filament', 'swarm'], 'filament')
   }),
   cues: Object.freeze({ calm: Object.freeze({ intensity: 0.45 }), bright: Object.freeze({ intensity: 0.75 }) })
 });
@@ -73,7 +74,10 @@ export const SCENE_MANIFESTS = Object.freeze([
   pattern('turrell'),
   pattern('neural'),
   pattern('rockgarden'),
-  pattern('harmonograph', { climate: choice(['auto', 'emberDawn', 'solarFlare', 'midnightWater', 'stormViolet', 'jadeVeil', 'whiteHeat'], 'auto') }),
+  pattern('harmonograph', {
+    climate: choice(['auto', 'emberDawn', 'solarFlare', 'midnightWater', 'stormViolet', 'jadeVeil', 'whiteHeat'], 'auto'),
+    pendulums: choice(['lateral', 'rotary'], 'lateral')
+  }),
   pattern('ostensoria', { palette: choice(['auto', 'iris', 'reliquary', 'ember', 'ice', 'verdant', 'lilac', 'teal', 'sepia', 'peacock', 'rose', 'citrine'], 'auto') }),
   pattern('apparitio', { palette: choice(['auto', 'prism', 'marian', 'ember', 'holo'], 'auto') })
 ]);

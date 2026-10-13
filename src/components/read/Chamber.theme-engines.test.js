@@ -95,6 +95,11 @@ describe('the attractor under a theme', () => {
     expect(handle.node.dataset.attractorIntensity).toBe('0.4');
   });
 
+  it('keeps the cue\'s swarm under the theme\'s row', () => {
+    expect(mountAttractor(themed('jade'), { palette: 'white', trace: 'swarm' }).field.trace).toBe('swarm');
+    expect(mountAttractor(themed('jade'), { palette: 'gold' }).field.trace).toBe('filament');
+  });
+
   it('stays white without a theme', () => {
     const { field } = mountAttractor({}, { system: 'aizawa', palette: 'white', form: 'kaleido' });
     expect(filament(field)).toEqual({ system: 'aizawa', palette: 'white', form: 'kaleido' });

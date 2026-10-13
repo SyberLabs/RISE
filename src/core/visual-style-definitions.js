@@ -118,8 +118,8 @@ export function normalizeFieldStyle(renderer, value = {}) {
     });
   }
   if (renderer === 'attractor') {
-    // Optional pace, brightness and the light-streak layer travel only
-    // when set, so every existing saved cue normalizes exactly as before.
+    // Optional pace, brightness, the light-streak layer and the swarm travel
+    // only when set, so every existing saved cue normalizes exactly as before.
     const within = (value, min, max) => Math.min(max, Math.max(min, value));
     return Object.freeze({
       system: ATTRACTOR_SYSTEM_IDS.has(source.system) ? source.system : 'aizawa',
@@ -127,7 +127,8 @@ export function normalizeFieldStyle(renderer, value = {}) {
       form: ATTRACTOR_FORM_IDS.has(source.form) ? source.form : 'mirror',
       ...(Number.isFinite(source.intensity) ? { intensity: within(source.intensity, 0.2, 1) } : {}),
       ...(Number.isFinite(source.speed) ? { speed: within(source.speed, 0.25, 4) } : {}),
-      ...(source.streaks === true ? { streaks: true } : {})
+      ...(source.streaks === true ? { streaks: true } : {}),
+      ...(source.trace === 'swarm' ? { trace: 'swarm' } : {})
     });
   }
   if (renderer === 'genesis') {
@@ -146,7 +147,11 @@ export function normalizeProceduralStyle(collections, value = {}) {
     return Object.freeze({ preset: KLEE_IDS.has(source.preset) ? source.preset : 'random' });
   }
   if (family === 'harmonograph') {
-    return Object.freeze({ climate: HARMONOGRAPH_IDS.has(source.climate) ? source.climate : 'auto' });
+    // Rotary pendulums travel only when chosen, so every saved cue normalizes as before.
+    return Object.freeze({
+      climate: HARMONOGRAPH_IDS.has(source.climate) ? source.climate : 'auto',
+      ...(source.pendulums === 'rotary' ? { pendulums: 'rotary' } : {})
+    });
   }
   if (family === 'ostensoria') {
     return Object.freeze({ palette: OSTENSORIA_IDS.has(source.palette) ? source.palette : 'auto' });

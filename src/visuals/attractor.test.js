@@ -7,6 +7,7 @@ import {
   ATTRACTOR_FORMS,
   ATTRACTOR_SYSTEMS
 } from './attractor.js';
+import { SWARM_PARTICLES, swarmRamp } from './attractor-swarm.js';
 
 // Brightness buckets in the renderer; quality steps consume these from
 // the dim end, so the ceiling must leave real strands to draw.
@@ -27,7 +28,7 @@ const ctxStub = () => ({
   setTransform: vi.fn(), clearRect: vi.fn(), save: vi.fn(), restore: vi.fn(),
   translate: vi.fn(), rotate: vi.fn(), scale: vi.fn(), beginPath: vi.fn(),
   moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), fill: vi.fn(), arc: vi.fn(),
-  drawImage: vi.fn(),
+  drawImage: vi.fn(), fillRect: vi.fn(), globalAlpha: 1,
   createRadialGradient: () => ({ addColorStop: vi.fn() }),
   globalCompositeOperation: '', strokeStyle: '', fillStyle: '',
   lineWidth: 0, lineCap: '', lineJoin: ''
@@ -730,5 +731,205 @@ describe('Attractor speed', () => {
     expect(field.setSpeed(0.5)).toBe(true);
     expect(field.motionTime(3000)).toBeCloseTo(before, 6);
     expect(field.motionTime(5000)).toBeCloseTo(before + 1, 6);
+  });
+});
+
+describe('Attractor swarm', () => {
+  const TICK = 1000 / 60;
+  const swarmField = (options = {}) => new AttractorField(makeHost(), { trace: 'swarm', adaptive: false, ...options });
+  const dots = ctx => ctx.fillRect.mock.calls.filter(([, , w]) => w < 10);
+
+  it('is a filament unless the swarm is chosen', () => {
+    expect(new AttractorField(makeHost(), {}).trace).toBe('filament');
+    expect(new AttractorField(makeHost(), { trace: 'ribbon' }).trace).toBe('filament');
+    expect(new AttractorField(makeHost(), {}).swarm).toBeUndefined();
+    const field = swarmField();
+    expect(field.trace).toBe('swarm');
+    expect(field.swarm.count).toBe(SWARM_PARTICLES);
+    field.destroy();
+  });
+
+  it('keeps every particle inside the circle inscribed in the frame, for every system, as it turns', () => {
+    for (const { id } of ATTRACTOR_SYSTEMS) {
+      const field = swarmField({ system: id });
+      const { swarm } = field;
+      for (const [w, h] of [[800, 600], [390, 844]]) {
+        const radius = Math.min(w, h) / 2;
+        let widest = 0;
+        for (let tick = 0; tick < 900; tick++) {
+          swarm.advance();
+          if (tick % 15) continue;
+          const { x, y } = swarm.project(w, h, tick * 0.05);
+          for (let i = 0; i < swarm.count; i++) {
+            widest = Math.max(widest, Math.hypot(x[i] - w / 2, y[i] - h / 2));
+          }
+        }
+        expect(widest, `${id} ${w}x${h}`).toBeLessThan(radius * 0.95);
+        expect(widest, `${id} ${w}x${h}`).toBeGreaterThan(radius * 0.5);
+      }
+      field.destroy();
+    }
+  });
+
+  it('is deterministic: two swarms of one system move the same way', () => {
+    const a = swarmField({ system: 'thomas' }).swarm;
+    const b = swarmField({ system: 'thomas' }).swarm;
+    for (let i = 0; i < 120; i++) { a.advance(); b.advance(); }
+    expect(Array.from(a.z)).toEqual(Array.from(b.z));
+  });
+
+  it('colours by height along six steps from the palette\'s darker hue to its light core', () => {
+    const field = swarmField({ palette: 'gold' });
+    const { swarm } = field;
+    const used = new Set();
+    for (let tick = 0; tick < 600; tick++) {
+      swarm.advance();
+      for (const step of swarm.project(800, 600, 0).bucket) used.add(step);
+    }
+    expect(Math.min(...used)).toBe(0);
+    expect(Math.max(...used)).toBe(5);
+    const ramp = swarmRamp(PALETTES.gold);
+    expect(ramp).toHaveLength(6);
+    expect(ramp[0]).toBe('rgba(196,132,26,0.5)');
+    expect(ramp[5]).toBe('rgba(255,232,176,0.5)');
+    field.destroy();
+  });
+
+  it('plots each particle mirrored left and right, additively, in small squares that scale with the frame', () => {
+    const field = swarmField({ form: 'mirror' });
+    field.paintOnce(performance.now());
+    const plotted = dots(field.trailCtx);
+    expect(plotted.length).toBeGreaterThanOrEqual(2 * SWARM_PARTICLES);
+    const size = plotted[0][2];
+    expect(size).toBeCloseTo(Math.max(1.2, 600 / 500), 6);
+    const centres = new Set(plotted.map(([x, y, w]) => `${(x + w / 2).toFixed(2)},${(y + w / 2).toFixed(2)}`));
+    for (const [x, y, w] of plotted.slice(0, 200)) {
+      expect(centres.has(`${(800 - (x + w / 2)).toFixed(2)},${(y + w / 2).toFixed(2)}`)).toBe(true);
+    }
+    field.destroy();
+  });
+
+  it('folds into the engine\'s kaleidoscope: a sixth of the swarm in twelve reflected sectors, the mirror\'s weight', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    const kaleido = swarmField({ form: 'kaleido' });
+    const mirror = swarmField({ form: 'mirror' });
+    for (const field of [kaleido, mirror]) {
+      field.tick(0);
+      field.tick(TICK + 0.01);
+    }
+    const plotted = dots(kaleido.trailCtx);
+    expect(plotted).toHaveLength(12 * Math.ceil(SWARM_PARTICLES / 6));
+    expect(plotted.length).toBeCloseTo(dots(mirror.trailCtx).length, -1);
+    // Each particle's twelve images lie on one circle about the centre, sixty degrees apart in pairs.
+    const radii = plotted.slice(0, 12).map(([x, y, w]) => Math.hypot(x + w / 2 - 400, y + w / 2 - 300));
+    for (const r of radii) expect(r).toBeCloseTo(radii[0], 6);
+    kaleido.destroy();
+    mirror.destroy();
+  });
+
+  it('runs sixty ticks a second of motion, turning 0.18 rad a second, and speed scales both', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    for (const speed of [1, 2]) {
+      const field = swarmField({ speed });
+      field.tick(0);
+      const advance = vi.spyOn(field.swarm, 'advance');
+      for (let i = 1; i <= 60; i++) field.tick(i * TICK + 0.01);
+      expect(advance).toHaveBeenCalledTimes(60 * speed);
+      expect(field.swarmTheta).toBeCloseTo(0.6 + 0.18 * speed, 2);
+      field.destroy();
+    }
+  });
+
+  it('moves nothing while paused, and repaints a held frame without advancing it', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    const field = swarmField();
+    for (let i = 0; i <= 30; i++) field.tick(i * TICK + 0.01);
+    field.pause();
+    const held = Array.from(field.swarm.x);
+    const plots = dots(field.trailCtx).length;
+    const advance = vi.spyOn(field.swarm, 'advance');
+    for (let i = 31; i <= 90; i++) field.tick(i * TICK);
+    field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
+    expect(advance).not.toHaveBeenCalled();
+    expect(dots(field.trailCtx)).toHaveLength(plots);
+    expect(Array.from(field.swarm.x)).toEqual(held);
+    expect(field.rafId).toBeNull();
+    field.destroy();
+  });
+
+  it('blooms from an empty trail when it starts live, one tick of squares at a time', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    const field = swarmField();
+    field.tick(0);
+    expect(dots(field.trailCtx)).toHaveLength(0);
+    field.tick(TICK + 0.01);
+    expect(dots(field.trailCtx)).toHaveLength(2 * SWARM_PARTICLES);
+    field.destroy();
+  });
+
+  it('fills an emptied trail on a paused resize, so a paused reading is never left blank', () => {
+    const field = swarmField();
+    field.tick(performance.now());
+    field.pause();
+    const plots = dots(field.trailCtx).length;
+    Object.defineProperty(field.host, 'clientWidth', { value: 640, configurable: true });
+    field.resize();
+    expect(dots(field.trailCtx).length).toBeGreaterThan(plots);
+    field.destroy();
+  });
+
+  it('holds one accumulated still under reduced motion: nothing moves or fades afterwards', () => {
+    window.matchMedia = () => ({ matches: true });
+    const field = swarmField();
+    field.tick(1000);
+    const fades = () => field.trailCtx.fillRect.mock.calls.filter(([, , w]) => w >= 10).length;
+    const plots = dots(field.trailCtx).length;
+    expect(plots).toBe(90 * 2 * SWARM_PARTICLES);
+    const advance = vi.spyOn(field.swarm, 'advance');
+    const faded = fades();
+    for (let i = 1; i < 30; i++) field.tick(1000 + i * TICK);
+    expect(advance).not.toHaveBeenCalled();
+    expect(dots(field.trailCtx)).toHaveLength(plots);
+    expect(fades()).toBe(faded);
+    field.destroy();
+  });
+
+  it('presents the trail at its intensity: the study\'s look at 0.65, brighter by a second additive pass', () => {
+    const field = swarmField({ intensity: 0.65 });
+    const alphas = [];
+    field.ctx.drawImage = vi.fn(() => alphas.push([field.ctx.globalAlpha, field.ctx.globalCompositeOperation]));
+    field.paintOnce(performance.now());
+    expect(alphas).toEqual([[1, 'source-over']]);
+    alphas.length = 0;
+    field.setIntensity(0.4);
+    field.paintOnce(performance.now());
+    expect(alphas).toHaveLength(1);
+    expect(alphas[0][0]).toBeCloseTo(0.4 / 0.65, 6);
+    alphas.length = 0;
+    field.setIntensity(0.75);
+    field.paintOnce(performance.now());
+    expect(alphas[0]).toEqual([1, 'source-over']);
+    expect(alphas[1][0]).toBeCloseTo(0.75 / 0.65 - 1, 6);
+    expect(alphas[1][1]).toBe('lighter');
+    field.destroy();
+  });
+
+  it('never flickers: its light is held steady frame to frame, so photosensitivity mode has nothing to calm', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    const field = swarmField({ intensity: 0.5 });
+    const alphas = [];
+    field.ctx.drawImage = vi.fn(() => alphas.push(field.ctx.globalAlpha));
+    for (let i = 0; i < 120; i++) field.tick(i * TICK + 0.01);
+    expect(new Set(alphas)).toEqual(new Set([0.5 / 0.65]));
+    field.destroy();
+  });
+
+  it('starts a fresh swarm when the system changes', () => {
+    const field = swarmField();
+    const first = field.swarm;
+    field.setSystem('halvorsen');
+    expect(field.swarm).not.toBe(first);
+    expect(field.swarm.count).toBe(SWARM_PARTICLES);
+    field.destroy();
   });
 });

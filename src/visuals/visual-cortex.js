@@ -271,6 +271,7 @@ export class VisualCortex {
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
+            harmonographPendulums: 'lateral', // 'lateral' | 'rotary'
             // The reading's colour theme id answers every knob left at its
             // no-choice value ('random', 'auto'); null means today's picks.
             colorTheme: null,
@@ -633,6 +634,7 @@ export class VisualCortex {
             }
             if (cue.collections.includes('harmonograph')) {
                 proceduralConfig.harmonographClimate = cue.config?.climate || 'auto';
+                proceduralConfig.harmonographPendulums = cue.config?.pendulums === 'rotary' ? 'rotary' : 'lateral';
             }
             if (cue.collections.includes('ostensoria')) {
                 proceduralConfig.ostensoriaPalette = cue.config?.palette || 'auto';
@@ -1780,7 +1782,8 @@ export class VisualCortex {
             this._resizeKleeCanvas();
             rendered = this.harmonograph.generate(signal, undefined, {
                 climate: this.config.harmonographClimate,
-                anchors: accentFlameAnchors(this.config.flameColors)
+                anchors: accentFlameAnchors(this.config.flameColors),
+                pendulums: this.config.harmonographPendulums
             });
             if (asciiMode && rendered) asciiFrame = this._harmonographAsciiFrame(signal);
             else if (rendered) {
@@ -2066,6 +2069,7 @@ export class VisualCortex {
                 getSignal: () => this._nextContinuousSignal(),
                 getClimate: () => this.config.harmonographClimate || 'auto',
                 getAnchors: () => accentFlameAnchors(this.config.flameColors),
+                getPendulums: () => this.config.harmonographPendulums,
                 onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
             });
         }
@@ -3443,7 +3447,7 @@ export class VisualCortex {
         if (!trace || !plan || !this._asciiCanvas) return null;
         const width = this._asciiCanvas.width;
         const height = this._asciiCanvas.height;
-        const scale = Math.min(width, height) * 0.5 * plan.amplitude * 1.7;
+        const scale = this.harmonograph.extent(width, height);
         const points = [];
         const pointCount = trace.length / 2;
         const stride = Math.max(1, Math.ceil(pointCount / 1800));
@@ -4033,7 +4037,8 @@ export class VisualCortex {
             // klee canvas like the rock garden)
             this._resizeKleeCanvas();
             this.harmonograph.generate(signal, undefined, {
-                climate: this.config.harmonographClimate
+                climate: this.config.harmonographClimate,
+                pendulums: this.config.harmonographPendulums
             });
             if (asciiMode) {
                 asciiFrame = this._harmonographAsciiFrame(signal);

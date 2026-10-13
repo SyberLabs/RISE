@@ -17,10 +17,23 @@
  * precesses instead of retracing itself, so consonant ratios become
  * layered rosettes and golden ratios weave without ever closing.
  *
+ * Rotary pendulums are the other machine: two rotary pendulums turning
+ * opposite ways, each decaying at its own rate, until their energy is
+ * under 5%. The pen is stroked additively, so where it crosses itself
+ * it brightens, and moves from the climate's iris toward its core as
+ * the energy is lost.
+ *
+ *   z(τ) = 0.55·e^(−d₁τ)·e^(i(f₁τ + φ₁)) + 0.45·e^(−d₂τ)·e^(i(f₂τ + φ₂))
+ *   f₁ ∈ {2, 3},  f₂ = −(3 | 4) ± 0.02,  d ∈ [0.010, 0.018]
+ *
+ * |z| ≤ 1, and the figure spans 0.44 of the frame's shorter side, so it
+ * always stays inside the inscribed circle.
+ *
  * House rules honored: Rhythmic flashes and behind-stream are still
  * frames (progress defaults to 1). Gallery is the exception — after
  * the incoming plane is visible the pen travels across the remaining
- * dwell and rests complete for a few seconds.
+ * dwell and rests complete for a few seconds; a rotary pen travels at
+ * its own pace (drawMs) instead.
  * Glow via wide understroke (never shadowBlur), deterministic under a
  * seed, and a null-ctx guard so headless environments stay silent.
  */
@@ -28,6 +41,16 @@ import { createSeededRandom } from './lib/klee-core.js';
 import { planHarmonograph } from '../core/conductor.js';
 
 const TAU = Math.PI * 2;
+
+// Rotary pendulums, in units of pendulum time τ.
+const ROTARY_STEP = 0.01;
+const ROTARY_UNITS_PER_SECOND = 18;
+const ROTARY_END_ENERGY = 0.05;
+const ROTARY_EXTENT = 0.44;
+// Substeps per stroke: crossings between strokes add light, so the
+// batch is the study's one frame of pen travel.
+const ROTARY_BATCH = 30;
+const ROTARY_ALPHA = 0.55;
 
 function lerpAnchors(anchors, t) {
     // Interpolate across the upper stops (1..4) — stop 0 is near-void
@@ -48,6 +71,9 @@ export class Harmonograph {
         this.plan = null;
         this.trace = null;      // Float32Array [x0,y0,x1,y1,...] in unit space
         this.envelope = null;   // Float32Array of E(u) per point
+        this.pendulums = 'lateral';
+        this.pair = null;       // the rotary pendulums, when chosen
+        this.drawMs = null;     // a rotary pen's own travel time
     }
 
     /**
@@ -55,12 +81,16 @@ export class Harmonograph {
      * (signal, seed) pair; a fresh random seed per flash otherwise.
      * @param {Object} [signal] - { valence, arousal }
      * @param {string|number} [seed]
-     * @param {Object} [options] - { climate: 'auto' | climate name }
+     * @param {Object} [options] - { climate: 'auto' | climate name, anchors, pendulums: 'lateral' | 'rotary' }
      * @returns {boolean} true when a trace is ready
      */
     generate(signal, seed, options = {}) {
         const rng = createSeededRandom(seed ?? `hg-${Math.random()}`);
         const plan = planHarmonograph(signal, rng, options);
+        if (options.pendulums === 'rotary') return this.generateRotary(plan, rng);
+        this.pendulums = 'lateral';
+        this.pair = null;
+        this.drawMs = null;
 
         const [p, q] = plan.ratio;
         const fx = p;
@@ -101,6 +131,43 @@ export class Harmonograph {
         return true;
     }
 
+    /** Two rotary pendulums turning opposite ways, traced until their energy is under 5%. */
+    generateRotary(plan, rng) {
+        const f1 = rng() < 0.5 ? 2 : 3;
+        const f2 = -(rng() < 0.5 ? 3 : 4) + (rng() - 0.5) * 0.04;
+        const p1 = rng() * TAU, p2 = rng() * TAU;
+        const d1 = 0.010 + rng() * 0.008, d2 = 0.010 + rng() * 0.008;
+
+        const points = [];
+        const energies = [];
+        for (let i = 0; ; i++) {
+            const tau = i * ROTARY_STEP;
+            const e1 = Math.exp(-d1 * tau) * 0.55, e2 = Math.exp(-d2 * tau) * 0.45;
+            points.push(
+                e1 * Math.cos(f1 * tau + p1) + e2 * Math.cos(f2 * tau + p2),
+                e1 * Math.sin(f1 * tau + p1) + e2 * Math.sin(f2 * tau + p2)
+            );
+            energies.push(e1 + e2);
+            if (e1 + e2 < ROTARY_END_ENERGY) break;
+        }
+
+        this.plan = plan;
+        this.pendulums = 'rotary';
+        this.pair = { f1, f2, p1, p2, d1, d2 };
+        this.trace = Float32Array.from(points);
+        this.envelope = Float32Array.from(energies);
+        this.drawMs = ((energies.length - 1) * ROTARY_STEP / ROTARY_UNITS_PER_SECOND) * 1000;
+        return true;
+    }
+
+    /** Pixels per trace unit on a w × h canvas. */
+    extent(w, h) {
+        if (this.pendulums === 'rotary') return Math.min(w, h) * ROTARY_EXTENT;
+        // Max extent is lateral (≤1) + rotary (≤0.26) ≈ 1.26 in unit
+        // space; 1.7 keeps the hottest trace inside the frame
+        return Math.min(w, h) * 0.5 * this.plan.amplitude * 1.7;
+    }
+
     /**
      * Draw the prepared trace to a canvas.
      * @param {HTMLCanvasElement} canvas
@@ -114,9 +181,7 @@ export class Harmonograph {
 
         const w = canvas.width, h = canvas.height;
         const cx = w / 2, cy = h / 2;
-        // Max extent is lateral (≤1) + rotary (≤0.26) ≈ 1.26 in unit
-        // space; 1.7 keeps the hottest trace inside the frame
-        const scale = Math.min(w, h) * 0.5 * this.plan.amplitude * 1.7;
+        const scale = this.extent(w, h);
 
         ctx.fillStyle = options.backgroundColor || '#0A0A0C';
         ctx.fillRect(0, 0, w, h);
@@ -140,6 +205,11 @@ export class Harmonograph {
         }
         ctx.stroke();
 
+        if (this.pendulums === 'rotary') {
+            this.strokeRotary(ctx, cx, cy, scale, steps, Math.min(w, h));
+            return true;
+        }
+
         // Pass 2 — the pen line: bright while the pendulum is young,
         // dimming with the envelope so the decay is drawn, not implied
         ctx.lineWidth = Math.max(0.9, Math.min(w, h) * 0.0016);
@@ -160,5 +230,29 @@ export class Harmonograph {
         }
 
         return true;
+    }
+
+    /**
+     * The rotary pen: one additive stroke per batch, coloured from the
+     * climate's iris (its fourth stop) toward its core as energy is lost.
+     * Butt caps, so batches meet without a bright bead at each join.
+     */
+    strokeRotary(ctx, cx, cy, scale, steps, side) {
+        const anchors = this.plan.anchors;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineCap = 'butt';
+        ctx.lineWidth = Math.max(1, side * 0.0017);
+        for (let start = 0; start < steps - 1; start += ROTARY_BATCH) {
+            const end = Math.min(start + ROTARY_BATCH, steps - 1);
+            const color = lerpAnchors(anchors, (2 + (1 - this.envelope[end])) / 3);
+            ctx.strokeStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${ROTARY_ALPHA})`;
+            ctx.beginPath();
+            ctx.moveTo(cx + this.trace[start * 2] * scale, cy + this.trace[start * 2 + 1] * scale);
+            for (let i = start + 1; i <= end; i++) {
+                ctx.lineTo(cx + this.trace[i * 2] * scale, cy + this.trace[i * 2 + 1] * scale);
+            }
+            ctx.stroke();
+        }
+        ctx.globalCompositeOperation = 'source-over';
     }
 }

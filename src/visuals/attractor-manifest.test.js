@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ATTRACTOR_VISUAL_MANIFEST } from '../core/visual-control-contract.js';
+import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 
 describe('Attractor visual manifest', () => {
   it('describes only the readable canvas intensity control, cueable while the field runs, and is immutable', () => {
@@ -14,5 +14,10 @@ describe('Attractor visual manifest', () => {
     expect(Object.isFrozen(ATTRACTOR_VISUAL_MANIFEST)).toBe(true);
     expect(Object.isFrozen(ATTRACTOR_VISUAL_MANIFEST.parameters)).toBe(true);
     expect(Object.isFrozen(ATTRACTOR_VISUAL_MANIFEST.parameters.intensity)).toBe(true);
+  });
+
+  it('refuses the trace while the field runs: it is chosen when the scene starts', () => {
+    expect(validateVisualCommand({ surface: 'attractor', parameter: 'trace', value: 'swarm' }))
+      .toEqual({ ok: false, code: 'UNSUPPORTED_SURFACE' });
   });
 });

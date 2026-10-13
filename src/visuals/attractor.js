@@ -12,9 +12,12 @@
  * session. Gentle by design — the flicker never approaches a strobe.
  *
  * Systems: 'aizawa' | 'thomas' | 'halvorsen'
+ * Traces: 'filament' (above) | 'swarm' — particles ridden live through
+ * the system into a fading trail (attractor-swarm.js).
  */
 
 import { reportProjectionPaint } from './projection-paint.js';
+import { AttractorSwarm, SWARM_FADE, SWARM_TICK_HZ, swarmRamp, swarmTheta } from './attractor-swarm.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 import {
     ATTRACTOR_FORMS,
@@ -198,6 +201,16 @@ const QUALITY_MIN_FRAMES = 3;
 
 const wrap01 = v => v - Math.floor(v);
 const REDUCED_STILL_SECONDS = 7.5;
+
+// The swarm's trail is the study's look at the default intensity; other
+// intensities scale its presentation, never what is plotted.
+const SWARM_BASE_INTENSITY = 0.65;
+// Ticks a frame may catch up; past this the backlog is dropped, not run.
+const SWARM_MAX_TICKS = 8;
+// Ticks that rebuild an emptied trail: 0.93^64 < 1%, as long as a dot lasts.
+const SWARM_FILL_TICKS = 64;
+// The reduced-motion still: ninety plots at a held angle, nothing fading.
+const SWARM_STILL_TICKS = 90;
 const clampSpeed = v => (Number.isFinite(v) ? Math.min(4, Math.max(0.25, v)) : 1);
 
 export class AttractorField {
@@ -209,9 +222,11 @@ export class AttractorField {
      * @param {string} options.form - 'mirror' | 'kaleido' | 'bilateral'
      * @param {number} options.intensity - master brightness multiplier (default 0.65, keeps text legible)
      * @param {number} options.speed - motion time scale; 1 is the original pace (clamped 0.25–4)
+     * @param {string} options.trace - 'filament' | 'swarm', chosen when the field starts
      */
     constructor(host, options = {}) {
         this.host = host;
+        this.trace = options.trace === 'swarm' ? 'swarm' : 'filament';
         this.system = Object.hasOwn(SYSTEMS, options.system) ? options.system : 'aizawa';
         this.palette = Object.hasOwn(PALETTES, options.palette) ? options.palette : DEFAULT_PALETTE;
         this.form = FORMS.includes(options.form) ? options.form : 'mirror';
@@ -252,6 +267,14 @@ export class AttractorField {
         this._pausedMotionTime = null;
 
         this.integrate();
+        if (this.trace === 'swarm') {
+            this.trailCanvas = document.createElement('canvas');
+            // Half-float, so the 7% fade reaches zero: in 8 bits it stops at
+            // alpha 7/255 and leaves a grey ghost wherever the swarm has been.
+            // A browser without it gives 8 bits, and the faint ghost the study has.
+            this.trailCtx = this.trailCanvas.getContext('2d', { colorType: 'float16' });
+            this.makeSwarm();
+        }
 
         this.resize = this.resize.bind(this);
         if (typeof ResizeObserver === 'function') {
@@ -307,10 +330,15 @@ export class AttractorField {
             this.px[i] = x; this.py[i] = y; this.pz[i] = z;
         }
 
-        // centroid + radius for centering / fitting
-        let cx = 0, cy = 0, cz = 0;
-        for (let i = 0; i < N; i++) { cx += this.px[i]; cy += this.py[i]; cz += this.pz[i]; }
+        // centroid + radius for centering / fitting; the height span colours a swarm
+        let cx = 0, cy = 0, cz = 0, zMin = Infinity, zMax = -Infinity;
+        for (let i = 0; i < N; i++) {
+            cx += this.px[i]; cy += this.py[i]; cz += this.pz[i];
+            if (this.pz[i] < zMin) zMin = this.pz[i];
+            if (this.pz[i] > zMax) zMax = this.pz[i];
+        }
         this.cx = cx / N; this.cy = cy / N; this.cz = cz / N;
+        this.zMin = zMin; this.zMax = zMax;
         let r2 = 0;
         for (let i = 0; i < N; i++) {
             const a = this.px[i] - this.cx, b = this.py[i] - this.cy, c = this.pz[i] - this.cz;
@@ -342,6 +370,12 @@ export class AttractorField {
         this.canvas.width = width;
         this.canvas.height = height;
         this.ctx?.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
+        if (this.trailCanvas) {
+            this.trailCanvas.width = width;
+            this.trailCanvas.height = height;
+            this.trailCtx?.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
+            this._trailEmpty = true;
+        }
         this._stillDrawn = false;   // a resize clears the canvas
         // Paused, no frame loop will repaint it: present the held frame at the new size.
         if (this.paused && this.ctx && !this.destroyed) this.paintOnce(performance.now());
@@ -451,6 +485,12 @@ export class AttractorField {
             if (progress === 1) this._intensityTransition = null;
         }
 
+        if (this.trace === 'swarm') {
+            this.drawSwarm(t, reduced, oneShot);
+            this._finishFrame(now, oneShot, reduced);
+            return;
+        }
+
         // gentle, never-fully-dark flicker — a living filament, not a strobe
         const flick = 1 - flickAmp * (0.5 + 0.5 * Math.sin(t * 2.3))
             * (0.6 + 0.4 * Math.sin(t * 7.9 + 1.3));
@@ -551,6 +591,10 @@ export class AttractorField {
         }
 
         ctx.globalCompositeOperation = 'source-over';
+        this._finishFrame(now, oneShot, reduced);
+    }
+
+    _finishFrame(now, oneShot, reduced) {
         this._hasPaintedFrame = true;
         // Only consecutive live frames measure display pace; one-shot,
         // reduced-motion and Page Mode samples do not enter quality windows.
@@ -564,6 +608,110 @@ export class AttractorField {
         this._syncProjection();
         if (!this.projectionHost) reportProjectionPaint(this);
         if (!this.paused && !this.destroyed && !oneShot) this.rafId = requestAnimationFrame(this.tick);
+    }
+
+    /* ── the swarm: particles ridden live into a fading trail ── */
+    createSwarm() {
+        return new AttractorSwarm(SYSTEMS[this.system], {
+            cx: this.cx, cy: this.cy, cz: this.cz, radius: this.modelR, zMin: this.zMin, zMax: this.zMax
+        }, `attractor-swarm:${this.system}`);
+    }
+
+    makeSwarm() {
+        this.swarm = this.createSwarm();
+        this._swarmTick = null;
+        this._trailEmpty = true;
+    }
+
+    plotSwarm(ctx, swarm, theta) {
+        swarm.plot(ctx, this.W, this.H, theta, swarmRamp(PALETTES[this.palette]), this.form);
+    }
+
+    fadeTrail(ctx) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = `rgba(0,0,0,${SWARM_FADE})`;
+        ctx.fillRect(0, 0, this.W, this.H);
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    /** Rebuild a trail that ends at `endTick`, as long as a dot lasts. */
+    fillTrail(ctx, swarm, endTick) {
+        ctx.clearRect(0, 0, this.W, this.H);
+        for (let tick = endTick - SWARM_FILL_TICKS + 1; tick <= endTick; tick++) {
+            swarm.advance();
+            this.fadeTrail(ctx);
+            this.plotSwarm(ctx, swarm, swarmTheta(tick / SWARM_TICK_HZ));
+        }
+    }
+
+    /**
+     * Bring the swarm to motion time `t` and present its trail. Time comes
+     * from the field's clock alone: paused, no tick is due and nothing
+     * moves; reduced motion holds one accumulated still at a held angle.
+     */
+    drawSwarm(t, reduced, oneShot) {
+        if (this._sampleT != null) {
+            // A Page plate: a fresh swarm's trail at this moment; the live trail is untouched.
+            const canvas = document.createElement('canvas');
+            canvas.width = this.canvas.width;
+            canvas.height = this.canvas.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
+            this.fillTrail(ctx, this.createSwarm(), Math.floor(t * SWARM_TICK_HZ));
+            this.presentSwarm(canvas);
+            return;
+        }
+        const trail = this.trailCtx;
+        if (!trail) return;
+        if (reduced) {
+            this.swarm.reset();
+            trail.clearRect(0, 0, this.W, this.H);
+            const theta = swarmTheta(REDUCED_STILL_SECONDS * this.speed);
+            for (let k = 0; k < SWARM_STILL_TICKS; k++) {
+                this.swarm.advance();
+                this.plotSwarm(trail, this.swarm, theta);
+            }
+            this._swarmTick = null;
+            this._trailEmpty = false;
+        } else {
+            const target = Math.floor(t * SWARM_TICK_HZ);
+            if (this._swarmTick == null || this._swarmTick > target) this._swarmTick = target;
+            if (target - this._swarmTick > SWARM_MAX_TICKS) this._swarmTick = target - SWARM_MAX_TICKS;
+            // A live trail builds from empty, as the study's blooms; a held frame must not be blank.
+            if (this._trailEmpty && (this.paused || oneShot)) {
+                this.fillTrail(trail, this.swarm, this._swarmTick);
+                this._trailEmpty = false;
+            }
+            while (this._swarmTick < target) {
+                this._trailEmpty = false;
+                this._swarmTick++;
+                this.swarm.advance();
+                this.fadeTrail(trail);
+                this.plotSwarm(trail, this.swarm, swarmTheta(this._swarmTick / SWARM_TICK_HZ));
+            }
+            this.swarmTheta = swarmTheta(this._swarmTick / SWARM_TICK_HZ);
+        }
+        this.presentSwarm(this.trailCanvas);
+    }
+
+    /** The trail at the field's intensity: as plotted at 0.65, brighter by a second additive pass. */
+    presentSwarm(source) {
+        const ctx = this.ctx;
+        const gain = this.intensity / SWARM_BASE_INTENSITY;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.globalAlpha = Math.min(1, gain);
+        ctx.drawImage(source, 0, 0);
+        if (gain > 1) {
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = gain - 1;
+            ctx.drawImage(source, 0, 0);
+            ctx.globalCompositeOperation = 'source-over';
+        }
+        ctx.globalAlpha = 1;
+        ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
     }
 
     /**
@@ -751,6 +899,7 @@ export class AttractorField {
         if (!Object.hasOwn(SYSTEMS, system) || system === this.system) return;
         this.system = system;
         this.integrate();
+        if (this.swarm) this.makeSwarm();
         this._stillDrawn = false;
     }
 

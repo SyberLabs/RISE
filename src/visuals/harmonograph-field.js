@@ -10,6 +10,10 @@
  * plane fades in empty; drawing starts once it is opaque. The remaining
  * dwell is then travel plus a few seconds of stillness before the next
  * work.
+ *
+ * Rotary pendulums keep their own pace instead of the dwell: the pen
+ * travels for the engine's drawMs, the finished figure rests 1.6 s, then
+ * it dissolves while a fresh pair waits out the dissolve and begins.
  */
 
 import { Harmonograph } from './harmonograph.js';
@@ -23,6 +27,7 @@ import {
 
 const MAX_DPR = 2;
 const MAX_FRAME_MS = 50;
+const ROTARY_REST_MS = 1_600;
 
 export class HarmonographField {
     /**
@@ -30,7 +35,7 @@ export class HarmonographField {
      * @param {Object} options
      *   - dwellMs / crossfadeMs
      *   - reducedMotion
-     *   - getSignal / getClimate / getAnchors
+     *   - getSignal / getClimate / getAnchors / getPendulums
      */
     constructor(host, options = {}) {
         this.host = host;
@@ -49,6 +54,9 @@ export class HarmonographField {
         this.getAnchors = typeof options.getAnchors === 'function'
             ? options.getAnchors
             : () => null;
+        this.getPendulums = typeof options.getPendulums === 'function'
+            ? options.getPendulums
+            : () => 'lateral';
         this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
             ? options.onProjectionPaint
             : () => {};
@@ -122,10 +130,19 @@ export class HarmonographField {
     _progress(plane) {
         if (this.reducedMotion) return 1;
         if ((plane.holdPenMs || 0) > 0) return 0;
+        if (plane.engine?.pendulums === 'rotary') return Math.min(1, plane.elapsedMs / plane.engine.drawMs);
         const dwell = Number.isFinite(plane.drawDwellMs) && plane.drawDwellMs > 0
             ? plane.drawDwellMs
             : this.dwellMs;
         return harmonographDrawProgress(plane.elapsedMs, dwell);
+    }
+
+    /** How long the active plane stays: the dwell, or a rotary pen's own travel and rest. */
+    _planeDwellMs() {
+        const plane = this._planes?.[this._active];
+        return plane?.engine?.pendulums === 'rotary'
+            ? plane.holdPenMs + plane.engine.drawMs + ROTARY_REST_MS
+            : this.dwellMs;
     }
 
     _draw(plane) {
@@ -213,7 +230,8 @@ export class HarmonographField {
         this._cursor += 1;
         engine.generate(this.getSignal() || null, `gallery-hg:${this._cursor}`, {
             climate: this.getClimate() || 'auto',
-            anchors: this.getAnchors()
+            anchors: this.getAnchors(),
+            pendulums: this.getPendulums() || 'lateral'
         });
         incoming.engine = engine;
         incoming.elapsedMs = this.reducedMotion ? this.dwellMs : 0;
@@ -272,7 +290,7 @@ export class HarmonographField {
 
         if (timestamp >= this._nextRotateAt) {
             this._rotate(false);
-            this._nextRotateAt = timestamp + this.dwellMs;
+            this._nextRotateAt = timestamp + this._planeDwellMs();
         }
         this._rafId = requestAnimationFrame(this._tick);
     }
@@ -286,7 +304,7 @@ export class HarmonographField {
         this._rotate(true);
         if (this.reducedMotion) return;
         this._lastFrameAt = 0;
-        this._nextRotateAt = performance.now() + this.dwellMs;
+        this._nextRotateAt = performance.now() + this._planeDwellMs();
         this._rafId = requestAnimationFrame(this._tick);
     }
 
