@@ -105,16 +105,29 @@ export class HarmonographField {
 
     _resize() {
         if (!this._planes) return;
-        const rect = this.host?.getBoundingClientRect?.();
         const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-        const w = Math.max(1, Math.round((rect?.width || 0) * dpr));
-        const h = Math.max(1, Math.round((rect?.height || 0) * dpr));
+        // In Live's circle frames the layer is shown scaled, and the scale the venue declares on it is the size it is
+        // shown at once open: the planes follow it, not the transformed box of the moment they mounted.
+        const scale = this._declaredScale();
+        this._sizedScale = scale;
+        const rect = scale === null ? this.host?.getBoundingClientRect?.() : null;
+        const width = scale === null ? rect?.width : this.host.clientWidth * scale;
+        const height = scale === null ? rect?.height : this.host.clientHeight * scale;
+        const w = Math.max(1, Math.round((width || 0) * dpr));
+        const h = Math.max(1, Math.round((height || 0) * dpr));
         for (const plane of this._planes) {
             if (plane.canvas.width === w && plane.canvas.height === h) continue;
             plane.canvas.width = w;
             plane.canvas.height = h;
             this._draw(plane);
         }
+    }
+
+    /** The scale Live declares on the field's layer (venue.js, data-live-scale), or null where none is declared. */
+    _declaredScale() {
+        this._scaled ??= this.host?.closest?.('[data-live-scale]') ?? null;
+        const scale = Number(this._scaled?.dataset.liveScale);
+        return scale > 0 ? scale : null;
     }
 
     _onVisibility() {
@@ -291,6 +304,7 @@ export class HarmonographField {
             ? Math.min(timestamp - this._lastFrameAt, MAX_FRAME_MS)
             : 0;
         this._lastFrameAt = timestamp;
+        if (this._declaredScale() !== this._sizedScale) this._resize();
 
         const plane = this._planes[this._active];
         this._advance(plane, dt);

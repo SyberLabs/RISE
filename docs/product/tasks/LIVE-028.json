@@ -72,6 +72,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/663",
       "note": "Branch live-fit-feather, after #661 (merged as 23a40081): a fitted generated scene’s canvas carries a rectangular feather under the fit marker (two linear-gradient masks over 6% of its box, intersected), held with the marker through an outgoing scene’s 1200 ms fade; the touch regions keep their exact box, unmasked; a figure, a transparent image whose label sits in its box’s bottom 6%, is not feathered. Local: venue, stage-controls, LiveHost, system-design 297 passed; e2e/live.spec.js \"the frames|interactive scenes\" 7 passed; edge of the demo disk scene in renders: luma step 0.93 (1440x900) and 0.59 (390x844), blue channel step 0.1 (7.5 before). Renders kept by the coordinator: frames-renders/feather-disk and feather-horizon at both sizes. Merged as b48ef88e; deployed (release.txt b48ef88e, 2026-10-13). Not accepted by a human.",
       "date": "2026-10-13"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/669",
+      "note": "Branch live-circle-scale, code at 70d0a749: the venue declares each visual layer's rest scale (data-live-scale, frames.js restScale) before its aperture opens; the attractor draws at the first scale it is given and presents only on a new tick; the harmonograph sizes from the declared scale, not its transformed box at mount; the face is sent the geometry only when it changes and repaints whole only on entering or leaving the room, so its trails show as in the study (side by side at 1440x900: the eye and the shell now match the study, its 8-bit residue included). Real GPU (ANGLE D3D11, AMD RX 5700, Chromium 149 headless, 144 Hz), against main with #668: 1x unchanged (144 fps); 2x within noise on the mean of three runs (swarm 102.5 -> 101.7 fps, inner->shell opening 93.3 -> 100.6, rotary harmonograph 58.4 -> 61.0, eye 141.9 -> 141.9); 390x844 3x + 4x CPU emulation: swarm 102 -> 124, full->shell 102 -> 119, harmonograph 64 -> 70. The eye alone at 2x (142 fps) is above the study's 76 fps, so the face's pixel ratio and fades are left as they are. Cached rotary pen measured and deferred (2x 60 -> 68 fps, 1x 95 -> 83). Local: importer suites 12 files 638 passed; fast set 125 files passed; ci-hygiene, vite build, first load within budget. Not merged yet; not accepted by a human.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
@@ -98,10 +104,14 @@
     {
       "date": "2026-10-13T06:37:07.849Z",
       "summary": "#661 merged as 23a40081 and #663 as b48ef88e, both live in release b48ef88e (2026-10-13); not accepted by a human"
+    },
+    {
+      "date": "2026-10-13T10:06:57.504Z",
+      "summary": "PR #669: circle frames drawn at the size shown, the face's trails restored; not merged"
     }
   ],
-  "updatedAt": "2026-10-13T06:37:07.849Z",
-  "revision": 6,
+  "updatedAt": "2026-10-13T10:06:57.504Z",
+  "revision": 7,
   "summary": "Every visual of a Live reading held by Sophia in one of three frames (inner eye, outer shell, full frame), the visual choosing which; she never leaves the room.",
   "blocker": null
 }

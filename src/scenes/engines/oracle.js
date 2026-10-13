@@ -178,12 +178,16 @@ export default function oracle(rise) {
         repaint = true;
     }
 
-    /** The room's geometry, as sent; anything that is not an object with a frame is no geometry. */
+    /**
+     * The room's geometry, as sent; anything that is not an object with a frame is no geometry. Entering the room or
+     * leaving it repaints the canvas whole; a new geometry in the room keeps the slow trails, as the study's room does.
+     */
     function setRoom(json) {
         let next = null;
         try { next = JSON.parse(json); } catch { next = null; }
-        room = next && typeof next === 'object' && typeof next.frame === 'string' && next.face && next.big ? next : null;
-        repaint = true;
+        next = next && typeof next === 'object' && typeof next.frame === 'string' && next.face && next.big ? next : null;
+        if ((next === null) !== (room === null)) repaint = true;
+        room = next;
     }
 
     /** The blink, when the eye may blink on its own (at rest, or docked); otherwise none is begun and one under way ends. */

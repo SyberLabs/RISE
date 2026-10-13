@@ -47,6 +47,8 @@ export function mountFace({
     const times = [];
     const lumas = [];
     let drawn = false;
+    // The last geometry the engine was given: the same room again is not sent, so a room at rest keeps its trails.
+    let placed = null;
     let frozen = false;
     let runtime = null;
     const layer = mountSceneLayer({
@@ -118,10 +120,14 @@ export function mountFace({
         cue: (name, { instant = false } = {}) => runtime.cue(name, { instant }),
         /**
          * The room's geometry for this animation frame (frames.js frameGeometry), or null for the face's own square.
-         * Sent only once the engine draws: a runtime that is not ready would queue one a frame.
+         * Sent only once the engine draws (a runtime that is not ready would queue one a frame), and only when it changed.
          */
         place(geometry) {
-            if (drawn && !frozen) runtime.cue(`aperture:${JSON.stringify(geometry)}`);
+            if (!drawn || frozen) return;
+            const name = `aperture:${JSON.stringify(geometry)}`;
+            if (name === placed) return;
+            placed = name;
+            runtime.cue(name);
         },
         /** The reader's pointer anywhere in the room, in the page's pixels: where the eye looks. */
         point(clientX, clientY) {

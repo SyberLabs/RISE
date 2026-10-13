@@ -107,6 +107,19 @@ describe('the face’s layer', () => {
         expect(worker.of(TO_WORKER.cue).map(message => message.name)).toEqual([`aperture:${JSON.stringify(geometry)}`, 'aperture:null']);
     });
 
+    it('gives the engine a geometry only when it has changed: a room at rest sends nothing, so its trails are kept', async () => {
+        const { worker } = await mounted();
+        worker.say({ type: TO_HOST.frameDone, t: 0, ms: 3 });
+        const resting = { frame: 'shell', face: { x: 1, y: 2, s: 3 } };
+        const moved = { frame: 'shell', face: { x: 1, y: 2, s: 4 } };
+        for (let i = 0; i < 5; i++) face.place({ ...resting, face: { ...resting.face } });
+        face.place(moved);
+        face.place(moved);
+        face.place(null);
+        face.place(null);
+        expect(worker.of(TO_WORKER.cue).map(message => message.name)).toEqual([`aperture:${JSON.stringify(resting)}`, `aperture:${JSON.stringify(moved)}`, 'aperture:null']);
+    });
+
     it('gives the engine the pointer anywhere in the room, in the canvas’s own pixels', async () => {
         const { worker, canvas } = await mounted();
         vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ left: 10, top: 20, width: 400, height: 300 });

@@ -1010,6 +1010,44 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(field.style.getPropertyValue('--live-vx')).toBe(`${geometry.aperture.x - window.innerWidth / 2}px`);
     });
 
+    it('declares the scale of the visual on screen on every visual layer, before its aperture opens, and takes it back when the room is left', async () => {
+        const { field, crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        const words = document.createElement('div');
+        words.className = 'atom-band';
+        const swarm = document.createElement('div');
+        field.append(words, swarm);
+        crank(16);
+        // Declared while the shell is still closed: the field is drawn at its size before anyone sees it.
+        expect(engine().places.at(-1).aperture?.hole ?? 0).toBe(0);
+        const shell = Number(swarm.dataset.liveScale);
+        expect(shell).toBeGreaterThan(0);
+        expect(shell).toBeLessThan(1);
+        expect(words.dataset.liveScale).toBeUndefined();
+        crank(1700);
+        expect(shell).toBeCloseTo(Number(field.style.getPropertyValue('--live-vk')), 3);
+        chamber.cue = { kind: 'procedural', collections: ['harmonograph'], config: {} };
+        const pen = document.createElement('div');
+        field.append(pen);
+        crank(16);
+        // The inner eye's own scale, on the incoming layer and the outgoing one (whose field keeps the scale it took first).
+        expect(Number(pen.dataset.liveScale)).toBeLessThan(shell);
+        expect(swarm.dataset.liveScale).toBe(pen.dataset.liveScale);
+        crank(4000);
+        expect(Number(pen.dataset.liveScale)).toBeCloseTo(Number(field.style.getPropertyValue('--live-vk')), 3);
+        await host.venue.leave();
+        expect(pen.dataset.liveScale).toBeUndefined();
+        expect(swarm.dataset.liveScale).toBeUndefined();
+    });
+
+    it('declares a layer shown whole in the full frame at its own size', async () => {
+        const { field, crank } = await room({ kind: 'field', renderer: 'genesis', config: {} });
+        const glow = document.createElement('div');
+        field.append(glow);
+        crank(2000);
+        expect(root().dataset.liveFrame).toBe('full');
+        expect(glow.dataset.liveScale).toBe('1');
+    });
+
     it('opens the full frame for a figure, the face travelling to the dock by the bar', async () => {
         const { crank } = await room({ kind: 'scene', sceneId: 'h', svg: '<svg/>' });
         crank(2000);
