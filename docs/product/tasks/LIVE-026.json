@@ -35,7 +35,7 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/658",
-      "note": "Open follow-up: aa08479d read scenes after the illustrator placed its pictures and with the room’s answer prefix, so memory could name a picture twice and an answer’s scene as i1-<name>, and runtime.seek.test.js (full suite only) failed. The scene is now taken before pictures are placed, by the name its own Current gave it. Local: 37 vitest files, 926 passed, 2 skipped; CI green. Not merged.",
+      "note": "Follow-up: aa08479d read scenes after the illustrator placed its pictures and with the room’s answer prefix, so memory could name a picture twice and an answer’s scene as i1-<name>, and runtime.seek.test.js (full suite only) failed. The scene is now taken before pictures are placed, by the name its own Current gave it. Local: 37 vitest files, 926 passed, 2 skipped; CI green. Merged as 9c80848e; deployed (release.txt b48ef88e, which contains it, 2026-10-13). Not accepted by a human.",
       "date": "2026-10-13"
     }
   ],
@@ -51,10 +51,14 @@
     {
       "date": "2026-10-13T05:33:00.334Z",
       "summary": "PR #655 merged as 526a2a91 and deployed (release.txt a78c1467, 2026-10-13); delivery deployed; follow-up #658 open"
+    },
+    {
+      "date": "2026-10-13T06:32:20.454Z",
+      "summary": "Follow-up #658 merged as 9c80848e and deployed (release.txt b48ef88e, 2026-10-13); not accepted by a human"
     }
   ],
-  "updatedAt": "2026-10-13T05:33:00.334Z",
-  "revision": 3,
+  "updatedAt": "2026-10-13T06:32:20.454Z",
+  "revision": 4,
   "summary": "RISE Live remembers the conversation within one visit: each new question goes up with the earlier questions of the room and what RISE said in answer, as quoted data in the one message, bounded, and forgotten when the reader leaves.",
   "blocker": null
 }
