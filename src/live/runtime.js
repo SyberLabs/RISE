@@ -332,7 +332,7 @@ export function createLiveRuntime({
                 const theme = answer.theme ?? lookTheme(answer.look);
                 current = theme === null ? rest : { ...rest, theme };
             }
-            // The reader chose a visual (chooseVisual): no beat of the model's after that passage starts a scene or cues one.
+            // The reader chose a visual (chooseVisual): no beat inside a hold starts a scene or cues one.
             if (run.holds.length) current = heldFrom(run, current);
             // The pictures the composer asked for, where they landed (illustrator.js): each scene from the beat after.
             run.sceneCount = current.scenes?.length ?? 0;
@@ -813,7 +813,8 @@ export function createLiveRuntime({
          * is shown at once and the reading plays on, with no request. `{ engine, params }` starts that engine from the
          * phrase on screen, as a picture is placed; `{ engine, cue }` cues the engine running. From the passage it was
          * chosen in, the model's own scenes, cues, visual changes and pictures are held until the reader next asks RISE
-         * something inside the reading (docs/plans/LIVE-CURRENT.md §25). Returns whether it was shown: false leaves the reading held, and nothing changed.
+         * something inside the reading (docs/plans/LIVE-CURRENT.md §25). Returns whether it was shown: false leaves the
+         * reading held, and nothing changed.
          */
         chooseVisual({ engine, params, cue } = {}) {
             if (interjection.state !== 'held') throw new LiveRuntimeError('NOT_HELD', 'A visual is chosen while the reading is held for the reader');
@@ -1095,7 +1096,7 @@ export function createLiveRuntime({
         const { change } = entry;
         if (change.kind === 'illustration.cue') { landPictureCue(entry); return; }
         if (holding() && (change.kind === 'visual.control' || change.kind === 'scene.cue')) { holdChange(change.kind); return; }
-        const refused =code => note('room.refused', { kind: change.kind, code: String(code ?? 'REFUSED').slice(0, 40) });
+        const refused = code => note('room.refused', { kind: change.kind, code: String(code ?? 'REFUSED').slice(0, 40) });
         if (change.kind === 'visual.control') {
             if (change.parameter === 'intensity' && readerSettings.has('intensity')) { refused('READER_SET'); return; }
             const surface = change.surface ?? discoverVisual()?.manifest?.surface ?? ATTRACTOR_VISUAL_MANIFEST.surface;
