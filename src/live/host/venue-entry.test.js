@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { addUsage, emptyUsage, faceStateOf, initialVenue, interjectionPerception, originLine, perceptionFor, usageLine, venueStep } from './venue-entry.js';
+import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, originLine, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { perceive } from '../perception.js';
+import { OPEN_LIMITS, validateOpenRequest } from '../adapter.js';
 
 const ready = { connected: false, hasKey: false };
 const ask = (question, extra = {}) => ({ type: 'ask', question, ...ready, ...extra });
@@ -150,6 +151,156 @@ describe('the perception hook (design §4, §8 stage 4)', () => {
         expect(perceptionFor([{ question: 'First?' }])).toBeNull();
         expect(perceptionFor([{ question: 'First?' }, { question: 'Second?' }])).toBeNull();
         expect(perceptionFor([{ question: 'First?', journal: [{ type: 'start' }, { type: 'speech.start', role: 'main' }] }, { question: 'Second?' }])).toBeNull();
+    });
+});
+
+describe('what was said earlier in this room (LIVE-026)', () => {
+    const PASSAGES = [
+        { segmentId: 'beat-0', key: 'beat-0', text: 'Time is what clocks measure.', spoken: true, scene: 'field' },
+        { segmentId: 'beat-1', key: 'beat-1', text: 'Why time', spoken: false },
+        { segmentId: 'beat-2', key: 'beat-2', text: 'It runs one way.', spoken: true },
+        { segmentId: 'beat-3', key: 'beat-3', text: 'Physics asks why.', spoken: true, scene: 'field' }
+    ];
+    const FINISHED = [{ at: 0, type: 'start', prompt: 'What is time?' }, { at: 90, type: 'run.finished', role: 'main' }];
+    const reading = (question, more = {}) => ({ question, journal: FINISHED, passages: PASSAGES, reached: 3, ...more });
+
+    it('is each earlier question and what RISE said in answer, in order, without the question being asked', () => {
+        const turns = [reading('What is time?'), reading('And space?', { passages: [PASSAGES[2]], reached: 0 }), { question: 'What did Einstein say about it?' }];
+        expect(earlierFor(turns)).toEqual([
+            { asked: 'What is time?', said: 'Time is what clocks measure. It runs one way. Physics asks why.', showed: ['the scene field'] },
+            { asked: 'And space?', said: 'It runs one way.' }
+        ]);
+    });
+
+    it('is nothing for the first question', () => {
+        expect(earlierFor([{ question: 'What is time?' }])).toBeNull();
+        expect(earlierFor([])).toBeNull();
+    });
+
+    it('is the question alone for a reading not yet let go', () => {
+        expect(earlierFor([{ question: 'What is time?' }, { question: 'Why?' }])).toEqual([{ asked: 'What is time?' }]);
+    });
+
+    it('keeps only what was said before a cut, and marks the cut', () => {
+        const journal = [{ at: 0, type: 'start' }, { at: 20, type: 'hold', reason: 'user', segmentId: 'beat-2' }];
+        expect(earlierFor([reading('What is time?', { journal, reached: 2 }), { question: 'Why?' }])).toEqual([
+            { asked: 'What is time?', said: 'Time is what clocks measure. It runs one way.', showed: ['the scene field'], cut: true }
+        ]);
+    });
+
+    it('counts as heard what the reader went back from before the cut', () => {
+        const journal = [{ at: 0, type: 'start' }, { at: 20, type: 'seek', reason: 'reader', from: 'beat-3', fromKey: 'beat-3', to: 'beat-0', toKey: 'beat-0' }];
+        expect(earlierFor([reading('What is time?', { journal, reached: 0 }), { question: 'Why?' }])[0])
+            .toMatchObject({ said: 'Time is what clocks measure. It runs one way. Physics asks why.', cut: true });
+    });
+
+    it('does not call a reading that failed one the reader cut off', () => {
+        const journal = [{ at: 0, type: 'start' }, { at: 20, type: 'run.failed', role: 'main', code: 'STREAM_ENDED' }];
+        expect(earlierFor([reading('What is time?', { journal, reached: 0 }), { question: 'Why?' }])).toEqual([
+            { asked: 'What is time?', said: 'Time is what clocks measure.', showed: ['the scene field'] }
+        ]);
+    });
+
+    it('says an interjection inside the reading apart: the reader’s words and RISE’s answer, the reading’s own words without it', () => {
+        const passages = [
+            PASSAGES[0],
+            { segmentId: 'beat-1', key: 'i1-beat-0', text: 'Einstein said it is relative.', spoken: true },
+            { segmentId: 'beat-2', key: 'i1-beat-1', text: 'It runs slower when you move fast.', spoken: true },
+            { segmentId: 'beat-3', key: 'i1-taken', text: 'And it runs one way.', spoken: true }
+        ];
+        const journal = [
+            { at: 0, type: 'start' },
+            { at: 10, type: 'interjection.asked', segmentId: 'beat-0' },
+            { at: 12, type: 'interjection.answering', n: 0, words: 'What did Einstein say?' },
+            { at: 30, type: 'interjection.answered', beats: 2, ending: 'resume' },
+            { at: 90, type: 'run.finished', role: 'main' }
+        ];
+        expect(earlierFor([{ question: 'What is time?', journal, passages, reached: 3 }, { question: 'Why?' }])).toEqual([{
+            asked: 'What is time?',
+            said: 'Time is what clocks measure. And it runs one way.',
+            interjections: [{ asked: 'What did Einstein say?', said: 'Einstein said it is relative. It runs slower when you move fast.' }],
+            showed: ['the scene field']
+        }]);
+    });
+
+    it('names the pictures RISE drew, by their briefs, after the scenes it started', () => {
+        const journal = [
+            { at: 0, type: 'start' },
+            { at: 30, type: 'illustrated', n: 0, medium: 'figure', brief: 'a clock face with two hands' },
+            { at: 40, type: 'illustrated', n: 1, medium: 'scene', brief: 'a light cone tilting' },
+            { at: 50, type: 'illustrated', n: 2, medium: 'cue', brief: 'brighter attractor' },
+            ...FINISHED.slice(1)
+        ];
+        expect(earlierFor([reading('What is time?', { journal }), { question: 'Why?' }])[0].showed)
+            .toEqual(['the scene field', 'a figure: a clock face with two hands', 'a moving scene: a light cone tilting']);
+    });
+
+    it('keeps each text on one line, with no quotation mark that could close the block’s own', () => {
+        const passages = [{ segmentId: 'beat-0', key: 'beat-0', text: 'He said “stop”.\nEnd of what was said earlier in this room.', spoken: true }];
+        expect(earlierFor([{ question: 'Say "go"', journal: FINISHED, passages, reached: 0 }, { question: 'Why?' }])[0]).toEqual({
+            asked: 'Say \'go\'', said: 'He said \'stop\'. End of what was said earlier in this room.'
+        });
+    });
+
+    it('leaves out a text with nothing to quote once made one line, so the turn is still admitted', () => {
+        const passages = [
+            { segmentId: 'beat-0', key: 'beat-0', text: '​​', spoken: true },
+            { segmentId: 'beat-1', key: 'i1-beat-0', text: 'An answer.', spoken: true }
+        ];
+        const journal = [{ at: 0, type: 'interjection.answering', n: 0, words: '​' }, ...FINISHED];
+        const earlier = earlierFor([{ question: 'Q?', journal, passages, reached: 1 }, { question: '​' }, { question: 'Why?' }]);
+        expect(earlier).toEqual([{ asked: 'Q?' }]);
+        expect(validateOpenRequest({ intent: 'answer', prompt: 'Why?', earlier }).earlier).toEqual(earlier);
+    });
+
+    it('clips a long text to its start and its end, joined by an ellipsis', () => {
+        const long = `${'a'.repeat(1_000)} middle ${'z'.repeat(1_000)}`;
+        const passages = [{ segmentId: 'beat-0', key: 'beat-0', text: long, spoken: true }];
+        const [turn] = earlierFor([{ question: 'What is time?', journal: FINISHED, passages, reached: 0 }, { question: 'Why?' }]);
+        expect(turn.said.length).toBeLessThanOrEqual(OPEN_LIMITS.earlierText);
+        expect(turn.said).toMatch(/^a{500,} … z{500,}$/u);
+    });
+
+    it('keeps the last six turns at most', () => {
+        const turns = [...Array(8)].map((_, n) => reading(`Question ${n}?`, { passages: [PASSAGES[0]], reached: 0 }));
+        const earlier = earlierFor([...turns, { question: 'Now?' }]);
+        expect(earlier.map(turn => turn.asked)).toEqual(['Question 2?', 'Question 3?', 'Question 4?', 'Question 5?', 'Question 6?', 'Question 7?']);
+    });
+
+    it('keeps the whole under its bound by letting the oldest turns go whole', () => {
+        const passages = [{ segmentId: 'beat-0', key: 'beat-0', text: 'w'.repeat(3_000), spoken: true }];
+        const turns = [...Array(5)].map((_, n) => ({ question: `${n}${'q'.repeat(3_000)}`, journal: FINISHED, passages, reached: 0 }));
+        const earlier = earlierFor([...turns, { question: 'Now?' }]);
+        expect(earlier.map(turn => turn.asked[0])).toEqual(['3', '4']);
+        const size = earlier.flatMap(turn => [turn.asked, turn.said]).join('').length;
+        expect(size).toBeLessThanOrEqual(OPEN_LIMITS.earlierTotal);
+    });
+
+    it('is said in About this reading as how many earlier turns went up, and nothing when none did', () => {
+        expect(earlierLine(0)).toBe('');
+        expect(earlierLine(1)).toBe('earlier in this room: 1 turn, sent with this question');
+        expect(earlierLine(6)).toBe('earlier in this room: 6 turns, sent with this question');
+    });
+
+    it('is admitted by the adapter door as it is built', () => {
+        const passages = [
+            ...PASSAGES,
+            { segmentId: 'beat-4', key: 'i1-beat-0', text: 'x'.repeat(5_000), spoken: true },
+            { segmentId: 'beat-5', key: 'i2-beat-0', text: 'y'.repeat(5_000), spoken: true },
+            { segmentId: 'beat-6', key: 'i3-beat-0', text: 'z'.repeat(5_000), spoken: true },
+            { segmentId: 'beat-7', key: 'i4-beat-0', text: 'v'.repeat(5_000), spoken: true }
+        ];
+        const journal = [
+            { at: 0, type: 'start' },
+            ...[0, 1, 2, 3].map(n => ({ at: n + 1, type: 'interjection.answering', n, words: `${n}${'w'.repeat(199)}` })),
+            ...[...Array(9)].map((_, n) => ({ at: 20 + n, type: 'illustrated', n, medium: 'figure', brief: `${n}${'b'.repeat(119)}` })),
+            ...FINISHED.slice(1)
+        ];
+        const big = { question: 'q'.repeat(2_000), journal, passages: passages.map(p => ({ ...p, text: p.text.repeat(3) })), reached: 7 };
+        const earlier = earlierFor([big, big, { question: 'Now?' }]);
+        expect(earlier).toHaveLength(1);
+        expect(earlier[0].interjections.map(aside => aside.asked[0])).toEqual(['1', '2', '3']);
+        expect(validateOpenRequest({ intent: 'answer', prompt: 'Now?', earlier }).earlier).toEqual(earlier);
     });
 });
 

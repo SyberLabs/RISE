@@ -857,6 +857,26 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
+    test('remembers the room: the next question carries the one before it and what RISE said, and the demo answers it (LIVE-026)', async ({ page }) => {
+        test.setTimeout(90_000);
+        const errors = watchErrors(page);
+        await page.goto(`${VENUE}&measure=1`);
+        await page.locator('#live-venue-question').fill('Explain black holes with RISE.');
+        await page.locator('#live-venue-question').press('Enter');
+        await expectShown(page, 'A black hole is a region of space');
+        const journal = () => page.evaluate(() => window.__riseLive.journal());
+        expect((await journal()).some(entry => entry.type === 'earlier.sent')).toBe(false);
+        await page.locator('#rise-stage-controls [data-stage="play"]').click();
+        await expect(page.getByRole('form', { name: 'Ask again' })).toBeVisible();
+
+        await page.locator('#live-again-question').fill('What did Einstein say about it?');
+        await page.locator('#live-again-question').press('Enter');
+        await expect.poll(async () => (await journal()).find(entry => entry.type === 'earlier.sent') ?? null, { timeout: 15_000 }).not.toBeNull();
+        expect((await journal()).find(entry => entry.type === 'earlier.sent')).toMatchObject({ count: 1 });
+        await expectShown(page, 'This demonstration can only explain black holes');
+        expect(errors).toEqual([]);
+    });
+
     test('sends nothing by itself: a reading paused for a long time asks nothing and sends nothing', async ({ page }) => {
         test.setTimeout(60_000);
         const errors = watchErrors(page);

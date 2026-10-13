@@ -731,4 +731,21 @@ describe('what the reader did, as the journal keeps it for perception (the RISE 
         expect(asked).toEqual([{ intent: 'answer', prompt: ASK }]);
         expect(runtime.journal().some(e => e.type === 'perception.sent')).toBe(false);
     });
+
+    it('carries what was said earlier in the room to the adapter with the question, and nothing when there was none (LIVE-026)', async () => {
+        const asked = [];
+        const adapter = createMockAdapter({ clock });
+        const open = adapter.open.bind(adapter);
+        adapter.open = (request, options) => { asked.push(request); return open(request, options); };
+        runtime = createLiveRuntime({ adapter, clock, createPlayer: session => new Player(session), voices: null, host: { present() {}, dismiss() {} } });
+        const earlier = [{ asked: 'What is time?', said: 'Time is what clocks measure.' }];
+        await runtime.start(ASK, { earlier });
+        expect(asked).toEqual([{ intent: 'answer', prompt: ASK, earlier }]);
+        expect(runtime.journal().filter(e => e.type === 'earlier.sent')).toEqual([expect.objectContaining({ count: 1 })]);
+        await runtime.stop();
+        runtime = createLiveRuntime({ adapter, clock, createPlayer: session => new Player(session), voices: null, host: { present() {}, dismiss() {} } });
+        await runtime.start(ASK, { earlier: [] });
+        expect(asked[1]).toEqual({ intent: 'answer', prompt: ASK });
+        expect(runtime.journal().some(e => e.type === 'earlier.sent')).toBe(false);
+    });
 });

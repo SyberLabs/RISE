@@ -177,6 +177,31 @@ describe('the question goes up with the room', () => {
         expect(room.journal('perception.sent')).toEqual([expect.objectContaining({ count: 1, kinds: ['replayed'] })]);
     });
 
+    it('carries what was said earlier in the room with the words, and nothing when there was none (LIVE-026)', async () => {
+        const room = await open();
+        await into('beat-2');
+        runtime.beginInterjection();
+        const earlier = [{ asked: 'What is time?', said: 'Time is what clocks measure.' }];
+        await runtime.interject('What is the horizon?', { earlier });
+        expect(room.requests[1]).toMatchObject({ intent: 'interject', prompt: 'What is the horizon?', earlier });
+        await until(() => runtime.snapshot().interjection.state === 'none');
+        await into('beat-6');
+        runtime.beginInterjection();
+        await runtime.interject('And then?', { earlier: [] });
+        expect(room.requests[2]).not.toHaveProperty('earlier');
+    });
+
+    it('notes the reader’s words with the answer they were given, once it is heard, by the answer’s number (LIVE-026)', async () => {
+        const room = await open();
+        await into('beat-2');
+        runtime.beginInterjection();
+        await runtime.interject('What is the horizon, really?');
+        await until(() => runtime.snapshot().interjection.state === 'none');
+        expect(room.journal('interjection.answering')).toEqual([expect.objectContaining({ n: 0, words: 'What is the horizon, really?' })]);
+        expect(runtime.passages().filter(passage => passage.key.startsWith('i1-beat-')).map(passage => passage.text))
+            .toEqual(['The horizon is not a surface.', 'Nothing there would stop you.']);
+    });
+
     it('keeps the voice held through the request: nothing is said until the answer’s first beat', async () => {
         const room = await open({ latencyMs: 2_000 });
         await into('beat-2');

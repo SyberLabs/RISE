@@ -966,7 +966,7 @@ export class LiveHost {
             sound: Boolean(this.audioEngine),
             // Who is speaking comes first: RISE, through the model and service the Current names (design §1 item 7); then what
             // the reading has cost the reader, the illustrator's requests among it (docs/plans/LIVE-CURRENT.md §19).
-            about: () => [originLine(runtime.composed?.('main')?.origin), this.venue?.usageLine?.() ?? '', this.aboutReading()].filter(Boolean).join('\n'),
+            about: () => [originLine(runtime.composed?.('main')?.origin), this.venue?.usageLine?.() ?? '', this.venue?.earlierLine?.() ?? '', this.aboutReading()].filter(Boolean).join('\n'),
             voice: this.voiceKind === 'browser' ? this.voicePick() : null,
             room,
             // RISE's face, the venue's own (docs/plans/LIVE-CURRENT.md §22): the reader's choice of skin, never the card's.

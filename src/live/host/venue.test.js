@@ -202,7 +202,7 @@ describe('ask, read, ask again', () => {
         runtimes[0].set('ended');
         expect($('.live-again').hidden).toBe(false);
         askAgain('Second?');
-        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalledWith('Second?'));
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalledWith('Second?', { earlier: [{ asked: 'First?', said: 'One.', cut: true }] }));
         expect(runtimes[0].stop).toHaveBeenCalled();
         expect($('#rise-settings-theme').value).toBe('ember');
         expect(document.querySelectorAll('#rise-stage-controls')).toHaveLength(1);
@@ -224,7 +224,7 @@ describe('ask, read, ask again', () => {
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
         askAgain('Second?');
         expect(runtimes[0].beginInterjection).toHaveBeenCalled();
-        await vi.waitFor(() => expect(runtimes[0].interject).toHaveBeenCalledWith('Second?', {}));
+        await vi.waitFor(() => expect(runtimes[0].interject).toHaveBeenCalledWith('Second?', { earlier: [{ asked: 'First?' }] }));
         expect(host.buildRuntime).toHaveBeenCalledTimes(1);
     });
 
@@ -234,7 +234,7 @@ describe('ask, read, ask again', () => {
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
         runtimes[0].hold();
         askAgain('Second?');
-        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalledWith('Second?'));
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalledWith('Second?', { earlier: [{ asked: 'First?', said: 'One.', cut: true }] }));
         expect(runtimes[0].interject).not.toHaveBeenCalled();
     });
 
@@ -453,7 +453,8 @@ describe('what the reader did goes up with their next words (perception, design 
                     { type: 'visual.changed', parameter: 'theme', value: 'ember' }
                 ],
                 earlier: 0
-            }
+            },
+            earlier: [{ asked: 'First?', said: 'One. Two.', cut: true }]
         });
     });
 
@@ -512,6 +513,79 @@ describe('what the reader did goes up with their next words (perception, design 
     });
 });
 
+describe('the room remembers what was said in it, until the reader leaves (LIVE-026)', () => {
+    const FINISHED = [{ at: 0, type: 'start' }, { at: 50, type: 'run.finished', role: 'main' }];
+    const answered = (runtime, passages) => {
+        runtime.journal = () => FINISHED;
+        runtime.passages = () => passages;
+        runtime.composed = () => ({ segments: [{ id: 'p1', text: passages[0].text, beat: { scene: 'field' } }] });
+        runtime.set('ended');
+    };
+
+    it('sends each earlier question and what RISE said with the next, in order, to the room’s one adapter', async () => {
+        mount('?voice=paced');
+        ask('What is time?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith('What is time?'));
+        answered(runtimes[0], [{ segmentId: 'p1', spoken: true, text: 'Time is what clocks measure.' }, { segmentId: 'p2', spoken: true, text: 'It runs one way.' }]);
+        askAgain('What did Einstein say about it?');
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalled());
+        const first = { asked: 'What is time?', said: 'Time is what clocks measure. It runs one way.', showed: ['the scene field'] };
+        expect(runtimes[1].start).toHaveBeenCalledWith('What did Einstein say about it?', expect.objectContaining({ earlier: [first] }));
+        answered(runtimes[1], [{ segmentId: 'p1', spoken: true, text: 'That it is relative.' }]);
+        askAgain('Why?');
+        await vi.waitFor(() => expect(runtimes[2]?.start).toHaveBeenCalled());
+        expect(runtimes[2].start).toHaveBeenCalledWith('Why?', expect.objectContaining({
+            earlier: [first, { asked: 'What did Einstein say about it?', said: 'That it is relative.', showed: ['the scene field'] }]
+        }));
+    });
+
+    it('sends them with an interjection too, with the question the reading answers, and never the words being asked', async () => {
+        mount('?voice=paced');
+        ask('What is time?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        answered(runtimes[0], [{ segmentId: 'p1', spoken: true, text: 'Time is what clocks measure.' }]);
+        askAgain('And space?');
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalled());
+        askAgain('Where?');
+        await vi.waitFor(() => expect(runtimes[1].interject).toHaveBeenCalled());
+        expect(runtimes[1].interject).toHaveBeenCalledWith('Where?', expect.objectContaining({
+            earlier: [{ asked: 'What is time?', said: 'Time is what clocks measure.', showed: ['the scene field'] }, { asked: 'And space?' }]
+        }));
+    });
+
+    it('forgets them when the reader leaves the room, and keeps them nowhere but the page’s memory', async () => {
+        const stored = () => [localStorage.length, sessionStorage.length];
+        const before = stored();
+        mount('?voice=paced');
+        ask('What is time?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        answered(runtimes[0], [{ segmentId: 'p1', spoken: true, text: 'Time is what clocks measure.' }]);
+        await host.venue.leave();
+        ask('Why?');
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalled());
+        expect(runtimes[1].start).toHaveBeenCalledWith('Why?');
+        expect(stored()).toEqual(before);
+        expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain('clocks measure');
+    });
+
+    it('says so in What is sent, and in About this reading how many earlier turns went up', async () => {
+        mount();
+        choose('gemini');
+        expect(container.querySelector('.live-venue__privacy').textContent)
+            .toContain('Your earlier questions in this room and what RISE said in answer go with each new question, to the provider you chose; they are forgotten when you leave.');
+        choose('mock');
+        ask('What is time?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        answered(runtimes[0], [{ segmentId: 'p1', spoken: true, text: 'Time is what clocks measure.' }]);
+        askAgain('Why?');
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalled());
+        const about = $('.rise-settings__about');
+        about.open = true;
+        about.dispatchEvent(new Event('toggle'));
+        expect($('.rise-settings__about-text').textContent).toContain('earlier in this room: 1 turn, sent with this question');
+    });
+});
+
 describe('the interjection: the reader speaks while it plays (stage 4.5)', () => {
     async function playing() {
         mount('?voice=paced');
@@ -543,7 +617,8 @@ describe('the interjection: the reader speaks while it plays (stage 4.5)', () =>
         expect(field().placeholder).toBe('Ask RISE…');
         $('.live-again').requestSubmit();
         await vi.waitFor(() => expect(runtime.interject).toHaveBeenCalledWith('What is two?', {
-            perception: { events: [{ type: 'replayed', from: 1, to: 1, times: 1, quote: 'One.' }], earlier: 0 }
+            perception: { events: [{ type: 'replayed', from: 1, to: 1, times: 1, quote: 'One.' }], earlier: 0 },
+            earlier: [{ asked: 'First?' }]
         }));
         expect(field().value).toBe('');
         expect($('.live-again__note').textContent).toBe('Asking RISE…');
