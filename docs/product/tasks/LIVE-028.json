@@ -42,16 +42,26 @@
       "ref": "e2e/live.spec.js",
       "note": "Command: npx playwright test e2e/live.spec.js -g \"the face rests|the frames|interactive scenes|asks, reads under the whole instrument|the interjection: RISE answers\". Branch live-three-frames, local production build, headless Chromium: the face test, the shell test (aperture and scaled attractor layer agree to a pixel), the full-frame test (face docked within 40 px of the bar), the reduced-motion test, the four interactive-scene tests, the canonical venue flow and the interjection all passed. Face worker frame median 0.40 ms at 1440x900. Not merged, deployed or accepted by a human.",
       "date": "2026-10-13"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/653",
+      "note": "Draft PR on branch live-three-frames at acb90151, with the local evidence above. Not merged, deployed or accepted by a human.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
     {
       "date": "2026-10-13T06:00:00.000Z",
       "summary": "Claimed and built on branch live-three-frames from the owner's approved aperture study and decisions of 2026-10-13: the inner eye, the outer shell and the full frame, chosen by the visual."
+    },
+    {
+      "date": "2026-10-13T04:45:29.537Z",
+      "summary": "Draft PR #653 opened on branch live-three-frames (acb90151) with local verification evidence and renders"
     }
   ],
-  "updatedAt": "2026-10-13T06:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-13T04:45:29.537Z",
+  "revision": 2,
   "summary": "Every visual of a Live reading held by Sophia in one of three frames (inner eye, outer shell, full frame), the visual choosing which; she never leaves the room.",
   "blocker": null
 }
