@@ -798,7 +798,7 @@ describe('Attractor swarm', () => {
   it('plots each particle mirrored left and right, additively, in small squares that scale with the frame', () => {
     const field = swarmField({ form: 'mirror' });
     field.paintOnce(performance.now());
-    const plotted = dots(field.trailCtx);
+    const plotted = dots(field.dotCtx);
     expect(plotted.length).toBeGreaterThanOrEqual(2 * SWARM_PARTICLES);
     const size = plotted[0][2];
     expect(size).toBeCloseTo(Math.max(1.2, 600 / 500), 6);
@@ -806,6 +806,35 @@ describe('Attractor swarm', () => {
     for (const [x, y, w] of plotted.slice(0, 200)) {
       expect(centres.has(`${(800 - (x + w / 2)).toFixed(2)},${(y + w / 2).toFixed(2)}`)).toBe(true);
     }
+    field.destroy();
+  });
+
+  it('adds each tick to the trail in one draw: its squares go to an 8-bit scratch square, cleared each tick', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    const field = swarmField();
+    const added = [];
+    field.trailCtx.drawImage = vi.fn((source, x, y) => added.push({ source, x, y, op: field.trailCtx.globalCompositeOperation }));
+    field.tick(0);
+    field.tick(TICK + 0.01);
+    field.tick(2 * TICK + 0.01);
+    // Two ticks: two draws onto the float16 trail, each the scratch square added as light, on whole pixels.
+    expect(added).toHaveLength(2);
+    for (const draw of added) {
+      expect(draw.source).toBe(field.dotCanvas);
+      expect(draw.op).toBe('lighter');
+      expect(Number.isInteger(draw.x) && Number.isInteger(draw.y)).toBe(true);
+    }
+    expect(dots(field.trailCtx)).toHaveLength(0);
+    expect(dots(field.dotCtx)).toHaveLength(2 * 2 * SWARM_PARTICLES);
+    // Cleared whole before each tick's squares, so a tick adds only itself.
+    const side = field.dotCanvas.width;
+    expect(field.dotCtx.clearRect.mock.calls.filter(([x, y, w, h]) => x === 0 && y === 0 && w === side && h === side)).toHaveLength(2);
+    // An 8-bit square: only the trail is float16. It covers the circle inscribed in the frame, where every particle is.
+    const { calls, contexts } = HTMLCanvasElement.prototype.getContext.mock;
+    const optionsOf = canvas => calls[contexts.lastIndexOf(canvas)][1];
+    expect(optionsOf(field.trailCanvas)).toEqual({ colorType: 'float16' });
+    expect(optionsOf(field.dotCanvas)?.colorType).toBeUndefined();
+    expect(side).toBeGreaterThanOrEqual(Math.min(800, 600) * field.DPR);
     field.destroy();
   });
 
@@ -817,9 +846,9 @@ describe('Attractor swarm', () => {
       field.tick(0);
       field.tick(TICK + 0.01);
     }
-    const plotted = dots(kaleido.trailCtx);
+    const plotted = dots(kaleido.dotCtx);
     expect(plotted).toHaveLength(12 * Math.ceil(SWARM_PARTICLES / 6));
-    expect(plotted.length).toBeCloseTo(dots(mirror.trailCtx).length, -1);
+    expect(plotted.length).toBeCloseTo(dots(mirror.dotCtx).length, -1);
     // Each particle's twelve images lie on one circle about the centre, sixty degrees apart in pairs.
     const radii = plotted.slice(0, 12).map(([x, y, w]) => Math.hypot(x + w / 2 - 400, y + w / 2 - 300));
     for (const r of radii) expect(r).toBeCloseTo(radii[0], 6);
@@ -846,12 +875,12 @@ describe('Attractor swarm', () => {
     for (let i = 0; i <= 30; i++) field.tick(i * TICK + 0.01);
     field.pause();
     const held = Array.from(field.swarm.x);
-    const plots = dots(field.trailCtx).length;
+    const plots = dots(field.dotCtx).length;
     const advance = vi.spyOn(field.swarm, 'advance');
     for (let i = 31; i <= 90; i++) field.tick(i * TICK);
     field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 });
     expect(advance).not.toHaveBeenCalled();
-    expect(dots(field.trailCtx)).toHaveLength(plots);
+    expect(dots(field.dotCtx)).toHaveLength(plots);
     expect(Array.from(field.swarm.x)).toEqual(held);
     expect(field.rafId).toBeNull();
     field.destroy();
@@ -861,9 +890,9 @@ describe('Attractor swarm', () => {
     vi.spyOn(performance, 'now').mockReturnValue(0);
     const field = swarmField();
     field.tick(0);
-    expect(dots(field.trailCtx)).toHaveLength(0);
+    expect(dots(field.dotCtx)).toHaveLength(0);
     field.tick(TICK + 0.01);
-    expect(dots(field.trailCtx)).toHaveLength(2 * SWARM_PARTICLES);
+    expect(dots(field.dotCtx)).toHaveLength(2 * SWARM_PARTICLES);
     field.destroy();
   });
 
@@ -871,10 +900,10 @@ describe('Attractor swarm', () => {
     const field = swarmField();
     field.tick(performance.now());
     field.pause();
-    const plots = dots(field.trailCtx).length;
+    const plots = dots(field.dotCtx).length;
     Object.defineProperty(field.host, 'clientWidth', { value: 640, configurable: true });
     field.resize();
-    expect(dots(field.trailCtx).length).toBeGreaterThan(plots);
+    expect(dots(field.dotCtx).length).toBeGreaterThan(plots);
     field.destroy();
   });
 
@@ -883,13 +912,13 @@ describe('Attractor swarm', () => {
     const field = swarmField();
     field.tick(1000);
     const fades = () => field.trailCtx.fillRect.mock.calls.filter(([, , w]) => w >= 10).length;
-    const plots = dots(field.trailCtx).length;
+    const plots = dots(field.dotCtx).length;
     expect(plots).toBe(90 * 2 * SWARM_PARTICLES);
     const advance = vi.spyOn(field.swarm, 'advance');
     const faded = fades();
     for (let i = 1; i < 30; i++) field.tick(1000 + i * TICK);
     expect(advance).not.toHaveBeenCalled();
-    expect(dots(field.trailCtx)).toHaveLength(plots);
+    expect(dots(field.dotCtx)).toHaveLength(plots);
     expect(fades()).toBe(faded);
     field.destroy();
   });

@@ -647,6 +647,43 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
     });
     const framesSeen = page => page.evaluate(() => window.__framesSeen);
 
+    // The flash gate's sampler (src/scenes/scene-worker.js) is an accelerated 8×8 canvas, which shrinks the picture on the
+    // GPU; it must read the same brightness the CPU sampler (willReadFrequently) it replaced did, steady or flashing.
+    test('the flash gate’s GPU sampler reads the brightness the CPU sampler did, within 0.001', async ({ page }) => {
+        await page.goto(VENUE);
+        const worst = await page.evaluate(() => {
+            const luma = (sampler, source) => {
+                sampler.clearRect(0, 0, 8, 8);
+                sampler.drawImage(source, 0, 0, 8, 8);
+                const { data } = sampler.getImageData(0, 0, 8, 8);
+                let sum = 0;
+                for (let i = 0; i < data.length; i += 4) sum += ((0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) * data[i + 3]) / 255;
+                return sum / ((data.length / 4) * 255);
+            };
+            const cpu = new OffscreenCanvas(8, 8).getContext('2d', { willReadFrequently: true });
+            const gpu = new OffscreenCanvas(8, 8).getContext('2d');
+            const source = new OffscreenCanvas(1440, 900);
+            const g = source.getContext('2d');
+            let seed = 7;
+            const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+            let worst = 0;
+            for (let k = 0; k < 24; k++) {
+                // A ground with soft lights on it, and every fourth picture a whole white flash.
+                g.fillStyle = k % 4 === 3 ? '#fff' : 'rgb(10, 10, 15)';
+                g.fillRect(0, 0, 1440, 900);
+                for (let j = 0; j < 8; j++) {
+                    g.fillStyle = `rgba(255, 240, 220, ${random()})`;
+                    g.beginPath();
+                    g.arc(random() * 1440, random() * 900, 20 + random() * 400, 0, 2 * Math.PI);
+                    g.fill();
+                }
+                worst = Math.max(worst, Math.abs(luma(cpu, source) - luma(gpu, source)));
+            }
+            return worst;
+        });
+        expect(worst).toBeLessThan(0.001);
+    });
+
     test('the face rests at arrival, listens, thinks on Ask, speaks the reading in the room, never hidden, and rests at the end', async ({ page }) => {
         test.setTimeout(150_000);
         const errors = watchErrors(page);

@@ -11,6 +11,8 @@ import vm from 'node:vm';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SCENE_LIMITS, TO_HOST, TO_WORKER } from './scene-protocol.js';
 import { attachSceneWorker, BANNED_GLOBALS, sealFunctionConstructors, whereIn } from './scene-worker.js';
+import { createFlashWatch } from './scene-runtime.js';
+import { VisualFlashGate } from '../core/visual-safety.js';
 
 /** A 2D context that records nothing and answers every call. */
 const fakeContext = () => new Proxy({}, { get: (target, key) => (key in target ? target[key] : (target[key] = vi.fn())), set: (target, key, value) => { target[key] = value; return true; } });
@@ -22,9 +24,12 @@ function fakeCanvas() {
 
 /** An 8×8 sampler whose pixels the test sets. */
 let samplerPixels;
+/** The options each sampler was asked for. */
+let samplerOptions;
 class FakeOffscreenCanvas {
   constructor(width, height) { this.width = width; this.height = height; }
-  getContext() {
+  getContext(kind, options) {
+    samplerOptions.push(options);
     return { clearRect() {}, drawImage() {}, getImageData: () => ({ data: samplerPixels }) };
   }
 }
@@ -76,6 +81,7 @@ function setup(module, { reducedMotion = false, library, realm = freshRealm() } 
 
 beforeEach(() => {
   samplerPixels = grey(0);
+  samplerOptions = [];
   vi.stubGlobal('OffscreenCanvas', FakeOffscreenCanvas);
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -311,6 +317,27 @@ describe('frames', () => {
     expect(lumas.length).toBe(3);
     expect(lumas[0].value).toBeCloseTo(1, 5);
     for (let i = 1; i < lumas.length; i += 1) expect(lumas[i].t - lumas[i - 1].t).toBeGreaterThanOrEqual(SCENE_LIMITS.lumaEveryMs);
+  });
+
+  it('samples on the GPU: its 8×8 sampler is an accelerated canvas, so only 64 pixels are read back, not the whole picture', async () => {
+    const { init, worker } = setup({ default: () => ({ frame() {} }) });
+    await init();
+    for (let t = 16; t <= 320; t += 16) await worker.handle({ type: TO_WORKER.frame, t, dt: 16 });
+    expect(samplerOptions).toHaveLength(1);
+    expect(samplerOptions[0]?.willReadFrequently).toBeUndefined();
+  });
+
+  it('reports a flashing picture as it flashes, so the flash gate trips on it', async () => {
+    const { init, worker, of } = setup({ default: () => ({ frame() {} }) });
+    await init();
+    for (let t = 100; t <= 1000; t += 100) {
+      samplerPixels = grey((t / 100) % 2 ? 255 : 0);
+      await worker.handle({ type: TO_WORKER.frame, t, dt: 100 });
+    }
+    const values = of(TO_HOST.luma).map(({ value }) => Math.round(value));
+    expect(values).toEqual([1, 0, 1, 0, 1, 0, 1, 0, 1, 0]);
+    const watch = createFlashWatch(new VisualFlashGate({ minIntervalMs: 0, burstWindowMs: 1000, maxBurst: 3 }));
+    expect(of(TO_HOST.luma).some(({ value, t }) => watch(value, t))).toBe(true);
   });
 
   it('reports a frame that throws once, and draws no more', async () => {
