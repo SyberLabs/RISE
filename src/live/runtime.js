@@ -1177,6 +1177,9 @@ export function createLiveRuntime({
             if (beat.scene !== undefined && !run.heldScenes.has(keyAt(index))) {
                 run.heldScenes.add(keyAt(index));
                 note('room.held', { kind: 'scene', scene: beat.scene });
+            } else if (beat.scene === undefined && !run.heldScenes.has(keyAt(index))) {
+                run.heldScenes.add(keyAt(index));
+                note('room.held', { kind: 'scene.cue' });
             }
             const { scene: _scene, cue: _cue, ...rest } = beat;
             return rest;
