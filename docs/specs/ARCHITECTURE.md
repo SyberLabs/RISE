@@ -212,7 +212,7 @@ flowchart LR
     live -.-> |1 lazy| visuals
     page --> |4| core
     page --> |4| visuals
-    scenes --> |2| core
+    scenes --> |1| core
     scenes --> |1| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
