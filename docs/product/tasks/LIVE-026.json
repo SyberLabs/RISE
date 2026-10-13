@@ -27,9 +27,9 @@
       "date": "2026-10-12"
     },
     {
-      "kind": "test",
-      "ref": "src/live/host/venue-entry.test.js",
-      "note": "Branch live-room-memory, local: npx vitest run on the 33 test files importing a changed module, the 8 adapter conformance suites, worker/live-realtime.test.js, worker/production-config.test.js, src/live/perception.test.js and src/live/interjection.test.js: 45 files, 985 passed, 6 skipped. npx playwright test e2e/live.spec.js -g \"remembers the room\": 1 passed (the demo, the second question carries earlier.sent count 1 and is answered). No keyed model run.",
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/655",
+      "note": "Draft, branch live-room-memory, commit a2c2f193. Local: npx vitest run on the 33 test files importing a changed module, the 8 adapter conformance suites, worker/live-realtime.test.js, worker/production-config.test.js, src/live/perception.test.js and src/live/interjection.test.js: 45 files, 985 passed, 6 skipped. npx playwright test e2e/live.spec.js -g \"remembers the room\": 1 passed (the demo: the second question carried earlier.sent count 1 and was answered). roadmap:check 97 tasks; docs:diagram unchanged; ci-hygiene clean; vite build; first load 62.1 KB br of 64.0. No keyed model run: a real model resolving \"it\" is unverified. Not merged, deployed or accepted by a human.",
       "date": "2026-10-12"
     }
   ],
@@ -37,10 +37,14 @@
     {
       "date": "2026-10-12T22:00:00.000Z",
       "summary": "Claimed and built on branch live-room-memory: the room remembers its questions and what RISE said, sent as a quoted block in the one user message."
+    },
+    {
+      "date": "2026-10-13T04:56:34.406Z",
+      "summary": "PR #655 opened as a draft (a2c2f193) with local verification evidence"
     }
   ],
-  "updatedAt": "2026-10-12T22:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-13T04:56:34.406Z",
+  "revision": 2,
   "summary": "RISE Live remembers the conversation within one visit: each new question goes up with the earlier questions of the room and what RISE said in answer, as quoted data in the one message, bounded, and forgotten when the reader leaves.",
   "blocker": null
 }
