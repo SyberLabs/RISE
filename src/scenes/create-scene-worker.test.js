@@ -1,5 +1,5 @@
 /**
- * How the scene worker is started on each kind of page. The refusal runs first: the
+ * How the scene worker is started: from a blob on every page, so it takes the page's policy. The refusal runs first: the
  * fetched text is cached for the page, and a refusal clears it. The card's blob worker
  * must be a classic worker: in an opaque origin a module worker from a blob
  * never loads (its script is fetched in CORS mode, which blob:null cannot pass).
@@ -13,12 +13,6 @@ const { createSceneWorker } = await import('./create-scene-worker.js');
 afterEach(() => vi.restoreAllMocks());
 
 describe('createSceneWorker', () => {
-  it('on RISE’s own page starts RISE’s module worker from its own URL', async () => {
-    const makeWorker = vi.fn((url, options) => ({ url, options }));
-    const made = await createSceneWorker({ inHostCard: false, makeWorker });
-    expect(made).toEqual({ url: 'https://rise.example/assets/scene-worker-abc.js', options: { type: 'module' } });
-  });
-
   it('in a host’s card refuses when the built worker cannot be fetched', async () => {
     const load = vi.fn(async () => ({ ok: false, status: 404, text: async () => '' }));
     await expect(createSceneWorker({ inHostCard: true, load, makeWorker: vi.fn() })).rejects.toThrow('answered 404');
@@ -34,5 +28,17 @@ describe('createSceneWorker', () => {
     expect(second).toEqual({ url: 'blob:null/worker', options: undefined });
     expect(load).toHaveBeenCalledTimes(1);
     expect(load).toHaveBeenCalledWith('https://rise.example/assets/scene-worker-abc.js');
+  });
+
+  it('on RISE’s own page also starts it from a blob, so it takes the page’s policy, never a cached copy of its own', async () => {
+    // A URL worker takes its policy from its script's own response, and the built worker is cached for a year as
+    // immutable: a policy fixed after a visit never reached that reader's scenes (2026-10-13, the face on /live).
+    // A blob worker inherits the page's, which is revalidated on every visit.
+    // The text is fetched once per page; the test before this one fetched it for this module.
+    const makeWorker = vi.fn((url, options) => ({ url, options }));
+    const made = await createSceneWorker({ makeWorker });
+    expect(made.url).toMatch(/^blob:/u);
+    expect(made.options).toBeUndefined();
+    expect(makeWorker).not.toHaveBeenCalledWith('https://rise.example/assets/scene-worker-abc.js', expect.anything());
   });
 });
