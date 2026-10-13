@@ -944,6 +944,8 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(Number(field.style.getPropertyValue('--live-vk'))).toBeCloseTo(fitted.fit.k, 9);
         expect(field.style.getPropertyValue('--live-vy')).toBe(`${fitted.fit.y - window.innerHeight / 2}px`);
         chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+        crank(600);
+        expect(root().dataset.liveFit).toBe('true');
         crank(1000);
         expect(engine().places.at(-1)).toMatchObject({ frame: 'full', fit: null });
         expect(root().dataset.liveFit).toBeUndefined();
