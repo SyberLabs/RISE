@@ -626,17 +626,23 @@ export default function oracle(rise) {
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
         // Trails: the slow fade, in the skin's own dark; whole when the canvas or the skin is new.
-        ctx.fillStyle = rgba(skin.trail, reduced || repaint ? 1 : 0.08);
-        ctx.fillRect(0, 0, width, height);
-        repaint = false;
-        if (room) {
-            // In the room the canvas is ground wherever the aperture is not: what an opening left clear is filled
-            // beneath the trails, so nothing of the visual shows through but the aperture drawn this frame.
-            ctx.globalCompositeOperation = 'destination-over';
+        if (reduced || repaint) {
+            ctx.fillStyle = rgba(skin.trail, 1);
+            ctx.fillRect(0, 0, width, height);
+        } else {
+            // In 8 bits an 8% fade toward the ground stalls about 6 levels above it, and would leave a grey shadow
+            // of every stroke. So it fades toward a dark 8 levels below the ground, and the ground is laid back by
+            // each channel's maximum: what went below is the ground again, exactly; what is brighter is untouched.
+            // Laid back over the whole canvas, it also fills what the last aperture left clear, so nothing of the
+            // visual shows through but the aperture this frame cuts.
+            ctx.fillStyle = rgba(skin.trail.map(level => Math.max(0, level - 8)), 0.08);
+            ctx.fillRect(0, 0, width, height);
+            ctx.globalCompositeOperation = 'lighten';
             ctx.fillStyle = rgba(skin.trail, 1);
             ctx.fillRect(0, 0, width, height);
             ctx.globalCompositeOperation = 'source-over';
         }
+        repaint = false;
         const g = room ?? atRest();
         face = g.face;
         if (g.frame === 'full') drawFull(g, dt);

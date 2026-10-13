@@ -78,6 +78,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/669",
       "note": "Branch live-circle-scale, code at 70d0a749: the venue declares each visual layer's rest scale (data-live-scale, frames.js restScale) before its aperture opens; the attractor draws at the first scale it is given and presents only on a new tick; the harmonograph sizes from the declared scale, not its transformed box at mount; the face is sent the geometry only when it changes and repaints whole only on entering or leaving the room, so its trails show as in the study (side by side at 1440x900: the eye and the shell now match the study, its 8-bit residue included). Real GPU (ANGLE D3D11, AMD RX 5700, Chromium 149 headless, 144 Hz), against main with #668: 1x unchanged (144 fps); 2x within noise on the mean of three runs (swarm 102.5 -> 101.7 fps, inner->shell opening 93.3 -> 100.6, rotary harmonograph 58.4 -> 61.0, eye 141.9 -> 141.9); 390x844 3x + 4x CPU emulation: swarm 102 -> 124, full->shell 102 -> 119, harmonograph 64 -> 70. The eye alone at 2x (142 fps) is above the study's 76 fps, so the face's pixel ratio and fades are left as they are. Cached rotary pen measured and deferred (2x 60 -> 68 fps, 1x 95 -> 83). Local: importer suites 12 files 638 passed; fast set 125 files passed; ci-hygiene, vite build, first load within budget. Not merged yet; not accepted by a human.",
       "date": "2026-10-13"
+    },
+    {
+      "kind": "commit",
+      "ref": "6332e995",
+      "note": "PR #669 (circle frames drawn at the size shown; the face keeps its trails) merged as 6332e995 and deployed (release.txt 6332e995). Production, same GPU harness: swarm steady in the shell 143.8 fps at 1x, 78.5 at 2x, 95.5 on the phone emulation; the eye opening onto the swarm 112.6 / 61.4 / 59.8. Not accepted by a human.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/670",
+      "note": "Branch face-ground-exact, code at b816d2c4: the face fades 8% toward a dark 8 levels below its ground and lays the ground back with lighten, the one fill that also refills the last aperture, so the 8-bit stall no longer leaves a grey shadow. Luma around the shell against the far room: 8.6 levels before, 0.3 after (1x and 2x). S6 and S1 at 1x unchanged (143-144 fps); at 2x within run-to-run noise (S1 mean 93.7 before over 4 runs, 102.1 after over 7). Tests: an 8-bit raster model in oracle.test.js (every stroke back within 1 level of the ground; the 8% trail kept) and an e2e render check (within 1 level of luma after 10 s in the shell; 1.8 without the fix). Not merged yet; not accepted by a human.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
@@ -108,10 +120,14 @@
     {
       "date": "2026-10-13T10:06:57.504Z",
       "summary": "PR #669: circle frames drawn at the size shown, the face's trails restored; not merged"
+    },
+    {
+      "date": "2026-10-13T11:24:34.579Z",
+      "summary": "PR #669 merged as 6332e995 and deployed; PR #670 opened (the face's trails fade back to the ground exactly)"
     }
   ],
-  "updatedAt": "2026-10-13T10:06:57.504Z",
-  "revision": 7,
+  "updatedAt": "2026-10-13T11:24:34.579Z",
+  "revision": 8,
   "summary": "Every visual of a Live reading held by Sophia in one of three frames (inner eye, outer shell, full frame), the visual choosing which; she never leaves the room.",
   "blocker": null
 }
