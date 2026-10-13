@@ -909,4 +909,13 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(field.style.getPropertyValue('--live-vk')).toBe('');
         expect($('.live-face').dataset.faceAside).toBe('true');
     });
+
+    it('keeps the still eye in the room while the face is not drawing and nothing is to be framed', async () => {
+        const { crank } = await room({ kind: 'still' });
+        engine().options.onFailure({ phase: 'frame', message: 'slow' });
+        crank(500);
+        expect($('.live-face').dataset.faceAside).toBeUndefined();
+        // The still eye is the room, its words at the foot: the root says there is no frame.
+        expect(root().dataset.liveFrame).toBe('none');
+    });
 });
