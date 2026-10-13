@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -29,8 +29,14 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/655",
-      "note": "Draft, branch live-room-memory, commit a2c2f193. Local: npx vitest run on the 33 test files importing a changed module, the 8 adapter conformance suites, worker/live-realtime.test.js, worker/production-config.test.js, src/live/perception.test.js and src/live/interjection.test.js: 45 files, 985 passed, 6 skipped. npx playwright test e2e/live.spec.js -g \"remembers the room\": 1 passed (the demo: the second question carried earlier.sent count 1 and was answered). roadmap:check 97 tasks; docs:diagram unchanged; ci-hygiene clean; vite build; first load 62.1 KB br of 64.0. No keyed model run: a real model resolving \"it\" is unverified. Not merged, deployed or accepted by a human.",
+      "note": "Branch live-room-memory, rebased onto #653 (e6d8c2af): 109 unit test files, 2038 passed, 6 skipped; e2e/live.spec.js memory, frames and face 5 passed; docs:diagram unchanged; ci-hygiene clean; vite build; first load 62.1 KB br of 64.0. Codex found that scenes started by interjection answers were not remembered; the feedback workflow fixed it in aa08479d and resolved the thread; CI green on aa08479d. Merged as 526a2a91; deployed (release.txt a78c1467, which contains it, 2026-10-13). No keyed model run: a real model resolving \"it\" from the block is unverified. Not accepted by a human.",
       "date": "2026-10-12"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/658",
+      "note": "Follow-up: aa08479d read scenes after the illustrator placed its pictures and with the room’s answer prefix, so memory could name a picture twice and an answer’s scene as i1-<name>, and runtime.seek.test.js (full suite only) failed. The scene is now taken before pictures are placed, by the name its own Current gave it. Local: 37 vitest files, 926 passed, 2 skipped; CI green. Merged as 9c80848e; deployed (release.txt b48ef88e, which contains it, 2026-10-13). Not accepted by a human.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
@@ -41,10 +47,18 @@
     {
       "date": "2026-10-13T04:56:34.406Z",
       "summary": "PR #655 opened as a draft (a2c2f193) with local verification evidence"
+    },
+    {
+      "date": "2026-10-13T05:33:00.334Z",
+      "summary": "PR #655 merged as 526a2a91 and deployed (release.txt a78c1467, 2026-10-13); delivery deployed; follow-up #658 open"
+    },
+    {
+      "date": "2026-10-13T06:32:20.454Z",
+      "summary": "Follow-up #658 merged as 9c80848e and deployed (release.txt b48ef88e, 2026-10-13); not accepted by a human"
     }
   ],
-  "updatedAt": "2026-10-13T04:56:34.406Z",
-  "revision": 2,
+  "updatedAt": "2026-10-13T06:32:20.454Z",
+  "revision": 4,
   "summary": "RISE Live remembers the conversation within one visit: each new question goes up with the earlier questions of the room and what RISE said in answer, as quoted data in the one message, bounded, and forgotten when the reader leaves.",
   "blocker": null
 }
