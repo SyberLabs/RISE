@@ -43,6 +43,10 @@ export class AdapterError extends Error {
  * `said`, `attempts`, `diagnostics`, `diagnostic`, `source`: what an illustrator's request carries (illustration): the
  * beats just said (each at most `readingText`), the attempts in all, a refusal's diagnostics and each one's sentence,
  * and the refused source, as long as any scene may be.
+ * `earlier…`: what was said earlier in the room (LIVE-026): at most `earlier` turns, each question and answer at most
+ * `earlierText`, each turn's interjections at most `earlierAsides` (the reader's words `earlierAsideAsked`, RISE's
+ * answer `earlierAsideSaid`), what it showed at most `earlierShown` of `earlierShownText`, and all of it together at
+ * most `earlierTotal`. One turn at every bound still fits within the whole.
  */
 export const OPEN_LIMITS = Object.freeze({
     prompt: 2_000,
@@ -55,7 +59,15 @@ export const OPEN_LIMITS = Object.freeze({
     attempts: 3,
     diagnostics: 10,
     diagnostic: 300,
-    source: Math.max(BEAT_LIMITS.code, BEAT_LIMITS.svg)
+    source: Math.max(BEAT_LIMITS.code, BEAT_LIMITS.svg),
+    earlier: 6,
+    earlierText: 1_200,
+    earlierAsides: 3,
+    earlierAsideAsked: 300,
+    earlierAsideSaid: 600,
+    earlierShown: 6,
+    earlierShownText: 120,
+    earlierTotal: 6_000
 });
 
 /** Numbers events for one Current. Every adapter writes through one. */
@@ -238,6 +250,63 @@ function reading(value) {
     };
 }
 
+/** What cannot stand inside a quotation on one line: a control, a line break, or a quotation mark that could close it. */
+const UNQUOTABLE = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}“”"]/u;
+
+/** Text quoted on one line as it is: nonblank, trimmed, bounded, and nothing in it that could end the quotation. */
+function quotable(value, max, path) {
+    text(value, max, path);
+    if (value !== value.trim() || UNQUOTABLE.test(value)) throw new AdapterError('OPEN_REQUEST', `Expected one line with no quotation mark at ${path}`);
+    return value;
+}
+
+/** A bounded, nonempty list. */
+function list(value, max, path) {
+    if (!Array.isArray(value) || value.length === 0 || value.length > max) throw new AdapterError('OPEN_REQUEST', `Expected 1 to ${max} items at ${path}`);
+    return value;
+}
+
+/**
+ * What was said earlier in the room (LIVE-026), oldest first: each question the reader asked, what RISE said in answer
+ * (only what was said before the reader cut it off, and `cut` then), the interjections inside that reading, and what
+ * it showed. Every text is quoted to the model as data, so each is one line with no quotation mark of its own.
+ */
+function earlier(value) {
+    let size = 0;
+    const counted = (item, max, path) => {
+        size += quotable(item, max, path).length;
+        return item;
+    };
+    const turns = list(value, OPEN_LIMITS.earlier, 'earlier').map((item, i) => {
+        const path = `earlier[${i}]`;
+        const source = plain(item, path);
+        only(source, ['asked', 'said', 'interjections', 'showed', 'cut'], path);
+        const turn = { asked: counted(source.asked, OPEN_LIMITS.earlierText, `${path}.asked`) };
+        if (source.said !== undefined) turn.said = counted(source.said, OPEN_LIMITS.earlierText, `${path}.said`);
+        if (source.interjections !== undefined) {
+            turn.interjections = list(source.interjections, OPEN_LIMITS.earlierAsides, `${path}.interjections`).map((aside, j) => {
+                const where = `${path}.interjections[${j}]`;
+                const words = plain(aside, where);
+                only(words, ['asked', 'said'], where);
+                const clean = { asked: counted(words.asked, OPEN_LIMITS.earlierAsideAsked, `${where}.asked`) };
+                if (words.said !== undefined) clean.said = counted(words.said, OPEN_LIMITS.earlierAsideSaid, `${where}.said`);
+                return clean;
+            });
+        }
+        if (source.showed !== undefined) {
+            turn.showed = list(source.showed, OPEN_LIMITS.earlierShown, `${path}.showed`)
+                .map((shown, j) => counted(shown, OPEN_LIMITS.earlierShownText, `${path}.showed[${j}]`));
+        }
+        if (source.cut !== undefined) {
+            if (source.cut !== true) throw new AdapterError('OPEN_REQUEST', `Expected true or nothing at ${path}.cut`);
+            turn.cut = true;
+        }
+        return turn;
+    });
+    if (size > OPEN_LIMITS.earlierTotal) throw new AdapterError('OPEN_REQUEST', `Expected at most ${OPEN_LIMITS.earlierTotal} characters said earlier`);
+    return turns;
+}
+
 /** One diagnostic of a refused picture, as the admission gives it (src/core/scene-admission.js). */
 function diagnostic(value, i) {
     const path = `illustration.repair.diagnostics[${i}]`;
@@ -299,13 +368,13 @@ function illustration(value) {
 
 export function validateOpenRequest(input) {
     const source = plain(input, 'request');
-    only(source, ['intent', 'prompt', 'parent', 'perception', 'reading', 'illustration'], 'request');
+    only(source, ['intent', 'prompt', 'parent', 'perception', 'reading', 'illustration', 'earlier'], 'request');
     if (!['answer', 'dive', 'interject', 'illustrate'].includes(source.intent)) throw new AdapterError('OPEN_REQUEST', 'Unknown intent');
     const request = { intent: source.intent, prompt: text(source.prompt, OPEN_LIMITS.prompt, 'request.prompt') };
     if (source.intent === 'illustrate') {
         // A picture asked for: the brief is the prompt; nothing a question carries goes with it (docs/plans/LIVE-CURRENT.md §19).
         if (source.illustration === undefined) throw new AdapterError('OPEN_REQUEST', 'An illustrator is given what to draw and the room');
-        for (const key of ['reading', 'perception', 'parent']) {
+        for (const key of ['reading', 'perception', 'parent', 'earlier']) {
             if (source[key] !== undefined) throw new AdapterError('OPEN_REQUEST', `An illustrator is given no ${key}`);
         }
         request.illustration = illustration(source.illustration);
@@ -327,6 +396,11 @@ export function validateOpenRequest(input) {
         } catch (error) {
             throw new AdapterError('OPEN_REQUEST', String(error?.message ?? error));
         }
+    }
+    if (source.earlier !== undefined) {
+        // What was said earlier in the room goes up with the reader's next words only: a question, or an interjection.
+        if (source.intent === 'dive') throw new AdapterError('OPEN_REQUEST', 'Only an answer carries what was said earlier');
+        request.earlier = earlier(source.earlier);
     }
     if (source.intent === 'dive') {
         if (source.parent === undefined) throw new AdapterError('OPEN_REQUEST', 'A Dive needs the parent it was taken from');

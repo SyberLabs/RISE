@@ -342,6 +342,8 @@ export function createLiveRuntime({
             session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook, growing: sealed === null && current.schema === RISE_CURRENT_SCHEMA_V2 });
             // The scenes the reading starts, as it names them, for a cue the model gives the room (landRoomChange).
             run.scenes = current.scenes ?? [];
+            // The scene each beat starts, by the passage's key, so an answer's own scenes are seen as the base's are.
+            run.sceneStarts = new Map((current.beats ?? []).flatMap((beat, index) => beat.scene ? [[keyOf(run, `beat-${index}`), beat.scene]] : []));
         } catch (caught) {
             failRun(run, caught);
             return;
@@ -676,15 +678,16 @@ export function createLiveRuntime({
 
         /**
          * Ask. Resolves once the Current has opened; the reading begins as words arrive. `perception` is what the
-         * reader did in the reading before (perception.js), sent with this question through the adapter and only then.
+         * reader did in the reading before (perception.js), sent with this question through the adapter and only then;
+         * `earlier` is what was said earlier in the room (venue-entry.js earlierFor), sent the same way.
          */
-        async start(prompt, { perception } = {}) {
+        async start(prompt, { perception, earlier } = {}) {
             if (status !== 'idle') throw new LiveRuntimeError('ALREADY_STARTED', 'A runtime carries one conversation');
             set('starting');
             const actions = perception?.events?.length ? perception : null;
             let run;
             try {
-                run = await openRun({ intent: 'answer', prompt, ...(actions ? { perception: actions } : {}) }, 'main');
+                run = await openRun({ intent: 'answer', prompt, ...(actions ? { perception: actions } : {}), ...(earlier?.length ? { earlier } : {}) }, 'main');
             } catch (caught) {
                 set('failed', { code: caught?.code ?? 'OPEN_FAILED', message: String(caught?.message ?? caught).slice(0, 300) });
                 throw caught;
@@ -692,6 +695,7 @@ export function createLiveRuntime({
             if (!run) return;
             note('start', { prompt: clip(prompt, 200) });
             if (actions) note('perception.sent', { count: actions.events.length, kinds: [...new Set(actions.events.map(event => event.type))] });
+            if (earlier?.length) note('earlier.sent', { count: earlier.length });
             attachVoice(main);
             startPumping(main);
         },
@@ -764,11 +768,11 @@ export function createLiveRuntime({
 
         /**
          * The reader's words, asked inside the room: one new request on the room's adapter, with the reading so far and
-         * the passage they interrupted, and `perception`, their actions since RISE last spoke. Resolves once it is
-         * asked. The answer is grafted after that passage as it arrives (graft.js); a request that fails gives the held
-         * reading back, and the snapshot says why (`interjection.failed`).
+         * the passage they interrupted, `perception`, their actions since RISE last spoke, and `earlier`, what was said
+         * earlier in the room. Resolves once it is asked. The answer is grafted after that passage as it arrives
+         * (graft.js); a request that fails gives the held reading back, and the snapshot says why (`interjection.failed`).
          */
-        async interject(words, { perception } = {}) {
+        async interject(words, { perception, earlier } = {}) {
             if (interjection.state !== 'held') throw new LiveRuntimeError('NOT_HELD', 'An interjection begins before it is asked');
             const prompt = String(words ?? '').trim();
             if (!prompt || prompt.length > OPEN_LIMITS.prompt) throw new LiveRuntimeError('QUESTION', 'An interjection needs words');
@@ -785,7 +789,7 @@ export function createLiveRuntime({
             note('interjection.asked', { segmentId: at.segmentId });
             if (actions) note('perception.sent', { count: actions.events.length, kinds: [...new Set(actions.events.map(event => event.type))] });
             set(status);
-            const request = { intent: 'interject', prompt, reading: readingSoFar(main, at.segmentId), ...(actions ? { perception: actions } : {}) };
+            const request = { intent: 'interject', prompt, reading: readingSoFar(main, at.segmentId), ...(actions ? { perception: actions } : {}), ...(earlier?.length ? { earlier } : {}) };
             try {
                 answer.connection = await adapter.open(request, { signal: answer.abort.signal });
             } catch (caught) {
@@ -816,7 +820,8 @@ export function createLiveRuntime({
         passages() {
             if (!main?.player) return [];
             const words = new Map(main.segments.map(segment => [segment.id, segment.text]));
-            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, key: keyOf(main, id), spoken: !main.unspokenIds?.has(id), text: words.get(id) ?? '' }));
+            return passagesOf(main).map(({ id }) => Object.freeze({ segmentId: id, key: keyOf(main, id), spoken: !main.unspokenIds?.has(id), text: words.get(id) ?? '',
+                ...(main.sceneStarts?.has(keyOf(main, id)) ? { scene: main.sceneStarts.get(keyOf(main, id)) } : {}) }));
         },
 
         /**
@@ -1459,6 +1464,8 @@ export function createLiveRuntime({
             return;
         }
         answer.cut = true;
+        // The reader's words beside the number their answer's passages are named by (i<n+1>-beat-<k>), for the room's memory.
+        note('interjection.answering', { n: answer.n, words: clip(answer.prompt, 200) });
         step('answer');
         // Changes the answer made before its first beat land as it begins: they are taken before the reading moves there.
         takeRoomChanges(answer.stream, answer, before => `i${answer.n + 1}-beat-${before}`);

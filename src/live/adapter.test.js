@@ -253,6 +253,78 @@ describe('a request to interject (stage 4.5)', () => {
     });
 });
 
+describe('what was said earlier in the room (LIVE-026)', () => {
+    const turn = {
+        asked: 'What is time?', said: 'Time is what clocks measure.',
+        interjections: [{ asked: 'Whose clocks?', said: 'Anyone’s.' }], showed: ['the scene field'], cut: true
+    };
+    const reading = { passages: ['A.'], at: 0 };
+
+    it('goes up with an answer and with an interjection, as a closed copy', () => {
+        expect(validateOpenRequest({ intent: 'answer', prompt: 'Why?', earlier: [turn, { asked: 'And space?' }] }))
+            .toEqual({ intent: 'answer', prompt: 'Why?', earlier: [turn, { asked: 'And space?' }] });
+        expect(validateOpenRequest({ intent: 'interject', prompt: 'Why?', reading, earlier: [turn] }))
+            .toEqual({ intent: 'interject', prompt: 'Why?', reading, earlier: [turn] });
+    });
+
+    it('is refused on a Dive and to the illustrator', () => {
+        const parent = { currentId: 'a', segmentId: 's', atCharacter: 0, context: [] };
+        const illustration = { medium: 'figure', attempt: 1, said: [] };
+        for (const bad of [
+            { intent: 'dive', prompt: 'x', parent, earlier: [turn] },
+            { intent: 'illustrate', prompt: 'a clock', illustration, earlier: [turn] }
+        ]) {
+            expect(() => validateOpenRequest(bad), bad.intent).toThrow(expect.objectContaining({ code: 'OPEN_REQUEST' }));
+        }
+    });
+
+    it('holds every bound: turns, each text, the whole, and its shape', () => {
+        const text = n => 'x'.repeat(n);
+        const turns = n => [...Array(n)].map(() => ({ asked: 'Q?' }));
+        for (const earlier of [
+            [],
+            turns(OPEN_LIMITS.earlier + 1),
+            [{ asked: text(OPEN_LIMITS.earlierText + 1) }],
+            [{ asked: 'Q?', said: text(OPEN_LIMITS.earlierText + 1) }],
+            [{ asked: 'Q?', interjections: [] }],
+            [{ asked: 'Q?', interjections: [...Array(OPEN_LIMITS.earlierAsides + 1)].map(() => ({ asked: 'W?' })) }],
+            [{ asked: 'Q?', interjections: [{ asked: text(OPEN_LIMITS.earlierAsideAsked + 1) }] }],
+            [{ asked: 'Q?', interjections: [{ asked: 'W?', said: text(OPEN_LIMITS.earlierAsideSaid + 1) }] }],
+            [{ asked: 'Q?', interjections: [{ asked: 'W?', url: 'https://x' }] }],
+            [{ asked: 'Q?', showed: [] }],
+            [{ asked: 'Q?', showed: Array(OPEN_LIMITS.earlierShown + 1).fill('a figure') }],
+            [{ asked: 'Q?', showed: [text(OPEN_LIMITS.earlierShownText + 1)] }],
+            [{ asked: 'Q?', cut: false }],
+            [{ asked: 'Q?', cut: 'yes' }],
+            [...Array(OPEN_LIMITS.earlier)].map(() => ({ asked: text(OPEN_LIMITS.earlierText), said: text(OPEN_LIMITS.earlierText) })),
+            [{ said: 'No question.' }],
+            [{ asked: '' }],
+            [{ asked: '   ' }],
+            [{ asked: ' padded' }],
+            [{ asked: 'Two\nlines' }],
+            [{ asked: 'Q?', said: 'He said “stop”.' }],
+            [{ asked: 'Q?', said: 'A "quote".' }],
+            [{ asked: 'Q?', role: 'assistant' }],
+            [{ asked: 42 }],
+            ['What is time?'],
+            'What is time?',
+            { asked: 'Q?' }
+        ]) {
+            expect(() => validateOpenRequest({ intent: 'answer', prompt: 'Why?', earlier }), JSON.stringify(earlier).slice(0, 120))
+                .toThrow(expect.objectContaining({ code: 'OPEN_REQUEST' }));
+        }
+    });
+
+    it('admits a whole at its bound', () => {
+        const at = n => 'x'.repeat(n);
+        const full = { asked: at(OPEN_LIMITS.earlierText), said: at(OPEN_LIMITS.earlierText) };
+        const earlier = [full, full, { asked: at(OPEN_LIMITS.earlierTotal - 4 * OPEN_LIMITS.earlierText) }];
+        expect(validateOpenRequest({ intent: 'answer', prompt: 'Why?', earlier }).earlier).toEqual(earlier);
+        const over = [full, full, { asked: at(OPEN_LIMITS.earlierTotal - 4 * OPEN_LIMITS.earlierText + 1) }];
+        expect(() => validateOpenRequest({ intent: 'answer', prompt: 'Why?', earlier: over })).toThrow(expect.objectContaining({ code: 'OPEN_REQUEST' }));
+    });
+});
+
 describe('a request to illustrate (stage 5.5)', () => {
     const illustration = {
         medium: 'figure', attempt: 1, theme: 'cobalt', look: 'signal', running: { id: 'field', engine: 'attractor' },

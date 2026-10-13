@@ -24,7 +24,7 @@
 
 import { connectionState, subscribeConnection, takeConnectionNotice } from '../../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
-import { addUsage, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
+import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
 import { createFrameDirector, frameGeometry, frameOf, roomLayout, visualTransform } from './frames.js';
 
@@ -34,7 +34,7 @@ const LIVE_PATH = '/live';
 const MIC_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 const LEAVE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 
-const SENT = 'What is sent is your question, and what you did while it played (play, pause, replay, pace, settings, words you spoke to it), sent only with your next words. A question asked while it reads also carries the reading so far. Nothing is stored; a reload forgets the key.';
+const SENT = 'What is sent is your question, and what you did while it played (play, pause, replay, pace, settings, words you spoke to it), sent only with your next words. A question asked while it reads also carries the reading so far. Your earlier questions in this room and what RISE said in answer go with each new question, to the provider you chose; they are forgotten when you leave. Nothing is stored; a reload forgets the key.';
 
 /** Whose key, where it goes and what is sent, for a provider's credential (docs/USER-OWNED-AI.md). */
 function privacy(entry) {
@@ -69,6 +69,8 @@ export class LiveVenue {
         this.reading = null;
         // The perception sent with the question the reading on screen answers, or null.
         this.sent = null;
+        // How many earlier turns of the room went up with that question.
+        this.sentEarlier = 0;
         // What the reading on screen has cost the reader: every request the room made for it, and what was reported.
         this.usage = emptyUsage();
         this.stage = null;
@@ -138,6 +140,11 @@ export class LiveVenue {
     /** What the reading on screen has cost, for About this reading; the demo says it spends nothing. */
     usageLine() {
         return usageLine(this.usage, { demo: this.chosen()?.credential === 'none' });
+    }
+
+    /** How many earlier turns of the room went up with the question on screen, for About this reading. */
+    earlierLine() {
+        return earlierLine(this.sentEarlier);
     }
 
     // ─── the entry page ────────────────────────────────────────────────
@@ -469,8 +476,11 @@ export class LiveVenue {
         }
         if (this.bar) this.bar.elements.question.value = '';
         const perception = interjectionPerception(runtime.journal(), runtime.passages(), question);
+        // The question the reading answers goes with what was said before it; the reading itself goes as the reading.
+        const turn = this.reading?.turn ?? this.state.turns.length - 1;
+        const earlier = earlierFor([...this.turns().slice(0, turn), { question: this.state.turns[turn]?.question ?? '' }, { question }]);
         try {
-            await runtime.interject(question, perception ? { perception } : {});
+            await runtime.interject(question, { ...(perception ? { perception } : {}), ...(earlier ? { earlier } : {}) });
         } catch { /* the reading has moved on; it plays as it was */ }
     }
 
@@ -486,11 +496,18 @@ export class LiveVenue {
         if (this.host.runtime === reading?.runtime) this.host.runtime = null;
         if (!reading) return;
         const { runtime } = reading;
+        // The scene each of the reading's own passages started, by its name, for the room's memory (earlierFor).
+        const scenes = new Map((runtime.composed?.('main')?.segments ?? []).filter(segment => segment.beat?.scene).map(segment => [segment.id, segment.beat.scene]));
         this.readings[reading.turn] = {
             journal: runtime.journal?.() ?? [],
             // The reading's passages in order as it was read (answers to interjections among them), so the reader's
-            // moves can name them (perception.js).
-            passages: (runtime.passages?.() ?? []).map(({ segmentId, key, text }) => ({ segmentId, key: key ?? segmentId, text: text ?? '' }))
+            // moves can name them (perception.js), and what RISE said in it can be remembered (earlierFor).
+            passages: (runtime.passages?.() ?? []).map(({ segmentId, key, text, spoken, scene }) => ({
+                segmentId, key: key ?? segmentId, text: text ?? '', spoken: spoken !== false,
+                ...(scene ?? scenes.get(key ?? segmentId) ? { scene: scene ?? scenes.get(key ?? segmentId) } : {})
+            })),
+            // Where the reading stood when let go: what was said before a cut ends there.
+            reached: runtime.snapshot?.()?.position?.segmentIndex ?? null
         };
         await runtime.stop();
     }
@@ -521,9 +538,12 @@ export class LiveVenue {
             this.ensureBar();
             this.stopFollowing = runtime.subscribe(view => this.dispatch({ type: 'status', status: view.status }));
             const perception = perceptionFor(this.turns().slice(0, turn + 1));
+            const earlier = earlierFor(this.turns().slice(0, turn + 1));
             // What went up with this question, for the host's measurement page (?measure=1) to read.
             this.sent = perception;
-            await (perception ? runtime.start(question, { perception }) : runtime.start(question));
+            this.sentEarlier = earlier?.length ?? 0;
+            const sending = { ...(perception ? { perception } : {}), ...(earlier ? { earlier } : {}) };
+            await (perception || earlier ? runtime.start(question, sending) : runtime.start(question));
             if (this.destroyed || this.reading?.runtime !== runtime) return;
             this.dispatch({ type: 'opened' });
             this.dispatch({ type: 'status', status: runtime.status });

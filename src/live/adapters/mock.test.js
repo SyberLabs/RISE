@@ -385,6 +385,14 @@ describe('the demo that writes in beats (the venue’s)', () => {
         return { reducer, arrivals };
     }
 
+    it('answers a question asked again with what was said earlier in the room, as it answers any (LIVE-026)', async () => {
+        const earlier = [{ asked: 'Explain black holes with RISE.', said: 'A black hole is a region of space.', cut: true }];
+        const { reducer } = await stream({ ...ASK, earlier });
+        expect(reducer.snapshot()).toMatchObject({ phase: 'complete', refusals: 0 });
+        const answer = await snapshotOf({ request: { ...ASK, earlier } });
+        expect(answer.phase).toBe('complete');
+    });
+
     it('streams the black holes answer as the model would write it, and seals to the Current it means', async () => {
         const { reducer } = await stream();
         expect(reducer.snapshot()).toMatchObject({ phase: 'complete', refusals: 0 });
