@@ -966,6 +966,12 @@ describe('Attractor swarm', () => {
     expect(presented()).toBe(first);
     field.tick(2 * TICK + 0.01);
     expect(presented()).toBeGreaterThan(first);
+    // A resize clears the canvas: the next frame presents again, even with no new tick and only the height changed.
+    const before = presented();
+    Object.defineProperty(field.host, 'clientHeight', { value: 500, configurable: true });
+    field.resize();
+    field.tick(2 * TICK + 5);
+    expect(presented()).toBeGreaterThan(before);
     field.destroy();
   });
 
