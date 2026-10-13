@@ -106,6 +106,37 @@ describe('the room’s frame, on the venue’s clock', () => {
         expect(director.at(3600 + 1900)).toEqual({ frame: 'full', a: 1, cut: 0 });
     });
 
+    it('says when the room has come to rest on the visual it was last shown: open, no cut running, nothing pending', () => {
+        const director = createFrameDirector();
+        expect(director.settled(0)).toBe(true);
+        director.see('shell', 0);
+        director.at(800);
+        expect(director.settled(800)).toBe(false);
+        director.at(1600);
+        expect(director.settled(1600)).toBe(true);
+        // Another visual in the same frame: not at rest until its blink has run.
+        director.see('shell', 2000);
+        director.at(2300);
+        expect(director.settled(2300)).toBe(false);
+        director.at(2000 + 650);
+        expect(director.settled(2650)).toBe(true);
+        // Another frame: not at rest while the shell closes or the full frame opens.
+        director.see('full', 3000);
+        director.at(4000);
+        expect(director.settled(4000)).toBe(false);
+        director.at(4600);
+        director.at(4600 + 1800);
+        expect(director.settled(6400)).toBe(false);
+        director.at(4600 + 1900);
+        expect(director.settled(6500)).toBe(true);
+        // Under reduced motion every change is at rest at once.
+        const still = createFrameDirector({ reduced: true });
+        still.see('shell', 0);
+        still.see('full', 10);
+        still.at(10);
+        expect(still.settled(10)).toBe(true);
+    });
+
     it('closes to the eye when there is no visual, and takes the newest visual asked for while closing', () => {
         const director = createFrameDirector();
         director.see('inner', 0);

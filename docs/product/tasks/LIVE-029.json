@@ -48,6 +48,12 @@
       "ref": "https://rise.syberlabs.io/live?voice=paced&measure=1",
       "note": "Production check on release b48ef88e, headless Chromium at 1440x900, the demo reading: 'attractor' typed while the figure held the full frame; the frame went from full to shell with the attractor open in it, the bar read 'Showing the attractor.', one visual.chosen and no interjection.asked in the journal, no page errors. Screenshots kept locally (prod-words-1440x900.png, prod-words-1440x900-note.png). A scripted check, not a human acceptance.",
       "date": "2026-10-13"
+    },
+    {
+      "date": "2026-10-13",
+      "kind": "test",
+      "ref": "src/live/host/venue.test.js",
+      "note": "Branch live-ask-bar-bottom (LIVE-030): a catalog word's note (\"Showing the attractor.\") now stays until the visual it named is on screen and the room's frame has opened onto it (frames.js director settled(), on the venue's clock), then 1.5 s more; under reduced motion, and with no frames to follow, 1.5 s after the switch. Before, it went after a fixed 4 s, while a change from the full frame to the shell takes about 5 s. Local: npx vitest run src/live/host/frames.test.js src/live/host/venue.test.js, 97 passed (the director at rest, the note through a shell-to-full change and 1.4 s after it, gone at 1.6 s; reduced motion 1.5 s); npx playwright test e2e/live.spec.js -g \"catalog words\" passed within the targeted set of 16 (the note still shown once the shell is open on the attractor, gone within 3 s). Not merged, deployed or accepted by a human."
     }
   ],
   "activity": [
@@ -66,10 +72,14 @@
     {
       "date": "2026-10-13T06:31:32.962Z",
       "summary": "PR #660 merged as 8df83ce7 and deployed in release b48ef88e; seen on production by a scripted check; delivery deployed, not accepted by a human"
+    },
+    {
+      "date": "2026-10-13T06:49:10.111Z",
+      "summary": "A catalog word's note stays until the frame has opened onto the chosen visual, then 1.5 s (branch live-ask-bar-bottom)"
     }
   ],
-  "updatedAt": "2026-10-13T06:31:32.962Z",
-  "revision": 4,
+  "updatedAt": "2026-10-13T06:49:10.111Z",
+  "revision": 5,
   "summary": "In RISE Live, a reader who names one of RISE's own visuals during a reading gets it at once, with no model call; RISE's own scene changes after it in that reading are held, and the next request is told.",
   "blocker": null
 }

@@ -41,7 +41,7 @@ const DOCK = 48;
  * The table's key for a cue as the Chamber has it on screen: a field by its renderer, a pattern by its engine, a
  * figure or a generated scene by its kind. A still draws nothing in a Live reading, so it is no visual. Null for none.
  */
-function visualOf(cue) {
+export function visualOf(cue) {
     if (!cue || typeof cue !== 'object' || cue.kind === 'still') return null;
     if (cue.kind === 'field') return cue.renderer ?? null;
     if (cue.kind === 'procedural') return cue.collections?.[0] ?? null;
@@ -131,6 +131,11 @@ export function createFrameDirector({ reduced = false } = {}) {
                 }
             }
             return { frame, a: frame === 'none' ? 0 : aperture(now), cut };
+        },
+
+        /** Whether, as `at` last left it, the room is at rest on the visual last seen: nothing pending, no cut, open. */
+        settled(now) {
+            return pending === null && cutStart < 0 && (frame === 'none' || (tween.to === 1 && aperture(now) === 1));
         }
     };
 }

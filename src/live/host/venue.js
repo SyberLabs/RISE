@@ -27,11 +27,11 @@ import { connectionState, subscribeConnection, takeConnectionNotice } from '../.
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
-import { createFrameDirector, frameGeometry, frameOf, holdsContent, roomLayout, visualTransform } from './frames.js';
+import { createFrameDirector, frameGeometry, frameOf, holdsContent, roomLayout, visualOf, visualTransform } from './frames.js';
 import { catalogNote, recogniseVisual } from '../catalog-words.js';
 
-/** How long the bar says what a reader's catalog word showed. */
-const CHOSEN_NOTE_MS = 4_000;
+/** How long the bar still says what a reader's catalog word showed once the room is at rest on it. */
+const CHOSEN_BEAT_MS = 1_500;
 
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
@@ -92,6 +92,8 @@ export class LiveVenue {
         // What the bar says of a visual the reader named (showChosen), until its timer lets it go.
         this.chosenNote = null;
         this.chosenTimer = 0;
+        // The visual a catalog word named, while its note waits for the room to come to rest on it, then the beat's end.
+        this.chosenWait = null;
         this.destroyed = false;
         // The face: its element, its engine once loaded, whether the last question failed, and (?measure=1) its states.
         const saved = host.getSettings?.()?.liveFace;
@@ -479,8 +481,9 @@ export class LiveVenue {
 
     /**
      * Words that only name one of RISE's own visuals (catalog-words.js, docs/plans/LIVE-CURRENT.md §25): shown at once
-     * by the runtime, the reading taken up again, with no request and nothing counted; the bar says what is shown for a
-     * few seconds. Whether they were: anything else, or what the reading cannot show, is asked of the model as before.
+     * by the runtime, the reading taken up again, with no request and nothing counted; the bar says what is shown until
+     * the room's frame has opened onto it (frameStep), and a short beat more; with no frames to follow, a short beat
+     * after the switch. Whether they were: anything else, or what the reading cannot show, is asked of the model as before.
      */
     showChosen(runtime, words) {
         const chosen = recogniseVisual(words, { running: runtime.visualEngine?.() ?? null });
@@ -493,12 +496,17 @@ export class LiveVenue {
         this.chosenNote = catalogNote(chosen);
         const win = this.doc.defaultView;
         win.clearTimeout(this.chosenTimer);
-        this.chosenTimer = win.setTimeout(() => {
-            this.chosenNote = null;
-            this.paint();
-        }, CHOSEN_NOTE_MS);
+        this.chosenWait = null;
+        if (this.framing) this.chosenWait = { engine: chosen.engine, until: null };
+        else this.chosenTimer = win.setTimeout(() => this.letChosenGo(), CHOSEN_BEAT_MS);
         this.paint();
         return true;
+    }
+
+    letChosenGo() {
+        this.chosenWait = null;
+        this.chosenNote = null;
+        this.paint();
     }
 
     /** The reader's words, asked inside the reading, with what they did in it since RISE last spoke. */
@@ -554,6 +562,7 @@ export class LiveVenue {
         await this.letGo();
         this.usage = emptyUsage();
         this.chosenNote = null;
+        this.chosenWait = null;
         try {
             const runtime = await host.buildRuntime();
             if (this.destroyed) {
@@ -894,6 +903,10 @@ export class LiveVenue {
             }
         }
         const { frame, a, cut } = framing.director.at(framing.clock);
+        // A catalog word's note: kept until the visual it named is on screen and the room is at rest on it, then a beat.
+        const wait = this.chosenWait;
+        if (wait?.until === null && visualOf(framing.cue) === wait.engine && framing.director.settled(framing.clock)) wait.until = framing.clock + CHOSEN_BEAT_MS;
+        else if (wait && wait.until !== null && framing.clock >= wait.until) this.letChosenGo();
         const layout = this.measureRoom();
         // A face that is not drawing frames nothing: a visual is the room's, full-bleed, and the still eye steps aside;
         // with none, the still eye is the room, the words at its foot.

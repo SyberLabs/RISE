@@ -694,7 +694,10 @@ describe('catalog words: the reader names one of RISE’s own visuals (§25)', (
             expect(host.venue.usage.requests).toEqual({ answer: 0, interject: 0, illustrate: 0, dive: 0 });
             runtime.set('live');
             expect(note()).toBe('Showing the attractor.');
-            vi.advanceTimersByTime(4_000);
+            // With no frames to follow (no animation frames here), the note stays a short beat after the switch.
+            vi.advanceTimersByTime(1_400);
+            expect(note()).toBe('Showing the attractor.');
+            vi.advanceTimersByTime(100);
             expect(note()).toBe('');
         } finally {
             vi.useRealTimers();
@@ -1036,6 +1039,44 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(root().style.getPropertyValue('--live-words-foot')).toBe(`${88 + 54 + 32}px`);
         await host.venue.leave();
         expect(root().style.getPropertyValue('--live-bar-foot')).toBe('');
+    });
+
+    it('keeps a catalog word’s note until the frame has opened onto the visual it named, then a short beat more', async () => {
+        const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        crank(1700);
+        const note = () => $('.live-again__note').textContent;
+        askAgain('genesis');
+        expect(note()).toBe('Showing the genesis.');
+        // The attractor is still on screen: the note waits for the visual it named.
+        crank(2000);
+        expect(note()).toBe('Showing the genesis.');
+        chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+        // The shell closes (1.6 s) and the full frame opens (1.9 s): the note stays through all of it.
+        let opened = 0;
+        while (engine().places.at(-1)?.wipe?.hole !== 1 && opened < 6000) { crank(16); opened += 16; }
+        expect(opened).toBeGreaterThan(3000);
+        expect(note()).toBe('Showing the genesis.');
+        crank(1400);
+        expect(note()).toBe('Showing the genesis.');
+        crank(200);
+        expect(note()).toBe('');
+    });
+
+    it('under reduced motion, lets a catalog word’s note go a short beat after the switch', async () => {
+        root().classList.add('reduced-motion');
+        try {
+            const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+            crank(32);
+            const note = () => $('.live-again__note').textContent;
+            askAgain('genesis');
+            chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+            crank(1400);
+            expect(note()).toBe('Showing the genesis.');
+            crank(200);
+            expect(note()).toBe('');
+        } finally {
+            root().classList.remove('reduced-motion');
+        }
     });
 
     it('lifts the bar above an on-screen keyboard while its field has focus, and lets it down after', async () => {

@@ -919,6 +919,10 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(page.locator('.live-again__note')).toHaveText('Showing the attractor.');
         await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.frame), { timeout: 10_000 }).toBe('shell');
         await expect(page.locator('#chamber-field .chamber-attractor')).toBeAttached();
+        // The note stays until the shell has opened onto the attractor, and goes a short beat (1.5 s) after.
+        await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.aperture?.hole ?? 0), { timeout: 10_000 }).toBe(1);
+        await expect(page.locator('.live-again__note')).toHaveText('Showing the attractor.');
+        await expect(page.locator('.live-again__note')).toHaveText('', { timeout: 3_000 });
         expect((await journal()).filter(entry => entry.type === 'visual.chosen')).toEqual([expect.objectContaining({ engine: 'attractor' })]);
         // The reading goes on to its end with the reader's choice: the disk the demo starts later is held, and no
         // request was opened for the words.
