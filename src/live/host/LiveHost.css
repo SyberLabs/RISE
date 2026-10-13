@@ -1276,6 +1276,16 @@ html[data-live-frame="full"][data-live-fit] #chamber-field > :is(.chamber-figure
   transform: translate(var(--live-vx, 0px), var(--live-vy, 0px)) scale(var(--live-vk, 1));
   transform-origin: 50% 50%;
 }
+/* A fitted generated scene's edges dissolve into the room over 6% of its box on every side, so the ground it clears to
+   never shows as a rectangle; inside that band it is untouched. The marker is held while an outgoing scene fades out,
+   so the feather goes with it. A figure is a transparent image with no ground of its own, and its labels may reach its
+   box's edge, so it is not feathered. The touch regions keep their exact box. */
+html[data-live-frame="full"][data-live-fit] #chamber-field > .chamber-scene {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent), linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent), linear-gradient(to bottom, transparent, #000 6%, #000 94%, transparent);
+  mask-composite: intersect;
+}
 /* An engine's name, set at the gallery's corner, has no corner in a circle. A credit a museum image requires is shown,
    in the full frame, where such an image always is. */
 html:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field .continuous-field-label { visibility: hidden; }
