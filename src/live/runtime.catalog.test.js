@@ -1,5 +1,5 @@
 /**
- * Catalog words in the runtime (docs/plans/LIVE-CURRENT.md §24): the reader names one of RISE's own visuals while the
+ * Catalog words in the runtime (docs/plans/LIVE-CURRENT.md §25): the reader names one of RISE's own visuals while the
  * reading is held for their words, and it is shown at once with no request; the model's own scene and visual changes
  * after that, in the same reading, are held, and the journal says so for the next request.
  *

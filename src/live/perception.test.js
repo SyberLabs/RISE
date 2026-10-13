@@ -304,7 +304,7 @@ describe('the room RISE changed (stage 5)', () => {
     });
 });
 
-describe('the reader named a visual, and RISE’s own changes after it were held (catalog words, §24)', () => {
+describe('the reader named a visual, and RISE’s own changes after it were held (catalog words, §25)', () => {
     const journal = [
         at(0, 'start', { prompt: 'Why is the sky blue?' }),
         at(10, 'visual.chosen', { engine: 'attractor', params: { trace: 'swarm', palette: 'gold' } }),

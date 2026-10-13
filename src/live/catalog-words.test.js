@@ -1,5 +1,5 @@
 /**
- * Catalog words (docs/plans/LIVE-CURRENT.md §24): the reader names one of RISE's own visuals, and the venue answers at
+ * Catalog words (docs/plans/LIVE-CURRENT.md §25): the reader names one of RISE's own visuals, and the venue answers at
  * once with no model. Only an utterance that is nothing but a visual request is answered; anything else is null and
  * goes to the model unchanged.
  */

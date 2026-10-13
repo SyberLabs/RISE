@@ -21,7 +21,7 @@ import { manifestFor } from '../core/beats.js';
  * The events of §4, and the only names that may go up. `scene.input` is what the reader set in a listening scene
  * (docs/plans/LIVE-CURRENT.md §20). `drew` is a picture RISE put in the room (§19), only ever RISE's. `chose` is one of
  * RISE's own visuals the reader named and was shown at once, and `withheld` that RISE's own changes to the visual after
- * it were held (§24).
+ * it were held (§25).
  */
 export const PERCEPTION_EVENTS = Object.freeze(['held', 'resumed', 'sought', 'replayed', 'paced', 'visual.changed', 'said', 'scene.input', 'finished', 'drew', 'chose', 'withheld']);
 

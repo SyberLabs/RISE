@@ -812,7 +812,7 @@ export function createLiveRuntime({
          * is shown at once and the reading plays on, with no request. `{ engine, params }` starts that engine from the
          * phrase on screen, as a picture is placed; `{ engine, cue }` cues the engine running. From the passage it was
          * chosen in to the end of the reading, the model's own scenes, cues, visual changes and pictures are held
-         * (docs/plans/LIVE-CURRENT.md §24). Returns whether it was shown: false leaves the reading held, and nothing changed.
+         * (docs/plans/LIVE-CURRENT.md §25). Returns whether it was shown: false leaves the reading held, and nothing changed.
          */
         chooseVisual({ engine, params, cue } = {}) {
             if (interjection.state !== 'held') throw new LiveRuntimeError('NOT_HELD', 'A visual is chosen while the reading is held for the reader');
@@ -1141,7 +1141,7 @@ export function createLiveRuntime({
         return commands ? { scene: found.id, commands } : 'NO_CUE';
     }
 
-    // ─── the reader's own visual (docs/plans/LIVE-CURRENT.md §24) ──────
+    // ─── the reader's own visual (docs/plans/LIVE-CURRENT.md §25) ──────
 
     /** A change of the model's to the room's visual, held because the reader chose one: noted, and nothing applied. */
     function holdChange(kind) {

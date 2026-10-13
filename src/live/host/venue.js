@@ -11,7 +11,7 @@
  * While a reading plays, the reader may speak into it (the interjection, docs/plans/LIVE-CURRENT.md §17): the
  * microphone, or a first letter typed in the bar's small field, holds the reading at once; Enter asks inside the room;
  * Escape, or Play, takes it back. A reading paused with Play, or one that has ended, is asked again as a new reading.
- * Words asked inside the room that only name one of RISE's own visuals are shown at once, with no request (§24).
+ * Words asked inside the room that only name one of RISE's own visuals are shown at once, with no request (§25).
  *
  * RISE's face (docs/plans/LIVE-CURRENT.md §22) is the room's resting picture: in the entry before a question, and in
  * the room for the whole of every reading, holding each visual the reading shows in one of three frames, the visual
@@ -476,7 +476,7 @@ export class LiveVenue {
     }
 
     /**
-     * Words that only name one of RISE's own visuals (catalog-words.js, docs/plans/LIVE-CURRENT.md §24): shown at once
+     * Words that only name one of RISE's own visuals (catalog-words.js, docs/plans/LIVE-CURRENT.md §25): shown at once
      * by the runtime, the reading taken up again, with no request and nothing counted; the bar says what is shown for a
      * few seconds. Whether they were: anything else, or what the reading cannot show, is asked of the model as before.
      */

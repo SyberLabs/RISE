@@ -797,7 +797,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
-    // Catalog words (docs/plans/LIVE-CURRENT.md §24): a visual the reader names is shown at once, with no request.
+    // Catalog words (docs/plans/LIVE-CURRENT.md §25): a visual the reader names is shown at once, with no request.
     test('catalog words: “attractor” typed during the figure shows the attractor in the outer shell at once, and asks nothing', async ({ page }) => {
         test.setTimeout(90_000);
         const errors = watchErrors(page);

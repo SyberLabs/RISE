@@ -1,5 +1,5 @@
 /**
- * Catalog words (docs/plans/LIVE-CURRENT.md §24): the reader names one of RISE's own visuals while a reading plays,
+ * Catalog words (docs/plans/LIVE-CURRENT.md §25): the reader names one of RISE's own visuals while a reading plays,
  * and the venue answers at once, with no model. Pure: the words in, a local answer or null out.
  *
  * The vocabulary is the manifests' (src/scenes/manifests.js): each engine the venue shows by name, its parameters'

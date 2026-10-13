@@ -657,7 +657,7 @@ describe('the interjection: the reader speaks while it plays (stage 4.5)', () =>
     });
 });
 
-describe('catalog words: the reader names one of RISE’s own visuals (§24)', () => {
+describe('catalog words: the reader names one of RISE’s own visuals (§25)', () => {
     async function playing(options = {}) {
         nextRuntime = options;
         mount('?voice=paced');
