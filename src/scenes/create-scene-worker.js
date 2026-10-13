@@ -32,6 +32,8 @@ let blobUrl = null;
  * @param {(url: string, options?: WorkerOptions) => Worker} [options.makeWorker]
  */
 export async function createSceneWorker({ load = fetch, makeWorker = (url, options) => new Worker(url, options) } = {}) {
+  // Vite's dev server serves the worker unbundled, with top-level imports: only a module worker from its own URL parses it.
+  if (import.meta.env.MODE === 'development') return makeWorker(workerUrl, { type: 'module' });
   blobUrl ??= load(workerUrl)
     .then(response => {
       if (!response.ok) throw new Error(`the scene worker answered ${response.status}`);
