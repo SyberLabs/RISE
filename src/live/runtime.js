@@ -333,7 +333,7 @@ export function createLiveRuntime({
                 current = theme === null ? rest : { ...rest, theme };
             }
             // The reader chose a visual (chooseVisual): no beat of the model's after that passage starts a scene or cues one.
-            if (run.held) current = heldFrom(run, current);
+            if (run.holds.length) current = heldFrom(run, current);
             // The pictures the composer asked for, where they landed (illustrator.js): each scene from the beat after.
             run.sceneCount = current.scenes?.length ?? 0;
             if (run.pictures.length) {
@@ -597,8 +597,9 @@ export function createLiveRuntime({
             segments: [], baseSeen: 0,
             // Once the reader has interjected: the reading arranged around the answers (graft.js), and each answer's Current.
             room: null,
-            // Once the reader has chosen a visual: the passage it was chosen in, and the beats whose scenes were held.
-            held: null,
+            // The reader's holds, in order (chooseVisual): each `{ key, until }`, the passage it began in and the key prefix
+            // of the answer that ended it (null while it runs); and the beats whose scenes were held.
+            holds: [], heldScenes: new Set(),
             // The pictures placed in the reading (illustrator.js), and how many scenes the reading has of its own.
             pictures: [], sceneCount: 0
         };
@@ -811,8 +812,8 @@ export function createLiveRuntime({
          * The reader named one of RISE's own visuals while the reading was held for their words (catalog-words.js): it
          * is shown at once and the reading plays on, with no request. `{ engine, params }` starts that engine from the
          * phrase on screen, as a picture is placed; `{ engine, cue }` cues the engine running. From the passage it was
-         * chosen in to the end of the reading, the model's own scenes, cues, visual changes and pictures are held
-         * (docs/plans/LIVE-CURRENT.md §25). Returns whether it was shown: false leaves the reading held, and nothing changed.
+         * chosen in, the model's own scenes, cues, visual changes and pictures are held until the reader next asks RISE
+         * something inside the reading (docs/plans/LIVE-CURRENT.md §25). Returns whether it was shown: false leaves the reading held, and nothing changed.
          */
         chooseVisual({ engine, params, cue } = {}) {
             if (interjection.state !== 'held') throw new LiveRuntimeError('NOT_HELD', 'A visual is chosen while the reading is held for the reader');
@@ -1093,7 +1094,7 @@ export function createLiveRuntime({
         main.changes.splice(main.changes.indexOf(entry), 1);
         const { change } = entry;
         if (change.kind === 'illustration.cue') { landPictureCue(entry); return; }
-        if (main.held && (change.kind === 'visual.control' || change.kind === 'scene.cue')) { holdChange(change.kind); return; }
+        if (holding() && (change.kind === 'visual.control' || change.kind === 'scene.cue')) { holdChange(change.kind); return; }
         const refused =code => note('room.refused', { kind: change.kind, code: String(code ?? 'REFUSED').slice(0, 40) });
         if (change.kind === 'visual.control') {
             if (change.parameter === 'intensity' && readerSettings.has('intensity')) { refused('READER_SET'); return; }
@@ -1149,15 +1150,31 @@ export function createLiveRuntime({
         set(status);
     }
 
-    /** The reading's Current with no scene started or cued by a beat after the passage the reader chose in; each held scene noted once. */
+    /** Whether a hold is running: the reader chose a visual and has asked RISE nothing since. */
+    function holding() {
+        return main?.holds.at(-1)?.until === null;
+    }
+
+    /**
+     * The reading's Current with no scene started or cued by a beat inside a hold: after the passage the reader chose in,
+     * up to the first passage of the answer to the next question they asked inside the reading, or to the end while they
+     * have asked none. Each held scene is noted once.
+     */
     function heldFrom(run, current) {
         const keyAt = index => keyOf(run, `beat-${index}`);
-        const from = current.beats.findIndex((_, index) => keyAt(index) === run.held.key);
-        if (from < 0) return current;
+        const inHold = new Array(current.beats.length).fill(false);
+        for (const { key, until } of run.holds) {
+            const from = current.beats.findIndex((_, index) => keyAt(index) === key);
+            if (from < 0) continue;
+            for (let index = from + 1; index < current.beats.length; index += 1) {
+                if (until !== null && keyAt(index).startsWith(until)) break;
+                inHold[index] = true;
+            }
+        }
         const beats = current.beats.map((beat, index) => {
-            if (index <= from || (beat.scene === undefined && beat.cue === undefined)) return beat;
-            if (beat.scene !== undefined && !run.held.scenes.has(keyAt(index))) {
-                run.held.scenes.add(keyAt(index));
+            if (!inHold[index] || (beat.scene === undefined && beat.cue === undefined)) return beat;
+            if (beat.scene !== undefined && !run.heldScenes.has(keyAt(index))) {
+                run.heldScenes.add(keyAt(index));
                 note('room.held', { kind: 'scene', scene: beat.scene });
             }
             const { scene: _scene, cue: _cue, ...rest } = beat;
@@ -1172,11 +1189,11 @@ export function createLiveRuntime({
     }
 
     /**
-     * The hold begins at the passage the reader is in, the first time they choose; the pictures the model asked for and
+     * A hold begins at the passage the reader is in, unless one is already running; the pictures the model asked for and
      * not yet shown are let go, each noted as held.
      */
     function holdFromHere() {
-        main.held ??= { key: keyOf(main, positionOf(main).segmentId), scenes: new Set() };
+        if (!holding()) main.holds.push({ key: keyOf(main, positionOf(main).segmentId), until: null });
         for (const item of unshownPictures()) {
             main.pictures = main.pictures.filter(picture => picture !== item.picture);
             dropPicture(item, 'READER_CHOSE');
@@ -1253,7 +1270,7 @@ export function createLiveRuntime({
      * reading goes on. Nothing here holds the reading or the voice.
      */
     function illustrate(entry) {
-        if (main.held) { holdChange('illustrate'); return; }
+        if (holding()) { holdChange('illustrate'); return; }
         const { brief, medium } = entry.change;
         const n = illustrations.items.length + 1;
         const item = { n, brief: clip(brief, 120), medium: null, entry, askedAt: clock.now(), reachedAt: null, state: 'drawing', controller: null, picture: null, attempts: 0 };
@@ -1593,14 +1610,17 @@ export function createLiveRuntime({
             return;
         }
         answer.cut = true;
+        // The reader asked RISE something: a running hold ends where its answer begins, so the answer's own changes apply.
+        if (holding()) main.holds.at(-1).until = `i${answer.n + 1}-`;
         // The reader's words beside the number their answer's passages are named by (i<n+1>-beat-<k>), for the room's memory.
         note('interjection.answering', { n: answer.n, words: clip(answer.prompt, 200) });
         step('answer');
-        // Changes the answer made before its first beat land as it begins: they are taken before the reading moves there.
-        takeRoomChanges(answer.stream, answer, before => `i${answer.n + 1}-beat-${before}`);
         // A reading whose own answer was complete stopped waiting for words; this one has more coming.
         main.player.setLive(true);
         lower(main, { graft: true });
+        // Changes the answer made before its first beat land as it begins: they are taken before the reading moves there,
+        // and after the Player has the graft, so a picture placed at once extends the grafted reading.
+        takeRoomChanges(answer.stream, answer, before => `i${answer.n + 1}-beat-${before}`);
         moveTo(main, `beat-${cutAt + 1}`, null);
         set('live');
         main.player.play();

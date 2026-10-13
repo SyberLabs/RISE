@@ -157,21 +157,45 @@ describe('the reader names an engine', () => {
         expect(room.journal('illustrated')).toEqual([]);
     });
 
-    it('holds the scenes of an answer to a later question grafted into the same reading, and still answers it', async () => {
-        const room = await open(READING, { answer: '@scene glow living-flame\n@say scene=glow It never repeats because it is chaotic.\n@then resume\n' });
-        await heldInTheField(room);
-        room.runtime.chooseVisual({ engine: 'harmonograph', params: {} });
+    it('an answer that names one of RISE’s engines before its first beat is grafted and shows it (no choice made)', async () => {
+        const room = await open(READING, { answer: '@illustrate medium=cue fractal\n@say Spacetime bends around every mass.\n@then resume\n' });
         await until(() => room.atoms.some(atom => atom.sourceId === 'beat-2'));
         const asked = performance.now();
         room.runtime.beginInterjection();
-        await room.runtime.interject('Why does it never repeat?');
+        await room.runtime.interject('Draw me spacetime bending.');
+        await until(() => room.journal('interjection.answered').length + room.journal('interjection.failed').length > 0);
+        expect(room.journal('interjection.failed')).toEqual([]);
+        await until(() => shown(room, asked).some(isFractal));
+    });
+
+    it('the reader’s own later question ends the hold: its answer’s scenes and picture apply, and a new choice holds again', async () => {
+        const LATER = `${READING}@scene late neural\n@say scene=late One more scene of its own, near the end.\n`;
+        const answer = '@illustrate medium=cue fractal\n@say Spacetime bends around every mass.\n@scene glow living-flame\n@say scene=glow And light follows the bend.\n@then resume\n';
+        const room = await open(LATER, { answer });
+        const chosen = await heldInTheField(room);
+        room.runtime.chooseVisual({ engine: 'harmonograph', params: {} });
+        // Until the reader asks, the reading's own scene is held.
+        await until(() => room.atoms.some(atom => atom.at > chosen && atom.sourceId === 'beat-3'));
+        expect(shown(room, chosen).some(isGenesis)).toBe(false);
+        expect(room.journal('room.held').map(entry => entry.scene)).toContain('gen');
+        const asked = performance.now();
+        room.runtime.beginInterjection();
+        await room.runtime.interject('Draw me spacetime bending.');
         await until(() => room.journal('interjection.answered').length > 0);
-        await until(() => room.journal('run.finished').length > 0);
         expect(room.requests.map(request => request.intent)).toEqual(['answer', 'interject']);
-        expect(room.runtime.passages().some(passage => passage.text === 'It never repeats because it is chaotic.')).toBe(true);
-        // Nor the field the graft would take up again after the answer: the reader's choice stays.
-        expect(shown(room, asked).some(cue => cue.kind === 'field')).toBe(false);
-        expect(room.journal('room.held').filter(entry => entry.kind === 'scene').map(entry => entry.scene)).toEqual(expect.arrayContaining(['gen', 'i1-glow', 'field']));
+        await until(() => shown(room, asked).some(cue => cue.kind === 'field' && cue.renderer === 'living-flame'));
+        expect(shown(room, asked).some(isFractal)).toBe(true);
+        expect(room.journal('illustrated')).toEqual([expect.objectContaining({ brief: 'fractal' })]);
+        expect(room.journal('room.held').map(entry => entry.scene)).not.toContain('i1-glow');
+        // A new choice holds again: the scene the reading starts after it is not shown.
+        const key = () => room.runtime.passages()[room.runtime.position().segmentIndex]?.key;
+        await until(() => key() === 'beat-4');
+        room.runtime.beginInterjection();
+        const again = performance.now();
+        expect(room.runtime.chooseVisual({ engine: 'attractor', params: { trace: 'swarm' } })).toBe(true);
+        await until(() => room.journal('run.finished').length > 0);
+        expect(shown(room, again).some(cue => cue.collections?.[0] === 'neural')).toBe(false);
+        expect(room.journal('room.held').map(entry => entry.scene)).toContain('late');
     });
 
     it('the hold is the reading’s own: a reading where the reader chose nothing shows the model’s scenes', async () => {
