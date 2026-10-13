@@ -27,7 +27,7 @@ import { connectionState, subscribeConnection, takeConnectionNotice } from '../.
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
-import { createFrameDirector, frameGeometry, frameOf, holdsContent, roomLayout, visualOf, visualTransform } from './frames.js';
+import { createFrameDirector, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualOf, visualTransform } from './frames.js';
 import { catalogNote, recogniseVisual } from '../catalog-words.js';
 
 /** How long the bar still says what a reader's catalog word showed once the room is at rest on it. */
@@ -881,6 +881,19 @@ export class LiveVenue {
         delete this.face.dataset.faceAside;
         const field = this.doc.querySelector('#chamber-field');
         for (const name of ['--live-vx', '--live-vy', '--live-vk']) field?.style.removeProperty(name);
+        for (const layer of field?.children ?? []) delete layer.dataset.liveScale;
+    }
+
+    /**
+     * Every visual layer carries the scale the visual on screen is shown at once its frame is open (frames.js
+     * restScale), declared as the visual changes and before its aperture opens, so a field is drawn at the size it is
+     * shown (attractor.js, harmonograph-field.js). Fixed for each visual: the room's size moving under it (a keyboard
+     * lifting the bar) changes no backing mid-transition.
+     */
+    declareScales(field, scale) {
+        for (const layer of field.children) {
+            if (layer.dataset.liveScale !== scale && !layer.matches('.atom-band, .movement-title')) layer.dataset.liveScale = scale;
+        }
     }
 
     frameStep(now) {
@@ -900,6 +913,7 @@ export class LiveVenue {
                 if (holdsContent(framing.cue)) framing.fitUntil = Infinity;
                 else if (framing.fitUntil === Infinity) framing.fitUntil = framing.clock + CROSSFADE_MS;
                 framing.director.see(frameOf(cue), framing.clock);
+                framing.scale = undefined;
             }
         }
         const { frame, a, cut } = framing.director.at(framing.clock);
@@ -927,6 +941,8 @@ export class LiveVenue {
         field?.style.setProperty('--live-vx', `${move.x}px`);
         field?.style.setProperty('--live-vy', `${move.y}px`);
         field?.style.setProperty('--live-vk', String(move.k));
+        framing.scale ??= String(Math.round(restScale(frameOf(framing.cue), layout) * 1e4) / 1e4);
+        if (field) this.declareScales(field, framing.scale);
         delete this.face.dataset.faceAside;
         this.faceEngine?.place?.(geometry);
     }

@@ -260,6 +260,9 @@ export class AttractorField {
         this.W = 0;
         this.H = 0;
         this.DPR = 1;
+        // The scale the field's layer is shown at, where Live declares one (venue.js): drawn at that size. 1 elsewhere.
+        this.renderScale = 1;
+        this._scaleKept = false;
         this.rafId = null;
         this.t0 = performance.now();
         this._motionBase = 0;
@@ -361,7 +364,7 @@ export class AttractorField {
     }
 
     resize() {
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * this.renderScale;
         const W = this.host.clientWidth || window.innerWidth;
         const H = this.host.clientHeight || window.innerHeight;
         const width = Math.round(W * dpr);
@@ -445,6 +448,7 @@ export class AttractorField {
     }
 
     tick(now) {
+        this.followDeclaredScale();
         const oneShot = this._oneShotPaint;
         this._oneShotPaint = false;
         if (!this.ctx) {
@@ -614,6 +618,29 @@ export class AttractorField {
         if (!this.paused && !this.destroyed && !oneShot) this.rafId = requestAnimationFrame(this.tick);
     }
 
+    /**
+     * Live's circle frames show the field's layer scaled (LiveHost.css); the venue declares that scale on the layer
+     * (data-live-scale) before the aperture opens, and the field is drawn at the size it is shown. The first scale
+     * declared is kept: the next visual's, declared while this one fades out, would clear its trail. With none
+     * declared (the Reader, the card, a room whose face is not drawing) it is drawn at its own size.
+     */
+    followDeclaredScale() {
+        const layer = this.host.closest?.('[data-live-scale]');
+        if (!layer) {
+            this._scaleKept = false;
+            if (this.renderScale === 1) return;
+            this.renderScale = 1;
+            this.resize();
+            return;
+        }
+        if (this._scaleKept) return;
+        this._scaleKept = true;
+        const scale = Number(layer.dataset.liveScale) || 1;
+        if (scale === this.renderScale) return;
+        this.renderScale = scale;
+        this.resize();
+    }
+
     /* ── the swarm: particles ridden live into a fading trail ── */
     createSwarm() {
         return new AttractorSwarm(SYSTEMS[this.system], {
@@ -724,6 +751,11 @@ export class AttractorField {
             }
             this.swarmTheta = swarmTheta(this._swarmTick / SWARM_TICK_HZ);
         }
+        // A frame between ticks shows what is already presented.
+        if (!reduced && !oneShot && this._presented === this._swarmTick && this._presentedAt === this.intensity && this._presentedTo === this.canvas.width) return;
+        this._presented = reduced ? null : this._swarmTick;
+        this._presentedAt = this.intensity;
+        this._presentedTo = this.canvas.width;
         this.presentSwarm(this.trailCanvas);
     }
 

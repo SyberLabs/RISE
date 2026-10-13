@@ -306,6 +306,27 @@ describe('the room: the three frames, drawn from the venue’s geometry alone (d
         expect(ctx.counts.cleared).toBe(shut);
     });
 
+    it('keeps its slow trails in the room as the study does: wholly repainted only on entering the room and leaving it', () => {
+        const { scene, run, ctx } = inRoom();
+        run(17);
+        const opaque = () => ctx.counts.opaqueFills;
+        const atRest = opaque();
+        scene.cue(room('shell', 1));
+        run(17);
+        expect(opaque()).toBe(atRest + 1);
+        // A new geometry in the room, every frame while a frame opens: the 8% fade, never a whole repaint.
+        for (const a of [0.5, 0.6, 0.7, 0.8, 0.9, 1]) {
+            scene.cue(room('inner', a));
+            run(17);
+        }
+        scene.cue(room('full', 1));
+        run(170);
+        expect(opaque()).toBe(atRest + 1);
+        scene.cue('aperture:null');
+        run(17);
+        expect(opaque()).toBe(atRest + 2);
+    });
+
     it('draws the open inner eye’s rim where the geometry puts it, at its radius', () => {
         const { scene, run, ctx } = inRoom();
         const g = frameGeometry({ frame: 'inner', a: 1, cut: 0, layout });

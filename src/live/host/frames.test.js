@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    CUT_MS, FRAME_OF, FRAME_OPEN_MS, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, roomLayout, visualTransform
+    CUT_MS, FRAME_OF, FRAME_OPEN_MS, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualTransform
 } from './frames.js';
 
 const W = 1440;
@@ -302,6 +302,16 @@ describe('one geometry: the aperture at its phase boundaries', () => {
         // Before the shutter has dilated, the visual is already where it will open, at 92%.
         const folding = frameGeometry({ frame: 'inner', a: 0.1, cut: 0, layout });
         expect(visualTransform(folding, { width: W, height: H }).k * Math.min(W, H) / 2).toBeCloseTo(c.s * 0.36 * 0.92, 9);
+    });
+
+    it('declares the scale a circle frame shows its visual at once open, so the visual is drawn at that size; 1 elsewhere', () => {
+        for (const frame of ['inner', 'shell']) {
+            const open = frameGeometry({ frame, a: 1, cut: 0, layout });
+            expect(restScale(frame, layout)).toBeCloseTo(visualTransform(open, { width: W, height: H }).k, 12);
+        }
+        expect(restScale('shell', layout)).toBeLessThan(1);
+        expect(restScale('full', layout)).toBe(1);
+        expect(restScale(null, layout)).toBe(1);
     });
 
     it('leaves a field, a texture or an image whole and unmoved in the full frame, and any visual with no frame', () => {

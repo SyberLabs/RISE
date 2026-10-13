@@ -953,6 +953,59 @@ describe('Attractor swarm', () => {
     field.destroy();
   });
 
+  it('presents its trail only when a tick has moved it: a frame between ticks shows what is already there', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    const field = swarmField();
+    const presented = () => field.ctx.drawImage.mock.calls.length;
+    field.tick(0);
+    field.tick(TICK + 0.01);
+    const first = presented();
+    expect(first).toBeGreaterThan(0);
+    field.tick(TICK + 5);
+    field.tick(TICK + 9);
+    expect(presented()).toBe(first);
+    field.tick(2 * TICK + 0.01);
+    expect(presented()).toBeGreaterThan(first);
+    field.destroy();
+  });
+
+  it('is drawn at the scale its layer declares (Live’s circle frames): resized once when it arrives, never again while it holds', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    const layer = document.createElement('div');
+    document.body.appendChild(layer);
+    const host = makeHost();
+    layer.appendChild(host);
+    const field = new AttractorField(host, { trace: 'swarm', adaptive: false });
+    expect(field.canvas.width).toBe(800);
+    layer.dataset.liveScale = '0.5';
+    field.tick(TICK + 0.01);
+    expect([field.canvas.width, field.canvas.height]).toEqual([400, 300]);
+    expect([field.trailCanvas.width, field.trailCanvas.height]).toEqual([400, 300]);
+    let sets = 0;
+    const width = field.canvas.width;
+    Object.defineProperty(field.canvas, 'width', { configurable: true, get: () => width, set: () => { sets += 1; } });
+    for (let i = 2; i < 60; i++) field.tick(i * TICK + 0.01);
+    expect(sets).toBe(0);
+    delete field.canvas.width;
+    // The field's own coordinates are the layer's: only the backing is smaller.
+    expect([field.W, field.H]).toEqual([800, 600]);
+    // The next visual's scale, declared while this one fades out, leaves it as it is.
+    layer.dataset.liveScale = '0.8';
+    field.tick(60 * TICK + 0.01);
+    expect(field.canvas.width).toBe(400);
+    delete layer.dataset.liveScale;
+    field.tick(61 * TICK + 0.01);
+    expect(field.canvas.width).toBe(800);
+    field.destroy();
+  });
+
+  it('is drawn at its own size where nothing declares a scale, as in the Reader and the card', () => {
+    const field = swarmField();
+    for (let i = 0; i < 5; i++) field.tick(i * TICK + 0.01);
+    expect([field.canvas.width, field.canvas.height]).toEqual([800, 600]);
+    field.destroy();
+  });
+
   it('starts a fresh swarm when the system changes', () => {
     const field = swarmField();
     const first = field.swarm;

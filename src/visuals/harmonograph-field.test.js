@@ -124,6 +124,47 @@ describe('HarmonographField', () => {
         projection.remove();
     });
 
+    /** A host laid out at 800 by 600, shown transformed to 100 by 75 (a circle frame's aperture still opening). */
+    const transformed = () => {
+        Object.defineProperty(host, 'clientWidth', { configurable: true, value: 800 });
+        Object.defineProperty(host, 'clientHeight', { configurable: true, value: 600 });
+        host.getBoundingClientRect = () => ({ width: 100, height: 75, left: 0, top: 0, right: 100, bottom: 75 });
+    };
+    const sizes = () => [...host.querySelectorAll('.harmonograph-plane')].map(canvas => [canvas.width, canvas.height]);
+
+    it('is drawn at the scale its layer declares (Live’s circle frames), not the transformed box it mounted in, and follows it when it arrives', () => {
+        const layer = document.createElement('div');
+        document.body.appendChild(layer);
+        layer.appendChild(host);
+        transformed();
+        const field = new HarmonographField(host, { dwellMs: 8_000, crossfadeMs: 1_200 });
+        field.start();
+        expect(sizes()).toEqual([[100, 75], [100, 75]]);
+        layer.dataset.liveScale = '0.5';
+        frame(16);
+        expect(sizes()).toEqual([[400, 300], [400, 300]]);
+        const drawn = progresses.length;
+        let sets = 0;
+        for (const canvas of host.querySelectorAll('.harmonograph-plane')) {
+            const width = canvas.width;
+            Object.defineProperty(canvas, 'width', { configurable: true, get: () => width, set: () => { sets += 1; } });
+        }
+        for (let at = 32; at < 1000; at += 16) frame(at);
+        expect(sets).toBe(0);
+        expect(progresses.length).toBeGreaterThan(drawn);
+        field.destroy();
+        layer.remove();
+    });
+
+    it('is drawn at its laid-out box where nothing declares a scale, as in the Reader and the card', () => {
+        transformed();
+        const field = new HarmonographField(host, { dwellMs: 8_000, crossfadeMs: 1_200 });
+        field.start();
+        frame(16);
+        expect(sizes()).toEqual([[100, 75], [100, 75]]);
+        field.destroy();
+    });
+
     it('starts the pen at the beginning of the dwell', () => {
         const field = new HarmonographField(host, { dwellMs: 8_000, crossfadeMs: 1_200 });
         field.start();

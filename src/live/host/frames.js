@@ -32,6 +32,9 @@ const clamp01 = value => Math.max(0, Math.min(1, value));
 const smooth = value => { const u = clamp01(value); return u * u * (3 - 2 * u); };
 const mix = (from, to, k) => from + (to - from) * k;
 
+/** A circle frame's aperture once open, as a share of the face's square. */
+const APERTURE = Object.freeze({ inner: 0.36, shell: 0.41 });
+
 /** The eye's radius at rest, as a share of the face's square: the speaking eye (open 0.70), with no gaze. */
 const EYE = 0.075 + 0.70 * 0.035;
 /** The docked face's size: a 48 px slot, the face a little larger than it. */
@@ -210,7 +213,7 @@ export function frameGeometry({ frame, a, cut, layout, content = false }) {
         const shell = frame === 'shell';
         const held = smooth(a);
         const travel = shell ? smooth((a - 0.15) / 0.6) : 0;
-        const rf = c.s * (shell ? 0.41 : 0.36);
+        const rf = c.s * APERTURE[frame];
         const shutAt = shell ? 0.1 : 0.25;
         const geometry = {
             ...rest,
@@ -256,6 +259,15 @@ export function frameGeometry({ frame, a, cut, layout, content = false }) {
 }
 
 /**
+ * The scale a circle frame shows its visual layers at once open (visualTransform's at rest), and 1 in any other
+ * frame or none: what the venue declares on each layer so the visual is drawn at the size it is shown.
+ */
+export function restScale(frame, layout) {
+    if (frame !== 'inner' && frame !== 'shell') return 1;
+    return (layout.big.s * APERTURE[frame]) / (Math.min(layout.width, layout.height) / 2);
+}
+
+/**
  * How the Chamber's visual layers are moved and scaled so the circle inscribed in their own square is the aperture,
  * settling from 92% to 100% as the blades draw back: a translation of their centre, in CSS pixels, and a scale about
  * it. Before the shutter has dilated the visual already waits where it will open. In the full frame a picture with
@@ -268,6 +280,6 @@ export function visualTransform(geometry, { width, height }) {
     const half = Math.min(width, height) / 2;
     const c = geometry.face;
     const aperture = geometry.aperture;
-    const r = aperture ? aperture.r * aperture.settle : c.s * (geometry.frame === 'shell' ? 0.41 : 0.36) * 0.92;
+    const r = aperture ? aperture.r * aperture.settle : c.s * APERTURE[geometry.frame] * 0.92;
     return { x: (aperture?.x ?? c.x) - width / 2, y: (aperture?.y ?? c.y) - height / 2, k: r / half };
 }
