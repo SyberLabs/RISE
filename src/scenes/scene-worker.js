@@ -183,7 +183,9 @@ export function attachSceneWorker(scope, { toUrl = defaultUrl, load = defaultLoa
 
   function luma() {
     try {
-      sampler ??= new OffscreenCanvas(8, 8).getContext('2d', { willReadFrequently: true });
+      // Accelerated, so the picture is shrunk on the GPU and 64 pixels come back. A CPU sampler (willReadFrequently)
+      // reads the whole picture back first, and waits behind everything the GPU has queued.
+      sampler ??= new OffscreenCanvas(8, 8).getContext('2d');
       sampler.clearRect(0, 0, 8, 8);
       sampler.drawImage(canvas, 0, 0, 8, 8);
       const { data } = sampler.getImageData(0, 0, 8, 8);

@@ -273,6 +273,10 @@ export class AttractorField {
             // alpha 7/255 and leaves a grey ghost wherever the swarm has been.
             // A browser without it gives 8 bits, and the faint ghost the study has.
             this.trailCtx = this.trailCanvas.getContext('2d', { colorType: 'float16' });
+            // A tick's squares are drawn into this 8-bit square and added to the trail in one draw. Drawn one by one
+            // onto a float16 canvas with 'lighter', each square is its own GPU draw (about 30 µs each, 1,400 a tick).
+            this.dotCanvas = document.createElement('canvas');
+            this.dotCtx = this.dotCanvas.getContext('2d');
             this.makeSwarm();
         }
 
@@ -623,8 +627,36 @@ export class AttractorField {
         this._trailEmpty = true;
     }
 
+    /**
+     * Add one tick of the swarm to a trail: its squares, each added as light, into the scratch square cleared for it,
+     * then the square added to the trail in one draw, on whole pixels. The square is the circle inscribed in the
+     * frame, where every particle stays, and a square's width past it.
+     */
     plotSwarm(ctx, swarm, theta) {
-        swarm.plot(ctx, this.W, this.H, theta, swarmRamp(PALETTES[this.palette]), this.form);
+        const ramp = swarmRamp(PALETTES[this.palette]);
+        const dots = this.dotCtx;
+        if (!dots) {
+            swarm.plot(ctx, this.W, this.H, theta, ramp, this.form);
+            return;
+        }
+        const dpr = this.DPR;
+        const half = Math.min(this.W, this.H) / 2 + 4;
+        const left = Math.floor((this.W / 2 - half) * dpr);
+        const top = Math.floor((this.H / 2 - half) * dpr);
+        const side = Math.ceil(2 * half * dpr) + 2;
+        if (this.dotCanvas.width !== side || this.dotCanvas.height !== side) {
+            this.dotCanvas.width = side;
+            this.dotCanvas.height = side;
+        }
+        dots.setTransform(1, 0, 0, 1, 0, 0);
+        dots.clearRect(0, 0, side, side);
+        dots.setTransform(dpr, 0, 0, dpr, -left, -top);
+        swarm.plot(dots, this.W, this.H, theta, ramp, this.form);
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.drawImage(this.dotCanvas, left, top);
+        ctx.restore();
     }
 
     fadeTrail(ctx) {
