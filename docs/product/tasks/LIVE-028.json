@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -46,7 +46,19 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/653",
-      "note": "Draft PR on branch live-three-frames at acb90151, with the local evidence above. Not merged, deployed or accepted by a human.",
+      "note": "Branch live-three-frames; after review also the figure ink fix (a figure in a reading that names no theme draws in its words' own ink) and the fast-subset count. CI green; merged (squash) as 1169a51c. Not accepted by a human.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/release.txt",
+      "note": "release.txt 4e6ce08d (main after #654, containing the #653 merge 1169a51c); the production job at 1169a51c itself stood down because main had moved on, and 4e6ce08d deployed. Headless Chromium against production, with its real CSP headers: the face drew in the entry, the demo reading opened the outer shell (attractor, aperture wholly open, root marked shell) and the full frame (the horizon figure in light ink, the face docked 48 px at the bar, 240 worker frames, not frozen). Screenshots kept by the coordinator: frames-renders/prod-shell-1440x900.png, prod-full-1440x900.png, prod-shell-390x844.png, prod-full-390x844.png. The only console error is the Cloudflare analytics beacon refused by the site's own script-src, unrelated. Not accepted by a human.",
+      "date": "2026-10-13"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/656",
+      "note": "Follow-up answering the Codex finding on #653: where the face cannot draw, its still eye stays a poster in the room and the words sit at its foot.",
       "date": "2026-10-13"
     }
   ],
@@ -58,10 +70,14 @@
     {
       "date": "2026-10-13T04:45:29.537Z",
       "summary": "Draft PR #653 opened on branch live-three-frames (acb90151) with local verification evidence and renders"
+    },
+    {
+      "date": "2026-10-13T05:17:57.882Z",
+      "summary": "PR #653 merged as 1169a51c and deployed (release.txt 4e6ce08d); the frames and the face seen on production; delivery deployed"
     }
   ],
-  "updatedAt": "2026-10-13T04:45:29.537Z",
-  "revision": 2,
+  "updatedAt": "2026-10-13T05:17:57.882Z",
+  "revision": 3,
   "summary": "Every visual of a Live reading held by Sophia in one of three frames (inner eye, outer shell, full frame), the visual choosing which; she never leaves the room.",
   "blocker": null
 }
