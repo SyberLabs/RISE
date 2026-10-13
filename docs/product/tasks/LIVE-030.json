@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [
@@ -48,6 +48,18 @@
       "kind": "document",
       "ref": "frames-renders/bar-*.png",
       "note": "Renders by the agent (not a human observation), kept by the coordinator: bar-eye, bar-shell, bar-full-figure, bar-full-field, bar-interjection, bar-note at 1440x900 and 390x844, and bar-keyboard-390 (an emulated keyboard drawn in grey). Bottom to top: instrument, bar, note line, words, the face's square; nothing overlaps. Not accepted by a human."
+    },
+    {
+      "date": "2026-10-13",
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/665",
+      "note": "Branch live-ask-bar-bottom: the bar at the room's foot (roomLayout), the keyboard lift (visualViewport), and the catalog word's note held until the frame has opened onto the visual (LIVE-029). CI green; Codex completed with no findings. Merged (squash) as b2fec553. Not accepted by a human."
+    },
+    {
+      "date": "2026-10-13",
+      "kind": "document",
+      "ref": "https://rise.syberlabs.io/live?voice=paced&measure=1",
+      "note": "Production check on release b2fec553 (release.txt), headless Chromium, the demo reading, by the agent (not a human observation): prod-bar-* shots at 1440x900 and 390x844 (eye, shell, full frame with the figure and with genesis, interjection, note, emulated keyboard) kept by the coordinator. At 1440x900 the bar at 758-812 above the instrument at 820, the words above it, the full-frame face at (560, 785), 32 px left of the bar's left end and centred on it; at 390x844 the bar at 714-768 above the instrument at 776, the face at (35, 741), \"Staff sign in\" (10-54) clear of it; with an emulated 336 px keyboard the bar rose to 446-500. Geometry identical to the local build. A real phone keyboard is unverified. Not accepted by a human."
     }
   ],
   "activity": [
@@ -58,10 +70,14 @@
     {
       "date": "2026-10-13T06:48:18.602Z",
       "summary": "Local verification: unit, targeted e2e and renders at 1440x900 and 390x844"
+    },
+    {
+      "date": "2026-10-13T07:07:14.899Z",
+      "summary": "PR #665 merged as b2fec553 and deployed (release.txt b2fec553, 2026-10-13), seen on production; delivery deployed; not accepted by a human"
     }
   ],
-  "updatedAt": "2026-10-13T06:48:18.602Z",
-  "revision": 2,
+  "updatedAt": "2026-10-13T07:07:14.899Z",
+  "revision": 3,
   "summary": "In RISE Live's room the ask bar sits at the foot, above the stage's instrument (or an on-screen keyboard), with Sophia docked at its left end in the full frame and the spoken words above it, as in the approved study; the entry is unchanged.",
   "blocker": null
 }
