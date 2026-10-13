@@ -60,6 +60,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/656",
       "note": "Follow-up answering the Codex finding on #653: where the face cannot draw, its still eye stays a poster in the room and the words sit at its foot.",
       "date": "2026-10-13"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/661",
+      "note": "Branch live-full-frame-fit: in the full frame a figure or a generated code scene is fitted, aspect kept, into the room’s safe rectangle (12 px below the bar and the docked face to 12 px above the words’ two reserved lines, 16 px in from the sides; frameGeometry fit, holdsContent), fields, textures and images full-bleed as before; a listening scene’s pointer is mapped to its own CSS pixels at any scale. Local: 9 vitest files, 366 passed; e2e/live.spec.js \"the frames\" 3 passed (the figure wholly between the bar’s foot and the words’ zone) and \"interactive scenes\" 4 passed (Weight 1 pressed at the fitted scale gives -1); docs:diagram unchanged, ci-hygiene clean, first load 62.2 KB br of 64.0. Renders kept by the coordinator: frames-renders/fit-horizon, fit-disk, fit-water, fit-code, fit-genesis at 1440x900 and 390x844. Not merged, deployed or accepted by a human.",
+      "date": "2026-10-13"
     }
   ],
   "activity": [
@@ -74,10 +80,14 @@
     {
       "date": "2026-10-13T05:17:57.882Z",
       "summary": "PR #653 merged as 1169a51c and deployed (release.txt 4e6ce08d); the frames and the face seen on production; delivery deployed"
+    },
+    {
+      "date": "2026-10-13T05:49:34.002Z",
+      "summary": "PR #661 opened: a figure or a generated scene in the full frame fitted into the room's safe rectangle, clear of the bar and the words"
     }
   ],
-  "updatedAt": "2026-10-13T05:17:57.882Z",
-  "revision": 3,
+  "updatedAt": "2026-10-13T05:49:34.002Z",
+  "revision": 4,
   "summary": "Every visual of a Live reading held by Sophia in one of three frames (inner eye, outer shell, full frame), the visual choosing which; she never leaves the room.",
   "blocker": null
 }
