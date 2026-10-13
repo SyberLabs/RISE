@@ -1084,18 +1084,18 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         crank(1700);
         const note = () => $('.live-again__note').textContent;
         askAgain('genesis');
-        expect(note()).toBe('Showing the genesis.');
+        expect(note()).toBe('Showing Genesis.');
         // The attractor is still on screen: the note waits for the visual it named.
         crank(2000);
-        expect(note()).toBe('Showing the genesis.');
+        expect(note()).toBe('Showing Genesis.');
         chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
         // The shell closes (1.6 s) and the full frame opens (1.9 s): the note stays through all of it.
         let opened = 0;
         while (engine().places.at(-1)?.wipe?.hole !== 1 && opened < 6000) { crank(16); opened += 16; }
         expect(opened).toBeGreaterThan(3000);
-        expect(note()).toBe('Showing the genesis.');
+        expect(note()).toBe('Showing Genesis.');
         crank(1400);
-        expect(note()).toBe('Showing the genesis.');
+        expect(note()).toBe('Showing Genesis.');
         crank(200);
         expect(note()).toBe('');
     });
@@ -1109,7 +1109,7 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
             askAgain('genesis');
             chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
             crank(1400);
-            expect(note()).toBe('Showing the genesis.');
+            expect(note()).toBe('Showing Genesis.');
             crank(200);
             expect(note()).toBe('');
         } finally {

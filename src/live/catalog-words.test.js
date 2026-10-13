@@ -5,6 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { CATALOG_LIMITS, catalogNote, recogniseVisual } from './catalog-words.js';
+import { SCENE_MANIFESTS } from '../core/beats.js';
 
 const heard = (words, running = null) => recogniseVisual(words, { running });
 
@@ -140,5 +141,22 @@ describe('the note in the bar', () => {
         expect(catalogNote({ engine: 'attractor', cue: 'calm' })).toBe('Making the attractor calmer.');
         expect(catalogNote({ engine: 'living-flame', cue: 'surge' })).toBe('Making the living flame surge.');
         expect(catalogNote({ engine: 'attractor', params: { intensity: 0.45 }, cue: 'calm' })).toBe('Showing the attractor, calmer.');
+    });
+
+    it('names each engine as the Reader’s catalog does: a common noun with “the”, a proper name without', () => {
+        const said = Object.fromEntries(SCENE_MANIFESTS.filter(({ id }) => id !== 'still' && id !== 'oracle').map(({ id }) => [id, catalogNote({ engine: id, params: {} })]));
+        expect(said).toEqual({
+            attractor: 'Showing the attractor.',
+            genesis: 'Showing Genesis.',
+            'living-flame': 'Showing the living flame.',
+            fractal: 'Showing the fractal.',
+            turrell: 'Showing Turrell Fields.',
+            neural: 'Showing the neural network.',
+            rockgarden: 'Showing the rock garden.',
+            harmonograph: 'Showing the harmonograph.',
+            ostensoria: 'Showing Ostensoria.',
+            apparitio: 'Showing Apparitio.'
+        });
+        expect(catalogNote({ engine: 'genesis', cue: 'calm' })).toBe('Making Genesis calmer.');
     });
 });
