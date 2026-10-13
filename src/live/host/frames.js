@@ -16,6 +16,12 @@ export const FRAME_OF = Object.freeze({
     genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', sourced: 'full', figure: 'full', scene: 'full'
 });
 
+/**
+ * The pictures with content of their own (a figure, a generated scene): in the full frame they are fitted into the
+ * room's safe rectangle, clear of the bar and the words. A field, a texture or an image stays full-bleed.
+ */
+const CONTENT = new Set(['figure', 'scene']);
+
 /** How long each frame takes to open from the eye; closing takes the same, in proportion to how open it is. */
 export const FRAME_OPEN_MS = Object.freeze({ inner: 1100, shell: 1600, full: 1900 });
 
@@ -48,6 +54,11 @@ export function frameOf(cue) {
     const visual = visualOf(cue);
     if (visual === null) return null;
     return Object.hasOwn(FRAME_OF, visual) ? FRAME_OF[visual] : 'full';
+}
+
+/** Whether the cue on screen is a picture with content of its own, fitted clear of the bar and the words. */
+export function holdsContent(cue) {
+    return CONTENT.has(visualOf(cue));
 }
 
 /** How shut the aperture is, `elapsed` ms into a cut; null once it is open again. */
@@ -126,8 +137,11 @@ export function createFrameDirector({ reduced = false } = {}) {
 
 /**
  * The room as the face sees it: its square between the ask bar and the words (the eye at its centre, the circle
- * frames inside it), the dock at the bar's left end, where the words begin, and the distance from the square's
- * centre to the farthest corner, which the full frame's aperture must pass.
+ * frames inside it), the dock at the bar's left end, where the words begin, the distance from the square's centre to
+ * the farthest corner, which the full frame's aperture must pass, and the safe rectangle (centre and size) a picture
+ * with content is fitted into in the full frame: 16 px in from the sides, 12 px below the bar and the docked face,
+ * 12 px above the words' zone. The words' zone is the two lines the venue reserves, so the rectangle does not move
+ * with the words.
  * @param {{width: number, height: number, bar: {left: number, top: number, width: number, height: number}|null, wordsTop: number}} room
  */
 export function roomLayout({ width, height, bar, wordsTop }) {
@@ -140,7 +154,9 @@ export function roomLayout({ width, height, bar, wordsTop }) {
         ? { x: bar.left - 8 - DOCK / 2, y: bar.top + bar.height / 2, s: DOCK * 1.15 }
         : { x: 16 + DOCK / 2, y: 16 + DOCK / 2, s: DOCK * 1.15 };
     const far = Math.max(...[[0, 0], [width, 0], [0, height], [width, height]].map(([x, y]) => Math.hypot(x - big.x, y - big.y)));
-    return { width, height, big, dock, wordsTop, far };
+    const safeTop = Math.max(top, dock.y + dock.s / 2 + 12);
+    const safe = { x: width / 2, y: (safeTop + bottom) / 2, w: Math.max(0, width - 32), h: Math.max(0, bottom - safeTop) };
+    return { width, height, big, dock, wordsTop, far, safe };
 }
 
 /**
@@ -160,11 +176,13 @@ export function roomLayout({ width, height, bar, wordsTop }) {
  *                  the closing petals, the visual's fade-in and how far it has settled from 92% to 100%
  *   wipe           the full frame's nine-sided aperture: centre, radius, turn, opening, the visual's fade-in, the
  *                  edge it draws while opening, and where the scrim behind the words begins
+ *   fit            in the full frame, for a picture with content (`content`): the room's box scaled uniformly by k
+ *                  and centred on the safe rectangle, so the picture lies wholly inside it; null otherwise
  */
-export function frameGeometry({ frame, a, cut, layout }) {
+export function frameGeometry({ frame, a, cut, layout, content = false }) {
     const c = layout.big;
     const eye = { x: c.x, y: c.y, r: c.s * EYE };
-    const rest = { frame, big: { ...c }, face: { ...c }, small: 0, dim: 1, spread: 1, travel: 0, eyeClosed: 0, blink: a === 0, eye, crown: null, aperture: null, wipe: null };
+    const rest = { frame, big: { ...c }, face: { ...c }, small: 0, dim: 1, spread: 1, travel: 0, eyeClosed: 0, blink: a === 0, eye, crown: null, aperture: null, wipe: null, fit: null };
     if (frame === 'inner' || frame === 'shell') {
         const shell = frame === 'shell';
         const held = smooth(a);
@@ -197,7 +215,7 @@ export function frameGeometry({ frame, a, cut, layout }) {
     if (frame === 'full') {
         const travel = smooth((a - 0.1) / 0.45);
         const hole = smooth((a - 0.2) / 0.8) * (1 - cut);
-        const { dock } = layout;
+        const { dock, safe } = layout;
         return {
             ...rest,
             face: { x: mix(c.x, dock.x, travel), y: mix(c.y, dock.y, travel), s: mix(c.s, dock.s, travel) },
@@ -207,7 +225,8 @@ export function frameGeometry({ frame, a, cut, layout }) {
             wipe: hole > 0 ? {
                 x: c.x, y: c.y, r: (hole * layout.far * 1.08) / Math.cos(Math.PI / 9), turn: hole * 1.2, hole,
                 fade: clamp01(hole * 2), ring: hole < 0.98 ? 0.5 * (1 - hole) : 0, scrimTop: layout.wordsTop - 30
-            } : null
+            } : null,
+            fit: content ? { x: safe.x, y: safe.y, k: Math.min(safe.w / layout.width, safe.h / layout.height) } : null
         };
     }
     return rest;
@@ -216,10 +235,12 @@ export function frameGeometry({ frame, a, cut, layout }) {
 /**
  * How the Chamber's visual layers are moved and scaled so the circle inscribed in their own square is the aperture,
  * settling from 92% to 100% as the blades draw back: a translation of their centre, in CSS pixels, and a scale about
- * it. Before the shutter has dilated the visual already waits where it will open. The full frame and no frame leave
- * the visual whole and where it is.
+ * it. Before the shutter has dilated the visual already waits where it will open. In the full frame a picture with
+ * content is moved to the safe rectangle's centre and scaled by its fit; a field, a texture or an image, and any
+ * visual with no frame, are left whole and where they are.
  */
 export function visualTransform(geometry, { width, height }) {
+    if (geometry.frame === 'full' && geometry.fit) return { x: geometry.fit.x - width / 2, y: geometry.fit.y - height / 2, k: geometry.fit.k };
     if (geometry.frame !== 'inner' && geometry.frame !== 'shell') return { x: 0, y: 0, k: 1 };
     const half = Math.min(width, height) / 2;
     const c = geometry.face;

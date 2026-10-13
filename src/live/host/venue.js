@@ -26,10 +26,12 @@ import { connectionState, subscribeConnection, takeConnectionNotice } from '../.
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
-import { createFrameDirector, frameGeometry, frameOf, roomLayout, visualTransform } from './frames.js';
+import { createFrameDirector, frameGeometry, frameOf, holdsContent, roomLayout, visualTransform } from './frames.js';
 
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
+/** The longest a visual takes to fade out, as the Chamber sets it. */
+const CROSSFADE_MS = 1200;
 
 const MIC_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 const LEAVE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
@@ -800,7 +802,7 @@ export class LiveVenue {
         // The host's window: where there are no animation frames there is nothing to animate, and nothing is framed.
         const view = this.host.env?.window ?? this.host.env;
         if (this.framing || this.destroyed || typeof view?.requestAnimationFrame !== 'function') return;
-        const framing = { view, director: createFrameDirector({ reduced: this.faceHoldsStill() }), clock: 0, last: null, cue: undefined, key: undefined, raf: 0, geometry: null };
+        const framing = { view, director: createFrameDirector({ reduced: this.faceHoldsStill() }), clock: 0, last: null, cue: undefined, key: undefined, raf: 0, geometry: null, fitUntil: 0 };
         this.framing = framing;
         const tick = now => {
             if (this.framing !== framing) return;
@@ -826,6 +828,7 @@ export class LiveVenue {
     /** The Chamber's visual whole and unmoved, and the root unmarked: as the Reader and the card always have it. */
     unframe() {
         delete this.doc.documentElement.dataset.liveFrame;
+        delete this.doc.documentElement.dataset.liveFit;
         delete this.face.dataset.faceAside;
         const field = this.doc.querySelector('#chamber-field');
         for (const name of ['--live-vx', '--live-vy', '--live-vk']) field?.style.removeProperty(name);
@@ -844,6 +847,9 @@ export class LiveVenue {
             const key = cue ? JSON.stringify({ ...cue, colorTheme: undefined }) : null;
             if (key !== framing.key) {
                 framing.key = key;
+                // The outgoing figure or scene is still fading out; it stays fitted until the crossfade has run.
+                if (holdsContent(framing.cue)) framing.fitUntil = Infinity;
+                else if (framing.fitUntil === Infinity) framing.fitUntil = framing.clock + CROSSFADE_MS;
                 framing.director.see(frameOf(cue), framing.clock);
             }
         }
@@ -861,10 +867,12 @@ export class LiveVenue {
             return;
         }
         const layout = this.measureRoom();
-        const geometry = frameGeometry({ frame, a, cut, layout });
+        const geometry = frameGeometry({ frame, a, cut, layout, content: holdsContent(framing.cue) || framing.clock < framing.fitUntil });
         framing.geometry = geometry;
         const move = visualTransform(geometry, layout);
         this.doc.documentElement.dataset.liveFrame = frame;
+        if (geometry.fit) this.doc.documentElement.dataset.liveFit = 'true';
+        else delete this.doc.documentElement.dataset.liveFit;
         const field = this.doc.querySelector('#chamber-field');
         field?.style.setProperty('--live-vx', `${move.x}px`);
         field?.style.setProperty('--live-vy', `${move.y}px`);

@@ -741,7 +741,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(errors).toEqual([]);
     });
 
-    test('the frames: a figure takes the full frame, the face docked by the bar, the words over the scrim', async ({ page }) => {
+    test('the frames: a figure takes the full frame, the face docked by the bar, the figure fitted clear of the bar and the words', async ({ page }) => {
         test.setTimeout(90_000);
         const errors = watchErrors(page);
         await page.goto(`${VENUE}&measure=1`);
@@ -766,10 +766,20 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(bar.x - face.x).toBeLessThan(40);
         expect(Math.abs(face.y - (bar.y + bar.height / 2))).toBeLessThan(2);
         expect(await page.evaluate(() => document.documentElement.dataset.liveFrame)).toBe('full');
-        // The figure itself is not moved or scaled in the full frame.
+        // The figure has content of its own: it is fitted, aspect kept, wholly between the bar's foot and the top of
+        // the two lines the words' zone keeps at the room's foot, so its own labels are clear of the words.
         const figure = await page.locator('#chamber-field img.chamber-figure').boundingBox();
         const viewport = page.viewportSize();
-        expect(figure).toMatchObject({ x: 0, y: 0, width: viewport.width, height: viewport.height });
+        const zoneTop = await page.evaluate(() => {
+            const root = getComputedStyle(document.documentElement);
+            return innerHeight - parseFloat(root.getPropertyValue('--live-words-foot')) - 2 * 1.4 * parseFloat(root.getPropertyValue('--live-words-size'));
+        });
+        expect(figure.y).toBeGreaterThanOrEqual(bar.y + bar.height);
+        expect(figure.y + figure.height).toBeLessThanOrEqual(zoneTop);
+        expect(figure.x + figure.width / 2).toBeCloseTo(viewport.width / 2, 0);
+        expect(figure.width / figure.height).toBeCloseTo(viewport.width / viewport.height, 2);
+        const words = await page.locator('#atom-display').boundingBox();
+        expect(figure.y + figure.height).toBeLessThanOrEqual(words.y);
         expect(errors).toEqual([]);
     });
 
@@ -1281,11 +1291,14 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         expect(dragged.value).not.toBe('0.5, 0.5');
         await expect(page.locator('.chamber-scene-controls li').nth(2)).toHaveText(`Input, point: ${dragged.value}`);
 
-        // Weight 1, pressed a quarter of the way along its track (x 28 to 198): -1, said in the stage's live region. One press
-        // is one input and one move: its round trip, from the press to the journal, on the page's own clock.
+        // Weight 1, pressed a quarter of the way along its track (x 28 to 198 of the scene's own pixels, drawn at the
+        // full frame's fit): -1, said in the stage's live region. One press is one input and one move: its round trip,
+        // from the press to the journal, on the page's own clock.
         const w1 = await page.locator('.chamber-scene-hit[data-control="w1"]').boundingBox();
+        const k = await page.evaluate(() => window.__riseFace.frame()?.fit?.k ?? 1);
+        expect(k).toBeLessThan(1);
         const pressedAt = await page.evaluate(() => performance.now());
-        await page.mouse.click(w1.x + 10 + 170 * 0.25, w1.y + w1.height / 2);
+        await page.mouse.click(w1.x + (10 + 170 * 0.25) * k, w1.y + w1.height / 2);
         await expect.poll(async () => (await inputs()).find(entry => entry.control === 'w1')?.value ?? null).toBe(-1);
         const weighed = (await inputs()).find(entry => entry.control === 'w1');
         console.log(`interactive scene: a press on Weight 1 to scene.input journaled ${Math.round(weighed.at - pressedAt)} ms (the drag of the input ended at ${dragged.value})`);
