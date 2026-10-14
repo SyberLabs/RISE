@@ -93,6 +93,8 @@ describe('buildComposeRequest', () => {
     expect(system).toMatch(/at most 2 of RISE’s engines/);
     expect(system).toMatch(/every 4 beats/);
     expect(system).toMatch(/mood/);
+    expect(system).toMatch(/where each part sits/);
+    expect(system).toMatch(/8 scenes in all/);
   });
 });
 

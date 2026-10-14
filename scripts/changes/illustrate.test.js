@@ -45,6 +45,8 @@ describe('illustrate', () => {
     expect(calls[0].system).toContain(ILLUSTRATOR_INSTRUCTIONS);
     expect(calls[0].system).toMatch(/dark/i);
     expect(calls[0].system).toMatch(/390/);
+    expect(calls[0].system).toMatch(/clear of every other label/);
+    expect(calls[0].system).toMatch(/only where the brief says/);
     expect(calls[0].prompt).toContain(brief);
     expect(calls[0].prompt).toContain('The swarm draws 700 particles.');
   });

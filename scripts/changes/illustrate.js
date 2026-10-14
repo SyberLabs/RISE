@@ -18,7 +18,9 @@ export const DIGEST_PICTURE_NOTE = [
   'These pictures illustrate RISE’s weekly digest for the team that builds it, one change or group of changes each.',
   '- The room’s ground is dark, near black, and the picture fills the frame behind the words. Draw in currentColor, which RISE inks in the words’ light colour; leave the background empty; no dark fills.',
   '- Labels must read on a phone 390 pixels wide: text of at least 20 units in a viewBox about 400 wide, few words per label, nothing smaller.',
-  '- Draw only what the brief and the beats just said state: no number, name or claim of your own. A number in the picture must be one the brief gives.'
+  '- Every label sits clear of every other label and of every line and box: no text over a stroke, no two labels touching. Fewer words is the fix when space runs out.',
+  '- Draw only what the brief and the beats just said state: no number, name or claim of your own. A number in the picture must be one the brief gives.',
+  '- Place things only where the brief says: a layout puts each part where the brief puts it (above, below, at the foot). When the brief gives no positions, draw a flow or a list, never an arrangement it did not state.'
 ].join('\n');
 
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
