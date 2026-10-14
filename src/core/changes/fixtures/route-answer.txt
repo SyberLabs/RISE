@@ -1,0 +1,17 @@
+{"routes": {
+  "652": {"audience": "both", "significance": "notable", "kind": "feature"},
+  "653": {"audience": "both", "significance": "major", "kind": "design"},
+  "655": {"audience": "both", "significance": "major", "kind": "feature"},
+  "656": {"audience": "both", "significance": "minor", "kind": "fix"},
+  "658": {"audience": "team", "significance": "notable", "kind": "fix"},
+  "660": {"audience": "both", "significance": "major", "kind": "feature"},
+  "661": {"audience": "both", "significance": "notable", "kind": "fix"},
+  "662": {"audience": "team", "significance": "notable", "kind": "fix"},
+  "663": {"audience": "both", "significance": "minor", "kind": "design"},
+  "665": {"audience": "both", "significance": "notable", "kind": "design"},
+  "667": {"audience": "both", "significance": "notable", "kind": "fix"},
+  "668": {"audience": "team", "significance": "notable", "kind": "performance"},
+  "669": {"audience": "both", "significance": "notable", "kind": "fix"},
+  "670": {"audience": "both", "significance": "minor", "kind": "fix"},
+  "671": {"audience": "readers", "significance": "minor", "kind": "design"}
+}}
