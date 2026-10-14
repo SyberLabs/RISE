@@ -44,6 +44,18 @@
       "date": "2026-10-14"
     },
     {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/673",
+      "note": "PR B, branch changes-viewer at 70615e66 (rebased on #672): worker/changes.mjs proxies /content/changes/<file> from the changes-data branch (allowlist, GET/HEAD, no query, JSON 404 no-store, nosniff, 256 KB cap, cf cacheEverything with cacheTtlByStatus 300 s index / 86400 s digest), run_worker_first in wrangler.production.jsonc; src/app/changes.js shows /changes and /changes/<id>, holding files to contract.js and the Current to the validator and scene/figure admission, and plays it through the chamber-session factory (silent, paced; narration is the next PR). Not merged.",
+      "date": "2026-10-14"
+    },
+    {
+      "kind": "test",
+      "ref": "src/app/changes.test.js",
+      "note": "Branch changes-viewer, local (Windows, Node 22): worker/changes.test.js 36 passed; src/app/changes.test.js 41 passed (20 digest refusals, each by its reason; the generator sample admitted); importers incl. worker/index, production-config, route-url, Home, route-manifest, system-design, contract: 8 files 186 passed; npx playwright test e2e/changes.spec.js 5 passed (list, keyboard at 390 px, Play opens the Chamber at /changes/<id> and words stream, PR links, malformed and refused-scene digests refused, missing files). Screenshots changes-*.png at 1440x900 and 390x844 (coordinator scratchpad frames-renders).",
+      "date": "2026-10-14"
+    },
+    {
       "kind": "observation",
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/38560715770",
       "note": "First real model call: workflow_dispatch dry run on main at 853bb6f8, since 2026-10-13T02:00:00Z. CLI 2.1.287 with -p, --max-turns 1, --tools \"\", --permission-mode dontAsk and the prompt on stdin worked (EBADENGINE warning on Node 20.19). 21 merged, 5 records-only, 16 routed, all answers on the menu; 10 included (652, 653, 655, 660, 661, 662, 665, 668, 669, 672); #667, #670, #663, #656 routed to readers and so left out under the first rule. Composition admitted on the first call: 0 repairs, no number refusals, 13 beats, two engine scenes. The beats carried a caveat from #661 that #663 had resolved, and a flourish at the opening and close. Digest step 17 s, job 58 s. The log has no sk-ant, oat01, Bearer or gh token string; both secrets show only as ***.",
@@ -52,7 +64,7 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/674",
-      "note": "Follow-up from the first dry run, branch changes-team-inclusion: the team digest includes every audience but skip when notable or major; the composer reads the pull requests in merge order and states an earlier caveat only when no later one resolves it, with no flourish; the workflow on Node 22.23.3. Local: vitest src/core/changes plus system-design 111 passed; roadmap, hygiene, vite build, first load 62.1 KB br. Not merged.",
+      "note": "Follow-up from the first dry run, branch changes-team-inclusion: the team digest includes every audience but skip when notable or major; the composer reads the included pull requests and, as context only, the routed ones left out, in merge order, and states an earlier caveat only when no later one resolves it, with no flourish; the workflow on Node 22.23.3; the docs index lists the contract so the wiki builds. Codex finding (a minor resolver left out) fixed in c649f2b0. Local: vitest src/core/changes plus system-design passed; roadmap, hygiene, vite build, first load 62.1 KB br, wiki build 112 pages.",
       "date": "2026-10-14"
     }
   ],
@@ -66,15 +78,15 @@
       "summary": "PR #672 (PR A: the generator and the workflow) opened as a draft with local verification evidence."
     },
     {
-      "date": "2026-10-14T12:05:54.388Z",
-      "summary": "PR #672 merged as 853bb6f8; first dry run 38560715770 recorded; the team digest now includes every audience but skip (follow-up PR)"
+      "date": "2026-10-14T12:04:36.129Z",
+      "summary": "PR B (#673): the Worker route and the /changes pages, rebased on #672 and reading files through contract.js"
     },
     {
-      "date": "2026-10-14T12:07:22.847Z",
-      "summary": "PR #674 opened: team inclusion, merge-order composition, Node 22"
+      "date": "2026-10-14T12:36:48.644Z",
+      "summary": "PR #672 merged as 853bb6f8; first dry run 38560715770 recorded; PR #674: every audience but skip, merge-order composition with context, Node 22"
     }
   ],
-  "updatedAt": "2026-10-14T12:07:22.847Z",
+  "updatedAt": "2026-10-14T12:36:48.644Z",
   "revision": 4,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null

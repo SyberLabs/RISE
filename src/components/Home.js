@@ -35,7 +35,7 @@
 import './Home.css';
 import './portal-home.css';
 import { drawRiseSigil } from './atlas.js';
-import { arenaFromPath, isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
+import { arenaFromPath, changesFromPath, isJevSceneDemoPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
 import { HomeAsk, alertMarkup, showAlert } from './home-ask.js';
 import { connectionState, subscribeConnection } from '../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
@@ -142,6 +142,7 @@ export class Home {
     this.onLaunchToday = options.onLaunchToday || (async () => {});
     this.onAdjustReading = options.onAdjustReading || (async () => {});
     this.onLaunchJevSample = options.onLaunchJevSample || (async () => {});
+    this.onLaunchCurrent = options.onLaunchCurrent || (async () => {});
     this.demoMode = options.demoMode === true;
     this._active = false;
     // The work in progress, or null: a data-home hook (roll, ask, enter, adjust).
@@ -287,6 +288,8 @@ export class Home {
     this.samplePath = this.demoMode ? window.location.pathname : null;
     const arena = this.demoMode && arenaFromPath(this.samplePath);
     if (arena) void this.mountArena(arena);
+    const changes = this.demoMode && changesFromPath(this.samplePath);
+    if (changes) void this.mountChanges(changes);
     this.asking = this.demoMode ? null : new HomeAsk(this.container.querySelector('.portal'), {
       getAudioEngine: this.getAudioEngine,
       loadTools: () => this.loadTools(),
@@ -329,6 +332,7 @@ export class Home {
 
   renderDemo() {
     if (arenaFromPath(window.location.pathname)) return '<section class="portal-ask" aria-labelledby="portal-ask-title" data-arena></section>';
+    if (changesFromPath(window.location.pathname)) return '<section class="portal-ask" aria-labelledby="portal-ask-title" data-changes></section>';
     const nightDrive = sceneSampleFromPath(window.location.pathname) === 'night-drive';
     return `<section class="portal-ask" aria-labelledby="portal-ask-title">
       <p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>${nightDrive ? 'Night Drive sample' : 'RISE scene sample'}</p>
@@ -364,6 +368,20 @@ export class Home {
     await mountArenaReplay(section, {
       ...arena,
       launch: (decision, publicPath) => this.onLaunchJevReading(decision, { publicPath }),
+      go: path => {
+        window.history.pushState({}, '', path);
+        this.update();
+      }
+    });
+  }
+
+  /** RISE Changes (src/app/changes.js): a digest's admitted Current plays at the digest's address; its links move in place. */
+  async mountChanges(changes) {
+    const section = this.container.querySelector('[data-changes]');
+    const { mountChanges } = await import('../app/changes.js');
+    await mountChanges(section, {
+      ...changes,
+      launch: (current, publicPath) => this.onLaunchCurrent(current, { publicPath }),
       go: path => {
         window.history.pushState({}, '', path);
         this.update();

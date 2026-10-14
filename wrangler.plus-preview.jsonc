@@ -24,7 +24,7 @@
     "directory": "./dist",
     "not_found_handling": "single-page-application",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*"]
+    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*", "/content/changes/*"]
   },
   // PLUS_METER holds each subscription's allowance and the daily total (SQLite-backed, free plan).
   "durable_objects": { "bindings": [{ "name": "PLUS_METER", "class_name": "PlusMeter" }] },
