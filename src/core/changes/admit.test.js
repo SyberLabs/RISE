@@ -121,6 +121,12 @@ describe('admitComposition', () => {
       expect(verdict.diagnostics.join('\n')).toMatch(/"40"/);
     });
 
+    it('does not read a figure’s style sheet or comments as text it shows', () => {
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260"><!-- draft 3 --><style>text { stroke-width: 3; }</style><text x="120" y="240">700 particles</text></svg>';
+      const verdict = admit({ current: current([{ say: 'This week.', scene: 'fig' }, ...beats.slice(1)], { scenes: [{ id: 'fig', svg }] }), sources: { 1: [652], 2: [653] } });
+      expect(verdict.ok).toBe(true);
+    });
+
     it('accepts numbers a pull request states, and the dates of the period', () => {
       const verdict = admit({ current: current([{ say: 'From 12 to 19 October 2026.', scene: 'field' }, { say: '700 particles, 60 ticks a second.' }, { say: 'Three frames.' }]), sources: { 1: [652], 2: [653] } });
       expect(verdict.ok).toBe(true);
