@@ -8,15 +8,14 @@
  * (worker/changes.mjs). Everything in them is model- or PR-written, so each
  * file is held to its contract here before anything of it is shown, and the
  * digest's Current to the admission a card's Current passes at the Worker's
- * door (worker/mcp-server.mjs): its size, the Current validator, and every
- * generated scene's code and figure's SVG. A file that fails is one line and
+ * door (worker/mcp-server.mjs): the Current validator, and every generated
+ * scene's code and figure's SVG. A file that fails is one line and
  * no reading. Nothing here calls a model. Loaded only when a changes address
  * is opened.
  */
 import './changes.css';
 import { RISE_CURRENT_SCHEMA_V2, validateRiseCurrent } from '../core/rise-current.js';
 import { sceneRefusal } from '../core/scene-admission.js';
-import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../live/hosts/mcp-size.js';
 
 const INDEX_SCHEMA = 'syberlabs.changes-index/v1';
 const DIGEST_SCHEMA = 'syberlabs.changes-digest/v1';
@@ -35,6 +34,8 @@ const ROUTE = Object.freeze({
 const REASONS = ['routed', 'records-only', 'limit'];
 const AUDIENCE_WORDS = { skip: 'no audience', team: 'the team', readers: 'readers', both: 'the team and readers' };
 const BADGES = { team: 'Team', readers: 'Readers' };
+
+const utf8Bytes = value => new TextEncoder().encode(JSON.stringify(value)).byteLength;
 
 function refuse(what) {
   throw new Error(`RISE Changes refused the file: ${what}`);
@@ -106,7 +107,6 @@ function admitChange(value, index) {
 
 /** The Current, held to what a card's Current is held to at the Worker's door; the original is what plays. */
 function admitCurrent(current, composer) {
-  if (serializedUtf8Bytes(current) > MCP_CURRENT_BYTES) refuse('the Current is over the size a card admits');
   const valid = validateRiseCurrent(current);
   if (valid.schema !== RISE_CURRENT_SCHEMA_V2) refuse('the Current is not a rise.current.v2');
   if (valid.origin.kind !== 'model' || valid.origin.name !== composer) refuse('the Current names another author than the digest');
@@ -127,7 +127,7 @@ export function admitChangesDigest(value, id) {
   only(digest, ['schema', 'id', 'audience', 'title', 'period', 'generatedAt', 'model', 'changes', 'current', 'sources'], 'the digest');
   if (digest.schema !== DIGEST_SCHEMA) refuse('the digest has another schema');
   if (digest.id !== id || !DIGEST_ID.test(id)) refuse('the digest is not the one asked for');
-  if (serializedUtf8Bytes(digest) > CHANGES_LIMITS.bytes) refuse('the digest is over 256 KB');
+  if (utf8Bytes(digest) > CHANGES_LIMITS.bytes) refuse('the digest is over 256 KB');
   const model = record(digest.model, 'the model');
   only(model, ['router', 'composer', 'via'], 'the model');
   for (const field of ['router', 'composer', 'via']) text(model[field], CHANGES_LIMITS.name, `model.${field}`);
