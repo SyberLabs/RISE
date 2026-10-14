@@ -70,12 +70,14 @@ export function currentFromText(text) {
  * @param {object} options
  * @param {string} [options.host] the page that framed RISE, as the reader should see it: it is the host,
  *   and nothing but the page itself vouches for which host it is
+ * @param {object} [options.origin] who wrote the Current, where RISE itself admitted it and can say so (sealed.js);
+ *   without it, the host's model is named, since a host's claim of authorship cannot be checked
  */
-export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256, host, admittedEvents = null, admittedCurrent = null }) {
+export function createMcpAppAdapter({ port, clock = createRealClock(), timeoutMs = 60_000, capacity = 256, host, admittedEvents = null, admittedCurrent = null, origin = null }) {
     if (!port || typeof port.onCurrent !== 'function') {
         throw new TypeError('The MCP adapter is given a port that delivers Currents');
     }
-    const hostOrigin = Object.freeze({
+    const hostOrigin = origin ? Object.freeze({ ...origin }) : Object.freeze({
         kind: 'model', name: 'Host model', provider: typeof host === 'string' && host.trim() ? clip(`MCP host at ${host.trim()}`, 120) : 'MCP host'
     });
     let opened = 0;

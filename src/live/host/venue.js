@@ -50,6 +50,19 @@ function privacy(entry) {
     return 'The demo answers from a script in this page: nothing you type leaves this browser, and no key is needed.';
 }
 
+/**
+ * The room's one provider for a sealed Current already admitted on the page (a RISE Changes digest's,
+ * src/app/changes.js): no key, no request, the Current itself (adapters/sealed.js).
+ */
+export function sealedProvider(current) {
+    return Object.freeze({
+        id: 'sealed',
+        label: 'RISE Changes',
+        credential: 'none',
+        adapter: async ({ clock }) => (await import('../adapters/sealed.js')).createSealedAdapter({ current, clock })
+    });
+}
+
 /** Whose key the voice is on, for the voice the reader chose (voices/elevenlabs.js). */
 function voicePrivacy(choice) {
     if (choice === 'elevenlabs') return 'The voice is ElevenLabs on your key, which stays in this page’s memory and goes only to ElevenLabs, billed per character to your account: each passage’s words are sent to it to be spoken.';
@@ -61,12 +74,16 @@ export class LiveVenue {
      * @param {object} host the LiveHost presenting this page
      * @param {object} options
      * @param {readonly object[]} options.providers the registry
+     * @param {{current: object, path: string, who: string, about?: string[]}|null} [options.sealed] a sealed Current
+     *   already admitted on the page at `path`, the room's only source: no question, no provider, no bar; `who` says who
+     *   wrote it and `about` what it speaks about, for About this reading
      */
-    constructor(host, { providers }) {
+    constructor(host, { providers, sealed = null }) {
         this.host = host;
-        this.providers = providers;
+        this.sealed = sealed;
+        this.providers = sealed ? [sealedProvider(sealed.current)] : providers;
         this.doc = host.container.ownerDocument;
-        this.state = initialVenue();
+        this.state = initialVenue({ provider: this.providers[0]?.id === 'sealed' ? 'sealed' : undefined });
         // The reader's Settings choices, from one reading's stage to the next.
         this.room = {};
         // The room's adapter, made at its first question; every question of the room is asked of it.
@@ -113,6 +130,8 @@ export class LiveVenue {
         if (host.params?.has('measure')) this.measureFace();
         // Connecting or disconnecting OpenRouter elsewhere in the tab is shown here at once.
         this.stopConnection = subscribeConnection(() => { if (this.chosen()?.credential === 'openrouter') this.renderCredential(); });
+        // A sealed room asks nothing: no sign-in comes back to it, and nothing is said to it.
+        if (sealed) return;
         const returned = claimOpenRouterReturn(LIVE_PATH);
         if (returned) void this.welcomeBack(returned);
         void Promise.resolve(host.buildMic()).then(mic => { if (mic && !this.destroyed) this.useMic(mic); }, () => {});
@@ -149,8 +168,9 @@ export class LiveVenue {
         return this.adapter;
     }
 
-    /** What the reading on screen has cost, for About this reading; the demo says it spends nothing. */
+    /** What the reading on screen has cost, for About this reading; the demo says it spends nothing, and a sealed room asks nothing. */
     usageLine() {
+        if (this.sealed) return '';
         return usageLine(this.usage, { demo: this.chosen()?.credential === 'none' });
     }
 
@@ -171,6 +191,10 @@ export class LiveVenue {
         // The arrival plays once, when the page is first opened; the entry returned to after a reading is simply there.
         const arriving = !this.arrived;
         this.arrived = true;
+        if (this.sealed) {
+            this.renderSealed(arriving);
+            return;
+        }
         container.innerHTML = `
       <main class="live-host live-venue${arriving ? ' live-venue--arriving' : ''}" aria-labelledby="live-venue-title">
         <div class="live-venue__face"><div class="live-venue__bloom" aria-hidden="true"></div></div>
@@ -265,6 +289,76 @@ export class LiveVenue {
     }
 
     /**
+     * A sealed room's entry: the face, the reading's title over Play, who wrote it, whose voice speaks it (the venue's
+     * choice of voice), and the way back to the page it was opened from. Nothing in it asks a question.
+     */
+    renderSealed(arriving) {
+        const container = this.host.container;
+        container.innerHTML = `
+      <main class="live-host live-venue live-venue--sealed${arriving ? ' live-venue--arriving' : ''}" aria-labelledby="live-venue-title">
+        <div class="live-venue__face"><div class="live-venue__bloom" aria-hidden="true"></div></div>
+        <p class="live-venue__lede live-venue__eyebrow">RISE Changes</p>
+        <h1 class="live-venue__title" id="live-venue-title"></h1>
+        <form class="live-venue__ask" novalidate>
+          <button type="submit" class="live-start live-venue__play">Play <span aria-hidden="true">→</span></button>
+          <p class="live-venue__who"></p>
+          <p class="live-venue__choices">Spoken by <button type="button" class="live-venue__choice" data-venue-open="voices" aria-expanded="false" aria-controls="live-venue-voices-panel"></button></p>
+          <div class="live-venue__panel" id="live-venue-voices-panel" data-panel="voices" hidden>
+            <fieldset class="live-venue__voices">
+              <legend class="live-venue__legend">Who speaks</legend>
+              <label class="live-venue__provider"><input type="radio" name="live-venue-voice" value="device" checked><span>Your device’s voice</span></label>
+              <label class="live-venue__provider"><input type="radio" name="live-venue-voice" value="elevenlabs"><span>ElevenLabs (your key)</span></label>
+            </fieldset>
+            <div class="live-venue__voice-credential"></div>
+          </div>
+        </form>
+        <p class="live-error" role="alert" hidden></p>
+        <p class="live-venue__heard" role="status" aria-live="polite"></p>
+        <p class="live-venue__privacy live-venue__sealed-privacy"></p>
+        <p class="live-venue__back"><a href="" data-venue="back">Back to the digest</a></p>
+      </main>`;
+        const $ = selector => container.querySelector(selector);
+        this.root = $('.live-venue');
+        this.paintSkin();
+        // Model-written words: text, never markup.
+        $('#live-venue-title').textContent = this.sealed.current.title;
+        $('.live-venue__who').textContent = this.sealed.who;
+        this.form = $('.live-venue__ask');
+        this.field = null;
+        this.credential = null;
+        this.errorLine = $('.live-error');
+        this.heardLine = $('.live-venue__heard');
+        this.privacyLine = $('.live-venue__privacy');
+        this.voiceCredential = $('.live-venue__voice-credential');
+        for (const radio of container.querySelectorAll('input[name="live-venue-voice"]')) {
+            radio.checked = radio.value === this.host.voiceChoice;
+            radio.addEventListener('change', () => {
+                if (!radio.checked) return;
+                this.host.voiceChoice = radio.value;
+                if (radio.value !== 'elevenlabs') this.host.forgetVoiceKey();
+                this.renderVoiceCredential();
+                this.renderCredential();
+            });
+        }
+        this.startButton = $('.live-start');
+        this.wirePanels();
+        this.form.addEventListener('submit', event => {
+            event.preventDefault();
+            this.ask(this.sealed.current.title);
+        });
+        const back = $('[data-venue="back"]');
+        back.setAttribute('href', this.sealed.path);
+        back.addEventListener('click', event => {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+            event.preventDefault();
+            this.host.leaveSealed();
+        });
+        this.renderVoiceCredential();
+        this.renderCredential();
+        this.paint();
+    }
+
+    /**
      * The face's skin, worn by the room: its ground, bloom, hairlines and accents (LiveHost.css `.live-venue`). Set on
      * the document's root, not the venue's, so the page behind the app's own fade-in wears the same ground.
      */
@@ -289,7 +383,7 @@ export class LiveVenue {
             this.openPanel(null, { refocus: true });
         });
         // Back to the question: the choices give it the room.
-        this.field.addEventListener('focus', () => { if (this.openedPanel) this.openPanel(null); });
+        this.field?.addEventListener('focus', () => { if (this.openedPanel) this.openPanel(null); });
         root.addEventListener('pointerdown', event => {
             if (!this.openedPanel || event.target.closest?.('.live-venue__panel, [data-venue-open]')) return;
             this.openPanel(null);
@@ -315,10 +409,12 @@ export class LiveVenue {
         const entry = this.chosen();
         const answered = this.root?.querySelector('[data-venue-open="providers"]');
         const spoken = this.root?.querySelector('[data-venue-open="voices"]');
-        if (!answered || !spoken) return;
+        if (!spoken || (!answered && !this.sealed)) return;
         const name = (entry?.label ?? 'Demo').replace(/\s*\(.*\)$/u, '');
-        answered.textContent = name;
-        answered.setAttribute('aria-label', `Who answers: ${name}`);
+        if (answered) {
+            answered.textContent = name;
+            answered.setAttribute('aria-label', `Who answers: ${name}`);
+        }
         const voice = this.host.voiceChoice === 'elevenlabs' ? 'ElevenLabs' : 'your device';
         spoken.textContent = voice;
         spoken.setAttribute('aria-label', `Who speaks: ${voice}`);
@@ -344,6 +440,11 @@ export class LiveVenue {
     /** The chosen provider's credential: a typed key, the OpenRouter connection, or nothing; and whose key it is. */
     renderCredential() {
         const entry = this.chosen();
+        if (this.sealed) {
+            this.privacyLine.textContent = `Nothing is asked of a model here: the reading was written before, and RISE checked it before showing it. ${voicePrivacy(this.host.voiceChoice)}`;
+            this.renderChoices();
+            return;
+        }
         this.privacyLine.textContent = `${privacy(entry)} ${voicePrivacy(this.host.voiceChoice)}`;
         this.renderChoices();
         this.credential.replaceChildren();
@@ -577,7 +678,9 @@ export class LiveVenue {
             host.controls = stage;
             this.stage = stage;
             this.reading = { runtime, stage, turn };
-            this.ensureBar();
+            // A sealed room has nothing to ask again: only the way back to its page.
+            if (this.sealed) this.ensureLeave();
+            else this.ensureBar();
             this.stopFollowing = runtime.subscribe(view => this.dispatch({ type: 'status', status: view.status }));
             const perception = perceptionFor(this.turns().slice(0, turn + 1));
             const earlier = earlierFor(this.turns().slice(0, turn + 1));
@@ -608,9 +711,17 @@ export class LiveVenue {
         try { runtime.seek({ segmentId: first.segmentId }); } catch { /* the reading stays where it ended */ }
     }
 
-    /** The reader leaves the room: back to the entry, with nothing carried and the key forgotten. */
+    /** The reader leaves the room: back to the entry, with nothing carried and the key forgotten; a sealed room, back to its page. */
     async leave() {
         if (this.destroyed) return;
+        if (this.sealed) {
+            this.leaveButton?.remove();
+            this.leaveButton = null;
+            this.dispatch({ type: 'leave' });
+            await this.letGo();
+            await this.host.leaveSealed();
+            return;
+        }
         this.listener?.cancel();
         this.bar?.remove();
         this.bar = null;
@@ -628,6 +739,18 @@ export class LiveVenue {
     }
 
     // ─── the bar over the reading ──────────────────────────────────────
+
+    /** A sealed room's one control over the reading: back to the page it was opened from. */
+    ensureLeave() {
+        if (this.leaveButton) return;
+        const button = this.doc.createElement('button');
+        button.type = 'button';
+        button.className = 'live-leave';
+        button.innerHTML = `<span aria-hidden="true">←</span> Back to the digest`;
+        button.addEventListener('click', () => { void this.leave(); });
+        this.doc.body.append(button);
+        this.leaveButton = button;
+    }
 
     /** The bar to ask again: open while the reading has ended or is held, only the microphone while it plays. */
     ensureBar() {
@@ -1089,6 +1212,8 @@ export class LiveVenue {
         this.stopFollowing = null;
         this.bar?.remove();
         this.bar = null;
+        this.leaveButton?.remove();
+        this.leaveButton = null;
         this.stopFrames();
         this.stillWatch?.disconnect();
         this.faceEngine?.destroy();

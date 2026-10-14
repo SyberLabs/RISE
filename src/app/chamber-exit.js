@@ -92,8 +92,11 @@ export function chamberExitTarget(reason, session = {}, data = null) {
         return { kind: 'navigate', view: 'home' };
     }
 
-    // A live reading returns to where it was asked for.
-    if (session?.origin?.view === 'live') return { kind: 'navigate', view: 'live' };
+    // A live reading returns to where it was asked for: the live room, or the page that opened it (a RISE
+    // Changes digest, a sample view of Home), whose address the reading kept.
+    if (session?.origin?.view === 'live') {
+        return session.origin.page ? { kind: 'navigate', view: 'home', data: { demoMode: true } } : { kind: 'navigate', view: 'live' };
+    }
     // Today's poem was begun from Home's card (or /today); it returns Home.
     if (session?.origin?.experience === 'today') return { kind: 'navigate', view: 'home' };
     // A reading proposed on Home and entered from there goes back to Home,

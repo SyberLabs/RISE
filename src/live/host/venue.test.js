@@ -1232,3 +1232,50 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(root().dataset.liveFrame).toBe('none');
     });
 });
+
+describe('a sealed room: a Current already admitted on the page, its only source', () => {
+    const sealed = {
+        current: { title: '<b>What changed in RISE</b>, 12–13 October' },
+        path: '/changes/2026-10-13',
+        who: 'Written by claude-sonnet-5-5 via Claude Code from 5 merged pull requests, 12–13 October 2026.',
+        about: ['What changed:', '#652 The attractor can be a swarm']
+    };
+
+    it('asks nothing: the face, the title as text over Play, who wrote it and whose voice; no question, no provider, no microphone', () => {
+        const recognition = createFakeRecognition();
+        mount('?voice=paced', env({ recognition }), { sealed });
+        expect(container.querySelector('.live-venue--sealed')).not.toBeNull();
+        expect(container.querySelector('h1').textContent).toBe(sealed.current.title);
+        expect(container.querySelector('h1 b')).toBeNull();
+        expect(question()).toBeNull();
+        expect(radios()).toEqual([]);
+        expect($('[data-venue-open="providers"]')).toBeNull();
+        expect($('[data-venue="listen"]')).toBeNull();
+        expect($('.live-venue__who').textContent).toBe(sealed.who);
+        expect($('[data-venue-open="voices"]').textContent).toBe('your device');
+        expect($('.live-venue__privacy').textContent).toMatch(/^Nothing is asked of a model here/u);
+        expect($('[data-venue="back"]').getAttribute('href')).toBe('/changes/2026-10-13');
+    });
+
+    it('plays on Play with no bar to ask again, only the way back; About names who wrote it and what it speaks about', async () => {
+        mount('?voice=paced', env(), { sealed });
+        container.querySelector('.live-venue__ask').requestSubmit();
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledTimes(1));
+        expect($('#rise-stage-controls')).not.toBeNull();
+        expect($('.live-again')).toBeNull();
+        expect($('.live-leave').textContent).toContain('Back to the digest');
+        expect(host.venue.usageLine()).toBe('');
+        expect(host.venue.sealed.about).toEqual(sealed.about);
+    });
+
+    it('goes back to its page at the address it kept, and the reading stops', async () => {
+        const navigate = vi.fn(async () => true);
+        mount('?voice=paced', env(), { sealed, router: { navigate, views: new Map(), getCurrentView: () => 'read' } });
+        container.querySelector('.live-venue__ask').requestSubmit();
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledTimes(1));
+        $('.live-leave').click();
+        await vi.waitFor(() => expect(navigate).toHaveBeenCalledWith('home', { data: { demoMode: true }, keepUrl: true }));
+        expect(runtimes[0].stop).toHaveBeenCalled();
+        expect($('.live-leave')).toBeNull();
+    });
+});

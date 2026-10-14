@@ -61,14 +61,18 @@ export function admitChangesDigest(value, id) {
   return { ...value, included: value.changes.filter(change => change.included) };
 }
 
+/** The file's JSON, or null for a 404: the Worker's answer while the data branch has no such file. */
 async function fetchJson(path) {
   const response = await fetch(path, { headers: { Accept: 'application/json' } });
+  if (response.status === 404) return null;
   if (!response.ok) throw new Error(`${path}: ${response.status}`);
   return response.json();
 }
 
+/** The index's entries; none while no index has been written. */
 export async function loadChangesIndex(load = fetchJson) {
-  return admitChangesIndex(await load('/content/changes/index.json'));
+  const index = await load('/content/changes/index.json');
+  return index === null ? [] : admitChangesIndex(index);
 }
 
 export async function loadChangesDigest(id, load = fetchJson) {
@@ -121,9 +125,28 @@ function listView(digests) {
     </div>`;
 }
 
+/** Who wrote the digest's reading, through what, from what: RISE's honesty rule names the model and the service. */
+function whoWrote(digest) {
+  const { composer, via } = digest.model;
+  return `Written by ${composer} via ${via} from ${plural(digest.included.length, 'merged pull request')}, ${periodWords(digest.period)}.`;
+}
+
+/**
+ * What the room is given to play a digest: the admitted Current, the page's address, who wrote it, and the pull
+ * requests it speaks about, which About this reading lists while it plays.
+ */
+export function sealedReading(digest) {
+  return {
+    current: digest.current,
+    path: changesPath(digest.id),
+    who: whoWrote(digest),
+    about: ['What changed:', ...digest.included.map(({ number, title }) => `#${number} ${title}`)]
+  };
+}
+
 function detailView(digest) {
   const when = periodWords(digest.period);
-  const { composer, router, via } = digest.model;
+  const { router, via } = digest.model;
   const included = digest.included.map(({ number, title, url }) => `<li>
         <a href="${escape(url)}" target="_blank" rel="noopener noreferrer"><span class="changes-number">#${number}</span> ${escape(title)}</a>
       </li>`).join('');
@@ -136,10 +159,10 @@ function detailView(digest) {
     <div id="changes">
       <p class="changes-meta">${escape(when)} · ${plural(digest.included.length, 'change')} in the reading ${badge(digest.audience)}</p>
       <div class="portal-actions">
-        <button class="portal-primary" type="button" data-changes-play>Play the reading</button>
+        <button class="portal-primary" type="button" data-changes-play>Open the reading</button>
         <p class="portal-status" id="changes-status" role="status" aria-live="polite"></p>
       </div>
-      <p class="portal-help">Written by ${escape(composer)} via ${escape(via)} from ${plural(digest.included.length, 'merged pull request')}, ${escape(when)}.</p>
+      <p class="portal-help">${escape(whoWrote(digest))}</p>
       <section class="changes-section" aria-labelledby="changes-included-title">
         <h2 class="changes-heading" id="changes-included-title">What changed</h2>
         <ol class="changes-included">${included}</ol>
@@ -164,8 +187,8 @@ function emptyView(line, href, link) {
 
 /**
  * Show a changes address in `section`: the list (no `digestId`), or one digest. Its reading is one press
- * away: `launch(current, path)` plays the admitted Current at the digest's own address. `go(path)` moves
- * to another address in place.
+ * away: `launch(sealedReading(digest))` opens RISE's room for the admitted Current, at the digest's own address.
+ * `go(path)` moves to another address in place.
  */
 export async function mountChanges(section, { digestId = null, launch, go, load }) {
   section.innerHTML = `${EYEBROW}<p class="portal-status" role="status">Loading…</p>`;
@@ -198,7 +221,7 @@ export async function mountChanges(section, { digestId = null, launch, go, load 
     play.disabled = true;
     status.textContent = 'Opening the reading…';
     try {
-      await launch(digest.current, changesPath(digest.id));
+      await launch(sealedReading(digest));
       status.textContent = '';
     } catch (error) {
       status.textContent = error.message || 'This reading could not be opened.';
