@@ -45,41 +45,131 @@ function sceneRefusals(current) {
 const NUMBER = /\d+(?:[.,]\d+)*/g;
 const numbersIn = text => (String(text).match(NUMBER) ?? []).map(token => token.replace(/,/g, ''));
 
-/** Numbers the Current says or shows that no included pull request, and no date of the period, states. */
-function unstatedNumbers(current, pulls, period) {
+/** The numbers the included pull requests and the dates of the period state. */
+function statedNumbers(pulls, period) {
   const stated = new Set(pulls.flatMap(pull => numbersIn(`${pull.number} ${pull.title} ${pull.body ?? ''}`)));
   for (const at of [period.from, period.to]) {
     const date = new Date(at);
     for (const part of [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()]) stated.add(String(part));
   }
-  const unstated = new Set();
-  // A figure shows its text nodes; its markup, comments and style sheets are not read.
-  const figureText = (current.scenes ?? []).map(scene => typeof scene?.svg === 'string'
-    ? scene.svg.replace(/<!--[\s\S]*?-->/g, ' ').replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]*>/g, ' ')
-    : undefined);
-  for (const text of [current.title, ...current.beats.flatMap(beat => [beat?.say, beat?.show]), ...figureText]) {
+  return stated;
+}
+
+/** A figure shows its text nodes; its markup, comments and style sheets are not read. */
+const figureText = svg => svg.replace(/<!--[\s\S]*?-->/g, ' ').replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]*>/g, ' ');
+
+/** A colour written as a string literal (#hex, rgb(), hsl()), quotes included: never text a scene shows. */
+const COLOUR = /^.(?:#[0-9a-f]{3,8}|(?:rgba?|hsla?)\([^)]*\)).$/iu;
+
+/** A code scene shows its labels as string literals; its coordinates, colours and other numbers are not read. */
+const codeText = code => (code.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? [])
+  .filter(literal => !COLOUR.test(literal)).join(' ');
+
+function unstated(texts, stated, what) {
+  const found = new Set();
+  for (const text of texts) {
     if (typeof text !== 'string') continue;
-    for (const number of numbersIn(text)) if (!stated.has(number)) unstated.add(number);
+    for (const number of numbersIn(text)) if (!stated.has(number)) found.add(number);
   }
-  return [...unstated].slice(0, MAX_NUMBER_LINES).map(number =>
-    `The Current says "${number}", which no included pull request states; use only numbers written in the pull requests, or say it without a number`);
+  return [...found].slice(0, MAX_NUMBER_LINES).map(number =>
+    `${what} says "${number}", which no included pull request states; use only numbers written in the pull requests, or say it without a number`);
+}
+
+/** The same rule for one code scene: the numbers in its string literals. */
+export function codeNumberProblems(code, { pulls, period }) {
+  return unstated([codeText(code)], statedNumbers(pulls, period), 'The scene');
+}
+
+/** Numbers the Current says or shows, its figures included, that no included pull request and no date of the period states. */
+export function numberProblems(current, { pulls, period }) {
+  const figures = (current.scenes ?? []).map(scene => (typeof scene?.svg === 'string' ? figureText(scene.svg) : typeof scene?.code === 'string' ? codeText(scene.code) : undefined));
+  return unstated([current.title, ...current.beats.flatMap(beat => [beat?.say, beat?.show]), ...figures], statedNumbers(pulls, period), 'The Current');
+}
+
+/** The same rule for one figure the illustrator drew: the numbers its visible text shows. */
+export function figureNumberProblems(svg, { pulls, period }) {
+  return unstated([figureText(svg)], statedNumbers(pulls, period), 'The figure');
+}
+
+/** Beats one scene may be held for before a picture or an engine starts again. */
+export const HELD_BEATS = 4;
+/** RISE's engines a digest may run: for mood, at the opening or the close. */
+export const MAX_ENGINES = 2;
+/** The beats at either end where an engine may start. */
+const MOOD_BEATS = 2;
+const BRIEF_MIN = 20;
+const BRIEF_MAX = 300;
+
+/**
+ * What breaks the digest's composition: RISE's engines only for mood (at most two, started at the opening or the
+ * close), every other picture a brief the illustrator draws (a figure, or a code scene when motion explains), at least
+ * one, and no scene held for more than four beats. The plan is held to it before anything is drawn.
+ */
+export function compositionProblems(current, pictures) {
+  const problems = [];
+  const beats = current.beats;
+  const scenes = new Map((current.scenes ?? []).map(scene => [scene.id, scene]));
+  for (const scene of scenes.values()) {
+    if (scene.engine === undefined) problems.push(`Scene "${scene.id}" is drawn by the composer; draw a picture through "pictures" instead: a brief the illustrator draws. "current.scenes" holds RISE’s engines only`);
+  }
+  const engines = [...scenes.values()].filter(scene => scene.engine !== undefined);
+  if (engines.length > MAX_ENGINES) problems.push(`The Current declares ${engines.length} of RISE’s engines; at most ${MAX_ENGINES} of RISE’s engines, for mood at the opening or the close. Explain with pictures`);
+  beats.forEach((beat, index) => {
+    const scene = scenes.get(beat?.scene);
+    if (scene?.engine !== undefined && index >= MOOD_BEATS && index < beats.length - MOOD_BEATS) {
+      problems.push(`beat ${index} starts RISE’s engine "${scene.id}"; an engine sets the mood at the opening or the close only (the first or last ${MOOD_BEATS} beats). Explain the middle with a picture`);
+    }
+  });
+  if (!Array.isArray(pictures)) return [...problems, '"pictures" must be a list of { beat, medium, brief }'];
+  const room = Math.max(0, 8 - engines.length);
+  if (pictures.length > room) problems.push(`"pictures" has ${pictures.length}; a Current has room for at most ${room} pictures beside its ${engines.length} engine${engines.length === 1 ? '' : 's'}`);
+  if (pictures.length === 0) problems.push('"pictures" needs at least one picture: a brief for each change or group of changes that a picture explains');
+  const starts = new Set();
+  pictures.forEach((picture, index) => {
+    const where = `"pictures"[${index}]`;
+    if (picture === null || typeof picture !== 'object' || Array.isArray(picture)
+      || Object.keys(picture).length !== 3 || !['beat', 'medium', 'brief'].every(key => Object.hasOwn(picture, key))) {
+      problems.push(`${where} has exactly beat, medium and brief`);
+      return;
+    }
+    if (!Number.isInteger(picture.beat) || picture.beat < 0 || picture.beat >= beats.length) {
+      problems.push(`${where} names beat ${String(picture.beat).slice(0, 12)}, but the Current has beats 0 to ${beats.length - 1}`);
+    } else if (starts.has(picture.beat)) {
+      problems.push(`${where} names beat ${picture.beat} twice; one picture starts on a beat`);
+    } else if (beats[picture.beat]?.scene !== undefined) {
+      problems.push(`${where}: beat ${picture.beat} already starts a scene; a picture starts on a beat that names none`);
+    } else {
+      starts.add(picture.beat);
+    }
+    if (!['figure', 'scene'].includes(picture.medium)) problems.push(`${where}.medium is figure or scene`);
+    if (typeof picture.brief !== 'string' || picture.brief.trim().length < BRIEF_MIN || picture.brief.length > BRIEF_MAX) {
+      problems.push(`${where}.brief is ${BRIEF_MIN} to ${BRIEF_MAX} characters: what to draw, concretely, from the pull requests’ own words`);
+    }
+  });
+  beats.forEach((beat, index) => { if (beat?.scene !== undefined) starts.add(index); });
+  const ordered = [...starts].sort((x, y) => x - y);
+  const runs = [0, ...ordered.filter(index => index > 0)].map((start, at, list) => [start, (list[at + 1] ?? beats.length) - start]);
+  for (const [start, length] of runs) {
+    if (length > HELD_BEATS) problems.push(`beat ${start} holds one scene for ${length} beats; start a picture at least every ${HELD_BEATS} beats`);
+  }
+  return problems;
 }
 
 /**
- * The verdict on one composer answer: `{ ok: true, current, sources }`, the
- * Current with its origin set to the composer, or `{ ok: false, diagnostics }`,
- * the lines a repair call is given.
+ * The verdict on one composer answer: `{ ok: true, current, sources, pictures }`,
+ * the Current with its origin set to the composer and the briefs the illustrator
+ * draws, or `{ ok: false, diagnostics }`, the lines a repair call is given.
  */
 export function admitComposition(text, { pulls, model, period }) {
   let value;
   try {
     value = parseModelJson(text);
   } catch {
-    return { ok: false, diagnostics: ['The answer must be one JSON object, {"current": ..., "sources": ...}, with nothing before or after it'] };
+    return { ok: false, diagnostics: ['The answer must be one JSON object, {"current": ..., "sources": ..., "pictures": [...]}, with nothing before or after it'] };
   }
   const keys = Object.keys(value);
-  if (keys.length !== 2 || !Object.hasOwn(value, 'current') || !Object.hasOwn(value, 'sources')) {
-    return { ok: false, diagnostics: ['The answer must have exactly two fields, "current" and "sources"'] };
+  if (keys.length !== 3 || !['current', 'sources', 'pictures'].every(key => Object.hasOwn(value, key))) {
+    return { ok: false, diagnostics: ['The answer must have exactly three fields, "current", "sources" and "pictures"'] };
   }
   const given = value.current;
   if (given === null || typeof given !== 'object' || Array.isArray(given) || given.schema !== RISE_CURRENT_SCHEMA_V2) {
@@ -96,8 +186,10 @@ export function admitComposition(text, { pulls, model, period }) {
   }
   const diagnostics = [
     ...sceneRefusals(current),
+    ...compositionProblems(current, value.pictures).map(clean),
     ...sourcesProblems(value.sources, current.beats.length, pulls.map(pull => pull.number)).map(clean),
-    ...unstatedNumbers(current, pulls, period)
+    ...numberProblems(current, { pulls, period }),
+    ...(Array.isArray(value.pictures) ? unstated(value.pictures.map(picture => picture?.brief), statedNumbers(pulls, period), 'A picture\u2019s brief') : [])
   ];
-  return diagnostics.length ? { ok: false, diagnostics } : { ok: true, current, sources: value.sources };
+  return diagnostics.length ? { ok: false, diagnostics } : { ok: true, current, sources: value.sources, pictures: value.pictures };
 }

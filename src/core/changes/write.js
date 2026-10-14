@@ -36,7 +36,7 @@ export function digestId(to, existingIds) {
 }
 
 /** The digest envelope, refused when it breaks the contract or its 256 KB bound. */
-export function buildDigest({ id, period, generatedAt, model, changes, current, sources }) {
+export function buildDigest({ id, period, generatedAt, model, changes, current, sources, notes = [] }) {
   const digest = {
     schema: DIGEST_SCHEMA,
     id,
@@ -47,7 +47,8 @@ export function buildDigest({ id, period, generatedAt, model, changes, current, 
     model: { router: model, composer: model, via: 'Claude Code' },
     changes,
     current,
-    sources
+    sources,
+    ...(notes.length ? { notes } : {})
   };
   const problems = digestProblems(digest);
   if (problems.length) throw new Error(`The digest breaks the contract: ${problems.slice(0, 5).join('; ')}`);
@@ -95,6 +96,7 @@ export function issueFor(digest) {
       '| Pull request | Title | Audience | Significance | Kind | Included | Reason |',
       '|---|---|---|---|---|---|---|',
       ...digest.changes.map(change => `| [#${change.number}](${change.url}) | ${cell(change.title)} | ${change.route.audience} | ${change.route.significance} | ${change.route.kind} | ${change.included ? 'yes' : 'no'} | ${change.reason} |`),
+      ...(digest.notes ? ['', 'Notes from the run:', ...digest.notes.map(note => `- ${cell(note)}`)] : []),
       '',
       `Period: ${digest.period.from} to ${digest.period.to}. Files: \`${digest.id}.json\` and \`index.json\` on the changes-data branch.`
     ].join('\n')

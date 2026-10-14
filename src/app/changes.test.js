@@ -159,6 +159,16 @@ describe('RISE Changes pages', () => {
     ]);
   });
 
+  it('says what the run let go, in its notes, under how this was chosen', async () => {
+    const note = 'The picture for beat 3 (“The ask bar”) was not drawn: REFUSED after 3 attempts; the beat keeps the scene before it.';
+    const digest = { ...changesDigestFixture(), notes: [note, '<b>not markup</b>'] };
+    const { section } = await mount({ digestId: CHANGES_ID, load: files(undefined, digest) });
+    const notes = [...section.querySelectorAll('details.changes-chosen .changes-notes li')].map(item => item.textContent);
+    expect(notes).toEqual([note, '<b>not markup</b>']);
+    const plain = await mount({ digestId: CHANGES_ID });
+    expect(plain.section.querySelector('.changes-notes')).toBeNull();
+  });
+
   it('says why a routed change was left out: no audience, another audience, or too minor', async () => {
     const digest = changesDigestFixture();
     digest.changes[6].route = { audience: 'readers', significance: 'major', kind: 'feature' };

@@ -315,8 +315,24 @@
         "engine": "attractor"
       },
       {
-        "id": "pendulum",
-        "engine": "harmonograph"
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 260\" fill=\"none\" stroke=\"currentColor\" font-family=\"sans-serif\" font-size=\"20\"><title>Where things sit in the room</title><text x=\"200\" y=\"30\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">Sophia's face</text><rect x=\"60\" y=\"80\" width=\"280\" height=\"36\" rx=\"6\"/><text x=\"200\" y=\"104\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">the spoken words</text><text x=\"200\" y=\"150\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">the bar's note</text><rect x=\"60\" y=\"166\" width=\"280\" height=\"36\" rx=\"18\"/><text x=\"200\" y=\"190\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">the ask bar</text><line x1=\"60\" y1=\"236\" x2=\"340\" y2=\"236\" stroke-width=\"3\"/><text x=\"200\" y=\"228\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">the instrument</text></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 260\" fill=\"none\" stroke=\"currentColor\" font-family=\"sans-serif\" font-size=\"20\"><title>The room remembers</title><rect x=\"20\" y=\"40\" width=\"160\" height=\"70\" rx=\"8\"/><text x=\"100\" y=\"70\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">question one</text><text x=\"100\" y=\"96\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">RISE's answer</text><rect x=\"220\" y=\"40\" width=\"160\" height=\"70\" rx=\"8\"/><text x=\"300\" y=\"82\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">question two</text><path d=\"M180 75 H220\" stroke-width=\"3\"/><path d=\"M100 110 V180 H300 V110\" stroke-width=\"2\"/><text x=\"200\" y=\"210\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">sent up together</text></svg>"
+      },
+      {
+        "id": "picture-3",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 260\" fill=\"none\" stroke=\"currentColor\" font-family=\"sans-serif\" font-size=\"20\"><title>Naming a visual</title><rect x=\"20\" y=\"90\" width=\"130\" height=\"60\" rx=\"8\"/><text x=\"85\" y=\"126\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">'genesis'</text><rect x=\"250\" y=\"90\" width=\"130\" height=\"60\" rx=\"8\"/><text x=\"315\" y=\"126\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">Genesis</text><path d=\"M150 120 H250 M238 112 L250 120 L238 128\" stroke-width=\"3\"/><text x=\"200\" y=\"80\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">no model call</text><text x=\"200\" y=\"190\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">shown at once</text></svg>"
+      },
+      {
+        "id": "picture-4",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 260\" fill=\"none\" stroke=\"currentColor\" font-family=\"sans-serif\" font-size=\"20\"><title>Two engine options</title><circle cx=\"100\" cy=\"110\" r=\"60\" stroke-dasharray=\"2 6\" stroke-width=\"3\"/><text x=\"100\" y=\"210\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">swarm</text><path d=\"M300 60 a50 50 0 1 1 -1 0 M300 160 a30 30 0 1 0 1 0\" stroke-width=\"2\"/><text x=\"300\" y=\"210\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">rotary pendulums</text></svg>"
+      },
+      {
+        "id": "picture-5",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 260\" fill=\"none\" stroke=\"currentColor\" font-family=\"sans-serif\" font-size=\"20\"><title>The choice panel race</title><line x1=\"20\" y1=\"130\" x2=\"380\" y2=\"130\" stroke-width=\"2\"/><text x=\"70\" y=\"110\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">fade in</text><text x=\"200\" y=\"110\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">choice opens</text><text x=\"330\" y=\"110\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">focus</text><circle cx=\"70\" cy=\"130\" r=\"6\" fill=\"currentColor\"/><circle cx=\"200\" cy=\"130\" r=\"6\" fill=\"currentColor\"/><circle cx=\"330\" cy=\"130\" r=\"6\" fill=\"currentColor\"/><text x=\"200\" y=\"190\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">the panel stays open</text></svg>"
       }
     ],
     "beats": [
@@ -332,7 +348,8 @@
         "say": "A change of visual within a frame is one blink of the aperture. Under reduced motion, every change is instant and nothing blinks."
       },
       {
-        "say": "The ask bar now sits at the foot of the room, above the instrument and any on-screen keyboard, with the spoken words above it. That was the owner's decision."
+        "say": "The ask bar now sits at the foot of the room, above the instrument and any on-screen keyboard, with the spoken words above it. That was the owner's decision.",
+        "scene": "picture-1"
       },
       {
         "say": "In the full frame, a figure or a generated scene is now fitted clear of the ask bar and the words. Before, the demo's horizon figure put its own label under the progress line, clipped."
@@ -341,20 +358,22 @@
         "say": "And Live now draws the circle frames at the size they are shown, so the harmonograph is no longer soft on a phone."
       },
       {
-        "say": "RISE Live also remembers the room. Each new question goes up with the earlier questions and what RISE said, so a follow-up such as: what did Einstein say about it? can be understood. It lives in the page's memory only; leaving the room or reloading forgets it."
+        "say": "RISE Live also remembers the room. Each new question goes up with the earlier questions and what RISE said, so a follow-up such as: what did Einstein say about it? can be understood. It lives in the page's memory only; leaving the room or reloading forgets it.",
+        "scene": "picture-2"
       },
       {
         "say": "A follow-up fixed how that memory names scenes, so a picture is no longer counted twice, and an answer's scene keeps the name the answer gave it."
       },
       {
-        "say": "During a reading, a reader who names one of RISE's own visuals now gets it at once, with no model call, and nothing is counted as usage."
+        "say": "During a reading, a reader who names one of RISE's own visuals now gets it at once, with no model call, and nothing is counted as usage.",
+        "scene": "picture-3"
       },
       {
         "say": "That visual now also reaches the screen at once, instead of waiting for the next phrase. On one measured run, the wait had been 12 seconds."
       },
       {
         "say": "Two visuals the owner kept from the Sophia design study became engine options. The attractor can be a swarm of seven hundred particles, and the harmonograph can be rotary, two pendulums turning opposite ways.",
-        "scene": "pendulum"
+        "scene": "picture-4"
       },
       {
         "hold": {
@@ -365,7 +384,8 @@
         "say": "The swarm was slow in the venue, at 4 to 16 frames a second. It now adds each tick to its trail in one draw, and the flash gate samples on the GPU."
       },
       {
-        "say": "For the team: a browser test that failed from run to run was traced to a race. A choice panel opened while the page faded in was hidden when the question field took focus. Now it stays open."
+        "say": "For the team: a browser test that failed from run to run was traced to a race. A choice panel opened while the page faded in was hidden when the question field took focus. Now it stays open.",
+        "scene": "picture-5"
       },
       {
         "say": "That is the week in RISE.",

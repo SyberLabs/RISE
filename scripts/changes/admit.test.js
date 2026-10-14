@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { admitComposition, parseModelJson } from './admit.js';
+import { admitComposition, figureNumberProblems, parseModelJson } from './admit.js';
 
 const MODEL = 'claude-sonnet-5-5';
 const period = { from: '2026-10-12T09:00:00.000Z', to: '2026-10-19T09:00:00.000Z' };
@@ -16,8 +16,11 @@ const beats = [
   { say: 'The swarm draws 700 particles.' },
   { say: 'Sophia holds every visual in a frame.' }
 ];
+const PICTURE = { beat: 1, medium: 'figure', brief: 'A labelled diagram of the swarm: 700 particles riding the attractor.' };
 const text = (value) => JSON.stringify(value);
-const admit = (value, options = {}) => admitComposition(typeof value === 'string' ? value : text(value), { pulls, model: MODEL, period, ...options });
+/** An answer with current and sources is given one picture unless it names its own. */
+const answer = value => (value && typeof value === 'object' && 'current' in value && 'sources' in value && !('pictures' in value) ? { ...value, pictures: [PICTURE] } : value);
+const admit = (value, options = {}) => admitComposition(typeof value === 'string' ? value : text(answer(value)), { pulls, model: MODEL, period, ...options });
 
 describe('parseModelJson', () => {
   it('reads one JSON object, bare or in one code fence', () => {
@@ -48,10 +51,15 @@ describe('admitComposition', () => {
     expect(verdict.current.origin).toEqual({ kind: 'model', name: MODEL, provider: 'Anthropic, via Claude Code' });
   });
 
-  it('refuses an answer that is not the {current, sources} object', () => {
+  it('refuses an answer that is not the {current, sources, pictures} object', () => {
     expect(admit('not json').diagnostics[0]).toMatch(/one JSON object/);
-    expect(admit({ current: current(beats) }).diagnostics[0]).toMatch(/"current" and "sources"/);
-    expect(admit({ current: current(beats), sources: {}, note: 'x' }).diagnostics[0]).toMatch(/"current" and "sources"/);
+    expect(admit({ current: current(beats) }).diagnostics[0]).toMatch(/"current", "sources" and "pictures"/);
+    expect(admit({ current: current(beats), sources: {}, note: 'x' }).diagnostics[0]).toMatch(/"current", "sources" and "pictures"/);
+  });
+
+  it('returns the admitted pictures with the Current', () => {
+    const verdict = admit({ current: current(beats), sources: { 1: [652], 2: [653] } });
+    expect(verdict.pictures).toEqual([PICTURE]);
   });
 
   it('refuses a v1 Current', () => {
@@ -65,16 +73,12 @@ describe('admitComposition', () => {
     expect(verdict.diagnostics[0]).toMatch(/^RISE refused this Current: .*theme/);
   });
 
-  it('refuses a refused scene with the scene, the line and the rule', () => {
-    const scenes = [{ id: 'bad', code: 'export default function scene(rise) {\n  fetch("x");\n  return { frame() {} };\n}' }];
-    const verdict = admit({ current: current([{ say: 'This week.', scene: 'bad' }, ...beats.slice(1)], { scenes }), sources: { 1: [652], 2: [653] } });
-    expect(verdict.diagnostics[0]).toMatch(/^Scene "bad" was refused: line 2, column 3: `fetch` is not available to a scene/);
-  });
-
-  it('refuses a refused figure', () => {
-    const scenes = [{ id: 'fig', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>alert(1)</script></svg>' }];
-    const verdict = admit({ current: current([{ say: 'This week.', scene: 'fig' }, ...beats.slice(1)], { scenes }), sources: { 1: [652], 2: [653] } });
-    expect(verdict.diagnostics.join('\n')).toMatch(/^Scene "fig" was refused: .*script/m);
+  it('refuses a figure or a code scene the composer draws itself: a picture is a brief the illustrator draws', () => {
+    for (const scene of [{ id: 'bad', code: 'export default function scene(rise) {\n  return { frame() {} };\n}' }, { id: 'bad', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"/>' }]) {
+      const verdict = admit({ current: current([{ say: 'This week.', scene: 'bad' }, ...beats.slice(1)], { scenes: [scene] }), sources: { 1: [652], 2: [653] } });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.diagnostics.join('\n')).toMatch(/Scene "bad" .*"pictures"/);
+    }
   });
 
   it('refuses a Current over the connector’s size bound', () => {
@@ -115,16 +119,13 @@ describe('admitComposition', () => {
     });
 
     it('refuses a number written in a figure’s visible text', () => {
-      const scenes = [{ id: 'fig', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text x="1" y="5">40%</text></svg>' }];
-      const verdict = admit({ current: current([{ say: 'This week.', scene: 'fig' }, ...beats.slice(1)], { scenes }), sources: { 1: [652], 2: [653] } });
-      expect(verdict.ok).toBe(false);
-      expect(verdict.diagnostics.join('\n')).toMatch(/"40"/);
+      const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text x="1" y="5">40%</text></svg>';
+      expect(figureNumberProblems(svg, { pulls, period }).join('\n')).toMatch(/"40"/);
     });
 
     it('does not read a figure’s style sheet or comments as text it shows', () => {
       const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260"><!-- draft 3 --><style>text { stroke-width: 3; }</style><text x="120" y="240">700 particles</text></svg>';
-      const verdict = admit({ current: current([{ say: 'This week.', scene: 'fig' }, ...beats.slice(1)], { scenes: [{ id: 'fig', svg }] }), sources: { 1: [652], 2: [653] } });
-      expect(verdict.ok).toBe(true);
+      expect(figureNumberProblems(svg, { pulls, period })).toEqual([]);
     });
 
     it('accepts numbers a pull request states, and the dates of the period', () => {
@@ -135,6 +136,69 @@ describe('admitComposition', () => {
     it('reads what is shown as well as what is said', () => {
       const verdict = admit({ current: current([...beats.slice(0, 2), { say: 'Faster.', show: 'Now 3x faster.' }]), sources: { 1: [652], 2: [653] } });
       expect(verdict.diagnostics.join('\n')).toMatch(/"3"/);
+    });
+  });
+  describe('composition', () => {
+    const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
+    const nine = Array.from({ length: 9 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : `Beat ${words[i]}.` }));
+    const withScene = (list, at, scene) => list.map((beat, i) => (i === at ? { ...beat, scene } : beat));
+    const sources = { 1: [652], 4: [653] };
+    const picture = (beat, medium = 'figure') => ({ beat, medium, brief: `A labelled diagram for beat ${words[beat] ?? 'later'}, drawn from the pull request’s own words.` });
+
+    it('refuses one scene held through the whole reading, with no picture', () => {
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [] });
+      expect(verdict.ok).toBe(false);
+      const said = verdict.diagnostics.join('\n');
+      expect(said).toMatch(/at least one picture/);
+      expect(said).toMatch(/beat 0 holds one scene for 9 beats/);
+    });
+
+    it('accepts an opening engine and a picture for each group', () => {
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [picture(1), picture(4), picture(7, 'scene')] });
+      expect(verdict.diagnostics).toBeUndefined();
+      expect(verdict.ok).toBe(true);
+    });
+
+    it('refuses more than two of RISE’s engines', () => {
+      const scenes = [{ id: 'a', engine: 'attractor' }, { id: 'b', engine: 'living-flame' }, { id: 'c', engine: 'genesis' }];
+      const list = withScene(withScene(withScene(nine, 0, 'a'), 1, 'b'), 8, 'c');
+      const verdict = admit({ current: current(list, { scenes }), sources, pictures: [picture(3), picture(6)] });
+      expect(verdict.diagnostics.join('\n')).toMatch(/at most 2 of RISE’s engines/);
+    });
+
+    it('refuses an engine started in the middle of the reading, where a picture should explain', () => {
+      const scenes = [{ id: 'field', engine: 'attractor' }, { id: 'flame', engine: 'living-flame' }];
+      const list = withScene(withScene(nine, 0, 'field'), 4, 'flame');
+      const verdict = admit({ current: current(list, { scenes }), sources, pictures: [picture(2), picture(7)] });
+      expect(verdict.diagnostics.join('\n')).toMatch(/beat 4 starts RISE’s engine "flame".*opening or the close/);
+    });
+
+    it('refuses a scene held for more than four beats', () => {
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [picture(1), picture(4)] });
+      expect(verdict.diagnostics.join('\n')).toMatch(/beat 4 holds one scene for 5 beats/);
+    });
+
+    it('refuses a malformed picture list', () => {
+      const cases = [
+        [[{ ...picture(1), beat: 9 }, picture(4), picture(7)], /beat 9/],
+        [[picture(1), picture(1), picture(4), picture(7)], /twice/],
+        [[{ ...picture(1), medium: 'cue' }, picture(4), picture(7)], /figure or scene/],
+        [[{ ...picture(1), brief: 'x'.repeat(301) }, picture(4), picture(7)], /300/],
+        [[{ ...picture(1), note: 'x' }, picture(4), picture(7)], /beat, medium and brief/],
+        [[picture(0), picture(4), picture(7)], /beat 0 already starts/]
+      ];
+      for (const [pictures, pattern] of cases) {
+        const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures });
+        expect(verdict.ok).toBe(false);
+        expect(verdict.diagnostics.join('\n')).toMatch(pattern);
+      }
+    });
+
+    it('refuses more pictures than a Current has room for beside its engines', () => {
+      const many = Array.from({ length: 30 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : 'More.' }));
+      const pictures = Array.from({ length: 8 }, (_, i) => picture(1 + i * 3));
+      const verdict = admit({ current: current(withScene(many, 0, 'field')), sources, pictures });
+      expect(verdict.diagnostics.join('\n')).toMatch(/at most 7 pictures/);
     });
   });
 });
