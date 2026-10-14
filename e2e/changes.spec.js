@@ -31,7 +31,7 @@ test('/changes lists the digests, newest first, and opens one by keyboard at pho
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('What changed in RISE', { timeout: 15_000 });
   const rows = page.locator('.changes-digests li');
   await expect(rows).toHaveCount(2);
-  await expect(rows.first()).toContainText('12–13 October 2026 · 8 changes');
+  await expect(rows.first()).toContainText('12–13 October 2026 · 5 changes in the reading');
   await expect(rows.first().locator('.changes-badge')).toHaveText('Team');
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 

@@ -3,6 +3,8 @@ import { CHANGES_ID, REFUSED_SCENE, changesDigestFixture, changesIndexFixture } 
 import { admitChangesDigest, admitChangesIndex, loadChangesDigest, mountChanges, periodWords } from './changes.js';
 import { changesFromPath, sceneSampleFromPath } from '../core/jev-demo-path.js';
 import { routeFromPath } from '../core/route-url.js';
+import sampleDigest from '../core/changes/fixtures/2026-10-14.json' with { type: 'json' };
+import sampleIndex from '../core/changes/fixtures/index.json' with { type: 'json' };
 
 const files = (index = changesIndexFixture(), digest = changesDigestFixture()) => async path => {
   if (path === '/content/changes/index.json') return index;
@@ -42,7 +44,7 @@ describe('RISE Changes admission', () => {
   it('admits the index, newest first as written', () => {
     const index = admitChangesIndex(changesIndexFixture());
     expect(index.map(entry => entry.id)).toEqual([CHANGES_ID, '2026-10-12']);
-    expect(index[0]).toMatchObject({ audience: 'team', count: 8, title: 'What changed in RISE, 12–13 October' });
+    expect(index[0]).toMatchObject({ audience: 'team', count: 5, title: 'What changed in RISE, 12–13 October' });
   });
 
   it.each([
@@ -67,28 +69,35 @@ describe('RISE Changes admission', () => {
   });
 
   it.each([
-    ['another schema', digest => { digest.schema = 'syberlabs.changes-digest/v0'; }, /another schema/u],
+    ['another schema', digest => { digest.schema = 'syberlabs.changes-digest/v0'; }, /schema must be syberlabs\.changes-digest\/v1/u],
     ['an id other than its address', digest => { digest.id = '2026-10-12'; }, /not the one asked for/u],
-    ['an unknown field', digest => { digest.script = 'alert(1)'; }, /unknown field/u],
-    ['a pull request link elsewhere', digest => { digest.changes[0].url = 'javascript:alert(1)'; }, /links elsewhere/u],
-    ['a pull request link to another number', digest => { digest.changes[0].url = 'https://github.com/SyberLabs/RISE/pull/1'; }, /links elsewhere/u],
-    ['a merge sha that is not one', digest => { digest.changes[0].mergeSha = 'main'; }, /merge commit/u],
-    ['an unknown route', digest => { digest.changes[0].route.kind = 'secret'; }, /route\.kind/u],
-    ['an unknown reason', digest => { digest.changes[0].reason = 'because'; }, /reason/u],
-    ['a title over 200 characters', digest => { digest.changes[0].title = 'x'.repeat(201); }, /title/u],
-    ['a pull request listed twice', digest => { digest.changes[1].number = 652; digest.changes[1].url = digest.changes[0].url; }, /listed twice/u],
-    ['more than 60 changes', digest => { digest.changes = Array.from({ length: 61 }, (_, i) => ({ ...digest.changes[2], number: 1000 + i, url: `https://github.com/SyberLabs/RISE/pull/${1000 + i}` })); }, /too many changes/u],
-    ['a source beat that does not exist', digest => { digest.sources['9'] = [652]; }, /names no beat/u],
-    ['a source that is not included', digest => { digest.sources['0'] = [654]; }, /not included/u],
-    ['an included change no beat cites', digest => { digest.sources['4'] = [653]; }, /cited by no beat/u],
+    ['an unknown field', digest => { digest.script = 'alert(1)'; }, /A digest has exactly/u],
+    ['a pull request link elsewhere', digest => { digest.changes[0].url = 'javascript:alert(1)'; }, /url must be https:\/\/github\.com\/SyberLabs\/RISE\/pull\/652/u],
+    ['a pull request link to another number', digest => { digest.changes[0].url = 'https://github.com/SyberLabs/RISE/pull/1'; }, /url must be/u],
+    ['a merge sha that is not one', digest => { digest.changes[0].mergeSha = 'main'; }, /mergeSha must be 40 hex/u],
+    ['an unknown route', digest => { digest.changes[0].route.kind = 'secret'; }, /route must be one choice/u],
+    ['an unknown reason', digest => { digest.changes[0].reason = 'because'; }, /reason must be one of/u],
+    ['a title over 200 characters', digest => { digest.changes[0].title = 'x'.repeat(201); }, /title must be 1 to 200/u],
+    ['a pull request listed twice', digest => { digest.changes[1].number = 652; digest.changes[1].url = digest.changes[0].url; }, /A pull request is listed twice/u],
+    ['more than 60 changes', digest => { digest.changes = Array.from({ length: 61 }, (_, i) => ({ ...digest.changes[2], number: 1000 + i, url: `https://github.com/SyberLabs/RISE/pull/${1000 + i}` })); }, /At most 60 changes are listed/u],
+    ['a source beat that does not exist', digest => { digest.sources['9'] = [652]; }, /names beat 9, but the Current has 5 beats/u],
+    ['a source that is not included', digest => { digest.sources['0'] = [654]; }, /cites #654, which is not one of the included/u],
+    ['an included change no beat cites', digest => { digest.sources['4'] = [653]; }, /No beat cites #652/u],
     ['a Current the validator refuses', digest => { digest.current.beats[0].scene = 'nowhere'; }, /scene/u],
-    ['a v1 Current', digest => { digest.current = { schema: 'rise.current.v1', id: 'x', title: 'x', origin: digest.current.origin, segments: [{ id: 'a', text: 'Hello.' }] }; }, /not a rise\.current\.v2/u],
+    ['a v1 Current', digest => { digest.current = { schema: 'rise.current.v1', id: 'x', title: 'x', origin: digest.current.origin, segments: [{ id: 'a', text: 'Hello.' }] }; }, /current must be a rise\.current\.v2 Current/u],
     ['a Current written by another model than it names', digest => { digest.current.origin.name = 'gpt-6'; }, /another author/u],
     ['generated scene code the scene admission refuses', digest => { digest.current.scenes.push(REFUSED_SCENE); }, /`fetch` is not available/u],
     ['a figure the SVG admission refuses', digest => { digest.current.scenes.push({ id: 'pic', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>alert(1)</script></svg>' }); }, /script/u],
     ['a file over 256 KB', digest => { digest.generatedAt = `2026-10-13T09:04:12Z${' '.repeat(262_144)}`; }, /over 256 KB/u]
   ])('refuses a digest with %s', (_, mutate, why) => {
     expect(refused(mutate)).toThrow(why);
+  });
+
+  it('admits the generator\'s own sample, digest and index', () => {
+    expect(admitChangesIndex(sampleIndex).map(entry => entry.id)).toEqual(['2026-10-14']);
+    const digest = admitChangesDigest(sampleDigest, '2026-10-14');
+    expect(digest.included).toHaveLength(11);
+    expect(digest.changes).toHaveLength(20);
   });
 
   it('loads a digest only by an id of the contract\'s form', async () => {
@@ -113,7 +122,7 @@ describe('RISE Changes pages', () => {
     expect(rows).toHaveLength(2);
     expect(rows[0].querySelector('a').getAttribute('href')).toBe(`/changes/${CHANGES_ID}`);
     expect(rows[0].textContent).toContain('12–13 October 2026');
-    expect(rows[0].textContent).toContain('8 changes');
+    expect(rows[0].textContent).toContain('5 changes in the reading');
     expect(rows[0].querySelector('.changes-badge').textContent).toBe('Team');
     rows[0].querySelector('a').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
     expect(go).toHaveBeenCalledWith(`/changes/${CHANGES_ID}`);

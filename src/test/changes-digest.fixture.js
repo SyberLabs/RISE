@@ -62,8 +62,8 @@ export function changesIndexFixture() {
   return {
     schema: 'syberlabs.changes-index/v1',
     digests: [
-      { id: CHANGES_ID, audience: 'team', title: 'What changed in RISE, 12–13 October', period: { from: '2026-10-12T09:00:00Z', to: '2026-10-13T09:00:00Z' }, count: 8 },
-      { id: '2026-10-12', audience: 'team', title: 'What changed in RISE, 5–12 October', period: { from: '2026-10-05T09:00:00Z', to: '2026-10-12T09:00:00Z' }, count: 31 }
+      { id: CHANGES_ID, audience: 'team', title: 'What changed in RISE, 12–13 October', period: { from: '2026-10-12T09:00:00Z', to: '2026-10-13T09:00:00Z' }, count: 5 },
+      { id: '2026-10-12', audience: 'team', title: 'What changed in RISE, 5–12 October', period: { from: '2026-10-05T09:00:00Z', to: '2026-10-12T09:00:00Z' }, count: 12 }
     ]
   };
 }
