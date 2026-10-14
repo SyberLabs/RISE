@@ -4,14 +4,14 @@
   "lane": "shared",
   "milestone": "RISE Changes",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "merged",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
   "acceptance": [
     "A weekly workflow (.github/workflows/changes-digest.yml: Monday 09:00 UTC and workflow_dispatch with since and dry_run) collects the pull requests merged into main since the newest digest's period.to on the changes-data branch, or seven days back; it never runs on pull_request and is never a required check.",
     "A pull request whose changed files are all under docs/product/tasks/ is listed as records-only and never offered to a model; the rest are routed in one model call of finite choices (audience, significance, kind), admitted strictly against the menu, and an answer that is missing, malformed or off the menu becomes skip, minor, records with the pull request still listed.",
-    "The team digest includes the changes routed to team or both and notable or major, at most 24 by significance then recency (the rest listed as limit), and at most 60 changes listed in all.",
+    "The team digest includes every change routed to any audience but skip (team, readers or both) that is notable or major, at most 24 by significance then recency (the rest listed as limit), and at most 60 changes listed in all; each change keeps its routed audience for a later readers digest.",
     "One model call composes a rise.current.v2 for the team, taught by RISE's own host guide, grounded only in the included pull requests' titles and bodies, with sources naming the pull requests each beat speaks about; every included change is cited and nothing else is.",
     "The Current is admitted with RISE's own validators (validateRiseCurrent, admitSceneCode, admitSvg, the MCP size bound) and the sources rules; a refusal gets one repair call with the diagnostics and then one more, and a run still refused fails without writing.",
     "The run writes <id>.json and index.json per docs/plans/RISE-CHANGES.md to the orphan changes-data branch (created with a README on the first run), and opens one issue labelled changes-digest linking https://rise.syberlabs.io/changes/<id> with the routing table; a run with nothing included writes nothing and opens no issue.",
@@ -40,7 +40,7 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/672",
-      "note": "PR A, draft, branch changes-generator at 26843617: the generator (scripts/changes/digest.mjs, src/core/changes/) and .github/workflows/changes-digest.yml. Not merged, not run on GitHub, no real model call.",
+      "note": "PR A: the generator (scripts/changes/digest.mjs, src/core/changes/) and .github/workflows/changes-digest.yml. Codex finding (figure text in the number rule) fixed by claude[bot] in 4fdca00a, style sheets and comments excluded in 4efc5cf4. Merged as 853bb6f8 on 2026-10-14 (CI run 38559837169 green). Not accepted by a human.",
       "date": "2026-10-14"
     },
     {
@@ -53,6 +53,18 @@
       "kind": "test",
       "ref": "src/app/changes.test.js",
       "note": "Branch changes-viewer, local (Windows, Node 22): worker/changes.test.js 36 passed; src/app/changes.test.js 41 passed (20 digest refusals, each by its reason; the generator sample admitted); importers incl. worker/index, production-config, route-url, Home, route-manifest, system-design, contract: 8 files 186 passed; npx playwright test e2e/changes.spec.js 5 passed (list, keyboard at 390 px, Play opens the Chamber at /changes/<id> and words stream, PR links, malformed and refused-scene digests refused, missing files). Screenshots changes-*.png at 1440x900 and 390x844 (coordinator scratchpad frames-renders).",
+      "date": "2026-10-14"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38560715770",
+      "note": "First real model call: workflow_dispatch dry run on main at 853bb6f8, since 2026-10-13T02:00:00Z. CLI 2.1.287 with -p, --max-turns 1, --tools \"\", --permission-mode dontAsk and the prompt on stdin worked (EBADENGINE warning on Node 20.19). 21 merged, 5 records-only, 16 routed, all answers on the menu; 10 included (652, 653, 655, 660, 661, 662, 665, 668, 669, 672); #667, #670, #663, #656 routed to readers and so left out under the first rule. Composition admitted on the first call: 0 repairs, no number refusals, 13 beats, two engine scenes. The beats carried a caveat from #661 that #663 had resolved, and a flourish at the opening and close. Digest step 17 s, job 58 s. The log has no sk-ant, oat01, Bearer or gh token string; both secrets show only as ***.",
+      "date": "2026-10-14"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/674",
+      "note": "Follow-up from the first dry run, branch changes-team-inclusion: the team digest includes every audience but skip when notable or major; the composer reads the included pull requests and, as context only, the routed ones left out, in merge order, and states an earlier caveat only when no later one resolves it, with no flourish; the workflow on Node 22.23.3; the docs index lists the contract so the wiki builds. Codex finding (a minor resolver left out) fixed in c649f2b0. Local: vitest src/core/changes plus system-design passed; roadmap, hygiene, vite build, first load 62.1 KB br, wiki build 112 pages.",
       "date": "2026-10-14"
     }
   ],
@@ -68,10 +80,14 @@
     {
       "date": "2026-10-14T12:04:36.129Z",
       "summary": "PR B (#673): the Worker route and the /changes pages, rebased on #672 and reading files through contract.js"
+    },
+    {
+      "date": "2026-10-14T12:36:48.644Z",
+      "summary": "PR #672 merged as 853bb6f8; first dry run 38560715770 recorded; PR #674: every audience but skip, merge-order composition with context, Node 22"
     }
   ],
-  "updatedAt": "2026-10-14T12:04:36.129Z",
-  "revision": 3,
+  "updatedAt": "2026-10-14T12:36:48.644Z",
+  "revision": 4,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }

@@ -51,6 +51,16 @@ describe('runDigest on the week of #652–#671', () => {
     const records = digest.changes.filter(change => change.reason === 'records-only').map(change => change.number);
     expect(records.sort()).toEqual([654, 657, 659, 664, 666]);
     for (const number of records) expect(calls[0].prompt).not.toContain(`"number": ${number},`);
+    for (const number of records) expect(calls[1].prompt).not.toContain(`"number": ${number},`);
+  });
+
+  it('gives the composer the routed changes it did not include as context, in merge order', async () => {
+    const { ask, calls } = scriptedAsk([fixture('route-answer.txt'), fixture('composition.json')]);
+    await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    const { prompt } = calls[1];
+    const data = JSON.parse(prompt.slice(prompt.indexOf('<pull_requests>') + 15, prompt.indexOf('</pull_requests>')));
+    expect(data.map(item => item.number)).toEqual([652, 653, 655, 656, 661, 662, 658, 660, 663, 665, 667, 668, 669, 670, 671]);
+    expect(data.filter(item => !item.included).map(item => item.number)).toEqual([656, 663, 670, 671]);
   });
 
   it('writes nothing when nothing is included, and says why', async () => {

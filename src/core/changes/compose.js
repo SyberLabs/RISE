@@ -19,9 +19,10 @@ function instructions(model) {
     '',
     'What to say:',
     '- Open with one short beat that names the week. Then group the changes by theme (for example: the reader, RISE Live, the connector, visuals, infrastructure), one or a few beats per theme, and close with one short beat.',
-    '- Plain words, meant to be heard: short sentences, no markdown, no lists, no file paths, no code names a newcomer would not know.',
-    '- Every claim comes ONLY from the titles and bodies of the pull requests given. Invent no capability, outcome, number, date, name or reason that is not written there. Use a number only when a pull request states it. When a pull request says something is unverified, not yet deployed or not yet accepted, say so or leave it out; never call it done.',
-    '- Speak about every pull request given at least once, and about nothing else.',
+    '- Plain words, meant to be heard: short sentences, no markdown, no lists, no file paths, no code names a newcomer would not know. You speak as RISE, plainly: no flourish, no slogan and no metaphor, at the opening and the close as everywhere.',
+    '- Every claim comes ONLY from the titles and bodies of the pull requests given. Invent no capability, outcome, number, date, name or reason that is not written there. Use a number only when a pull request states it.',
+    '- The pull requests are given in merge order, each with its merge time. A later pull request may resolve or supersede what an earlier one says is unverified, pending, not deployed or left to decide. State such a caveat only when no later pull request in the set resolves it; otherwise speak of the final state. Never call done what no pull request says is done.',
+    '- Speak about every pull request marked "included": true at least once, and about nothing else. One marked "included": false is context only: never speak about it or cite it; read it only to know whether it resolved or superseded what an included one says.',
     `- Keep it to about three minutes heard: at most ${BEAT_LIMITS.beats} beats, usually 8 to 20.`,
     '- For scenes, prefer RISE\'s own engines. Write a code scene or a figure only when a picture explains a change better than words.',
     '',
@@ -29,7 +30,7 @@ function instructions(model) {
     '',
     'Answer with exactly one JSON object and nothing before or after it:',
     '{"current": <a rise.current.v2 Current>, "sources": {"<beat index>": [<pull request numbers>], ...}}',
-    '- "sources" sits beside the Current, not inside it. A beat index counts from 0 in "current.beats". Every beat that speaks about pull requests lists their numbers; beats that only open, hold or close need no entry. Every pull request given is cited by at least one beat, and no other number is.',
+    '- "sources" sits beside the Current, not inside it. A beat index counts from 0 in "current.beats". Every beat that speaks about pull requests lists their numbers; beats that only open, hold or close need no entry. Every included pull request is cited by at least one beat, and no other number is.',
     `- "current.origin" is {"kind": "model", "name": "${model}", "provider": "${COMPOSER_PROVIDER}"}.`,
     '- "current.schema" is "rise.current.v2".',
     '',
@@ -40,19 +41,23 @@ function instructions(model) {
 }
 
 /** The composer's request: pure, so the same week builds the same request. */
-export function buildComposeRequest({ pulls, model, period }) {
-  const data = pulls.map(pull => ({
+export function buildComposeRequest({ pulls, context = [], model, period }) {
+  const entry = included => pull => ({
     number: pull.number,
+    included,
     title: pull.title,
     mergedAt: pull.mergedAt,
     labels: pull.labels,
     kind: pull.route.kind,
     significance: pull.route.significance,
     body: pull.body
-  }));
+  });
+  const data = [...pulls.map(entry(true)), ...context.map(entry(false))]
+    .sort((a, b) => Date.parse(a.mergedAt) - Date.parse(b.mergedAt) || a.number - b.number);
+  const count = `${pulls.length} pull request${pulls.length === 1 ? '' : 's'}`;
   return {
     system: instructions(model),
-    prompt: `The week runs from ${period.from} to ${period.to}. Write the digest of these ${pulls.length} pull requests.\n\n${quoted('pull_requests', data)}`
+    prompt: `The week runs from ${period.from} to ${period.to}. Write the digest of the ${count} marked included; the pull requests are given in merge order.\n\n${quoted('pull_requests', data)}`
   };
 }
 
@@ -75,8 +80,8 @@ function repairRequest(request, answer, diagnostics) {
 }
 
 /** The admitted `{ current, sources }`, or an error after the last repair is refused. */
-export async function composeCurrent({ ask, pulls, model, period, log }) {
-  const request = buildComposeRequest({ pulls, model, period });
+export async function composeCurrent({ ask, pulls, context = [], model, period, log }) {
+  const request = buildComposeRequest({ pulls, context, model, period });
   let next = request;
   for (let attempt = 0; attempt <= REPAIRS; attempt += 1) {
     const answer = await ask({ ...next, model });

@@ -91,26 +91,30 @@ describe('admitRoutes', () => {
 });
 
 describe('selectChanges', () => {
-  it('includes team and both changes that are notable or major, and lists the rest', () => {
-    const candidates = [pull(1, '2026-10-13T00:00:00Z'), pull(2, '2026-10-14T00:00:00Z'), pull(3, '2026-10-15T00:00:00Z'), pull(4, '2026-10-16T00:00:00Z'), pull(5, '2026-10-16T01:00:00Z')];
+  it('includes every audience but skip when notable or major, keeping the route, and lists the rest', () => {
+    const candidates = [pull(1, '2026-10-13T00:00:00Z'), pull(2, '2026-10-14T00:00:00Z'), pull(3, '2026-10-15T00:00:00Z'), pull(4, '2026-10-16T00:00:00Z'), pull(5, '2026-10-16T01:00:00Z'), pull(7, '2026-10-12T00:00:00Z'), pull(8, '2026-10-12T01:00:00Z')];
     const records = [pull(6, '2026-10-17T00:00:00Z', { files: ['docs/product/tasks/A.json'] })];
     const routes = new Map([
       [1, route('team', 'notable', 'feature')],
       [2, route('both', 'major', 'fix')],
       [3, route('readers', 'major', 'design')],
       [4, route('team', 'minor', 'infrastructure')],
-      [5, route('skip', 'minor', 'records')]
+      [5, route('skip', 'minor', 'records')],
+      [7, route('readers', 'notable', 'fix')],
+      [8, route('skip', 'major', 'feature')]
     ]);
     const { changes, unlisted } = selectChanges({ candidates, records, routes });
     expect(unlisted).toBe(0);
     const byNumber = Object.fromEntries(changes.map(change => [change.number, change]));
     expect(byNumber[1]).toMatchObject({ included: true, reason: 'routed', route: route('team', 'notable', 'feature') });
     expect(byNumber[2]).toMatchObject({ included: true, reason: 'routed' });
-    expect(byNumber[3]).toMatchObject({ included: false, reason: 'routed' });
+    expect(byNumber[3]).toMatchObject({ included: true, reason: 'routed', route: route('readers', 'major', 'design') });
+    expect(byNumber[7]).toMatchObject({ included: true, reason: 'routed', route: route('readers', 'notable', 'fix') });
+    expect(byNumber[8]).toMatchObject({ included: false, reason: 'routed' });
     expect(byNumber[4]).toMatchObject({ included: false, reason: 'routed' });
     expect(byNumber[5]).toMatchObject({ included: false, reason: 'routed' });
     expect(byNumber[6]).toMatchObject({ included: false, reason: 'records-only', route: FALLBACK_ROUTE });
-    expect(changes.map(change => change.number)).toEqual([6, 5, 4, 3, 2, 1]);
+    expect(changes.map(change => change.number)).toEqual([6, 5, 4, 3, 2, 1, 8, 7]);
     expect(Object.keys(byNumber[1]).sort()).toEqual(['included', 'mergeSha', 'mergedAt', 'number', 'reason', 'route', 'title', 'url']);
   });
 
