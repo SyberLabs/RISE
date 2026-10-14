@@ -104,4 +104,35 @@ describe('illustrate', () => {
     expect(drawn.beats[1].scene).toBeUndefined();
     expect(notes[0]).toMatch(/beat 1/);
   });
+
+  it('lets go of a cue the beat gave the scene a picture replaces, figure or code', async () => {
+    for (const [answer, medium] of [[good, 'figure'], [ILLUSTRATOR_EXAMPLES[1], 'scene']]) {
+      const cued = current();
+      cued.beats[1] = { ...cued.beats[1], cue: 'calm' };
+      const { ask } = scriptedAsk([answer]);
+      const { current: drawn } = await illustrate({ ask, model: MODEL, current: cued, pictures: [{ beat: 1, medium, brief }], pulls, period, log: () => {} });
+      expect(drawn.beats[1].scene).toBe('picture-1');
+      expect(drawn.beats[1]).not.toHaveProperty('cue');
+      expect(() => validateRiseCurrent(drawn)).not.toThrow();
+    }
+  });
+
+  it('illustrates a Current that declares no scenes', async () => {
+    const bare = current();
+    delete bare.scenes;
+    delete bare.beats[0].scene;
+    const { ask } = scriptedAsk([good]);
+    const { current: drawn } = await illustrate({ ask, model: MODEL, current: bare, pictures: [{ beat: 0, medium: 'figure', brief }], pulls, period, log: () => {} });
+    expect(drawn.scenes.map(scene => scene.id)).toEqual(['picture-1']);
+    expect(drawn.beats[0].scene).toBe('picture-1');
+  });
+
+  it('holds a code scene’s labels to the number rule, but not its colours', async () => {
+    const code = label => ['@scene picture code', '```js', 'export default function scene(rise) {', '  const { lib } = rise;', '  return {', '    frame() {', "      lib.clear('#0b0d12');", `      lib.label('${label}', { at: [40, 60], color: lib.color('accent', 0.8) });`, '    }', '  };', '}', '```'].join('\n');
+    const { ask, calls } = scriptedAsk([code('40% faster'), code('700 particles')]);
+    const { current: drawn } = await run(ask, [{ beat: 1, medium: 'scene', brief: 'An animation of the swarm of 700 particles.' }]);
+    expect(calls).toHaveLength(2);
+    expect(calls[1].prompt).toMatch(/['"]40['"], which no included pull request states/);
+    expect(drawn.scenes.at(-1).code).toContain('700 particles');
+  });
 });

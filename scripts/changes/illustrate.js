@@ -75,7 +75,8 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
       const id = `picture-${index + 1}`;
       drawn.scenes.push({ id, ...result.scene });
       drawn.beats[picture.beat].scene = id;
-      if (result.scene.svg !== undefined) delete drawn.beats[picture.beat].cue;
+      // A cue on this beat was for the scene the picture replaces.
+      delete drawn.beats[picture.beat].cue;
       log(`  picture for beat ${picture.beat}: a ${result.medium} admitted on attempt ${result.attempts}`);
     } else {
       const why = result.status === 'failed' ? `${result.reason} after ${result.attempts} attempt${result.attempts === 1 ? '' : 's'}` : `the illustrator answered with a ${result.status}`;

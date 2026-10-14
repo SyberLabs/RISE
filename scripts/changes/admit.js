@@ -58,8 +58,12 @@ function statedNumbers(pulls, period) {
 /** A figure shows its text nodes; its markup, comments and style sheets are not read. */
 const figureText = svg => svg.replace(/<!--[\s\S]*?-->/g, ' ').replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]*>/g, ' ');
 
-/** A code scene shows its labels as string literals; its coordinates and other numbers are not read. */
-const codeText = code => (code.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? []).join(' ');
+/** A colour written as a string literal (#hex, rgb(), hsl()), quotes included: never text a scene shows. */
+const COLOUR = /^.(?:#[0-9a-f]{3,8}|(?:rgba?|hsla?)\([^)]*\)).$/iu;
+
+/** A code scene shows its labels as string literals; its coordinates, colours and other numbers are not read. */
+const codeText = code => (code.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? [])
+  .filter(literal => !COLOUR.test(literal)).join(' ');
 
 function unstated(texts, stated, what) {
   const found = new Set();
