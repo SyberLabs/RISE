@@ -82,6 +82,7 @@ describe('buildComposeRequest', () => {
   it('asks for plain words in RISE’s voice, with no flourish at the opening or the close', () => {
     const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
     expect(system).toMatch(/no flourish/i);
+    expect(system).toMatch(/never of what a later run, test or review will show/);
   });
 
   it('asks for a picture brief per change or group, RISE’s engines only for mood, and the composition rule', () => {
