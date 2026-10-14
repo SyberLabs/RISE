@@ -36,16 +36,26 @@
       "ref": "src/core/changes/fixtures/2026-10-14.json",
       "note": "The sample digest: the real GraphQL page for #652-#671 run through the whole pipeline with a recorded router answer and a hand-written composition (fake ask), admitted by the real validators on the first call: 20 merged, 5 records-only, 15 routed, 11 included, 15 beats. No real model call has been made; the workflow has not run.",
       "date": "2026-10-14"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/672",
+      "note": "PR A, draft, branch changes-generator at 26843617: the generator (scripts/changes/digest.mjs, src/core/changes/) and .github/workflows/changes-digest.yml. Not merged, not run on GitHub, no real model call.",
+      "date": "2026-10-14"
     }
   ],
   "activity": [
     {
       "date": "2026-10-14T12:00:00.000Z",
       "summary": "Claimed; PR A (the generator and the workflow) started on branch changes-generator."
+    },
+    {
+      "date": "2026-10-14T13:00:00.000Z",
+      "summary": "PR #672 (PR A: the generator and the workflow) opened as a draft with local verification evidence."
     }
   ],
-  "updatedAt": "2026-10-14T12:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-14T13:00:00.000Z",
+  "revision": 2,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }
