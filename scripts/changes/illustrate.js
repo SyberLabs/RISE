@@ -20,7 +20,7 @@ export const DIGEST_PICTURE_NOTE = [
   '- Labels must read on a phone 390 pixels wide: text of at least 20 units in a viewBox about 400 wide, few words per label, nothing smaller.',
   '- Every label sits clear of every other label and of every line and box: no text over a stroke, no two labels touching. Fewer words is the fix when space runs out.',
   '- Draw only what the brief and the beats just said state: no number, name or claim of your own. A number in the picture must be one the brief gives.',
-  '- Place things only where the brief says: a layout puts each part where the brief puts it (above, below, at the foot). When the brief gives no positions, draw a flow or a list, never an arrangement it did not state.'
+  '- A chart or a diagram the brief asks for is drawn as asked. A picture of where things sit places them only where the brief says (above, below, at the foot); a layout the brief gives no positions for is drawn as a labelled list of its parts, never an arrangement it did not state.'
 ].join('\n');
 
 const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, length - 1)}…`);
