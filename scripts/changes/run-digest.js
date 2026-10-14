@@ -1,11 +1,12 @@
 /**
  * One run of RISE Changes (docs/plans/RISE-CHANGES.md): collect, prefilter,
- * route, compose, admit, and the two files to write. `gh` and `ask` are
+ * route, compose, admit, illustrate, and the two files to write. `gh` and `ask` are
  * injected, so the whole run is testable without GitHub or a model; nothing
  * here writes a file, pushes a branch or opens an issue.
  */
 import { boundary, collectMergedPulls, readIndex } from '../../src/core/changes/collect.js';
 import { composeCurrent } from './compose.js';
+import { illustrate } from './illustrate.js';
 import { MODEL, REPOSITORY } from '../../src/core/changes/contract.js';
 import { prefilter } from '../../src/core/changes/prefilter.js';
 import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
@@ -45,10 +46,13 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   const included = routed.filter(pull => includedNumbers.has(pull.number));
   // The routed changes left out are context: a later minor fix may settle an included change's caveat.
   const context = routed.filter(pull => !includedNumbers.has(pull.number));
-  const { current, sources } = await composeCurrent({ ask, pulls: included, context, model, period, log });
+  const composed = await composeCurrent({ ask, pulls: included, context, model, period, log });
+  log(`Composed ${composed.current.beats.length} beats; drawing ${composed.pictures.length} pictures`);
+  const { current, notes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included, period, log });
+  const { sources } = composed;
 
   const id = digestId(period.to, (index?.digests ?? []).map(entry => entry.id));
-  const digest = buildDigest({ id, period, generatedAt: now.toISOString(), model, changes, current, sources });
+  const digest = buildDigest({ id, period, generatedAt: now.toISOString(), model, changes, current, sources, notes });
   const next = nextIndex(index, digest);
   return {
     written: true,

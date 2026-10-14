@@ -61,6 +61,13 @@
   gap: var(--sy-space-4);
 }
 
+.changes-notes {
+  margin: var(--sy-space-2) 0 0;
+  padding-left: var(--sy-space-5);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
 .changes-digest-title {
   font-size: 18px;
   line-height: 26px;

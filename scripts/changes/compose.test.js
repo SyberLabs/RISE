@@ -14,14 +14,18 @@ const current = (beats, scenes = [{ id: 'field', engine: 'attractor' }]) => ({
   schema: 'rise.current.v2', id: 'week', title: 'What changed in RISE', theme: 'cobalt',
   origin: { kind: 'model', name: MODEL, provider: 'Anthropic, via Claude Code' }, scenes, beats
 });
+const picture = { beat: 1, medium: 'figure', brief: 'A labelled diagram of change one: the room before and after.' };
 const good = JSON.stringify({
   current: current([{ say: 'This week the room changed.', scene: 'field' }, { say: 'Change one makes the room quieter.' }, { say: 'Change two makes the room quieter too.' }]),
-  sources: { 1: [1], 2: [2] }
+  sources: { 1: [1], 2: [2] },
+  pictures: [picture]
 });
+/** The composer draws a scene itself, which the composition rule refuses: pictures are briefs. */
 const refusedScene = JSON.stringify({
   current: current([{ say: 'This week the room changed.', scene: 'bad' }, { say: 'Change one.' }, { say: 'Change two.' }],
-    [{ id: 'bad', code: 'export default function scene(rise) {\n  fetch("https://example.com");\n  return { frame() {} };\n}' }]),
-  sources: { 1: [1], 2: [2] }
+    [{ id: 'bad', code: 'export default function scene(rise) {\n  return { frame() {} };\n}' }]),
+  sources: { 1: [1], 2: [2] },
+  pictures: [picture]
 });
 
 describe('buildComposeRequest', () => {
@@ -79,6 +83,17 @@ describe('buildComposeRequest', () => {
     const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
     expect(system).toMatch(/no flourish/i);
   });
+
+  it('asks for a picture brief per change or group, RISE’s engines only for mood, and the composition rule', () => {
+    const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
+    expect(system).toMatch(/"pictures"/);
+    expect(system).toMatch(/brief/i);
+    expect(system).toMatch(/illustrator/i);
+    expect(system).toMatch(/figure/);
+    expect(system).toMatch(/at most 2 of RISE’s engines/);
+    expect(system).toMatch(/every 4 beats/);
+    expect(system).toMatch(/mood/);
+  });
 });
 
 describe('composeCurrent', () => {
@@ -102,9 +117,10 @@ describe('composeCurrent', () => {
     const { ask, calls } = scripted([refusedScene, good]);
     const result = await composeCurrent({ ask, pulls, model: MODEL, period, log: () => {} });
     expect(calls).toHaveLength(2);
-    expect(calls[1].prompt).toMatch(/Scene "bad" was refused: line 2, column 3: `fetch` is not available to a scene/);
+    expect(calls[1].prompt).toMatch(/Scene "bad" is drawn by the composer; draw a picture through "pictures"/);
     expect(calls[1].prompt).toContain(refusedScene);
     expect(result.current.scenes[0].engine).toBe('attractor');
+    expect(result.pictures).toEqual([picture]);
   });
 
   it('fails after the second repair is still refused, with the diagnostics', async () => {
@@ -113,6 +129,6 @@ describe('composeCurrent', () => {
     await expect(composeCurrent({ ask, pulls, model: MODEL, period, log: line => lines.push(line) }))
       .rejects.toThrow(/refused/);
     expect(calls).toHaveLength(3);
-    expect(lines.join('\n')).toMatch(/`fetch` is not available to a scene/);
+    expect(lines.join('\n')).toMatch(/drawn by the composer/);
   });
 });

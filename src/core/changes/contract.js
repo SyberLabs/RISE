@@ -33,6 +33,8 @@ export const LIMITS = Object.freeze({
   body: 4000,
   files: 100,
   fileBytes: 256 * 1024,
+  notes: 20,
+  note: 300,
   index: 200
 });
 
@@ -112,8 +114,14 @@ function changeProblems(change, index) {
 /** What is wrong with a digest's envelope; empty when it keeps the contract. */
 export function digestProblems(digest) {
   const keys = ['schema', 'id', 'audience', 'title', 'period', 'generatedAt', 'model', 'changes', 'current', 'sources'];
-  if (!isObject(digest) || !sameKeys(digest, keys)) return [`A digest has exactly ${keys.join(', ')}`];
+  // `notes` is optional: what the run let go (a picture not drawn), one sentence each.
+  const withNotes = isObject(digest) && Object.hasOwn(digest, 'notes') ? [...keys, 'notes'] : keys;
+  if (!isObject(digest) || !sameKeys(digest, withNotes)) return [`A digest has exactly ${keys.join(', ')}, and notes when it has any`];
   const problems = [];
+  if (withNotes.length > keys.length && (!Array.isArray(digest.notes) || digest.notes.length < 1 || digest.notes.length > LIMITS.notes
+    || digest.notes.some(note => typeof note !== 'string' || !note.trim() || note.length > LIMITS.note))) {
+    problems.push(`notes must be 1 to ${LIMITS.notes} sentences of at most ${LIMITS.note} characters`);
+  }
   if (digest.schema !== DIGEST_SCHEMA) problems.push(`schema must be ${DIGEST_SCHEMA}`);
   if (typeof digest.id !== 'string' || !DIGEST_ID.test(digest.id)) problems.push('id must be a date, with a short suffix only for a second run that day');
   if (digest.audience !== 'team') problems.push('audience must be team');

@@ -51,6 +51,17 @@ describe('digestId', () => {
 });
 
 describe('buildDigest', () => {
+  it('carries the run’s notes last, only when there are any, and bounds them', () => {
+    const note = 'The picture for beat 1 was not drawn: REFUSED after 3 attempts; the beat keeps the scene before it.';
+    const value = digest({ notes: [note] });
+    expect(Object.keys(value).at(-1)).toBe('notes');
+    expect(value.notes).toEqual([note]);
+    expect(Object.keys(digest({ notes: [] }))).not.toContain('notes');
+    expect(() => digest({ notes: ['x'.repeat(301)] })).toThrow(/notes/);
+    expect(() => digest({ notes: Array.from({ length: 21 }, () => 'A note.') })).toThrow(/notes/);
+    expect(issueFor(value).body).toContain(note);
+  });
+
   it('writes the contract’s envelope', () => {
     const value = digest();
     expect(Object.keys(value)).toEqual(['schema', 'id', 'audience', 'title', 'period', 'generatedAt', 'model', 'changes', 'current', 'sources']);

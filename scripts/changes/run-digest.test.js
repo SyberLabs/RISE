@@ -23,6 +23,9 @@ function fakeGh({ index = null, pages }) {
   };
 }
 
+/** The recorded model answers: the router's, the composer's, then the illustrator's, one per brief. */
+const week = () => [fixture('route-answer.txt'), fixture('composition.json'), ...JSON.parse(fixture('illustrations.json'))];
+
 function scriptedAsk(answers) {
   const calls = [];
   const ask = async request => { calls.push(request); const next = answers.shift(); if (next === undefined) throw new Error('unexpected ask'); return next; };
@@ -34,18 +37,44 @@ describe('runDigest on the week of #652–#671', () => {
   const since = '2026-10-13T02:00:00Z';
 
   it('produces the committed sample digest and index from the recorded week and model answers', async () => {
-    const { ask, calls } = scriptedAsk([fixture('route-answer.txt'), fixture('composition.json')]);
+    const { ask, calls } = scriptedAsk(week());
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
     expect(result.written).toBe(true);
     expect(result.id).toBe('2026-10-14');
     expect(result.files['2026-10-14.json']).toBe(fixture('2026-10-14.json'));
     expect(result.files['index.json']).toBe(fixture('index.json'));
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(2 + JSON.parse(fixture('illustrations.json')).length);
     expect(calls.every(call => call.model === MODEL)).toBe(true);
   });
 
+  it('draws each brief after the composition, and puts each picture on its beat', async () => {
+    const { ask, calls } = scriptedAsk(week());
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    const { pictures } = JSON.parse(fixture('composition.json'));
+    for (const [index, picture] of pictures.entries()) {
+      expect(calls[2 + index].prompt).toContain(picture.brief);
+      expect(digest.current.beats[picture.beat].scene).toBe(`picture-${index + 1}`);
+    }
+    expect(digest.current.scenes.filter(scene => scene.svg !== undefined)).toHaveLength(pictures.length);
+    expect(digest).not.toHaveProperty('notes');
+  });
+
+  it('keeps the scene before for a picture still refused, and says so in the digest and the issue', async () => {
+    const refused = ['@scene picture svg', '```svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>x</script></svg>', '```'].join('\n');
+    const [route, composition, , ...rest] = week();
+    const { ask } = scriptedAsk([route, composition, refused, refused, refused, ...rest]);
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    const first = JSON.parse(fixture('composition.json')).pictures[0];
+    expect(digest.current.beats[first.beat].scene).toBeUndefined();
+    expect(digest.notes).toHaveLength(1);
+    expect(digest.notes[0]).toMatch(new RegExp(`beat ${first.beat}.*not drawn`));
+    expect(result.issue.body).toContain('Notes from the run:');
+  });
+
   it('never offers a records-only pull request to the router', async () => {
-    const { ask, calls } = scriptedAsk([fixture('route-answer.txt'), fixture('composition.json')]);
+    const { ask, calls } = scriptedAsk(week());
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
     const digest = JSON.parse(result.files['2026-10-14.json']);
     const records = digest.changes.filter(change => change.reason === 'records-only').map(change => change.number);
@@ -55,7 +84,7 @@ describe('runDigest on the week of #652–#671', () => {
   });
 
   it('gives the composer the routed changes it did not include as context, in merge order', async () => {
-    const { ask, calls } = scriptedAsk([fixture('route-answer.txt'), fixture('composition.json')]);
+    const { ask, calls } = scriptedAsk(week());
     await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
     const { prompt } = calls[1];
     const data = JSON.parse(prompt.slice(prompt.indexOf('<pull_requests>') + 15, prompt.indexOf('</pull_requests>')));
@@ -82,7 +111,7 @@ describe('runDigest on the week of #652–#671', () => {
 
   it('continues an existing index, with a suffix when the day already has a digest', async () => {
     const index = JSON.parse(fixture('index.json'));
-    const { ask } = scriptedAsk([fixture('route-answer.txt'), fixture('composition.json')]);
+    const { ask } = scriptedAsk(week());
     const result = await runDigest({ gh: fakeGh({ index, pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
     expect(result.id).toBe('2026-10-14-2');
     expect(JSON.parse(result.files['index.json']).digests.map(entry => entry.id)).toEqual(['2026-10-14-2', '2026-10-14']);
