@@ -102,6 +102,18 @@
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/38653120502",
       "note": "Dry run 1 of the pictures, on main at 7c880a6f: 26 merged, 18 included, 17 beats; the composition rule asked for 2 repairs (a scene held 5 beats; 7 pictures beside 2 engines); 6 figures, each admitted on its first attempt; engines only at the opening (attractor) and close (still). Played locally with the paced voice and screenshotted at 1440x900: the frames table, memory flow, 16.4 to 143.9 frames-a-second chart and digest pipeline read well and are grounded; the full-frame fit figure invented a layout (the words at the top, contradicting the ask bar at the foot), and the sealed-source figure had labels over a box. Fixed in the prompts (PR to follow). No token string in the log.",
       "date": "2026-10-14"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/679",
+      "note": "Prompt fixes from dry run 1: labels clear of each other, things placed only where the brief says, the picture room in numbers. Merged as 8b74e7f8; its Codex finding (a chart or diagram turned into a list) answered by #680, merged as 25c9b6aa.",
+      "date": "2026-10-14"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38655933529",
+      "note": "Dry run 2 on main at 25c9b6aa: 28 merged, 17 included, 17 beats; 2 composition repairs (a scene not declared; #663 cited though not included); 6 figures, each admitted on its first attempt; engines only at the opening (attractor) and close (living-flame). Screenshots at 1440x900: the frames table, the room layout bottom to top with the ask bar 8 px above the instrument and Sophia at its left, the name-a-visual flow, the 16.4 to 143.9 chart, the digest pipeline and the brief-to-beat flow are correct, legible and grounded; no overlapping labels. One closing beat spoke of what the next dry run would show; the composer is told not to (PR to follow). No token string in the log.",
+      "date": "2026-10-15"
     }
   ],
   "activity": [
@@ -136,10 +148,14 @@
     {
       "date": "2026-10-14T23:23:03.482Z",
       "summary": "#678 merged as 7c880a6f; dry run 1 of the pictures recorded with its screenshots' findings"
+    },
+    {
+      "date": "2026-10-14T23:50:04.320Z",
+      "summary": "Dry run 2 of the pictures recorded: correct, legible, grounded figures"
     }
   ],
-  "updatedAt": "2026-10-14T23:23:03.482Z",
-  "revision": 8,
+  "updatedAt": "2026-10-14T23:50:04.320Z",
+  "revision": 9,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }

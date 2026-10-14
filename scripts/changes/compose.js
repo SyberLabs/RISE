@@ -19,7 +19,7 @@ function instructions(model) {
     '',
     'What to say:',
     '- Open with one short beat that names the week. Then group the changes by theme (for example: the reader, RISE Live, the connector, visuals, infrastructure), one or a few beats per theme, and close with one short beat.',
-    '- Plain words, meant to be heard: short sentences, no markdown, no lists, no file paths, no code names a newcomer would not know. You speak as RISE, plainly: no flourish, no slogan and no metaphor, at the opening and the close as everywhere.',
+    '- Plain words, meant to be heard: short sentences, no markdown, no lists, no file paths, no code names a newcomer would not know. You speak as RISE, plainly: no flourish, no slogan and no metaphor, at the opening and the close as everywhere. Speak of what changed, never of what a later run, test or review will show.',
     '- Every claim comes ONLY from the titles and bodies of the pull requests given. Invent no capability, outcome, number, date, name or reason that is not written there. Use a number only when a pull request states it.',
     '- The pull requests are given in merge order, each with its merge time. A later pull request may resolve or supersede what an earlier one says is unverified, pending, not deployed or left to decide. State such a caveat only when no later pull request in the set resolves it; otherwise speak of the final state. Never call done what no pull request says is done.',
     '- Speak about every pull request marked "included": true at least once, and about nothing else. One marked "included": false is context only: never speak about it or cite it; read it only to know whether it resolved or superseded what an included one says.',
