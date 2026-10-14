@@ -141,6 +141,20 @@ describe('RISE Changes pages', () => {
     expect(path).toBe(`/changes/${CHANGES_ID}`);
   });
 
+  it('says why a routed change was left out: no audience, another audience, or too minor', async () => {
+    const digest = changesDigestFixture();
+    digest.changes[6].route = { audience: 'readers', significance: 'major', kind: 'feature' };
+    digest.changes.push({ ...digest.changes[6], number: 671, url: 'https://github.com/SyberLabs/RISE/pull/671', route: { audience: 'both', significance: 'minor', kind: 'design' } });
+    digest.changes.push({ ...digest.changes[6], number: 670, url: 'https://github.com/SyberLabs/RISE/pull/670', route: { audience: 'skip', significance: 'minor', kind: 'fix' } });
+    const { section } = await mount({ digestId: CHANGES_ID, load: files(undefined, digest) });
+    const words = number => section.querySelector(`.changes-routes a[href$="/${number}"]`).closest('li').querySelector('.changes-meta').textContent;
+    expect(words(662)).toBe('readers · major · feature — Left out: routed to readers only');
+    expect(words(671)).toBe('both · minor · design — Left out: minor');
+    expect(words(670)).toBe('skip · minor · fix — Left out: routed to no audience');
+    expect(words(654)).toBe('skip · minor · records — Left out: records only');
+    expect(words(653)).toBe('team · major · feature — Included');
+  });
+
   it('writes what the files say as text, never markup', async () => {
     const digest = changesDigestFixture();
     digest.changes[0].title = '<img src=x onerror="window.pwned=1">';

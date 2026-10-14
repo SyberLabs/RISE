@@ -32,7 +32,7 @@ const ROUTE = Object.freeze({
   kind: ['feature', 'fix', 'performance', 'design', 'infrastructure', 'records']
 });
 const REASONS = ['routed', 'records-only', 'limit'];
-const AUDIENCE_WORDS = { skip: 'no audience', team: 'the team', readers: 'readers', both: 'the team and readers' };
+const AUDIENCE_WORDS = { team: 'the team', readers: 'readers' };
 const BADGES = { team: 'Team', readers: 'Readers' };
 
 const utf8Bytes = value => new TextEncoder().encode(JSON.stringify(value)).byteLength;
@@ -193,12 +193,14 @@ const badge = audience => `<span class="changes-badge">${BADGES[audience]}</span
 // Set when the reader follows a changes link, so the next page's heading takes focus.
 let moved = false;
 
-/** Why a change is or is not in the reading, in words. */
-function reasonWords({ included, reason, route }) {
+/** Why a change is or is not in a digest for `audience`, in words. */
+function reasonWords({ included, reason, route }, audience) {
   if (included) return 'Included';
   if (reason === 'records-only') return 'Left out: records only';
   if (reason === 'limit') return `Left out: over the ${CHANGES_LIMITS.included}-change limit`;
-  return `Left out: routed to ${AUDIENCE_WORDS[route.audience]}`;
+  if (route.audience === 'skip') return 'Left out: routed to no audience';
+  if (route.audience !== 'both' && route.audience !== audience) return `Left out: routed to ${AUDIENCE_WORDS[route.audience]} only`;
+  return route.significance === 'minor' ? 'Left out: minor' : 'Left out';
 }
 
 function listView(digests) {
@@ -223,7 +225,7 @@ function detailView(digest) {
       </li>`).join('');
   const chosen = digest.changes.map(change => `<li class="changes-route"${change.included ? ' data-included' : ''}>
         <a href="${escape(change.url)}" target="_blank" rel="noopener noreferrer"><span class="changes-number">#${change.number}</span> ${escape(change.title)}</a>
-        <p class="changes-meta"><span class="changes-route-words">${change.route.audience} · ${change.route.significance} · ${change.route.kind}</span> — ${reasonWords(change)}</p>
+        <p class="changes-meta"><span class="changes-route-words">${change.route.audience} · ${change.route.significance} · ${change.route.kind}</span> — ${reasonWords(change, digest.audience)}</p>
       </li>`).join('');
   return `${EYEBROW}
     <h1 class="portal-title changes-title" id="portal-ask-title" tabindex="-1">${escape(digest.title)}</h1>
