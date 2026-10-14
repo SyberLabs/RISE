@@ -109,6 +109,18 @@ describe('RISE Changes files', () => {
     expect(response.status).toBe(404);
   });
 
+  it('answers an upstream whose body fails part way with a 404', async () => {
+    upstream(() => new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"schema":'));
+        controller.error(new TypeError('connection reset'));
+      }
+    })));
+    const response = await get('/content/changes/index.json');
+    expect(response.status).toBe(404);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
   it('refuses a file over the cap, by its declared length or by what it sends', async () => {
     upstream(() => new Response('{}', { headers: { 'Content-Length': String(CHANGES_MAX_BYTES + 1) } }));
     expect((await get('/content/changes/index.json')).status).toBe(404);

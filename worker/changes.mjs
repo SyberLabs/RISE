@@ -63,18 +63,18 @@ export async function serveChangesFile(request) {
   const name = url.pathname.slice(CHANGES_PREFIX.length);
   if ((request.method !== 'GET' && request.method !== 'HEAD') || url.search !== '' || !FILE.test(name)) return notFound();
   const ttl = name === 'index.json' ? INDEX_TTL : DIGEST_TTL;
-  let upstream;
+  let body;
   try {
-    upstream = await fetch(`${CHANGES_UPSTREAM}${name}`, {
+    const upstream = await fetch(`${CHANGES_UPSTREAM}${name}`, {
       method: 'GET',
       redirect: 'manual',
       cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': ttl, '300-599': -1 } }
     });
+    if (upstream.status !== 200) return notFound();
+    body = await bounded(upstream);
   } catch {
     return notFound('The changes file could not be fetched.');
   }
-  if (upstream.status !== 200) return notFound();
-  const body = await bounded(upstream);
   if (body === null) return notFound('The changes file is over 256 KB.');
   return new Response(request.method === 'HEAD' ? null : body, {
     headers: {
