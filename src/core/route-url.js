@@ -132,6 +132,8 @@ const ROUTES = [
     // A frozen Decision Arena result: its cases, one case, one decider (src/app/arena-replay.js).
     { id: 'home', pattern: '/arena/:caseId?/:decider?', build: null, own: true,
         parse: ({ decider }) => (decider === undefined || ARENA_DECIDERS.includes(decider) ? { demoMode: true } : null) },
+    // RISE Changes: the digests of what merged, and one digest's reading (src/app/changes.js).
+    { id: 'home', pattern: '/changes/:digestId?', build: null, own: true, parse: () => ({ demoMode: true }) },
 
     pane('keystones', { pattern: TRY_RISE_PATH, build: () => TRY_RISE_PATH }),
     pane('keystones', {

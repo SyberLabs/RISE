@@ -454,6 +454,7 @@ class App {
             handleNavigate: this.handleNavigate,
             launchJevReading: (decision, options) => this.launchJevReading(decision, options),
             launchJevSample: () => this.launchJevSample(),
+            launchCurrent: (current, options) => this.launchCurrent(current, options),
             launchKeystone: slug => this.launchKeystone(slug),
             adjustJevReading: (decision, exact) => this.adjustJevReading(decision, exact),
             launchToday: () => this.launchToday(),
@@ -724,6 +725,23 @@ class App {
         if (publicPath) sessionConfig.publicPath = publicPath;
         if (!await this.handleBeginSession(sessionConfig)) {
             throw new Error('The selected reading could not be opened. Please try again.');
+        }
+    }
+
+    /**
+     * Play an admitted sealed Current (a RISE Changes digest's) in the reader. It is compiled as the live
+     * runtime compiles a sealed Current (src/live/runtime.js), its look lowered the same way, and the
+     * chamber-session factory makes its Player, as for every reading. It keeps `publicPath` while it reads.
+     */
+    async launchCurrent(current, { publicPath = null } = {}) {
+        const [{ compileRiseCurrent }, { lowerCurrentLook }] = await Promise.all([
+            import('./core/rise-current.js'), import('./core/current-look.js')
+        ]);
+        const session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook });
+        if (publicPath) session.publicPath = publicPath;
+        this.currentSession = session;
+        if (!await this.router.navigate('chamber-session', { data: session })) {
+            throw new Error('The reading could not be opened. Please try again.');
         }
     }
 
