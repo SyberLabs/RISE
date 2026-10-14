@@ -58,6 +58,9 @@ function statedNumbers(pulls, period) {
 /** A figure shows its text nodes; its markup, comments and style sheets are not read. */
 const figureText = svg => svg.replace(/<!--[\s\S]*?-->/g, ' ').replace(/<style\b[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]*>/g, ' ');
 
+/** A code scene shows its labels as string literals; its coordinates and other numbers are not read. */
+const codeText = code => (code.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? []).join(' ');
+
 function unstated(texts, stated, what) {
   const found = new Set();
   for (const text of texts) {
@@ -68,9 +71,14 @@ function unstated(texts, stated, what) {
     `${what} says "${number}", which no included pull request states; use only numbers written in the pull requests, or say it without a number`);
 }
 
+/** The same rule for one code scene: the numbers in its string literals. */
+export function codeNumberProblems(code, { pulls, period }) {
+  return unstated([codeText(code)], statedNumbers(pulls, period), 'The scene');
+}
+
 /** Numbers the Current says or shows, its figures included, that no included pull request and no date of the period states. */
 export function numberProblems(current, { pulls, period }) {
-  const figures = (current.scenes ?? []).map(scene => (typeof scene?.svg === 'string' ? figureText(scene.svg) : undefined));
+  const figures = (current.scenes ?? []).map(scene => (typeof scene?.svg === 'string' ? figureText(scene.svg) : typeof scene?.code === 'string' ? codeText(scene.code) : undefined));
   return unstated([current.title, ...current.beats.flatMap(beat => [beat?.say, beat?.show]), ...figures], statedNumbers(pulls, period), 'The Current');
 }
 

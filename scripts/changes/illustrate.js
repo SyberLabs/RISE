@@ -11,7 +11,7 @@ import { ILLUSTRATOR_INSTRUCTIONS, promptFor } from '../../src/live/adapters/ope
 import { draw } from '../../src/live/illustrator.js';
 import { RISE_CURRENT_THEME_IDS, validateRiseCurrent } from '../../src/core/rise-current.js';
 import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
-import { figureNumberProblems, numberProblems } from './admit.js';
+import { codeNumberProblems, figureNumberProblems, numberProblems } from './admit.js';
 
 /** What the digest adds to Live's illustrator instructions: where its pictures are seen. */
 export const DIGEST_PICTURE_NOTE = [
@@ -26,7 +26,7 @@ const clip = (text, length) => (text.length <= length ? text : `${text.slice(0, 
 /** The scene running when a beat begins: the last one a beat before it started. */
 function runningAt(current, index) {
   for (let at = index - 1; at >= 0; at -= 1) {
-    const scene = current.scenes.find(item => item.id === current.beats[at]?.scene);
+    const scene = (current.scenes ?? []).find(item => item.id === current.beats[at]?.scene);
     if (scene) return { id: scene.id, ...(scene.engine ? { engine: scene.engine } : { form: scene.svg !== undefined ? 'svg' : 'code' }) };
   }
   return undefined;
@@ -48,7 +48,7 @@ function illustratorAdapter({ ask, model, pulls, period }) {
   });
   const diagnoseScene = scene => [
     ...adapter.diagnoseScene(scene),
-    ...(scene.svg === undefined ? [] : figureNumberProblems(scene.svg, { pulls, period }).map(message => ({ line: null, column: null, rule: 'number', message })))
+    ...(scene.svg !== undefined ? figureNumberProblems(scene.svg, { pulls, period }) : typeof scene.code === 'string' ? codeNumberProblems(scene.code, { pulls, period }) : []).map(message => ({ line: null, column: null, rule: 'number', message }))
   ];
   return { ...adapter, diagnoseScene };
 }
@@ -59,7 +59,7 @@ function illustratorAdapter({ ask, model, pulls, period }) {
  */
 export async function illustrate({ ask, model, current, pictures, pulls, period, log, now = Date.now }) {
   const adapter = illustratorAdapter({ ask, model, pulls, period });
-  const drawn = { ...current, scenes: [...current.scenes], beats: current.beats.map(beat => ({ ...beat })) };
+  const drawn = { ...current, scenes: [...(current.scenes ?? [])], beats: current.beats.map(beat => ({ ...beat })) };
   const notes = [];
   const ordered = [...pictures].sort((a, b) => a.beat - b.beat);
   for (const [index, picture] of ordered.entries()) {
@@ -75,6 +75,7 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
       const id = `picture-${index + 1}`;
       drawn.scenes.push({ id, ...result.scene });
       drawn.beats[picture.beat].scene = id;
+      if (result.scene.svg !== undefined) delete drawn.beats[picture.beat].cue;
       log(`  picture for beat ${picture.beat}: a ${result.medium} admitted on attempt ${result.attempts}`);
     } else {
       const why = result.status === 'failed' ? `${result.reason} after ${result.attempts} attempt${result.attempts === 1 ? '' : 's'}` : `the illustrator answered with a ${result.status}`;
