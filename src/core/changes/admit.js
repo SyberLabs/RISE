@@ -53,7 +53,8 @@ function unstatedNumbers(current, pulls, period) {
     for (const part of [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()]) stated.add(String(part));
   }
   const unstated = new Set();
-  for (const text of [current.title, ...current.beats.flatMap(beat => [beat?.say, beat?.show])]) {
+  const figureText = (current.scenes ?? []).map(scene => typeof scene?.svg === 'string' ? scene.svg.replace(/<[^>]*>/g, ' ') : undefined);
+  for (const text of [current.title, ...current.beats.flatMap(beat => [beat?.say, beat?.show]), ...figureText]) {
     if (typeof text !== 'string') continue;
     for (const number of numbersIn(text)) if (!stated.has(number)) unstated.add(number);
   }

@@ -114,6 +114,13 @@ describe('admitComposition', () => {
       expect(verdict.diagnostics.join('\n')).toMatch(/"40"/);
     });
 
+    it('refuses a number written in a figure’s visible text', () => {
+      const scenes = [{ id: 'fig', svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text x="1" y="5">40%</text></svg>' }];
+      const verdict = admit({ current: current([{ say: 'This week.', scene: 'fig' }, ...beats.slice(1)], { scenes }), sources: { 1: [652], 2: [653] } });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.diagnostics.join('\n')).toMatch(/"40"/);
+    });
+
     it('accepts numbers a pull request states, and the dates of the period', () => {
       const verdict = admit({ current: current([{ say: 'From 12 to 19 October 2026.', scene: 'field' }, { say: '700 particles, 60 ticks a second.' }, { say: 'Three frames.' }]), sources: { 1: [652], 2: [653] } });
       expect(verdict.ok).toBe(true);
