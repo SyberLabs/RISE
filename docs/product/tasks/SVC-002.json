@@ -66,6 +66,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/674",
       "note": "Follow-up from the first dry run, branch changes-team-inclusion: the team digest includes every audience but skip when notable or major; the composer reads the included pull requests and, as context only, the routed ones left out, in merge order, and states an earlier caveat only when no later one resolves it, with no flourish; the workflow on Node 22.23.3; the docs index lists the contract so the wiki builds. Codex finding (a minor resolver left out) fixed in c649f2b0. Local: vitest src/core/changes plus system-design passed; roadmap, hygiene, vite build, first load 62.1 KB br, wiki build 112 pages.",
       "date": "2026-10-14"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38566536152",
+      "note": "Second dry run, workflow_dispatch on main at b8f2abd3 (#674 merged): 23 merged, 5 records-only, 18 routed, 15 included (652, 653, 655, 660, 661, 662, 663, 665, 667, 668, 669, 670, 672, 673, 674). Composition admitted with 0 repairs, 15 beats; no stale caveat, plain voice; no token string in the log. Digest step 27 s. Not accepted by a human.",
+      "date": "2026-10-14"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/675",
+      "note": "Branch changes-narration: Open the reading on /changes/<id> opens the Live venue with the digest's admitted Current as its only source (src/live/adapters/sealed.js, the MCP adapter's admitted path with no host: no request, no Dive, the Current's own origin), at the digest's address: Sophia, the device's voice (or ElevenLabs on the reader's key), the three frames, the stage's instrument, no ask bar; About lists the pull requests; Back to the digest returns. A 404 index reads as no digest written yet. Local: fast set 134 files 3017 passed; importers 22 files 618 passed; e2e/changes.spec.js and three venue tests 8 passed (paced voice, no model request); first load 62.3 KB br of 64 KB. Screenshots changes-spoken-*.png at 1440x900 and 390x844. Not merged. Not accepted by a human.",
+      "date": "2026-10-14"
     }
   ],
   "activity": [
@@ -84,10 +96,14 @@
     {
       "date": "2026-10-14T12:36:48.644Z",
       "summary": "PR #672 merged as 853bb6f8; first dry run 38560715770 recorded; PR #674: every audience but skip, merge-order composition with context, Node 22"
+    },
+    {
+      "date": "2026-10-14T20:32:41.973Z",
+      "summary": "Second dry run 38566536152 recorded; PR #675: the digest spoken in RISE's room from a sealed source"
     }
   ],
-  "updatedAt": "2026-10-14T12:36:48.644Z",
-  "revision": 4,
+  "updatedAt": "2026-10-14T20:32:41.973Z",
+  "revision": 5,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }
