@@ -165,7 +165,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
     components["components<br/>routed views<br/>57 modules"]
     content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>173 modules"]
+    core["core<br/>session, player, router<br/>182 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>75 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -201,6 +201,7 @@ flowchart LR
     content --> |1| visuals
     core --> |14| audio
     core --> |15| content
+    core --> |2| live
     core --> |13| scenes
     core --> |4| sources
     core --> |7| visuals

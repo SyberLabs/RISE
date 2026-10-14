@@ -28,7 +28,7 @@
     {
       "kind": "test",
       "ref": "src/core/changes/digest.test.js",
-      "note": "Branch changes-generator, local (Windows, Node 22): npx vitest run src/core/changes plus the modules it imports (system-design, src/live/guide, rise-current, scene-admission, svg-admission, worker/mcp-server): 14 files, 350 passed. The fast set collects 133 files with src/core/changes added. node --test scripts/changes/digest.test.mjs: 4 passed (a real child process: stdin, the system prompt file, the allowlisted environment, the temporary directory removed, the deadline). roadmap:check 102 tasks; ci-hygiene clean; vite build; first load 62.1 KB br of 64 KB; docs:diagram unchanged.",
+      "note": "Branch changes-generator, local (Windows, Node 22): npx vitest run src/core/changes plus the modules it imports (system-design, src/live/guide, rise-current, scene-admission, svg-admission, worker/mcp-server): 14 files, 350 passed. The fast set collects 133 files with src/core/changes added. node --test scripts/changes/digest.test.mjs: 4 passed (a real child process: stdin, the system prompt file, the allowlisted environment, the temporary directory removed, the deadline). roadmap:check 102 tasks; ci-hygiene clean; vite build; first load 62.1 KB br of 64 KB; docs:diagram regenerated after the commit (core now imports live: the host guide and the MCP size bound).",
       "date": "2026-10-14"
     },
     {
