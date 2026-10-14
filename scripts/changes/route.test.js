@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FALLBACK_ROUTE, ROUTE_MENU } from './contract.js';
+import { FALLBACK_ROUTE, ROUTE_MENU } from '../../src/core/changes/contract.js';
 import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
 
 const sha = n => String(n).padStart(40, 'b');

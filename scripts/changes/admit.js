@@ -5,11 +5,11 @@
  * the sources, and no number that no included pull request states. Pure: the
  * verdict depends on the text and the included pull requests alone.
  */
-import { RISE_CURRENT_SCHEMA_V2, validateRiseCurrent } from '../rise-current.js';
-import { admitSceneCode, describeDiagnostic } from '../scene-admission.js';
-import { admitSvg } from '../svg-admission.js';
-import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../../live/hosts/mcp-size.js';
-import { COMPOSER_PROVIDER, sourcesProblems } from './contract.js';
+import { RISE_CURRENT_SCHEMA_V2, validateRiseCurrent } from '../../src/core/rise-current.js';
+import { admitSceneCode, describeDiagnostic } from '../../src/core/scene-admission.js';
+import { admitSvg } from '../../src/core/svg-admission.js';
+import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../../src/live/hosts/mcp-size.js';
+import { COMPOSER_PROVIDER, sourcesProblems } from '../../src/core/changes/contract.js';
 
 const MAX_LINE = 300;
 const MAX_SCENE_LINES = 10;

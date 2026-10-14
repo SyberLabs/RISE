@@ -5,10 +5,10 @@
  * answer gets one repair call with the refusal's lines, then one more; a
  * third refusal fails the run, so nothing unadmitted is ever written.
  */
-import { BEAT_LIMITS } from '../beats.js';
-import { CURRENT_GUIDE } from '../../live/guide/index.js';
+import { BEAT_LIMITS } from '../../src/core/beats.js';
+import { CURRENT_GUIDE } from '../../src/live/guide/index.js';
 import { admitComposition } from './admit.js';
-import { COMPOSER_PROVIDER } from './contract.js';
+import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
 import { quoted } from './route.js';
 
 export const REPAIRS = 2;

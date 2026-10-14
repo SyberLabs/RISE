@@ -4,7 +4,7 @@
   "lane": "shared",
   "milestone": "RISE Changes",
   "status": "in_progress",
-  "delivery": "merged",
+  "delivery": "deployed",
   "owner": "Claude coordinator",
   "priority": "now",
   "dependencies": [],
@@ -27,8 +27,8 @@
     },
     {
       "kind": "test",
-      "ref": "src/core/changes/digest.test.js",
-      "note": "Branch changes-generator, local (Windows, Node 22): npx vitest run src/core/changes plus the modules it imports (system-design, src/live/guide, rise-current, scene-admission, svg-admission, worker/mcp-server): 14 files, 350 passed. The fast set collects 133 files with src/core/changes added. node --test scripts/changes/digest.test.mjs: 4 passed (a real child process: stdin, the system prompt file, the allowlisted environment, the temporary directory removed, the deadline). roadmap:check 102 tasks; ci-hygiene clean; vite build; first load 62.1 KB br of 64 KB; docs:diagram regenerated after the commit (core now imports live: the host guide and the MCP size bound).",
+      "ref": "scripts/changes/run-digest.test.js",
+      "note": "Branch changes-generator, local (Windows, Node 22): npx vitest run src/core/changes plus the modules it imports (system-design, src/live/guide, rise-current, scene-admission, svg-admission, worker/mcp-server): 14 files, 350 passed. The fast set collects 133 files with src/core/changes added. node --test scripts/changes/digest.test.mjs: 4 passed (a real child process: stdin, the system prompt file, the allowlisted environment, the temporary directory removed, the deadline). roadmap:check 102 tasks; ci-hygiene clean; vite build; first load 62.1 KB br of 64 KB; docs:diagram regenerated after the commit (core now imports live: the host guide and the MCP size bound). (Moved from src/core/changes/digest.test.js in #677.)",
       "date": "2026-10-14"
     },
     {
@@ -76,7 +76,13 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/675",
-      "note": "Branch changes-narration: Open the reading on /changes/<id> opens the Live venue with the digest's admitted Current as its only source (src/live/adapters/sealed.js, the MCP adapter's admitted path with no host: no request, no Dive, the Current's own origin), at the digest's address: Sophia, the device's voice (or ElevenLabs on the reader's key), the three frames, the stage's instrument, no ask bar; About lists the pull requests; Back to the digest returns. A 404 index reads as no digest written yet. Local: fast set 134 files 3017 passed; importers 22 files 618 passed; e2e/changes.spec.js and three venue tests 8 passed (paced voice, no model request); first load 62.3 KB br of 64 KB. Screenshots changes-spoken-*.png at 1440x900 and 390x844. Not merged. Not accepted by a human.",
+      "note": "Branch changes-narration: Open the reading on /changes/<id> opens the Live venue with the digest's admitted Current as its only source (src/live/adapters/sealed.js, the MCP adapter's admitted path with no host: no request, no Dive, the Current's own origin), at the digest's address: Sophia, the device's voice (or ElevenLabs on the reader's key), the three frames, the stage's instrument, no ask bar; About lists the pull requests; Back to the digest returns. A 404 index reads as no digest written yet. Local: fast set 134 files 3017 passed; importers 22 files 618 passed; e2e/changes.spec.js and three venue tests 8 passed (paced voice, no model request); first load 62.3 KB br of 64 KB. Screenshots changes-spoken-*.png at 1440x900 and 390x844. Merged as 7dc26905 on 2026-10-14 (CI green after the fast-set pin moved to 134); deployed, release.txt 7dc26905; production /changes says No digest has been written yet while the data branch is empty. Not accepted by a human.",
+      "date": "2026-10-14"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/677",
+      "note": "Branch changes-boundary: the Node pipeline that reaches the live layer (admit.js, compose.js, route.js, run-digest.js, from src/core/changes/) moves to scripts/changes/ with its tests, so src/live/boundary.test.js passes (13 passed with system-design; 2 failed before). src/core/changes/ keeps contract.js, collect.js, prefilter.js, write.js, claude-cli.js and fixtures/. CLI and workflow unchanged; fast set still 134 files, 3017 passed; node --test scripts/changes/digest.test.mjs 4 passed. Not merged.",
       "date": "2026-10-14"
     }
   ],
@@ -100,10 +106,14 @@
     {
       "date": "2026-10-14T20:32:41.973Z",
       "summary": "Second dry run 38566536152 recorded; PR #675: the digest spoken in RISE's room from a sealed source"
+    },
+    {
+      "date": "2026-10-14T20:58:27.529Z",
+      "summary": "#675 merged as 7dc26905 and deployed (release 7dc26905); PR #677 moves the Node pipeline to scripts/changes"
     }
   ],
-  "updatedAt": "2026-10-14T20:32:41.973Z",
-  "revision": 5,
+  "updatedAt": "2026-10-14T20:58:27.529Z",
+  "revision": 6,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }

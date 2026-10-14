@@ -7,7 +7,7 @@
  * nothing else. Selection after it is deterministic code.
  */
 import { parseModelJson } from './admit.js';
-import { FALLBACK_ROUTE, LIMITS, ROUTE_MENU } from './contract.js';
+import { FALLBACK_ROUTE, LIMITS, ROUTE_MENU } from '../../src/core/changes/contract.js';
 
 const EXCERPT = 1500;
 const LISTED_FILES = 30;

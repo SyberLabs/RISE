@@ -44,7 +44,7 @@ newest first, at most 200 entries.
 - The Worker proxies only filenames matching `^index\.json$|^\d{4}-\d{2}-\d{2}(-[a-z0-9]{1,8})?\.json$`, GET/HEAD only, returns `application/json`, `X-Content-Type-Options: nosniff`, caches index 5 minutes and dated files a day (they are immutable once written, but a re-run may replace one).
 
 ## The generator (PR A), as built
-These refine the contract above; the shared code is `src/core/changes/` and the envelope check both sides can use is `contract.js` (`digestProblems`, `indexProblems`, `sourcesProblems`).
+These refine the contract above. The code is in two places. `src/core/changes/` holds the pure pieces the app may share, which import nothing from the live layer: `contract.js`, the envelope check both sides use (`digestProblems`, `indexProblems`, `sourcesProblems`), with `collect.js`, `prefilter.js`, `write.js`, `claude-cli.js` and the sample in `fixtures/`. `scripts/changes/` holds the Node pipeline that reaches the live layer (the host guide, the MCP size bound): `route.js`, `compose.js`, `admit.js` and `run-digest.js`, which `digest.mjs` runs.
 
 - **Run.** `node scripts/changes/digest.mjs [--since <ISO>] [--out <dir>] [--dry-run]`. It reads GitHub through `gh` and writes `<id>.json`, `index.json`, `issue.json` and `run.json` to a new or empty out directory. It never commits, pushes or opens an issue; the workflow does, and skips both on a dry run.
 - **Period.** From the newest `period.to` in `index.json` on `changes-data` (or seven days back, or `--since`) to the moment of the run; a pull request is in it when merged after `from` and at or before `to`.

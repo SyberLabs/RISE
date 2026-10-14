@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { runDigest } from './digest.js';
+import { runDigest } from './run-digest.js';
 
 // A Windows checkout may give the fixtures CRLF; the files the run writes are LF.
 const fixture = name => readFileSync(resolve(process.cwd(), 'src/core/changes/fixtures', name), 'utf8').replace(/\r\n/g, '\n');

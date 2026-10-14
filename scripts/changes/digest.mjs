@@ -18,7 +18,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createAsk } from '../../src/core/changes/claude-cli.js';
-import { runDigest } from '../../src/core/changes/digest.js';
+import { runDigest } from './run-digest.js';
 import { serialize } from '../../src/core/changes/write.js';
 
 const GH_MAX_BUFFER = 64 * 1024 * 1024;
