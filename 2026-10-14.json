@@ -1,0 +1,471 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-14",
+  "audience": "team",
+  "title": "What changed in RISE, 13–14 October",
+  "period": {
+    "from": "2026-10-13T02:00:00.000Z",
+    "to": "2026-10-14T20:52:50.603Z"
+  },
+  "generatedAt": "2026-10-14T20:52:50.603Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 675,
+      "title": "RISE Changes: a digest is spoken in RISE's room, from a sealed source that calls no model",
+      "url": "https://github.com/SyberLabs/RISE/pull/675",
+      "mergedAt": "2026-10-14T20:44:05Z",
+      "mergeSha": "7dc269056c04371fea561a90007415a90fa9bb83",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 674,
+      "title": "The team digest includes every change that matters, read in merge order so a later fix settles an earlier caveat",
+      "url": "https://github.com/SyberLabs/RISE/pull/674",
+      "mergedAt": "2026-10-14T12:43:54Z",
+      "mergeSha": "b8f2abd32fd063cd4884466ab3c786c31767bd96",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 673,
+      "title": "RISE Changes: the Worker serves the digest files, and /changes shows and plays them",
+      "url": "https://github.com/SyberLabs/RISE/pull/673",
+      "mergedAt": "2026-10-14T12:20:25Z",
+      "mergeSha": "a09842f1f1c9ba2f3765cb0e097db8a19c5c667e",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 672,
+      "title": "RISE Changes writes a weekly digest of what merged, routed and composed by Claude and admitted by RISE's own validators",
+      "url": "https://github.com/SyberLabs/RISE/pull/672",
+      "mergedAt": "2026-10-14T12:00:57Z",
+      "mergeSha": "853bb6f867e98e20a1bcce77404de830200769cc",
+      "route": {
+        "audience": "team",
+        "significance": "major",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 671,
+      "title": "Live's catalog note names an engine as the Reader's catalog does: Genesis, Turrell Fields, Ostensoria, Apparitio",
+      "url": "https://github.com/SyberLabs/RISE/pull/671",
+      "mergedAt": "2026-10-13T11:39:01Z",
+      "mergeSha": "54756b525c94fefa659bdc33ecf9ed038daf317e",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "design"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 670,
+      "title": "The face's trails fade back to its ground exactly, leaving no grey shadow in the room",
+      "url": "https://github.com/SyberLabs/RISE/pull/670",
+      "mergedAt": "2026-10-13T11:38:57Z",
+      "mergeSha": "6e80f3d6c93c79a2d9b33133df6e7a37697796f2",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 669,
+      "title": "Live draws the circle frames at the size they are shown, and the face keeps its trails",
+      "url": "https://github.com/SyberLabs/RISE/pull/669",
+      "mergedAt": "2026-10-13T10:27:15Z",
+      "mergeSha": "6332e9950f904648db400632114b9fe74f8433b2",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 668,
+      "title": "The swarm adds each tick to its trail in one draw, and the flash gate samples on the GPU",
+      "url": "https://github.com/SyberLabs/RISE/pull/668",
+      "mergedAt": "2026-10-13T09:34:15Z",
+      "mergeSha": "6277759b8852c37b34b32929c0a5508d3b629198",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 667,
+      "title": "A visual the reader names in a held Live reading reaches the screen at once, not at the next phrase",
+      "url": "https://github.com/SyberLabs/RISE/pull/667",
+      "mergedAt": "2026-10-13T09:30:42Z",
+      "mergeSha": "7903b4ce87206a8676eba7f6204f8415ce3d151c",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 666,
+      "title": "LIVE-030: delivery deployed (#665 live in b2fec553), seen on production",
+      "url": "https://github.com/SyberLabs/RISE/pull/666",
+      "mergedAt": "2026-10-13T07:14:38Z",
+      "mergeSha": "5053e449325e0aed5f1b310cf8462d326a2e95cc",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 665,
+      "title": "RISE Live's ask bar sits at the room's foot, above the instrument and any on-screen keyboard, the words above it (LIVE-030)",
+      "url": "https://github.com/SyberLabs/RISE/pull/665",
+      "mergedAt": "2026-10-13T06:58:33Z",
+      "mergeSha": "b2fec553622197e0f58a481d37f9f9676664b50a",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 659,
+      "title": "LIVE-026: delivery deployed (#655 and its follow-up #658 live in b48ef88e)",
+      "url": "https://github.com/SyberLabs/RISE/pull/659",
+      "mergedAt": "2026-10-13T06:39:49Z",
+      "mergeSha": "39885cdd54c6156fdd3c9fc6302150eebc8fc7ed",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 664,
+      "title": "LIVE-029: delivery deployed (#660 live in b48ef88e), seen on production",
+      "url": "https://github.com/SyberLabs/RISE/pull/664",
+      "mergedAt": "2026-10-13T06:38:09Z",
+      "mergeSha": "e0c28e73f245b7f9c137fdce85bd8cd205b94534",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 663,
+      "title": "A fitted generated scene's edges dissolve into the room, so its ground never shows as a panel",
+      "url": "https://github.com/SyberLabs/RISE/pull/663",
+      "mergedAt": "2026-10-13T06:20:16Z",
+      "mergeSha": "b48ef88e35db13929a1882a87e4823eb928ff84c",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 660,
+      "title": "RISE Live: a visual the reader names is shown at once, with no model call (LIVE-029)",
+      "url": "https://github.com/SyberLabs/RISE/pull/660",
+      "mergedAt": "2026-10-13T06:16:58Z",
+      "mergeSha": "8df83ce773a301d17578cea43d046056dda5cd22",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 658,
+      "title": "Codex: a passage names the scene its own Current started (LIVE-026 follow-up)",
+      "url": "https://github.com/SyberLabs/RISE/pull/658",
+      "mergedAt": "2026-10-13T06:14:42Z",
+      "mergeSha": "9c80848e5e81daebee1233f0e25439d26dfc4f36",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 662,
+      "title": "A choice opened while /live fades in stays open",
+      "url": "https://github.com/SyberLabs/RISE/pull/662",
+      "mergedAt": "2026-10-13T06:01:39Z",
+      "mergeSha": "008d0cc5ab8bb569e050cfd5430dbcd82a323560",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 661,
+      "title": "In RISE Live's full frame, a figure or a generated scene is fitted clear of the ask bar and the words",
+      "url": "https://github.com/SyberLabs/RISE/pull/661",
+      "mergedAt": "2026-10-13T06:01:04Z",
+      "mergeSha": "23a40081c3233be33ec07f8fe05ec487fab0ab4c",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 657,
+      "title": "LIVE-028: delivery deployed (#653 live in 4e6ce08d)",
+      "url": "https://github.com/SyberLabs/RISE/pull/657",
+      "mergedAt": "2026-10-13T05:23:55Z",
+      "mergeSha": "a78c1467179051b13e75c8c566c594ce564e3976",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 656,
+      "title": "RISE Live: where the face cannot draw, its still eye stays a poster in the room, words at its foot",
+      "url": "https://github.com/SyberLabs/RISE/pull/656",
+      "mergedAt": "2026-10-13T05:18:27Z",
+      "mergeSha": "af117d0b5b1394c066506cf4aa4359c3eab45c66",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 655,
+      "title": "RISE Live remembers the room: each new question goes up with the earlier questions and what RISE said",
+      "url": "https://github.com/SyberLabs/RISE/pull/655",
+      "mergedAt": "2026-10-13T05:18:17Z",
+      "mergeSha": "526a2a91f5e1f27cf4550a4babe0da03b5729b1b",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 654,
+      "title": "SCR-007: delivery deployed (#652 live at 2f13e80a)",
+      "url": "https://github.com/SyberLabs/RISE/pull/654",
+      "mergedAt": "2026-10-13T05:02:12Z",
+      "mergeSha": "4e6ce08dd44336bf05588adacc2309b4655c3e03",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 653,
+      "title": "RISE Live: Sophia holds every visual in one of three frames — the inner eye, the outer shell, the full frame",
+      "url": "https://github.com/SyberLabs/RISE/pull/653",
+      "mergedAt": "2026-10-13T05:00:11Z",
+      "mergeSha": "1169a51c090a00614fa0ffcf7b796e37eb61dbc3",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 652,
+      "title": "The attractor can be a swarm, and the harmonograph rotary",
+      "url": "https://github.com/SyberLabs/RISE/pull/652",
+      "mergedAt": "2026-10-13T04:48:36Z",
+      "mergeSha": "2f13e80af5cb49184a311370384692a7a887a46d",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "rise-week-2026-10-13",
+    "title": "RISE this week: Live frames, memory, and the Changes digest",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "scenes": [
+      {
+        "id": "field",
+        "engine": "attractor",
+        "params": {
+          "system": "aizawa",
+          "palette": "neon"
+        }
+      }
+    ],
+    "beats": [
+      {
+        "say": "This week RISE Live got a new way to frame visuals, a memory of the room, and a digest of its own changes.",
+        "scene": "field"
+      },
+      {
+        "say": "First, the visuals. The attractor can now be a swarm of particles, and the harmonograph can use two rotary pendulums."
+      },
+      {
+        "say": "Live now holds every visual in one of three frames: the inner eye, the outer shell, or the full frame. Each visual chooses its frame, and the face stays in the room while a reading speaks."
+      },
+      {
+        "say": "In the full frame, a figure or a generated scene is now fitted clear of the ask bar and the words, so labels are no longer clipped."
+      },
+      {
+        "say": "The ask bar now sits at the foot of the room, above the instrument and any on-screen keyboard, with the words above it. A real phone keyboard has not been checked."
+      },
+      {
+        "say": "The face's trails now fade back to its ground exactly, so they leave no grey shadow in the room."
+      },
+      {
+        "say": "Next, how Live listens. It now remembers the room within one visit. Each new question goes up with the earlier questions and what RISE said, so a word like it can be understood. This is forgotten when you leave."
+      },
+      {
+        "say": "A reader who names one of RISE's visuals during a reading now gets it at once, with no model call. A later fix made that visual reach the screen immediately, not at the next phrase."
+      },
+      {
+        "say": "A choice opened while the page fades in no longer shuts under the reader."
+      },
+      {
+        "say": "Then speed. The swarm now adds each tick to its trail in one draw, and the flash gate samples on the graphics chip. On the test machine the swarm went from about 16 frames a second to about 144."
+      },
+      {
+        "say": "Live also draws its circle frames at the size they are shown, and the face keeps its trails."
+      },
+      {
+        "say": "Last, RISE Changes. A weekly job now writes a digest of what merged, composed by Claude and checked by RISE's own validators."
+      },
+      {
+        "say": "The Worker serves those digest files, and a changes page lists and shows them."
+      },
+      {
+        "say": "The digest now includes every change that matters, read in merge order so a later fix settles an earlier caveat."
+      },
+      {
+        "say": "And a digest is now spoken in RISE's room, from a sealed source that calls no model."
+      },
+      {
+        "say": "That is the week."
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      652
+    ],
+    "2": [
+      653
+    ],
+    "3": [
+      661
+    ],
+    "4": [
+      665
+    ],
+    "5": [
+      670
+    ],
+    "6": [
+      655
+    ],
+    "7": [
+      660,
+      667
+    ],
+    "8": [
+      662
+    ],
+    "9": [
+      668
+    ],
+    "10": [
+      669
+    ],
+    "11": [
+      672
+    ],
+    "12": [
+      673
+    ],
+    "13": [
+      674
+    ],
+    "14": [
+      675
+    ]
+  }
+}
