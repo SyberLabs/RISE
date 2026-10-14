@@ -965,7 +965,7 @@ body:has(.live-venue) { background: var(--live-ground); }
   font-size: 0.9375rem;
 }
 .live-venue .live-venue__play:hover:not(:disabled) { border-color: var(--live-ink); }
-.live-venue--sealed .live-venue__choices { margin-top: 0.85rem; }
+.live-venue__who { max-width: 30rem; margin: 0.85rem 0 0; font-size: 0.8125rem; line-height: 1.5; color: var(--live-faint); text-wrap: balance; }
 .live-venue__sealed-privacy { max-width: 32rem; margin: auto 0 0; padding-top: 1rem; font-size: 0.75rem; line-height: 1.6; color: var(--live-faint); }
 .live-venue__back { margin: 0.5rem 0 0.75rem; font-size: 0.8125rem; }
 .live-venue__back a { color: var(--live-soft); text-underline-offset: 4px; text-decoration-color: var(--live-line); }

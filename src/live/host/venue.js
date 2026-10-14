@@ -301,7 +301,8 @@ export class LiveVenue {
         <h1 class="live-venue__title" id="live-venue-title"></h1>
         <form class="live-venue__ask" novalidate>
           <button type="submit" class="live-start live-venue__play">Play <span aria-hidden="true">→</span></button>
-          <p class="live-venue__choices"><span class="live-venue__who"></span><span aria-hidden="true"> · </span>spoken by <button type="button" class="live-venue__choice" data-venue-open="voices" aria-expanded="false" aria-controls="live-venue-voices-panel"></button></p>
+          <p class="live-venue__who"></p>
+          <p class="live-venue__choices">Spoken by <button type="button" class="live-venue__choice" data-venue-open="voices" aria-expanded="false" aria-controls="live-venue-voices-panel"></button></p>
           <div class="live-venue__panel" id="live-venue-voices-panel" data-panel="voices" hidden>
             <fieldset class="live-venue__voices">
               <legend class="live-venue__legend">Who speaks</legend>
