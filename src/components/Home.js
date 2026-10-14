@@ -375,13 +375,13 @@ export class Home {
     });
   }
 
-  /** RISE Changes (src/app/changes.js): a digest's admitted Current plays at the digest's address; its links move in place. */
+  /** RISE Changes (src/app/changes.js): a digest's admitted Current opens RISE's room at the digest's address; its links move in place. */
   async mountChanges(changes) {
     const section = this.container.querySelector('[data-changes]');
     const { mountChanges } = await import('../app/changes.js');
     await mountChanges(section, {
       ...changes,
-      launch: (current, publicPath) => this.onLaunchCurrent(current, { publicPath }),
+      launch: sealed => this.onLaunchCurrent(sealed),
       go: path => {
         window.history.pushState({}, '', path);
         this.update();

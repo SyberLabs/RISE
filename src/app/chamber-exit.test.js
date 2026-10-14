@@ -72,6 +72,12 @@ describe('every other surface leaves exactly as it did', () => {
                 .toEqual({ kind: 'navigate', view: 'live' });
         }
     });
+    it('returns a live reading opened from a page (a RISE Changes digest) to that page, whose address it kept', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, { origin: { view: 'live', page: '/changes/2026-10-13' } }), reason)
+                .toEqual({ kind: 'navigate', view: 'home', data: { demoMode: true } });
+        }
+    });
     it('returns today\'s poem to Home, where its card waits', () => {
         for (const reason of LEAVING) {
             expect(chamberExitTarget(reason, { origin: { view: 'home', name: 'Home', experience: 'today' } }), reason)

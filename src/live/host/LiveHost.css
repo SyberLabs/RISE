@@ -934,6 +934,47 @@ body:has(.live-venue) { background: var(--live-ground); }
 .live-venue .live-venue__choice:hover,
 .live-venue .live-venue__choice[aria-expanded="true"] { text-decoration-color: var(--live-line-lit); }
 
+/* A sealed room (venue.js renderSealed): what it is, the reading's title over Play, who wrote it, the way back. */
+.live-venue__eyebrow {
+  position: relative;
+  z-index: 2;
+  margin: calc(var(--eye) * -0.07) 0 0;
+  font-family: var(--sy-font-mono);
+  font-style: normal;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.live-venue__title {
+  position: relative;
+  z-index: 2;
+  max-width: 34rem;
+  margin: 0.5rem 0 0;
+  font-family: var(--sy-font-serif);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 1.2vw + 1.1rem, 2.2rem);
+  line-height: 1.15;
+  color: var(--live-ink);
+  overflow-wrap: anywhere;
+}
+.live-venue .live-venue__play {
+  min-height: 44px;
+  padding: 0 24px;
+  border: 1px solid var(--live-line-lit);
+  border-radius: 999px;
+  font-size: 0.9375rem;
+}
+.live-venue .live-venue__play:hover:not(:disabled) { border-color: var(--live-ink); }
+.live-venue--sealed .live-venue__choices { margin-top: 0.85rem; }
+.live-venue__sealed-privacy { max-width: 32rem; margin: auto 0 0; padding-top: 1rem; font-size: 0.75rem; line-height: 1.6; color: var(--live-faint); }
+.live-venue__back { margin: 0.5rem 0 0.75rem; font-size: 0.8125rem; }
+.live-venue__back a { color: var(--live-soft); text-underline-offset: 4px; text-decoration-color: var(--live-line); }
+.live-venue__back a:hover { color: var(--live-ink); }
+.live-venue--arriving .live-venue__eyebrow { animation: live-rise 800ms ease-out 500ms backwards; }
+.live-venue--arriving .live-venue__title { animation: live-rise 800ms ease-out 650ms backwards; }
+.live-venue--arriving .live-venue__play { animation: live-arrive 800ms ease-out 800ms backwards; }
+.live-venue:has(.live-venue__panel:not([hidden])) :is(.live-venue__eyebrow, .live-venue__title, .live-venue__play) { opacity: 0.12; transition: opacity 240ms ease; }
+
 /* Their choices: a small panel rising from the line; on a phone, a sheet from the foot. */
 .live-venue__panel {
   position: absolute;
@@ -1128,6 +1169,28 @@ body:has(.live-venue) { background: var(--live-ground); }
   font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
 }
 .live-again[hidden] { display: none; }
+
+/* A sealed room's way back to its page (venue.js ensureLeave): a quiet pill in the top corner, over the reading. */
+.live-leave {
+  position: fixed;
+  z-index: 199999;
+  top: max(12px, var(--safe-top, 0px));
+  left: max(12px, var(--safe-left, 0px));
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(232, 232, 236, 0.08);
+  border-radius: 22px;
+  background: rgba(10, 10, 12, 0.36);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  color: var(--color-light);
+  font: 400 0.875rem/1 var(--font-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .live-leave:hover { background: rgba(232, 232, 236, 0.18); }
+}
+.live-leave:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
 /* While the reading plays, only the microphone and a small field: the reader may speak into it, and the voice holds. */
 .live-again[data-open="false"] { width: min(16rem, 100% - 32px); }
 .live-again[data-open="false"] > :not([data-venue="listen"]):not(input):not(.live-again__note) { display: none; }

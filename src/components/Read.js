@@ -46,7 +46,8 @@ export class Read {
           return orbital;
         },
         chamber: (element, { createChamberSession }, data) => createChamberSession(chamber, element, data?.session),
-        live: (element, { LiveHost }) => new LiveHost(element, live),
+        // A sealed Current from a page (a RISE Changes digest) opens the room with that Current as its only source.
+        live: (element, { LiveHost }, data) => new LiveHost(element, data?.sealed ? { ...live, sealed: data.sealed } : live),
         'voice-demo': (element, { VoiceDemo }) => new VoiceDemo(element, {
           onBeginSession: setup.onBeginSession,
           ensureAudioEngine: chamber.ensureAudioEngine,

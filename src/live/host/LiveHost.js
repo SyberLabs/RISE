@@ -141,10 +141,12 @@ export class LiveHost {
      * @param {(key: string, value: unknown) => void} [options.onSettingChange] keeps a setting the reader changed here
      * @param {boolean} [options.venue] the app's `/live`: the Live venue, unless the address asks for the test page
      * @param {readonly object[]} [options.providers] the venue's provider registry
+     * @param {object|null} [options.sealed] a sealed Current already admitted on the page (venue.js `sealed`): the
+     *   venue's room with that Current as its only source, at the page's own address
      */
     constructor(container, {
         router, onNavigate = () => {}, search = globalThis.location?.search ?? '', env = globalThis, ensureAudioEngine = null,
-        getSettings = () => ({}), onSettingChange = () => {}, venue = false, providers = LIVE_PROVIDERS
+        getSettings = () => ({}), onSettingChange = () => {}, venue = false, providers = LIVE_PROVIDERS, sealed = null
     } = {}) {
         this.container = container;
         this.router = router;
@@ -248,7 +250,7 @@ export class LiveHost {
             this.startEval();
             return;
         }
-        const venued = venue && !this.hasCatalogChoice && !this.params.has('provider') && this.params.get('host') !== 'prompt';
+        const venued = sealed !== null || (venue && !this.hasCatalogChoice && !this.params.has('provider') && this.params.get('host') !== 'prompt');
         this.venue = null;
         if (!venued) this.render();
         // While the reader is typing, fetch what starting will need, so that the time from
@@ -257,7 +259,7 @@ export class LiveHost {
         this.modules.catch(() => {});
         void import('../../components/read/Chamber.js').catch(() => {});
         this.prefetchMic();
-        if (venued) this.venue = new LiveVenue(this, { providers });
+        if (venued) this.venue = new LiveVenue(this, { providers, sealed });
     }
 
     /** Speaking to it is fetched only where the browser can recognise speech; a failure is no mic. */
@@ -529,7 +531,8 @@ export class LiveHost {
                             if (!concealed && !replayed) this.atomLog.push({ at: performance.now(), index, role, sourceId: atom?.sourceId ?? null, ...(atom?.hold ? { holdMs: atom.hold.ms } : {}) });
                         });
                     }
-                    await this.present.presentLive(this.router, session, player);
+                    // A sealed room's reading keeps the address of the page it was opened from.
+                    await this.present.presentLive(this.router, session, player, { path: this.venue?.sealed?.path });
                     this.followReading(player, runtime);
                 },
                 discoverVisual: ({ player }) => mountedChamber(player)?.discoverVisual?.() ?? null,
@@ -966,7 +969,10 @@ export class LiveHost {
             sound: Boolean(this.audioEngine),
             // Who is speaking comes first: RISE, through the model and service the Current names (design §1 item 7); then what
             // the reading has cost the reader, the illustrator's requests among it (docs/plans/LIVE-CURRENT.md §19).
-            about: () => [originLine(runtime.composed?.('main')?.origin), this.venue?.usageLine?.() ?? '', this.venue?.earlierLine?.() ?? '', this.aboutReading()].filter(Boolean).join('\n'),
+            about: () => [
+                this.venue?.sealed?.who ?? originLine(runtime.composed?.('main')?.origin), ...(this.venue?.sealed?.about ?? []),
+                this.venue?.usageLine?.() ?? '', this.venue?.earlierLine?.() ?? '', this.aboutReading()
+            ].filter(Boolean).join('\n'),
             voice: this.voiceKind === 'browser' ? this.voicePick() : null,
             room,
             // RISE's face, the venue's own (docs/plans/LIVE-CURRENT.md §22): the reader's choice of skin, never the card's.
@@ -1456,6 +1462,25 @@ export class LiveHost {
         if (this.embedded && !this.destroyed) this.say('Stopped.');
     }
 
+    /**
+     * A sealed room is left for the page it was opened from, at the address it kept (venue.js renderSealed). The
+     * reading's own exit has already gone there (chamber-exit.js); Back to the digest goes from the room's entry.
+     */
+    async leaveSealed() {
+        this.paintEmbedTheme();
+        const runtime = this.runtime;
+        this.runtime = null;
+        this.controls?.destroy();
+        this.controls = null;
+        await runtime?.stop();
+        this.releaseAudio();
+        this.releaseAudioSession();
+        // The Chamber that showed the reading goes with it, unless its own exit already let it go.
+        this.present?.dismissLive(this.router);
+        if (this.destroyed || this.router.getCurrentView?.() === 'home') return;
+        await this.router.navigate('home', { data: { demoMode: true }, keepUrl: true });
+    }
+
     /** The reader left the Chamber by its own control: end what was running. */
     async ended() {
         // In the venue that is leaving the room, back to its entry.
@@ -1482,7 +1507,7 @@ export class LiveHost {
     activate() {
         // The router activates after its fade-in; a reader who has already moved into the room keeps the focus there.
         if (this.container.contains(this.container.ownerDocument.activeElement)) return;
-        this.container.querySelector('#live-prompt, #live-venue-question')?.focus({ preventScroll: true });
+        this.container.querySelector('#live-prompt, #live-venue-question, .live-venue__play')?.focus({ preventScroll: true });
     }
 
     deactivate() {}

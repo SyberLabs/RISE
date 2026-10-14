@@ -454,7 +454,7 @@ class App {
             handleNavigate: this.handleNavigate,
             launchJevReading: (decision, options) => this.launchJevReading(decision, options),
             launchJevSample: () => this.launchJevSample(),
-            launchCurrent: (current, options) => this.launchCurrent(current, options),
+            launchCurrent: sealed => this.launchCurrent(sealed),
             launchKeystone: slug => this.launchKeystone(slug),
             adjustJevReading: (decision, exact) => this.adjustJevReading(decision, exact),
             launchToday: () => this.launchToday(),
@@ -729,18 +729,12 @@ class App {
     }
 
     /**
-     * Play an admitted sealed Current (a RISE Changes digest's) in the reader. It is compiled as the live
-     * runtime compiles a sealed Current (src/live/runtime.js), its look lowered the same way, and the
-     * chamber-session factory makes its Player, as for every reading. It keeps `publicPath` while it reads.
+     * Open RISE's room for an admitted sealed Current (a RISE Changes digest's): the live venue with that
+     * Current as its only source (src/live/host/venue.js `sealed`), spoken by the live runtime's voice, at
+     * the page's own address (`sealed.path`).
      */
-    async launchCurrent(current, { publicPath = null } = {}) {
-        const [{ compileRiseCurrent }, { lowerCurrentLook }] = await Promise.all([
-            import('./core/rise-current.js'), import('./core/current-look.js')
-        ]);
-        const session = compileRiseCurrent(current, { lowerLook: lowerCurrentLook });
-        if (publicPath) session.publicPath = publicPath;
-        this.currentSession = session;
-        if (!await this.router.navigate('chamber-session', { data: session })) {
+    async launchCurrent(sealed) {
+        if (!await this.router.navigate('live', { data: { sealed }, keepUrl: true })) {
             throw new Error('The reading could not be opened. Please try again.');
         }
     }

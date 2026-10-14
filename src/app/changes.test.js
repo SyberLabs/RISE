@@ -145,9 +145,18 @@ describe('RISE Changes pages', () => {
 
     section.querySelector('[data-changes-play]').click();
     await vi.waitFor(() => expect(launch).toHaveBeenCalledTimes(1));
-    const [current, path] = launch.mock.calls[0];
-    expect(current).toEqual(changesDigestFixture().current);
-    expect(path).toBe(`/changes/${CHANGES_ID}`);
+    const [sealed] = launch.mock.calls[0];
+    expect(sealed.current).toEqual(changesDigestFixture().current);
+    expect(sealed.path).toBe(`/changes/${CHANGES_ID}`);
+    expect(sealed.who).toBe('Written by claude-sonnet-5-5 via Claude Code from 5 merged pull requests, 12–13 October 2026.');
+    expect(sealed.about).toEqual([
+      'What changed:',
+      '#652 The attractor can be a swarm, and the harmonograph rotary',
+      '#653 RISE Live: Sophia holds every visual in one of three frames — the inner eye, the outer shell, the full frame',
+      '#655 RISE Live remembers the room: each new question goes up with the earlier questions and what RISE said',
+      '#660 RISE Live: a visual the reader names is shown at once, with no model call (LIVE-029)',
+      '#667 A visual the reader names in a held Live reading reaches the screen at once, not at the next phrase'
+    ]);
   });
 
   it('says why a routed change was left out: no audience, another audience, or too minor', async () => {
@@ -197,7 +206,17 @@ describe('RISE Changes pages', () => {
   it('says so when no digest is published yet, or the list cannot be read', async () => {
     const empty = await mount({ load: files({ schema: 'syberlabs.changes-index/v1', digests: [] }) });
     expect(empty.section.querySelector('[role="status"]').textContent).toBe('No digest has been written yet.');
-    const broken = await mount({ load: async () => { throw new Error('404'); } });
+    const broken = await mount({ load: async () => { throw new Error('500'); } });
     expect(broken.section.querySelector('[role="status"]').textContent).toBe('The list of digests could not be shown.');
+  });
+
+  it('reads a missing index (the Worker 404s while the data branch holds no digest) as no digest written yet', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"error":{"code":"NOT_FOUND"}}', { status: 404, headers: { 'Content-Type': 'application/json' } })));
+    try {
+      const { section } = await mount({ load: undefined });
+      expect(section.querySelector('[role="status"]').textContent).toBe('No digest has been written yet.');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

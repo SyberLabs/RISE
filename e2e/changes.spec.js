@@ -14,16 +14,6 @@ async function serveChanges(page, digest = changesDigestFixture()) {
   await page.route(`**/content/changes/${CHANGES_ID}.json`, route => route.fulfill({ json: digest }));
 }
 
-async function reading(page) {
-  const warn = page.locator('#photosensitivity-modal');
-  await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
-  if (await warn.isVisible()) await warn.locator('#safety-accept').click();
-  await page.waitForFunction(() => window.__RISE_TEST__.getRouterState().currentView === 'read'
-    && window.__RISE_TEST__.getView('read')?.activePane === 'chamber'
-    && !window.__RISE_TEST__.getRouterState().transitioning, null, { timeout: 20_000 });
-  return page.evaluate(() => window.__RISE_TEST__.getCurrentSession().publicPath);
-}
-
 test('/changes lists the digests, newest first, and opens one by keyboard at phone width', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await serveChanges(page);
@@ -44,14 +34,16 @@ test('/changes lists the digests, newest first, and opens one by keyboard at pho
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
-test('a digest plays its admitted Current as a reading, links each change to its pull request, and says who wrote it', async ({ page }) => {
+test('a digest links each change to its pull request, says who wrote it, and is spoken in RISE\'s room, no model called', async ({ page }) => {
+  test.setTimeout(90_000);
   let modelRequests = 0;
-  await page.route(/openrouter\.ai|anthropic\.com|\/api\/local\//u, route => {
+  await page.route(/openrouter\.ai|anthropic\.com|openai\.com|googleapis\.com|elevenlabs\.io|\/api\/local\//u, route => {
     modelRequests += 1;
     return route.abort();
   });
   await serveChanges(page);
-  await page.goto(`/changes/${CHANGES_ID}`);
+  // The paced voice: silent, timed as if spoken, so the test needs no audio device.
+  await page.goto(`/changes/${CHANGES_ID}?voice=paced&measure=1`);
 
   const panel = page.locator('#changes');
   await expect(panel).toContainText('Written by claude-sonnet-5-5 via Claude Code from 5 merged pull requests, 12–13 October 2026.', { timeout: 15_000 });
@@ -66,13 +58,55 @@ test('a digest plays its admitted Current as a reading, links each change to its
   await expect(chosen).toContainText('#654 SCR-007: delivery deployed (#652 live at 2f13e80a)');
   await expect(chosen).toContainText('Left out: records only');
 
-  await panel.getByRole('button', { name: 'Play the reading' }).click();
-  expect(await reading(page)).toBe(`/changes/${CHANGES_ID}`);
-  await expect.poll(() => pathOf(page)).toBe(`/changes/${CHANGES_ID}`);
-  // The words stream: an early beat's words reach the Chamber, then the last beat's replace them.
-  const display = page.locator('#chamber-display');
-  await expect(display).toContainText(/remember|questions|RISE said|frames|inner eye/u, { timeout: 20_000 });
-  await expect(display).toContainText('harmonograph', { timeout: 30_000 });
+  // RISE's room, with the digest as its only source: the face, the title over Play, the voice's choice, no question.
+  await panel.getByRole('button', { name: 'Open the reading' }).click();
+  const room = page.locator('.live-venue--sealed');
+  await expect(room.getByRole('heading', { level: 1 })).toHaveText('What changed in RISE, 12–13 October');
+  await expect(room.locator('.live-face')).toBeAttached();
+  await expect(room).toContainText('Written by claude-sonnet-5-5 via Claude Code');
+  await expect(room.getByRole('button', { name: 'Who speaks: your device' })).toBeVisible();
+  await expect(page.locator('#live-venue-question')).toHaveCount(0);
+  await expect(page.locator('[data-venue-open="providers"]')).toHaveCount(0);
+  expect(pathOf(page)).toBe(`/changes/${CHANGES_ID}`);
+  await expect.poll(() => page.evaluate(() => window.__riseFace?.drawn() ?? false), { timeout: 15_000 }).toBe(true);
+
+  await room.getByRole('button', { name: 'Play' }).click();
+  const warn = page.locator('#photosensitivity-modal');
+  await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
+  if (await warn.isVisible()) await warn.locator('#safety-accept').click();
+  // The live runtime reads it: the first beat's words, the stage's instrument, the face speaking, and the swarm
+  // attractor the first beat starts held in the outer shell. No bar to ask again: the room asks nothing.
+  const words = page.locator('#atom-display');
+  await expect(words).toContainText(/remember the room|questions before it/u, { timeout: 20_000 });
+  const stage = page.locator('#rise-stage-controls');
+  for (const name of ['Back a passage', 'Forward a passage', 'Settings']) {
+    await expect(stage.getByRole('button', { name, exact: true })).toHaveCount(1);
+  }
+  await expect.poll(() => page.evaluate(() => window.__riseFace.state())).toBe('speaking');
+  await expect.poll(() => page.evaluate(() => window.__riseFace.frame()?.frame), { timeout: 15_000 }).toBe('shell');
+  await expect(page.getByRole('form', { name: 'Ask again' })).toHaveCount(0);
+  expect(pathOf(page)).toBe(`/changes/${CHANGES_ID}`);
+
+  // While it plays, About this reading says who wrote it and what it speaks about.
+  await stage.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('.rise-settings__about summary').click();
+  const about = page.locator('.rise-settings__about-text');
+  await expect(about).toContainText('Written by claude-sonnet-5-5 via Claude Code from 5 merged pull requests');
+  await expect(about).toContainText('#653 RISE Live: Sophia holds every visual');
+  await page.locator('#rise-settings').press('Escape');
+
+  // It reads to its end, the last beat's words spoken whole; the room's one control goes back to the digest.
+  await expect(words).toContainText('harmonograph turned rotary', { timeout: 45_000 });
+  await expect(stage.getByRole('button', { name: /^Play again/u })).toHaveCount(1, { timeout: 30_000 });
+  await page.getByRole('button', { name: 'Back to the digest' }).click();
+  await expect(page.locator('#changes .changes-included')).toBeVisible({ timeout: 15_000 });
+  expect(pathOf(page)).toBe(`/changes/${CHANGES_ID}`);
+  await expect(page.locator('#rise-stage-controls')).toHaveCount(0);
+  await expect(page.locator('.live-leave')).toHaveCount(0);
+  await expect(page.locator('#chamber-display')).toHaveCount(0);
+  // And the room opens again from the page, at its entry.
+  await page.getByRole('button', { name: 'Open the reading' }).click();
+  await expect(page.locator('.live-venue--sealed').getByRole('button', { name: 'Play' })).toBeVisible();
   expect(modelRequests).toBe(0);
 });
 
