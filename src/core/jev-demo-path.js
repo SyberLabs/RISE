@@ -24,10 +24,26 @@ export function arenaFromPath(pathname) {
   }
 }
 
-/** Which fixed sample a public path names, or null. A frozen arena replay is one. */
+/**
+ * A RISE Changes address as { digestId }, null when absent: `/changes` (the
+ * list) or `/changes/<id>` (src/app/changes.js judges the id). Null for
+ * anything else.
+ */
+export function changesFromPath(pathname) {
+  const found = /^\/changes(?:\/([^/]+))?$/u.exec(String(pathname || '').replace(/\/+$/u, ''));
+  if (!found) return null;
+  try {
+    return { digestId: found[1] === undefined ? null : decodeURIComponent(found[1]) };
+  } catch {
+    return null;
+  }
+}
+
+/** Which fixed sample a public path names, or null. A frozen arena replay is one, and so is a changes digest. */
 export function sceneSampleFromPath(pathname) {
   const path = String(pathname || '').replace(/\/+$/u, '');
   if (arenaFromPath(path)) return 'arena';
+  if (changesFromPath(path)) return 'changes';
   return Object.hasOwn(SAMPLE_PATHS, path) ? SAMPLE_PATHS[path] : null;
 }
 

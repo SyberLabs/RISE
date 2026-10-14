@@ -42,6 +42,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/672",
       "note": "PR A, draft, branch changes-generator at 26843617: the generator (scripts/changes/digest.mjs, src/core/changes/) and .github/workflows/changes-digest.yml. Not merged, not run on GitHub, no real model call.",
       "date": "2026-10-14"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/673",
+      "note": "PR B, branch changes-viewer at 70615e66 (rebased on #672): worker/changes.mjs proxies /content/changes/<file> from the changes-data branch (allowlist, GET/HEAD, no query, JSON 404 no-store, nosniff, 256 KB cap, cf cacheEverything with cacheTtlByStatus 300 s index / 86400 s digest), run_worker_first in wrangler.production.jsonc; src/app/changes.js shows /changes and /changes/<id>, holding files to contract.js and the Current to the validator and scene/figure admission, and plays it through the chamber-session factory (silent, paced; narration is the next PR). Not merged.",
+      "date": "2026-10-14"
+    },
+    {
+      "kind": "test",
+      "ref": "src/app/changes.test.js",
+      "note": "Branch changes-viewer, local (Windows, Node 22): worker/changes.test.js 36 passed; src/app/changes.test.js 41 passed (20 digest refusals, each by its reason; the generator sample admitted); importers incl. worker/index, production-config, route-url, Home, route-manifest, system-design, contract: 8 files 186 passed; npx playwright test e2e/changes.spec.js 5 passed (list, keyboard at 390 px, Play opens the Chamber at /changes/<id> and words stream, PR links, malformed and refused-scene digests refused, missing files). Screenshots changes-*.png at 1440x900 and 390x844 (coordinator scratchpad frames-renders).",
+      "date": "2026-10-14"
     }
   ],
   "activity": [
@@ -52,10 +64,14 @@
     {
       "date": "2026-10-14T13:00:00.000Z",
       "summary": "PR #672 (PR A: the generator and the workflow) opened as a draft with local verification evidence."
+    },
+    {
+      "date": "2026-10-14T12:04:36.129Z",
+      "summary": "PR B (#673): the Worker route and the /changes pages, rebased on #672 and reading files through contract.js"
     }
   ],
-  "updatedAt": "2026-10-14T13:00:00.000Z",
-  "revision": 2,
+  "updatedAt": "2026-10-14T12:04:36.129Z",
+  "revision": 3,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }

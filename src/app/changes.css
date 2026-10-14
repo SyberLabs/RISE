@@ -1,0 +1,132 @@
+/* RISE Changes (changes.js): the digests as a list, and one digest's reading, its pull requests and their routes. */
+.changes-title {
+  font-size: clamp(32px, 3.4vw, 48px);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.changes-title:focus {
+  outline: none;
+}
+
+#changes {
+  max-width: 44rem;
+}
+
+#changes a {
+  color: var(--sy-text);
+  text-underline-offset: 3px;
+}
+
+/* A list of links reads as a list: each underline is a hairline until the link is pointed at. */
+.changes-digests a,
+.changes-included a,
+.changes-routes a {
+  text-decoration-color: var(--sy-line-strong);
+}
+
+.changes-digests a:hover,
+.changes-included a:hover,
+.changes-routes a:hover {
+  text-decoration-color: currentColor;
+}
+
+.changes-meta {
+  margin: var(--sy-space-1) 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sy-text-2);
+}
+
+.changes-badge {
+  display: inline-block;
+  margin-left: var(--sy-space-2);
+  padding: 0 var(--sy-space-2);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--sy-text-body);
+  vertical-align: 1px;
+}
+
+.changes-digests,
+.changes-included,
+.changes-routes {
+  margin: var(--sy-space-4) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-4);
+}
+
+.changes-digest-title {
+  font-size: 18px;
+  line-height: 26px;
+  overflow-wrap: anywhere;
+}
+
+.changes-section {
+  margin-top: var(--sy-space-5);
+}
+
+.changes-heading {
+  margin: 0;
+  font-family: var(--sy-font-sans);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--sy-text);
+}
+
+.changes-included {
+  gap: var(--sy-space-2);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.changes-included a,
+.changes-routes a {
+  overflow-wrap: anywhere;
+}
+
+.changes-number {
+  font-family: var(--sy-font-mono);
+  font-size: 13px;
+  color: var(--sy-text-2);
+}
+
+.changes-chosen {
+  margin-top: var(--sy-space-5);
+  padding-top: var(--sy-space-4);
+  border-top: 1px solid var(--sy-line-strong);
+}
+
+.changes-chosen summary {
+  cursor: pointer;
+  font-family: var(--sy-font-sans);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--sy-text);
+}
+
+.changes-routes {
+  gap: var(--sy-space-3);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.changes-route:not([data-included]) a {
+  color: var(--sy-text-body);
+}
+
+.changes-route-words {
+  font-family: var(--sy-font-mono);
+  font-size: 12px;
+}
+
+.changes-chosen + .portal-help {
+  margin-top: var(--sy-space-5);
+}

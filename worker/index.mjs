@@ -1,3 +1,4 @@
+import { CHANGES_PREFIX, serveChangesFile } from './changes.mjs';
 import { isKevWorkerScript, serveKevWorkerScript } from './kev-worker-script.mjs';
 import { isRetiredInferenceRoute, retiredInference } from './retired-inference.mjs';
 import { handleLiveRealtime } from './live-realtime.mjs';
@@ -69,6 +70,7 @@ export default {
     if (isKevWorkerScript(path)) return serveKevWorkerScript(request, env);
     if (isRetiredInferenceRoute(path)) return retiredInference();
     if (path.startsWith('/content/arena/')) return serveArenaFile(request, env);
+    if (path.startsWith(CHANGES_PREFIX)) return serveChangesFile(request);
 
     // Optional integration routes remain available but are disabled by default.
     if (path === MCP_PATH) return handleMcp(request, env);
