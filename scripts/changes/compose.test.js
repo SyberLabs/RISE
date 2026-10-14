@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CURRENT_GUIDE } from '../../live/guide/index.js';
+import { CURRENT_GUIDE } from '../../src/live/guide/index.js';
 import { buildComposeRequest, composeCurrent } from './compose.js';
 
 const MODEL = 'claude-sonnet-5-5';

@@ -186,6 +186,7 @@ export default defineConfig({
     execArgv: [`--max-old-space-size=${WORKER_HEAP_MB}`],
     maxWorkers: Math.max(1, Math.min(coreCeiling, memoryCeiling)),
 
-    include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js', 'tools/**/*.{test,spec}.js']
+    // scripts/changes/: the weekly digest's Node pipeline (routing, composition, admission), which reaches the live layer.
+    include: ['src/**/*.{test,spec}.js', 'worker/**/*.{test,spec}.js', 'tools/**/*.{test,spec}.js', 'scripts/changes/**/*.test.js']
   }
 });

@@ -43,8 +43,10 @@ const FAST_TESTS = [
     'src/core/route-url.test.js',
     'src/components/Settings.test.js',
     'src/core/decision/**/*.test.js',
-    // RISE Changes: the weekly digest's routing, admission and files, whose only other run is the job itself.
+    // RISE Changes: the weekly digest's contract, collection and files (src/core/changes) and its routing, composition and
+    // admission (scripts/changes, the Node pipeline), whose only other run is the job itself.
     'src/core/changes/**/*.test.js',
+    'scripts/changes/**/*.test.js',
     'src/core/jev-palette.test.js',
     'src/components/read/Chamber.jev-look.test.js',
     'src/app/jev-reading.test.js',
