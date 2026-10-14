@@ -67,6 +67,7 @@ history, not a distinction; read the status column instead.
 | [plans/LIVE-EVALUATION.md](plans/LIVE-EVALUATION.md) | Intent | The instrument for asking whether a live Current differs from text, ordinary voice, and voice over a generic visualizer: a between-participants design, its measures, how to run it, what a record holds, and an analysis written so it cannot overclaim. The study has not been run. |
 | [plans/LIVE-RED-TEAM.md](plans/LIVE-RED-TEAM.md) | Record | An adversarial review of the live layer and its fixes: the trust boundary, twelve confirmed defects and how each was fixed, the architectural risks, what held, streaming and plugin readiness, the experiments a real provider must settle, and what still blocks switching Live or MCP on. |
 | [plans/CURRENT-CONSOLIDATION.md](plans/CURRENT-CONSOLIDATION.md) | Intent | Phase 0 map for consolidating every entrance around one compiled reading: the room inventory, the gaps in the contract, who scores affect, and the decisions that wait on the creator. Nothing in it is built. |
+| [plans/RISE-CHANGES.md](plans/RISE-CHANGES.md) | Contract | RISE Changes: the weekly digest of merged pull requests as a narrated reading. The files on the `changes-data` branch, the Worker route and the app pages that read them, the trust rules, and how the generator collects, routes, composes and admits. |
 
 ## The Archive - texts and their editing
 
