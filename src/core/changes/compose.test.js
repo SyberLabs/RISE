@@ -64,6 +64,17 @@ describe('buildComposeRequest', () => {
     expect(system).toMatch(/only when no later pull request/i);
   });
 
+  it('gives a later fix that was not included as context only, so an earlier caveat can still be settled', () => {
+    const earlier = { ...pull(661, 'A faint panel is left for the owner to decide.'), mergedAt: '2026-10-13T06:01:04Z' };
+    const later = { ...pull(663, 'The panel is fixed: its ground never shows.'), mergedAt: '2026-10-13T06:20:16Z', route: { audience: 'both', significance: 'minor', kind: 'design' } };
+    const { system, prompt } = buildComposeRequest({ pulls: [earlier], context: [later], model: MODEL, period });
+    const data = JSON.parse(prompt.slice(prompt.indexOf('<pull_requests>') + 15, prompt.indexOf('</pull_requests>')));
+    expect(data.map(item => [item.number, item.included])).toEqual([[661, true], [663, false]]);
+    expect(system).toMatch(/"included": false/);
+    expect(system).toMatch(/context only/i);
+    expect(prompt).toMatch(/the 1 pull request marked included/);
+  });
+
   it('asks for plain words in RISE’s voice, with no flourish at the opening or the close', () => {
     const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
     expect(system).toMatch(/no flourish/i);
