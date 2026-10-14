@@ -112,15 +112,16 @@ const change = (pull, route, included, reason) => ({
 });
 
 /**
- * The digest's changes: the team digest includes team and both changes that
- * are notable or major, at most 24 by significance then recency (the rest are
+ * The digest's changes: the team digest includes every change not routed to
+ * skip that is notable or major, whatever its audience (kept for a readers
+ * digest), at most 24 by significance then recency (the rest are
  * `limit`). At most 60 are listed: every included one, then the weightiest and
  * newest of the rest, records last. Listed newest first.
  */
 export function selectChanges({ candidates, records, routes }) {
   const routed = candidates.map(pull => ({ ...pull, route: routes.get(pull.number) ?? FALLBACK_ROUTE }));
   const eligible = routed
-    .filter(pull => ['team', 'both'].includes(pull.route.audience) && ['notable', 'major'].includes(pull.route.significance))
+    .filter(pull => pull.route.audience !== 'skip' && ['notable', 'major'].includes(pull.route.significance))
     .sort(weightiest);
   const chosen = new Set(eligible.slice(0, LIMITS.included).map(pull => pull.number));
   const limited = eligible.slice(LIMITS.included).map(pull => change(pull, pull.route, false, 'limit'));
