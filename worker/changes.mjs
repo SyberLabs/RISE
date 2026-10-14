@@ -1,0 +1,86 @@
+/**
+ * RISE Changes files (src/app/changes.js): `/content/changes/<file>` is the file of that name on the
+ * repository's `changes-data` branch, which the weekly digest workflow writes and nothing deploys.
+ *
+ * Only the index and dated digests are asked for, by GET or HEAD with no query; everything else, and
+ * anything upstream does not answer with a 200 (a redirect included), is a JSON 404, never cached. A
+ * file is refused above 256 KB. The files are model- and PR-written, so they go out as JSON the browser
+ * may not sniff, and the app admits each before showing it.
+ *
+ * Cached at the edge by fetch's `cf` options: Cloudflare does not cache JSON by default, so
+ * `cacheEverything` is set, and `cacheTtlByStatus` keeps a success for its TTL and no other status
+ * (developers.cloudflare.com/workers/runtime-apis/request/, /workers/examples/cache-using-fetch/).
+ */
+
+export const CHANGES_UPSTREAM = 'https://raw.githubusercontent.com/SyberLabs/RISE/changes-data/';
+export const CHANGES_PREFIX = '/content/changes/';
+export const CHANGES_MAX_BYTES = 256 * 1024;
+
+const FILE = /^(?:index|\d{4}-\d{2}-\d{2}(?:-[a-z0-9]{1,8})?)\.json$/u;
+// The index changes each week; a digest is written once, and a rerun the same day may replace it.
+const INDEX_TTL = 300;
+const DIGEST_TTL = 86_400;
+
+const NO_STORE = {
+  'Content-Type': 'application/json; charset=utf-8',
+  'Cache-Control': 'no-store',
+  'X-Content-Type-Options': 'nosniff'
+};
+
+function notFound(message = 'No such changes file.') {
+  return new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message } }), { status: 404, headers: NO_STORE });
+}
+
+/** The body, or null once it passes the cap. */
+async function bounded(response) {
+  const declared = Number(response.headers.get('Content-Length'));
+  if (declared > CHANGES_MAX_BYTES) return null;
+  if (!response.body) return new Uint8Array(0);
+  const reader = response.body.getReader();
+  const parts = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > CHANGES_MAX_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    parts.push(value);
+  }
+  const body = new Uint8Array(size);
+  let at = 0;
+  for (const part of parts) {
+    body.set(part, at);
+    at += part.byteLength;
+  }
+  return body;
+}
+
+export async function serveChangesFile(request) {
+  const url = new URL(request.url);
+  const name = url.pathname.slice(CHANGES_PREFIX.length);
+  if ((request.method !== 'GET' && request.method !== 'HEAD') || url.search !== '' || !FILE.test(name)) return notFound();
+  const ttl = name === 'index.json' ? INDEX_TTL : DIGEST_TTL;
+  let upstream;
+  try {
+    upstream = await fetch(`${CHANGES_UPSTREAM}${name}`, {
+      method: 'GET',
+      redirect: 'manual',
+      cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': ttl, '300-599': -1 } }
+    });
+  } catch {
+    return notFound('The changes file could not be fetched.');
+  }
+  if (upstream.status !== 200) return notFound();
+  const body = await bounded(upstream);
+  if (body === null) return notFound('The changes file is over 256 KB.');
+  return new Response(request.method === 'HEAD' ? null : body, {
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': `public, max-age=${ttl}`,
+      'X-Content-Type-Options': 'nosniff'
+    }
+  });
+}
