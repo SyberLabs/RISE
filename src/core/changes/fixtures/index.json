@@ -1,0 +1,15 @@
+{
+  "schema": "syberlabs.changes-index/v1",
+  "digests": [
+    {
+      "id": "2026-10-14",
+      "audience": "team",
+      "title": "What changed in RISE, 13–14 October",
+      "period": {
+        "from": "2026-10-13T02:00:00.000Z",
+        "to": "2026-10-14T09:00:00.000Z"
+      },
+      "count": 11
+    }
+  ]
+}

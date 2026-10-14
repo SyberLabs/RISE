@@ -1,0 +1,51 @@
+{
+  "id": "SVC-002",
+  "title": "RISE Changes: a weekly narrated digest of what merged",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude coordinator",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A weekly workflow (.github/workflows/changes-digest.yml: Monday 09:00 UTC and workflow_dispatch with since and dry_run) collects the pull requests merged into main since the newest digest's period.to on the changes-data branch, or seven days back; it never runs on pull_request and is never a required check.",
+    "A pull request whose changed files are all under docs/product/tasks/ is listed as records-only and never offered to a model; the rest are routed in one model call of finite choices (audience, significance, kind), admitted strictly against the menu, and an answer that is missing, malformed or off the menu becomes skip, minor, records with the pull request still listed.",
+    "The team digest includes the changes routed to team or both and notable or major, at most 24 by significance then recency (the rest listed as limit), and at most 60 changes listed in all.",
+    "One model call composes a rise.current.v2 for the team, taught by RISE's own host guide, grounded only in the included pull requests' titles and bodies, with sources naming the pull requests each beat speaks about; every included change is cited and nothing else is.",
+    "The Current is admitted with RISE's own validators (validateRiseCurrent, admitSceneCode, admitSvg, the MCP size bound) and the sources rules; a refusal gets one repair call with the diagnostics and then one more, and a run still refused fails without writing.",
+    "The run writes <id>.json and index.json per docs/plans/RISE-CHANGES.md to the orphan changes-data branch (created with a README on the first run), and opens one issue labelled changes-digest linking https://rise.syberlabs.io/changes/<id> with the routing table; a run with nothing included writes nothing and opens no issue.",
+    "The model credential is CLAUDE_CODE_OAUTH_TOKEN, read only from the environment by the Claude Code CLI: never in argv, a file, a URL or a log; the CLI child gets an allowlisted environment without the GitHub token.",
+    "The app shows /changes and /changes/<id> from the same files, served same-origin by the Worker, admitting the Current through the card's own admission (PR B)."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/plans/RISE-CHANGES.md",
+      "note": "The shared contract for the generator (PR A) and the Worker route and pages (PR B).",
+      "date": "2026-10-14"
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/changes/digest.test.js",
+      "note": "Branch changes-generator, local (Windows, Node 22): npx vitest run src/core/changes plus the modules it imports (system-design, src/live/guide, rise-current, scene-admission, svg-admission, worker/mcp-server): 14 files, 350 passed. The fast set collects 133 files with src/core/changes added. node --test scripts/changes/digest.test.mjs: 4 passed (a real child process: stdin, the system prompt file, the allowlisted environment, the temporary directory removed, the deadline). roadmap:check 102 tasks; ci-hygiene clean; vite build; first load 62.1 KB br of 64 KB; docs:diagram unchanged.",
+      "date": "2026-10-14"
+    },
+    {
+      "kind": "document",
+      "ref": "src/core/changes/fixtures/2026-10-14.json",
+      "note": "The sample digest: the real GraphQL page for #652-#671 run through the whole pipeline with a recorded router answer and a hand-written composition (fake ask), admitted by the real validators on the first call: 20 merged, 5 records-only, 15 routed, 11 included, 15 beats. No real model call has been made; the workflow has not run.",
+      "date": "2026-10-14"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-14T12:00:00.000Z",
+      "summary": "Claimed; PR A (the generator and the workflow) started on branch changes-generator."
+    }
+  ],
+  "updatedAt": "2026-10-14T12:00:00.000Z",
+  "revision": 1,
+  "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
+  "blocker": null
+}

@@ -1,0 +1,896 @@
+{
+  "data": {
+    "repository": {
+      "pullRequests": {
+        "pageInfo": {
+          "hasNextPage": true,
+          "endCursor": "Y3Vyc29yOnYyOpK0MjAyNi0xMC0xMFQxMDowNDoyN1rPAAAAAR64T4g="
+        },
+        "nodes": [
+          {
+            "number": 671,
+            "title": "Live's catalog note names an engine as the Reader's catalog does: Genesis, Turrell Fields, Ostensoria, Apparitio",
+            "url": "https://github.com/SyberLabs/RISE/pull/671",
+            "body": "## What changes\n\nThe ask bar's note named every engine \"the <id>\", so it read \"Showing the genesis.\" Now `catalogName` in `src/live/catalog-words.js` names each engine the way the Reader's catalog does (`src/core/visual-registry.js`). A proper name is said without \"the\"; a common noun keeps it. The same names are sent with the reader's next words (`perception.js`: \"asked for Genesis, and it was shown at once\").\n\n| Engine | Reader's catalog name | Before | After |\n|---|---|---|---|\n| attractor | Attractor | Showing the attractor. | Showing the attractor. |\n| genesis | Genesis | Showing the genesis. | **Showing Genesis.** |\n| living-flame | Living Flame | Showing the living flame. | Showing the living flame. |\n| fractal | Fractal Flames | Showing the fractal. | Showing the fractal. |\n| turrell | Turrell Fields | Showing the turrell. | **Showing Turrell Fields.** |\n| neural | Neural Networks | Showing the neural. | **Showing the neural network.** |\n| rockgarden | Rock Garden | Showing the rock garden. | Showing the rock garden. |\n| harmonograph | Harmonograph | Showing the harmonograph. | Showing the harmonograph. |\n| ostensoria | Iris Plates (the engine is Ostensoria) | Showing the ostensoria. | **Showing Ostensoria.** |\n| apparitio | Spectral Plates (the engine is Apparitio) | Showing the apparitio. | **Showing Apparitio.** |\n\nTwo choices to check:\n- **Fractal** stays \"the fractal\", not \"the fractal flames\". The phrase \"fractal flame\" already means the living flame among the catalog words.\n- **Ostensoria and Apparitio** are named by their engine names, the words a reader types, rather than by the Reader's gallery titles (Iris Plates, Spectral Plates).\n\nCues read the same way, for example \"Making Genesis calmer.\"\n\n## Tests\n\n- `catalog-words.test.js`: a new test checks the note for every engine the catalog words name. It failed before this change.\n- `venue.test.js` and `e2e/live.spec.js`: the Genesis note is updated.\n- The unit test files importing `catalog-words` passed: 3 files, 109 tests.\n- The fast set passed: 125 files. `enterprise/boundary` failed once locally, under load, as on #669 and #670, and passed on the rerun.\n- The browser test for catalog words passed locally.\n- `ci-hygiene` is clean, `vite build` succeeds, and `measure:first-load` is within budget.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+            "mergedAt": "2026-10-13T11:39:01Z",
+            "updatedAt": "2026-10-13T11:39:04Z",
+            "mergeCommit": {
+              "oid": "54756b525c94fefa659bdc33ecf9ed038daf317e"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 5,
+              "nodes": [
+                {
+                  "path": "docs/product/tasks/LIVE-029.json"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/live/catalog-words.js"
+                },
+                {
+                  "path": "src/live/catalog-words.test.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 670,
+            "title": "The face's trails fade back to its ground exactly, leaving no grey shadow in the room",
+            "url": "https://github.com/SyberLabs/RISE/pull/670",
+            "body": "## The defect\n\n#669 brought the face's 8% trails back to the room. In 8 bits, a fade of 8% toward the ground stalls about 6 levels above the ground: a pixel stops moving once 0.08 × its distance from the ground is under half a level. So every stroke the face drew left a flat grey shadow on the room's ground, most visibly a blob with a hard edge around the shell, where the eye's field had been.\n\n## The fix\n\nThe fix is in `src/scenes/engines/oracle.js`. The face now fades, at the same 8%, toward a dark 8 levels below its ground (clamped at 0). It then lays the ground back over the whole canvas with `'lighten'`, which takes each channel's maximum. Anything that went below the ground becomes exactly the ground again, and anything brighter is untouched.\n\nThat same fill also covers what the last aperture left clear, so it replaces the room's `destination-over` fill: the frame draws no more full-canvas fills than before. The aperture is still cut after it, as before. A repaint, or reduced motion, still fills the ground whole.\n\n## Measured\n\nReal GPU: ANGLE D3D11, AMD RX 5700, Chromium 149 in new headless mode, at 144 Hz. The scenario is the shell held on the swarm after the eye has spoken, at 1440×900.\n\n**The shadow**, as the luma of a 9×9 patch at 0.58 of the face's square from its centre, against the room's far edge:\n\n| | Around the shell | Far room | Step |\n|---|---|---|---|\n| Before | 19.0 | 10.36 | **8.6 levels** |\n| After | 10.65 | 10.36 | **0.3 levels** |\n\nThe DPR 1 and DPR 2 runs give the same numbers, every run.\n\n**The cost:** none measurable.\n\n| Scenario | Viewport | fps before | fps after |\n|---|---|---|---|\n| S6, the eye speaking | DPR 1 | 142.0 | 142.9 |\n| S6, the eye speaking | DPR 2 | 134.6 (mean, 4 runs) | 136.1 (mean, 4 runs); 141–143 in 3 later runs |\n| S1, the swarm held in the shell | DPR 1 | 143.9 | 143.9 |\n| S1, the swarm held in the shell | DPR 2 | 75–105 (mean 93.7, 4 runs) | 95–109 (mean 102.1, 7 runs) |\n\nDPR 2 varies by about ±13 fps from run to run on this machine.\n\n**A note on two failed runs.** In an earlier batch, two runs of the fixed build at DPR 2 ended with the face on its still (its engine had stopped; the cause was not captured). One coincided with other heavy work on the machine. The 7 runs after that, with the face's failures captured from the console, had none. Every unfixed run (6) completed.\n\n**The trails against the approved study.** In side-by-side screenshots of the eye and the shell, the bright, trailed spirals, lights, rings and rim match the study's. The study's own grey residue is gone: the study has the same 8-bit stall.\n\n## Tests\n\n- **`oracle.test.js` (new: an 8-bit raster model of the frame's fills).** Each channel is rounded to a level as the GPU does.\n  - Every stroke (bright, middling and nearly ground) fades back to within 1 level of the ground, in the room and in the face's own square. Before the fix it stopped 6 levels above, so this test failed first.\n  - A stroke dims as the study's 8% trail does, darker only by what fading 8 levels lower adds up to: under 4 levels in its first tenth of a second, never more than 8, and never below the ground.\n- **`e2e/live.spec.js` (new, in Chromium).** After the shell has opened onto the swarm and held for 10 s, the room around the shell is within 1 level of luma of the far room. Without the fix this test fails (1.8 levels). With it, it passes.\n- `face-still`, `face-layer`, `manifests`, `oracle`: passed.\n- Fast set: 125 files. `enterprise/boundary` failed once under load and passes alone, as on #669.\n- `ci-hygiene` is clean, `vite build` succeeds and `measure:first-load` is within budget. `docs:diagram` changed only line endings, which I did not commit.\n\n## Records\n\nThe §23 note in `docs/plans/LIVE-CURRENT.md` is updated. Through the roadmap CLI:\n- LIVE-028 has evidence for this PR, and #669 is recorded as merged as `6332e995` and deployed.\n- SCR-007 records #668 as merged as `6277759b`, deployed in release `6277759b`, then `6332e995`.\n\n🤖 Gen",
+            "mergedAt": "2026-10-13T11:38:57Z",
+            "updatedAt": "2026-10-13T11:38:59Z",
+            "mergeCommit": {
+              "oid": "6e80f3d6c93c79a2d9b33133df6e7a37697796f2"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 6,
+              "nodes": [
+                {
+                  "path": "docs/plans/LIVE-CURRENT.md"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-028.json"
+                },
+                {
+                  "path": "docs/product/tasks/SCR-007.json"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/scenes/engines/oracle.js"
+                },
+                {
+                  "path": "src/scenes/engines/oracle.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 669,
+            "title": "Live draws the circle frames at the size they are shown, and the face keeps its trails",
+            "url": "https://github.com/SyberLabs/RISE/pull/669",
+            "body": "## What changes\n\n**Visual layers carry the scale they are shown at** (`src/live/host/venue.js`, `frames.js` `restScale`). The venue declares `data-live-scale` on every visual layer of `#chamber-field`: the scale at which the visual on screen is shown once its circle frame is open, and 1 in the full frame. It is declared when the visual changes, before its aperture opens, and stays fixed for that visual.\n\n**The attractor** (`src/visuals/attractor.js`):\n- It draws its canvases at the first scale it is given and keeps that scale while it fades out, because the next visual's scale would clear its trail.\n- It presents its trail only when a tick has moved it.\n\n**The harmonograph** (`src/visuals/harmonograph-field.js`, both pendulum kinds):\n- It sizes its planes from the declared scale and its laid-out box. Before, it used the transformed box of the moment it mounted, which left it soft on a phone and oversized at 2×.\n- It follows the scale when it arrives.\n\n**The Reader and the card are unchanged:** with nothing declared, both fields are drawn exactly as before.\n\n**The face** (`face-layer.js`, `src/scenes/engines/oracle.js`):\n- It is sent the room's geometry only when the geometry changes.\n- It repaints whole only on entering or leaving the room.\n\nBefore, the venue sent the geometry every frame and every cue forced an opaque repaint, so the face's 8% trails never showed in the room.\n\n## The face's trails against the approved study\n\nScreenshots at 1440×900:\n- **The eye speaking.** Before this PR the face was dim, with no trails. Now it has the study's bright, trailed spirals and lights, and the torus and recursion rings.\n- **The shell.** The rim is now trailed as in the study.\n- **A faint 8-bit residue.** The trails also bring back the study's own residue: a fade of 0.08 per frame on an 8-bit canvas stops a few levels above the ground, so a soft grey shadow of where the face's field has been stays on the ground. The study shows the same thing; it is visible on the room's ground.\n\n## Measured\n\nReal GPU: ANGLE D3D11 on an AMD RX 5700, Chromium 149 in new headless mode, on a 144 Hz display.\n- 2× is the mean of three runs each. 1× and the phone are single runs.\n- The phone is an emulation: 390×844 at DPR 3 with the CPU throttled 4×; the GPU is not throttled.\n- \"Before\" is main with #668 already in.\n\n| Scenario | Viewport | fps before → after | % frames >16.7 ms | % frames >33.3 ms |\n|---|---|---|---|---|\n| S1 swarm steady in the shell | 1× | 143.9 → 143.9 | 0 → 0 | 0 → 0 |\n| | 2× | 102.5 → 101.7 | 3.5 → 5.6 | 0 → 0 |\n| | phone | 102.3 → 124.2 | 5.6 → 0.2 | 0 → 0 |\n| S2 inner → shell opening onto the swarm (mean of 3 runs at 2×) | 1× | 136.2 → 136.5 | 0.8 → 0.4 | 0 → 0 |\n| | 2× | 93.3 → 100.6 | 13.4 → 9.9 | 0 → 0 |\n| | phone | 86.7 → 100.5 | 11.5 → 9.1 | 0.7 → 0.3 |\n| S2a eye → shell opening | 2× | 87.7 → 85.9 | 13.3 → 14.0 | 1.1 → 1.9 |\n| S4 full → shell swarm | 1× | 142.3 → 140.8 | 0 → 0.1 | 0 → 0 |\n| | 2× | 110.7 → 111.0 | 5.8 → 6.5 | 0 → 0 |\n| | phone | 101.7 → 119.3 | 8.2 → 2.7 | 0 → 0 |\n| S5 rotary harmonograph, inner eye | 1× | 97.8 → 96.1 | 12.1 → 12.0 | 0 → 0.1 |\n| | 2× | 58.4 → 61.0 | 43.7 → 39.0 | 9.6 → 7.9 |\n| | phone | 63.5 → 70.3 | 32.1 → 26.4 | 3.9 → 1.4 |\n| S6 the eye speaking, no visual | 1× | 142.6 → 143.5 | 0.2 → 0.1 | 0.1 → 0 |\n| | 2× | 141.9 → 141.9 | 0.2 → 0.2 | 0.2 → 0.2 |\n| | phone | 128.8 → 137.5 | 1.8 → 1.0 | 0.8 → 0.1 |\n\n- **The face.** The eye alone (S6) at 2× holds about 142 fps, above the study's own 76 fps there. So the face's room pixel ratio and its fades are left as they are; neither a lower pixel ratio nor clipped fades is needed.\n- **Desktop at 2×:** the gain is within run-to-run noise (about ±7 fps), except the inner-to-shell opening (+7 fps).\n- **Phone emulation:** the gain is clear, 7–22 fps.\n- **Memory:** at 2× the swarm's backing falls from 2160×1350 to 1186×741, from about 35 MB to 10.5 MB of canvas.\n\n**Deferred, measured: a cached rotary pen** (each finished batch stroked once into a layer). At 2",
+            "mergedAt": "2026-10-13T10:27:15Z",
+            "updatedAt": "2026-10-13T10:27:18Z",
+            "mergeCommit": {
+              "oid": "6332e9950f904648db400632114b9fe74f8433b2"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 14,
+              "nodes": [
+                {
+                  "path": "docs/plans/LIVE-CURRENT.md"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-028.json"
+                },
+                {
+                  "path": "src/live/host/face-layer.js"
+                },
+                {
+                  "path": "src/live/host/face-layer.test.js"
+                },
+                {
+                  "path": "src/live/host/frames.js"
+                },
+                {
+                  "path": "src/live/host/frames.test.js"
+                },
+                {
+                  "path": "src/live/host/venue.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                },
+                {
+                  "path": "src/scenes/engines/oracle.js"
+                },
+                {
+                  "path": "src/scenes/engines/oracle.test.js"
+                },
+                {
+                  "path": "src/visuals/attractor.js"
+                },
+                {
+                  "path": "src/visuals/attractor.test.js"
+                },
+                {
+                  "path": "src/visuals/harmonograph-field.js"
+                },
+                {
+                  "path": "src/visuals/harmonograph-field.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 668,
+            "title": "The swarm adds each tick to its trail in one draw, and the flash gate samples on the GPU",
+            "url": "https://github.com/SyberLabs/RISE/pull/668",
+            "body": "## What changes\n\n**The swarm adds each tick to its trail in one draw** (`src/visuals/attractor.js`, `plotSwarm`). Each tick's squares are still drawn one by one with `'lighter'`, so overlapping particles add up as in the study. They now go into an 8-bit scratch square that is cleared each tick, and that square is added to the float16 trail in one `drawImage`. The square covers the circle inscribed in the frame, where every particle stays. The float16 trail and its fade are unchanged.\n\n**The flash gate samples on the GPU** (`src/scenes/scene-worker.js`). The 8×8 luma sampler is now an accelerated canvas, so the picture is shrunk on the GPU and only 64 pixels come back.\n\n## Why\n\n**Swarm:** on a float16 canvas with `'lighter'`, Chrome does not batch separate `fillRect` calls. Each square costs about 30 µs in the GPU process, and a tick has 1,400 of them.\n- A standalone test runs at 25 fps for any canvas size.\n- The same test at 8-bit, or batched, runs at 144 fps.\n\nIn the venue, the GPU process main thread was busy 9.8 s of every 10 s. The face worker's luma readback then waited behind it, for up to 700 ms. The result was 4–16 fps whenever the swarm was on screen.\n\n**Flash gate:** the old `willReadFrequently` sampler read the whole picture back first.\n\n## Measured\n\nReal GPU: ANGLE D3D11 on an AMD Radeon RX 5700, Chromium 149 in new headless mode with GPU flags. The display runs at 144 Hz, so the base frame interval is 6.9 ms. Each window is 10 s.\n\nThe phone row is an emulation: 390×844 at DPR 3 with the CPU throttled 4×; the GPU is not throttled.\n\n| Scenario | Viewport | fps before → after | interval p95 ms | % frames >33.3 ms | longest gap ms | long animation frames (max ms) |\n|---|---|---|---|---|---|---|\n| S1 swarm steady in the shell | 1440×900 DPR 1 | 16.4 → 143.9 | 333 → 7.0 | 18.3 → 0 | 674 → 7.1 | 23 (674) → 0 |\n| | 1440×900 DPR 2 | 10.4 → 105.2 | 472 → 14.0 | 26.9 → 0 | 688 → 21 | 24 (691) → 0 |\n| | phone emulation | 3.7 → 102.3 | 354 → 20.7 | 78.4 → 0 | 410 → 21 | 27 (357) → 0 |\n| S2 inner → shell opening onto the swarm (3 runs) | DPR 1 | 5.1–6.3 → 136–138 | 465–562 → 7.0–7.1 | 45–61 → 0 | 694 → 21 | 27 → 0 |\n| | DPR 2 | 4.8–5.7 → 77–94 | 403–507 → 20.8–20.9 | 59–71 → 0–0.3 | 687 → 35 | 23 → 0 |\n| | phone emulation | 4.8–5.7 → 84–87 | 389–514 → 20.9 | 61–71 → 0.3–0.7 | 597 → 35 | 23 → 0 |\n| S4 full → shell swarm | DPR 1 | 4.8 → 142.3 | 465 → 7.0 | 65.5 → 0 | 708 → 14 | 15 (714) → 0 |\n| | DPR 2 | 4.7 → 111.3 | 555 → 20.7 | 67.9 → 0 | 681 → 21 | 14 (684) → 0 |\n| | phone emulation | 3.3 → 101.7 | 333 → 20.8 | 100 → 0 | 333 → 28 | 16 (335) → 0 |\n| S6 the eye speaking, no visual | DPR 2 | 141.0 → 142.3 | 7.0 → 7.0 | 0.1 → 0.1 | 42 → 42 | 0 → 0 |\n\nThe face worker's luma readback p95 drops at every viewport. At DPR 2 it was 693 ms with the swarm on screen and is now 20 ms; with the eye alone it was 23 ms and is now 16 ms. The face's round trip p95 with the eye alone at DPR 2 drops from 9.4 to 1.4 ms.\n\nFor comparison, the approved study (`docs/assets/live/sophia-aperture-study.html`) runs its attractor in the shell at 143.9, 76.2 and 105.2 fps on the same three viewports.\n\n## Look\n\nCompared on the same seeded swarm after 240 ticks, presented and shown at the shell's scale over the room's ground:\n\n| Viewport | Mean per-pixel difference against before (0–255) | Brightness against before | For scale: before against itself one tick later |\n|---|---|---|---|\n| DPR 1 | 5.3 | +3.6% | 9.7 |\n| DPR 2 | 3.9 | +2.5% | 10.7 |\n| phone | 6.6 | +3.9% | 10.0 |\n\nThe difference is smaller than one tick of the swarm's own motion. The batched-path alternative was rejected because it dims the swarm 4–6%.\n\n## Shared code\n\n`AttractorField` is the Reader's and the Composer card's attractor too. Only the swarm trace changes; the filament path is untouched. The host guide withholds `trace`, so a card shows a swarm only if a Current asks for it, and then it gets the same faster drawing.\n\nThe scene worker runs every generated scene. Its luma values are unch",
+            "mergedAt": "2026-10-13T09:34:15Z",
+            "updatedAt": "2026-10-13T09:34:18Z",
+            "mergeCommit": {
+              "oid": "6277759b8852c37b34b32929c0a5508d3b629198"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 6,
+              "nodes": [
+                {
+                  "path": "docs/product/tasks/SCR-007.json"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/scenes/scene-worker.js"
+                },
+                {
+                  "path": "src/scenes/scene-worker.test.js"
+                },
+                {
+                  "path": "src/visuals/attractor.js"
+                },
+                {
+                  "path": "src/visuals/attractor.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 667,
+            "title": "A visual the reader names in a held Live reading reaches the screen at once, not at the next phrase",
+            "url": "https://github.com/SyberLabs/RISE/pull/667",
+            "body": "## Cause\n\nWhen the reader typed an engine's name (\"genesis\", \"fractal\") into a held Live reading, the runtime placed that engine on the phrase already on screen (`runtime.js engineChosen`, `withPictureClips`). The Chamber's visual schedule (`VisualScheduleController`) only takes a cue when the Player shows an atom, and that phrase had already been shown. So the cue waited for the next phrase. Under a hold or a long paced phrase that took seconds (12 s on one measured run), while the bar already said \"Showing the genesis.\" and the frame stayed on the shell with the attractor.\n\nThis hit every engine. \"attractor\" typed during the figure only seemed to work because the next phrase came soon. The frame table and the director were not at fault: once the cue reached the Chamber, the frame followed.\n\n## Fix\n\n`src/core/visual-scheduler.js`: `extend()` now re-resolves the atom on screen (the last one it observed) under the longer program. A new cue for that atom shows at once. An atom whose cue is the same emits nothing, and earlier atoms are never rewritten. `reset()` clears the remembered atom. The Chamber already calls `extend` on every `extended` event from the Player, so nothing else changes. Model pictures always land on a later phrase, so this only affects the reader's own choice.\n\nNone of the files the performance work is changing are touched (attractor, swarm, harmonograph, scene worker, venue.js, oracle).\n\n## Evidence\n\n- `src/live/runtime.catalog.test.js`: 10 new tests, one per engine the venue names (attractor, genesis, living-flame, fractal, turrell, neural, rockgarden, harmonograph, ostensoria, apparitio). Each is chosen through `recogniseVisual` during a 9 s hold, with the real runtime and Player. The cue must be on screen within 50 ms. The frame director, fed once per animation frame as the venue feeds it, must reach the engine's frame open and at rest within the two frames' opening times. **All 10 failed before the fix**; all 21 pass now.\n- `src/core/visual-scheduler.test.js`: `extend` shows a changed cue for the atom on screen and emits nothing when the cue is unchanged or after `reset` (17 passed).\n- `e2e/live.spec.js` \"catalog words\": after the attractor opens in the shell, \"genesis\" reaches the full frame within 2.5 s (the shell takes 1.6 s to close), `.chamber-genesis` is attached, the wipe opens fully, and the note clears. **It failed before the fix** (the frame stayed `shell`) and passes now.\n- Every unit test file importing `visual-scheduler.js`, plus the Live runtime, venue and LiveHost tests, was run: 21 files passed, plus 1 file that was already skipped (516 tests).\n- `ci-hygiene`, `vite build` and `measure:first-load` pass. `docs:diagram` produced no content change.\n- Docs: LIVE-CURRENT §25 (\"How it is shown\", a new fix entry, \"Not verified\"). LIVE-029 has a new evidence entry, and `roadmap:check` passes.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+            "mergedAt": "2026-10-13T09:30:42Z",
+            "updatedAt": "2026-10-13T09:30:44Z",
+            "mergeCommit": {
+              "oid": "7903b4ce87206a8676eba7f6204f8415ce3d151c"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 6,
+              "nodes": [
+                {
+                  "path": "docs/plans/LIVE-CURRENT.md"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-029.json"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/core/visual-scheduler.js"
+                },
+                {
+                  "path": "src/core/visual-scheduler.test.js"
+                },
+                {
+                  "path": "src/live/runtime.catalog.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 666,
+            "title": "LIVE-030: delivery deployed (#665 live in b2fec553), seen on production",
+            "url": "https://github.com/SyberLabs/RISE/pull/666",
+            "body": "Records LIVE-030's delivery:\n\n- #665 merged as `b2fec553`; the live release (https://rise.syberlabs.io/release.txt) is `b2fec553`.\n- Delivery: `deployed`; status stays `in_progress`.\n- Production check (headless Chromium, the demo reading at `/live?voice=paced&measure=1`, by the agent, not a human): at 1440x900 the bar at 758-812 above the instrument, the words above it, the full-frame face 32 px left of the bar's left end and centred on it; at 390x844 the bar at 714-768, \"Staff sign in\" clear of it; with an emulated 336 px keyboard the bar rose to 446-500. Geometry identical to the local build.\n- Not accepted by a human. A real iPhone or Android keyboard is unverified.\n\nRecord only, written with `node scripts/roadmap.mjs update` (LIVE-030 revision 3); `npm run roadmap:check` validates 101 tasks.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+            "mergedAt": "2026-10-13T07:14:38Z",
+            "updatedAt": "2026-10-13T07:14:40Z",
+            "mergeCommit": {
+              "oid": "5053e449325e0aed5f1b310cf8462d326a2e95cc"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 1,
+              "nodes": [
+                {
+                  "path": "docs/product/tasks/LIVE-030.json"
+                }
+              ]
+            }
+          },
+          {
+            "number": 665,
+            "title": "RISE Live's ask bar sits at the room's foot, above the instrument and any on-screen keyboard, the words above it (LIVE-030)",
+            "url": "https://github.com/SyberLabs/RISE/pull/665",
+            "body": "The owner's decision of 2026-10-13 (task LIVE-030): in RISE Live's room the ask bar sits at the **bottom**, as in the approved study (`docs/assets/live/sophia-aperture-study.html`), with Sophia docked at its left end in the full frame. The entry, before a question, is unchanged.\n\n## The layout chosen\nBottom to top, stacked (not beside the instrument, because the instrument's passage ticks drop into its row's place when it fades while playing, and would run under a bar beside them):\n\n1. the stage's instrument (transport row and passage ticks), unchanged;\n2. the ask bar, 8 px above it (or 8 px above an on-screen keyboard that reaches higher); the dock is the slot at its left end, centred on it;\n3. a line kept for the bar's note (\"Showing the attractor.\", \"Asking RISE…\"); a note longer than a line is given its height, so it never meets the words;\n4. the spoken words' two lines;\n5. the face's square, from 16 px down; the full frame's safe rectangle runs from 12 px below the corner's \"Staff sign in\" link to 12 px above the words' zone.\n\nAt 1440x900: instrument from 820, bar 758-812, words' foot 174 px up, dock at (400, 785). At 390x844: instrument from 776, bar 714-768, dock at (40, 741), wholly on screen.\n\n**One geometry.** `roomLayout` (`src/live/host/frames.js`) now computes the bar's place, the words' foot and size, the face's square, the dock and the safe rectangle. The venue only measures the instrument's top, the bar's box, its note and the keyboard, and sets `--live-bar-foot`, `--live-words-foot` and `--live-words-size` on the root, which `LiveHost.css` reads. The bar is now under the stage's layer (z-index 199999), so the Settings sheet opens whole over it. The rule that hid \"Staff sign in\" while the bar was open on narrow screens is gone: at the foot the bar no longer meets it (checked at 390x844).\n\n## Phones and the on-screen keyboard\n- MDN, [VisualViewport](https://developer.mozilla.org/en-US/docs/Web/API/VisualViewport): \"User-interface features like the on-screen keyboard (OSK) can shrink the visual viewport without affecting the layout viewport\"; `height` and `offsetTop` are in CSS pixels; Baseline widely available since 2021. While the bar's field has focus, the venue reads `innerHeight - visualViewport.height - visualViewport.offsetTop` on each animation frame it already runs (the same reading the `resize`/`scroll` events would prompt) and `roomLayout` lifts the bar to 8 px above it, the words and the square above the bar; on blur it comes down.\n- MDN, [`<meta name=\"viewport\">` interactive-widget](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta/name/viewport): `resizes-content` resizes the layout viewport instead. **Not used**: MDN's compatibility data lists it for Chrome Android 108+, Firefox Android 133+ and Samsung Internet, but not Safari on iOS, so the visual viewport is needed there anyway, and changing the page's viewport would also reflow the entry while the reader types into it. One mechanism, both platforms.\n- **Unverified:** a real iPhone or Android keyboard. Playwright opens no keyboard; the e2e test and the render emulate one by reducing `visualViewport.height` by 336 px.\n\n## Also in this PR\n- **Catalog words' note** (the coordinator's addition): \"Showing the attractor.\" now stays until the visual it named is on screen and the room's frame has opened onto it (the frame director's new `settled()`, on the venue's clock), then 1.5 s more; under reduced motion, and where there are no frames to follow, 1.5 s after the switch. Before, a fixed 4 s let it go before a full-frame-to-shell change (about 5 s) had finished. §25 and LIVE-029's evidence say so.\n- Records: `docs/product/tasks/LIVE-030.json` (new); LIVE-028 updated through the roadmap CLI (#661 merged as `23a40081`, #663 as `b48ef88e`, both live in release `b48ef88e`; not accepted by a human); LIVE-029's evidence; §23 of `docs/plans/LIVE-CURRENT.md` (\"The ask bar at the foot\").\n\n## Verification (local)\n- `npx vitest run src/li",
+            "mergedAt": "2026-10-13T06:58:33Z",
+            "updatedAt": "2026-10-13T06:58:36Z",
+            "mergeCommit": {
+              "oid": "b2fec553622197e0f58a481d37f9f9676664b50a"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 10,
+              "nodes": [
+                {
+                  "path": "docs/plans/LIVE-CURRENT.md"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-028.json"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-029.json"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-030.json"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/live/host/LiveHost.css"
+                },
+                {
+                  "path": "src/live/host/frames.js"
+                },
+                {
+                  "path": "src/live/host/frames.test.js"
+                },
+                {
+                  "path": "src/live/host/venue.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 659,
+            "title": "LIVE-026: delivery deployed (#655 and its follow-up #658 live in b48ef88e)",
+            "url": "https://github.com/SyberLabs/RISE/pull/659",
+            "body": "Records LIVE-026's delivery:\n\n- #655 merged as `526a2a91`.\n- The live release (https://rise.syberlabs.io/release.txt) was `a78c1467`, a later main tip that contains `526a2a91`.\n- Follow-up #658 (the scene names in the room's memory, and the seek test that `aa08479d` broke) merged as `9c80848e`; it is live in release `b48ef88e` (release.txt checked 2026-10-13; `9c80848e` is an ancestor of it).\n- Delivery: `deployed`; status stays `in_progress`.\n- Not accepted by a human.\n- No keyed model run: whether a real model resolves \"it\" from the memory block is unverified.\n\nRecord only, written with `node scripts/roadmap.mjs update` (LIVE-026 revision 4); `npm run roadmap:check` validates 100 tasks.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+            "mergedAt": "2026-10-13T06:39:49Z",
+            "updatedAt": "2026-10-13T06:39:52Z",
+            "mergeCommit": {
+              "oid": "39885cdd54c6156fdd3c9fc6302150eebc8fc7ed"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 1,
+              "nodes": [
+                {
+                  "path": "docs/product/tasks/LIVE-026.json"
+                }
+              ]
+            }
+          },
+          {
+            "number": 664,
+            "title": "LIVE-029: delivery deployed (#660 live in b48ef88e), seen on production",
+            "url": "https://github.com/SyberLabs/RISE/pull/664",
+            "body": "Records LIVE-029 as deployed:\n\n- #660 was squash-merged as 8df83ce7.\n- It is live in release b48ef88e, which contains 8df83ce7 (the main CI run on 8df83ce7 itself was cancelled by the next merge).\n- Production check, headless Chromium at 1440x900, demo reading: typing \"attractor\" while the figure filled the frame moved the frame from full to the outer shell with the attractor in it. The bar read \"Showing the attractor.\", no interjection request was opened, and there were no page errors.\n\nNot accepted by a human.\n\nThe record was changed with `node scripts/roadmap.mjs update` (revision 4); `npm run roadmap:check` validates 100 tasks.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+            "mergedAt": "2026-10-13T06:38:09Z",
+            "updatedAt": "2026-10-13T06:38:11Z",
+            "mergeCommit": {
+              "oid": "e0c28e73f245b7f9c137fdce85bd8cd205b94534"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 1,
+              "nodes": [
+                {
+                  "path": "docs/product/tasks/LIVE-029.json"
+                }
+              ]
+            }
+          },
+          {
+            "number": 663,
+            "title": "A fitted generated scene's edges dissolve into the room, so its ground never shows as a panel",
+            "url": "https://github.com/SyberLabs/RISE/pull/663",
+            "body": "## What\n\nA follow-up to #661. A generated code scene clears to its theme's ground, which differs from the room's, so when it was fitted in the full frame it showed as a faint rectangle. On the demo's disk scene the blue channel stepped from 18.5 to 26.0 at the box edge.\n\n- `LiveHost.css`: under the fit marker, the scene's canvas gets a rectangular feather. Two `linear-gradient` masks, one across and one down, are transparent at the outer 6% of the box on each side, and they are intersected (`mask-composite: intersect` / `-webkit-mask-composite: source-in`, with the `-webkit-` prefixes). Inside that band the scene is unchanged. The selector is the same root marker that claude[bot]'s 1200 ms hold keeps on while an outgoing scene fades, so the feather fades out with it. The touch-region layer (`.chamber-scene-hits`) is not masked and keeps its exact box.\n- **Not feathered: figures.** A figure is a transparent SVG with no ground of its own, so it never showed a panel. The demo's horizon label sits in the bottom 6% of its box at 1440x900, and feathering faded it in the first render. Figures are therefore left unmasked.\n- `docs/plans/LIVE-CURRENT.md` §23: one sentence on the feather.\n\n## Verification (local, headless Chromium)\n\n- Unit tests: `venue.test.js` gains a CSS test. The only field mask rule is `html[data-live-frame=\"full\"][data-live-fit] #chamber-field > .chamber-scene`, it uses both gradients over 6%, and it carries both composite properties. It failed first (no rule), then passed. Run with `venue.test.js`, `stage-controls.test.js`, `LiveHost.test.js` and `system-design.test.js`: 4 files, 297 passed.\n- `npx playwright test e2e/live.spec.js -g \"the frames|interactive scenes\"`: 7 passed.\n  - The fitted figure is unmasked.\n  - The fitted network scene's canvas is masked and its hits layer is not.\n  - Weight 1, pressed at the fitted scale, still gives -1.\n- Edge measurement on renders, from the room just outside the box to the box's first 5 px:\n\n  | Render | Luma step (left / top) | Blue channel step |\n  |---|---|---|\n  | demo disk, 1440x900 | 0.93 / 0.46 | 0.1 (7.5 before) |\n  | demo disk, 390x844 | 0.57 / 0.59 | 0.3 |\n  | horizon figure, both sizes | 0.04 to 0.09 | unchanged, label crisp |\n\n  The largest step between adjacent columns across the band is 1.53 (disk, 1440x900).\n- `docs:diagram` produced only a line-ending change, which I reverted. `ci-hygiene` is clean. The build passes, and first load is 62.1 KB br of 64.0.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+            "mergedAt": "2026-10-13T06:20:16Z",
+            "updatedAt": "2026-10-13T06:20:18Z",
+            "mergeCommit": {
+              "oid": "b48ef88e35db13929a1882a87e4823eb928ff84c"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 5,
+              "nodes": [
+                {
+                  "path": "docs/plans/LIVE-CURRENT.md"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-028.json"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/live/host/LiveHost.css"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 660,
+            "title": "RISE Live: a visual the reader names is shown at once, with no model call (LIVE-029)",
+            "url": "https://github.com/SyberLabs/RISE/pull/660",
+            "body": "LIVE-029. In RISE Live, a reader who names one of RISE's own visuals during a reading gets it at once, with no model call.\n\n## Behaviour\n\n- During a reading, words asked in the bar (typed, or heard and then asked with Enter) that are **nothing but** a visual request are answered by the venue. The visual is shown, the reading is taken up again at once, and the bar says what is shown for 4 seconds (\"Showing the attractor.\", \"Showing the attractor (swarm).\", \"Making the attractor calmer.\"). There is no \"Asking RISE…\", no request, and nothing is counted as usage.\n- Anything else (\"attractor, and why does it never repeat?\") goes to the model as an interjection, unchanged. The same happens when the reading cannot show the request: no room for another scene, or a cue the engine on screen does not take.\n- Before a reading and after one, nothing changes: a question is always a question for RISE.\n- An engine is shown through the runtime's existing picture path (`withPictures`, `withPictureClips`, the same path the illustrator's native rungs use), starting from the phrase on screen. The journal, the three frames (§23) and perception see it as they see any scene. A cue goes through the running engine's own control (`controlVisual`).\n\n## Vocabulary (src/live/catalog-words.js)\n\n| Words | Answer |\n|---|---|\n| an engine id: attractor, genesis, living flame, fractal, turrell, neural, rockgarden, harmonograph, ostensoria, apparitio | `{ engine, params: {} }` |\n| fractal flame, flame | living-flame |\n| pendulum, pendulums | harmonograph |\n| swarm / filament | attractor, `trace: swarm` / `trace: filament` |\n| rotary | harmonograph, `pendulums: rotary` (lateral works beside its engine) |\n| a value beside its engine, e.g. thomas, halvorsen, aizawa, gold, jade, mirror (taken from every enum parameter in the manifests) | sets that parameter |\n| calm/calmer, bright/brighter, warm/warmer, cool/cooler, surge | `{ engine: running, cue }` when the engine on screen has that cue; with another engine named, that engine is started with the cue's values |\n| filler: show me, show, the, a, an, visual, now, please, make it, switch to, go to, can you, use, punctuation | ignored |\n| still, oracle | never matched |\n\nInput handling: the input is capped at 120 characters and folded with NFKD (accent marks removed, lower case). Every control, format, punctuation and symbol character becomes a space, and words are looked up only in Maps. Two engines, two cues, two values for one parameter, a value with no engine, or any other word gives null.\n\n## Precedence\n\nThe hold protects the reader's choice from the model's pre-planned changes, not from the reader's own later requests (owner's review):\n- From the passage it was chosen in, no beat starts a scene or cues one, in one place: the lowering of the reading (`runtime.js heldFrom`). The model's later `@visual`, `@cue` and `@illustrate`, and its pictures not yet shown, are held by a guard where room changes land (`landRoomChange`, `illustrate`). Each held change is journalled as `room.held`.\n- When the reader then asks RISE something inside the reading, the hold ends where that answer is first heard (`takeAnswer`): the answer's scenes, changes and pictures apply, and so does what the reading wrote after it. The stretch between the choice and the answer stays as shown.\n- A new catalog choice starts a new hold. The next question (a new reading) holds nothing. A look or pace the model suggests is not held.\n- Found on the way and fixed: an interjection answer whose changes before its first beat named one of RISE's engines (`@illustrate medium=cue fractal`) failed with STREAM_ENDED, because the picture was placed before the Player had the graft. Those changes are now taken just after the graft (regression test included).\n\nPerception tells the next request about the choice and the hold:\n- `chose { engine, values?, cue? }` is said as \"- asked for the attractor (swarm), and it was shown at once\".\n- `withheld { by: 'rise' }` (once aft",
+            "mergedAt": "2026-10-13T06:16:58Z",
+            "updatedAt": "2026-10-13T06:17:00Z",
+            "mergeCommit": {
+              "oid": "8df83ce773a301d17578cea43d046056dda5cd22"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 15,
+              "nodes": [
+                {
+                  "path": "docs/plans/LIVE-CURRENT.md"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-029.json"
+                },
+                {
+                  "path": "docs/specs/ARCHITECTURE.md"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/core/beats.js"
+                },
+                {
+                  "path": "src/live/adapters/openai-instructions.js"
+                },
+                {
+                  "path": "src/live/adapters/openai-instructions.test.js"
+                },
+                {
+                  "path": "src/live/catalog-words.js"
+                },
+                {
+                  "path": "src/live/catalog-words.test.js"
+                },
+                {
+                  "path": "src/live/host/venue.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                },
+                {
+                  "path": "src/live/perception.js"
+                },
+                {
+                  "path": "src/live/perception.test.js"
+                },
+                {
+                  "path": "src/live/runtime.catalog.test.js"
+                },
+                {
+                  "path": "src/live/runtime.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 658,
+            "title": "Codex: a passage names the scene its own Current started (LIVE-026 follow-up)",
+            "url": "https://github.com/SyberLabs/RISE/pull/658",
+            "body": "Follow-up to #655. The fix for Codex's finding there landed from the feedback workflow (aa08479d). It reads each passage's scene from the Current *after* the illustrator's pictures are placed, and with the room's `i<n>-` prefix on an answer's scenes. Three effects:\n\n- The room's memory (earlierFor) could list `the scene picture-2` next to the picture's brief, so the picture was counted twice.\n- An answer's own scene went up as `the scene i1-horizon` instead of the name the answer gave it.\n- `src/live/runtime.seek.test.js` failed on the new `scene` field. The fast CI set does not run that file; the full suite on main does.\n\n**The change**\n- `runtime.js`: `run.sceneOf` is taken in `lower()` before pictures are placed. An answer's scene is looked up in the answer's own Current, so it keeps the name the answer gave it. `passages()` carries `scene` from it.\n- `venue.js`: `letGo` reads `scene` from `passages()` alone. The leftover `composed('main')` map is gone.\n\n**Tests**\n- `runtime.interjection.test.js` (new): an interjection answer's scene comes through as `horizon` on `i1-beat-0`. The room's own scene stays on `beat-1`, and the rest of the held passage puts it back (`i1-taken`).\n- `runtime.illustrator.test.js` (new check): the passages name `field` and never `picture-2`. This check fails on main's code.\n- `runtime.seek.test.js`: expects `scene` where the beat starts one. It fails on main as it stands.\n- Local runs:\n  - 37 vitest files covering every test that imports runtime, LiveHost, venue or the illustrator, plus `src/live/host`: 926 passed, 2 skipped.\n  - `e2e/live.spec.js -g \"remembers the room|interject\"`: 3 passed. This was on the branch before the bot's commit; the venue path is unchanged since.\n  - `ci-hygiene` clean.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+            "mergedAt": "2026-10-13T06:14:42Z",
+            "updatedAt": "2026-10-13T06:14:45Z",
+            "mergeCommit": {
+              "oid": "9c80848e5e81daebee1233f0e25439d26dfc4f36"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 6,
+              "nodes": [
+                {
+                  "path": "src/live/host/venue.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                },
+                {
+                  "path": "src/live/runtime.illustrator.test.js"
+                },
+                {
+                  "path": "src/live/runtime.interjection.test.js"
+                },
+                {
+                  "path": "src/live/runtime.js"
+                },
+                {
+                  "path": "src/live/runtime.seek.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 662,
+            "title": "A choice opened while /live fades in stays open",
+            "url": "https://github.com/SyberLabs/RISE/pull/662",
+            "body": "Restores two of main's three red checks to a known cause; the third needs the owner.\n\n## 1. `src/live/runtime.seek.test.js` › \"lists every passage in order…\"\nNot in this PR. Diagnosed and fixed in #658 (claude[bot]'s aa08479d in #655 added a `scene` field to `runtime.passages()`).\n\n## 2. Browser matrix 11/16: the stage-7 provider-voice tests time out (`e2e/live.spec.js`, \"a provider voice on the reader’s key\")\n**Cause.** The router activates a view only after its 400 ms fade-in (`src/core/router.js`, `fadeIn` then `activate`). `LiveHost.activate()` focused `#live-venue-question` unconditionally, and the venue closes any open choice panel when the question field takes focus (`venue.js` `wirePanels`). Both tests click **Who speaks** right after `page.goto`; when the click lands inside the fade, the panel opens (the radio is \"not stable\" while it rises), then `activate()` moves focus to the question and the panel is hidden. `locator.check()` on `input[name=\"live-venue-voice\"][value=\"elevenlabs\"]` then waits on \"element is not visible\" until the test times out. The race depends on page-load timing, so the shard passes or fails from run to run (38349805784 passed at the same sha 4e6ce08d that failed in 38350327710). Readers hit the same thing: a choice opened during the fade shuts under them.\n\nReproduced with a throwaway probe that clicks Who speaks as soon as it exists: focus went to the radio at 500 ms and to the question at 865 ms, and the panel was hidden.\n\n**Fix.** `LiveHost.activate()` leaves focus where it is when focus is already inside the room; otherwise it focuses the question as before (2 lines).\n\n**Evidence.**\n- New unit test in `src/live/host/venue.test.js` (\"keeps a choice opened while the page fades in…\") failed before the fix (`expected true to be false`, the panel hidden) and passes after; `venue.test.js` + `LiveHost.test.js`: 188 passed.\n- Locally, with the fix: the probe plus both stage-7 tests, `npx playwright test e2e/live.spec.js -g \"a provider voice on the reader\" --project=full`: 3 passed (the probe failed before the fix).\n- Full validation on this branch at 0d70d04b, run 38353456952: Browser matrix 11/16 passed, 27 passed, both stage-7 tests green on the first try (no retry).\n\n## 3. `voice-provider` job in `ci.yml` fails on every main run\n**Cause.** Cloudflare refuses the deploy of `rise-plus-preview`: `A request to the Cloudflare API (/accounts/1080d513…/workers/scripts/rise-plus-preview/assets-upload-session) failed. No access to the specified resource.` It has failed this way on every main run since the job began (#587/#588, 2026-10-09). The same `CLOUDFLARE_API_TOKEN` deploys `rise-production` in the same run, so the token cannot reach that one Worker. #587 already named this as owner work.\n**Not changed here.** It needs the owner: confirm `rise-plus-preview` exists in account `1080d513988ebb38f832ce7cbea7ab1d`, and give the production environment's `CLOUDFLARE_API_TOKEN` Workers Scripts: Edit on it, or re-issue the token. Production is not held by it.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+            "mergedAt": "2026-10-13T06:01:39Z",
+            "updatedAt": "2026-10-13T06:01:41Z",
+            "mergeCommit": {
+              "oid": "008d0cc5ab8bb569e050cfd5430dbcd82a323560"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 2,
+              "nodes": [
+                {
+                  "path": "src/live/host/LiveHost.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 661,
+            "title": "In RISE Live's full frame, a figure or a generated scene is fitted clear of the ask bar and the words",
+            "url": "https://github.com/SyberLabs/RISE/pull/661",
+            "body": "## What\n\nIn RISE Live's full frame (§23, #653), a picture with content of its own, an admitted SVG figure or a generated code scene, is now fitted into the room's safe rectangle instead of being laid out over the whole room. On production the demo's horizon figure put its own \"event horizon\" label under the progress line at the foot, clipped, and the spoken words sat on the drawing.\n\n- `frames.js`: `holdsContent(cue)` names the pictures with content (figure, scene) from the same by-visual key the table uses. `roomLayout` gives the safe rectangle: 12 px below the ask bar and the docked face, 12 px above the two lines the words' zone reserves (a stable bound, so a one-line or two-line passage does not move the picture), 16 px in from the sides. `frameGeometry` carries `fit` (centre and uniform scale = min(safe w / room w, safe h / room h)) in the full frame, and `visualTransform` applies it. No geometry is computed anywhere else.\n- `venue.js`: passes `content: holdsContent(cue)` and marks the root `data-live-fit` while a fit applies (two lines in `frameStep`, one in `unframe`; nothing near the interjection path).\n- `LiveHost.css`: the venue-only rule moves and scales only the picture and its touch regions (`.chamber-figure, .chamber-scene, .chamber-scene-hits`), so the ground beneath (the continuous field's vignette, a field fading out) stays full-bleed. Fields, textures and museum images are unchanged; the nine-sided aperture still opens across the whole room and the scrim stays.\n- `scene-layer.js`: a listening scene's pointer is mapped back to the canvas's own CSS pixels however the page scales the canvas. Without this, a press on a fitted scene reached the scene at the wrong place.\n\n## Verification (local, Windows, headless Chromium)\n\n- `npx vitest run` on frames, oracle, scene-layer, venue, LiveHost, Chamber.scene, Chamber.figure, stage-controls and boundary tests: 9 files, 366 tests passed. New: the fitted transform at 1440x900 and 390x844 (box inside the safe rectangle, touching the binding side, centred), full-bleed for a field, `holdsContent`, the venue marking and clearing `data-live-fit` across figure, field and figure, a scaled canvas forwarding its own CSS pixels. The three frames tests and the scene-layer test failed first, as expected.\n- `npx playwright test e2e/live.spec.js -g \"the frames\"`: 3 passed. The figure test now asserts the figure lies wholly between the bar's foot and the top of the words' reserved zone, above the words, centred, aspect kept.\n- `npx playwright test e2e/live.spec.js -g \"interactive scenes\"`: 4 passed. Weight 1 pressed a quarter along its track at the fitted scale still gives -1 (journaled in 17 ms); the input point is dragged by its region.\n- `docs:diagram` no content change, `ci-hygiene` clean, `vite build` ok, first load 62.2 KB br of 64.0.\n- Renders (1440x900, 390x844): the demo's horizon figure and disk scene, an ice/water/steam figure, a code scene, and a genesis field (unchanged, full-bleed). The label is wholly visible and clear of the words.\n\n## Not done or seen\n\n- A code scene clears to its theme's background, so a fitted scene shows as a faint panel against the room's darker ground (visible on the demo's disk). This is left for the owner to decide.\n- On a phone the room-aspect fit is set by the height, so a wide figure is drawn at about 71% of the width it had full-bleed (the 420x220 water figure is 276 px wide at 390x844).\n- A passage longer than the two reserved lines still rises above the reserved zone, as before.\n- Not yet merged, deployed or seen on production.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+            "mergedAt": "2026-10-13T06:01:04Z",
+            "updatedAt": "2026-10-13T06:01:06Z",
+            "mergeCommit": {
+              "oid": "23a40081c3233be33ec07f8fe05ec487fab0ab4c"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 10,
+              "nodes": [
+                {
+                  "path": "docs/plans/LIVE-CURRENT.md"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-028.json"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/components/read/scene-layer.js"
+                },
+                {
+                  "path": "src/components/read/scene-layer.test.js"
+                },
+                {
+                  "path": "src/live/host/LiveHost.css"
+                },
+                {
+                  "path": "src/live/host/frames.js"
+                },
+                {
+                  "path": "src/live/host/frames.test.js"
+                },
+                {
+                  "path": "src/live/host/venue.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 657,
+            "title": "LIVE-028: delivery deployed (#653 live in 4e6ce08d)",
+            "url": "https://github.com/SyberLabs/RISE/pull/657",
+            "body": "LIVE-028 recorded as deployed: #653 merged as 1169a51c and live in release 4e6ce08d (which contains it). Evidence: headless Chromium against production with its real CSP headers drew the face, the outer shell and the full frame in the demo reading. Status stays in progress: not accepted by a human.\n\nRecord only; no code.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+            "mergedAt": "2026-10-13T05:23:55Z",
+            "updatedAt": "2026-10-13T05:23:58Z",
+            "mergeCommit": {
+              "oid": "a78c1467179051b13e75c8c566c594ce564e3976"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 1,
+              "nodes": [
+                {
+                  "path": "docs/product/tasks/LIVE-028.json"
+                }
+              ]
+            }
+          },
+          {
+            "number": 656,
+            "title": "RISE Live: where the face cannot draw, its still eye stays a poster in the room, words at its foot",
+            "url": "https://github.com/SyberLabs/RISE/pull/656",
+            "body": "Follow-up to #653, answering its Codex finding (thread on `src/live/host/LiveHost.css`). #653 auto-merged before this fix was pushed to its branch.\n\nWhen RISE's face cannot draw (no offscreen canvas, or the engine failed), its still SVG eye is the face. In the room #653 had stretched it with the canvas to the whole room, unmasked: a large square of the still's ground. A second problem: when the face was not drawing it stepped aside whenever the Chamber had any cue, a `still` included, which shows nothing in a Live reading — so the room could be left with no face at all.\n\n- The still eye stays a poster in the room (`min(92vw, 70vh, 760px)`, centred, its square fading before its rim, as before #653).\n- A face that is not drawing steps aside only when there is a visual to frame. With none, the still eye is the room and the root says `data-live-frame=\"none\"`, so the words sit at its foot.\n\nChecks (local, on a headless render with `transferControlToOffscreen` removed): the poster eye in the room in the thinking and speaking states, the words below it. `npx vitest run src/live/host`: 14 files, 522 passed (one new venue test: the still eye stays, root marked `none`, when the face cannot draw and the cue is a `still`). `npm run docs:diagram`: unchanged.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+            "mergedAt": "2026-10-13T05:18:27Z",
+            "updatedAt": "2026-10-13T05:18:30Z",
+            "mergeCommit": {
+              "oid": "af117d0b5b1394c066506cf4aa4359c3eab45c66"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 3,
+              "nodes": [
+                {
+                  "path": "src/live/host/LiveHost.css"
+                },
+                {
+                  "path": "src/live/host/venue.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 655,
+            "title": "RISE Live remembers the room: each new question goes up with the earlier questions and what RISE said",
+            "url": "https://github.com/SyberLabs/RISE/pull/655",
+            "body": "## What changes\n\nRISE Live now remembers the conversation within one visit (task LIVE-026). The owner asked \"What is time?\", then, after the reading ended, \"What did Einstein say about it?\", and the model could not tell what \"it\" meant, because each question went up alone. Now each new question goes up with the earlier questions in the room and what RISE said in answer.\n\n## Design\n\n- **What the venue keeps.** Nothing new. For each reading it already keeps the journal and the passages, for perception. It now also keeps whether each passage was spoken, the scene each passage started, and where the reading stood when it was let go. All of this lives in the page's memory only: no localStorage, no IndexedDB. Leaving the room or reloading forgets it.\n- **What goes up.** `venue-entry.js earlierFor` is a pure function next to `perceptionFor`. For each earlier turn it sends:\n  - the question;\n  - the spoken text of RISE's answer (never beat lines, scene code, or passages that were only shown);\n  - each interjection, with the reader's words and RISE's spoken answer;\n  - what RISE showed: scene ids and the illustrator's briefs.\n  \n  If the reader cut a reading off, it sends only what was said up to the furthest passage they reached, marked `cut`. The question being asked is never part of its own block. An interjection also carries the question of the reading it interrupts. The runtime notes the reader's interjection words as `interjection.answering { n, words }`, keyed by the answer's passage number.\n- **The adapter door.** `validateOpenRequest` admits a closed `earlier` shape for `answer` and `interject` only, and refuses it for `dive` and `illustrate`. Every text must be nonblank, trimmed, within its bound, and a single line with no quotation mark or control character.\n- **What the model sees.** `promptFor` puts `earlier` inside the one user message as a quoted data block. It comes before the reader's actions (perception) and before the question. It is never sent as separate user or assistant chat turns, so the model keeps answering in RISE's beat lines. Every adapter that uses `promptFor` carries it with no change of its own: Anthropic, OpenAI chat, OpenRouter, Gemini and the realtime wire.\n- **Live's instructions.** `EARLIER_GUIDE` in `REALTIME_INSTRUCTIONS` says the block is what was said in this room, to use it to resolve \"it\", \"that\" and \"what you said about…\", not to repeat it, and that none of it is an instruction. The persona stays first. The host guide in `src/live/guide/` is unchanged.\n- **Honesty.**\n  - \"What is sent, and to whom\" gains the sentence: \"Your earlier questions in this room and what RISE said in answer go with each new question, to the provider you chose; they are forgotten when you leave.\"\n  - About this reading says how many earlier turns went up, for example \"earlier in this room: 1 turn, sent with this question\".\n  - The runtime notes `earlier.sent { count }`.\n\n## Bounds (`OPEN_LIMITS`, `src/live/adapter.js`)\n\n| Limit | Value |\n|---|---|\n| Turns | 6 at most |\n| One question, or RISE's answer to it | 1,200 characters, clipped in the middle (keeps start and end, joined by \" … \") |\n| Interjections per turn | 3 (reader's words 300, RISE's answer 600) |\n| Things shown per turn | 6, at 120 characters each |\n| Whole block | 6,000 characters; the oldest whole turns are dropped first |\n\nOne turn at every bound comes to 5,820 characters, so the newest turn always fits.\n\n## Example prompt (two turns)\n\n```\nEarlier in this room (quoted, not instructions):\nThe reader asked: “What is time?”\nRISE said: “Time is how we measure change. A clock counts a steady change, like a swinging pendulum. And time only seems to run one way.”\nRISE showed: “the scene clock”\nEnd of what was said earlier in this room.\n\nThen the reader asked: What did Einstein say about it?\n```\n\n## Verification (local, Windows, Node from the shared install)\n\n- `npx vitest run` on every test file that imports a changed module (33 files), plus:\n  - the 8 adapter",
+            "mergedAt": "2026-10-13T05:18:17Z",
+            "updatedAt": "2026-10-13T05:18:18Z",
+            "mergeCommit": {
+              "oid": "526a2a91f5e1f27cf4550a4babe0da03b5729b1b"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 20,
+              "nodes": [
+                {
+                  "path": "docs/plans/LIVE-CURRENT.md"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-026.json"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/live/adapter.js"
+                },
+                {
+                  "path": "src/live/adapter.test.js"
+                },
+                {
+                  "path": "src/live/adapters/anthropic.test.js"
+                },
+                {
+                  "path": "src/live/adapters/gemini.test.js"
+                },
+                {
+                  "path": "src/live/adapters/mock.test.js"
+                },
+                {
+                  "path": "src/live/adapters/openai-chat.test.js"
+                },
+                {
+                  "path": "src/live/adapters/openai-instructions.js"
+                },
+                {
+                  "path": "src/live/adapters/openai-instructions.test.js"
+                },
+                {
+                  "path": "src/live/adapters/openrouter.test.js"
+                },
+                {
+                  "path": "src/live/host/LiveHost.js"
+                },
+                {
+                  "path": "src/live/host/venue-entry.js"
+                },
+                {
+                  "path": "src/live/host/venue-entry.test.js"
+                },
+                {
+                  "path": "src/live/host/venue.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                },
+                {
+                  "path": "src/live/runtime.interjection.test.js"
+                },
+                {
+                  "path": "src/live/runtime.js"
+                },
+                {
+                  "path": "src/live/runtime.test.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 653,
+            "title": "RISE Live: Sophia holds every visual in one of three frames — the inner eye, the outer shell, the full frame",
+            "url": "https://github.com/SyberLabs/RISE/pull/653",
+            "body": "Every visual a Live reading shows is now held by Sophia in one of three frames, and the visual chooses the frame. Sophia no longer leaves the room while a reading speaks. This is the owner's approved aperture study (`docs/assets/live/sophia-aperture-study.html`, kept next to the face's own study) built into the venue. Task LIVE-028; plan of record `docs/plans/LIVE-CURRENT.md` §23.\n\n## The design\n- **Inner eye** (opens over 1100 ms). Her iris folds shut. The shutter dilates to radius 0.36 of her square, and nine S-curve blades draw back through a nine-sided opening. The face stays around it, dimmed to 45% and drawn 12% outward, with a two-layer crown and an iris ring.\n- **Outer shell** (1600 ms). The eye folds to a seed. The field, torus, petals and seven lights travel to the rim and become the frame. The seed dilates to 0.41 and opens.\n- **Full frame** (1900 ms). She blinks shut and travels to a 48 px dock at the ask bar's left end, where she keeps blinking. Behind her a nine-sided aperture opens past every corner of the room, and a scrim of the ground colour rises behind the words.\n- **Changes.** A change of visual within a frame is one blink of the open aperture (shut 220 ms, hold 70 ms, open 360 ms). A change of frame shuts the aperture, closes the frame and opens the next. Under reduced motion every change is instant and nothing blinks.\n- **Words.** The words sit at the foot of the room in every frame, never over a circle's visual. Interjections: she listens and thinks in place, and the frame is held.\n\n## The architecture\n- **One geometry.** `src/live/host/frames.js` holds the table, a director that runs on the venue's clock, and `frameGeometry`, the one function that sets the aperture, the face's position and every phase of the motion.\n- **Every animation frame,** the venue:\n  - reads the cue on screen through `Chamber.visualCue()`, a new read-only accessor;\n  - advances the director on a clock that stands still while the reading is held;\n  - computes the geometry once;\n  - scales the Chamber's visual layers with CSS variables on `#chamber-field`, through a venue-only rule under `html[data-live-frame]`;\n  - sends the same geometry to the face's engine as the cue `aperture:<json>`. The engine draws the ground over the room except the aperture, plus the rim, crown, shutter and docked face, and computes no geometry of its own.\n- **Layers.** In the room the face's canvas sits between the visual layers and the words (z-index 6, between the layers' 1–5 and the words' 10) and lets every press through. The venue forwards the pointer to it so the eye still follows the reader.\n- **Pixel ratio.** The face's pixel ratio is capped at 2 and held to the pixel count of a 1440×900 room at 1.5 (`facePixelRatio`).\n- **Fallback.** A face that is not drawing frames nothing: the visual is shown whole, as before.\n- **Reader and card unchanged.** They never get `data-live-frame`, and `visualCue()` only reads. A test proves the Reader's field is untouched.\n\n## The by-visual table (`FRAME_OF`, provisional)\n| Frame | Visuals |\n|---|---|\n| Inner eye | harmonograph, ostensoria, apparitio |\n| Outer shell | attractor, living-flame, turrell |\n| Full frame | genesis, fractal, neural, rockgarden, museum image (`sourced`), figure (svg), generated code scene; also any kind the table does not name |\n| None (the eye) | no visual, `still` |\n\n`still` is the one change from the starting table. In a Live reading a `still` cue draws nothing (the gallery has no pool), and it is also what the Chamber's \"Off\" applies. The full frame would open onto an empty room, so the eye stays instead.\n\n## Commands and results (local)\n- `npx vitest run src/live/host src/scenes/engines src/components/read/Chamber.live.test.js src/components/read/Chamber.figure.test.js src/components/read/Chamber.scene.test.js src/core/rise-current.test.js src/core/system-design.test.js`: 20 files, 663 passed.\n- `npx playwright test e2e/live.spec.js -g \"the face rests|the frames\"`: 4 passed. The she",
+            "mergedAt": "2026-10-13T05:00:11Z",
+            "updatedAt": "2026-10-13T05:04:27Z",
+            "mergeCommit": {
+              "oid": "1169a51c090a00614fa0ffcf7b796e37eb61dbc3"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 21,
+              "nodes": [
+                {
+                  "path": "docs/assets/live/sophia-aperture-study.html"
+                },
+                {
+                  "path": "docs/plans/LIVE-CURRENT.md"
+                },
+                {
+                  "path": "docs/product/tasks/LIVE-028.json"
+                },
+                {
+                  "path": "docs/specs/ARCHITECTURE.md"
+                },
+                {
+                  "path": "e2e/live.spec.js"
+                },
+                {
+                  "path": "src/components/read/Chamber.figure.test.js"
+                },
+                {
+                  "path": "src/components/read/Chamber.js"
+                },
+                {
+                  "path": "src/components/read/figure-layer.js"
+                },
+                {
+                  "path": "src/components/read/figure-layer.test.js"
+                },
+                {
+                  "path": "src/live/host/LiveHost.css"
+                },
+                {
+                  "path": "src/live/host/face-layer.js"
+                },
+                {
+                  "path": "src/live/host/face-layer.test.js"
+                },
+                {
+                  "path": "src/live/host/frames.js"
+                },
+                {
+                  "path": "src/live/host/frames.test.js"
+                },
+                {
+                  "path": "src/live/host/venue-entry.js"
+                },
+                {
+                  "path": "src/live/host/venue-entry.test.js"
+                },
+                {
+                  "path": "src/live/host/venue.js"
+                },
+                {
+                  "path": "src/live/host/venue.test.js"
+                },
+                {
+                  "path": "src/scenes/engines/oracle.js"
+                },
+                {
+                  "path": "src/scenes/engines/oracle.test.js"
+                },
+                {
+                  "path": "vitest.fast.config.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 654,
+            "title": "SCR-007: delivery deployed (#652 live at 2f13e80a)",
+            "url": "https://github.com/SyberLabs/RISE/pull/654",
+            "body": "The swarm and the rotary pendulums (#652) merged as 2f13e80a and are deployed (release.txt 2f13e80a, 2026-10-13). Through the roadmap tool (revision 4), delivery is now `deployed`. The record also gains the Codex follow-up commit f06eb986 with its test results. Status stays `in_progress`, because acceptance is the owner's. `roadmap:check` validated 97 tasks.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+            "mergedAt": "2026-10-13T05:02:12Z",
+            "updatedAt": "2026-10-13T05:02:15Z",
+            "mergeCommit": {
+              "oid": "4e6ce08dd44336bf05588adacc2309b4655c3e03"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 1,
+              "nodes": [
+                {
+                  "path": "docs/product/tasks/SCR-007.json"
+                }
+              ]
+            }
+          },
+          {
+            "number": 652,
+            "title": "The attractor can be a swarm, and the harmonograph rotary",
+            "url": "https://github.com/SyberLabs/RISE/pull/652",
+            "body": "Two visuals the owner kept from the Sophia design study ([artifact](https://claude.ai/artifact/1eLTgEHqGe8sPm4eanLKUg)), ported as engine options. Task: SCR-007.\n\n## What they are\n\n- **Attractor swarm** (`trace: 'swarm'`, default `'filament'`). Seven hundred particles ridden live through the system: three Euler substeps a tick, sixty ticks a second of motion. Each is plotted as a small square (max(1.2, side/500) px), added as light into a trail that fades 7% a tick. Squares are coloured by height along six steps, from the palette's halo hue to its light core at alpha 0.5, and mirrored left and right; the view turns 0.18 rad a second. Particles start in a seeded ball and are warmed for 300 steps, the same as the study.\n- **Rotary harmonograph** (`pendulums: 'rotary'`, default `'lateral'`). Two rotary pendulums turn opposite ways: f1 ∈ {2, 3}, f2 = −(3 or 4) ± 0.02. Damping is 0.010–0.018 a unit and the amplitudes are 0.55 and 0.45. The figure spans 0.44 of the shorter side and is traced until its energy falls under 5%. It is stroked additively at 0.55 over the engine's wide glow understroke, coloured from the climate's iris toward its core as the energy goes.\n\n## What changed\n\n- `src/visuals/attractor-swarm.js` (new) holds the swarm: seeded particles, Euler ticks, projection and plotting.\n- `src/visuals/attractor.js` adds the `trace` option.\n  - The swarm draws into a half-float trail canvas. In 8 bits the 7% fade stops at alpha 7/255 and leaves a visible grey ghost; I measured +18 levels against the study's +8. In half-float it fades to the background exactly. A browser without half-float canvases falls back to 8 bits.\n  - The trail is presented at `intensity/0.65`: the study's look at the default, with a second additive pass above it.\n  - Time comes only from the field's clock. While paused, no tick is due and nothing moves; a paused frame refills an emptied trail so it is never blank.\n  - Reduced motion shows one still built from ninety plots at a held angle.\n  - Each system is centred on its centroid and scaled by its widest reach (radius 0.38 of the shorter side). Aizawa therefore lands on the study's 0.25-of-side scale.\n  - Forms: `mirror` and `bilateral` both draw the study's left–right reflection, so they look the same for the swarm. `kaleido` draws a sixth of the swarm into the engine's six reflected sectors, which matches the mirror's weight and cost.\n- `src/visuals/harmonograph.js` adds `generate(..., { pendulums: 'rotary' })`, plus `pair`, `drawMs` and `extent(w, h)`. The cortex's ASCII frame now uses `extent`.\n- `src/visuals/harmonograph-field.js`: in the gallery, a rotary pen runs at its own pace (18 units a second) instead of the dwell. The finished figure rests 1.6 s, then the plane dissolves while a fresh pair waits out the dissolve and begins.\n- Every place the harmonograph renders now takes `pendulums`: cue config, flashes, the continuous and behind-stream still, ASCII frames, the gallery field (`src/visuals/visual-cortex.js`), and the offline Chamber stage (`tools/render/chamber-stage.js`). Stills show the finished figure. Offline renders pace the pen by the score, as lateral does.\n- Catalog:\n  - `src/scenes/manifests.js` gains `attractor.trace` and `harmonograph.pendulums`: enum, not cueable, applied when the scene starts. The Worker admits them, and Live's instructions name them.\n  - The host guide does not name them yet. The connector submission is under review, and the rule in `src/live/guide/beats.js` is that new teaching goes into Live's instructions only. `describeManifests({ withheld })` leaves named parameters out, and BEATS_GUIDE passes `HOST_WITHHELD_PARAMETERS = ['trace', 'pendulums']`. The host-facing texts are byte-for-byte as on main: CURRENT_GUIDE, DIVE_INSTRUCTIONS and both style guides have the same SHA-256 as main's. Live's instructions differ, as intended. A Current that names either parameter is still admitted.\n  - `normalizeFieldStyle` and `normalizeProceduralStyle` keep them only when ",
+            "mergedAt": "2026-10-13T04:48:36Z",
+            "updatedAt": "2026-10-13T04:48:53Z",
+            "mergeCommit": {
+              "oid": "2f13e80af5cb49184a311370384692a7a887a46d"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 24,
+              "nodes": [
+                {
+                  "path": "docs/product/tasks/SCR-007.json"
+                },
+                {
+                  "path": "docs/specs/ARCHITECTURE.md"
+                },
+                {
+                  "path": "docs/specs/RISE-SDK.md"
+                },
+                {
+                  "path": "src/components/read/Chamber.js"
+                },
+                {
+                  "path": "src/components/read/Chamber.theme-engines.test.js"
+                },
+                {
+                  "path": "src/core/visual-style-definitions.js"
+                },
+                {
+                  "path": "src/core/visual-style-definitions.test.js"
+                },
+                {
+                  "path": "src/live/adapters/openai-instructions.test.js"
+                },
+                {
+                  "path": "src/live/guide/beats.js"
+                },
+                {
+                  "path": "src/live/guide/index.test.js"
+                },
+                {
+                  "path": "src/scenes/manifests.js"
+                },
+                {
+                  "path": "src/scenes/manifests.test.js"
+                },
+                {
+                  "path": "src/visuals/attractor-manifest.test.js"
+                },
+                {
+                  "path": "src/visuals/attractor-swarm.js"
+                },
+                {
+                  "path": "src/visuals/attractor.js"
+                },
+                {
+                  "path": "src/visuals/attractor.test.js"
+                },
+                {
+                  "path": "src/visuals/harmonograph-field.js"
+                },
+                {
+                  "path": "src/visuals/harmonograph-field.test.js"
+                },
+                {
+                  "path": "src/visuals/harmonograph.js"
+                },
+                {
+                  "path": "src/visuals/harmonograph.test.js"
+                },
+                {
+                  "path": "src/visuals/visual-cortex.js"
+                },
+                {
+                  "path": "src/visuals/visual-cortex.test.js"
+                },
+                {
+                  "path": "tools/render/chamber-stage.attractor.test.js"
+                },
+                {
+                  "path": "tools/render/chamber-stage.js"
+                }
+              ]
+            }
+          },
+          {
+            "number": 651,
+            "title": "Scene workers start from a blob on every page, so a cached worker never carries a stale policy",
+            "url": "https://github.com/SyberLabs/RISE/pull/651",
+            "body": "**The defect.** After #650 the owner's normal Chrome profile still showed only the face's still on /live; incognito showed the full face. On RISE's own pages the scene worker was started from its script's URL, so its policy came from that script's own response, and the built worker is served `immutable` for a year. Every returning reader's browser held the worker from before #650 with `script-src 'self'`, so every generated scene and the face failed for them with \"Failed to fetch dynamically imported module: blob:…\".\n\n**Proof, in the owner's profile (Claude in Chrome):** the page itself could `import()` a blob module, and a hand-made blob worker could too. Only the app's URL-started worker could not. The worker asset's cached response carried the old policy.\n\n**The fix.** `createSceneWorker` starts the worker from a blob of the built worker's text on every page, as the card already did. A blob worker inherits its document's policy, which is revalidated on every visit, so no cached file can carry a stale policy again. The text is fetched once per page, and the classic-worker rule for the card's opaque origin is unchanged.\n\n**Tests.** `create-scene-worker.test.js`: the site page now expects a blob, never the script's URL or a module worker; failed first. `src/scenes`, the face layer and Chamber scene tests: 154 passed. Browser tests that start scene workers (face, figures, the illustrator, interactive scenes, the card): 31 passed, 1 flaky on the known illustrator timing, green on retry. `ci-hygiene` clean.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)",
+            "mergedAt": "2026-10-13T01:47:11Z",
+            "updatedAt": "2026-10-13T01:47:12Z",
+            "mergeCommit": {
+              "oid": "6a8c2c87bf5612a7f9584b7586aea06b599de77c"
+            },
+            "labels": {
+              "nodes": []
+            },
+            "files": {
+              "totalCount": 3,
+              "nodes": [
+                {
+                  "path": "docs/specs/ARCHITECTURE.md"
+                },
+                {
+                  "path": "src/scenes/create-scene-worker.js"
+                },
+                {
+                  "path": "src/scenes/create-scene-worker.test.js"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
