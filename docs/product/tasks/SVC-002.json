@@ -114,6 +114,24 @@
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/38655933529",
       "note": "Dry run 2 on main at 25c9b6aa: 28 merged, 17 included, 17 beats; 2 composition repairs (a scene not declared; #663 cited though not included); 6 figures, each admitted on its first attempt; engines only at the opening (attractor) and close (living-flame). Screenshots at 1440x900: the frames table, the room layout bottom to top with the ask bar 8 px above the instrument and Sophia at its left, the name-a-visual flow, the 16.4 to 143.9 chart, the digest pipeline and the brief-to-beat flow are correct, legible and grounded; no overlapping labels. One closing beat spoke of what the next dry run would show; the composer is told not to (PR to follow). No token string in the log.",
       "date": "2026-10-15"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/681",
+      "note": "The composer speaks of what changed, never of what a later run, test or review will show. Merged as 1adf11bc.",
+      "date": "2026-10-15"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38657144294",
+      "note": "Dry run 3 on main at 1adf11bc: 29 merged, 17 included, 23 beats; 0 composition repairs; 6 figures, each admitted on its first attempt; engines only at the opening (attractor) and close (living-flame). Screenshots at 1440x900: the frames table, the room layout, the memory flow (up to 6 turns, forgotten when you leave), the name-a-visual branch, the 16.4 to 143.9 chart and the digest pipeline are correct, legible and grounded. No beat about a later run. No token string in the log.",
+      "date": "2026-10-15"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38657687224",
+      "note": "The real run with pictures, on main at 1adf11bc, since 2026-10-13T02:00:00Z: published as /changes/2026-10-15 (index lists it above 2026-10-14, kept as history) with issue #682. 29 merged, 17 included, 24 beats; one composition repair (the first answer declared its pictures as 8 engine scenes, refused by the rule); 6 figures admitted on their first attempt; scenes: an attractor at the opening, a living flame at the close, a figure every 3 to 4 beats between. The page loads on production with Open the reading (the app admitted the file); its figures, played locally with the paced voice, are correct and legible. No token string in the log. Not watched by the owner yet.",
+      "date": "2026-10-15"
     }
   ],
   "activity": [
@@ -152,10 +170,14 @@
     {
       "date": "2026-10-14T23:50:04.320Z",
       "summary": "Dry run 2 of the pictures recorded: correct, legible, grounded figures"
+    },
+    {
+      "date": "2026-10-15T00:09:28.381Z",
+      "summary": "Dry run 3 and the real run with pictures (/changes/2026-10-15, issue #682) recorded"
     }
   ],
-  "updatedAt": "2026-10-14T23:50:04.320Z",
-  "revision": 9,
+  "updatedAt": "2026-10-15T00:09:28.381Z",
+  "revision": 10,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }
