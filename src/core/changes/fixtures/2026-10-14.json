@@ -430,5 +430,13 @@
     "13": [
       662
     ]
+  },
+  "quality": {
+    "firstPass": true,
+    "repairs": {
+      "composition": 0,
+      "illustrator": 0
+    },
+    "checks": {}
   }
 }

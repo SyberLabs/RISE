@@ -7,7 +7,7 @@
 import { boundary, collectMergedPulls, readIndex } from '../../src/core/changes/collect.js';
 import { composeCurrent } from './compose.js';
 import { illustrate } from './illustrate.js';
-import { MODEL, REPOSITORY } from '../../src/core/changes/contract.js';
+import { MODEL, REPOSITORY, qualityLine } from '../../src/core/changes/contract.js';
 import { prefilter } from '../../src/core/changes/prefilter.js';
 import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
 import { buildDigest, digestId, issueFor, nextIndex, serialize } from '../../src/core/changes/write.js';
@@ -16,11 +16,32 @@ import { buildDigest, digestId, issueFor, nextIndex, serialize } from '../../src
 export const MAX_CANDIDATES = 200;
 
 /**
+ * The run's first-pass score (docs/plans/RISE-CHANGES.md, Quality gates): told each rule that fired and each repair
+ * asked for; `score(letGo)` is the digest's `quality`, right the first time only with no repair and nothing let go.
+ */
+export function createTally() {
+  const checks = {};
+  const repairs = { composition: 0, illustrator: 0 };
+  return {
+    fired(rule, count = 1) { checks[rule] = (checks[rule] ?? 0) + count; },
+    repaired(stage) { repairs[stage] += 1; },
+    score(letGo) {
+      return {
+        firstPass: repairs.composition + repairs.illustrator === 0 && letGo === 0,
+        repairs: { ...repairs },
+        checks: Object.fromEntries(Object.entries(checks).sort(([a], [b]) => (a < b ? -1 : 1)))
+      };
+    }
+  };
+}
+
+/**
  * `{ written: false, reason }` when there is nothing to write, else
  * `{ written: true, id, files, issue }`: the file names and their text, and
- * the notification issue's title and body.
+ * the notification issue's title and body. `renderCheck`, when given, renders
+ * each admitted figure (illustrate.js).
  */
-export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, model = MODEL, log }) {
+export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, model = MODEL, log, renderCheck }) {
   const index = await readIndex(gh, repo);
   const period = { from: boundary({ index, now, since }), to: now.toISOString() };
   log(`Period: ${period.from} to ${period.to}${index === null ? ' (no index yet)' : ''}`);
@@ -46,13 +67,17 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   const included = routed.filter(pull => includedNumbers.has(pull.number));
   // The routed changes left out are context: a later minor fix may settle an included change's caveat.
   const context = routed.filter(pull => !includedNumbers.has(pull.number));
-  const composed = await composeCurrent({ ask, pulls: included, context, model, period, log });
+  const tally = createTally();
+  const composed = await composeCurrent({ ask, pulls: included, context, model, period, log, tally });
   log(`Composed ${composed.current.beats.length} beats; drawing ${composed.pictures.length} pictures`);
-  const { current, notes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included, period, log });
+  const { current, notes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included, period, log, tally, renderCheck });
   const { sources } = composed;
+  const quality = tally.score(notes.length);
+  log(`Quality: ${qualityLine(quality)}`);
+  log(`Quality JSON: ${JSON.stringify(quality)}`);
 
   const id = digestId(period.to, (index?.digests ?? []).map(entry => entry.id));
-  const digest = buildDigest({ id, period, generatedAt: now.toISOString(), model, changes, current, sources, notes });
+  const digest = buildDigest({ id, period, generatedAt: now.toISOString(), model, changes, current, sources, quality, notes });
   const next = nextIndex(index, digest);
   return {
     written: true,

@@ -51,6 +51,11 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      # The rendered check draws each figure in Chromium (scripts/changes/render-check.mjs). npx runs the
+      # Playwright that npm ci installed, so the browser is the build the lockfile pins.
+      - name: Install Chromium for the rendered check
+        run: npx playwright install --with-deps chromium
+
       # Pinned; the npm package installs the native binary (https://code.claude.com/docs/en/setup#install-with-npm).
       - name: Install the Claude Code CLI
         run: |

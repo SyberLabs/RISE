@@ -169,6 +169,15 @@ describe('RISE Changes pages', () => {
     expect(plain.section.querySelector('.changes-notes')).toBeNull();
   });
 
+  it('says how right the run was the first time under how this was chosen, and shows a published digest without it', async () => {
+    const quality = { firstPass: false, repairs: { composition: 0, illustrator: 1 }, checks: { 'text-crosses-shape': 1 } };
+    const { section } = await mount({ digestId: CHANGES_ID, load: files(undefined, { ...changesDigestFixture(), quality }) });
+    expect(section.querySelector('details.changes-chosen .changes-quality').textContent).toBe('First pass: no — 1 repair (0 composition, 1 illustrator); checks fired: text-crosses-shape (1)');
+    const plain = await mount({ digestId: CHANGES_ID });
+    expect(plain.section.querySelector('.changes-quality')).toBeNull();
+    expect(refused(digest => { digest.quality = { ...quality, checks: { '<b>': 1 } }; })).toThrow(/quality/);
+  });
+
   it('says why a routed change was left out: no audience, another audience, or too minor', async () => {
     const digest = changesDigestFixture();
     digest.changes[6].route = { audience: 'readers', significance: 'major', kind: 'feature' };

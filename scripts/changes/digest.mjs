@@ -6,6 +6,7 @@
  *
  * Reads GitHub through `gh` (GH_TOKEN) and asks Claude through the Claude
  * Code CLI (CLAUDE_CODE_OAUTH_TOKEN, passed to the CLI's environment only).
+ * Renders each admitted figure in Playwright's Chromium (render-check.mjs).
  * Writes `<id>.json`, `index.json` and `issue.json` (the notification's title
  * and body) to the out directory, which must be new or empty, and `run.json`
  * ({ written, id?, reason? }) in every case. It never commits, pushes or opens
@@ -19,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createAsk } from '../../src/core/changes/claude-cli.js';
 import { runDigest } from './run-digest.js';
+import { openRenderCheck } from './render-check.mjs';
 import { serialize } from '../../src/core/changes/write.js';
 
 const GH_MAX_BUFFER = 64 * 1024 * 1024;
@@ -92,7 +94,23 @@ export async function main(argv, { env = process.env, log = line => console.log(
   const dir = await outDirectory(options.out);
   if (options.dryRun) log('Dry run: the files are written to the out directory only; nothing is pushed and no issue is opened.');
   const ask = createAsk({ run: runProcess, env, log });
-  const result = await runDigest({ gh: runGh, ask, since: options.since, log });
+  // Chromium starts with the first figure to render, so a run with nothing to draw never needs it.
+  let renderer = null;
+  const renderCheck = async svg => {
+    renderer ??= (async () => {
+      const started = performance.now();
+      const opened = await openRenderCheck();
+      log(`Rendered check: Chromium started in ${Math.round(performance.now() - started)} ms`);
+      return opened;
+    })();
+    return (await renderer).check(svg);
+  };
+  let result;
+  try {
+    result = await runDigest({ gh: runGh, ask, since: options.since, log, renderCheck });
+  } finally {
+    if (renderer) await (await renderer.catch(() => null))?.close();
+  }
   if (!result.written) {
     log(`Nothing to write: ${result.reason}.`);
     await writeFile(join(dir, 'run.json'), serialize({ written: false, reason: result.reason }));

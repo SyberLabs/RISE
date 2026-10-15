@@ -3,7 +3,7 @@
  * as text. Nothing here touches a disk or a branch; a digest that breaks the
  * contract's bounds is refused before any of it is produced.
  */
-import { DIGEST_ID, DIGEST_SCHEMA, INDEX_SCHEMA, LIMITS, SITE, digestProblems, indexProblems } from './contract.js';
+import { DIGEST_ID, DIGEST_SCHEMA, INDEX_SCHEMA, LIMITS, SITE, digestProblems, indexProblems, qualityLine } from './contract.js';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -36,7 +36,7 @@ export function digestId(to, existingIds) {
 }
 
 /** The digest envelope, refused when it breaks the contract or its 256 KB bound. */
-export function buildDigest({ id, period, generatedAt, model, changes, current, sources, notes = [] }) {
+export function buildDigest({ id, period, generatedAt, model, changes, current, sources, quality, notes = [] }) {
   const digest = {
     schema: DIGEST_SCHEMA,
     id,
@@ -48,6 +48,7 @@ export function buildDigest({ id, period, generatedAt, model, changes, current, 
     changes,
     current,
     sources,
+    ...(quality ? { quality } : {}),
     ...(notes.length ? { notes } : {})
   };
   const problems = digestProblems(digest);
@@ -93,6 +94,7 @@ export function issueFor(digest) {
       '',
       `${included} of ${digest.changes.length} merged pull requests are in it. Routed and composed by ${digest.model.router} (router) and ${digest.model.composer} (composer), via ${digest.model.via}.`,
       '',
+      ...(digest.quality ? [qualityLine(digest.quality), ''] : []),
       '| Pull request | Title | Audience | Significance | Kind | Included | Reason |',
       '|---|---|---|---|---|---|---|',
       ...digest.changes.map(change => `| [#${change.number}](${change.url}) | ${cell(change.title)} | ${change.route.audience} | ${change.route.significance} | ${change.route.kind} | ${change.included ? 'yes' : 'no'} | ${change.reason} |`),

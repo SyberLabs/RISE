@@ -73,6 +73,38 @@ describe('runDigest on the week of #652–#671', () => {
     expect(result.issue.body).toContain('Notes from the run:');
   });
 
+  it('scores the run: right the first time, with nothing repaired and no check fired', async () => {
+    const { ask } = scriptedAsk(week());
+    const lines = [];
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    expect(digest.quality).toEqual({ firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {} });
+    expect(lines).toContain('Quality: First pass: yes — 0 repairs; checks fired: none');
+    expect(result.issue.body).toContain('First pass: yes — 0 repairs; checks fired: none');
+  });
+
+  it('scores a run that repaired its composition and let a picture go, and says which checks fired', async () => {
+    const [route, composition, , ...rest] = week();
+    const talky = JSON.parse(composition);
+    talky.current.beats.at(-1).say = 'That is the week; the next dry run will tell.';
+    const refused = ['@scene picture svg', '```svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>x</script></svg>', '```'].join('\n');
+    const { ask } = scriptedAsk([route, JSON.stringify(talky), composition, refused, refused, refused, ...rest]);
+    const lines = [];
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    expect(digest.quality).toEqual({ firstPass: false, repairs: { composition: 1, illustrator: 2 }, checks: { figure: 3, 'process-talk': 2 } });
+    expect(lines).toContain('Quality: First pass: no — 3 repairs (1 composition, 2 illustrator); checks fired: figure (3), process-talk (2)');
+  });
+
+  it('hands every admitted figure to the rendered check it is given', async () => {
+    const { ask } = scriptedAsk(week());
+    const rendered = [];
+    const renderCheck = async svg => { rendered.push(svg); return { problems: [], ms: 1 }; };
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {}, renderCheck });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    expect(rendered).toEqual(digest.current.scenes.filter(scene => scene.svg !== undefined).map(scene => scene.svg));
+  });
+
   it('never offers a records-only pull request to the router', async () => {
     const { ask, calls } = scriptedAsk(week());
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });

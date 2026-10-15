@@ -138,6 +138,31 @@ describe('admitComposition', () => {
       expect(verdict.diagnostics.join('\n')).toMatch(/"3"/);
     });
   });
+  describe('process talk', () => {
+    it('refuses a beat that speaks of how the reading was made, naming the phrase and the beat', () => {
+      const verdict = admit({ current: current([...beats.slice(0, 2), { say: 'Whether it holds will show in the next dry run.' }]), sources: { 1: [652], 2: [653] } });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.diagnostics).toEqual([
+        'beat 2 says "will show in", which speaks of how this reading was made, not of what changed; say what changed, or leave the sentence out',
+        'beat 2 says "dry run", which speaks of how this reading was made, not of what changed; say what changed, or leave the sentence out'
+      ]);
+      expect(verdict.rules).toEqual({ 'process-talk': 2 });
+    });
+
+    it('lets a phrase stand that an included pull request says', () => {
+      const own = [pull(652, 'The swarm draws 700 particles. The pipeline moved.'), pull(653, 'Three frames.')];
+      const verdict = admit({ current: current([...beats.slice(0, 2), { say: 'The pipeline moved.' }]), sources: { 1: [652], 2: [653] } }, { pulls: own });
+      expect(verdict.ok).toBe(true);
+    });
+  });
+
+  it('counts each rule a refusal fired, for the run’s first-pass score', () => {
+    const verdict = admit({ current: current([...beats.slice(0, 2), { say: 'It is 40 percent faster, the next dry run will tell.' }]), sources: { 1: [652] } });
+    expect(verdict.rules).toEqual({ sources: 1, number: 1, 'process-talk': 2 });
+    expect(admit('not json').rules).toEqual({ answer: 1 });
+  });
+
+
   describe('composition', () => {
     const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
     const nine = Array.from({ length: 9 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : `Beat ${words[i]}.` }));
