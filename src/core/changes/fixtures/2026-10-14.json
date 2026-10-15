@@ -333,6 +333,10 @@
       {
         "id": "picture-5",
         "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 260\" fill=\"none\" stroke=\"currentColor\" font-family=\"sans-serif\" font-size=\"20\"><title>The choice panel race</title><line x1=\"20\" y1=\"130\" x2=\"380\" y2=\"130\" stroke-width=\"2\"/><text x=\"70\" y=\"110\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">fade in</text><text x=\"200\" y=\"110\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">choice opens</text><text x=\"330\" y=\"110\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">focus</text><circle cx=\"70\" cy=\"130\" r=\"6\" fill=\"currentColor\"/><circle cx=\"200\" cy=\"130\" r=\"6\" fill=\"currentColor\"/><circle cx=\"330\" cy=\"130\" r=\"6\" fill=\"currentColor\"/><text x=\"200\" y=\"190\" fill=\"currentColor\" stroke=\"none\" text-anchor=\"middle\">the panel stays open</text></svg>"
+      },
+      {
+        "id": "eye",
+        "engine": "still"
       }
     ],
     "beats": [
@@ -352,7 +356,8 @@
         "scene": "picture-1"
       },
       {
-        "say": "In the full frame, a figure or a generated scene is now fitted clear of the ask bar and the words. Before, the demo's horizon figure put its own label under the progress line, clipped."
+        "say": "In the full frame, a figure or a generated scene is now fitted clear of the ask bar and the words. Before, the demo's horizon figure put its own label under the progress line, clipped.",
+        "scene": "eye"
       },
       {
         "say": "And Live now draws the circle frames at the size they are shown, so the harmonograph is no longer soft on a phone."
@@ -362,14 +367,16 @@
         "scene": "picture-2"
       },
       {
-        "say": "A follow-up fixed how that memory names scenes, so a picture is no longer counted twice, and an answer's scene keeps the name the answer gave it."
+        "say": "A follow-up fixed how that memory names scenes, so a picture is no longer counted twice, and an answer's scene keeps the name the answer gave it.",
+        "scene": "eye"
       },
       {
         "say": "During a reading, a reader who names one of RISE's own visuals now gets it at once, with no model call, and nothing is counted as usage.",
         "scene": "picture-3"
       },
       {
-        "say": "That visual now also reaches the screen at once, instead of waiting for the next phrase. On one measured run, the wait had been 12 seconds."
+        "say": "That visual now also reaches the screen at once, instead of waiting for the next phrase. On one measured run, the wait had been 12 seconds.",
+        "scene": "eye"
       },
       {
         "say": "Two visuals the owner kept from the Sophia design study became engine options. The attractor can be a swarm of seven hundred particles, and the harmonograph can be rotary, two pendulums turning opposite ways.",
@@ -381,7 +388,8 @@
         }
       },
       {
-        "say": "The swarm was slow in the venue, at 4 to 16 frames a second. It now adds each tick to its trail in one draw, and the flash gate samples on the GPU."
+        "say": "The swarm was slow in the venue, at 4 to 16 frames a second. It now adds each tick to its trail in one draw, and the flash gate samples on the GPU.",
+        "scene": "eye"
       },
       {
         "say": "For the team: a browser test that failed from run to run was traced to a race. A choice panel opened while the page faded in was hidden when the question field took focus. Now it stays open.",
