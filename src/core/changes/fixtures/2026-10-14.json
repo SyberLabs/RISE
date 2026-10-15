@@ -307,12 +307,12 @@
     },
     "scenes": [
       {
-        "id": "calm",
+        "id": "opening",
         "engine": "turrell"
       },
       {
-        "id": "field",
-        "engine": "attractor"
+        "id": "close",
+        "engine": "turrell"
       },
       {
         "id": "picture-1",
@@ -342,11 +342,10 @@
     "beats": [
       {
         "say": "This is what changed in RISE this week. Almost all of it is RISE Live.",
-        "scene": "calm"
+        "scene": "opening"
       },
       {
-        "say": "RISE Live's face, Sophia, now holds every visual in one of three frames: the inner eye, the outer shell, and the full frame. The visual chooses the frame, and Sophia no longer leaves the room while a reading speaks.",
-        "scene": "field"
+        "say": "RISE Live's face, Sophia, now holds every visual in one of three frames: the inner eye, the outer shell, and the full frame. The visual chooses the frame, and Sophia no longer leaves the room while a reading speaks."
       },
       {
         "say": "A change of visual within a frame is one blink of the aperture. Under reduced motion, every change is instant and nothing blinks."
@@ -397,7 +396,7 @@
       },
       {
         "say": "That is the week in RISE.",
-        "scene": "calm"
+        "scene": "close"
       }
     ]
   },

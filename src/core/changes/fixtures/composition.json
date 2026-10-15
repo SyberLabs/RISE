@@ -9,24 +9,12 @@
       "name": "claude-sonnet-5-5",
       "provider": "Anthropic, via Claude Code"
     },
-    "scenes": [
-      {
-        "id": "calm",
-        "engine": "turrell"
-      },
-      {
-        "id": "field",
-        "engine": "attractor"
-      }
-    ],
     "beats": [
       {
-        "say": "This is what changed in RISE this week. Almost all of it is RISE Live.",
-        "scene": "calm"
+        "say": "This is what changed in RISE this week. Almost all of it is RISE Live."
       },
       {
         "say": "RISE Live's face, Sophia, now holds every visual in one of three frames: the inner eye, the outer shell, and the full frame. The visual chooses the frame, and Sophia no longer leaves the room while a reading speaks.",
-        "scene": "field",
         "refs": [
           653
         ]
@@ -103,8 +91,7 @@
         ]
       },
       {
-        "say": "That is the week in RISE.",
-        "scene": "calm"
+        "say": "That is the week in RISE."
       }
     ]
   },
@@ -203,5 +190,11 @@
       "medium": "figure",
       "brief": "The choice panel race as a timeline: the page fades in, the reader opens a choice, the question field takes focus and used to close it; now the panel stays open."
     }
-  ]
+  ],
+  "opening": {
+    "engine": "turrell"
+  },
+  "close": {
+    "engine": "turrell"
+  }
 }
