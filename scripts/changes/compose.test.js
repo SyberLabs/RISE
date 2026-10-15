@@ -126,6 +126,16 @@ describe('composeCurrent', () => {
     expect(result.pictures).toEqual([picture]);
   });
 
+
+  it('tells the tally each rule a refusal fired and each repair it asked for', async () => {
+    const { ask } = scripted([refusedScene, good]);
+    const fired = [];
+    const repaired = [];
+    const tally = { fired: (rule, count) => fired.push([rule, count]), repaired: stage => repaired.push(stage) };
+    await composeCurrent({ ask, pulls, model: MODEL, period, log: () => {}, tally });
+    expect(fired).toContainEqual(['composition', 1]);
+    expect(repaired).toEqual(['composition']);
+  });
   it('fails after the second repair is still refused, with the diagnostics', async () => {
     const { ask, calls } = scripted([refusedScene, refusedScene, refusedScene, good]);
     const lines = [];

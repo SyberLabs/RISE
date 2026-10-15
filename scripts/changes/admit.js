@@ -10,6 +10,7 @@ import { admitSceneCode, describeDiagnostic } from '../../src/core/scene-admissi
 import { admitSvg } from '../../src/core/svg-admission.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../../src/live/hosts/mcp-size.js';
 import { COMPOSER_PROVIDER, sourcesProblems } from '../../src/core/changes/contract.js';
+import { processTalkProblems } from '../../src/core/quality/process-talk.js';
 
 const MAX_LINE = 300;
 const MAX_SCENE_LINES = 10;
@@ -158,38 +159,46 @@ export function compositionProblems(current, pictures) {
 /**
  * The verdict on one composer answer: `{ ok: true, current, sources, pictures }`,
  * the Current with its origin set to the composer and the briefs the illustrator
- * draws, or `{ ok: false, diagnostics }`, the lines a repair call is given.
+ * draws, or `{ ok: false, diagnostics, rules }`, the lines a repair call is given
+ * and how many each rule gave.
  */
 export function admitComposition(text, { pulls, model, period }) {
+  const refused = (rule, line) => ({ ok: false, diagnostics: [line], rules: { [rule]: 1 } });
   let value;
   try {
     value = parseModelJson(text);
   } catch {
-    return { ok: false, diagnostics: ['The answer must be one JSON object, {"current": ..., "sources": ..., "pictures": [...]}, with nothing before or after it'] };
+    return refused('answer', 'The answer must be one JSON object, {"current": ..., "sources": ..., "pictures": [...]}, with nothing before or after it');
   }
   const keys = Object.keys(value);
   if (keys.length !== 3 || !['current', 'sources', 'pictures'].every(key => Object.hasOwn(value, key))) {
-    return { ok: false, diagnostics: ['The answer must have exactly three fields, "current", "sources" and "pictures"'] };
+    return refused('answer', 'The answer must have exactly three fields, "current", "sources" and "pictures"');
   }
   const given = value.current;
   if (given === null || typeof given !== 'object' || Array.isArray(given) || given.schema !== RISE_CURRENT_SCHEMA_V2) {
-    return { ok: false, diagnostics: [`"current" must be a Current of beats, "schema": "${RISE_CURRENT_SCHEMA_V2}"`] };
+    return refused('answer', `"current" must be a Current of beats, "schema": "${RISE_CURRENT_SCHEMA_V2}"`);
   }
   const current = { ...given, origin: { kind: 'model', name: model, provider: COMPOSER_PROVIDER } };
   if (serializedUtf8Bytes(current) > MCP_CURRENT_BYTES) {
-    return { ok: false, diagnostics: [`RISE refused this Current: The Current exceeds the ${MCP_CURRENT_BYTES.toLocaleString('en-US')}-byte MCP limit`] };
+    return refused('size', `RISE refused this Current: The Current exceeds the ${MCP_CURRENT_BYTES.toLocaleString('en-US')}-byte MCP limit`);
   }
   try {
     validateRiseCurrent(current);
   } catch (error) {
-    return { ok: false, diagnostics: [clean(`RISE refused this Current: ${error?.message ?? 'The Current was not valid'}`)] };
+    return refused('current', clean(`RISE refused this Current: ${error?.message ?? 'The Current was not valid'}`));
   }
-  const diagnostics = [
-    ...sceneRefusals(current),
-    ...compositionProblems(current, value.pictures).map(clean),
-    ...sourcesProblems(value.sources, current.beats.length, pulls.map(pull => pull.number)).map(clean),
-    ...numberProblems(current, { pulls, period }),
-    ...(Array.isArray(value.pictures) ? unstated(value.pictures.map(picture => picture?.brief), statedNumbers(pulls, period), 'A picture\u2019s brief') : [])
-  ];
-  return diagnostics.length ? { ok: false, diagnostics } : { ok: true, current, sources: value.sources, pictures: value.pictures };
+  const subject = pulls.map(pull => `${pull.title}\n${pull.body ?? ''}`).join('\n');
+  const found = {
+    scene: sceneRefusals(current),
+    composition: compositionProblems(current, value.pictures).map(clean),
+    sources: sourcesProblems(value.sources, current.beats.length, pulls.map(pull => pull.number)).map(clean),
+    number: [
+      ...numberProblems(current, { pulls, period }),
+      ...(Array.isArray(value.pictures) ? unstated(value.pictures.map(picture => picture?.brief), statedNumbers(pulls, period), 'A picture\u2019s brief') : [])
+    ],
+    'process-talk': processTalkProblems(current.beats.map(beat => [beat?.say, beat?.show].filter(Boolean).join(' ')), { subject }).map(problem => clean(problem.message))
+  };
+  const diagnostics = Object.values(found).flat();
+  const rules = Object.fromEntries(Object.entries(found).filter(([, lines]) => lines.length).map(([rule, lines]) => [rule, lines.length]));
+  return diagnostics.length ? { ok: false, diagnostics, rules } : { ok: true, current, sources: value.sources, pictures: value.pictures };
 }

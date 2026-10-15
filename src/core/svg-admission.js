@@ -61,6 +61,33 @@ const compact = text => text.replace(/[\s\u0000-\u001f]+/gu, '').toLowerCase();
  * @returns {{ok: true} | {ok: false, diagnostics: Array<{line: number|null, column: number|null, message: string}>}}
  */
 export function admitSvg(svg) {
+  return readSvg(svg, null);
+}
+
+/**
+ * An admitted figure as a tree, read by the same tokenizer that admits it: `{ name, attributes, children, offset }`
+ * for each element, `attributes` decoded and `children` its elements and its decoded text in order, `offset` where
+ * its tag begins; null when the figure is not admitted. A <style> sheet's text is not a child.
+ */
+export function svgTree(svg) {
+  const top = { children: [] };
+  const stack = [top];
+  const verdict = readSvg(svg, {
+    open(name, attributes, offset, selfClosing) {
+      const decoded = {};
+      for (const [key, value] of attributes) decoded[key] = value.includes('&') ? decode(value) : value;
+      const node = { name, attributes: decoded, children: [], offset };
+      stack.at(-1).children.push(node);
+      if (!selfClosing) stack.push(node);
+    },
+    close() { stack.pop(); },
+    text(text, literal) { stack.at(-1).children.push(literal || !text.includes('&') ? text : decode(text)); }
+  });
+  return verdict.ok ? top.children[0] : null;
+}
+
+/** Admission, with `visit` (or null) told each element opened and closed and each raw text inside one, in order, CDATA as literal. */
+function readSvg(svg, visit) {
   if (typeof svg !== 'string' || utf8Bytes(svg) > SVG_FIGURE_BYTES) {
     return { ok: false, diagnostics: [{ line: null, column: null, message: `the figure is an SVG document of at most ${SVG_FIGURE_BYTES.toLocaleString('en-US')} bytes` }] };
   }
@@ -131,6 +158,7 @@ export function admitSvg(svg) {
     const text = svg.slice(i, lt < 0 ? svg.length : lt);
     if (!root && text.trim()) refuse(i + text.search(/\S/u), 'an SVG figure begins with <svg');
     if (closed && text.trim()) { after(i + text.search(/\S/u)); break; }
+    if (open.length && text) visit?.text(text, false);
     if (lt < 0) break;
     if (svg.startsWith('<!--', lt)) {
       const end = svg.indexOf('-->', lt + 4);
@@ -143,6 +171,7 @@ export function admitSvg(svg) {
       const end = svg.indexOf(']]>', lt + 9);
       if (end < 0) { malformed(lt, 'a CDATA section is not closed'); break; }
       if (svg.slice(lt + 9, end).includes('<')) refuse(lt, 'CDATA in a figure may not contain <');
+      else if (open.length) visit?.text(svg.slice(lt + 9, end), true);
       i = end + 3;
       continue;
     }
@@ -169,6 +198,7 @@ export function admitSvg(svg) {
     if (closing) {
       if (svg[at] !== '>') { malformed(lt, 'a tag is not closed'); break; }
       if (open.pop() !== name) { malformed(lt, `</${name}> does not close the element that is open`); break; }
+      visit?.close();
       closed = open.length === 0;
       i = at + 1;
       continue;
@@ -200,6 +230,7 @@ export function admitSvg(svg) {
       } else if (!diagnostics.length) refuse(lt, 'an SVG figure begins with <svg');
     }
     const selfClosing = svg[at] === '/';
+    visit?.open(name, attributes, lt, selfClosing);
     i = at + (selfClosing ? 2 : 1);
     if (!selfClosing) open.push(name);
     else closed = open.length === 0;

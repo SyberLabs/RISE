@@ -85,8 +85,11 @@ function repairRequest(request, answer, diagnostics) {
   };
 }
 
-/** The admitted `{ current, sources, pictures }`, or an error after the last repair is refused. */
-export async function composeCurrent({ ask, pulls, context = [], model, period, log }) {
+/**
+ * The admitted `{ current, sources, pictures }`, or an error after the last repair is refused. `tally` is told each
+ * rule a refusal fired and each repair asked for (the digest's first-pass score).
+ */
+export async function composeCurrent({ ask, pulls, context = [], model, period, log, tally = { fired() {}, repaired() {} } }) {
   const request = buildComposeRequest({ pulls, context, model, period });
   let next = request;
   for (let attempt = 0; attempt <= REPAIRS; attempt += 1) {
@@ -95,6 +98,8 @@ export async function composeCurrent({ ask, pulls, context = [], model, period, 
     if (verdict.ok) return { current: verdict.current, sources: verdict.sources, pictures: verdict.pictures };
     log(`Composition ${attempt + 1} of ${REPAIRS + 1} refused:`);
     for (const line of verdict.diagnostics) log(`  ${line}`);
+    for (const [rule, count] of Object.entries(verdict.rules)) tally.fired(rule, count);
+    if (attempt < REPAIRS) tally.repaired('composition');
     next = repairRequest(request, typeof answer === 'string' ? answer : '', verdict.diagnostics);
   }
   throw new Error(`The composition was refused ${REPAIRS + 1} times; nothing was written`);

@@ -17,7 +17,7 @@
 import './changes.css';
 import { RISE_CURRENT_SCHEMA_V2, validateRiseCurrent } from '../core/rise-current.js';
 import { sceneRefusal } from '../core/scene-admission.js';
-import { DIGEST_ID, LIMITS, digestProblems, indexProblems } from '../core/changes/contract.js';
+import { DIGEST_ID, LIMITS, digestProblems, indexProblems, qualityLine } from '../core/changes/contract.js';
 
 const AUDIENCE_WORDS = { team: 'the team', readers: 'readers' };
 const BADGES = { team: 'Team', readers: 'Readers' };
@@ -171,7 +171,8 @@ function detailView(digest) {
         <summary>How this was chosen</summary>
         <p class="portal-help">Every pull request merged in the period, routed by ${escape(router)} via ${escape(via)}: who it is for, how much it matters, what kind of change it is, and whether the reading tells it.</p>
         <ul class="changes-routes">${chosen}</ul>
-        ${digest.notes ? `<p class="portal-help">What the run let go:</p>
+        ${digest.quality ? `<p class="portal-help changes-quality">${escape(qualityLine(digest.quality))}</p>` : ''}
+        ${digest.notes ?`<p class="portal-help">What the run let go:</p>
         <ul class="changes-notes">${digest.notes.map(note => `<li>${escape(note)}</li>`).join('')}</ul>` : ''}
       </details>
       <p class="portal-help"><a href="/changes" data-changes-go>All digests</a></p>

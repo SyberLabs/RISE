@@ -111,14 +111,38 @@ function changeProblems(change, index) {
   return problems;
 }
 
+const RULE_ID = /^[a-z][a-z0-9-]{0,39}$/;
+const isCount = value => Number.isInteger(value) && value >= 0 && value <= 10000;
+
+/**
+ * What is wrong with a run's first-pass score: `{ firstPass, repairs: { composition, illustrator }, checks }`, each
+ * repair a count, `checks` at most 40 rule ids (lower-case words joined by hyphens), each fired at least once.
+ */
+export function qualityProblems(quality) {
+  const shaped = isObject(quality) && sameKeys(quality, ['firstPass', 'repairs', 'checks']) && typeof quality.firstPass === 'boolean'
+    && isObject(quality.repairs) && sameKeys(quality.repairs, ['composition', 'illustrator'])
+    && isCount(quality.repairs.composition) && isCount(quality.repairs.illustrator)
+    && isObject(quality.checks) && Object.keys(quality.checks).length <= 40
+    && Object.entries(quality.checks).every(([rule, count]) => RULE_ID.test(rule) && isCount(count) && count > 0);
+  return shaped ? [] : ['quality must be { firstPass, repairs: { composition, illustrator }, checks: { <rule>: <count> } }'];
+}
+
+/** The first-pass score in one line, for the issue and the page. */
+export function qualityLine({ firstPass, repairs, checks }) {
+  const total = repairs.composition + repairs.illustrator;
+  const fired = Object.entries(checks).map(([rule, count]) => `${rule} (${count})`).join(', ');
+  return `First pass: ${firstPass ? 'yes' : 'no'} — ${total} repair${total === 1 ? '' : 's'}${total ? ` (${repairs.composition} composition, ${repairs.illustrator} illustrator)` : ''}; checks fired: ${fired || 'none'}`;
+}
+
 /** What is wrong with a digest's envelope; empty when it keeps the contract. */
 export function digestProblems(digest) {
   const keys = ['schema', 'id', 'audience', 'title', 'period', 'generatedAt', 'model', 'changes', 'current', 'sources'];
-  // `notes` is optional: what the run let go (a picture not drawn), one sentence each.
-  const withNotes = isObject(digest) && Object.hasOwn(digest, 'notes') ? [...keys, 'notes'] : keys;
-  if (!isObject(digest) || !sameKeys(digest, withNotes)) return [`A digest has exactly ${keys.join(', ')}, and notes when it has any`];
+  // Optional: `quality`, the run's first-pass score, and `notes`, what the run let go (a picture not drawn), one sentence each.
+  const optional = ['quality', 'notes'].filter(key => isObject(digest) && Object.hasOwn(digest, key));
+  if (!isObject(digest) || !sameKeys(digest, [...keys, ...optional])) return [`A digest has exactly ${keys.join(', ')}, and quality and notes when it has them`];
   const problems = [];
-  if (withNotes.length > keys.length && (!Array.isArray(digest.notes) || digest.notes.length < 1 || digest.notes.length > LIMITS.notes
+  if (optional.includes('quality')) problems.push(...qualityProblems(digest.quality));
+  if (optional.includes('notes') && (!Array.isArray(digest.notes) || digest.notes.length < 1 || digest.notes.length > LIMITS.notes
     || digest.notes.some(note => typeof note !== 'string' || !note.trim() || note.length > LIMITS.note))) {
     problems.push(`notes must be 1 to ${LIMITS.notes} sentences of at most ${LIMITS.note} characters`);
   }

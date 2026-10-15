@@ -1,3 +1,4 @@
+import { configDefaults } from 'vitest/config';
 import base from './vite.config.js';
 
 // THE FAST UNIT SUBSET THE REQUIRED `CI` CHECK RUNS.
@@ -10,7 +11,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 135;
+export const FAST_TEST_FILES = 137;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -47,6 +48,8 @@ const FAST_TESTS = [
     // admission (scripts/changes, the Node pipeline), whose only other run is the job itself.
     'src/core/changes/**/*.test.js',
     'scripts/changes/**/*.test.js',
+    // The quality gates: a figure's labels and a reading's process talk.
+    'src/core/quality/**/*.test.js',
     'src/core/jev-palette.test.js',
     'src/components/read/Chamber.jev-look.test.js',
     'src/app/jev-reading.test.js',
@@ -101,7 +104,10 @@ const FAST_TESTS = [
     'worker/mcp-server.test.js'
 ];
 
+// Tests that drive a real browser run in the full unit suite (full-validation.yml), never here.
+const BROWSER_TESTS = ['scripts/changes/render-check.test.js'];
+
 export default {
     ...base,
-    test: { ...base.test, include: FAST_TESTS }
+    test: { ...base.test, include: FAST_TESTS, exclude: [...configDefaults.exclude, ...BROWSER_TESTS] }
 };

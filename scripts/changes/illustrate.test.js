@@ -138,4 +138,62 @@ describe('illustrate', () => {
     expect(calls[1].prompt).toMatch(/['"]40['"], which no included pull request states/);
     expect(drawn.scenes.at(-1).code).toContain('700 particles');
   });
+
+  describe('the layout of a figure', () => {
+    const recorder = () => {
+      const fired = [];
+      const repaired = [];
+      return { fired, repaired, tally: { fired: (rule, count = 1) => fired.push([rule, count]), repaired: stage => repaired.push(stage) } };
+    };
+    const crossing = figure('<rect x="100" y="100" width="120" height="60" fill="none" stroke="currentColor" stroke-width="2"/><text x="160" y="137" text-anchor="middle">700 particles and more</text>');
+    const moved = figure('<text x="40" y="100">700 particles</text>');
+    const overlap = { rule: 'rendered-overlap', message: 'at 390 pixels wide, the text "700 particles" overlaps the text "60 ticks"' };
+
+    it('refuses a figure whose label crosses a box, and repairs it within the same attempts', async () => {
+      const { ask, calls } = scriptedAsk([crossing, good]);
+      const { fired, repaired, tally } = recorder();
+      const { current: drawn, notes } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 1, medium: 'figure', brief }], pulls, period, log: () => {}, tally });
+      expect(calls).toHaveLength(2);
+      expect(calls[1].prompt).toMatch(/- line 1 \(text-crosses-shape\): the text '700 particles and more' at x 160, y 137 crosses the edge of the <rect>/);
+      expect(drawn.beats[1].scene).toBe('picture-1');
+      expect(notes).toEqual([]);
+      expect(fired).toEqual([['text-crosses-shape', 1]]);
+      expect(repaired).toEqual(['illustrator']);
+    });
+
+    it('sends a figure the rendered check finds fault with back once, with its source, and keeps the repair', async () => {
+      const { ask, calls } = scriptedAsk([good, moved]);
+      const { fired, repaired, tally } = recorder();
+      const rendered = [];
+      const renderCheck = async svg => { rendered.push(svg); return { problems: rendered.length === 1 ? [overlap] : [], ms: 5 }; };
+      const { current: drawn, notes } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 1, medium: 'figure', brief }], pulls, period, log: () => {}, tally, renderCheck });
+      expect(calls).toHaveLength(2);
+      expect(calls[1].prompt).toMatch(/RISE refused the last picture/);
+      expect(calls[1].prompt).toMatch(/\(rendered-overlap\): at 390 pixels wide, the text '700 particles' overlaps/);
+      expect(calls[1].prompt).toContain('<text x="40" y="60">700 particles</text>');
+      expect(rendered).toHaveLength(2);
+      expect(drawn.scenes.at(-1).svg).toContain('y="100"');
+      expect(notes).toEqual([]);
+      expect(fired).toEqual([['rendered-overlap', 1]]);
+      expect(repaired).toEqual(['illustrator']);
+    });
+
+    it('lets the picture go when the rendered fault outlasts its one repair, and says why', async () => {
+      const { ask, calls } = scriptedAsk([good, moved]);
+      const lines = [];
+      const renderCheck = async () => ({ problems: [overlap], ms: 5 });
+      const { current: drawn, notes } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 1, medium: 'figure', brief }], pulls, period, log: line => lines.push(line), renderCheck });
+      expect(calls).toHaveLength(2);
+      expect(drawn.beats[1].scene).toBeUndefined();
+      expect(notes).toEqual([`The picture for beat 1 (“${brief}”) was not drawn: its labels still failed the rendered check after a repair (rendered-overlap); the beat keeps the scene before it.`]);
+      expect(lines.join('\n')).toMatch(/picture for beat 1: rendered check in 5 ms: rendered-overlap/);
+    });
+
+    it('renders figures only: a code scene has no text to measure', async () => {
+      const { ask } = scriptedAsk([ILLUSTRATOR_EXAMPLES[1]]);
+      const renderCheck = async () => { throw new Error('a code scene was rendered'); };
+      const { current: drawn } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 3, medium: 'scene', brief: 'An animation of the shutter opening into the inner eye.' }], pulls, period, log: () => {}, renderCheck });
+      expect(drawn.beats[3].scene).toBe('picture-1');
+    });
+  });
 });

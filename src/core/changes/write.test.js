@@ -62,6 +62,22 @@ describe('buildDigest', () => {
     expect(issueFor(value).body).toContain(note);
   });
 
+  it('carries the run’s first-pass score before its notes, and refuses one that breaks the contract', () => {
+    const quality = { firstPass: false, repairs: { composition: 1, illustrator: 1 }, checks: { 'process-talk': 2, 'text-crosses-shape': 1 } };
+    const value = digest({ quality, notes: ['A note.'] });
+    expect(Object.keys(value).slice(-3)).toEqual(['sources', 'quality', 'notes']);
+    expect(value.quality).toEqual(quality);
+    expect(Object.keys(digest())).not.toContain('quality');
+    for (const bad of [
+      { firstPass: 'yes', repairs: { composition: 0, illustrator: 0 }, checks: {} },
+      { firstPass: true, repairs: { composition: -1, illustrator: 0 }, checks: {} },
+      { firstPass: true, repairs: { composition: 0 }, checks: {} },
+      { firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: { 'Not A Rule': 1 } },
+      { firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: { 'text-overlap': 0 } },
+      { firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {}, extra: 1 }
+    ]) expect(() => digest({ quality: bad })).toThrow(/quality/);
+  });
+
   it('writes the contract’s envelope', () => {
     const value = digest();
     expect(Object.keys(value)).toEqual(['schema', 'id', 'audience', 'title', 'period', 'generatedAt', 'model', 'changes', 'current', 'sources']);
@@ -131,6 +147,13 @@ describe('serialize', () => {
 });
 
 describe('issueFor', () => {
+  it('says in one line whether the run was right the first time, how many repairs it took and which checks fired', () => {
+    const quality = { firstPass: false, repairs: { composition: 1, illustrator: 2 }, checks: { 'process-talk': 2, 'text-crosses-shape': 1 } };
+    expect(issueFor(digest({ quality })).body).toContain('First pass: no — 3 repairs (1 composition, 2 illustrator); checks fired: process-talk (2), text-crosses-shape (1)');
+    expect(issueFor(digest({ quality: { firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {} } })).body).toContain('First pass: yes — 0 repairs; checks fired: none');
+    expect(issueFor(digest()).body).not.toContain('First pass');
+  });
+
   it('links the reading and tables every change with its route', () => {
     const { title, body } = issueFor(digest());
     expect(title).toBe('What changed in RISE: 12–19 October');

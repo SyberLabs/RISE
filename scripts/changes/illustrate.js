@@ -9,6 +9,8 @@ import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../../src/live/hosts/mcp
 import { createTextStreamAdapter } from '../../src/live/adapters/text-stream.js';
 import { ILLUSTRATOR_INSTRUCTIONS, promptFor } from '../../src/live/adapters/openai-instructions.js';
 import { draw } from '../../src/live/illustrator.js';
+import { OPEN_LIMITS } from '../../src/live/adapter.js';
+import { svgLayoutProblems } from '../../src/core/quality/svg-layout.js';
 import { RISE_CURRENT_THEME_IDS, validateRiseCurrent } from '../../src/core/rise-current.js';
 import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
 import { codeNumberProblems, figureNumberProblems, numberProblems } from './admit.js';
@@ -35,7 +37,7 @@ function runningAt(current, index) {
 }
 
 /** A text-stream adapter whose one request is one `ask`, its admission widened by the number rule for figures. */
-function illustratorAdapter({ ask, model, pulls, period }) {
+function illustratorAdapter({ ask, model, pulls, period, tally }) {
   const system = `${ILLUSTRATOR_INSTRUCTIONS}\n\n${DIGEST_PICTURE_NOTE}`;
   const adapter = createTextStreamAdapter({
     id: 'changes-illustrator',
@@ -48,19 +50,28 @@ function illustratorAdapter({ ask, model, pulls, period }) {
       return { cancel() {}, close() {} };
     }
   });
-  const diagnoseScene = scene => [
-    ...adapter.diagnoseScene(scene),
-    ...(scene.svg !== undefined ? figureNumberProblems(scene.svg, { pulls, period }) : typeof scene.code === 'string' ? codeNumberProblems(scene.code, { pulls, period }) : []).map(message => ({ line: null, column: null, rule: 'number', message }))
-  ];
+  // A code scene has no static text to place, so only a figure's labels are held to the layout rules.
+  const diagnoseScene = scene => {
+    const found = [
+      ...adapter.diagnoseScene(scene),
+      ...(scene.svg !== undefined ? figureNumberProblems(scene.svg, { pulls, period }) : typeof scene.code === 'string' ? codeNumberProblems(scene.code, { pulls, period }) : []).map(message => ({ line: null, column: null, rule: 'number', message })),
+      ...(scene.svg !== undefined ? svgLayoutProblems(scene.svg).problems.map(({ rule, line, message }) => ({ line, column: null, rule, message })) : [])
+    ];
+    for (const diagnostic of found) tally.fired(diagnostic.rule);
+    return found;
+  };
   return { ...adapter, diagnoseScene };
 }
 
 /**
  * Each brief drawn, in beat order: `{ current, notes }`, the Current with every admitted picture as a scene
- * (`picture-<n>`) started on its beat, and a sentence for each picture let go.
+ * (`picture-<n>`) started on its beat, and a sentence for each picture let go. `tally` is told each rule that fired
+ * and each repair asked for. `renderCheck(svg)`, when given, renders an admitted figure and answers
+ * `{ problems: [{ rule, message }], ms }`: a figure it finds fault with goes back to the illustrator once, as a
+ * refusal, and is let go if the repaired one is still at fault.
  */
-export async function illustrate({ ask, model, current, pictures, pulls, period, log, now = Date.now }) {
-  const adapter = illustratorAdapter({ ask, model, pulls, period });
+export async function illustrate({ ask, model, current, pictures, pulls, period, log, now = Date.now, tally = { fired() {}, repaired() {} }, renderCheck }) {
+  const adapter = illustratorAdapter({ ask, model, pulls, period, tally });
   const drawn = { ...current, scenes: [...(current.scenes ?? [])], beats: current.beats.map(beat => ({ ...beat })) };
   const notes = [];
   const ordered = [...pictures].sort((a, b) => a.beat - b.beat);
@@ -69,11 +80,39 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
       .map(beat => beat.say ?? beat.show).filter(text => typeof text === 'string').map(text => clip(text, 300));
     const running = runningAt(drawn, picture.beat);
     const room = { said, ...(RISE_CURRENT_THEME_IDS.includes(current.theme) ? { theme: current.theme } : {}), ...(running ? { running } : {}) };
-    const result = await draw({
-      adapter, brief: picture.brief, medium: picture.medium, room, now,
-      onNote: (type, body) => { if (type === 'illustration.refused') log(`  picture for beat ${picture.beat}: attempt ${body.attempt} refused (${body.rule}${body.line === null ? '' : `, line ${body.line}`})`); }
+    const attempt = repair => draw({
+      adapter, brief: picture.brief, medium: picture.medium, room: repair ? { ...room, repair } : room, now,
+      onNote: (type, body) => {
+        if (type === 'illustration.requested' && body.attempt > 1) tally.repaired('illustrator');
+        if (type === 'illustration.refused') log(`  picture for beat ${picture.beat}: attempt ${body.attempt} refused (${body.rule}${body.line === null ? '' : `, line ${body.line}`})`);
+      }
     });
-    if (result.status === 'admitted' && result.medium !== 'cue') {
+    const rendered = async svg => {
+      const verdict = await renderCheck(svg);
+      for (const problem of verdict.problems) tally.fired(problem.rule);
+      log(`  picture for beat ${picture.beat}: rendered check in ${Math.round(verdict.ms)} ms: ${verdict.problems.length ? verdict.problems.map(problem => problem.rule).join(', ') : 'clean'}`);
+      return verdict.problems;
+    };
+    let result = await attempt(null);
+    let fault = null;
+    if (renderCheck && result.status === 'admitted' && result.medium === 'figure') {
+      const problems = await rendered(result.scene.svg);
+      if (problems.length) {
+        tally.repaired('illustrator');
+        result = await attempt({
+          source: result.scene.svg.slice(0, OPEN_LIMITS.source),
+          diagnostics: problems.slice(0, OPEN_LIMITS.diagnostics).map(({ rule, message }) => ({ line: null, column: null, rule, message: clip(message, OPEN_LIMITS.diagnostic) }))
+        });
+        if (result.status === 'admitted' && result.medium === 'figure') {
+          const again = await rendered(result.scene.svg);
+          if (again.length) fault = [...new Set(again.map(problem => problem.rule))].join(', ');
+        }
+      }
+    }
+    if (result.status === 'admitted' && result.scene.svg !== undefined) {
+      for (const note of svgLayoutProblems(result.scene.svg).notes) log(`  picture for beat ${picture.beat}: not checked: ${note}`);
+    }
+    if (fault === null && result.status === 'admitted' && result.medium !== 'cue') {
       const id = `picture-${index + 1}`;
       drawn.scenes.push({ id, ...result.scene });
       drawn.beats[picture.beat].scene = id;
@@ -81,7 +120,8 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
       delete drawn.beats[picture.beat].cue;
       log(`  picture for beat ${picture.beat}: a ${result.medium} admitted on attempt ${result.attempts}`);
     } else {
-      const why = result.status === 'failed' ? `${result.reason} after ${result.attempts} attempt${result.attempts === 1 ? '' : 's'}` : `the illustrator answered with a ${result.status}`;
+      const why = fault !== null ? `its labels still failed the rendered check after a repair (${fault})`
+        : result.status === 'failed' ? `${result.reason} after ${result.attempts} attempt${result.attempts === 1 ? '' : 's'}` : `the illustrator answered with a ${result.status}`;
       const note = `The picture for beat ${picture.beat} (“${clip(picture.brief, 80)}”) was not drawn: ${why}; the beat keeps the scene before it.`;
       notes.push(note);
       log(`  ${note}`);

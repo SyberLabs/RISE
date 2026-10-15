@@ -7,7 +7,7 @@
  * the same function, so this corpus holds both doors.
  */
 import { describe, expect, it } from 'vitest';
-import { admitSvg, SVG_ELEMENTS, SVG_FIGURE_BYTES } from './svg-admission.js';
+import { admitSvg, SVG_ELEMENTS, SVG_FIGURE_BYTES, svgTree } from './svg-admission.js';
 
 const NS = 'xmlns="http://www.w3.org/2000/svg"';
 const open = `<svg ${NS} viewBox="0 0 400 200">`;
@@ -202,5 +202,23 @@ describe('a figure RISE refuses, by rule, where', () => {
     const verdict = admitSvg(fig('<script/>'.repeat(15)));
     expect(verdict.ok).toBe(false);
     expect(verdict.diagnostics).toHaveLength(10);
+  });
+});
+
+describe('the tree of an admitted figure (svgTree)', () => {
+  it('reads elements, their decoded attributes, their text and CDATA in order, and where each tag begins; never a style sheet', () => {
+    const svg = fig('<style>.a { fill: red }</style><g fill="&#35;fff"><text x="1">A &amp; <tspan>B</tspan><![CDATA[C]]></text></g>');
+    const tree = svgTree(svg);
+    expect(tree.name).toBe('svg');
+    const [style, group] = tree.children;
+    expect(style).toEqual({ name: 'style', attributes: {}, children: [], offset: open.length });
+    expect(group.attributes).toEqual({ fill: '#fff' });
+    const [text] = group.children;
+    expect(text.children).toEqual(['A & ', { name: 'tspan', attributes: {}, children: ['B'], offset: svg.indexOf('<tspan') }, 'C']);
+  });
+
+  it('is null for a figure admission refuses', () => {
+    expect(svgTree(fig('<script/>'))).toBeNull();
+    expect(svgTree('not a figure')).toBeNull();
   });
 });
