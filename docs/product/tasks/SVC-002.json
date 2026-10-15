@@ -180,6 +180,18 @@
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/38691661884",
       "note": "Dry run on main at 299a9812, since 2026-10-13T02:00:00Z: 35 merged, 21 included, 23 beats, nothing unspoken; quality {\"firstPass\":true,\"repairs\":{\"composition\":0,\"illustrator\":0},\"checks\":{}}. 6 pictures, all from the figure kit (2 columns, 1 stack, 2 flow, 1 bars), each clean in the rendered check; an attractor at the opening and a still at the close. Screenshots at 1440x900 (figurekit-align-*.png): every picture matches the words of the beat it starts on (the swarm's 16.4 to 143.9 bars now on the #668 beat). Remaining mismatch: a picture held up to 4 beats covers the next beats' other changes (the naming-a-visual flow stays under the memory and swarm beats; the checks columns under the connector, kit and alignment beats). No token string in the log.",
       "date": "2026-10-15"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/690",
+      "note": "Branch changes-held-pictures: after placement the run ends a picture at the first beat whose refs share none of its own, returning to RISE's eye (a still, which the Live room shows as Sophia's eye); the composition rule counts the beats each scene is actually shown under and keeps a scene for the eye; the page's reasons follow the inclusion rule (minor, skipped by the router, records only, over the limit, unspoken). The connector's count test of the sample followed (8 scenes, longest hold 2). No Codex findings; fast set 141 files, 3183 passed locally. Merged as a03ef35a. Not accepted by a human.",
+      "date": "2026-10-15"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38696304051",
+      "note": "Dry run on main at a03ef35a, since 2026-10-13T02:00:00Z: 37 merged, 22 included, 19 beats; 5 kit pictures; RISE's eye returned at beats 6, 10 and 14 where a picture's beats moved on, and played locally it shows Sophia's eye under those beats (figurekit-held-06/10/14-still.png). Quality {\"firstPass\":false,\"repairs\":{\"composition\":1,\"illustrator\":0},\"checks\":{\"composition\":3}}: the first composition declared a third engine mid-reading, repaired once. No token string in the log.",
+      "date": "2026-10-15"
     }
   ],
   "activity": [
@@ -246,10 +258,14 @@
     {
       "date": "2026-10-15T06:25:35.338Z",
       "summary": "#688 merged as 299a9812; its dry run 38691661884 recorded, first pass"
+    },
+    {
+      "date": "2026-10-15T07:10:48.661Z",
+      "summary": "#690 merged as a03ef35a; its dry run 38696304051 recorded"
     }
   ],
-  "updatedAt": "2026-10-15T06:25:35.338Z",
-  "revision": 16,
+  "updatedAt": "2026-10-15T07:10:48.661Z",
+  "revision": 17,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }
