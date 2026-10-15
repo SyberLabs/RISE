@@ -1,8 +1,12 @@
 {
   "mcpServers": {
     "githits": {
-      "type": "http",
-      "url": "https://mcp.githits.com"
+      "command": "node",
+      "args": [
+        "scripts/githits-usage.mjs",
+        "--repo",
+        "SyberLabs/RISE"
+      ]
     }
   }
 }
