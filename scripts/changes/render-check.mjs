@@ -49,6 +49,18 @@ function measure({ svg, ink }) {
       labels.push({ words, box: rect(element), pixels: parseFloat(getComputedStyle(element).fontSize) * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) });
     }
   }
+  // A <use> draws its target's text as an instance the document's own queries do not reach: the <use> is measured.
+  for (const use of root.querySelectorAll('use')) {
+    if (use.closest('defs, clipPath, mask, marker, pattern, symbol')) continue;
+    const id = (use.getAttribute('href') ?? use.getAttribute('xlink:href') ?? '').slice(1);
+    const target = id ? root.querySelector(`[id="${CSS.escape(id)}"]`) : null;
+    const text = target?.localName === 'text' ? target : target?.querySelector('text');
+    const words = text?.textContent.replace(/\s+/gu, ' ').trim();
+    const r = use.getBoundingClientRect();
+    if (!words || !r.width || !r.height) continue;
+    const m = use.getScreenCTM();
+    labels.push({ words, box: rect(use), pixels: parseFloat(getComputedStyle(text).fontSize) * Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) });
+  }
   return { frame: rect(root), labels };
 }
 

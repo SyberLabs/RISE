@@ -40,6 +40,17 @@ describe.skipIf(!hasChromium)('the rendered check', () => {
     expect(verdict.problems[2].message).toMatch(/^at 390 pixels wide, the text "Fine print" is drawn 8\.\d pixels tall; make it at least 12$/u);
   }, 30_000);
 
+  it('measures a label drawn through <use>, where the static check cannot follow it', async () => {
+    const verdict = await renderer.check(fig([
+      '<defs><text id="label" x="20" y="100">Reused label</text></defs>',
+      '<use href="#label"/>',
+      '<use href="#label" x="10" y="4"/>',
+      '<use href="#label" x="330" y="100"/>'
+    ].join('')));
+    expect(verdict.problems.map(problem => problem.rule)).toEqual(['rendered-overlap', 'rendered-outside']);
+    expect(verdict.problems[0].message).toBe('at 390 pixels wide, the text "Reused label" is drawn over the text "Reused label"; move one clear of the other, or use fewer words');
+  }, 30_000);
+
   it('runs no script and fetches nothing, whatever the figure says', async () => {
     const verdict = await renderer.check(fig('<image href="https://example.com/x.png" width="10" height="10"/><text x="20" y="100">Plain</text>'));
     expect(verdict.problems).toEqual([]);
