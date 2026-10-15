@@ -1,0 +1,622 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-15",
+  "audience": "team",
+  "title": "What changed in RISE, 13–15 October",
+  "period": {
+    "from": "2026-10-13T02:00:00.000Z",
+    "to": "2026-10-15T00:03:02.312Z"
+  },
+  "generatedAt": "2026-10-15T00:03:02.312Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 681,
+      "title": "The digest speaks of what changed, never of what a later run, test or review will show",
+      "url": "https://github.com/SyberLabs/RISE/pull/681",
+      "mergedAt": "2026-10-14T23:56:29Z",
+      "mergeSha": "1adf11bcfc9742ca71f46b95f421943a77f9f184",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 680,
+      "title": "The illustrator draws a chart or diagram as asked; only a layout without positions becomes a list",
+      "url": "https://github.com/SyberLabs/RISE/pull/680",
+      "mergedAt": "2026-10-14T23:44:22Z",
+      "mergeSha": "25c9b6aa593e7406534573b74cb5f170e184b0e5",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 679,
+      "title": "The digest's pictures place things only where the brief says, keep labels clear of each other, and the composer is told the picture room in numbers",
+      "url": "https://github.com/SyberLabs/RISE/pull/679",
+      "mergedAt": "2026-10-14T23:36:00Z",
+      "mergeSha": "8b74e7f8abc3434ff2e23d319dbe73d1dc7f880b",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 678,
+      "title": "RISE Changes explains each change with a picture: the composer writes briefs, Live's illustrator draws them",
+      "url": "https://github.com/SyberLabs/RISE/pull/678",
+      "mergedAt": "2026-10-14T23:16:39Z",
+      "mergeSha": "7c880a6f068a196c7619f9fad1e3272008b3c664",
+      "route": {
+        "audience": "team",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 677,
+      "title": "RISE Changes' Node pipeline moves to scripts/changes, so the core reaches nothing in the live layer",
+      "url": "https://github.com/SyberLabs/RISE/pull/677",
+      "mergedAt": "2026-10-14T21:05:26Z",
+      "mergeSha": "42aa82e727cdaf5ea67037b647f1f4bf13352dac",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 675,
+      "title": "RISE Changes: a digest is spoken in RISE's room, from a sealed source that calls no model",
+      "url": "https://github.com/SyberLabs/RISE/pull/675",
+      "mergedAt": "2026-10-14T20:44:05Z",
+      "mergeSha": "7dc269056c04371fea561a90007415a90fa9bb83",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 674,
+      "title": "The team digest includes every change that matters, read in merge order so a later fix settles an earlier caveat",
+      "url": "https://github.com/SyberLabs/RISE/pull/674",
+      "mergedAt": "2026-10-14T12:43:54Z",
+      "mergeSha": "b8f2abd32fd063cd4884466ab3c786c31767bd96",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 673,
+      "title": "RISE Changes: the Worker serves the digest files, and /changes shows and plays them",
+      "url": "https://github.com/SyberLabs/RISE/pull/673",
+      "mergedAt": "2026-10-14T12:20:25Z",
+      "mergeSha": "a09842f1f1c9ba2f3765cb0e097db8a19c5c667e",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 672,
+      "title": "RISE Changes writes a weekly digest of what merged, routed and composed by Claude and admitted by RISE's own validators",
+      "url": "https://github.com/SyberLabs/RISE/pull/672",
+      "mergedAt": "2026-10-14T12:00:57Z",
+      "mergeSha": "853bb6f867e98e20a1bcce77404de830200769cc",
+      "route": {
+        "audience": "team",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 671,
+      "title": "Live's catalog note names an engine as the Reader's catalog does: Genesis, Turrell Fields, Ostensoria, Apparitio",
+      "url": "https://github.com/SyberLabs/RISE/pull/671",
+      "mergedAt": "2026-10-13T11:39:01Z",
+      "mergeSha": "54756b525c94fefa659bdc33ecf9ed038daf317e",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "design"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 670,
+      "title": "The face's trails fade back to its ground exactly, leaving no grey shadow in the room",
+      "url": "https://github.com/SyberLabs/RISE/pull/670",
+      "mergedAt": "2026-10-13T11:38:57Z",
+      "mergeSha": "6e80f3d6c93c79a2d9b33133df6e7a37697796f2",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 669,
+      "title": "Live draws the circle frames at the size they are shown, and the face keeps its trails",
+      "url": "https://github.com/SyberLabs/RISE/pull/669",
+      "mergedAt": "2026-10-13T10:27:15Z",
+      "mergeSha": "6332e9950f904648db400632114b9fe74f8433b2",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 668,
+      "title": "The swarm adds each tick to its trail in one draw, and the flash gate samples on the GPU",
+      "url": "https://github.com/SyberLabs/RISE/pull/668",
+      "mergedAt": "2026-10-13T09:34:15Z",
+      "mergeSha": "6277759b8852c37b34b32929c0a5508d3b629198",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 667,
+      "title": "A visual the reader names in a held Live reading reaches the screen at once, not at the next phrase",
+      "url": "https://github.com/SyberLabs/RISE/pull/667",
+      "mergedAt": "2026-10-13T09:30:42Z",
+      "mergeSha": "7903b4ce87206a8676eba7f6204f8415ce3d151c",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 666,
+      "title": "LIVE-030: delivery deployed (#665 live in b2fec553), seen on production",
+      "url": "https://github.com/SyberLabs/RISE/pull/666",
+      "mergedAt": "2026-10-13T07:14:38Z",
+      "mergeSha": "5053e449325e0aed5f1b310cf8462d326a2e95cc",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 665,
+      "title": "RISE Live's ask bar sits at the room's foot, above the instrument and any on-screen keyboard, the words above it (LIVE-030)",
+      "url": "https://github.com/SyberLabs/RISE/pull/665",
+      "mergedAt": "2026-10-13T06:58:33Z",
+      "mergeSha": "b2fec553622197e0f58a481d37f9f9676664b50a",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 659,
+      "title": "LIVE-026: delivery deployed (#655 and its follow-up #658 live in b48ef88e)",
+      "url": "https://github.com/SyberLabs/RISE/pull/659",
+      "mergedAt": "2026-10-13T06:39:49Z",
+      "mergeSha": "39885cdd54c6156fdd3c9fc6302150eebc8fc7ed",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 664,
+      "title": "LIVE-029: delivery deployed (#660 live in b48ef88e), seen on production",
+      "url": "https://github.com/SyberLabs/RISE/pull/664",
+      "mergedAt": "2026-10-13T06:38:09Z",
+      "mergeSha": "e0c28e73f245b7f9c137fdce85bd8cd205b94534",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 663,
+      "title": "A fitted generated scene's edges dissolve into the room, so its ground never shows as a panel",
+      "url": "https://github.com/SyberLabs/RISE/pull/663",
+      "mergedAt": "2026-10-13T06:20:16Z",
+      "mergeSha": "b48ef88e35db13929a1882a87e4823eb928ff84c",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "design"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 660,
+      "title": "RISE Live: a visual the reader names is shown at once, with no model call (LIVE-029)",
+      "url": "https://github.com/SyberLabs/RISE/pull/660",
+      "mergedAt": "2026-10-13T06:16:58Z",
+      "mergeSha": "8df83ce773a301d17578cea43d046056dda5cd22",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 658,
+      "title": "Codex: a passage names the scene its own Current started (LIVE-026 follow-up)",
+      "url": "https://github.com/SyberLabs/RISE/pull/658",
+      "mergedAt": "2026-10-13T06:14:42Z",
+      "mergeSha": "9c80848e5e81daebee1233f0e25439d26dfc4f36",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 662,
+      "title": "A choice opened while /live fades in stays open",
+      "url": "https://github.com/SyberLabs/RISE/pull/662",
+      "mergedAt": "2026-10-13T06:01:39Z",
+      "mergeSha": "008d0cc5ab8bb569e050cfd5430dbcd82a323560",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 661,
+      "title": "In RISE Live's full frame, a figure or a generated scene is fitted clear of the ask bar and the words",
+      "url": "https://github.com/SyberLabs/RISE/pull/661",
+      "mergedAt": "2026-10-13T06:01:04Z",
+      "mergeSha": "23a40081c3233be33ec07f8fe05ec487fab0ab4c",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 657,
+      "title": "LIVE-028: delivery deployed (#653 live in 4e6ce08d)",
+      "url": "https://github.com/SyberLabs/RISE/pull/657",
+      "mergedAt": "2026-10-13T05:23:55Z",
+      "mergeSha": "a78c1467179051b13e75c8c566c594ce564e3976",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 656,
+      "title": "RISE Live: where the face cannot draw, its still eye stays a poster in the room, words at its foot",
+      "url": "https://github.com/SyberLabs/RISE/pull/656",
+      "mergedAt": "2026-10-13T05:18:27Z",
+      "mergeSha": "af117d0b5b1394c066506cf4aa4359c3eab45c66",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 655,
+      "title": "RISE Live remembers the room: each new question goes up with the earlier questions and what RISE said",
+      "url": "https://github.com/SyberLabs/RISE/pull/655",
+      "mergedAt": "2026-10-13T05:18:17Z",
+      "mergeSha": "526a2a91f5e1f27cf4550a4babe0da03b5729b1b",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 654,
+      "title": "SCR-007: delivery deployed (#652 live at 2f13e80a)",
+      "url": "https://github.com/SyberLabs/RISE/pull/654",
+      "mergedAt": "2026-10-13T05:02:12Z",
+      "mergeSha": "4e6ce08dd44336bf05588adacc2309b4655c3e03",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 653,
+      "title": "RISE Live: Sophia holds every visual in one of three frames — the inner eye, the outer shell, the full frame",
+      "url": "https://github.com/SyberLabs/RISE/pull/653",
+      "mergedAt": "2026-10-13T05:00:11Z",
+      "mergeSha": "1169a51c090a00614fa0ffcf7b796e37eb61dbc3",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 652,
+      "title": "The attractor can be a swarm, and the harmonograph rotary",
+      "url": "https://github.com/SyberLabs/RISE/pull/652",
+      "mergedAt": "2026-10-13T04:48:36Z",
+      "mergeSha": "2f13e80af5cb49184a311370384692a7a887a46d",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "rise-week-2026-10-15",
+    "title": "This week in RISE: frames, memory and a digest that speaks",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "scenes": [
+      {
+        "id": "open",
+        "engine": "attractor"
+      },
+      {
+        "id": "close",
+        "engine": "living-flame"
+      },
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 420 330\" font-family=\"sans-serif\" font-size=\"20\" fill=\"currentColor\" text-anchor=\"middle\">\n  <title>Three frames: inner eye, outer shell, full frame</title>\n  <rect x=\"4\" y=\"6\" width=\"132\" height=\"318\" rx=\"10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <rect x=\"144\" y=\"6\" width=\"132\" height=\"318\" rx=\"10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <rect x=\"284\" y=\"6\" width=\"132\" height=\"318\" rx=\"10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n\n  <text x=\"70\" y=\"40\">Inner eye</text>\n  <circle cx=\"70\" cy=\"86\" r=\"16\" fill=\"currentColor\"/>\n  <text x=\"70\" y=\"134\">Sophia</text>\n  <text x=\"70\" y=\"206\" textLength=\"116\" lengthAdjust=\"spacingAndGlyphs\">harmonograph</text>\n  <text x=\"70\" y=\"246\" textLength=\"104\" lengthAdjust=\"spacingAndGlyphs\">ostensoria</text>\n  <text x=\"70\" y=\"286\">apparitio</text>\n\n  <text x=\"210\" y=\"40\">Outer shell</text>\n  <circle cx=\"210\" cy=\"86\" r=\"16\" fill=\"currentColor\"/>\n  <text x=\"210\" y=\"134\">Sophia</text>\n  <text x=\"210\" y=\"206\">attractor</text>\n  <text x=\"210\" y=\"246\" textLength=\"110\" lengthAdjust=\"spacingAndGlyphs\">living-flame</text>\n  <text x=\"210\" y=\"286\">turrell</text>\n\n  <text x=\"350\" y=\"40\">Full frame</text>\n  <text x=\"350\" y=\"94\">genesis</text>\n  <text x=\"350\" y=\"134\">fractal</text>\n  <text x=\"350\" y=\"174\">neural</text>\n  <text x=\"350\" y=\"214\" textLength=\"108\" lengthAdjust=\"spacingAndGlyphs\">rockgarden</text>\n  <text x=\"350\" y=\"254\">figure</text>\n</svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 320\" font-family=\"sans-serif\" font-size=\"20\" fill=\"currentColor\">\n  <title>Earlier questions and what RISE said feed the new question, which goes to the provider you chose</title>\n  <defs>\n    <marker id=\"a\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto\">\n      <path d=\"M0,0 L10,5 L0,10 Z\" fill=\"currentColor\"/>\n    </marker>\n  </defs>\n  <text x=\"6\" y=\"26\">Up to 6 turns</text>\n  <rect x=\"6\" y=\"44\" width=\"106\" height=\"70\" rx=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"59\" y=\"74\" text-anchor=\"middle\">Earlier</text>\n  <text x=\"59\" y=\"98\" text-anchor=\"middle\">questions</text>\n  <rect x=\"6\" y=\"144\" width=\"106\" height=\"70\" rx=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"59\" y=\"174\" text-anchor=\"middle\">What RISE</text>\n  <text x=\"59\" y=\"198\" text-anchor=\"middle\">said</text>\n  <rect x=\"148\" y=\"94\" width=\"104\" height=\"70\" rx=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"200\" y=\"124\" text-anchor=\"middle\">New</text>\n  <text x=\"200\" y=\"148\" text-anchor=\"middle\">question</text>\n  <rect x=\"288\" y=\"94\" width=\"106\" height=\"70\" rx=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"341\" y=\"124\" text-anchor=\"middle\">Provider</text>\n  <text x=\"341\" y=\"148\" text-anchor=\"middle\">you chose</text>\n  <line x1=\"114\" y1=\"79\" x2=\"146\" y2=\"116\" stroke=\"currentColor\" stroke-width=\"2.5\" marker-end=\"url(#a)\"/>\n  <line x1=\"114\" y1=\"179\" x2=\"146\" y2=\"142\" stroke=\"currentColor\" stroke-width=\"2.5\" marker-end=\"url(#a)\"/>\n  <line x1=\"254\" y1=\"129\" x2=\"286\" y2=\"129\" stroke=\"currentColor\" stroke-width=\"2.5\" marker-end=\"url(#a)\"/>\n  <line x1=\"6\" y1=\"256\" x2=\"394\" y2=\"256\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-dasharray=\"6 6\"/>\n  <text x=\"200\" y=\"296\" text-anchor=\"middle\">Forgotten when you leave</text>\n</svg>"
+      },
+      {
+        "id": "picture-3",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 440\" font-family=\"sans-serif\" font-size=\"20\" fill=\"currentColor\">\n  <title>Room layout, bottom to top: instrument, ask bar with Sophia dock, spoken words, visual</title>\n  <rect x=\"20\" y=\"20\" width=\"360\" height=\"130\" rx=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"200\" y=\"92\" text-anchor=\"middle\">Visual</text>\n  <rect x=\"20\" y=\"165\" width=\"360\" height=\"60\" rx=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"200\" y=\"202\" text-anchor=\"middle\">Spoken words</text>\n  <rect x=\"20\" y=\"240\" width=\"360\" height=\"70\" rx=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <rect x=\"28\" y=\"250\" width=\"145\" height=\"50\" rx=\"6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"/>\n  <text x=\"100\" y=\"282\" text-anchor=\"middle\">Sophia dock</text>\n  <text x=\"278\" y=\"282\" text-anchor=\"middle\">Ask bar</text>\n  <rect x=\"20\" y=\"325\" width=\"360\" height=\"60\" rx=\"8\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"200\" y=\"362\" text-anchor=\"middle\">Instrument</text>\n  <text x=\"200\" y=\"425\" text-anchor=\"middle\">Keyboard lifts the bar</text>\n</svg>"
+      },
+      {
+        "id": "picture-4",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 400\" font-family=\"sans-serif\" font-size=\"20\" fill=\"currentColor\">\n  <title>Swarm frames per second, before and after</title>\n  <text x=\"200\" y=\"32\" text-anchor=\"middle\" font-size=\"22\">Swarm in one draw per tick</text>\n  <text x=\"200\" y=\"62\" text-anchor=\"middle\">FPS at 1440x900</text>\n  <line x1=\"40\" y1=\"350\" x2=\"370\" y2=\"350\" stroke=\"currentColor\" stroke-width=\"2\"/>\n  <rect x=\"80\" y=\"318\" width=\"100\" height=\"32\" fill=\"currentColor\" fill-opacity=\"0.55\" stroke=\"currentColor\" stroke-width=\"2\"/>\n  <rect x=\"240\" y=\"98\" width=\"100\" height=\"252\" fill=\"currentColor\" stroke=\"currentColor\" stroke-width=\"2\"/>\n  <text x=\"130\" y=\"306\" text-anchor=\"middle\">16.4</text>\n  <text x=\"290\" y=\"88\" text-anchor=\"middle\">143.9</text>\n  <text x=\"130\" y=\"380\" text-anchor=\"middle\">Before</text>\n  <text x=\"290\" y=\"380\" text-anchor=\"middle\">After</text>\n</svg>"
+      },
+      {
+        "id": "picture-5",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 420 340\" font-family=\"sans-serif\" font-size=\"20\" fill=\"currentColor\" text-anchor=\"middle\">\n  <title>Merged pull requests flow through Claude and RISE's validators to digest files, spoken in RISE's room</title>\n  <defs>\n    <marker id=\"h\" viewBox=\"0 0 10 10\" refX=\"9\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto\">\n      <path d=\"M0,0 L10,5 L0,10 Z\" fill=\"currentColor\"/>\n    </marker>\n  </defs>\n  <g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\">\n    <rect x=\"10\" y=\"30\" width=\"112\" height=\"110\" rx=\"8\"/>\n    <rect x=\"154\" y=\"30\" width=\"112\" height=\"110\" rx=\"8\"/>\n    <rect x=\"298\" y=\"30\" width=\"112\" height=\"110\" rx=\"8\"/>\n    <rect x=\"10\" y=\"200\" width=\"112\" height=\"110\" rx=\"8\"/>\n    <rect x=\"154\" y=\"200\" width=\"112\" height=\"110\" rx=\"8\"/>\n    <rect x=\"298\" y=\"200\" width=\"112\" height=\"110\" rx=\"8\"/>\n    <line x1=\"124\" y1=\"85\" x2=\"152\" y2=\"85\" marker-end=\"url(#h)\"/>\n    <line x1=\"268\" y1=\"85\" x2=\"296\" y2=\"85\" marker-end=\"url(#h)\"/>\n    <path d=\"M354,142 V170 H66 V198\" marker-end=\"url(#h)\"/>\n    <line x1=\"124\" y1=\"255\" x2=\"152\" y2=\"255\" marker-end=\"url(#h)\"/>\n    <line x1=\"268\" y1=\"255\" x2=\"296\" y2=\"255\" marker-end=\"url(#h)\"/>\n  </g>\n  <g stroke=\"none\">\n    <text x=\"66\" y=\"68\">Merged</text>\n    <text x=\"66\" y=\"92\">pull</text>\n    <text x=\"66\" y=\"116\">requests</text>\n    <text x=\"210\" y=\"79\">Claude</text>\n    <text x=\"210\" y=\"103\">routes</text>\n    <text x=\"354\" y=\"79\">Claude</text>\n    <text x=\"354\" y=\"103\">composes</text>\n    <text x=\"66\" y=\"238\">RISE</text>\n    <text x=\"66\" y=\"262\">validators</text>\n    <text x=\"66\" y=\"286\">admit</text>\n    <text x=\"210\" y=\"249\">Digest</text>\n    <text x=\"210\" y=\"273\">files</text>\n    <text x=\"354\" y=\"238\">Spoken in</text>\n    <text x=\"354\" y=\"262\">RISE's</text>\n    <text x=\"354\" y=\"286\">room</text>\n  </g>\n</svg>"
+      },
+      {
+        "id": "picture-6",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 400 520\" font-family=\"sans-serif\" font-size=\"20\" fill=\"currentColor\">\n  <title>Flow from composer briefs to illustrator to picture shown on its beat</title>\n  <defs>\n    <marker id=\"a\" viewBox=\"0 0 10 10\" refX=\"8\" refY=\"5\" markerWidth=\"8\" markerHeight=\"8\" orient=\"auto\">\n      <path d=\"M0,0 L10,5 L0,10 Z\" fill=\"currentColor\"/>\n    </marker>\n  </defs>\n  <rect x=\"30\" y=\"20\" width=\"340\" height=\"90\" rx=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"200\" y=\"58\" text-anchor=\"middle\">Composer writes</text>\n  <text x=\"200\" y=\"88\" text-anchor=\"middle\">beats and briefs</text>\n  <line x1=\"200\" y1=\"110\" x2=\"200\" y2=\"160\" stroke=\"currentColor\" stroke-width=\"2.5\" marker-end=\"url(#a)\"/>\n  <rect x=\"30\" y=\"165\" width=\"340\" height=\"90\" rx=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"200\" y=\"203\" text-anchor=\"middle\">Live's illustrator</text>\n  <text x=\"200\" y=\"233\" text-anchor=\"middle\">draws each brief</text>\n  <line x1=\"200\" y1=\"255\" x2=\"200\" y2=\"305\" stroke=\"currentColor\" stroke-width=\"2.5\" marker-end=\"url(#a)\"/>\n  <rect x=\"30\" y=\"310\" width=\"340\" height=\"90\" rx=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\"/>\n  <text x=\"200\" y=\"348\" text-anchor=\"middle\">Picture shown</text>\n  <text x=\"200\" y=\"378\" text-anchor=\"middle\">on its beat</text>\n  <path d=\"M200,255 V282 H385 V440\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-dasharray=\"6 6\"/>\n  <line x1=\"385\" y1=\"440\" x2=\"385\" y2=\"440\"/>\n  <rect x=\"30\" y=\"440\" width=\"340\" height=\"60\" rx=\"12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-dasharray=\"6 6\"/>\n  <text x=\"200\" y=\"477\" text-anchor=\"middle\">Refused: keeps the scene before</text>\n</svg>"
+      }
+    ],
+    "beats": [
+      {
+        "say": "This week RISE Live gained frames for its visuals, a memory, and a faster swarm.",
+        "scene": "open"
+      },
+      {
+        "say": "The attractor can now be a swarm of seven hundred particles, and the harmonograph can use two rotary pendulums."
+      },
+      {
+        "say": "In RISE Live, Sophia now holds every visual in one of three frames, and the visual chooses the frame.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "The inner eye holds the harmonograph, ostensoria and apparitio. The outer shell holds the attractor, living flame and turrell."
+      },
+      {
+        "say": "The full frame holds genesis, fractal, neural, rockgarden, museum images, figures and generated scenes. There, Sophia docks at the left end of the ask bar."
+      },
+      {
+        "say": "In the full frame, a figure or a generated scene is now fitted clear of the ask bar and the spoken words, so its labels are no longer clipped."
+      },
+      {
+        "say": "RISE Live now remembers the room within one visit. Each new question goes up with the earlier questions and what RISE said.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "So a follow-up like what did Einstein say about it can be understood. Up to six turns go up, and leaving or reloading forgets them."
+      },
+      {
+        "say": "The page says how many earlier turns were sent, and the privacy text says they go to the provider you chose."
+      },
+      {
+        "say": "The ask bar now sits at the foot of the room, above the instrument, with the spoken words above it.",
+        "scene": "picture-3"
+      },
+      {
+        "say": "On a phone it lifts above the on-screen keyboard. That has only been tried with an emulated keyboard, not a real phone."
+      },
+      {
+        "say": "A reader who names one of RISE's own visuals during a reading now gets it at once, with no model call. The bar says what is shown."
+      },
+      {
+        "say": "A fix means that visual reaches the screen at once. Before, it waited for the next phrase, which under a hold took seconds."
+      },
+      {
+        "say": "The swarm was slow in the venue. It now adds each tick to its trail in one draw. In the shell at 1440 by 900 it rose from 16.4 to 143.9 frames a second.",
+        "scene": "picture-4"
+      },
+      {
+        "say": "The flash gate also samples on the GPU now, so only 64 pixels come back."
+      },
+      {
+        "say": "Live now draws the circle frames at the size they are shown, and the face keeps its trails, as in the approved study."
+      },
+      {
+        "say": "Those trails now fade back to the ground exactly, so no grey shadow stays in the room."
+      },
+      {
+        "say": "RISE Changes writes this weekly digest. Claude routes what merged and composes the reading, and RISE's own validators admit it.",
+        "scene": "picture-5"
+      },
+      {
+        "say": "The Worker serves the digest files, and the changes pages list and show them."
+      },
+      {
+        "say": "The team digest now includes every change that matters, read in merge order so a later fix settles an earlier caveat."
+      },
+      {
+        "say": "A digest is now spoken in RISE's room, from a sealed source that calls no model. That room has no question field."
+      },
+      {
+        "say": "Each change can now be explained with a picture. The composer writes briefs, and Live's illustrator draws them.",
+        "scene": "picture-6"
+      },
+      {
+        "say": "The picture prompts now place things only where the brief says, keep labels clear of each other, and tell the composer the picture room in numbers."
+      },
+      {
+        "say": "The Node pipeline moved into its own scripts folder, so the core reaches nothing in the live layer. That was the week: frames, memory, a faster swarm, and a digest that speaks and draws.",
+        "scene": "close"
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      652
+    ],
+    "2": [
+      653
+    ],
+    "3": [
+      653
+    ],
+    "4": [
+      653
+    ],
+    "5": [
+      661
+    ],
+    "6": [
+      655
+    ],
+    "7": [
+      655
+    ],
+    "8": [
+      655
+    ],
+    "9": [
+      665
+    ],
+    "10": [
+      665
+    ],
+    "11": [
+      660
+    ],
+    "12": [
+      667
+    ],
+    "13": [
+      668
+    ],
+    "14": [
+      668
+    ],
+    "15": [
+      669
+    ],
+    "16": [
+      670
+    ],
+    "17": [
+      672
+    ],
+    "18": [
+      673
+    ],
+    "19": [
+      674
+    ],
+    "20": [
+      675
+    ],
+    "21": [
+      678
+    ],
+    "22": [
+      679
+    ],
+    "23": [
+      677
+    ]
+  }
+}
