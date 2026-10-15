@@ -78,6 +78,12 @@ describe('buildDigest', () => {
     ]) expect(() => digest({ quality: bad })).toThrow(/quality/);
   });
 
+  it('lists a change the reading did not speak of as unspoken', () => {
+    const value = digest({ changes: [change(2), change(1), change(3, false, { reason: 'unspoken' })] });
+    expect(value.changes.at(-1)).toMatchObject({ included: false, reason: 'unspoken' });
+    expect(issueFor(value).body).toContain('| no | unspoken |');
+  });
+
   it('writes the contract’s envelope', () => {
     const value = digest();
     expect(Object.keys(value)).toEqual(['schema', 'id', 'audience', 'title', 'period', 'generatedAt', 'model', 'changes', 'current', 'sources']);

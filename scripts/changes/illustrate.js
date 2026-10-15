@@ -74,7 +74,6 @@ function illustratorAdapter({ ask, model, pulls, period, tally }) {
  * refusal, and is let go if the repaired one is still at fault.
  */
 export async function illustrate({ ask, model, current, pictures, pulls, period, log, now = Date.now, tally = { fired() {}, repaired() {} }, renderCheck }) {
-  const adapter = illustratorAdapter({ ask, model, pulls, period, tally });
   const drawn = { ...current, scenes: [...(current.scenes ?? [])], beats: current.beats.map(beat => ({ ...beat })) };
   const notes = [];
   const ordered = [...pictures].sort((a, b) => a.beat - b.beat);
@@ -90,6 +89,8 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
     log(`  ${note}`);
   };
   for (const [index, picture] of ordered.entries()) {
+    // A picture's numbers come from the pull requests it cites (admit.js has held it to its beat's refs).
+    const cited = Array.isArray(picture.refs) ? pulls.filter(pull => picture.refs.includes(pull.number)) : pulls;
     const rendered = async svg => {
       const verdict = await renderCheck(svg);
       for (const problem of verdict.problems) tally.fired(problem.rule);
@@ -109,7 +110,7 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
       if (svg !== null) {
         const rules = [
           ...(admitSvg(svg).ok ? [] : ['figure']),
-          ...figureNumberProblems(svg, { pulls, period }).map(() => 'number'),
+          ...figureNumberProblems(svg, { pulls: cited, period }).map(() => 'number'),
           ...svgLayoutProblems(svg).problems.map(problem => problem.rule)
         ];
         for (const rule of rules) tally.fired(rule);
@@ -131,6 +132,7 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
       .map(beat => beat.say ?? beat.show).filter(text => typeof text === 'string').map(text => clip(text, 300));
     const running = runningAt(drawn, picture.beat);
     const room = { said, ...(RISE_CURRENT_THEME_IDS.includes(current.theme) ? { theme: current.theme } : {}), ...(running ? { running } : {}) };
+    const adapter = illustratorAdapter({ ask, model, pulls: cited, period, tally });
     const attempt = repair => draw({
       adapter, brief: picture.brief, medium: picture.medium, room: repair ? { ...room, repair } : room, now,
       onNote: (type, body) => {

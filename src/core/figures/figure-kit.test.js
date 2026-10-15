@@ -41,7 +41,7 @@ describe('renderFigure', () => {
   });
 
   it('escapes what it is given', () => {
-    const svg = renderFigure({ kind: 'flow', steps: ['a <b> & "c"', 'd'] }, { theme: 'cobalt' });
+    const svg = renderFigure({ kind: 'flow', steps: ['a <b> & "c"', 'd'], changed: 'd' }, { theme: 'cobalt' });
     expect(svg).toContain('a &lt;b&gt; &amp; &quot;c&quot;');
     expect(admitSvg(svg).ok).toBe(true);
   });
@@ -95,7 +95,10 @@ describe('figureProblems', () => {
     ['six zones', { kind: 'stack', zones: Array.from({ length: 6 }, (_, i) => ({ label: `z${i}`, shape: 'bar' })) }, /2 to 5 zones/],
     ['an unknown shape', { kind: 'stack', zones: [{ label: 'a', shape: 'star' }, { label: 'b', shape: 'bar' }] }, /circle, lines, bar or ticks/],
     ['a dock beside ticks', { kind: 'stack', zones: [{ label: 'a', shape: 'ticks' }, { label: 'b', shape: 'bar' }], dock: 'a' }, /dock .* beside a zone that is not ticks/],
-    ['an empty label', { kind: 'flow', steps: ['', 'b'] }, /1 or more characters/]
+    ['an empty label', { kind: 'flow', steps: ['', 'b'] }, /1 or more characters/],
+    ['columns of one word each', { kind: 'columns', columns: [{ name: 'Bars', items: ['measure'] }, { name: 'Flow', items: ['sequence'] }, { name: 'Columns', items: ['sorting'] }] }, /too sparse for columns; say it in words or use a flow/],
+    ['columns with only one full column', { kind: 'columns', columns: [{ name: 'a', items: ['x', 'y'] }, { name: 'b', items: ['z'] }] }, /too sparse for columns/],
+    ['a flow of two steps that marks nothing', { kind: 'flow', steps: ['Before', 'After'] }, /a flow of two steps with no changed step and no loop explains nothing a sentence does not/]
   ];
   for (const [name, spec, pattern] of cases) {
     it(`refuses ${name}`, () => {
@@ -107,7 +110,7 @@ describe('figureProblems', () => {
 
   it('names a label that does not fit, the size it is set at, and its slot’s budget in characters', () => {
     const spec = { kind: 'columns', columns: [
-      { name: 'a', items: ['x'] }, { name: 'b', items: ['y'] }, { name: 'c', items: ['z'] },
+      { name: 'a', items: ['x', 'x2'] }, { name: 'b', items: ['y', 'y2'] }, { name: 'c', items: ['z'] },
       { name: 'An extremely long column name', items: ['w'] }
     ] };
     const [problem] = figureProblems(spec);
@@ -116,8 +119,14 @@ describe('figureProblems', () => {
 
   it('never shrinks or truncates: the same label fits a wider slot', () => {
     const label = 'Outer shell visuals';
-    expect(figureProblems({ kind: 'columns', columns: [{ name: label, items: ['x'] }, { name: 'b', items: ['y'] }] })).toEqual([]);
-    expect(figureProblems({ kind: 'columns', columns: [{ name: label, items: ['x'] }, { name: 'b', items: ['y'] }, { name: 'c', items: ['z'] }, { name: 'd', items: ['w'] }] }).join('\n')).toMatch(/Outer shell visuals/);
+    expect(figureProblems({ kind: 'columns', columns: [{ name: label, items: ['x', 'x2'] }, { name: 'b', items: ['y', 'y2'] }] })).toEqual([]);
+    expect(figureProblems({ kind: 'columns', columns: [{ name: label, items: ['x', 'x2'] }, { name: 'b', items: ['y', 'y2'] }, { name: 'c', items: ['z'] }, { name: 'd', items: ['w'] }] }).join('\n')).toMatch(/Outer shell visuals/);
+  });
+
+  it('accepts a flow of two steps that marks the change, and columns with two full columns', () => {
+    expect(figureProblems({ kind: 'flow', steps: ['Before', 'After'], changed: 'After' })).toEqual([]);
+    expect(figureProblems({ kind: 'flow', steps: ['Ask', 'Answer'], loop: { from: 'Answer', to: 'Ask', label: 'again' } })).toEqual([]);
+    expect(figureProblems({ kind: 'columns', columns: [{ name: 'a', items: ['x', 'y'] }, { name: 'b', items: ['z', 'w'] }, { name: 'c', items: ['v'] }] })).toEqual([]);
   });
 
   it('accepts the study', () => {

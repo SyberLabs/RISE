@@ -111,6 +111,9 @@
   "pictures": [
     {
       "beat": 3,
+      "refs": [
+        665
+      ],
       "kit": {
         "kind": "stack",
         "title": "The room, bottom to top",
@@ -141,6 +144,9 @@
     },
     {
       "beat": 6,
+      "refs": [
+        655
+      ],
       "kit": {
         "kind": "flow",
         "title": "The room remembers",
@@ -155,11 +161,17 @@
     },
     {
       "beat": 8,
+      "refs": [
+        660
+      ],
       "medium": "figure",
       "brief": "Naming a visual during a reading: the reader types 'genesis', and RISE shows Genesis at once. Two boxes joined by an arrow, the arrow marked 'no model call'."
     },
     {
       "beat": 10,
+      "refs": [
+        652
+      ],
       "kit": {
         "kind": "columns",
         "title": "Two new engine options",
@@ -185,6 +197,9 @@
     },
     {
       "beat": 13,
+      "refs": [
+        662
+      ],
       "medium": "figure",
       "brief": "The choice panel race as a timeline: the page fades in, the reader opens a choice, the question field takes focus and used to close it; now the panel stays open."
     }

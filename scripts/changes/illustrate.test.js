@@ -83,7 +83,7 @@ describe('illustrate', () => {
   it('holds every figure to the number rule, and repairs a number no pull request states', async () => {
     const { ask, calls } = scriptedAsk([figure('<text x="40" y="60">40% faster</text>'), good]);
     const { current: drawn } = await run(ask, [{ beat: 1, medium: 'figure', brief }]);
-    expect(calls[1].prompt).toMatch(/['"]40['"], which no included pull request states/);
+    expect(calls[1].prompt).toMatch(/['"]40['"], which no pull request the picture cites states/);
     expect(drawn.scenes.at(-1).svg).not.toContain('40%');
   });
 
@@ -136,7 +136,7 @@ describe('illustrate', () => {
     const { ask, calls } = scriptedAsk([code('40% faster'), code('700 particles')]);
     const { current: drawn } = await run(ask, [{ beat: 1, medium: 'scene', brief: 'An animation of the swarm of 700 particles.' }]);
     expect(calls).toHaveLength(2);
-    expect(calls[1].prompt).toMatch(/['"]40['"], which no included pull request states/);
+    expect(calls[1].prompt).toMatch(/['"]40['"], which no pull request the picture cites states/);
     expect(drawn.scenes.at(-1).code).toContain('700 particles');
   });
 
@@ -196,6 +196,15 @@ describe('illustrate', () => {
       const { current: drawn } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 3, medium: 'scene', brief: 'An animation of the shutter opening into the inner eye.' }], pulls, period, log: () => {}, renderCheck });
       expect(drawn.beats[3].scene).toBe('picture-1');
     });
+  });
+
+  it('holds a figure’s numbers to the pull requests its picture cites', async () => {
+    const week = [...pulls, { number: 653, title: 'Three frames', body: 'Sophia holds every visual in one of three frames.' }];
+    const { ask, calls } = scriptedAsk([good, figure('<text x="40" y="60">Three frames</text>')]);
+    const { current: drawn } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 3, refs: [653], medium: 'figure', brief: 'A labelled diagram of the three frames Sophia holds.' }], pulls: week, period, log: () => {} });
+    expect(calls).toHaveLength(2);
+    expect(calls[1].prompt).toMatch(/['"]700['"], which no pull request the picture cites states/);
+    expect(drawn.scenes.at(-1).svg).toContain('Three frames');
   });
 
   describe('kit figures', () => {

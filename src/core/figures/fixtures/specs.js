@@ -43,8 +43,8 @@ export function boundSpecs() {
     ...[2, 3, 4, 5].map(count => longest(n => ({ kind: 'stack', title: 'Stack', zones: Array.from({ length: count }, (_, i) => ({ label: `${word(n)}${i}`, shape: ['bar', 'lines', 'ticks', 'circle', 'bar'][i] })), changed: `${word(n)}0`, dock: `${word(n)}0` }))),
     longest(n => ({ kind: 'stack', zones: [{ label: 'a', shape: 'circle' }, { label: 'b', shape: 'circle' }, { label: 'c', shape: 'circle' }, { label: 'd', shape: 'circle' }, { label: word(n), shape: 'circle' }], changed: 'a' })),
     { kind: 'bars', max: 1, items: [{ label: 'x', value: 0 }, { label: 'y', value: 1 }] },
-    { kind: 'flow', steps: ['a', 'b'] },
-    { kind: 'columns', columns: [{ name: 'a', items: ['x'] }, { name: 'b', items: ['y'] }] },
+    { kind: 'flow', steps: ['a', 'b'], changed: 'b' },
+    { kind: 'columns', columns: [{ name: 'a', items: ['x', 'x2'] }, { name: 'b', items: ['y', 'y2'] }] },
     { kind: 'stack', zones: [{ label: 'a', shape: 'ticks' }, { label: 'b', shape: 'lines' }] }
   ];
 }
