@@ -1,0 +1,68 @@
+name: GitHits release SBOM
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published release tag to export
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: githits-sbom-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check release access without provider probes
+        id: access
+        env:
+          PROVIDER: ${{ secrets.GITHITS_RISE_API_TOKEN }}
+          PRIVATE_ACCESS: ${{ secrets.GITHITS_USAGE_TOKEN }}
+        run: |
+          if [ -n "$PROVIDER" ] && [ -n "$PRIVATE_ACCESS" ]; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+            echo '::warning::Release SBOM not generated: provider/private-retention credentials pending'
+            echo 'No GitHits SBOM export or release attachment: credentials pending.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: steps.access.outputs.enabled == 'true'
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          path: source
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: steps.access.outputs.enabled == 'true'
+        with:
+          repository: SyberLabs/MasterMind
+          ref: b6118e0e423749df43396e366d2a49d5f5a198d5
+          token: ${{ secrets.GITHITS_USAGE_TOKEN }}
+          path: .private-githits
+          persist-credentials: false
+          sparse-checkout: tools/githits-usage/**
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: steps.access.outputs.enabled == 'true'
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        if: steps.access.outputs.enabled == 'true'
+        with:
+          version: 11.25.0
+      - name: Install reviewed private exporter only
+        if: steps.access.outputs.enabled == 'true'
+        run: pnpm --dir .private-githits/tools/githits-usage install --frozen-lockfile --ignore-scripts
+      - name: Export accounted SBOM and attach verified release artifacts
+        if: steps.access.outputs.enabled == 'true'
+        run: node .private-githits/tools/githits-usage/release-sbom.mjs --repo "$GITHUB_REPOSITORY" --source "$GITHUB_WORKSPACE/source" --tag "$RELEASE_TAG"
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          GITHITS_API_TOKEN: ${{ secrets.GITHITS_RISE_API_TOKEN }}
+          GITHITS_USAGE_TOKEN: ${{ secrets.GITHITS_USAGE_TOKEN }}
+          GITHITS_RELEASE_TOKEN: ${{ github.token }}
