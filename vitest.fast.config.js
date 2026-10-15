@@ -11,7 +11,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 137;
+export const FAST_TEST_FILES = 139;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -48,8 +48,9 @@ const FAST_TESTS = [
     // admission (scripts/changes, the Node pipeline), whose only other run is the job itself.
     'src/core/changes/**/*.test.js',
     'scripts/changes/**/*.test.js',
-    // The quality gates: a figure's labels and a reading's process talk.
+    // The quality gates: a figure's labels, a reading's process talk and its picture cadence, and the connector's count.
     'src/core/quality/**/*.test.js',
+    'worker/mcp-quality.test.js',
     'src/core/jev-palette.test.js',
     'src/components/read/Chamber.jev-look.test.js',
     'src/app/jev-reading.test.js',
