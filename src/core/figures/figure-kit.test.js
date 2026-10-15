@@ -1,0 +1,130 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { admitSvg } from '../svg-admission.js';
+import { JEV_PALETTES } from '../jev-palette.js';
+import { ROOM, svgLayoutProblems } from '../quality/svg-layout.js';
+import { FIGURE_BOUNDS, FIGURE_KINDS, figureProblems, renderFigure } from './figure-kit.js';
+import { STUDY, boundSpecs } from './fixtures/specs.js';
+
+// A Windows checkout may give the goldens CRLF; the kit writes LF.
+const golden = name => readFileSync(resolve(process.cwd(), 'src/core/figures/fixtures', name), 'utf8').replace(/\r\n/g, '\n').trimEnd();
+
+describe('renderFigure', () => {
+  for (const kind of FIGURE_KINDS) {
+    for (const theme of ['cobalt', 'ember']) {
+      it(`draws the study's ${kind} in ${theme} exactly as the golden`, () => {
+        expect(renderFigure(STUDY[kind], { theme })).toBe(golden(`${kind}-${theme}.svg`));
+      });
+    }
+  }
+
+  it('keeps the study’s geometry', () => {
+    const bars = renderFigure(STUDY.bars, { theme: 'cobalt' });
+    expect(bars).toContain('<rect x="195" y="403.76" width="150" height="26.24" rx="3"');
+    expect(bars).toContain('<rect x="455" y="199.76" width="150" height="230.24" rx="3" fill="#58B8FF"/>');
+    const flow = renderFigure(STUDY.flow, { theme: 'cobalt' });
+    expect(flow).toContain('<rect x="210" y="124" width="380" height="42" rx="21"');
+    expect(flow).toContain('<rect x="210" y="454" width="380" height="42" rx="21"');
+    const columns = renderFigure(STUDY.columns, { theme: 'cobalt' });
+    for (const x of [145, 400, 655]) expect(columns).toContain(`<text x="${x}" y="236"`);
+    const stack = renderFigure(STUDY.stack, { theme: 'cobalt' });
+    expect(stack).toContain('<rect x="90" y="122" width="250" height="352" rx="26"');
+    expect(stack).toContain('<circle cx="128"');
+  });
+
+  it('inks what changed in the theme’s accent, and nothing else', () => {
+    for (const [theme, { accent }] of Object.entries(JEV_PALETTES)) {
+      const svg = renderFigure(STUDY.bars, { theme });
+      expect(svg).toContain(`fill="${accent}"`);
+    }
+  });
+
+  it('escapes what it is given', () => {
+    const svg = renderFigure({ kind: 'flow', steps: ['a <b> & "c"', 'd'] }, { theme: 'cobalt' });
+    expect(svg).toContain('a &lt;b&gt; &amp; &quot;c&quot;');
+    expect(admitSvg(svg).ok).toBe(true);
+  });
+
+  it('refuses to draw a spec the kit refuses', () => {
+    expect(() => renderFigure({ kind: 'bars', max: 1, items: [] }, { theme: 'cobalt' })).toThrow(/2 to 4 items/);
+  });
+});
+
+describe('every figure the kit draws is admitted and layout-clean by construction', () => {
+  const specs = [...Object.values(STUDY), ...boundSpecs()];
+  for (const theme of Object.keys(JEV_PALETTES)) {
+    it(`in ${theme}, on the room’s ground and the theme’s own`, () => {
+      for (const spec of specs) {
+        const svg = renderFigure(spec, { theme });
+        expect(admitSvg(svg)).toEqual({ ok: true });
+        for (const ground of [ROOM.ground, JEV_PALETTES[theme].background]) {
+          const { problems, notes } = svgLayoutProblems(svg, { ground });
+          expect({ kind: spec.kind, problems, notes }).toEqual({ kind: spec.kind, problems: [], notes: [] });
+        }
+      }
+    });
+  }
+
+  it('holds every label at 25 units or more, titles at 40, values at 34 and column names at 30', () => {
+    const sizes = kind => [...renderFigure(STUDY[kind], { theme: 'cobalt' }).matchAll(/font-size="(\d+)"/g)].map(match => Number(match[1]));
+    expect(Math.min(...FIGURE_KINDS.flatMap(sizes))).toBe(25);
+    expect(sizes('bars')).toContain(40);
+    expect(sizes('bars')).toContain(34);
+    expect(sizes('columns')).toContain(30);
+  });
+});
+
+describe('figureProblems', () => {
+  const cases = [
+    ['an unknown kind', { kind: 'pie' }, /kind is one of bars, flow, columns, stack/],
+    ['a key the kind does not take', { ...STUDY.flow, colour: 'red' }, /flow takes/],
+    ['one bar', { kind: 'bars', max: 1, items: [{ label: 'a', value: 1 }] }, /2 to 4 items/],
+    ['five bars', { kind: 'bars', max: 1, items: Array.from({ length: 5 }, () => ({ label: 'a', value: 1 })) }, /2 to 4 items/],
+    ['a value over max', { kind: 'bars', max: 10, items: [{ label: 'a', value: 11 }, { label: 'b', value: 1 }] }, /0 to max \(10\)/],
+    ['a value that is not a number', { kind: 'bars', max: 10, items: [{ label: 'a', value: '5' }, { label: 'b', value: 1 }] }, /a number/],
+    ['two changed bars', { kind: 'bars', max: 10, items: [{ label: 'a', value: 1, changed: true }, { label: 'b', value: 2, changed: true }] }, /one item/],
+    ['no max', { kind: 'bars', items: [{ label: 'a', value: 1 }, { label: 'b', value: 2 }] }, /max/],
+    ['eight steps', { kind: 'flow', steps: Array.from({ length: 8 }, (_, i) => `s${i}`) }, /2 to 7 steps/],
+    ['a step twice', { kind: 'flow', steps: ['a', 'a'] }, /twice/],
+    ['a changed step that is not a step', { kind: 'flow', steps: ['a', 'b'], changed: 'c' }, /changed "c" is not one of the steps/],
+    ['a loop to itself', { kind: 'flow', steps: ['a', 'b'], loop: { from: 'a', to: 'a', label: 'x' } }, /two different steps/],
+    ['five columns', { kind: 'columns', columns: Array.from({ length: 5 }, (_, i) => ({ name: `c${i}`, items: ['x'] })) }, /2 to 4 columns/],
+    ['seven items', { kind: 'columns', columns: [{ name: 'a', items: Array.from({ length: 7 }, () => 'x') }, { name: 'b', items: ['y'] }] }, /1 to 6 items/],
+    ['an unknown glyph', { kind: 'columns', columns: [{ name: 'a', glyph: 'star', items: ['x'] }, { name: 'b', items: ['y'] }] }, /eye, shell, full or dot/],
+    ['six zones', { kind: 'stack', zones: Array.from({ length: 6 }, (_, i) => ({ label: `z${i}`, shape: 'bar' })) }, /2 to 5 zones/],
+    ['an unknown shape', { kind: 'stack', zones: [{ label: 'a', shape: 'star' }, { label: 'b', shape: 'bar' }] }, /circle, lines, bar or ticks/],
+    ['a dock beside ticks', { kind: 'stack', zones: [{ label: 'a', shape: 'ticks' }, { label: 'b', shape: 'bar' }], dock: 'a' }, /dock .* beside a zone that is not ticks/],
+    ['an empty label', { kind: 'flow', steps: ['', 'b'] }, /1 or more characters/]
+  ];
+  for (const [name, spec, pattern] of cases) {
+    it(`refuses ${name}`, () => {
+      const problems = figureProblems(spec);
+      expect(problems.length).toBeGreaterThan(0);
+      expect(problems.join('\n')).toMatch(pattern);
+    });
+  }
+
+  it('names a label that does not fit, the size it is set at, and its slot’s budget in characters', () => {
+    const spec = { kind: 'columns', columns: [
+      { name: 'a', items: ['x'] }, { name: 'b', items: ['y'] }, { name: 'c', items: ['z'] },
+      { name: 'An extremely long column name', items: ['w'] }
+    ] };
+    const [problem] = figureProblems(spec);
+    expect(problem).toMatch(/^columns\[3\]\.name "An extremely long column name" is [\d.]+ characters wide at 30 units; its slot holds \d+ characters\. Shorten it/);
+  });
+
+  it('never shrinks or truncates: the same label fits a wider slot', () => {
+    const label = 'Outer shell visuals';
+    expect(figureProblems({ kind: 'columns', columns: [{ name: label, items: ['x'] }, { name: 'b', items: ['y'] }] })).toEqual([]);
+    expect(figureProblems({ kind: 'columns', columns: [{ name: label, items: ['x'] }, { name: 'b', items: ['y'] }, { name: 'c', items: ['z'] }, { name: 'd', items: ['w'] }] }).join('\n')).toMatch(/Outer shell visuals/);
+  });
+
+  it('accepts the study', () => {
+    for (const spec of Object.values(STUDY)) expect(figureProblems(spec)).toEqual([]);
+  });
+
+  it('exposes its bounds', () => {
+    expect(FIGURE_BOUNDS).toEqual({ bars: { items: [2, 4] }, flow: { steps: [2, 7] }, columns: { columns: [2, 4], items: [1, 6] }, stack: { zones: [2, 5] } });
+  });
+});

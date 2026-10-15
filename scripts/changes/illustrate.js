@@ -11,6 +11,8 @@ import { ILLUSTRATOR_INSTRUCTIONS, promptFor } from '../../src/live/adapters/ope
 import { draw } from '../../src/live/illustrator.js';
 import { OPEN_LIMITS } from '../../src/live/adapter.js';
 import { svgLayoutProblems } from '../../src/core/quality/svg-layout.js';
+import { admitSvg } from '../../src/core/svg-admission.js';
+import { renderFigure } from '../../src/core/figures/figure-kit.js';
 import { RISE_CURRENT_THEME_IDS, validateRiseCurrent } from '../../src/core/rise-current.js';
 import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
 import { codeNumberProblems, figureNumberProblems, numberProblems } from './admit.js';
@@ -64,7 +66,8 @@ function illustratorAdapter({ ask, model, pulls, period, tally }) {
 }
 
 /**
- * Each brief drawn, in beat order: `{ current, notes }`, the Current with every admitted picture as a scene
+ * Each picture drawn, in beat order (a kit figure by RISE itself, a brief by the illustrator): `{ current, notes }`, the
+ * Current with every admitted picture as a scene
  * (`picture-<n>`) started on its beat, and a sentence for each picture let go. `tally` is told each rule that fired
  * and each repair asked for. `renderCheck(svg)`, when given, renders an admitted figure and answers
  * `{ problems: [{ rule, message }], ms }`: a figure it finds fault with goes back to the illustrator once, as a
@@ -75,7 +78,55 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
   const drawn = { ...current, scenes: [...(current.scenes ?? [])], beats: current.beats.map(beat => ({ ...beat })) };
   const notes = [];
   const ordered = [...pictures].sort((a, b) => a.beat - b.beat);
+  const place = (index, picture, scene) => {
+    const id = `picture-${index + 1}`;
+    drawn.scenes.push({ id, ...scene });
+    drawn.beats[picture.beat].scene = id;
+    // A cue on this beat was for the scene the picture replaces.
+    delete drawn.beats[picture.beat].cue;
+  };
+  const letGo = note => {
+    notes.push(note);
+    log(`  ${note}`);
+  };
   for (const [index, picture] of ordered.entries()) {
+    const rendered = async svg => {
+      const verdict = await renderCheck(svg);
+      for (const problem of verdict.problems) tally.fired(problem.rule);
+      log(`  picture for beat ${picture.beat}: rendered check in ${Math.round(verdict.ms)} ms: ${verdict.problems.length ? verdict.problems.map(problem => problem.rule).join(', ') : 'clean'}`);
+      return verdict.problems;
+    };
+    if (picture.kit !== undefined) {
+      // RISE draws a kit figure itself: there is no model to repair it, so a fault lets it go.
+      const kind = picture.kit.kind;
+      let svg = null;
+      let fault = null;
+      try {
+        svg = renderFigure(picture.kit, { theme: current.theme });
+      } catch (error) {
+        fault = String(error?.message ?? error);
+      }
+      if (svg !== null) {
+        const rules = [
+          ...(admitSvg(svg).ok ? [] : ['figure']),
+          ...figureNumberProblems(svg, { pulls, period }).map(() => 'number'),
+          ...svgLayoutProblems(svg).problems.map(problem => problem.rule)
+        ];
+        for (const rule of rules) tally.fired(rule);
+        if (rules.length) fault = `RISE\u2019s own checks refused it (${[...new Set(rules)].join(', ')})`;
+        else if (renderCheck) {
+          const problems = await rendered(svg);
+          if (problems.length) fault = `its labels failed the rendered check (${[...new Set(problems.map(problem => problem.rule))].join(', ')})`;
+        }
+      }
+      if (fault === null) {
+        place(index, picture, { svg });
+        log(`  picture for beat ${picture.beat}: a kit ${kind} figure, drawn by RISE`);
+      } else {
+        letGo(`The kit ${kind} figure for beat ${picture.beat} (\u201c${clip(picture.kit.title ?? kind, 80)}\u201d) was not drawn: ${fault}; the beat keeps the scene before it.`);
+      }
+      continue;
+    }
     const said = drawn.beats.slice(picture.beat, picture.beat + 2)
       .map(beat => beat.say ?? beat.show).filter(text => typeof text === 'string').map(text => clip(text, 300));
     const running = runningAt(drawn, picture.beat);
@@ -87,12 +138,6 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
         if (type === 'illustration.refused') log(`  picture for beat ${picture.beat}: attempt ${body.attempt} refused (${body.rule}${body.line === null ? '' : `, line ${body.line}`})`);
       }
     });
-    const rendered = async svg => {
-      const verdict = await renderCheck(svg);
-      for (const problem of verdict.problems) tally.fired(problem.rule);
-      log(`  picture for beat ${picture.beat}: rendered check in ${Math.round(verdict.ms)} ms: ${verdict.problems.length ? verdict.problems.map(problem => problem.rule).join(', ') : 'clean'}`);
-      return verdict.problems;
-    };
     let result = await attempt(null);
     let fault = null;
     if (renderCheck && result.status === 'admitted' && result.medium === 'figure') {
@@ -113,18 +158,12 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
       for (const note of svgLayoutProblems(result.scene.svg).notes) log(`  picture for beat ${picture.beat}: not checked: ${note}`);
     }
     if (fault === null && result.status === 'admitted' && result.medium !== 'cue') {
-      const id = `picture-${index + 1}`;
-      drawn.scenes.push({ id, ...result.scene });
-      drawn.beats[picture.beat].scene = id;
-      // A cue on this beat was for the scene the picture replaces.
-      delete drawn.beats[picture.beat].cue;
+      place(index, picture, result.scene);
       log(`  picture for beat ${picture.beat}: a ${result.medium} admitted on attempt ${result.attempts}`);
     } else {
       const why = fault !== null ? `its labels still failed the rendered check after a repair (${fault})`
         : result.status === 'failed' ? `${result.reason} after ${result.attempts} attempt${result.attempts === 1 ? '' : 's'}` : `the illustrator answered with a ${result.status}`;
-      const note = `The picture for beat ${picture.beat} (“${clip(picture.brief, 80)}”) was not drawn: ${why}; the beat keeps the scene before it.`;
-      notes.push(note);
-      log(`  ${note}`);
+      letGo(`The picture for beat ${picture.beat} (“${clip(picture.brief, 80)}”) was not drawn: ${why}; the beat keeps the scene before it.`);
     }
   }
   // A Current over the connector's bound loses its last pictures until it fits.

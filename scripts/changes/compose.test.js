@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CURRENT_GUIDE } from '../../src/live/guide/index.js';
-import { buildComposeRequest, composeCurrent } from './compose.js';
+import { figureProblems } from '../../src/core/figures/figure-kit.js';
+import { KIT_EXAMPLES, buildComposeRequest, composeCurrent } from './compose.js';
 
 const MODEL = 'claude-sonnet-5-5';
 const period = { from: '2026-10-12T09:00:00.000Z', to: '2026-10-19T09:00:00.000Z' };
@@ -14,17 +15,15 @@ const current = (beats, scenes = [{ id: 'field', engine: 'attractor' }]) => ({
   schema: 'rise.current.v2', id: 'week', title: 'What changed in RISE', theme: 'cobalt',
   origin: { kind: 'model', name: MODEL, provider: 'Anthropic, via Claude Code' }, scenes, beats
 });
-const picture = { beat: 1, medium: 'figure', brief: 'A labelled diagram of change one: the room before and after.' };
+const picture = { beat: 1, kit: { kind: 'flow', title: 'The room', steps: ['Before', 'After'], changed: 'After' } };
 const good = JSON.stringify({
-  current: current([{ say: 'This week the room changed.', scene: 'field' }, { say: 'Change one makes the room quieter.' }, { say: 'Change two makes the room quieter too.' }]),
-  sources: { 1: [1], 2: [2] },
+  current: current([{ say: 'This week the room changed.', scene: 'field' }, { say: 'Change one makes the room quieter.', refs: [1] }, { say: 'Change two makes the room quieter too.', refs: [2] }]),
   pictures: [picture]
 });
-/** The composer draws a scene itself, which the composition rule refuses: pictures are briefs. */
+/** The composer draws a scene itself, which the composition rule refuses: pictures are kit figures or briefs. */
 const refusedScene = JSON.stringify({
-  current: current([{ say: 'This week the room changed.', scene: 'bad' }, { say: 'Change one.' }, { say: 'Change two.' }],
+  current: current([{ say: 'This week the room changed.', scene: 'bad' }, { say: 'Change one.', refs: [1] }, { say: 'Change two.', refs: [2] }],
     [{ id: 'bad', code: 'export default function scene(rise) {\n  return { frame() {} };\n}' }]),
-  sources: { 1: [1], 2: [2] },
   pictures: [picture]
 });
 
@@ -34,11 +33,12 @@ describe('buildComposeRequest', () => {
     expect(system).toContain(CURRENT_GUIDE);
   });
 
-  it('asks for the team’s week in plain words, grounded only in the pull requests, with sources', () => {
+  it('asks for the team’s week in plain words, grounded only in the pull requests, each beat with its refs', () => {
     const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
     expect(system).toMatch(/rise\.current\.v2/);
     expect(system).toMatch(/only/i);
-    expect(system).toMatch(/"sources"/);
+    expect(system).toMatch(/"refs"/);
+    expect(system).not.toMatch(/"sources"/);
     expect(system).toMatch(/Anthropic, via Claude Code/);
     expect(system).toContain(MODEL);
   });
@@ -89,6 +89,9 @@ describe('buildComposeRequest', () => {
     const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
     expect(system).toMatch(/"pictures"/);
     expect(system).toMatch(/brief/i);
+    for (const kind of ['bars', 'flow', 'columns', 'stack']) expect(system).toContain(`"kind": "${kind}"`);
+    expect(system).toMatch(/a measurement, a sequence, a sorting or a layout/);
+    expect(system).toMatch(/at most 2/);
     expect(system).toMatch(/illustrator/i);
     expect(system).toMatch(/figure/);
     expect(system).toMatch(/at most 2 of RISE’s engines/);
@@ -96,6 +99,16 @@ describe('buildComposeRequest', () => {
     expect(system).toMatch(/mood/);
     expect(system).toMatch(/where each part sits/);
     expect(system).toMatch(/8 scenes in all/);
+  });
+});
+
+describe('the kit examples the composer is shown', () => {
+  it('are each a spec the kit draws', () => {
+    for (const [kind, example] of Object.entries(KIT_EXAMPLES)) {
+      const spec = JSON.parse(example);
+      expect(spec.kind).toBe(kind);
+      expect(figureProblems(spec)).toEqual([]);
+    }
   });
 });
 

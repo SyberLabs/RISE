@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { renderFigure } from '../../src/core/figures/figure-kit.js';
 import { runDigest } from './run-digest.js';
 
 // A Windows checkout may give the fixtures CRLF; the files the run writes are LF.
@@ -47,17 +48,31 @@ describe('runDigest on the week of #652–#671', () => {
     expect(calls.every(call => call.model === MODEL)).toBe(true);
   });
 
-  it('draws each brief after the composition, and puts each picture on its beat', async () => {
+  it('draws each picture after the composition, kit figures by RISE and briefs by the illustrator, each on its beat', async () => {
     const { ask, calls } = scriptedAsk(week());
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
     const digest = JSON.parse(result.files['2026-10-14.json']);
-    const { pictures } = JSON.parse(fixture('composition.json'));
+    const { current, pictures } = JSON.parse(fixture('composition.json'));
+    const briefs = pictures.filter(picture => picture.brief !== undefined);
+    expect(calls).toHaveLength(2 + briefs.length);
+    briefs.forEach((picture, index) => expect(calls[2 + index].prompt).toContain(picture.brief));
     for (const [index, picture] of pictures.entries()) {
-      expect(calls[2 + index].prompt).toContain(picture.brief);
-      expect(digest.current.beats[picture.beat].scene).toBe(`picture-${index + 1}`);
+      const id = `picture-${index + 1}`;
+      expect(digest.current.beats[picture.beat].scene).toBe(id);
+      if (picture.kit) expect(digest.current.scenes.find(scene => scene.id === id).svg).toBe(renderFigure(picture.kit, { theme: current.theme }));
     }
     expect(digest.current.scenes.filter(scene => scene.svg !== undefined)).toHaveLength(pictures.length);
     expect(digest).not.toHaveProperty('notes');
+  });
+
+  it('writes the contract\u2019s sources from the refs on each beat, and no refs into the Current', async () => {
+    const { ask } = scriptedAsk(week());
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    const { current } = JSON.parse(fixture('composition.json'));
+    const expected = Object.fromEntries(current.beats.flatMap((beat, index) => (beat.refs?.length ? [[String(index), beat.refs]] : [])));
+    expect(digest.sources).toEqual(expected);
+    expect(digest.current.beats.some(beat => 'refs' in beat)).toBe(false);
   });
 
   it('keeps the scene before for a picture still refused, and says so in the digest and the issue', async () => {
@@ -66,7 +81,7 @@ describe('runDigest on the week of #652–#671', () => {
     const { ask } = scriptedAsk([route, composition, refused, refused, refused, ...rest]);
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
     const digest = JSON.parse(result.files['2026-10-14.json']);
-    const first = JSON.parse(fixture('composition.json')).pictures[0];
+    const first = JSON.parse(fixture('composition.json')).pictures.find(picture => picture.brief !== undefined);
     expect(digest.current.beats[first.beat].scene).toBeUndefined();
     expect(digest.notes).toHaveLength(1);
     expect(digest.notes[0]).toMatch(new RegExp(`beat ${first.beat}.*not drawn`));

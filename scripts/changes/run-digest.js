@@ -69,7 +69,8 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   const context = routed.filter(pull => !includedNumbers.has(pull.number));
   const tally = createTally();
   const composed = await composeCurrent({ ask, pulls: included, context, model, period, log, tally });
-  log(`Composed ${composed.current.beats.length} beats; drawing ${composed.pictures.length} pictures`);
+  const kits = composed.pictures.filter(picture => picture.kit !== undefined).length;
+  log(`Composed ${composed.current.beats.length} beats; drawing ${composed.pictures.length} pictures (${kits} from the figure kit, ${composed.pictures.length - kits} by the illustrator)`);
   const { current, notes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included, period, log, tally, renderCheck });
   const { sources } = composed;
   const quality = tally.score(notes.length);
