@@ -1,0 +1,33 @@
+{
+  "id": "TOOL-003",
+  "title": "Check dependency changes with private license and vulnerability policy",
+  "lane": "shared",
+  "milestone": "Developer tooling",
+  "status": "done",
+  "delivery": "branch",
+  "owner": "Codex GitHits Phase 2",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Trusted pinned tooling reads proposed dependency data without executing PR code.",
+    "Changed critical dependencies block; license drift warns; missing credentials are explicit."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": ".github/workflows/githits-policy.yml",
+      "note": "YAML and trusted-runner boundary conformance checked offline; no live coverage claimed.",
+      "date": "2026-10-15"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-15",
+      "summary": "Owner-authorized Phase 2 grounding configuration; no live grounding result claimed."
+    }
+  ],
+  "updatedAt": "2026-10-15T20:42:17.375526Z",
+  "revision": 1,
+  "summary": "Agent tooling only; product behavior and provider credentials are unchanged.",
+  "blocker": null
+}
