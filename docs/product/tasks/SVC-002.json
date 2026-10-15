@@ -168,6 +168,12 @@
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/38688524786",
       "note": "Dry run with the figure kit, on main at ec9a1402, since 2026-10-13T02:00:00Z: 33 merged, 21 included, 22 beats; 7 pictures, all from the figure kit (2 columns, 1 stack, 3 flow, 1 bars), none by the illustrator, each clean in the rendered check (8 to 33 ms, Chromium started in 456 ms); one engine (an attractor at the opening). Quality {\"firstPass\":false,\"repairs\":{\"composition\":1,\"illustrator\":0},\"checks\":{\"refs\":1}}: the first composition cited no beat for #679, repaired once. Played locally with the paced voice and screenshotted at 1440x900 (figurekit-dry-*.png): every figure legible, in the reading's accent, numbers as the pull requests state them (16.4 and 143.9). No token string in the log.",
       "date": "2026-10-15"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/688",
+      "note": "Branch changes-kit-align, from the kit dry run's screenshots: each picture carries refs among its beat's refs and its numbers are scoped to the pull requests it cites (the dry run showed #668's bars on a #652 beat); columns of one item each and a two-step flow with nothing marked are refused; an included change no beat cites is left out as unspoken with a note, a check, not a repair. Local: 14 files, 263 passed; rendered check 5 passed. Not merged.",
+      "date": "2026-10-15"
     }
   ],
   "activity": [
@@ -226,10 +232,14 @@
     {
       "date": "2026-10-15T05:51:19.790Z",
       "summary": "#686 (the figure kit) merged as ec9a1402; its dry run 38688524786 recorded"
+    },
+    {
+      "date": "2026-10-15T06:05:42.553Z",
+      "summary": "PR #688 opened: picture-beat alignment, sparse kinds, unspoken changes"
     }
   ],
-  "updatedAt": "2026-10-15T05:51:19.790Z",
-  "revision": 14,
+  "updatedAt": "2026-10-15T06:05:42.553Z",
+  "revision": 15,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }
