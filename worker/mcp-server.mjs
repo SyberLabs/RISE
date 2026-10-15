@@ -10,6 +10,7 @@ import { readText } from './live-realtime.mjs';
 import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
 import { admitSceneCode, describeDiagnostic } from '../src/core/scene-admission.js';
 import { admitSvg } from '../src/core/svg-admission.js';
+import { logQuality } from './mcp-quality.mjs';
 
 /**
  * RISE as an MCP server: one tool that presents a Current, and the app that shows it.
@@ -395,10 +396,12 @@ function call(id, params) {
     return result(id, { content: [{ type: 'text', text }], isError: true });
   }
   // The app admits the Current from structuredContent; the model, which wrote it, is told only what was accepted.
-  return result(id, {
+  const answer = result(id, {
     content: [{ type: 'text', text: receipt(args.current) }],
     structuredContent: { current: args.current }
   });
+  logQuality(args.current);
+  return answer;
 }
 
 /** A speaking pace for the receipt's estimate only; the reader sets the real one. */
