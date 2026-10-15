@@ -1,9 +1,9 @@
 {
   "mcpServers": {
     "githits": {
-      "command": "node",
+      "command": "${GITHITS_USAGE_NODE}",
       "args": [
-        "scripts/githits-usage.mjs",
+        "${GITHITS_USAGE_HOME}/mcp.mjs",
         "--repo",
         "SyberLabs/RISE"
       ]

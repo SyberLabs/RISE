@@ -9,15 +9,15 @@
   "priority": "now",
   "dependencies": [],
   "acceptance": [
-    "The tracked MCP config uses the private usage launcher with RISE attribution.",
-    "The launcher uses its registered private Node runtime, independent of the product Node version.",
-    "Missing private tooling refuses the session without a direct unaccounted network fallback."
+    "The tracked MCP config invokes the private usage runtime with RISE attribution.",
+    "The command and entry use explicit absolute private runtime paths, independent of PATH and the launch working directory.",
+    "Missing private runtime configuration refuses the session without a direct unaccounted network fallback."
   ],
   "evidence": [
     {
       "kind": "test",
-      "ref": "scripts/githits-usage.mjs",
-      "note": "Syntax check passed; portable launcher routing is also exercised by private tooling conformance tests.",
+      "ref": ".mcp.json",
+      "note": "Direct-entry conformance passes for all five configs from nested directories with an empty PATH; no provider call is made.",
       "date": "2026-10-15"
     }
   ],
@@ -27,7 +27,7 @@
       "summary": "Claimed the owner-requested Phase 0 agent tooling rollout; product runtime and public usage claims are out of scope."
     }
   ],
-  "updatedAt": "2026-10-15T07:03:30.015Z",
+  "updatedAt": "2026-10-15T07:13:49.368Z",
   "revision": 1,
   "summary": "Developer tooling only. Private accounting is not a product feature or a reliability benchmark result.",
   "blocker": null
