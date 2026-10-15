@@ -106,7 +106,8 @@ describe('buildComposeRequest', () => {
     expect(system).toMatch(/at most 2/);
     expect(system).toMatch(/illustrator/i);
     expect(system).toMatch(/figure/);
-    expect(system).toMatch(/every 4 beats/);
+    expect(system).toMatch(/No picture or engine is held for more than 4 beats; RISE’s eye, where a picture’s beats move on, may rest longer/);
+    expect(system).not.toMatch(/a picture starts at least every/);
     expect(system).toMatch(/mood/);
     expect(system).toMatch(/where each part sits/);
     expect(system).toMatch(/8 scenes in all/);

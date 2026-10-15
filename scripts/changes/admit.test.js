@@ -273,12 +273,20 @@ describe('admitComposition', () => {
       expect(verdict.diagnostics.join('\n')).toMatch(/beat 4 holds one scene for 5 beats/);
     });
 
-    it('counts only the beats a picture is shown under: where its beats move on, RISE\u2019s eye holds, and is counted too', () => {
-      const moved = { 1: [652], 2: [653], 3: [653], 4: [653], 5: [653], 6: [653], 7: [653], 8: [653] };
-      const verdict = admit({ current: current(nine), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
-      expect(verdict.diagnostics.join('\n')).toMatch(/beat 2 holds one scene for 7 beats/);
-      const fine = admit({ current: current(nine), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }, { ...kit(5), refs: [653] }] });
-      expect(fine.diagnostics).toBeUndefined();
+    it('exempts RISE\u2019s eye from the hold limit: the room at rest is not a picture', () => {
+      const ten = [...nine, { say: 'Beat nine.' }];
+      const moved = { 1: [652], 2: [653], 3: [653], 4: [653], 5: [653], 6: [653], 7: [653], 8: [653], 9: [653] };
+      const verdict = admit({ current: current(ten), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
+      expect(verdict.diagnostics).toBeUndefined();
+      expect(verdict.ok).toBe(true);
+    });
+
+    it('counts only the beats a picture is shown under: where its beats move on, the picture\u2019s hold ends', () => {
+      const moved = { 1: [652], 2: [652], 3: [652], 4: [652], 5: [652], 6: [653], 7: [653], 8: [653] };
+      const held = admit({ current: current(nine), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
+      expect(held.diagnostics.join('\n')).toMatch(/beat 1 holds one scene for 5 beats/);
+      const ended = { ...moved, 5: [653] };
+      expect(admit({ current: current(nine), opening: OPEN, sources: ended, pictures: [{ ...kit(1), refs: [652] }] }).diagnostics).toBeUndefined();
     });
 
     it('refuses a malformed picture list', () => {
