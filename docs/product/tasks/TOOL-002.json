@@ -1,0 +1,33 @@
+{
+  "id": "TOOL-002",
+  "title": "Enable version-grounded dependency docs and OSS examples",
+  "lane": "shared",
+  "milestone": "Developer tooling",
+  "status": "done",
+  "delivery": "branch",
+  "owner": "Codex GitHits Phase 2",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "The Claude project config permits only five named read-only grounding tools.",
+    "Dependency guidance requires pinned-version evidence and protects private source."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": ".claude/settings.json",
+      "note": "JSON/tool allowlist conformance passes without provider calls.",
+      "date": "2026-10-15"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-15",
+      "summary": "Owner-authorized Phase 2 grounding configuration; no live grounding result claimed."
+    }
+  ],
+  "updatedAt": "2026-10-15T20:42:17.375526Z",
+  "revision": 1,
+  "summary": "Agent tooling only; product behavior and provider credentials are unchanged.",
+  "blocker": null
+}
