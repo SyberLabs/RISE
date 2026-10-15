@@ -12,28 +12,29 @@ const shares = (refs, shown) => refs.some(number => shown.includes(number));
 
 /**
  * The beats each scene is shown under: `starts` maps a beat index to what it starts (`refs` the picture's, null for an
- * engine), `refsAt` maps a beat index to its refs. Answers `{ runs: [[start, length], ...], eye }`, `eye` true when a
- * picture ends early and the eye takes its place. The composition rule counts these runs.
+ * engine; `rest` true for a declared still), `refsAt` maps a beat index to its refs. Answers
+ * `{ runs: [[start, length, rest], ...], eye }`, `rest` true for a run of RISE's eye (the room at rest, which no hold
+ * limit binds), `eye` true when a picture ends early and the eye takes its place. The composition rule counts these runs.
  */
 export function shownRuns(beatCount, starts, refsAt) {
-  const begins = [0];
+  const begins = new Map([[0, false]]);
   let shown = null;
   let eye = false;
   for (let index = 0; index < beatCount; index += 1) {
     if (starts.has(index)) {
-      if (index > 0) begins.push(index);
+      begins.set(index, starts.get(index).rest === true);
       shown = starts.get(index).refs;
       continue;
     }
     const refs = refsAt[index] ?? [];
     if (Array.isArray(shown) && refs.length > 0 && !shares(refs, shown)) {
-      begins.push(index);
+      begins.set(index, true);
       shown = null;
       eye = true;
     }
   }
-  const unique = [...new Set(begins)];
-  return { runs: unique.map((start, at) => [start, (unique[at + 1] ?? beatCount) - start]), eye };
+  const order = [...begins.keys()];
+  return { runs: order.map((start, at) => [start, (order[at + 1] ?? beatCount) - start, begins.get(start)]), eye };
 }
 
 /**

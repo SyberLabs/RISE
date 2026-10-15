@@ -58,10 +58,15 @@ describe('endHeldPictures', () => {
 });
 
 describe('shownRuns', () => {
-  it('counts the beats each scene is actually shown under, the eye included', () => {
+  it('counts the beats each scene is actually shown under, and marks the eye’s runs as rest', () => {
     const beats = [{ scene: 'open' }, {}, {}, {}, {}, {}, {}];
     const starts = new Map([[0, { refs: null }], [1, { refs: [653] }]]);
     const refsAt = { 1: [653], 2: [653], 3: [655], 4: [655], 5: [655], 6: [655] };
-    expect(shownRuns(beats.length, starts, refsAt)).toEqual({ runs: [[0, 1], [1, 2], [3, 4]], eye: true });
+    expect(shownRuns(beats.length, starts, refsAt)).toEqual({ runs: [[0, 1, false], [1, 2, false], [3, 4, true]], eye: true });
+  });
+
+  it('marks a run started by a declared still as rest', () => {
+    const starts = new Map([[0, { refs: [653] }], [2, { refs: null, rest: true }]]);
+    expect(shownRuns(8, starts, { 0: [653], 1: [653] }).runs).toEqual([[0, 2, false], [2, 6, true]]);
   });
 });

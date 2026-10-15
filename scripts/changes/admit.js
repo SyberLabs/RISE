@@ -187,15 +187,16 @@ export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
       shown.set(picture.beat, { refs: isRefList(picture.refs) ? picture.refs : null });
     }
   }
-  beats.forEach((beat, index) => { if (beat?.scene !== undefined) shown.set(index, { refs: null }); });
+  beats.forEach((beat, index) => { if (beat?.scene !== undefined) shown.set(index, { refs: null, rest: scenes.get(beat.scene)?.engine === 'still' }); });
   const { runs, eye } = shownRuns(beats.length, shown, beatRefs);
   const needsEye = eye && !engines.some(scene => scene.engine === 'still');
   const room = Math.max(0, 8 - engines.length - (needsEye ? 1 : 0));
   if (pictures.length > room) {
     problems.push(`"pictures" has ${pictures.length}; a Current has room for at most ${room} pictures beside its ${engines.length} engine${engines.length === 1 ? '' : 's'}${needsEye ? ' and RISE’s eye, which shows where a picture’s beats move on' : ''}`);
   }
-  for (const [start, length] of runs) {
-    if (length > HELD_BEATS) problems.push(`beat ${start} holds one scene for ${length} beats; start a picture at least every ${HELD_BEATS} beats`);
+  // RISE's eye is the room at rest, not a picture: the hold limit binds pictures and engines only.
+  for (const [start, length, rest] of runs) {
+    if (!rest && length > HELD_BEATS) problems.push(`beat ${start} holds one scene for ${length} beats; start a picture at least every ${HELD_BEATS} beats`);
   }
   return problems;
 }
