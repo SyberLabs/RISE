@@ -16,7 +16,7 @@
   "evidence": [
     {
       "kind": "test",
-      "ref": "node --check scripts/githits-usage.mjs",
+      "ref": "scripts/githits-usage.mjs",
       "note": "Syntax check passed; portable launcher routing is also exercised by private tooling conformance tests.",
       "date": "2026-10-15"
     }
