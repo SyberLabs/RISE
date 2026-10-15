@@ -100,7 +100,7 @@ describe('runDigest on the week of #652–#671', () => {
     expect(digest.changes.find(change => change.number === 667)).toMatchObject({ included: false, reason: 'unspoken' });
     expect(Object.values(digest.sources).flat()).not.toContain(667);
     expect(digest.notes).toEqual(['#667 was chosen for the reading, but no beat spoke of it; it is listed as unspoken under How this was chosen.']);
-    expect(digest.quality).toEqual({ firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: { unspoken: 1 } });
+    expect(digest.quality).toEqual({ firstPass: false, repairs: { composition: 0, illustrator: 0 }, checks: { unspoken: 1 } });
     expect(result.issue.body).toContain('| no | unspoken |');
     expect(result.issue.body).toContain('no beat spoke of it');
     expect(JSON.parse(result.files['index.json']).digests[0].count).toBe(digest.changes.filter(change => change.included).length);

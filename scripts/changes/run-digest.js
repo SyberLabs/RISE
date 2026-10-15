@@ -72,7 +72,10 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   // A change chosen for the reading that no beat speaks of is left out of it, said in the notes, and not repaired.
   const unspoken = new Set(composed.unspoken ?? []);
   const spokenChanges = changes.map(change => (unspoken.has(change.number) ? { ...change, included: false, reason: 'unspoken' } : change));
-  const unspokenNotes = [...unspoken].map(number => `#${number} was chosen for the reading, but no beat spoke of it; it is listed as unspoken under How this was chosen.`);
+  // Past a few, one note names them all, so the notes stay within the contract's bound beside the picture notes.
+  const unspokenNotes = unspoken.size > 5
+    ? [`${[...unspoken].map(number => `#${number}`).join(', ')} were chosen for the reading, but no beat spoke of them; they are listed as unspoken under How this was chosen.`]
+    : [...unspoken].map(number => `#${number} was chosen for the reading, but no beat spoke of it; it is listed as unspoken under How this was chosen.`);
   for (const line of unspokenNotes) log(`  ${line}`);
   if (unspoken.size) tally.fired('unspoken', unspoken.size);
   const kits = composed.pictures.filter(picture => picture.kit !== undefined).length;
@@ -80,8 +83,8 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   const { current, notes: pictureNotes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included.filter(pull => !unspoken.has(pull.number)), period, log, tally, renderCheck });
   const notes = [...unspokenNotes, ...pictureNotes];
   const { sources } = composed;
-  // The first pass is lost by a repair or a picture let go; an unspoken change is a check that fired, never a repair.
-  const quality = tally.score(pictureNotes.length);
+  // The first pass is lost by a repair or by anything let go, a picture or an unspoken change; the latter is never a repair.
+  const quality = tally.score(pictureNotes.length + unspoken.size);
   log(`Quality: ${qualityLine(quality)}`);
   log(`Quality JSON: ${JSON.stringify(quality)}`);
 
