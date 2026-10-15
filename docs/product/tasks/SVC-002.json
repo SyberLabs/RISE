@@ -136,7 +136,7 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/684",
-      "note": "Quality gates, part A, on branch quality-gates: figure labels held to text-overlap, text-crosses-shape, text-outside, text-too-small and text-low-contrast inside the illustrator's three attempts; a rendered check in Chromium at 390 and 1440 wide with one repair; process talk refused in the composition; an optional quality object (first pass, repairs, checks fired) in the digest, the run log, the issue and /changes/<id>. Merged as 2c2a6975 after one Codex finding fixed (4caf6c5c: the rendered check measures labels drawn through <use>).",
+      "note": "Quality gates, part A, on branch quality-gates: figure labels held to text-overlap, text-crosses-shape, text-outside, text-too-small and text-low-contrast inside the illustrator's three attempts; a rendered check in Chromium at 390 and 1440 wide with one repair; process talk refused in the composition; an optional quality object (first pass, repairs, checks fired) in the digest, the run log, the issue and /changes/<id>. Merged as 2c2a6975 after one Codex finding fixed (4caf6c5c: the rendered check measures labels drawn through <use>). Merged as 2c2a6975.",
       "date": "2026-10-14"
     },
     {
@@ -148,7 +148,19 @@
     {
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/685",
-      "note": "Quality gates, part B: after the connector admits a Current it logs one rise.quality line, rule ids and counts only (layout rules, unchecked, beats, scenes, longestHold); responses byte-identical with and without it (test); bounded to 16 KB of figure text and 50,000 comparisons a Current, measured 1.5 ms for the published Current and at most 4.2 ms for the worst built to the bounds in Node. Workers Logs retains it (observability enabled). Not merged yet.",
+      "note": "Quality gates, part B: after the connector admits a Current it logs one rise.quality line, rule ids and counts only (layout rules, unchecked, beats, scenes, longestHold); responses byte-identical with and without it (test); bounded to 16 KB of figure text and 50,000 comparisons a Current, measured 1.5 ms for the published Current and at most 4.2 ms for the worst built to the bounds in Node. Workers Logs retains it (observability enabled). yet. Merged as 8d913a50 and deployed (release 8d913a50). The coordinator's connector smoke test: tools/list ok, rise_present admitted a 24-beat Current in 88 ms with the unchanged reply.",
+      "date": "2026-10-15"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38666483992",
+      "note": "Dry run on main at 8d913a50 with the quality gates: firstPass false, one composition repair, a sources miss (a beat cited a change the separate sources map did not match). The figure kit carries refs on each beat to remove that class of miss.",
+      "date": "2026-10-15"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/686",
+      "note": "Branch changes-figure-kit: the RISE Figure Kit (src/core/figures/figure-kit.js; bars, flow, columns, stack; no collision by construction), the composer's kit pictures (at most 2 illustrator briefs) and refs on each beat. Local: kit, pipeline and contract tests passed; every kit figure admitted and layout-clean at every bound in all nine themes; rendered check clean in Chromium. Not merged.",
       "date": "2026-10-15"
     }
   ],
@@ -200,10 +212,14 @@
     {
       "date": "2026-10-15T01:28:33.101Z",
       "summary": "Quality gates part A merged (#684); part B, the connector's count-only log line, in review (#685)"
+    },
+    {
+      "date": "2026-10-15T03:18:24.425Z",
+      "summary": "#684 and #685 merged and deployed; dry run 38666483992 recorded; the figure kit PR opened"
     }
   ],
-  "updatedAt": "2026-10-15T01:28:33.101Z",
-  "revision": 12,
+  "updatedAt": "2026-10-15T03:18:24.425Z",
+  "revision": 13,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ILLUSTRATOR_EXAMPLES, ILLUSTRATOR_INSTRUCTIONS } from '../../src/live/adapters/openai-instructions.js';
 import { validateRiseCurrent } from '../../src/core/rise-current.js';
+import { renderFigure } from '../../src/core/figures/figure-kit.js';
 import { illustrate } from './illustrate.js';
 
 const MODEL = 'claude-sonnet-5-5';
@@ -194,6 +195,42 @@ describe('illustrate', () => {
       const renderCheck = async () => { throw new Error('a code scene was rendered'); };
       const { current: drawn } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 3, medium: 'scene', brief: 'An animation of the shutter opening into the inner eye.' }], pulls, period, log: () => {}, renderCheck });
       expect(drawn.beats[3].scene).toBe('picture-1');
+    });
+  });
+
+  describe('kit figures', () => {
+    const bars = { kind: 'bars', title: 'Particles', max: 700, items: [{ label: 'Ticks', value: 60 }, { label: 'Particles', value: 700, changed: true }] };
+
+    it('draws a kit figure with RISE’s own code, in the reading’s theme, asking no model', async () => {
+      const { ask, calls } = scriptedAsk([]);
+      const tally = { fired: () => {}, repaired: () => { throw new Error('no repair'); } };
+      const lines = [];
+      const { current: drawn, notes } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 1, kit: bars }], pulls, period, log: line => lines.push(line), tally });
+      expect(calls).toHaveLength(0);
+      expect(notes).toEqual([]);
+      expect(drawn.scenes.at(-1)).toEqual({ id: 'picture-1', svg: renderFigure(bars, { theme: 'cobalt' }) });
+      expect(drawn.beats[1].scene).toBe('picture-1');
+      expect(lines.join('\n')).toMatch(/picture for beat 1: a kit bars figure/);
+      expect(() => validateRiseCurrent(drawn)).not.toThrow();
+    });
+
+    it('draws kit and bespoke pictures in beat order', async () => {
+      const { ask, calls } = scriptedAsk([good]);
+      const { current: drawn } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 3, medium: 'figure', brief }, { beat: 1, kit: bars }], pulls, period, log: () => {} });
+      expect(calls).toHaveLength(1);
+      expect(drawn.beats[1].scene).toBe('picture-1');
+      expect(drawn.beats[3].scene).toBe('picture-2');
+    });
+
+    it('renders a kit figure too, and lets one go that the rendered check finds fault with, since no model can repair it', async () => {
+      const { ask, calls } = scriptedAsk([]);
+      const fired = [];
+      const renderCheck = async () => ({ problems: [{ rule: 'rendered-overlap', message: 'two labels meet' }], ms: 4 });
+      const { current: drawn, notes } = await illustrate({ ask, model: MODEL, current: current(), pictures: [{ beat: 1, kit: bars }], pulls, period, log: () => {}, tally: { fired: rule => fired.push(rule), repaired() {} }, renderCheck });
+      expect(calls).toHaveLength(0);
+      expect(drawn.beats[1].scene).toBeUndefined();
+      expect(fired).toContain('rendered-overlap');
+      expect(notes).toEqual(['The kit bars figure for beat 1 (“Particles”) was not drawn: its labels failed the rendered check (rendered-overlap); the beat keeps the scene before it.']);
     });
   });
 });

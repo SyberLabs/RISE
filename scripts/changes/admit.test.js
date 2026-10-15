@@ -18,8 +18,17 @@ const beats = [
 ];
 const PICTURE = { beat: 1, medium: 'figure', brief: 'A labelled diagram of the swarm: 700 particles riding the attractor.' };
 const text = (value) => JSON.stringify(value);
-/** An answer with current and sources is given one picture unless it names its own. */
-const answer = value => (value && typeof value === 'object' && 'current' in value && 'sources' in value && !('pictures' in value) ? { ...value, pictures: [PICTURE] } : value);
+/**
+ * The composer's answer from a test's shorthand: `sources` becomes each beat's own `refs`, and an answer that names
+ * no pictures is given one.
+ */
+const answer = value => {
+  if (!value || typeof value !== 'object' || !('current' in value) || !('sources' in value)) return value;
+  const { sources, ...rest } = value;
+  if (!Array.isArray(value.current?.beats)) return { pictures: [PICTURE], current: value.current };
+  const beatsWithRefs = value.current.beats.map((beat, i) => (Object.hasOwn(sources, i) ? { ...beat, refs: sources[i] } : beat));
+  return { pictures: [PICTURE], ...rest, current: { ...value.current, beats: beatsWithRefs } };
+};
 const admit = (value, options = {}) => admitComposition(typeof value === 'string' ? value : text(answer(value)), { pulls, model: MODEL, period, ...options });
 
 describe('parseModelJson', () => {
@@ -51,10 +60,17 @@ describe('admitComposition', () => {
     expect(verdict.current.origin).toEqual({ kind: 'model', name: MODEL, provider: 'Anthropic, via Claude Code' });
   });
 
-  it('refuses an answer that is not the {current, sources, pictures} object', () => {
+  it('refuses an answer that is not the {current, pictures} object', () => {
     expect(admit('not json').diagnostics[0]).toMatch(/one JSON object/);
-    expect(admit({ current: current(beats) }).diagnostics[0]).toMatch(/"current", "sources" and "pictures"/);
-    expect(admit({ current: current(beats), sources: {}, note: 'x' }).diagnostics[0]).toMatch(/"current", "sources" and "pictures"/);
+    expect(admit({ current: current(beats) }).diagnostics[0]).toMatch(/"current" and "pictures"/);
+    expect(admit({ current: current(beats), pictures: [PICTURE], note: 'x' }).diagnostics[0]).toMatch(/"current" and "pictures"/);
+    expect(admit({ current: current(beats), pictures: [PICTURE], extra: {} }).diagnostics[0]).toMatch(/"current" and "pictures"/);
+  });
+
+  it('derives the sources from each beat’s refs, and plays a Current without them', () => {
+    const verdict = admit({ current: current(beats), sources: { 1: [652], 2: [653] } });
+    expect(verdict.sources).toEqual({ 1: [652], 2: [653] });
+    expect(verdict.current.beats.some(beat => 'refs' in beat)).toBe(false);
   });
 
   it('returns the admitted pictures with the Current', () => {
@@ -87,27 +103,25 @@ describe('admitComposition', () => {
     expect(verdict.diagnostics.join('\n')).toMatch(/byte/);
   });
 
-  describe('sources', () => {
+  describe('refs', () => {
     const cases = [
-      ['a beat index past the last beat', { 3: [652], 2: [653] }, /beat 3/],
-      ['a key that is not a beat index', { first: [652], 2: [653] }, /beat index/],
-      ['a padded index', { '01': [652], 2: [653] }, /beat index/],
-      ['an empty list', { 1: [], 2: [652, 653] }, /pull request numbers/],
-      ['a number that is not included', { 1: [652, 999], 2: [653] }, /#999/],
+      ['a number that is not included', { 1: [652, 999], 2: [653] }, /beat 1 "refs" cites #999, which is not one of the included pull requests/],
       ['a repeated number in one beat', { 1: [652, 652], 2: [653] }, /twice/],
-      ['an included change no beat cites', { 1: [652] }, /#653/],
-      ['a list that is not numbers', { 1: ['652'], 2: [653] }, /pull request numbers/]
+      ['an included change no beat cites', { 1: [652] }, /No beat cites #653/],
+      ['a list that is not numbers', { 1: ['652'], 2: [653] }, /beat 1 "refs" must list one or more pull request numbers/],
+      ['refs that are not a list', { 1: 652, 2: [653] }, /beat 1 "refs" must list one or more pull request numbers/]
     ];
     for (const [name, sources, pattern] of cases) {
       it(`refuses ${name}`, () => {
         const verdict = admit({ current: current(beats), sources });
         expect(verdict.ok).toBe(false);
         expect(verdict.diagnostics.join('\n')).toMatch(pattern);
+        expect(verdict.rules).toHaveProperty('refs');
       });
     }
 
-    it('refuses sources that are not an object', () => {
-      expect(admit({ current: current(beats), sources: [[652]] }).diagnostics.join('\n')).toMatch(/"sources"/);
+    it('lets a beat that only opens, holds or closes carry no refs, or empty ones', () => {
+      expect(admit({ current: current(beats), sources: { 0: [], 1: [652], 2: [653] } }).ok).toBe(true);
     });
   });
 
@@ -158,7 +172,7 @@ describe('admitComposition', () => {
 
   it('counts each rule a refusal fired, for the run’s first-pass score', () => {
     const verdict = admit({ current: current([...beats.slice(0, 2), { say: 'It is 40 percent faster, the next dry run will tell.' }]), sources: { 1: [652] } });
-    expect(verdict.rules).toEqual({ sources: 1, number: 1, 'process-talk': 2 });
+    expect(verdict.rules).toEqual({ refs: 1, number: 1, 'process-talk': 2 });
     expect(admit('not json').rules).toEqual({ answer: 1 });
   });
 
@@ -169,6 +183,7 @@ describe('admitComposition', () => {
     const withScene = (list, at, scene) => list.map((beat, i) => (i === at ? { ...beat, scene } : beat));
     const sources = { 1: [652], 4: [653] };
     const picture = (beat, medium = 'figure') => ({ beat, medium, brief: `A labelled diagram for beat ${words[beat] ?? 'later'}, drawn from the pull request’s own words.` });
+    const kit = (beat, spec = { kind: 'flow', steps: ['Before', 'After'], changed: 'After' }) => ({ beat, kit: spec });
 
     it('refuses one scene held through the whole reading, with no picture', () => {
       const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [] });
@@ -179,7 +194,7 @@ describe('admitComposition', () => {
     });
 
     it('accepts an opening engine and a picture for each group', () => {
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [picture(1), picture(4), picture(7, 'scene')] });
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1), picture(4), picture(7, 'scene')] });
       expect(verdict.diagnostics).toBeUndefined();
       expect(verdict.ok).toBe(true);
     });
@@ -205,12 +220,13 @@ describe('admitComposition', () => {
 
     it('refuses a malformed picture list', () => {
       const cases = [
-        [[{ ...picture(1), beat: 9 }, picture(4), picture(7)], /beat 9/],
-        [[picture(1), picture(1), picture(4), picture(7)], /twice/],
-        [[{ ...picture(1), medium: 'cue' }, picture(4), picture(7)], /figure or scene/],
-        [[{ ...picture(1), brief: 'x'.repeat(301) }, picture(4), picture(7)], /300/],
-        [[{ ...picture(1), note: 'x' }, picture(4), picture(7)], /beat, medium and brief/],
-        [[picture(0), picture(4), picture(7)], /beat 0 already starts/]
+        [[{ ...picture(1), beat: 9 }, picture(4), kit(7)], /beat 9/],
+        [[picture(1), kit(1), picture(4), kit(7)], /twice/],
+        [[{ ...picture(1), medium: 'cue' }, picture(4), kit(7)], /figure or scene/],
+        [[{ ...picture(1), brief: 'x'.repeat(301) }, picture(4), kit(7)], /300/],
+        [[{ ...picture(1), note: 'x' }, picture(4), kit(7)], /either \{ beat, kit \} or \{ beat, medium, brief \}/],
+        [[{ ...kit(1), brief: 'x'.repeat(30) }, picture(4), kit(7)], /either \{ beat, kit \} or \{ beat, medium, brief \}/],
+        [[picture(0), kit(4), kit(7)], /beat 0 already starts/]
       ];
       for (const [pictures, pattern] of cases) {
         const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures });
@@ -219,9 +235,37 @@ describe('admitComposition', () => {
       }
     });
 
+    it('accepts a kit figure, drawn by RISE from the data the composer gives', () => {
+      const bars = { kind: 'bars', title: 'Particles', max: 700, items: [{ label: 'Before', value: 60 }, { label: 'After', value: 700, changed: true }] };
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1, bars), kit(4), kit(7)] });
+      expect(verdict.ok).toBe(true);
+      expect(verdict.pictures[0]).toEqual({ beat: 1, kit: bars });
+    });
+
+    it('refuses a kit figure the kit cannot draw, in the kit’s own words', () => {
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1, { kind: 'bars', max: 10, items: [{ label: 'a', value: 1 }] }), kit(4), kit(7)] });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.diagnostics.join('\n')).toMatch(/"pictures"\[0\]\.kit: items has 2 to 4 items/);
+      expect(verdict.rules).toHaveProperty('composition');
+    });
+
+    it('holds a kit figure’s labels and values to the number rule', () => {
+      const bars = { kind: 'bars', max: 100, items: [{ label: 'Before', value: 40 }, { label: 'After', value: 60, changed: true }] };
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1, bars), kit(4), kit(7, { kind: 'flow', steps: ['Step 9', 'Done'] })] });
+      const said = verdict.diagnostics.join('\n');
+      expect(said).toMatch(/"40"/);
+      expect(said).toMatch(/"9"/);
+      expect(said).not.toMatch(/"100"/);
+    });
+
+    it('refuses more than two pictures for the illustrator: a kit kind draws a measurement, a sequence, a sorting or a layout', () => {
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [picture(1), picture(4), picture(7)] });
+      expect(verdict.diagnostics.join('\n')).toMatch(/3 pictures for the illustrator; at most 2/);
+    });
+
     it('refuses more pictures than a Current has room for beside its engines', () => {
       const many = Array.from({ length: 30 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : 'More.' }));
-      const pictures = Array.from({ length: 8 }, (_, i) => picture(1 + i * 3));
+      const pictures = Array.from({ length: 8 }, (_, i) => kit(1 + i * 3));
       const verdict = admit({ current: current(withScene(many, 0, 'field')), sources, pictures });
       expect(verdict.diagnostics.join('\n')).toMatch(/at most 7 pictures/);
     });

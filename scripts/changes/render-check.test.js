@@ -5,6 +5,8 @@ import { existsSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { openRenderCheck } from './render-check.mjs';
 import { PUBLISHED } from '../../src/core/quality/fixtures/figures.js';
+import { renderFigure } from '../../src/core/figures/figure-kit.js';
+import { STUDY, boundSpecs } from '../../src/core/figures/fixtures/specs.js';
 
 let hasChromium = false;
 try {
@@ -56,4 +58,13 @@ describe.skipIf(!hasChromium)('the rendered check', () => {
     expect(verdict.problems).toEqual([]);
     expect(renderer.requests()).toEqual([]);
   }, 30_000);
+
+  it('finds nothing wrong with any figure the kit draws, at its bounds, as the reader’s fonts set it', async () => {
+    for (const spec of [...Object.values(STUDY), ...boundSpecs()]) {
+      for (const theme of ['cobalt', 'classic']) {
+        const verdict = await renderer.check(renderFigure(spec, { theme }));
+        expect({ spec, problems: verdict.problems }).toEqual({ spec, problems: [] });
+      }
+    }
+  }, 120_000);
 });

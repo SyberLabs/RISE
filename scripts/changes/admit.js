@@ -10,6 +10,7 @@ import { admitSceneCode, describeDiagnostic } from '../../src/core/scene-admissi
 import { admitSvg } from '../../src/core/svg-admission.js';
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../../src/live/hosts/mcp-size.js';
 import { COMPOSER_PROVIDER, sourcesProblems } from '../../src/core/changes/contract.js';
+import { figureProblems } from '../../src/core/figures/figure-kit.js';
 import { processTalkProblems } from '../../src/core/quality/process-talk.js';
 
 const MAX_LINE = 300;
@@ -100,18 +101,38 @@ export const MAX_ENGINES = 2;
 const MOOD_BEATS = 2;
 const BRIEF_MIN = 20;
 const BRIEF_MAX = 300;
+/** Pictures a digest may ask RISE's illustrator for: a diagram no kit kind can express. */
+export const MAX_BESPOKE = 2;
+
+const isKit = picture => Object.keys(picture).length === 2 && Object.hasOwn(picture, 'beat') && Object.hasOwn(picture, 'kit');
+const isBrief = picture => Object.keys(picture).length === 3 && ['beat', 'medium', 'brief'].every(key => Object.hasOwn(picture, key));
+
+/** Every string and printed number a kit figure shows: what the number rule reads (a bar's max is a scale, never printed). */
+export function kitTexts(kit) {
+  const texts = [];
+  const walk = (value, key) => {
+    if (key === 'max' || key === 'kind' || key === 'shape' || key === 'glyph') return;
+    if (typeof value === 'string') texts.push(value);
+    else if (typeof value === 'number') texts.push(String(value));
+    else if (Array.isArray(value)) value.forEach(item => walk(item));
+    else if (value !== null && typeof value === 'object') for (const [name, item] of Object.entries(value)) walk(item, name);
+  };
+  walk(kit);
+  return texts;
+}
 
 /**
  * What breaks the digest's composition: RISE's engines only for mood (at most two, started at the opening or the
- * close), every other picture a brief the illustrator draws (a figure, or a code scene when motion explains), at least
- * one, and no scene held for more than four beats. The plan is held to it before anything is drawn.
+ * close); every other picture either a kit figure RISE draws from the composer's data or, for a diagram no kit kind can
+ * express, a brief the illustrator draws (at most two); at least one picture, and no scene held for more than four
+ * beats. The plan is held to it before anything is drawn.
  */
 export function compositionProblems(current, pictures) {
   const problems = [];
   const beats = current.beats;
   const scenes = new Map((current.scenes ?? []).map(scene => [scene.id, scene]));
   for (const scene of scenes.values()) {
-    if (scene.engine === undefined) problems.push(`Scene "${scene.id}" is drawn by the composer; draw a picture through "pictures" instead: a brief the illustrator draws. "current.scenes" holds RISE’s engines only`);
+    if (scene.engine === undefined) problems.push(`Scene "${scene.id}" is drawn by the composer; draw a picture through "pictures" instead: a kit figure, or a brief the illustrator draws. "current.scenes" holds RISE’s engines only`);
   }
   const engines = [...scenes.values()].filter(scene => scene.engine !== undefined);
   if (engines.length > MAX_ENGINES) problems.push(`The Current declares ${engines.length} of RISE’s engines; at most ${MAX_ENGINES} of RISE’s engines, for mood at the opening or the close. Explain with pictures`);
@@ -121,16 +142,17 @@ export function compositionProblems(current, pictures) {
       problems.push(`beat ${index} starts RISE’s engine "${scene.id}"; an engine sets the mood at the opening or the close only (the first or last ${MOOD_BEATS} beats). Explain the middle with a picture`);
     }
   });
-  if (!Array.isArray(pictures)) return [...problems, '"pictures" must be a list of { beat, medium, brief }'];
+  if (!Array.isArray(pictures)) return [...problems, '"pictures" must be a list of { beat, kit } or { beat, medium, brief }'];
   const room = Math.max(0, 8 - engines.length);
   if (pictures.length > room) problems.push(`"pictures" has ${pictures.length}; a Current has room for at most ${room} pictures beside its ${engines.length} engine${engines.length === 1 ? '' : 's'}`);
-  if (pictures.length === 0) problems.push('"pictures" needs at least one picture: a brief for each change or group of changes that a picture explains');
+  if (pictures.length === 0) problems.push('"pictures" needs at least one picture: one for each change or group of changes that a picture explains');
+  const bespoke = pictures.filter(picture => picture !== null && typeof picture === 'object' && !Array.isArray(picture) && isBrief(picture)).length;
+  if (bespoke > MAX_BESPOKE) problems.push(`"pictures" has ${bespoke} pictures for the illustrator; at most ${MAX_BESPOKE}. Draw a measurement, a sequence, a sorting or a layout as a kit figure (bars, flow, columns, stack)`);
   const starts = new Set();
   pictures.forEach((picture, index) => {
     const where = `"pictures"[${index}]`;
-    if (picture === null || typeof picture !== 'object' || Array.isArray(picture)
-      || Object.keys(picture).length !== 3 || !['beat', 'medium', 'brief'].every(key => Object.hasOwn(picture, key))) {
-      problems.push(`${where} has exactly beat, medium and brief`);
+    if (picture === null || typeof picture !== 'object' || Array.isArray(picture) || !(isKit(picture) || isBrief(picture))) {
+      problems.push(`${where} is either { beat, kit } or { beat, medium, brief }`);
       return;
     }
     if (!Number.isInteger(picture.beat) || picture.beat < 0 || picture.beat >= beats.length) {
@@ -141,6 +163,10 @@ export function compositionProblems(current, pictures) {
       problems.push(`${where}: beat ${picture.beat} already starts a scene; a picture starts on a beat that names none`);
     } else {
       starts.add(picture.beat);
+    }
+    if (isKit(picture)) {
+      for (const line of figureProblems(picture.kit)) problems.push(`${where}.kit: ${line}`);
+      return;
     }
     if (!['figure', 'scene'].includes(picture.medium)) problems.push(`${where}.medium is figure or scene`);
     if (typeof picture.brief !== 'string' || picture.brief.trim().length < BRIEF_MIN || picture.brief.length > BRIEF_MAX) {
@@ -157,6 +183,30 @@ export function compositionProblems(current, pictures) {
 }
 
 /**
+ * Each beat's `refs` as the contract's `sources` (beat index to pull request numbers), and the beats without them:
+ * `refs` sits beside a beat's words in the composer's answer and never reaches the Current.
+ */
+function splitRefs(beats) {
+  const sources = {};
+  const refsGiven = {};
+  const clean = beats.map((beat, index) => {
+    if (beat === null || typeof beat !== 'object' || Array.isArray(beat) || !Object.hasOwn(beat, 'refs')) return beat;
+    const { refs, ...rest } = beat;
+    refsGiven[index] = refs;
+    if (!(Array.isArray(refs) && refs.length === 0)) sources[String(index)] = refs;
+    return rest;
+  });
+  return { beats: clean, sources, refsGiven };
+}
+
+/** The sources rules, worded for refs on the beats. */
+function refsProblems(sources, beatCount, included) {
+  return sourcesProblems(sources, beatCount, included).map(line => line
+    .replace(/^"sources" beat (\d+)/u, 'beat $1 "refs"')
+    .replace(/must be cited by at least one beat$/u, 'must be cited in the "refs" of at least one beat'));
+}
+
+/**
  * The verdict on one composer answer: `{ ok: true, current, sources, pictures }`,
  * the Current with its origin set to the composer and the briefs the illustrator
  * draws, or `{ ok: false, diagnostics, rules }`, the lines a repair call is given
@@ -168,17 +218,18 @@ export function admitComposition(text, { pulls, model, period }) {
   try {
     value = parseModelJson(text);
   } catch {
-    return refused('answer', 'The answer must be one JSON object, {"current": ..., "sources": ..., "pictures": [...]}, with nothing before or after it');
+    return refused('answer', 'The answer must be one JSON object, {"current": ..., "pictures": [...]}, with nothing before or after it');
   }
   const keys = Object.keys(value);
-  if (keys.length !== 3 || !['current', 'sources', 'pictures'].every(key => Object.hasOwn(value, key))) {
-    return refused('answer', 'The answer must have exactly three fields, "current", "sources" and "pictures"');
+  if (keys.length !== 2 || !['current', 'pictures'].every(key => Object.hasOwn(value, key))) {
+    return refused('answer', 'The answer must have exactly two fields, "current" and "pictures"; each beat carries its own "refs"');
   }
   const given = value.current;
-  if (given === null || typeof given !== 'object' || Array.isArray(given) || given.schema !== RISE_CURRENT_SCHEMA_V2) {
+  if (given === null || typeof given !== 'object' || Array.isArray(given) || given.schema !== RISE_CURRENT_SCHEMA_V2 || !Array.isArray(given.beats)) {
     return refused('answer', `"current" must be a Current of beats, "schema": "${RISE_CURRENT_SCHEMA_V2}"`);
   }
-  const current = { ...given, origin: { kind: 'model', name: model, provider: COMPOSER_PROVIDER } };
+  const { beats, sources } = splitRefs(given.beats);
+  const current = { ...given, beats, origin: { kind: 'model', name: model, provider: COMPOSER_PROVIDER } };
   if (serializedUtf8Bytes(current) > MCP_CURRENT_BYTES) {
     return refused('size', `RISE refused this Current: The Current exceeds the ${MCP_CURRENT_BYTES.toLocaleString('en-US')}-byte MCP limit`);
   }
@@ -188,17 +239,20 @@ export function admitComposition(text, { pulls, model, period }) {
     return refused('current', clean(`RISE refused this Current: ${error?.message ?? 'The Current was not valid'}`));
   }
   const subject = pulls.map(pull => `${pull.title}\n${pull.body ?? ''}`).join('\n');
+  const pictures = Array.isArray(value.pictures) ? value.pictures : [];
+  const stated = statedNumbers(pulls, period);
   const found = {
     scene: sceneRefusals(current),
     composition: compositionProblems(current, value.pictures).map(clean),
-    sources: sourcesProblems(value.sources, current.beats.length, pulls.map(pull => pull.number)).map(clean),
+    refs: refsProblems(sources, current.beats.length, pulls.map(pull => pull.number)).map(clean),
     number: [
       ...numberProblems(current, { pulls, period }),
-      ...(Array.isArray(value.pictures) ? unstated(value.pictures.map(picture => picture?.brief), statedNumbers(pulls, period), 'A picture\u2019s brief') : [])
+      ...unstated(pictures.map(picture => picture?.brief), stated, 'A picture\u2019s brief'),
+      ...unstated(pictures.flatMap(picture => (picture?.kit === undefined ? [] : kitTexts(picture.kit))), stated, 'A kit figure')
     ],
     'process-talk': processTalkProblems(current.beats.map(beat => [beat?.say, beat?.show].filter(Boolean).join(' ')), { subject }).map(problem => clean(problem.message))
   };
   const diagnostics = Object.values(found).flat();
   const rules = Object.fromEntries(Object.entries(found).filter(([, lines]) => lines.length).map(([rule, lines]) => [rule, lines.length]));
-  return diagnostics.length ? { ok: false, diagnostics, rules } : { ok: true, current, sources: value.sources, pictures: value.pictures };
+  return diagnostics.length ? { ok: false, diagnostics, rules } : { ok: true, current, sources, pictures: value.pictures };
 }
