@@ -139,7 +139,7 @@ describe('RISE Changes pages', () => {
     expect(chosen.open).toBe(false);
     expect(chosen.querySelectorAll('li')).toHaveLength(8);
     expect(chosen.textContent).toContain('Left out: records only');
-    expect(chosen.textContent).toContain('Left out: routed to no audience');
+    expect(chosen.textContent).toContain('Left out: skipped by the router');
     expect(chosen.textContent).toContain('team · major · feature');
     expect(section.textContent).toContain('Written by claude-sonnet-5-5 via Claude Code from 5 merged pull requests, 12–13 October 2026.');
 
@@ -178,18 +178,25 @@ describe('RISE Changes pages', () => {
     expect(refused(digest => { digest.quality = { ...quality, checks: { '<b>': 1 } }; })).toThrow(/quality/);
   });
 
-  it('says why a routed change was left out: no audience, another audience, or too minor', async () => {
+  it('says why each change was left out, in the words of the team digest’s inclusion rule', async () => {
     const digest = changesDigestFixture();
-    digest.changes[6].route = { audience: 'readers', significance: 'major', kind: 'feature' };
-    digest.changes.push({ ...digest.changes[6], number: 671, url: 'https://github.com/SyberLabs/RISE/pull/671', route: { audience: 'both', significance: 'minor', kind: 'design' } });
-    digest.changes.push({ ...digest.changes[6], number: 670, url: 'https://github.com/SyberLabs/RISE/pull/670', route: { audience: 'skip', significance: 'minor', kind: 'fix' } });
+    const base = digest.changes[6];
+    const add = (number, route, extra = {}) => digest.changes.push({ ...base, number, url: `https://github.com/SyberLabs/RISE/pull/${number}`, route, included: false, reason: 'routed', ...extra });
+    add(801, { audience: 'both', significance: 'minor', kind: 'design' });
+    add(802, { audience: 'skip', significance: 'minor', kind: 'fix' });
+    add(803, { audience: 'readers', significance: 'minor', kind: 'design' });
+    add(804, { audience: 'team', significance: 'notable', kind: 'fix' }, { reason: 'limit' });
+    add(805, { audience: 'readers', significance: 'notable', kind: 'fix' }, { reason: 'unspoken' });
     const { section } = await mount({ digestId: CHANGES_ID, load: files(undefined, digest) });
-    const words = number => section.querySelector(`.changes-routes a[href$="/${number}"]`).closest('li').querySelector('.changes-meta').textContent;
-    expect(words(662)).toBe('readers · major · feature — Left out: routed to readers only');
-    expect(words(671)).toBe('both · minor · design — Left out: minor');
-    expect(words(670)).toBe('skip · minor · fix — Left out: routed to no audience');
-    expect(words(654)).toBe('skip · minor · records — Left out: records only');
-    expect(words(653)).toBe('team · major · feature — Included');
+    const words = number => section.querySelector(`.changes-routes a[href$="/${number}"]`).closest('li').querySelector('.changes-meta').textContent.split(' — ')[1];
+    expect(words(801)).toBe('Left out: minor');
+    expect(words(803)).toBe('Left out: minor');
+    expect(words(802)).toBe('Left out: skipped by the router');
+    expect(words(654)).toBe('Left out: records only');
+    expect(words(804)).toBe('Left out: over the 24-change limit');
+    expect(words(805)).toBe('Left out: the reading did not speak of it');
+    expect(words(653)).toBe('Included');
+    expect(section.textContent).not.toMatch(/routed to (readers|the team) only/);
   });
 
   it('says when an included change was left out because the reading did not speak of it', async () => {

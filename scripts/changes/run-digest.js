@@ -7,6 +7,7 @@
 import { boundary, collectMergedPulls, readIndex } from '../../src/core/changes/collect.js';
 import { composeCurrent } from './compose.js';
 import { illustrate } from './illustrate.js';
+import { endHeldPictures } from './held.js';
 import { MODEL, REPOSITORY, qualityLine } from '../../src/core/changes/contract.js';
 import { prefilter } from '../../src/core/changes/prefilter.js';
 import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
@@ -80,9 +81,15 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   if (unspoken.size) tally.fired('unspoken', unspoken.size);
   const kits = composed.pictures.filter(picture => picture.kit !== undefined).length;
   log(`Composed ${composed.current.beats.length} beats; drawing ${composed.pictures.length} pictures (${kits} from the figure kit, ${composed.pictures.length - kits} by the illustrator)`);
-  const { current, notes: pictureNotes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included.filter(pull => !unspoken.has(pull.number)), period, log, tally, renderCheck });
+  const { current: illustrated, notes: pictureNotes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included.filter(pull => !unspoken.has(pull.number)), period, log, tally, renderCheck });
   const notes = [...unspokenNotes, ...pictureNotes];
   const { sources } = composed;
+  // A picture stays only while its beats speak of what it shows; then the reading returns to RISE's eye.
+  const pictureRefs = Object.fromEntries(composed.pictures
+    .map(picture => [illustrated.beats[picture.beat]?.scene, picture.refs])
+    .filter(([id]) => typeof id === 'string' && id.startsWith('picture-')));
+  const { current, ended } = endHeldPictures(illustrated, { sources, pictureRefs });
+  if (ended.length) log(`  RISE’s eye returns at beat${ended.length === 1 ? '' : 's'} ${ended.join(', ')}, where a picture’s beats move on`);
   // The first pass is lost by a repair or by anything let go, a picture or an unspoken change; the latter is never a repair.
   const quality = tally.score(pictureNotes.length + unspoken.size);
   log(`Quality: ${qualityLine(quality)}`);

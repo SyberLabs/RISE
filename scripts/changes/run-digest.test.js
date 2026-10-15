@@ -65,6 +65,16 @@ describe('runDigest on the week of #652–#671', () => {
     expect(digest).not.toHaveProperty('notes');
   });
 
+  it('returns to RISE\u2019s eye where a picture\u2019s beats move on to other changes', async () => {
+    const { ask } = scriptedAsk(week());
+    const lines = [];
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    expect(digest.current.scenes.find(scene => scene.engine === 'still')).toEqual({ id: 'eye', engine: 'still' });
+    expect(digest.current.beats.flatMap((beat, index) => (beat.scene === 'eye' ? [index] : []))).toEqual([4, 7, 9, 12]);
+    expect(lines).toContain('  RISE\u2019s eye returns at beats 4, 7, 9, 12, where a picture\u2019s beats move on');
+  });
+
   it('writes the contract\u2019s sources from the refs on each beat, and no refs into the Current', async () => {
     const { ask } = scriptedAsk(week());
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });

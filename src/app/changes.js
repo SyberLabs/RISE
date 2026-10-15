@@ -19,7 +19,6 @@ import { RISE_CURRENT_SCHEMA_V2, validateRiseCurrent } from '../core/rise-curren
 import { sceneRefusal } from '../core/scene-admission.js';
 import { DIGEST_ID, LIMITS, digestProblems, indexProblems, qualityLine } from '../core/changes/contract.js';
 
-const AUDIENCE_WORDS = { team: 'the team', readers: 'readers' };
 const BADGES = { team: 'Team', readers: 'Readers' };
 
 const utf8Bytes = value => new TextEncoder().encode(JSON.stringify(value) ?? '').byteLength;
@@ -102,13 +101,16 @@ const badge = audience => `<span class="changes-badge">${BADGES[audience]}</span
 let moved = false;
 
 /** Why a change is or is not in a digest for `audience`, in words. */
-function reasonWords({ included, reason, route }, audience) {
+/**
+ * Why a change is or is not in the reading, true to the team digest's inclusion rule: any audience but skip, notable
+ * or major, at most the limit, and spoken of by a beat.
+ */
+function reasonWords({ included, reason, route }) {
   if (included) return 'Included';
   if (reason === 'records-only') return 'Left out: records only';
   if (reason === 'limit') return `Left out: over the ${LIMITS.included}-change limit`;
   if (reason === 'unspoken') return 'Left out: the reading did not speak of it';
-  if (route.audience === 'skip') return 'Left out: routed to no audience';
-  if (route.audience !== 'both' && route.audience !== audience) return `Left out: routed to ${AUDIENCE_WORDS[route.audience]} only`;
+  if (route.audience === 'skip') return 'Left out: skipped by the router';
   return route.significance === 'minor' ? 'Left out: minor' : 'Left out';
 }
 
@@ -153,7 +155,7 @@ function detailView(digest) {
       </li>`).join('');
   const chosen = digest.changes.map(change => `<li class="changes-route"${change.included ? ' data-included' : ''}>
         <a href="${escape(change.url)}" target="_blank" rel="noopener noreferrer"><span class="changes-number">#${change.number}</span> ${escape(change.title)}</a>
-        <p class="changes-meta"><span class="changes-route-words">${change.route.audience} · ${change.route.significance} · ${change.route.kind}</span> — ${reasonWords(change, digest.audience)}</p>
+        <p class="changes-meta"><span class="changes-route-words">${change.route.audience} · ${change.route.significance} · ${change.route.kind}</span> — ${reasonWords(change)}</p>
       </li>`).join('');
   return `${EYEBROW}
     <h1 class="portal-title changes-title" id="portal-ask-title" tabindex="-1">${escape(digest.title)}</h1>
