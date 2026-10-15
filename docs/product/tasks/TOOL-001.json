@@ -1,0 +1,34 @@
+{
+  "id": "TOOL-001",
+  "title": "Route GitHits agent calls through private usage accounting",
+  "lane": "shared",
+  "milestone": "Developer tooling",
+  "status": "done",
+  "delivery": "branch",
+  "owner": "Codex GitHits rollout",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "The tracked MCP config invokes the private usage runtime with RISE attribution.",
+    "The command and entry use explicit absolute private runtime paths, independent of PATH and the launch working directory.",
+    "Missing private runtime configuration refuses the session without a direct unaccounted network fallback."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": ".mcp.json",
+      "note": "Direct-entry conformance passes for all five configs from nested directories with an empty PATH; no provider call is made.",
+      "date": "2026-10-15"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-14",
+      "summary": "Claimed the owner-requested Phase 0 agent tooling rollout; product runtime and public usage claims are out of scope."
+    }
+  ],
+  "updatedAt": "2026-10-15T07:13:49.368Z",
+  "revision": 1,
+  "summary": "Developer tooling only. Private accounting is not a product feature or a reliability benchmark result.",
+  "blocker": null
+}
