@@ -192,6 +192,18 @@
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/38696304051",
       "note": "Dry run on main at a03ef35a, since 2026-10-13T02:00:00Z: 37 merged, 22 included, 19 beats; 5 kit pictures; RISE's eye returned at beats 6, 10 and 14 where a picture's beats moved on, and played locally it shows Sophia's eye under those beats (figurekit-held-06/10/14-still.png). Quality {\"firstPass\":false,\"repairs\":{\"composition\":1,\"illustrator\":0},\"checks\":{\"composition\":3}}: the first composition declared a third engine mid-reading, repaired once. No token string in the log.",
       "date": "2026-10-15"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/693",
+      "note": "Branch changes-opening-close: the composer names RISE’s engines only in the answer’s optional \"opening\" and \"close\" ({ engine, params? }), which the run places on the first and last beats; a scene in the Current or a picture that names an engine is refused before any other check (\"RISE’s engines open and close a digest; a change is shown with a kit picture\", rule engine), so the engine cap is implied and its checks are gone; the close says the week’s last fact and stops. Tests first; 13 files, 223 tests passed locally. No Codex findings. Merged as 979d20f7. Not accepted by a human.",
+      "date": "2026-10-15"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38699570866",
+      "note": "Dry run on main at 979d20f7, since 2026-10-13T02:00:00Z: 40 merged, 21 included, 21 beats; opening attractor, close living-flame, 5 kit pictures; no engine named anywhere else (rule engine did not fire). Quality {\"firstPass\":false,\"repairs\":{\"composition\":1,\"illustrator\":0},\"checks\":{\"composition\":1}}: the one repair was a held run (beat 12 held RISE’s eye for 8 beats). The close: \"A digest’s picture now ends where its beats move on, and the reading returns to RISE’s eye.\" No token string in the log.",
+      "date": "2026-10-15"
     }
   ],
   "activity": [
@@ -262,10 +274,14 @@
     {
       "date": "2026-10-15T07:10:48.661Z",
       "summary": "#690 merged as a03ef35a; its dry run 38696304051 recorded"
+    },
+    {
+      "date": "2026-10-15T07:36:26.223Z",
+      "summary": "#693 merged as 979d20f7; its dry run 38699570866 recorded"
     }
   ],
-  "updatedAt": "2026-10-15T07:10:48.661Z",
-  "revision": 17,
+  "updatedAt": "2026-10-15T07:36:26.223Z",
+  "revision": 18,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }
