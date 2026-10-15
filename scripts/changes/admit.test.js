@@ -222,8 +222,18 @@ describe('admitComposition', () => {
     });
 
     it('refuses a scene held for more than four beats', () => {
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [picture(1), picture(4)] });
+      const same = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i + 1, [652]]));
+      same[8] = [652, 653];
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources: same, pictures: [{ ...kit(1), refs: [652] }, { ...kit(4), refs: [652] }] });
       expect(verdict.diagnostics.join('\n')).toMatch(/beat 4 holds one scene for 5 beats/);
+    });
+
+    it('counts only the beats a picture is shown under: where its beats move on, RISE\u2019s eye holds, and is counted too', () => {
+      const moved = { 1: [652], 2: [653], 3: [653], 4: [653], 5: [653], 6: [653], 7: [653], 8: [653] };
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
+      expect(verdict.diagnostics.join('\n')).toMatch(/beat 2 holds one scene for 7 beats/);
+      const fine = admit({ current: current(withScene(nine, 0, 'field')), sources: moved, pictures: [{ ...kit(1), refs: [652] }, { ...kit(5), refs: [653] }] });
+      expect(fine.diagnostics).toBeUndefined();
     });
 
     it('refuses a malformed picture list', () => {
@@ -298,7 +308,15 @@ describe('admitComposition', () => {
       const many = Array.from({ length: 30 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : 'More.' }));
       const pictures = Array.from({ length: 8 }, (_, i) => kit(1 + i * 3));
       const verdict = admit({ current: current(withScene(many, 0, 'field')), sources, pictures });
-      expect(verdict.diagnostics.join('\n')).toMatch(/at most 7 pictures/);
+      expect(verdict.diagnostics.join('\n')).toMatch(/at most 6 pictures beside its 1 engine and RISE\u2019s eye/);
+    });
+
+    it('keeps no room for RISE\u2019s eye when no picture ends early', () => {
+      const many = Array.from({ length: 30 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : 'More.' }));
+      const all = Object.fromEntries(Array.from({ length: 29 }, (_, i) => [i + 1, i + 1 === 4 ? [652, 653] : [652]]));
+      const pictures = Array.from({ length: 7 }, (_, i) => ({ beat: 1 + i * 4, refs: [652], kit: { kind: 'flow', steps: ['Before', 'After'], changed: 'After' } }));
+      const verdict = admit({ current: current(withScene(many, 0, 'field')), sources: all, pictures });
+      expect(verdict.diagnostics ?? []).not.toContainEqual(expect.stringMatching(/room for at most/));
     });
   });
 });

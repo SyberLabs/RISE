@@ -12,6 +12,7 @@ import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../../src/live/hosts/mcp
 import { COMPOSER_PROVIDER, sourcesProblems } from '../../src/core/changes/contract.js';
 import { figureProblems } from '../../src/core/figures/figure-kit.js';
 import { processTalkProblems } from '../../src/core/quality/process-talk.js';
+import { shownRuns } from './held.js';
 
 const MAX_LINE = 300;
 const MAX_SCENE_LINES = 10;
@@ -148,8 +149,6 @@ export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
     }
   });
   if (!Array.isArray(pictures)) return [...problems, '"pictures" must be a list of { beat, refs, kit } or { beat, refs, medium, brief }'];
-  const room = Math.max(0, 8 - engines.length);
-  if (pictures.length > room) problems.push(`"pictures" has ${pictures.length}; a Current has room for at most ${room} pictures beside its ${engines.length} engine${engines.length === 1 ? '' : 's'}`);
   if (pictures.length === 0) problems.push('"pictures" needs at least one picture: one for each change or group of changes that a picture explains');
   const bespoke = pictures.filter(picture => picture !== null && typeof picture === 'object' && !Array.isArray(picture) && isBrief(picture)).length;
   if (bespoke > MAX_BESPOKE) problems.push(`"pictures" has ${bespoke} pictures for the illustrator; at most ${MAX_BESPOKE}. Draw a measurement, a sequence, a sorting or a layout as a kit figure (bars, flow, columns, stack)`);
@@ -186,9 +185,20 @@ export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
       problems.push(`${where}.brief is ${BRIEF_MIN} to ${BRIEF_MAX} characters: what to draw, concretely, from the pull requests’ own words`);
     }
   });
-  beats.forEach((beat, index) => { if (beat?.scene !== undefined) starts.add(index); });
-  const ordered = [...starts].sort((x, y) => x - y);
-  const runs = [0, ...ordered.filter(index => index > 0)].map((start, at, list) => [start, (list[at + 1] ?? beats.length) - start]);
+  // What each beat shows, as the run will end it (held.js): a picture until its beats move on, then RISE's eye.
+  const shown = new Map();
+  for (const picture of pictures) {
+    if (picture !== null && typeof picture === 'object' && Number.isInteger(picture.beat) && starts.has(picture.beat)) {
+      shown.set(picture.beat, { refs: isRefList(picture.refs) ? picture.refs : null });
+    }
+  }
+  beats.forEach((beat, index) => { if (beat?.scene !== undefined) shown.set(index, { refs: null }); });
+  const { runs, eye } = shownRuns(beats.length, shown, beatRefs);
+  const needsEye = eye && !engines.some(scene => scene.engine === 'still');
+  const room = Math.max(0, 8 - engines.length - (needsEye ? 1 : 0));
+  if (pictures.length > room) {
+    problems.push(`"pictures" has ${pictures.length}; a Current has room for at most ${room} pictures beside its ${engines.length} engine${engines.length === 1 ? '' : 's'}${needsEye ? ' and RISE’s eye, which shows where a picture’s beats move on' : ''}`);
+  }
   for (const [start, length] of runs) {
     if (length > HELD_BEATS) problems.push(`beat ${start} holds one scene for ${length} beats; start a picture at least every ${HELD_BEATS} beats`);
   }
