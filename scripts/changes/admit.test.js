@@ -9,10 +9,12 @@ const pulls = [pull(652, 'The swarm draws 700 particles at 60 ticks a second.'),
 const current = (beats, extra = {}) => ({
   schema: 'rise.current.v2', id: 'week', title: 'What changed in RISE', theme: 'cobalt',
   origin: { kind: 'model', name: MODEL, provider: 'Anthropic, via Claude Code' },
-  scenes: [{ id: 'field', engine: 'attractor' }], beats, ...extra
+  beats, ...extra
 });
+/** The opening the composer names: RISE places it on the first beat. */
+const OPEN = { engine: 'attractor' };
 const beats = [
-  { say: 'This week RISE Live changed.', scene: 'field' },
+  { say: 'This week RISE Live changed.' },
   { say: 'The swarm draws 700 particles.' },
   { say: 'Sophia holds every visual in a frame.' }
 ];
@@ -60,11 +62,69 @@ describe('admitComposition', () => {
     expect(verdict.current.origin).toEqual({ kind: 'model', name: MODEL, provider: 'Anthropic, via Claude Code' });
   });
 
-  it('refuses an answer that is not the {current, pictures} object', () => {
+  it('refuses an answer that is not the {current, pictures, opening?, close?} object', () => {
     expect(admit('not json').diagnostics[0]).toMatch(/one JSON object/);
     expect(admit({ current: current(beats) }).diagnostics[0]).toMatch(/"current" and "pictures"/);
     expect(admit({ current: current(beats), pictures: [PICTURE], note: 'x' }).diagnostics[0]).toMatch(/"current" and "pictures"/);
     expect(admit({ current: current(beats), pictures: [PICTURE], extra: {} }).diagnostics[0]).toMatch(/"current" and "pictures"/);
+  });
+
+  describe('opening and close', () => {
+    const sources = { 1: [652], 2: [653] };
+    const ENGINE_RULE = /RISE’s engines open and close a digest; a change is shown with a kit picture/;
+
+    it('places the opening on the first beat and the close on the last, and declares their scenes', () => {
+      const verdict = admit({ current: current(beats), sources, opening: OPEN, close: { engine: 'ostensoria', params: { palette: 'ice' } } });
+      expect(verdict.ok).toBe(true);
+      expect(verdict.current.scenes).toEqual([{ id: 'opening', engine: 'attractor' }, { id: 'close', engine: 'ostensoria', params: { palette: 'ice' } }]);
+      expect(verdict.current.beats.map(beat => beat.scene)).toEqual(['opening', undefined, 'close']);
+    });
+
+    it('needs neither: a digest may open and close on its pictures alone', () => {
+      const verdict = admit({ current: current(beats), sources });
+      expect(verdict.ok).toBe(true);
+      expect(verdict.current.scenes ?? []).toEqual([]);
+    });
+
+    it('refuses a scene in the Current that names an engine, in plain words', () => {
+      const list = beats.map((beat, i) => (i === 2 ? { ...beat, scene: 'flame' } : beat));
+      const verdict = admit({ current: current(list, { scenes: [{ id: 'flame', engine: 'living-flame' }] }), sources });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.diagnostics).toHaveLength(1);
+      expect(verdict.diagnostics[0]).toMatch(/^Scene "flame" names RISE’s engine "living-flame"/);
+      expect(verdict.diagnostics[0]).toMatch(ENGINE_RULE);
+      expect(verdict.rules).toEqual({ engine: 1 });
+    });
+
+    it('refuses a picture that names an engine, in the same words', () => {
+      const verdict = admit({ current: current(beats), sources, pictures: [{ beat: 1, refs: [652], engine: 'attractor' }] });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.diagnostics[0]).toMatch(/^"pictures"\[0\] names RISE’s engine "attractor"/);
+      expect(verdict.diagnostics[0]).toMatch(ENGINE_RULE);
+      expect(verdict.rules).toEqual({ engine: 1 });
+    });
+
+    it('refuses an opening or close that is not { engine, params? } with one of RISE’s engines', () => {
+      for (const [opening, pattern] of [
+        ['attractor', /"opening" is \{ "engine", "params"\? \}/],
+        [{ engine: 'attractor', at: 0 }, /"opening" is \{ "engine", "params"\? \}/],
+        [{ engine: 'plasma' }, /"opening" names "plasma", which is not one of RISE’s engines/]
+      ]) {
+        const verdict = admit({ current: current(beats), sources, opening });
+        expect(verdict.ok).toBe(false);
+        expect(verdict.diagnostics.join('\n')).toMatch(pattern);
+      }
+    });
+
+    it('refuses a picture on the beat the opening or the close shows', () => {
+      const verdict = admit({ current: current(beats), sources: { 0: [652], 1: [652], 2: [653] }, opening: OPEN, pictures: [{ ...PICTURE, beat: 0 }] });
+      expect(verdict.diagnostics.join('\n')).toMatch(/beat 0 opens with RISE’s engine/);
+    });
+
+    it('refuses an opening and a close on a Current of one beat', () => {
+      const verdict = admit({ current: current([{ say: 'Three frames.' }]), sources: { 0: [653] }, opening: OPEN, close: OPEN, pictures: [] });
+      expect(verdict.diagnostics.join('\n')).toMatch(/one beat has room for an opening or a close, not both/);
+    });
   });
 
   it('derives the sources from each beat’s refs, and plays a Current without them', () => {
@@ -149,7 +209,7 @@ describe('admitComposition', () => {
     });
 
     it('accepts numbers a pull request states, and the dates of the period', () => {
-      const verdict = admit({ current: current([{ say: 'From 12 to 19 October 2026.', scene: 'field' }, { say: '700 particles, 60 ticks a second.' }, { say: 'Three frames.' }]), sources: { 1: [652], 2: [653] } });
+      const verdict = admit({ current: current([{ say: 'From 12 to 19 October 2026.' }, { say: '700 particles, 60 ticks a second.' }, { say: 'Three frames.' }]), sources: { 1: [652], 2: [653] } });
       expect(verdict.ok).toBe(true);
     });
 
@@ -186,7 +246,6 @@ describe('admitComposition', () => {
   describe('composition', () => {
     const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
     const nine = Array.from({ length: 9 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : `Beat ${words[i]}.` }));
-    const withScene = (list, at, scene) => list.map((beat, i) => (i === at ? { ...beat, scene } : beat));
     /** Beat 4 speaks of #653, every other beat but the opening of #652; a picture cites what its beat speaks of. */
     const refsOf = beat => (beat === 4 ? [653] : [652]);
     const sources = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i + 1, refsOf(i + 1)]));
@@ -194,7 +253,7 @@ describe('admitComposition', () => {
     const kit = (beat, spec = { kind: 'flow', steps: ['Before', 'After'], changed: 'After' }) => ({ beat, refs: refsOf(beat), kit: spec });
 
     it('refuses one scene held through the whole reading, with no picture', () => {
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [] });
+      const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [] });
       expect(verdict.ok).toBe(false);
       const said = verdict.diagnostics.join('\n');
       expect(said).toMatch(/at least one picture/);
@@ -202,37 +261,23 @@ describe('admitComposition', () => {
     });
 
     it('accepts an opening engine and a picture for each group', () => {
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1), picture(4), picture(7, 'scene')] });
+      const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [kit(1), picture(4), picture(7, 'scene')] });
       expect(verdict.diagnostics).toBeUndefined();
       expect(verdict.ok).toBe(true);
-    });
-
-    it('refuses more than two of RISE’s engines', () => {
-      const scenes = [{ id: 'a', engine: 'attractor' }, { id: 'b', engine: 'living-flame' }, { id: 'c', engine: 'genesis' }];
-      const list = withScene(withScene(withScene(nine, 0, 'a'), 1, 'b'), 8, 'c');
-      const verdict = admit({ current: current(list, { scenes }), sources, pictures: [picture(3), picture(6)] });
-      expect(verdict.diagnostics.join('\n')).toMatch(/at most 2 of RISE’s engines/);
-    });
-
-    it('refuses an engine started in the middle of the reading, where a picture should explain', () => {
-      const scenes = [{ id: 'field', engine: 'attractor' }, { id: 'flame', engine: 'living-flame' }];
-      const list = withScene(withScene(nine, 0, 'field'), 4, 'flame');
-      const verdict = admit({ current: current(list, { scenes }), sources, pictures: [picture(2), picture(7)] });
-      expect(verdict.diagnostics.join('\n')).toMatch(/beat 4 starts RISE’s engine "flame".*opening or the close/);
     });
 
     it('refuses a scene held for more than four beats', () => {
       const same = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i + 1, [652]]));
       same[8] = [652, 653];
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources: same, pictures: [{ ...kit(1), refs: [652] }, { ...kit(4), refs: [652] }] });
+      const verdict = admit({ current: current(nine), opening: OPEN, sources: same, pictures: [{ ...kit(1), refs: [652] }, { ...kit(4), refs: [652] }] });
       expect(verdict.diagnostics.join('\n')).toMatch(/beat 4 holds one scene for 5 beats/);
     });
 
     it('counts only the beats a picture is shown under: where its beats move on, RISE\u2019s eye holds, and is counted too', () => {
       const moved = { 1: [652], 2: [653], 3: [653], 4: [653], 5: [653], 6: [653], 7: [653], 8: [653] };
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
+      const verdict = admit({ current: current(nine), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
       expect(verdict.diagnostics.join('\n')).toMatch(/beat 2 holds one scene for 7 beats/);
-      const fine = admit({ current: current(withScene(nine, 0, 'field')), sources: moved, pictures: [{ ...kit(1), refs: [652] }, { ...kit(5), refs: [653] }] });
+      const fine = admit({ current: current(nine), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }, { ...kit(5), refs: [653] }] });
       expect(fine.diagnostics).toBeUndefined();
     });
 
@@ -245,10 +290,10 @@ describe('admitComposition', () => {
         [[{ ...picture(1), note: 'x' }, picture(4), kit(7)], /either \{ beat, refs, kit \} or \{ beat, refs, medium, brief \}/],
         [[{ ...kit(1), brief: 'x'.repeat(30) }, picture(4), kit(7)], /either \{ beat, refs, kit \} or \{ beat, refs, medium, brief \}/],
         [[{ beat: 1, kit: { kind: 'flow', steps: ['Before', 'After'], changed: 'After' } }, picture(4), kit(7)], /either \{ beat, refs, kit \}/],
-        [[picture(0), kit(4), kit(7)], /beat 0 already starts/]
+        [[picture(0), kit(4), kit(7)], /beat 0 opens with RISE’s engine/]
       ];
       for (const [pictures, pattern] of cases) {
-        const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures });
+        const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures });
         expect(verdict.ok).toBe(false);
         expect(verdict.diagnostics.join('\n')).toMatch(pattern);
       }
@@ -256,13 +301,13 @@ describe('admitComposition', () => {
 
     it('accepts a kit figure, drawn by RISE from the data the composer gives', () => {
       const bars = { kind: 'bars', title: 'Particles', max: 700, items: [{ label: 'Before', value: 60 }, { label: 'After', value: 700, changed: true }] };
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1, bars), kit(4), kit(7)] });
+      const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [kit(1, bars), kit(4), kit(7)] });
       expect(verdict.ok).toBe(true);
       expect(verdict.pictures[0]).toEqual({ beat: 1, refs: [652], kit: bars });
     });
 
     it('refuses a kit figure the kit cannot draw, in the kit’s own words', () => {
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1, { kind: 'bars', max: 10, items: [{ label: 'a', value: 1 }] }), kit(4), kit(7)] });
+      const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [kit(1, { kind: 'bars', max: 10, items: [{ label: 'a', value: 1 }] }), kit(4), kit(7)] });
       expect(verdict.ok).toBe(false);
       expect(verdict.diagnostics.join('\n')).toMatch(/"pictures"\[0\]\.kit: items has 2 to 4 items/);
       expect(verdict.rules).toHaveProperty('composition');
@@ -270,7 +315,7 @@ describe('admitComposition', () => {
 
     it('holds a kit figure’s labels and values to the number rule', () => {
       const bars = { kind: 'bars', max: 100, items: [{ label: 'Before', value: 40 }, { label: 'After', value: 60, changed: true }] };
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1, bars), kit(4), kit(7, { kind: 'flow', steps: ['Step 9', 'Done'] })] });
+      const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [kit(1, bars), kit(4), kit(7, { kind: 'flow', steps: ['Step 9', 'Done'] })] });
       const said = verdict.diagnostics.join('\n');
       expect(said).toMatch(/"40"/);
       expect(said).toMatch(/"9"/);
@@ -278,12 +323,12 @@ describe('admitComposition', () => {
     });
 
     it('refuses more than two pictures for the illustrator: a kit kind draws a measurement, a sequence, a sorting or a layout', () => {
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [picture(1), picture(4), picture(7)] });
+      const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [picture(1), picture(4), picture(7)] });
       expect(verdict.diagnostics.join('\n')).toMatch(/3 pictures for the illustrator; at most 2/);
     });
 
     it('refuses a picture that cites a change its beat does not speak of', () => {
-      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [{ ...kit(1), refs: [653] }, kit(4), kit(7)] });
+      const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [{ ...kit(1), refs: [653] }, kit(4), kit(7)] });
       expect(verdict.ok).toBe(false);
       expect(verdict.diagnostics.join('\n')).toMatch(/"pictures"\[0\]\.refs \[653\] are not all among beat 1’s refs \[652\]; a picture shows what its own beat speaks of/);
       expect(verdict.rules).toHaveProperty('composition');
@@ -291,15 +336,15 @@ describe('admitComposition', () => {
 
     it('refuses a picture with no refs, or refs that are not pull request numbers', () => {
       for (const refs of [[], ['652'], 652]) {
-        const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [{ ...kit(1), refs }, kit(4), kit(7)] });
+        const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [{ ...kit(1), refs }, kit(4), kit(7)] });
         expect(verdict.diagnostics.join('\n')).toMatch(/"pictures"\[0\]\.refs lists the pull requests the picture shows/);
       }
     });
 
     it('holds a picture’s numbers to the pull requests that picture cites, not to the whole week', () => {
       const bars = { kind: 'bars', max: 700, items: [{ label: 'Ticks', value: 60 }, { label: 'Particles', value: 700, changed: true }] };
-      expect(admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1, bars), kit(4), kit(7)] }).ok).toBe(true);
-      const elsewhere = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1), kit(4, bars), kit(7)] });
+      expect(admit({ current: current(nine), opening: OPEN, sources, pictures: [kit(1, bars), kit(4), kit(7)] }).ok).toBe(true);
+      const elsewhere = admit({ current: current(nine), opening: OPEN, sources, pictures: [kit(1), kit(4, bars), kit(7)] });
       expect(elsewhere.ok).toBe(false);
       expect(elsewhere.diagnostics.join('\n')).toMatch(/"700", which no pull request the picture cites states/);
     });
@@ -307,7 +352,7 @@ describe('admitComposition', () => {
     it('refuses more pictures than a Current has room for beside its engines', () => {
       const many = Array.from({ length: 30 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : 'More.' }));
       const pictures = Array.from({ length: 8 }, (_, i) => kit(1 + i * 3));
-      const verdict = admit({ current: current(withScene(many, 0, 'field')), sources, pictures });
+      const verdict = admit({ current: current(many), opening: OPEN, sources, pictures });
       expect(verdict.diagnostics.join('\n')).toMatch(/at most 6 pictures beside its 1 engine and RISE\u2019s eye/);
     });
 
@@ -315,7 +360,7 @@ describe('admitComposition', () => {
       const many = Array.from({ length: 30 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : 'More.' }));
       const all = Object.fromEntries(Array.from({ length: 29 }, (_, i) => [i + 1, i + 1 === 4 ? [652, 653] : [652]]));
       const pictures = Array.from({ length: 7 }, (_, i) => ({ beat: 1 + i * 4, refs: [652], kit: { kind: 'flow', steps: ['Before', 'After'], changed: 'After' } }));
-      const verdict = admit({ current: current(withScene(many, 0, 'field')), sources: all, pictures });
+      const verdict = admit({ current: current(many), opening: OPEN, sources: all, pictures });
       expect(verdict.diagnostics ?? []).not.toContainEqual(expect.stringMatching(/room for at most/));
     });
   });

@@ -11,14 +11,15 @@ const pull = (number, body = `The ${number} change makes the room quieter.`) => 
   route: { audience: 'team', significance: 'notable', kind: 'feature' }
 });
 
-const current = (beats, scenes = [{ id: 'field', engine: 'attractor' }]) => ({
+const current = (beats, scenes) => ({
   schema: 'rise.current.v2', id: 'week', title: 'What changed in RISE', theme: 'cobalt',
-  origin: { kind: 'model', name: MODEL, provider: 'Anthropic, via Claude Code' }, scenes, beats
+  origin: { kind: 'model', name: MODEL, provider: 'Anthropic, via Claude Code' }, ...(scenes ? { scenes } : {}), beats
 });
 const picture = { beat: 1, refs: [1], kit: { kind: 'flow', title: 'The room', steps: ['Before', 'After'], changed: 'After' } };
 const good = JSON.stringify({
-  current: current([{ say: 'This week the room changed.', scene: 'field' }, { say: 'Change one makes the room quieter.', refs: [1] }, { say: 'Change two makes the room quieter too.', refs: [2] }]),
-  pictures: [picture]
+  current: current([{ say: 'This week the room changed.' }, { say: 'Change one makes the room quieter.', refs: [1] }, { say: 'Change two makes the room quieter too.', refs: [2] }]),
+  pictures: [picture],
+  opening: { engine: 'attractor' }
 });
 /** The composer draws a scene itself, which the composition rule refuses: pictures are kit figures or briefs. */
 const refusedScene = JSON.stringify({
@@ -83,6 +84,15 @@ describe('buildComposeRequest', () => {
     const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
     expect(system).toMatch(/no flourish/i);
     expect(system).toMatch(/never of what a later run, test or review will show/);
+    expect(system).toMatch(/The close says the week’s last fact and stops: no summary and no slogan/);
+  });
+
+  it('names RISE’s engines only in "opening" and "close", which RISE places on the first and last beats', () => {
+    const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
+    expect(system).toMatch(/"opening": \{"engine": "attractor"\}, "close": \{"engine": "living-flame"\}/);
+    expect(system).toMatch(/RISE’s engines are named only in "opening" and "close"/);
+    expect(system).toMatch(/Write no "scenes" in the Current and name no scene on a beat/);
+    expect(system).not.toMatch(/at most 2 of RISE’s engines/);
   });
 
   it('asks for a picture brief per change or group, RISE’s engines only for mood, and the composition rule', () => {
@@ -96,7 +106,6 @@ describe('buildComposeRequest', () => {
     expect(system).toMatch(/at most 2/);
     expect(system).toMatch(/illustrator/i);
     expect(system).toMatch(/figure/);
-    expect(system).toMatch(/at most 2 of RISE’s engines/);
     expect(system).toMatch(/every 4 beats/);
     expect(system).toMatch(/mood/);
     expect(system).toMatch(/where each part sits/);
@@ -137,7 +146,8 @@ describe('composeCurrent', () => {
     expect(calls).toHaveLength(2);
     expect(calls[1].prompt).toMatch(/Scene "bad" is drawn by the composer; draw a picture through "pictures"/);
     expect(calls[1].prompt).toContain(refusedScene);
-    expect(result.current.scenes[0].engine).toBe('attractor');
+    expect(result.current.scenes).toEqual([{ id: 'opening', engine: 'attractor' }]);
+    expect(result.current.beats[0].scene).toBe('opening');
     expect(result.pictures).toEqual([picture]);
   });
 

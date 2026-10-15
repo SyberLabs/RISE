@@ -13,6 +13,7 @@ import { COMPOSER_PROVIDER, sourcesProblems } from '../../src/core/changes/contr
 import { figureProblems } from '../../src/core/figures/figure-kit.js';
 import { processTalkProblems } from '../../src/core/quality/process-talk.js';
 import { shownRuns } from './held.js';
+import { SCENE_ENGINES } from '../../src/core/beats.js';
 
 const MAX_LINE = 300;
 const MAX_SCENE_LINES = 10;
@@ -97,12 +98,11 @@ export function figureNumberProblems(svg, { pulls, period }) {
   return unstated([figureText(svg)], statedNumbers(pulls, period), 'The figure', 'pull request the picture cites');
 }
 
-/** Beats one scene may be held for before a picture or an engine starts again. */
+/** Beats one scene may be held for before a picture starts again. */
 export const HELD_BEATS = 4;
-/** RISE's engines a digest may run: for mood, at the opening or the close. */
-export const MAX_ENGINES = 2;
-/** The beats at either end where an engine may start. */
-const MOOD_BEATS = 2;
+/** The answer's fields that name RISE's engines, and the beat each is placed on. */
+export const ENDS = Object.freeze(['opening', 'close']);
+const ENGINE_RULE = 'RISE’s engines open and close a digest; a change is shown with a kit picture';
 const BRIEF_MIN = 20;
 const BRIEF_MAX = 300;
 /** Pictures a digest may ask RISE's illustrator for: a diagram no kit kind can express. */
@@ -128,26 +128,19 @@ export function kitTexts(kit) {
 }
 
 /**
- * What breaks the digest's composition: RISE's engines only for mood (at most two, started at the opening or the
- * close); every other picture either a kit figure RISE draws from the composer's data or, for a diagram no kit kind can
- * express, a brief the illustrator draws (at most two); at least one picture, and no scene held for more than four
- * beats. The plan is held to it before anything is drawn.
+ * What breaks the digest's composition, once RISE has placed the opening and close engines (the only engines a digest
+ * runs, so at most two, at its ends): every picture either a kit figure RISE draws from the composer's data or, for a
+ * diagram no kit kind can express, a brief the illustrator draws (at most two); at least one picture, and no scene
+ * held for more than four beats. The plan is held to it before anything is drawn.
  */
 export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
   const problems = [];
   const beats = current.beats;
   const scenes = new Map((current.scenes ?? []).map(scene => [scene.id, scene]));
   for (const scene of scenes.values()) {
-    if (scene.engine === undefined) problems.push(`Scene "${scene.id}" is drawn by the composer; draw a picture through "pictures" instead: a kit figure, or a brief the illustrator draws. "current.scenes" holds RISE’s engines only`);
+    if (scene.engine === undefined) problems.push(`Scene "${scene.id}" is drawn by the composer; draw a picture through "pictures" instead: a kit figure, or a brief the illustrator draws`);
   }
   const engines = [...scenes.values()].filter(scene => scene.engine !== undefined);
-  if (engines.length > MAX_ENGINES) problems.push(`The Current declares ${engines.length} of RISE’s engines; at most ${MAX_ENGINES} of RISE’s engines, for mood at the opening or the close. Explain with pictures`);
-  beats.forEach((beat, index) => {
-    const scene = scenes.get(beat?.scene);
-    if (scene?.engine !== undefined && index >= MOOD_BEATS && index < beats.length - MOOD_BEATS) {
-      problems.push(`beat ${index} starts RISE’s engine "${scene.id}"; an engine sets the mood at the opening or the close only (the first or last ${MOOD_BEATS} beats). Explain the middle with a picture`);
-    }
-  });
   if (!Array.isArray(pictures)) return [...problems, '"pictures" must be a list of { beat, refs, kit } or { beat, refs, medium, brief }'];
   if (pictures.length === 0) problems.push('"pictures" needs at least one picture: one for each change or group of changes that a picture explains');
   const bespoke = pictures.filter(picture => picture !== null && typeof picture === 'object' && !Array.isArray(picture) && isBrief(picture)).length;
@@ -171,6 +164,8 @@ export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
       problems.push(`${where} names beat ${String(picture.beat).slice(0, 12)}, but the Current has beats 0 to ${beats.length - 1}`);
     } else if (starts.has(picture.beat)) {
       problems.push(`${where} names beat ${picture.beat} twice; one picture starts on a beat`);
+    } else if (scenes.get(beats[picture.beat]?.scene)?.engine !== undefined) {
+      problems.push(`${where}: beat ${picture.beat} ${picture.beat === 0 ? 'opens' : 'closes'} with RISE’s engine; put the picture on another beat that speaks of its change`);
     } else if (beats[picture.beat]?.scene !== undefined) {
       problems.push(`${where}: beat ${picture.beat} already starts a scene; a picture starts on a beat that names none`);
     } else {
@@ -247,16 +242,40 @@ export function admitComposition(text, { pulls, model, period }) {
   } catch {
     return refused('answer', 'The answer must be one JSON object, {"current": ..., "pictures": [...]}, with nothing before or after it');
   }
-  const keys = Object.keys(value);
-  if (keys.length !== 2 || !['current', 'pictures'].every(key => Object.hasOwn(value, key))) {
-    return refused('answer', 'The answer must have exactly two fields, "current" and "pictures"; each beat carries its own "refs"');
+  if (!['current', 'pictures'].every(key => Object.hasOwn(value, key)) || Object.keys(value).some(key => !['current', 'pictures', ...ENDS].includes(key))) {
+    return refused('answer', 'The answer must have the fields "current" and "pictures", and may have "opening" and "close"; each beat carries its own "refs"');
   }
   const given = value.current;
   if (given === null || typeof given !== 'object' || Array.isArray(given) || given.schema !== RISE_CURRENT_SCHEMA_V2 || !Array.isArray(given.beats)) {
     return refused('answer', `"current" must be a Current of beats, "schema": "${RISE_CURRENT_SCHEMA_V2}"`);
   }
-  const { beats, sources, refsGiven } = splitRefs(given.beats);
-  const current = { ...given, beats, origin: { kind: 'model', name: model, provider: COMPOSER_PROVIDER } };
+  const ends = ENDS.filter(end => Object.hasOwn(value, end));
+  const endLines = ends.flatMap(end => {
+    const named = value[end];
+    if (named === null || typeof named !== 'object' || Array.isArray(named) || typeof named.engine !== 'string' || Object.keys(named).some(key => !['engine', 'params'].includes(key))) {
+      return [`"${end}" is { "engine", "params"? }: one of RISE’s engines, which RISE places on the ${end === 'opening' ? 'first' : 'last'} beat`];
+    }
+    return SCENE_ENGINES.includes(named.engine) ? [] : [clean(`"${end}" names "${named.engine.slice(0, 40)}", which is not one of RISE’s engines: ${SCENE_ENGINES.join(', ')}`)];
+  });
+  if (ends.length === 2 && given.beats.length < 2) endLines.push('A Current of one beat has room for an opening or a close, not both');
+  if (endLines.length) return { ok: false, diagnostics: endLines, rules: { answer: endLines.length } };
+  // RISE's engines are named only in "opening" and "close": one named anywhere else is refused, never repaired into place.
+  const named = thing => thing !== null && typeof thing === 'object' && !Array.isArray(thing) && Object.hasOwn(thing, 'engine');
+  const engineLines = [
+    ...(Array.isArray(given.scenes) ? given.scenes : []).filter(named).map(scene => `Scene "${scene.id}" names RISE’s engine "${scene.engine}"`),
+    ...(Array.isArray(value.pictures) ? value.pictures : []).flatMap((picture, index) => (named(picture) ? [`"pictures"[${index}] names RISE’s engine "${picture.engine}"`] : []))
+  ].map(line => clean(`${line}: ${ENGINE_RULE}. Name an engine only in "opening" or "close"`)).slice(0, MAX_SCENE_LINES);
+  if (engineLines.length) return { ok: false, diagnostics: engineLines, rules: { engine: engineLines.length } };
+  const { beats: spoken, sources, refsGiven } = splitRefs(given.beats);
+  // RISE places the opening on the first beat and the close on the last, and declares their scenes.
+  const placed = ends.map(end => ({ id: end, engine: value[end].engine, ...(value[end].params === undefined ? {} : { params: value[end].params }) }));
+  const beats = spoken.map((beat, index) => {
+    const end = index === 0 && ends.includes('opening') ? 'opening' : index === spoken.length - 1 && ends.includes('close') ? 'close' : null;
+    return end && beat !== null && typeof beat === 'object' && !Array.isArray(beat) ? { ...beat, scene: end } : beat;
+  });
+  const scenes = placed.length === 0 || (given.scenes !== undefined && !Array.isArray(given.scenes)) ? {} : { scenes: [...(given.scenes ?? []), ...placed] };
+  const { beats: _written, ...head } = given;
+  const current = { ...head, ...scenes, beats, origin: { kind: 'model', name: model, provider: COMPOSER_PROVIDER } };
   if (serializedUtf8Bytes(current) > MCP_CURRENT_BYTES) {
     return refused('size', `RISE refused this Current: The Current exceeds the ${MCP_CURRENT_BYTES.toLocaleString('en-US')}-byte MCP limit`);
   }
