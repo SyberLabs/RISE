@@ -24,7 +24,8 @@ export const ROUTE_MENU = Object.freeze({
 /** The route of a records-only change, and of any change whose answer was not admitted. */
 export const FALLBACK_ROUTE = Object.freeze({ audience: 'skip', significance: 'minor', kind: 'records' });
 
-export const REASONS = Object.freeze(['routed', 'records-only', 'limit']);
+/** Why a change is or is not in the reading; `unspoken`: chosen, but no beat spoke of it, so the run left it out. */
+export const REASONS = Object.freeze(['routed', 'records-only', 'limit', 'unspoken']);
 
 export const LIMITS = Object.freeze({
   changes: 60,

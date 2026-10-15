@@ -171,6 +171,9 @@ function flowProblems(spec) {
     problems.push(...fit(path, step, SIZE.label, slot, { bold: step === spec.changed }));
   });
   if (spec.changed !== undefined && !spec.steps.includes(spec.changed)) problems.push(`changed "${String(spec.changed).slice(0, 40)}" is not one of the steps`);
+  if (spec.steps.length === 2 && spec.changed === undefined && spec.loop === undefined) {
+    problems.push('a flow of two steps with no changed step and no loop explains nothing a sentence does not; say it in words, mark the step that changed, or add a step');
+  }
   if (spec.loop !== undefined) {
     const shape = keysProblem('loop', spec.loop, ['from', 'to', 'label'], ['from', 'to', 'label']);
     if (shape.length) return [...problems, ...shape];
@@ -187,6 +190,9 @@ function columnsProblems(spec) {
   problems.push(...countProblem('columns', spec.columns, FIGURE_BOUNDS.columns.columns, 'columns'));
   if (problems.some(line => line.startsWith('columns has'))) return problems;
   const { slot } = columnGeometry(spec.columns.length);
+  if (spec.columns.filter(column => Array.isArray(column?.items) && column.items.length >= 2).length < 2) {
+    problems.push('these columns are too sparse for columns; say it in words or use a flow: at least two columns list two items or more');
+  }
   spec.columns.forEach((column, i) => {
     const path = `columns[${i}]`;
     const shape = keysProblem(path, column, ['name', 'glyph', 'items'], ['name', 'items']);

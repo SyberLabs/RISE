@@ -192,6 +192,14 @@ describe('RISE Changes pages', () => {
     expect(words(653)).toBe('team · major · feature — Included');
   });
 
+  it('says when an included change was left out because the reading did not speak of it', async () => {
+    const digest = changesDigestFixture();
+    digest.changes.push({ ...digest.changes[6], number: 679, url: 'https://github.com/SyberLabs/RISE/pull/679', route: { audience: 'team', significance: 'notable', kind: 'fix' }, included: false, reason: 'unspoken' });
+    const { section } = await mount({ digestId: CHANGES_ID, load: files(undefined, digest) });
+    const row = section.querySelector('.changes-routes a[href$="/679"]').closest('li');
+    expect(row.querySelector('.changes-meta').textContent).toBe('team · notable · fix — Left out: the reading did not speak of it');
+  });
+
   it('writes what the files say as text, never markup', async () => {
     const digest = changesDigestFixture();
     digest.changes[0].title = '<img src=x onerror="window.pwned=1">';

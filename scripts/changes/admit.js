@@ -67,19 +67,19 @@ const COLOUR = /^.(?:#[0-9a-f]{3,8}|(?:rgba?|hsla?)\([^)]*\)).$/iu;
 const codeText = code => (code.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? [])
   .filter(literal => !COLOUR.test(literal)).join(' ');
 
-function unstated(texts, stated, what) {
+function unstated(texts, stated, what, whose = 'included pull request') {
   const found = new Set();
   for (const text of texts) {
     if (typeof text !== 'string') continue;
     for (const number of numbersIn(text)) if (!stated.has(number)) found.add(number);
   }
   return [...found].slice(0, MAX_NUMBER_LINES).map(number =>
-    `${what} says "${number}", which no included pull request states; use only numbers written in the pull requests, or say it without a number`);
+    `${what} says "${number}", which no ${whose} states; use only numbers written in the pull requests, or say it without a number`);
 }
 
 /** The same rule for one code scene: the numbers in its string literals. */
 export function codeNumberProblems(code, { pulls, period }) {
-  return unstated([codeText(code)], statedNumbers(pulls, period), 'The scene');
+  return unstated([codeText(code)], statedNumbers(pulls, period), 'The scene', 'pull request the picture cites');
 }
 
 /** Numbers the Current says or shows, its figures included, that no included pull request and no date of the period states. */
@@ -88,9 +88,12 @@ export function numberProblems(current, { pulls, period }) {
   return unstated([current.title, ...current.beats.flatMap(beat => [beat?.say, beat?.show]), ...figures], statedNumbers(pulls, period), 'The Current');
 }
 
-/** The same rule for one figure the illustrator drew: the numbers its visible text shows. */
+/**
+ * The same rule for one figure: the numbers its visible text shows. `pulls` are the pull requests the picture cites,
+ * so a figure's numbers come from the changes it shows, not from anywhere in the week.
+ */
 export function figureNumberProblems(svg, { pulls, period }) {
-  return unstated([figureText(svg)], statedNumbers(pulls, period), 'The figure');
+  return unstated([figureText(svg)], statedNumbers(pulls, period), 'The figure', 'pull request the picture cites');
 }
 
 /** Beats one scene may be held for before a picture or an engine starts again. */
@@ -104,8 +107,10 @@ const BRIEF_MAX = 300;
 /** Pictures a digest may ask RISE's illustrator for: a diagram no kit kind can express. */
 export const MAX_BESPOKE = 2;
 
-const isKit = picture => Object.keys(picture).length === 2 && Object.hasOwn(picture, 'beat') && Object.hasOwn(picture, 'kit');
-const isBrief = picture => Object.keys(picture).length === 3 && ['beat', 'medium', 'brief'].every(key => Object.hasOwn(picture, key));
+const isKit = picture => Object.keys(picture).length === 3 && ['beat', 'refs', 'kit'].every(key => Object.hasOwn(picture, key));
+const isBrief = picture => Object.keys(picture).length === 4 && ['beat', 'refs', 'medium', 'brief'].every(key => Object.hasOwn(picture, key));
+/** A picture's refs: one or more pull request numbers, each once. */
+const isRefList = refs => Array.isArray(refs) && refs.length > 0 && refs.every(Number.isInteger) && new Set(refs).size === refs.length;
 
 /** Every string and printed number a kit figure shows: what the number rule reads (a bar's max is a scale, never printed). */
 export function kitTexts(kit) {
@@ -127,7 +132,7 @@ export function kitTexts(kit) {
  * express, a brief the illustrator draws (at most two); at least one picture, and no scene held for more than four
  * beats. The plan is held to it before anything is drawn.
  */
-export function compositionProblems(current, pictures) {
+export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
   const problems = [];
   const beats = current.beats;
   const scenes = new Map((current.scenes ?? []).map(scene => [scene.id, scene]));
@@ -142,7 +147,7 @@ export function compositionProblems(current, pictures) {
       problems.push(`beat ${index} starts RISE’s engine "${scene.id}"; an engine sets the mood at the opening or the close only (the first or last ${MOOD_BEATS} beats). Explain the middle with a picture`);
     }
   });
-  if (!Array.isArray(pictures)) return [...problems, '"pictures" must be a list of { beat, kit } or { beat, medium, brief }'];
+  if (!Array.isArray(pictures)) return [...problems, '"pictures" must be a list of { beat, refs, kit } or { beat, refs, medium, brief }'];
   const room = Math.max(0, 8 - engines.length);
   if (pictures.length > room) problems.push(`"pictures" has ${pictures.length}; a Current has room for at most ${room} pictures beside its ${engines.length} engine${engines.length === 1 ? '' : 's'}`);
   if (pictures.length === 0) problems.push('"pictures" needs at least one picture: one for each change or group of changes that a picture explains');
@@ -152,8 +157,16 @@ export function compositionProblems(current, pictures) {
   pictures.forEach((picture, index) => {
     const where = `"pictures"[${index}]`;
     if (picture === null || typeof picture !== 'object' || Array.isArray(picture) || !(isKit(picture) || isBrief(picture))) {
-      problems.push(`${where} is either { beat, kit } or { beat, medium, brief }`);
+      problems.push(`${where} is either { beat, refs, kit } or { beat, refs, medium, brief }`);
       return;
+    }
+    if (!isRefList(picture.refs)) {
+      problems.push(`${where}.refs lists the pull requests the picture shows: one or more numbers, each among its beat\u2019s refs`);
+    } else if (Number.isInteger(picture.beat)) {
+      const own = Array.isArray(beatRefs[picture.beat]) ? beatRefs[picture.beat] : [];
+      if (!picture.refs.every(number => own.includes(number))) {
+        problems.push(`${where}.refs [${picture.refs.join(', ')}] are not all among beat ${picture.beat}\u2019s refs [${own.join(', ')}]; a picture shows what its own beat speaks of: move it to that beat, or picture this beat\u2019s change`);
+      }
     }
     if (!Number.isInteger(picture.beat) || picture.beat < 0 || picture.beat >= beats.length) {
       problems.push(`${where} names beat ${String(picture.beat).slice(0, 12)}, but the Current has beats 0 to ${beats.length - 1}`);
@@ -199,18 +212,22 @@ function splitRefs(beats) {
   return { beats: clean, sources, refsGiven };
 }
 
-/** The sources rules, worded for refs on the beats. */
+/**
+ * The sources rules, worded for refs on the beats. An included change no beat cites is not a refusal: the run moves it
+ * out of the reading (`unspoken`), so only a bad or foreign ref is refused here.
+ */
 function refsProblems(sources, beatCount, included) {
-  return sourcesProblems(sources, beatCount, included).map(line => line
-    .replace(/^"sources" beat (\d+)/u, 'beat $1 "refs"')
-    .replace(/must be cited by at least one beat$/u, 'must be cited in the "refs" of at least one beat'));
+  const cited = new Set(Object.values(sources).flat());
+  return sourcesProblems(sources, beatCount, included.filter(number => cited.has(number))).map(line => line
+    .replace(/^"sources" beat (\d+)/u, 'beat $1 "refs"'));
 }
 
 /**
- * The verdict on one composer answer: `{ ok: true, current, sources, pictures }`,
- * the Current with its origin set to the composer and the briefs the illustrator
- * draws, or `{ ok: false, diagnostics, rules }`, the lines a repair call is given
- * and how many each rule gave.
+ * The verdict on one composer answer: `{ ok: true, current, sources, pictures, unspoken }`,
+ * the Current with its origin set to the composer, its pictures, and the included
+ * changes no beat cites (the run moves them out of the reading), or
+ * `{ ok: false, diagnostics, rules }`, the lines a repair call is given and how many
+ * each rule gave.
  */
 export function admitComposition(text, { pulls, model, period }) {
   const refused = (rule, line) => ({ ok: false, diagnostics: [line], rules: { [rule]: 1 } });
@@ -228,7 +245,7 @@ export function admitComposition(text, { pulls, model, period }) {
   if (given === null || typeof given !== 'object' || Array.isArray(given) || given.schema !== RISE_CURRENT_SCHEMA_V2 || !Array.isArray(given.beats)) {
     return refused('answer', `"current" must be a Current of beats, "schema": "${RISE_CURRENT_SCHEMA_V2}"`);
   }
-  const { beats, sources } = splitRefs(given.beats);
+  const { beats, sources, refsGiven } = splitRefs(given.beats);
   const current = { ...given, beats, origin: { kind: 'model', name: model, provider: COMPOSER_PROVIDER } };
   if (serializedUtf8Bytes(current) > MCP_CURRENT_BYTES) {
     return refused('size', `RISE refused this Current: The Current exceeds the ${MCP_CURRENT_BYTES.toLocaleString('en-US')}-byte MCP limit`);
@@ -240,19 +257,27 @@ export function admitComposition(text, { pulls, model, period }) {
   }
   const subject = pulls.map(pull => `${pull.title}\n${pull.body ?? ''}`).join('\n');
   const pictures = Array.isArray(value.pictures) ? value.pictures : [];
-  const stated = statedNumbers(pulls, period);
+  // A picture's numbers come from the pull requests it cites.
+  const pictureNumbers = (picture, index) => {
+    if (picture === null || typeof picture !== 'object' || !isRefList(picture.refs)) return [];
+    const stated = statedNumbers(pulls.filter(pull => picture.refs.includes(pull.number)), period);
+    const texts = picture.kit !== undefined ? kitTexts(picture.kit) : [picture.brief];
+    return unstated(texts, stated, `"pictures"[${index}]`, 'pull request the picture cites');
+  };
   const found = {
     scene: sceneRefusals(current),
-    composition: compositionProblems(current, value.pictures).map(clean),
+    composition: compositionProblems(current, value.pictures, { beatRefs: refsGiven }).map(clean),
     refs: refsProblems(sources, current.beats.length, pulls.map(pull => pull.number)).map(clean),
     number: [
       ...numberProblems(current, { pulls, period }),
-      ...unstated(pictures.map(picture => picture?.brief), stated, 'A picture\u2019s brief'),
-      ...unstated(pictures.flatMap(picture => (picture?.kit === undefined ? [] : kitTexts(picture.kit))), stated, 'A kit figure')
+      ...pictures.flatMap(pictureNumbers)
     ],
     'process-talk': processTalkProblems(current.beats.map(beat => [beat?.say, beat?.show].filter(Boolean).join(' ')), { subject }).map(problem => clean(problem.message))
   };
   const diagnostics = Object.values(found).flat();
   const rules = Object.fromEntries(Object.entries(found).filter(([, lines]) => lines.length).map(([rule, lines]) => [rule, lines.length]));
-  return diagnostics.length ? { ok: false, diagnostics, rules } : { ok: true, current, sources, pictures: value.pictures };
+  if (diagnostics.length) return { ok: false, diagnostics, rules };
+  const cited = new Set(Object.values(sources).flat());
+  const unspoken = pulls.map(pull => pull.number).filter(number => !cited.has(number));
+  return { ok: true, current, sources, pictures: value.pictures, unspoken };
 }

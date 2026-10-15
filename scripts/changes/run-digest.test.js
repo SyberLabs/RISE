@@ -88,6 +88,24 @@ describe('runDigest on the week of #652–#671', () => {
     expect(result.issue.body).toContain('Notes from the run:');
   });
 
+  it('moves an included change no beat speaks of out of the reading, says so, and repairs nothing', async () => {
+    const [route, composition, ...rest] = week();
+    const silent = JSON.parse(composition);
+    const beat = silent.current.beats.findIndex(item => item.refs?.includes(667));
+    silent.current.beats[beat].refs = silent.current.beats[beat].refs.filter(number => number !== 667);
+    const { ask, calls } = scriptedAsk([route, JSON.stringify(silent), ...rest]);
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    expect(calls).toHaveLength(2 + rest.length);
+    expect(digest.changes.find(change => change.number === 667)).toMatchObject({ included: false, reason: 'unspoken' });
+    expect(Object.values(digest.sources).flat()).not.toContain(667);
+    expect(digest.notes).toEqual(['#667 was chosen for the reading, but no beat spoke of it; it is listed as unspoken under How this was chosen.']);
+    expect(digest.quality).toEqual({ firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: { unspoken: 1 } });
+    expect(result.issue.body).toContain('| no | unspoken |');
+    expect(result.issue.body).toContain('no beat spoke of it');
+    expect(JSON.parse(result.files['index.json']).digests[0].count).toBe(digest.changes.filter(change => change.included).length);
+  });
+
   it('scores the run: right the first time, with nothing repaired and no check fired', async () => {
     const { ask } = scriptedAsk(week());
     const lines = [];

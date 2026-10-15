@@ -16,7 +16,7 @@ const beats = [
   { say: 'The swarm draws 700 particles.' },
   { say: 'Sophia holds every visual in a frame.' }
 ];
-const PICTURE = { beat: 1, medium: 'figure', brief: 'A labelled diagram of the swarm: 700 particles riding the attractor.' };
+const PICTURE = { beat: 1, refs: [652], medium: 'figure', brief: 'A labelled diagram of the swarm: 700 particles riding the attractor.' };
 const text = (value) => JSON.stringify(value);
 /**
  * The composer's answer from a test's shorthand: `sources` becomes each beat's own `refs`, and an answer that names
@@ -107,7 +107,6 @@ describe('admitComposition', () => {
     const cases = [
       ['a number that is not included', { 1: [652, 999], 2: [653] }, /beat 1 "refs" cites #999, which is not one of the included pull requests/],
       ['a repeated number in one beat', { 1: [652, 652], 2: [653] }, /twice/],
-      ['an included change no beat cites', { 1: [652] }, /No beat cites #653/],
       ['a list that is not numbers', { 1: ['652'], 2: [653] }, /beat 1 "refs" must list one or more pull request numbers/],
       ['refs that are not a list', { 1: 652, 2: [653] }, /beat 1 "refs" must list one or more pull request numbers/]
     ];
@@ -119,6 +118,13 @@ describe('admitComposition', () => {
         expect(verdict.rules).toHaveProperty('refs');
       });
     }
+
+    it('lets an included change no beat cites go unspoken, rather than refusing the reading', () => {
+      const verdict = admit({ current: current(beats), sources: { 1: [652], 2: [652] } });
+      expect(verdict.ok).toBe(true);
+      expect(verdict.unspoken).toEqual([653]);
+      expect(verdict.sources).toEqual({ 1: [652], 2: [652] });
+    });
 
     it('lets a beat that only opens, holds or closes carry no refs, or empty ones', () => {
       expect(admit({ current: current(beats), sources: { 0: [], 1: [652], 2: [653] } }).ok).toBe(true);
@@ -172,7 +178,7 @@ describe('admitComposition', () => {
 
   it('counts each rule a refusal fired, for the run’s first-pass score', () => {
     const verdict = admit({ current: current([...beats.slice(0, 2), { say: 'It is 40 percent faster, the next dry run will tell.' }]), sources: { 1: [652] } });
-    expect(verdict.rules).toEqual({ refs: 1, number: 1, 'process-talk': 2 });
+    expect(verdict.rules).toEqual({ number: 1, 'process-talk': 2 });
     expect(admit('not json').rules).toEqual({ answer: 1 });
   });
 
@@ -181,9 +187,11 @@ describe('admitComposition', () => {
     const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
     const nine = Array.from({ length: 9 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : `Beat ${words[i]}.` }));
     const withScene = (list, at, scene) => list.map((beat, i) => (i === at ? { ...beat, scene } : beat));
-    const sources = { 1: [652], 4: [653] };
-    const picture = (beat, medium = 'figure') => ({ beat, medium, brief: `A labelled diagram for beat ${words[beat] ?? 'later'}, drawn from the pull request’s own words.` });
-    const kit = (beat, spec = { kind: 'flow', steps: ['Before', 'After'], changed: 'After' }) => ({ beat, kit: spec });
+    /** Beat 4 speaks of #653, every other beat but the opening of #652; a picture cites what its beat speaks of. */
+    const refsOf = beat => (beat === 4 ? [653] : [652]);
+    const sources = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i + 1, refsOf(i + 1)]));
+    const picture = (beat, medium = 'figure') => ({ beat, refs: refsOf(beat), medium, brief: `A labelled diagram for beat ${words[beat] ?? 'later'}, drawn from the pull request’s own words.` });
+    const kit = (beat, spec = { kind: 'flow', steps: ['Before', 'After'], changed: 'After' }) => ({ beat, refs: refsOf(beat), kit: spec });
 
     it('refuses one scene held through the whole reading, with no picture', () => {
       const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [] });
@@ -224,8 +232,9 @@ describe('admitComposition', () => {
         [[picture(1), kit(1), picture(4), kit(7)], /twice/],
         [[{ ...picture(1), medium: 'cue' }, picture(4), kit(7)], /figure or scene/],
         [[{ ...picture(1), brief: 'x'.repeat(301) }, picture(4), kit(7)], /300/],
-        [[{ ...picture(1), note: 'x' }, picture(4), kit(7)], /either \{ beat, kit \} or \{ beat, medium, brief \}/],
-        [[{ ...kit(1), brief: 'x'.repeat(30) }, picture(4), kit(7)], /either \{ beat, kit \} or \{ beat, medium, brief \}/],
+        [[{ ...picture(1), note: 'x' }, picture(4), kit(7)], /either \{ beat, refs, kit \} or \{ beat, refs, medium, brief \}/],
+        [[{ ...kit(1), brief: 'x'.repeat(30) }, picture(4), kit(7)], /either \{ beat, refs, kit \} or \{ beat, refs, medium, brief \}/],
+        [[{ beat: 1, kit: { kind: 'flow', steps: ['Before', 'After'], changed: 'After' } }, picture(4), kit(7)], /either \{ beat, refs, kit \}/],
         [[picture(0), kit(4), kit(7)], /beat 0 already starts/]
       ];
       for (const [pictures, pattern] of cases) {
@@ -239,7 +248,7 @@ describe('admitComposition', () => {
       const bars = { kind: 'bars', title: 'Particles', max: 700, items: [{ label: 'Before', value: 60 }, { label: 'After', value: 700, changed: true }] };
       const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1, bars), kit(4), kit(7)] });
       expect(verdict.ok).toBe(true);
-      expect(verdict.pictures[0]).toEqual({ beat: 1, kit: bars });
+      expect(verdict.pictures[0]).toEqual({ beat: 1, refs: [652], kit: bars });
     });
 
     it('refuses a kit figure the kit cannot draw, in the kit’s own words', () => {
@@ -261,6 +270,28 @@ describe('admitComposition', () => {
     it('refuses more than two pictures for the illustrator: a kit kind draws a measurement, a sequence, a sorting or a layout', () => {
       const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [picture(1), picture(4), picture(7)] });
       expect(verdict.diagnostics.join('\n')).toMatch(/3 pictures for the illustrator; at most 2/);
+    });
+
+    it('refuses a picture that cites a change its beat does not speak of', () => {
+      const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [{ ...kit(1), refs: [653] }, kit(4), kit(7)] });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.diagnostics.join('\n')).toMatch(/"pictures"\[0\]\.refs \[653\] are not all among beat 1’s refs \[652\]; a picture shows what its own beat speaks of/);
+      expect(verdict.rules).toHaveProperty('composition');
+    });
+
+    it('refuses a picture with no refs, or refs that are not pull request numbers', () => {
+      for (const refs of [[], ['652'], 652]) {
+        const verdict = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [{ ...kit(1), refs }, kit(4), kit(7)] });
+        expect(verdict.diagnostics.join('\n')).toMatch(/"pictures"\[0\]\.refs lists the pull requests the picture shows/);
+      }
+    });
+
+    it('holds a picture’s numbers to the pull requests that picture cites, not to the whole week', () => {
+      const bars = { kind: 'bars', max: 700, items: [{ label: 'Ticks', value: 60 }, { label: 'Particles', value: 700, changed: true }] };
+      expect(admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1, bars), kit(4), kit(7)] }).ok).toBe(true);
+      const elsewhere = admit({ current: current(withScene(nine, 0, 'field')), sources, pictures: [kit(1), kit(4, bars), kit(7)] });
+      expect(elsewhere.ok).toBe(false);
+      expect(elsewhere.diagnostics.join('\n')).toMatch(/"700", which no pull request the picture cites states/);
     });
 
     it('refuses more pictures than a Current has room for beside its engines', () => {

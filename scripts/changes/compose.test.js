@@ -15,7 +15,7 @@ const current = (beats, scenes = [{ id: 'field', engine: 'attractor' }]) => ({
   schema: 'rise.current.v2', id: 'week', title: 'What changed in RISE', theme: 'cobalt',
   origin: { kind: 'model', name: MODEL, provider: 'Anthropic, via Claude Code' }, scenes, beats
 });
-const picture = { beat: 1, kit: { kind: 'flow', title: 'The room', steps: ['Before', 'After'], changed: 'After' } };
+const picture = { beat: 1, refs: [1], kit: { kind: 'flow', title: 'The room', steps: ['Before', 'After'], changed: 'After' } };
 const good = JSON.stringify({
   current: current([{ say: 'This week the room changed.', scene: 'field' }, { say: 'Change one makes the room quieter.', refs: [1] }, { say: 'Change two makes the room quieter too.', refs: [2] }]),
   pictures: [picture]
@@ -91,6 +91,8 @@ describe('buildComposeRequest', () => {
     expect(system).toMatch(/brief/i);
     for (const kind of ['bars', 'flow', 'columns', 'stack']) expect(system).toContain(`"kind": "${kind}"`);
     expect(system).toMatch(/a measurement, a sequence, a sorting or a layout/);
+    expect(system).toMatch(/A picture must show something the words alone do not/);
+    expect(system).toMatch(/A picture’s "refs" are the pull requests it shows, each among its beat’s refs/);
     expect(system).toMatch(/at most 2/);
     expect(system).toMatch(/illustrator/i);
     expect(system).toMatch(/figure/);

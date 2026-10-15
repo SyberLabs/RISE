@@ -106,6 +106,7 @@ function reasonWords({ included, reason, route }, audience) {
   if (included) return 'Included';
   if (reason === 'records-only') return 'Left out: records only';
   if (reason === 'limit') return `Left out: over the ${LIMITS.included}-change limit`;
+  if (reason === 'unspoken') return 'Left out: the reading did not speak of it';
   if (route.audience === 'skip') return 'Left out: routed to no audience';
   if (route.audience !== 'both' && route.audience !== audience) return `Left out: routed to ${AUDIENCE_WORDS[route.audience]} only`;
   return route.significance === 'minor' ? 'Left out: minor' : 'Left out';
