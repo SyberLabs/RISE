@@ -149,10 +149,13 @@ current scope; the live Realtime page stays switched off by default. See
 
 ## Public dependency lookup (GitHits)
 
-- `.mcp.json` registers the hosted GitHits MCP server
-  (`https://mcp.githits.com`, OAuth on first use via `/mcp`). Headless
-  agents set `GITHITS_API_TOKEN` in the environment; never write a token to
-  a file.
+- `.mcp.json` invokes private MasterMind usage accounting. Install its
+  `tools/githits-usage` package with Node 24 and run `install.mjs`. Before
+  starting the agent, load the absolute `GITHITS_USAGE_NODE` executable and
+  `GITHITS_USAGE_HOME` tool directory from ignored `data/environment.json`.
+  Headless agents also set `GITHITS_API_TOKEN`; interactive OAuth uses the
+  private bridge. See `CLAUDE.md`. Never commit credentials or restore a direct
+  unaccounted hosted fallback.
 - Use it for the exact source and docs of the dependency version in
   `package-lock.json`, and for vulnerability, changelog, and upgrade checks
   before bumping a dependency.
