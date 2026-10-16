@@ -111,7 +111,7 @@ describe('the canon', () => {
       'mercury.machine-stops', 'mercury.rur', 'moon.psychological-types', 'mars.decline-of-the-west'
     ]);
     expect(SCHOOL_CANON.filter(record => record.rights === 'orig-only').map(record => record.id)).toEqual([
-      'gate.oration', 'mercury.philosophie-der-technik', 'jupiter.harmonices-mundi'
+      'gate.oration', 'mercury.philosophie-der-technik', 'venus.futurist-manifesto', 'mars.muqaddimah', 'mars.new-science', 'jupiter.harmonices-mundi'
     ]);
   });
 
