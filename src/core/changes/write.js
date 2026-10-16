@@ -78,12 +78,16 @@ export function nextIndex(index, digest, { supersede } = {}) {
     period: digest.period,
     count: digest.changes.filter(change => change.included).length
   };
-  const next = {
-    schema: INDEX_SCHEMA,
-    digests: [entry, ...digests]
-      .sort((a, b) => Date.parse(b.period.to) - Date.parse(a.period.to) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0))
-      .slice(0, LIMITS.index)
-  };
+  const sorted = [entry, ...digests].sort((a, b) => Date.parse(b.period.to) - Date.parse(a.period.to) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+  const kept = sorted.slice(0, LIMITS.index);
+  const marked = supersede === undefined ? undefined : sorted.find(item => item.id === supersede);
+  if (marked && !kept.includes(marked)) {
+    // The marked entry carries the link to its replacement, so it displaces the oldest other entry.
+    const drop = kept.findLastIndex(item => item !== entry);
+    kept.splice(drop, 1);
+    kept.push(marked);
+  }
+  const next = { schema: INDEX_SCHEMA, digests: kept };
   const problems = indexProblems(next);
   if (problems.length) throw new Error(`The index breaks the contract: ${problems.slice(0, 5).join('; ')}`);
   return next;

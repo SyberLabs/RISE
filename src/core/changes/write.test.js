@@ -159,6 +159,13 @@ describe('nextIndex', () => {
     expect(() => nextIndex(before, digest())).toThrow(/2026-10-19/);
   });
 
+  it('keeps a superseded oldest entry when the index is full', () => {
+    const digests = Array.from({ length: 200 }, (_, i) => entry(`2020-01-01-${i}`, new Date(Date.UTC(2020, 0, 1, 0, i)).toISOString()));
+    const index = nextIndex({ schema: 'syberlabs.changes-index/v1', digests }, digest(), { supersede: '2020-01-01-0' });
+    expect(index.digests).toHaveLength(200);
+    expect(index.digests.find(item => item.id === '2020-01-01-0').supersededBy).toBe('2026-10-19');
+  });
+
   it('marks the digest a re-run supersedes, and keeps it listed', () => {
     const before = { schema: 'syberlabs.changes-index/v1', digests: [entry('2026-10-19', '2026-10-19T08:00:00.000Z'), entry('2026-10-12', '2026-10-12T09:00:00.000Z')] };
     const index = nextIndex(before, digest({ id: '2026-10-19-2' }), { supersede: '2026-10-19' });
