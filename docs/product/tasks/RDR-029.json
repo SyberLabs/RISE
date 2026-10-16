@@ -21,16 +21,26 @@
       "ref": "docs/superpowers/specs/2026-10-16-mystery-school-design.md",
       "note": "Design: the Wheel and the Lectern, the record, the three states, routing, progress, the three owner questions.",
       "date": "2026-10-16"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/708",
+      "note": "The pane, data, launch, return, completion, browser gate spec and design; 25 commits.",
+      "date": "2026-10-16"
     }
   ],
   "activity": [
     {
       "date": "2026-10-16T16:30:00.000Z",
       "summary": "Claimed from the owner's plan of 2026-10-13; spec written; data modules under way."
+    },
+    {
+      "date": "2026-10-16T23:10:22.000Z",
+      "summary": "Pull request opened"
     }
   ],
-  "updatedAt": "2026-10-16T16:30:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-16T23:10:22.000Z",
+  "revision": 2,
   "summary": "The owner's plan of 2026-10-13 gives RISE a free, graded curriculum of 66 public domain texts in seven planetary houses with three degrees each, a Gate text and five cross-house reading paths. This task builds it as a Library pane: a wheel that maps houses, degrees and paths, a lectern that reads what the wheel points at, honest per-text states resolved from the content manifest (four texts are readable today), a launch into Reader setup under the house's colour, and a local record of what was read. Admitting more editions is the owner's call (spec §9) and a separate lane.",
   "blocker": null
 }
