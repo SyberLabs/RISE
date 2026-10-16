@@ -11,7 +11,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 142;
+export const FAST_TEST_FILES = 143;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -73,6 +73,8 @@ const FAST_TESTS = [
     'src/content/keystones.test.js',
     // The Mystery School's canon: its counts, its works in the archive, its paths' steps.
     'src/content/school/canon.test.js',
+    // A school text opens as the Library opens it, and a finished one marks the reader's record.
+    'src/app/school-reading.test.js',
     'src/enterprise/**/*.test.js',
     'src/core/rise-current.test.js',
     'src/live/protocol.test.js',
