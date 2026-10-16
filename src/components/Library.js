@@ -123,6 +123,7 @@ const LOADERS = {
   stations: () => import('./library/Via.js'),
   journeys: () => import('./library/Journeys.js'),
   keystones: () => import('./library/Keystones.js'),
+  school: () => import('./library/School.js'),
   mint: () => import('./library/Mint.js'),
   provenance: () => import('./library/Curia.js')
 };
@@ -138,6 +139,9 @@ const FACTORIES = {
   journeys: (el, { Journeys }, _data, capabilities) => new Journeys(el, capabilities),
   keystones: (el, { Keystones }, data, capabilities) => new Keystones(el, {
     ...capabilities, initialSlug: data?.slug || null
+  }),
+  school: (el, { School }, data, capabilities) => new School(el, {
+    ...capabilities, initialFocus: data?.focus || null
   }),
   mint: (el, { Mint }, data, capabilities) => new Mint(el, {
     ...capabilities, entry: data?.entry || null
@@ -155,6 +159,7 @@ const PROGRAMS = [
   ['stations', 'Stations'],
   ['journeys', 'Journeys'],
   ['keystones', 'Keystones'],
+  ['school', 'School'],
   ['provenance', 'Provenance']
 ];
 

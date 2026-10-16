@@ -565,6 +565,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 if (live) liveExited(session);
                 player.stop();
                 if (complete) operations.releaseSession?.(session);
+                if (complete && session?.provenance?.kind === 'school') operations.recordSchoolReading?.(session);
                 endVisualInterlocutionSession();
                 visualCortex.updateConfig({ enabled: false });
                 audioEngine.stopSession();

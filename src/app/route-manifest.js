@@ -101,6 +101,11 @@ export function createRouteManifest(operations) {
               onNavigate: operations.handleNavigate,
               onLaunch: operations.launchKeystone
             },
+            school: {
+              onNavigate: operations.handleNavigate,
+              onSelect: operations.selectSchoolText,
+              onAddressChange: next => operations.router?.updateAddress({ ...next, pane: 'school' })
+            },
             mint: {
               onNavigate: operations.handleNavigate,
               onOpen: operations.openMintedProgram

@@ -161,11 +161,11 @@ it, and CI fails when the committed copy is not what `src/` produces.
 ```mermaid
 flowchart LR
     affect["affect<br/>experience-state evaluation<br/>29 modules"]
-    app["app<br/>composition root<br/>24 modules"]
+    app["app<br/>composition root<br/>25 modules"]
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
-    components["components<br/>routed views<br/>57 modules"]
-    content["content<br/>texts, imagery, journeys<br/>228 modules"]
-    core["core<br/>session, player, router<br/>184 modules"]
+    components["components<br/>routed views<br/>58 modules"]
+    content["content<br/>texts, imagery, journeys<br/>232 modules"]
+    core["core<br/>session, player, router<br/>185 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>76 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -178,8 +178,8 @@ flowchart LR
     affect --> |7| core
     app --> |2| audio
     app -.-> |8 lazy| components
-    app --> |4| content
-    app --> |58| core
+    app --> |6| content
+    app --> |60| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
@@ -188,8 +188,8 @@ flowchart LR
     components --> |3| affect
     components --> |10| app
     components --> |6| audio
-    components --> |23| content
-    components --> |188| core
+    components --> |28| content
+    components --> |192| core
     components -.-> |1 lazy| page
     components --> |3| scenes
     components --> |4| sources
@@ -200,7 +200,7 @@ flowchart LR
     content --> |10| sources
     content --> |1| visuals
     core --> |14| audio
-    core --> |15| content
+    core --> |16| content
     core --> |13| scenes
     core --> |4| sources
     core --> |7| visuals
@@ -377,7 +377,8 @@ serves:
   engine), `src/components/library/Via.js` (the Stations of the Cross),
   `src/components/library/Journeys.js` (authored long-form experiences),
   `src/components/library/Keystones.js` (the public entry corridor),
-  `src/components/library/Mint.js` (the door a minted sequence opens onto) and
+  `src/components/library/School.js` (the Mystery School, the graded canon as
+  a wheel), `src/components/library/Mint.js` (the door a minted sequence opens onto) and
   `src/components/library/Curia.js` (the source and rights record).
 - Today's poem has no pane: Home's card, its Menu and `/today` begin the day's
   exact poem in the reader through the app's `launchToday`, which

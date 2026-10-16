@@ -61,6 +61,7 @@ const GATE = [
     '**/plus-customer.spec.js',
     '**/recitation.spec.js',
     '**/request-preview.spec.js',
+    '**/school.spec.js',
     '**/scriptorium.spec.js',
     '**/smoke.spec.js',
     '**/try.spec.js',

@@ -52,7 +52,8 @@ export const ROUTE_ALIASES = {
     live: 'read',
     'voice-demo': 'read',
     try: 'read',
-    chapel: 'library'
+    chapel: 'library',
+    school: 'library'
 };
 
 /**
@@ -79,7 +80,8 @@ export const ROUTE_PANES = {
     'chamber-session': 'chamber',
     live: 'live',
     'voice-demo': 'voice-demo',
-    try: 'try'
+    try: 'try',
+    school: 'school'
 };
 
 /** The pane a room opens when its data names none. */
@@ -142,6 +144,13 @@ const ROUTES = [
         parse: ({ slug }) => (slug ? { slug } : null)
     }),
     pane('keystones', { pattern: '/library/keystones', build: null }),
+    // The Mystery School; `focus` is a house id, a record id, or `path-<id>`.
+    pane('school', {
+        pattern: '/school/:focus?',
+        build: data => (data?.focus ? `/school/${enc(data.focus)}` : '/school'),
+        parse: ({ focus }) => (focus ? { focus } : {})
+    }),
+    pane('school', { pattern: '/library/school', build: null }),
 
     pane('setup', { pattern: '/read', build: () => '/read' }, 'read'),
     pane('chamber', {
