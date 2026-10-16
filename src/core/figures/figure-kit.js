@@ -74,8 +74,11 @@ const STACK_LABEL_X = 418;
 const STACK_LEADER_END = 404;
 const STACK_DOCK_X = 128;
 
-/** A list's rows, centred on the space under the title: a hairline (or, for what changed, the accent's dot), the label, its detail. */
-const LIST_CENTRE = 305;
+/**
+ * A list's rows, from a fixed baseline under the title as a flow's steps start under it: a hairline (or, for what
+ * changed, the accent's dot), the label, its detail.
+ */
+const LIST_TOP = 158;
 const LIST_PITCH = 56;
 const LIST_MARK = MARGIN;
 const LIST_LABEL_X = MARGIN + 40;
@@ -125,7 +128,7 @@ function stackGeometry(zones) {
 
 /** Each row's baseline, and where a detail starts and how much room it has: after the widest label, when any item has one. */
 function listGeometry(items) {
-  const baselines = items.map((_, i) => LIST_CENTRE - ((items.length - 1) * LIST_PITCH) / 2 + i * LIST_PITCH + 9);
+  const baselines = items.map((_, i) => LIST_TOP + i * LIST_PITCH);
   const detailed = items.some(item => item.detail !== undefined);
   return { baselines, detailed, labelSlot: detailed ? LIST_LABEL_COLUMN : W - MARGIN - LIST_LABEL_X };
 }
@@ -149,13 +152,50 @@ function compareGeometry(count) {
 const round1 = value => Math.round(value * 10) / 10;
 const width = (text, size, { serif = false, bold = false } = {}) => textAdvance(text) * size * (serif ? SERIF_WIDTH : SANS_WIDTH) * (bold ? BOLD_WIDTH : 1);
 
+/** The width of an average character at `size` (AVERAGE_EM, widened as the measure is): what a budget in characters counts. */
+const perCharacter = (size, options = {}) => size * AVERAGE_EM * (options.serif ? SERIF_WIDTH : SANS_WIDTH) * (options.bold ? BOLD_WIDTH : 1);
+/** How many average characters `slot` units hold at `size`: the budget a refusal names and the composer is told. */
+const budget = (slot, size, options = {}) => Math.floor(slot / perCharacter(size, options));
+
 /** A sentence when `text` set at `size` is wider than `slot` units, naming both in characters. */
 function fit(path, text, size, slot, options = {}) {
-  const per = size * AVERAGE_EM * (options.serif ? SERIF_WIDTH : SANS_WIDTH) * (options.bold ? BOLD_WIDTH : 1);
   const wide = width(text, size, options);
   if (wide <= slot) return [];
-  return [`${path} "${text}" is ${round1(wide / per)} characters wide at ${size} units; its slot holds ${Math.floor(slot / per)} characters. Shorten it: the kit never shrinks or cuts a label`];
+  return [`${path} "${text}" is ${round1(wide / perCharacter(size, options))} characters wide at ${size} units; its slot holds ${budget(slot, size, options)} characters. Shorten it: the kit never shrinks or cuts a label`];
 }
+
+/**
+ * Each slot's budget in average characters, from the same geometry and measure the refusals use, so what the composer
+ * is told cannot drift from what the kit accepts. `least` is the budget in the most crowded figure of its kind (the
+ * most bars or columns, or a list whose items carry details), `most` in the least crowded; a slot that can hold what
+ * changed is counted in bold. Letters wider than average (W, M) fit fewer; narrower ones (i, l, t) more.
+ */
+export const KIT_BUDGETS = Object.freeze({
+  title: budget(W - 2 * MARGIN, SIZE.title, { serif: true }),
+  bars: Object.freeze({
+    note: budget(W - 2 * MARGIN, SIZE.label),
+    label: Object.freeze({ least: budget(barGeometry(FIGURE_BOUNDS.bars.items[1]).slot, SIZE.label), most: budget(barGeometry(FIGURE_BOUNDS.bars.items[0]).slot, SIZE.label) }),
+    value: Object.freeze({ least: budget(barGeometry(FIGURE_BOUNDS.bars.items[1]).slot, SIZE.value, { bold: true }), most: budget(barGeometry(FIGURE_BOUNDS.bars.items[0]).slot, SIZE.value, { bold: true }) })
+  }),
+  flow: Object.freeze({
+    step: budget(flowGeometry(FIGURE_BOUNDS.flow.steps[1]).slot, SIZE.label, { bold: true }),
+    loop: budget(W - 8 - LOOP_LABEL_X, SIZE.label, { serif: true })
+  }),
+  columns: Object.freeze({
+    name: Object.freeze({ least: budget(columnGeometry(FIGURE_BOUNDS.columns.columns[1]).slot, SIZE.column, { serif: true }), most: budget(columnGeometry(FIGURE_BOUNDS.columns.columns[0]).slot, SIZE.column, { serif: true }) }),
+    item: Object.freeze({ least: budget(columnGeometry(FIGURE_BOUNDS.columns.columns[1]).slot, SIZE.label), most: budget(columnGeometry(FIGURE_BOUNDS.columns.columns[0]).slot, SIZE.label) })
+  }),
+  stack: Object.freeze({ label: budget(W - 24 - STACK_LABEL_X, SIZE.label, { bold: true }) }),
+  list: Object.freeze({
+    label: Object.freeze({ least: budget(LIST_LABEL_COLUMN, SIZE.label, { bold: true }), most: budget(W - MARGIN - LIST_LABEL_X, SIZE.label, { bold: true }) }),
+    detail: budget(W - MARGIN - (LIST_LABEL_X + LIST_LABEL_COLUMN + LIST_GAP), SIZE.label)
+  }),
+  compare: Object.freeze({
+    subject: budget(W - 2 * MARGIN, SIZE.label, { serif: true }),
+    cell: budget(COMPARE_CELL, SIZE.label, { bold: true }),
+    header: budget(COMPARE_CELL, SIZE.label)
+  })
+});
 
 // ─── checking ──────────────────────────────────────────────────────────
 
