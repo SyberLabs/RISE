@@ -266,27 +266,102 @@ describe('admitComposition', () => {
       expect(verdict.ok).toBe(true);
     });
 
-    it('refuses a scene held for more than four beats', () => {
-      const same = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i + 1, [652]]));
-      same[8] = [652, 653];
-      const verdict = admit({ current: current(nine), opening: OPEN, sources: same, pictures: [{ ...kit(1), refs: [652] }, { ...kit(4), refs: [652] }] });
-      expect(verdict.diagnostics.join('\n')).toMatch(/beat 4 holds one scene for 5 beats/);
+    it('holds a picture up to six beats while every beat under it cites what it shows', () => {
+      const six = { 1: [652], 2: [652], 3: [652], 4: [652], 5: [652], 6: [652], 7: [653], 8: [653] };
+      const verdict = admit({ current: current(nine), opening: OPEN, sources: six, pictures: [{ ...kit(1), refs: [652] }, { ...kit(7), refs: [653] }] });
+      expect(verdict.diagnostics).toBeUndefined();
+      const seven = { ...six, 7: [652] };
+      const held = admit({ current: current(nine), opening: OPEN, sources: seven, pictures: [{ ...kit(1), refs: [652] }, { ...kit(8), refs: [653] }] });
+      expect(held.diagnostics.join('\n')).toMatch(/beat 1 holds one picture for 7 beats; a picture is held at most 6 beats while every beat under it cites what it shows/);
     });
 
-    it('exempts RISE\u2019s eye from the hold limit: the room at rest is not a picture', () => {
+    it('holds a picture to four beats when a beat under it cites none of its changes, and an engine to four', () => {
+      const gap = { 1: [652], 2: [652], 4: [652], 5: [652], 6: [653], 7: [653], 8: [653] };
+      const held = admit({ current: current(nine), opening: OPEN, sources: gap, pictures: [{ ...kit(1), refs: [652] }, { ...kit(6), refs: [653] }] });
+      expect(held.diagnostics.join('\n')).toMatch(/beat 1 holds one scene for 5 beats; an engine, or a picture over a beat that cites none of its changes, is held at most 4 beats/);
+      const late = admit({ current: current(nine), opening: OPEN, sources: { 5: [652], 6: [652], 7: [653], 8: [653] }, pictures: [{ ...kit(5), refs: [652] }, { ...kit(7), refs: [653] }] });
+      expect(late.diagnostics.join('\n')).toMatch(/beat 0 holds one scene for 5 beats; an engine/);
+    });
+
+    it('exempts RISE\u2019s eye from the hold limit: it may rest across beats that cite no change', () => {
       const ten = [...nine, { say: 'Beat nine.' }];
-      const moved = { 1: [652], 2: [653], 3: [653], 4: [653], 5: [653], 6: [653], 7: [653], 8: [653], 9: [653] };
-      const verdict = admit({ current: current(ten), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
+      const resting = { 1: [652], 2: [653], 9: [653] };
+      const verdict = admit({ current: current(ten), opening: OPEN, sources: resting, pictures: [{ ...kit(1), refs: [652] }, { ...kit(9), refs: [653] }] });
       expect(verdict.diagnostics).toBeUndefined();
       expect(verdict.ok).toBe(true);
     });
 
     it('counts only the beats a picture is shown under: where its beats move on, the picture\u2019s hold ends', () => {
-      const moved = { 1: [652], 2: [652], 3: [652], 4: [652], 5: [652], 6: [653], 7: [653], 8: [653] };
+      const moved = { 1: [652], 2: [652], 3: [652], 4: [652], 5: [652], 6: [652], 7: [652], 8: [653] };
       const held = admit({ current: current(nine), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
-      expect(held.diagnostics.join('\n')).toMatch(/beat 1 holds one scene for 5 beats/);
-      const ended = { ...moved, 5: [653] };
+      expect(held.diagnostics.join('\n')).toMatch(/beat 1 holds one picture for 7 beats/);
+      const ended = { ...moved, 7: [653] };
       expect(admit({ current: current(nine), opening: OPEN, sources: ended, pictures: [{ ...kit(1), refs: [652] }] }).diagnostics).toBeUndefined();
+    });
+
+    describe('density', () => {
+      const routed = significance => number => ({ ...pull(number, number === 652 ? 'The swarm draws 700 particles at 60 ticks a second.' : 'Three frames.'), route: { audience: 'team', significance, kind: 'feature' } });
+
+      it('refuses more than two speaking beats in a row with no picture of what they speak of, naming the beats and their changes', () => {
+        const moved = { 1: [652], 2: [653], 3: [653], 4: [653], 5: [653], 6: [653], 7: [653], 8: [653] };
+        const verdict = admit({ current: current(nine), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
+        expect(verdict.ok).toBe(false);
+        expect(verdict.diagnostics.join('\n')).toMatch(/beats 2 to 8 speak of #653 with no picture of it; at most 2 speaking beats in a row go without one\. Give each theme one picture on its first beat, held across its beats: for a rule or a process change, a list or a compare/);
+        expect(verdict.rules).toEqual({ density: 1 });
+      });
+
+      it('admits two speaking beats in a row without a picture, and counts a speaking beat under an engine as one', () => {
+        const two = { 1: [652], 2: [652], 3: [653], 4: [653], 5: [652], 6: [652], 7: [652], 8: [653] };
+        const verdict = admit({ current: current(nine), opening: OPEN, sources: two, pictures: [{ ...kit(1), refs: [652] }, { ...kit(5), refs: [652] }] });
+        expect(verdict.diagnostics).toBeUndefined();
+        const closing = admit({ current: current(nine), opening: OPEN, close: OPEN, sources: { ...two, 6: [653], 7: [653] }, pictures: [{ ...kit(1), refs: [652] }, { ...kit(5), refs: [652] }] });
+        expect(closing.diagnostics.join('\n')).toMatch(/beats 6 to 8 speak of #653 with no picture of it/);
+      });
+
+      it('refuses an included major change that no picture shows', () => {
+        const options = { pulls: [routed('notable')(652), routed('major')(653)] };
+        const verdict = admit({ current: current(beats), sources: { 1: [652], 2: [653] } }, options);
+        expect(verdict.ok).toBe(false);
+        expect(verdict.diagnostics).toEqual(['#653 is a major change and no picture shows it; give it a picture on a beat that speaks of it: for a rule or a process change, a list or a compare']);
+        expect(verdict.rules).toEqual({ density: 1 });
+        const shown = admit({ current: current(beats), sources: { 1: [652], 2: [653] }, pictures: [PICTURE, { beat: 2, refs: [653], kit: { kind: 'list', items: [{ label: 'Inner eye' }, { label: 'Outer shell' }, { label: 'Full frame' }] } }] }, options);
+        expect(shown.ok).toBe(true);
+      });
+
+      it('asks nothing of a major change no beat speaks of: it is left out of the reading', () => {
+        const verdict = admit({ current: current(beats), sources: { 1: [652], 2: [652] } }, { pulls: [routed('notable')(652), routed('major')(653)] });
+        expect(verdict.ok).toBe(true);
+        expect(verdict.unspoken).toEqual([653]);
+      });
+    });
+
+    describe('room', () => {
+      const many = Array.from({ length: 16 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : 'More.' }));
+      const all = Object.fromEntries(Array.from({ length: 15 }, (_, i) => [i + 1, i + 1 === 2 ? [652, 653] : [652]]));
+      const flows = count => Array.from({ length: count }, (_, i) => ({ beat: 1 + i * 2, refs: [652], kit: { kind: 'flow', steps: ['Before', 'After'], changed: 'After' } }));
+
+      it('gives up the close when a picture needs its slot, and says so', () => {
+        const verdict = admit({ current: current(many), opening: OPEN, close: OPEN, sources: all, pictures: flows(7) });
+        expect(verdict.diagnostics).toBeUndefined();
+        expect(verdict.dropped).toEqual(['close']);
+        expect(verdict.current.scenes.map(scene => scene.id)).toEqual(['opening']);
+        expect(verdict.current.beats[15]).not.toHaveProperty('scene');
+      });
+
+      it('gives up the opening too when the pictures need every slot, and keeps both when giving them up would not make room', () => {
+        const both = admit({ current: current(many), opening: OPEN, close: OPEN, sources: all, pictures: flows(8) });
+        expect(both.dropped).toEqual(['close', 'opening']);
+        expect(both.current).not.toHaveProperty('scenes');
+        const none = admit({ current: current(many), opening: OPEN, close: OPEN, sources: all, pictures: [...flows(7), { beat: 14, refs: [652], kit: { kind: 'flow', steps: ['Before', 'After'], changed: 'After' } }, { beat: 15, refs: [652], kit: { kind: 'flow', steps: ['Before', 'After'], changed: 'After' } }] });
+        expect(none.ok).toBe(false);
+        expect(none.diagnostics.join('\n')).toMatch(/"pictures" has 9; a Current has room for at most 6 pictures beside its 2 engines/);
+      });
+
+      it('keeps both ends when the pictures fit beside them', () => {
+        const verdict = admit({ current: current(many), opening: OPEN, close: OPEN, sources: all, pictures: flows(6) });
+        expect(verdict.ok).toBe(true);
+        expect(verdict.dropped).toEqual([]);
+      });
     });
 
     it('refuses a malformed picture list', () => {

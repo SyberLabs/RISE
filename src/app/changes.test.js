@@ -178,6 +178,59 @@ describe('RISE Changes pages', () => {
     expect(refused(digest => { digest.quality = { ...quality, checks: { '<b>': 1 } }; })).toThrow(/quality/);
   });
 
+  it('says how densely the reading is pictured under how this was chosen', async () => {
+    const quality = { firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {}, density: { pictures: 6, includedChanges: 8, speakingBeats: 17, pictured: 17, longestUnpictured: 0 } };
+    const { section } = await mount({ digestId: CHANGES_ID, load: files(undefined, { ...changesDigestFixture(), quality }) });
+    expect(section.querySelector('details.changes-chosen .changes-density').textContent).toBe('Pictures: 6 for 8 changes; every speaking beat pictured');
+    const { density: _density, ...older } = quality;
+    const plain = await mount({ digestId: CHANGES_ID, load: files(undefined, { ...changesDigestFixture(), quality: older }) });
+    expect(plain.section.querySelector('.changes-quality')).not.toBeNull();
+    expect(plain.section.querySelector('.changes-density')).toBeNull();
+  });
+
+  describe('a digest superseded by a re-run of its period', () => {
+    const NEW_ID = '2026-10-13-2';
+    const superseded = () => {
+      const index = changesIndexFixture();
+      const [old, ...rest] = index.digests;
+      index.digests = [{ ...old, id: NEW_ID, title: 'What changed in RISE, 12–13 October' }, { ...old, supersededBy: NEW_ID }, ...rest];
+      return index;
+    };
+
+    it('leaves the list: the re-run is listed in its place', async () => {
+      const { section } = await mount({ load: files(superseded()) });
+      expect([...section.querySelectorAll('.changes-digests li a')].map(link => link.getAttribute('href'))).toEqual([`/changes/${NEW_ID}`, '/changes/2026-10-12']);
+    });
+
+    it('still shows at its own address, with a line that links the reading which replaces it', async () => {
+      const { section, go } = await mount({ digestId: CHANGES_ID, load: files(superseded()) });
+      expect(section.querySelector('h1').textContent).toBe('What changed in RISE, 12–13 October');
+      const line = section.querySelector('.changes-superseded');
+      expect(line.textContent).toBe('A newer reading of this period replaces this one: What changed in RISE, 12–13 October.');
+      const link = line.querySelector('a[data-changes-go]');
+      expect(link.getAttribute('href')).toBe(`/changes/${NEW_ID}`);
+      link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 }));
+      expect(go).toHaveBeenCalledWith(`/changes/${NEW_ID}`);
+    });
+
+    it('shows the digest without the line when it is not superseded, or the list cannot be read', async () => {
+      expect((await mount({ digestId: CHANGES_ID })).section.querySelector('.changes-superseded')).toBeNull();
+      const unreadable = async path => {
+        if (path === '/content/changes/index.json') throw new Error('index: 500');
+        return changesDigestFixture();
+      };
+      const { section } = await mount({ digestId: CHANGES_ID, load: unreadable });
+      expect(section.querySelector('h1').textContent).toBe('What changed in RISE, 12–13 October');
+      expect(section.querySelector('.changes-superseded')).toBeNull();
+    });
+
+    it('refuses an index whose supersededBy names no listed digest', () => {
+      const index = superseded();
+      index.digests[1].supersededBy = '2026-10-20';
+      expect(() => admitChangesIndex(index)).toThrow(/supersededBy/);
+    });
+  });
+
   it('says why each change was left out, in the words of the team digest’s inclusion rule', async () => {
     const digest = changesDigestFixture();
     const base = digest.changes[6];

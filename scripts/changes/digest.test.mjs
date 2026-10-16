@@ -3,9 +3,11 @@ import { existsSync } from 'node:fs';
 import { test } from 'node:test';
 import { parseOptions, runProcess } from './digest.mjs';
 
-test('reads --since, --out and --dry-run, and refuses anything else', () => {
-  assert.deepEqual(parseOptions(['--since', '2026-10-13', '--out', 'x', '--dry-run']), { since: '2026-10-13', out: 'x', dryRun: true });
-  assert.deepEqual(parseOptions([]), { since: undefined, out: undefined, dryRun: false });
+test('reads --since, --out, --dry-run and --supersede, and refuses anything else', () => {
+  assert.deepEqual(parseOptions(['--since', '2026-10-13', '--out', 'x', '--dry-run']), { since: '2026-10-13', out: 'x', dryRun: true, supersede: undefined });
+  assert.deepEqual(parseOptions([]), { since: undefined, out: undefined, dryRun: false, supersede: undefined });
+  assert.deepEqual(parseOptions(['--supersede', '2026-10-16']), { since: undefined, out: undefined, dryRun: false, supersede: '2026-10-16' });
+  assert.throws(() => parseOptions(['--supersede', '../index']), /--supersede/);
   assert.throws(() => parseOptions(['--token', 'abc']));
   assert.throws(() => parseOptions(['positional']));
 });

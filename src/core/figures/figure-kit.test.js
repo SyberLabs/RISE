@@ -40,6 +40,25 @@ describe('renderFigure', () => {
     }
   });
 
+  it('marks a list’s changed item with the accent’s dot and label, and every other item with a hairline', () => {
+    const { accent, text: ink } = JEV_PALETTES.cobalt;
+    const svg = renderFigure(STUDY.list, { theme: 'cobalt' });
+    expect(svg.match(new RegExp(`<circle [^>]*fill="${accent}"`, 'g'))).toHaveLength(1);
+    expect(svg).toMatch(new RegExp(`fill="${accent}"[^>]*font-weight="600">${STUDY.list.changed}<`));
+    expect(svg.match(new RegExp(`<line [^>]*stroke="${ink}" stroke-opacity="0.35"`, 'g'))).toHaveLength(STUDY.list.items.length - 1);
+  });
+
+  it('heads a compare Before and After unless given, and inks every after cell in the accent', () => {
+    const { accent } = JEV_PALETTES.cobalt;
+    const svg = renderFigure(STUDY.compare, { theme: 'cobalt' });
+    expect(svg).toContain('>Before</text>');
+    expect(svg).toContain('>After</text>');
+    for (const row of STUDY.compare.rows) expect(svg).toMatch(new RegExp(`fill="${accent}"[^>]*>${row.after}<`));
+    const headed = renderFigure({ ...STUDY.compare, headers: { before: 'Was', after: 'Now' } }, { theme: 'cobalt' });
+    expect(headed).toContain('>Was</text>');
+    expect(headed).not.toContain('>Before</text>');
+  });
+
   it('escapes what it is given', () => {
     const svg = renderFigure({ kind: 'flow', steps: ['a <b> & "c"', 'd'], changed: 'd' }, { theme: 'cobalt' });
     expect(svg).toContain('a &lt;b&gt; &amp; &quot;c&quot;');
@@ -77,7 +96,7 @@ describe('every figure the kit draws is admitted and layout-clean by constructio
 
 describe('figureProblems', () => {
   const cases = [
-    ['an unknown kind', { kind: 'pie' }, /kind is one of bars, flow, columns, stack/],
+    ['an unknown kind', { kind: 'pie' }, /kind is one of bars, flow, columns, stack, list, compare/],
     ['a key the kind does not take', { ...STUDY.flow, colour: 'red' }, /flow takes/],
     ['one bar', { kind: 'bars', max: 1, items: [{ label: 'a', value: 1 }] }, /2 to 4 items/],
     ['five bars', { kind: 'bars', max: 1, items: Array.from({ length: 5 }, () => ({ label: 'a', value: 1 })) }, /2 to 4 items/],
@@ -98,7 +117,18 @@ describe('figureProblems', () => {
     ['an empty label', { kind: 'flow', steps: ['', 'b'] }, /1 or more characters/],
     ['columns of one word each', { kind: 'columns', columns: [{ name: 'Bars', items: ['measure'] }, { name: 'Flow', items: ['sequence'] }, { name: 'Columns', items: ['sorting'] }] }, /too sparse for columns; say it in words or use a flow/],
     ['columns with only one full column', { kind: 'columns', columns: [{ name: 'a', items: ['x', 'y'] }, { name: 'b', items: ['z'] }] }, /too sparse for columns/],
-    ['a flow of two steps that marks nothing', { kind: 'flow', steps: ['Before', 'After'] }, /a flow of two steps with no changed step and no loop explains nothing a sentence does not/]
+    ['a flow of two steps that marks nothing', { kind: 'flow', steps: ['Before', 'After'] }, /a flow of two steps with no changed step and no loop explains nothing a sentence does not/],
+    ['a list of one item', { kind: 'list', items: [{ label: 'a' }], changed: 'a' }, /2 to 6 items/],
+    ['a list of seven items', { kind: 'list', items: Array.from({ length: 7 }, (_, i) => ({ label: `i${i}` })) }, /2 to 6 items/],
+    ['a list item that is not { label, detail? }', { kind: 'list', items: [{ label: 'a', note: 'x' }, { label: 'b' }], changed: 'b' }, /items\[0\] takes label, detail/],
+    ['a list item named twice', { kind: 'list', items: [{ label: 'a' }, { label: 'a' }, { label: 'b' }] }, /items\[1\]\.label "a" is given twice/],
+    ['a changed item that is not an item', { kind: 'list', items: [{ label: 'a' }, { label: 'b' }], changed: 'c' }, /changed "c" is not one of the items/],
+    ['a list of two items that marks nothing and details nothing', { kind: 'list', items: [{ label: 'a' }, { label: 'b' }] }, /a list of two items with no changed item and no detail explains nothing a sentence does not/],
+    ['a compare of one row', { kind: 'compare', rows: [{ subject: 'a', before: 'b', after: 'c' }] }, /2 to 4 rows/],
+    ['a compare of five rows', { kind: 'compare', rows: Array.from({ length: 5 }, (_, i) => ({ subject: `s${i}`, before: 'b', after: 'c' })) }, /2 to 4 rows/],
+    ['a row without its after', { kind: 'compare', rows: [{ subject: 'a', before: 'b' }, { subject: 'd', before: 'e', after: 'f' }] }, /rows\[0\] takes subject, before, after and needs after/],
+    ['a row the same before and after', { kind: 'compare', rows: [{ subject: 'a', before: 'b', after: 'b' }, { subject: 'd', before: 'e', after: 'f' }] }, /rows\[0\] says "b" before and after; a compare shows what changed/],
+    ['headers that are not { before, after }', { kind: 'compare', headers: { before: 'Was' }, rows: [{ subject: 'a', before: 'b', after: 'c' }, { subject: 'd', before: 'e', after: 'f' }] }, /headers takes before, after and needs after/]
   ];
   for (const [name, spec, pattern] of cases) {
     it(`refuses ${name}`, () => {
@@ -129,11 +159,30 @@ describe('figureProblems', () => {
     expect(figureProblems({ kind: 'columns', columns: [{ name: 'a', items: ['x', 'y'] }, { name: 'b', items: ['z', 'w'] }, { name: 'c', items: ['v'] }] })).toEqual([]);
   });
 
+  it('names the slot of a list’s detail and a compare’s cell when a label does not fit', () => {
+    const list = figureProblems({ kind: 'list', items: [{ label: 'Overlap', detail: 'no two labels ever touch, at any width, on any ground at all' }, { label: 'Outside' }], changed: 'Outside' });
+    expect(list.join('\n')).toMatch(/^items\[0\]\.detail "no two labels ever touch, at any width, on any ground at all" is [\d.]+ characters wide at 25 units; its slot holds \d+ characters\. Shorten it/);
+    const compare = figureProblems({ kind: 'compare', rows: [{ subject: 'A change no beat cites', before: 'Repaired by the composer, every time', after: 'Left out' }, { subject: 'b', before: 'c', after: 'd' }] });
+    expect(compare.join('\n')).toMatch(/^rows\[0\]\.before "Repaired by the composer, every time" is [\d.]+ characters wide at 25 units; its slot holds \d+ characters/);
+  });
+
+  it('gives a list’s labels the whole width when no item carries a detail', () => {
+    const label = 'Every label is measured before it is drawn';
+    expect(figureProblems({ kind: 'list', items: [{ label }, { label: 'b' }], changed: 'b' })).toEqual([]);
+    expect(figureProblems({ kind: 'list', items: [{ label }, { label: 'b', detail: 'x' }], changed: 'b' }).join('\n')).toMatch(/items\[0\]\.label/);
+  });
+
+  it('accepts a list of two items that marks one or details them, and a compare under its own headers', () => {
+    expect(figureProblems({ kind: 'list', items: [{ label: 'a' }, { label: 'b' }], changed: 'b' })).toEqual([]);
+    expect(figureProblems({ kind: 'list', items: [{ label: 'a', detail: 'x' }, { label: 'b' }] })).toEqual([]);
+    expect(figureProblems({ kind: 'compare', headers: { before: 'Was', after: 'Now' }, rows: [{ subject: 'a', before: 'b', after: 'c' }, { subject: 'd', before: 'e', after: 'f' }] })).toEqual([]);
+  });
+
   it('accepts the study', () => {
     for (const spec of Object.values(STUDY)) expect(figureProblems(spec)).toEqual([]);
   });
 
   it('exposes its bounds', () => {
-    expect(FIGURE_BOUNDS).toEqual({ bars: { items: [2, 4] }, flow: { steps: [2, 7] }, columns: { columns: [2, 4], items: [1, 6] }, stack: { zones: [2, 5] } });
+    expect(FIGURE_BOUNDS).toEqual({ bars: { items: [2, 4] }, flow: { steps: [2, 7] }, columns: { columns: [2, 4], items: [1, 6] }, stack: { zones: [2, 5] }, list: { items: [2, 6] }, compare: { rows: [2, 4] } });
   });
 });

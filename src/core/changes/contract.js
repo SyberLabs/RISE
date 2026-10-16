@@ -115,17 +115,27 @@ function changeProblems(change, index) {
 const RULE_ID = /^[a-z][a-z0-9-]{0,39}$/;
 const isCount = value => Number.isInteger(value) && value >= 0 && value <= 10000;
 
+const DENSITY_KEYS = ['pictures', 'includedChanges', 'speakingBeats', 'pictured', 'longestUnpictured'];
+
+/** A density measure: five counts, the pictured beats and the longest run without a picture among the speaking beats. */
+const isDensity = density => isObject(density) && sameKeys(density, DENSITY_KEYS) && DENSITY_KEYS.every(key => isCount(density[key]))
+  && density.pictured <= density.speakingBeats && density.longestUnpictured <= density.speakingBeats - density.pictured;
+
 /**
- * What is wrong with a run's first-pass score: `{ firstPass, repairs: { composition, illustrator }, checks }`, each
- * repair a count, `checks` at most 40 rule ids (lower-case words joined by hyphens), each fired at least once.
+ * What is wrong with a run's first-pass score: `{ firstPass, repairs: { composition, illustrator }, checks, density? }`,
+ * each repair a count, `checks` at most 40 rule ids (lower-case words joined by hyphens), each fired at least once, and
+ * `density`, when there (digests written before it have none), how densely the reading is pictured:
+ * `{ pictures, includedChanges, speakingBeats, pictured, longestUnpictured }`.
  */
 export function qualityProblems(quality) {
-  const shaped = isObject(quality) && sameKeys(quality, ['firstPass', 'repairs', 'checks']) && typeof quality.firstPass === 'boolean'
+  const keys = ['firstPass', 'repairs', 'checks', ...(isObject(quality) && Object.hasOwn(quality, 'density') ? ['density'] : [])];
+  const shaped = isObject(quality) && sameKeys(quality, keys) && typeof quality.firstPass === 'boolean'
     && isObject(quality.repairs) && sameKeys(quality.repairs, ['composition', 'illustrator'])
     && isCount(quality.repairs.composition) && isCount(quality.repairs.illustrator)
     && isObject(quality.checks) && Object.keys(quality.checks).length <= 40
-    && Object.entries(quality.checks).every(([rule, count]) => RULE_ID.test(rule) && isCount(count) && count > 0);
-  return shaped ? [] : ['quality must be { firstPass, repairs: { composition, illustrator }, checks: { <rule>: <count> } }'];
+    && Object.entries(quality.checks).every(([rule, count]) => RULE_ID.test(rule) && isCount(count) && count > 0)
+    && (!keys.includes('density') || isDensity(quality.density));
+  return shaped ? [] : ['quality must be { firstPass, repairs: { composition, illustrator }, checks: { <rule>: <count> }, density? }'];
 }
 
 /** The first-pass score in one line, for the issue and the page. */
@@ -133,6 +143,13 @@ export function qualityLine({ firstPass, repairs, checks }) {
   const total = repairs.composition + repairs.illustrator;
   const fired = Object.entries(checks).map(([rule, count]) => `${rule} (${count})`).join(', ');
   return `First pass: ${firstPass ? 'yes' : 'no'} — ${total} repair${total === 1 ? '' : 's'}${total ? ` (${repairs.composition} composition, ${repairs.illustrator} illustrator)` : ''}; checks fired: ${fired || 'none'}`;
+}
+
+/** How densely the reading is pictured, in one line, for the run log, the issue and the page. */
+export function densityLine({ pictures, includedChanges, speakingBeats, pictured, longestUnpictured }) {
+  const head = `Pictures: ${pictures} for ${includedChanges} change${includedChanges === 1 ? '' : 's'}`;
+  if (pictured === speakingBeats) return `${head}; every speaking beat pictured`;
+  return `${head}; ${pictured} of ${speakingBeats} speaking beats pictured, at most ${longestUnpictured} in a row without one`;
 }
 
 /** What is wrong with a digest's envelope; empty when it keeps the contract. */
@@ -174,7 +191,10 @@ export function digestProblems(digest) {
   return problems;
 }
 
-/** What is wrong with index.json; empty when it keeps the contract. */
+/**
+ * What is wrong with index.json; empty when it keeps the contract. An entry may carry `supersededBy`, the id of a
+ * listed digest that re-ran its period: the list shows that one in its place, and the entry's own page links to it.
+ */
 export function indexProblems(index) {
   if (!isObject(index) || !sameKeys(index, ['schema', 'digests'])) return ['index.json has exactly schema and digests'];
   const problems = [];
@@ -183,9 +203,13 @@ export function indexProblems(index) {
   if (index.digests.length > LIMITS.index) problems.push(`index.json lists at most ${LIMITS.index} digests`);
   index.digests.forEach((entry, at) => {
     const path = `digests[${at}]`;
-    if (!isObject(entry) || !sameKeys(entry, ['id', 'audience', 'title', 'period', 'count'])) {
-      problems.push(`${path} has exactly id, audience, title, period, count`);
+    const keys = ['id', 'audience', 'title', 'period', 'count', ...(isObject(entry) && Object.hasOwn(entry, 'supersededBy') ? ['supersededBy'] : [])];
+    if (!isObject(entry) || !sameKeys(entry, keys)) {
+      problems.push(`${path} has exactly id, audience, title, period, count, and supersededBy when a re-run replaced it`);
       return;
+    }
+    if (keys.includes('supersededBy') && (entry.supersededBy === entry.id || !index.digests.some(other => isObject(other) && other.id === entry.supersededBy))) {
+      problems.push(`${path}.supersededBy names a digest the index lists, other than ${typeof entry.id === 'string' ? entry.id.slice(0, 20) : 'the entry'} itself`);
     }
     if (typeof entry.id !== 'string' || !DIGEST_ID.test(entry.id)) problems.push(`${path}.id is not a digest id`);
     if (entry.audience !== 'team') problems.push(`${path}.audience must be team`);

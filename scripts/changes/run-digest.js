@@ -7,8 +7,8 @@
 import { boundary, collectMergedPulls, readIndex } from '../../src/core/changes/collect.js';
 import { composeCurrent } from './compose.js';
 import { illustrate } from './illustrate.js';
-import { endHeldPictures } from './held.js';
-import { MODEL, REPOSITORY, qualityLine } from '../../src/core/changes/contract.js';
+import { endHeldPictures, pictureCoverage } from './held.js';
+import { DIGEST_ID, MODEL, REPOSITORY, densityLine, qualityLine } from '../../src/core/changes/contract.js';
 import { prefilter } from '../../src/core/changes/prefilter.js';
 import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
 import { buildDigest, digestId, issueFor, nextIndex, serialize } from '../../src/core/changes/write.js';
@@ -18,7 +18,8 @@ export const MAX_CANDIDATES = 200;
 
 /**
  * The run's first-pass score (docs/plans/RISE-CHANGES.md, Quality gates): told each rule that fired and each repair
- * asked for; `score(letGo)` is the digest's `quality`, right the first time only with no repair and nothing let go.
+ * asked for; `score(letGo, density)` is the digest's `quality`, right the first time only with no repair and nothing
+ * let go, with how densely the reading is pictured.
  */
 export function createTally() {
   const checks = {};
@@ -26,13 +27,31 @@ export function createTally() {
   return {
     fired(rule, count = 1) { checks[rule] = (checks[rule] ?? 0) + count; },
     repaired(stage) { repairs[stage] += 1; },
-    score(letGo) {
+    score(letGo, density) {
       return {
         firstPass: repairs.composition + repairs.illustrator === 0 && letGo === 0,
         repairs: { ...repairs },
-        checks: Object.fromEntries(Object.entries(checks).sort(([a], [b]) => (a < b ? -1 : 1)))
+        checks: Object.fromEntries(Object.entries(checks).sort(([a], [b]) => (a < b ? -1 : 1))),
+        ...(density ? { density } : {})
       };
     }
+  };
+}
+
+/**
+ * How densely the finished reading is pictured: the pictures it shows, the included changes it speaks of, its speaking
+ * beats (those with refs), how many are shown a picture of what they speak of, and the longest run of them without one.
+ */
+export function measureDensity(current, { sources, pictureRefs, includedChanges }) {
+  const starts = new Map();
+  current.beats.forEach((beat, index) => { if (beat.scene !== undefined) starts.set(index, { refs: pictureRefs[beat.scene] ?? null }); });
+  const { speaking, pictured, longest } = pictureCoverage(current.beats.length, starts, sources);
+  return {
+    pictures: (current.scenes ?? []).filter(scene => Object.hasOwn(pictureRefs, scene.id)).length,
+    includedChanges,
+    speakingBeats: speaking,
+    pictured,
+    longestUnpictured: longest
   };
 }
 
@@ -42,10 +61,19 @@ export function createTally() {
  * the notification issue's title and body. `renderCheck`, when given, renders
  * each admitted figure (illustrate.js).
  */
-export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, model = MODEL, log, renderCheck }) {
+export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck }) {
   const index = await readIndex(gh, repo);
-  const period = { from: boundary({ index, now, since }), to: now.toISOString() };
+  // A re-run of a published period replaces that digest in the list: its period starts where the replaced one did.
+  let replaced = null;
+  if (supersede !== undefined) {
+    if (typeof supersede !== 'string' || !DIGEST_ID.test(supersede)) throw new Error('--supersede names a digest id: a date, with a short suffix for a second run that day');
+    replaced = index?.digests.find(entry => entry.id === supersede) ?? null;
+    if (replaced === null) throw new Error(`--supersede ${supersede}: index.json lists no such digest`);
+    if (replaced.supersededBy !== undefined) throw new Error(`${supersede} is already superseded by ${replaced.supersededBy}; supersede that one instead`);
+  }
+  const period = { from: boundary({ index, now, since: since ?? replaced?.period.from }), to: now.toISOString() };
   log(`Period: ${period.from} to ${period.to}${index === null ? ' (no index yet)' : ''}`);
+  if (replaced) log(`Supersedes ${replaced.id}: /changes will list this digest in its place`);
 
   const pulls = await collectMergedPulls(gh, { repo, from: period.from, to: period.to });
   if (pulls.length === 0) return { written: false, reason: 'No pull request was merged into main in the period' };
@@ -70,6 +98,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   const context = routed.filter(pull => !includedNumbers.has(pull.number));
   const tally = createTally();
   const composed = await composeCurrent({ ask, pulls: included, context, model, period, log, tally });
+  for (const end of composed.dropped ?? []) log(`  RISE gave up the ${end} to make room for the pictures`);
   // A change chosen for the reading that no beat speaks of is left out of it, said in the notes, and not repaired.
   const unspoken = new Set(composed.unspoken ?? []);
   const spokenChanges = changes.map(change => (unspoken.has(change.number) ? { ...change, included: false, reason: 'unspoken' } : change));
@@ -91,17 +120,19 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   const { current, ended } = endHeldPictures(illustrated, { sources, pictureRefs });
   if (ended.length) log(`  RISE’s eye returns at beat${ended.length === 1 ? '' : 's'} ${ended.join(', ')}, where a picture’s beats move on`);
   // The first pass is lost by a repair or by anything let go, a picture or an unspoken change; the latter is never a repair.
-  const quality = tally.score(pictureNotes.length + unspoken.size);
+  const density = measureDensity(current, { sources, pictureRefs, includedChanges: spokenChanges.filter(change => change.included).length });
+  const quality = tally.score(pictureNotes.length + unspoken.size, density);
   log(`Quality: ${qualityLine(quality)}`);
+  log(densityLine(density));
   log(`Quality JSON: ${JSON.stringify(quality)}`);
 
   const id = digestId(period.to, (index?.digests ?? []).map(entry => entry.id));
   const digest = buildDigest({ id, period, generatedAt: now.toISOString(), model, changes: spokenChanges, current, sources, quality, notes });
-  const next = nextIndex(index, digest);
+  const next = nextIndex(index, digest, { supersede: replaced?.id });
   return {
     written: true,
     id,
     files: { [`${id}.json`]: serialize(digest), 'index.json': serialize(next) },
-    issue: issueFor(digest)
+    issue: issueFor(digest, { supersedes: replaced?.id })
   };
 }
