@@ -130,8 +130,10 @@
   fill: none;
   stroke: var(--sy-accent-rise);
   stroke-opacity: 0.7;
-  stroke-width: 1.25px;
-  vector-effect: non-scaling-stroke;
+  /* In wheel units (the box is 2 across): about 1.25 px on a 600 px wheel. A
+     non-scaling stroke would make Chromium ignore pathLength, and the draw-in
+     dash would never close into a line. */
+  stroke-width: 0.004;
   stroke-linejoin: round;
   stroke-linecap: round;
   stroke-dasharray: 1;
