@@ -99,18 +99,25 @@ describe('buildComposeRequest', () => {
     const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
     expect(system).toMatch(/"pictures"/);
     expect(system).toMatch(/brief/i);
-    for (const kind of ['bars', 'flow', 'columns', 'stack']) expect(system).toContain(`"kind": "${kind}"`);
-    expect(system).toMatch(/a measurement, a sequence, a sorting or a layout/);
+    for (const kind of ['bars', 'flow', 'columns', 'stack', 'list', 'compare']) expect(system).toContain(`"kind": "${kind}"`);
+    expect(system).toMatch(/a measurement, a sequence, a sorting, a layout, a set of rules or a before and after/);
+    expect(system).toMatch(/A rule or a process change is a list \(the rules, or what is checked\) or a compare \(what was so before and after\)/);
     expect(system).toMatch(/A picture must show something the words alone do not/);
     expect(system).toMatch(/A picture’s "refs" are the pull requests it shows, each among its beat’s refs/);
     expect(system).toMatch(/at most 2/);
     expect(system).toMatch(/illustrator/i);
     expect(system).toMatch(/figure/);
-    expect(system).toMatch(/No picture or engine is held for more than 4 beats; RISE’s eye, where a picture’s beats move on, may rest longer/);
     expect(system).not.toMatch(/a picture starts at least every/);
     expect(system).toMatch(/mood/);
     expect(system).toMatch(/where each part sits/);
-    expect(system).toMatch(/8 scenes in all/);
+  });
+
+  it('asks for one picture a theme, held across its beats, and says the density floor and the room in numbers', () => {
+    const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
+    expect(system).toMatch(/Give each theme one picture, on the theme’s first beat, held across its beats/);
+    expect(system).toMatch(/A picture is held at most 6 beats while every beat under it cites one of its changes, and 4 when one does not; an engine at most 4\. RISE’s eye, where a picture’s beats move on, may rest longer/);
+    expect(system).toMatch(/No more than 2 beats in a row that speak of a change may go without a picture of it, and every change marked "significance": "major" gets a picture/);
+    expect(system).toMatch(/A Current has 8 scenes in all: with an opening and a close, at most 6 pictures; with one of them, at most 7; with neither, 8\. RISE gives up the close, then the opening, when the pictures need their scenes/);
   });
 });
 

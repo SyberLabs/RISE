@@ -97,6 +97,30 @@
   },
   "pictures": [
     {
+      "beat": 1,
+      "refs": [
+        653
+      ],
+      "kit": {
+        "kind": "list",
+        "title": "Sophia’s three frames",
+        "items": [
+          {
+            "label": "Inner eye",
+            "detail": "her iris folds shut"
+          },
+          {
+            "label": "Outer shell",
+            "detail": "the eye folds to a seed"
+          },
+          {
+            "label": "Full frame",
+            "detail": "she docks at the ask bar"
+          }
+        ]
+      }
+    },
+    {
       "beat": 3,
       "refs": [
         665

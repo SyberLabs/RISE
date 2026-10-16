@@ -2,7 +2,7 @@
 /**
  * RISE Changes: one digest of what merged into main (docs/plans/RISE-CHANGES.md).
  *
- *   node scripts/changes/digest.mjs [--since <ISO>] [--out <dir>] [--dry-run]
+ *   node scripts/changes/digest.mjs [--since <ISO>] [--out <dir>] [--dry-run] [--supersede <id>]
  *
  * Reads GitHub through `gh` (GH_TOKEN) and asks Claude through the Claude
  * Code CLI (CLAUDE_CODE_OAUTH_TOKEN, passed to the CLI's environment only).
@@ -10,7 +10,9 @@
  * Writes `<id>.json`, `index.json` and `issue.json` (the notification's title
  * and body) to the out directory, which must be new or empty, and `run.json`
  * ({ written, id?, reason? }) in every case. It never commits, pushes or opens
- * an issue: the workflow does that, and skips it on a dry run.
+ * an issue: the workflow does that, and skips it on a dry run. `--supersede`
+ * re-runs a published digest's period (from its start, unless --since says
+ * otherwise) and marks that digest superseded in the index.
  */
 import { execFile, spawn } from 'node:child_process';
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
@@ -22,6 +24,7 @@ import { createAsk } from '../../src/core/changes/claude-cli.js';
 import { runDigest } from './run-digest.js';
 import { openRenderCheck } from './render-check.mjs';
 import { serialize } from '../../src/core/changes/write.js';
+import { DIGEST_ID } from '../../src/core/changes/contract.js';
 
 const GH_MAX_BUFFER = 64 * 1024 * 1024;
 const CLAUDE_TIMEOUT_MS = 10 * 60 * 1000;
@@ -30,11 +33,13 @@ const CLAUDE_MAX_OUTPUT = 8 * 1024 * 1024;
 export function parseOptions(argv) {
   const { values } = parseArgs({
     args: argv,
-    options: { since: { type: 'string' }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false } },
+    options: { since: { type: 'string' }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false }, supersede: { type: 'string' } },
     strict: true,
     allowPositionals: false
   });
-  return { since: values.since || undefined, out: values.out, dryRun: values['dry-run'] };
+  const supersede = values.supersede || undefined;
+  if (supersede !== undefined && !DIGEST_ID.test(supersede)) throw new Error('--supersede names a digest id: a date, with a short suffix for a second run that day');
+  return { since: values.since || undefined, out: values.out, dryRun: values['dry-run'], supersede };
 }
 
 /** `gh` with these arguments, without the Claude credential: its stdout, or an error carrying its stderr. */
@@ -107,7 +112,7 @@ export async function main(argv, { env = process.env, log = line => console.log(
   };
   let result;
   try {
-    result = await runDigest({ gh: runGh, ask, since: options.since, log, renderCheck });
+    result = await runDigest({ gh: runGh, ask, since: options.since, supersede: options.supersede, log, renderCheck });
   } finally {
     if (renderer) await (await renderer.catch(() => null))?.close();
   }

@@ -3,7 +3,7 @@
  * as text. Nothing here touches a disk or a branch; a digest that breaks the
  * contract's bounds is refused before any of it is produced.
  */
-import { DIGEST_ID, DIGEST_SCHEMA, INDEX_SCHEMA, LIMITS, SITE, digestProblems, indexProblems, qualityLine } from './contract.js';
+import { DIGEST_ID, DIGEST_SCHEMA, INDEX_SCHEMA, LIMITS, SITE, densityLine, digestProblems, indexProblems, qualityLine } from './contract.js';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -58,10 +58,19 @@ export function buildDigest({ id, period, generatedAt, model, changes, current, 
   return digest;
 }
 
-/** The index with this digest added: newest first by period.to, at most 200 entries. */
-export function nextIndex(index, digest) {
-  const digests = index === null ? [] : index.digests;
+/**
+ * The index with this digest added: newest first by period.to, at most 200 entries. `supersede`, the id of a listed
+ * digest this one re-runs, marks that entry `supersededBy` this digest; its file stays, so its address still answers.
+ */
+export function nextIndex(index, digest, { supersede } = {}) {
+  let digests = index === null ? [] : index.digests;
   if (digests.some(entry => entry.id === digest.id)) throw new Error(`index.json already lists ${digest.id}`);
+  if (supersede !== undefined) {
+    const old = digests.find(entry => entry.id === supersede);
+    if (!old) throw new Error(`index.json lists no digest ${supersede} to supersede`);
+    if (old.supersededBy !== undefined) throw new Error(`${supersede} is already superseded by ${old.supersededBy}; supersede that one instead`);
+    digests = digests.map(entry => (entry === old ? { ...entry, supersededBy: digest.id } : entry));
+  }
   const entry = {
     id: digest.id,
     audience: digest.audience,
@@ -83,18 +92,19 @@ export function nextIndex(index, digest) {
 /** A pull request's words in a Markdown table cell: one line, no pipe, no mention, no tag. */
 const cell = text => String(text).replace(/\s+/g, ' ').replace(/\|/g, '\\|').replace(/@/g, '@\u200b').replace(/</g, '&lt;');
 
-/** The notification issue: the reading's link, the models, and every change with its route. */
-export function issueFor(digest) {
+/** The notification issue: the reading's link, the models, and every change with its route; `supersedes`, the digest it replaces. */
+export function issueFor(digest, { supersedes } = {}) {
   const label = periodLabel(digest.period);
   const included = digest.changes.filter(change => change.included).length;
   return {
     title: `What changed in RISE: ${label}`,
     body: [
       `The team digest for ${label} is ready: ${SITE}/changes/${digest.id}`,
+      ...(supersedes ? ['', `It replaces the earlier reading of this period, ${SITE}/changes/${supersedes}, which /changes no longer lists.`] : []),
       '',
       `${included} of ${digest.changes.length} merged pull requests are in it. Routed and composed by ${digest.model.router} (router) and ${digest.model.composer} (composer), via ${digest.model.via}.`,
       '',
-      ...(digest.quality ? [qualityLine(digest.quality), ''] : []),
+      ...(digest.quality ? [qualityLine(digest.quality), ...(digest.quality.density ? [densityLine(digest.quality.density)] : []), ''] : []),
       '| Pull request | Title | Audience | Significance | Kind | Included | Reason |',
       '|---|---|---|---|---|---|---|',
       ...digest.changes.map(change => `| [#${change.number}](${change.url}) | ${cell(change.title)} | ${change.route.audience} | ${change.route.significance} | ${change.route.kind} | ${change.included ? 'yes' : 'no'} | ${change.reason} |`),

@@ -110,7 +110,7 @@ describe('runDigest on the week of #652–#671', () => {
     expect(digest.changes.find(change => change.number === 667)).toMatchObject({ included: false, reason: 'unspoken' });
     expect(Object.values(digest.sources).flat()).not.toContain(667);
     expect(digest.notes).toEqual(['#667 was chosen for the reading, but no beat spoke of it; it is listed as unspoken under How this was chosen.']);
-    expect(digest.quality).toEqual({ firstPass: false, repairs: { composition: 0, illustrator: 0 }, checks: { unspoken: 1 } });
+    expect(digest.quality).toEqual({ firstPass: false, repairs: { composition: 0, illustrator: 0 }, checks: { unspoken: 1 }, density: { pictures: 6, includedChanges: 10, speakingBeats: 11, pictured: 7, longestUnpictured: 2 } });
     expect(result.issue.body).toContain('| no | unspoken |');
     expect(result.issue.body).toContain('no beat spoke of it');
     expect(JSON.parse(result.files['index.json']).digests[0].count).toBe(digest.changes.filter(change => change.included).length);
@@ -121,9 +121,31 @@ describe('runDigest on the week of #652–#671', () => {
     const lines = [];
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
     const digest = JSON.parse(result.files['2026-10-14.json']);
-    expect(digest.quality).toEqual({ firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {} });
+    expect(digest.quality).toEqual({
+      firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {},
+      density: { pictures: 6, includedChanges: 11, speakingBeats: 12, pictured: 7, longestUnpictured: 2 }
+    });
     expect(lines).toContain('Quality: First pass: yes — 0 repairs; checks fired: none');
+    expect(lines).toContain('Pictures: 6 for 11 changes; 7 of 12 speaking beats pictured, at most 2 in a row without one');
     expect(result.issue.body).toContain('First pass: yes — 0 repairs; checks fired: none');
+    expect(result.issue.body).toContain('Pictures: 6 for 11 changes; 7 of 12 speaking beats pictured, at most 2 in a row without one');
+  });
+
+  it('measures the pictures the reading shows, not the ones it planned: a picture let go leaves its beats unpictured', async () => {
+    const [route, composition, , ...rest] = week();
+    const refused = ['@scene picture svg', '```svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>x</script></svg>', '```'].join('\n');
+    const { ask } = scriptedAsk([route, composition, refused, refused, refused, ...rest]);
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    expect(JSON.parse(result.files['2026-10-14.json']).quality.density).toEqual({ pictures: 5, includedChanges: 11, speakingBeats: 12, pictured: 6, longestUnpictured: 3 });
+  });
+
+  it('gives up the close when the pictures need its scene, and says so', async () => {
+    const { ask } = scriptedAsk(week());
+    const lines = [];
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    expect(digest.current.scenes.map(scene => scene.id).sort()).toEqual(['eye', 'opening', 'picture-1', 'picture-2', 'picture-3', 'picture-4', 'picture-5', 'picture-6']);
+    expect(lines).toContain('  RISE gave up the close to make room for the pictures');
   });
 
   it('scores a run that repaired its composition and let a picture go, and says which checks fired', async () => {
@@ -135,7 +157,8 @@ describe('runDigest on the week of #652–#671', () => {
     const lines = [];
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
     const digest = JSON.parse(result.files['2026-10-14.json']);
-    expect(digest.quality).toEqual({ firstPass: false, repairs: { composition: 1, illustrator: 2 }, checks: { figure: 3, 'process-talk': 2 } });
+    const { density: _density, ...score } = digest.quality;
+    expect(score).toEqual({ firstPass: false, repairs: { composition: 1, illustrator: 2 }, checks: { figure: 3, 'process-talk': 2 } });
     expect(lines).toContain('Quality: First pass: no — 3 repairs (1 composition, 2 illustrator); checks fired: figure (3), process-talk (2)');
   });
 
@@ -190,6 +213,32 @@ describe('runDigest on the week of #652–#671', () => {
     const result = await runDigest({ gh: fakeGh({ index, pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
     expect(result.id).toBe('2026-10-14-2');
     expect(JSON.parse(result.files['index.json']).digests.map(entry => entry.id)).toEqual(['2026-10-14-2', '2026-10-14']);
+  });
+
+  it('supersedes a published digest: a new id, the old entry marked, the period the old one began', async () => {
+    const index = JSON.parse(fixture('index.json'));
+    const { ask } = scriptedAsk(week());
+    const lines = [];
+    const later = new Date('2026-10-14T12:00:00.000Z');
+    const result = await runDigest({ gh: fakeGh({ index, pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now: later, supersede: '2026-10-14', model: MODEL, log: line => lines.push(line) });
+    expect(result.id).toBe('2026-10-14-2');
+    const digest = JSON.parse(result.files['2026-10-14-2.json']);
+    expect(digest.period).toEqual({ from: '2026-10-13T02:00:00.000Z', to: '2026-10-14T12:00:00.000Z' });
+    const entries = JSON.parse(result.files['index.json']).digests;
+    expect(entries.map(entry => [entry.id, entry.supersededBy])).toEqual([['2026-10-14-2', undefined], ['2026-10-14', '2026-10-14-2']]);
+    expect(lines).toContain('Supersedes 2026-10-14: /changes will list this digest in its place');
+    expect(result.issue.body).toContain('https://rise.syberlabs.io/changes/2026-10-14, which /changes no longer lists.');
+  });
+
+  it('refuses to supersede a digest the index does not list, or one already superseded, before asking a model', async () => {
+    const index = JSON.parse(fixture('index.json'));
+    const { ask, calls } = scriptedAsk(week());
+    await expect(runDigest({ gh: fakeGh({ index, pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, supersede: '2026-10-01', model: MODEL, log: () => {} }))
+      .rejects.toThrow(/2026-10-01/);
+    const marked = { ...index, digests: [{ ...index.digests[0], id: '2026-10-14-2' }, { ...index.digests[0], supersededBy: '2026-10-14-2' }] };
+    await expect(runDigest({ gh: fakeGh({ index: marked, pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, supersede: '2026-10-14', model: MODEL, log: () => {} }))
+      .rejects.toThrow(/already superseded by 2026-10-14-2/);
+    expect(calls).toHaveLength(0);
   });
 
   it('fails without writing when the composition is still refused after two repairs', async () => {

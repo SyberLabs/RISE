@@ -1,7 +1,8 @@
 /**
  * The RISE Figure Kit (docs/plans/RISE-CHANGES.md, The figure kit; the approved study is
- * docs/assets/changes/figure-kit-study.html): four kinds of figure RISE draws with its own code from data a model
- * supplies, so a label can neither collide nor say what the data does not.
+ * docs/assets/changes/figure-kit-study.html): six kinds of figure RISE draws with its own code from data a model
+ * supplies, so a label can neither collide nor say what the data does not. The study drew four; `list` (a set of rules,
+ * what something is checked for) and `compare` (what was so before a change and after it) follow its house style.
  *
  *   renderFigure(spec, { theme })  the figure as an SVG string, or a throw naming what figureProblems refuses
  *   figureProblems(spec)           plain sentences, empty when the kit can draw the spec
@@ -17,12 +18,14 @@
 import { textAdvance } from '../quality/svg-layout.js';
 import { jevPalette } from '../jev-palette.js';
 
-export const FIGURE_KINDS = Object.freeze(['bars', 'flow', 'columns', 'stack']);
+export const FIGURE_KINDS = Object.freeze(['bars', 'flow', 'columns', 'stack', 'list', 'compare']);
 export const FIGURE_BOUNDS = Object.freeze({
   bars: Object.freeze({ items: Object.freeze([2, 4]) }),
   flow: Object.freeze({ steps: Object.freeze([2, 7]) }),
   columns: Object.freeze({ columns: Object.freeze([2, 4]), items: Object.freeze([1, 6]) }),
-  stack: Object.freeze({ zones: Object.freeze([2, 5]) })
+  stack: Object.freeze({ zones: Object.freeze([2, 5]) }),
+  list: Object.freeze({ items: Object.freeze([2, 6]) }),
+  compare: Object.freeze({ rows: Object.freeze([2, 4]) })
 });
 const GLYPHS = Object.freeze(['eye', 'shell', 'full', 'dot']);
 const SHAPES = Object.freeze(['circle', 'lines', 'bar', 'ticks']);
@@ -48,7 +51,9 @@ const KEYS = Object.freeze({
   bars: ['kind', 'title', 'note', 'max', 'items'],
   flow: ['kind', 'title', 'steps', 'changed', 'loop'],
   columns: ['kind', 'title', 'columns'],
-  stack: ['kind', 'title', 'zones', 'changed', 'dock']
+  stack: ['kind', 'title', 'zones', 'changed', 'dock'],
+  list: ['kind', 'title', 'items', 'changed'],
+  compare: ['kind', 'title', 'headers', 'rows']
 });
 
 // ─── geometry ──────────────────────────────────────────────────────────
@@ -68,6 +73,25 @@ const STACK_CENTRE = 215;
 const STACK_LABEL_X = 418;
 const STACK_LEADER_END = 404;
 const STACK_DOCK_X = 128;
+
+/** A list's rows, centred on the space under the title: a hairline (or, for what changed, the accent's dot), the label, its detail. */
+const LIST_CENTRE = 305;
+const LIST_PITCH = 56;
+const LIST_MARK = MARGIN;
+const LIST_LABEL_X = MARGIN + 40;
+const LIST_GAP = 32;
+/** The widest a list's label column grows when its items carry details; without details a label has the whole width. */
+const LIST_LABEL_COLUMN = 330;
+/** A compare: headers over two cells a row, before at the left, after at the right, a hairline arrow between. */
+const COMPARE_HEADER = 146;
+const COMPARE_RULE = 162;
+const COMPARE_TOP = 176;
+const COMPARE_BOTTOM = 488;
+const COMPARE_PITCH = 104;
+const COMPARE_ARROW = Object.freeze({ from: 384, to: 416 });
+const COMPARE_AFTER_X = 428;
+const COMPARE_CELL = W / 2 - 28 - MARGIN;
+const COMPARE_HEADERS = Object.freeze({ before: 'Before', after: 'After' });
 
 function barGeometry(count) {
   const [barW, gap] = BAR_GEOMETRY[count];
@@ -96,6 +120,27 @@ function stackGeometry(zones) {
     const centre = STACK_INSIDE.bottom - (below + weights[i] / 2) * unit;
     below += weights[i];
     return { centre, room: weights[i] * unit };
+  });
+}
+
+/** Each row's baseline, and where a detail starts and how much room it has: after the widest label, when any item has one. */
+function listGeometry(items) {
+  const baselines = items.map((_, i) => LIST_CENTRE - ((items.length - 1) * LIST_PITCH) / 2 + i * LIST_PITCH + 9);
+  const detailed = items.some(item => item.detail !== undefined);
+  return { baselines, detailed, labelSlot: detailed ? LIST_LABEL_COLUMN : W - MARGIN - LIST_LABEL_X };
+}
+
+function detailColumn(items, changed) {
+  const column = Math.max(...items.map(item => width(item.label, SIZE.label, { bold: item.label === changed })));
+  const x = LIST_LABEL_X + column + LIST_GAP;
+  return { x, slot: W - MARGIN - x };
+}
+
+function compareGeometry(count) {
+  const pitch = Math.min(COMPARE_PITCH, (COMPARE_BOTTOM - COMPARE_TOP) / count);
+  return Array.from({ length: count }, (_, i) => {
+    const top = COMPARE_TOP + i * pitch;
+    return { subject: top + 28, cells: top + 64 };
   });
 }
 
@@ -237,7 +282,66 @@ function stackProblems(spec) {
   return problems;
 }
 
-const CHECKS = { bars: barsProblems, flow: flowProblems, columns: columnsProblems, stack: stackProblems };
+function listProblems(spec) {
+  const problems = headerProblems(spec);
+  problems.push(...countProblem('items', spec.items, FIGURE_BOUNDS.list.items, 'items'));
+  if (problems.some(line => line.startsWith('items has'))) return problems;
+  const shapes = spec.items.map((item, i) => keysProblem(`items[${i}]`, item, ['label', 'detail'], ['label']));
+  if (shapes.some(shape => shape.length)) return [...problems, ...shapes.flat()];
+  const { labelSlot } = listGeometry(spec.items);
+  const seen = new Set();
+  spec.items.forEach((item, i) => {
+    const path = `items[${i}]`;
+    problems.push(...labelProblem(`${path}.label`, item.label));
+    if (isLabel(item.label)) {
+      if (seen.has(item.label)) problems.push(`${path}.label "${item.label}" is given twice; each item is named once`);
+      seen.add(item.label);
+      problems.push(...fit(`${path}.label`, item.label, SIZE.label, labelSlot, { bold: item.label === spec.changed }));
+    }
+    if (item.detail !== undefined) problems.push(...labelProblem(`${path}.detail`, item.detail));
+  });
+  if (spec.changed !== undefined && !spec.items.some(item => item.label === spec.changed)) problems.push(`changed "${String(spec.changed).slice(0, 40)}" is not one of the items`);
+  if (spec.items.length === 2 && spec.changed === undefined && spec.items.every(item => item.detail === undefined)) {
+    problems.push('a list of two items with no changed item and no detail explains nothing a sentence does not; say it in words, mark the item that changed, or give each a detail');
+  }
+  // A detail's room is what the widest label leaves, so it is measured only once every label fits.
+  if (problems.length === 0) {
+    const { slot } = detailColumn(spec.items, spec.changed);
+    spec.items.forEach((item, i) => { if (item.detail !== undefined) problems.push(...fit(`items[${i}].detail`, item.detail, SIZE.label, slot)); });
+  }
+  return problems;
+}
+
+function compareProblems(spec) {
+  const problems = headerProblems(spec);
+  if (spec.headers !== undefined) {
+    const shape = keysProblem('headers', spec.headers, ['before', 'after'], ['before', 'after']);
+    problems.push(...shape);
+    if (!shape.length) {
+      for (const side of ['before', 'after']) {
+        problems.push(...labelProblem(`headers.${side}`, spec.headers[side]));
+        if (isLabel(spec.headers[side])) problems.push(...fit(`headers.${side}`, spec.headers[side], SIZE.label, COMPARE_CELL));
+      }
+    }
+  }
+  problems.push(...countProblem('rows', spec.rows, FIGURE_BOUNDS.compare.rows, 'rows'));
+  if (problems.some(line => line.startsWith('rows has'))) return problems;
+  spec.rows.forEach((row, i) => {
+    const path = `rows[${i}]`;
+    const shape = keysProblem(path, row, ['subject', 'before', 'after'], ['subject', 'before', 'after']);
+    if (shape.length) { problems.push(...shape); return; }
+    problems.push(...labelProblem(`${path}.subject`, row.subject));
+    if (isLabel(row.subject)) problems.push(...fit(`${path}.subject`, row.subject, SIZE.label, W - 2 * MARGIN, { serif: true }));
+    for (const side of ['before', 'after']) {
+      problems.push(...labelProblem(`${path}.${side}`, row[side]));
+      if (isLabel(row[side])) problems.push(...fit(`${path}.${side}`, row[side], SIZE.label, COMPARE_CELL, { bold: side === 'after' }));
+    }
+    if (isLabel(row.before) && row.before === row.after) problems.push(`${path} says "${row.before}" before and after; a compare shows what changed`);
+  });
+  return problems;
+}
+
+const CHECKS = { bars: barsProblems, flow: flowProblems, columns: columnsProblems, stack: stackProblems, list: listProblems, compare: compareProblems };
 
 /** What keeps the kit from drawing `spec`, one plain sentence each; empty when it can. */
 export function figureProblems(spec) {
@@ -371,13 +475,49 @@ function stack(spec, t) {
   return body;
 }
 
-const DRAW = { bars, flow, columns, stack };
+function list(spec, t) {
+  const { baselines, detailed } = listGeometry(spec.items);
+  const detail = detailed ? detailColumn(spec.items, spec.changed) : null;
+  let body = header(spec, t);
+  spec.items.forEach((item, i) => {
+    const y = baselines[i];
+    const changed = item.label === spec.changed;
+    body += changed
+      ? `<circle cx="${LIST_MARK + 10}" cy="${number(y - 9)}" r="7" fill="${t.accent}"/>`
+      : hair(LIST_MARK, y - 9, LIST_MARK + 20, y - 9, t.text);
+    body += text(LIST_LABEL_X, y, item.label, { fill: changed ? t.accent : t.text, opacity: changed ? 1 : 0.8, weight: changed ? 600 : 400 });
+    if (item.detail !== undefined) body += text(detail.x, y, item.detail, { fill: changed ? t.accent : t.text, opacity: changed ? 1 : 0.6 });
+  });
+  return body;
+}
+
+function compare(spec, t) {
+  const headers = spec.headers ?? COMPARE_HEADERS;
+  let body = header(spec, t);
+  body += text(MARGIN, COMPARE_HEADER, headers.before, { fill: t.text, opacity: 0.6 });
+  body += text(COMPARE_AFTER_X, COMPARE_HEADER, headers.after, { fill: t.accent });
+  body += hair(MARGIN, COMPARE_RULE, W - MARGIN, COMPARE_RULE, t.text, 0.2);
+  compareGeometry(spec.rows.length).forEach(({ subject, cells }, i) => {
+    const row = spec.rows[i];
+    body += text(MARGIN, subject, row.subject, { family: SERIF, italic: true, fill: t.text, opacity: 0.6 });
+    body += text(MARGIN, cells, row.before, { fill: t.text, opacity: 0.8 });
+    const y = cells - 9;
+    body += hair(COMPARE_ARROW.from, y, COMPARE_ARROW.to, y, t.text, 0.55)
+      + `<path d="M${COMPARE_ARROW.to - 8} ${number(y - 7)} L${COMPARE_ARROW.to} ${number(y)} L${COMPARE_ARROW.to - 8} ${number(y + 7)}" fill="none" stroke="${t.text}" stroke-opacity="0.55" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>`;
+    body += text(COMPARE_AFTER_X, cells, row.after, { fill: t.accent, weight: 600 });
+  });
+  return body;
+}
+
+const DRAW = { bars, flow, columns, stack, list, compare };
 
 /** The words a figure's <title> says when its spec gives no title: what it shows, from its own labels. */
 function describe(spec) {
   if (spec.kind === 'bars') return spec.items.map(item => `${item.label} ${item.value}`).join(', ');
   if (spec.kind === 'flow') return spec.steps.join(', then ');
   if (spec.kind === 'columns') return spec.columns.map(column => `${column.name}: ${column.items.join(', ')}`).join('; ');
+  if (spec.kind === 'list') return spec.items.map(item => (item.detail === undefined ? item.label : `${item.label}, ${item.detail}`)).join('; ');
+  if (spec.kind === 'compare') return spec.rows.map(row => `${row.subject}: ${row.before}, then ${row.after}`).join('; ');
   return `bottom to top: ${spec.zones.map(zone => zone.label).join(', ')}`;
 }
 

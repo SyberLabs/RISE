@@ -36,7 +36,7 @@ afterEach(() => {
 describe('the connector’s quality count', () => {
   it('counts the layout rules a Current’s figures break, and how often its picture changes', () => {
     expect(qualityRecord(DRY_RUN)).toEqual({ event: 'rise.quality', rules: { 'text-crosses-shape': 1 }, beats: 2, scenes: 1, longestHold: 1 });
-    expect(qualityRecord(sample.current)).toEqual({ event: 'rise.quality', rules: {}, beats: 15, scenes: 8, longestHold: 3 });
+    expect(qualityRecord(sample.current)).toEqual({ event: 'rise.quality', rules: {}, beats: 15, scenes: 8, longestHold: 2 });
     expect(qualityRecord(FOREST_AFTER_FIRE)).toMatchObject({ rules: {}, beats: FOREST_AFTER_FIRE.segments.length });
   });
 

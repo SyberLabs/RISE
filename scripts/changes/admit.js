@@ -12,7 +12,7 @@ import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../../src/live/hosts/mcp
 import { COMPOSER_PROVIDER, sourcesProblems } from '../../src/core/changes/contract.js';
 import { figureProblems } from '../../src/core/figures/figure-kit.js';
 import { processTalkProblems } from '../../src/core/quality/process-talk.js';
-import { shownRuns } from './held.js';
+import { pictureCoverage, shownRuns } from './held.js';
 import { SCENE_ENGINES } from '../../src/core/beats.js';
 
 const MAX_LINE = 300;
@@ -98,8 +98,16 @@ export function figureNumberProblems(svg, { pulls, period }) {
   return unstated([figureText(svg)], statedNumbers(pulls, period), 'The figure', 'pull request the picture cites');
 }
 
-/** Beats one scene may be held for before a picture starts again. */
+/** Beats an engine, or a picture over a beat that cites none of its changes, may be held for before a picture starts. */
 export const HELD_BEATS = 4;
+/** Beats a picture may be held for while every beat under it cites one of the changes it shows. */
+export const CITED_HELD_BEATS = 6;
+/** Speaking beats (beats with refs) in a row that may go without a picture of what they speak of. */
+export const UNPICTURED_BEATS = 2;
+/** The scenes a Current has room for: the connector's bound, shared by the opening, the close, RISE's eye and the pictures. */
+const SCENE_ROOM = 8;
+/** What a refusal for a missing picture suggests: the kinds a week of rules and process changes is drawn with. */
+const KIND_HINT = 'for a rule or a process change, a list or a compare';
 /** The answer's fields that name RISE's engines, and the beat each is placed on. */
 export const ENDS = Object.freeze(['opening', 'close']);
 const ENGINE_RULE = 'RISE’s engines open and close a digest; a change is shown with a kit picture';
@@ -112,6 +120,31 @@ const isKit = picture => Object.keys(picture).length === 3 && ['beat', 'refs', '
 const isBrief = picture => Object.keys(picture).length === 4 && ['beat', 'refs', 'medium', 'brief'].every(key => Object.hasOwn(picture, key));
 /** A picture's refs: one or more pull request numbers, each once. */
 const isRefList = refs => Array.isArray(refs) && refs.length > 0 && refs.every(Number.isInteger) && new Set(refs).size === refs.length;
+/** Each beat's refs that are a list of numbers: a malformed one is refused by the refs rule, never read here. */
+const refsMap = beatRefs => Object.fromEntries(Object.entries(beatRefs).filter(([, refs]) => Array.isArray(refs) && refs.every(Number.isInteger)));
+const isPicture = picture => picture !== null && typeof picture === 'object' && !Array.isArray(picture) && (isKit(picture) || isBrief(picture));
+
+/**
+ * What each beat starts once the run places the pictures (held.js's `starts`): each picture on its beat, the first one
+ * on a beat that names no scene, and every scene the Current names on a beat (an engine, or a declared still, at rest).
+ */
+function plannedStarts(current, pictures) {
+  const scenes = new Map((current.scenes ?? []).map(scene => [scene.id, scene]));
+  const starts = new Map();
+  const beats = current.beats;
+  for (const picture of Array.isArray(pictures) ? pictures : []) {
+    if (!isPicture(picture) || !Number.isInteger(picture.beat) || picture.beat < 0 || picture.beat >= beats.length) continue;
+    if (beats[picture.beat]?.scene !== undefined || starts.has(picture.beat)) continue;
+    starts.set(picture.beat, { refs: isRefList(picture.refs) ? picture.refs : null });
+  }
+  beats.forEach((beat, index) => { if (beat?.scene !== undefined) starts.set(index, { refs: null, rest: scenes.get(beat.scene)?.engine === 'still' }); });
+  return starts;
+}
+
+const named = numbers => {
+  const tags = numbers.map(number => `#${number}`);
+  return tags.length === 1 ? tags[0] : `${tags.slice(0, -1).join(', ')} and ${tags.at(-1)}`;
+};
 
 /** Every string and printed number a kit figure shows: what the number rule reads (a bar's max is a scale, never printed). */
 export function kitTexts(kit) {
@@ -130,8 +163,9 @@ export function kitTexts(kit) {
 /**
  * What breaks the digest's composition, once RISE has placed the opening and close engines (the only engines a digest
  * runs, so at most two, at its ends): every picture either a kit figure RISE draws from the composer's data or, for a
- * diagram no kit kind can express, a brief the illustrator draws (at most two); at least one picture, and no scene
- * held for more than four beats. The plan is held to it before anything is drawn.
+ * diagram no kit kind can express, a brief the illustrator draws (at most two); at least one picture, no engine held
+ * for more than four beats, and no picture for more than six (four when a beat under it cites none of its changes).
+ * The plan is held to it before anything is drawn.
  */
 export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
   const problems = [];
@@ -144,7 +178,7 @@ export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
   if (!Array.isArray(pictures)) return [...problems, '"pictures" must be a list of { beat, refs, kit } or { beat, refs, medium, brief }'];
   if (pictures.length === 0) problems.push('"pictures" needs at least one picture: one for each change or group of changes that a picture explains');
   const bespoke = pictures.filter(picture => picture !== null && typeof picture === 'object' && !Array.isArray(picture) && isBrief(picture)).length;
-  if (bespoke > MAX_BESPOKE) problems.push(`"pictures" has ${bespoke} pictures for the illustrator; at most ${MAX_BESPOKE}. Draw a measurement, a sequence, a sorting or a layout as a kit figure (bars, flow, columns, stack)`);
+  if (bespoke > MAX_BESPOKE) problems.push(`"pictures" has ${bespoke} pictures for the illustrator; at most ${MAX_BESPOKE}. Draw a measurement, a sequence, a sorting, a layout, a set of rules or a before and after as a kit figure (bars, flow, columns, stack, list, compare)`);
   const starts = new Set();
   pictures.forEach((picture, index) => {
     const where = `"pictures"[${index}]`;
@@ -181,24 +215,67 @@ export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
     }
   });
   // What each beat shows, as the run will end it (held.js): a picture until its beats move on, then RISE's eye.
-  const shown = new Map();
-  for (const picture of pictures) {
-    if (picture !== null && typeof picture === 'object' && Number.isInteger(picture.beat) && starts.has(picture.beat)) {
-      shown.set(picture.beat, { refs: isRefList(picture.refs) ? picture.refs : null });
-    }
-  }
-  beats.forEach((beat, index) => { if (beat?.scene !== undefined) shown.set(index, { refs: null, rest: scenes.get(beat.scene)?.engine === 'still' }); });
-  const { runs, eye } = shownRuns(beats.length, shown, beatRefs);
+  const { runs, eye } = shownRuns(beats.length, plannedStarts(current, pictures), refsMap(beatRefs));
   const needsEye = eye && !engines.some(scene => scene.engine === 'still');
-  const room = Math.max(0, 8 - engines.length - (needsEye ? 1 : 0));
+  const room = Math.max(0, SCENE_ROOM - engines.length - (needsEye ? 1 : 0));
   if (pictures.length > room) {
     problems.push(`"pictures" has ${pictures.length}; a Current has room for at most ${room} pictures beside its ${engines.length} engine${engines.length === 1 ? '' : 's'}${needsEye ? ' and RISE’s eye, which shows where a picture’s beats move on' : ''}`);
   }
-  // RISE's eye is the room at rest, not a picture: the hold limit binds pictures and engines only.
-  for (const [start, length, rest] of runs) {
-    if (!rest && length > HELD_BEATS) problems.push(`beat ${start} holds one scene for ${length} beats; start a picture at least every ${HELD_BEATS} beats`);
+  // RISE's eye is the room at rest, not a picture: the hold limit binds pictures and engines only, and a picture
+  // longer while every beat under it cites what it shows.
+  for (const { start, length, rest, picture, cited } of runs) {
+    if (rest) continue;
+    if (picture && cited) {
+      if (length > CITED_HELD_BEATS) problems.push(`beat ${start} holds one picture for ${length} beats; a picture is held at most ${CITED_HELD_BEATS} beats while every beat under it cites what it shows: start another picture`);
+    } else if (length > HELD_BEATS) {
+      problems.push(`beat ${start} holds one scene for ${length} beats; an engine, or a picture over a beat that cites none of its changes, is held at most ${HELD_BEATS} beats: start a picture`);
+    }
   }
   return problems;
+}
+
+/**
+ * The density floor: no more than two speaking beats in a row without a picture of what they speak of (RISE's eye
+ * rests freely on beats without refs), and a picture for every major change a beat speaks of. `majors` are the
+ * included changes routed major. Refused like the composition rule, and repaired.
+ */
+export function densityProblems(current, pictures, { beatRefs = {}, majors = [] } = {}) {
+  const refsAt = refsMap(beatRefs);
+  const starts = plannedStarts(current, pictures);
+  const problems = [];
+  for (const run of pictureCoverage(current.beats.length, starts, refsAt).unpictured) {
+    if (run.length <= UNPICTURED_BEATS) continue;
+    const changes = [...new Set(run.flatMap(beat => refsAt[beat]))].sort((a, b) => a - b);
+    problems.push(`beats ${run[0]} to ${run.at(-1)} speak of ${named(changes)} with no picture of ${changes.length === 1 ? 'it' : 'them'}; at most ${UNPICTURED_BEATS} speaking beats in a row go without one. Give each theme one picture on its first beat, held across its beats: ${KIND_HINT}`);
+  }
+  const spoken = new Set(Object.values(refsAt).flat());
+  const shown = new Set([...starts.values()].flatMap(start => start.refs ?? []));
+  for (const number of majors) {
+    if (spoken.has(number) && !shown.has(number)) problems.push(`#${number} is a major change and no picture shows it; give it a picture on a beat that speaks of it: ${KIND_HINT}`);
+  }
+  return problems;
+}
+
+/**
+ * The ends RISE keeps (`opening`, `close`): when the pictures need more of the Current's scenes than the ends leave,
+ * the close is given up, then the opening, as long as that makes room; otherwise both stay and the room is refused.
+ */
+function keptEnds(ends, pictures, beatCount, refsAt) {
+  if (!Array.isArray(pictures)) return ends;
+  const room = kept => {
+    const starts = new Map();
+    for (const picture of pictures) {
+      if (!isPicture(picture) || !Number.isInteger(picture.beat) || picture.beat < 0 || picture.beat >= beatCount || starts.has(picture.beat)) continue;
+      starts.set(picture.beat, { refs: isRefList(picture.refs) ? picture.refs : null });
+    }
+    if (kept.includes('opening')) starts.set(0, { refs: null });
+    if (kept.includes('close')) starts.set(beatCount - 1, { refs: null });
+    return SCENE_ROOM - kept.length - (shownRuns(beatCount, starts, refsAt).eye ? 1 : 0);
+  };
+  for (const kept of [ends, ends.filter(end => end !== 'close'), []]) {
+    if (pictures.length <= room(kept)) return kept;
+  }
+  return ends;
 }
 
 /**
@@ -229,9 +306,10 @@ function refsProblems(sources, beatCount, included) {
 }
 
 /**
- * The verdict on one composer answer: `{ ok: true, current, sources, pictures, unspoken }`,
- * the Current with its origin set to the composer, its pictures, and the included
- * changes no beat cites (the run moves them out of the reading), or
+ * The verdict on one composer answer: `{ ok: true, current, sources, pictures, unspoken, dropped }`,
+ * the Current with its origin set to the composer, its pictures, the included
+ * changes no beat cites (the run moves them out of the reading), and the ends given
+ * up to make room for the pictures (`close`, then `opening`), or
  * `{ ok: false, diagnostics, rules }`, the lines a repair call is given and how many
  * each rule gave.
  */
@@ -268,10 +346,13 @@ export function admitComposition(text, { pulls, model, period }) {
   ].map(line => clean(`${line}: ${ENGINE_RULE}. Name an engine only in "opening" or "close"`)).slice(0, MAX_SCENE_LINES);
   if (engineLines.length) return { ok: false, diagnostics: engineLines, rules: { engine: engineLines.length } };
   const { beats: spoken, sources, refsGiven } = splitRefs(given.beats);
+  // The close, then the opening, give their scenes to the pictures when the pictures need them.
+  const kept = keptEnds(ends, value.pictures, spoken.length, refsMap(refsGiven));
+  const dropped = ['close', 'opening'].filter(end => ends.includes(end) && !kept.includes(end));
   // RISE places the opening on the first beat and the close on the last, and declares their scenes.
-  const placed = ends.map(end => ({ id: end, engine: value[end].engine, ...(value[end].params === undefined ? {} : { params: value[end].params }) }));
+  const placed = kept.map(end => ({ id: end, engine: value[end].engine, ...(value[end].params === undefined ? {} : { params: value[end].params }) }));
   const beats = spoken.map((beat, index) => {
-    const end = index === 0 && ends.includes('opening') ? 'opening' : index === spoken.length - 1 && ends.includes('close') ? 'close' : null;
+    const end = index === 0 && kept.includes('opening') ? 'opening' : index === spoken.length - 1 && kept.includes('close') ? 'close' : null;
     return end && beat !== null && typeof beat === 'object' && !Array.isArray(beat) ? { ...beat, scene: end } : beat;
   });
   const scenes = placed.length === 0 || (given.scenes !== undefined && !Array.isArray(given.scenes)) ? {} : { scenes: [...(given.scenes ?? []), ...placed] };
@@ -297,6 +378,7 @@ export function admitComposition(text, { pulls, model, period }) {
   const found = {
     scene: sceneRefusals(current),
     composition: compositionProblems(current, value.pictures, { beatRefs: refsGiven }).map(clean),
+    density: Array.isArray(value.pictures) ? densityProblems(current, value.pictures, { beatRefs: refsGiven, majors: pulls.filter(pull => pull.route?.significance === 'major').map(pull => pull.number) }).map(clean) : [],
     refs: refsProblems(sources, current.beats.length, pulls.map(pull => pull.number)).map(clean),
     number: [
       ...numberProblems(current, { pulls, period }),
@@ -309,5 +391,5 @@ export function admitComposition(text, { pulls, model, period }) {
   if (diagnostics.length) return { ok: false, diagnostics, rules };
   const cited = new Set(Object.values(sources).flat());
   const unspoken = pulls.map(pull => pull.number).filter(number => !cited.has(number));
-  return { ok: true, current, sources, pictures: value.pictures, unspoken };
+  return { ok: true, current, sources, pictures: value.pictures, unspoken, dropped };
 }

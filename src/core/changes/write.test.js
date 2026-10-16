@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildDigest, digestId, issueFor, nextIndex, periodLabel, serialize } from './write.js';
+import { densityLine, indexProblems } from './contract.js';
 
 const MODEL = 'claude-sonnet-5-5';
 const sha = n => String(n).padStart(40, 'd');
@@ -78,6 +79,19 @@ describe('buildDigest', () => {
     ]) expect(() => digest({ quality: bad })).toThrow(/quality/);
   });
 
+  it('carries how densely the reading is pictured in its score, and refuses a measure that does not add up', () => {
+    const density = { pictures: 6, includedChanges: 8, speakingBeats: 17, pictured: 15, longestUnpictured: 2 };
+    const quality = { firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {}, density };
+    expect(digest({ quality }).quality).toEqual(quality);
+    for (const bad of [
+      { ...density, pictured: 18 },
+      { ...density, longestUnpictured: 18 },
+      { ...density, pictures: -1 },
+      { ...density, extra: 1 },
+      { pictures: 6 }
+    ]) expect(() => digest({ quality: { ...quality, density: bad } })).toThrow(/quality/);
+  });
+
   it('lists a change the reading did not speak of as unspoken', () => {
     const value = digest({ changes: [change(2), change(1), change(3, false, { reason: 'unspoken' })] });
     expect(value.changes.at(-1)).toMatchObject({ included: false, reason: 'unspoken' });
@@ -144,6 +158,28 @@ describe('nextIndex', () => {
     const before = { schema: 'syberlabs.changes-index/v1', digests: [entry('2026-10-19', '2026-10-19T08:00:00.000Z')] };
     expect(() => nextIndex(before, digest())).toThrow(/2026-10-19/);
   });
+
+  it('marks the digest a re-run supersedes, and keeps it listed', () => {
+    const before = { schema: 'syberlabs.changes-index/v1', digests: [entry('2026-10-19', '2026-10-19T08:00:00.000Z'), entry('2026-10-12', '2026-10-12T09:00:00.000Z')] };
+    const index = nextIndex(before, digest({ id: '2026-10-19-2' }), { supersede: '2026-10-19' });
+    expect(index.digests.map(item => [item.id, item.supersededBy])).toEqual([['2026-10-19-2', undefined], ['2026-10-19', '2026-10-19-2'], ['2026-10-12', undefined]]);
+    expect(Object.keys(index.digests[1])).toEqual(['id', 'audience', 'title', 'period', 'count', 'supersededBy']);
+    expect(() => nextIndex(before, digest({ id: '2026-10-19-2' }), { supersede: '2026-10-05' })).toThrow(/2026-10-05/);
+    expect(() => nextIndex(index, digest({ id: '2026-10-19-3' }), { supersede: '2026-10-19' })).toThrow(/already superseded by 2026-10-19-2/);
+  });
+});
+
+describe('indexProblems', () => {
+  const index = digests => ({ schema: 'syberlabs.changes-index/v1', digests });
+  it('accepts an entry superseded by another listed digest', () => {
+    expect(indexProblems(index([entry('2026-10-19-2', '2026-10-19T09:00:00.000Z'), { ...entry('2026-10-19', '2026-10-19T08:00:00.000Z'), supersededBy: '2026-10-19-2' }]))).toEqual([]);
+  });
+
+  it('refuses a supersededBy that is not a listed digest, or the entry itself', () => {
+    expect(indexProblems(index([{ ...entry('2026-10-19', '2026-10-19T08:00:00.000Z'), supersededBy: '2026-10-20' }])).join('\n')).toMatch(/supersededBy/);
+    expect(indexProblems(index([{ ...entry('2026-10-19', '2026-10-19T08:00:00.000Z'), supersededBy: '2026-10-19' }])).join('\n')).toMatch(/supersededBy/);
+    expect(indexProblems(index([{ ...entry('2026-10-19', '2026-10-19T08:00:00.000Z'), supersededBy: '<b>' }])).join('\n')).toMatch(/supersededBy/);
+  });
 });
 
 describe('serialize', () => {
@@ -158,6 +194,19 @@ describe('issueFor', () => {
     expect(issueFor(digest({ quality })).body).toContain('First pass: no — 3 repairs (1 composition, 2 illustrator); checks fired: process-talk (2), text-crosses-shape (1)');
     expect(issueFor(digest({ quality: { firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {} } })).body).toContain('First pass: yes — 0 repairs; checks fired: none');
     expect(issueFor(digest()).body).not.toContain('First pass');
+  });
+
+  it('says in one line how many pictures the reading has, and how much of it goes without one', () => {
+    const quality = density => ({ firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {}, density });
+    expect(issueFor(digest({ quality: quality({ pictures: 6, includedChanges: 8, speakingBeats: 17, pictured: 17, longestUnpictured: 0 }) })).body).toContain('Pictures: 6 for 8 changes; every speaking beat pictured');
+    expect(densityLine({ pictures: 2, includedChanges: 8, speakingBeats: 17, pictured: 6, longestUnpictured: 8 })).toBe('Pictures: 2 for 8 changes; 6 of 17 speaking beats pictured, at most 8 in a row without one');
+    expect(densityLine({ pictures: 1, includedChanges: 1, speakingBeats: 2, pictured: 1, longestUnpictured: 1 })).toBe('Pictures: 1 for 1 change; 1 of 2 speaking beats pictured, at most 1 in a row without one');
+    expect(issueFor(digest({ quality: { firstPass: true, repairs: { composition: 0, illustrator: 0 }, checks: {} } })).body).not.toContain('Pictures:');
+  });
+
+  it('links the digest a re-run replaces', () => {
+    expect(issueFor(digest({ id: '2026-10-19-2' }), { supersedes: '2026-10-19' }).body).toContain('It replaces the earlier reading of this period, https://rise.syberlabs.io/changes/2026-10-19, which /changes no longer lists.');
+    expect(issueFor(digest()).body).not.toContain('replaces');
   });
 
   it('links the reading and tables every change with its route', () => {

@@ -22,6 +22,11 @@ on:
         required: false
         type: boolean
         default: false
+      supersede:
+        description: 'A published digest id to replace (e.g. 2026-10-16): re-run its period from its start (unless since is set); the list then shows the new digest in its place, and the old one links to it.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -69,11 +74,13 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           SINCE: ${{ inputs.since }}
           DRY_RUN: ${{ inputs.dry_run }}
+          SUPERSEDE: ${{ inputs.supersede }}
         run: |
           set -euo pipefail
           out="$RUNNER_TEMP/changes"
           args=(--out "$out")
           if [ -n "${SINCE:-}" ]; then args+=(--since "$SINCE"); fi
+          if [ -n "${SUPERSEDE:-}" ]; then args+=(--supersede "$SUPERSEDE"); fi
           if [ "${DRY_RUN:-false}" = 'true' ]; then args+=(--dry-run); fi
           node scripts/changes/digest.mjs "${args[@]}"
           written=$(jq -r '.written' "$out/run.json")

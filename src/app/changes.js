@@ -1,9 +1,10 @@
 /**
  * RISE Changes: what merged into RISE, as a RISE reading.
  *
- * `/changes` lists the digests, newest first; `/changes/<id>` shows one: its
- * reading, the pull requests it speaks about, and how every merged pull
- * request was routed. The weekly workflow writes the files to the
+ * `/changes` lists the digests, newest first, leaving out one a re-run of its
+ * period superseded; `/changes/<id>` shows one: its reading, the pull requests
+ * it speaks about, how every merged pull request was routed, and, when it was
+ * superseded, a link to the reading that replaces it. The weekly workflow writes the files to the
  * `changes-data` branch and the Worker serves them at `/content/changes/`
  * (worker/changes.mjs). Everything in them is model- or PR-written, so each
  * file is held to its contract (src/core/changes/contract.js, the generator's
@@ -17,7 +18,7 @@
 import './changes.css';
 import { RISE_CURRENT_SCHEMA_V2, validateRiseCurrent } from '../core/rise-current.js';
 import { sceneRefusal } from '../core/scene-admission.js';
-import { DIGEST_ID, LIMITS, digestProblems, indexProblems, qualityLine } from '../core/changes/contract.js';
+import { DIGEST_ID, LIMITS, densityLine, digestProblems, indexProblems, qualityLine } from '../core/changes/contract.js';
 
 const BADGES = { team: 'Team', readers: 'Readers' };
 
@@ -115,7 +116,7 @@ function reasonWords({ included, reason, route }) {
 }
 
 function listView(digests) {
-  const rows = digests.map(({ id, audience, title, period: when, count }) => `<li class="changes-digest">
+  const rows = digests.filter(entry => entry.supersededBy === undefined).map(({ id, audience, title, period: when, count }) => `<li class="changes-digest">
         <a class="changes-digest-title" href="${changesPath(id)}" data-changes-go>${escape(title)}</a>
         <p class="changes-meta">${escape(periodWords(when))} · ${plural(count, 'change')} in the reading ${badge(audience)}</p>
       </li>`).join('');
@@ -147,7 +148,12 @@ export function sealedReading(digest) {
   };
 }
 
-function detailView(digest) {
+/** The line a superseded digest's page carries: the reading that replaced it, by its title, one press away. */
+function supersededLine(replacement) {
+  return `<p class="portal-help changes-superseded">A newer reading of this period replaces this one: <a href="${changesPath(replacement.id)}" data-changes-go>${escape(replacement.title)}</a>.</p>`;
+}
+
+function detailView(digest, replacement = null) {
   const when = periodWords(digest.period);
   const { router, via } = digest.model;
   const included = digest.included.map(({ number, title, url }) => `<li>
@@ -161,6 +167,7 @@ function detailView(digest) {
     <h1 class="portal-title changes-title" id="portal-ask-title" tabindex="-1">${escape(digest.title)}</h1>
     <div id="changes">
       <p class="changes-meta">${escape(when)} · ${plural(digest.included.length, 'change')} in the reading ${badge(digest.audience)}</p>
+      ${replacement ? supersededLine(replacement) : ''}
       <div class="portal-actions">
         <button class="portal-primary" type="button" data-changes-play>Open the reading</button>
         <p class="portal-status" id="changes-status" role="status" aria-live="polite"></p>
@@ -175,6 +182,7 @@ function detailView(digest) {
         <p class="portal-help">Every pull request merged in the period, routed by ${escape(router)} via ${escape(via)}: who it is for, how much it matters, what kind of change it is, and whether the reading tells it.</p>
         <ul class="changes-routes">${chosen}</ul>
         ${digest.quality ? `<p class="portal-help changes-quality">${escape(qualityLine(digest.quality))}</p>` : ''}
+        ${digest.quality?.density ? `<p class="portal-help changes-density">${escape(densityLine(digest.quality.density))}</p>` : ''}
         ${digest.notes ?`<p class="portal-help">What the run let go:</p>
         <ul class="changes-notes">${digest.notes.map(note => `<li>${escape(note)}</li>`).join('')}</ul>` : ''}
       </details>
@@ -202,8 +210,11 @@ export async function mountChanges(section, { digestId = null, launch, go, load 
   try {
     if (digestId === null) section.innerHTML = listView(await loadChangesIndex(load));
     else {
-      digest = await loadChangesDigest(digestId, load);
-      section.innerHTML = detailView(digest);
+      // The index says whether a re-run replaced this digest; a list that cannot be read only costs that line.
+      const [loaded, entries] = await Promise.all([loadChangesDigest(digestId, load), loadChangesIndex(load).catch(() => [])]);
+      digest = loaded;
+      const replacedBy = entries.find(entry => entry.id === digestId)?.supersededBy;
+      section.innerHTML = detailView(digest, entries.find(entry => entry.id === replacedBy) ?? null);
     }
   } catch (error) {
     console.warn('[RISE] Changes unavailable:', error);
