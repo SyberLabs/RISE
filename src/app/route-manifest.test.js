@@ -71,6 +71,7 @@ describe('createRouteManifest', () => {
       handleBeginSession: vi.fn(),
       launchKeystone: vi.fn(),
       openMintedProgram: vi.fn(),
+      selectSchoolText: vi.fn(),
       router: { updateAddress: vi.fn() }
     };
     let received;
@@ -84,7 +85,7 @@ describe('createRouteManifest', () => {
     const panes = received.paneCapabilities;
     // Today's poem is not a pane: Home begins it through the app's launchToday.
     expect(Object.keys(panes).sort()).toEqual(
-      ['chapel', 'journeys', 'keystones', 'mint', 'provenance', 'rosary', 'stations']
+      ['chapel', 'journeys', 'keystones', 'mint', 'provenance', 'rosary', 'school', 'stations']
     );
     expect(panes.keystones.onLaunch).toBe(operations.launchKeystone);
     expect(panes.mint.onOpen).toBe(operations.openMintedProgram);
@@ -92,6 +93,11 @@ describe('createRouteManifest', () => {
     // A Chapel chapter's address stays a Chapel address.
     panes.chapel.onAddressChange({ bookId: 'john', chapter: 3 });
     expect(operations.router.updateAddress).toHaveBeenCalledWith({ bookId: 'john', chapter: 3, pane: 'chapel' });
+    // The school launches through the app, and its focus is part of its address.
+    expect(panes.school.onSelect).toBe(operations.selectSchoolText);
+    expect(panes.school.onNavigate).toBe(operations.handleNavigate);
+    panes.school.onAddressChange({ focus: 'sun' });
+    expect(operations.router.updateAddress).toHaveBeenLastCalledWith({ focus: 'sun', pane: 'school' });
   });
 
   it('lets Home begin today\'s poem', () => {

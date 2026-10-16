@@ -1,0 +1,681 @@
+/* The Mystery School: the Wheel and the Lectern.
+
+   SyberLabs system: tokens only. A house's colour arrives as --school-hue,
+   set inline from its theme's palette (jev-palette.js), so the wheel and a
+   reading launched from the house speak the same colour. Points are ink on
+   the button itself, never images: hollow, dashed, solid, filled, haloed. */
+
+.school {
+  --school-dot: 12px;
+  --school-gate: var(--sy-accent-rise);
+
+  /* The app body does not scroll; the view does. */
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--sy-bg);
+  color: var(--sy-text);
+  font-family: var(--sy-font-sans);
+}
+
+.school-scroll {
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sy-line) transparent;
+}
+
+.school-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--sy-space-7) clamp(16px, 4vw, 56px) var(--sy-space-9);
+}
+
+.school-heading {
+  margin-bottom: var(--sy-space-6);
+}
+
+.school-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: var(--sy-space-7);
+  align-items: start;
+}
+
+.school-map {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sy-space-5);
+}
+
+/* ─── The Wheel ─── */
+
+.school-wheel {
+  position: relative;
+  width: min(100%, calc(100dvh - var(--sy-header-height) - var(--sy-space-8)));
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+
+.school-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.school-sector {
+  fill: var(--school-hue);
+  fill-opacity: 0.07;
+  stroke: var(--sy-line);
+  stroke-width: 0.004;
+  transition: fill-opacity var(--sy-dur-enter) var(--sy-ease);
+}
+
+.school-sector.is-active {
+  fill-opacity: 0.16;
+}
+
+.school-ring {
+  fill: none;
+  stroke: var(--sy-line-strong);
+  stroke-width: 0.003;
+  stroke-dasharray: 0.006 0.018;
+}
+
+/* The degrees turn; the texts on them do not (they are HTML, outside). */
+.school-rings {
+  transform-origin: 0 0;
+  animation: school-turn 90s linear infinite;
+}
+
+@keyframes school-turn {
+  to { transform: rotate(360deg); }
+}
+
+.school-gate-disc {
+  fill: var(--school-gate);
+  fill-opacity: 0.1;
+  stroke: var(--school-gate);
+  stroke-opacity: 0.5;
+  stroke-width: 0.004;
+}
+
+.school-numeral {
+  fill: var(--sy-text-3);
+  font-family: var(--sy-font-serif);
+  font-size: 0.05px;
+  font-variant: small-caps;
+  text-anchor: middle;
+  dominant-baseline: central;
+  paint-order: stroke;
+  stroke: var(--sy-bg);
+  stroke-width: 0.02px;
+}
+
+.school-path-line {
+  fill: none;
+  stroke: var(--sy-text);
+  stroke-width: 0.006;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.school-path-line[hidden] {
+  display: none;
+}
+
+.school-path-line.is-drawing {
+  animation: school-draw 600ms var(--sy-ease) both;
+}
+
+@keyframes school-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+/* A point: a 44px press area around a small ink mark. */
+.school-point {
+  position: absolute;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sy-radius-full);
+  background: transparent;
+  color: var(--sy-text);
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: opacity var(--sy-dur-enter) var(--sy-ease);
+}
+
+.school-point::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  box-sizing: border-box;
+  width: var(--school-dot);
+  height: var(--school-dot);
+  margin: calc(var(--school-dot) / -2) 0 0 calc(var(--school-dot) / -2);
+  border-radius: var(--sy-radius-full);
+  border: 1px solid var(--sy-text-3);
+  background: var(--sy-bg);
+  transition: transform 160ms var(--sy-ease);
+}
+
+.school-point[data-state="carried"]::before {
+  border: 1.5px dashed var(--sy-text-2);
+}
+
+.school-point[data-state="readable"]::before,
+.school-point[data-state="begun"]::before {
+  border: 2px solid var(--school-hue);
+}
+
+.school-point[data-state="read"]::before,
+.school-point[data-state="arcanum"]::before {
+  border: 2px solid var(--school-hue);
+  background: var(--school-hue);
+}
+
+.school-point[data-state="arcanum"]::before {
+  box-shadow: 0 0 0 3px var(--sy-bg), 0 0 0 4px var(--school-hue), 0 0 14px var(--school-hue);
+}
+
+.school-point:hover,
+.school-point:focus-visible {
+  z-index: 3;
+}
+
+.school-point:hover::before,
+.school-point:focus-visible::before,
+.school-point.is-current::before {
+  transform: scale(1.35);
+}
+
+.school-point:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: -6px;
+}
+
+.school-point-label {
+  position: absolute;
+  top: 50%;
+  left: calc(50% + 12px);
+  max-width: 220px;
+  padding: 2px var(--sy-space-2);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius-sm);
+  background: var(--sy-surface);
+  color: var(--sy-text);
+  font-family: var(--sy-font-serif);
+  font-size: 16px;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity var(--sy-dur-hover) var(--sy-ease);
+}
+
+.school-point-label[data-side="left"] {
+  left: auto;
+  right: calc(50% + 12px);
+}
+
+.school-point:hover .school-point-label,
+.school-point:focus-visible .school-point-label {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .school-point:hover .school-point-label {
+    opacity: 0;
+  }
+}
+
+/* The Gate: the disc at the centre, carrying the Gate text's ink. */
+.school-gate {
+  --school-hue: var(--school-gate);
+  --school-dot: 16px;
+  z-index: 2;
+}
+
+/* A chosen path keeps its points lit and lowers the rest to ink. */
+.school-wheel:not([data-path=""]) .school-point:not(.is-lit) {
+  opacity: 0.32;
+}
+
+.school-house {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-1);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--sy-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--sy-radius-full);
+  background: transparent;
+  color: var(--sy-text-2);
+  font-family: var(--sy-font-serif);
+  font-size: 18px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  transition: color var(--sy-dur-hover) var(--sy-ease), border-color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.school-house .school-glyph {
+  color: var(--school-hue);
+}
+
+.school-house:hover,
+.school-house.is-active {
+  color: var(--sy-text);
+  border-color: var(--sy-line-strong);
+}
+
+.school-house.is-arcanum .school-glyph {
+  text-shadow: 0 0 12px var(--school-hue);
+}
+
+.school-house:focus-visible,
+.school-chip:focus-visible,
+.school-link:focus-visible,
+.school-row-title:focus-visible,
+.school-read:focus-visible,
+.school-outward:focus-visible {
+  outline: var(--sy-focus);
+  outline-offset: var(--sy-focus-offset);
+}
+
+/* ─── Paths ─── */
+
+.school-paths {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sy-space-2);
+}
+
+.school-chip {
+  min-height: 44px;
+  padding: 0 var(--sy-space-4);
+  border: 1px solid var(--sy-line-strong);
+  border-radius: var(--sy-radius-full);
+  background: transparent;
+  color: var(--sy-text-2);
+  font-family: var(--sy-font-sans);
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--sy-dur-hover) var(--sy-ease), border-color var(--sy-dur-hover) var(--sy-ease);
+}
+
+.school-chip:hover,
+.school-chip[aria-pressed="true"] {
+  color: var(--sy-text);
+  border-color: var(--sy-ice);
+}
+
+/* ─── The Lectern ─── */
+
+.school-lectern {
+  position: sticky;
+  top: calc(var(--sy-header-height) + var(--sy-space-5));
+  max-height: calc(100dvh - var(--sy-header-height) - var(--sy-space-7));
+  overflow-y: auto;
+  scroll-margin-top: calc(var(--sy-header-height) + var(--sy-space-4));
+  padding: var(--sy-space-5);
+  border: 1px solid var(--sy-line);
+  border-radius: var(--sy-radius-panel);
+  background: var(--sy-surface);
+  scrollbar-width: thin;
+  scrollbar-color: var(--sy-line) transparent;
+}
+
+.school-lectern > :first-child {
+  margin-top: 0;
+}
+
+.school-kicker {
+  margin: 0 0 var(--sy-space-2);
+  color: var(--school-hue, var(--sy-text-2));
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.school-title {
+  margin: 0;
+  color: var(--sy-text);
+  font-family: var(--sy-font-serif);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.school-meta {
+  margin: var(--sy-space-1) 0 0;
+  color: var(--sy-text-3);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.school-why {
+  margin: var(--sy-space-4) 0 0;
+  color: var(--sy-text-body);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.school-charter p {
+  margin: 0 0 var(--sy-space-3);
+  color: var(--sy-text-body);
+  font-family: var(--sy-font-reading);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.school-gate-text {
+  margin: var(--sy-space-5) 0;
+  padding-top: var(--sy-space-5);
+  border-top: 1px solid var(--sy-line);
+}
+
+.school-gate-text .school-title {
+  font-size: 24px;
+}
+
+.school-state {
+  margin: var(--sy-space-2) 0 0;
+  color: var(--sy-text-2);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.school-subhead {
+  margin: var(--sy-space-5) 0 var(--sy-space-2);
+  color: var(--sy-text-2);
+  font-family: var(--sy-font-serif);
+  font-size: 18px;
+  font-weight: 400;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+.school-list,
+.school-steps,
+.school-division-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.school-row,
+.school-step {
+  display: grid;
+  gap: 2px;
+  padding: var(--sy-space-3) 0;
+  border-top: 1px solid var(--sy-line);
+}
+
+.school-row .school-meta,
+.school-step .school-meta,
+.school-row .school-state,
+.school-step .school-state {
+  margin: 0;
+}
+
+.school-row-title,
+.school-link {
+  justify-self: start;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sy-text);
+  font-family: var(--sy-font-serif);
+  font-size: 19px;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+}
+
+.school-row-title:hover,
+.school-link:hover {
+  color: var(--sy-ice);
+}
+
+.school-house-link {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  column-gap: var(--sy-space-2);
+  width: 100%;
+  padding: var(--sy-space-2) 0;
+}
+
+.school-house-link .school-glyph {
+  grid-row: span 2;
+  color: var(--school-hue);
+  font-size: 20px;
+}
+
+.school-house-link .school-seals {
+  margin: 0;
+  color: var(--sy-text-3);
+  font-family: var(--sy-font-sans);
+  font-size: 12px;
+}
+
+.school-house-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sy-space-4);
+}
+
+.school-glyph-large {
+  color: var(--school-hue);
+  font-family: var(--sy-font-serif);
+  font-size: 44px;
+  line-height: 1;
+}
+
+.school-seals {
+  margin: var(--sy-space-3) 0 0;
+  color: var(--sy-text-2);
+  font-size: 13px;
+}
+
+.school-facts {
+  display: grid;
+  gap: var(--sy-space-2);
+  margin: var(--sy-space-4) 0 0;
+}
+
+.school-facts div {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: var(--sy-space-3);
+}
+
+.school-facts dt {
+  color: var(--sy-text-3);
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.school-facts dd {
+  margin: 0;
+  color: var(--sy-text-body);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.school-note {
+  margin: var(--sy-space-3) 0 0;
+  color: var(--sy-text-2);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.school-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sy-space-1) var(--sy-space-3);
+  margin: var(--sy-space-3) 0 0;
+}
+
+.school-links .school-link {
+  font-size: 16px;
+}
+
+.school-action {
+  margin-top: var(--sy-space-3);
+}
+
+.school-read {
+  min-height: 44px;
+  padding: 0 var(--sy-space-5);
+  border: 0;
+  border-radius: var(--sy-radius-full);
+  background: var(--sy-primary-fill);
+  box-shadow: var(--sy-primary-glow);
+  color: var(--sy-on-primary);
+  font-family: var(--sy-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.school-read:disabled {
+  background: transparent;
+  box-shadow: none;
+  border: 1px solid var(--sy-line-strong);
+  color: var(--sy-text-3);
+  cursor: default;
+}
+
+.school-reason {
+  margin: var(--sy-space-2) 0 0;
+  color: var(--sy-text-3);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.school-outward {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sy-space-2);
+  min-height: 44px;
+  color: var(--sy-ice);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.school-outward:hover {
+  text-decoration: underline;
+}
+
+.school-outward-note {
+  color: var(--sy-text-3);
+  font-size: 12px;
+}
+
+.school-divisions {
+  margin-top: var(--sy-space-4);
+  color: var(--sy-text-3);
+}
+
+.school-division {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sy-space-3);
+  border-top: 1px solid var(--sy-line);
+}
+
+.school-division .school-link {
+  font-size: 16px;
+  min-height: 40px;
+}
+
+.school-division.is-read .school-link {
+  color: var(--sy-text-2);
+}
+
+/* ─── Phone: the Wheel full width and square, the paths beneath, then the Lectern ─── */
+
+@media (max-width: 820px) {
+  .school-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--sy-space-5);
+  }
+
+  .school-wheel {
+    width: 100%;
+  }
+
+  .school-paths {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .school-lectern {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 480px) {
+  .school {
+    --school-dot: 10px;
+  }
+
+  .school-house-name {
+    display: none;
+  }
+}
+
+/* ─── Quiet: nothing turns, the path appears at once ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  .school-rings,
+  .school-path-line.is-drawing {
+    animation: none;
+  }
+
+  .school-point::before {
+    transition: none;
+  }
+}
+
+:root.reduced-motion .school-rings,
+:root.reduced-motion .school-path-line.is-drawing {
+  animation: none;
+}
+
+:root.reduced-motion .school-point::before {
+  transition: none;
+}
