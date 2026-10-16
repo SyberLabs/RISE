@@ -234,6 +234,18 @@
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/38879838950",
       "note": "Dry run on main at 68dda1f9, since 2026-10-15T00:03:02.312Z (the 2026-10-16 digest period.from): 18 merged, 7 included, 18 beats; opening attractor, close living-flame, 5 kit pictures (4 list, 1 compare), rendered check clean; every speaking beat pictured. Quality {\"firstPass\":false,\"repairs\":{\"composition\":1,\"illustrator\":0},\"checks\":{\"composition\":1},\"density\":{\"pictures\":5,\"includedChanges\":7,\"speakingBeats\":16,\"pictured\":16,\"longestUnpictured\":0}}: the one repair was a list title too long for its slot. Played locally in a preview build; each scene start screenshotted for the owner. No token string in the log. Nothing published.",
       "date": "2026-10-16"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/703",
+      "note": "Branch changes-kit-budgets (the owner’s two fixes after approving the list and compare renders): a list’s rows start at a fixed baseline under its title (compare already did); KIT_BUDGETS states each kit slot’s budget in characters from the kit’s own geometry and measure, and the composer’s guidance is written from it (a kit test holds each budget to its refusal’s number, a compose test holds the prompt to KIT_BUDGETS). Tests first; 17 files, 380 tests passed locally, rendered check clean. One Codex finding (bar value budgets missing from the prompt) fixed by the feedback workflow in 0cf26e8e, which I reviewed. Merged as 574416e0 and deployed by the CI run’s production job (its voice-provider job failed on a Cloudflare API error, as on every main run since before this work). Not accepted by a human.",
+      "date": "2026-10-16"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38884412326",
+      "note": "The real digest that supersedes 2026-10-16 (supersede=2026-10-16, since empty), on main at 574416e0: period 2026-10-15T00:03:02.312Z to 2026-10-16T10:01:58.703Z, 20 merged, 7 included, 17 beats; RISE gave up the close for the pictures; 6 kit pictures (list \"The four kinds\" beat 1, compare \"Figure kinds\" beat 4, compare \"Where a picture sits\" beat 5, list \"The density floor\" beat 8, list \"Figure label checks\" beat 11, list \"Dependency review\" beat 14), eye at beats 7 and 15. Quality {\"firstPass\":false,\"repairs\":{\"composition\":1,\"illustrator\":0},\"checks\":{\"composition\":2},\"density\":{\"pictures\":6,\"includedChanges\":7,\"speakingBeats\":16,\"pictured\":13,\"longestUnpictured\":2}} (the repair: a compare row missing a key and a picture citing a change its beat did not). Published as https://rise.syberlabs.io/changes/2026-10-16-2, issue #704; index.json marks 2026-10-16 supersededBy 2026-10-16-2. Verified live in Chromium: /changes lists 2026-10-16-2, 2026-10-15, 2026-10-14 and hides 2026-10-16; /changes/2026-10-16 says \"A newer reading of this period replaces this one\" linking /changes/2026-10-16-2; the new page shows the density line, opens and plays. No token string in the log.",
+      "date": "2026-10-16"
     }
   ],
   "activity": [
@@ -316,10 +328,14 @@
     {
       "date": "2026-10-16T09:25:45.920Z",
       "summary": "The owner's 2-pictures finding (run 38874190971); #701 merged as 68dda1f9; its dry run 38879838950"
+    },
+    {
+      "date": "2026-10-16T10:07:17.480Z",
+      "summary": "#703 merged as 574416e0; the superseding digest 2026-10-16-2 (run 38884412326) published and verified"
     }
   ],
-  "updatedAt": "2026-10-16T09:25:45.920Z",
-  "revision": 20,
+  "updatedAt": "2026-10-16T10:07:17.480Z",
+  "revision": 21,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }
