@@ -377,7 +377,8 @@ serves:
   engine), `src/components/library/Via.js` (the Stations of the Cross),
   `src/components/library/Journeys.js` (authored long-form experiences),
   `src/components/library/Keystones.js` (the public entry corridor),
-  `src/components/library/Mint.js` (the door a minted sequence opens onto) and
+  `src/components/library/School.js` (the Mystery School, the graded canon as
+  a wheel), `src/components/library/Mint.js` (the door a minted sequence opens onto) and
   `src/components/library/Curia.js` (the source and rights record).
 - Today's poem has no pane: Home's card, its Menu and `/today` begin the day's
   exact poem in the reader through the app's `launchToday`, which
