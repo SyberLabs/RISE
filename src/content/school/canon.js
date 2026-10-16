@@ -1,0 +1,186 @@
+/**
+ * The Mystery School's founding canon: the Gate text and the seven houses'
+ * sixty-five, in the order of the owner's plan (2026-10-13).
+ *
+ * Title, author, date, edition and why are the plan's words, verbatim.
+ * `rights` follows the edition column: "US only" is 'us-only', "orig. only" is
+ * 'orig-only', anything else 'us-pd'. `work` names a RISE archive work, served
+ * or withheld, and nothing else; whether it can be read is resolved from the
+ * content manifest at runtime, never written here. `work.entry` pins a
+ * division by its label, because division ids are positions, not names.
+ */
+
+const freeze = Object.freeze;
+
+function text({ id, degree, title, author, date, edition, why, rights = 'us-pd', work = null, bridges = [], note = null }) {
+  return freeze({
+    id,
+    house: id.slice(0, id.indexOf('.')),
+    degree, title, author, date, edition,
+    rights,
+    why,
+    work: work && freeze({ id: work.id, entry: work.entry ?? null }),
+    bridges: freeze([...bridges]),
+    note
+  });
+}
+
+export const SCHOOL_CANON = freeze([
+  // The Gate
+  text({ id: 'gate.oration', degree: 0, title: 'Oration on the Dignity of Man', author: 'Pico della Mirandola', date: '1486',
+    edition: 'Latin, orig. only (verify a pre-1931 English)', rights: 'orig-only',
+    why: 'The Renaissance manifesto: the human as the being with no fixed place, who must shape itself',
+    note: 'A free English edition is the school\'s first commission' }),
+
+  // Sun: House of the Logos
+  text({ id: 'sun.fragments', degree: 1, title: 'Fragments', author: 'Heraclitus', date: 'c. 500 BCE',
+    edition: 'John Burnet, Early Greek Philosophy, 1892', why: 'Flux, logos, the unity of opposites' }),
+  text({ id: 'sun.meditations', degree: 1, title: 'Meditations', author: 'Marcus Aurelius', date: 'c. 170',
+    edition: 'George Long, 1862', why: 'Philosophy as daily practice', work: { id: 'literary-meditations' } }),
+  text({ id: 'sun.symposium-phaedrus-timaeus', degree: 2, title: 'Symposium, Phaedrus, Timaeus', author: 'Plato', date: 'c. 385 to 360 BCE',
+    edition: 'Benjamin Jowett, 1871', why: 'Eros as ascent, the soul\'s chariot, the cosmos as living creature' }),
+  text({ id: 'sun.zarathustra', degree: 2, title: 'Thus Spoke Zarathustra', author: 'Nietzsche', date: '1883',
+    edition: 'Thomas Common, 1909', why: 'Self-overcoming; the classical avant garde',
+    work: { id: 'literary-thus-spoke-zarathustra' } }),
+  text({ id: 'sun.monadology', degree: 2, title: 'Monadology', author: 'Leibniz', date: '1714',
+    edition: 'Robert Latta, 1898', why: 'Mind as perspective; a bridge to computation', bridges: ['mercury'] }),
+  text({ id: 'sun.ethics', degree: 3, title: 'Ethics', author: 'Spinoza', date: '1677',
+    edition: 'R. H. M. Elwes, 1883', why: 'God or Nature, proven in geometric order' }),
+  text({ id: 'sun.enneads', degree: 3, title: 'Enneads', author: 'Plotinus', date: 'c. 270',
+    edition: 'Stephen MacKenna, 1917 to 1930', why: 'The One, emanation, return; the spine of Western mysticism' }),
+  text({ id: 'sun.nature', degree: 1, title: 'Nature', author: 'Emerson', date: '1836',
+    edition: 'Original', why: 'The American renaissance of the soul',
+    work: { id: 'literary-essays-emerson', entry: 'Nature' },
+    note: 'The 1844 essay stands in until the 1836 book is carried' }),
+
+  // Mercury: House of the Machine
+  text({ id: 'mercury.new-atlantis', degree: 1, title: 'New Atlantis', author: 'Francis Bacon', date: '1627',
+    edition: 'Original', why: 'Salomon\'s House: the research institute as utopia' }),
+  text({ id: 'mercury.lovelace-notes', degree: 2, title: 'Sketch of the Analytical Engine, with Notes', author: 'Menabrea and Ada Lovelace', date: '1843',
+    edition: 'Original English', why: 'First vision of general-purpose computation beyond number', bridges: ['sun', 'moon'] }),
+  text({ id: 'mercury.ninth-bridgewater', degree: 2, title: 'Ninth Bridgewater Treatise', author: 'Charles Babbage', date: '1837',
+    edition: 'Original', why: 'Miracles as programmed exceptions; theology meets the engine', bridges: ['saturn'] }),
+  text({ id: 'mercury.laws-of-thought', degree: 3, title: 'Laws of Thought', author: 'George Boole', date: '1854',
+    edition: 'Original', why: 'Logic becomes algebra' }),
+  text({ id: 'mercury.on-governors', degree: 3, title: 'On Governors', author: 'James Clerk Maxwell', date: '1868',
+    edition: 'Original', why: 'The first paper of control theory' }),
+  text({ id: 'mercury.book-of-the-machines', degree: 1, title: 'Darwin among the Machines; The Book of the Machines', author: 'Samuel Butler', date: '1863; 1872',
+    edition: 'Original', why: 'Machines as an evolving species' }),
+  text({ id: 'mercury.machine-stops', degree: 1, title: 'The Machine Stops', author: 'E. M. Forster', date: '1909',
+    edition: 'Original, US only', rights: 'us-only', why: 'Total mediation, foreseen a century early' }),
+  text({ id: 'mercury.rur', degree: 1, title: 'R.U.R.', author: 'Karel Čapek', date: '1920',
+    edition: 'Paul Selver, 1923, US only', rights: 'us-only', why: 'The word "robot" is born' }),
+  text({ id: 'mercury.increasing-human-energy', degree: 2, title: 'The Problem of Increasing Human Energy', author: 'Nikola Tesla', date: '1900',
+    edition: 'Original (Century Magazine)', why: 'Civilization as an energy system' }),
+  text({ id: 'mercury.philosophie-der-technik', degree: 3, title: 'Grundlinien einer Philosophie der Technik', author: 'Ernst Kapp', date: '1877',
+    edition: 'German, orig. only', rights: 'orig-only', why: 'Tools as projected organs' }),
+
+  // Moon: House of Mind
+  text({ id: 'moon.life-after-death', degree: 1, title: 'The Little Book of Life after Death', author: 'Gustav Fechner', date: '1836',
+    edition: 'Mary Wadsworth, 1904', why: 'Panpsychism with a poet\'s touch' }),
+  text({ id: 'moon.stream-of-thought', degree: 2, title: 'The Principles of Psychology, ch. 9, The Stream of Thought', author: 'William James', date: '1890',
+    edition: 'Original', why: 'Consciousness as a stream, not a chain' }),
+  text({ id: 'moon.varieties', degree: 1, title: 'The Varieties of Religious Experience', author: 'William James', date: '1902',
+    edition: 'Original', why: 'Mystical states studied with empirical respect' }),
+  text({ id: 'moon.cosmic-consciousness', degree: 1, title: 'Cosmic Consciousness', author: 'R. M. Bucke', date: '1901',
+    edition: 'Original', why: 'A catalogue of illuminations across history' }),
+  text({ id: 'moon.interpretation-of-dreams', degree: 2, title: 'The Interpretation of Dreams', author: 'Freud', date: '1899',
+    edition: 'A. A. Brill, 1913', why: 'The night mind gets a grammar' }),
+  text({ id: 'moon.psychological-types', degree: 2, title: 'Psychological Types', author: 'C. G. Jung', date: '1921',
+    edition: 'H. Godwin Baynes, 1923, US only', rights: 'us-only', why: 'Typology of consciousness' }),
+  text({ id: 'moon.human-personality', degree: 3, title: 'Human Personality and Its Survival of Bodily Death', author: 'F. W. H. Myers', date: '1903',
+    edition: 'Original', why: 'The subliminal self' }),
+  text({ id: 'moon.matter-and-memory', degree: 3, title: 'Matter and Memory', author: 'Henri Bergson', date: '1896',
+    edition: 'Paul and Palmer, 1911', why: 'Memory as duration, not storage' }),
+  text({ id: 'moon.tertium-organum', degree: 3, title: 'Tertium Organum', author: 'P. D. Ouspensky', date: '1912',
+    edition: 'Bessaraboff and Bragdon, 1920', why: 'Higher dimensions as states of mind' }),
+
+  // Venus: House of Imagination
+  text({ id: 'venus.marriage-of-heaven-and-hell', degree: 1, title: 'The Marriage of Heaven and Hell', author: 'William Blake', date: '1790',
+    edition: 'Original', why: 'Energy is eternal delight',
+    note: 'RISE carries Blake\'s Songs of Innocence and of Experience, not the Marriage' }),
+  text({ id: 'venus.hymns-to-the-night', degree: 1, title: 'Hymns to the Night', author: 'Novalis', date: '1800',
+    edition: 'George MacDonald, 1897', why: 'Romantic night as initiation' }),
+  text({ id: 'venus.defence-of-poetry', degree: 1, title: 'A Defence of Poetry', author: 'Shelley', date: '1821',
+    edition: 'Original', why: 'Poets as unacknowledged legislators' }),
+  text({ id: 'venus.leaves-of-grass', degree: 1, title: 'Leaves of Grass', author: 'Walt Whitman', date: '1855',
+    edition: 'Original', why: 'A self containing multitudes', work: { id: 'literary-leaves-of-grass' } }),
+  text({ id: 'venus.spiritual-in-art', degree: 1, title: 'On the Spiritual in Art', author: 'Wassily Kandinsky', date: '1911',
+    edition: 'Michael Sadler, 1914', why: 'Abstraction as inner necessity',
+    work: { id: 'kandinsky-spiritual-in-art' }, bridges: ['moon'] }),
+  text({ id: 'venus.futurist-manifesto', degree: 1, title: 'The Futurist Manifesto', author: 'F. T. Marinetti', date: '1909',
+    edition: 'Original (French)', why: 'Speed, machine, rupture; read against the grain' }),
+  text({ id: 'venus.divine-comedy', degree: 2, title: 'Divine Comedy', author: 'Dante', date: 'c. 1320',
+    edition: 'H. W. Longfellow, 1867', why: 'The great initiatory journey of the West', work: { id: 'the-divine-comedy' } }),
+  text({ id: 'venus.faust', degree: 2, title: 'Faust', author: 'Goethe', date: '1808, 1832',
+    edition: 'Bayard Taylor, 1870', why: 'The striving mind and its bargains', work: { id: 'faust' } }),
+  text({ id: 'venus.biographia-literaria', degree: 2, title: 'Biographia Literaria', author: 'Coleridge', date: '1817',
+    edition: 'Original', why: 'Primary and secondary imagination' }),
+  text({ id: 'venus.aesthetic-education', degree: 3, title: 'Letters on the Aesthetic Education of Man', author: 'Schiller', date: '1795',
+    edition: 'Bohn\'s Standard Library, 1845', why: 'Play as the root of freedom and culture' }),
+
+  // Mars: House of the City
+  text({ id: 'mars.the-prince', degree: 1, title: 'The Prince', author: 'Machiavelli', date: '1532',
+    edition: 'W. K. Marriott, 1908', why: 'Power seen without illusion' }),
+  text({ id: 'mars.peloponnesian-war', degree: 2, title: 'History of the Peloponnesian War', author: 'Thucydides', date: 'c. 400 BCE',
+    edition: 'Richard Crawley, 1874', why: 'The first analytic history' }),
+  text({ id: 'mars.renaissance-in-italy', degree: 2, title: 'The Civilization of the Renaissance in Italy', author: 'Jacob Burckhardt', date: '1860',
+    edition: 'S. G. C. Middlemore, 1878', why: 'The book that invented "the Renaissance" as we picture it' }),
+  text({ id: 'mars.golden-bough', degree: 2, title: 'The Golden Bough', author: 'J. G. Frazer', date: '1890; abr. 1922',
+    edition: 'Original', why: 'Myth and ritual compared; read against the grain' }),
+  text({ id: 'mars.muqaddimah', degree: 3, title: 'Muqaddimah', author: 'Ibn Khaldun', date: '1377',
+    edition: 'de Slane, French, 1862 to 1868', why: 'Group feeling and the rise and fall of dynasties' }),
+  text({ id: 'mars.new-science', degree: 3, title: 'The New Science', author: 'Giambattista Vico', date: '1725',
+    edition: 'Michelet, French abridgment, 1827', why: 'History as the cycles of human making' }),
+  text({ id: 'mars.decline-of-the-west', degree: 3, title: 'The Decline of the West', author: 'Oswald Spengler', date: '1918 to 1922',
+    edition: 'C. F. Atkinson, 1926 to 1928, US only', rights: 'us-only', why: 'Cultures as organisms with seasons' }),
+
+  // Jupiter: House of Cosmos
+  text({ id: 'jupiter.nature-of-things', degree: 1, title: 'On the Nature of Things', author: 'Lucretius', date: 'c. 55 BCE',
+    edition: 'W. E. Leonard, 1916', why: 'Atoms, swerve, freedom from fear' }),
+  text({ id: 'jupiter.flatland', degree: 1, title: 'Flatland', author: 'Edwin Abbott', date: '1884',
+    edition: 'Original', why: 'A parable of dimensions' }),
+  text({ id: 'jupiter.art-forms-in-nature', degree: 1, title: 'Art Forms in Nature', author: 'Ernst Haeckel', date: '1904',
+    edition: 'Plates, language-free', why: 'Nature\'s symmetry as pattern library' }),
+  text({ id: 'jupiter.metamorphosis-of-plants', degree: 2, title: 'The Metamorphosis of Plants', author: 'Goethe', date: '1790',
+    edition: 'Emily Cox, in Goethe\'s Botany, 1863', why: 'Morphology seen through participatory attention', bridges: ['venus'] }),
+  text({ id: 'jupiter.cosmos', degree: 2, title: 'Cosmos', author: 'Alexander von Humboldt', date: '1845',
+    edition: 'E. C. Otté, 1849', why: 'The universe as one interconnected whole' }),
+  text({ id: 'jupiter.growth-and-form', degree: 2, title: 'On Growth and Form', author: 'D\'Arcy Thompson', date: '1917',
+    edition: 'Original', why: 'Mathematics of living shape; root of generative form' }),
+  text({ id: 'jupiter.relativity', degree: 2, title: 'Relativity: The Special and General Theory', author: 'Albert Einstein', date: '1916',
+    edition: 'Robert Lawson, 1920', why: 'Space and time rewritten for a lay reader' }),
+  text({ id: 'jupiter.harmonices-mundi', degree: 3, title: 'Harmonices Mundi', author: 'Johannes Kepler', date: '1619',
+    edition: 'Latin, orig. only', rights: 'orig-only', why: 'The music of the spheres made quantitative' }),
+
+  // Saturn: House of the Mysteries
+  text({ id: 'saturn.tao-te-ching', degree: 1, title: 'Tao Te Ching', author: 'Laozi', date: 'c. 400 BCE',
+    edition: 'James Legge, 1891', why: 'The way that cannot be named', work: { id: 'sacred-tao-te-ching' } }),
+  text({ id: 'saturn.zhuangzi', degree: 1, title: 'Zhuangzi', author: 'Zhuangzi', date: 'c. 300 BCE',
+    edition: 'Herbert Giles, 1889', why: 'The butterfly dream; play as wisdom' }),
+  text({ id: 'saturn.bhagavad-gita', degree: 1, title: 'Bhagavad Gita', author: 'Vyasa (trad.)', date: 'c. 200 BCE',
+    edition: 'Edwin Arnold, The Song Celestial, 1885', why: 'Action without attachment',
+    work: { id: 'extended-bhagavad-gita-full' } }),
+  text({ id: 'saturn.emerald-tablet', degree: 1, title: 'Emerald Tablet', author: 'Hermes Trismegistus (attr.)', date: 'c. 800',
+    edition: 'Isaac Newton\'s translation, c. 1680', why: 'As above, so below', work: { id: 'sacred-emerald-tablet' } }),
+  text({ id: 'saturn.upanishads', degree: 2, title: 'Upanishads', author: 'Various', date: 'c. 800 to 200 BCE',
+    edition: 'Max Müller, Sacred Books of the East, 1879 to 1884', why: 'Atman is Brahman' }),
+  text({ id: 'saturn.corpus-hermeticum', degree: 2, title: 'Corpus Hermeticum', author: 'Hermetic authors', date: 'c. 100 to 300',
+    edition: 'G. R. S. Mead, Thrice-Greatest Hermes, 1906', why: 'Mind as the maker of worlds; Ficino\'s first task',
+    work: { id: 'sacred-corpus-hermeticum' } }),
+  text({ id: 'saturn.masnavi', degree: 2, title: 'Masnavi', author: 'Rumi', date: '1258 to 1273',
+    edition: 'E. H. Whinfield, abr., 1887', why: 'The reed\'s lament; love as cosmic force',
+    note: 'RISE carries Rumi\'s Dīvān, not the Masnavi' }),
+  text({ id: 'saturn.cloud-of-unknowing', degree: 2, title: 'The Cloud of Unknowing', author: 'Anonymous', date: 'c. 1375',
+    edition: 'Evelyn Underhill, ed., 1912', why: 'Knowing by unknowing' }),
+  text({ id: 'saturn.interior-castle', degree: 2, title: 'The Interior Castle', author: 'Teresa of Ávila', date: '1577',
+    edition: 'Benedictines of Stanbrook, 1912', why: 'The soul as seven mansions' }),
+  text({ id: 'saturn.mystical-theology', degree: 3, title: 'Mystical Theology', author: 'Pseudo-Dionysius', date: 'c. 500',
+    edition: 'John Parker, 1897', why: 'The apophatic way' }),
+  text({ id: 'saturn.sermons', degree: 3, title: 'Sermons', author: 'Meister Eckhart', date: 'c. 1300',
+    edition: 'C. de B. Evans, 1924', why: 'The ground of the soul' }),
+  text({ id: 'saturn.occult-philosophy', degree: 3, title: 'Three Books of Occult Philosophy', author: 'H. C. Agrippa', date: '1533',
+    edition: 'J. F. (John French), 1651', why: 'The Renaissance magical cosmos in full' }),
+  text({ id: 'saturn.heroic-frenzies', degree: 3, title: 'The Heroic Frenzies', author: 'Giordano Bruno', date: '1585',
+    edition: 'L. Williams, 1887', why: 'Infinite love for an infinite universe' })
+]);
