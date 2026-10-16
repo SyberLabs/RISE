@@ -1,0 +1,472 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-16-2",
+  "audience": "team",
+  "title": "What changed in RISE, 15–16 October",
+  "period": {
+    "from": "2026-10-15T00:03:02.312Z",
+    "to": "2026-10-16T10:01:58.703Z"
+  },
+  "generatedAt": "2026-10-16T10:01:58.703Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 703,
+      "title": "RISE Changes: a list starts under its title, and the composer is told each kit slot's budget",
+      "url": "https://github.com/SyberLabs/RISE/pull/703",
+      "mergedAt": "2026-10-16T09:50:24Z",
+      "mergeSha": "574416e09e35f32ce536ea28c8de88dcbcde778c",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "design"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 702,
+      "title": "SVC-002 records the density finding, #701 and its dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/702",
+      "mergedAt": "2026-10-16T09:33:00Z",
+      "mergeSha": "e02cf4532de36d2bafd025dcfba0f33e72976e82",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 701,
+      "title": "RISE Changes: a density floor, list and compare figures, density in the score, and supersede",
+      "url": "https://github.com/SyberLabs/RISE/pull/701",
+      "mergedAt": "2026-10-16T09:20:39Z",
+      "mergeSha": "68dda1f921f24b61a4f93a36570d0137eca39582",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 699,
+      "title": "Generate experimental GitHits SBOMs for published releases",
+      "url": "https://github.com/SyberLabs/RISE/pull/699",
+      "mergedAt": "2026-10-15T21:23:30Z",
+      "mergeSha": "1ec1338fbca8481a407783c248323099ea5bb6e4",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 698,
+      "title": "Review dependency changes with cached license and vulnerability policy",
+      "url": "https://github.com/SyberLabs/RISE/pull/698",
+      "mergedAt": "2026-10-15T21:06:18Z",
+      "mergeSha": "dc6b1aadc972ea2201c0af3f6f422da8af9597e9",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 697,
+      "title": "Enable pinned docs search and OSS example grounding for agents",
+      "url": "https://github.com/SyberLabs/RISE/pull/697",
+      "mergedAt": "2026-10-15T20:56:44Z",
+      "mergeSha": "0f0b41f686bc2ee7889c6db6025a87146a01f80a",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 696,
+      "title": "SVC-002 records the eye's exemption from the hold limit and its dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/696",
+      "mergedAt": "2026-10-15T08:10:08Z",
+      "mergeSha": "732689e25217029175be19ad700a0ed0de87cc85",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 695,
+      "title": "RISE Changes: RISE's eye, the room at rest, is exempt from the hold limit",
+      "url": "https://github.com/SyberLabs/RISE/pull/695",
+      "mergedAt": "2026-10-15T07:54:17Z",
+      "mergeSha": "0874021ad9636c556651b092537eb71f1516baa8",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 694,
+      "title": "SVC-002 records the opening-and-close change and its dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/694",
+      "mergedAt": "2026-10-15T07:44:21Z",
+      "mergeSha": "4cf83ab19666018563945fddb5c2d75fe4f55a07",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 693,
+      "title": "RISE Changes: engines are named only as the opening and the close",
+      "url": "https://github.com/SyberLabs/RISE/pull/693",
+      "mergedAt": "2026-10-15T07:33:04Z",
+      "mergeSha": "979d20f7f6aa5d0ba40433bc095d99c14fc5db34",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 691,
+      "title": "Route GitHits agent lookups through private usage accounting",
+      "url": "https://github.com/SyberLabs/RISE/pull/691",
+      "mergedAt": "2026-10-15T07:27:09Z",
+      "mergeSha": "1785cce486bd36b17a29db11181fe00c87fc3a56",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 692,
+      "title": "SVC-002 records the held-pictures fix and its dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/692",
+      "mergedAt": "2026-10-15T07:17:32Z",
+      "mergeSha": "c13bdd119ad70f6a1dc773d673f4a5162210a5b3",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 690,
+      "title": "A digest's picture ends where its beats move on, and the reading returns to RISE's eye; the page says plainly why a change was left out",
+      "url": "https://github.com/SyberLabs/RISE/pull/690",
+      "mergedAt": "2026-10-15T07:03:51Z",
+      "mergeSha": "a03ef35ab5c282865483b6b8f643ba54f7413351",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 689,
+      "title": "SVC-002 records the alignment fix's merge and a first-pass dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/689",
+      "mergedAt": "2026-10-15T06:32:29Z",
+      "mergeSha": "69cec1a6b0be3e39ab6128720369ef1295149822",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 688,
+      "title": "A digest's picture sits on the beat that speaks of it, shows what words cannot, and an unspoken change is left out instead of repaired",
+      "url": "https://github.com/SyberLabs/RISE/pull/688",
+      "mergedAt": "2026-10-15T06:18:20Z",
+      "mergeSha": "299a9812caf0073c8cadafc9d88d628eaa68a0ad",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 687,
+      "title": "SVC-002 records the figure kit's merge and its dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/687",
+      "mergedAt": "2026-10-15T05:57:41Z",
+      "mergeSha": "ed8caee962b819667037766690c0b4937a2338bb",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 686,
+      "title": "RISE draws its own figures with the Figure Kit: bars, flows, columns and stacks whose labels cannot collide",
+      "url": "https://github.com/SyberLabs/RISE/pull/686",
+      "mergedAt": "2026-10-15T05:45:26Z",
+      "mergeSha": "ec9a1402720f5a670b5dee804040929ea1e63dfc",
+      "route": {
+        "audience": "team",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 685,
+      "title": "The connector logs one count of each admitted Current's figure problems and picture cadence, and answers exactly as before",
+      "url": "https://github.com/SyberLabs/RISE/pull/685",
+      "mergedAt": "2026-10-15T01:35:11Z",
+      "mergeSha": "8d913a505ab5d62389cde155aa747a1cc34ce521",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 684,
+      "title": "RISE Changes holds every picture's labels and every beat's words to mechanical checks, and scores each run's first pass",
+      "url": "https://github.com/SyberLabs/RISE/pull/684",
+      "mergedAt": "2026-10-15T01:27:01Z",
+      "mergeSha": "2c2a6975c1846d5234674cb0649866139258080c",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 683,
+      "title": "SVC-002 records the third dry run and the real digest with pictures, /changes/2026-10-15",
+      "url": "https://github.com/SyberLabs/RISE/pull/683",
+      "mergedAt": "2026-10-15T00:15:55Z",
+      "mergeSha": "47508abe31aa16dc327fa599cba8d42dfa0620e0",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "changes-2026-10-16",
+    "title": "RISE Changes: the week of figures and checks",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "scenes": [
+      {
+        "id": "opening",
+        "engine": "attractor"
+      },
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>The four kinds</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">The four kinds</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Bars</text><text x=\"236.49\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">2 to 4 items</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Flow</text><text x=\"236.49\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">2 to 7 steps</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Columns</text><text x=\"236.49\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">2 to 4 columns</text><line x1=\"56\" y1=\"317\" x2=\"76\" y2=\"317\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Stack</text><text x=\"236.49\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">2 to 5 zones</text></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Figure kinds</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">Figure kinds</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#F4F4FF\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">Kinds of figure</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Four</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Six</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">Rule or process change</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">No fitting kind</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">List or compare</text></svg>"
+      },
+      {
+        "id": "picture-3",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Where a picture sits</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">Where a picture sits</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#F4F4FF\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">The beat a picture sits on</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Could cite another</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Its own beat's</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">A change no beat speaks of</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Repaired</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Left out</text></svg>"
+      },
+      {
+        "id": "picture-4",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>The density floor</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">The density floor</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Unpictured run</text><text x=\"308.35\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">At most 2</text><circle cx=\"66\" cy=\"205\" r=\"7\" fill=\"#E84BFF\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Major change</text><text x=\"308.35\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">Needs a picture</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Score</text><text x=\"308.35\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Records density</text></svg>"
+      },
+      {
+        "id": "picture-5",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Figure label checks</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">Figure label checks</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Overlap</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Crosses a shape</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Outside the frame</text><line x1=\"56\" y1=\"317\" x2=\"76\" y2=\"317\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Too small</text><text x=\"346.57\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Under 12 px</text><line x1=\"56\" y1=\"373\" x2=\"76\" y2=\"373\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"382\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Low contrast</text><text x=\"346.57\" y=\"382\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Under 4.5 to 1</text></svg>"
+      },
+      {
+        "id": "picture-6",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Dependency review</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">Dependency review</text><circle cx=\"66\" cy=\"149\" r=\"7\" fill=\"#E84BFF\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Critical advisory</text><text x=\"361.81\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">Blocks</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">License drift</text><text x=\"361.81\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Warns</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Missing credentials</text><text x=\"361.81\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Coverage warning</text></svg>"
+      },
+      {
+        "id": "eye",
+        "engine": "still"
+      }
+    ],
+    "beats": [
+      {
+        "say": "This week RISE Changes learned to draw its own figures, and to check its own work.",
+        "scene": "opening"
+      },
+      {
+        "say": "RISE now draws figures itself, from data. There are four kinds: bars, flows, columns and stacks.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "Every label is measured before it is drawn. A label that does not fit is refused, never shrunk, so labels cannot collide."
+      },
+      {
+        "say": "Each beat of a digest also carries the numbers of the pull requests it speaks about. The sources are now written from those numbers."
+      },
+      {
+        "say": "Two more kinds arrived later in the week: a list, and a compare for a before and after. A rule or a process change now has a figure that fits it.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "A picture must now sit on the beat that speaks of it. Pictures that show nothing the words do not, like sparse columns, are refused.",
+        "scene": "picture-3"
+      },
+      {
+        "say": "A change that no beat speaks of is no longer repaired into the reading. It is left out, and the page says so."
+      },
+      {
+        "say": "A picture also ends where its beats move on, and the reading returns to RISE's eye. The page now gives plain reasons for a change left out: minor, skipped by the router, records only, over the 24-change limit, or not spoken of.",
+        "scene": "eye"
+      },
+      {
+        "say": "The published digest showed only 2 pictures in 19 beats. So there is now a density floor: no more than two speaking beats in a row without a picture, and every major change gets one.",
+        "scene": "picture-4"
+      },
+      {
+        "say": "The score now records density too, so a picture that is let go counts against the run."
+      },
+      {
+        "say": "A published period can also be superseded. The re-run takes the next id, the old entry links to the new reading, and the old file is never touched."
+      },
+      {
+        "say": "Figure labels are now held to mechanical checks. Each failure seen in a real run became a check that answers with a sentence the model can repair from.",
+        "scene": "picture-5"
+      },
+      {
+        "say": "A browser then draws each admitted figure at phone size and desktop size, and measures every label. A fault goes back to the illustrator once."
+      },
+      {
+        "say": "The composer's words are checked for process talk. Each run is scored on its first pass, and the page shows the score."
+      },
+      {
+        "say": "On the infrastructure side, pull requests now get a dependency review. A critical advisory in a changed dependency blocks. License drift warns. Without credentials, it warns that coverage was skipped.",
+        "scene": "picture-6"
+      },
+      {
+        "say": "Published releases also gain an experimental software bill of materials, attached with digests of its source and output.",
+        "scene": "eye"
+      },
+      {
+        "say": "No real export has been generated yet, and the live credentials are unverified."
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      686
+    ],
+    "2": [
+      686
+    ],
+    "3": [
+      686
+    ],
+    "4": [
+      701
+    ],
+    "5": [
+      688
+    ],
+    "6": [
+      688
+    ],
+    "7": [
+      690
+    ],
+    "8": [
+      701
+    ],
+    "9": [
+      701
+    ],
+    "10": [
+      701
+    ],
+    "11": [
+      684
+    ],
+    "12": [
+      684
+    ],
+    "13": [
+      684
+    ],
+    "14": [
+      698
+    ],
+    "15": [
+      699
+    ],
+    "16": [
+      699
+    ]
+  },
+  "quality": {
+    "firstPass": false,
+    "repairs": {
+      "composition": 1,
+      "illustrator": 0
+    },
+    "checks": {
+      "composition": 2
+    },
+    "density": {
+      "pictures": 6,
+      "includedChanges": 7,
+      "speakingBeats": 16,
+      "pictured": 13,
+      "longestUnpictured": 2
+    }
+  }
+}
