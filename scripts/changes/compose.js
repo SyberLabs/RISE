@@ -6,6 +6,7 @@
  * third refusal fails the run, so nothing unadmitted is ever written.
  */
 import { BEAT_LIMITS } from '../../src/core/beats.js';
+import { KIT_BUDGETS } from '../../src/core/figures/figure-kit.js';
 import { CURRENT_GUIDE } from '../../src/live/guide/index.js';
 import { CITED_HELD_BEATS, HELD_BEATS, MAX_BESPOKE, UNPICTURED_BEATS, admitComposition } from './admit.js';
 
@@ -22,6 +23,19 @@ import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
 import { quoted } from './route.js';
 
 export const REPAIRS = 2;
+
+/** Each kit slot's budget in characters, written from the kit's own measure (KIT_BUDGETS), so the two cannot drift. */
+function budgetSentence(b) {
+  return [
+    `Characters that fit each slot, counted as the kit counts them (a label over its budget is refused; wide letters such as W and M fit fewer): a title ${b.title};`,
+    `bars: note ${b.bars.note}, label ${b.bars.label.least} (${b.bars.label.most} with 2 bars);`,
+    `flow: step ${b.flow.step}, loop label ${b.flow.loop};`,
+    `columns: name ${b.columns.name.least} (${b.columns.name.most} with 2 columns), item ${b.columns.item.least} (${b.columns.item.most} with 2 columns);`,
+    `stack: label ${b.stack.label};`,
+    `list: label ${b.list.label.least} (${b.list.label.most} when no item has a detail), detail ${b.list.detail};`,
+    `compare: subject ${b.compare.subject}, before and after ${b.compare.cell}, headers ${b.compare.header}.`
+  ].join(' ');
+}
 
 function instructions(model) {
   return [
@@ -45,7 +59,8 @@ function instructions(model) {
     `  - ${KIT_EXAMPLES.stack}`,
     `  - ${KIT_EXAMPLES.list}`,
     `  - ${KIT_EXAMPLES.compare}`,
-    '  bars: 2 to 4 items, max the scale\u2019s top, value numbers from a pull request. flow: 2 to 7 steps, an optional loop between two of them. columns: 2 to 4 columns of 1 to 6 items, glyph eye, shell, full or dot. stack: 2 to 5 zones bottom to top, shape circle, lines, bar or ticks, an optional dock dot beside one. list: 2 to 6 items, each a label and an optional detail, one marked changed by its label. compare: 2 to 4 rows of subject, before and after, under headers Before and After unless you give "headers": {"before", "after"}. "title" is optional for all. Keep labels short: a label too long for its slot is refused, and the refusal says how many characters fit.',
+    '  bars: 2 to 4 items, max the scale\u2019s top, value numbers from a pull request. flow: 2 to 7 steps, an optional loop between two of them. columns: 2 to 4 columns of 1 to 6 items, glyph eye, shell, full or dot. stack: 2 to 5 zones bottom to top, shape circle, lines, bar or ticks, an optional dock dot beside one. list: 2 to 6 items, each a label and an optional detail, one marked changed by its label. compare: 2 to 4 rows of subject, before and after, under headers Before and After unless you give "headers": {"before", "after"}. "title" is optional for all.',
+    `  ${budgetSentence(KIT_BUDGETS)}`,
     `- A brief for RISE\u2019s illustrator only for a diagram no kit kind can express, at most ${MAX_BESPOKE} a digest: { "beat", "medium": "figure" | "scene", "brief" }, the brief 20 to 300 characters naming every label and number to draw ("scene" only when motion explains it). For a layout, say where each part sits, as the pull request places it.`,
     '- RISE\u2019s engines are named only in "opening" and "close": { "engine", "params"? }, one of RISE\u2019s own engines (attractor, living-flame and the rest) with params as the format below teaches a scene. They set a mood and explain nothing; RISE places the opening on the first beat and the close on the last. Both are optional. An engine named anywhere else is refused: a change is shown with a picture.',
     `- Write no "scenes" in the Current and name no scene on a beat; never draw a figure or code yourself. A picture is held at most ${CITED_HELD_BEATS} beats while every beat under it cites one of its changes, and ${HELD_BEATS} when one does not; an engine at most ${HELD_BEATS}. RISE’s eye, where a picture’s beats move on, may rest longer. A Current has 8 scenes in all: with an opening and a close, at most 6 pictures; with one of them, at most 7; with neither, 8. RISE gives up the close, then the opening, when the pictures need their scenes; RISE’s eye takes one when a picture ends before the next starts.`,

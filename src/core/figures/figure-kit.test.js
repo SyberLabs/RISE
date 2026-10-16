@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { admitSvg } from '../svg-admission.js';
 import { JEV_PALETTES } from '../jev-palette.js';
 import { ROOM, svgLayoutProblems } from '../quality/svg-layout.js';
-import { FIGURE_BOUNDS, FIGURE_KINDS, figureProblems, renderFigure } from './figure-kit.js';
+import { FIGURE_BOUNDS, FIGURE_KINDS, KIT_BUDGETS, figureProblems, renderFigure } from './figure-kit.js';
 import { STUDY, boundSpecs } from './fixtures/specs.js';
 
 // A Windows checkout may give the goldens CRLF; the kit writes LF.
@@ -57,6 +57,14 @@ describe('renderFigure', () => {
     const headed = renderFigure({ ...STUDY.compare, headers: { before: 'Was', after: 'Now' } }, { theme: 'cobalt' });
     expect(headed).toContain('>Was</text>');
     expect(headed).not.toContain('>Before</text>');
+  });
+
+  it('starts a list’s rows a fixed distance under the title, however few they are', () => {
+    const first = svg => Number(/<text x="96" y="([\d.]+)"/.exec(svg)[1]);
+    const two = renderFigure({ kind: 'list', title: 'Two', items: [{ label: 'a' }, { label: 'b' }], changed: 'b' }, { theme: 'cobalt' });
+    const six = renderFigure({ kind: 'list', title: 'Six', items: Array.from({ length: 6 }, (_, i) => ({ label: `i${i}` })) }, { theme: 'cobalt' });
+    expect(first(two)).toBe(158);
+    expect(first(six)).toBe(158);
   });
 
   it('escapes what it is given', () => {
@@ -176,6 +184,32 @@ describe('figureProblems', () => {
     expect(figureProblems({ kind: 'list', items: [{ label: 'a' }, { label: 'b' }], changed: 'b' })).toEqual([]);
     expect(figureProblems({ kind: 'list', items: [{ label: 'a', detail: 'x' }, { label: 'b' }] })).toEqual([]);
     expect(figureProblems({ kind: 'compare', headers: { before: 'Was', after: 'Now' }, rows: [{ subject: 'a', before: 'b', after: 'c' }, { subject: 'd', before: 'e', after: 'f' }] })).toEqual([]);
+  });
+
+  it('states each slot’s budget in characters, as its own refusals count them', () => {
+    const holds = spec => Number(/its slot holds (\d+) characters/.exec(figureProblems(spec).join('\n'))[1]);
+    const long = 'W'.repeat(60);
+    const bars = (count, label) => ({ kind: 'bars', max: 1, items: Array.from({ length: count }, (_, i) => ({ label: i === 0 ? label : `b${i}`, value: 1 })) });
+    const columns = (count, at) => ({ kind: 'columns', columns: Array.from({ length: count }, (_, i) => ({ name: at === 'name' && i === 0 ? long : `c${i}`, items: [at === 'item' && i === 0 ? long : 'x', 'y'] })) });
+    expect(holds({ kind: 'flow', title: long, steps: ['a', 'b'], changed: 'b' })).toBe(KIT_BUDGETS.title);
+    expect(holds({ ...bars(2, 'a'), note: long })).toBe(KIT_BUDGETS.bars.note);
+    expect(holds(bars(4, long))).toBe(KIT_BUDGETS.bars.label.least);
+    expect(holds(bars(2, long))).toBe(KIT_BUDGETS.bars.label.most);
+    expect(holds({ kind: 'flow', steps: [long, 'b'], changed: long })).toBe(KIT_BUDGETS.flow.step);
+    expect(holds({ kind: 'flow', steps: ['a', 'b'], loop: { from: 'a', to: 'b', label: long } })).toBe(KIT_BUDGETS.flow.loop);
+    expect(holds(columns(4, 'name'))).toBe(KIT_BUDGETS.columns.name.least);
+    expect(holds(columns(2, 'name'))).toBe(KIT_BUDGETS.columns.name.most);
+    expect(holds(columns(4, 'item'))).toBe(KIT_BUDGETS.columns.item.least);
+    expect(holds(columns(2, 'item'))).toBe(KIT_BUDGETS.columns.item.most);
+    expect(holds({ kind: 'stack', zones: [{ label: long, shape: 'bar' }, { label: 'b', shape: 'lines' }], changed: long })).toBe(KIT_BUDGETS.stack.label);
+    expect(holds({ kind: 'list', items: [{ label: long, detail: 'd' }, { label: 'b' }], changed: long })).toBe(KIT_BUDGETS.list.label.least);
+    expect(holds({ kind: 'list', items: [{ label: `${long}${long}` }, { label: 'b' }], changed: `${long}${long}` })).toBe(KIT_BUDGETS.list.label.most);
+    expect(holds({ kind: 'compare', rows: [{ subject: `${long}${long}`, before: 'b', after: 'c' }, { subject: 'd', before: 'e', after: 'f' }] })).toBe(KIT_BUDGETS.compare.subject);
+    expect(holds({ kind: 'compare', rows: [{ subject: 'a', before: 'b', after: long }, { subject: 'd', before: 'e', after: 'f' }] })).toBe(KIT_BUDGETS.compare.cell);
+    expect(holds({ kind: 'compare', headers: { before: long, after: 'Now' }, rows: [{ subject: 'a', before: 'b', after: 'c' }, { subject: 'd', before: 'e', after: 'f' }] })).toBe(KIT_BUDGETS.compare.header);
+    // A detail has what the widest label leaves: beside the widest label the kit accepts, its budget.
+    const label = 'n'.repeat(KIT_BUDGETS.list.label.least);
+    expect(figureProblems({ kind: 'list', items: [{ label, detail: 'n'.repeat(KIT_BUDGETS.list.detail) }, { label: 'b' }] })).toEqual([]);
   });
 
   it('accepts the study', () => {

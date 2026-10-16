@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CURRENT_GUIDE } from '../../src/live/guide/index.js';
-import { figureProblems } from '../../src/core/figures/figure-kit.js';
+import { KIT_BUDGETS, figureProblems } from '../../src/core/figures/figure-kit.js';
 import { KIT_EXAMPLES, buildComposeRequest, composeCurrent } from './compose.js';
 
 const MODEL = 'claude-sonnet-5-5';
@@ -110,6 +110,29 @@ describe('buildComposeRequest', () => {
     expect(system).not.toMatch(/a picture starts at least every/);
     expect(system).toMatch(/mood/);
     expect(system).toMatch(/where each part sits/);
+  });
+
+  it('gives each kit slot its budget in characters, the kit’s own numbers', () => {
+    const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
+    const said = pattern => Number(pattern.exec(system)?.[1]);
+    expect(system).not.toMatch(/Keep labels short/);
+    expect(said(/a title (\d+)/)).toBe(KIT_BUDGETS.title);
+    expect(said(/bars: note (\d+)/)).toBe(KIT_BUDGETS.bars.note);
+    expect(said(/bars: note \d+, label (\d+)/)).toBe(KIT_BUDGETS.bars.label.least);
+    expect(said(/\((\d+) with 2 bars\)/)).toBe(KIT_BUDGETS.bars.label.most);
+    expect(said(/flow: step (\d+)/)).toBe(KIT_BUDGETS.flow.step);
+    expect(said(/loop label (\d+)/)).toBe(KIT_BUDGETS.flow.loop);
+    expect(said(/columns: name (\d+)/)).toBe(KIT_BUDGETS.columns.name.least);
+    expect(said(/columns: name \d+ \((\d+) with 2 columns\)/)).toBe(KIT_BUDGETS.columns.name.most);
+    expect(said(/, item (\d+)/)).toBe(KIT_BUDGETS.columns.item.least);
+    expect(said(/, item \d+ \((\d+) with 2 columns\)/)).toBe(KIT_BUDGETS.columns.item.most);
+    expect(said(/stack: label (\d+)/)).toBe(KIT_BUDGETS.stack.label);
+    expect(said(/list: label (\d+)/)).toBe(KIT_BUDGETS.list.label.least);
+    expect(said(/list: label \d+ \((\d+) when no item has a detail\)/)).toBe(KIT_BUDGETS.list.label.most);
+    expect(said(/detail (\d+)/)).toBe(KIT_BUDGETS.list.detail);
+    expect(said(/compare: subject (\d+)/)).toBe(KIT_BUDGETS.compare.subject);
+    expect(said(/before and after (\d+)/)).toBe(KIT_BUDGETS.compare.cell);
+    expect(said(/headers (\d+)/)).toBe(KIT_BUDGETS.compare.header);
   });
 
   it('asks for one picture a theme, held across its beats, and says the density floor and the room in numbers', () => {
