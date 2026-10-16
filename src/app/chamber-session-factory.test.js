@@ -180,6 +180,32 @@ describe('when the factory lets go of the session', () => {
         expect(op.releaseSession).not.toHaveBeenCalled();
     });
 
+    it('records a finished reading opened from the Mystery School, and no other', async () => {
+        const op = { ...operations(), recordSchoolReading: vi.fn() };
+        const reading = { ...session(), provenance: { kind: 'school', recordId: 'sun.meditations' } };
+        const options = await mount(op, reading);
+        options.player.sessionState.state = 'complete';
+
+        options.onExit('close');
+
+        expect(op.recordSchoolReading).toHaveBeenCalledWith(reading);
+    });
+
+    it('records nothing for a school reading left part-way, or a finished reading from elsewhere', async () => {
+        const op = { ...operations(), recordSchoolReading: vi.fn() };
+        const partWay = await mount(op, { ...session(), provenance: { kind: 'school', recordId: 'sun.meditations' } });
+        partWay.player.sessionState.state = 'paused';
+        partWay.onExit('close');
+        vi.clearAllMocks();
+        vi.useRealTimers();
+
+        const elsewhere = await mount(op, { ...session(), provenance: { kind: 'library-work', workId: 'w' } });
+        elsewhere.player.sessionState.state = 'complete';
+        elsewhere.onExit('close');
+
+        expect(op.recordSchoolReading).not.toHaveBeenCalled();
+    });
+
     it('releases a reading whose launch failed, before going back', async () => {
         const op = operations();
         op.ensureVisualCortex = async () => { throw new Error('media unavailable'); };
