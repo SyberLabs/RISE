@@ -12,8 +12,8 @@
   ],
   "acceptance": [
     "Every visual a Live reading shows is held by Sophia in one of three frames, chosen by the visual on screen (the Chamber's current cue, never a timer) from one table keyed by engine and scene kind (src/live/host/frames.js FRAME_OF): a single drawn object the inner eye, a radial moving field the outer shell, a picture that needs the room the full frame; a still takes no frame; the model does not choose one and the beat grammar, Current, Worker and Composer's guide are unchanged.",
-    "Inner eye opens over 1100 ms (fold 0-0.25, dilate to radius 0.36 of the face's square 0.25-0.6, nine S-curve blades drawn back through a nine-sided opening 0.6-1), the face dimmed to 45% and drawn 12% outward, a two-layer crown and a thin iris ring; outer shell over 1600 ms (fold 0-0.1, shrink 0.1-0.4, field, torus, lights and petals travel to the rim 0.15-0.75, dilate to 0.41 0.4-0.7, open 0.7-1); full frame over 1900 ms (close 0-0.15, travel to a 48 px dock at the ask bar's left end 0.1-0.55, reopen 0.5-0.65, a nine-sided aperture from the eye past every corner 0.2-1), the docked eye 0.28 of its face and blinking every 4 to 8 s, a scrim of the ground behind the words; smoothstep within each phase, as the approved study (docs/assets/live/sophia-aperture-study.html).",
-    "A change of visual in the same frame is one blink of the open aperture (shut 220 ms, hold 70 ms, open 360 ms); a change of frame shuts the aperture, closes the frame and opens the next; under reduced motion (device, app setting or photosensitivity) every change is instant and nothing blinks.",
+    "Inner eye opens over 1100 ms (fold 0-0.25, dilate to radius 0.36 of the face's square 0.25-0.7, nine S-curve blades drawn back through a nine-sided opening 0.55-1), the face dimmed to 45% and drawn 12% outward as it dilates, a two-layer crown and a thin iris ring; outer shell over 1600 ms (fold 0-0.1, the eye drawn in 0.1-0.4, field, torus, lights and petals travel to the rim 0.15-0.75, dilate to 0.41 0.36-0.78, open 0.66-1); full frame over 1900 ms (the eye shut 0-0.12 as the glide sets off at 0.05, a glide on an arc to a 48 px dock at the ask bar's left end 0.05-0.6, her size on a ratio scale on the same curve done by 0.56, reopen as she settles 0.5-0.72, a nine-sided aperture from the eye opening as she leaves, past every corner by 0.72), the docked eye 0.28 of its face and blinking every 4 to 8 s, a scrim of the ground behind the words; each phase eased from rest to rest and the phases overlapping, so place, size and speed are continuous and no moment of a transition stands still; the design of the approved study (docs/assets/live/sophia-aperture-study.html).",
+    "A change of visual in the same frame is one blink of the open aperture (shut 220 ms, hold 70 ms, open 360 ms); a change of frame shuts the aperture and closes the frame only as far as the shut eye, and the next opens from there, so the eye shuts once and opens once between two frames; under reduced motion (device, app setting or photosensitivity) every change is instant and nothing blinks.",
     "In the inner eye and the shell the visual's layers are scaled so the circle inscribed in their own square is the aperture, settling from 92% to 100% as it opens, with an inner fade from 86% to 100% of the radius; one geometry (frameGeometry) drives the scale and is sent whole to the face's engine, which computes none of its own; the transitions run on the venue's clock, which stands still while the reading is held.",
     "Sophia never leaves the room: the eye speaking with no visual, holding the visual in its frame, listening and thinking in place for an interjection, at rest when held or ended; the words sit at the foot of the room in every frame, below the circle, never over a circle's visual.",
     "The face's canvas covers the room between the visual layers and the words, takes no press, keeps within the scene frame budget and flash gate with its pixel ratio held to a 1440 by 900 room at 1.5; a face that is not drawing frames nothing and the visual is shown whole. The Reader and the card are unchanged: nothing applies unless the venue marks the root, and Chamber.visualCue() only reads."
@@ -90,6 +90,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/670",
       "note": "Branch face-ground-exact, code at b816d2c4: the face fades 8% toward a dark 8 levels below its ground and lays the ground back with lighten, the one fill that also refills the last aperture, so the 8-bit stall no longer leaves a grey shadow. Luma around the shell against the far room: 8.6 levels before, 0.3 after (1x and 2x). S6 and S1 at 1x unchanged (143-144 fps); at 2x within run-to-run noise (S1 mean 93.7 before over 4 runs, 102.1 after over 7). Tests: an 8-bit raster model in oracle.test.js (every stroke back within 1 level of the ground; the 8% trail kept) and an e2e render check (within 1 level of luma after 10 s in the shell; 1.8 without the fix). Not merged yet; not accepted by a human.",
       "date": "2026-10-13"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/frames.test.js",
+      "note": "Branch live-motion at 285dd18e, local. Command: npx vitest run src/components/Read.test.js src/components/read/Chamber.band-move.test.js src/core/rise-sdk.test.js src/live/boundary.test.js src/live/host src/live/runtime.catalog.test.js src/scenes/engines/oracle.test.js src/core/system-design.test.js: 21 files, 682 tests passed (new: every number of frameGeometry continuous with a continuous speed at every phase boundary, every frame, both rooms, with and without the held eye; open frames at rest unchanged; the glide on an arc below the line, the size on the same curve; the eye never reopened and no moment still in any change of frame; the face drawn in the animation frame it is placed in; the dock following the bar on a spring; the clock moving at most 50 ms per frame; a blink under way finished). npx playwright test e2e/live.spec.js -g \"the frames|the face rests|catalog words|the ask bar\": 8 passed. Not merged, deployed or accepted by a human.",
+      "date": "2026-10-16"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§23 Motion. Real GPU (ANGLE D3D11, AMD RX 5700, Chromium 149 headless, 144 Hz), geometry traced every animation frame and the face worker's frames tagged with the geometry they drew, before (origin/main 31f6fdb9) and after, 1440x900 and 390x844: inner to full the eye stopped and reopened twice (open, shut, open, shut, glide) and took 2.8 s of motion, now shuts once and opens once at the dock in 2.1 s; shell to full 3.4 s to 2.8-3.2 s, full to inner 2.3 to 2.2 s, both without the reopening; the face engine drew 0.5-0.97 venue frames behind, now 0.00-0.14; the docked face jumped 160 px when the bar opened, now follows it. Frame rates unchanged (eye 142-144 fps at 1x and 2x, swarm 144 at 1x, 103-106 at 2x, 129-132 at 390x844 2x). Charts, screencast contact sheets and videos kept by the coordinator in the session scratchpad (motion/before, motion/after, motion/video-*). Not accepted by a human.",
+      "date": "2026-10-16"
     }
   ],
   "activity": [
@@ -124,10 +136,14 @@
     {
       "date": "2026-10-13T11:24:34.579Z",
       "summary": "PR #669 merged as 6332e995 and deployed; PR #670 opened (the face's trails fade back to the ground exactly)"
+    },
+    {
+      "date": "2026-10-16T11:31:36.995Z",
+      "summary": "Branch live-motion: the frames' transitions as one gesture (the eye shut once between frames, the glide on an arc, the face drawn in step); not merged"
     }
   ],
-  "updatedAt": "2026-10-13T11:24:34.579Z",
-  "revision": 8,
+  "updatedAt": "2026-10-16T11:31:36.995Z",
+  "revision": 9,
   "summary": "Every visual of a Live reading held by Sophia in one of three frames (inner eye, outer shell, full frame), the visual choosing which; she never leaves the room.",
   "blocker": null
 }
