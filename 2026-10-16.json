@@ -1,0 +1,418 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-16",
+  "audience": "team",
+  "title": "What changed in RISE, 15–16 October",
+  "period": {
+    "from": "2026-10-15T00:03:02.312Z",
+    "to": "2026-10-16T08:31:43.102Z"
+  },
+  "generatedAt": "2026-10-16T08:31:43.102Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 699,
+      "title": "Generate experimental GitHits SBOMs for published releases",
+      "url": "https://github.com/SyberLabs/RISE/pull/699",
+      "mergedAt": "2026-10-15T21:23:30Z",
+      "mergeSha": "1ec1338fbca8481a407783c248323099ea5bb6e4",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 698,
+      "title": "Review dependency changes with cached license and vulnerability policy",
+      "url": "https://github.com/SyberLabs/RISE/pull/698",
+      "mergedAt": "2026-10-15T21:06:18Z",
+      "mergeSha": "dc6b1aadc972ea2201c0af3f6f422da8af9597e9",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 697,
+      "title": "Enable pinned docs search and OSS example grounding for agents",
+      "url": "https://github.com/SyberLabs/RISE/pull/697",
+      "mergedAt": "2026-10-15T20:56:44Z",
+      "mergeSha": "0f0b41f686bc2ee7889c6db6025a87146a01f80a",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 696,
+      "title": "SVC-002 records the eye's exemption from the hold limit and its dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/696",
+      "mergedAt": "2026-10-15T08:10:08Z",
+      "mergeSha": "732689e25217029175be19ad700a0ed0de87cc85",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 695,
+      "title": "RISE Changes: RISE's eye, the room at rest, is exempt from the hold limit",
+      "url": "https://github.com/SyberLabs/RISE/pull/695",
+      "mergedAt": "2026-10-15T07:54:17Z",
+      "mergeSha": "0874021ad9636c556651b092537eb71f1516baa8",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 694,
+      "title": "SVC-002 records the opening-and-close change and its dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/694",
+      "mergedAt": "2026-10-15T07:44:21Z",
+      "mergeSha": "4cf83ab19666018563945fddb5c2d75fe4f55a07",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 693,
+      "title": "RISE Changes: engines are named only as the opening and the close",
+      "url": "https://github.com/SyberLabs/RISE/pull/693",
+      "mergedAt": "2026-10-15T07:33:04Z",
+      "mergeSha": "979d20f7f6aa5d0ba40433bc095d99c14fc5db34",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 691,
+      "title": "Route GitHits agent lookups through private usage accounting",
+      "url": "https://github.com/SyberLabs/RISE/pull/691",
+      "mergedAt": "2026-10-15T07:27:09Z",
+      "mergeSha": "1785cce486bd36b17a29db11181fe00c87fc3a56",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 692,
+      "title": "SVC-002 records the held-pictures fix and its dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/692",
+      "mergedAt": "2026-10-15T07:17:32Z",
+      "mergeSha": "c13bdd119ad70f6a1dc773d673f4a5162210a5b3",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 690,
+      "title": "A digest's picture ends where its beats move on, and the reading returns to RISE's eye; the page says plainly why a change was left out",
+      "url": "https://github.com/SyberLabs/RISE/pull/690",
+      "mergedAt": "2026-10-15T07:03:51Z",
+      "mergeSha": "a03ef35ab5c282865483b6b8f643ba54f7413351",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 689,
+      "title": "SVC-002 records the alignment fix's merge and a first-pass dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/689",
+      "mergedAt": "2026-10-15T06:32:29Z",
+      "mergeSha": "69cec1a6b0be3e39ab6128720369ef1295149822",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 688,
+      "title": "A digest's picture sits on the beat that speaks of it, shows what words cannot, and an unspoken change is left out instead of repaired",
+      "url": "https://github.com/SyberLabs/RISE/pull/688",
+      "mergedAt": "2026-10-15T06:18:20Z",
+      "mergeSha": "299a9812caf0073c8cadafc9d88d628eaa68a0ad",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 687,
+      "title": "SVC-002 records the figure kit's merge and its dry run",
+      "url": "https://github.com/SyberLabs/RISE/pull/687",
+      "mergedAt": "2026-10-15T05:57:41Z",
+      "mergeSha": "ed8caee962b819667037766690c0b4937a2338bb",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    },
+    {
+      "number": 686,
+      "title": "RISE draws its own figures with the Figure Kit: bars, flows, columns and stacks whose labels cannot collide",
+      "url": "https://github.com/SyberLabs/RISE/pull/686",
+      "mergedAt": "2026-10-15T05:45:26Z",
+      "mergeSha": "ec9a1402720f5a670b5dee804040929ea1e63dfc",
+      "route": {
+        "audience": "team",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 685,
+      "title": "The connector logs one count of each admitted Current's figure problems and picture cadence, and answers exactly as before",
+      "url": "https://github.com/SyberLabs/RISE/pull/685",
+      "mergedAt": "2026-10-15T01:35:11Z",
+      "mergeSha": "8d913a505ab5d62389cde155aa747a1cc34ce521",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 684,
+      "title": "RISE Changes holds every picture's labels and every beat's words to mechanical checks, and scores each run's first pass",
+      "url": "https://github.com/SyberLabs/RISE/pull/684",
+      "mergedAt": "2026-10-15T01:27:01Z",
+      "mergeSha": "2c2a6975c1846d5234674cb0649866139258080c",
+      "route": {
+        "audience": "team",
+        "significance": "major",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 683,
+      "title": "SVC-002 records the third dry run and the real digest with pictures, /changes/2026-10-15",
+      "url": "https://github.com/SyberLabs/RISE/pull/683",
+      "mergedAt": "2026-10-15T00:15:55Z",
+      "mergeSha": "47508abe31aa16dc327fa599cba8d42dfa0620e0",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "rise-changes-week-2026-10-16",
+    "title": "RISE Changes checks its own work",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "scenes": [
+      {
+        "id": "opening",
+        "engine": "attractor"
+      },
+      {
+        "id": "close",
+        "engine": "living-flame"
+      },
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>What each check reads</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">What each check reads</text><line x1=\"400\" y1=\"140\" x2=\"400\" y2=\"466\" stroke=\"#F4F4FF\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"208.75\" y=\"236\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"30\" fill=\"#F4F4FF\" text-anchor=\"middle\">Static</text><text x=\"208.75\" y=\"284\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"middle\">overlap</text><text x=\"208.75\" y=\"322\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"middle\">crosses shape</text><text x=\"208.75\" y=\"360\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"middle\">outside</text><text x=\"208.75\" y=\"398\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"middle\">under 12 px</text><text x=\"208.75\" y=\"436\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"middle\">low contrast</text><text x=\"591.25\" y=\"236\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"30\" fill=\"#F4F4FF\" text-anchor=\"middle\">Rendered</text><text x=\"591.25\" y=\"284\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"middle\">overlap</text><text x=\"591.25\" y=\"322\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"middle\">clipping</text><text x=\"591.25\" y=\"360\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"middle\">under 12 px</text></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>When a picture ends</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">When a picture ends</text><rect x=\"210\" y=\"124\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"154\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" text-anchor=\"middle\">Picture</text><line x1=\"400\" y1=\"170\" x2=\"400\" y2=\"186\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 178 L400 186 L407 178\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"190\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"220\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" text-anchor=\"middle\">Related beat</text><line x1=\"400\" y1=\"236\" x2=\"400\" y2=\"252\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 244 L400 252 L407 244\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"256\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"286\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" text-anchor=\"middle\">Unrelated beat</text><line x1=\"400\" y1=\"302\" x2=\"400\" y2=\"318\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 310 L400 318 L407 310\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"322\" width=\"380\" height=\"42\" rx=\"21\" fill=\"#E84BFF\" fill-opacity=\"0.14\" stroke=\"#E84BFF\" stroke-opacity=\"1\" stroke-width=\"2.5\"/><text x=\"400\" y=\"352\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"middle\" font-weight=\"600\">Eye</text></svg>"
+      },
+      {
+        "id": "eye",
+        "engine": "still"
+      }
+    ],
+    "beats": [
+      {
+        "say": "This week RISE Changes learned to check its own work.",
+        "scene": "opening"
+      },
+      {
+        "say": "Every failure seen in a real run is now a mechanical check. Each check answers with a sentence the model can repair from."
+      },
+      {
+        "say": "A figure's labels are held to five rules: no overlap, no crossing a shape, none outside the figure, none too small on a phone, and enough contrast.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "A browser then draws each figure at phone size and at desktop size, and measures every label again."
+      },
+      {
+        "say": "The composer's words are checked for talk about process, and each run's first pass is scored and shown as one line."
+      },
+      {
+        "say": "The connector now logs one count line for each admitted Current. It holds rule ids and counts only, never anyone's words, and its answers are exactly as before.",
+        "scene": "eye"
+      },
+      {
+        "say": "Measured on the owner's machine, the slowest worst-case Current took 4.2 milliseconds."
+      },
+      {
+        "say": "RISE now draws its own figures with a figure kit: bars, flows, columns and stacks."
+      },
+      {
+        "say": "Every label is measured before drawing, so labels cannot collide. A label that does not fit is refused, never shrunk."
+      },
+      {
+        "say": "Each beat now also carries the numbers of the pull requests it speaks about. That fixes a miss in how sources were written."
+      },
+      {
+        "say": "A picture now sits on the beat that speaks of it. A picture that cites a change its beat does not speak of is refused."
+      },
+      {
+        "say": "Sparse figures are refused too. A picture must show something the words alone do not."
+      },
+      {
+        "say": "A change that no beat speaks of is now left out of the reading, instead of being repaired. It no longer costs the first pass."
+      },
+      {
+        "say": "A picture now ends where its beats move on, and the reading returns to RISE's eye.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "The page also says plainly why a change was left out: minor, skipped by the router, records only, over the 24-change limit, or the reading did not speak of it."
+      },
+      {
+        "say": "RISE's engines are now named only as the opening and the close. RISE places them on the first and last beat, and a scene that names an engine is refused.",
+        "scene": "eye"
+      },
+      {
+        "say": "Dependency changes now get an incremental review. Critical advisories in changed versions block, and license drift warns."
+      },
+      {
+        "say": "Published releases now have an experimental software bill of materials exporter, which attaches the unchanged CycloneDX response with its digests."
+      },
+      {
+        "say": "No release export has been generated yet.",
+        "scene": "close"
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      684
+    ],
+    "2": [
+      684
+    ],
+    "3": [
+      684
+    ],
+    "4": [
+      684
+    ],
+    "5": [
+      685
+    ],
+    "6": [
+      685
+    ],
+    "7": [
+      686
+    ],
+    "8": [
+      686
+    ],
+    "9": [
+      686
+    ],
+    "10": [
+      688
+    ],
+    "11": [
+      688
+    ],
+    "12": [
+      688
+    ],
+    "13": [
+      690
+    ],
+    "14": [
+      690
+    ],
+    "15": [
+      693
+    ],
+    "16": [
+      698
+    ],
+    "17": [
+      699
+    ],
+    "18": [
+      699
+    ]
+  },
+  "quality": {
+    "firstPass": true,
+    "repairs": {
+      "composition": 0,
+      "illustrator": 0
+    },
+    "checks": {}
+  }
+}
