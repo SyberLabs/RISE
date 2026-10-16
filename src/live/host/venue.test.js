@@ -974,13 +974,13 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
     }
 
     /** A room with a reading on screen, its Chamber showing `cue`; the engine drawn. */
-    async function room(cue) {
+    async function room(cue, chamberParts = {}) {
         const frames = cranked();
         mount('?voice=paced', frames.environment);
         const field = document.createElement('div');
         field.id = 'chamber-field';
         document.body.append(field);
-        const chamber = { cue, visualCue: () => chamber.cue };
+        const chamber = { cue, visualCue: () => chamber.cue, ...chamberParts };
         host.chamberPlaying = () => chamber;
         ask('First?');
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
@@ -1061,6 +1061,68 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(geometry.wipe).toMatchObject({ hole: 1 });
     });
 
+    /** A Chamber that holds its changes of visual for the venue, as Chamber.js does when asked. */
+    const gated = () => ({
+        gate: [], released: [],
+        setVisualSwapAtShut(on) { this.gate.push(on); },
+        releaseVisualSwap(options) { this.released.push({ ...options }); }
+    });
+
+    it('has the Chamber change its visual only while the eye is shut over it: a cut in the same frame, and a change of frame', async () => {
+        const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} }, gated());
+        crank(1700);
+        expect(chamber.gate.at(-1)).toBe(true);
+        chamber.released.length = 0;
+        // Another field in the shell: one blink; the change is made once its blades are shut, not before.
+        chamber.cue = { kind: 'field', renderer: 'living-flame', config: {} };
+        let shut = null;
+        for (let ms = 16; ms <= 600 && shut === null; ms += 16) {
+            crank(16);
+            const g = engine().places.at(-1);
+            if (chamber.released.length) shut = { ms, hole: g.aperture.hole };
+            else expect(g.aperture.hole).toBeGreaterThan(0);
+        }
+        expect(shut).toMatchObject({ hole: 0 });
+        expect(shut.ms).toBeGreaterThanOrEqual(200);
+        expect(chamber.released[0]).toMatchObject({ shut: true });
+        crank(1000);
+        // A change of frame: made once the shell's blades are shut, long before the full frame opens.
+        chamber.released.length = 0;
+        chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+        let made = null;
+        for (let ms = 16; ms <= 3000 && made === null; ms += 16) {
+            crank(16);
+            const g = engine().places.at(-1);
+            if (chamber.released.length) made = g;
+            else expect((g.aperture?.hole ?? 0) + (g.wipe?.hole ?? 0)).toBeGreaterThan(0);
+        }
+        expect(made.frame).toBe('shell');
+        expect(made.aperture.hole).toBe(0);
+        // The room left: the Chamber is let go of, and changes as it always has.
+        await host.venue.leave();
+        expect(chamber.gate.at(-1)).toBe(false);
+    });
+
+    it('lets the Chamber keep its own crossfade for a look laid over the same visual', async () => {
+        const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} }, gated());
+        crank(1700);
+        chamber.released.length = 0;
+        chamber.cue = { kind: 'field', renderer: 'attractor', config: {}, colorTheme: 'ember' };
+        crank(16);
+        expect(chamber.released).toEqual([{ shut: false }]);
+    });
+
+    it('asks nothing of the Chamber under reduced motion: every change is instant there already', async () => {
+        root().classList.add('reduced-motion');
+        try {
+            const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} }, gated());
+            crank(200);
+            expect(chamber.gate).not.toContain(true);
+        } finally {
+            root().classList.remove('reduced-motion');
+        }
+    });
+
     it('moves the docked face aside with the bar when the bar opens wider, never jumping', async () => {
         const { crank } = await room({ kind: 'scene', sceneId: 'h', svg: '<svg/>' });
         const bar = $('.live-again');
@@ -1087,6 +1149,24 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         const before = host.venue.framing.clock;
         frames.run(320 + 16 + 600);
         expect(host.venue.framing.clock - before).toBe(50);
+    });
+
+    it('sends the face the whole change from the shell to the full frame: the circle drawn in from the cut, and the band carried out to the dock', async () => {
+        const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        crank(1700);
+        const open = engine().places.at(-1).aperture.r;
+        chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+        crank(48);
+        expect(engine().places.at(-1).aperture.r).toBeLessThan(open);
+        let first = null;
+        for (let ms = 0; ms < 2000 && first === null; ms += 16) {
+            crank(16);
+            const g = engine().places.at(-1);
+            if (g.frame === 'full') first = g;
+        }
+        expect(first.travel).toBeGreaterThan(0.2);
+        expect(first.crown.alpha).toBeGreaterThan(0.2);
+        expect(first.seed).toBeLessThan(1);
     });
 
     it('keeps the eye shut between two frames: the face is never sent an opening eye between the inner eye and the full frame', async () => {
@@ -1133,10 +1213,10 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         crank(2000);
         expect(note()).toBe('Showing Genesis.');
         chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
-        // The shell closes (1.6 s) and the full frame opens (1.9 s): the note stays through all of it.
+        // The shell closes to its seed (1 s) and the full frame opens from there (1.8 s): the note stays through all of it.
         let opened = 0;
         while (engine().places.at(-1)?.wipe?.hole !== 1 && opened < 6000) { crank(16); opened += 16; }
-        expect(opened).toBeGreaterThan(3000);
+        expect(opened).toBeGreaterThan(2600);
         expect(note()).toBe('Showing Genesis.');
         crank(1400);
         expect(note()).toBe('Showing Genesis.');

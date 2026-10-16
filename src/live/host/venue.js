@@ -995,6 +995,7 @@ export class LiveVenue {
         if (!framing) return;
         this.framing = null;
         framing.view.cancelAnimationFrame?.(framing.raf);
+        this.gateSwaps(framing, null);
         this.doc.defaultView.removeEventListener('pointermove', framing.point);
         this.unframe();
         for (const name of ['--live-bar-foot', '--live-words-foot', '--live-words-size']) this.doc.documentElement.style.removeProperty(name);
@@ -1056,11 +1057,14 @@ export class LiveVenue {
         if (!(phase === 'reading' && held)) framing.clock += step;
         framing.last = now;
         // The visual on screen, never a timer: none while a question is asked or once the reading has ended.
-        const cue = phase === 'reading' ? this.chamber()?.visualCue?.() ?? null : null;
+        const chamber = phase === 'reading' ? this.chamber() : null;
+        const cue = chamber?.visualCue?.() ?? null;
+        let looked = false;
         if (cue !== framing.cue) {
             framing.cue = cue;
             // The same visual given again (a look laid over it) is not a change of visual.
             const key = cue ? JSON.stringify({ ...cue, colorTheme: undefined }) : null;
+            looked = key === framing.key;
             if (key !== framing.key) {
                 framing.key = key;
                 // The outgoing figure or scene is still fading out; it stays fitted until the crossfade has run.
@@ -1070,7 +1074,7 @@ export class LiveVenue {
                 framing.scale = undefined;
             }
         }
-        const { frame, a, cut, lid } = framing.director.at(framing.clock);
+        const { frame, a, cut, lid, close, carry } = framing.director.at(framing.clock);
         // A catalog word's note: kept until the visual it named is on screen and the room is at rest on it, then a beat.
         const wait = this.chosenWait;
         if (wait?.until === null && visualOf(framing.cue) === wait.engine && framing.director.settled(framing.clock)) wait.until = framing.clock + CHOSEN_BEAT_MS;
@@ -1081,12 +1085,13 @@ export class LiveVenue {
         // with none, the still eye is the room, the words at its foot.
         if (this.face.dataset.faceDrawn !== 'true') {
             framing.geometry = null;
+            this.gateSwaps(framing, null);
             this.unframe();
             if (frameOf(framing.cue)) this.face.dataset.faceAside = 'true';
             else this.doc.documentElement.dataset.liveFrame = 'none';
             return;
         }
-        const geometry = frameGeometry({ frame, a, cut, lid, layout, content: holdsContent(framing.cue) || framing.clock < framing.fitUntil });
+        const geometry = frameGeometry({ frame, a, cut, lid, close, carry, layout, content: holdsContent(framing.cue) || framing.clock < framing.fitUntil });
         framing.geometry = geometry;
         const move = visualTransform(geometry, layout);
         this.doc.documentElement.dataset.liveFrame = frame;
@@ -1100,6 +1105,23 @@ export class LiveVenue {
         if (field) this.declareScales(field, framing.scale);
         delete this.face.dataset.faceAside;
         this.faceEngine?.place?.(geometry, now);
+        this.gateSwaps(framing, chamber);
+        // The change is made under the shut eye; a look laid over the same visual keeps the Chamber's own crossfade.
+        if (framing.gated && looked) framing.gated.releaseVisualSwap?.({ shut: false });
+        else if (framing.gated && !((geometry.aperture?.hole ?? 0) > 0 || geometry.wipe)) framing.gated.releaseVisualSwap?.({ shut: true });
+    }
+
+    /**
+     * While the face draws the room, the Chamber on screen holds each change of visual until the venue says its eye is
+     * shut over the old one (Chamber.setVisualSwapAtShut), so no crossfade shows round a blink. Under reduced motion,
+     * with the face not drawing, or the room left, the Chamber is let go of and changes as it always has.
+     */
+    gateSwaps(framing, chamber) {
+        const wanted = chamber && !this.faceHoldsStill() ? chamber : null;
+        if (framing.gated === wanted) return;
+        framing.gated?.setVisualSwapAtShut?.(false);
+        wanted?.setVisualSwapAtShut?.(true);
+        framing.gated = wanted;
     }
 
     /** The reader chose a face in Settings: kept as a setting, worn at once. The model never chooses it. */

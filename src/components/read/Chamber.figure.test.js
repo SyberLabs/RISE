@@ -137,6 +137,60 @@ describe('a figure in the Chamber', () => {
   });
 });
 
+describe('a change of visual under the Live venue’s shut eye (docs/plans/LIVE-CURRENT.md §23)', () => {
+  const quiet = chamber => vi.spyOn(chamber._visualFieldDirector, 'applyCue').mockImplementation(() => {});
+
+  it('crossfades as it always has unless the venue asks otherwise: the Reader and the card are unchanged', () => {
+    const { chamber } = makeChamber();
+    const applied = quiet(chamber);
+    chamber.applyScheduledVisualCue(FALLBACK, { transitionMs: 1200 });
+    expect(applied).toHaveBeenCalledTimes(1);
+    expect(applied).toHaveBeenCalledWith(FALLBACK, { transitionMs: 1200 });
+    expect(chamber.visualSwapHeld()).toBe(false);
+    chamber.destroy();
+  });
+
+  it('asked to, holds the change until the venue says the eye is shut, then swaps at once, with no crossfade', () => {
+    const { chamber } = makeChamber();
+    const applied = quiet(chamber);
+    chamber.setVisualSwapAtShut(true);
+    chamber.applyScheduledVisualCue(FALLBACK, { transitionMs: 1200 });
+    // The venue sees the new visual at once, so it can shut the eye over the old one.
+    expect(chamber.visualCue()).toBe(FALLBACK);
+    expect(applied).not.toHaveBeenCalled();
+    expect(chamber.visualSwapHeld()).toBe(true);
+    chamber.releaseVisualSwap({ shut: true });
+    expect(applied).toHaveBeenCalledWith(FALLBACK, { transitionMs: 0 });
+    expect(chamber.visualSwapHeld()).toBe(false);
+    chamber.releaseVisualSwap({ shut: true });
+    expect(applied).toHaveBeenCalledTimes(1);
+    chamber.destroy();
+  });
+
+  it('released with the eye open (the same visual, a look laid over it), keeps its own crossfade', () => {
+    const { chamber } = makeChamber();
+    const applied = quiet(chamber);
+    chamber.setVisualSwapAtShut(true);
+    chamber.applyScheduledVisualCue(FALLBACK, { transitionMs: 1200 });
+    chamber.releaseVisualSwap({ shut: false });
+    expect(applied).toHaveBeenCalledWith(FALLBACK, { transitionMs: 1200 });
+    chamber.destroy();
+  });
+
+  it('let go of, makes a change it was holding at once, and holds nothing after', () => {
+    const { chamber } = makeChamber();
+    const applied = quiet(chamber);
+    chamber.setVisualSwapAtShut(true);
+    chamber.applyScheduledVisualCue(FALLBACK, { transitionMs: 1200 });
+    chamber.setVisualSwapAtShut(false);
+    expect(applied).toHaveBeenCalledWith(FALLBACK, { transitionMs: 1200 });
+    chamber.applyScheduledVisualCue({ kind: 'field', renderer: 'attractor', config: {} }, { transitionMs: 1200 });
+    expect(applied).toHaveBeenCalledTimes(2);
+    expect(chamber.visualSwapHeld()).toBe(false);
+    chamber.destroy();
+  });
+});
+
 describe('the visual on screen, as the Live venue reads it (docs/plans/LIVE-CURRENT.md §23)', () => {
   it('says which cue is on screen, null before any and after its fallback replaced it, and only reads', async () => {
     const { chamber, container } = makeChamber();

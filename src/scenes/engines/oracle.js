@@ -497,8 +497,8 @@ export default function oracle(rise) {
     }
 
     /** The eye's own place and size in the face: its gaze and breath; docked (`small`), it is most of the face. */
-    function eyeOf(f, small) {
-        const R = mix(f.s * (0.075 + live.open * 0.035) + gaze.depth * f.s * 0.015, f.s * 0.28, small);
+    function eyeOf(f, small, seed = 1) {
+        const R = mix((f.s * (0.075 + live.open * 0.035) + gaze.depth * f.s * 0.015) * seed, f.s * 0.28, small);
         return { x: f.x + gaze.x * f.s * 0.045 * (1 - small), y: f.y + gaze.y * f.s * 0.045 * (1 - small), R };
     }
 
@@ -512,8 +512,9 @@ export default function oracle(rise) {
             ctx.scale(g.spread, g.spread);
             ctx.translate(-f.x, -f.y);
         }
-        drawField(f, g.travel, mix(1, g.frame === 'full' ? 0.6 : 0.75, g.frame === 'full' ? g.small : g.travel));
-        const ink = (0.6 + live.glow) * (1 - (g.frame === 'full' ? g.small : g.travel));
+        // Gone to the rim (travel) and shrunk to the dock (small) both thin the field and fade the recursion.
+        drawField(f, g.travel, mix(1, 0.75, g.travel) * mix(1, 0.6, g.small));
+        const ink = (0.6 + live.glow) * (1 - g.travel) * (1 - g.small);
         for (let depth = 1; depth <= 3; depth += 1) recursionInk[depth] = rgba(skin.glow, 0.05 * depth / 3 * ink);
         if (ink > 0.01) drawRecursion(f.x, f.y, f.s * 0.34 * live.tight, 3, t * 0.25 * live.spin * 2);
         drawTorus(f, g.travel);
@@ -611,7 +612,8 @@ export default function oracle(rise) {
             }
         }
         drawSurround(g, dt);
-        const eye = eyeOf(g.face, g.small);
+        if (g.crown) drawCrown(g.crown);
+        const eye = eyeOf(g.face, g.small, g.seed ?? 1);
         drawEye(eye.x, eye.y, eye.R, Math.max(g.eyeClosed, blinkAmount(g.blink)));
     }
 
