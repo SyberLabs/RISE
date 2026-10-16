@@ -2353,7 +2353,8 @@ export class Chamber {
   /** Off: stop all visual work, including the Gallery's own clock. */
   _stopVisualWork(transitionMs = 0) {
     this.applyScheduledVisualCue({ kind: 'still' }, { transitionMs });
-    this._visualFieldDirector?.clear({ transitionMs });
+    // A held still clears the field on release, under the shut eye.
+    if (!this._heldSwap) this._visualFieldDirector?.clear({ transitionMs });
     if (visualCortex.pauseContinuousField?.() === true) this._offGalleryPaused = true;
   }
 
