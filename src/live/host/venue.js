@@ -37,6 +37,10 @@ const CHOSEN_BEAT_MS = 1_500;
 const LIVE_PATH = '/live';
 /** The longest a visual takes to fade out, as the Chamber sets it. */
 const CROSSFADE_MS = 1200;
+/** The most the room's frame clock moves in one animation frame: a stalled frame slows a transition, it skips none of it. */
+const FRAME_STEP_MS = 50;
+/** How fast the docked face follows the bar's end when the bar moves: a critically damped spring of this rate, per second. */
+const DOCK_RATE = 16;
 
 const MIC_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><rect x="9" y="3.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
 const LEAVE_GLYPH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>';
@@ -1019,10 +1023,37 @@ export class LiveVenue {
         }
     }
 
+    /**
+     * The dock as the face is placed at it: following the bar's end when the bar moves (it opens wider as the reader
+     * types, and lifts above a keyboard) on a critically damped spring in real time, held reading or not, so she moves
+     * aside with it rather than jumping. At once on the first frame and under reduced motion.
+     */
+    followDock(framing, dock, dt) {
+        const was = framing.dock;
+        if (!was || dt <= 0 || this.faceHoldsStill()) {
+            framing.dock = { x: dock.x, y: dock.y, vx: 0, vy: 0 };
+            return dock;
+        }
+        const w = DOCK_RATE;
+        const t = dt / 1000;
+        const decay = Math.exp(-w * t);
+        const axis = (p, v, to) => {
+            const e = p - to;
+            const lead = v + w * e;
+            return [to + (e + lead * t) * decay, (v - w * lead * t) * decay];
+        };
+        const [x, vx] = axis(was.x, was.vx, dock.x);
+        const [y, vy] = axis(was.y, was.vy, dock.y);
+        const settled = Math.abs(x - dock.x) < 0.01 && Math.abs(y - dock.y) < 0.01 && Math.abs(vx) < 0.01 && Math.abs(vy) < 0.01;
+        framing.dock = settled ? { x: dock.x, y: dock.y, vx: 0, vy: 0 } : { x, y, vx, vy };
+        return { ...dock, x: framing.dock.x, y: framing.dock.y };
+    }
+
     frameStep(now) {
         const framing = this.framing;
         const { phase, held } = this.state;
-        if (framing.last !== null && !(phase === 'reading' && held)) framing.clock += Math.max(0, Math.min(now - framing.last, 100));
+        const step = framing.last === null ? 0 : Math.max(0, Math.min(now - framing.last, FRAME_STEP_MS));
+        if (!(phase === 'reading' && held)) framing.clock += step;
         framing.last = now;
         // The visual on screen, never a timer: none while a question is asked or once the reading has ended.
         const cue = phase === 'reading' ? this.chamber()?.visualCue?.() ?? null : null;
@@ -1039,12 +1070,13 @@ export class LiveVenue {
                 framing.scale = undefined;
             }
         }
-        const { frame, a, cut } = framing.director.at(framing.clock);
+        const { frame, a, cut, lid } = framing.director.at(framing.clock);
         // A catalog word's note: kept until the visual it named is on screen and the room is at rest on it, then a beat.
         const wait = this.chosenWait;
         if (wait?.until === null && visualOf(framing.cue) === wait.engine && framing.director.settled(framing.clock)) wait.until = framing.clock + CHOSEN_BEAT_MS;
         else if (wait && wait.until !== null && framing.clock >= wait.until) this.letChosenGo();
-        const layout = this.measureRoom();
+        const measured = this.measureRoom();
+        const layout = { ...measured, dock: this.followDock(framing, measured.dock, step) };
         // A face that is not drawing frames nothing: a visual is the room's, full-bleed, and the still eye steps aside;
         // with none, the still eye is the room, the words at its foot.
         if (this.face.dataset.faceDrawn !== 'true') {
@@ -1054,7 +1086,7 @@ export class LiveVenue {
             else this.doc.documentElement.dataset.liveFrame = 'none';
             return;
         }
-        const geometry = frameGeometry({ frame, a, cut, layout, content: holdsContent(framing.cue) || framing.clock < framing.fitUntil });
+        const geometry = frameGeometry({ frame, a, cut, lid, layout, content: holdsContent(framing.cue) || framing.clock < framing.fitUntil });
         framing.geometry = geometry;
         const move = visualTransform(geometry, layout);
         this.doc.documentElement.dataset.liveFrame = frame;
@@ -1067,7 +1099,7 @@ export class LiveVenue {
         framing.scale ??= String(Math.round(restScale(frameOf(framing.cue), layout) * 1e4) / 1e4);
         if (field) this.declareScales(field, framing.scale);
         delete this.face.dataset.faceAside;
-        this.faceEngine?.place?.(geometry);
+        this.faceEngine?.place?.(geometry, now);
     }
 
     /** The reader chose a face in Settings: kept as a setting, worn at once. The model never chooses it. */

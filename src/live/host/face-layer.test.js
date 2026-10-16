@@ -120,6 +120,30 @@ describe('the face’s layer', () => {
         expect(worker.of(TO_WORKER.cue).map(message => message.name)).toEqual([`aperture:${JSON.stringify(resting)}`, `aperture:${JSON.stringify(moved)}`, 'aperture:null']);
     });
 
+    it('draws each geometry in the animation frame it is placed in: the venue’s place sends it, then the frame that draws it', async () => {
+        const { worker, raf } = await mounted();
+        const order = () => worker.sent.filter(message => message.type === TO_WORKER.frame || message.type === TO_WORKER.cue).map(message => (message.type === TO_WORKER.cue ? message.name : `frame@${message.t}`));
+        raf.run(16);
+        worker.say({ type: TO_HOST.frameDone, t: 0, ms: 1 });
+        const first = { frame: 'full', face: { x: 1, y: 2, s: 3 } };
+        const second = { frame: 'full', face: { x: 1, y: 5, s: 3 } };
+        face.place(first, 32);
+        worker.say({ type: TO_HOST.frameDone, t: 16, ms: 1 });
+        // While the venue places the room, the window's own animation frame draws nothing of its own.
+        raf.run(48);
+        face.place(second, 48);
+        worker.say({ type: TO_HOST.frameDone, t: 32, ms: 1 });
+        face.place(second, 64);
+        worker.say({ type: TO_HOST.frameDone, t: 48, ms: 1 });
+        // Given back its own square, the face draws on the window's animation frames again.
+        face.place(null, 80);
+        raf.run(96);
+        expect(order()).toEqual([
+            'frame@0', `aperture:${JSON.stringify(first)}`, 'frame@16', `aperture:${JSON.stringify(second)}`, 'frame@32', 'frame@48',
+            'aperture:null', 'frame@80'
+        ]);
+    });
+
     it('gives the engine the pointer anywhere in the room, in the canvas’s own pixels', async () => {
         const { worker, canvas } = await mounted();
         vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ left: 10, top: 20, width: 400, height: 300 });
