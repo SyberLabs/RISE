@@ -164,3 +164,23 @@ describe('leaving a directed reading for the Workshop', () => {
         expect(chamberExitTarget('visual-passages', {}, { blueprintId: '' })).toBeNull();
     });
 });
+
+describe('leaving a reading opened from the Mystery School', () => {
+    const fromSchool = {
+        origin: { view: 'school', icon: '☉', name: 'Mystery School' },
+        provenance: { kind: 'school', recordId: 'saturn.tao-te-ching' }
+    };
+
+    it('returns to the school, at the house of the text it read, however the reader left', () => {
+        for (const reason of LEAVING) {
+            expect(chamberExitTarget(reason, fromSchool), reason).toEqual({
+                kind: 'navigate', view: 'school', data: { focus: 'saturn' }, replaceUrl: true
+            });
+        }
+    });
+
+    it('goes on to the next division, or stays, as any reading does', () => {
+        expect(chamberExitTarget('continue', fromSchool)).toEqual({ kind: 'continue' });
+        expect(chamberExitTarget('complete', fromSchool)).toBeNull();
+    });
+});

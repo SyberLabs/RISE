@@ -88,6 +88,14 @@ export function chamberExitTarget(reason, session = {}, data = null) {
         };
     }
 
+    // A school reading returns to the school, at the house of the text it read.
+    if (session?.origin?.view === 'school') {
+        const recordId = session.provenance?.recordId;
+        const house = typeof recordId === 'string' && recordId.includes('.')
+            ? recordId.slice(0, recordId.indexOf('.')) : null;
+        return { kind: 'navigate', view: 'school', data: { focus: house }, replaceUrl: true };
+    }
+
     if (session?.origin?.experience === 'jev-sample') {
         return { kind: 'navigate', view: 'home' };
     }
