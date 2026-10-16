@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEGREES, GATE, HOUSES } from './houses.js';
 import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
 import { SCHOOL_CANON } from './canon.js';
+import { SCHOOL_PATHS } from './paths.js';
 import { CORE_WORKS, WITHHELD_WORKS } from '../archive/index.js';
 import { LEGACY_REINGESTED_WORKS } from '../archive/legacy-catalog.js';
 import { LITERATURE_WORKS } from '../archive/literature-catalog.js';
@@ -191,5 +192,57 @@ describe('the canon', () => {
     });
     expect(byId['saturn.interior-castle']).toMatchObject({ author: 'Teresa of Ávila', date: '1577', degree: 2 });
     expect(byId['venus.faust']).toMatchObject({ date: '1808, 1832', edition: 'Bayard Taylor, 1870', degree: 2 });
+  });
+});
+
+describe('the paths', () => {
+  const RECORD_IDS = new Set(SCHOOL_CANON.map(record => record.id));
+
+  it('are the plan\'s five, four to eight steps long', () => {
+    expect(Object.isFrozen(SCHOOL_PATHS)).toBe(true);
+    expect(SCHOOL_PATHS.map(path => path.id)).toEqual(['ficino', 'ghosts', 'form', 'unsaid', 'seasons']);
+    for (const path of SCHOOL_PATHS) {
+      expect(Object.keys(path).sort(), path.id).toEqual(['id', 'name', 'question', 'steps']);
+      expect(path.steps.length, path.id).toBeGreaterThanOrEqual(4);
+      expect(path.steps.length, path.id).toBeLessThanOrEqual(8);
+    }
+  });
+
+  it('step only on records the canon holds', () => {
+    for (const path of SCHOOL_PATHS) {
+      for (const step of path.steps) {
+        expect(Object.keys(step).sort(), path.id).toEqual(['part', 'record']);
+        expect(RECORD_IDS.has(step.record), `${path.id} -> ${step.record}`).toBe(true);
+      }
+    }
+  });
+
+  it('carry the plan\'s names, questions and parts', () => {
+    const ficino = SCHOOL_PATHS[0];
+    expect(ficino).toMatchObject({ name: 'The Ficino Path', question: 'how a renaissance happens' });
+    expect(ficino.steps).toEqual([
+      { record: 'gate.oration', part: null },
+      { record: 'saturn.corpus-hermeticum', part: 'Poimandres' },
+      { record: 'sun.enneads', part: 'I.6, On Beauty' },
+      { record: 'mars.renaissance-in-italy', part: 'Part II' },
+      { record: 'venus.spiritual-in-art', part: null }
+    ]);
+    expect(SCHOOL_PATHS.map(path => [path.name, path.question])).toEqual([
+      ['The Ficino Path', 'how a renaissance happens'],
+      ['Ghosts in the Machine', 'mind meets mechanism'],
+      ['Form and Becoming', 'the generative path'],
+      ['The Unsaid', 'the apophatic path'],
+      ['The Seasons of Civilization', null]
+    ]);
+    const parts = SCHOOL_PATHS.flatMap(path => path.steps.filter(step => step.part).map(step => `${step.record}: ${step.part}`));
+    expect(parts).toEqual([
+      'saturn.corpus-hermeticum: Poimandres',
+      'sun.enneads: I.6, On Beauty',
+      'mars.renaissance-in-italy: Part II',
+      'sun.monadology: the mill passage, section 17',
+      'mars.peloponnesian-war: the Melian Dialogue',
+      'mars.decline-of-the-west: vol. I'
+    ]);
+    expect(SCHOOL_PATHS.map(path => path.steps.length)).toEqual([5, 7, 6, 5, 6]);
   });
 });
