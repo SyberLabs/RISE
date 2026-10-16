@@ -43,7 +43,7 @@ Everything else, including the wheel, is a recommendation.
 
 One circle. The reader's seat, the **Gate**, is the disc at the centre: Pico's human "with no fixed place", free to climb. Seven **houses** are the seven equal sectors around it, in the Chaldean cycle clockwise from the top: **Sun** (top), Venus, Mercury, Moon, Saturn, Jupiter, Mars. Three **degree rings** climb outward from the Gate: Threshold (I) nearest the centre, Core (II), Arcanum (III) at the rim. This is the soul's ascent through the spheres as Ficino and Dante picture it: outward is upward.
 
-Each **text** is a point on its house's sector at its degree's ring, spread evenly along the arc. Point states, in ink only (no icons): a hollow ring for *not yet carried*, a dashed ring for *carried, not served*, a solid ring for *readable*, a filled disc for *read*, a filled disc with a halo for the house's arcanum once held. Hover or focus raises the title beside the point; press opens it in the Lectern.
+Each **text** is a point on its house's sector at its degree's ring, spread evenly along the arc with a 12° margin at the sector's edges. The rings sit at 0.50, 0.68 and 0.86 of the wheel's radius, the Gate disc at 0.14. Where a house holds so many texts of one degree that even spacing would bring two points within 0.10 of the radius (Venus has six at the Threshold), the points alternate between an inner and an outer sub-ring 0.05 either side of the degree ring, so every pair stays at least 0.10 apart: 32 px on a 640 px wheel. Point states, in ink only (no icons): a hollow ring for *not yet carried*, a dashed ring for *carried, not served*, a solid ring for *readable*, a filled disc for *read*, a filled disc with a halo for the house's arcanum once held. Hover or focus raises the title beside the point; press opens it in the Lectern.
 
 The five **paths** are drawn as lines through their points in order, hidden until a path is chosen; then the path's points stay lit, the rest of the wheel dims to ink, and the line draws itself. Choosing the path again, or Escape, clears it.
 
@@ -118,14 +118,14 @@ The canon is transcribed from the plan verbatim: 1 Gate, Sun 8, Mercury 10, Moon
 Key `USER_DATA_KEYS.schoolProgress = 'rise_school_progress_v1'`, registered in `user-data-keys.js` and therefore exported and erased with the rest. Shape:
 
 ```js
-{ v: 1, read: { [recordId]: { entries: ['book-1', ...], at: '2026-10-16T…' } } }
+{ v: 1, read: { [recordId]: { entries: ['3', ...], whole?: true, at: '2026-10-16T…' } } }
 ```
 
-`markRead(recordId, entryId | null)`, `readState(recordId, entryCount)` → `'unread' | 'begun' | 'read'`, `houseSeals(houseId)`, `holdsArcanum(houseId)`. Bounded (66 records, entries capped at the work's division count), validated on read, pure.
+`markRead(recordId, entryId | null)` (null marks the whole work: `whole: true`), `readState(recordId, entryCount)` → `'unread' | 'begun' | 'read'`, `houseSeals(houseId, entryCountOf)`, `holdsArcanum(houseId, entryCountOf)`, `clearProgress()`. Bounded (66 records, at most 1024 entry ids per record; the module does not know a work's division count, the caller passes it), validated on read, pure. Division ids are positions in the archive, so entries are position strings; `sun.nature` pins its division by label.
 
 ## 5. Routing and integration
 
-- `route-url.js`: a Library pane `school` at `/school/:focus?` (`focus` is a house id, a record id or `path:<id>`), plus `/library/school` parse-only. `ROUTE_ALIASES.school = 'library'`, `ROUTE_PANES.school = 'school'`.
+- `route-url.js`: a Library pane `school` at `/school/:focus?` (`focus` is a house id, a record id such as `sun.meditations`, or `path-<id>`), plus `/library/school` parse-only. `ROUTE_ALIASES.school = 'library'`, `ROUTE_PANES.school = 'school'`.
 - `Library.js`: `LOADERS.school = () => import('./library/School.js')`, a factory passing `{ onNavigate, onSelect, initialFocus }`, and a **School** button in `PROGRAMS`.
 - `route-manifest.js`: `paneCapabilities.school = { onNavigate, onSelect: operations.selectSchoolText }`.
 - **Launch.** `App.handleTextSelection(text, source, config, origin)` takes an optional origin; the school's operation resolves the registry text, loads its divisions (`getDivisions()`), picks the pinned entry or lets the Lectern list them, and navigates to Reader setup with `origin: { view: 'school', icon: '☉', name: 'Mystery School' }`, `provenance: { kind: 'school', recordId, workId, editionId, sourceRevision, entryId }`, the Library's `continuation` descriptor for divided works, and the house's colour theme where the visual configuration carries one.
@@ -139,7 +139,7 @@ Key `USER_DATA_KEYS.schoolProgress = 'rise_school_progress_v1'`, registered in `
 - **Type.** House names and titles in Instrument Serif; metadata in Instrument Sans at the small scale; degree numerals I, II, III in serif small caps. The charter in Crimson Pro, the reading face.
 - **Spacing.** Design-system tokens only (`--sy-space-*`, radii, motion). The pane uses `roomHeader` from `room-chrome.js` like its siblings.
 - **Glyphs.** ☉ ☽ ☿ ♀ ♂ ♃ ♄ for the houses, in the serif face; no icon font, no images.
-- **Verification.** Rendered and measured at 1440, 1280×720 and 390×844 before any claim: no horizontal overflow, labels never collide, points at least 32 px apart on the smallest ring, the Lectern never clips.
+- **Verification.** Rendered and measured at 1440, 1280×720 and 390×844 before any claim: no horizontal overflow, labels never collide, every pair of points at least 0.10 of the wheel's radius apart (§3.1), the Lectern never clips.
 
 ## 7. Tests and CI obligations
 
