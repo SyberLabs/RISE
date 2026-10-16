@@ -1061,6 +1061,50 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(geometry.wipe).toMatchObject({ hole: 1 });
     });
 
+    it('moves the docked face aside with the bar when the bar opens wider, never jumping', async () => {
+        const { crank } = await room({ kind: 'scene', sceneId: 'h', svg: '<svg/>' });
+        const bar = $('.live-again');
+        let box = { left: 592, top: 700, width: 256, height: 54 };
+        vi.spyOn(bar, 'getBoundingClientRect').mockImplementation(() => ({ ...box, right: box.left + box.width, bottom: box.top + box.height, x: box.left, y: box.top }));
+        crank(2400);
+        expect(engine().places.at(-1).face.x).toBeCloseTo(592 - 32, 6);
+        // The reader begins to type: the bar opens 160 px wider to the left, at once.
+        box = { ...box, left: 432, width: 576 };
+        const xs = [];
+        for (let i = 0; i < 40; i += 1) {
+            crank(16);
+            xs.push(engine().places.at(-1).face.x);
+        }
+        const steps = xs.map((x, i) => Math.abs(x - (i ? xs[i - 1] : 560)));
+        expect(Math.max(...steps)).toBeLessThan(30);
+        for (let i = 1; i < xs.length; i += 1) expect(xs[i]).toBeLessThanOrEqual(xs[i - 1] + 1e-9);
+        expect(xs.at(-1)).toBeCloseTo(432 - 32, 0);
+    });
+
+    it('moves the room’s frame on by at most 50 ms in one animation frame, so a stalled frame skips none of a transition', async () => {
+        const { frames, crank } = await room({ kind: 'field', renderer: 'genesis', config: {} });
+        crank(320);
+        const before = host.venue.framing.clock;
+        frames.run(320 + 16 + 600);
+        expect(host.venue.framing.clock - before).toBe(50);
+    });
+
+    it('keeps the eye shut between two frames: the face is never sent an opening eye between the inner eye and the full frame', async () => {
+        const { crank, chamber } = await room({ kind: 'procedural', collections: ['harmonograph'], config: {} });
+        crank(1200);
+        expect(engine().places.at(-1)).toMatchObject({ frame: 'inner', aperture: { hole: 1 } });
+        chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+        const from = engine().places.length;
+        crank(3000);
+        const eye = engine().places.slice(from).map(geometry => geometry.eyeClosed);
+        const reopened = eye.findIndex((value, i) => i > 0 && value < eye[i - 1] - 1e-9);
+        expect(engine().places.at(-1)).toMatchObject({ frame: 'full', eyeClosed: 0 });
+        // Once shut, it stays shut until it reopens at the dock, and then only opens.
+        expect(eye.slice(eye.indexOf(1), reopened).every(value => value === 1)).toBe(true);
+        // It reopens as she arrives at the dock.
+        expect(engine().places[from + reopened].small).toBeGreaterThan(0.95);
+    });
+
     it('has no ask bar before a question: the entry keeps its own question, where it was', () => {
         mount('?voice=paced');
         expect($('.live-again')).toBeNull();

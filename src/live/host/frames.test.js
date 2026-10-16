@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    CUT_MS, FRAME_OF, FRAME_OPEN_MS, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualTransform
+    CUT_MS, FRAME_ENTRY, FRAME_FOLD, FRAME_OF, FRAME_OPEN_MS, FRAME_TOP, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualTransform
 } from './frames.js';
 
 const W = 1440;
@@ -73,12 +73,12 @@ describe('the room’s frame, on the venue’s clock', () => {
         expect(FRAME_OPEN_MS).toEqual({ inner: 1100, shell: 1600, full: 1900 });
         for (const [frame, ms] of Object.entries(FRAME_OPEN_MS)) {
             const director = createFrameDirector();
-            expect(director.at(0)).toEqual({ frame: 'none', a: 0, cut: 0 });
+            expect(director.at(0)).toEqual({ frame: 'none', a: 0, cut: 0, lid: 0 });
             director.see(frame, 1000);
-            expect(director.at(1000)).toEqual({ frame, a: 0, cut: 0 });
+            expect(director.at(1000)).toEqual({ frame, a: 0, cut: 0, lid: 0 });
             expect(director.at(1000 + ms / 2).a).toBeCloseTo(0.5, 6);
-            expect(director.at(1000 + ms)).toEqual({ frame, a: 1, cut: 0 });
-            expect(director.at(1000 + ms * 3)).toEqual({ frame, a: 1, cut: 0 });
+            expect(director.at(1000 + ms)).toEqual({ frame, a: 1, cut: 0, lid: 0 });
+            expect(director.at(1000 + ms * 3)).toEqual({ frame, a: 1, cut: 0, lid: 0 });
         }
     });
 
@@ -88,22 +88,61 @@ describe('the room’s frame, on the venue’s clock', () => {
         director.at(2000);
         director.see('shell', 2000);
         expect(director.at(2110).cut).toBeCloseTo(0.5, 6);
-        expect(director.at(2250)).toEqual({ frame: 'shell', a: 1, cut: 1 });
-        expect(director.at(2700)).toEqual({ frame: 'shell', a: 1, cut: 0 });
+        expect(director.at(2250)).toEqual({ frame: 'shell', a: 1, cut: 1, lid: 0 });
+        expect(director.at(2700)).toEqual({ frame: 'shell', a: 1, cut: 0, lid: 0 });
     });
 
-    it('changes frame by shutting the aperture, closing the frame, and opening the next', () => {
+    it('changes frame by shutting the aperture, closing the frame to the shut eye, and opening the next from there', () => {
         const director = createFrameDirector();
         director.see('shell', 0);
         director.at(1600);
         director.see('full', 2000);
-        // Shut at once, and kept shut while the shell closes over its own time.
-        expect(director.at(2220)).toMatchObject({ frame: 'shell', cut: 1 });
-        expect(director.at(2800)).toMatchObject({ frame: 'shell', a: 0.5, cut: 1 });
-        // Closed: the full frame opens, its aperture no longer shut.
-        expect(director.at(3600)).toEqual({ frame: 'full', a: 0, cut: 0 });
-        expect(director.at(3600 + 950).a).toBeCloseTo(0.5, 6);
-        expect(director.at(3600 + 1900)).toEqual({ frame: 'full', a: 1, cut: 0 });
+        // Shut at once, and kept shut while the shell closes over its own time, as far as the shut eye: the eye is
+        // never opened between the two frames.
+        expect(director.at(2220)).toMatchObject({ frame: 'shell', cut: 1, lid: 1 });
+        expect(director.at(2800)).toMatchObject({ frame: 'shell', a: 0.5, cut: 1, lid: 1 });
+        const shut = 2000 + FRAME_OPEN_MS.shell * (1 - FRAME_ENTRY.shell);
+        // At the shut eye: the full frame opens from where its glide begins, the eye kept shut until it is folded.
+        expect(director.at(shut)).toEqual({ frame: 'full', a: FRAME_ENTRY.full, cut: 0, lid: 1 });
+        expect(director.at(shut + FRAME_OPEN_MS.full * (FRAME_FOLD.full - FRAME_ENTRY.full) + 1).lid).toBe(0);
+        expect(director.at(shut + FRAME_OPEN_MS.full * (1 - FRAME_ENTRY.full))).toEqual({ frame: 'full', a: 1, cut: 0, lid: 0 });
+    });
+
+    it('closes the full frame from where its room is wholly open: what is past every corner is not waited for', () => {
+        const director = createFrameDirector();
+        director.see('full', 0);
+        director.at(1900);
+        director.see(null, 2000);
+        expect(director.at(2000).a).toBeCloseTo(FRAME_TOP.full, 9);
+        expect(director.at(2000 + FRAME_OPEN_MS.full * FRAME_TOP.full)).toEqual({ frame: 'none', a: 0, cut: 0, lid: 0 });
+        // What is skipped is not seen: from the top to 1 only the wipe moves, past every corner of the room.
+        const top = frameGeometry({ frame: 'full', a: FRAME_TOP.full, cut: 0, layout });
+        for (const a of [0.75, 0.85, 1]) {
+            const g = frameGeometry({ frame: 'full', a, cut: 0, layout });
+            expect({ ...g, wipe: null, blink: false }).toEqual({ ...top, wipe: null });
+            expect(g.wipe.hole * 1.08).toBeGreaterThanOrEqual(1);
+        }
+        expect(top.wipe.hole * 1.08).toBeGreaterThanOrEqual(1);
+    });
+
+    it('lifts the shut eye when the room goes back to the eye in the middle of a change of frame', () => {
+        const director = createFrameDirector();
+        director.see('inner', 0);
+        director.at(1100);
+        director.see('full', 2000);
+        director.at(2500);
+        director.see(null, 2500);
+        const seen = [];
+        for (let now = 2500; now <= 5000; now += 5) {
+            const { frame, a, cut, lid } = director.at(now);
+            seen.push(frameGeometry({ frame, a, cut, lid, layout }).eyeClosed);
+        }
+        // Shut until it reaches the eye, then open, and never shut again.
+        const opened = seen.findIndex(value => value < 1);
+        expect(opened).toBeGreaterThan(0);
+        for (let i = opened + 1; i < seen.length; i += 1) expect(seen[i]).toBeLessThanOrEqual(seen[i - 1] + 1e-12);
+        expect(seen.at(-1)).toBe(0);
+        expect(director.settled(5000)).toBe(true);
     });
 
     it('says when the room has come to rest on the visual it was last shown: open, no cut running, nothing pending', () => {
@@ -124,11 +163,13 @@ describe('the room’s frame, on the venue’s clock', () => {
         director.see('full', 3000);
         director.at(4000);
         expect(director.settled(4000)).toBe(false);
-        director.at(4600);
-        director.at(4600 + 1800);
-        expect(director.settled(6400)).toBe(false);
-        director.at(4600 + 1900);
-        expect(director.settled(6500)).toBe(true);
+        const shut = 3000 + FRAME_OPEN_MS.shell * (1 - FRAME_ENTRY.shell);
+        const open = shut + FRAME_OPEN_MS.full * (1 - FRAME_ENTRY.full);
+        director.at(shut);
+        director.at(open - 100);
+        expect(director.settled(open - 100)).toBe(false);
+        director.at(open);
+        expect(director.settled(open)).toBe(true);
         // Under reduced motion every change is at rest at once.
         const still = createFrameDirector({ reduced: true });
         still.see('shell', 0);
@@ -143,25 +184,30 @@ describe('the room’s frame, on the venue’s clock', () => {
         director.at(1100);
         director.see(null, 1100);
         expect(director.at(1650)).toMatchObject({ frame: 'inner', a: 0.5 });
-        expect(director.at(2200)).toEqual({ frame: 'none', a: 0, cut: 0 });
+        expect(director.at(2200)).toEqual({ frame: 'none', a: 0, cut: 0, lid: 0 });
         director.see('inner', 3000);
         expect(director.at(3550).a).toBeCloseTo(0.5, 6);
         director.see('full', 3550);
         director.see('shell', 3600);
         expect(director.at(3800)).toMatchObject({ frame: 'inner', cut: 1 });
-        expect(director.at(4200)).toMatchObject({ frame: 'shell', cut: 0 });
+        const shut = 3550 + FRAME_OPEN_MS.inner * (0.5 - FRAME_ENTRY.inner);
+        const entered = director.at(shut + 1);
+        expect(entered).toMatchObject({ frame: 'shell', cut: 0 });
+        expect(frameGeometry({ ...entered, layout }).eyeClosed).toBe(1);
     });
 
     it('under reduced motion changes every frame at once, and never blinks', () => {
         const director = createFrameDirector({ reduced: true });
         director.see('shell', 0);
-        expect(director.at(0)).toEqual({ frame: 'shell', a: 1, cut: 0 });
+        expect(director.at(0)).toEqual({ frame: 'shell', a: 1, cut: 0, lid: 0 });
         director.see('shell', 10);
-        expect(director.at(120)).toEqual({ frame: 'shell', a: 1, cut: 0 });
+        expect(director.at(120)).toEqual({ frame: 'shell', a: 1, cut: 0, lid: 0 });
         director.see('full', 200);
-        expect(director.at(200)).toEqual({ frame: 'full', a: 1, cut: 0 });
+        expect(director.at(200)).toEqual({ frame: 'full', a: 1, cut: 0, lid: 0 });
+        director.see('inner', 250);
+        expect(director.at(250)).toEqual({ frame: 'inner', a: 1, cut: 0, lid: 0 });
         director.see(null, 300);
-        expect(director.at(300)).toEqual({ frame: 'none', a: 0, cut: 0 });
+        expect(director.at(300)).toEqual({ frame: 'none', a: 0, cut: 0, lid: 0 });
     });
 });
 
@@ -224,17 +270,17 @@ describe('one geometry: the aperture at its phase boundaries', () => {
         expect(g).toMatchObject({ frame: 'none', face: c, small: 0, dim: 1, spread: 1, travel: 0, eyeClosed: 0, blink: true, aperture: null, wipe: null, crown: null });
     });
 
-    it('inner eye: the iris folds shut by 0.25, the shutter dilates to 0.36 by 0.6, the blades are drawn back by 1', () => {
+    it('inner eye: the iris folds shut by 0.25, then dilates to 0.36 by 0.7, the blades drawn back from 0.55 to 1', () => {
         const at = a => frameGeometry({ frame: 'inner', a, cut: 0, layout });
         expect(at(0)).toMatchObject({ eyeClosed: 0, blink: true, aperture: null, dim: 1, spread: 1 });
         expect(at(0.125).eyeClosed).toBeCloseTo(0.5, 6);
-        expect(at(0.25)).toMatchObject({ eyeClosed: 1, blink: false, aperture: null });
-        const dilating = at(0.425).aperture;
+        // Folded, and nothing else moved yet: the face dims and spreads as the shutter dilates, not before.
+        expect(at(0.25)).toMatchObject({ eyeClosed: 1, blink: false, aperture: null, dim: 1, spread: 1 });
+        const dilating = at(0.475).aperture;
         expect(dilating.r).toBeCloseTo((c.s * 0.0995 + c.s * 0.36) / 2, 6);
         expect(dilating.hole).toBe(0);
-        const dilated = at(0.6).aperture;
-        expect(dilated).toMatchObject({ x: c.x, y: c.y, hole: 0, open: 0 });
-        expect(dilated.r).toBeCloseTo(c.s * 0.36, 9);
+        expect(at(0.55).aperture.hole).toBe(0);
+        expect(at(0.7).aperture.r).toBeCloseTo(c.s * 0.36, 9);
         const open = at(1);
         expect(open.aperture).toMatchObject({ x: c.x, y: c.y, hole: 1, open: 1, settle: 1, fade: 1, petals: 0 });
         expect(open.aperture.r).toBeCloseTo(c.s * 0.36, 9);
@@ -243,20 +289,22 @@ describe('one geometry: the aperture at its phase boundaries', () => {
         expect(open.dim).toBeCloseTo(0.45, 9);
         expect(open.spread).toBeCloseTo(1.12, 9);
         expect(open.crown).toMatchObject({ x: c.x, y: c.y, alpha: 1, layers: 2 });
-        expect(at(0.8).aperture.hole).toBeCloseTo(0.5, 6);
-        expect(at(0.8).aperture.settle).toBeCloseTo(0.96, 6);
+        expect(at(0.775).aperture.hole).toBeCloseTo(0.5, 6);
+        expect(at(0.775).aperture.settle).toBeCloseTo(0.96, 6);
     });
 
-    it('outer shell: fold by 0.1, shrink by 0.4, travel 0.15 to 0.75, dilate to 0.41 by 0.7, open by 1', () => {
+    it('outer shell: fold by 0.1, the eye drawn in 0.1 to 0.4, travel 0.15 to 0.75, dilate to 0.41 0.36 to 0.78, open 0.66 to 1', () => {
         const at = a => frameGeometry({ frame: 'shell', a, cut: 0, layout });
         expect(at(0.1)).toMatchObject({ eyeClosed: 1, aperture: null, travel: 0 });
         expect(at(0.15).travel).toBe(0);
         expect(at(0.45).travel).toBeCloseTo(0.5, 6);
         expect(at(0.75).travel).toBe(1);
-        expect(at(0.4).aperture.r).toBeCloseTo(c.s * 0.0995 * 0.3, 9);
-        expect(at(0.7).aperture).toMatchObject({ hole: 0, open: 0 });
-        expect(at(0.7).aperture.r).toBeCloseTo(c.s * 0.41, 9);
-        expect(at(0.85).aperture.hole).toBeCloseTo(0.5, 6);
+        // The eye draws in to under a third of itself and turns outward again without stopping.
+        const radii = Array.from({ length: 61 }, (_, i) => at(0.1 + i * 0.005).aperture?.r ?? c.s * 0.0995);
+        expect(Math.min(...radii)).toBeLessThan(c.s * 0.0995 * 0.4);
+        expect(at(0.66).aperture.hole).toBe(0);
+        expect(at(0.78).aperture.r).toBeCloseTo(c.s * 0.41, 9);
+        expect(at(0.83).aperture.hole).toBeCloseTo(0.5, 6);
         const open = at(1);
         expect(open.aperture).toMatchObject({ x: c.x, y: c.y, hole: 1, settle: 1 });
         expect(open.aperture.r).toBeCloseTo(c.s * 0.41, 9);
@@ -267,16 +315,19 @@ describe('one geometry: the aperture at its phase boundaries', () => {
         expect(open.crown.r).toBeCloseTo(c.s * 0.41, 9);
     });
 
-    it('full frame: close by 0.15, travel to the dock 0.1 to 0.55, reopen 0.5 to 0.65, the wipe 0.2 to 1 past every corner', () => {
+    it('full frame: the eye shuts by 0.12 as the glide begins at 0.05, arrives at the dock by 0.6, reopens 0.5 to 0.72, the wipe past every corner by then', () => {
         const at = a => frameGeometry({ frame: 'full', a, cut: 0, layout });
         const near = (face, place) => ['x', 'y', 's'].forEach(key => expect(face[key]).toBeCloseTo(place[key], 9));
-        expect(at(0.1)).toMatchObject({ small: 0, face: c });
-        expect(at(0.15)).toMatchObject({ eyeClosed: 1, wipe: null });
-        expect(at(0.55).small).toBe(1);
-        near(at(0.55).face, layout.dock);
+        expect(at(0.05)).toMatchObject({ small: 0, face: c, wipe: null });
+        expect(at(0.05).eyeClosed).toBeGreaterThan(0.2);
+        expect(at(0.05).eyeClosed).toBeLessThan(0.6);
+        expect(at(0.12).eyeClosed).toBe(1);
+        expect(at(0.12).face.y).toBeGreaterThan(c.y);
         expect(at(0.5).eyeClosed).toBe(1);
-        expect(at(0.65).eyeClosed).toBe(0);
-        expect(at(0.6).wipe.hole).toBeCloseTo(0.5, 6);
+        expect(at(0.56).small).toBe(1);
+        near(at(0.6).face, layout.dock);
+        expect(at(0.72).eyeClosed).toBe(0);
+        expect(at(FRAME_TOP.full).wipe.hole * 1.08).toBeGreaterThanOrEqual(1);
         const open = at(1);
         expect(open).toMatchObject({ small: 1, eyeClosed: 0, blink: true });
         near(open.face, layout.dock);
@@ -291,17 +342,19 @@ describe('one geometry: the aperture at its phase boundaries', () => {
         expect(frameGeometry({ frame: 'full', a: 1, cut: 1, layout }).wipe).toBe(null);
     });
 
-    it('scales the visual so the circle inscribed in its own square is the aperture, settling from 92% to 100%', () => {
+    it('scales the visual so the circle inscribed in its own square is the aperture once open, settling from 92% to 100%', () => {
         const open = frameGeometry({ frame: 'shell', a: 1, cut: 0, layout });
         const t = visualTransform(open, { width: W, height: H });
         expect(t.k * Math.min(W, H) / 2).toBeCloseTo(open.aperture.r, 9);
         expect(t.x).toBeCloseTo(open.aperture.x - W / 2, 9);
         expect(t.y).toBeCloseTo(open.aperture.y - H / 2, 9);
-        const opening = frameGeometry({ frame: 'inner', a: 0.6, cut: 0, layout });
-        expect(visualTransform(opening, { width: W, height: H }).k * Math.min(W, H) / 2).toBeCloseTo(opening.aperture.r * 0.92, 9);
-        // Before the shutter has dilated, the visual is already where it will open, at 92%.
-        const folding = frameGeometry({ frame: 'inner', a: 0.1, cut: 0, layout });
-        expect(visualTransform(folding, { width: W, height: H }).k * Math.min(W, H) / 2).toBeCloseTo(c.s * 0.36 * 0.92, 9);
+        const opening = frameGeometry({ frame: 'inner', a: 0.775, cut: 0, layout });
+        expect(visualTransform(opening, { width: W, height: H }).k * Math.min(W, H) / 2).toBeCloseTo(c.s * 0.36 * 0.96, 9);
+        // Before the blades draw back, the visual already waits where it will open, at 92%: it is never seen smaller.
+        for (const a of [0.1, 0.3, 0.5]) {
+            const shut = frameGeometry({ frame: 'inner', a, cut: 0, layout });
+            expect(visualTransform(shut, { width: W, height: H }).k * Math.min(W, H) / 2).toBeCloseTo(c.s * 0.36 * 0.92, 9);
+        }
     });
 
     it('declares the scale a circle frame shows its visual at once open, so the visual is drawn at that size; 1 elsewhere', () => {
@@ -363,8 +416,167 @@ describe('one geometry: the aperture at its phase boundaries', () => {
         expect(JSON.parse(JSON.stringify(once))).toEqual(once);
     });
 
-    it('eases each phase by smoothstep', () => {
-        const g = frameGeometry({ frame: 'inner', a: 0.7, cut: 0, layout });
+    it('eases each phase from rest to rest', () => {
+        const g = frameGeometry({ frame: 'inner', a: 0.6625, cut: 0, layout });
         expect(g.aperture.open).toBeCloseTo(smooth(0.25), 9);
+    });
+});
+
+/**
+ * Every number the face draws and the visual is moved by, as one list, an absent aperture or wipe read as the shut
+ * one it becomes, so a motion can be followed through the moment one appears.
+ */
+function sampled(g, room) {
+    const ap = g.aperture ?? { r: g.eye.r, hole: 0, open: 0, turn: 0, ring: 0, petals: 1, fade: 0, settle: 0.92 };
+    const wipe = g.wipe ?? { r: 0, hole: 0, turn: 0, fade: 0, ring: 0.5 };
+    const t = visualTransform(g, room);
+    return {
+        fx: g.face.x, fy: g.face.y, fs: g.face.s, small: g.small, eyeClosed: g.eyeClosed, dim: g.dim, spread: g.spread, travel: g.travel,
+        crown: g.crown?.alpha ?? 0, crownR: g.crown?.r ?? ap.r,
+        r: ap.r, hole: ap.hole, open: ap.open, turn: ap.turn, ring: ap.ring, petals: ap.petals, fade: ap.fade, settle: ap.settle,
+        wr: wipe.r, wipeHole: wipe.hole, wipeTurn: wipe.turn, wipeFade: wipe.fade, wipeRing: wipe.ring,
+        vx: t.x, vy: t.y, vk: t.k
+    };
+}
+
+describe('the motion: one continuous gesture, no jump and no sudden change of speed', () => {
+    const rooms = {
+        desk: { layout, size: { width: W, height: H } },
+        phone: { layout: roomLayout({ width: 390, height: 844, instrumentTop: 776, bar: { left: 72, width: 302, height: 54 } }), size: { width: 390, height: 844 } }
+    };
+    const h = 1e-4;
+
+    it('moves every number continuously in a, with a continuous speed, through every phase boundary', () => {
+        for (const [name, room] of Object.entries(rooms)) {
+            for (const frame of ['inner', 'shell', 'full']) {
+                for (const lid of [0, 1]) {
+                    for (const content of [false, true]) {
+                        const from = lid ? FRAME_ENTRY[frame] : 0;
+                        const at = a => sampled(frameGeometry({ frame, a, cut: 0, lid, layout: room.layout, content }), room.size);
+                        const keys = Object.keys(at(0));
+                        const span = Object.fromEntries(keys.map(key => [key, 1]));
+                        for (let a = from; a <= 1; a += 0.01) for (const key of keys) span[key] = Math.max(span[key], Math.abs(at(a)[key]));
+                        let before = at(from);
+                        let now = at(from + h);
+                        for (let a = from + 2 * h; a <= 1 + 1e-12; a += h) {
+                            const next = at(Math.min(1, a));
+                            for (const key of keys) {
+                                const scale = span[key];
+                                const step = Math.abs(next[key] - now[key]) / scale;
+                                const bend = Math.abs(next[key] - 2 * now[key] + before[key]) / scale;
+                                // A jump moves more than 60 times the whole range per unit of a in one step; a sudden
+                                // change of speed bends more than a smoothstep over 4% of a would.
+                                if (step > 60 * h || bend > 6 / 0.04 ** 2 * h * h * 1.01) {
+                                    throw new Error(`${name} ${frame} lid ${lid} content ${content}: ${key} at a ${a.toFixed(4)} steps ${(step / h).toFixed(1)}/a and bends ${(bend / h / h).toFixed(0)}/a²`);
+                                }
+                            }
+                            before = now;
+                            now = next;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    it('keeps every open frame at rest where it was, and the eye at rest the eye', () => {
+        for (const frame of ['inner', 'shell', 'full']) {
+            const open = frameGeometry({ frame, a: 1, cut: 0, lid: 0, layout, content: frame === 'full' });
+            expect(frameGeometry({ frame, a: 1, cut: 0, layout, content: frame === 'full' })).toEqual(open);
+            // The shell's crown waits at its rim with nothing drawn.
+            const shut = frameGeometry({ frame, a: 0, cut: 0, layout });
+            expect({ ...shut, crown: shut.crown?.alpha ? shut.crown : null }).toEqual({ ...frameGeometry({ frame: 'none', a: 0, cut: 0, layout }), frame });
+        }
+        expect(frameGeometry({ frame: 'inner', a: 1, cut: 0, layout })).toMatchObject({
+            face: layout.big, small: 0, travel: 0, eyeClosed: 1, blink: false, wipe: null, fit: null
+        });
+        expect(frameGeometry({ frame: 'full', a: 1, cut: 0, layout, content: true })).toMatchObject({
+            face: layout.dock, small: 1, dim: 1, spread: 1, travel: 0, eyeClosed: 0, blink: true, aperture: null, crown: null,
+            fit: { x: layout.safe.x, y: layout.safe.y, k: Math.min(layout.safe.w / W, layout.safe.h / H) }
+        });
+    });
+
+    it('glides to the dock on a gentle arc below the straight line, the shrink on the same curve, done just before she arrives', () => {
+        for (const room of Object.values(rooms)) {
+            const { big, dock } = room.layout;
+            const d = Math.hypot(dock.x - big.x, dock.y - big.y);
+            // The unit normal to the straight path, on its lower side.
+            let n = { x: -(dock.y - big.y) / d, y: (dock.x - big.x) / d };
+            if (n.y < 0) n = { x: -n.x, y: -n.y };
+            let bow = 0;
+            let shrunk = null;
+            for (let a = 0.05; a <= 0.6; a += 0.001) {
+                const g = frameGeometry({ frame: 'full', a, cut: 0, layout: room.layout });
+                const off = (g.face.x - big.x) * n.x + (g.face.y - big.y) * n.y;
+                expect(off).toBeGreaterThanOrEqual(-1e-9);
+                bow = Math.max(bow, off);
+                // Shrinks as it goes: the size is a share of the way between, on a ratio scale.
+                const share = Math.log(g.face.s / big.s) / Math.log(dock.s / big.s);
+                const along = ((g.face.x - big.x) * (dock.x - big.x) + (g.face.y - big.y) * (dock.y - big.y)) / (d * d);
+                if (along > 0.05 && along < 0.95) expect(Math.abs(share - along)).toBeLessThan(0.2);
+                if (shrunk === null && g.small === 1) shrunk = a;
+            }
+            expect(bow / d).toBeGreaterThan(0.03);
+            expect(bow / d).toBeLessThan(0.08);
+            expect(shrunk).toBeGreaterThan(0.5);
+            expect(shrunk).toBeLessThan(0.6);
+        }
+    });
+
+    it('opens the room behind her as she leaves: half open by the time she arrives', () => {
+        const atDock = frameGeometry({ frame: 'full', a: 0.6, cut: 0, layout });
+        expect(atDock.wipe.hole).toBeGreaterThan(0.5);
+        // Nothing opens before she has begun to move.
+        expect(frameGeometry({ frame: 'full', a: 0.08, cut: 0, layout }).wipe).toBe(null);
+    });
+
+    /** Every 4 ms of a change of frame on the director's clock, what is drawn, from the visual chosen to rest. */
+    function change(from, to) {
+        const director = createFrameDirector();
+        director.see(from, 0);
+        director.at(5000);
+        director.see(to, 5000);
+        const seen = [];
+        for (let now = 5000; now <= 12000; now += 4) {
+            const state = director.at(now);
+            seen.push({ now, ...state, g: sampled(frameGeometry({ ...state, layout }), { width: W, height: H }) });
+            if (director.settled(now)) break;
+        }
+        return seen;
+    }
+
+    it('never opens the eye between two frames: it shuts once and opens once', () => {
+        for (const [from, to] of [['inner', 'full'], ['shell', 'full'], ['full', 'inner'], ['full', 'shell'], ['inner', 'shell'], ['shell', 'inner']]) {
+            const eye = change(from, to).map(entry => entry.g.eyeClosed);
+            const shut = eye.indexOf(1);
+            const opens = eye.findIndex((value, i) => i > shut && value < 1);
+            for (let i = shut; i < eye.length; i += 1) {
+                if (i >= opens && opens >= 0) expect(eye[i], `${from} to ${to}`).toBeLessThanOrEqual(eye[i - 1] + 1e-12);
+                else expect(eye[i], `${from} to ${to}`).toBe(1);
+            }
+        }
+    });
+
+    it('never stands still in the middle of a change of frame', () => {
+        for (const [from, to] of [['inner', 'full'], ['shell', 'full'], ['full', 'inner'], ['full', 'shell'], ['inner', 'shell'], ['shell', 'inner']]) {
+            const seen = change(from, to);
+            const visible = ['fx', 'fy', 'fs', 'eyeClosed', 'dim', 'spread', 'travel', 'crown', 'r', 'hole', 'open', 'ring', 'petals', 'wipeHole'];
+            const moving = seen.map((entry, i) => i > 0 && visible.some(key => Math.abs(entry.g[key] - seen[i - 1].g[key]) > 1e-6));
+            const first = moving.indexOf(true);
+            const last = moving.lastIndexOf(true);
+            let still = 0;
+            let longest = 0;
+            for (let i = first; i <= last; i += 1) {
+                still = moving[i] ? 0 : still + 4;
+                longest = Math.max(longest, still);
+            }
+            expect(longest, `${from} to ${to}`).toBeLessThanOrEqual(24);
+        }
+    });
+
+    it('comes to rest sooner than before on a change of frame, the eye kept shut between: inner to full in under 2.8 s', () => {
+        const seen = change('inner', 'full');
+        expect(seen.at(-1).now - 5000).toBeLessThan(2800);
+        expect(seen.at(-1)).toMatchObject({ frame: 'full', a: 1 });
     });
 });

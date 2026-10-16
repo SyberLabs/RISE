@@ -51,6 +51,34 @@ export function mountFace({
     let placed = null;
     let frozen = false;
     let runtime = null;
+    // While the venue places the room on each of its animation frames, the engine's frame runs right after the
+    // geometry is sent, in that same animation frame, so it draws the room the visual layers are moved by; otherwise
+    // on the window's own animation frames.
+    const frame = requestFrame ?? (callback => host.ownerDocument.defaultView.requestAnimationFrame(callback));
+    const unframe = cancelFrame ?? (id => host.ownerDocument.defaultView.cancelAnimationFrame(id));
+    let driven = false;
+    let due = null;
+    let fallback = null;
+    const run = stamp => {
+        const callback = due;
+        due = null;
+        callback?.(stamp);
+    };
+    const wait = () => {
+        if (due && !driven && fallback === null) fallback = frame(stamp => { fallback = null; run(stamp); });
+    };
+    const scheduled = {
+        requestFrame(callback) {
+            due = callback;
+            wait();
+            return 1;
+        },
+        cancelFrame() {
+            due = null;
+            if (fallback !== null) unframe(fallback);
+            fallback = null;
+        }
+    };
     const layer = mountSceneLayer({
         field: host,
         insertBehindReading: (parent, node) => parent.append(node),
@@ -97,7 +125,7 @@ export function mountFace({
             runtime.freeze();
             onFailure({ sceneId: 'oracle', phase: 'flash', message: 'Frozen: the face would flash more than three times a second', where: null });
         },
-        ...(requestFrame ? { requestFrame, cancelFrame } : {})
+        ...scheduled
     });
 
     const modifiers = event => ({ shift: event.shiftKey === true, alt: event.altKey === true, ctrl: event.ctrlKey === true, meta: event.metaKey === true });
@@ -119,15 +147,25 @@ export function mountFace({
         canvas: layer.canvas,
         cue: (name, { instant = false } = {}) => runtime.cue(name, { instant }),
         /**
-         * The room's geometry for this animation frame (frames.js frameGeometry), or null for the face's own square.
-         * Sent only once the engine draws (a runtime that is not ready would queue one a frame), and only when it changed.
+         * The room's geometry for the animation frame at `stamp` (frames.js frameGeometry), or null for the face's own
+         * square. Sent only once the engine draws (a runtime that is not ready would queue one a frame), and only when it
+         * changed; then the engine's frame for this animation frame, which draws it.
          */
-        place(geometry) {
+        place(geometry, stamp) {
             if (!drawn || frozen) return;
             const name = `aperture:${JSON.stringify(geometry)}`;
-            if (name === placed) return;
-            placed = name;
-            runtime.cue(name);
+            if (name !== placed) {
+                placed = name;
+                runtime.cue(name);
+            }
+            driven = geometry !== null && Number.isFinite(stamp);
+            if (!driven) {
+                wait();
+                return;
+            }
+            if (fallback !== null) unframe(fallback);
+            fallback = null;
+            run(stamp);
         },
         /** The reader's pointer anywhere in the room, in the page's pixels: where the eye looks. */
         point(clientX, clientY) {

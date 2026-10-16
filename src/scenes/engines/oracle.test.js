@@ -441,6 +441,40 @@ describe('the room: the three frames, drawn from the venue’s geometry alone (d
         expect(blinked).toBe(true);
     });
 
+    it('waits at least 2 s after a transition has let the eye be before it blinks on its own again', () => {
+        vi.spyOn(Math, 'random').mockReturnValue(0);
+        const { scene, run } = inRoom();
+        scene.cue(room('full', 0.5));
+        run(8000, 20);
+        scene.cue(room('full', 1));
+        let first = null;
+        for (let ms = 0; ms < 6000 && first === null; ms += 20) {
+            run(20, 20);
+            if (scene.inspect().closed > 0) first = ms;
+        }
+        expect(first).toBeGreaterThanOrEqual(2000);
+    });
+
+    it('finishes a blink already under way when a transition begins, rather than snapping the eye open', () => {
+        const { scene, run } = inRoom();
+        scene.cue(room('full', 1));
+        run(20, 20);
+        scene.cue('blink', { instant: false });
+        run(100, 20);
+        const midway = scene.inspect().closed;
+        expect(midway).toBeGreaterThan(0.2);
+        // The room starts back from the dock: the eye may not begin a blink of its own here, and is not held shut.
+        scene.cue(room('full', 0.72));
+        let last = midway;
+        for (let ms = 0; ms < 800; ms += 20) {
+            run(20, 20);
+            const closed = scene.inspect().closed;
+            expect(Math.abs(closed - last)).toBeLessThan(0.2);
+            last = closed;
+        }
+        expect(last).toBe(0);
+    });
+
     it('looks toward the pointer from where the face is in the room, not from the canvas’s centre', () => {
         const { scene, run } = inRoom();
         scene.cue(room('none', 0));

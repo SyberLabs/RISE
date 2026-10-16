@@ -159,6 +159,7 @@ export default function oracle(rise) {
     // The blink: every 4 to 8 seconds (the first after 3 to 7).
     let nextBlink = 3 + Math.random() * 4;
     let blinkAt = -1;
+    let wasFree = true;
     let closed = 0;
 
     let t = 0;
@@ -190,13 +191,16 @@ export default function oracle(rise) {
         room = next;
     }
 
-    /** The blink, when the eye may blink on its own (at rest, or docked); otherwise none is begun and one under way ends. */
+    /**
+     * The blink, when the eye may blink on its own (at rest, or docked); otherwise none is begun, and one under way
+     * runs to its end, so the eye never snaps open as a transition begins.
+     */
     function blinkAmount(free) {
-        if (reduced || !free) {
-            if (!free) blinkAt = -1;
-            return 0;
-        }
-        if (blinkAt < 0 && t > nextBlink) blinkAt = t;
+        if (reduced) return 0;
+        // Let free again after a transition, the eye has just opened: its own next blink is at least 2 to 4 s away.
+        if (free && !wasFree) nextBlink = Math.max(nextBlink, t + 2 + Math.random() * 2);
+        wasFree = free;
+        if (blinkAt < 0 && free && t > nextBlink) blinkAt = t;
         if (blinkAt < 0) return 0;
         const amount = blinkClosure(t - blinkAt, stateName === 'thinking');
         if (amount !== null) return amount;
