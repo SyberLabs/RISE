@@ -262,6 +262,7 @@ describe('the reader’s record', () => {
       .find(row => row.textContent.includes('Book II'));
     expect(book2.classList.contains('is-read')).toBe(true);
     expect(container.querySelector('[data-record="sun.meditations"]').dataset.state).toBe('begun');
+    expect(container.querySelector('[data-record="sun.meditations"]').getAttribute('aria-label')).toMatch(/, Begun$/);
   });
 
   it('haloes a house whose arcanum is held', () => {
@@ -284,5 +285,69 @@ describe('motion and teardown', () => {
     school.destroy();
     expect(container.innerHTML).toBe('');
     school = null;
+  });
+});
+
+describe('the Wheel on a phone', () => {
+  afterEach(() => {
+    delete window.matchMedia;
+  });
+
+  function phone(matches) {
+    const listeners = [];
+    window.matchMedia = vi.fn(query => ({
+      get matches() { return query === '(max-width: 480px)' ? matches() : false; },
+      addEventListener: (_type, listener) => listeners.push(listener),
+      removeEventListener() {}
+    }));
+    return () => listeners.forEach(listener => listener());
+  }
+
+  it('makes the text points ink only, leaving the Gate and the houses to press', () => {
+    phone(() => true);
+    mount();
+    for (const point of container.querySelectorAll('.school-point[data-record]:not([data-gate])')) {
+      expect(point.getAttribute('tabindex'), point.dataset.record).toBe('-1');
+      expect(point.getAttribute('aria-hidden'), point.dataset.record).toBe('true');
+    }
+    const gate = container.querySelector('[data-gate]');
+    expect(gate.hasAttribute('tabindex')).toBe(false);
+    expect(gate.hasAttribute('aria-hidden')).toBe(false);
+    expect(container.querySelector('[data-house="sun"]').hasAttribute('aria-hidden')).toBe(false);
+  });
+
+  it('gives the points back when the screen widens', () => {
+    let narrow = true;
+    const change = phone(() => narrow);
+    mount();
+    narrow = false;
+    change();
+    const point = container.querySelector('[data-record="sun.meditations"]');
+    expect(point.hasAttribute('tabindex')).toBe(false);
+    expect(point.hasAttribute('aria-hidden')).toBe(false);
+  });
+});
+
+describe('the degree numerals', () => {
+  it('are HTML set on each ring at the top, not text scaled with the drawing', () => {
+    mount();
+    expect(container.querySelector('svg text')).toBeNull();
+    const numerals = [...container.querySelectorAll('.school-wheel .school-numeral')];
+    expect(numerals.map(numeral => numeral.textContent)).toEqual(['I', 'II', 'III']);
+    expect(numerals.every(numeral => numeral.style.left === '50%')).toBe(true);
+  });
+});
+
+describe('a press on the drawing itself', () => {
+  it('changes nothing: only the buttons over it choose', () => {
+    mount({ initialFocus: 'sun' });
+    press('[data-path="ficino"]');
+    container.querySelector('.school-wheel').click();
+    expect(container.querySelector('.school-chip[data-path="ficino"]').getAttribute('aria-pressed')).toBe('true');
+    expect(lectern().dataset.focus).toBe('path-ficino');
+    press('.school-wheel [data-gate]');
+    container.querySelector('.school-svg').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(lectern().dataset.focus).toBe('gate');
+    expect(onAddressChange).toHaveBeenCalledTimes(2);
   });
 });

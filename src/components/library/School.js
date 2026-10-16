@@ -8,7 +8,15 @@
  * everything the Wheel shows, so the picture is never the only road.
  *
  * A text's state is resolved from the content manifest and the reader's
- * record on this device; nothing here is hand-written per text.
+ * record on this device; nothing here is hand-written per text. Its ink:
+ * absent a hollow ring, carried a dashed ring, readable a solid ring, begun a
+ * solid ring with a centre dot, read a filled disc, arcanum a filled disc
+ * with a halo.
+ *
+ * At PHONE width the text points are ink only (no pointer, no tab stop,
+ * hidden from assistive technology): 0.10 of the radius is under 15 px there,
+ * so a press would land on a neighbour. The Gate and the houses stay
+ * pressable, and the Lectern lists every text.
  */
 
 import { getTextById } from '../../content/library.js';
@@ -35,8 +43,12 @@ import './School.css';
 
 /** Half the wheel's box in wheel units: the circle is radius 1, the house names ride outside it. */
 const VIEW = 1.22;
-const RIM_LABEL_RADIUS = 1.1;
+/** The house names sit just outside the circle, glyph over name, so the widest stays inside the wheel's box. */
+const RIM_LABEL_RADIUS = 1.07;
+/** Nearer the rim on a phone, so a 44 px house button stays inside the wheel's box. */
+const RIM_LABEL_RADIUS_PHONE = 1.05;
 const STACKED = '(max-width: 820px)';
+const PHONE = '(max-width: 480px)';
 
 const RIGHTS = Object.freeze({
   'us-pd': 'Public domain',
@@ -114,6 +126,9 @@ export class School {
 
     this.render();
     this.container.addEventListener('click', event => this.handleClick(event), { signal: this._events.signal });
+    this._phone = window.matchMedia?.(PHONE) || null;
+    this._phone?.addEventListener?.('change', () => this.applyPhone(), { signal: this._events.signal });
+    this.applyPhone();
     this.paint();
     this.renderLectern();
 
@@ -185,7 +200,7 @@ export class School {
     const rings = Object.values(RING_RADIUS).map(radius => `
       <circle class="school-ring" r="${radius}"></circle>`).join('');
     const numerals = DEGREES.map(degree => `
-      <text class="school-numeral" x="0" y="${-RING_RADIUS[degree.n]}">${'I'.repeat(degree.n)}</text>`).join('');
+      <span class="school-numeral" aria-hidden="true" style="left: 50%; top: ${percent(-RING_RADIUS[degree.n])};">${'I'.repeat(degree.n)}</span>`).join('');
     const points = SCHOOL_CANON.filter(record => record.house !== GATE.id).map(record => {
       const { x, y } = wheelPosition(record);
       return `
@@ -195,28 +210,44 @@ export class School {
         </button>`;
     }).join('');
     const houses = HOUSES.map(house => {
-      const [x, y] = polar(RIM_LABEL_RADIUS, (house.order + 0.5) * WHEEL_SECTOR_DEGREES);
+      const angle = (house.order + 0.5) * WHEEL_SECTOR_DEGREES;
+      const [x, y] = polar(RIM_LABEL_RADIUS, angle);
+      const [px, py] = polar(RIM_LABEL_RADIUS_PHONE, angle);
       return `
         <button type="button" class="school-house" data-house="${house.id}" data-focus="${house.id}"
-          style="left: ${percent(x)}; top: ${percent(y)}; ${hueStyle(house)}">
+          style="--rim-x: ${percent(x)}; --rim-y: ${percent(y)}; --rim-x-phone: ${percent(px)}; --rim-y-phone: ${percent(py)}; ${hueStyle(house)}">
           <span class="school-glyph" aria-hidden="true">${house.glyph}</span><span class="school-house-name" aria-hidden="true">${escapeHtml(house.planet)}</span>
         </button>`;
     }).join('');
     const gateSize = `${(2 * GATE_RADIUS / (2 * VIEW) * 100).toFixed(3)}%`;
     return `
-      <div class="school-wheel" data-path="">
+      <div class="school-wheel" data-chosen="">
         <svg class="school-svg" viewBox="${box}" aria-hidden="true" focusable="false">
           <g class="school-sectors">${sectors}</g>
           <g class="school-rings">${rings}</g>
           <circle class="school-gate-disc" r="${GATE_RADIUS}"></circle>
-          <g class="school-numerals">${numerals}</g>
           <polyline class="school-path-line" pathLength="1" points="" hidden></polyline>
         </svg>
+        ${numerals}
         ${points}
         ${houses}
         <button type="button" class="school-point school-gate" data-gate data-record="gate.oration" data-focus="${GATE.id}"
           style="left: 50%; top: 50%; width: max(44px, ${gateSize}); height: max(44px, ${gateSize});"></button>
       </div>`;
+  }
+
+  /** At PHONE width the text points are ink only; see the header. */
+  applyPhone() {
+    const phone = this._phone?.matches === true;
+    for (const point of this.container.querySelectorAll('.school-point[data-record]:not([data-gate])')) {
+      if (phone) {
+        point.setAttribute('tabindex', '-1');
+        point.setAttribute('aria-hidden', 'true');
+      } else {
+        point.removeAttribute('tabindex');
+        point.removeAttribute('aria-hidden');
+      }
+    }
   }
 
   /** The Wheel's ink: point states, the lit path, the active house. */
@@ -250,8 +281,8 @@ export class School {
     }
 
     const line = wheel.querySelector('.school-path-line');
-    const drawn = wheel.dataset.path;
-    wheel.dataset.path = path ? path.id : '';
+    const drawn = wheel.dataset.chosen;
+    wheel.dataset.chosen = path ? path.id : '';
     if (!path) {
       line.setAttribute('hidden', '');
       line.classList.remove('is-drawing');
