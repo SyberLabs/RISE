@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  GATE_RADIUS,
+  RING_RADIUS,
   WHEEL_SECTOR_DEGREES,
   houseById,
   pathsOfRecord,
@@ -76,8 +78,13 @@ describe('schoolStatus', () => {
 });
 
 describe('wheelPosition', () => {
-  const RADII = { 1: 0.42, 2: 0.62, 3: 0.82 };
   const near = (a, b) => Math.abs(a - b) < 1e-9;
+  const sub = (record, ring) => recordsOfHouse(record).filter(r => r.degree === ring).map(wheelPosition);
+
+  it('climbs from the Gate disc through three rings', () => {
+    expect(GATE_RADIUS).toBe(0.14);
+    expect(RING_RADIUS).toEqual({ 1: 0.5, 2: 0.68, 3: 0.86 });
+  });
 
   it('sets the Gate at the origin', () => {
     expect(wheelPosition(recordById('gate.oration'))).toEqual({ x: 0, y: 0, angle: 0, radius: 0 });
@@ -87,11 +94,11 @@ describe('wheelPosition', () => {
     expect(WHEEL_SECTOR_DEGREES).toBe(360 / 7);
   });
 
-  it('puts each text on its degree\'s ring, inside its house\'s sector, 12 degrees clear of each edge', () => {
+  it('puts each text within 0.05 of its degree ring, inside its house sector, 12 degrees clear of each edge', () => {
     for (const record of SCHOOL_CANON.filter(r => r.house !== 'gate')) {
       const { x, y, angle, radius } = wheelPosition(record);
       const start = houseById(record.house).order * WHEEL_SECTOR_DEGREES;
-      expect(radius, record.id).toBe(RADII[record.degree]);
+      expect(Math.abs(radius - RING_RADIUS[record.degree]), record.id).toBeLessThanOrEqual(0.05 + 1e-9);
       expect(angle, record.id).toBeGreaterThanOrEqual(start + 12 - 1e-9);
       expect(angle, record.id).toBeLessThanOrEqual(start + WHEEL_SECTOR_DEGREES - 12 + 1e-9);
       expect(near(Math.hypot(x, y), radius), record.id).toBe(true);
@@ -105,20 +112,28 @@ describe('wheelPosition', () => {
     expect(venus.x).toBeGreaterThan(0);
   });
 
-  it('centres a lone text in its sector and spreads siblings evenly', () => {
+  it('centres a lone text in its sector and spreads an uncrowded degree evenly on its ring', () => {
     const lone = wheelPosition(recordById('venus.aesthetic-education'));
     expect(near(lone.angle, 1 * WHEEL_SECTOR_DEGREES + WHEEL_SECTOR_DEGREES / 2)).toBe(true);
-    const sunThreshold = recordsOfHouse('sun').filter(r => r.degree === 1).map(r => wheelPosition(r).angle);
-    expect(near(sunThreshold[0], 12)).toBe(true);
-    expect(near(sunThreshold[2], WHEEL_SECTOR_DEGREES - 12)).toBe(true);
-    expect(near(sunThreshold[1] - sunThreshold[0], sunThreshold[2] - sunThreshold[1])).toBe(true);
+    const sunThreshold = sub('sun', 1);
+    expect(sunThreshold.every(p => p.radius === RING_RADIUS[1])).toBe(true);
+    expect(near(sunThreshold[0].angle, 12)).toBe(true);
+    expect(near(sunThreshold[2].angle, WHEEL_SECTOR_DEGREES - 12)).toBe(true);
+    expect(near(sunThreshold[1].angle - sunThreshold[0].angle, sunThreshold[2].angle - sunThreshold[1].angle)).toBe(true);
   });
 
-  it('gives every text a distinct position', () => {
-    const keys = SCHOOL_CANON.map(record => {
-      const { x, y } = wheelPosition(record);
-      return `${x.toFixed(6)},${y.toFixed(6)}`;
-    });
-    expect(new Set(keys).size).toBe(SCHOOL_CANON.length);
+  it('splits a crowded degree between sub-rings 0.05 either side of its ring', () => {
+    const venus = sub('venus', 1).map(p => p.radius);
+    expect(venus).toEqual([0.55, 0.45, 0.55, 0.45, 0.55, 0.45]);
+  });
+
+  it('keeps every pair of texts at least 0.10 of the radius apart', () => {
+    const points = SCHOOL_CANON.map(wheelPosition);
+    for (let i = 0; i < points.length; i++) {
+      for (let j = i + 1; j < points.length; j++) {
+        const gap = Math.hypot(points[i].x - points[j].x, points[i].y - points[j].y);
+        expect(gap, `${SCHOOL_CANON[i].id} / ${SCHOOL_CANON[j].id}`).toBeGreaterThanOrEqual(0.1 - 1e-9);
+      }
+    }
   });
 });
