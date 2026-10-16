@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import oracle, { ORACLE_MANIFEST, ORACLE_SKINS, ORACLE_STATES, blinkClosure } from './oracle.js';
 import { SCENE_ENGINES } from '../manifests.js';
-import { frameGeometry, roomLayout } from '../../live/host/frames.js';
+import { FRAME_SEED, frameGeometry, roomLayout } from '../../live/host/frames.js';
 
 /** A 2D context that does nothing, counting what a frame would allocate. */
 function fakeContext() {
@@ -473,6 +473,23 @@ describe('the room: the three frames, drawn from the venue’s geometry alone (d
             last = closed;
         }
         expect(last).toBe(0);
+    });
+
+    it('sets off for the dock from the shell’s seed at the seed’s own size, the shell’s band and crown still around her', () => {
+        const socket = (ctx, x, y) => ctx.counts.arcs.filter(([ax, ay]) => Math.abs(ax - x) < 1e-6 && Math.abs(ay - y) < 1e-6).map(([, , r]) => r);
+        const { scene, run, ctx } = inRoom();
+        const shell = frameGeometry({ frame: 'shell', a: FRAME_SEED, cut: 1, lid: 1, close: { from: 1, to: FRAME_SEED }, layout });
+        scene.cue(`aperture:${JSON.stringify(shell)}`);
+        ctx.counts.arcs.length = 0;
+        run(17);
+        const seedSocket = Math.max(...socket(ctx, shell.aperture.x, shell.aperture.y));
+        const full = frameGeometry({ frame: 'full', a: 0.05, cut: 0, lid: 1, carry: 'shell', layout });
+        expect(full.crown.layers).toBe(3);
+        expect(full.crown.alpha).toBeCloseTo(shell.crown.alpha, 9);
+        scene.cue(`aperture:${JSON.stringify(full)}`);
+        ctx.counts.arcs.length = 0;
+        run(17);
+        expect(Math.max(...socket(ctx, full.face.x, full.face.y))).toBeCloseTo(seedSocket, 6);
     });
 
     it('looks toward the pointer from where the face is in the room, not from the canvas’s centre', () => {

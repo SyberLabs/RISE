@@ -13,7 +13,7 @@
   "acceptance": [
     "Every visual a Live reading shows is held by Sophia in one of three frames, chosen by the visual on screen (the Chamber's current cue, never a timer) from one table keyed by engine and scene kind (src/live/host/frames.js FRAME_OF): a single drawn object the inner eye, a radial moving field the outer shell, a picture that needs the room the full frame; a still takes no frame; the model does not choose one and the beat grammar, Current, Worker and Composer's guide are unchanged.",
     "Inner eye opens over 1100 ms (fold 0-0.25, dilate to radius 0.36 of the face's square 0.25-0.7, nine S-curve blades drawn back through a nine-sided opening 0.55-1), the face dimmed to 45% and drawn 12% outward as it dilates, a two-layer crown and a thin iris ring; outer shell over 1600 ms (fold 0-0.1, the eye drawn in 0.1-0.4, field, torus, lights and petals travel to the rim 0.15-0.75, dilate to 0.41 0.36-0.78, open 0.66-1); full frame over 1900 ms (the eye shut 0-0.12 as the glide sets off at 0.05, a glide on an arc to a 48 px dock at the ask bar's left end 0.05-0.6, her size on a ratio scale on the same curve done by 0.56, reopen as she settles 0.5-0.72, a nine-sided aperture from the eye opening as she leaves, past every corner by 0.72), the docked eye 0.28 of its face and blinking every 4 to 8 s, a scrim of the ground behind the words; each phase eased from rest to rest and the phases overlapping, so place, size and speed are continuous and no moment of a transition stands still; the design of the approved study (docs/assets/live/sophia-aperture-study.html).",
-    "A change of visual in the same frame is one blink of the open aperture (shut 220 ms, hold 70 ms, open 360 ms); a change of frame shuts the aperture and closes the frame only as far as the shut eye, and the next opens from there, so the eye shuts once and opens once between two frames; under reduced motion (device, app setting or photosensitivity) every change is instant and nothing blinks.",
+    "A change of visual in the same frame is one blink of the open aperture (shut 220 ms, hold 70 ms, open 360 ms), the Chamber changing the visual only while the aperture is shut over the old one (an opt-in only the venue sets; the Reader and the card cross-fade as before); a change of frame shuts the aperture and closes the frame as one motion from the cut's first frame, only as far as the shut eye (the shell, for the full frame, to its seed, her band carried out with her as she glides), and the next opens from there, so the eye shuts once and opens once between two frames and her eye only shrinks from the cut to the dock; under reduced motion (device, app setting or photosensitivity) every change is instant and nothing blinks.",
     "In the inner eye and the shell the visual's layers are scaled so the circle inscribed in their own square is the aperture, settling from 92% to 100% as it opens, with an inner fade from 86% to 100% of the radius; one geometry (frameGeometry) drives the scale and is sent whole to the face's engine, which computes none of its own; the transitions run on the venue's clock, which stands still while the reading is held.",
     "Sophia never leaves the room: the eye speaking with no visual, holding the visual in its frame, listening and thinking in place for an interjection, at rest when held or ended; the words sit at the foot of the room in every frame, below the circle, never over a circle's visual.",
     "The face's canvas covers the room between the visual layers and the words, takes no press, keeps within the scene frame budget and flash gate with its pixel ratio held to a 1440 by 900 room at 1.5; a face that is not drawing frames nothing and the visual is shown whole. The Reader and the card are unchanged: nothing applies unless the venue marks the root, and Chamber.visualCue() only reads."
@@ -102,6 +102,18 @@
       "ref": "docs/plans/LIVE-CURRENT.md",
       "note": "§23 Motion. Real GPU (ANGLE D3D11, AMD RX 5700, Chromium 149 headless, 144 Hz), geometry traced every animation frame and the face worker's frames tagged with the geometry they drew, before (origin/main 31f6fdb9) and after, 1440x900 and 390x844: inner to full the eye stopped and reopened twice (open, shut, open, shut, glide) and took 2.8 s of motion, now shuts once and opens once at the dock in 2.1 s; shell to full 3.4 s to 2.8-3.2 s, full to inner 2.3 to 2.2 s, both without the reopening; the face engine drew 0.5-0.97 venue frames behind, now 0.00-0.14; the docked face jumped 160 px when the bar opened, now follows it. Frame rates unchanged (eye 142-144 fps at 1x and 2x, swarm 144 at 1x, 103-106 at 2x, 129-132 at 390x844 2x). Charts, screencast contact sheets and videos kept by the coordinator in the session scratchpad (motion/before, motion/after, motion/video-*). Not accepted by a human.",
       "date": "2026-10-16"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/frames.test.js",
+      "note": "Branch live-motion-2 at f193ba9d, local (the owner's three after #706). Command: npx vitest run over every file importing a changed module (Chamber.js, frames.js, venue.js, oracle.js): 71 files, 1385 tests passed once the content plane was built in the worktree (the chapel and system-design tests need npm run content:build). New: her eye and face never grow from the cut to the dock (shell to full and inner to full, desk and phone); the shell meets the full frame at its seed exactly (place, eye, band, crown); the band goes back into her by the dock; a circle frame closing toward another draws its circle in and folds its petals from the first 4 ms; the Chamber holds a change of visual until released under the shut eye, swaps with no cross-fade, keeps its cross-fade by default and for a look over the same visual; the venue releases only when the aperture is shut and lets go under reduced motion or on leaving. npx playwright test e2e/live.spec.js -g \"the frames|the face rests|catalog words|the ask bar\": 8 passed. Not merged, deployed or accepted by a human.",
+      "date": "2026-10-16"
+    },
+    {
+      "kind": "observation",
+      "ref": "docs/plans/LIVE-CURRENT.md",
+      "note": "§23 Cuts and Motion. Real GPU (ANGLE D3D11, AMD RX 5700, Chromium 149 headless), before (main 05fe83f7) and after, 1440x900 and 390x844: shell to full 2.82 to 2.37 s from the cut to rest, the eye size curve without a stop (it regrew from the seed before); the circle drawn in from the cut's first frame (it waited about 130 ms); in the screencast the new visual showed through the closing blades from about 50 ms into a cut, and now appears only under the shut blades, drawn by the reopen (no longer hold was needed). Frame rates unchanged (eye 142-144 fps at 1x, 2x and phone 2x; swarm 144 at 1x, 103-106 at 2x, 127-132 on the phone). Charts, sheets and videos kept by the coordinator in the session scratchpad (motion/r2-*). Not accepted by a human.",
+      "date": "2026-10-16"
     }
   ],
   "activity": [
@@ -140,10 +152,14 @@
     {
       "date": "2026-10-16T11:31:36.995Z",
       "summary": "Branch live-motion: the frames' transitions as one gesture (the eye shut once between frames, the glide on an arc, the face drawn in step); not merged"
+    },
+    {
+      "date": "2026-10-16T21:06:22.905Z",
+      "summary": "Branch live-motion-2: shell to full straight from the seed, a closing frame drawn in from the cut, a visual swapped only under the shut eye; not merged"
     }
   ],
-  "updatedAt": "2026-10-16T11:31:36.995Z",
-  "revision": 9,
+  "updatedAt": "2026-10-16T21:06:22.905Z",
+  "revision": 10,
   "summary": "Every visual of a Live reading held by Sophia in one of three frames (inner eye, outer shell, full frame), the visual choosing which; she never leaves the room.",
   "blocker": null
 }

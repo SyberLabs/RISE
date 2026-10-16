@@ -2353,7 +2353,9 @@ export class Chamber {
   /** Off: stop all visual work, including the Gallery's own clock. */
   _stopVisualWork(transitionMs = 0) {
     this.applyScheduledVisualCue({ kind: 'still' }, { transitionMs });
-    this._visualFieldDirector?.clear({ transitionMs });
+    // Held for the Live venue's shut eye, the field is cleared with the change it belongs to.
+    if (this._heldSwap) this._heldSwap.clear = true;
+    else this._visualFieldDirector?.clear({ transitionMs });
     if (visualCortex.pauseContinuousField?.() === true) this._offGalleryPaused = true;
   }
 
@@ -2635,10 +2637,46 @@ export class Chamber {
     return this.applyScheduledVisualCue(cue, { ...meta, transitionMs: reduced ? 0 : 1200 });
   }
 
+  /**
+   * The Live venue's opt-in (docs/plans/LIVE-CURRENT.md §23): a change of visual is held, the new cue on screen at once
+   * for the venue to read, until the venue says its eye is shut over the old visual; then the one goes and the other
+   * comes at once, with no crossfade the closed eye would not hide. Off, as the Reader and the card have it, every
+   * change crossfades as before; turned off, a change still held is made as it was asked.
+   */
+  setVisualSwapAtShut(on) {
+    this._swapAtShut = on === true;
+    if (!this._swapAtShut) this.releaseVisualSwap({ shut: false });
+  }
+
+  /** Whether a change of visual is held for the venue's shut eye. */
+  visualSwapHeld() {
+    return Boolean(this._heldSwap);
+  }
+
+  /** Make the held change: at once when `shut` (the eye is shut over the old visual), else with its own crossfade. */
+  releaseVisualSwap({ shut = true } = {}) {
+    const held = this._heldSwap;
+    this._heldSwap = null;
+    if (!held || this._destroyed) return false;
+    const meta = shut ? { ...held.meta, transitionMs: 0 } : held.meta;
+    const shown = this._presentScheduledVisualCue(held.cue, meta);
+    if (held.clear) this._visualFieldDirector?.clear({ transitionMs: meta.transitionMs ?? 0 });
+    return shown;
+  }
+
   /** One scheduled cue owns the complete visual presentation transition. */
   applyScheduledVisualCue(cue, meta = {}) {
     // A generated scene that has failed once is not run again in this Chamber; its passages draw the fallback.
     if (cue?.kind === 'scene' && this._failedScenes?.has(cue.sceneId)) cue = this._sceneFallbackCue();
+    if (this._swapAtShut) {
+      this._currentVisualCue = cue || null;
+      this._heldSwap = { cue, meta };
+      return true;
+    }
+    return this._presentScheduledVisualCue(cue, meta);
+  }
+
+  _presentScheduledVisualCue(cue, meta = {}) {
     this._currentVisualCue = cue || null;
     this.applyScheduledColorTheme(cue?.colorTheme);
     const fieldCue = cue?.kind === 'focal'
