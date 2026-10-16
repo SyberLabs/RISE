@@ -216,6 +216,24 @@
       "ref": "https://github.com/SyberLabs/RISE/actions/runs/38701941846",
       "note": "Dry run on main at 0874021a, since 2026-10-13T02:00:00Z: 42 merged, 22 included, 24 beats; opening attractor, close living-flame, 5 kit pictures; eye at beats 3, 6, 9 and 13. Quality {\"firstPass\":true,\"repairs\":{\"composition\":0,\"illustrator\":0},\"checks\":{}}: a first pass again, as run 38691661884 was. The eye rests from beat 13 to beat 22, ten beats on the RISE Changes theme with no picture. No token string in the log.",
       "date": "2026-10-15"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38874190971",
+      "note": "The owner watched the published digest https://rise.syberlabs.io/changes/2026-10-16 (run 38874190971): quality firstPass true, 0 repairs, yet only 2 pictures in 19 beats, beats 5 to 12 on RISE’s eye. The owner’s finding: a first pass bought with an empty reading.",
+      "date": "2026-10-16"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/701",
+      "note": "Branch changes-density: the density floor (rule density: at most 2 speaking beats in a row unpictured, a picture for every spoken major change), a picture held 6 beats while every beat cites it (engines and uncited pictures 4), the close then the opening given up when the pictures need their scenes (BEAT_LIMITS and the 8 scenes unchanged), the kit kinds list and compare (goldens, bounds, admitSvg and svgLayoutProblems clean on all 9 grounds, rendered check clean), quality.density with one line in the log, issue and page, and --supersede (workflow input supersede; index supersededBy; /changes hides the old entry, its page links the new). Tests first; 33 files, 899 tests passed locally. Merged as 68dda1f9. Not accepted by a human.",
+      "date": "2026-10-16"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/38879838950",
+      "note": "Dry run on main at 68dda1f9, since 2026-10-15T00:03:02.312Z (the 2026-10-16 digest period.from): 18 merged, 7 included, 18 beats; opening attractor, close living-flame, 5 kit pictures (4 list, 1 compare), rendered check clean; every speaking beat pictured. Quality {\"firstPass\":false,\"repairs\":{\"composition\":1,\"illustrator\":0},\"checks\":{\"composition\":1},\"density\":{\"pictures\":5,\"includedChanges\":7,\"speakingBeats\":16,\"pictured\":16,\"longestUnpictured\":0}}: the one repair was a list title too long for its slot. Played locally in a preview build; each scene start screenshotted for the owner. No token string in the log. Nothing published.",
+      "date": "2026-10-16"
     }
   ],
   "activity": [
@@ -294,10 +312,14 @@
     {
       "date": "2026-10-15T07:56:42.510Z",
       "summary": "#695 merged as 0874021a; its dry run 38701941846 recorded"
+    },
+    {
+      "date": "2026-10-16T09:25:45.920Z",
+      "summary": "The owner's 2-pictures finding (run 38874190971); #701 merged as 68dda1f9; its dry run 38879838950"
     }
   ],
-  "updatedAt": "2026-10-15T07:56:42.510Z",
-  "revision": 19,
+  "updatedAt": "2026-10-16T09:25:45.920Z",
+  "revision": 20,
   "summary": "Turns what merged into RISE each week into a narrated RISE reading for the team: a generator and workflow writing to the changes-data branch (PR A), and the Worker route and app pages that show it (PR B).",
   "blocker": null
 }
