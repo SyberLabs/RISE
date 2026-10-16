@@ -34,6 +34,7 @@ describe('route urls', () => {
             stations: '/library/stations',
             journeys: '/library/journeys',
             keystones: '/try-rise',
+            school: '/school',
             mint: '/library/mint',
             provenance: '/library/provenance'
         };
@@ -47,6 +48,19 @@ describe('route urls', () => {
         expect(pathForRoute('library')).toBe('/library');
         expect(pathForRoute('library', { pane: 'no-such-pane' })).toBeNull();
         expect(routeFromPath('/library/keystones')).toEqual({ id: 'library', data: { pane: 'keystones' } });
+    });
+
+    it('carries the Mystery School focus: a house, a record, or a path', () => {
+        for (const focus of ['sun', 'sun.meditations', 'path-ficino']) {
+            const path = pathForRoute('library', { pane: 'school', focus });
+            expect(path).toBe(`/school/${focus}`);
+            expect(routeFromPath(path)).toEqual({ id: 'library', data: { pane: 'school', focus } });
+        }
+        expect(pathForRoute('library', { pane: 'school', focus: null })).toBe('/school');
+        expect(routeFromPath('/library/school')).toEqual({ id: 'library', data: { pane: 'school' } });
+        expect(routeFromPath('/school/sun/extra')).toBeNull();
+        expect(ROUTE_ALIASES.school).toBe('library');
+        expect(ROUTE_PANES.school).toBe('school');
     });
 
     it('gives every Make tab the path its room had, both ways', () => {
