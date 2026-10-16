@@ -28,7 +28,7 @@ export const REPAIRS = 2;
 function budgetSentence(b) {
   return [
     `Characters that fit each slot, counted as the kit counts them (a label over its budget is refused; wide letters such as W and M fit fewer): a title ${b.title};`,
-    `bars: note ${b.bars.note}, label ${b.bars.label.least} (${b.bars.label.most} with 2 bars);`,
+    `bars: note ${b.bars.note}, label ${b.bars.label.least} (${b.bars.label.most} with 2 bars), value ${b.bars.value.least} (${b.bars.value.most} with 2 bars), the digits and point of the number as written;`,
     `flow: step ${b.flow.step}, loop label ${b.flow.loop};`,
     `columns: name ${b.columns.name.least} (${b.columns.name.most} with 2 columns), item ${b.columns.item.least} (${b.columns.item.most} with 2 columns);`,
     `stack: label ${b.stack.label};`,

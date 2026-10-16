@@ -174,7 +174,8 @@ export const KIT_BUDGETS = Object.freeze({
   title: budget(W - 2 * MARGIN, SIZE.title, { serif: true }),
   bars: Object.freeze({
     note: budget(W - 2 * MARGIN, SIZE.label),
-    label: Object.freeze({ least: budget(barGeometry(FIGURE_BOUNDS.bars.items[1]).slot, SIZE.label), most: budget(barGeometry(FIGURE_BOUNDS.bars.items[0]).slot, SIZE.label) })
+    label: Object.freeze({ least: budget(barGeometry(FIGURE_BOUNDS.bars.items[1]).slot, SIZE.label), most: budget(barGeometry(FIGURE_BOUNDS.bars.items[0]).slot, SIZE.label) }),
+    value: Object.freeze({ least: budget(barGeometry(FIGURE_BOUNDS.bars.items[1]).slot, SIZE.value, { bold: true }), most: budget(barGeometry(FIGURE_BOUNDS.bars.items[0]).slot, SIZE.value, { bold: true }) })
   }),
   flow: Object.freeze({
     step: budget(flowGeometry(FIGURE_BOUNDS.flow.steps[1]).slot, SIZE.label, { bold: true }),

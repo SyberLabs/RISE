@@ -120,6 +120,8 @@ describe('buildComposeRequest', () => {
     expect(said(/bars: note (\d+)/)).toBe(KIT_BUDGETS.bars.note);
     expect(said(/bars: note \d+, label (\d+)/)).toBe(KIT_BUDGETS.bars.label.least);
     expect(said(/\((\d+) with 2 bars\)/)).toBe(KIT_BUDGETS.bars.label.most);
+    expect(said(/value (\d+) \(/)).toBe(KIT_BUDGETS.bars.value.least);
+    expect(said(/value \d+ \((\d+) with 2 bars\)/)).toBe(KIT_BUDGETS.bars.value.most);
     expect(said(/flow: step (\d+)/)).toBe(KIT_BUDGETS.flow.step);
     expect(said(/loop label (\d+)/)).toBe(KIT_BUDGETS.flow.loop);
     expect(said(/columns: name (\d+)/)).toBe(KIT_BUDGETS.columns.name.least);
