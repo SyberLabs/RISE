@@ -43,7 +43,7 @@ Everything else, including the wheel, is a recommendation.
 
 One circle. The reader's seat, the **Gate**, is the disc at the centre: Pico's human "with no fixed place", free to climb. Seven **houses** are the seven equal sectors around it, in the Chaldean cycle clockwise from the top: **Sun** (top), Venus, Mercury, Moon, Saturn, Jupiter, Mars. Three **degree rings** climb outward from the Gate: Threshold (I) nearest the centre, Core (II), Arcanum (III) at the rim. This is the soul's ascent through the spheres as Ficino and Dante picture it: outward is upward.
 
-Each **text** is a point on its house's sector at its degree's ring, spread evenly along the arc with a 12° margin at the sector's edges. The rings sit at 0.50, 0.68 and 0.86 of the wheel's radius, the Gate disc at 0.14. Where a house holds so many texts of one degree that even spacing would bring two points within 0.10 of the radius (Venus has six at the Threshold), the points alternate between an inner and an outer sub-ring 0.05 either side of the degree ring, so every pair stays at least 0.10 apart: 32 px on a 640 px wheel. Point states, in ink only (no icons): a hollow ring for *not yet carried*, a dashed ring for *carried, not served*, a solid ring for *readable*, a filled disc for *read*, a filled disc with a halo for the house's arcanum once held. Hover or focus raises the title beside the point; press opens it in the Lectern.
+Each **text** is a point on its house's sector at its degree's ring, spread evenly along the arc with a 12° margin at the sector's edges. The rings sit at 0.50, 0.68 and 0.86 of the wheel's radius, the Gate disc at 0.14. Where a house holds so many texts of one degree that even spacing would bring two points within 0.10 of the radius (Venus has six at the Threshold), the points alternate between an inner and an outer sub-ring 0.05 either side of the degree ring, so every pair stays at least 0.10 apart: 32 px on a 640 px wheel. Point states, in ink only (no icons): a hollow ring for *not yet carried*, a dashed ring for *carried, not served*, a solid ring for *readable*, a solid ring with a centre dot for *begun*, a filled disc for *read*, a filled disc with a halo for the house's arcanum once held. Hover or focus raises the title beside the point; press opens it in the Lectern.
 
 The five **paths** are drawn as lines through their points in order, hidden until a path is chosen; then the path's points stay lit, the rest of the wheel dims to ink, and the line draws itself. Choosing the path again, or Escape, clears it.
 
@@ -62,7 +62,7 @@ The action is one of: **Read** (opens Reader setup with the text and the house's
 
 ### 3.3 Phone (≤ 820 px; fits 390×844 and 360×640)
 
-The wheel is full width and square, the house names ride the rim, the paths are a horizontal row of chips beneath it, and the Lectern follows. Opening a text scrolls the Lectern into view. Nothing requires hover.
+The wheel is full width and square, the house glyphs ride inside the rim, the paths are a horizontal row of chips beneath it, and the Lectern follows. Opening a text scrolls the Lectern into view. Nothing requires hover. At 480 px and below the points are too close to be tap targets (about 15 px apart), so they are decorative there: the Gate and the houses stay pressable, and the Lectern is the road to a text.
 
 ### 3.4 Motion and quiet
 
