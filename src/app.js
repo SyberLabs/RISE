@@ -456,6 +456,7 @@ class App {
             launchJevSample: () => this.launchJevSample(),
             launchCurrent: sealed => this.launchCurrent(sealed),
             launchKeystone: slug => this.launchKeystone(slug),
+            selectSchoolText: choice => this.selectSchoolText(choice),
             adjustJevReading: (decision, exact) => this.adjustJevReading(decision, exact),
             launchToday: () => this.launchToday(),
             openMintedProgram: slug => this.openMintedProgram(slug),
@@ -483,6 +484,9 @@ class App {
                 ensureVisualCortex: () => this.ensureVisualCortex(),
                 ensureAudioEngine: () => this.ensureAudioEngine(),
                 continueLibraryReading: session => this.continueLibraryReading(session),
+                recordSchoolReading: session => import('./app/school-reading.js')
+                    .then(({ recordSchoolReading }) => recordSchoolReading(session))
+                    .catch(error => console.warn('[RISE] School reading not recorded:', error)),
                 // Home offers Continue only while a begun, unfinished reading
                 // is held here.
                 releaseSession: session => {
@@ -603,7 +607,7 @@ class App {
      * @param {string} text - The selected text content
      * @param {string} source - Source identifier
      */
-    handleTextSelection(text, source, config = {}) {
+    handleTextSelection(text, source, config = {}, origin = { view: 'library', icon: '◇', name: 'Library' }) {
         // Navigate back to Chamber with text data
         this.router.navigate('chamber', {
             data: {
@@ -611,10 +615,23 @@ class App {
                 source,
                 config: {
                     ...config,
-                    origin: { view: 'library', icon: '◇', name: 'Library' }
+                    origin
                 }
             }
         });
+    }
+
+    /** Open a Mystery School text in Reader setup, as the Library opens a work (src/app/school-reading.js). */
+    async selectSchoolText({ recordId, entryIndex = null } = {}) {
+        try {
+            const { schoolReading } = await import('./app/school-reading.js');
+            const reading = await schoolReading(recordId, entryIndex);
+            if (!reading) throw new Error(`RISE holds no text for ${recordId}.`);
+            this.handleTextSelection(reading.text, reading.source, reading.config, reading.origin);
+        } catch (error) {
+            console.error('[RISE] School reading could not be opened:', error);
+            this.showToast('This work could not be opened. Try again.', 4000);
+        }
     }
 
     /**
