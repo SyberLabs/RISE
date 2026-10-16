@@ -18,7 +18,7 @@ function catalogPointer(session) {
     };
   }
   const provenance = session?.provenance;
-  if (provenance?.kind === 'library-work' && typeof provenance.workId === 'string') {
+  if ((provenance?.kind === 'library-work' || provenance?.kind === 'school') && typeof provenance.workId === 'string') {
     return { workId: provenance.workId };
   }
   return null;

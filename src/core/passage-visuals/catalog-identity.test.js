@@ -32,6 +32,12 @@ describe('catalog eligibility', () => {
       { loadContents: load })).toBe(true);
   });
 
+  it('accepts a released work read whole from the Mystery School', async () => {
+    const whole = entries.map(entry => entry.content).join('\n\n');
+    expect(await verifyCatalogReading(session(whole, { provenance: { kind: 'school', recordId: 'sun.work', workId: 'work' } }),
+      { loadContents: load })).toBe(true);
+  });
+
   it('refuses edited text even under catalog labels', async () => {
     expect(await verifyCatalogReading(session(`${entries[0].content} Edited.`, { continuation }),
       { loadContents: load })).toBe(false);
