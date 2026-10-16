@@ -10,7 +10,6 @@
 
 import { getTextById } from '../content/library.js';
 import { houseById, recordById } from '../content/school/index.js';
-import { contentsNoun } from '../components/Library.js';
 import { jevColors } from '../core/jev-palette.js';
 import { markRead } from '../core/school-progress.js';
 
@@ -62,6 +61,8 @@ export async function schoolReading(recordId, entryIndex = null) {
     const entry = entries[index];
     if (!entry) return null;
     const label = entry.title ? `${entry.label} — ${entry.title}` : entry.label;
+    // The Library's contentsNoun(divisions).one, restated so the app layer holds no static edge to a component.
+    const noun = typeof divisions.noun === 'string' && divisions.noun.trim() ? divisions.noun.trim().toLowerCase() : 'entry';
     return {
         text: entry.content,
         source: `${text.title} · ${label}`,
@@ -78,7 +79,7 @@ export async function schoolReading(recordId, entryIndex = null) {
                 entryId: String(entry.id),
                 entryIndex: index,
                 entryCount: entries.length,
-                noun: contentsNoun(divisions).one
+                noun
             } } : {}),
             provenance: { ...provenance, entryId: String(entry.id) },
             ...(look ? { presentation: look } : {})
