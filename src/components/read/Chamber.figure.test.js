@@ -177,6 +177,24 @@ describe('a change of visual under the Live venue’s shut eye (docs/plans/LIVE-
     chamber.destroy();
   });
 
+  it('turning visuals Off, clears the field only when the venue says the eye is shut; by default at once, with its cross-fade', () => {
+    const asked = makeChamber();
+    quiet(asked.chamber);
+    const cleared = vi.spyOn(asked.chamber._visualFieldDirector, 'clear').mockImplementation(() => {});
+    asked.chamber.setVisualSwapAtShut(true);
+    asked.chamber._stopVisualWork(1200);
+    expect(cleared).not.toHaveBeenCalled();
+    asked.chamber.releaseVisualSwap({ shut: true });
+    expect(cleared).toHaveBeenCalledWith({ transitionMs: 0 });
+    asked.chamber.destroy();
+    const plain = makeChamber();
+    quiet(plain.chamber);
+    const plainCleared = vi.spyOn(plain.chamber._visualFieldDirector, 'clear').mockImplementation(() => {});
+    plain.chamber._stopVisualWork(1200);
+    expect(plainCleared).toHaveBeenCalledWith({ transitionMs: 1200 });
+    plain.chamber.destroy();
+  });
+
   it('let go of, makes a change it was holding at once, and holds nothing after', () => {
     const { chamber } = makeChamber();
     const applied = quiet(chamber);

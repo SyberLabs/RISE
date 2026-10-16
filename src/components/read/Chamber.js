@@ -2353,8 +2353,9 @@ export class Chamber {
   /** Off: stop all visual work, including the Gallery's own clock. */
   _stopVisualWork(transitionMs = 0) {
     this.applyScheduledVisualCue({ kind: 'still' }, { transitionMs });
-    // A held still clears the field on release, under the shut eye.
-    if (!this._heldSwap) this._visualFieldDirector?.clear({ transitionMs });
+    // Held for the Live venue's shut eye, the field is cleared with the change it belongs to.
+    if (this._heldSwap) this._heldSwap.clear = true;
+    else this._visualFieldDirector?.clear({ transitionMs });
     if (visualCortex.pauseContinuousField?.() === true) this._offGalleryPaused = true;
   }
 
@@ -2657,7 +2658,10 @@ export class Chamber {
     const held = this._heldSwap;
     this._heldSwap = null;
     if (!held || this._destroyed) return false;
-    return this._presentScheduledVisualCue(held.cue, shut ? { ...held.meta, transitionMs: 0 } : held.meta);
+    const meta = shut ? { ...held.meta, transitionMs: 0 } : held.meta;
+    const shown = this._presentScheduledVisualCue(held.cue, meta);
+    if (held.clear) this._visualFieldDirector?.clear({ transitionMs: meta.transitionMs ?? 0 });
+    return shown;
   }
 
   /** One scheduled cue owns the complete visual presentation transition. */
