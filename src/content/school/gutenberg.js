@@ -306,9 +306,11 @@ function shortName(text) {
  * `units: 'headings'` takes every heading of `level` (a number, or the
  * selector the recipe made headings of) from `from` to `to` inclusive, and
  * every heading of `group`, or whose text `groups` lists, as a group
- * banner; a list takes exactly the headings it names.
+ * banner; a list takes exactly the headings it names; `units: 'numbered'`
+ * opens a unit at every `every`th numbered paragraph (see numbered).
  */
 function plan(items, recipe) {
+    if (recipe.units === 'numbered') return numbered(items, recipe.every);
     if (Array.isArray(recipe.units)) {
         return recipe.units.map(unit => ({ ...unit, item: findHeading(items, { ...unit, text: unit.heading }, 'unit') }));
     }
@@ -329,13 +331,38 @@ function plan(items, recipe) {
 }
 
 /**
+ * Paragraphs the edition numbers "1.", "2.", … in an unbroken run open a
+ * unit every `every` sections, the paragraph kept as the unit's first,
+ * named "§§ 1–10". A number missing or out of order refuses the read.
+ */
+function numbered(items, every) {
+    const sections = items.filter(item => item.kind === 'block')
+        .map(item => ({ item, n: Number(/^(\d+)\.(?:\s|$)/u.exec(item.lines[0])?.[1]) }))
+        .filter(section => section.n);
+    sections.forEach(({ n }, index) => {
+        if (n !== index + 1) throw new Error(`numbered: section ${index + 1} is missing or out of order (read ${n})`);
+    });
+    return sections.filter(({ n }) => (n - 1) % every === 0)
+        .map(({ item, n }) => ({ item, keep: true, name: `§§ ${n}–${Math.min(n + every - 1, sections.length)}` }));
+}
+
+/**
  * `{ parts, sourceWords, importedWords, dropped, groups, title }` for the
  * units `recipe` declares in `html`. Throws, naming the cause, when a named
  * heading is missing or doubled, or when text in the span belongs to no unit.
  */
 export function readGutenberg(html, parse, recipe) {
     const doc = parse(String(html));
-    const dropped = strip(doc);
+    return readUnits(doc, recipe, strip(doc));
+}
+
+/**
+ * The units `recipe` declares in a document already stripped of its
+ * distributor's furniture (`dropped` says how much went), read as
+ * readGutenberg reads them. `units: 'whole'` reads the whole span as one
+ * unit named `name`, or failing one by its first heading.
+ */
+export function readUnits(doc, recipe, dropped) {
     // What the recipe names as not the work: a printer's colophon set in the text.
     if (recipe.drop) dropped.recipe = dropWords(doc.body.querySelectorAll(recipe.drop));
     const extra = [recipe.headings, typeof recipe.level === 'string' ? recipe.level : null].filter(Boolean).join(', ');
@@ -357,8 +384,9 @@ export function readGutenberg(html, parse, recipe) {
         items = all.slice(start, stop < 0 ? undefined : stop);
         end = stop < 0 ? null : all[stop].element;
     }
-    const units = plan(items, recipe);
-    if (!units.length) throw new Error('the recipe selects no units');
+    const whole = recipe.units === 'whole';
+    const units = whole ? [] : plan(items, recipe);
+    if (!units.length && !whole) throw new Error('the recipe selects no units');
     const opens = new Map(units.map(unit => [unit.item, unit]));
 
     const title = [];
@@ -367,6 +395,12 @@ export function readGutenberg(html, parse, recipe) {
     let current = null;
     let carried = [];
     let importedWords = 0;
+    if (whole) {
+        const heading = items.find(item => item.kind === 'heading');
+        if (!recipe.name && !heading) throw new Error('a whole unit needs a name or a heading');
+        current = { name: recipe.name ?? headingName(heading.lines), sourceTitle: null, verseFlag: recipe.verse, blocks: [], group: null };
+        parts.push(current);
+    }
     for (const item of items) {
         const unit = opens.get(item);
         if (unit?.group) {
@@ -380,14 +414,15 @@ export function readGutenberg(html, parse, recipe) {
                 // `nameFrom: 'title'` reads the name the edition gave its heading's title attribute.
                 name: unit.name ?? (recipe.nameFrom === 'title' && item.element.title
                     ? headingName([item.element.title]) : headingName(item.lines)),
-                sourceTitle: item.text,
+                sourceTitle: item.text ?? null,
                 verseFlag: unit.verse ?? recipe.verse,
                 blocks: [...carried.map(text => ({ lines: [text], verse: false }))],
                 subtitle: recipe.subtitle ? 'pending' : null,
                 group: groups[groups.length - 1] ?? null
             };
             carried = [];
-            importedWords += countWords(item.text);
+            if (unit.keep) current.blocks.push(item);
+            else importedWords += countWords(item.text);
             parts.push(current);
             continue;
         }
