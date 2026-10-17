@@ -260,12 +260,12 @@ describe('titleCase', () => {
 
   it('removes letter markers on either side of their word, with their notes, and names a unit by its heading title when told to', () => {
     const notes = edition(`<h2 title="IV. On the Internal Form and Structure of the Cell.">CHAPTER IV<span class="h2ttl">ON THE INTERNAL FORM</span></h2>
-<p>It means that [A]his sun is not like this one.</p><p><span class="i0">[C]While I dissolve and melt.</span><br><span class="i0">Of stars within thy sight.[AJ]</span></p>
+<p>It means that [A]his sun is not like this one.<a href="#fAA"><sup>[AA]</sup></a></p><p><span class="i0">[C]While I dissolve and melt.</span><br><span class="i0">Of stars within thy sight.[AJ]</span></p>
 <p>[AJ] Plato says that the word is derived from the verb.</p>`);
     const read = readGutenberg(notes, parse, { units: 'headings', level: 2, nameFrom: 'title' });
     expect(read.parts[0].name).toBe('IV. On the Internal Form and Structure of the Cell');
     expect(read.parts[0].content).toBe(['It means that his sun is not like this one.', '', 'While I dissolve and melt.', 'Of stars within thy sight.'].join(String.fromCharCode(10)));
-    expect(read.dropped['footnote markers']).toBe(3);
+    expect(read.dropped['footnote markers']).toBe(4);
     expect(read.sourceWords).toBe(read.importedWords);
   });
 
