@@ -150,14 +150,17 @@ function dropInlineNotes(doc) {
 }
 
 /** Strips everything that is not the edition's text, and says how much. */
-function strip(doc) {
+function strip(doc, recipe) {
     const header = doc.getElementById('pg-header');
     const footer = doc.getElementById('pg-footer');
     if (!header || !/\*\*\* ?START OF/u.test(header.textContent)) throw new Error('no "*** START OF" marker in a #pg-header');
     if (!footer || !/\*\*\* ?END OF/u.test(footer.textContent)) throw new Error('no "*** END OF" marker in a #pg-footer');
     header.remove();
     footer.remove();
-    return dropFurniture(doc, DROP);
+    // Before the furniture: a "[Footnote continues]" paragraph goes whole, not just its bracket.
+    const dropped = markedText(doc, recipe);
+    for (const [kind, count] of Object.entries(dropFurniture(doc, DROP))) dropped[kind] = (dropped[kind] || 0) + count;
+    return dropped;
 }
 
 /**
@@ -397,7 +400,35 @@ function numbered(items, every) {
  */
 export function readGutenberg(html, parse, recipe) {
     const doc = parse(String(html));
-    return readUnits(doc, recipe, strip(doc));
+    return readUnits(doc, recipe, strip(doc, recipe));
+}
+
+/**
+ * What an edition set as plain text and the recipe names as not the work,
+ * removed before anything else is read and counted by kind: `dropBlocks`
+ * (`[{ pattern, kind }]`) removes every paragraph whose text the pattern
+ * matches (notes an edition set as "[footnote] …" paragraphs); `strike`
+ * (`[{ pattern, kind }]`) removes every match inside the text (page numbers
+ * set as lines of their own, asterisk note markers).
+ */
+function markedText(doc, recipe) {
+    const dropped = {};
+    const add = (kind, count) => { if (count) dropped[kind] = (dropped[kind] || 0) + count; };
+    for (const { pattern, kind } of recipe.dropBlocks ?? []) {
+        const opens = new RegExp(pattern, 'iu');
+        add(kind, dropWords([...doc.body.querySelectorAll('p, div')]
+            .filter(block => opens.test(block.textContent) && ![...block.children].some(child => BLOCK.has(child.tagName)))));
+    }
+    for (const { pattern, kind } of recipe.strike ?? []) {
+        const match = new RegExp(pattern, 'gu');
+        for (const node of textNodes(doc.body)) {
+            node.data = node.data.replace(match, found => {
+                add(kind, countWords(found));
+                return '';
+            });
+        }
+    }
+    return dropped;
 }
 
 /**

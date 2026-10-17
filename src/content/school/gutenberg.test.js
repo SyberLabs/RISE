@@ -99,6 +99,26 @@ describe('the Gutenberg reader', () => {
     expect(read.sourceWords).toBe(read.importedWords);
   });
 
+  it('drops the paragraphs a recipe names by how their text opens, and strikes what it names inline, counting both by kind', () => {
+    const cosmos = edition(`<h5>DELINEATION OF NATURE.</h5>
+<p>The political disturbances of the civilized world at the close
+p 4
+of the last century prevented our author,* and detained him.</p>
+<p style="margin-top: 2em">[footnote] *For the following remarks I am indebted to the Reviews.</p>
+<p>[Footnote continues]  The same traveler says, "To whatever height we rise."</p>
+<p>p 5</p>
+<p>He went to Spain. [Greek words] remain.</p>`);
+    const read = readGutenberg(cosmos, parse, {
+      units: [{ heading: 'DELINEATION OF NATURE.', name: 'Delineation of Nature' }],
+      dropBlocks: [{ pattern: '^\\s*\\[+footnote(?: continues)?\\]', kind: 'footnotes' }],
+      strike: [{ pattern: '(?<=^|\\n)[ \\t]*p \\d+[ \\t]*(?=\\n|$)', kind: 'page numbers' }, { pattern: '\\*+', kind: 'footnote markers' }]
+    });
+    expect(read.parts[0].content).toBe('The political disturbances of the civilized world at the close of the last century prevented our author, and detained him.\n\n'
+      + 'He went to Spain. [Greek words] remain.');
+    expect(read.dropped).toMatchObject({ footnotes: 22, 'page numbers': 4, 'footnote markers': 1 });
+    expect(read.sourceWords).toBe(read.importedWords);
+  });
+
   it('reads a table a row to a line', () => {
     const table = edition('<h2>NOTE D.</h2><table><tr><th>Number of Operation.</th><th>Nature.</th></tr><tr><td>1</td><td>×</td></tr><tr><td>2</td><td>×</td></tr></table>');
     const read = readGutenberg(table, parse, { units: [{ heading: 'NOTE D.', name: 'Note D' }] });

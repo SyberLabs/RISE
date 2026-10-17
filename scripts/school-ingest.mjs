@@ -559,6 +559,43 @@ const RECIPES = Object.freeze({
         edition: { statement: 'Cambridge University Press, 1917; figures referenced as text', translator: null, year: 1917 },
         rights: { us: 'pd', life70: 'pd' }
     },
+    // A transcription set as plain text in <p>s: its notes are paragraphs
+    // opening "[footnote]" (and the transcriber's misspellings of it), its
+    // page numbers lines of their own ("p 4"), its note markers asterisks,
+    // and each of its source files opens with the transcriber's header.
+    // "[Greek words]" is the edition's own marker and stays.
+    'jupiter.cosmos': {
+        ebook: 14565,
+        artifact: 'html',
+        // The translator's preface and Humboldt's summary of contents come before; the index after.
+        extract: { from: 'REFLECTIONS ON THE DIFFERENT DEGREES OF ENJOYMENT PRESENTED TO US BY THE ASPECT OF NATURE AND THE STUDY OF HER LAWS.', to: 'INDEX TO VOL. I.' },
+        dropBlocks: [
+            // One note set without its label opens with its marker: "** (This word is written 'gaard' …) — Tr."
+            { pattern: '^\\s*(?:\\[+(?:further )?(?:footnote|fotnote|footnonte|footnnote|fiitbite)(?: continue[sd])?[\\]\\[\']|\\*+\\s)', kind: 'footnotes' },
+            { pattern: '^\\s*(?:This material taken from pages|This section from pp|COSMOS: A Sketch of the Physical Description of the Universe, Vol\\. 1\\s+by Alexander von Humboldt\\s*$|Translated by E C Otte\\s*$|from the 1858 Harper|\\[NB +Table will line up|p \\d+ is blank\\s*$)', kind: 'transcriber notes' },
+            // The last words of p. 305, closing one of the transcriber's files and opening the next.
+            { pattern: '^\\s*It is no slight\\s*$', kind: 'duplicated text' }
+        ],
+        strike: [
+            { pattern: '\\[balance of p 305 is in file "09 Humboldt"\\]', kind: 'transcriber notes' },
+            { pattern: '(?<=^|\\n)[ \\t]*p [0-9ivxlc]+[ \\t]*(?=\\n|$)', kind: 'page numbers' },
+            { pattern: '(?<=^|\\n)[ \\t]*[—_-]{4,}[ \\t]*(?=\\n|$)', kind: 'rules' },
+            { pattern: '\\*+', kind: 'footnote markers' }
+        ],
+        units: [
+            { heading: 'REFLECTIONS ON THE DIFFERENT DEGREES OF ENJOYMENT PRESENTED TO US BY THE ASPECT OF NATURE AND THE STUDY OF HER LAWS.' },
+            { heading: 'LIMITS AND METHOD OF EXPOSITION OF THE PHYSICAL DESCRIPTION OF THE UNIVERSE.' },
+            { heading: 'COSMOS.', name: 'Delineation of Nature: General Review of Natural Phenomena' },
+            { heading: 'ADDITIONAL NOTES', name: 'Additional Notes to the Present Edition, March 1849' }
+        ],
+        count: 4,
+        edition: {
+            statement: 'E. C. Otté, vol. 1, from the Harper & Brothers edition, New York, 1858; vols. 2–5 to follow',
+            translator: 'E. C. Otté',
+            year: 1858
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
     'jupiter.relativity': {
         ebook: 30155,
         artifact: 'html',
