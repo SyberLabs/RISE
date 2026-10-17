@@ -476,7 +476,16 @@ export const WEB_RECIPES = {
             // The brackets each of the two dropped note anchors leaves behind ("[sic]" is set the same way and stays).
             { pattern: '(?<="devouring") \\[$|(?<=\'mneme\',)\\[$|^\\](?= As is| whereas)', kind: 'footnote markers', replace: '' },
             // The transcriber's marks for a letter the page could not set: me[accent]tier, na[umlaut]ive, ae[]sthenic.
-            { pattern: '\\[(?:accent|umlaut)?\\]', kind: 'transcriber notes', replace: '' }
+            { pattern: '\\[(?:accent|umlaut)?\\]', kind: 'transcriber notes', replace: '' },
+            // The transcription's slips, each corrected as the 1923 printing reads.
+            { pattern: '(?<=practice\\. )The(?= are, as it were)', kind: 'transcription faults', replace: 'They' },
+            { pattern: '~sd(?=ousness)', kind: 'transcription faults', replace: 'sc' },
+            { pattern: '(?<=naturally forbidden)\'(?= This other)', kind: 'transcription faults', replace: '.' },
+            { pattern: ' ,(?=very simply explained)', kind: 'transcription faults' },
+            { pattern: '(?<=ascendancy on)\\.(?= the part)', kind: 'transcription faults', replace: '' },
+            { pattern: '(?<=as a), (?=universal psychological)', kind: 'transcription faults' },
+            { pattern: '(?<=universal psychological)\\.(?= phenomenon)', kind: 'transcription faults', replace: '' },
+            { pattern: '(?<= )ie\\.(?= )', kind: 'transcription faults', replace: 'i.e.' }
         ],
         extract: { from: 'A. INTRODUCTION' },
         units: [
