@@ -17,7 +17,17 @@
  * MIN_CHARS long; a verse unit keeps at least the verse lines its markup
  * declared.
  *
- * Fetched files are cached under .ingest-cache/standard-ebooks/<repo>/.
+ * Two kinds of source. A Standard Ebooks recipe names a `repo` and reads
+ * the edition's spine and markup (src/content/archive/standard-ebooks.js).
+ * A Project Gutenberg recipe names an `ebook` and reads its HTML edition
+ * (src/content/school/gutenberg.js): `{ ebook, artifact: 'html', extract?,
+ * units, ... }`, the units a list of exact headings or every heading of one
+ * level. A record drawn from more than one edition lists them under
+ * `artifacts`, in reading order, each with its own units.
+ *
+ * Fetched files are cached under .ingest-cache/standard-ebooks/<repo>/ and
+ * .ingest-cache/gutenberg/<ebook>.html; a Gutenberg file's sha256 is
+ * recorded in the work's source.
  */
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -33,13 +43,17 @@ import {
     sectionsFromParts
 } from '../src/content/archive/standard-ebooks.js';
 import { SCHOOL_CANON } from '../src/content/school/canon.js';
+import { readGutenberg } from '../src/content/school/gutenberg.js';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const CACHE = resolve(ROOT, '.ingest-cache', 'standard-ebooks');
+const GUTENBERG_CACHE = resolve(ROOT, '.ingest-cache', 'gutenberg');
 const OUT = resolve(ROOT, 'src/content/school/works');
 const CORPUS = resolve(ROOT, 'src/content/school/corpus.js');
 const RAW = 'https://raw.githubusercontent.com/standardebooks';
 const MIN_CHARS = 200;
+const FOOTNOTE_MARKER = /\[(?:FN#?)?\d{1,4}\]/u;
+const LEFTOVER = /produced by|transcriber['’]s note/iu;
 
 /**
  * `units: 'spine'` takes every bodymatter file in the edition's reading
@@ -184,6 +198,26 @@ async function fetchFile(repo, path) {
     return text;
 }
 
+/** A Gutenberg HTML edition, from the cache or from gutenberg.org, with its sha256. */
+async function fetchGutenberg(ebook) {
+    mkdirSync(GUTENBERG_CACHE, { recursive: true });
+    const cached = resolve(GUTENBERG_CACHE, `${ebook}.html`);
+    if (!existsSync(cached)) {
+        let response = null;
+        for (const file of [`pg${ebook}-images.html`, `pg${ebook}.html`]) {
+            const url = `https://www.gutenberg.org/cache/epub/${ebook}/${file}`;
+            process.stderr.write(`fetching ${url}
+`);
+            response = await fetch(url);
+            if (response.ok) break;
+        }
+        if (!response.ok) throw new Error(`Gutenberg ${ebook}: HTTP ${response.status}`);
+        writeFileSync(cached, Buffer.from(await response.arrayBuffer()));
+    }
+    const bytes = readFileSync(cached);
+    return { html: bytes.toString('utf8'), sha256: sha256(bytes) };
+}
+
 /** The edition's reading order, and its page on standardebooks.org. */
 async function readOpf(repo) {
     const opf = await fetchFile(repo, 'content.opf');
@@ -315,6 +349,38 @@ async function listedUnits(recipe, ledger) {
     return parts;
 }
 
+/** A Standard Ebooks edition's units, as its recipe selects them. */
+async function standardEbooksUnits(artifact, ledger) {
+    const { files, url } = await readOpf(artifact.repo);
+    const parts = artifact.units === 'spine'
+        ? await spineUnits(artifact, files, ledger)
+        : await listedUnits(artifact, ledger);
+    return {
+        parts,
+        source: { kind: 'standard-ebooks', url, repo: `https://github.com/standardebooks/${artifact.repo}` }
+    };
+}
+
+/**
+ * A Gutenberg HTML edition's units, as its recipe declares them; `prefix`
+ * names the volume or part a unit belongs to when a work spans editions.
+ */
+async function gutenbergUnits(artifact, ledger) {
+    if (artifact.artifact !== 'html') throw new Error(`Gutenberg ${artifact.ebook}: only the HTML edition is read (artifact: 'html')`);
+    const { html, sha256: digest } = await fetchGutenberg(artifact.ebook);
+    const read = readGutenberg(html, parse, artifact);
+    ledger.count(`pg${artifact.ebook}`, read);
+    for (const [kind, count] of Object.entries(read.dropped)) ledger.dropped[kind] = (ledger.dropped[kind] || 0) + count;
+    ledger.groups.push(...read.groups);
+    if (read.title) console.log(`  pg${artifact.ebook}: span opens under "${read.title}"`);
+    console.log(`  pg${artifact.ebook}: ${read.sourceWords} words in the span, ${read.importedWords} out`);
+    const parts = read.parts.map(part => ({ ...part, name: artifact.prefix ? `${artifact.prefix} · ${part.name}` : part.name }));
+    return {
+        parts,
+        source: { kind: 'gutenberg', url: `https://www.gutenberg.org/ebooks/${artifact.ebook}`, artifact: 'html', sha256: digest }
+    };
+}
+
 /** Refuses, with every failure named, unless the units are fit to serve. */
 function gate(id, recipe, parts, ledger) {
     const failures = [];
@@ -334,6 +400,9 @@ function gate(id, recipe, parts, ledger) {
         names.set(part.name, true);
         if (DISTRIBUTOR_MATTER.test(part.name) || DISTRIBUTOR_MATTER.test(part.content)) {
             failures.push(`"${part.name}" carries distributor matter`);
+        }
+        if (FOOTNOTE_MARKER.test(part.content) || LEFTOVER.test(part.content)) {
+            failures.push(`"${part.name}" carries a footnote marker or a producer's note`);
         }
         if (part.content.length < MIN_CHARS) {
             failures.push(`"${part.name}" is ${part.content.length} characters, under ${MIN_CHARS}`);
@@ -366,18 +435,24 @@ async function ingest(id, { dryRun }) {
     const record = SCHOOL_CANON.find(candidate => candidate.id === id);
     if (!recipe || !record) throw new Error(`no recipe for ${id}; known: ${Object.keys(RECIPES).join(', ')}`);
 
-    const { files, url } = await readOpf(recipe.repo);
     const ledger = {
-        files: [], groups: [], lost: 0, losses: [], words: 0,
+        files: [], groups: [], lost: 0, losses: [], words: 0, dropped: {},
         count(label, { sourceWords, importedWords }) {
             this.words += sourceWords;
             this.lost += sourceWords - importedWords;
             if (sourceWords !== importedWords) this.losses.push([label, sourceWords - importedWords]);
         }
     };
-    const parts = recipe.units === 'spine'
-        ? await spineUnits(recipe, files, ledger)
-        : await listedUnits(recipe, ledger);
+    const retrieved = new Date().toISOString().slice(0, 10);
+    const parts = [];
+    const sources = [];
+    for (const artifact of recipe.artifacts ?? [recipe]) {
+        const read = artifact.ebook
+            ? await gutenbergUnits(artifact, ledger)
+            : await standardEbooksUnits(artifact, ledger);
+        parts.push(...read.parts);
+        sources.push({ ...read.source, retrieved });
+    }
 
     for (const part of parts) {
         console.log(`  ${part.verse ? 'verse' : 'prose'} ${String(part.content.length).padStart(8)}  ${part.name}${part.sourceTitle && part.sourceTitle !== part.name ? `  [${part.sourceTitle}]` : ''}`);
@@ -386,17 +461,16 @@ async function ingest(id, { dryRun }) {
 
     const sections = sectionsFromParts(parts);
     const checksum = `sha256:${sha256(JSON.stringify(sections))}`;
-    const source = {
-        kind: 'standard-ebooks',
-        url,
-        repo: `https://github.com/standardebooks/${recipe.repo}`,
-        retrieved: new Date().toISOString().slice(0, 10)
-    };
+    // The first edition read is the work's source; a work read from more
+    // than one names every one of them, in reading order.
+    const source = sources.length > 1 ? { ...sources[0], artifacts: sources } : sources[0];
     const entry = {
         id, constName: constName(id), checksum, units: sections.length,
         edition: recipe.edition, source, rights: recipe.rights
     };
-    console.log(`${id}: ${sections.length} units, ${ledger.words} words, 0 lost, ${checksum}`);
+    const dropped = Object.entries(ledger.dropped).map(([kind, count]) => `${count} ${kind}`).join(', ');
+    console.log(`${id}: ${sections.length} units, ${ledger.words} words in, ${ledger.words - ledger.lost} out, 0 lost`
+        + `${dropped ? ` (dropped before reading: ${dropped})` : ''}, ${checksum}`);
     if (dryRun) return entry;
 
     const meta = {
@@ -404,7 +478,9 @@ async function ingest(id, { dryRun }) {
         title: record.title,
         author: record.author,
         edition: recipe.edition,
-        source: { ...source, files: ledger.files },
+        source: { ...source, ...(ledger.files.length ? { files: ledger.files } : {}) },
+        // Words the ingest removed from the editions before reading them, by kind.
+        ...(Object.keys(ledger.dropped).length ? { dropped: ledger.dropped } : {}),
         rights: recipe.rights,
         structure: 'declared',
         // Groups the edition sets above its units; a unit's name carries
@@ -439,7 +515,8 @@ const targets = args.filter(arg => !arg.startsWith('--'));
 if (args.includes('--list') || (!targets.length && !args.includes('--all'))) {
     for (const [id, recipe] of Object.entries(RECIPES)) {
         const written = existsSync(resolve(OUT, `${id}.js`)) ? 'written' : 'not written';
-        console.log(`${id.padEnd(40)} ${recipe.repo}  (${written})`);
+        const editions = (recipe.artifacts ?? [recipe]).map(artifact => artifact.repo ?? `pg${artifact.ebook}`).join(' + ');
+        console.log(`${id.padEnd(40)} ${editions}  (${written})`);
     }
 } else {
     for (const id of args.includes('--all') ? Object.keys(RECIPES) : targets) {
