@@ -477,15 +477,15 @@ export const WEB_RECIPES = {
             { pattern: '(?<="devouring") \\[$|(?<=\'mneme\',)\\[$|^\\](?= As is| whereas)', kind: 'footnote markers', replace: '' },
             // The transcriber's marks for a letter the page could not set: me[accent]tier, na[umlaut]ive, ae[]sthenic.
             { pattern: '\\[(?:accent|umlaut)?\\]', kind: 'transcriber notes', replace: '' },
-            // The transcription's slips, each corrected as the 1923 printing reads.
-            { pattern: '(?<=practice\\. )The(?= are, as it were)', kind: 'transcription faults', replace: 'They' },
-            { pattern: '~sd(?=ousness)', kind: 'transcription faults', replace: 'sc' },
-            { pattern: '(?<=naturally forbidden)\'(?= This other)', kind: 'transcription faults', replace: '.' },
-            { pattern: ' ,(?=very simply explained)', kind: 'transcription faults' },
-            { pattern: '(?<=ascendancy on)\\.(?= the part)', kind: 'transcription faults', replace: '' },
-            { pattern: '(?<=as a), (?=universal psychological)', kind: 'transcription faults' },
-            { pattern: '(?<=universal psychological)\\.(?= phenomenon)', kind: 'transcription faults', replace: '' },
-            { pattern: '(?<= )ie\\.(?= )', kind: 'transcription faults', replace: 'i.e.' }
+            // Slips in the proofed transcription, each corrected as the sentence reads.
+            { pattern: 'The are, as it were', kind: 'transcription slips', replace: 'They are, as it were' },
+            { pattern: 'con~sdousness', kind: 'transcription slips', replace: 'consciousness' },
+            { pattern: "forbidden' This other", kind: 'transcription slips', replace: 'forbidden. This other' },
+            { pattern: ' ,(?=very simply explained)', kind: 'transcription slips' },
+            { pattern: '(?<=ascendancy on)\\.(?= the part)', kind: 'transcription slips', replace: '' },
+            { pattern: '(?<=as a), (?=universal psychological)', kind: 'transcription slips' },
+            { pattern: '(?<=universal psychological)\\.(?= phenomenon)', kind: 'transcription slips', replace: '' },
+            { pattern: '(?<= )ie\\.(?= )', kind: 'transcription slips', replace: 'i.e.' }
         ],
         extract: { from: 'A. INTRODUCTION' },
         units: [
