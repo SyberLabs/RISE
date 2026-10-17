@@ -15,6 +15,7 @@ const mb = list => (list.reduce((total, item) => total + item.bytes, 0) / 1024 /
 console.log(
   `[content-plane] ${shelved.length} works ${mb(shelved)} MB · `
   + `${manifest.chapel.length} Chapel books ${mb(manifest.chapel)} MB · `
+  + `${manifest.school.length} School texts ${mb(manifest.school)} MB · `
   + `${manifest.works.length - shelved.length} withheld with reasons · `
   + `revision ${manifest.revision}`
 );
