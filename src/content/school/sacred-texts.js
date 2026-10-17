@@ -18,15 +18,24 @@ import { dropFurniture, joinParagraphs, readUnits } from './gutenberg.js';
 
 const countWords = text => String(text).split(/\s+/u).filter(Boolean).length;
 
-/** Removes `nodes` (elements or a Range), returning their words. */
+/** Removes `nodes`, returning their words. */
 function remove(nodes) {
     let total = 0;
     for (const node of nodes) {
-        total += countWords(node.textContent ?? node.toString());
-        if (node.deleteContents) node.deleteContents();
-        else node.remove();
+        total += countWords(node.textContent);
+        node.remove();
     }
     return total;
+}
+
+/** A node and everything after it to the end of its page (no Range: jsdom keeps every live Range in step with each later edit). */
+function toPageEnd(node) {
+    const page = node.closest('section');
+    const nodes = [node];
+    for (let at = node; at && at !== page; at = at.parentNode) {
+        for (let next = at.nextSibling; next; next = next.nextSibling) nodes.push(next);
+    }
+    return nodes;
 }
 
 /** A CENTER, or the nav, that holds nothing but links. */
@@ -52,10 +61,7 @@ export function readSacredTexts(pages, parse, recipe) {
     add('site notes', remove([...doc.body.querySelectorAll('p')]
         .filter(p => p.querySelector('font[color="green" i]') && /at sacred-texts\.com/u.test(p.textContent))));
     for (const heading of [...doc.body.querySelectorAll('h3')].filter(h3 => h3.textContent.trim() === 'Footnotes')) {
-        const range = doc.createRange();
-        range.setStartBefore(heading);
-        range.setEndAfter(heading.closest('section').lastChild);
-        add('footnotes', remove([range]));
+        add('footnotes', remove(toPageEnd(heading)));
     }
     add('footnote markers', remove(doc.body.querySelectorAll('a[href^="#fn"]')));
 
