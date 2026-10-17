@@ -58,6 +58,7 @@ describe('the School corpus', () => {
       ['moon.varieties', 15],
       ['moon.cosmic-consciousness', 55],
       ['moon.interpretation-of-dreams', 7],
+      ['moon.psychological-types', 26],
       ['moon.human-personality', 10],
       ['moon.matter-and-memory', 6],
       ['moon.tertium-organum', 24],
