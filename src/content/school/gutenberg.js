@@ -279,6 +279,8 @@ function plan(items, recipe) {
 export function readGutenberg(html, parse, recipe) {
     const doc = parse(String(html));
     const dropped = strip(doc);
+    // What the recipe names as not the work: a printer's colophon set in the text.
+    if (recipe.drop) dropped.recipe = dropWords(doc.body.querySelectorAll(recipe.drop));
     const extra = [recipe.headings, typeof recipe.level === 'string' ? recipe.level : null].filter(Boolean).join(', ');
     // An element the recipe names as a heading stands for the block it opens.
     const candidates = new Set([...doc.body.querySelectorAll(extra ? `${HEADINGS}, ${extra}` : HEADINGS)]
@@ -290,10 +292,11 @@ export function readGutenberg(html, parse, recipe) {
     if (recipe.extract) {
         const from = findHeading(all, { ...recipe.extract, text: recipe.extract.from }, 'extract.from');
         const start = all.indexOf(from);
-        const stop = recipe.extract.to
-            ? all.findIndex((item, index) => index > start && item.kind === 'heading' && item.text === flat(recipe.extract.to))
-            : -1;
-        if (recipe.extract.to && stop < 0) throw new Error(`extract.to: no heading reads "${flat(recipe.extract.to)}" after "${from.text}"`);
+        // The span ends before the first heading, or failing one the first
+        // paragraph, that reads `to`.
+        const reads = item => (item.kind === 'heading' ? item.text : item.lines.join(' ')) === flat(recipe.extract.to);
+        const stop = recipe.extract.to ? all.findIndex((item, index) => index > start && reads(item)) : -1;
+        if (recipe.extract.to && stop < 0) throw new Error(`extract.to: nothing reads "${flat(recipe.extract.to)}" after "${from.text}"`);
         items = all.slice(start, stop < 0 ? undefined : stop);
         end = stop < 0 ? null : all[stop].element;
     }
@@ -355,7 +358,7 @@ export function readGutenberg(html, parse, recipe) {
         const verseWords = part.blocks.reduce((sum, block) => sum + (block.verse ? countWords(block.lines.join(' ')) : 0), 0);
         part.verse = part.verseFlag ?? verseWords / Math.max(1, countWords(part.content)) > 0.5;
         part.lines = part.verse ? part.blocks.reduce((sum, block) => sum + block.lines.filter(Boolean).length, 0) : 0;
-        if (recipe.prefix && part.group) part.name = `${shortName(part.group)} · ${part.name}`;
+        if (recipe.groupPrefix && part.group) part.name = `${shortName(part.group)} · ${part.name}`;
         importedWords += countWords(part.content);
         delete part.blocks;
         delete part.verseFlag;

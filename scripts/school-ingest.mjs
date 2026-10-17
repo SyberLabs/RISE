@@ -55,7 +55,8 @@ const MIN_CHARS = 200;
 // A marker attached to the word before it, or any [FN#n]; "[3553]" set
 // after a space is a year in Vico's chronology, not a note.
 const FOOTNOTE_MARKER = /\S\[\d{1,4}\]|\[FN#?\d{1,4}\]/u;
-const LEFTOVER = /^\s*produced by\b|transcriber['’]s note/imu;
+// A producer's credit opens a paragraph ("Produced by Works" opens a verse line in the Gita).
+const LEFTOVER = /(?:^|\n\n)\s*produced by\b|transcriber['’]?s note/iu;
 
 /**
  * `units: 'spine'` takes every bodymatter file in the edition's reading
@@ -214,7 +215,7 @@ const RECIPES = Object.freeze({
         extract: { from: 'CHAPTER III HERAKLEITOS OF EPHESOS', to: 'CHAPTER IV PARMENIDES OF ELEA' },
         units: 'headings',
         level: 'div.sidenote',
-        count: 20,
+        count: 21,
         edition: {
             statement: 'John Burnet, Early Greek Philosophy, second edition, Adam and Charles Black, London, 1908; chapter III, Herakleitos of Ephesos',
             translator: 'John Burnet',
@@ -360,9 +361,21 @@ const RECIPES = Object.freeze({
         ebook: 5321,
         artifact: 'html',
         extract: { from: 'PART 1: ABOUT GENERAL AESTHETIC' },
-        units: 'headings',
-        level: 3,
-        groups: ['PART 1: ABOUT GENERAL AESTHETIC', 'PART II: ABOUT PAINTING'],
+        // The edition sets its two Part banners and three figure captions at
+        // the chapters' own level; the nine chapters are named.
+        units: [
+            { heading: 'PART 1: ABOUT GENERAL AESTHETIC', group: true },
+            { heading: 'I. INTRODUCTION' },
+            { heading: 'II. THE MOVEMENT OF THE TRIANGLE' },
+            { heading: 'III. SPIRITUAL REVOLUTION' },
+            { heading: 'IV. THE PYRAMID' },
+            { heading: 'PART II: ABOUT PAINTING', group: true },
+            { heading: 'V. THE PSYCHOLOGICAL WORKING OF COLOUR' },
+            { heading: 'VI. THE LANGUAGE OF FORM AND COLOUR' },
+            { heading: 'VII. THEORY' },
+            { heading: 'VIII. ART AND ARTISTS' },
+            { heading: 'IX. CONCLUSION' }
+        ],
         count: 9,
         edition: { statement: 'Translated by Michael T. H. Sadler', translator: 'Michael T. H. Sadler', year: null },
         rights: { us: 'pd', life70: 'until:2028' }
@@ -413,6 +426,7 @@ const RECIPES = Object.freeze({
         extract: { from: 'LETTERS ON THE AESTHETICAL EDUCATION OF MAN.', to: 'THE MORAL UTILITY OF AESTHETIC MANNERS.' },
         units: 'headings',
         level: 2,
+        from: 'LETTER I.',
         count: 27,
         edition: {
             statement: 'From Aesthetical and Philosophical Essays, in an uncredited translation; the edition names neither translator nor printing',
@@ -428,8 +442,8 @@ const RECIPES = Object.freeze({
         units: 'headings',
         level: 3,
         group: 2,
-        prefix: true,
-        count: 52,
+        groupPrefix: true,
+        count: 46,
         edition: {
             statement: 'S. G. C. Middlemore, authorised translation; George Allen & Unwin, London, and The Macmillan Company, New York',
             translator: 'S. G. C. Middlemore',
@@ -511,10 +525,12 @@ const RECIPES = Object.freeze({
     'jupiter.growth-and-form': {
         ebook: 55264,
         artifact: 'html',
-        extract: { from: 'PREFATORY NOTE', to: 'NOTES:' },
+        // The seventeen chapters and the Epilogue; the notes, index and
+        // publisher's catalogue after them are not the book.
+        extract: { from: 'CHAPTER I INTRODUCTORY', to: 'NOTES:' },
         units: 'headings',
         level: 2,
-        count: 20,
+        count: 18,
         edition: { statement: 'Cambridge University Press, 1917; figures referenced as text', translator: null, year: 1917 },
         rights: { us: 'pd', life70: 'pd' }
     },
@@ -568,18 +584,33 @@ const RECIPES = Object.freeze({
         rights: { us: 'pd', life70: 'pd' }
     },
     'saturn.heroic-frenzies': {
-        artifacts: [19817, 19833].map((ebook, index) => ({
-            ebook,
-            artifact: 'html',
-            prefix: `Part ${roman(index + 1)}`,
-            // The dialogues open on a bold line, not a heading; their anchors name them.
-            headings: DIALOGUES.map(nth => `a#${nth}`).join(', '),
-            extract: index === 0
-                ? { from: 'HEROIC ENTHUSIASTS.', level: 2 }
-                : { from: 'HEROIC ENTHUSIASTS.', level: 1, to: "Transcriber's Notes:" },
-            units: DIALOGUES.map(nth => ({ heading: `${nth} Dialogue.`, name: `${nth} Dialogue` }))
-        })),
-        count: 10,
+        artifacts: [
+            {
+                ebook: 19817,
+                artifact: 'html',
+                prefix: 'Part I',
+                // The dialogues open on a bold line, not a heading; their
+                // anchors name them. The Apology closes the First Part after
+                // the printer's colophon.
+                headings: `${DIALOGUES.map(nth => `a#${nth}`).join(', ')}, p.center > strong`,
+                drop: 'p.style1',
+                extract: { from: 'HEROIC ENTHUSIASTS.', level: 2, to: 'Transcribers Notes:' },
+                units: [
+                    ...DIALOGUES.map(nth => ({ heading: `${nth} Dialogue.`, name: `${nth} Dialogue` })),
+                    { heading: 'THE APOLOGY OF THE NOLAN', name: 'The Apology of the Nolan' }
+                ]
+            },
+            {
+                ebook: 19833,
+                artifact: 'html',
+                prefix: 'Part II',
+                headings: DIALOGUES.map(nth => `a#${nth}`).join(', '),
+                extract: { from: 'HEROIC ENTHUSIASTS.', level: 1, to: "Transcriber's Notes:" },
+                // The Second Part prints its second dialogue's title without a stop.
+                units: DIALOGUES.map(nth => ({ heading: nth === 'Second' ? `${nth} Dialogue` : `${nth} Dialogue.`, name: `${nth} Dialogue` }))
+            }
+        ],
+        count: 11,
         edition: {
             statement: 'L. Williams: Part the First, George Redway, London, 1887; Part the Second, Bernard Quaritch, London, 1889',
             translator: 'L. Williams',

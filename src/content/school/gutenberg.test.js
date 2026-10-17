@@ -72,6 +72,24 @@ describe('the Gutenberg reader', () => {
     expect(read.parts.map(part => part.name)).toEqual(['Chapter I: Of Truth', 'Chapter II: Of Death']);
   });
 
+  it('ends a span at a paragraph the recipe names, and drops what the recipe names as not the work', () => {
+    const tail = edition(`<h2>Fifth Dialogue.</h2><p>Tans. So be it.</p>
+<p class="style1">PRINTED BY BALLANTYNE, HANSON AND CO.</p>
+<p class="center"><strong>THE APOLOGY OF THE NOLAN</strong></p><p>O lovely, graceful nymphs of England!</p>
+<p>Transcribers Notes:</p><p>Page 162: Original source said 34</p>`);
+    const read = readGutenberg(tail, parse, {
+      headings: 'p.center > strong', drop: 'p.style1',
+      extract: { from: 'Fifth Dialogue.', to: 'Transcribers Notes:' },
+      units: [{ heading: 'Fifth Dialogue.' }, { heading: 'THE APOLOGY OF THE NOLAN' }]
+    });
+    expect(read.parts.map(part => [part.name, part.content])).toEqual([
+      ['Fifth Dialogue', 'Tans. So be it.'],
+      ['The Apology of the Nolan', 'O lovely, graceful nymphs of England!']
+    ]);
+    expect(read.dropped.recipe).toBe(6);
+    expect(read.sourceWords).toBe(read.importedWords);
+  });
+
   it('counts a word the markup splits across elements once, on both sides', () => {
     const essay = edition('<h3>Darwin Among the Machines</h3><p>“<i>Darwin Among the Machines</i>” appeared in the <span class="smcap">Press</span>, 13 <i>June</i>, 1863.</p><div><p>Sir,</p>There is no security.</div>');
     const read = readGutenberg(essay, parse, { units: [{ heading: 'Darwin Among the Machines' }] });
@@ -140,7 +158,7 @@ describe('the Gutenberg reader', () => {
 <h3>CHAPTER I. THE STATE AND THE INDIVIDUAL.</h3><p>In the character of these states the individual is free.</p>
 <h3>INDEX.</h3><p>Dante, 1.</p>`);
     const read = readGutenberg(parts, parse, {
-      units: 'headings', level: 3, group: 2, prefix: true,
+      units: 'headings', level: 3, group: 2, groupPrefix: true,
       from: 'CHAPTER I. INTRODUCTION.', to: 'CHAPTER I. THE STATE AND THE INDIVIDUAL.',
       extract: { from: 'PART I. THE STATE AS A WORK OF ART.', to: 'INDEX.' }
     });
