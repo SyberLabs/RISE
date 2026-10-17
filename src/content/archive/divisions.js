@@ -14,7 +14,7 @@ import { scanLine } from './defect-signatures.js';
 
 /** Matter that names its distributor rather than the work. */
 
-const DISTRIBUTOR_MATTER = /(?:project gutenberg|wsexport|about this digital edition|perseus project|distributed proofread|this e-?book comes from)/iu;
+export const DISTRIBUTOR_MATTER = /(?:project gutenberg|wsexport|about this digital edition|perseus project|distributed proofread|this e-?book comes from)/iu;
 
 /** Past this a leading run is evidence of a broken scheme. */
 const MAX_SKIPPED_SHARE = 0.2;
