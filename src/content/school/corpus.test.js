@@ -42,7 +42,7 @@ describe('the School corpus', () => {
 
   it('serves the texts of the three slices: Standard Ebooks; Project Gutenberg; Wikisource, CCEL, sacred-texts, EEBO-TCP, the Victorian Web and local files', () => {
     expect(SCHOOL_WORKS.map(work => [work.id, work.units])).toEqual([
-      ['gate.oration', 47],
+      ['gate.oration', 94],
       ['sun.fragments', 21],
       ['sun.symposium-phaedrus-timaeus', 6],
       ['sun.zarathustra', 81],
@@ -108,12 +108,25 @@ describe('the School corpus', () => {
 
   it('names the language of every work not read in English', () => {
     expect(Object.fromEntries(SCHOOL_WORKS.filter(work => 'language' in work).map(work => [work.id, work.language]))).toEqual({
-      'gate.oration': 'la',
       'mercury.philosophie-der-technik': 'de',
       'mars.muqaddimah': 'fr',
       'mars.new-science': 'fr',
       'jupiter.art-forms-in-nature': 'de'
     });
+  });
+
+  it('reads the Gate in RISE’s English first, the Latin after it, each without its running sentence numbers', async () => {
+    const { GATE_ORATION_SECTIONS: sections, GATE_ORATION_META: meta } = await import('./works/gate.oration.js');
+    const paragraphs = Array.from({ length: 47 }, (_, index) => `§ ${index + 1}`);
+    expect(sections.map(section => section.name)).toEqual([...paragraphs, ...paragraphs.map(name => `Latin · ${name}`)]);
+    expect(sections[0].content).toMatch(/^I have read, most reverend Fathers, in the records of the Arabs/u);
+    expect(sections[47].content).toMatch(/^Legi, Patres colendissimi, in Arabum monumentis/u);
+    for (const section of sections) expect(section.content, section.name).not.toMatch(/(?:^|\s)\d{1,3}\.\s/u);
+    // 293 sentences, numbered once in each language.
+    expect(meta.dropped).toEqual({ 'sentence numbers': 586 });
+    expect(meta.source.artifacts.map(source => source.url)).toEqual([
+      'scripts/school-sources/gate.oration/oratio.en.md', 'scripts/school-sources/gate.oration/oratio.la.md'
+    ]);
   });
 
   for (const work of SCHOOL_WORKS) {

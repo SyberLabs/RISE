@@ -220,12 +220,11 @@ describe('the action a text offers', () => {
     expect(lectern().textContent).toContain('Original (French)');
   });
 
-  it('reads the Gate in its Latin, and says so', async () => {
+  it('reads the Gate in English, the Latin after it, and names no original language', async () => {
     mount({ initialFocus: 'gate.oration' });
     await settle();
     const facts = lectern().querySelector('.school-facts').textContent;
-    expect(facts).toContain('Latin, 1486; Pico Project numbering');
-    expect(facts).toContain('Original language · Latin');
+    expect(facts).not.toContain('Original language');
     expect(lectern().querySelector('.school-action button[data-read="gate.oration"]')).not.toBeNull();
   });
 
