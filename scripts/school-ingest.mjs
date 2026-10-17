@@ -65,6 +65,20 @@ const LEFTOVER = /produced by|transcriber['’]s note/iu;
  * in `file` (else the file's outermost section or article), under `name`
  * (else its own heading).
  */
+/** 1 -> 'I', 24 -> 'XXIV'. */
+function roman(n) {
+    return [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
+        .reduce((out, [value, numeral]) => {
+            while (n >= value) {
+                out += numeral;
+                n -= value;
+            }
+            return out;
+        }, '');
+}
+
+const DIALOGUES = ['First', 'Second', 'Third', 'Fourth', 'Fifth'];
+
 const RECIPES = Object.freeze({
     'sun.zarathustra': {
         repo: 'friedrich-nietzsche_thus-spake-zarathustra_thomas-common',
@@ -106,20 +120,31 @@ const RECIPES = Object.freeze({
         edition: { statement: 'Longmans, Green, 1902, via Standard Ebooks', translator: null, year: 1902 },
         rights: { us: 'pd', life70: 'pd' }
     },
-    // The essay "Darwin among the Machines" (1863) joins this record as a
-    // further unit when the Gutenberg adapter lands.
+    // The essay of 1863, then the three chapters of Erewhon it grew into.
     'mercury.book-of-the-machines': {
-        repo: 'samuel-butler_erewhon',
-        units: [
-            { file: 'chapter-23.xhtml', name: 'The Book of the Machines I' },
-            { file: 'chapter-24.xhtml', name: 'The Book of the Machines II' },
-            { file: 'chapter-25.xhtml', name: 'The Book of the Machines III' }
+        artifacts: [
+            {
+                ebook: 3279,
+                artifact: 'html',
+                extract: { from: 'Darwin Among the Machines', to: 'Lucubratio Ebria' },
+                units: [{ heading: 'Darwin Among the Machines' }]
+            },
+            {
+                repo: 'samuel-butler_erewhon',
+                units: [
+                    { file: 'chapter-23.xhtml', name: 'The Book of the Machines I' },
+                    { file: 'chapter-24.xhtml', name: 'The Book of the Machines II' },
+                    { file: 'chapter-25.xhtml', name: 'The Book of the Machines III' }
+                ]
+            }
         ],
-        count: 3,
+        count: 4,
         edition: {
-            statement: 'Erewhon, revised edition, 1901, chapters XXIII to XXV, via Standard Ebooks',
+            statement: '“Darwin Among the Machines” (The Press, Christchurch, 13 June 1863), from Canterbury Pieces, '
+                + 'edited by R. A. Streatfeild, A. C. Fifield, London, 1914, via Project Gutenberg; '
+                + 'Erewhon, revised edition, 1901, chapters XXIII to XXV, via Standard Ebooks',
             translator: null,
-            year: 1901
+            year: null
         },
         rights: { us: 'pd', life70: 'pd' }
     },
@@ -176,6 +201,389 @@ const RECIPES = Object.freeze({
         count: 36,
         edition: { statement: 'The 1891–92 “deathbed” edition, via Standard Ebooks', translator: null, year: 1892 },
         rights: { us: 'pd', life70: 'pd' }
+    },
+    // Project Gutenberg editions: `ebook` is the ebook number, `artifact`
+    // the file read, and the units are the edition's own headings.
+    'sun.fragments': {
+        ebook: 67097,
+        artifact: 'html',
+        // The chapter divides itself by the marginal notes Burnet set beside
+        // its numbered sections; the fragments are one of them.
+        extract: { from: 'CHAPTER III HERAKLEITOS OF EPHESOS', to: 'CHAPTER IV PARMENIDES OF ELEA' },
+        units: 'headings',
+        level: 'div.sidenote',
+        count: 20,
+        edition: {
+            statement: 'John Burnet, Early Greek Philosophy, second edition, Adam and Charles Black, London, 1908; chapter III, Herakleitos of Ephesos',
+            translator: 'John Burnet',
+            year: 1908
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'sun.ethics': {
+        ebook: 3800,
+        artifact: 'html',
+        extract: { from: 'PART I. CONCERNING GOD.' },
+        units: [
+            { heading: 'PART I. CONCERNING GOD.', name: 'Part I: Concerning God' },
+            { heading: 'PART II.', name: 'Part II: On the Nature and Origin of the Mind' },
+            { heading: 'PART III.', name: 'Part III: On the Origin and Nature of the Emotions' },
+            { heading: 'PART IV:', name: 'Part IV: Of Human Bondage, or the Strength of the Emotions' },
+            { heading: 'PART V:', name: 'Part V: Of the Power of the Understanding, or of Human Freedom' }
+        ],
+        count: 5,
+        edition: { statement: 'Translated from the Latin by R. H. M. Elwes', translator: 'R. H. M. Elwes', year: null },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'mercury.new-atlantis': {
+        ebook: 2434,
+        artifact: 'html',
+        // The Introductory Note before it is an editor's, not Bacon's.
+        extract: { from: 'THE NEW ATLANTIS', level: 3 },
+        units: [{ heading: 'THE NEW ATLANTIS', level: 3, name: 'The New Atlantis' }],
+        count: 1,
+        edition: { statement: 'A modern-spelling text; the edition names no printing', translator: null, year: null },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'mercury.lovelace-notes': {
+        ebook: 75107,
+        artifact: 'html',
+        extract: { from: 'ARTICLE XXIX.' },
+        units: [
+            { heading: 'ARTICLE XXIX.', name: 'Sketch of the Analytical Engine' },
+            { heading: 'NOTES BY THE TRANSLATOR.', group: true },
+            { heading: 'NOTE A.—Page 9.', name: 'Note A' },
+            { heading: 'NOTE B.—Page 11.', name: 'Note B' },
+            { heading: 'NOTE C.—Page 12.', name: 'Note C' },
+            { heading: 'NOTE D.—Page 15.', name: 'Note D' },
+            { heading: 'NOTE E.—Page 19.', name: 'Note E' },
+            { heading: 'NOTE F.—Page 23.', name: 'Note F' },
+            { heading: 'NOTE G.—Page 24.', name: 'Note G' }
+        ],
+        count: 8,
+        edition: {
+            statement: 'L. F. Menabrea’s memoir with notes by the translator, A. A. L.; extracted from Taylor’s Scientific Memoirs, vol. III, Richard and John E. Taylor, London, 1843; equations as text',
+            translator: 'Ada Lovelace',
+            year: 1843
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'moon.life-after-death': {
+        ebook: 74480,
+        artifact: 'html',
+        extract: { from: 'INTRODUCTION' },
+        units: 'headings',
+        level: 2,
+        count: 16,
+        edition: {
+            statement: 'Translated from the German by Mary C. Wadsworth, with an introduction by William James; Little, Brown, and Company, Boston, 1904',
+            translator: 'Mary C. Wadsworth',
+            year: 1904
+        },
+        rights: { us: 'pd', life70: 'unknown' }
+    },
+    'moon.stream-of-thought': {
+        ebook: 57628,
+        artifact: 'html',
+        extract: { from: 'CHAPTER IX.', to: 'CHAPTER X.' },
+        units: 'headings',
+        level: 4,
+        count: 8,
+        edition: {
+            statement: 'From The Principles of Psychology, vol. I, chapter IX; Henry Holt and Company, New York, 1918 printing',
+            translator: null,
+            year: 1918
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'moon.interpretation-of-dreams': {
+        ebook: 66048,
+        artifact: 'html',
+        extract: { from: 'I THE SCIENTIFIC LITERATURE ON THE PROBLEMS OF THE DREAM', to: 'VIII LITERARY INDEX' },
+        units: 'headings',
+        level: 2,
+        count: 7,
+        edition: {
+            statement: 'A. A. Brill, authorised translation of the third edition; The Macmillan Company, New York, 1913',
+            translator: 'A. A. Brill',
+            year: 1913
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'moon.human-personality': {
+        ebook: 38492,
+        artifact: 'html',
+        // The appendices to the chapters are case records; the chapters are the book.
+        extract: { from: 'CHAPTER I INTRODUCTION', to: 'APPENDICES TO CHAPTER II' },
+        units: 'headings',
+        level: 2,
+        count: 10,
+        edition: {
+            statement: 'The 1906 abridgment, edited by his son, L. H. Myers; Longmans, Green and Co., new impression, 1918',
+            translator: null,
+            year: 1906
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'venus.hymns-to-the-night': {
+        ebook: 8949,
+        artifact: 'html',
+        extract: { from: 'HYMNS TO THE NIGHT.', to: 'SPIRITUAL SONGS. I.' },
+        units: [
+            { heading: 'I.', name: 'Hymn I' },
+            { heading: 'II.', name: 'Hymn II' },
+            { heading: 'III.', name: 'Hymn III' },
+            { heading: 'IV.', name: 'Hymn IV' },
+            { heading: 'V.', name: 'Hymn V' },
+            { heading: 'VI.', name: 'Hymn VI: Longing after Death' }
+        ],
+        count: 6,
+        edition: {
+            statement: 'George MacDonald, Rampolli, his translations from the German; the Hymns to the Night from Novalis',
+            translator: 'George MacDonald',
+            year: null
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'venus.defence-of-poetry': {
+        ebook: 5428,
+        artifact: 'html',
+        extract: { from: 'A DEFENCE OF POETRY', to: 'THE END' },
+        units: [{ heading: 'I', name: 'A Defence of Poetry' }],
+        count: 1,
+        edition: { statement: 'From A Defence of Poetry and Other Essays; the edition names no printing', translator: null, year: null },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'venus.spiritual-in-art': {
+        ebook: 5321,
+        artifact: 'html',
+        extract: { from: 'PART 1: ABOUT GENERAL AESTHETIC' },
+        units: 'headings',
+        level: 3,
+        groups: ['PART 1: ABOUT GENERAL AESTHETIC', 'PART II: ABOUT PAINTING'],
+        count: 9,
+        edition: { statement: 'Translated by Michael T. H. Sadler', translator: 'Michael T. H. Sadler', year: null },
+        rights: { us: 'pd', life70: 'until:2028' }
+    },
+    'venus.faust': {
+        ebook: 14591,
+        artifact: 'html',
+        extract: { from: 'DEDICATION' },
+        verse: true,
+        units: [
+            { heading: 'DEDICATION', name: 'Dedication' },
+            { heading: 'PRELUDE AT THE THEATRE', name: 'Prelude at the Theatre' },
+            { heading: 'PROLOGUE IN HEAVEN', name: 'Prologue in Heaven' },
+            { heading: 'FIRST PART OF THE TRAGEDY', group: true },
+            ...[
+                'Night', 'Before the City-Gate', 'The Study (The Exorcism)', 'The Study (The Compact)', 'Auerbach’s Cellar',
+                'Witches’ Kitchen', 'A Street', 'Evening', 'Promenade', 'The Neighbor’s House', 'Street', 'Garden',
+                'A Garden-Arbor', 'Forest and Cavern', 'Margaret’s Room', 'Martha’s Garden', 'At the Fountain',
+                'Donjon (Margaret’s Prayer)', 'Night (Valentine’s Death)', 'Cathedral', 'Walpurgis-Night',
+                'Oberon and Titania’s Golden Wedding', 'Dreary Day', 'Night', 'Dungeon'
+            ].map((title, index) => ({ heading: roman(index + 1), name: `Scene ${roman(index + 1)}: ${title}` }))
+        ],
+        count: 28,
+        edition: {
+            statement: 'Bayard Taylor, translated in the original metres; an illustrated edition, The World Publishing Company; Part One; Part Two to follow',
+            translator: 'Bayard Taylor',
+            year: null
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'venus.biographia-literaria': {
+        ebook: 6081,
+        artifact: 'html',
+        extract: { from: 'CHAPTER I', to: 'FOOTNOTES' },
+        units: [
+            ...Array.from({ length: 22 }, (_, index) => ({ heading: `CHAPTER ${roman(index + 1)}` })),
+            { heading: 'SATYRANE’S LETTERS', name: 'Satyrane’s Letters' },
+            { heading: 'CHAPTER XXIII' },
+            { heading: 'CHAPTER XXIV', name: 'Chapter XXIV: Conclusion' }
+        ],
+        count: 25,
+        edition: { statement: 'The edition names no printing', translator: null, year: null },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'venus.aesthetic-education': {
+        ebook: 6798,
+        artifact: 'html',
+        extract: { from: 'LETTERS ON THE AESTHETICAL EDUCATION OF MAN.', to: 'THE MORAL UTILITY OF AESTHETIC MANNERS.' },
+        units: 'headings',
+        level: 2,
+        count: 27,
+        edition: {
+            statement: 'From Aesthetical and Philosophical Essays, in an uncredited translation; the edition names neither translator nor printing',
+            translator: null,
+            year: null
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'mars.renaissance-in-italy': {
+        ebook: 2074,
+        artifact: 'html',
+        extract: { from: 'PART I. THE STATE AS A WORK OF ART.', to: 'INDEX.' },
+        units: 'headings',
+        level: 3,
+        group: 2,
+        prefix: true,
+        count: 52,
+        edition: {
+            statement: 'S. G. C. Middlemore, authorised translation; George Allen & Unwin, London, and The Macmillan Company, New York',
+            translator: 'S. G. C. Middlemore',
+            year: null
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'mars.golden-bough': {
+        ebook: 3623,
+        artifact: 'html',
+        extract: { from: 'Preface', level: 3 },
+        units: 'headings',
+        level: 3,
+        count: 70,
+        edition: { statement: 'The one-volume abridgement, its preface dated June 1922', translator: null, year: 1922 },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'mars.new-science': {
+        ebook: 43307,
+        artifact: 'html',
+        // Each book is printed twice by name: over its Argument, and over its text.
+        extract: { from: "PRINCIPES DE LA PHILOSOPHIE DE L'HISTOIRE.", to: 'Notes' },
+        units: [
+            { heading: 'LIVRE PREMIER. DES PRINCIPES.', nth: 1, name: 'Livre premier. Des principes' },
+            { heading: 'LIVRE SECOND. DE LA SAGESSE POÉTIQUE.', nth: 1, name: 'Livre second. De la sagesse poétique' },
+            { heading: 'LIVRE TROISIÈME. DÉCOUVERTE DU VÉRITABLE HOMÈRE.', nth: 1, name: 'Livre troisième. Découverte du véritable Homère' },
+            { heading: "LIVRE QUATRIÈME. DU COURS QUE SUIT L'HISTOIRE DES NATIONS.", nth: 1, name: 'Livre quatrième. Du cours que suit l’histoire des nations' },
+            {
+                heading: 'LIVRE CINQUIÈME. RETOUR DES MÊMES RÉVOLUTIONS LORSQUE LES SOCIÉTÉS DÉTRUITES SE RELÈVENT DE LEURS RUINES.',
+                nth: 1,
+                name: 'Livre cinquième. Retour des mêmes révolutions lorsque les sociétés détruites se relèvent de leurs ruines'
+            },
+            { heading: 'ADDITION AU SECOND LIVRE.', name: 'Addition au second livre' }
+        ],
+        count: 6,
+        edition: {
+            statement: 'In French, from the Italian: Principes de la philosophie de l’histoire, traduits de la Scienza nuova, an abridged translation by Jules Michelet; Jules Renouard, Paris, 1827',
+            translator: 'Jules Michelet',
+            year: 1827
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'mars.decline-of-the-west': {
+        artifacts: [
+            {
+                ebook: 72344,
+                artifact: 'html',
+                prefix: 'Volume I',
+                extract: { from: 'CHAPTER I INTRODUCTION', to: 'INDEX' },
+                units: 'headings',
+                level: 2
+            },
+            {
+                ebook: 78914,
+                artifact: 'html',
+                prefix: 'Volume II',
+                extract: { from: 'CHAPTER I ORIGIN AND LANDSCAPE (A) THE COSMIC AND THE MICROCOSM', to: 'INDEX' },
+                units: 'headings',
+                level: 2
+            }
+        ],
+        count: 25,
+        edition: {
+            statement: 'Charles Francis Atkinson, authorised translation with notes: vol. I, Form and Actuality, George Allen & Unwin, London; vol. II, Perspectives of World-History, Alfred A. Knopf, New York, 1928',
+            translator: 'Charles Francis Atkinson',
+            year: 1928
+        },
+        rights: { us: 'pd', life70: 'until:2031' }
+    },
+    'jupiter.nature-of-things': {
+        ebook: 785,
+        artifact: 'html',
+        extract: { from: 'BOOK I' },
+        units: Array.from({ length: 6 }, (_, index) => ({ heading: `BOOK ${roman(index + 1)}`, verse: true })),
+        count: 6,
+        edition: { statement: 'A metrical translation by William Ellery Leonard', translator: 'William Ellery Leonard', year: null },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'jupiter.growth-and-form': {
+        ebook: 55264,
+        artifact: 'html',
+        extract: { from: 'PREFATORY NOTE', to: 'NOTES:' },
+        units: 'headings',
+        level: 2,
+        count: 20,
+        edition: { statement: 'Cambridge University Press, 1917; figures referenced as text', translator: null, year: 1917 },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'jupiter.relativity': {
+        ebook: 30155,
+        artifact: 'html',
+        extract: { from: 'PREFACE' },
+        units: 'headings',
+        level: 3,
+        groups: [
+            'PART I: THE SPECIAL THEORY OF RELATIVITY', 'PART II: THE GENERAL THEORY OF RELATIVITY',
+            'PART III: CONSIDERATIONS ON THE UNIVERSE AS A WHOLE', 'APPENDICES'
+        ],
+        count: 37,
+        edition: {
+            statement: 'Robert W. Lawson, authorised translation; the revised edition of 1924; equations as text',
+            translator: 'Robert W. Lawson',
+            year: 1924
+        },
+        rights: { us: 'pd', life70: 'until:2031' }
+    },
+    'saturn.zhuangzi': {
+        ebook: 59709,
+        artifact: 'html',
+        // Canon Moore's essay and Giles's introduction stand before chapter I.
+        extract: { from: 'CHAPTER I.', to: 'INDEX' },
+        units: 'headings',
+        level: 2,
+        subtitle: 'p.ph3',
+        count: 33,
+        edition: {
+            statement: 'Herbert A. Giles, Chuang Tzŭ: Mystic, Moralist, and Social Reformer; Bernard Quaritch, London, 1889',
+            translator: 'Herbert A. Giles',
+            year: 1889
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'saturn.bhagavad-gita': {
+        ebook: 2388,
+        artifact: 'html',
+        extract: { from: 'CHAPTER I' },
+        units: 'headings',
+        level: 3,
+        verse: true,
+        count: 18,
+        edition: {
+            statement: 'Sir Edwin Arnold, The Song Celestial; Truslove, Hanson & Comba, New York, 1900',
+            translator: 'Edwin Arnold',
+            year: 1900
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'saturn.heroic-frenzies': {
+        artifacts: [19817, 19833].map((ebook, index) => ({
+            ebook,
+            artifact: 'html',
+            prefix: `Part ${roman(index + 1)}`,
+            // The dialogues open on a bold line, not a heading; their anchors name them.
+            headings: DIALOGUES.map(nth => `a#${nth}`).join(', '),
+            extract: index === 0
+                ? { from: 'HEROIC ENTHUSIASTS.', level: 2 }
+                : { from: 'HEROIC ENTHUSIASTS.', level: 1, to: "Transcriber's Notes:" },
+            units: DIALOGUES.map(nth => ({ heading: `${nth} Dialogue.`, name: `${nth} Dialogue` }))
+        })),
+        count: 10,
+        edition: {
+            statement: 'L. Williams: Part the First, George Redway, London, 1887; Part the Second, Bernard Quaritch, London, 1889',
+            translator: 'L. Williams',
+            year: 1887
+        },
+        rights: { us: 'pd', life70: 'unknown' }
     }
 });
 

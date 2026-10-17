@@ -72,6 +72,14 @@ describe('the Gutenberg reader', () => {
     expect(read.parts.map(part => part.name)).toEqual(['Chapter I: Of Truth', 'Chapter II: Of Death']);
   });
 
+  it('counts a word the markup splits across elements once, on both sides', () => {
+    const essay = edition('<h3>Darwin Among the Machines</h3><p>“<i>Darwin Among the Machines</i>” appeared in the <span class="smcap">Press</span>, 13 <i>June</i>, 1863.</p><div><p>Sir,</p>There is no security.</div>');
+    const read = readGutenberg(essay, parse, { units: [{ heading: 'Darwin Among the Machines' }] });
+    expect(read.parts[0].content).toBe('“Darwin Among the Machines” appeared in the Press, 13 June, 1863.\n\nSir,\n\nThere is no security.');
+    expect(read.sourceWords).toBe(read.importedWords);
+    expect(read.sourceWords).toBe(20);
+  });
+
   it('refuses a unit heading the edition does not print, or prints twice in the span', () => {
     expect(() => readGutenberg(ESSAYS, parse, { units: [{ heading: 'CHAPTER III' }] })).toThrow(/CHAPTER III/u);
     const twice = edition('<h2>I.</h2><p>One.</p><h2>I.</h2><p>Two.</p>');

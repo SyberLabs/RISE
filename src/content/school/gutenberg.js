@@ -187,16 +187,33 @@ function linearize(body, isHeading) {
     return items;
 }
 
-/** Words of the text nodes from `start` (inclusive) to `end` (exclusive), counted from the document itself. */
+/**
+ * Words from `start` (inclusive) to `end` (exclusive), counted from the
+ * document's own text: text runs on across inline elements, and a block's
+ * edge separates words, as a reader sees them.
+ */
 function wordsBetween(doc, start, end) {
-    const walker = doc.createTreeWalker(doc.body, 4);
-    let total = 0;
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-        if (start && !(start === node || start.contains(node) || start.compareDocumentPosition(node) & 4)) continue;
-        if (end && end.compareDocumentPosition(node) & 4) continue;
-        total += countWords(node.data);
-    }
-    return total;
+    let text = '';
+    let on = !start;
+    let done = false;
+    const walk = node => {
+        if (done) return;
+        if (node === end) {
+            done = true;
+            return;
+        }
+        if (node === start) on = true;
+        if (node.nodeType === 3) {
+            if (on) text += node.data;
+            return;
+        }
+        const block = node.nodeType === 1 && (BLOCK.has(node.tagName) || node.tagName === 'BR');
+        if (block) text += ' ';
+        for (const child of node.childNodes) walk(child);
+        if (block) text += ' ';
+    };
+    walk(doc.body);
+    return countWords(text);
 }
 
 /** The one heading that reads `text` (at `level`, if given), or the `nth` of several. */
