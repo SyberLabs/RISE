@@ -24,6 +24,21 @@ describe('the School corpus', () => {
     for (const id of ids) expect(RECORD_IDS.has(id), id).toBe(true);
   });
 
+  it('serves the ten Standard Ebooks texts of the first slice', () => {
+    expect(SCHOOL_WORKS.map(work => [work.id, work.units])).toEqual([
+      ['sun.symposium-phaedrus-timaeus', 6],
+      ['sun.zarathustra', 81],
+      ['mercury.book-of-the-machines', 3],
+      ['mercury.machine-stops', 3],
+      ['mercury.rur', 4],
+      ['moon.varieties', 15],
+      ['venus.leaves-of-grass', 36],
+      ['mars.the-prince', 27],
+      ['mars.peloponnesian-war', 26],
+      ['jupiter.flatland', 22]
+    ]);
+  });
+
   for (const work of SCHOOL_WORKS) {
     describe(work.id, () => {
       it('states its edition, its source and its rights', () => {
