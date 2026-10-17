@@ -1,6 +1,6 @@
 # The Mystery School's complete library: investigation and design
 
-Status: Proposal, written 2026-10-16 at the owner's direction after RDR-029 shipped (#708, live at `063e3a92`). The owner lifted the Standard-Ebooks-only serving rule **for the School only** and asked how every one of the plan's 66 texts can become readable in RISE. This record holds the verified sourcing survey (one row per text, every link opened on 2026-10-16), the mechanism that admits them without touching the Archive canon, and the build order. Audience: the owner, and the engineers who build the slices.
+Status: **Accepted by the owner on 2026-10-16** (answers in §7). Written 2026-10-16 at the owner's direction after RDR-029 shipped (#708, live at `063e3a92`). The owner lifted the Standard-Ebooks-only serving rule **for the School only** and asked how every one of the plan's 66 texts can become readable in RISE. This record holds the verified sourcing survey (one row per text, every link opened on 2026-10-16), the mechanism that admits them without touching the Archive canon, and the build order. Audience: the owner, and the engineers who build the slices.
 
 Related: [the plan](2026-10-13-mystery-school-plan.md) · [the pane's design](../../superpowers/specs/2026-10-16-mystery-school-design.md) · [ARCHIVE-CANON-SPEC](../../specs/ARCHIVE-CANON-SPEC.md) · RDR-029, RDR-030.
 
@@ -192,7 +192,14 @@ Kapp (German), Ibn Khaldun (French), Vico (French), Kepler (Latin), Marinetti (F
 
 PR 1 is the one that matters: after it the rule, the gates and the door exist, and every later text is a recipe.
 
-## 7. Questions for the owner
+## 7. Questions for the owner, and the answers (2026-10-16)
+
+1. Edition substitutions: **yes**, serve them as listed with the Lectern naming the edition used.
+2. Haeckel: **yes, the same plates** that RISE once served through the retired Wikimedia `haeckel` category (SOURCE-CURATION-SPEC: "worth showing, so worth pinning, one accession at a time"). They return as a pinned, audited plate catalog built from Wikimedia Commons on the Audubon pattern (`scripts/build-audubon-catalog.mjs`), under a namespace, never as a searched category.
+3. The RISE *Oration*: **yes**, by the method in §5, with the owner as its reader.
+4. Sizes: **fine**; no cap.
+
+The questions as asked:
 
 1. **Edition substitutions (Tier B).** The ten rows marked B serve a later or different edition than the plan names. Accept them as listed, with the Lectern naming what was used?
 2. **Picture work.** Haeckel through the Gallery field as described, or defer the work until a text edition of the supplement exists?
