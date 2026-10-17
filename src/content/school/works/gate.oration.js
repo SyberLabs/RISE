@@ -397,13 +397,13 @@ export const GATE_ORATION_META = Object.freeze({
     "source": {
         "kind": "file",
         "url": "scripts/school-sources/gate.oration/oratio.en.md",
-        "sha256": "75ac868ca2507d5963f52b5aa5e98e5c5fd767424347e4b65f7db51dee2e2c72",
+        "sha256": "62064c75475c9d67a016702c1b7e2c3db37353da904eac84e56f67941dcbbbea",
         "retrieved": "2026-10-17",
         "artifacts": [
             {
                 "kind": "file",
                 "url": "scripts/school-sources/gate.oration/oratio.en.md",
-                "sha256": "75ac868ca2507d5963f52b5aa5e98e5c5fd767424347e4b65f7db51dee2e2c72",
+                "sha256": "62064c75475c9d67a016702c1b7e2c3db37353da904eac84e56f67941dcbbbea",
                 "retrieved": "2026-10-17"
             },
             {
@@ -414,7 +414,7 @@ export const GATE_ORATION_META = Object.freeze({
             }
         ],
         "files": [
-            "scripts/school-sources/gate.oration/oratio.en.md 75ac868ca2507d5963f52b5aa5e98e5c5fd767424347e4b65f7db51dee2e2c72",
+            "scripts/school-sources/gate.oration/oratio.en.md 62064c75475c9d67a016702c1b7e2c3db37353da904eac84e56f67941dcbbbea",
             "scripts/school-sources/gate.oration/oratio.la.md d3342e0893a66e82e3dc6b256bc2fbe691787d7377d12af9239f677518c1fac4"
         ]
     },
