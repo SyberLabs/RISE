@@ -66,7 +66,7 @@ export function titleCase(text) {
         if (/^\(?[IVXLCDM]+[.,:;)]*$/u.test(word)) return word;
         const lower = word.toLowerCase();
         if (!first && MINOR.has(lower.replace(/[.,:;]+$/u, ''))) return lower;
-        return lower.replace(/(^|[-(‘“"'])(\p{L})/gu, (_, lead, letter) => lead + letter.toUpperCase());
+        return lower.replace(/(^|[-(‘“"'—])(\p{L})/gu, (_, lead, letter) => lead + letter.toUpperCase());
     }).join(' ');
 }
 
@@ -288,11 +288,11 @@ function levelOf(element) {
     return /^H[1-6]$/u.test(element.tagName) ? Number(element.tagName[1]) : null;
 }
 
-/** "CHAPTER III / HERAKLEITOS" as one name; a printed stop ends a line on its own. */
+/** "CHAPTER III / HERAKLEITOS" as one name; a printed stop ends a line on its own, a parenthesis runs on. */
 function headingName(lines) {
     const name = lines.filter(Boolean).reduce((joined, line) => {
         if (!joined) return line;
-        return /[.:;,—-]$/u.test(joined) ? `${joined} ${line}` : `${joined}: ${line}`;
+        return /[.:;,—-]$/u.test(joined) || line.startsWith('(') ? `${joined} ${line}` : `${joined}: ${line}`;
     }, '');
     return titleCase(name.replace(/[.:]$/u, '')).replace(/[.:]$/u, '');
 }

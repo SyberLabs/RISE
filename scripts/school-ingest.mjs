@@ -426,7 +426,8 @@ const RECIPES = Object.freeze({
     'venus.aesthetic-education': {
         ebook: 6798,
         artifact: 'html',
-        extract: { from: 'LETTERS ON THE AESTHETICAL EDUCATION OF MAN.', to: 'THE MORAL UTILITY OF AESTHETIC MANNERS.' },
+        // The Letters end where the edition's next section opens under its own banner.
+        extract: { from: 'LETTERS ON THE AESTHETICAL EDUCATION OF MAN.', to: '=== AESTHETICAL ESSAYS.' },
         units: 'headings',
         level: 2,
         from: 'LETTER I.',

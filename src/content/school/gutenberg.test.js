@@ -255,5 +255,12 @@ describe('titleCase', () => {
     expect(titleCase('CHAPTER XIV ON LEAF-ARRANGEMENT, OR PHYLLOTAXIS')).toBe('Chapter XIV on Leaf-Arrangement, or Phyllotaxis');
     expect(titleCase('The Song Celestial')).toBe('The Song Celestial');
     expect(titleCase('I')).toBe('I');
+    expect(titleCase('THE PROBLEM OF THE ESTATES—NOBILITY AND PRIESTHOOD')).toBe('The Problem of the Estates—Nobility and Priesthood');
+  });
+
+  it('names a unit from a heading set on several lines, a parenthesis running on', () => {
+    const appendix = edition('<h3>APPENDIX I<br>SIMPLE DERIVATION OF THE LORENTZ TRANSFORMATION<br>(SUPPLEMENTARY TO SECTION XI)</h3><p>In accordance with the relative orientation of the co-ordinate systems.</p>');
+    const read = readGutenberg(appendix, parse, { units: 'headings', level: 3 });
+    expect(read.parts[0].name).toBe('Appendix I: Simple Derivation of the Lorentz Transformation (Supplementary to Section XI)');
   });
 });
