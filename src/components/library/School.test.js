@@ -14,7 +14,8 @@ vi.mock('../../core/content-store.js', () => ({
       school: [
         { id: 'sun.zarathustra', shelved: true },
         { id: 'mercury.rur', shelved: true },
-        { id: 'gate.oration', shelved: true }
+        { id: 'gate.oration', shelved: true },
+        { id: 'jupiter.art-forms-in-nature', shelved: true }
       ]
     }))
   },
@@ -230,6 +231,18 @@ describe('the action a text offers', () => {
     mount({ initialFocus: 'sun.zarathustra' });
     await settle();
     expect(lectern().textContent).not.toContain('Original language');
+    expect(lectern().textContent).not.toContain('A picture work');
+  });
+
+  it('says a picture work is read through its plates', async () => {
+    mount({ initialFocus: 'jupiter.art-forms-in-nature' });
+    await settle();
+    const facts = lectern().querySelector('.school-facts').textContent;
+    expect(facts).toContain('Bibliographisches Institut, Leipzig and Vienna, 1904; 100 plates; captions from Wikimedia Commons');
+    expect(facts).toContain('Original language · German');
+    expect(lectern().querySelector('.school-note').textContent)
+      .toBe('A picture work: each unit is one plate; the plate is the reading\'s field.');
+    expect(lectern().querySelector('.school-action button[data-read="jupiter.art-forms-in-nature"]')).not.toBeNull();
   });
 });
 

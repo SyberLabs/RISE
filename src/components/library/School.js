@@ -117,7 +117,7 @@ function rightsLine(record) {
   return `Public domain in the US; in copyright in life+70 countries until ${life70.slice('until:'.length)}`;
 }
 
-const LANGUAGES = Object.freeze({ la: 'Latin' });
+const LANGUAGES = Object.freeze({ la: 'Latin', de: 'German' });
 
 /** A corpus work not in English says so after its state; an English one says nothing more. */
 function languageNote(record) {
@@ -435,6 +435,8 @@ export class School {
         <div><dt>State</dt><dd>${escapeHtml(this.stateWord(record) + languageNote(record))}</dd></div>
       </dl>
       ${record.note ? `<p class="school-note">${escapeHtml(record.note)}</p>` : ''}
+      ${record.work?.corpus && schoolWorkById(record.id)?.imagery
+        ? '<p class="school-note">A picture work: each unit is one plate; the plate is the reading\'s field.</p>' : ''}
       ${bridges.length ? `<p class="school-links"><span class="school-meta">Crosses</span>${bridges.map(other => `
         <button type="button" class="school-link" data-focus="${other.id}">${other.glyph} ${escapeHtml(other.name)}</button>`).join('')}</p>` : ''}
       ${paths.length ? `<p class="school-links"><span class="school-meta">On</span>${paths.map(path => `
