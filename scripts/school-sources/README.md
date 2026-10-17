@@ -4,4 +4,5 @@ Hand-made or proofed text artifacts for the Mystery School corpus, each in its o
 
 | Folder | What it holds | State |
 | --- | --- | --- |
-| `gate.oration/` | Pico's *Oratio de hominis dignitate*: the Latin (`oratio.la.md`, from Latin Wikisource cross-checked against Bibliotheca Augustana, Pico Project numbering, 47 paragraphs, 293 sentences), RISE's English draft (`oratio.en.md`, CC BY 4.0), the translator's notes (`oration.notes.md`) and the side-by-side reading copy (`oration.review.md`) | Draft. Served only when the owner has read every paragraph against the Latin. |
+| `gate.oration/` | Pico's *Oratio de hominis dignitate*: the Latin (`oratio.la.md`, from Latin Wikisource cross-checked against Bibliotheca Augustana, Pico Project numbering, 47 paragraphs, 293 sentences), RISE's English draft (`oratio.en.md`, CC BY 4.0), the translator's notes (`oration.notes.md`) and the side-by-side reading copy (`oration.review.md`) | The Latin is served (47 units, § 1 to § 47, the sentence numbers struck). The English draft is not served until the owner has read every paragraph against the Latin. |
+| `saturn.emerald-tablet/` | Newton's English *Emerald Tablet* (`newton-emerald-tablet.md`), re-keyed from Keynes MS. 28, ff. 2r–2v, reading the manuscript text only; provenance in the file's header | Served, one unit. |

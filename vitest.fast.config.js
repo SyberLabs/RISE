@@ -11,7 +11,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 145;
+export const FAST_TEST_FILES = 151;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -77,6 +77,13 @@ const FAST_TESTS = [
     'src/content/school/corpus.test.js',
     // The Gutenberg reader takes an edition apart only along the lines its recipe declares.
     'src/content/school/gutenberg.test.js',
+    // The School's source readers beyond Gutenberg: each counts out its site's furniture and loses no word.
+    'src/content/school/wikisource.test.js',
+    'src/content/school/sacred-texts.test.js',
+    'src/content/school/ccel.test.js',
+    'src/content/school/tei.test.js',
+    'src/content/school/file.test.js',
+    'src/content/school/html.test.js',
     // A school text opens as the Library opens it, and a finished one marks the reader's record.
     'src/app/school-reading.test.js',
     'src/enterprise/**/*.test.js',

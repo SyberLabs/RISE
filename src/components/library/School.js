@@ -117,6 +117,14 @@ function rightsLine(record) {
   return `Public domain in the US; in copyright in life+70 countries until ${life70.slice('until:'.length)}`;
 }
 
+const LANGUAGES = Object.freeze({ la: 'Latin' });
+
+/** A corpus work not in English says so after its state; an English one says nothing more. */
+function languageNote(record) {
+  const code = record.work?.corpus ? schoolWorkById(record.id)?.language : null;
+  return code ? ` · Original language · ${LANGUAGES[code] ?? code}` : '';
+}
+
 function freeEditionUrl(record) {
   return `https://www.gutenberg.org/ebooks/search/?query=${encodeURIComponent(`${record.title} ${record.author}`)}`;
 }
@@ -369,7 +377,7 @@ export class School {
       <section class="school-gate-text">
         <h2 class="school-title">${escapeHtml(oration.title)}</h2>
         <p class="school-meta">${escapeHtml(oration.author)} · ${escapeHtml(oration.date)}</p>
-        <p class="school-state">${escapeHtml(this.stateWord(oration))}${oration.note ? `. ${escapeHtml(oration.note)}.` : ''}</p>
+        <p class="school-state">${escapeHtml(this.stateWord(oration) + languageNote(oration))}${oration.note ? `. ${escapeHtml(oration.note)}.` : ''}</p>
         <button type="button" class="school-link" data-focus="${oration.id}">About this text</button>
       </section>
       <h3 class="school-subhead">The seven houses</h3>
@@ -424,7 +432,7 @@ export class School {
       <dl class="school-facts">
         <div><dt>Edition</dt><dd>${escapeHtml(edition)}</dd></div>
         <div><dt>Rights</dt><dd>${escapeHtml(rightsLine(record))}</dd></div>
-        <div><dt>State</dt><dd>${escapeHtml(this.stateWord(record))}</dd></div>
+        <div><dt>State</dt><dd>${escapeHtml(this.stateWord(record) + languageNote(record))}</dd></div>
       </dl>
       ${record.note ? `<p class="school-note">${escapeHtml(record.note)}</p>` : ''}
       ${bridges.length ? `<p class="school-links"><span class="school-meta">Crosses</span>${bridges.map(other => `

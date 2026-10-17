@@ -66,8 +66,38 @@ export function titleCase(text) {
         if (/^\(?[IVXLCDM]+[.,:;)]*$/u.test(word)) return word;
         const lower = word.toLowerCase();
         if (!first && MINOR.has(lower.replace(/[.,:;]+$/u, ''))) return lower;
-        return lower.replace(/(^|[-(‘“"'—])(\p{L})/gu, (_, lead, letter) => lead + letter.toUpperCase());
+        // An apostrophe after a letter is a possessive or an elision ("Angel's"), not an opening quote.
+        return lower.replace(/(^|[-(‘“"—]|(?<!\p{L})')(\p{L})/gu, (_, lead, letter) => lead + letter.toUpperCase());
     }).join(' ');
+}
+
+function textNodes(element) {
+    const walker = element.ownerDocument.createTreeWalker(element, 4);
+    const nodes = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node);
+    return nodes;
+}
+
+/**
+ * Carries `next`'s text on at the end of `previous`, where a page turn
+ * broke one paragraph in two, and removes `next`: one space between them,
+ * none after a word the line ended with a hyphen.
+ */
+export function joinParagraphs(previous, next) {
+    const ends = textNodes(previous);
+    const last = ends[ends.length - 1];
+    if (last) last.data = last.data.trimEnd();
+    const first = textNodes(next).find(node => node.data.trim());
+    if (first) first.data = first.data.trimStart();
+    const hyphen = /\p{L}-$/u.test(previous.textContent);
+    previous.append(previous.ownerDocument.createTextNode(hyphen ? '' : ' '), ...next.childNodes);
+    next.remove();
+}
+
+/** The first or last child element that carries text. */
+export function filledChild(element, last = false) {
+    const children = [...element.children];
+    return (last ? children.reverse() : children).find(child => child.textContent.trim()) ?? null;
 }
 
 function dropWords(elements) {
@@ -127,10 +157,19 @@ function strip(doc) {
     if (!footer || !/\*\*\* ?END OF/u.test(footer.textContent)) throw new Error('no "*** END OF" marker in a #pg-footer');
     header.remove();
     footer.remove();
+    return dropFurniture(doc, DROP);
+}
 
+/**
+ * Removes what `drops` names (`{ kind: selector }`), then footnote markers
+ * and notes in whatever form they were set, and marks every `<br>`; returns
+ * the words removed, by kind. Every reader runs it once, after removing its
+ * site's own furniture and before reading units.
+ */
+export function dropFurniture(doc, drops) {
     const dropped = {};
     const add = (kind, count) => { if (count) dropped[kind] = (dropped[kind] || 0) + count; };
-    for (const [kind, selector] of Object.entries(DROP)) {
+    for (const [kind, selector] of Object.entries(drops)) {
         add(kind, dropWords([...doc.body.querySelectorAll(selector)]));
     }
     const markers = [...doc.body.querySelectorAll('a[href^="#"]')].filter(anchor => MARKER_TEXT.test(anchor.textContent)
@@ -155,6 +194,22 @@ function strip(doc) {
     for (const img of doc.body.querySelectorAll('img[data-tex]')) img.replaceWith(doc.createTextNode(img.alt));
     for (const br of doc.body.querySelectorAll('br')) br.after(doc.createTextNode(BREAK));
     return dropped;
+}
+
+/**
+ * Removes from the text what a recipe's `strike` (`{ pattern, kind }`)
+ * names: text set inline that is not the work, such as page numbers in
+ * brackets or a transcription fault. Counts its words in `dropped`.
+ */
+export function strikeText(doc, strike, dropped) {
+    const pattern = new RegExp(strike.pattern, 'gu');
+    const walker = doc.createTreeWalker(doc.body, 4);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        node.data = node.data.replace(pattern, match => {
+            dropped[strike.kind] = (dropped[strike.kind] || 0) + countWords(match);
+            return ' ';
+        });
+    }
 }
 
 /**
@@ -297,6 +352,11 @@ function headingName(lines) {
     return titleCase(name.replace(/[.:]$/u, '')).replace(/[.:]$/u, '');
 }
 
+/** A name read from a heading, with the recipe's `retitle: { pattern, to }` applied ("Here Beginneth the First Chapter" → "First Chapter"). */
+function renamed(recipe, name) {
+    return recipe.retitle ? name.replace(new RegExp(recipe.retitle.pattern, 'u'), recipe.retitle.to) : name;
+}
+
 function shortName(text) {
     return titleCase(flat(text).split(/[.:] /u)[0].replace(/[.:]$/u, ''));
 }
@@ -306,9 +366,11 @@ function shortName(text) {
  * `units: 'headings'` takes every heading of `level` (a number, or the
  * selector the recipe made headings of) from `from` to `to` inclusive, and
  * every heading of `group`, or whose text `groups` lists, as a group
- * banner; a list takes exactly the headings it names.
+ * banner; a list takes exactly the headings it names; `units: 'numbered'`
+ * opens a unit at every `every`th numbered paragraph (see numbered).
  */
 function plan(items, recipe) {
+    if (recipe.units === 'numbered') return numbered(items, recipe.every);
     if (Array.isArray(recipe.units)) {
         return recipe.units.map(unit => ({ ...unit, item: findHeading(items, { ...unit, text: unit.heading }, 'unit') }));
     }
@@ -329,13 +391,38 @@ function plan(items, recipe) {
 }
 
 /**
+ * Paragraphs the edition numbers "1.", "2.", … in an unbroken run open a
+ * unit every `every` sections, the paragraph kept as the unit's first,
+ * named "§§ 1–10". A number missing or out of order refuses the read.
+ */
+function numbered(items, every) {
+    const sections = items.filter(item => item.kind === 'block')
+        .map(item => ({ item, n: Number(/^(\d+)\.(?:\s|$)/u.exec(item.lines[0])?.[1]) }))
+        .filter(section => section.n);
+    sections.forEach(({ n }, index) => {
+        if (n !== index + 1) throw new Error(`numbered: section ${index + 1} is missing or out of order (read ${n})`);
+    });
+    return sections.filter(({ n }) => (n - 1) % every === 0)
+        .map(({ item, n }) => ({ item, keep: true, name: `§§ ${n}–${Math.min(n + every - 1, sections.length)}` }));
+}
+
+/**
  * `{ parts, sourceWords, importedWords, dropped, groups, title }` for the
  * units `recipe` declares in `html`. Throws, naming the cause, when a named
  * heading is missing or doubled, or when text in the span belongs to no unit.
  */
 export function readGutenberg(html, parse, recipe) {
     const doc = parse(String(html));
-    const dropped = strip(doc);
+    return readUnits(doc, recipe, strip(doc));
+}
+
+/**
+ * The units `recipe` declares in a document already stripped of its
+ * distributor's furniture (`dropped` says how much went), read as
+ * readGutenberg reads them. `units: 'whole'` reads the whole span as one
+ * unit named `name`, or failing one by its first heading.
+ */
+export function readUnits(doc, recipe, dropped) {
     // What the recipe names as not the work: a printer's colophon set in the text.
     if (recipe.drop) dropped.recipe = dropWords(doc.body.querySelectorAll(recipe.drop));
     const extra = [recipe.headings, typeof recipe.level === 'string' ? recipe.level : null].filter(Boolean).join(', ');
@@ -357,8 +444,9 @@ export function readGutenberg(html, parse, recipe) {
         items = all.slice(start, stop < 0 ? undefined : stop);
         end = stop < 0 ? null : all[stop].element;
     }
-    const units = plan(items, recipe);
-    if (!units.length) throw new Error('the recipe selects no units');
+    const whole = recipe.units === 'whole';
+    const units = whole ? [] : plan(items, recipe);
+    if (!units.length && !whole) throw new Error('the recipe selects no units');
     const opens = new Map(units.map(unit => [unit.item, unit]));
 
     const title = [];
@@ -367,6 +455,12 @@ export function readGutenberg(html, parse, recipe) {
     let current = null;
     let carried = [];
     let importedWords = 0;
+    if (whole) {
+        const heading = items.find(item => item.kind === 'heading');
+        if (!recipe.name && !heading) throw new Error('a whole unit needs a name or a heading');
+        current = { name: recipe.name ?? headingName(heading.lines), sourceTitle: null, verseFlag: recipe.verse, blocks: [], group: null };
+        parts.push(current);
+    }
     for (const item of items) {
         const unit = opens.get(item);
         if (unit?.group) {
@@ -378,16 +472,17 @@ export function readGutenberg(html, parse, recipe) {
         if (unit) {
             current = {
                 // `nameFrom: 'title'` reads the name the edition gave its heading's title attribute.
-                name: unit.name ?? (recipe.nameFrom === 'title' && item.element.title
+                name: unit.name ?? renamed(recipe, recipe.nameFrom === 'title' && item.element.title
                     ? headingName([item.element.title]) : headingName(item.lines)),
-                sourceTitle: item.text,
+                sourceTitle: item.text ?? null,
                 verseFlag: unit.verse ?? recipe.verse,
                 blocks: [...carried.map(text => ({ lines: [text], verse: false }))],
                 subtitle: recipe.subtitle ? 'pending' : null,
                 group: groups[groups.length - 1] ?? null
             };
             carried = [];
-            importedWords += countWords(item.text);
+            if (unit.keep) current.blocks.push(item);
+            else importedWords += countWords(item.text);
             parts.push(current);
             continue;
         }

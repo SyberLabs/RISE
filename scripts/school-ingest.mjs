@@ -25,10 +25,22 @@
  * level. A record drawn from more than one edition lists them under
  * `artifacts`, in reading order, each with its own units.
  *
- * Fetched files are cached under .ingest-cache/standard-ebooks/<repo>/ and
- * .ingest-cache/gutenberg/<ebook>.html; a Gutenberg file's sha256 is
- * recorded in the work's source.
+ * Every other source names its `kind` and the pages or file it reads, and is
+ * read by its own reader in src/content/school/ with the same unit grammar:
+ * `wikisource` (`pages`: page titles, through the MediaWiki API's parsed
+ * HTML), `sacred-texts` (`base` and `pages`: chapter pages), `ccel`
+ * (`work`: the CCEL path of a plain-text file), `eebo-tcp` (`tcp`: the TCP
+ * id, its TEI from GitHub), `html` (`pages`: URLs, read by the recipe's
+ * selectors) and `file` (`path` under scripts/school-sources/). Pages are
+ * read as one document unless `units: 'page'`, which makes each page one
+ * unit named from `names` (a null name carries the page on in the unit
+ * before it).
+ *
+ * Fetched files are cached under .ingest-cache/<kind>/; the sha256 of every
+ * file read is recorded in the work's source (a work on several pages names
+ * each page's, and the source's own is the hash of all of them in order).
  */
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -43,7 +55,14 @@ import {
     sectionsFromParts
 } from '../src/content/archive/standard-ebooks.js';
 import { SCHOOL_CANON } from '../src/content/school/canon.js';
+import { readCcel } from '../src/content/school/ccel.js';
+import { readFile } from '../src/content/school/file.js';
 import { readGutenberg } from '../src/content/school/gutenberg.js';
+import { readHtml } from '../src/content/school/html.js';
+import { readSacredTexts } from '../src/content/school/sacred-texts.js';
+import { readTei, teiAvailability } from '../src/content/school/tei.js';
+import { readWikisource } from '../src/content/school/wikisource.js';
+import { WEB_RECIPES } from './school-ingest-recipes.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const CACHE = resolve(ROOT, '.ingest-cache', 'standard-ebooks');
@@ -623,11 +642,186 @@ const RECIPES = Object.freeze({
             year: 1887
         },
         rights: { us: 'pd', life70: 'unknown' }
-    }
+    },
+    // Wikisource, CCEL, sacred-texts, EEBO-TCP, plain HTML and local files.
+    ...WEB_RECIPES
 });
 
 const parse = markup => new JSDOM(markup, { contentType: 'text/html' }).window.document;
+const parseXml = markup => new JSDOM(markup, { contentType: 'application/xml' }).window.document;
 const sha256 = value => createHash('sha256').update(value).digest('hex');
+const BROWSER = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+
+/**
+ * A file from the cache, or from the first of `urls` that serves it; with
+ * the URL that served it (null when cached before) and its sha256.
+ */
+async function fetchCached(kind, name, urls, { headers = {}, curl = false } = {}) {
+    const dir = resolve(ROOT, '.ingest-cache', kind);
+    mkdirSync(dir, { recursive: true });
+    const cached = resolve(dir, name.replace(/[^A-Za-z0-9._-]+/gu, '_'));
+    let served = null;
+    if (!existsSync(cached)) {
+        const refusals = [];
+        for (const url of urls) {
+            process.stderr.write(`fetching ${url}\n`);
+            const response = curl ? curlGet(url) : await fetch(url, { headers: { 'User-Agent': BROWSER, ...headers }, redirect: 'manual' });
+            if (response.status === 200) {
+                writeFileSync(cached, curl ? response.body : Buffer.from(await response.arrayBuffer()));
+                writeFileSync(`${cached}.url`, url);
+                served = url;
+                break;
+            }
+            refusals.push(`${url}: HTTP ${response.status}`);
+        }
+        if (!served) throw new Error(`${kind} ${name}: no URL served it (${refusals.join('; ')})`);
+    }
+    const bytes = readFileSync(cached);
+    return { text: bytes.toString('utf8'), bytes, sha256: sha256(bytes), served: served ?? readFileSync(`${cached}.url`, 'utf8') };
+}
+
+/**
+ * A GET through curl, for a host whose bot challenge refuses Node's own
+ * client: redirects are not followed (a page that moved is not the page
+ * asked for), except the Wayback Machine's to its nearest capture.
+ */
+function curlGet(url) {
+    const out = resolve(ROOT, '.ingest-cache', 'curl.tmp');
+    const follow = url.startsWith('https://web.archive.org/') ? ['-L'] : [];
+    const status = execFileSync('curl', ['-s', '-A', BROWSER, ...follow, '-o', out, '-w', '%{http_code}', url], { encoding: 'utf8' });
+    return { status: Number(status), body: existsSync(out) ? readFileSync(out) : Buffer.alloc(0) };
+}
+
+const WIKISOURCE_API = 'https://en.wikisource.org/w/api.php?action=parse&prop=text%7Crevid&format=json&formatversion=2&redirects=1&page=';
+
+/** Each source kind: what it fetches, as `{ texts, files, url, sha256 }`, and the reader that reads it. */
+const SOURCES = {
+    wikisource: {
+        async fetch(artifact) {
+            const pages = [];
+            for (const title of artifact.pages) {
+                const file = await fetchCached('wikisource', `${title}.json`, [`${WIKISOURCE_API}${encodeURIComponent(title)}`],
+                    { headers: { 'User-Agent': 'RISE school ingest (https://github.com/sykosyber)' } });
+                const page = JSON.parse(file.text);
+                if (page.error) throw new Error(`Wikisource ${title}: ${page.error.info}`);
+                pages.push({ ...file, html: page.parse.text, title, revid: page.parse.revid });
+            }
+            return {
+                texts: pages.map(page => page.html),
+                files: pages.map(page => `${page.title} rev ${page.revid} ${page.sha256}`),
+                url: `https://en.wikisource.org/wiki/${encodeURI(artifact.pages[0].split('/')[0].replace(/ /gu, '_'))}`,
+                sha256: sha256(pages.map(page => page.sha256).join('\n'))
+            };
+        },
+        read: (texts, artifact) => readWikisource(texts, parse, artifact)
+    },
+    'sacred-texts': {
+        async fetch(artifact) {
+            const pages = [];
+            for (const page of artifact.pages) {
+                const path = `${artifact.base}/${page}`;
+                // The site sits behind a bot challenge and now redirects its
+                // old pages; its own archive host, then the Wayback Machine,
+                // serve the same pages.
+                pages.push({ page, ...await fetchCached('sacred-texts', path, [
+                    `https://sacred-texts.com/${path}`,
+                    `https://archive.sacred-texts.com/${path}`,
+                    `https://web.archive.org/web/2024id_/https://sacred-texts.com/${path}`
+                ], { curl: true }) });
+            }
+            const hosts = [...new Set(pages.map(page => new URL(page.served).origin))];
+            return {
+                texts: pages.map(page => page.text),
+                files: pages.map(page => `${page.served} ${page.sha256}`),
+                url: `https://sacred-texts.com/${artifact.base}/index.htm`,
+                sha256: sha256(pages.map(page => page.sha256).join('\n')),
+                extra: { served: hosts.join(', ') }
+            };
+        },
+        read: (texts, artifact) => readSacredTexts(texts, parse, artifact)
+    },
+    ccel: {
+        async fetch(artifact) {
+            const name = artifact.work.split('/').pop();
+            const url = `https://ccel.org/ccel/${artifact.work}/cache/${name}.txt`;
+            const file = await fetchCached('ccel', `${artifact.work}.txt`, [url]);
+            return { texts: [file.text], files: [`${url} ${file.sha256}`], url: `https://ccel.org/ccel/${artifact.work}`, sha256: file.sha256 };
+        },
+        read: ([text], artifact) => readCcel(text, parse, artifact)
+    },
+    'eebo-tcp': {
+        async fetch(artifact) {
+            const url = `https://raw.githubusercontent.com/textcreationpartnership/${artifact.tcp}/master/${artifact.tcp}.xml`;
+            const file = await fetchCached('eebo-tcp', `${artifact.tcp}.xml`, [url]);
+            return {
+                texts: [file.text], files: [`${url} ${file.sha256}`], url: `https://github.com/textcreationpartnership/${artifact.tcp}`,
+                sha256: file.sha256, rightsNote: teiAvailability(file.text, parseXml)
+            };
+        },
+        read: ([text], artifact) => readTei(text, parseXml, parse, artifact)
+    },
+    html: {
+        async fetch(artifact) {
+            const pages = [];
+            for (const url of artifact.pages) pages.push({ url, ...await fetchCached('html', url.replace(/^https?:\/\//u, ''), [url]) });
+            // A site that still serves Latin-1 or Windows-1252 names its encoding in the recipe.
+            const decoder = new TextDecoder(artifact.encoding ?? 'utf-8');
+            return {
+                texts: pages.map(page => decoder.decode(page.bytes)),
+                files: pages.map(page => `${page.url} ${page.sha256}`),
+                url: artifact.url,
+                sha256: sha256(pages.map(page => page.sha256).join('\n'))
+            };
+        },
+        read: (texts, artifact) => readHtml(texts, parse, artifact)
+    },
+    file: {
+        async fetch(artifact) {
+            const bytes = readFileSync(resolve(ROOT, artifact.path));
+            return { texts: [bytes.toString('utf8')], files: [`${artifact.path} ${sha256(bytes)}`], url: artifact.path, sha256: sha256(bytes) };
+        },
+        read: ([text], artifact) => readFile(text, parse, artifact)
+    }
+};
+
+/**
+ * An artifact of any kind but Standard Ebooks and Gutenberg, read by its
+ * kind's reader: its pages as one document, or (`units: 'page'`) each page
+ * one unit named from `names`.
+ */
+async function sourceUnits(artifact, ledger) {
+    const source = SOURCES[artifact.kind];
+    if (!source) throw new Error(`no reader for source kind ${JSON.stringify(artifact.kind)}`);
+    const fetched = await source.fetch(artifact);
+    const reads = artifact.units === 'page'
+        ? fetched.texts.map((text, index) => source.read([text], { ...artifact, units: 'whole', name: artifact.names?.[index] ?? 'continued' }))
+        : [source.read(fetched.texts, artifact)];
+    const parts = [];
+    reads.forEach((read, index) => {
+        ledger.count(`${artifact.kind}${reads.length > 1 ? ` page ${index + 1}` : ''}`, read);
+        for (const [kind, count] of Object.entries(read.dropped)) ledger.dropped[kind] = (ledger.dropped[kind] || 0) + count;
+        ledger.groups.push(...read.groups);
+        // A page named null carries on the unit the page before it opened (a chapter too short to stand alone).
+        if (artifact.units === 'page' && artifact.names?.[index] === null) {
+            const last = parts[parts.length - 1];
+            last.content = `${last.content}\n\n${read.parts[0].content}`;
+            last.lines += read.parts[0].lines;
+        } else {
+            parts.push(...read.parts);
+        }
+    });
+    ledger.files.push(...fetched.files);
+    const total = reads.reduce((sum, read) => sum + read.sourceWords, 0);
+    console.log(`  ${artifact.kind}: ${total} words in the span, ${reads.reduce((sum, read) => sum + read.importedWords, 0)} out`);
+    return {
+        parts: parts.map(part => ({ ...part, name: artifact.prefix ? `${artifact.prefix} · ${part.name}` : part.name })),
+        source: {
+            kind: artifact.kind, url: fetched.url, sha256: fetched.sha256, ...fetched.extra,
+            ...(artifact.note ? { note: artifact.note } : {})
+        },
+        rightsNote: fetched.rightsNote
+    };
+}
 const words = text => String(text).replace(/\s+/gu, ' ').trim().split(' ').filter(Boolean).length;
 const constName = id => id.toUpperCase().replace(/[^A-Z0-9]+/gu, '_');
 
@@ -895,16 +1089,21 @@ async function ingest(id, { dryRun }) {
     const retrieved = new Date().toISOString().slice(0, 10);
     const parts = [];
     const sources = [];
+    let rights = recipe.rights;
     for (const artifact of recipe.artifacts ?? [recipe]) {
-        const read = artifact.ebook
-            ? await gutenbergUnits(artifact, ledger)
-            : await standardEbooksUnits(artifact, ledger);
+        const read = artifact.ebook ? await gutenbergUnits(artifact, ledger)
+            : artifact.repo ? await standardEbooksUnits(artifact, ledger)
+                : await sourceUnits(artifact, ledger);
         parts.push(...read.parts);
         sources.push({ ...read.source, retrieved });
+        // A TEI transcription's licence is the one its header states.
+        if (read.rightsNote) rights = { ...rights, note: read.rightsNote };
     }
 
     for (const part of parts) {
         console.log(`  ${part.verse ? 'verse' : 'prose'} ${String(part.content.length).padStart(8)}  ${part.name}${part.sourceTitle && part.sourceTitle !== part.name ? `  [${part.sourceTitle}]` : ''}`);
+        // --show prints how each unit opens and closes, for reading a recipe against its source.
+        if (process.argv.includes('--show')) console.log(`      ${JSON.stringify(part.content.slice(0, 160))} … ${JSON.stringify(part.content.slice(-100))}`);
     }
     gate(id, recipe, parts, ledger);
 
@@ -915,7 +1114,10 @@ async function ingest(id, { dryRun }) {
     const source = sources.length > 1 ? { ...sources[0], artifacts: sources } : sources[0];
     const entry = {
         id, constName: constName(id), checksum, units: sections.length,
-        edition: recipe.edition, source, rights: recipe.rights
+        edition: recipe.edition, source, rights,
+        // A work not in English names its language; a note says what a reader should know of the text as served.
+        ...(recipe.language ? { language: recipe.language } : {}),
+        ...(recipe.textNote ? { note: recipe.textNote } : {})
     };
     const dropped = Object.entries(ledger.dropped).map(([kind, count]) => `${count} ${kind}`).join(', ');
     console.log(`${id}: ${sections.length} units, ${ledger.words} words in, ${ledger.words - ledger.lost} out, 0 lost`
@@ -930,7 +1132,8 @@ async function ingest(id, { dryRun }) {
         source: { ...source, ...(ledger.files.length ? { files: ledger.files } : {}) },
         // Words the ingest removed from the editions before reading them, by kind.
         ...(Object.keys(ledger.dropped).length ? { dropped: ledger.dropped } : {}),
-        rights: recipe.rights,
+        rights,
+        ...(recipe.language ? { language: recipe.language } : {}),
         structure: 'declared',
         // Groups the edition sets above its units; a unit's name carries
         // its group's position.
@@ -964,7 +1167,7 @@ const targets = args.filter(arg => !arg.startsWith('--'));
 if (args.includes('--list') || (!targets.length && !args.includes('--all'))) {
     for (const [id, recipe] of Object.entries(RECIPES)) {
         const written = existsSync(resolve(OUT, `${id}.js`)) ? 'written' : 'not written';
-        const editions = (recipe.artifacts ?? [recipe]).map(artifact => artifact.repo ?? `pg${artifact.ebook}`).join(' + ');
+        const editions = (recipe.artifacts ?? [recipe]).map(artifact => artifact.repo ?? (artifact.ebook ? `pg${artifact.ebook}` : artifact.kind)).join(' + ');
         console.log(`${id.padEnd(40)} ${editions}  (${written})`);
     }
 } else {

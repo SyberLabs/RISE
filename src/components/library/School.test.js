@@ -9,11 +9,12 @@ vi.mock('../../core/content-store.js', () => ({
       works: [
         { id: 'literary-meditations', shelved: true },
         { id: 'sacred-tao-te-ching', shelved: true },
-        { id: 'sacred-corpus-hermeticum', shelved: false, withheldReason: WITHHELD }
+        { id: 'the-divine-comedy', shelved: false, withheldReason: WITHHELD }
       ],
       school: [
         { id: 'sun.zarathustra', shelved: true },
-        { id: 'mercury.rur', shelved: true }
+        { id: 'mercury.rur', shelved: true },
+        { id: 'gate.oration', shelved: true }
       ]
     }))
   },
@@ -118,7 +119,7 @@ describe('the Mystery School pane', () => {
     const text = lectern().textContent;
     expect(lectern().dataset.focus).toBe('sun.monadology');
     expect(text).toContain('Mind as perspective');
-    expect(text).toContain('Robert Latta, 1898');
+    expect(text).toContain('Robert Latta, The Monadology and Other Philosophical Writings, Oxford, 1898');
     expect(text).toContain('Public domain');
     expect(text).toContain('Core · House of the Logos');
     expect(lectern().querySelector('[data-focus="mercury"]')).not.toBeNull();
@@ -186,13 +187,13 @@ describe('the action a text offers', () => {
   });
 
   it('shows a withheld text as not served, with the archive reason', async () => {
-    mount({ initialFocus: 'saturn.corpus-hermeticum' });
+    mount({ initialFocus: 'venus.divine-comedy' });
     await settle();
     const button = lectern().querySelector('.school-action button');
     expect(button.disabled).toBe(true);
     expect(button.textContent.trim()).toBe('Not served yet');
     expect(lectern().textContent).toContain(WITHHELD);
-    expect(container.querySelector('[data-record="saturn.corpus-hermeticum"]').dataset.state).toBe('carried');
+    expect(container.querySelector('[data-record="venus.divine-comedy"]').dataset.state).toBe('carried');
   });
 
   it('points an absent text to its free edition outside RISE', async () => {
@@ -209,11 +210,26 @@ describe('the action a text offers', () => {
   });
 
   it('gives an original-language-only text no outward link', async () => {
-    mount({ initialFocus: 'gate.oration' });
+    mount({ initialFocus: 'mercury.philosophie-der-technik' });
     await settle();
     expect(lectern().querySelector('.school-action a')).toBeNull();
     expect(lectern().textContent).toContain('Original language only');
-    expect(lectern().textContent).toContain('Latin, orig. only');
+    expect(lectern().textContent).toContain('German, orig. only');
+  });
+
+  it('reads the Gate in its Latin, and says so', async () => {
+    mount({ initialFocus: 'gate.oration' });
+    await settle();
+    const facts = lectern().querySelector('.school-facts').textContent;
+    expect(facts).toContain('Latin, 1486; Pico Project numbering');
+    expect(facts).toContain('Original language · Latin');
+    expect(lectern().querySelector('.school-action button[data-read="gate.oration"]')).not.toBeNull();
+  });
+
+  it('names no language for a corpus text in English', async () => {
+    mount({ initialFocus: 'sun.zarathustra' });
+    await settle();
+    expect(lectern().textContent).not.toContain('Original language');
   });
 });
 
