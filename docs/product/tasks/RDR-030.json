@@ -4,7 +4,7 @@
   "lane": "reader",
   "milestone": "Mystery School",
   "status": "planned",
-  "delivery": "not_shipped",
+  "delivery": "branch",
   "owner": "Claude coordinator",
   "priority": "next",
   "dependencies": [
@@ -22,16 +22,26 @@
       "ref": "docs/product/discussions/2026-10-16-mystery-school-complete-library.md",
       "note": "Investigation (every link opened 2026-10-16), the School corpus design, the six-PR build order and the owner's questions.",
       "date": "2026-10-16"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/710",
+      "note": "PR 1: the School corpus mechanism, the Standard Ebooks adapter and ten texts; the School goes from 4 to 14 readable.",
+      "date": "2026-10-17"
     }
   ],
   "activity": [
     {
       "date": "2026-10-17T00:00:40.000Z",
       "summary": "Planned at the owner's direction after RDR-029 shipped: the Standard-Ebooks-only rule is lifted for the School alone; survey and design written."
+    },
+    {
+      "date": "2026-10-17T00:52:42.000Z",
+      "summary": "PR 1 opened: corpus mechanism and ten Standard Ebooks texts"
     }
   ],
-  "updatedAt": "2026-10-17T00:00:40.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-17T00:52:42.000Z",
+  "revision": 2,
   "summary": "After RDR-029 shipped with four of 66 texts readable, the owner lifted the Standard-Ebooks-only serving rule for the School only. The survey finds a free proofed edition for 46 of the 62 missing texts, nine as scans needing a proofing pass, and six with no free English, the Gate among them. The design admits them through a School corpus beside the Archive, on the Chapel's precedent, with recipes per work and the same gates every time; six pull requests take the School from 4 to 66 readable.",
   "blocker": null
 }
