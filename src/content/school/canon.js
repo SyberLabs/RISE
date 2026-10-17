@@ -89,7 +89,7 @@ export const SCHOOL_CANON = freeze([
     work: { corpus: true } }),
   text({ id: 'mercury.philosophie-der-technik', degree: 3, title: 'Grundlinien einer Philosophie der Technik', author: 'Ernst Kapp', date: '1877',
     edition: 'German, orig. only', rights: 'orig-only', why: 'Tools as projected organs',
-    note: 'A selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); chapters IV to XIII, from Gliedmaassen und Maasse to Der Staat, are left out',
+    note: 'A selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); chapters IV to XIII, from Gliedmaassen und Maasse to Der Staat, are left out; ten places where the damaged scan lost lines are marked […], and 79 unsettled readings [?]',
     work: { corpus: true } }),
 
   // Moon: House of Mind
