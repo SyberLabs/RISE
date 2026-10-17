@@ -1174,6 +1174,8 @@ async function ingest(id, { dryRun }) {
         // A work not in English names its language; a note says what a reader should know of the text as served.
         ...(recipe.language ? { language: recipe.language } : {}),
         ...(recipe.textNote ? { note: recipe.textNote } : {}),
+        // A work served in RISE's own translation says so beside its state in the Lectern.
+        ...(recipe.translation ? { translation: recipe.translation } : {}),
         // A picture work names the pinned collection its reading shows.
         ...(recipe.imagery ? { imagery: recipe.imagery } : {})
     };

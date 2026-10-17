@@ -72,18 +72,29 @@ export const WEB_RECIPES = {
         rights: { us: 'pd', life70: 'pd' }
     },
     // Local files under scripts/school-sources/<id>/.
+    // RISE's English first, the Latin it was made from after it, paragraph for paragraph.
     'gate.oration': {
-        kind: 'file',
-        path: 'scripts/school-sources/gate.oration/oratio.la.md',
-        extract: { from: '§ 1' },
-        units: 'headings',
-        level: 2,
-        // The Pico Project's running sentence numbers are for reference, not for reading aloud.
-        strike: { pattern: '(?<=^|\\s)\\d{1,3}\\.\\s', kind: 'sentence numbers' },
-        count: 47,
-        language: 'la',
-        edition: { statement: 'Latin, 1486; Pico Project numbering', translator: null, year: 1486 },
-        rights: { us: 'pd', life70: 'pd' }
+        artifacts: ['oratio.en.md', 'oratio.la.md'].map((file, index) => ({
+            kind: 'file',
+            path: `scripts/school-sources/gate.oration/${file}`,
+            extract: { from: '§ 1' },
+            units: 'headings',
+            level: 2,
+            // The Pico Project's running sentence numbers are for reference, not for reading aloud.
+            strike: { pattern: '(?<=^|\\s)\\d{1,3}\\.\\s', kind: 'sentence numbers' },
+            ...(index ? { prefix: 'Latin' } : {})
+        })),
+        count: 94,
+        translation: 'RISE translation, English draft, Latin beside it',
+        edition: {
+            statement: 'English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, '
+                + 'not yet read against it by a person (notes on uncertain readings are in the source folder). '
+                + 'Latin: the Pico Project text, 1486.',
+            translator: 'RISE',
+            year: 2026
+        },
+        // Pico's Latin is public domain; the translation is RISE's, under CC BY 4.0, and the Lectern's Rights line names its licence.
+        rights: { us: 'pd', life70: 'pd', note: 'English CC BY 4.0, RISE 2026', licence: 'English translation CC BY 4.0, RISE 2026' }
     },
     'saturn.emerald-tablet': {
         kind: 'file',
