@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
     GALLERY_CADENCE_DEFAULT,
+    STREAM_RATE_DEFAULT_HZ,
+    STREAM_RATE_MAX_HZ,
+    STREAM_RATE_MIN_HZ,
     VISUAL_PRESENCE_DEFAULT_MS,
     VISUAL_PRESENCE_STEPS_MS,
     formatVisualPresence,
@@ -13,10 +16,12 @@ import {
     nearestVisualPresenceStep,
     normalizeGalleryCadence,
     normalizePresentation,
+    normalizeStreamRate,
     normalizeVisualPresence,
     isContinuousPresentation,
     isGalleryInTheWord,
     responsiveVisualPresence,
+    streamFrameAt,
     visualPresenceTransition,
     visualPresenceValueText
 } from './visual-presence.js';
@@ -161,5 +166,40 @@ describe('Visual Presence policy', () => {
         expect(minimumVisualPresenceRest(150)).toBe(250);
         expect(minimumVisualPresenceRest(200)).toBe(250);
         expect(minimumVisualPresenceRest(2000)).toBe(2500);
+    });
+});
+
+describe('Image Stream clock', () => {
+    it('keeps the rate between four and twelve images a second', () => {
+        expect(normalizeStreamRate(undefined)).toBe(STREAM_RATE_DEFAULT_HZ);
+        expect(normalizeStreamRate('fast')).toBe(STREAM_RATE_DEFAULT_HZ);
+        expect(normalizeStreamRate(1)).toBe(STREAM_RATE_MIN_HZ);
+        expect(normalizeStreamRate(60)).toBe(STREAM_RATE_MAX_HZ);
+        expect(normalizeStreamRate(10)).toBe(10);
+    });
+
+    it('holds each frame for whole refreshes, never faster than asked', () => {
+        expect(streamFrameAt(0, 4, { hz: 8, refreshHz: 60 })).toMatchObject({
+            refreshesPerFrame: 8, frameMs: 400 / 3
+        });
+        expect(streamFrameAt(0, 4, { hz: 8, refreshHz: 120 })).toMatchObject({
+            refreshesPerFrame: 15, frameMs: 125
+        });
+        expect(streamFrameAt(0, 4, { hz: 12, refreshHz: 60 }).refreshesPerFrame).toBe(5);
+        // A display slower than the rate still shows every frame for one refresh.
+        expect(streamFrameAt(0, 4, { hz: 12, refreshHz: 10 }).refreshesPerFrame).toBe(1);
+        // An unknown display is assumed to refresh at 60 Hz.
+        expect(streamFrameAt(0, 4, { hz: 12, refreshHz: 0 }).frameMs).toBeCloseTo(1000 / 12, 9);
+    });
+
+    it('steps through the reel and wraps', () => {
+        const at = t => streamFrameAt(t, 3, { hz: 8, refreshHz: 120 });
+        expect([0, 124, 125, 250, 374, 375].map(t => at(t).index)).toEqual([0, 0, 1, 2, 2, 0]);
+        expect(at(375).cycle).toBe(1);
+        expect(at(-50).index).toBe(0);
+    });
+
+    it('has no frame to show in an empty reel', () => {
+        expect(streamFrameAt(500, 0)).toMatchObject({ index: null, cycle: 0 });
     });
 });

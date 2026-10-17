@@ -37,6 +37,7 @@ const HOSTILE_INPUTS = [
     'FULL-FRAME',
     ' full-frame ',
     'flash',
+    'stream',
     'strobe',
     '',
     null,
