@@ -168,6 +168,8 @@ describe('the canon', () => {
     expect(Object.fromEntries(SCHOOL_CANON.filter(record => record.note !== null)
       .map(record => [record.id, record.note]))).toEqual({
       'gate.oration': 'A free English edition is the school\'s first commission',
+      'mercury.philosophie-der-technik': 'A selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); chapters IV to XIII, from Gliedmaassen und Maasse to Der Staat, are left out',
+      'mars.muqaddimah': 'A selection from de Slane\'s volume I: the opening of Book I, the first preliminary discourse, and the second section as far as the chapter on esprit de corps and sovereignty; the rest of the Prolégomènes is left out',
       'saturn.sermons': 'Claud Field\'s seven sermons are read now; C. de B. Evans\'s 1924 volume follows after a proofing pass'
     });
   });

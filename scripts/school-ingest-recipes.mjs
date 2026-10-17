@@ -80,6 +80,38 @@ export const WEB_RECIPES = {
         },
         rights: { us: 'pd', life70: 'pd' }
     },
+    // Proofed from Internet Archive OCR: the OCR, the diff and the provenance sit beside the file.
+    'mercury.philosophie-der-technik': {
+        kind: 'file',
+        path: 'scripts/school-sources/mercury.philosophie-der-technik/grundlinien.proofed.md',
+        extract: { from: 'Vorwort' },
+        units: 'headings',
+        level: 2,
+        count: 4,
+        language: 'de',
+        edition: {
+            statement: 'Westermann, Braunschweig, 1877; selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); Internet Archive 11379066bsb (Bayerische Staatsbibliothek), proofed from the Internet Archive scan by RISE, 2026, diff on file',
+            translator: null,
+            year: 1877
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'mars.muqaddimah': {
+        kind: 'file',
+        path: 'scripts/school-sources/mars.muqaddimah/prolegomenes.proofed.md',
+        extract: { from: 'Livre premier' },
+        units: 'headings',
+        level: 2,
+        group: 1,
+        count: 19,
+        language: 'fr',
+        edition: {
+            statement: 'W. MacGuckin de Slane, Prolégomènes, Imprimerie impériale, 1863; vol. I selection: the opening of Book I, the first preliminary discourse, and the second section to “L’esprit de corps aboutit à l’acquisition de la souveraineté”; Internet Archive lesprolgomne01abdauoft, proofed from the Internet Archive scan by RISE, 2026, diff on file',
+            translator: 'W. MacGuckin de Slane',
+            year: 1863
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
     // Converted from Project Gutenberg's LaTeX (PG 15114) by scripts/school-latex.mjs.
     'mercury.laws-of-thought': {
         kind: 'file',
