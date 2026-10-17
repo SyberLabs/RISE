@@ -164,13 +164,13 @@ flowchart LR
     app["app<br/>composition root<br/>25 modules"]
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
     components["components<br/>routed views<br/>58 modules"]
-    content["content<br/>texts, imagery, journeys<br/>300 modules"]
+    content["content<br/>texts, imagery, journeys<br/>302 modules"]
     core["core<br/>session, player, router<br/>185 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>76 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     scenes["scenes<br/>engine manifests, cues; scene runtime<br/>9 modules"]
-    sources["sources<br/>text and visual providers<br/>14 modules"]
+    sources["sources<br/>text and visual providers<br/>13 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
     visuals["visuals<br/>procedural generation<br/>60 modules"]
     wormhole["wormhole<br/>7 modules"]
@@ -178,7 +178,7 @@ flowchart LR
     affect --> |7| core
     app --> |2| audio
     app -.-> |8 lazy| components
-    app --> |7| content
+    app --> |6| content
     app --> |60| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources

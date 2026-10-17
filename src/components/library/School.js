@@ -117,7 +117,7 @@ function rightsLine(record) {
   return `Public domain in the US; in copyright in life+70 countries until ${life70.slice('until:'.length)}`;
 }
 
-const LANGUAGES = Object.freeze({ la: 'Latin', de: 'German' });
+const LANGUAGES = Object.freeze({ la: 'Latin', fr: 'French', de: 'German' });
 
 /** A corpus work not in English says so after its state; an English one says nothing more. */
 function languageNote(record) {

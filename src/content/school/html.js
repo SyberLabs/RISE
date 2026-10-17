@@ -12,9 +12,7 @@
  * Imported only by scripts/school-ingest.mjs.
  */
 
-import { dropFurniture, readUnits } from './gutenberg.js';
-
-const countWords = text => String(text).split(/\s+/u).filter(Boolean).length;
+import { dropFurniture, readUnits, strikeText } from './gutenberg.js';
 
 export function readHtml(pages, parse, recipe) {
     const bodies = pages.map((html, index) => {
@@ -24,15 +22,6 @@ export function readHtml(pages, parse, recipe) {
     });
     const doc = parse(`<!DOCTYPE html><html><body>${bodies.join('\n')}</body></html>`);
     const dropped = dropFurniture(doc, { ...recipe.drops, hidden: 'script, style' });
-    if (recipe.strike) {
-        const pattern = new RegExp(recipe.strike.pattern, 'gu');
-        const walker = doc.createTreeWalker(doc.body, 4);
-        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-            node.data = node.data.replace(pattern, match => {
-                dropped[recipe.strike.kind] = (dropped[recipe.strike.kind] || 0) + countWords(match);
-                return ' ';
-            });
-        }
-    }
+    if (recipe.strike) strikeText(doc, recipe.strike, dropped);
     return readUnits(doc, recipe, dropped);
 }

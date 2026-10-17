@@ -59,6 +59,15 @@ describe('latexToMarkdown', () => {
     expect(dropped).toEqual({ footnotes: 4 });
   });
 
+  it('drops a note set inside mathematics', () => {
+    const { markdown, dropped } = latexToMarkdown(book([
+      '\\chapter[NOTES]{}',
+      'Thus $x = y\\footnotemark$ and $z = 0\\footnote{As before.}$ hold.'
+    ].join('\n')), SPAN);
+    expect(markdown).toBe('## Chapter I: Notes\n\nThus [x = y] and [z = 0] hold.');
+    expect(dropped).toEqual({ footnotes: 2 });
+  });
+
   it('sets quotes, dashes, accents, small capitals and Greek as printed', () => {
     const { markdown } = latexToMarkdown(book([
       '\\chapter[TYPE]{}',
