@@ -17,7 +17,7 @@ const WITHHELD = 'Not in the launch canon.';
 const MANIFEST = {
   works: [
     { id: 'literary-meditations', shelved: true },
-    { id: 'faust', shelved: false, withheldReason: WITHHELD },
+    { id: 'sacred-corpus-hermeticum', shelved: false, withheldReason: WITHHELD },
     { id: 'sacred-emerald-tablet', shelved: true }
   ]
 };
@@ -54,12 +54,12 @@ describe('schoolStatus', () => {
   });
 
   it('is carried, with the archive\'s reason, when the manifest withholds the work', () => {
-    expect(schoolStatus(recordById('venus.faust'), MANIFEST)).toEqual({ state: 'carried', reason: WITHHELD });
+    expect(schoolStatus(recordById('saturn.corpus-hermeticum'), MANIFEST)).toEqual({ state: 'carried', reason: WITHHELD });
   });
 
   it('is absent when the record names no work, or the manifest does not', () => {
     expect(schoolStatus(recordById('sun.zarathustra'), MANIFEST)).toEqual({ state: 'absent', reason: null });
-    expect(schoolStatus(recordById('sun.fragments'), MANIFEST)).toEqual({ state: 'absent', reason: null });
+    expect(schoolStatus(recordById('sun.monadology'), MANIFEST)).toEqual({ state: 'absent', reason: null });
   });
 
   it('keeps an original-only record absent, its rights shown beside the state', () => {

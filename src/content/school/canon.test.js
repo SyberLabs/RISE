@@ -121,11 +121,8 @@ describe('the canon', () => {
     expect(Object.fromEntries(pointed.map(record => [record.id, record.work.id]))).toEqual({
       'sun.meditations': 'literary-meditations',
       'sun.nature': 'literary-essays-emerson',
-      'venus.spiritual-in-art': 'kandinsky-spiritual-in-art',
       'venus.divine-comedy': 'the-divine-comedy',
-      'venus.faust': 'faust',
       'saturn.tao-te-ching': 'sacred-tao-te-ching',
-      'saturn.bhagavad-gita': 'extended-bhagavad-gita-full',
       'saturn.emerald-tablet': 'sacred-emerald-tablet',
       'saturn.corpus-hermeticum': 'sacred-corpus-hermeticum'
     });
