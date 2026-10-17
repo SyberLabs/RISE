@@ -164,7 +164,7 @@ flowchart LR
     app["app<br/>composition root<br/>25 modules"]
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
     components["components<br/>routed views<br/>58 modules"]
-    content["content<br/>texts, imagery, journeys<br/>232 modules"]
+    content["content<br/>texts, imagery, journeys<br/>243 modules"]
     core["core<br/>session, player, router<br/>185 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>76 modules"]
@@ -188,7 +188,7 @@ flowchart LR
     components --> |3| affect
     components --> |10| app
     components --> |6| audio
-    components --> |28| content
+    components --> |29| content
     components --> |192| core
     components -.-> |1 lazy| page
     components --> |3| scenes
@@ -196,7 +196,7 @@ flowchart LR
     components -.-> |2 lazy| vendor
     components --> |18| visuals
     content --> |3| audio
-    content --> |15| core
+    content --> |16| core
     content --> |10| sources
     content --> |1| visuals
     core --> |14| audio
