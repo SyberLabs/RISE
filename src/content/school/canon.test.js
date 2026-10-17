@@ -106,13 +106,14 @@ describe('the canon', () => {
     for (const record of SCHOOL_CANON) {
       expect(['us-pd', 'us-only', 'orig-only'], record.id).toContain(record.rights);
       if (/US only/u.test(record.edition)) expect(record.rights, record.id).toBe('us-only');
-      if (/orig\. only/u.test(record.edition)) expect(record.rights, record.id).toBe('orig-only');
+      // The Gate's plan edition reads "orig. only", but RISE now serves its own English translation.
+      if (/orig\. only/u.test(record.edition) && record.id !== 'gate.oration') expect(record.rights, record.id).toBe('orig-only');
     }
     expect(SCHOOL_CANON.filter(record => record.rights === 'us-only').map(record => record.id)).toEqual([
       'mercury.machine-stops', 'mercury.rur', 'moon.psychological-types', 'mars.decline-of-the-west'
     ]);
     expect(SCHOOL_CANON.filter(record => record.rights === 'orig-only').map(record => record.id)).toEqual([
-      'gate.oration', 'mercury.philosophie-der-technik', 'venus.futurist-manifesto', 'mars.muqaddimah', 'mars.new-science', 'jupiter.harmonices-mundi'
+      'mercury.philosophie-der-technik', 'venus.futurist-manifesto', 'mars.muqaddimah', 'mars.new-science', 'jupiter.harmonices-mundi'
     ]);
   });
 
@@ -179,7 +180,7 @@ describe('the canon', () => {
     const byId = Object.fromEntries(SCHOOL_CANON.map(record => [record.id, record]));
     expect(byId['gate.oration']).toMatchObject({
       title: 'Oration on the Dignity of Man', author: 'Pico della Mirandola', date: '1486',
-      edition: 'Latin, orig. only (verify a pre-1931 English)', degree: 0, rights: 'orig-only', work: { corpus: true },
+      edition: 'Latin, orig. only (verify a pre-1931 English)', degree: 0, rights: 'us-pd', work: { corpus: true },
       why: 'The Renaissance manifesto: the human as the being with no fixed place, who must shape itself'
     });
     expect(byId['mercury.lovelace-notes']).toMatchObject({

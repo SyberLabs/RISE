@@ -4,7 +4,8 @@
  *
  * Title, author, date, edition and why are the plan's words, verbatim.
  * `rights` follows the edition column: "US only" is 'us-only', "orig. only" is
- * 'orig-only', anything else 'us-pd'. `work` names a RISE archive work, served
+ * 'orig-only', anything else 'us-pd'; the Gate alone is 'us-pd' against its
+ * column, because RISE serves its own English translation. `work` names a RISE archive work, served
  * or withheld, or is `{ corpus: true }` for a text the School corpus serves
  * under the record's own id (./corpus.js); whether it can be read is resolved
  * from the content manifest at runtime, never written here. `work.entry` pins
@@ -29,7 +30,7 @@ function text({ id, degree, title, author, date, edition, why, rights = 'us-pd',
 export const SCHOOL_CANON = freeze([
   // The Gate
   text({ id: 'gate.oration', degree: 0, title: 'Oration on the Dignity of Man', author: 'Pico della Mirandola', date: '1486',
-    edition: 'Latin, orig. only (verify a pre-1931 English)', rights: 'orig-only',
+    edition: 'Latin, orig. only (verify a pre-1931 English)',
     why: 'The Renaissance manifesto: the human as the being with no fixed place, who must shape itself',
     note: 'A free English edition is the school\'s first commission',
     work: { corpus: true } }),

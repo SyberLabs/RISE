@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { DISTRIBUTOR_MATTER } from '../archive/divisions.js';
 import { SCHOOL_CANON } from './canon.js';
-import { SCHOOL_WORKS } from './corpus.js';
+import { SCHOOL_WORKS, schoolWorkById } from './corpus.js';
 
 const RECORD_IDS = new Set(SCHOOL_CANON.map(record => record.id));
 const LIFE70 = /^(?:pd|unknown|until:\d{4})$/u;
@@ -124,6 +124,11 @@ describe('the School corpus', () => {
     for (const section of sections) expect(section.content, section.name).not.toMatch(/(?:^|\s)\d{1,3}\.\s/u);
     // 293 sentences, numbered once in each language.
     expect(meta.dropped).toEqual({ 'sentence numbers': 586 });
+    // The English is RISE's own and a draft, and the entry says both.
+    expect(schoolWorkById('gate.oration')).toMatchObject({
+      edition: { statement: 'English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, not yet read against it by a person (notes on uncertain readings are in the source folder). Latin: the Pico Project text, 1486.', translator: 'RISE', year: 2026 },
+      rights: { us: 'pd', life70: 'pd', note: 'English CC BY 4.0, RISE 2026' }
+    });
     expect(meta.source.artifacts.map(source => source.url)).toEqual([
       'scripts/school-sources/gate.oration/oratio.en.md', 'scripts/school-sources/gate.oration/oratio.la.md'
     ]);

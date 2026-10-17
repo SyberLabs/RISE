@@ -225,6 +225,8 @@ describe('the action a text offers', () => {
     await settle();
     const facts = lectern().querySelector('.school-facts').textContent;
     expect(facts).not.toContain('Original language');
+    expect(facts).toContain('English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, not yet read against it by a person');
+    expect(facts).toContain('Latin: the Pico Project text, 1486.');
     expect(lectern().querySelector('.school-action button[data-read="gate.oration"]')).not.toBeNull();
   });
 

@@ -85,8 +85,15 @@ export const WEB_RECIPES = {
             ...(index ? { prefix: 'Latin' } : {})
         })),
         count: 94,
-        edition: { statement: 'Latin, 1486; Pico Project numbering', translator: null, year: 1486 },
-        rights: { us: 'pd', life70: 'pd' }
+        edition: {
+            statement: 'English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, '
+                + 'not yet read against it by a person (notes on uncertain readings are in the source folder). '
+                + 'Latin: the Pico Project text, 1486.',
+            translator: 'RISE',
+            year: 2026
+        },
+        // Pico's Latin is public domain; the translation is RISE's, under CC BY 4.0.
+        rights: { us: 'pd', life70: 'pd', note: 'English CC BY 4.0, RISE 2026' }
     },
     'saturn.emerald-tablet': {
         kind: 'file',
