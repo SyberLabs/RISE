@@ -64,6 +64,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/714",
       "note": "PR 4: Boole from LaTeX, Cosmos vol. 1, the Metamorphosis of Plants proofed from the scan (diff on file, unread), Jung chapter X; 62 readable.",
       "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "370c3252",
+      "note": "PR 4 merged (#714) and deployed: Boole, Cosmos vol. 1, the Metamorphosis of Plants, Jung chapter X, with two Codex fixes; 62 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/716",
+      "note": "PR 5: Kapp (German) and Ibn Khaldun (French) as proofed selections with diffs on file; Kepler not served; 64 readable.",
+      "date": "2026-10-17"
     }
   ],
   "activity": [
@@ -86,10 +98,14 @@
     {
       "date": "2026-10-17T10:18:31.000Z",
       "summary": "PR 4 opened: the hard cases; 62 readable"
+    },
+    {
+      "date": "2026-10-17T10:51:09.000Z",
+      "summary": "PR 5 opened: the original-language selections; 64 readable"
     }
   ],
-  "updatedAt": "2026-10-17T10:18:31.000Z",
-  "revision": 5,
+  "updatedAt": "2026-10-17T10:51:09.000Z",
+  "revision": 6,
   "summary": "After RDR-029 shipped with four of 66 texts readable, the owner lifted the Standard-Ebooks-only serving rule for the School only. The survey finds a free proofed edition for 46 of the 62 missing texts, nine as scans needing a proofing pass, and six with no free English, the Gate among them. The design admits them through a School corpus beside the Archive, on the Chapel's precedent, with recipes per work and the same gates every time; six pull requests take the School from 4 to 66 readable.",
   "blocker": null
 }
