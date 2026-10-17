@@ -41,10 +41,10 @@ const DROP = Object.freeze({
 });
 /** An anchor's whole text when it is a footnote marker: [1], [12a], [FN#3], [A], *. */
 const MARKER_TEXT = /^\s*\[?(?:FN#?)?(?:\d{1,4}[a-z]?|[A-Za-z]|[*†‡§])\]?\s*$/u;
-/** A marker set as plain text: attached to the word or stop before it, or an [FN#n] anywhere. */
-const PLAIN_MARKER = /(?<=\S)\[(?:FN#?)?(?:\d{1,4}|[A-Z])\]|\[FN#?\d{1,4}\]/gu;
-/** A block that opens with a marker is a footnote's own text. */
-const NOTE_BLOCK = /^\s*\[(?:FN#?)?(?:\d{1,4}|[A-Z])\]/u;
+/** A marker set as plain text: attached to the word or stop before it, a letter marker to the word after it, or an [FN#n] anywhere. */
+const PLAIN_MARKER = /(?<=\S)\[(?:FN#?)?(?:\d{1,4}|[A-Z]{1,2})\]|\[[A-Z]{1,2}\](?=\S)|\[FN#?\d{1,4}\]/gu;
+/** A block that opens with a marker and a space is a footnote's own text ("[C]While" opens a verse line). */
+const NOTE_BLOCK = /^\s*\[(?:FN#?)?(?:\d{1,4}|[A-Z]{1,2})\]\s/u;
 const MINOR = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'nor', 'of', 'on',
     'or', 'the', 'to', 'with']);
 
@@ -377,7 +377,9 @@ export function readGutenberg(html, parse, recipe) {
         }
         if (unit) {
             current = {
-                name: unit.name ?? headingName(item.lines),
+                // `nameFrom: 'title'` reads the name the edition gave its heading's title attribute.
+                name: unit.name ?? (recipe.nameFrom === 'title' && item.element.title
+                    ? headingName([item.element.title]) : headingName(item.lines)),
                 sourceTitle: item.text,
                 verseFlag: unit.verse ?? recipe.verse,
                 blocks: [...carried.map(text => ({ lines: [text], verse: false }))],

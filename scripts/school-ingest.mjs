@@ -54,7 +54,7 @@ const RAW = 'https://raw.githubusercontent.com/standardebooks';
 const MIN_CHARS = 200;
 // A marker attached to the word before it, or any [FN#n]; "[3553]" set
 // after a space is a year in Vico's chronology, not a note.
-const FOOTNOTE_MARKER = /\S\[\d{1,4}\]|\[FN#?\d{1,4}\]|\[Footnote/u;
+const FOOTNOTE_MARKER = /\S\[(?:\d{1,4}|[A-Z]{1,2})\]|\[[A-Z]{1,2}\]\S|\[FN#?\d{1,4}\]|\[Footnote/u;
 // A producer's credit opens a paragraph ("Produced by Works" opens a verse line in the Gita).
 const LEFTOVER = /(?:^|\n\n)\s*produced by\b|transcriber['’]?s note/iu;
 
@@ -534,6 +534,8 @@ const RECIPES = Object.freeze({
         extract: { from: 'CHAPTER I INTRODUCTORY', to: 'NOTES:' },
         units: 'headings',
         level: 2,
+        // The headings run numeral and title together; their title attributes name them.
+        nameFrom: 'title',
         count: 18,
         edition: { statement: 'Cambridge University Press, 1917; figures referenced as text', translator: null, year: 1917 },
         rights: { us: 'pd', life70: 'pd' }
