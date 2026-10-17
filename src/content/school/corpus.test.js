@@ -21,8 +21,14 @@ const SOURCE_URL = {
   ccel: /^https:\/\/ccel\.org\/ccel\/[a-z0-9]+\/[a-z0-9]+$/u,
   'eebo-tcp': /^https:\/\/github\.com\/textcreationpartnership\/A\d{5}$/u,
   html: /^https:\/\/\S+$/u,
-  file: /^scripts\/school-sources\/[a-z]+\.[a-z0-9-]+\/[\w.-]+$/u
+  file: /^scripts\/school-sources\/[a-z]+\.[a-z0-9-]+\/[\w.-]+$/u,
+  'commons-plates': /^https:\/\/commons\.wikimedia\.org\/wiki\/\S+$/u
 };
+// A picture work's unit is the words beside its plate: the plate's title,
+// its place in the book, and what Commons says of it. Three of Haeckel's
+// hundred (Tafel 8, 42, 62) carry a one-line note and no organism list, so
+// they cannot reach 200 characters honestly; the plate is the reading there.
+const PICTURE_MIN_CHARS = 100;
 const BARE_NUMERAL = /^(?:[IVXLCDM]+|\d+)\.?$/u;
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 
@@ -77,6 +83,7 @@ describe('the School corpus', () => {
       ['mars.decline-of-the-west', 25],
       ['jupiter.nature-of-things', 6],
       ['jupiter.flatland', 22],
+      ['jupiter.art-forms-in-nature', 100],
       ['jupiter.cosmos', 4],
       ['jupiter.growth-and-form', 18],
       ['jupiter.relativity', 37],
@@ -126,6 +133,7 @@ describe('the School corpus', () => {
         expect(meta.source).toMatchObject(work.source);
         expect(meta.rights).toEqual(work.rights);
         expect(meta.language).toBe(work.language);
+        expect(meta.imagery).toBe(work.imagery);
       });
 
       it('names every unit uniquely and readably, and serves no distributor matter', async () => {
@@ -136,7 +144,7 @@ describe('the School corpus', () => {
         for (const section of sections) {
           expect(Object.keys(section).every(key => ['name', 'content', 'verse'].includes(key)), section.name).toBe(true);
           expect(section.name, section.name).not.toMatch(BARE_NUMERAL);
-          expect(section.content.length, section.name).toBeGreaterThanOrEqual(200);
+          expect(section.content.length, section.name).toBeGreaterThanOrEqual(work.imagery ? PICTURE_MIN_CHARS : 200);
           expect(section.name, section.name).not.toMatch(DISTRIBUTOR_MATTER);
           expect(section.content, section.name).not.toMatch(DISTRIBUTOR_MATTER);
           if ('verse' in section) expect(section.verse).toBe(true);
