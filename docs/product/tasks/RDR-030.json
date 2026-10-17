@@ -52,6 +52,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/713",
       "note": "PR 3: Wikisource, CCEL, sacred-texts, TEI, Victorian Web and file adapters; 20 texts and the Gate's Latin; 58 readable.",
       "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "a7b6d03e",
+      "note": "PR 3 merged (#713) and deployed: the web adapters, 20 texts and the Latin at the Gate; 58 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/714",
+      "note": "PR 4: Boole from LaTeX, Cosmos vol. 1, the Metamorphosis of Plants proofed from the scan (diff on file, unread), Jung chapter X; 62 readable.",
+      "date": "2026-10-17"
     }
   ],
   "activity": [
@@ -70,10 +82,14 @@
     {
       "date": "2026-10-17T09:33:04.000Z",
       "summary": "PR 3 opened: web adapters, 20 texts, the Latin Oration at the Gate"
+    },
+    {
+      "date": "2026-10-17T10:18:31.000Z",
+      "summary": "PR 4 opened: the hard cases; 62 readable"
     }
   ],
-  "updatedAt": "2026-10-17T09:33:04.000Z",
-  "revision": 4,
+  "updatedAt": "2026-10-17T10:18:31.000Z",
+  "revision": 5,
   "summary": "After RDR-029 shipped with four of 66 texts readable, the owner lifted the Standard-Ebooks-only serving rule for the School only. The survey finds a free proofed edition for 46 of the 62 missing texts, nine as scans needing a proofing pass, and six with no free English, the Gate among them. The design admits them through a School corpus beside the Archive, on the Chapel's precedent, with recipes per work and the same gates every time; six pull requests take the School from 4 to 66 readable.",
   "blocker": null
 }

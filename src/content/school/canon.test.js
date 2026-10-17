@@ -168,6 +168,7 @@ describe('the canon', () => {
     expect(Object.fromEntries(SCHOOL_CANON.filter(record => record.note !== null)
       .map(record => [record.id, record.note]))).toEqual({
       'gate.oration': 'A free English edition is the school\'s first commission',
+      'moon.psychological-types': 'Chapter X, General Description of the Types, is read now; the rest of Baynes\'s translation follows after a proofing pass of the 1924 printing',
       'saturn.sermons': 'Claud Field\'s seven sermons are read now; C. de B. Evans\'s 1924 volume follows after a proofing pass'
     });
   });
