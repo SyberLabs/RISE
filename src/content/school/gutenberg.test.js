@@ -280,6 +280,8 @@ describe('titleCase', () => {
     expect(titleCase('The Song Celestial')).toBe('The Song Celestial');
     expect(titleCase('I')).toBe('I');
     expect(titleCase('THE PROBLEM OF THE ESTATES—NOBILITY AND PRIESTHOOD')).toBe('The Problem of the Estates—Nobility and Priesthood');
+    expect(titleCase("THE ANGEL'S GREETING")).toBe("The Angel's Greeting");
+    expect(titleCase("'WIRELESS' TELEGRAPHY")).toBe("'Wireless' Telegraphy");
   });
 
   it('removes letter markers on either side of their word, with their notes, and names a unit by its heading title when told to', () => {

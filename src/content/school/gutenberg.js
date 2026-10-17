@@ -66,7 +66,8 @@ export function titleCase(text) {
         if (/^\(?[IVXLCDM]+[.,:;)]*$/u.test(word)) return word;
         const lower = word.toLowerCase();
         if (!first && MINOR.has(lower.replace(/[.,:;]+$/u, ''))) return lower;
-        return lower.replace(/(^|[-(‘“"'—])(\p{L})/gu, (_, lead, letter) => lead + letter.toUpperCase());
+        // An apostrophe after a letter is a possessive or an elision ("Angel's"), not an opening quote.
+        return lower.replace(/(^|[-(‘“"—]|(?<!\p{L})')(\p{L})/gu, (_, lead, letter) => lead + letter.toUpperCase());
     }).join(' ');
 }
 
@@ -335,6 +336,11 @@ function headingName(lines) {
     return titleCase(name.replace(/[.:]$/u, '')).replace(/[.:]$/u, '');
 }
 
+/** A name read from a heading, with the recipe's `retitle: { pattern, to }` applied ("Here Beginneth the First Chapter" → "First Chapter"). */
+function renamed(recipe, name) {
+    return recipe.retitle ? name.replace(new RegExp(recipe.retitle.pattern, 'u'), recipe.retitle.to) : name;
+}
+
 function shortName(text) {
     return titleCase(flat(text).split(/[.:] /u)[0].replace(/[.:]$/u, ''));
 }
@@ -450,7 +456,7 @@ export function readUnits(doc, recipe, dropped) {
         if (unit) {
             current = {
                 // `nameFrom: 'title'` reads the name the edition gave its heading's title attribute.
-                name: unit.name ?? (recipe.nameFrom === 'title' && item.element.title
+                name: unit.name ?? renamed(recipe, recipe.nameFrom === 'title' && item.element.title
                     ? headingName([item.element.title]) : headingName(item.lines)),
                 sourceTitle: item.text ?? null,
                 verseFlag: unit.verse ?? recipe.verse,

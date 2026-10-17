@@ -34,6 +34,7 @@ vey from himself the vertues of his Omnipotency.
 <l>Cal d Elements, what Fire, Earth, Aire forth brings:</l>
 </q>
 All these things doth naturall Philosophy contain.</p>
+<figure><head>The Letters, or Characters of Saturne.</head><p>A seal of Saturn, its letters drawn.</p></figure>
 <note place="margin">A marginal note.</note>
 </div>
 </div>
@@ -58,7 +59,9 @@ describe('readTei', () => {
       'BOOK I.',
       'Seeing there is a three f•ld World, Elementary, Celestiall, and intellectuall, the very original Worker doth convey from himself the vertues of his Omnipotency.',
       'The Number and the Nature of those things,\nCal d Elements, what Fire, Earth, Aire forth brings:',
-      'All these things doth naturall Philosophy contain.'
+      'All these things doth naturall Philosophy contain.',
+      'The Letters, or Characters of Saturne.',
+      'A seal of Saturn, its letters drawn.'
     ]);
     expect(read.dropped).toEqual({ 'forme work': 1, notes: 3 });
     expect(read.sourceWords).toBe(read.importedWords);

@@ -53,7 +53,9 @@ function convert(node, html, depth) {
     if (node.nodeType !== 1) return null;
     const name = node.localName;
     const verse = (name === 'q' || name === 'lg') && node.getElementsByTagName('l').length;
-    const tag = name === 'head' ? `h${Math.min(6, depth + 1)}` : verse ? 'div' : name === 'l' ? 'div' : BLOCKS[name] ?? 'span';
+    // Only a division's head is a heading; a figure's, table's or list's is a caption, read as a paragraph.
+    const head = name === 'head' && node.parentNode?.localName === 'div';
+    const tag = head ? `h${Math.min(6, depth + 1)}` : name === 'head' ? 'p' : verse ? 'div' : name === 'l' ? 'div' : BLOCKS[name] ?? 'span';
     const element = html.createElement(tag);
     if (verse) element.className = 'poem';
     const inner = name === 'div' ? depth + 1 : depth;
