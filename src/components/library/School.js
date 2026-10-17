@@ -108,11 +108,15 @@ function focusKey(focus) {
   return focus.kind === 'path' ? `path-${focus.id}` : focus.id;
 }
 
-/** A corpus work states its life+70 status; any other record its plan rights. */
+/**
+ * A corpus work states its life+70 status, and the licence of a translation
+ * RISE made; any other record its plan rights.
+ */
 function rightsLine(record) {
-  const life70 = record.work?.corpus ? schoolWorkById(record.id)?.rights.life70 : null;
+  const rights = record.work?.corpus ? schoolWorkById(record.id)?.rights : null;
+  const life70 = rights?.life70;
   if (!life70) return RIGHTS[record.rights];
-  if (life70 === 'pd') return 'Public domain';
+  if (life70 === 'pd') return rights.licence ? `Public domain · ${rights.licence}` : 'Public domain';
   if (life70 === 'unknown') return 'Public domain in the US; translator’s dates unknown';
   return `Public domain in the US; in copyright in life+70 countries until ${life70.slice('until:'.length)}`;
 }

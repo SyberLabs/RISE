@@ -424,7 +424,8 @@ export const GATE_ORATION_META = Object.freeze({
     "rights": {
         "us": "pd",
         "life70": "pd",
-        "note": "English CC BY 4.0, RISE 2026"
+        "note": "English CC BY 4.0, RISE 2026",
+        "licence": "English translation CC BY 4.0, RISE 2026"
     },
     "structure": "declared",
     "units": 94,

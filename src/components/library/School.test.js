@@ -228,6 +228,9 @@ describe('the action a text offers', () => {
     expect(facts).toContain('English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, not yet read against it by a person');
     expect(facts).toContain('Latin: the Pico Project text, 1486.');
     expect(facts).toContain('Readable in RISE · RISE translation, English draft, Latin beside it');
+    expect(facts).toContain('Public domain · English translation CC BY 4.0, RISE 2026');
+    expect(lectern().querySelector('.school-note').textContent)
+      .toBe('Read in RISE\'s English draft, with the Latin after it; the English awaits a reading against the Latin');
     expect(lectern().querySelector('.school-action button[data-read="gate.oration"]')).not.toBeNull();
   });
 

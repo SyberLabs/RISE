@@ -168,7 +168,7 @@ describe('the canon', () => {
   it('notes the commission and the edition still to come', () => {
     expect(Object.fromEntries(SCHOOL_CANON.filter(record => record.note !== null)
       .map(record => [record.id, record.note]))).toEqual({
-      'gate.oration': 'A free English edition is the school\'s first commission',
+      'gate.oration': 'Read in RISE\'s English draft, with the Latin after it; the English awaits a reading against the Latin',
       'mercury.philosophie-der-technik': 'A selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); chapters IV to XIII, from Gliedmaassen und Maasse to Der Staat, are left out; ten places where the damaged scan lost lines are marked […], and 79 unsettled readings [?]',
       'moon.psychological-types': 'Chapter X, General Description of the Types, is read now; the rest of Baynes\'s translation follows after a proofing pass of the 1924 printing',
       'mars.muqaddimah': 'A selection from de Slane\'s volume I: the opening of Book I, the first preliminary discourse, and the second section as far as the chapter on esprit de corps and sovereignty; the rest of the Prolégomènes is left out',

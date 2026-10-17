@@ -93,8 +93,8 @@ export const WEB_RECIPES = {
             translator: 'RISE',
             year: 2026
         },
-        // Pico's Latin is public domain; the translation is RISE's, under CC BY 4.0.
-        rights: { us: 'pd', life70: 'pd', note: 'English CC BY 4.0, RISE 2026' }
+        // Pico's Latin is public domain; the translation is RISE's, under CC BY 4.0, and the Lectern's Rights line names its licence.
+        rights: { us: 'pd', life70: 'pd', note: 'English CC BY 4.0, RISE 2026', licence: 'English translation CC BY 4.0, RISE 2026' }
     },
     'saturn.emerald-tablet': {
         kind: 'file',

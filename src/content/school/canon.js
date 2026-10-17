@@ -32,7 +32,7 @@ export const SCHOOL_CANON = freeze([
   text({ id: 'gate.oration', degree: 0, title: 'Oration on the Dignity of Man', author: 'Pico della Mirandola', date: '1486',
     edition: 'Latin, orig. only (verify a pre-1931 English)',
     why: 'The Renaissance manifesto: the human as the being with no fixed place, who must shape itself',
-    note: 'A free English edition is the school\'s first commission',
+    note: 'Read in RISE\'s English draft, with the Latin after it; the English awaits a reading against the Latin',
     work: { corpus: true } }),
 
   // Sun: House of the Logos
