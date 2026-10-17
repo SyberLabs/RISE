@@ -120,11 +120,8 @@ describe('the canon', () => {
     const pointed = SCHOOL_CANON.filter(record => record.work?.id);
     expect(Object.fromEntries(pointed.map(record => [record.id, record.work.id]))).toEqual({
       'sun.meditations': 'literary-meditations',
-      'sun.nature': 'literary-essays-emerson',
       'venus.divine-comedy': 'the-divine-comedy',
-      'saturn.tao-te-ching': 'sacred-tao-te-ching',
-      'saturn.emerald-tablet': 'sacred-emerald-tablet',
-      'saturn.corpus-hermeticum': 'sacred-corpus-hermeticum'
+      'saturn.tao-te-ching': 'sacred-tao-te-ching'
     });
     for (const record of pointed) {
       expect(ARCHIVE_IDS.has(record.work.id), `${record.id} -> ${record.work.id}`).toBe(true);
@@ -143,7 +140,8 @@ describe('the canon', () => {
 
   it('pins an entry by its division label, and the served work carries that label', () => {
     const pinned = SCHOOL_CANON.filter(record => record.work?.entry);
-    expect(pinned.map(record => [record.id, record.work.entry])).toEqual([['sun.nature', 'Nature']]);
+    // Nature's 1844 stand-in left when the 1836 book entered the corpus; no record pins an entry now.
+    expect(pinned.map(record => [record.id, record.work.entry])).toEqual([]);
     for (const record of pinned) {
       expect(DIVISION_INDEX[record.work.id]?.labels, record.id).toContain(record.work.entry);
     }
@@ -166,13 +164,11 @@ describe('the canon', () => {
     });
   });
 
-  it('notes the stand-in, the near misses and the commission', () => {
+  it('notes the commission and the edition still to come', () => {
     expect(Object.fromEntries(SCHOOL_CANON.filter(record => record.note !== null)
       .map(record => [record.id, record.note]))).toEqual({
       'gate.oration': 'A free English edition is the school\'s first commission',
-      'sun.nature': 'The 1844 essay stands in until the 1836 book is carried',
-      'venus.marriage-of-heaven-and-hell': 'RISE carries Blake\'s Songs of Innocence and of Experience, not the Marriage',
-      'saturn.masnavi': 'RISE carries Rumi\'s Dīvān, not the Masnavi'
+      'saturn.sermons': 'Claud Field\'s seven sermons are read now; C. de B. Evans\'s 1924 volume follows after a proofing pass'
     });
   });
 
@@ -180,7 +176,7 @@ describe('the canon', () => {
     const byId = Object.fromEntries(SCHOOL_CANON.map(record => [record.id, record]));
     expect(byId['gate.oration']).toMatchObject({
       title: 'Oration on the Dignity of Man', author: 'Pico della Mirandola', date: '1486',
-      edition: 'Latin, orig. only (verify a pre-1931 English)', degree: 0, rights: 'orig-only', work: null,
+      edition: 'Latin, orig. only (verify a pre-1931 English)', degree: 0, rights: 'orig-only', work: { corpus: true },
       why: 'The Renaissance manifesto: the human as the being with no fixed place, who must shape itself'
     });
     expect(byId['mercury.lovelace-notes']).toMatchObject({
@@ -193,7 +189,7 @@ describe('the canon', () => {
     });
     expect(byId['sun.nature']).toMatchObject({
       title: 'Nature', author: 'Emerson', date: '1836', edition: 'Original', degree: 1,
-      work: { id: 'literary-essays-emerson', entry: 'Nature' }
+      work: { corpus: true }
     });
     expect(byId['saturn.interior-castle']).toMatchObject({ author: 'Teresa of Ávila', date: '1577', degree: 2 });
     expect(byId['venus.faust']).toMatchObject({ date: '1808, 1832', edition: 'Bayard Taylor, 1870', degree: 2 });

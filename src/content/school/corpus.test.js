@@ -15,7 +15,13 @@ const RECORD_IDS = new Set(SCHOOL_CANON.map(record => record.id));
 const LIFE70 = /^(?:pd|unknown|until:\d{4})$/u;
 const SOURCE_URL = {
   'standard-ebooks': /^https:\/\/standardebooks\.org\/ebooks\//u,
-  gutenberg: /^https:\/\/www\.gutenberg\.org\/ebooks\/\d+$/u
+  gutenberg: /^https:\/\/www\.gutenberg\.org\/ebooks\/\d+$/u,
+  wikisource: /^https:\/\/en\.wikisource\.org\/wiki\/\S+$/u,
+  'sacred-texts': /^https:\/\/sacred-texts\.com\/[a-z0-9/]+\/index\.htm$/u,
+  ccel: /^https:\/\/ccel\.org\/ccel\/[a-z0-9]+\/[a-z0-9]+$/u,
+  'eebo-tcp': /^https:\/\/github\.com\/textcreationpartnership\/A\d{5}$/u,
+  html: /^https:\/\/\S+$/u,
+  file: /^scripts\/school-sources\/[a-z]+\.[a-z0-9-]+\/[\w.-]+$/u
 };
 const BARE_NUMERAL = /^(?:[IVXLCDM]+|\d+)\.?$/u;
 const sha256 = text => createHash('sha256').update(text).digest('hex');
@@ -28,22 +34,33 @@ describe('the School corpus', () => {
     for (const id of ids) expect(RECORD_IDS.has(id), id).toBe(true);
   });
 
-  it('serves the Standard Ebooks texts of the first slice and the Project Gutenberg texts of the second', () => {
+  it('serves the texts of the three slices: Standard Ebooks; Project Gutenberg; Wikisource, CCEL, sacred-texts, EEBO-TCP, the Victorian Web and local files', () => {
     expect(SCHOOL_WORKS.map(work => [work.id, work.units])).toEqual([
+      ['gate.oration', 47],
       ['sun.fragments', 21],
       ['sun.symposium-phaedrus-timaeus', 6],
       ['sun.zarathustra', 81],
+      ['sun.monadology', 9],
       ['sun.ethics', 5],
+      ['sun.enneads', 54],
+      ['sun.nature', 9],
       ['mercury.new-atlantis', 1],
       ['mercury.lovelace-notes', 8],
+      ['mercury.ninth-bridgewater', 17],
+      ['mercury.on-governors', 5],
       ['mercury.book-of-the-machines', 4],
       ['mercury.machine-stops', 3],
       ['mercury.rur', 4],
+      ['mercury.increasing-human-energy', 16],
       ['moon.life-after-death', 16],
       ['moon.stream-of-thought', 8],
       ['moon.varieties', 15],
+      ['moon.cosmic-consciousness', 55],
       ['moon.interpretation-of-dreams', 7],
       ['moon.human-personality', 10],
+      ['moon.matter-and-memory', 6],
+      ['moon.tertium-organum', 24],
+      ['venus.marriage-of-heaven-and-hell', 9],
       ['venus.hymns-to-the-night', 6],
       ['venus.defence-of-poetry', 1],
       ['venus.leaves-of-grass', 36],
@@ -63,6 +80,15 @@ describe('the School corpus', () => {
       ['jupiter.relativity', 37],
       ['saturn.zhuangzi', 33],
       ['saturn.bhagavad-gita', 18],
+      ['saturn.emerald-tablet', 1],
+      ['saturn.upanishads', 12],
+      ['saturn.corpus-hermeticum', 18],
+      ['saturn.masnavi', 6],
+      ['saturn.cloud-of-unknowing', 76],
+      ['saturn.interior-castle', 29],
+      ['saturn.mystical-theology', 5],
+      ['saturn.sermons', 7],
+      ['saturn.occult-philosophy', 199],
       ['saturn.heroic-frenzies', 11]
     ]);
   });
@@ -74,15 +100,15 @@ describe('the School corpus', () => {
         for (const source of work.source.artifacts ?? [work.source]) {
           expect(SOURCE_URL[source.kind], `${work.id}: ${source.kind}`).toBeDefined();
           expect(source.url).toMatch(SOURCE_URL[source.kind]);
-          // A Gutenberg file is named by the hash of the bytes the ingest read.
-          if (source.kind === 'gutenberg') {
-            expect(source.artifact).toBe('html');
-            expect(source.sha256).toMatch(/^[0-9a-f]{64}$/u);
-          }
+          // Every source but a Standard Ebooks repository is named by the hash of the bytes the ingest read.
+          if (source.kind === 'gutenberg') expect(source.artifact).toBe('html');
+          if (source.kind !== 'standard-ebooks') expect(source.sha256, `${work.id}: ${source.kind}`).toMatch(/^[0-9a-f]{64}$/u);
         }
         expect(work.source.retrieved).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
         expect(work.rights.us).toBe('pd');
         expect(work.rights.life70).toMatch(LIFE70);
+        // A work not in English names its language; an English one names none.
+        if ('language' in work) expect(work.language, work.id).toMatch(/^[a-z]{2}$/u);
       });
 
       it('is the payload its checksum names, and its META agrees', async () => {
@@ -97,6 +123,7 @@ describe('the School corpus', () => {
         expect(meta.edition).toEqual(work.edition);
         expect(meta.source).toMatchObject(work.source);
         expect(meta.rights).toEqual(work.rights);
+        expect(meta.language).toBe(work.language);
       });
 
       it('names every unit uniquely and readably, and serves no distributor matter', async () => {

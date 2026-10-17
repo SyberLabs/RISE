@@ -17,7 +17,6 @@ vi.mock('../content/library.js', async importOriginal => {
   });
   const texts = [
     divided('literary-meditations', 'Meditations', ['Book I', 'Book II']),
-    divided('literary-essays-emerson', 'Essays', ['History', 'Self-Reliance', 'Nature']),
     {
       id: 'sacred-tao-te-ching',
       title: 'Tao Te Ching',
@@ -92,12 +91,6 @@ describe('a reading opened from the Mystery School', () => {
     expect(reading.config.continuation.entryIndex).toBe(1);
   });
 
-  it('opens the division a record pins by its label', async () => {
-    const reading = await schoolReading('sun.nature', null);
-    expect(reading.source).toBe('Essays · Nature');
-    expect(reading.config.provenance.entryId).toBe('2');
-  });
-
   it('reads an undivided work whole', async () => {
     const reading = await schoolReading('saturn.tao-te-ching', null);
     expect(reading.text).toBe('The way\n\nthat can be named');
@@ -137,7 +130,7 @@ describe('a reading opened from the Mystery School', () => {
   });
 
   it('opens nothing for a text RISE does not carry', async () => {
-    expect(await schoolReading('sun.monadology', null)).toBeNull();
+    expect(await schoolReading('mercury.laws-of-thought', null)).toBeNull();
     expect(await schoolReading('sun.nothing', null)).toBeNull();
   });
 });

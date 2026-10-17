@@ -17,7 +17,7 @@ const WITHHELD = 'Not in the launch canon.';
 const MANIFEST = {
   works: [
     { id: 'literary-meditations', shelved: true },
-    { id: 'sacred-corpus-hermeticum', shelved: false, withheldReason: WITHHELD },
+    { id: 'the-divine-comedy', shelved: false, withheldReason: WITHHELD },
     { id: 'sacred-emerald-tablet', shelved: true }
   ]
 };
@@ -54,7 +54,7 @@ describe('schoolStatus', () => {
   });
 
   it('is carried, with the archive\'s reason, when the manifest withholds the work', () => {
-    expect(schoolStatus(recordById('saturn.corpus-hermeticum'), MANIFEST)).toEqual({ state: 'carried', reason: WITHHELD });
+    expect(schoolStatus(recordById('venus.divine-comedy'), MANIFEST)).toEqual({ state: 'carried', reason: WITHHELD });
   });
 
   it('is absent when the record names no work, or the manifest does not', () => {
@@ -69,7 +69,7 @@ describe('schoolStatus', () => {
   });
 
   it('is absent when the manifest shelves a work the Library does not register', () => {
-    expect(schoolStatus(recordById('saturn.emerald-tablet'), MANIFEST)).toEqual({ state: 'absent', reason: null });
+    expect(schoolStatus({ work: { id: 'sacred-emerald-tablet', entry: null } }, MANIFEST)).toEqual({ state: 'absent', reason: null });
   });
 
   it('treats every work as absent until the manifest arrives', () => {
