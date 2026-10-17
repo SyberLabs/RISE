@@ -88,7 +88,9 @@ export const SCHOOL_CANON = freeze([
     edition: 'Original (Century Magazine)', why: 'Civilization as an energy system',
     work: { corpus: true } }),
   text({ id: 'mercury.philosophie-der-technik', degree: 3, title: 'Grundlinien einer Philosophie der Technik', author: 'Ernst Kapp', date: '1877',
-    edition: 'German, orig. only', rights: 'orig-only', why: 'Tools as projected organs' }),
+    edition: 'German, orig. only', rights: 'orig-only', why: 'Tools as projected organs',
+    note: 'A selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); chapters IV to XIII, from Gliedmaassen und Maasse to Der Staat, are left out; ten places where the damaged scan lost lines are marked […], and 79 unsettled readings [?]',
+    work: { corpus: true } }),
 
   // Moon: House of Mind
   text({ id: 'moon.life-after-death', degree: 1, title: 'The Little Book of Life after Death', author: 'Gustav Fechner', date: '1836',
@@ -162,7 +164,9 @@ export const SCHOOL_CANON = freeze([
     edition: 'Original', why: 'Myth and ritual compared; read against the grain',
     work: { corpus: true } }),
   text({ id: 'mars.muqaddimah', degree: 3, title: 'Muqaddimah', author: 'Ibn Khaldun', date: '1377',
-    edition: 'de Slane, French, 1862 to 1868', rights: 'orig-only', why: 'Group feeling and the rise and fall of dynasties' }),
+    edition: 'de Slane, French, 1862 to 1868', rights: 'orig-only', why: 'Group feeling and the rise and fall of dynasties',
+    note: 'A selection from de Slane\'s volume I: the opening of Book I, the first preliminary discourse, and the second section as far as the chapter on esprit de corps and sovereignty; the rest of the Prolégomènes is left out',
+    work: { corpus: true } }),
   text({ id: 'mars.new-science', degree: 3, title: 'The New Science', author: 'Giambattista Vico', date: '1725',
     edition: 'Michelet, French abridgment, 1827', rights: 'orig-only', why: 'History as the cycles of human making',
     work: { corpus: true } }),

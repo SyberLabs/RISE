@@ -53,6 +53,7 @@ describe('the School corpus', () => {
       ['mercury.machine-stops', 3],
       ['mercury.rur', 4],
       ['mercury.increasing-human-energy', 16],
+      ['mercury.philosophie-der-technik', 4],
       ['moon.life-after-death', 16],
       ['moon.stream-of-thought', 8],
       ['moon.varieties', 15],
@@ -74,6 +75,7 @@ describe('the School corpus', () => {
       ['mars.peloponnesian-war', 26],
       ['mars.renaissance-in-italy', 46],
       ['mars.golden-bough', 70],
+      ['mars.muqaddimah', 19],
       ['mars.new-science', 6],
       ['mars.decline-of-the-west', 25],
       ['jupiter.nature-of-things', 6],
@@ -95,6 +97,15 @@ describe('the School corpus', () => {
       ['saturn.occult-philosophy', 199],
       ['saturn.heroic-frenzies', 11]
     ]);
+  });
+
+  it('names the language of every work not read in English', () => {
+    expect(Object.fromEntries(SCHOOL_WORKS.filter(work => 'language' in work).map(work => [work.id, work.language]))).toEqual({
+      'gate.oration': 'la',
+      'mercury.philosophie-der-technik': 'de',
+      'mars.muqaddimah': 'fr',
+      'mars.new-science': 'fr'
+    });
   });
 
   for (const work of SCHOOL_WORKS) {

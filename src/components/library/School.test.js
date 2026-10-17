@@ -14,7 +14,9 @@ vi.mock('../../core/content-store.js', () => ({
       school: [
         { id: 'sun.zarathustra', shelved: true },
         { id: 'mercury.rur', shelved: true },
-        { id: 'gate.oration', shelved: true }
+        { id: 'gate.oration', shelved: true },
+        { id: 'mars.muqaddimah', shelved: true },
+        { id: 'mercury.philosophie-der-technik', shelved: true }
       ]
     }))
   },
@@ -210,11 +212,11 @@ describe('the action a text offers', () => {
   });
 
   it('gives an original-language-only text no outward link', async () => {
-    mount({ initialFocus: 'mercury.philosophie-der-technik' });
+    mount({ initialFocus: 'venus.futurist-manifesto' });
     await settle();
     expect(lectern().querySelector('.school-action a')).toBeNull();
     expect(lectern().textContent).toContain('Original language only');
-    expect(lectern().textContent).toContain('German, orig. only');
+    expect(lectern().textContent).toContain('Original (French)');
   });
 
   it('reads the Gate in its Latin, and says so', async () => {
@@ -224,6 +226,21 @@ describe('the action a text offers', () => {
     expect(facts).toContain('Latin, 1486; Pico Project numbering');
     expect(facts).toContain('Original language · Latin');
     expect(lectern().querySelector('.school-action button[data-read="gate.oration"]')).not.toBeNull();
+  });
+
+  it('reads Ibn Khaldun in de Slane’s French, and says so', async () => {
+    mount({ initialFocus: 'mars.muqaddimah' });
+    await settle();
+    const facts = lectern().querySelector('.school-facts').textContent;
+    expect(facts).toContain('Original language · French');
+    expect(lectern().querySelector('.school-action button[data-read="mars.muqaddimah"]')).not.toBeNull();
+  });
+
+  it('reads Kapp in his German, and says so', async () => {
+    mount({ initialFocus: 'mercury.philosophie-der-technik' });
+    await settle();
+    expect(lectern().querySelector('.school-facts').textContent).toContain('Original language · German');
+    expect(lectern().querySelector('.school-action button[data-read="mercury.philosophie-der-technik"]')).not.toBeNull();
   });
 
   it('names no language for a corpus text in English', async () => {

@@ -58,6 +58,7 @@ export const MARS_NEW_SCIENCE_META = Object.freeze({
         "us": "pd",
         "life70": "pd"
     },
+    "language": "fr",
     "structure": "declared",
     "units": 6,
     "verseLines": 0,

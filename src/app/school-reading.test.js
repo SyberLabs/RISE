@@ -130,7 +130,7 @@ describe('a reading opened from the Mystery School', () => {
   });
 
   it('opens nothing for a text RISE does not carry', async () => {
-    expect(await schoolReading('mercury.philosophie-der-technik', null)).toBeNull();
+    expect(await schoolReading('jupiter.harmonices-mundi', null)).toBeNull();
     expect(await schoolReading('sun.nothing', null)).toBeNull();
   });
 });

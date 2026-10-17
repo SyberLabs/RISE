@@ -507,6 +507,7 @@ const RECIPES = Object.freeze({
             translator: 'Jules Michelet',
             year: 1827
         },
+        language: 'fr',
         rights: { us: 'pd', life70: 'pd' }
     },
     'mars.decline-of-the-west': {
