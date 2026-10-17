@@ -171,11 +171,23 @@ function removeCommand(text, name) {
             words += countWords(convertText(out.slice(end + 1, close - 1)));
             end = close;
         }
-        // An empty group, so a control word before the note never runs into the word after it.
-        out = `${out.slice(0, match.index)}{}${out.slice(end)}`;
+        // An empty group after a control word, so it never runs into the word after the note.
+        const before = out.slice(0, match.index);
+        out = `${before}${/\\[a-zA-Z]+$/u.test(before) ? '{}' : ''}${out.slice(end)}`;
         pattern.lastIndex = match.index;
     }
     return { text: out, words };
+}
+
+/** Removes every footnote, note text and note mark; returns the text and the words removed. */
+function removeNotes(text) {
+    let words = 0;
+    for (const name of ['footnotetext', 'footnotemark', 'footnote']) {
+        const removed = removeCommand(text, name);
+        text = removed.text;
+        words += removed.words;
+    }
+    return { text, words };
 }
 
 /** Text-mode LaTeX (no mathematics left in it) as plain text. */
@@ -296,8 +308,14 @@ export function latexToMarkdown(tex, { from, to }) {
         // A comment runs to the end of its line and takes the line break with it.
         .replace(new RegExp(`${UNESCAPED}%[^\\n]*\\n[ \\t]*`, 'gu'), '');
 
+    let notes = 0;
     const maths = [];
-    const hold = tex => `${OPEN}${maths.push(flat(tex)) - 1}${CLOSE}`;
+    // A note set inside a formula goes before the formula is held.
+    const hold = tex => {
+        const removed = removeNotes(tex);
+        notes += removed.words;
+        return `${OPEN}${maths.push(flat(removed.text)) - 1}${CLOSE}`;
+    };
     text = text
         // A displayed box of prose is prose.
         .replace(/\\begin\{equation\*\}\s*\\begin\{minipage\}\{[^}]*\}([\s\S]*?)\\end\{minipage\}\s*\\end\{equation\*\}/gu, '\n\n$1\n\n')
@@ -306,12 +324,9 @@ export function latexToMarkdown(tex, { from, to }) {
         .replace(/\$\$([\s\S]*?)\$\$/gu, (_, body) => hold(body))
         .replace(new RegExp(`${UNESCAPED}\\$([\\s\\S]*?)${UNESCAPED}\\$`, 'gu'), (_, body) => hold(body));
 
-    let notes = 0;
-    for (const name of ['footnotetext', 'footnotemark', 'footnote']) {
-        const removed = removeCommand(text, name);
-        text = removed.text;
-        notes += removed.words;
-    }
+    const removed = removeNotes(text);
+    text = removed.text;
+    notes += removed.words;
     // \tabbing's tab stops are layout.
     text = text.replace(/\\[=>]/gu, ' ');
 

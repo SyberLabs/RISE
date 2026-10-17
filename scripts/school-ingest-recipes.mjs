@@ -48,6 +48,9 @@ const ENNEADS = [
     'On The Good, or The One'
 ].map((title, index) => [Math.floor(index / 9) + 1, (index % 9) + 1, title]);
 
+/** The four functions Jung's chapter X heads once under each type: the first is the extravert's, the second the introvert's. */
+const SHARED = ['Thinking', 'Feeling', 'Sensation', 'Intuition'];
+
 /** J. B. Hare's request, made on every sacred-texts.com etext, kept with the source and never in the text. */
 const SACRED_TEXTS_NOTE = 'Transcribed by J. B. Hare for the Internet Sacred Text Archive (sacred-texts.com), which asks that its etexts be attributed to it and that this notice be kept with them.';
 
@@ -123,6 +126,22 @@ export const WEB_RECIPES = {
         textNote: 'equations shown as text',
         edition: { statement: 'Walton and Maberly, 1854; equations shown as text', translator: null, year: 1854 },
         rights: { us: 'pd', life70: 'pd' }
+    },
+    // Proofed from the Internet Archive's OCR of the Journal of Botany, 1863; the diff beside it lists every change.
+    'jupiter.metamorphosis-of-plants': {
+        kind: 'file',
+        path: 'scripts/school-sources/jupiter.metamorphosis-of-plants/metamorphosis.proofed.md',
+        extract: { from: 'Introduction' },
+        units: 'headings',
+        level: 2,
+        count: 19,
+        edition: {
+            statement: 'Emily M. Cox, Journal of Botany, 1863; proofed from the Internet Archive scan by RISE, 2026, diff on file',
+            translator: 'Emily M. Cox',
+            year: 1863
+        },
+        // Cox's dates are not known.
+        rights: { us: 'pd', life70: 'unknown' }
     },
 
     // Wikisource: the MediaWiki API's parsed HTML of each page.
@@ -357,6 +376,8 @@ export const WEB_RECIPES = {
                     : name.startsWith('Part V · Chapter 24:') ? null : name)),
             'Part VI: Last Words'
         ],
+        // The site's Swedenborg chapter opens on "<s :", a broken small-caps tag set as text.
+        strike: { pattern: '^<s : ', kind: 'transcription faults' },
         count: 55,
         note: SACRED_TEXTS_NOTE,
         edition: { statement: 'E. P. Dutton, New York, 1901', translator: null, year: 1901 },
@@ -471,6 +492,61 @@ export const WEB_RECIPES = {
         rights: { us: 'pd', life70: 'pd' }
     },
     // Plain HTML, read by the recipe's selectors.
+    // Chapter X only: the one chapter of the Baynes translation anyone has proofed (Classics in the History of Psychology).
+    'moon.psychological-types': {
+        kind: 'html',
+        url: 'https://psychclassics.yorku.ca/Jung/types.htm',
+        pages: ['https://psychclassics.yorku.ca/Jung/types.htm'],
+        encoding: 'windows-1252',
+        body: 'body',
+        // The site sets its headings as centred paragraphs; the two note anchors stand bare inside brackets.
+        headings: 'p[align]',
+        drops: { 'footnote markers': 'a[href^="#"]' },
+        strike: [
+            // The 1923 printing's page breaks, set inline as [p. 413].
+            { pattern: '\\s?\\[p\\. \\d{3}\\]', kind: 'page numbers' },
+            // The brackets each of the two dropped note anchors leaves behind ("[sic]" is set the same way and stays).
+            { pattern: '(?<="devouring") \\[$|(?<=\'mneme\',)\\[$|^\\](?= As is| whereas)', kind: 'footnote markers', replace: '' },
+            // The transcriber's marks for a letter the page could not set: me[accent]tier, na[umlaut]ive, ae[]sthenic.
+            { pattern: '\\[(?:accent|umlaut)?\\]', kind: 'transcriber notes', replace: '' },
+            // Slips in the proofed transcription, each corrected as the sentence reads.
+            { pattern: 'The are, as it were', kind: 'transcription slips', replace: 'They are, as it were' },
+            { pattern: 'con~sdousness', kind: 'transcription slips', replace: 'consciousness' },
+            { pattern: "forbidden' This other", kind: 'transcription slips', replace: 'forbidden. This other' },
+            { pattern: ' ,(?=very simply explained)', kind: 'transcription slips' },
+            { pattern: '(?<=ascendancy on)\\.(?= the part)', kind: 'transcription slips', replace: '' },
+            { pattern: '(?<=as a), (?=universal psychological)', kind: 'transcription slips' },
+            { pattern: '(?<=universal psychological)\\.(?= phenomenon)', kind: 'transcription slips', replace: '' },
+            { pattern: '(?<= )ie\\.(?= )', kind: 'transcription slips', replace: 'i.e.' }
+        ],
+        extract: { from: 'A. INTRODUCTION' },
+        units: [
+            { heading: 'A. INTRODUCTION', name: 'Introduction' },
+            { heading: 'B. The Extraverted Type', group: true },
+            { heading: '(1)THE GENERAL ATTITUDE OF CONSCIOUSNESS', name: 'The Extraverted Type: The General Attitude of Consciousness' },
+            { heading: '(II) THE ATTITUDE OF THE UNCONSCIOUS', name: 'The Extraverted Type: The Attitude of the Unconscious' },
+            { heading: '(III) THE PECULIARITIES OF THE BASIC PSYCHOLOGICAL FUNCTIONS IN THE EXTRAVERTED ATTITUDE', group: true },
+            ...['Thinking', 'The Extraverted Thinking Type', 'Feeling', 'The Extraverted Feeling-Type', 'Recapitulation of Extraverted Rational Types',
+                'Sensation', 'The Extraverted Sensation Type', 'Intuition', 'The Extraverted Intuitive Type', 'Recapitulation of Extraverted Irrational Types']
+                .map((title, index) => ({ heading: `${index + 1}. ${title}`, nth: SHARED.includes(title) ? 1 : undefined, name: `The Extraverted Type: ${title.replace('Feeling-Type', 'Feeling Type')}` })),
+            { heading: 'C. THE INTROVERTED TYPE', group: true },
+            { heading: '(I) THE GENERAL ATTITUDE OF CONSCIOUSNESS', name: 'The Introverted Type: The General Attitude of Consciousness' },
+            { heading: '(II) THE UNCONSCIOUS ATTITUDE', name: 'The Introverted Type: The Unconscious Attitude' },
+            { heading: '(III) PECULIARITIES OF THE BASIC PSYCHOLOGICAL FUNCTIONS IN THE INTROVERTED ATTITUDE', group: true },
+            ...['Thinking', 'The Introverted Thinking Type', 'Feeling', 'The Introverted Feeling Type', 'Recapitulation of Introverted Rational Types',
+                'Sensation', 'The Introverted Sensation Type', 'Intuition', 'The Introverted Intuitive Type', 'Recapitulation of Introverted Irrational Types',
+                'The Principal and Auxiliary Functions']
+                .map((title, index) => ({ heading: `${index + 1}. ${title}`, nth: SHARED.includes(title) ? 2 : undefined, name: `The Introverted Type: ${title}` }))
+        ],
+        count: 26,
+        note: 'Transcribed for Classics in the History of Psychology (psychclassics.yorku.ca), an internet resource developed by Christopher D. Green, York University, Toronto. The site states that it has tried to ensure every document it posts is in the public domain, and asks any party claiming copyright to contact its editor (https://psychclassics.yorku.ca/copyright.htm, retrieved 2026-10-17).',
+        edition: {
+            statement: 'H. G. Baynes, 1923; chapter X only; the rest after a proofing pass of the 1924 printing',
+            translator: 'H. Godwin Baynes',
+            year: 1923
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
     'mercury.ninth-bridgewater': {
         kind: 'html',
         url: 'https://victorianweb.org/science/science_texts/bridgewater/intro.htm',

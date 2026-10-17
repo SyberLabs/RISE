@@ -200,6 +200,26 @@ export function dropFurniture(doc, drops) {
 }
 
 /**
+ * Removes from the text what a recipe's `strike` (`{ pattern, kind }`, or a
+ * list of them, applied in order) names: text set inline that is not the
+ * work, such as page numbers in brackets or a transcription fault. A match
+ * leaves a space, or `replace` when the rule names one (a note marker set
+ * before a comma leaves nothing). Counts its words in `dropped`, by kind.
+ */
+export function strikeText(doc, strike, dropped) {
+    for (const { pattern, kind, replace = ' ' } of [strike].flat()) {
+        const match = new RegExp(pattern, 'gu');
+        const walker = doc.createTreeWalker(doc.body, 4);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            node.data = node.data.replace(match, found => {
+                dropped[kind] = (dropped[kind] || 0) + countWords(found);
+                return replace;
+            });
+        }
+    }
+}
+
+/**
  * Where a run of breaks ends a line, and where it also ends a stanza: a
  * stanza's edge, or two `<br>` (or two newlines in `<pre>`) with no block
  * edge between them. A block edge next to a `<br>` is one break, not two.
@@ -408,8 +428,8 @@ export function readGutenberg(html, parse, recipe) {
  * removed before anything else is read and counted by kind: `dropBlocks`
  * (`[{ pattern, kind }]`) removes every paragraph whose text the pattern
  * matches (notes an edition set as "[footnote] …" paragraphs); `strike`
- * (`[{ pattern, kind }]`) removes every match inside the text (page numbers
- * set as lines of their own, asterisk note markers).
+ * (see strikeText) removes every match inside the text (page numbers set as
+ * lines of their own, asterisk note markers).
  */
 function markedText(doc, recipe) {
     const dropped = {};
@@ -419,15 +439,7 @@ function markedText(doc, recipe) {
         add(kind, dropWords([...doc.body.querySelectorAll('p, div')]
             .filter(block => opens.test(block.textContent) && ![...block.children].some(child => BLOCK.has(child.tagName)))));
     }
-    for (const { pattern, kind } of recipe.strike ?? []) {
-        const match = new RegExp(pattern, 'gu');
-        for (const node of textNodes(doc.body)) {
-            node.data = node.data.replace(match, found => {
-                add(kind, countWords(found));
-                return '';
-            });
-        }
-    }
+    if (recipe.strike) strikeText(doc, recipe.strike, dropped);
     return dropped;
 }
 
