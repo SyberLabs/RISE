@@ -39,6 +39,7 @@ import { LEGACY_REINGESTED_WORKS } from '../../src/content/archive/legacy-catalo
 import { publicCatalog, readPublicCatalog } from '../../src/core/decision/catalog.js';
 import { choiceMenu } from '../../src/core/decision/recommend.js';
 import { CHAPEL_BOOKS } from '../../src/content/chapel/corpus/manifest.js';
+import { SCHOOL_WORKS } from '../../src/content/school/corpus.js';
 
 export const CONTENT_MANIFEST_SCHEMA = 'rise.content-manifest.v1';
 
@@ -46,6 +47,7 @@ const ROOT = resolve(import.meta.dirname, '../..');
 const OUT = resolve(ROOT, 'public/content');
 const WORKS_DIR = resolve(OUT, 'works');
 const CHAPEL_DIR = resolve(OUT, 'chapel');
+const SCHOOL_DIR = resolve(OUT, 'school');
 
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
@@ -96,8 +98,10 @@ export async function buildContentPlane({ write = true } = {}) {
     if (write) {
         await rm(WORKS_DIR, { recursive: true, force: true });
         await rm(CHAPEL_DIR, { recursive: true, force: true });
+        await rm(SCHOOL_DIR, { recursive: true, force: true });
         await mkdir(WORKS_DIR, { recursive: true });
         await mkdir(CHAPEL_DIR, { recursive: true });
+        await mkdir(SCHOOL_DIR, { recursive: true });
     }
 
     const works = [];
@@ -173,15 +177,51 @@ export async function buildContentPlane({ write = true } = {}) {
         });
     }
 
+    /**
+     * The School corpus is served under the School's own rule, beside the
+     * Archive and outside its canon. Each work's checksum in corpus.js is the
+     * digest of exactly these bytes, so it is the address too, and a payload
+     * that does not satisfy it is refused here as scripture is above.
+     */
+    const school = [];
+    for (const work of SCHOOL_WORKS) {
+        const module = await import(`../../src/content/school/works/${work.id}.js`);
+        const sections = module[`${work.constName}_SECTIONS`];
+        if (!Array.isArray(sections) || sections.length === 0) {
+            throw new Error(`${work.id}: ${work.constName}_SECTIONS is not a non-empty array`);
+        }
+        const bytes = Buffer.from(JSON.stringify(sections), 'utf8');
+        const digest = sha256(bytes);
+        if (`sha256:${digest}` !== work.checksum) {
+            throw new Error(
+                `${work.id}: payload hashes to sha256:${digest} but the School corpus `
+                + `declares ${work.checksum}. Refusing to publish a School text `
+                + 'under an address its bytes do not satisfy.'
+            );
+        }
+        if (write) {
+            await writeFile(resolve(SCHOOL_DIR, `${digest}.json`), bytes);
+        }
+        school.push({
+            id: work.id,
+            sha256: digest,
+            bytes: bytes.length,
+            url: `/content/school/${digest}.json`,
+            shelved: true,
+            checksum: work.checksum
+        });
+    }
+
     const manifest = {
         schema: CONTENT_MANIFEST_SCHEMA,
         // Names this exact set of works and addresses. A reader holding an
         // older revision holds older addresses, and every address it holds
         // is still valid, because the objects are immutable.
-        revision: sha256(Buffer.from(JSON.stringify([works, chapel]), 'utf8')).slice(0, 16),
+        revision: sha256(Buffer.from(JSON.stringify([works, chapel, school]), 'utf8')).slice(0, 16),
         generatedAt: new Date().toISOString(),
         works,
-        chapel
+        chapel,
+        school
     };
 
     if (write) {

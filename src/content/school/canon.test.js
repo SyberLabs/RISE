@@ -3,6 +3,7 @@ import { DEGREES, GATE, HOUSES } from './houses.js';
 import { RISE_CURRENT_THEMES } from '../../core/rise-current.js';
 import { SCHOOL_CANON } from './canon.js';
 import { SCHOOL_PATHS } from './paths.js';
+import { SCHOOL_WORKS } from './corpus.js';
 import { CORE_WORKS, WITHHELD_WORKS } from '../archive/index.js';
 import { LEGACY_REINGESTED_WORKS } from '../archive/legacy-catalog.js';
 import { LITERATURE_WORKS } from '../archive/literature-catalog.js';
@@ -116,12 +117,10 @@ describe('the canon', () => {
   });
 
   it('points only at archive works that exist, served or withheld', () => {
-    const pointed = SCHOOL_CANON.filter(record => record.work);
+    const pointed = SCHOOL_CANON.filter(record => record.work?.id);
     expect(Object.fromEntries(pointed.map(record => [record.id, record.work.id]))).toEqual({
       'sun.meditations': 'literary-meditations',
-      'sun.zarathustra': 'literary-thus-spoke-zarathustra',
       'sun.nature': 'literary-essays-emerson',
-      'venus.leaves-of-grass': 'literary-leaves-of-grass',
       'venus.spiritual-in-art': 'kandinsky-spiritual-in-art',
       'venus.divine-comedy': 'the-divine-comedy',
       'venus.faust': 'faust',
@@ -133,6 +132,15 @@ describe('the canon', () => {
     for (const record of pointed) {
       expect(ARCHIVE_IDS.has(record.work.id), `${record.id} -> ${record.work.id}`).toBe(true);
       expect(Object.keys(record.work).sort(), record.id).toEqual(['entry', 'id']);
+    }
+  });
+
+  it('marks exactly the School corpus works as corpus works', () => {
+    const corpus = SCHOOL_CANON.filter(record => record.work?.corpus);
+    expect(corpus.map(record => record.id).sort()).toEqual(SCHOOL_WORKS.map(work => work.id).sort());
+    for (const record of corpus) {
+      expect(record.work, record.id).toEqual({ corpus: true });
+      expect(Object.isFrozen(record.work), record.id).toBe(true);
     }
   });
 

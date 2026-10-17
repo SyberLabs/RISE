@@ -27,6 +27,7 @@ import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { CONTENT_MANIFEST_SCHEMA } from '../../../scripts/lib/content-plane.mjs';
 import { CHAPEL_BOOKS } from '../../content/chapel/corpus/manifest.js';
+import { SCHOOL_WORKS } from '../school/corpus.js';
 import { WITHHELD_WORKS, ingestedArchiveTexts } from './index.js';
 
 const PUBLIC = resolve(process.cwd(), 'public');
@@ -135,6 +136,40 @@ describe('the Chapel corpus in the manifest', () => {
             expect(bytes.length, `${book.id} is the wrong size`).toBe(book.bytes);
             expect(createHash('sha256').update(bytes).digest('hex'),
                 `${book.id} does not hash to its own URL`).toBe(book.sha256);
+        }
+    });
+});
+
+/**
+ * The School corpus is published the way scripture is: at the digest its
+ * own corpus already declares, so the build's checksum gate and the reader's
+ * address check are the same fact.
+ */
+describe('the School corpus in the manifest', () => {
+    const school = manifest.school ?? [];
+
+    it('names every work of the corpus, and no other', () => {
+        expect(school.map(work => work.id).sort())
+            .toEqual(SCHOOL_WORKS.map(work => work.id).sort());
+    });
+
+    it('publishes each work at the digest the corpus declared', () => {
+        const declared = new Map(SCHOOL_WORKS.map(work => [work.id, work.checksum]));
+        for (const work of school) {
+            expect(work.checksum, `${work.id} is published under a different checksum`)
+                .toBe(declared.get(work.id));
+            expect(`sha256:${work.sha256}`).toBe(work.checksum);
+            expect(work.url).toBe(`/content/school/${work.sha256}.json`);
+            expect(work.shelved).toBe(true);
+        }
+    });
+
+    it('publishes bytes that hash to the address they are published at', () => {
+        for (const work of school) {
+            const bytes = readFileSync(resolve(PUBLIC, work.url.replace(/^\//, '')));
+            expect(bytes.length, `${work.id} is the wrong size`).toBe(work.bytes);
+            expect(createHash('sha256').update(bytes).digest('hex'),
+                `${work.id} does not hash to its own URL`).toBe(work.sha256);
         }
     });
 });

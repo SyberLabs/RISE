@@ -177,3 +177,55 @@ describe('ContentStore', () => {
         await expect(store.getSections('the-iliad')).resolves.toEqual(SECTIONS);
     });
 });
+
+/**
+ * A School corpus text comes through the same door: the manifest's `school`
+ * list, the same digest check, the same refusals.
+ */
+describe('ContentStore and the School corpus', () => {
+    let sha;
+    let manifest;
+
+    beforeEach(async () => {
+        sha = await digestOf(BODY);
+        manifest = {
+            ...manifestFor(sha),
+            school: [{
+                id: 'sun.zarathustra',
+                sha256: sha,
+                bytes: BODY.length,
+                url: `/content/school/${sha}.json`,
+                shelved: true,
+                checksum: `sha256:${sha}`
+            }]
+        };
+    });
+
+    it('fetches a School text by its record id, verifies it, and caches it', async () => {
+        const fetchImpl = vi.fn(async () => new Response(BODY));
+        const store = new ContentStore({ manifest, fetchImpl, caches: fakeCaches() });
+
+        await expect(store.getSchoolSections('sun.zarathustra')).resolves.toEqual(SECTIONS);
+        store.forget('sun.zarathustra');
+        await expect(store.getSchoolSections('sun.zarathustra')).resolves.toEqual(SECTIONS);
+        expect(fetchImpl).toHaveBeenCalledTimes(1);
+        expect(fetchImpl).toHaveBeenCalledWith(`/content/school/${sha}.json`, expect.anything());
+    });
+
+    it('refuses a School text whose bytes do not match its address', async () => {
+        const store = new ContentStore({
+            manifest,
+            fetchImpl: async () => new Response(`${BODY} tampered`),
+            caches: fakeCaches()
+        });
+        await expect(store.getSchoolSections('sun.zarathustra')).rejects.toMatchObject({
+            code: 'CONTENT_PAYLOAD_INTEGRITY'
+        });
+    });
+
+    it('does not find an Archive work on the School shelf, nor a School text on the Archive’s', async () => {
+        const store = new ContentStore({ manifest, fetchImpl: vi.fn(), caches: fakeCaches() });
+        await expect(store.getSchoolSections('the-iliad')).rejects.toMatchObject({ code: 'CONTENT_UNKNOWN_WORK' });
+        await expect(store.getSections('sun.zarathustra')).rejects.toMatchObject({ code: 'CONTENT_UNKNOWN_WORK' });
+    });
+});

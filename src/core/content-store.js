@@ -168,7 +168,7 @@ export class ContentStore {
 
     /**
      * @param {string} id
-     * @param {'works'|'chapel'} shelf - which list of the manifest names it
+     * @param {'works'|'chapel'|'school'} shelf - which list of the manifest names it
      */
     async entry(id, shelf = 'works') {
         const manifest = await this.manifest();
@@ -209,10 +209,16 @@ export class ContentStore {
         return this._once(`chapel:${id}`, () => this._read(id, 'chapel', asText));
     }
 
+    /** A School corpus text's sections, by its School record id. */
+    async getSchoolSections(id) {
+        return this._once(`school:${id}`, () => this._read(id, 'school', asSections));
+    }
+
     /** Drop the in-session copy. Cache Storage keeps its own. */
     forget(id) {
         this._sections.delete(`works:${id}`);
         this._sections.delete(`chapel:${id}`);
+        this._sections.delete(`school:${id}`);
     }
 
     _once(key, read) {
@@ -326,4 +332,9 @@ export function loadArchiveSections(id) {
 /** What the Chapel's handoff calls. */
 export function loadChapelBook(id) {
     return contentStore.getChapelBook(id);
+}
+
+/** What the Mystery School calls for a corpus text. */
+export function loadSchoolSections(id) {
+    return contentStore.getSchoolSections(id);
 }

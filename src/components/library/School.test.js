@@ -10,9 +10,17 @@ vi.mock('../../core/content-store.js', () => ({
         { id: 'literary-meditations', shelved: true },
         { id: 'sacred-tao-te-ching', shelved: true },
         { id: 'faust', shelved: false, withheldReason: WITHHELD }
+      ],
+      school: [
+        { id: 'sun.zarathustra', shelved: true },
+        { id: 'mercury.rur', shelved: true }
       ]
     }))
-  }
+  },
+  loadSchoolSections: vi.fn(async () => [
+    { name: 'Part I · Zarathustra’s Prologue', content: 'When Zarathustra was thirty years old.' },
+    { name: 'Part I · Chapter I: The Three Metamorphoses', content: 'Three metamorphoses of the spirit.' }
+  ])
 }));
 
 vi.mock('../../content/library.js', () => {
@@ -153,6 +161,28 @@ describe('the action a text offers', () => {
     expect(book2.textContent.trim()).toBe('Read · Book II');
     book2.click();
     expect(onSelect).toHaveBeenLastCalledWith({ recordId: 'sun.meditations', entryIndex: 1 });
+  });
+
+  it('reads a School corpus text by its declared units, naming the edition used and its rights', async () => {
+    mount({ initialFocus: 'sun.zarathustra' });
+    await settle();
+    await settle();
+    expect(container.querySelector('[data-record="sun.zarathustra"]').dataset.state).toBe('readable');
+    const facts = lectern().querySelector('.school-facts').textContent;
+    expect(facts).toContain('Thomas Common, 1909, via Standard Ebooks');
+    expect(facts).toContain('Public domain');
+    expect(facts).not.toContain('in copyright');
+    const units = [...lectern().querySelectorAll('button[data-entry]')].map(button => button.textContent.trim());
+    expect(units).toEqual(['Read · Part I · Zarathustra’s Prologue', 'Read · Part I · Chapter I: The Three Metamorphoses']);
+    lectern().querySelectorAll('button[data-entry]')[1].click();
+    expect(onSelect).toHaveBeenLastCalledWith({ recordId: 'sun.zarathustra', entryIndex: 1 });
+  });
+
+  it('says where a corpus text is still in copyright', async () => {
+    mount({ initialFocus: 'mercury.rur' });
+    await settle();
+    expect(lectern().querySelector('.school-facts').textContent)
+      .toContain('Public domain in the US; in copyright in life+70 countries until 2041');
   });
 
   it('shows a withheld text as not served, with the archive reason', async () => {

@@ -5,9 +5,10 @@
  * Title, author, date, edition and why are the plan's words, verbatim.
  * `rights` follows the edition column: "US only" is 'us-only', "orig. only" is
  * 'orig-only', anything else 'us-pd'. `work` names a RISE archive work, served
- * or withheld, and nothing else; whether it can be read is resolved from the
- * content manifest at runtime, never written here. `work.entry` pins a
- * division by its label, because division ids are positions, not names.
+ * or withheld, or is `{ corpus: true }` for a text the School corpus serves
+ * under the record's own id (./corpus.js); whether it can be read is resolved
+ * from the content manifest at runtime, never written here. `work.entry` pins
+ * a division by its label, because division ids are positions, not names.
  */
 
 const freeze = Object.freeze;
@@ -19,7 +20,7 @@ function text({ id, degree, title, author, date, edition, why, rights = 'us-pd',
     degree, title, author, date, edition,
     rights,
     why,
-    work: work && freeze({ id: work.id, entry: work.entry ?? null }),
+    work: work && freeze(work.corpus ? { corpus: true } : { id: work.id, entry: work.entry ?? null }),
     bridges: freeze([...bridges]),
     note
   });
@@ -38,10 +39,11 @@ export const SCHOOL_CANON = freeze([
   text({ id: 'sun.meditations', degree: 1, title: 'Meditations', author: 'Marcus Aurelius', date: 'c. 170',
     edition: 'George Long, 1862', why: 'Philosophy as daily practice', work: { id: 'literary-meditations' } }),
   text({ id: 'sun.symposium-phaedrus-timaeus', degree: 2, title: 'Symposium, Phaedrus, Timaeus', author: 'Plato', date: 'c. 385 to 360 BCE',
-    edition: 'Benjamin Jowett, 1871', why: 'Eros as ascent, the soul\'s chariot, the cosmos as living creature' }),
+    edition: 'Benjamin Jowett, 1871', why: 'Eros as ascent, the soul\'s chariot, the cosmos as living creature',
+    work: { corpus: true } }),
   text({ id: 'sun.zarathustra', degree: 2, title: 'Thus Spoke Zarathustra', author: 'Nietzsche', date: '1883',
     edition: 'Thomas Common, 1909', why: 'Self-overcoming; the classical avant garde',
-    work: { id: 'literary-thus-spoke-zarathustra' } }),
+    work: { corpus: true } }),
   text({ id: 'sun.monadology', degree: 2, title: 'Monadology', author: 'Leibniz', date: '1714',
     edition: 'Robert Latta, 1898', why: 'Mind as perspective; a bridge to computation', bridges: ['mercury'] }),
   text({ id: 'sun.ethics', degree: 3, title: 'Ethics', author: 'Spinoza', date: '1677',
@@ -65,11 +67,14 @@ export const SCHOOL_CANON = freeze([
   text({ id: 'mercury.on-governors', degree: 3, title: 'On Governors', author: 'James Clerk Maxwell', date: '1868',
     edition: 'Original', why: 'The first paper of control theory' }),
   text({ id: 'mercury.book-of-the-machines', degree: 1, title: 'Darwin among the Machines; The Book of the Machines', author: 'Samuel Butler', date: '1863; 1872',
-    edition: 'Original', why: 'Machines as an evolving species' }),
+    edition: 'Original', why: 'Machines as an evolving species',
+    work: { corpus: true } }),
   text({ id: 'mercury.machine-stops', degree: 1, title: 'The Machine Stops', author: 'E. M. Forster', date: '1909',
-    edition: 'Original, US only', rights: 'us-only', why: 'Total mediation, foreseen a century early' }),
+    edition: 'Original, US only', rights: 'us-only', why: 'Total mediation, foreseen a century early',
+    work: { corpus: true } }),
   text({ id: 'mercury.rur', degree: 1, title: 'R.U.R.', author: 'Karel Čapek', date: '1920',
-    edition: 'Paul Selver, 1923, US only', rights: 'us-only', why: 'The word "robot" is born' }),
+    edition: 'Paul Selver, 1923, US only', rights: 'us-only', why: 'The word "robot" is born',
+    work: { corpus: true } }),
   text({ id: 'mercury.increasing-human-energy', degree: 2, title: 'The Problem of Increasing Human Energy', author: 'Nikola Tesla', date: '1900',
     edition: 'Original (Century Magazine)', why: 'Civilization as an energy system' }),
   text({ id: 'mercury.philosophie-der-technik', degree: 3, title: 'Grundlinien einer Philosophie der Technik', author: 'Ernst Kapp', date: '1877',
@@ -81,7 +86,8 @@ export const SCHOOL_CANON = freeze([
   text({ id: 'moon.stream-of-thought', degree: 2, title: 'The Principles of Psychology, ch. 9, The Stream of Thought', author: 'William James', date: '1890',
     edition: 'Original', why: 'Consciousness as a stream, not a chain' }),
   text({ id: 'moon.varieties', degree: 1, title: 'The Varieties of Religious Experience', author: 'William James', date: '1902',
-    edition: 'Original', why: 'Mystical states studied with empirical respect' }),
+    edition: 'Original', why: 'Mystical states studied with empirical respect',
+    work: { corpus: true } }),
   text({ id: 'moon.cosmic-consciousness', degree: 1, title: 'Cosmic Consciousness', author: 'R. M. Bucke', date: '1901',
     edition: 'Original', why: 'A catalogue of illuminations across history' }),
   text({ id: 'moon.interpretation-of-dreams', degree: 2, title: 'The Interpretation of Dreams', author: 'Freud', date: '1899',
@@ -104,7 +110,7 @@ export const SCHOOL_CANON = freeze([
   text({ id: 'venus.defence-of-poetry', degree: 1, title: 'A Defence of Poetry', author: 'Shelley', date: '1821',
     edition: 'Original', why: 'Poets as unacknowledged legislators' }),
   text({ id: 'venus.leaves-of-grass', degree: 1, title: 'Leaves of Grass', author: 'Walt Whitman', date: '1855',
-    edition: 'Original', why: 'A self containing multitudes', work: { id: 'literary-leaves-of-grass' } }),
+    edition: 'Original', why: 'A self containing multitudes', work: { corpus: true } }),
   text({ id: 'venus.spiritual-in-art', degree: 1, title: 'On the Spiritual in Art', author: 'Wassily Kandinsky', date: '1911',
     edition: 'Michael Sadler, 1914', why: 'Abstraction as inner necessity',
     work: { id: 'kandinsky-spiritual-in-art' }, bridges: ['moon'] }),
@@ -121,9 +127,11 @@ export const SCHOOL_CANON = freeze([
 
   // Mars: House of the City
   text({ id: 'mars.the-prince', degree: 1, title: 'The Prince', author: 'Machiavelli', date: '1532',
-    edition: 'W. K. Marriott, 1908', why: 'Power seen without illusion' }),
+    edition: 'W. K. Marriott, 1908', why: 'Power seen without illusion',
+    work: { corpus: true } }),
   text({ id: 'mars.peloponnesian-war', degree: 2, title: 'History of the Peloponnesian War', author: 'Thucydides', date: 'c. 400 BCE',
-    edition: 'Richard Crawley, 1874', why: 'The first analytic history' }),
+    edition: 'Richard Crawley, 1874', why: 'The first analytic history',
+    work: { corpus: true } }),
   text({ id: 'mars.renaissance-in-italy', degree: 2, title: 'The Civilization of the Renaissance in Italy', author: 'Jacob Burckhardt', date: '1860',
     edition: 'S. G. C. Middlemore, 1878', why: 'The book that invented "the Renaissance" as we picture it' }),
   text({ id: 'mars.golden-bough', degree: 2, title: 'The Golden Bough', author: 'J. G. Frazer', date: '1890; abr. 1922',
@@ -139,7 +147,8 @@ export const SCHOOL_CANON = freeze([
   text({ id: 'jupiter.nature-of-things', degree: 1, title: 'On the Nature of Things', author: 'Lucretius', date: 'c. 55 BCE',
     edition: 'W. E. Leonard, 1916', why: 'Atoms, swerve, freedom from fear' }),
   text({ id: 'jupiter.flatland', degree: 1, title: 'Flatland', author: 'Edwin Abbott', date: '1884',
-    edition: 'Original', why: 'A parable of dimensions' }),
+    edition: 'Original', why: 'A parable of dimensions',
+    work: { corpus: true } }),
   text({ id: 'jupiter.art-forms-in-nature', degree: 1, title: 'Art Forms in Nature', author: 'Ernst Haeckel', date: '1904',
     edition: 'Plates, language-free', why: 'Nature\'s symmetry as pattern library' }),
   text({ id: 'jupiter.metamorphosis-of-plants', degree: 2, title: 'The Metamorphosis of Plants', author: 'Goethe', date: '1790',

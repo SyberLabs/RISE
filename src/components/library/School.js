@@ -21,11 +21,13 @@
 
 import { getTextById } from '../../content/library.js';
 import { SCHOOL_CANON } from '../../content/school/canon.js';
+import { schoolWorkById } from '../../content/school/corpus.js';
 import { DEGREES, GATE, HOUSES } from '../../content/school/houses.js';
 import {
   GATE_RADIUS,
   RING_RADIUS,
   WHEEL_SECTOR_DEGREES,
+  corpusDivisions,
   houseById,
   pathsOfRecord,
   recordById,
@@ -106,6 +108,15 @@ function focusKey(focus) {
   return focus.kind === 'path' ? `path-${focus.id}` : focus.id;
 }
 
+/** A corpus work states its life+70 status; any other record its plan rights. */
+function rightsLine(record) {
+  const life70 = record.work?.corpus ? schoolWorkById(record.id)?.rights.life70 : null;
+  if (!life70) return RIGHTS[record.rights];
+  if (life70 === 'pd') return 'Public domain';
+  if (life70 === 'unknown') return 'Public domain in the US; translator’s dates unknown';
+  return `Public domain in the US; in copyright in life+70 countries until ${life70.slice('until:'.length)}`;
+}
+
 function freeEditionUrl(record) {
   return `https://www.gutenberg.org/ebooks/search/?query=${encodeURIComponent(`${record.title} ${record.author}`)}`;
 }
@@ -143,6 +154,7 @@ export class School {
   // ---------- state ----------
 
   entryCount(record) {
+    if (record.work?.corpus) return schoolWorkById(record.id)?.units || 0;
     if (record.work?.entry) return 1;
     return (record.work && getTextById(record.work.id)?.chapterCount) || 0;
   }
@@ -402,14 +414,16 @@ export class School {
     const bridges = record.bridges.map(id => houseById(id)).filter(Boolean);
     const paths = pathsOfRecord(record.id);
     const divisible = schoolStatus(record, this.manifest).state === 'readable' && !record.work.entry;
+    // A corpus work names the edition it was ingested from, not the plan's.
+    const edition = (record.work?.corpus && schoolWorkById(record.id)?.edition.statement) || record.edition;
     return `
       <p class="school-kicker" style="${hueStyle(house)}">${escapeHtml(place)}</p>
       <h2 class="school-title">${escapeHtml(record.title)}</h2>
       <p class="school-meta">${escapeHtml(record.author)} · ${escapeHtml(record.date)}</p>
       <p class="school-why">${escapeHtml(record.why)}</p>
       <dl class="school-facts">
-        <div><dt>Edition</dt><dd>${escapeHtml(record.edition)}</dd></div>
-        <div><dt>Rights</dt><dd>${escapeHtml(RIGHTS[record.rights])}</dd></div>
+        <div><dt>Edition</dt><dd>${escapeHtml(edition)}</dd></div>
+        <div><dt>Rights</dt><dd>${escapeHtml(rightsLine(record))}</dd></div>
         <div><dt>State</dt><dd>${escapeHtml(this.stateWord(record))}</dd></div>
       </dl>
       ${record.note ? `<p class="school-note">${escapeHtml(record.note)}</p>` : ''}
@@ -444,15 +458,17 @@ export class School {
   async loadDivisions(record) {
     const slot = this.container.querySelector('[data-divisions]');
     if (!slot) return;
-    const text = getTextById(record.work.id);
-    if (typeof text?.getDivisions !== 'function') {
+    const text = record.work.corpus ? null : getTextById(record.work.id);
+    const load = record.work.corpus ? () => corpusDivisions(record.id)
+      : typeof text?.getDivisions === 'function' ? () => text.getDivisions() : null;
+    if (!load) {
       slot.remove();
       return;
     }
     let divisions = this.divisions.get(record.id);
     if (!divisions) {
       try {
-        divisions = await text.getDivisions();
+        divisions = await load();
       } catch {
         divisions = null;
       }

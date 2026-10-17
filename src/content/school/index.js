@@ -3,6 +3,8 @@
  * the Wheel.
  */
 
+import { loadSchoolSections } from '../../core/content-store.js';
+import { divideSections } from '../archive/divisions.js';
 import { getTextById } from '../library.js';
 import { SCHOOL_CANON } from './canon.js';
 import { GATE, HOUSES } from './houses.js';
@@ -38,16 +40,26 @@ export function pathsOfRecord(id) {
 }
 
 /**
- * Readable only when the manifest shelves the work AND the Library registers
- * it; carried when the manifest withholds it; absent otherwise, including
- * before the manifest has loaded (`manifest` null).
+ * A corpus work is readable when the manifest's School list shelves it.
+ * Otherwise readable only when the manifest shelves the work AND the Library
+ * registers it; carried when the manifest withholds it; absent otherwise,
+ * including before the manifest has loaded (`manifest` null).
  */
 export function schoolStatus(record, manifest) {
+  if (record?.work?.corpus) {
+    const shelved = manifest?.school?.some(work => work.id === record.id && work.shelved === true);
+    return shelved ? { state: 'readable', reason: null, corpus: true } : { state: 'absent', reason: null };
+  }
   const workId = record?.work?.id;
   const entry = workId ? manifest?.works?.find(work => work.id === workId) : null;
   if (entry?.shelved === true && getTextById(workId)) return { state: 'readable', reason: null };
   if (entry?.shelved === false) return { state: 'carried', reason: entry.withheldReason ?? null };
   return { state: 'absent', reason: null };
+}
+
+/** A corpus work's divisions: one per unit its edition declared, verse carried. */
+export async function corpusDivisions(recordId) {
+  return divideSections(await loadSchoolSections(recordId), { declared: true });
 }
 
 function chord(radius, degrees) {

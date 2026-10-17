@@ -475,6 +475,27 @@ export function readStandardEbooksFile(xhtml, parse) {
 }
 
 /**
+ * One element read as one part: the one an id names, else the file's
+ * outermost section or article. For parts the selector above does not name —
+ * a prologue, a dedication, one dialogue inside a bundle. A part nested in
+ * the element keeps its own blocks, so a caller must reconcile against
+ * `sourceWords`, which counts every word the element holds.
+ */
+export function readStandardEbooksElement(xhtml, parse, id = null) {
+  const doc = stripApparatus(parse(String(xhtml)));
+  const element = id
+    ? doc.getElementById(id)
+    : doc.querySelector('body > section, body > article');
+  if (!element) {
+    throw new StandardEbooksStructureError(`no element ${id ? `#${id}` : 'section or article'} in the file`);
+  }
+  return {
+    ...readPart(element),
+    sourceWords: clean(element.textContent).split(' ').filter(Boolean).length
+  };
+}
+
+/**
  * WORDS IN MUST EQUAL WORDS OUT.
  *
  * The check that would have caught §2j on the day it was made. The source's

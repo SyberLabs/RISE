@@ -164,7 +164,7 @@ flowchart LR
     app["app<br/>composition root<br/>25 modules"]
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
     components["components<br/>routed views<br/>58 modules"]
-    content["content<br/>texts, imagery, journeys<br/>232 modules"]
+    content["content<br/>texts, imagery, journeys<br/>243 modules"]
     core["core<br/>session, player, router<br/>185 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>76 modules"]
@@ -188,7 +188,7 @@ flowchart LR
     components --> |3| affect
     components --> |10| app
     components --> |6| audio
-    components --> |28| content
+    components --> |29| content
     components --> |192| core
     components -.-> |1 lazy| page
     components --> |3| scenes
@@ -196,7 +196,7 @@ flowchart LR
     components -.-> |2 lazy| vendor
     components --> |18| visuals
     content --> |3| audio
-    content --> |15| core
+    content --> |16| core
     content --> |10| sources
     content --> |1| visuals
     core --> |14| audio
@@ -519,7 +519,11 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `content/works/<sha256>.json` and is fetched at read time by
   `src/core/content-store.js`, which verifies the digest on arrival. **The hash
   is the URL**, so the address an object was fetched by is the digest it must
-  have.
+  have. The Chapel's scripture (`content/chapel/<sha256>.txt`) and the Mystery
+  School's corpus (`src/content/school/corpus.js` naming the generated
+  payloads in `src/content/school/works/`, published at
+  `content/school/<sha256>.json` under the manifest's `school` list) are
+  addressed the same way, each beside the Archive's canon rather than in it.
 - **Rejected:** generated `.js` modules under `src/content/`, reached by dynamic
   `import()` from a catalog — which is what this was until it was cut.
 - **Why:** compiling books bought one real thing — Rollup hashed, split and
