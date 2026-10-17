@@ -70,6 +70,35 @@ export function titleCase(text) {
     }).join(' ');
 }
 
+function textNodes(element) {
+    const walker = element.ownerDocument.createTreeWalker(element, 4);
+    const nodes = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) nodes.push(node);
+    return nodes;
+}
+
+/**
+ * Carries `next`'s text on at the end of `previous`, where a page turn
+ * broke one paragraph in two, and removes `next`: one space between them,
+ * none after a word the line ended with a hyphen.
+ */
+export function joinParagraphs(previous, next) {
+    const ends = textNodes(previous);
+    const last = ends[ends.length - 1];
+    if (last) last.data = last.data.trimEnd();
+    const first = textNodes(next).find(node => node.data.trim());
+    if (first) first.data = first.data.trimStart();
+    const hyphen = /\p{L}-$/u.test(previous.textContent);
+    previous.append(previous.ownerDocument.createTextNode(hyphen ? '' : ' '), ...next.childNodes);
+    next.remove();
+}
+
+/** The first or last child element that carries text. */
+export function filledChild(element, last = false) {
+    const children = [...element.children];
+    return (last ? children.reverse() : children).find(child => child.textContent.trim()) ?? null;
+}
+
 function dropWords(elements) {
     let total = 0;
     for (const element of elements) {
@@ -127,10 +156,19 @@ function strip(doc) {
     if (!footer || !/\*\*\* ?END OF/u.test(footer.textContent)) throw new Error('no "*** END OF" marker in a #pg-footer');
     header.remove();
     footer.remove();
+    return dropFurniture(doc, DROP);
+}
 
+/**
+ * Removes what `drops` names (`{ kind: selector }`), then footnote markers
+ * and notes in whatever form they were set, and marks every `<br>`; returns
+ * the words removed, by kind. Every reader runs it once, after removing its
+ * site's own furniture and before reading units.
+ */
+export function dropFurniture(doc, drops) {
     const dropped = {};
     const add = (kind, count) => { if (count) dropped[kind] = (dropped[kind] || 0) + count; };
-    for (const [kind, selector] of Object.entries(DROP)) {
+    for (const [kind, selector] of Object.entries(drops)) {
         add(kind, dropWords([...doc.body.querySelectorAll(selector)]));
     }
     const markers = [...doc.body.querySelectorAll('a[href^="#"]')].filter(anchor => MARKER_TEXT.test(anchor.textContent)
