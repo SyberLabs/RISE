@@ -476,7 +476,11 @@ export const WEB_RECIPES = {
             // The brackets each of the two dropped note anchors leaves behind ("[sic]" is set the same way and stays).
             { pattern: '(?<="devouring") \\[$|(?<=\'mneme\',)\\[$|^\\](?= As is| whereas)', kind: 'footnote markers', replace: '' },
             // The transcriber's marks for a letter the page could not set: me[accent]tier, na[umlaut]ive, ae[]sthenic.
-            { pattern: '\\[(?:accent|umlaut)?\\]', kind: 'transcriber notes', replace: '' }
+            { pattern: '\\[(?:accent|umlaut)?\\]', kind: 'transcriber notes', replace: '' },
+            // Slips in the proofed transcription, each corrected as the sentence reads.
+            { pattern: 'The are, as it were', kind: 'transcription slips', replace: 'They are, as it were' },
+            { pattern: 'con~sdousness', kind: 'transcription slips', replace: 'consciousness' },
+            { pattern: "forbidden' This other", kind: 'transcription slips', replace: 'forbidden. This other' }
         ],
         extract: { from: 'A. INTRODUCTION' },
         units: [
