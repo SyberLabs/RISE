@@ -80,6 +80,45 @@ function dropWords(elements) {
     return total;
 }
 
+/**
+ * Removes every "[Footnote: …]" an edition set inline, to its matching
+ * bracket, across whatever elements its text runs through; returns the
+ * words removed.
+ */
+function dropInlineNotes(doc) {
+    const walker = doc.createTreeWalker(doc.body, 4);
+    let removed = '';
+    let depth = 0;
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        let kept = '';
+        let at = 0;
+        const data = node.data;
+        while (at < data.length) {
+            if (!depth) {
+                const open = data.indexOf('[Footnote', at);
+                if (open < 0) {
+                    kept += data.slice(at);
+                    break;
+                }
+                kept += data.slice(at, open);
+                at = open;
+            }
+            for (; at < data.length && (depth || data[at] === '['); at++) {
+                if (data[at] === '[') depth++;
+                else if (data[at] === ']') depth--;
+                removed += data[at];
+                if (!depth) {
+                    at++;
+                    removed += ' ';
+                    break;
+                }
+            }
+        }
+        if (kept !== data) node.data = kept;
+    }
+    return countWords(removed);
+}
+
 /** Strips everything that is not the edition's text, and says how much. */
 function strip(doc) {
     const header = doc.getElementById('pg-header');
@@ -104,6 +143,7 @@ function strip(doc) {
     add('footnotes', dropWords([...doc.body.querySelectorAll('p, div')]
         .filter(block => NOTE_BLOCK.test(block.textContent) && ![...block.children].some(child => BLOCK.has(child.tagName)))));
 
+    add('footnotes', dropInlineNotes(doc));
     const walker = doc.createTreeWalker(doc.body, 4);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
         if (!PLAIN_MARKER.test(node.data)) continue;
@@ -147,7 +187,7 @@ function linesOf(element) {
         if (block) text += edge;
     };
     walk(element);
-    const lines = text.replace(RUN, breakRun).split('\n').map(line => line.replace(/\s+/gu, ' ').trim());
+    const lines = text.replace(/[\n\r\t\f]/gu, ' ').replace(RUN, breakRun).split('\n').map(line => line.replace(/\s+/gu, ' ').trim());
     const kept = [];
     for (const line of lines) {
         if (line || (kept.length && kept[kept.length - 1])) kept.push(line);

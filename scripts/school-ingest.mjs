@@ -54,7 +54,7 @@ const RAW = 'https://raw.githubusercontent.com/standardebooks';
 const MIN_CHARS = 200;
 // A marker attached to the word before it, or any [FN#n]; "[3553]" set
 // after a space is a year in Vico's chronology, not a note.
-const FOOTNOTE_MARKER = /\S\[\d{1,4}\]|\[FN#?\d{1,4}\]/u;
+const FOOTNOTE_MARKER = /\S\[\d{1,4}\]|\[FN#?\d{1,4}\]|\[Footnote/u;
 // A producer's credit opens a paragraph ("Produced by Works" opens a verse line in the Gita).
 const LEFTOVER = /(?:^|\n\n)\s*produced by\b|transcriber['’]?s note/iu;
 
@@ -227,6 +227,8 @@ const RECIPES = Object.freeze({
         ebook: 3800,
         artifact: 'html',
         extract: { from: 'PART I. CONCERNING GOD.' },
+        // "End of the Ethics by Benedict de Spinoza" is the transcriber's closing line.
+        drop: 'p.finis',
         units: [
             { heading: 'PART I. CONCERNING GOD.', name: 'Part I: Concerning God' },
             { heading: 'PART II.', name: 'Part II: On the Nature and Origin of the Mind' },
@@ -274,7 +276,8 @@ const RECIPES = Object.freeze({
     'moon.life-after-death': {
         ebook: 74480,
         artifact: 'html',
-        extract: { from: 'INTRODUCTION' },
+        // The publisher's advertisements follow chapter XII.
+        extract: { from: 'INTRODUCTION', to: 'The World Beautiful' },
         units: 'headings',
         level: 2,
         count: 16,

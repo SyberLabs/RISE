@@ -29,7 +29,8 @@ const ESSAYS = edition(`
 <h2>CONTENTS</h2>
 <p class="toc"><a href="#c1">CHAPTER I</a></p>
 <h2><span class="pagenum"><a id="Page_1">[Pg 1]</a></span>CHAPTER I<br>OF TRUTH</h2>
-<p>What is truth? said jesting Pilate,<a class="fnanchor" href="#Footnote_1">[1]</a> and would not stay for an answer.</p>
+<p>What is truth? said jesting
+Pilate,<a class="fnanchor" href="#Footnote_1">[1]</a> and would not stay for an answer.</p>
 <h3>A SECOND THOUGHT</h3>
 <p>Certainly there be that delight in giddiness[2] and count it a bondage to fix a belief.</p>
 <h2>CHAPTER II<br>OF DEATH</h2>
@@ -87,6 +88,14 @@ describe('the Gutenberg reader', () => {
       ['The Apology of the Nolan', 'O lovely, graceful nymphs of England!']
     ]);
     expect(read.dropped.recipe).toBe(6);
+    expect(read.sourceWords).toBe(read.importedWords);
+  });
+
+  it('drops a footnote the edition set inline in brackets, however its markup splits it', () => {
+    const shelley = edition('<h2>A DEFENCE</h2><p>Lord Bacon was a poet. [Footnote: See the <i>Filum Labyrinthi</i>, and the [Essay] on Death.] His language has a sweet rhythm.</p>');
+    const read = readGutenberg(shelley, parse, { units: [{ heading: 'A DEFENCE', name: 'A Defence' }] });
+    expect(read.parts[0].content).toBe('Lord Bacon was a poet. His language has a sweet rhythm.');
+    expect(read.dropped.footnotes).toBe(10);
     expect(read.sourceWords).toBe(read.importedWords);
   });
 
