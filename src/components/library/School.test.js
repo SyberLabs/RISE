@@ -9,7 +9,7 @@ vi.mock('../../core/content-store.js', () => ({
       works: [
         { id: 'literary-meditations', shelved: true },
         { id: 'sacred-tao-te-ching', shelved: true },
-        { id: 'faust', shelved: false, withheldReason: WITHHELD }
+        { id: 'sacred-corpus-hermeticum', shelved: false, withheldReason: WITHHELD }
       ],
       school: [
         { id: 'sun.zarathustra', shelved: true },
@@ -186,13 +186,13 @@ describe('the action a text offers', () => {
   });
 
   it('shows a withheld text as not served, with the archive reason', async () => {
-    mount({ initialFocus: 'venus.faust' });
+    mount({ initialFocus: 'saturn.corpus-hermeticum' });
     await settle();
     const button = lectern().querySelector('.school-action button');
     expect(button.disabled).toBe(true);
     expect(button.textContent.trim()).toBe('Not served yet');
     expect(lectern().textContent).toContain(WITHHELD);
-    expect(container.querySelector('[data-record="venus.faust"]').dataset.state).toBe('carried');
+    expect(container.querySelector('[data-record="saturn.corpus-hermeticum"]').dataset.state).toBe('carried');
   });
 
   it('points an absent text to its free edition outside RISE', async () => {

@@ -137,7 +137,7 @@ describe('a reading opened from the Mystery School', () => {
   });
 
   it('opens nothing for a text RISE does not carry', async () => {
-    expect(await schoolReading('sun.fragments', null)).toBeNull();
+    expect(await schoolReading('sun.monadology', null)).toBeNull();
     expect(await schoolReading('sun.nothing', null)).toBeNull();
   });
 });

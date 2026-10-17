@@ -13,6 +13,10 @@ import { SCHOOL_WORKS } from './corpus.js';
 
 const RECORD_IDS = new Set(SCHOOL_CANON.map(record => record.id));
 const LIFE70 = /^(?:pd|unknown|until:\d{4})$/u;
+const SOURCE_URL = {
+  'standard-ebooks': /^https:\/\/standardebooks\.org\/ebooks\//u,
+  gutenberg: /^https:\/\/www\.gutenberg\.org\/ebooks\/\d+$/u
+};
 const BARE_NUMERAL = /^(?:[IVXLCDM]+|\d+)\.?$/u;
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 
@@ -24,18 +28,42 @@ describe('the School corpus', () => {
     for (const id of ids) expect(RECORD_IDS.has(id), id).toBe(true);
   });
 
-  it('serves the ten Standard Ebooks texts of the first slice', () => {
+  it('serves the Standard Ebooks texts of the first slice and the Project Gutenberg texts of the second', () => {
     expect(SCHOOL_WORKS.map(work => [work.id, work.units])).toEqual([
+      ['sun.fragments', 21],
       ['sun.symposium-phaedrus-timaeus', 6],
       ['sun.zarathustra', 81],
-      ['mercury.book-of-the-machines', 3],
+      ['sun.ethics', 5],
+      ['mercury.new-atlantis', 1],
+      ['mercury.lovelace-notes', 8],
+      ['mercury.book-of-the-machines', 4],
       ['mercury.machine-stops', 3],
       ['mercury.rur', 4],
+      ['moon.life-after-death', 16],
+      ['moon.stream-of-thought', 8],
       ['moon.varieties', 15],
+      ['moon.interpretation-of-dreams', 7],
+      ['moon.human-personality', 10],
+      ['venus.hymns-to-the-night', 6],
+      ['venus.defence-of-poetry', 1],
       ['venus.leaves-of-grass', 36],
+      ['venus.spiritual-in-art', 9],
+      ['venus.faust', 28],
+      ['venus.biographia-literaria', 25],
+      ['venus.aesthetic-education', 27],
       ['mars.the-prince', 27],
       ['mars.peloponnesian-war', 26],
-      ['jupiter.flatland', 22]
+      ['mars.renaissance-in-italy', 46],
+      ['mars.golden-bough', 70],
+      ['mars.new-science', 6],
+      ['mars.decline-of-the-west', 25],
+      ['jupiter.nature-of-things', 6],
+      ['jupiter.flatland', 22],
+      ['jupiter.growth-and-form', 18],
+      ['jupiter.relativity', 37],
+      ['saturn.zhuangzi', 33],
+      ['saturn.bhagavad-gita', 18],
+      ['saturn.heroic-frenzies', 11]
     ]);
   });
 
@@ -43,8 +71,15 @@ describe('the School corpus', () => {
     describe(work.id, () => {
       it('states its edition, its source and its rights', () => {
         expect(work.edition.statement, work.id).toMatch(/\S/u);
-        expect(work.source.kind).toBe('standard-ebooks');
-        expect(work.source.url).toMatch(/^https:\/\/standardebooks\.org\/ebooks\//u);
+        for (const source of work.source.artifacts ?? [work.source]) {
+          expect(SOURCE_URL[source.kind], `${work.id}: ${source.kind}`).toBeDefined();
+          expect(source.url).toMatch(SOURCE_URL[source.kind]);
+          // A Gutenberg file is named by the hash of the bytes the ingest read.
+          if (source.kind === 'gutenberg') {
+            expect(source.artifact).toBe('html');
+            expect(source.sha256).toMatch(/^[0-9a-f]{64}$/u);
+          }
+        }
         expect(work.source.retrieved).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
         expect(work.rights.us).toBe('pd');
         expect(work.rights.life70).toMatch(LIFE70);
