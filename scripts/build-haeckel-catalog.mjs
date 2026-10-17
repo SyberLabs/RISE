@@ -61,11 +61,12 @@ const BINOMIAL = /^[A-Z][a-z]+ [a-z]+(?:-[a-z]+)?$/u;
  * The organisms a file's description lists, one per item (its figure index).
  * A description that lists fewer than two is not an index, so the species
  * categories Commons files the plate under name them instead; a description
- * without a list is kept as the plate's note. Figures are never read.
+ * without a list is kept as the plate's note. Figures and footnote calls
+ * (`<sup>[1]</sup>`, citing the taxonomy source) are never read.
  */
 function described(html, categories) {
     const body = new JSDOM(`<body>${html ?? ''}</body>`).window.document.body;
-    body.querySelectorAll('figure, img, style, script').forEach(node => node.remove());
+    body.querySelectorAll('figure, img, style, script, sup').forEach(node => node.remove());
     const list = body.querySelectorAll('li');
     const items = [...list].map(text).filter(Boolean);
     if (items.length >= 2) return { organisms: items, note: null };
