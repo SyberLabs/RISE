@@ -27,7 +27,11 @@ const BLOCK = new Set(['P', 'DIV', 'BLOCKQUOTE', 'PRE', 'H1', 'H2', 'H3', 'H4', 
 const HEADINGS = 'h1,h2,h3,h4,h5,h6';
 const VERSE = 'pre, .poem, .poetry, .verse, .stanza, .linegroup, .lg-container-b';
 /** A line break inside a block, kept apart from the source's own whitespace. */
-const BREAK = ' ';
+const BREAK = '\u2028';
+/** A block's edge, and a stanza's, inside a block read as lines. */
+const EDGE = '\uE000';
+const STANZA = '\uE001';
+const RUN = /[\s\uE000\uE001]*[\u2028\uE000\uE001][\s\uE000\uE001]*/gu;
 
 const DROP = Object.freeze({
     'page numbers': '.pagenum, .pageno, .xxpn, .linenum, .indexpageno',
@@ -113,6 +117,17 @@ function strip(doc) {
     return dropped;
 }
 
+/**
+ * Where a run of breaks ends a line, and where it also ends a stanza: a
+ * stanza's edge, or two `<br>` (or two newlines in `<pre>`) with no block
+ * edge between them. A block edge next to a `<br>` is one break, not two.
+ */
+function breakRun(run) {
+    if (run.includes(STANZA)) return '\n\n';
+    if (run.includes(EDGE)) return '\n';
+    return [...run].filter(char => char === BREAK).length > 1 ? '\n\n' : '\n';
+}
+
 /** A block's lines: breaks where it set `<br>`, a block edge, or (in `<pre>`) a newline. */
 function linesOf(element) {
     let text = '';
@@ -122,15 +137,17 @@ function linesOf(element) {
             return;
         }
         if (node.nodeType !== 1) return;
-        const block = BLOCK.has(node.tagName) && node !== element;
-        const stanza = block && node.classList.contains('stanza');
-        if (block) text += stanza ? BREAK + BREAK : BREAK;
-        if (node.tagName === 'TD' || node.tagName === 'TH') text += ' ';
+        // A table cell is a column within its row's line.
+        const cell = node.tagName === 'TD' || node.tagName === 'TH';
+        const block = BLOCK.has(node.tagName) && node !== element && !cell;
+        const edge = block && node.classList.contains('stanza') ? STANZA : EDGE;
+        if (block) text += edge;
+        if (cell) text += ' ';
         for (const child of node.childNodes) walk(child);
-        if (block) text += stanza ? BREAK + BREAK : BREAK;
+        if (block) text += edge;
     };
     walk(element);
-    const lines = text.split(BREAK).map(line => line.replace(/\s+/gu, ' ').trim());
+    const lines = text.replace(RUN, breakRun).split('\n').map(line => line.replace(/\s+/gu, ' ').trim());
     const kept = [];
     for (const line of lines) {
         if (line || (kept.length && kept[kept.length - 1])) kept.push(line);

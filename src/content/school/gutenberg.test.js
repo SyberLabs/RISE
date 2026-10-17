@@ -90,6 +90,13 @@ describe('the Gutenberg reader', () => {
     expect(read.sourceWords).toBe(read.importedWords);
   });
 
+  it('reads a table a row to a line', () => {
+    const table = edition('<h2>NOTE D.</h2><table><tr><th>Number of Operation.</th><th>Nature.</th></tr><tr><td>1</td><td>×</td></tr><tr><td>2</td><td>×</td></tr></table>');
+    const read = readGutenberg(table, parse, { units: [{ heading: 'NOTE D.', name: 'Note D' }] });
+    expect(read.parts[0].content).toBe(['Number of Operation. Nature.', '1 ×', '2 ×'].join(String.fromCharCode(10)));
+    expect(read.parts[0].verse).toBe(false);
+  });
+
   it('counts a word the markup splits across elements once, on both sides', () => {
     const essay = edition('<h3>Darwin Among the Machines</h3><p>“<i>Darwin Among the Machines</i>” appeared in the <span class="smcap">Press</span>, 13 <i>June</i>, 1863.</p><div><p>Sir,</p>There is no security.</div>');
     const read = readGutenberg(essay, parse, { units: [{ heading: 'Darwin Among the Machines' }] });
