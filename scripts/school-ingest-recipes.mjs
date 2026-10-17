@@ -341,6 +341,8 @@ export const WEB_RECIPES = {
                     : name.startsWith('Part V · Chapter 24:') ? null : name)),
             'Part VI: Last Words'
         ],
+        // The site's Swedenborg chapter opens on "<s :", a broken small-caps tag set as text.
+        strike: { pattern: '^<s : ', kind: 'transcription faults' },
         count: 55,
         note: SACRED_TEXTS_NOTE,
         edition: { statement: 'E. P. Dutton, New York, 1901', translator: null, year: 1901 },

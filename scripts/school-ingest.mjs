@@ -580,7 +580,9 @@ const RECIPES = Object.freeze({
             { pattern: '\\[balance of p 305 is in file "09 Humboldt"\\]', kind: 'transcriber notes' },
             { pattern: '(?<=^|\\n)[ \\t]*p [0-9ivxlc]+[ \\t]*(?=\\n|$)', kind: 'page numbers' },
             { pattern: '(?<=^|\\n)[ \\t]*[—_-]{4,}[ \\t]*(?=\\n|$)', kind: 'rules' },
-            { pattern: '\\*+', kind: 'footnote markers' }
+            // A marker set against the next word leaves a space; one before punctuation or a line's end, nothing.
+            { pattern: '\\*+(?=[\\p{L}\\d(])', kind: 'footnote markers' },
+            { pattern: '\\*+', kind: 'footnote markers', replace: '' }
         ],
         units: [
             { heading: 'REFLECTIONS ON THE DIFFERENT DEGREES OF ENJOYMENT PRESENTED TO US BY THE ASPECT OF NATURE AND THE STUDY OF HER LAWS.' },

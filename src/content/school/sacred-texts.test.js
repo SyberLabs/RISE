@@ -77,4 +77,14 @@ describe('readSacredTexts', () => {
       + 'SECOND KHANDA\n\n1. When the Devas and Asuras struggled together.');
     expect(read.sourceWords).toBe(read.importedWords);
   });
+
+  it('strikes and counts what the recipe names as a transcription fault set inline', () => {
+    const swedenborg = page('<h3 align="center">CHAPTER 11.</h3><p>&lt;s : Independently</span> of illumination, Swedenborg was one of the great men of all time.</p>');
+    const read = readSacredTexts([swedenborg], parse, {
+      units: 'whole', name: 'Swedenborg', strike: { pattern: '^<s : ', kind: 'transcription faults' }
+    });
+    expect(read.parts[0].content).toBe('CHAPTER 11.\n\nIndependently of illumination, Swedenborg was one of the great men of all time.');
+    expect(read.dropped['transcription faults']).toBe(2);
+    expect(read.sourceWords).toBe(read.importedWords);
+  });
 });
