@@ -138,6 +138,16 @@ describe('the Gutenberg reader', () => {
     expect(read.sourceWords).toBe(read.importedWords);
   });
 
+  it('opens a group at a banner the recipe names by its text, at the level of the units', () => {
+    const einstein = edition(`<h3>PREFACE</h3><p>In the present book I have tried to give an exact insight.</p>
+<h3>PART I: THE SPECIAL THEORY OF RELATIVITY</h3>
+<h3>I. PHYSICAL MEANING OF GEOMETRICAL PROPOSITIONS</h3><p>In your schooldays most of you who read this book made acquaintance with geometry.</p>`);
+    const read = readGutenberg(einstein, parse, { units: 'headings', level: 3, groups: ['PART I: THE SPECIAL THEORY OF RELATIVITY'] });
+    expect(read.parts.map(part => part.name)).toEqual(['Preface', 'I. Physical Meaning of Geometrical Propositions']);
+    expect(read.parts[1].content).toBe('PART I: THE SPECIAL THEORY OF RELATIVITY\n\nIn your schooldays most of you who read this book made acquaintance with geometry.');
+    expect(read.groups).toEqual(['PART I: THE SPECIAL THEORY OF RELATIVITY']);
+  });
+
   it('takes a subtitle the recipe names into the unit name, and treats extra elements as headings when told to', () => {
     const giles = edition(`
 <h2>CHAPTER I.</h2><p class="ph3"><span class="smcap">Transcendental Bliss.</span></p><p>In the northern ocean there is a fish, called the Leviathan.</p>

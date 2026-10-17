@@ -231,8 +231,8 @@ function shortName(text) {
  * The recipe's units, in reading order: `{ item, name?, verse?, group? }`.
  * `units: 'headings'` takes every heading of `level` (a number, or the
  * selector the recipe made headings of) from `from` to `to` inclusive, and
- * every heading of `group` as a group banner; a list takes exactly the
- * headings it names.
+ * every heading of `group`, or whose text `groups` lists, as a group
+ * banner; a list takes exactly the headings it names.
  */
 function plan(items, recipe) {
     if (Array.isArray(recipe.units)) {
@@ -247,7 +247,7 @@ function plan(items, recipe) {
     for (const item of items) {
         if (item.kind !== 'heading') continue;
         if (item === first) open = true;
-        if (recipe.group !== undefined && at(item, recipe.group)) units.push({ item, group: true });
+        if ((recipe.group !== undefined && at(item, recipe.group)) || recipe.groups?.includes(item.text)) units.push({ item, group: true });
         else if (open && at(item, recipe.level)) units.push({ item });
         if (item === last) open = false;
     }
