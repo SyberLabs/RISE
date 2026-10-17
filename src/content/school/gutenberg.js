@@ -197,6 +197,22 @@ export function dropFurniture(doc, drops) {
 }
 
 /**
+ * Removes from the text what a recipe's `strike` (`{ pattern, kind }`)
+ * names: text set inline that is not the work, such as page numbers in
+ * brackets or a transcription fault. Counts its words in `dropped`.
+ */
+export function strikeText(doc, strike, dropped) {
+    const pattern = new RegExp(strike.pattern, 'gu');
+    const walker = doc.createTreeWalker(doc.body, 4);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        node.data = node.data.replace(pattern, match => {
+            dropped[strike.kind] = (dropped[strike.kind] || 0) + countWords(match);
+            return ' ';
+        });
+    }
+}
+
+/**
  * Where a run of breaks ends a line, and where it also ends a stanza: a
  * stanza's edge, or two `<br>` (or two newlines in `<pre>`) with no block
  * edge between them. A block edge next to a `<br>` is one break, not two.

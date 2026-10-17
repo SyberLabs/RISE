@@ -8,13 +8,14 @@
  * sacred-texts.com", page numbers (named anchors), footnote markers and
  * each page's Footnotes list, and the "[paragraph continues]" notes. A
  * paragraph a page turn split is joined again where the site marked it
- * continuing, or where the next page's text opens in lower case. Units and
+ * continuing, or where the next page's text opens in lower case. A recipe's
+ * `strike` removes, and counts, a fault set inline as text. Units and
  * verse are then read as the Gutenberg reader reads them (./gutenberg.js).
  *
  * Imported only by scripts/school-ingest.mjs.
  */
 
-import { dropFurniture, joinParagraphs, readUnits } from './gutenberg.js';
+import { dropFurniture, joinParagraphs, readUnits, strikeText } from './gutenberg.js';
 
 const countWords = text => String(text).split(/\s+/u).filter(Boolean).length;
 
@@ -78,5 +79,6 @@ export function readSacredTexts(pages, parse, recipe) {
     add('continuation notes', remove(doc.body.querySelectorAll('.contnote')));
 
     for (const [kind, count] of Object.entries(dropFurniture(doc, { hidden: 'script, style' }))) add(kind, count);
+    if (recipe.strike) strikeText(doc, recipe.strike, dropped);
     return readUnits(doc, recipe, dropped);
 }
