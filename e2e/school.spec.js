@@ -42,6 +42,25 @@ test('the Mystery School opens on the Gate, reads a text, and returns to its hou
   await expect(lectern).toHaveAttribute('data-focus', 'sun');
 });
 
+test('a School corpus text reads from its own shelf', async ({ page }) => {
+  await page.goto('/school/sun.zarathustra');
+  const lectern = page.locator('.school-lectern');
+  await expect(lectern).toHaveAttribute('data-focus', 'sun.zarathustra', { timeout: 15_000 });
+  await expect(lectern.locator('.school-facts')).toContainText('Thomas Common, 1909, via Standard Ebooks');
+  await expect(lectern.locator('button[data-entry]')).toHaveCount(81, { timeout: 15_000 });
+  await lectern.locator('.school-action button[data-read="sun.zarathustra"]').click();
+
+  await expect(page).toHaveURL(/\/read$/u);
+  await page.waitForFunction(
+    () => !!window.__RISE_TEST__?.getView('read')?.paneInstance('setup')?.config?.text,
+    null, { timeout: 15_000 });
+  const source = await page.evaluate(() => window.__RISE_TEST__.getView('read').paneInstance('setup').config.textSource);
+  expect(source).toBe('Thus Spoke Zarathustra · Part I · Zarathustra’s Prologue');
+  await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
+  await page.locator('#begin-btn').click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+});
+
 test('a path named in the address is chosen and read in the Lectern', async ({ page }) => {
   await page.goto('/school/path-ficino');
   await expect(page.locator('.school-lectern')).toContainText('The Ficino Path', { timeout: 15_000 });
