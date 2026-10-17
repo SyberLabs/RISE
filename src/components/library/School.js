@@ -119,10 +119,14 @@ function rightsLine(record) {
 
 const LANGUAGES = Object.freeze({ la: 'Latin', fr: 'French', de: 'German' });
 
-/** A corpus work not in English says so after its state; an English one says nothing more. */
+/**
+ * A corpus work not in English says so after its state, as does one served in
+ * RISE's own translation; an English one says nothing more.
+ */
 function languageNote(record) {
-  const code = record.work?.corpus ? schoolWorkById(record.id)?.language : null;
-  return code ? ` · Original language · ${LANGUAGES[code] ?? code}` : '';
+  const work = record.work?.corpus ? schoolWorkById(record.id) : null;
+  if (work?.translation) return ` · ${work.translation}`;
+  return work?.language ? ` · Original language · ${LANGUAGES[work.language] ?? work.language}` : '';
 }
 
 function freeEditionUrl(record) {

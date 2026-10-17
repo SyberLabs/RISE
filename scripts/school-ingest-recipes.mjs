@@ -85,6 +85,7 @@ export const WEB_RECIPES = {
             ...(index ? { prefix: 'Latin' } : {})
         })),
         count: 94,
+        translation: 'RISE translation, English draft, Latin beside it',
         edition: {
             statement: 'English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, '
                 + 'not yet read against it by a person (notes on uncertain readings are in the source folder). '

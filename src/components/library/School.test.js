@@ -227,7 +227,15 @@ describe('the action a text offers', () => {
     expect(facts).not.toContain('Original language');
     expect(facts).toContain('English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, not yet read against it by a person');
     expect(facts).toContain('Latin: the Pico Project text, 1486.');
+    expect(facts).toContain('Readable in RISE · RISE translation, English draft, Latin beside it');
     expect(lectern().querySelector('.school-action button[data-read="gate.oration"]')).not.toBeNull();
+  });
+
+  it('says at the Gate itself that its English is RISE’s draft, the Latin beside it', async () => {
+    mount();
+    await settle();
+    expect(lectern().querySelector('.school-gate-text .school-state').textContent)
+      .toContain('Readable in RISE · RISE translation, English draft, Latin beside it');
   });
 
   it('reads Ibn Khaldun in de Slane’s French, and says so', async () => {
