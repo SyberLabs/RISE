@@ -52,8 +52,10 @@ const OUT = resolve(ROOT, 'src/content/school/works');
 const CORPUS = resolve(ROOT, 'src/content/school/corpus.js');
 const RAW = 'https://raw.githubusercontent.com/standardebooks';
 const MIN_CHARS = 200;
-const FOOTNOTE_MARKER = /\[(?:FN#?)?\d{1,4}\]/u;
-const LEFTOVER = /produced by|transcriber['’]s note/iu;
+// A marker attached to the word before it, or any [FN#n]; "[3553]" set
+// after a space is a year in Vico's chronology, not a note.
+const FOOTNOTE_MARKER = /\S\[\d{1,4}\]|\[FN#?\d{1,4}\]/u;
+const LEFTOVER = /^\s*produced by\b|transcriber['’]s note/imu;
 
 /**
  * `units: 'spine'` takes every bodymatter file in the edition's reading
@@ -809,8 +811,10 @@ function gate(id, recipe, parts, ledger) {
         if (DISTRIBUTOR_MATTER.test(part.name) || DISTRIBUTOR_MATTER.test(part.content)) {
             failures.push(`"${part.name}" carries distributor matter`);
         }
-        if (FOOTNOTE_MARKER.test(part.content) || LEFTOVER.test(part.content)) {
-            failures.push(`"${part.name}" carries a footnote marker or a producer's note`);
+        const leftover = FOOTNOTE_MARKER.exec(part.content) ?? LEFTOVER.exec(part.content);
+        if (leftover) {
+            const around = part.content.slice(Math.max(0, leftover.index - 40), leftover.index + 40).replace(/\s+/gu, ' ');
+            failures.push(`"${part.name}" carries a footnote marker or a producer's note: …${around}…`);
         }
         if (part.content.length < MIN_CHARS) {
             failures.push(`"${part.name}" is ${part.content.length} characters, under ${MIN_CHARS}`);

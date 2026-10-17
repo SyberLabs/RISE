@@ -37,8 +37,8 @@ const DROP = Object.freeze({
 });
 /** An anchor's whole text when it is a footnote marker: [1], [12a], [FN#3], [A], *. */
 const MARKER_TEXT = /^\s*\[?(?:FN#?)?(?:\d{1,4}[a-z]?|[A-Za-z]|[*†‡§])\]?\s*$/u;
-/** A marker set as plain text, attached to the word or stop before it. */
-const PLAIN_MARKER = /(?<=\S)\[(?:FN#?)?(?:\d{1,4}|[A-Z])\]/gu;
+/** A marker set as plain text: attached to the word or stop before it, or an [FN#n] anywhere. */
+const PLAIN_MARKER = /(?<=\S)\[(?:FN#?)?(?:\d{1,4}|[A-Z])\]|\[FN#?\d{1,4}\]/gu;
 /** A block that opens with a marker is a footnote's own text. */
 const NOTE_BLOCK = /^\s*\[(?:FN#?)?(?:\d{1,4}|[A-Z])\]/u;
 const MINOR = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'nor', 'of', 'on',

@@ -80,6 +80,13 @@ describe('the Gutenberg reader', () => {
     expect(read.sourceWords).toBe(20);
   });
 
+  it('removes an [FN#n] marker wherever it stands, and keeps a bracketed year set after a space', () => {
+    const gita = edition('<h3>CHAPTER VIII</h3><p class="poem">and seen! . . . . [FN#14]<br>Richer than holy fruit on Vedas growing,[FN#15]<br>the year of the world [3553].</p>');
+    const read = readGutenberg(gita, parse, { units: [{ heading: 'CHAPTER VIII' }] });
+    expect(read.parts[0].content).toBe('and seen! . . . .|Richer than holy fruit on Vedas growing,|the year of the world [3553].'.replaceAll('|', String.fromCharCode(10)));
+    expect(read.dropped['footnote markers']).toBe(2);
+  });
+
   it('refuses a unit heading the edition does not print, or prints twice in the span', () => {
     expect(() => readGutenberg(ESSAYS, parse, { units: [{ heading: 'CHAPTER III' }] })).toThrow(/CHAPTER III/u);
     const twice = edition('<h2>I.</h2><p>One.</p><h2>I.</h2><p>Two.</p>');
