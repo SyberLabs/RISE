@@ -16,6 +16,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import science from '../sources/visual/science-catalog.generated.json';
 import audubon from '../sources/visual/audubon-catalog.generated.json';
+import haeckel from '../sources/visual/haeckel-catalog.generated.json';
 import { DORE_PLATES } from '../content/chapel/imagery/dore.js';
 import { CHAPEL_ICONS } from '../content/chapel/imagery/icons.js';
 import { STATIONS } from '../content/chapel/liturgy/stations.js';
@@ -76,6 +77,11 @@ describe('img-src names every picture host and nothing wider', () => {
         }
         // Audubon: `imageService` is the IIIF base audubon.js builds from.
         for (const work of audubon.works) expected.add(origin(work.imageService));
+        // Haeckel: the plate's display image and its original.
+        for (const plate of haeckel.plates) {
+            expected.add(origin(plate.image));
+            expected.add(origin(plate.original));
+        }
         // Chapel: Doré plates, icons, Stations and the Rosary mysteries.
         for (const data of [DORE_PLATES, CHAPEL_ICONS, STATIONS, ROSARY_MYSTERY_WORKS]) {
             imageOrigins(data).forEach(host => expected.add(host));

@@ -2502,6 +2502,19 @@ export class VisualCortex {
             }
             return null;
         }
+        // Haeckel's plates — 'haeckel:' (a School picture work's launch).
+        // Pinned and pre-verified like the science catalog; never searched.
+        if (categoryId.startsWith('haeckel:')) {
+            try {
+                const haeckel = await import('../sources/visual/haeckel.js');
+                if (haeckel.hasHaeckelCollection(categoryId)) {
+                    return haeckel.getHaeckelPlatesProvider();
+                }
+            } catch (e) {
+                console.warn('[Visual Cortex] Haeckel plates unavailable:', e);
+            }
+            return null;
+        }
         // Defense in depth for direct provider calls. Normal configuration
         // paths migrate retired Met ids before hydration reaches this method.
         if (categoryId.startsWith('met-')) {
