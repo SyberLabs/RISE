@@ -47,6 +47,7 @@ describe('the School corpus', () => {
       ['mercury.new-atlantis', 1],
       ['mercury.lovelace-notes', 8],
       ['mercury.ninth-bridgewater', 17],
+      ['mercury.laws-of-thought', 22],
       ['mercury.on-governors', 5],
       ['mercury.book-of-the-machines', 4],
       ['mercury.machine-stops', 3],

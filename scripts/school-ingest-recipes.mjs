@@ -80,6 +80,18 @@ export const WEB_RECIPES = {
         },
         rights: { us: 'pd', life70: 'pd' }
     },
+    // Converted from Project Gutenberg's LaTeX (PG 15114) by scripts/school-latex.mjs.
+    'mercury.laws-of-thought': {
+        kind: 'file',
+        path: 'scripts/school-sources/mercury.laws-of-thought/laws-of-thought.md',
+        extract: { from: 'Chapter I: Nature and Design of This Work' },
+        units: 'headings',
+        level: 2,
+        count: 22,
+        textNote: 'equations shown as text',
+        edition: { statement: 'Walton and Maberly, 1854; equations shown as text', translator: null, year: 1854 },
+        rights: { us: 'pd', life70: 'pd' }
+    },
 
     // Wikisource: the MediaWiki API's parsed HTML of each page.
     'sun.monadology': {
