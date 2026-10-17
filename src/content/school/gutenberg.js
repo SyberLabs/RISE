@@ -107,6 +107,8 @@ function strip(doc) {
         add('footnote markers', (node.data.match(PLAIN_MARKER) || []).length);
         node.data = node.data.replace(PLAIN_MARKER, '');
     }
+    // An equation set as an image is text the edition gives in its alt.
+    for (const img of doc.body.querySelectorAll('img[data-tex]')) img.replaceWith(doc.createTextNode(img.alt));
     for (const br of doc.body.querySelectorAll('br')) br.after(doc.createTextNode(BREAK));
     return dropped;
 }
@@ -197,12 +199,15 @@ function wordsBetween(doc, start, end) {
     return total;
 }
 
-function findHeading(items, text, level, label) {
+/** The one heading that reads `text` (at `level`, if given), or the `nth` of several. */
+function findHeading(items, { text, level, nth }, label) {
     const want = flat(text);
     const found = items.filter(item => item.kind === 'heading' && item.text === want
         && (level === undefined || levelOf(item.element) === level));
-    if (found.length !== 1) throw new Error(`${label}: ${found.length} headings read "${want}" in the span`);
-    return found[0];
+    if (nth !== undefined ? !found[nth - 1] : found.length !== 1) {
+        throw new Error(`${label}: ${found.length} headings read "${want}" in the span`);
+    }
+    return found[nth === undefined ? 0 : nth - 1];
 }
 
 function levelOf(element) {
@@ -231,12 +236,12 @@ function shortName(text) {
  */
 function plan(items, recipe) {
     if (Array.isArray(recipe.units)) {
-        return recipe.units.map(unit => ({ ...unit, item: findHeading(items, unit.heading, unit.level, 'unit') }));
+        return recipe.units.map(unit => ({ ...unit, item: findHeading(items, { ...unit, text: unit.heading }, 'unit') }));
     }
     if (recipe.units !== 'headings') throw new Error(`units must be "headings" or a list, not ${JSON.stringify(recipe.units)}`);
     const at = (item, level) => (typeof level === 'number' ? levelOf(item.element) === level : item.element.matches(level));
-    const first = recipe.from ? findHeading(items, recipe.from, undefined, 'from') : null;
-    const last = recipe.to ? findHeading(items, recipe.to, undefined, 'to') : null;
+    const first = recipe.from ? findHeading(items, { text: recipe.from }, 'from') : null;
+    const last = recipe.to ? findHeading(items, { text: recipe.to }, 'to') : null;
     const units = [];
     let open = !first;
     for (const item of items) {
@@ -258,13 +263,15 @@ export function readGutenberg(html, parse, recipe) {
     const doc = parse(String(html));
     const dropped = strip(doc);
     const extra = [recipe.headings, typeof recipe.level === 'string' ? recipe.level : null].filter(Boolean).join(', ');
-    const candidates = new Set(doc.body.querySelectorAll(extra ? `${HEADINGS}, ${extra}` : HEADINGS));
+    // An element the recipe names as a heading stands for the block it opens.
+    const candidates = new Set([...doc.body.querySelectorAll(extra ? `${HEADINGS}, ${extra}` : HEADINGS)]
+        .map(element => (BLOCK.has(element.tagName) ? element : element.closest([...BLOCK].join(',').toLowerCase()))));
     const all = linearize(doc.body, element => candidates.has(element));
 
     let items = all;
     let end = null;
     if (recipe.extract) {
-        const from = findHeading(all, recipe.extract.from, recipe.extract.level, 'extract.from');
+        const from = findHeading(all, { ...recipe.extract, text: recipe.extract.from }, 'extract.from');
         const start = all.indexOf(from);
         const stop = recipe.extract.to
             ? all.findIndex((item, index) => index > start && item.kind === 'heading' && item.text === flat(recipe.extract.to))
@@ -295,7 +302,7 @@ export function readGutenberg(html, parse, recipe) {
             current = {
                 name: unit.name ?? headingName(item.lines),
                 sourceTitle: item.text,
-                verseFlag: unit.verse,
+                verseFlag: unit.verse ?? recipe.verse,
                 blocks: [...carried.map(text => ({ lines: [text], verse: false }))],
                 subtitle: recipe.subtitle ? 'pending' : null,
                 group: groups[groups.length - 1] ?? null

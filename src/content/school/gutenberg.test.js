@@ -162,6 +162,27 @@ describe('the Gutenberg reader', () => {
     expect(fragments.title).toBe('CHAPTER III HERAKLEITOS OF EPHESOS');
   });
 
+  it('reads an equation the edition set as an image by the text it gives for it', () => {
+    const memoir = edition('<h2>NOTE G.</h2><p>The numbers <img alt="{B}_{1}" data-tex="\mathrm{B}_1" src="images/1.svg"> are found <img src="images/figure.png" alt="Figure 1"> thus.</p>');
+    const read = readGutenberg(memoir, parse, { units: [{ heading: 'NOTE G.', name: 'Note G' }] });
+    expect(read.parts[0].content).toBe('The numbers {B}_{1} are found thus.');
+    expect(read.sourceWords).toBe(read.importedWords);
+  });
+
+  it('opens a unit at an element the recipe names, takes the nth of a doubled heading, and sets verse for every unit', () => {
+    const bruno = edition(`<h2>BOOK ONE.</h2><h3>ARGUMENT.</h3><p>What the first book holds, in brief.</p><h2>BOOK ONE.</h2>
+<p><a id="First"></a><b>First Dialogue.</b></p><p>Tansillo. The enthusiasts rise.</p><p>Cicada. And fall again.</p>
+<p><a id="Second"></a><b>Second Dialogue.</b></p><p>Tansillo. The second day begins.</p>`);
+    const read = readGutenberg(bruno, parse, {
+      headings: 'a#First, a#Second', verse: true,
+      units: [{ heading: 'BOOK ONE.', nth: 1, name: 'Book One' }, { heading: 'First Dialogue.' }, { heading: 'Second Dialogue.' }]
+    });
+    expect(read.parts.map(part => [part.name, part.verse])).toEqual([['Book One', true], ['First Dialogue', true], ['Second Dialogue', true]]);
+    expect(read.parts[0].content).toBe('ARGUMENT.\n\nWhat the first book holds, in brief.\n\nBOOK ONE.');
+    expect(read.parts[1].content).toBe('Tansillo. The enthusiasts rise.\n\nCicada. And fall again.');
+    expect(() => readGutenberg(bruno, parse, { units: [{ heading: 'BOOK ONE.' }] })).toThrow(/2 headings/u);
+  });
+
   it('marks a unit verse by the recipe, and prose by the recipe, over the markup', () => {
     const scene = edition('<h2>I</h2><p>NIGHT</p><p>I’ve studied now Philosophy</p><p>And Jurisprudence, Medicine</p>');
     const read = readGutenberg(scene, parse, { units: [{ heading: 'I', name: 'Scene I: Night', verse: true }] });
