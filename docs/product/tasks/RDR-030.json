@@ -88,6 +88,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/717",
       "note": "PR 6: Haeckel's 100 plates pinned from Commons as a picture work; 65 readable. Open: Kepler (page-image proofing), the human reading of every proofing diff and of the Oration translation.",
       "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "494d9c2b",
+      "note": "PR 6 merged (#717): Haeckel's hundred plates; 65 of 66 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/718",
+      "note": "PR 7: the Gate serves RISE's English draft (a model's translation from the Latin alone, not yet read against it by a person; CC BY 4.0) with the Latin after it; 94 units.",
+      "date": "2026-10-17"
     }
   ],
   "activity": [
@@ -118,10 +130,14 @@
     {
       "date": "2026-10-17T11:10:04.000Z",
       "summary": "PR 6 opened: Haeckel as a picture work; 65 of 66 readable"
+    },
+    {
+      "date": "2026-10-17T18:19:38.000Z",
+      "summary": "The Gate serves RISE's English draft with the Latin after it, at the owner's direction"
     }
   ],
-  "updatedAt": "2026-10-17T11:10:04.000Z",
-  "revision": 7,
+  "updatedAt": "2026-10-17T18:19:38.000Z",
+  "revision": 8,
   "summary": "After RDR-029 shipped with four of 66 texts readable, the owner lifted the Standard-Ebooks-only serving rule for the School only. The survey finds a free proofed edition for 46 of the 62 missing texts, nine as scans needing a proofing pass, and six with no free English, the Gate among them. The design admits them through a School corpus beside the Archive, on the Chapel's precedent, with recipes per work and the same gates every time; six pull requests take the School from 4 to 66 readable.",
   "blocker": "Kepler's Harmonices Mundi needs proofing from the page images (one unresolved reading in 23 words after the OCR pass); the proofing diffs (Goethe, Kapp, Ibn Khaldun) and the Oration translation await the owner's reading before they count as verified."
 }
