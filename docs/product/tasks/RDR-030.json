@@ -1,0 +1,37 @@
+{
+  "id": "RDR-030",
+  "title": "The Mystery School's complete library",
+  "lane": "reader",
+  "milestone": "Mystery School",
+  "status": "planned",
+  "delivery": "not_shipped",
+  "owner": "Claude coordinator",
+  "priority": "next",
+  "dependencies": [
+    "RDR-029"
+  ],
+  "acceptance": [
+    "Every one of the 66 School records is readable in RISE: 60 in English from a named, hashed, proofed public-domain edition; the rest in their original language with the language named; the Gate's Latin served and its RISE translation after the owner has read it.",
+    "The School's texts live in a School corpus with its own manifest, build loop and checksum gate; CANON, LIBRARY_TEXTS, the Library's cards and counts, certification and the decision catalogue are unchanged and the Archive's Standard-Ebooks-only rule stays true for the Archive.",
+    "Every served School text passes the ingest gates: words reconciled against the source artifact, no distributor matter, declared unit names, verse lineation kept; the Lectern shows the edition actually used and the life+70 status.",
+    "The owner's four questions in the investigation record are answered and recorded before PR 1 merges."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "docs/product/discussions/2026-10-16-mystery-school-complete-library.md",
+      "note": "Investigation (every link opened 2026-10-16), the School corpus design, the six-PR build order and the owner's questions.",
+      "date": "2026-10-16"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-17T00:00:40.000Z",
+      "summary": "Planned at the owner's direction after RDR-029 shipped: the Standard-Ebooks-only rule is lifted for the School alone; survey and design written."
+    }
+  ],
+  "updatedAt": "2026-10-17T00:00:40.000Z",
+  "revision": 1,
+  "summary": "After RDR-029 shipped with four of 66 texts readable, the owner lifted the Standard-Ebooks-only serving rule for the School only. The survey finds a free proofed edition for 46 of the 62 missing texts, nine as scans needing a proofing pass, and six with no free English, the Gate among them. The design admits them through a School corpus beside the Archive, on the Chapel's precedent, with recipes per work and the same gates every time; six pull requests take the School from 4 to 66 readable.",
+  "blocker": null
+}
