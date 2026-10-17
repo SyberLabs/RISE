@@ -30,6 +30,16 @@ vi.mock('../content/library.js', async importOriginal => {
   return { ...await importOriginal(), getTextById: id => texts.find(text => text.id === id) };
 });
 
+vi.mock('../core/content-store.js', () => ({
+  loadSchoolSections: vi.fn(async id => {
+    if (id !== 'sun.zarathustra') throw new Error(`no ${id}`);
+    return [
+      { name: 'Part I · Zarathustra’s Prologue', content: 'When Zarathustra was thirty years old.' },
+      { name: 'Part I · Chapter I: The Three Metamorphoses', content: 'Three metamorphoses of the spirit.', verse: true }
+    ];
+  })
+}));
+
 import { SCHOOL_ORIGIN, recordSchoolReading, schoolReading } from './school-reading.js';
 import { jevColors } from '../core/jev-palette.js';
 import { clearProgress, readProgress } from '../core/school-progress.js';
@@ -104,6 +114,28 @@ describe('a reading opened from the Mystery School', () => {
     expect(reading.config.presentation.colorTheme).toBe('amethyst');
   });
 
+  it('opens a School corpus text at the unit the Lectern names, by its declared name', async () => {
+    const reading = await schoolReading('sun.zarathustra', 1);
+    expect(reading).toEqual({
+      text: 'Three metamorphoses of the spirit.',
+      source: 'Thus Spoke Zarathustra · Part I · Chapter I: The Three Metamorphoses',
+      origin: SCHOOL_ORIGIN,
+      config: {
+        wpm: 200,
+        curve: 'flat',
+        verseLines: true,
+        provenance: { kind: 'school', recordId: 'sun.zarathustra', corpus: true, entryId: '1' },
+        presentation: {
+          colorTheme: 'citrine',
+          textColor: 'citrine',
+          backgroundColor: 'citrine',
+          colors: jevColors('citrine', 'citrine', 'citrine')
+        }
+      }
+    });
+    expect((await schoolReading('sun.zarathustra', null)).source).toBe('Thus Spoke Zarathustra · Part I · Zarathustra’s Prologue');
+  });
+
   it('opens nothing for a text RISE does not carry', async () => {
     expect(await schoolReading('sun.fragments', null)).toBeNull();
     expect(await schoolReading('sun.nothing', null)).toBeNull();
@@ -122,6 +154,11 @@ describe('a finished school reading', () => {
   it('marks an undivided work whole', () => {
     recordSchoolReading({ provenance: { kind: 'school', recordId: 'saturn.tao-te-ching', entryId: null } });
     expect(readProgress().read['saturn.tao-te-ching'].whole).toBe(true);
+  });
+
+  it('marks the unit of a School corpus text it read', () => {
+    recordSchoolReading({ provenance: { kind: 'school', recordId: 'sun.zarathustra', corpus: true, entryId: '1' } });
+    expect(readProgress().read['sun.zarathustra'].entries).toEqual(['1']);
   });
 
   it('marks nothing for a reading from anywhere else', () => {

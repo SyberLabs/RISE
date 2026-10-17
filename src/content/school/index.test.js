@@ -75,6 +75,12 @@ describe('schoolStatus', () => {
   it('treats every work as absent until the manifest arrives', () => {
     expect(schoolStatus(recordById('sun.meditations'), null)).toEqual({ state: 'absent', reason: null });
   });
+
+  it('is readable when the manifest shelves the record as a School corpus text', () => {
+    const manifest = { ...MANIFEST, school: [{ id: 'sun.zarathustra', shelved: true }] };
+    expect(schoolStatus(recordById('sun.zarathustra'), manifest)).toEqual({ state: 'readable', reason: null, corpus: true });
+    expect(schoolStatus(recordById('jupiter.flatland'), manifest)).toEqual({ state: 'absent', reason: null });
+  });
 });
 
 describe('wheelPosition', () => {

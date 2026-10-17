@@ -9,7 +9,7 @@
  */
 
 import { getTextById } from '../content/library.js';
-import { houseById, recordById } from '../content/school/index.js';
+import { corpusDivisions, houseById, recordById } from '../content/school/index.js';
 import { jevColors } from '../core/jev-palette.js';
 import { markRead } from '../core/school-progress.js';
 
@@ -28,6 +28,7 @@ function presentation(theme) {
  */
 export async function schoolReading(recordId, entryIndex = null) {
     const record = recordById(recordId);
+    if (record?.work?.corpus) return corpusReading(record, entryIndex);
     const text = record?.work ? getTextById(record.work.id) : null;
     if (!text) return null;
 
@@ -82,6 +83,30 @@ export async function schoolReading(recordId, entryIndex = null) {
                 noun
             } } : {}),
             provenance: { ...provenance, entryId: String(entry.id) },
+            ...(look ? { presentation: look } : {})
+        }
+    };
+}
+
+/**
+ * A School corpus text, opened at a unit its edition declared. It carries no
+ * continuation: continuing reads the Archive, which does not hold it.
+ */
+async function corpusReading(record, entryIndex) {
+    const { entries } = await corpusDivisions(record.id);
+    const index = Number.isInteger(entryIndex) && entries[entryIndex] ? entryIndex : 0;
+    const entry = entries[index];
+    if (!entry) return null;
+    const look = presentation(houseById(record.house)?.theme);
+    return {
+        text: entry.content,
+        source: `${record.title} · ${entry.label}`,
+        origin: SCHOOL_ORIGIN,
+        config: {
+            wpm: 200,
+            curve: 'flat',
+            verseLines: entry.verse === true,
+            provenance: { kind: 'school', recordId: record.id, corpus: true, entryId: String(entry.id) },
             ...(look ? { presentation: look } : {})
         }
     };
