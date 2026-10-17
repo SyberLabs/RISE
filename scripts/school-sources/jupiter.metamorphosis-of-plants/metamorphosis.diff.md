@@ -1,0 +1,799 @@
+# Proofing diff: Goethe, Essay on the Metamorphosis of Plants (Cox, 1863)
+
+Every change from the raw OCR (metamorphosis.ocr.txt, the djvu text's own line numbers L17594–L18550 and
+L19292–L20037) to the proofed text (metamorphosis.proofed.md), one per line, for a person to read against the scan.
+Not listed line by line: runs of spaces collapsed to one, and lines joined into the printed paragraphs.
+
+Counts: 257 lines corrected; 125 words broken across lines rejoined; lines removed: 4 title block (set as the document title), 6 editor's note, 32 running head, 320 Masters' notes, 1 second line of a section heading, 3 page number, 4 signature mark, 6 title block, continuation line and plate number of the second part, 12 explanation of Plate XI (the plate is not reproduced);
+0 unresolved readings marked [?]. Read against the scan and left as printed:
+L17756: "osberved" is the printer's spelling on p. 330, kept.
+
+- L17595 (removed: title block (set as the document title)): `ESSAY ON THE METAMORPHOSIS OF PLANTS.`
+- L17596 (removed: title block (set as the document title)): `By J. W. von Goethe.— 1790.`
+- L17598 (removed: title block (set as the document title)): `Translated by Emily M. Cox ; villi Explanatory Notes`
+- L17599 (removed: title block (set as the document title)): `by M ijewbll T. Masters, H.D., F.L.S.`
+- L17601 (removed: editor's note): `[This translation of Goethe's famous Essay is given, beeause, though the`
+- L17602 (removed: editor's note): `foundation of all that has been subsequently done in vegetable morphology,`
+- L17603 (removed: editor's note): `no complete English translation has ever been published. Dr. BAastera's notes`
+- L17604 (removed: editor's note): `are mainly explanatory and confirmatory, and contain references to the writings`
+- L17605 (removed: editor's note): `of Lumens, Wolff) and others both of Goethe's predecessors aud successors`
+- L17606 (removed: editor's note): `in this branch of botanical inquiry. — Ed.]`
+- L17608 (section heading): `Introduction.` → `Introduction`
+- L17610: `1. No one who lias paid any attention to the growth of plants can` → `1. No one who has paid any attention to the growth of plants can`
+- L17611: `have Bailed to observe that some of their external organs occasionally` → `have failed to observe that some of their external organs occasionally`
+- L17622: `an actual retrograde step, and of reversing the order of growth, wo` → `an actual retrograde step, and of reversing the order of growth, we`
+- L17631: `been acknowledged bv naturalists in a general way; indeed, much -at-` → `been acknowledged by naturalists in a general way; indeed, much at-`
+- L17639: `6. Regular metamorphosis maybe equally well styled progressive ;` → `6. Regular metamorphosis may be equally well styled progressive ;`
+- L17643 (removed: running head): `323 GOETHE ON THE METAMORPHOSIS OF PLANTS.`
+- L17656: `instance, with irresistible impulse .and powerful effort she forms the` → `instance, with irresistible impulse and powerful effort she forms the`
+- L17668: `through the operation of insects),* as it might lead us away from our` → `through the operation of insects), as it might lead us away from our`
+- L17676: `be earned out,f as sufficient matter still remains for elucidating and` → `be carried out, as sufficient matter still remains for elucidating and`
+- L17679: `be able to introduce much that, is illustrative of the subject, and to cite` → `be able to introduce much that is illustrative of the subject, and to cite`
+- L17680: `many passages from authors holding similar views. 1 shall most` → `many passages from authors holding similar views. I shall most`
+- L17682 (removed: Masters' notes): `* Vid. Dahlberg, Diss. Bot. Metamorph. Plant, sub prsesid. Linn. Holm. 1755.`
+- L17684 (removed: Masters' notes): `+ An edition of Goethe's papers on Natural History was published at Paris in`
+- L17685 (removed: Masters' notes): `1S37, by Dr. C. F. Martins, accompanied by an atlas containing the author's origi-`
+- L17686 (removed: Masters' notes): `nal drawings, as well as three by Turpin, with notes illustrative of the metamorphosis,`
+- L17687 (removed: Masters' notes): `—thus carrying out a wish expressed by Goethe in a paper entitled " 'Wirkung dieser`
+- L17688 (removed: Masters' notes): `Schrift und weitere Eutfaltung der darin vorgetrageuen Idee," 1830.`
+- L17691 (removed: running head): `GOETHE ON THE METAMOltrilOSIS OF PLANTS. 329`
+- L17697 (section heading): `I. Of the Seed-leaves.` → `I. Of the Seed-leaves`
+- L17707: `1 1 . These organs are called cotyledons, and also seed-lobes, seed-` → `11. These organs are called cotyledons, and also seed-lobes, seed-`
+- L17708: `haves, etc., from their different forms.` → `leaves, etc., from their different forms.`
+- L17711: `stance, and very thick in proportion to their bnadth ; their vessels are` → `stance, and very thick in proportion to their breadth ; their vessels are`
+- L17719: `of a leaf.*` → `of a leaf.`
+- L17721: `11. At length they assume the appearance of true leaves, the vessels` → `14. At length they assume the appearance of true leaves, the vessels`
+- L17724: `leaves of the stem.f` → `leaves of the stem.`
+- L17731 (removed: Masters' notes): `* The consistence and size of the cotyledons are very generally in inverse relation`
+- L17732 (removed: Masters' notes): `with the amount of the perisperm or albumen ; where this is abundant, the cotyle-`
+- L17733 (removed: Masters' notes): `dons are small, or thin and leaf-like, and possess nervurcs, stomata, etc., like other`
+- L17734 (removed: Masters' notes): `leaves, and as they are exposed to light and air, they perform the same functions as`
+- L17735 (removed: Masters' notes): `ordinary leaves do; while the thick lieshy cotyledons remain below the surface of`
+- L17736 (removed: Masters' notes): `the soil, and seem to serve the purpose of storehouses, whence the young plant may`
+- L17737 (removed: Masters' notes): `derive nutriment.`
+- L17739 (removed: Masters' notes): `f liliaceous cotyledons may be well seen in the seeds of the Lime, Sycamore,`
+- L17740 (removed: Masters' notes): `Ricinus, etc.`
+- L17743 (removed: running head): `330 GOETTIE ON THE METAMORPHOSIS OF PLANTS.`
+- L17746: `branches from these first nodes, as the common Bean (Ficia Faba).` → `branches from these first nodes, as the common Bean (Vicia Faba).`
+- L17759: `mena.*` → `mena.`
+- L17768: `vessels which are to be observed in perfect leaves. f` → `vessels which are to be observed in perfect leaves.`
+- L17770 (section heading): `II. On the Formation of the Stem-leaves at the successive Nodes` → `II. On the Formation of the Stem-leaves at the successive Nodes of the Stem`
+- L17772 (removed: second line of a section heading): `of the Stan .`
+- L17774: `19. We arc now able to observe with accuracy the successive forma-` → `19. We are now able to observe with accuracy the successive forma-`
+- L17781 (removed: Masters' notes): `* Duchartre says that the appearance of several cotyledons in the Pines and some`
+- L17782 (removed: Masters' notes): `other plants, is due to the subdivision of each of the two cotyledons into a number`
+- L17783 (removed: Masters' notes): `of lobes. (Ann. desSc. Nat. 3rd ser. vol. x. p. 234.) Whether the four cotyledons`
+- L17784 (removed: Masters' notes): `of Nin/tsrhia, an Australian terrestrial Loranthacea, arc due to a similar sub-division,`
+- L17785 (removed: Masters' notes): `is not stated.`
+- L17787 (removed: Masters' notes): `i Occasionally, however, the cotyledons are lr.bed or notched at their margins, as`
+- L17788 (removed: Masters' notes): `in the Geranium, while at other times they possess hairs on their surface, as in Gos-`
+- L17789 (removed: Masters' notes): `s//pium, or little vesicular glands, as in Myrtles, etc. These instances do but afford`
+- L17790 (removed: Masters' notes): `further proofs of the identity between the cotyledons and the leaves. For a full ac-`
+- L17791 (removed: Masters' notes): `count of the homologies of these organs, see I)e Caudolle, ' Organographie Vegetale,'`
+- L17792 (removed: Masters' notes): `vol. ii. p. 97.`
+- L17795 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS. 331`
+- L17807: `serve in leaves,* which are notched, deeply incised, or formed of many` → `serve in leaves, which are notched, deeply incised, or formed of many`
+- L17812: `and an extremely compound, branch-like leaf is formed. f` → `and an extremely compound, branch-like leaf is formed.`
+- L17818: `2:2. We see in different kinds of plants that this independent leaf-` → `22. We see in different kinds of plants that this independent leaf-`
+- L17821: `for future consideration .J` → `for future consideration.`
+- L17825: `stances where they constitute a part of the leaf-stalk, § they share its` → `stances where they constitute a part of the leaf-stalk, they share its`
+- L17831 (removed: Masters' notes): `* Schleiden, Trecul, and most modem observers hold that the mode of distribu-`
+- L17832 (removed: Masters' notes): `tion of the ribs of the leaf depends essentially ou the form of the latter. De Can-`
+- L17833 (removed: Masters' notes): `dolle, however, was of the opposite opinion.`
+- L17835 (removed: Masters' notes): `t Tre'cul describes the leaf of the Date Palm as a compound leaf, the pinnules of`
+- L17836 (removed: Masters' notes): `which are attached by their points to a cellulo-fibrous cord, which surrounds the`
+- L17837 (removed: Masters' notes): `whole leaf. By the rupture of this cord, and by the peeling off, in thin scales, of a`
+- L17838 (removed: Masters' notes): `brownish pellicle, which at first covers the whole surface of the leaf, the pinnules`
+- L17839 (removed: Masters' notes): `become at length separated from each other. (Trecul, Mem. sur la Formation des`
+- L17840 (removed: Masters' notes): `Feuilles, Ann. des Sc. Nat. 3rd ser. vol. sx. p. 2S5.)`
+- L17842 (removed: Masters' notes): `X As illustrations may be cited the phyllodia, or dilated foliaceous petioles of some`
+- L17843 (removed: Masters' notes): `ipecies of Acacia, Oxalis, etc.`
+- L17845 (removed: Masters' notes): `§ For a concise account of the different kinds of stipules, see Griffith, Notulse,`
+- L17846 (removed: Masters' notes): `vol. i. p. 233.`
+- L17849 (removed: running head): `332 GOETHE ON THE METAMORPHOSIS OF PLANTS.`
+- L17858: `smoother and more imperfectly formed haves when growing in low,` → `smoother and more imperfectly formed leaves when growing in low,`
+- L17865: `also the cuticle (Biatthautchen) of the leaf is formed), is, if not en-` → `also the cuticle (Blatthäutchen) of the leaf is formed), is, if not en-`
+- L17866: `tirely produced by subtile gases, at hast greatly accelerated by them.*` → `tirely produced by subtile gases, at least greatly accelerated by them.`
+- L17871: `plete, and a connected surface is formed. f` → `plete, and a connected surface is formed.`
+- L17873: `2G. Experiments have shown that leaves absorb different kinds of` → `26. Experiments have shown that leaves absorb different kinds of`
+- L17878: `most convincing evidence of this. X` → `most convincing evidence of this.`
+- L17884 (removed: Masters' notes): `* What share subtile gases can have in the formation of the cuticle, and in the`
+- L17885 (removed: Masters' notes): `inosculation of the veins, is by no means ob\ ions.`
+- L17887 (removed: Masters' notes): `f The filamentous condition of the leaves of some water-plants is rather due to`
+- L17888 (removed: Masters' notes): `the scanty development of (he cellular portions of the leaf {parenchyma) than to t lie`
+- L17889 (removed: Masters' notes): `imperfect inosculation of llie tibro-vascidar bundles. The leaf of the Lattice-plant of`
+- L17890 (removed: Masters' notes): `Madagascar, Ouvirandra fenest rails, affords a remarkable illustration of the defi-`
+- L17891 (removed: Masters' notes): `ciency of parenchyma; here the inosculation of the veins is perfect, but as the spaces`
+- L17892 (removed: Masters' notes): `between them are not filled up with cellular tissue, the whole leaf has the appearance`
+- L17893 (removed: Masters' notes): `of lace-work ; it may also not inaptly be compared with the so-called skeleton leaves`
+- L17894 (removed: Masters' notes): `produced by maceration.`
+- L17896 (removed: Masters' notes): `X The most important recent memoir on this subject is that of Boussiugault, in`
+- L17897 (removed: Masters' notes): `Auu. Sc. Nat. 18G2.`
+- L17900 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS. 333`
+- L17903: `functions of the pith having been on good grtfund called in question,` → `functions of the pith having been on good ground called in question,`
+- L17906: `pulp),* we can more easily understand that whilst an upper node arises` → `pulp), we can more easily understand that whilst an upper node arises`
+- L17921 (section heading): `III. Transition to the Flowering-period.` → `III. Transition to the Flowering-period`
+- L17932: `even scanty nourishment accelerates it.f The functions of the stem-` → `even scanty nourishment accelerates it. The functions of the stem-`
+- L17940 (removed: Masters' notes): `* The formative tissue between the wood and the bark of an exogenous tree is`
+- L17941 (removed: Masters' notes): `now called cambium : — there is growth most active, manifesting itself in the forma-`
+- L17942 (removed: Masters' notes): `tion of wood on the one side, of bark on the other ; therein are the channels by which`
+- L17943 (removed: Masters' notes): `the elaborated sap mostly passes in its descent.`
+- L17945 (removed: Masters' notes): `f "Wolff, ' Theoria Generationis,' 1759 ; Linn. Prolepsis, §§ iii. and x.`
+- L17948 (removed: running head): `334 GOETHE ON THE METAMORPHOSIS OF PLANTS.`
+- L17954 (section heading): `IV. On the Formation of the Calyx.` → `IV. On the Formation of the Calyx`
+- L17972: `the blossoms and fruit are to be produced.*` → `the blossoms and fruit are to be produced.`
+- L17974: `34. "We further see, in many flowers, unaltered stem-leaves collected` → `34. We further see, in many flowers, unaltered stem-leaves collected`
+- L17978: `nates them by the name of Folia jloralia (bracts).` → `nates them by the name of Folia floralia (bracts).`
+- L17980: `35. "We must now observe the case in which the transition to the` → `35. We must now observe the case in which the transition to the`
+- L17983: `into the calyx, as may be very easily seen in the common calyx (invola-` → `into the calyx, as may be very easily seen in the common calyx (involu-`
+- L17984: `crio/i) of Composite flowers ; especially in Sunflowers and Marigolds. f` → `crum) of Composite flowers ; especially in Sunflowers and Marigolds.`
+- L17986 (removed: Masters' notes): `* The force of the argument in this paragraph is destroyed hy the researches of`
+- L17987 (removed: Masters' notes): `Duchartre ; see ante, note to § 16.`
+- L17989 (removed: Masters' notes): `t The nature of the involucre was pointed out hy Jung. ' Isagoge Phytoscopica,'`
+- L17990 (removed: Masters' notes): `1678, cap. xiv. §§ 14, 15, 23.`
+- L17992 (removed: Masters' notes): `Similar instances of the close similarity that exists between the leaves and the`
+- L17993 (removed: Masters' notes): `bracts constituting an involucre may be seen in many Umbelliferous plants, as the`
+- L17994 (removed: Masters' notes): `Carrot, in the Anemone, etc. A remarkable instance is figured in the ' Gardeners'`
+- L17995 (removed: Masters' notes): `Chronicle,' Sept, 11, 1852, of a Dahlia, in which the bracts or scales of the involucre`
+- L17996 (removed: Masters' notes): `and the palea; (scales) of the receptacle, instead of retaining their usual membranous`
+- L17997 (removed: Masters' notes): `state, have all assumed the texture, colour, and veins of leaves, even narrowing their`
+- L17998 (removed: Masters' notes): `bases into footstalks. So we have seen the bracts of the Plantain, Plantago major,`
+- L18001 (removed: running head): `GOETHE ON TIIE MKTAMOKPHOSIS OF PLANTS. 335`
+- L18011: `or so-called monosepatous calyx, which betrays its compound origin by` → `or so-called monosepalous calyx, which betrays its compound origin by`
+- L18016: `Ave shall find that the calvx of a Marigold, which is defined in svste-` → `we shall find that the calyx of a Marigold, which is defined in syste-`
+- L18031: `to speak, within which these aberrations of nature are restrained.*` → `to speak, within which these aberrations of nature are restrained.`
+- L18035: `leaves, and consequeutly many nodes, which she had previously pro-` → `leaves, and consequently many nodes, which she had previously pro-`
+- L18039 (removed: Masters' notes): `presenting iu all respects the form and size of the ordinary leaves, and we have observed`
+- L18040 (removed: Masters' notes): `similar changes in the scales of the strobile of the Hop, and in those of the Larch,`
+- L18041 (removed: Masters' notes): `Crijptomeria. etc. In Podolepis the bracts are stalked like ordinary leaves. (Vid.`
+- L18042 (removed: Masters' notes): `Moquiu-Tandon, ' Te'ratologie Vegetale,' p. 202.)`
+- L18044 (removed: Masters' notes): `* " Calyx tunc plane non differt a foliis proxime ipsi praecedentibus." (v\ olff,`
+- L18045 (removed: Masters' notes): `* Theoria Generations, ' 1759, § 114.)`
+- L18048 (removed: page number): `336`
+- L18051 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS.`
+- L18058: `advances by this means a step nearer her object.*` → `advances by this means a step nearer her object.`
+- L18060 (section heading): `V. On the Formation of the Corolla.` → `V. On the Formation of the Corolla`
+- L18071: `40. The transition of the calyx into the corolla is exhibited iu va-` → `40. The transition of the calyx into the corolla is exhibited in va-`
+- L18073: `mains green, like that of the stem-leave?, it often shows a change in` → `mains green, like that of the stem-leaves, it often shows a change in`
+- L18079: `rolla (perianth of Linnaeus).*)*` → `rolla (perianth of Linnaeus).`
+- L18081 (removed: Masters' notes): `* Wolff, Nov. Cumin. Acad. Pctrop. pp. 403, 1766, 17<>7 ; Linn. Prolepsis, § 6.`
+- L18082 (removed: Masters' notes): `The resemblance of Bepals to leaves is well shown in Agrottemma Githago, some`
+- L18083 (removed: Masters' notes): `kinds of Rose, of Pseony, of Gentian, of Mesembryanthemwm, etc., while in the Ca-`
+- L18084 (removed: Masters' notes): `mellia, and a great number of other plants, the sepals are not arranged in a verticil-`
+- L18085 (removed: Masters' notes): `late manner, but are disposed in a spirally imbricated arrangement, as is commonly`
+- L18086 (removed: Masters' notes): `the case with ordinary leaves. On the other hand, the whorled leaves of all t lie`
+- L18087 (removed: Masters' notes): `Stelladf, etc., may be adduced to show the similarity between such an arrangement,`
+- L18088 (removed: Masters' notes): `and that which usually obtains in the calyx. Floral leaves or bracts are frequently`
+- L18089 (removed: Masters' notes): `ouly to be distinguished from ordinary leaves by their position at the base of the`
+- L18090 (removed: Masters' notes): `flower ; at other times the bracts gradually assume more and more of the appearance`
+- L18091 (removed: Masters' notes): `of the sepals, as in Calycantlnts, Berberit, Cactus, and others, in which no definite`
+- L18092 (removed: Masters' notes): `line can be drawn between sepals and bracts. Iu Peganum and Cruckshanksia, the`
+- L18093 (removed: Masters' notes): `sepals are even provided with stipules. Few plants show the gradual passage of`
+- L18094 (removed: Masters' notes): `leaves to brads and sepals so well as [Ielleborttsfoiidus.`
+- L18096 (removed: Masters' notes): `t linn. Prolcpsis, § 8. The sepals of the white Water Lily, Nymphcea alda,are`
+- L18097 (removed: Masters' notes): `of an olive-green colour on the outside, and of a white or pinkish hue on the inner`
+- L18098 (removed: Masters' notes): `side. The tips of the sepals in the Helleborus fatidus are of a purple colour, aud`
+- L18099 (removed: Masters' notes): `other Rauuuculaccse furnish instances of coloured calyces iu the Winter Aconite,`
+- L18100 (removed: Masters' notes): `Larkspur, Aconite, Columbine, Anemone, etc. The Fuchsia is a well-known in-`
+- L18101 (removed: Masters' notes): `stance of the same thing.`
+- L18104 (removed: running head): `GOETHE OX THE METAMORPHOSIS OF PLANTS. 337`
+- L18113: `high degree refined by means of a further riltrationof the fluids in passing` → `high degree refined by means of a further filtration of the fluids in passing`
+- L18128: `in different ways; for stem-leaves already more or less coloured maybe` → `in different ways; for stem-leaves already more or less coloured may be`
+- L18130: `being coloured throughout.*` → `being coloured throughout.`
+- L18133: `omits the calyx, y afford additional opportunities of observing the` → `omits the calyx, afford additional opportunities of observing the`
+- L18139: `the corolla, so that the leaf is literally torn asunder.^` → `the corolla, so that the leaf is literally torn asunder.`
+- L18141 (removed: Masters' notes): `* The brightly coloured bracts in some of the species of Salvia, Evphorhia,`
+- L18142 (removed: Masters' notes): `Poinsettia, etc., afford good illustrations of the facts mentioned in this paragraph.`
+- L18143 (removed: Masters' notes): `We have also seen several iustances where the involucre of the garden Anemone had`
+- L18144 (removed: Masters' notes): `assumed as brilliant a crimson colour as the calyx itself.`
+- L18146 (removed: Masters' notes): `t Where but one whorl exists on the outside of the stamens or pistils, that one is`
+- L18147 (removed: Masters' notes): `called a calyx, irrespective of its colour. The term 'perianth' is applied in some cases`
+- L18148 (removed: Masters' notes): `where it is difficult to distinguish the calyx from the corolla.`
+- L18150 (removed: Masters' notes): `X Prolepsis, § 7. Instances of the substitution of ordinary leaves for petals in`
+- L18151 (removed: Masters' notes): `Roses, in Clover, and other plants, are not uncommon. We have seen such in Te`
+- L18152 (removed: Masters' notes): `iioiias, Lychnis, etc. See Moquin-Tandon, ' Teratologic Vegetale,' pp. 203-7 and 230.`
+- L18154 (removed: signature mark): `VOL. I. Z`
+- L18157 (removed: page number): `338`
+- L18160 (removed: running head): `GOETIIE ON THE METAMORPHOSIS OF PLANTS.`
+- L18163: `. 45. There is great probability in the opinion that the eolour and` → `45. There is great probability in the opinion that the colour and`
+- L18170: `less.*` → `less.`
+- L18172 (section heading): `VI. On the Formation of the Stamens.` → `VI. On the Formation of the Stamens`
+- L18184: `the place of the filament.!` → `the place of the filament.`
+- L18187: `trace this transition through all its differenl stages. In Hoses, among` → `trace this transition through all its different stages. In Roses, among`
+- L18188: `perfect coloured petals, other- may often lie seen which are contracted` → `perfect coloured petals, others may often be seen which are contracted`
+- L18195 (removed: Masters' notes): `* In accidental cases, wlicre the petals assume more or less the appearance of sta-`
+- L18196 (removed: Masters' notes): `mens, or vice versa, the pollen may be said to be in the petal; and iu the common`
+- L18197 (removed: Masters' notes): `Mistletoe the inner surface of the (lower lias DomerDna small depressions in which`
+- L18198 (removed: Masters' notes): `the pollen is lodged but it seems little better than a fancy to attribute the colour and`
+- L18199 (removed: Masters' notes): `scent of the petals of an ordinary flower to the pollen contained within them. The`
+- L18200 (removed: Masters' notes): `true cause of these phenomena is very hnperfcctU known ; coloured liquids in the cells`
+- L18201 (removed: Masters' notes): `of the petals arc iu many cases the source of the colour, and volatile oils contribute`
+- L18202 (removed: Masters' notes): `in some eases to their odour, but for the most part we are ignoraut of the cause of`
+- L18203 (removed: Masters' notes): `the exquisite perfume of some plants.`
+- L18205 (removed: Masters' notes): `t The flowers of Canna have three sepals, an irregular corolla in five or six di-`
+- L18206 (removed: Masters' notes): `visions; the whole of the stamens are replaced by petals, with the exception of oue`
+- L18207 (removed: Masters' notes): `half-anther placed on the side of a petaloid filament. The style, which iu the adult`
+- L18208 (removed: Masters' notes): `state is simple and flattened like a petal, offers in its earliest condition three small`
+- L18209 (removed: Masters' notes): `divisions, corresponding to the three carpels of the ovary. (See Barneoud, Ann. des`
+- L18210 (removed: Masters' notes): `Sc. Nat. 3rd ser. Bot. viii. p. 344.)`
+- L18213 (removed: running head): `GOETIIE ON THE METAMOKPIIOS1S OF PLANTS. 339`
+- L18216: `others are more or less contracted by anther-like protuberances.*` → `others are more or less contracted by anther-like protuberances.`
+- L18218: `49. "When all the stamens are changed into petals, the flower pro-` → `49. When all the stamens are changed into petals, the flower pro-`
+- L18228: `which nature at length attains her object. f` → `which nature at length attains her object.`
+- L18230 (section heading): `VII. Of the Nectaries.` → `VII. Of the Nectaries`
+- L18238: `idea, namely, that there mag be slow stages of transition between the` → `idea, namely, that there may be slow stages of transition between the`
+- L18241: `52. Most of these differently-formed organs, which Liniueus called` → `52. Most of these differently-formed organs, which Linnaeus called`
+- L18248 (removed: Masters' notes): `* The transition from petals to stamens may be well seen in the common white`
+- L18249 (removed: Masters' notes): `Water Lily, in some species of Atragene, etc. In Bocagea v'uidis there is no dif-`
+- L18250 (removed: Masters' notes): `ference in form between the stamens and the petals. Double flowers result from`
+- L18251 (removed: Masters' notes): `the substitution of petals for stamens or pistils, and from other causes. See I)e`
+- L18252 (removed: Masters' notes): `Candolle, Mem. sur les Fleurs Doubles, Mem. Soc. Arc. t. iii. p. 402, and Moquin-`
+- L18253 (removed: Masters' notes): `Tandou, 'Teratologic Vegetale,' p. 211.`
+- L18255 (removed: Masters' notes): `*j" Wolff's original opinion was that the stamens were equivalent to so many buds`
+- L18256 (removed: Masters' notes): `placed in the axil of the petals or sepals (see ' Theoria Generatiouis,' 1759, § 114) —`
+- L18257 (removed: Masters' notes): `an opinion which more receutly has received the support of Agaidh and Endlicher.`
+- L18258 (removed: Masters' notes): `Wolff himself, however, seems to have abandoned his original notion, for in his me-`
+- L18259 (removed: Masters' notes): `moir, " De formatione intestinorum praecipue turn et de amnio spurio aliisque parti-`
+- L18260 (removed: Masters' notes): `bus embryouis Gallinacei, nondum visis," etc., in Comm. Acad. Petrop. xii. p. 403,`
+- L18261 (removed: Masters' notes): `anno 1706, he considers the stamens as essentially leaves. See also, Linn. Prolepsis,`
+- L18262 (removed: Masters' notes): `§ viii.`
+- L18264 (removed: signature mark): `z 2`
+- L18267 (removed: running head): `340 GOETHE ON Till: MllI'.YMoIUMloslS OF PLANTS.`
+- L18270: `theless indicate their relation to the stamens by having little cavil` → `theless indicate their relation to the stamens by having little cavities,`
+- L18271: `or by gland* attached to them, from which a honey-like liquid exudes.` → `or by glands attached to them, from which a honey-like liquid exudes.`
+- L18272: `That thi- may possibly be the fructifying mixture inayel imperfect,` → `That this may possibly be the fructifying mixture in a yet imperfect,`
+- L18273: `unelaborated -tat.-, we may partly conjecture on the grounds above` → `unelaborated state, we may partly conjecture on the grounds above`
+- L18275: `presently adduced.*` → `presently adduced.`
+- L18277: `5-L In other instances the Bo-called nectaries assume the appear-` → `54. In other instances the so-called nectaries assume the appear-`
+- L18278: `anoe of independent organs, and under this disguise they someti` → `ance of independent organs, and under this disguise they sometimes`
+- L18279: `mimic the petals, sometimes the Btamens. Take as example- the nec-` → `mimic the petals, sometimes the stamens. Take as examples the nec-`
+- L18280: `taries <>f Parnaesia, in which thirteen filaments, each tipped with a` → `taries of Parnassia, in which thirteen filaments, each tipped with a`
+- L18281: `little red ball, bear a strong resemblance to .stamen-; <>r Valium ■` → `little red ball, bear a strong resemblance to stamens ; or Vallisneria`
+- L18282: `and Tkuillaa, when- they arc like filaments without anther-; or Patta-` → `and Feuillæa, where they are like filaments without anthers ; or Penta-`
+- L18283: `petes, in which they have a hat-like form, and arc arranged in a circle` → `petes, in which they have a leaf-like form, and are arranged in a circle`
+- L18285: `alternating regularly with the stamens. In systematic work> these` → `alternating regularly with the stamens. In systematic works these`
+- L18286: `organs are described aajilam 'rata petaltfbrmia. Similar am-` → `organs are described as filamenta castrata petaliformia. Similar am-`
+- L18288: `biguous formation-, occur in Kiggellaria and the l'a-ion-tlou . r.` → `biguous formations occur in Kiggellaria and the Passion-flower.`
+- L18289: `55. The name of aeclary, as explained above, may be equally wed` → `55. The name of nectary, as explained above, may be equally well`
+- L18291: `applied to the peculiar accessory corolla {' paraeorolla,' Schleiden). It` → `applied to the peculiar accessory corolla ('paracorolla,' Schleiden). If`
+- L18292: `the formation of the petal- i- produced by expansion, the accessory` → `the formation of the petals is produced by expansion, the accessory`
+- L18293: `corolla is the result of contraction, as in the case of the Btamens,` → `corolla is the result of contraction, as in the case of the stamens.`
+- L18294: `Thus we sometimes Bee within a | ami wide-spreading corolla, a` → `Thus we sometimes see within a perfect and wide-spreading corolla, a`
+- L18296: `smaller and contracted ace. Bsory one, as in Xarcmus, .WW/////, and Jaro-` → `smaller and contracted accessory one, as in Narcissus, Nerium, and Agro-`
+- L18297: `s tent ma. t` → `stemma.`
+- L18299 (removed: Masters' notes): `* At the base of the petals of the Crown Iniporiul, Frilillaria impcrialis, there`
+- L18300 (removed: Masters' notes): `exist- such a gland as that mentioned in the •`
+- L18302 (removed: Masters' notes): `t The crown of the Narcissus has been the subject of much discussion an x`
+- L18304 (removed: Masters' notes): `botanists, ami its real nature can hardly he Mid to he ; ictorily made out.`
+- L18306 (removed: Masters' notes): `M. Gay (in Bull - B ri. 1859) gives a concise account of the opinions`
+- L18308 (removed: Masters' notes): `of previous observers. His own opinion seems to be nearly the same as that of`
+- L18309 (removed: Masters' notes): `Schleiden, and that the organ in question is formed from the confluence of six tut ra-`
+- L18310 (removed: Masters' notes): `perianthial stipules ('ligules,1 Schleiden). Our own observations, so far as thej`
+- L18311 (removed: Masters' notes): `lead u- to support l>r. Undiej • that the corona of Narcissus is composed of a`
+- L18313 (removed: Masters' notes): `row of antherless stamens, whose filaments arc petaloid and coherent. M. Gays`
+- L18314 (removed: Masters' notes): `objections to this view do not appear to us valid, while, on the other baud, Dr. Lind-`
+- L18315 (removed: Masters' notes): `ley's opinion is supported by the analogy of Pancratium. Moreover, in N. i/icam-`
+- L18316 (removed: Masters' notes): `perabtiis the coroua is somewhat six-lobed, the lobes alternating with the segments`
+- L18317 (removed: Masters' notes): `of the perianth on the one side and with the stamens on the other; again, the divi-`
+- L18318 (removed: Masters' notes): `sions of the cup which are placed opposite to the outer segments of the perianth`
+- L18319 (removed: Masters' notes): `overlap the remaining ones, which oppose the inner piece- of the perianth, — an arrange-`
+- L18320 (removed: Masters' notes): `ment recalling the similar deposition of the stamens in the commou Polyanthus`
+- L18321 (removed: Masters' notes): `Karcissiis. In -V. montanus we have seen, for several years in succession, anthers`
+- L18322 (removed: Masters' notes): `placed on the corona, and the latter sometimes divided into segments, not differiii'"`
+- L18325 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS. 341`
+- L18328: `the petals of different plants. A small cavity, rilled with a honey-like` → `the petals of different plants. A small cavity, filled with a honey-like`
+- L18333: `a good example of this.*` → `a good example of this.`
+- L18336: `even here its similarity to the ' leaf-form' may be perceived by a little` → `even here its similarity to the 'leaf-form' may be perceived by a little`
+- L18337: `attention ; it has a strong tendency in Xigella to become petaloid, the` → `attention ; it has a strong tendency in Nigella to become petaloid, the`
+- L18340: `they are concealed, is evident. f` → `they are concealed, is evident.`
+- L18344: `a few remarks on irregular flowers. In Meliantkus the five outer divi-` → `a few remarks on irregular flowers. In Melianthus the five outer divi-`
+- L18349: `lionaceous flowers! might be called a nectary, since of all the petals` → `lionaceous flowers might be called a nectary, since of all the petals`
+- L18354 (removed: Masters' notes): `from the ordinary stamens except in the breadth of the filament. Anthers so placed`
+- L18355 (removed: Masters' notes): `are commonly met with in some of the double Xarcissi.`
+- L18357 (removed: Masters' notes): `Schleideu also asserts that the nectaries of Ranunculus and Pamassia, the scales`
+- L18358 (removed: Masters' notes): `of Silenea, and the crown of the Fassion-flower, are secondary productions from the`
+- L18359 (removed: Masters' notes): `petals, and not independent foliar organs ; but, on the other hand, some of the rays`
+- L18360 (removed: Masters' notes): `of the crown of the Passion-flower have been observed to be replaced by anthers`
+- L18361 (removed: Masters' notes): `(Moquin-Taudon, 'Teratologic Vegetale,' p. 220), while in Passiflora Murucuja the`
+- L18362 (removed: Masters' notes): `rays are combined into a cup, like that of Narcissus or like that of Melia, except`
+- L18363 (removed: Masters' notes): `that it does not bear anthers. In Saponaria and some others of the Silenea we`
+- L18364 (removed: Masters' notes): `have remarked the scales of the corona bearing anthers as though they were re-`
+- L18365 (removed: Masters' notes): `ferable to the adhesion of two stamens, the anthers of which are usually wanting`
+- L18366 (removed: Masters' notes): `(Journ. Linn. Soc. i. 1857, p. 159).`
+- L18368 (removed: Masters' notes): `* In Angracum sesquipedale, an Orchid native of Madagascar, the nectary mea-`
+- L18369 (removed: Masters' notes): `sures nearly a foot in length.`
+- L18371 (removed: Masters' notes): `t The parts called by Goethe nectaries, in the Aconite, Nigella, etc., are now con-`
+- L18372 (removed: Masters' notes): `sidered as petals, the outer pieces as sepals, in spite of their colour and form. In`
+- L18373 (removed: Masters' notes): `the Winter Aconite, Ermthis hyemalis, a transition may sometimes be seen between`
+- L18374 (removed: Masters' notes): `the large, flat, coloured sepals and the small, tubular, greenish petals (nectaries).`
+- L18376 (removed: Masters' notes): `t The keel in papilionaceous flowers is evidently formed by the junction of two`
+- L18377 (removed: Masters' notes): `petals.`
+- L18380 (removed: running head): `312 GOETHE OS THE METAMORPHOSIS OF PLANTS.`
+- L18392 (section heading): `VIII. A fete more Remarks on the Stamens.` → `VIII. A few more Remarks on the Stamens`
+- L18398: `different the forms under which they appear.*` → `different the forms under which they appear.`
+- L18420: `moreover, we see highly organized pollen developed from them,f which` → `moreover, we see highly organized pollen developed from them, which`
+- L18422 (removed: Masters' notes): `* It can hardly be correctly said that the stamens and other organs of plants arc`
+- L18423 (removed: Masters' notes): `produced by spiral vessels, since all these parts begin as little knobs or pimples of`
+- L18424 (removed: Masters' notes): `fine cellular tissue, and spiral vessels are not formed therein till after development`
+- L18425 (removed: Masters' notes): `has proceeded some way.`
+- L18427 (removed: Masters' notes): `t The mode of explaining the formation of the pollen is now known to be in-`
+- L18428 (removed: Masters' notes): `orrcct.`
+- L18431 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS. 343`
+- L18438: `female organs as an ideal anastomosis,* and we think that, for the` → `female organs as an ideal anastomosis, and we think that, for the`
+- L18439: `moment at hast, we have brought the ideas of growth and reproduc-` → `moment at least, we have brought the ideas of growth and reproduc-`
+- L18449: `pollen-grains, but moisture only.f` → `pollen-grains, but moisture only.`
+- L18451: `(')."). ^Ye are here reminded of the honey-like liquid of the nectaries,` → `65. We are here reminded of the honey-like liquid of the nectaries,`
+- L18455: `fully elaborated by the anthers ; an opiniou which derives greater pro-` → `fully elaborated by the anthers ; an opinion which derives greater pro-`
+- L18457: `taken place.}` → `taken place.`
+- L18459: `GO. We must, not omit a cursory remark as to the different ways in` → `66. We must not omit a cursory remark as to the different ways in`
+- L18465 (removed: Masters' notes): `* The discovery of the polleu-tuhes has rendered this far more certain than it was`
+- L18466 (removed: Masters' notes): `at the time when Goethe wrote.`
+- L18468 (removed: Masters' notes): `f It is needless to do more than remark that modern research has completely shown`
+- L18469 (removed: Masters' notes): `the falsity of the opinion stated in this paragraph.`
+- L18471 (removed: Masters' notes): `X Vaucher (Hist. Phys. PL Europ. p. 13) held that the honey-like liquid of`
+- L18472 (removed: Masters' notes): `flowers plays a very important part in the fertilization of the ovule, especially by dis-`
+- L18473 (removed: Masters' notes): `solving the pollen and fitting it for its office, lie pointed out the existence of nec-`
+- L18474 (removed: Masters' notes): `taries or secreting organs in many flowers where they had not previously been de-`
+- L18475 (removed: Masters' notes): `tected. See also Bronguiart, ' Sur les Glaudes Septales de l'Ovaire,' Ann. Sc. Nat. 4th`
+- L18476 (removed: Masters' notes): `ser. ii. p. 1. Darwin (* On the Various Coutrivances by which British and Foreign`
+- L18477 (removed: Masters' notes): `Orchids are Fertilized by Insects,' 1SG2, p. 2?8, etc.) shows that the nectar is of the`
+- L18478 (removed: Masters' notes): `highest importance to Orchids, by attracting insects, without whose agency fertiliza-`
+- L18479 (removed: Masters' notes): `tiou could uot be effected.`
+- L18482 (removed: running head): `341 GOETHE ON THE METAMORPHOSIS OF PLANTS.`
+- L18484 (section heading): `IX. On the Formation of the Style.` → `IX. On the Formation of the Style`
+- L18502: `organs. Since both are produced by spiral vessels,* it becomes so` → `organs. Since both are produced by spiral vessels, it becomes so`
+- L18503: `much the more evident thai neither pistils nor stamens are distinct or-` → `much the more evident that neither pistils nor stamens are distinct or-`
+- L18512: `place in this instance, indeed it mud inevitably occur, because these` → `place in this instance, indeed it must inevitably occur, because these`
+- L18514: `are pressed together in the centre of the Bower-bud, and may there effect` → `are pressed together in the centre of the flower-bud, and may there effect`
+- L18521: `Sarr&qmia betrays, though less obviously, that it is composed of several` → `Sarracenia betrays, though less obviously, that it is composed of several`
+- L18524: `Crocus and the Zannichdlia, formed like perfect mono- or polysepalous` → `Crocus and the Zannichellia, formed like perfect mono- or polysepalous`
+- L18528 (removed: Masters' notes): `* See note to § 60.`
+- L18531 (removed: running head): `INFLAMMABILITY OF FLOWERS OF DICTA MM US ALBUS. 345`
+- L18533: `72. Nature not uufrequently affords us instances in which, by a` → `72. Nature not unfrequently affords us instances in which, by a`
+- L18536: `Jsiaticus becomes double, the anthers being often found unchanged` → `Asiaticus becomes double, the anthers being often found unchanged`
+- L18538: `will be mentioned by-and-by.*` → `will be mentioned by-and-by.`
+- L18544: `tion. From the seed to the topmost stein-leaf we observed the work of` → `tion. From the seed to the topmost stem-leaf we observed the work of`
+- L18550: `reproduction, by means of the male and female organs. f` → `reproduction, by means of the male and female organs.`
+- L19293 (removed: title block, continuation line and plate number of the second part): `ESSAY ON THE METAMORPHOSIS OF TEAM'S`
+- L19294 (removed: title block, continuation line and plate number of the second part): `By J. \V. von Goethe.— 179 I`
+- L19296 (removed: title block, continuation line and plate number of the second part): `Translated hg F.mit.v If. OOX j with "Explanatory Notes`
+- L19297 (removed: title block, continuation line and plate number of the second part): `bjf M \\\\i:i i. T. IflSTSBS, M.D., F.L.S.`
+- L19299 (removed: title block, continuation line and plate number of the second part): `(Concluded from p, 3-45.) •`
+- L19301 (removed: title block, continuation line and plate number of the second part): `(Pl.ATF. XI.)`
+- L19303 (section heading): `X. Of the Fmif.` → `X. Of the Fruit`
+- L19317: `capsule assumes the appearance of sepals, and the shies shorten. The` → `capsule assumes the appearance of sepals, and the styles shorten. The`
+- L19321: `a more or less perfect corolla was developed instead of seed.*` → `a more or less perfect corolla was developed instead of seed.`
+- L19323 (removed: Masters' notes): `* See § 105.`
+- L19326 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS. 361`
+- L19333: `in which the blossom and fruit are situated on the leaf, in Itttsciis*` → `in which the blossom and fruit are situated on the leaf, in Ruscus.`
+- L19337: `haps independently of any definite operation of stamens and pistils, f` → `haps independently of any definite operation of stamens and pistils,`
+- L19345: `tions. % Thus, for example, the pod of a Leguminous plant would be` → `tions. Thus, for example, the pod of a Leguminous plant would be`
+- L19347: `(Sc/ioteu) would consist of several leaves grown one upon another.` → `(Schoten) would consist of several leaves grown one upon another.`
+- L19352 (removed: Masters' notes): `* The illustrations of this paragraph are not well chosen. In the case of the`
+- L19353 (removed: Masters' notes): `Lime-tree, the flower-stalk is simply adherent to the bract for a portion of its length,`
+- L19354 (removed: Masters' notes): `while the so-called leaves of Ruscus are more properly considered as leaf-like branches.`
+- L19355 (removed: Masters' notes): `Some, however, contend that the leal-like organs, on the margins of which the`
+- L19356 (removed: Masters' notes): `flowers are borne, in Xylophylla, are truly to be regarded as leaves, and not as phyl-`
+- L19357 (removed: Masters' notes): `loid blanches. In Bryophyllum calycinum, Nymphaa mierantka, and many Fcrus,`
+- L19358 (removed: Masters' notes): `the leaves give origin to a great number of buds, by which the plants may be pro-`
+- L19359 (removed: Masters' notes): `pagated.`
+- L19361 (removed: Masters' notes): `t The recent researches of Niigeli, Suminski, and others, have proved the exist-`
+- L19362 (removed: Masters' notes): `ence of organs analogous to stamens and pistils (antheridia and pistillidia) in Ferns,`
+- L19363 (removed: Masters' notes): `as well as in other so-called Crypt ogamous plants, and have further shown that no new`
+- L19364 (removed: Masters' notes): `spores cau be formed until alter the contents of the pistillidium have been fertilized`
+- L19365 (removed: Masters' notes): `by the spermatozoids formed in, and emitted from, the antheridia.`
+- L19367 (removed: Masters' notes): `\ This principle is made by De Candolle the foundation of a system of classifica-`
+- L19368 (removed: Masters' notes): `tion of fruits aud seed-vessels, which is in many respects the simplest and best that`
+- L19369 (removed: Masters' notes): `has yet been proposed. The more receut researches of Lestiboudois completely con-`
+- L19370 (removed: Masters' notes): `firm the opiniou that the carpels are homologous with leaves. (Ann. Sc. Nat. Bot.`
+- L19371 (removed: Masters' notes): `1855, p. 242.) The double-flowered Cherry has pretty constantly its carpels exist-`
+- L19372 (removed: Masters' notes): `ing in the form of small leaves, aud the records of teratology afford numerous`
+- L19373 (removed: Masters' notes): `instances of a similar foliaceous condition of the carpels. (Moquin-Tandon, ' Terato-`
+- L19374 (removed: Masters' notes): `logic Vegetale,' p. 204 ; Brongniart, ' Archives du Musee,' torn. iv. p. 43, etc. etc.)`
+- L19375 (removed: Masters' notes): `That the pistil may sometimes be formed from the dilated extremity of the branch`
+- L19376 (removed: Masters' notes): `was not suspected in Goethe's time.`
+- L19379 (removed: running head): `362 GOETHE ON TUE METAMORPHOSIS OF PLANTS.`
+- L19384: `sules in Nigella orienlalis consist of pods partially muted and collected` → `sules in Nigella orientalis consist of pods partially united and collected`
+- L19385: `round an axis, while in N. Da, their union is complete.*` → `round an axis, while in N. Damascena their union is complete.`
+- L19391: `cient hereto indicate the general idea, and by a few examples to show` → `cient here to indicate the general idea, and by a few examples to show`
+- L19395: `SO. The connection of the seed-vessel with the preceding organs is` → `80. The connection of the seed-vessel with the preceding organs is`
+- L19397: `ately upon the germea and is inseparably united with it. We have` → `ately upon the germen and is inseparably united with it. We have`
+- L19398: `before pointed out the relation of the stigma to the leaf, and will b` → `before pointed out the relation of the stigma to the leaf, and will here`
+- L19400: `the stigmas are changed into delicate-coloured petals. -j-` → `the stigmas are changed into delicate-coloured petals.`
+- L19403: `plant in the course of its growth, is seen io the fruit, which is often` → `plant in the course of its growth, is seen in the fruit, which is often`
+- L19405: `Since, alter fructification, it generally increases in size, it would appear` → `Since, after fructification, it generally increases in size, it would appear`
+- L19407: `from every part of the plant which its own growth demand-, they be-` → `from every part of the plant which its own growth demands, they be-`
+- L19411: `been previously stated ; the feet that the distended pods of the bladder-` → `been previously stated ; the fact that the distended pods of the bladder-`
+- L19412: `nut (Colutea arborescent) contain pure gas, has been established by ex-` → `nut (Colutea arborescens) contain pure gas, has been established by ex-`
+- L19413: `periments. X` → `periments.`
+- L19415 (removed: Masters' notes): `* Wolf. N. Comm. Acad. lYtrop., op. cit., expresses precisely the same opinion`
+- L19416 (removed: Masters' notes): `as to the nature of the seed-vessel.`
+- L19418 (removed: Masters' notes): `t See Linn. ' 1'rolcpsis,' § 'J. Iu the 'Gardeners' Chronicle' of August ISth,`
+- L19419 (removed: Masters' notes): `1855, there is a figure of a Nymphaa, in which, in addition to other singular chang`
+- L19420 (removed: Masters' notes): `the atigmas arc replaced by leaves. In Stigmatophj/Uon and many Mtdpighiacea,`
+- L19422 (removed: Masters' notes): `as well as in some other plants, the Btigmas arc very like leaves or petals (see tab. xi.`
+- L19423 (removed: Masters' notes): `fig- 7).`
+- L19425 (removed: Masters' notes): `% U by pure gas, oxygen is meant, the fact is very doubtful; latterly, however,`
+- L19426 (removed: Masters' notes): `Mattencci has detected carbonic acid gas in these pods; but the preseuce of either of`
+- L19427 (removed: Masters' notes): `these gases would hardly afford any assistance towards explaining the enlargement of`
+- L19428 (removed: Masters' notes): `the SCed-Vfssel.`
+- L19431 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS. 363`
+- L19433 (section heading): `XI. Of the immediate Covering of the Seed.` → `XI. Of the immediate Covering of the Seed`
+- L19436: `traction, but internally perfect. It may be perceivcd'in various seeds,` → `traction, but internally perfect. It may be perceived in various seeds,`
+- L19441: `a single leaf, we need ft el no surprise that a single embryo should` → `a single leaf, we need feel no surprise that a single embryo should`
+- L19442: `clothe itself with a leafy covering.*` → `clothe itself with a leafy covering.`
+- L19444: `S3. We see in many winged seed-vessels traces of such modified` → `83. We see in many winged seed-vessels traces of such modified`
+- L19446: `the Elm, the A.sh, and the l>ireh. The Marigold affords us a very re-` → `the Elm, the Ash, and the Birch. The Marigold affords us a very re-`
+- L19458: `moreover little « sen - ences are now perceptible; these two circles ap-` → `moreover little excrescences are now perceptible; these two circles ap-`
+- L19460: `the curved shape of the seed is undis L, the covering fits closely,` → `the curved shape of the seed is undisguised, the covering fits closely,`
+- L19462: `and all its ridges ami excrescences are complete. f Here we see a fresh` → `and all its ridges and excrescences are complete. Here we see a fresh`
+- L19464 (removed: Masters' notes): `* For instances of the reversion of seeds or ovules to leaves, see Lindley, ' Ele-`
+- L19465 (removed: Masters' notes): `ments of Botany,' p. 88; Moquin-Tandon, 'Teratologic Yege'tale,' p. 205, etc.`
+- L19467 (removed: Masters' notes): `It can hardly be said that the morphology of the coats of the ovule or seed is yet`
+- L19468 (removed: Masters' notes): `understood. While there is much evidence to show their foliar origin, there is also`
+- L19469 (removed: Masters' notes): `much in favour of their intrinsic axial nature.`
+- L19471 (removed: Masters' notes): `See A. Bratin, Mem. war lea Transform, de l'Ovule Yegetale, etc.; Ann. Sc. Nat.`
+- L19472 (removed: Masters' notes): `I860, torn. xiv. 4me serie. Hooker on ovule of Welwitsckia, Trans. Linn. Soc.`
+- L19473 (removed: Masters' notes): `vol. xxiv. p. ~7 ; Griffith in Lindl. Yeg. King. p. 143.`
+- L19475 (removed: Masters' notes): `t In the Marigold the acheuia of the outer or ligulate florets are, as Goethe de-`
+- L19476 (removed: Masters' notes): `scribes them, polymorphous ; his account of them, though strictly correct in the`
+- L19477 (removed: Masters' notes): `main, would not be very intelligible to botanists not familiar with the plant. The`
+- L19478 (removed: Masters' notes): `fruits in question are in two or three rows, frequently surmounted by a beak, all`
+- L19479 (removed: Masters' notes): `more or less curved, and the outer ones especially provided with three leafy wrings,`
+- L19480 (removed: Masters' notes): `two projecting from the margins, and the third from the middle of the inner surface,`
+- L19481 (removed: Masters' notes): `which it "' divides into two parts." In Tripteris, a South African genus closely`
+- L19482 (removed: Masters' notes): `allied to Calendula, the fruits are even more decidedly three-sided and three-winged.`
+- L19485 (removed: running head): `36-i GOETHE ON THE M ETAMOUl'HOSIS OF PLAN I v`
+- L19488: `too, no doubt, by the internal strength of tin: seed, just in the same` → `too, no doubt, by the internal strength of the seed, just in the same`
+- L19489: `wav as we have seen the petal contracted by means of the anther.*` → `way as we have seen the petal contracted by means of the anther.`
+- L19491 (section heading): `XII. Retrospective and Progresuonal.` → `XII. Retrospective and Progressional`
+- L19493: `S-i. Thus far, then, we have carefully followed nature's foots! i` → `84. Thus far, then, we have carefully followed nature's footsteps ;`
+- L19495: `mation*, from the period of it- development from the seed till the` → `mations, from the period of its development from the seed till the`
+- L19497: `il is produced anew, and without pretending to investigate the` → `seed is produced anew, and without pretending to investigate the`
+- L19498: `hidden springs of impulse in nature's Operations, we have directed our` → `hidden springs of impulse in nature's operations, we have directed our`
+- L19500: `the same organ i- gradually transformed. That the thread of the argu-` → `the same organ is gradually transformed. That the thread of the argu-`
+- L19501: `ment mi'_rlit be closely followed up, we have throughout spoken onlj of` → `ment might be closely followed up, we have throughout spoken only of`
+- L19502: `annual plants ; we have -imply observed the transformation of the lea` → `annual plants ; we have simply observed the transformation of the leaves`
+- L19503: `developed at the nodes, and from them have deduced even variety of` → `developed at the nodes, and from them have deduced every variety of`
+- L19507: `veloped, and under oth< i entirely to disappear.` → `veloped, and under others seem entirely to disappear.`
+- L19509 (section heading): `XIII. Of Budt and their Development.` → `XIII. Of Buds and their Development`
+- L19514: `formation and growth of the bud-.` → `formation and growth of the buds.`
+- L19518: `sists the primary, simple, and >louly-progressing process by which` → `sists the primary, simple, and slowly-progressing process by which`
+- L19520: `getable life is propagated.` → `vegetable life is propagated.`
+- L19522: `87. It is well known that such a bud shows threat similarity in it-` → `87. It is well known that such a bud shows great similarity in its`
+- L19527: `88. iVlthough the point at which the root will be developed is not so` → `88. Although the point at which the root will be developed is not so`
+- L19529 (removed: Masters' notes): `* In this ami the preceding section there is a little confusion between true seeds`
+- L19530 (removed: Masters' notes): `and those seeds to which the pericarp i-, when ripe, inseparably adherent; these`
+- L19531 (removed: Masters' notes): `latter were not distinguished from ordinary seeds in Goethe's time. The argument`
+- L19532 (removed: Masters' notes): `is not affected by this confusion of pai`
+- L19535 (removed: running head): `ii'KTIIE ON THE METAMOKPIIOSlS OF TLANTb. 365`
+- L19538: `seed ; and, ispeeially under the inlluenee of moisture, the root is easily` → `seed ; and, especially under the influence of moisture, the root is easily`
+- L19541: `81). The hud requires no cotyledons, because it is connected with` → `89. The bud requires no cotyledons, because it is connected with`
+- L19543: `ceives nourishment from it so long as this connection last- ; when se-` → `ceives nourishment from it so long as this connection lasts ; when se-`
+- L19545: `it is "rafted, or if planted in the soil, by roots which are immediately` → `it is grafted, or if planted in the soil, by roots which are immediately`
+- L19546: `formed,` → `formed.`
+- L19548: `9Q. The bud is composed of mules and leaves more or less developed,` → `90. The bud is composed of nodes and leaves more or less developed,`
+- L19549: `by means of which the plant continues to increase in size. Tims we` → `by means of which the plant continues to increase in size. Thus we`
+- L19552: `parent plant itself is established in the soil.*` → `parent plant itself is established in the soil.`
+- L19555: `and the bud, have been often, and especially of late, the sulijeet of such` → `and the bud, have been often, and especially of late, the subject of such`
+- L19557: `unqualified approbation.f` → `unqualified approbation.`
+- L19559: `92. AVe will hut state what follows. Nature makes an obvious` → `92. We will but state what follows. Nature makes an obvious`
+- L19560: `difference in highly-organized plants between buds and seed-; but if` → `difference in highly-organized plants between buds and seeds; but if`
+- L19561: `we descend to plants of a simpli r structure, tin difference between them` → `we descend to plants of a simpler structure, the difference between them`
+- L19563: `unequivocal seeds, ami there are unequivocal propagative buds; but the` → `unequivocal seeds, and there are unequivocal propagative buds; but the`
+- L19567: `ami disengaged seeds.` → `and disengaged seeds.`
+- L19569: `'J3. Having well weighed these things, we may venture to infer that` → `93. Having well weighed these things, we may venture to infer that`
+- L19571 (removed: Masters' notes): `* The individuality (if the biuls seems to have been suspected by Hippocrates, who`
+- L19572 (removed: Masters' notes): `remarked the similarity between the branch and a small tree, —`
+- L19574 (removed: Masters' notes): `'A\\' avrbs <5 kAcLSos icrrXv wcrnep km rb SevSpov «xet- — De Xatura Pueri.`
+- L19576 (removed: Masters' notes): `The doctrine that a plant is a compound being, a combination of individuals, has`
+- L19577 (removed: Masters' notes): `been support cd in later times by La Hire, Goethe, Darwin, Du Petit Thouars,`
+- L19578 (removed: Masters' notes): `De Candolle, Gaudichaud, and others ; while Sars, Steenstrup, Owen, Forbes, etc.,`
+- L19579 (removed: Masters' notes): `among zoologists, have indicated analogous phenomena in the animal kingdom.`
+- L19580 (removed: Masters' notes): `These authors consider the formation of a series of buds as a process of vegetative`
+- L19581 (removed: Masters' notes): `reproduction alternating with, or intervening between, that which is the result of the`
+- L19582 (removed: Masters' notes): `sexual process. See Owen on Parthenogenesis; Forbes, ' Monograph of the Naked-`
+- L19583 (removed: Masters' notes): `eyed Medusa?,' p. 87; A. Braun, 'Rejuvenescence in Nature,' Ray Society Transl.`
+- L19584 (removed: Masters' notes): `1853.`
+- L19586 (removed: Masters' notes): `t Gsertner, ' De Fructibus et Seminibus Plantarum,' cap. 1.`
+- L19589 (removed: running head): `366 GOETHE ON TIIE METAMORPHOSIS OF PLANTS.`
+- L19591: `seeds, whilst they dififel from the newly-developed bud (Aiifje) in being` → `seeds, whilst they differ from the newly-developed bud (Auge) in being`
+- L19597 (section heading): `XIV. On the For mat ion of Composite Flowers and Fruits.` → `XIV. On the Formation of Composite Flowers and Fruits`
+- L19599: `9-t. We have thus far endeavoured to explain by the transformation` → `94. We have thus far endeavoured to explain by the transformation`
+- L19600: `of the .stem-leaves,* the formation of solitary flowers, and also of those` → `of the stem-leaves, the formation of solitary flowers, and also of those`
+- L19601: `seeds which arc produced within a closely adherent covering. It will` → `seeds which are produced within a closely adherent covering. It will`
+- L19604: `velopment is altogether out of the question. l>ut in explaining Com-` → `velopment is altogether out of the question. But in explaining Com-`
+- L19610: `energy and making a long preparation for the production of a sin.` → `energy and making a long preparation for the production of a single`
+- L19613: `is susceptible of explanation bv the theory propounded above. All` → `is susceptible of explanation by the theory propounded above. All`
+- L19615: `plants, situated in the tame way on the parent plant as the parent plant` → `plants, situated in the same way on the parent plant as the parent plant`
+- L19616: `i- situated in the soil. But as the juices re© ived from the nodes are in a` → `is situated in the soil. But as the juices received from the nodes are in a`
+- L19617: `refiued state, the verj first leaves of a little branch arc much more de-` → `refined state, the very first leaves of a little branch are much more de-`
+- L19619: `mediatelv succeed the cotvledons ; nav, even the immediate formation` → `mediately succeed the cotyledons ; nay, even the immediate formation`
+- L19624: `in their turn parent-stems to another set of buds. f` → `in their turn parent-stems to another set of buds.`
+- L19630 (removed: Masters' notes): `* Had Goetbe written " modification," his theory would not have met with so`
+- L19631 (removed: Masters' notes): `much opposition.`
+- L19633 (removed: Masters' notes): `t The flowers are occasionally more or less converted into branches. See Lind-`
+- L19634 (removed: Masters' notes): `lcy's ' Elements of Botany,' p. 62 ; .Muquin-Tandon, ' Teratologic Vegetale,' p. 366,`
+- L19635 (removed: Masters' notes): `etc.`
+- L19638 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS. 367`
+- L19640: `tbc calyx was produced. They gradually diminish in size, till at last` → `the calyx was produced. They gradually diminish in size, till at last`
+- L19644: `phenomena before pointed out take place, except thai there is no de-` → `phenomena before pointed out take place, except that there is no de-`
+- L19645: `cidedly terminal flower, because Nature has already i'ultilled her task at` → `cidedly terminal flower, because Nature has already fulfilled her task at`
+- L19657: `neously, and in the form of Jloicers, which are placed in the closest pos-` → `neously, and in the form of flowers, which are placed in the closest pos-`
+- L19658: `sible proximity, each separate floret fructifying its own germen. Not` → `sible proximity, each separate floret fructifying its own germen. Nor`
+- L19660: `in Thistles, (as for instance in Dipsacvs laciniatus,) the leaflet faithfully` → `in Thistles, (as for instance in Dipsacus laciniatus,) the leaflet faithfully`
+- L19666: `may be considered as true buds, formed and developed bij means of the` → `may be considered as true buds, formed and developed by means of the`
+- L19672: `they arc enclosed within a seed-vessel, or not.* For the argument is` → `they are enclosed within a seed-vessel, or not. For the argument is`
+- L19681 (removed: Masters' notes): `* In the latter instance Goethe probably had in view the one-seeded aehenes of`
+- L19682 (removed: Masters' notes): `Labiates and Borages, and other plants ranked as gymnospermous iu bis time. See`
+- L19683 (removed: Masters' notes): `note to § 83.`
+- L19686 (removed: running head): `368 GOETHE ON THK 54ETAMOBPH08I8 Of PLANTS.`
+- L19688: `flowers. All that is requisite la to be able to work out tin- aforenamed` → `flowers. All that is requisite is to be able to work out the aforenamed`
+- L19690: `easily as we work out rules of algebra, and to know how to apply tbem` → `easily as we work out rules of algebra, and to know how to apply them`
+- L19691: `in their proper places.* And, as much depends upon the exact ob-` → `in their proper places. And, as much depends upon the exact ob-`
+- L19696: `nology, would be both welcome and useful. t We will now adduce two` → `nology, would be both welcome and useful. We will now adduce two`
+- L19700 (section heading): `XV. A Proliferous Rose.` → `XV. A Proliferous Rose`
+- L19703: `thought anil reason is shown in the clearest manner in the instance of` → `thought and reason is shown in the clearest manner in the instance of`
+- L19704: `a proliferous Etose. The calyx ami corolla are developed and arranged` → `a proliferous Rose. The calyx and corolla are developed and arranged`
+- L19706: `and Btyles in the centre, the stem, variegated with green and red, again` → `and styles in the centre, the stem, variegated with green and red, again`
+- L19707: `ascends; and on it are successively developed, unexpended, dark-red` → `ascends; and on it are successively developed, unexpanded, dark-red`
+- L19708: `petals of a smaller H/.e, on some of which are visible traces of anthers.` → `petals of a smaller size, on some of which are visible traces of anthers.`
+- L19711: `also variegated with red and gteeo | a « ries of regular nodes is formed,` → `also variegated with red and green ; a series of regular nodes is formed,`
+- L19712: `and from their buds small imperfect rose-buds burst forth. J` → `and from their buds small imperfect rose-buds burst forth.`
+- L19714: `Int. This aanie example alto affords use visible proof that, as has` → `104. This same example also affords us a visible proof that, as has`
+- L19715: `been before explain) d, the outer border of the calyx may be considered` → `been before explained, the outer border of the calyx may be considered`
+- L19716: `as a number of approximated leaves {folia JloruUa, bractea) ; for the` → `as a number of approximated leaves (folia floralia, bracteæ) ; for the`
+- L19719 (removed: Masters' notes): `* "Every plant has its proper \ itnl lines for these vibrations of the metamor-`
+- L19720 (removed: Masters' notes): `phosis, the constructive representations of which lines will make clearly conceivable`
+- L19721 (removed: Masters' notes): `characters which botanists have only seized in the mo>t fragmentary manner, or`
+- L19722 (removed: Masters' notes): `have felt obscurely as something indescribable in the habit." (Braun, 'Rejuvenescence,'`
+- L19724 (removed: Masters' notes): `lteufrey's translation, p. 83.) No plant is mon BUggestive, or more worthy the at-`
+- L19725 (removed: Masters' notes): `tention of morphologists than the ekia, described with so much care and`
+- L19726 (removed: Masters' notes): `acumen by Dr. Hooker in the paper abo\e referred to.`
+- L19728 (removed: Masters' notes): `t Goethe's obscure and unscientific phraseology has constituted one of the main`
+- L19729 (removed: Masters' notes): `difficulties the translator has had to encounter in rendering the essay into English;`
+- L19730 (removed: Masters' notes): `and moreover it may have afforded a reason for the little inclination scientific men`
+- L19731 (removed: Masters' notes): `had at iirst to entertain Goethe's opinions.`
+- L19733 (removed: Masters' notes): `J Masters, ' Ou Median and Axillary Prolification in Flowers," Transact. Linn.`
+- L19734 (removed: Masters' notes): `Soc. vol. xxiii. pp. 359-481, c. icon.`
+- L19737 (removed: running head): `GOETHE OX THE METAMORPHOSIS OF PLANTS. 369`
+- L19742 (section heading): `XVI. A Proliferous Pink.` → `XVI. A Proliferous Pink`
+- L19746: `From the sides of the corolla,* four other perfect flowers are developed,` → `From the sides of the corolla, four other perfect flowers are developed,`
+- L19747: `separated from the parent-llower by stalks of three nodes or more in` → `separated from the parent-flower by stalks of three nodes or more in`
+- L19748: `length. Each of these lias also a calyx and double corolla, formed not` → `length. Each of these has also a calyx and double corolla, formed not`
+- L19755: `tains the rudiments of another double corolla, f` → `tains the rudiments of another double corolla.`
+- L19757: `10G. In the Rose we have, as it were, a half finished flower, from` → `106. In the Rose we have, as it were, a half finished flower, from`
+- L19758: `the centre of which the stein again shoots upwards, bearing stem-leaves` → `the centre of which the stem again shoots upwards, bearing stem-leaves`
+- L19760: `and a capsule situated in the very centre, we have buds developed irit/tin` → `and a capsule situated in the very centre, we have buds developed within`
+- L19762: `both instances had us to the conclusion, that nature ordinarily termi-` → `both instances lead us to the conclusion, that nature ordinarily termi-`
+- L19768 (section heading): `XVII. Linnauss Theory of Anticipation.` → `XVII. Linnaeus's Theory of Anticipation`
+- L19773 (removed: Masters' notes): `* Query, From the receptacle within the corolla ?`
+- L19775 (removed: Masters' notes): `t The Pink described in this paragraph seems to be the same as that mentioned by`
+- L19776 (removed: Masters' notes): `Goethe, in his history of his botanical studies, as having greatly contributed to develope`
+- L19777 (removed: Masters' notes): `the fundamental idea of the metamorphosis of plants. At § 75 is a good description`
+- L19778 (removed: Masters' notes): `of the most usual kind of proliferous Pink, of which numerous instances are cited by`
+- L19779 (removed: Masters' notes): `Moquin-Tandon, ' Teratologic Ye'getale,' p. 366. M. Gingins-Lassaraz cites, as an`
+- L19780 (removed: Masters' notes): `illustration of this present paragraph, the case of Dianfhus prolifer ; but the descrip-`
+- L19781 (removed: Masters' notes): `tion given by Goethe does uot correspond to that flower.`
+- L19783 (removed: Masters' notes): `A Pink affected with axillary prolification, and figured in my paper on axillary`
+- L19784 (removed: Masters' notes): `prolitication before cited, seems to resemble closely the one described by Goethe.`
+- L19785 (removed: Masters' notes): `See also tab. xi. f. 9, 9 a.`
+- L19787 (removed: signature mark): `VOL. I. 2 B`
+- L19790 (removed: running head): `370 GOETHE ON THE METAMORI>HOSIS OF PLANTS.`
+- L19792: `describes as difficult and hazardous ;* if I have not entirely succeeded` → `describes as difficult and hazardous ; if I have not entirely succeeded`
+- L19801: `gress was clucked, we are indebted for this to the many observers and` → `gress was checked, we are indebted for this to the many observers and`
+- L19802: `thinker- who have removed obstacles from our path, and overcome` → `thinkers who have removed obstacles from our path, and overcome`
+- L19805: `compare them for himself, and such a compari-on mnst necessarily enter` → `compare them for himself, and such a comparison must necessarily enter`
+- L19811: `109. In the first place, his observations were made on trees ;f long-` → `109. In the first place, his observations were made on trees ; long-`
+- L19815: `pot, it speedily produced both Bowers and fruit. He perceived that a` → `pot, it speedily produced both flowers and fruit. He perceived that a`
+- L19818: `the name of " Prolcpsis," — anticipation, — because the plant appeared` → `the name of "Prolepsis," — anticipation, — because the plant appeared`
+- L19819: `to anticipate by hx yean, the six steps of which we have spoken above.` → `to anticipate by six years, the six steps of which we have spoken above.`
+- L19828 (removed: Masters' notes): `* Ferber, in Pra'fatione Dissertationis sccundse de Prolepsi Flantarum.`
+- L19830 (removed: Masters' notes): `f " Si arbusculam, qua; in olla antca posita, quotannis floruit et fructus protulit,`
+- L19831 (removed: Masters' notes): `deinde deponutnus, iu uberiori terra calidi caldarii, proferet ilia per plures annos`
+- L19832 (removed: Masters' notes): `niultos ac l'rondosos ramos, sine ullo fructu. Id quod argumento est, folia inde cres-`
+- L19833 (removed: Masters' notes): `ccre, mule prius enati sunt flores ; quemadmodum vicissim, quod iu folia nunc suc-`
+- L19834 (removed: Masters' notes): `crescit, id natura ita moderante, in flores mutatur, si eadein arbor iterum in olla`
+- L19835 (removed: Masters' notes): `seritur." (Liuu. ' Prolepsis,' § iii.)`
+- L19838 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS. 371`
+- L19846: `111. The second cause which checked the further progress ofLinnrcns` → `111. The second cause which checked the further progress of Linnaeus`
+- L19852: `circle each other, and appear to be developed one from the other.* But` → `circle each other, and appear to be developed one from the other. But`
+- L19854: `test of a closer examination. Xot only has the wood within become too` → `test of a closer examination. Not only has the wood within become too`
+- L19856: `outer side, and too slightly connected with the inner portion of the stein,` → `outer side, and too slightly connected with the inner portion of the stem,`
+- L19860: `other living part of the plant. 1; Lb in the second bark (liber) that` → `other living part of the plant. It is in the second bark (liber) that`
+- L19864: `succession on the stem, or simultaneously in the flower and fruit. f` → `succession on the stem, or simultaneously in the flower and fruit.`
+- L19867: `was attributed to the wood ;^ it is clear, nevertheless, that however` → `was attributed to the wood ; it is clear, nevertheless, that however`
+- L19874 (removed: Masters' notes): `* Cf. Linn. ' Prolepsis,' § 7, 8. "Wolff's account of the development of the`
+- L19875 (removed: Masters' notes): `flower, in his ' Theoria Geuerationis,' 1759, is much more in accordance with truth,`
+- L19876 (removed: Masters' notes): `and, with some slight exceptions, it is amply confirmed by modern observers. To`
+- L19877 (removed: Masters' notes): `Wolff undoubtedly belongs the merit of being the first to insist on the necessity of`
+- L19878 (removed: Masters' notes): `examining the development of flowers, and of being the first to give, from actual ob-`
+- L19879 (removed: Masters' notes): `servation, a clear accouut of the process.`
+- L19881 (removed: Masters' notes): `t See note to § 27. See also Trecul, Ann. Soc. Nat., 3me serie, torn. xx. p. 21 1,`
+- L19882 (removed: Masters' notes): `and 4me serie, torn. iii.`
+- L19884 (removed: signature mark): `2 B 2`
+- L19887 (removed: running head): `372 GOETHE ON THE METAMORPHOSIS OF PLANTS.`
+- L19890: `The only causes which coidd have given rise to this notion, are the soft` → `The only causes which could have given rise to this notion, are the soft`
+- L19895 (section heading): `XV III. Recapitulation .` → `XVIII. Recapitulation`
+- L19899: `this problem, but may <_rive occasion to further investigations and re-` → `this problem, but may give occasion to further investigations and re-`
+- L19901: `different times, have been collected and arranged by Batsch in his ' An-` → `different times, have been collected and arranged by Batsch in his 'An-`
+- L19902: `leitunp: zur Kenntniss und Geschichte der I'flanzcn ;'* and it will soon` → `leitung zur Kenntniss und Geschichte der Pflanzen ;' and it will soon`
+- L19911: `watch the growth of a plant, we see thai as it mounts upwards from node` → `watch the growth of a plant, we see that as it mounts upwards from node`
+- L19912: `to node, and from leaf to leaf, a hind of reproduction is going forward,` → `to node, and from leaf to leaf, a kind of reproduction is going forward,`
+- L19913: `differing from the widen reproduction effected in the flower and fruit,` → `differing from the sudden reproduction effected in the flower and fruit,`
+- L19914: `inasmuch as it is a scries of .success! re and distinct developments.` → `inasmuch as it is a series of successive and distinct developments.`
+- L19916: `closebj related to thai which effects reproduction at once. Under dif-` → `closely related to that which effects reproduction at once. Under dif-`
+- L19917: `ferent circumstances a plant may, on the one hand, lie forced continuously` → `ferent circumstances a plant may, on the one hand, be forced continuously`
+- L19918: `to produce leaf-buds, or, on the other, to develop* the flower. The` → `to produce leaf-buds, or, on the other, to develope the flower. The`
+- L19930 (removed: Masters' notes): `* 1 Thcil, 19 Capitcl.`
+- L19933 (removed: running head): `GOETHE ON THE METAMORPHOSIS OF PLANTS. 373`
+- L19939: `115. But whether a plant produces leaf-buds, flower, or fruit, it, is` → `115. But whether a plant produces leaf-buds, flower, or fruit, it is`
+- L19940: `still the selfsame organ which is carrying nature's laws into efl'eet,` → `still the selfsame organ which is carrying nature's laws into effect,`
+- L19941: `though performing different offices, and disguised under different forms.*` → `though performing different offices, and disguised under different forms.`
+- L19945: `the last time in the fruit. f` → `the last time in the fruit.`
+- L19960: `something of the same kind also in the cotyledons,` → `something of the same kind also in the cotyledons.`
+- L19964: `flowers, from one ami the same organ, — namely, the leaf, which is usually` → `flowers, from one and the same organ, — namely, the leaf, which is usually`
+- L19970: `to indicate the oue organ which we see metamorphosed under so many` → `to indicate the one organ which we see metamorphosed under so many`
+- L19971: `different forms, and « Inch we could also employ in comparing these` → `different forms, and which we could also employ in comparing these`
+- L19975 (removed: Masters' notes): `* Dr. Dresser's opinion thnt the sepals, petals, etc., are often modifications rather`
+- L19976 (removed: Masters' notes): `of the petioles than ot' the laminae of leaves, though undoubtedly correct in many in-`
+- L19977 (removed: Masters' notes): `stances, by no means militates against the truth of Goethe's propositions. See`
+- L19978 (removed: Masters' notes): `Dresser, ' Rudiments of Botany,' pp. 277, -99.`
+- L19980 (removed: Masters' notes): `t See Wigand; ' Kritik unci Geschichte der Lehre von der Metamorphose der`
+- L19981 (removed: Masters' notes): `Ptla zen,' 184.6, p. 118.`
+- L19984 (removed: running head): `374 GOETHE ON THE METAMORPHOSIS OF PLANTS.`
+- L19986: `which these variations are developed. For \vc may say with equal` → `which these variations are developed. For we may say with equal`
+- L19988: `panded stamen j that a sepal is a diminished stem-leaf in a more re-` → `panded stamen ; that a sepal is a diminished stem-leaf in a more re-`
+- L19999: `protected by a seed-vessel (uubedeckte Fruchtstiinde)*` → `protected by a seed-vessel (unbedeckte Fruchtstände).`
+- L20001: `123. It has been my object in what 1 have here brought forward, to` → `123. It has been my object in what I have here brought forward, to`
+- L20003: `conviction with it. But Bhould the evidence appear to be insufficient, or` → `conviction with it. But should the evidence appear to be insufficient, or`
+- L20004: `should m\ theory meet with much opposition, and appear incapable of` → `should my theory meet with much opposition, and appear incapable of`
+- L20006: `on me to note all BUggi -tions. and at some future time to discuss these` → `on me to note all suggestions, and at some future time to discuss these`
+- L20007: `subjects more minutely and circumstantially, thai by giving greater` → `subjects more minutely and circumstantially, that by giving greater`
+- L20008: `perspicacity to my view, 1 may earn for it a more universal approbation` → `perspicacity to my view, I may earn for it a more universal approbation`
+- L20009: `than I can expect from this first essay. f` → `than I can expect from this first essay.`
+- L20011 (removed: explanation of Plate XI (the plate is not reproduced)): `i an moil of Plati M.`
+- L20013 (removed: explanation of Plate XI (the plate is not reproduced)): `I _■. 1. Passage of leaves to bracts in Anthyllia vuineraria. 2. Passage of sepals`
+- L20014 (removed: explanation of Plate XI (the plate is not reproduced)): `(a) to petals (b), stamens {c c), and Btigma <rf), in Nymphaa hhinda. 3. Tnm-i-`
+- L20015 (removed: explanation of Plate XI (the plate is not reproduced)): `tion from sepal to tubular petal Ot nectary in Eranlhis hijemulis. \. Anther of`
+- L20016 (removed: explanation of Plate XI (the plate is not reproduced)): `Pterandra. 5. a, Stamen, and 4, style od diea. 6. a, Stamen, and 6, pistil, of`
+- L20018 (removed: explanation of Plate XI (the plate is not reproduced)): `Tli a 1 1 drum. 7- Stigmas of Braehvpterit. 8. Exceptional flower of Bpilobium hir-`
+- L20019 (removed: explanation of Plate XI (the plate is not reproduced)): `sniitm, in which all the tloral whorls are replaced by loves; a, foliaceons petal from`
+- L20020 (removed: explanation of Plate XI (the plate is not reproduced)): `the same. '.'. Exceptional flower of Diantkut, sp. The sepals and some of the`
+- L20021 (removed: explanation of Plate XI (the plate is not reproduced)): `petals are removed, to show stalked flower-bads occupying the position of the >ta-`
+- L20022 (removed: explanation of Plate XI (the plate is not reproduced)): `mens. da. Stalked flower-bud from the same; the stalk has a petaloid strap-like`
+- L20023 (removed: explanation of Plate XI (the plate is not reproduced)): `scale projecting from it; the sepals and. petals are increased in number, the stamens`
+- L20024 (removed: explanation of Plate XI (the plate is not reproduced)): `abortive, and the carpels open and disjoined, aud in this ease destitute of ovules.`
+- L20027 (removed: Masters' notes): `* See note, §§ S3, 101.`
+- L20029 (removed: Masters' notes): `+ For a brief sketch of the origin and progress of the theory of vegetable morpho-`
+- L20030 (removed: Masters' notes): `logy, prior to the publications of Wolff, Linue, and Goethe, as well as for an attempt`
+- L20031 (removed: Masters' notes): `to show what share each author had in the establishment of the doctrine, the reader`
+- L20032 (removed: Masters' notes): `is referred to an article in the Brit, aud For. Medico-Chirnrgieal Review, January,`
+- L20033 (removed: Masters' notes): `1862, entitled "Vegetable Morphology," its history aud present condition, by`
+- L20034 (removed: Masters' notes): `Maxwell T. Masters.`
+- L20037 (removed: page number): `375`
+- L17631–L17632 (word broken across lines): `at-` + `tention` → `attention`
+- L17653–L17654 (word broken across lines): `retrogres-` + `sive.` → `retrogressive.`
+- L17659–L17660 (word broken across lines): `in-` + `active.` → `inactive.`
+- L17666–L17667 (word broken across lines): `metamor-` + `phosis,` → `metamorphosis,`
+- L17700–L17701 (word broken across lines): `germi-` + `nate.` → `germinate.`
+- L17701–L17702 (word broken across lines): `compo-` + `nent` → `component`
+- L17702–L17703 (word broken across lines): `re-` + `main` → `remain`
+- L17704–L17705 (word broken across lines): `up-` + `ward` → `upward`
+- L17710–L17711 (word broken across lines): `sub-` + `stance,` → `substance,`
+- L17751–L17752 (word broken across lines): `con-` + `nection` → `connection`
+- L17758–L17759 (word broken across lines): `pheno-` + `mena.` → `phenomena.`
+- L17774–L17775 (word broken across lines): `forma-` + `tion` → `formation`
+- L17800–L17801 (word broken across lines): `neverthe-` + `less` → `nevertheless`
+- L17803–L17804 (word broken across lines): `per-` + `fection` → `perfection`
+- L17806–L17807 (word broken across lines): `ob-` + `serve` → `observe`
+- L17809–L17810 (word broken across lines): `di-` + `vided.` → `divided.`
+- L17824–L17825 (word broken across lines): `in-` + `stances` → `instances`
+- L17854–L17855 (word broken across lines): `or-` + `ganized` → `organized`
+- L17856–L17857 (word broken across lines): `ex-` + `posed` → `exposed`
+- L17865–L17866 (word broken across lines): `en-` + `tirely` → `entirely`
+- L17870–L17871 (word broken across lines): `com-` + `plete,` → `complete,`
+- L17882–L17902 (word broken across lines): `through-` + `out` → `throughout`
+- L17926–L17927 (word broken across lines): `be-` + `tween` → `between`
+- L17935–L17936 (word broken across lines): `opera-` + `tion` → `operation`
+- L17938–L17950 (word broken across lines): `be-` + `come` → `become`
+- L17970–L17971 (word broken across lines): `con-` + `stitution` → `constitution`
+- L17975–L17976 (word broken across lines): `inflores-` + `cence.` → `inflorescence.`
+- L17977–L17978 (word broken across lines): `desig-` + `nates` → `designates`
+- L17983–L17984 (word broken across lines): `(involu-` + `crum)` → `(involucrum)`
+- L18003–L18004 (word broken across lines): `com-` + `mon` → `common`
+- L18016–L18017 (word broken across lines): `syste-` + `matic` → `systematic`
+- L18018–L18019 (word broken across lines): `di-` + `minished` → `diminished`
+- L18023–L18024 (word broken across lines): `sub-` + `sequent` → `subsequent`
+- L18026–L18027 (word broken across lines): `in-` + `stances` → `instances`
+- L18035–L18036 (word broken across lines): `pro-` + `duced` → `produced`
+- L18071–L18072 (word broken across lines): `va-` + `rious` → `various`
+- L18072–L18073 (word broken across lines): `re-` + `mains` → `remains`
+- L18076–L18077 (word broken across lines): `in-` + `creased` → `increased`
+- L18078–L18079 (word broken across lines): `co-` + `rolla` → `corolla`
+- L18106–L18107 (word broken across lines): `deve-` + `lopment` → `development`
+- L18115–L18116 (word broken across lines): `or-` + `ganization,` → `organization,`
+- L18169–L18170 (word broken across lines): `colour-` + `less.` → `colourless.`
+- L18175–L18176 (word broken across lines): `be-` + `tween` → `between`
+- L18218–L18219 (word broken across lines): `pro-` + `duces` → `produces`
+- L18219–L18220 (word broken across lines): `pro-` + `cess` → `process`
+- L18234–L18235 (word broken across lines): `inter-` + `mediate` → `intermediate`
+- L18269–L18270 (word broken across lines): `never-` + `theless` → `nevertheless`
+- L18277–L18278 (word broken across lines): `appear-` + `ance` → `appearance`
+- L18279–L18280 (word broken across lines): `nec-` + `taries` → `nectaries`
+- L18282–L18283 (word broken across lines): `Penta-` + `petes,` → `Pentapetes,`
+- L18286–L18288 (word broken across lines): `am-` + `biguous` → `ambiguous`
+- L18296–L18297 (word broken across lines): `Agro-` + `stemma.` → `Agrostemma.`
+- L18344–L18345 (word broken across lines): `divi-` + `sions` → `divisions`
+- L18348–L18349 (word broken across lines): `papi-` + `lionaceous` → `papilionaceous`
+- L18382–L18383 (word broken across lines): `Poly-` + `gala,` → `Polygala,`
+- L18394–L18395 (word broken across lines): `observa-` + `tions,` → `observations,`
+- L18409–L18410 (word broken across lines): `ana-` + `stomosis;` → `anastomosis;`
+- L18439–L18440 (word broken across lines): `reproduc-` + `tion` → `reproduction`
+- L18455–L18456 (word broken across lines): `pro-` + `bability` → `probability`
+- L18460–L18461 (word broken across lines): `(Mona-` + `delphia,` → `(Monadelphia,`
+- L18503–L18504 (word broken across lines): `or-` + `gans,` → `organs,`
+- L18518–L18519 (word broken across lines): `pre-` + `ceding` → `preceding`
+- L18543–L18544 (word broken across lines): `contrac-` + `tion.` → `contraction.`
+- L19307–L19308 (word broken across lines): `(angio-` + `spermous)` → `(angiospermous)`
+- L19308–L19309 (word broken across lines): `develop-` + `ment` → `development`
+- L19335–L19336 (word broken across lines): `fruit-` + `fulness` → `fruitfulness`
+- L19336–L19337 (word broken across lines): `per-` + `haps` → `perhaps`
+- L19343–L19344 (word broken across lines): `notwithstand-` + `ing` → `notwithstanding`
+- L19344–L19345 (word broken across lines): `combina-` + `tions.` → `combinations.`
+- L19383–L19384 (word broken across lines): `cap-` + `sules` → `capsules`
+- L19390–L19391 (word broken across lines): `suffi-` + `cient` → `sufficient`
+- L19396–L19397 (word broken across lines): `immedi-` + `ately` → `immediately`
+- L19407–L19408 (word broken across lines): `be-` + `come` → `become`
+- L19412–L19413 (word broken across lines): `ex-` + `periments.` → `experiments.`
+- L19435–L19436 (word broken across lines): `con-` + `traction,` → `contraction,`
+- L19446–L19447 (word broken across lines): `re-` + `markable` → `remarkable`
+- L19458–L19459 (word broken across lines): `ap-` + `pear` → `appear`
+- L19494–L19495 (word broken across lines): `transfor-` + `mations,` → `transformations,`
+- L19500–L19501 (word broken across lines): `argu-` + `ment` → `argument`
+- L19506–L19507 (word broken across lines): `de-` + `veloped,` → `developed,`
+- L19512–L19513 (word broken across lines): `accom-` + `panying` → `accompanying`
+- L19517–L19518 (word broken across lines): `con-` + `sists` → `consists`
+- L19542–L19543 (word broken across lines): `re-` + `ceives` → `receives`
+- L19543–L19544 (word broken across lines): `se-` + `parated` → `separated`
+- L19550–L19551 (word broken across lines): `dis-` + `tinct` → `distinct`
+- L19603–L19604 (word broken across lines): `de-` + `velopment` → `development`
+- L19604–L19605 (word broken across lines): `Com-` + `posite` → `Composite`
+- L19611–L19612 (word broken across lines): `uni-` + `formly` → `uniformly`
+- L19617–L19618 (word broken across lines): `de-` + `fined` → `defined`
+- L19618–L19619 (word broken across lines): `im-` + `mediately` → `immediately`
+- L19644–L19645 (word broken across lines): `de-` + `cidedly` → `decidedly`
+- L19649–L19650 (word broken across lines): `com-` + `posite` → `composite`
+- L19656–L19657 (word broken across lines): `simulta-` + `neously,` → `simultaneously,`
+- L19657–L19658 (word broken across lines): `pos-` + `sible` → `possible`
+- L19674–L19675 (word broken across lines): `con-` + `vey` → `convey`
+- L19691–L19692 (word broken across lines): `ob-` + `servation` → `observation`
+- L19694–L19695 (word broken across lines): `exhibit-` + `ing` → `exhibiting`
+- L19695–L19696 (word broken across lines): `termi-` + `nology,` → `terminology,`
+- L19709–L19710 (word broken across lines): `pe-` + `tals` → `petals`
+- L19739–L19740 (word broken across lines): `pro-` + `duce` → `produce`
+- L19751–L19752 (word broken across lines): `Not-` + `withstanding` → `Notwithstanding`
+- L19754–L19755 (word broken across lines): `con-` + `tains` → `contains`
+- L19762–L19763 (word broken across lines): `termi-` + `nates` → `terminates`
+- L19764–L19765 (word broken across lines): `inde-` + `finite` → `indefinite`
+- L19770–L19771 (word broken across lines): `pre-` + `decessors,` → `predecessors,`
+- L19800–L19801 (word broken across lines): `pro-` + `gress` → `progress`
+- L19803–L19804 (word broken across lines): `pro-` + `pounded,` → `propounded,`
+- L19806–L19807 (word broken across lines): `con-` + `sidered` → `considered`
+- L19807–L19808 (word broken across lines): `Lin-` + `naeus` → `Linnaeus`
+- L19824–L19825 (word broken across lines): `per-` + `fection,` → `perfection,`
+- L19851–L19852 (word broken across lines): `en-` + `circle` → `encircle`
+- L19858–L19859 (word broken across lines): `in-` + `jury` → `injury`
+- L19861–L19862 (word broken across lines): `in-` + `jured,` → `injured,`
+- L19870–L19871 (word broken across lines): `pro-` + `ducing` → `producing`
+- L19899–L19900 (word broken across lines): `re-` + `sults.` → `results.`
+- L19901–L19902 (word broken across lines): `'An-` + `leitung` → `'Anleitung`
+- L19916–L19917 (word broken across lines): `dif-` + `ferent` → `different`
+- L19923–L19924 (word broken across lines): `succes-` + `sive` → `successive`
+- L19948–L19949 (word broken across lines): `de-` + `finite` → `definite`
+- L19953–L19954 (word broken across lines): `reproduc-` + `tion` → `reproduction`
+- L19966–L19967 (word broken across lines): `en-` + `closed.` → `enclosed.`
+- L19987–L19988 (word broken across lines): `ex-` + `panded` → `expanded`
+- L19988–L19989 (word broken across lines): `re-` + `fined` → `refined`
+- L19993–L19994 (word broken across lines): `re-` + `gard` → `regard`
+- L19998–L19999 (word broken across lines): `un-` + `protected` → `unprotected`

@@ -77,6 +77,7 @@ describe('the School corpus', () => {
       ['mars.decline-of-the-west', 25],
       ['jupiter.nature-of-things', 6],
       ['jupiter.flatland', 22],
+      ['jupiter.metamorphosis-of-plants', 19],
       ['jupiter.cosmos', 4],
       ['jupiter.growth-and-form', 18],
       ['jupiter.relativity', 37],

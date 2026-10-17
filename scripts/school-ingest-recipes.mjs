@@ -92,6 +92,22 @@ export const WEB_RECIPES = {
         edition: { statement: 'Walton and Maberly, 1854; equations shown as text', translator: null, year: 1854 },
         rights: { us: 'pd', life70: 'pd' }
     },
+    // Proofed from the Internet Archive's OCR of the Journal of Botany, 1863; the diff beside it lists every change.
+    'jupiter.metamorphosis-of-plants': {
+        kind: 'file',
+        path: 'scripts/school-sources/jupiter.metamorphosis-of-plants/metamorphosis.proofed.md',
+        extract: { from: 'Introduction' },
+        units: 'headings',
+        level: 2,
+        count: 19,
+        edition: {
+            statement: 'Emily M. Cox, Journal of Botany, 1863; proofed from the Internet Archive scan by RISE, 2026, diff on file',
+            translator: 'Emily M. Cox',
+            year: 1863
+        },
+        // Cox's dates are not known.
+        rights: { us: 'pd', life70: 'unknown' }
+    },
 
     // Wikisource: the MediaWiki API's parsed HTML of each page.
     'sun.monadology': {

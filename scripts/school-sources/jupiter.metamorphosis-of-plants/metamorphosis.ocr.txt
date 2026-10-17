@@ -1,0 +1,1703 @@
+
+ESSAY   ON  THE   METAMORPHOSIS   OF  PLANTS. 
+By  J.  W.  von  Goethe.— 1790. 
+
+Translated  by  Emily  M.  Cox  ;   villi  Explanatory  Notes 
+by  M  ijewbll  T.  Masters,  H.D.,  F.L.S. 
+
+[This  translation  of  Goethe's  famous  Essay  is  given,  beeause,  though  the 
+foundation  of  all  that  has  been  subsequently  done  in  vegetable  morphology, 
+no  complete  English  translation  has  ever  been  published.  Dr.  BAastera's  notes 
+are  mainly  explanatory  and  confirmatory,  and  contain  references  to  the  writings 
+of  Lumens,  Wolff)  and  others  both  of  Goethe's  predecessors  aud  successors 
+in  this  branch  of  botanical  inquiry. — Ed.] 
+
+Introduction. 
+
+1.  No  one  who  lias  paid  any  attention  to  the  growth  of  plants  can 
+have  Bailed  to  observe  that  some  of  their  external  organs  occasionally 
+
+undergo  a  change,  and  assume,  sometimes  entirely,  or  in  a  greater  or 
+less  degree,  the  appearance  of  the  organ  situated  next  in  order. 
+
+2.  Thus,  for  example,  a  single  flower  is  changed  into  a  double  one, 
+petals  being  developed  in  the  place  of  stamens,  either  bearing  a  perfect 
+resemblance  in  form  and  colour  to  the  other  petals  of  the  corolla,  or 
+still  retaining  visible  signs  of  their  origin. 
+
+3.  If  we  reflect  that  the  plant  has  in  this  way  the  power  of  making 
+an  actual  retrograde  step,  and  of  reversing  the  order  of  growth,  wo 
+shall  get  more  insight  into  nature's  ordinary  method  of  proceeding,  and 
+we  shall  learn  to  understand  those  laws  of  transformation  by  which  she 
+produces  one  part  from  another,  and  exhibits  the  most  different  forms 
+by  the  modification  of  a  single  organ. 
+
+4.  The  secret  relation  subsisting  between  the  different  external 
+organs  of  plants,  such  as  leaves,  calyx,  corolla,  and  stamens  (which  are 
+developed  in  succession,  and,  as  it  were,  out  of  one  another),  has  long 
+been  acknowledged  bv  naturalists  in  a  general  way;  indeed,  much -at- 
+tention  has  been  bestowed  upon  it,  and  the  title  Metamorphosis  of 
+Plants  has  been  given  to  the  operation  by  which  one  and  the  same 
+organ  presents  itself  to  us  under  various  disguises. 
+
+5.  This  metamorphosis  is  of  three  kinds, — regular,  irregular,  and 
+accidental. 
+
+6.  Regular  metamorphosis  maybe  equally  well  styled  progressive ; 
+for  it  may  be  observed  constantly  and  gradually  at  work  from  the  first 
+
+
+323  GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS. 
+
+seed-leaves  to  the  mature  fruit,  mounting  upwards  through  a  series  of 
+transformations,  as  by  an  imaginary  ladder,  to  that  crowning  aim  of 
+nature,  the  propagation  of  the  plant  by  the  male  and  female  organs. 
+I  have  been  attentively  observing  this  process  for  several  years,  and  it 
+is  for  the  purpose  of  explaining  it  that  I  propose  to  write  this  Essay.  I 
+shall  treat  of  annual  plants  only,  and  the  manner  in  which  they  progress 
+from  the  seed  to  the  fruit. 
+
+7.  Irregular  metamorphosis  might  be  equally  well  styled  retrogres- 
+sive. For  as  in  the  former  case  nature  hastens  forward  to  her  great 
+object,  she  here  takes  one  or  more  steps  backward.  In  the  former 
+instance,  with  irresistible  impulse  .and  powerful  effort  she  forms  the 
+flowers  and  fits  them  for  their  office ;  in  the  latter  she  seems,  as  it 
+were,  to  relax,  and  irresolutely  leaves  her  work  in  an  unfinished,  weakly 
+condition,  pleasing  often  to  the  eye,  but  intrinsically  powerless  and  in- 
+active. By  means  of  practical  observations  made  upon  this  kind  of 
+metamorphosis,  we  shall  unveil  that  which  in  the  ordinary  way  of 
+development  is  concealed  from  us,  and  here  shall  see  clearly  what  there 
+we  dare  only  infer.  We  may  thus  hope  to  attain,  with  the  greatest 
+certainty,  the  purpose  we  have  in  view. 
+
+8.  We  will  not  take  into  consideration  the  third  kind  of  metamor- 
+phosis, which  is  produced  accidentally  and  by  external  causes  (especially 
+through  the  operation  of  insects),*  as  it  might  lead  us  away  from  our 
+plain  path,  and  interfere  with  our  object.  Occasion  may  perhaps  be 
+found  to  speak  elsewhere  of  those  excrescences,  which,  monstrous 
+though  they  be,  are  nevertheless  confined  within  certain  limits. 
+
+9.  I  publish  this  Essay  without  illustrations,  although  in  many 
+respects  they  might  appear  necessary.  I  reserve  the  introduction  of 
+them  till  some  future  time;  an  intention  which  may  not  improbably 
+be  earned  out,f  as  sufficient  matter  still  remains  for  elucidating  and 
+further  enlarging  the  present  short  and  merely  prefatory  treatise.  It 
+will  not  then  be  necessary  to  keep  so  measured  a  step  as  now.  I  shall 
+be  able  to  introduce  much  that,  is  illustrative  of  the  subject,  and  to  cite 
+many  passages  from   authors   holding  similar  views.      1   shall   most 
+
+*  Vid.  Dahlberg,  Diss.  Bot.  Metamorph.  Plant,  sub  prsesid.  Linn.    Holm.  1755. 
+
++  An  edition  of  Goethe's  papers  on  Natural  History  was  published  at  Paris  in 
+1S37,  by  Dr.  C.  F.  Martins,  accompanied  by  an  atlas  containing  the  author's  origi- 
+nal drawings,  as  well  as  three  by  Turpin,  with  notes  illustrative  of  the  metamorphosis, 
+—thus  carrying  out  a  wish  expressed  by  Goethe  in  a  paper  entitled  "  'Wirkung  dieser 
+Schrift  und  weitere  Eutfaltung  der  darin  vorgetrageuen  Idee,"  1830. 
+
+
+GOETHE    ON    THE    METAMOltrilOSIS    OF    PLANTS.  329 
+
+gladly  avail  myself  of  any  suggestions  from  those  of  my  contemporaries 
+who  are  skilled  in  this  noble  science,  to  whom  I  present  and  dedicate 
+these  pages. 
+
+I.   Of  the  Seed-leaves. 
+
+10.  Having  undertaken  to  observe  the  successive  steps  in  the  growth 
+of  a  plant,  let  us  first  direct  our  attention  to  it  when  it  begins  to  germi- 
+nate. We  can,  at  this  stage,  easily  and  exactly  distinguish  its  compo- 
+nent parts.  Its  coverings  (which  we  will  not  now  stay  to  examine)  re- 
+main more  or  less  concealed  in  the  soil,  and  (in  many  instances)  the 
+root  is  established  before  the  plant  exhibits  those  first  organs  of  its  up- 
+ward growth,  which  were  previously  hidden  in  the  seed. 
+
+1 1 .  These  organs  are  called  cotyledons,  and  also  seed-lobes,  seed- 
+haves,  etc.,  from  their  different  forms. 
+
+12.  They  are  often  unshapely,  charged  as  it  were  with  a  crude  sub- 
+stance, and  very  thick  in  proportion  to  their  bnadth  ;  their  vessels  are 
+not  recognizable,  being  scarcely  distinguishable  from  the  general  mass; 
+they  have,  moreover,  very  little  resemblance  to  leaves,  and  we  are  in 
+danger  of  being  led  to  regard  them  erroneously  as  distinct  organs. 
+
+13.  Yet  in  many  plants  they  nearly  approach  the  form  of  a  leaf;  they 
+become  flatter,  and,  on  being  exposed  to  light  and  air,  they  assume  a 
+deeper  green ;  the  vessels  become  recognizable  and  more  like  the  veins 
+of  a  leaf.* 
+
+11.  At  length  they  assume  the  appearance  of  true  leaves,  the  vessels 
+are  perfectly  developed,  and  their  similarity  to  the  leaves,  subsequently 
+produced,  show  that  they  are  not  distinct  organs,  but  simply  the  first 
+leaves  of  the  stem.f 
+
+15.  Now,  as  we  cannot  realize  the  idea  of  a  leaf  apart  from  the  node 
+out  of  which  it  springs,  nor  of  a  node  without  a  bud,  we  may  venture 
+to  infer  that  the  point  at  which  the  cotyledons  are  attached,  is  the  first 
+true  node  of  the  plant.     This  view  is  confirmed  by  those  plants,  which 
+
+*  The  consistence  and  size  of  the  cotyledons  are  very  generally  in  inverse  relation 
+with  the  amount  of  the  perisperm  or  albumen  ;  where  this  is  abundant,  the  cotyle- 
+dons are  small,  or  thin  and  leaf-like,  and  possess  nervurcs,  stomata,  etc.,  like  other 
+leaves,  and  as  they  are  exposed  to  light  and  air,  they  perform  the  same  functions  as 
+ordinary  leaves  do;  while  the  thick  lieshy  cotyledons  remain  below  the  surface  of 
+the  soil,  and  seem  to  serve  the  purpose  of  storehouses,  whence  the  young  plant  may 
+derive  nutriment. 
+
+f  liliaceous  cotyledons  may  be  well  seen  in  the  seeds  of  the  Lime,  Sycamore, 
+Ricinus,  etc. 
+
+
+330  GOETTIE    ON    THE    METAMORPHOSIS    OF    PLANTS. 
+
+emit  buds  from  the  axils  of  their  cotyledons,  and  develope  perfect 
+branches  from  these  first  nodes,  as  the  common  Bean  (Ficia  Faba). 
+
+16.  The  cotyledons  are  generally  two  in  number,  and  here  we  make 
+a  remark,  the  importance  of  which  will  appear  more  by-and-by.  The 
+leaves  of  this  first  node  often  appear  in  pairs,  whilst  the  subsequent 
+leaves  of  the  stem  are  placed  alternately  ;  an  approximation  and  con- 
+nection being  thus  shown  between  parts  which  nature  subsequently 
+separates  and  places  at  a  distance.  The  case  is  still  more  remarkable 
+when  the  cotyledons  appear  like  a  number  of  little  leaves  round  a 
+common  axis,  whilst  upon  the  stem,  which  rises  from  the  centre,  the 
+subsequent  leaves  are  developed  singly  ;  this  may  be  osberved  in  the 
+different  kinds  of  Pine,  the  cotyledons  of  which  are  a  crown  of  needle- 
+shaped  leaves.  As  we  proceed  we  shall  meet  with  similar  pheno- 
+mena.* 
+
+17.  We  shall  not  consider,  at  present,  the  plants  which  have  only  a 
+single  cotyledonary  leaf. 
+
+18.  Let  us,  however,  pause  to  remark  that  even  those  cotyledons 
+which  most  resemble  leaves,  when  compared  with  the  subsequent  stem- 
+leaves,  are  always  imperfectly  formed.  Their  margin  is  entire,  with  as 
+few  traces  of  incisions  in  it  as  of  hairs  on  the  surface,  or  any  of  those 
+vessels  which  are  to  be  observed  in  perfect  leaves. f 
+
+II.   On  the  Formation  of  the  Stem-leaves  at  the  successive  Nodes 
+
+of  the  Stan . 
+
+19.  We  arc  now  able  to  observe  with  accuracy  the  successive  forma- 
+tion of  the  leaves,  as  now  the  progressive  operations  of  nature  all  take 
+place  before  our  eyes.  Some,  or  many,  of  the  leaves  which  now  appear, 
+often  exist  previously  in  the  seed,  enclosed  between  the  cotyledons,  and 
+are  then  called  the  plumule.  Their  shape,  relatively  to  that  of  the 
+cotyledons  and  of  the  future  leaves,  varies  in  different  plants;  but  they 
+
+*  Duchartre  says  that  the  appearance  of  several  cotyledons  in  the  Pines  and  some 
+other  plants,  is  due  to  the  subdivision  of  each  of  the  two  cotyledons  into  a  number 
+of  lobes.  (Ann.  desSc.  Nat.  3rd  ser.  vol.  x.  p.  234.)  Whether  the  four  cotyledons 
+of  Nin/tsrhia,  an  Australian  terrestrial  Loranthacea,  arc  due  to  a  similar  sub-division, 
+is  not  stated. 
+
+i  Occasionally,  however,  the  cotyledons  are  lr.bed  or  notched  at  their  margins,  as 
+in  the  Geranium,  while  at  other  times  they  possess  hairs  on  their  surface,  as  in  Gos- 
+s//pium,  or  little  vesicular  glands,  as  in  Myrtles,  etc.  These  instances  do  but  afford 
+further  proofs  of  the  identity  between  the  cotyledons  and  the  leaves.  For  a  full  ac- 
+count of  the  homologies  of  these  organs,  see  I)e  Caudolle,  '  Organographie  Vegetale,' 
+vol.  ii.  p.  97. 
+
+
+GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS.  331 
+
+differ  most  from  the  cotyledons  in  being  flat  and  of  a  delicate  texture, 
+and  especially  in  being  formed  like  true  leaves,  in  being  perfectly 
+green,  and  in  being  situated  on  a  visible  node.  Their  connection  with 
+the  future  stem-leaves  can  no  longer  be  denied ;  they  are  neverthe- 
+less inferior  to  them  in  the  imperfect  state  of  their  margin. 
+
+20.  At  each  successive  node  the  form  of  the  leaf  attains  greater  per- 
+fection ;  the  midrib  lengthens,  and  the  side-ribs,  which  arise  from  it, 
+extend  more  or  less  towards  the  margin.  The  different  relations  of  the 
+ribs  to  each  other  are  the  principal  cause  of  the  various  shapes  we  ob- 
+serve in  leaves,*  which  are  notched,  deeply  incised,  or  formed  of  many 
+leaflets,  looking  like  little  branches.  The  Date  Palm  is  a  striking  instance 
+of  the  most  simple  form  of  leaf  becoming  gradually  but  deeply  di- 
+vided. As  the  leaves  succeed  each  other,  the  midrib  lengthens,  till  at 
+last  it  tears  asunder  the  numerous  compartments  of  the  simple  leaf, 
+and  an  extremely  compound,  branch-like  leaf  is  formed. f 
+
+21.  The  development  of  the  leaf-stalk  keeps  pace  with  that  of  the 
+leaf;  the  stalk  being  either  closely  coherent  with  the  leaf,  or  so  formed 
+as  ultimately  to  be  easily  severed  from  it. 
+
+2:2.  We  see  in  different  kinds  of  plants  that  this  independent  leaf- 
+stalk has  a  tendency  to  assume  the  form  of  a  leaf,  as  in  the  Orange  ; 
+its  structure,  which  for  the  present  we  pass  over,  will  afford  us  matter 
+for  future  consideration  .J 
+
+23.  Neither  can  we  now  enter  upon  a  closer  examination  of  the 
+stipules  ;  we  can  only  remark  in  passing  that,  especially  in  those  in- 
+stances where  they  constitute  a  part  of  the  leaf-stalk, §  they  share  its 
+future  transformations  in  a  remarkable  manner. 
+
+24.  Whilst  the  leaves  principally  derive  their  first  nourishment  from 
+the  more  or  less  modified  fluids  which  they  draw  from  the  stem,  it  is  to 
+
+*  Schleiden,  Trecul,  and  most  modem  observers  hold  that  the  mode  of  distribu- 
+tion of  the  ribs  of  the  leaf  depends  essentially  ou  the  form  of  the  latter.  De  Can- 
+dolle,  however,  was  of  the  opposite  opinion. 
+
+t  Tre'cul  describes  the  leaf  of  the  Date  Palm  as  a  compound  leaf,  the  pinnules  of 
+which  are  attached  by  their  points  to  a  cellulo-fibrous  cord,  which  surrounds  the 
+whole  leaf.  By  the  rupture  of  this  cord,  and  by  the  peeling  off,  in  thin  scales,  of  a 
+brownish  pellicle,  which  at  first  covers  the  whole  surface  of  the  leaf,  the  pinnules 
+become  at  length  separated  from  each  other.  (Trecul,  Mem.  sur  la  Formation  des 
+Feuilles,  Ann.  des  Sc.  Nat.  3rd  ser.  vol.  sx.  p.  2S5.) 
+
+X  As  illustrations  may  be  cited  the  phyllodia,  or  dilated  foliaceous  petioles  of  some 
+ipecies  of  Acacia,  Oxalis,  etc. 
+
+§  For  a  concise  account  of  the  different  kinds  of  stipules,  see  Griffith,  Notulse, 
+vol.  i.  p.  233. 
+
+
+332  GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS. 
+
+the  light  and  air  that  they  are  indebted  for  their  increased  perfection  in 
+form,  and  for  the  delicacy  of  their  tissue.  The  cotyledons  which  are 
+produced  beneath  the  covering  of  the  seed,  are  charged  as  it  were  with 
+nothing  but  a  crude  kind  of  sap,  are  scarcely  at  all,  or  but  rudely  or- 
+ganized and  undefined  ;  in  the  same  way  the  leaves  of  plants  which 
+grow  under  water  are  more  rudely  organized  than  others  which  are  ex- 
+posed to  the  air;  nay,  even  the  same  kind  of  plant  will  develope 
+smoother  and  more  imperfectly  formed  haves  when  growing  in  low, 
+damp  situations,  than  it  will  if  transplanted  to  a  higher  region,  where, 
+on  the  contrary,  the  leaves  will  be  rough,  hairy,  and  more  delicately 
+finished. 
+
+25.  So  also  the  anastomosis  of  the  vessels  which  arise  from  the 
+ribs,  and  continually  tend  to  inosculate  at  their  extremities  (by  which 
+also  the  cuticle  (Biatthautchen)  of  the  leaf  is  formed),  is,  if  not  en- 
+tirely produced  by  subtile  gases,  at  hast  greatly  accelerated  by  them.* 
+The  reason  why  the  leaves  of  many  plants  which  grow  under  water 
+are  capillaceous,  is  owing  to  an  imperfect  anastomosis.  This  is  clearly 
+shown  in  Ranunculus  aquatilis,  where  the  aquatic  leaves  consist  of 
+capillaceous  veins,  whilst  in  the  aerial  leaves  the  anastomosis  is  com- 
+plete, and  a  connected  surface  is  formed. f 
+
+2G.  Experiments  have  shown  that  leaves  absorb  different  kinds  of 
+gases,  and  combine  them  with  their  sap;  these  juices  are  returned  in  a 
+more  refined  state  into  the  stem,  and  thereby  eminently  promote  the 
+formation  of  the  adjacent  buds.  Gases  disengaged  from  the  leaves  and 
+hollow  stems  of  different  plants  have  been  analysed,  and  afford  the 
+most  convincing  evidence  of  this. X 
+
+27.  We  observe  in  many  plants  that  one  node  arises  from  another. 
+In  the  jointed  stems  of  the  cereals,  grasses  and  reeds,  this  is  obvious ; 
+but  it  is  not  so  obvious  in  plants  whose  centre  is  either  hollow  through- 
+
+*  What  share  subtile  gases  can  have  in  the  formation  of  the  cuticle,  and  in  the 
+inosculation  of  the  veins,  is  by  no  means  ob\  ions. 
+
+f  The  filamentous  condition  of  the  leaves  of  some  water-plants  is  rather  due  to 
+the  scanty  development  of  (he  cellular  portions  of  the  leaf  {parenchyma)  than  to  t lie 
+imperfect  inosculation  of  llie  tibro-vascidar  bundles.  The  leaf  of  the  Lattice-plant  of 
+Madagascar,  Ouvirandra  fenest rails,  affords  a  remarkable  illustration  of  the  defi- 
+ciency of  parenchyma;  here  the  inosculation  of  the  veins  is  perfect,  but  as  the  spaces 
+between  them  are  not  filled  up  with  cellular  tissue,  the  whole  leaf  has  the  appearance 
+of  lace-work  ;  it  may  also  not  inaptly  be  compared  with  the  so-called  skeleton  leaves 
+produced  by  maceration. 
+
+X  The  most  important  recent  memoir  on  this  subject  is  that  of  Boussiugault,  in 
+Auu.  Sc.  Nat.  18G2. 
+
+
+GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS.  333 
+
+out  or  filled  with  pith  or  cellular  tissue.  The  supposed  important 
+functions  of  the  pith  having  been  on  good  grtfund  called  in  question, 
+and  the  impulsive  and  productive  power  once  attributed  to  it  being  now 
+unhesitatingly  given  to  the  inner  side  of  the  second  bark  (the  so-called 
+pulp),*  we  can  more  easily  understand  that  whilst  an  upper  node  arises 
+from  the  previous  one,  and  receives  the  sap  by  means  of  it  (receives  it, 
+too,  in  a  more  elaborated  condition  from  the  intervening  operation  of 
+the  leaves),  it  must  not  only  attain  to  a  more  perfect  state  itself,  but 
+must  consequently  transmit  a  more  elaborated  sap  to  its  own  leaves 
+and  buds. 
+
+28.  Whilst,  therefore,  the  less  pure  fluids  are  got  rid  of,  purer  ones 
+are  introduced,  and  the  plant  having  been  gradually  brought  into  a 
+more  perfect  condition,  attains  the  end  prescribed  to  it  by  nature.  We 
+see  the  leaves  at  length  perfectly  developed  in  size  and  form,  and  soon 
+become  aware  of  a  fresh  phenomenon,  which  tells  us  that  the  period  we 
+have  been  observing  has  reached  its  termination,  and  that  a  new  one  is 
+approaching,  that,  namely,  of  the  Blossom. 
+
+III.   Transition  to  the  Flowering-period. 
+
+29.  The  transition  to  the  period  at  which  the  flower  appears,  takes 
+place  with  greater  or  less  rapidity.  In  the  latter  case  the  stem-leaves 
+generally  become  gradually  smaller  and  less  divided,  whilst  increasing 
+more  or  less  in  width  at  their  base;  at  the  same  time  the  space  be- 
+tween the  nodes  of  the  stem,  if  not  perceptibly  lengthened,  becomes  at 
+least  more  slender  and  more  delicately  formed. 
+
+30.  It  has  been  observed  that  if  a  plant  is  supplied  with  copious 
+nourishment,  the  flowering-period  is  delayed,  but  that  moderate  or 
+even  scanty  nourishment  accelerates  it.f  The  functions  of  the  stem- 
+leaves  is  thus  clearly  shown.  As  long  as  there  are  crude  juices  to  be 
+carried  off,  the  plant  must  be  provided  with  organs  competent  to  effect 
+the  task.  If  superfluous  nourishment  is  forced  on  the  plant,  the  opera- 
+tion must  be  continued,  and  flowering  becomes  almost  impossible. 
+But,  on  the  other  hand,  if  nourishment  is  withheld,  that  operation  of 
+nature  is  facilitated  and  hastened  ;  the  organs  of  the  nodes  (leaves)  be- 
+
+*  The  formative  tissue  between  the  wood  and  the  bark  of  an  exogenous  tree  is 
+now  called  cambium  : — there  is  growth  most  active,  manifesting  itself  in  the  forma- 
+tion of  wood  on  the  one  side,  of  bark  on  the  other ;  therein  are  the  channels  by  which 
+the  elaborated  sap  mostly  passes  in  its  descent. 
+
+f  "Wolff,  '  Theoria  Generationis,'  1759  ;  Linn.  Prolepsis,  §§  iii.  and  x. 
+
+
+334  GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS. 
+
+come  more  refined  in  texture,  the  action  of  the  purified  juices  becomes 
+stronger,  and  the  transformation  of  parts  having  now  become  possible, 
+takes  place  without  delay. 
+
+IV.   On  the  Formation  of  the  Calyx. 
+
+31.  This  transformation  often  takes  place  rapidly ;  the  stem  at  once 
+becomes  tapering  and  delicately-formed,  and  shoots  upwards  from  the 
+node  at  which  the  last  perfect  leaf  was  developed,  terminating  in  a 
+whorl  of  leaves  collected  round  an  axis. 
+
+32.  It  appears  to  us  a  fact  capable  of  the  clearest  proof,  that  the 
+leaves  of  the  calyx  are  the  same  organs  as  those  whose  formation  we 
+have  hitherto  been  observing  as  stem-leaves,  though  now  often  in  a 
+very  altered  condition,  and  collected  round  a  common  centre. 
+
+33.  We  have  already  observed  in  the  cotyledons  a  similar  operation, 
+and  have  seen  a  number  of  leaves,  and  thus  obviously  a  number  of 
+approximated  nodes,  collected  round  a  central  point.  The  cotyledons 
+of  the  Pine  are  a  rayed  circle  of  needle-shaped  leaves  with  a  definite 
+form  ;  even  in  the  earliest  infancy  of  those  plants  that  vigour  of  con- 
+stitution is,  as  it  were,  indicated,  by  which,  at  a  more  advanced  age, 
+the  blossoms  and  fruit  are  to  be  produced.* 
+
+34.  "We  further  see,  in  many  flowers,  unaltered  stem-leaves  collected 
+together  so  as  to  form  a  kind  of  calyx  immediately  below  the  inflores- 
+cence. That  they  are  stem-leaves  we  need  only  appeal  to  the  normal 
+appearance  still  retained,  and  to  botanical  terminology,  which  desig- 
+nates them  by  the  name  of  Folia  jloralia  (bracts). 
+
+35.  "We  must  now  observe  the  case  in  which  the  transition  to  the 
+flowering-period  proceeds  slowly ;  the  stem-leaves  gradually  diminish 
+in  size,  become  altered  in  appearance,  and  gently  insinuate  themselves 
+into  the  calyx,  as  may  be  very  easily  seen  in  the  common  calyx  (invola- 
+crio/i)  of  Composite  flowers  ;  especially  in  Sunflowers  and  Marigolds. f 
+
+*  The  force  of  the  argument  in  this  paragraph  is  destroyed  hy  the  researches  of 
+Duchartre  ;  see  ante,  note  to  §  16. 
+
+t  The  nature  of  the  involucre  was  pointed  out  hy  Jung.  '  Isagoge  Phytoscopica,' 
+1678,  cap.  xiv.  §§  14,  15,  23. 
+
+Similar  instances  of  the  close  similarity  that  exists  between  the  leaves  and  the 
+bracts  constituting  an  involucre  may  be  seen  in  many  Umbelliferous  plants,  as  the 
+Carrot,  in  the  Anemone,  etc.  A  remarkable  instance  is  figured  in  the  '  Gardeners' 
+Chronicle,'  Sept,  11,  1852,  of  a  Dahlia,  in  which  the  bracts  or  scales  of  the  involucre 
+and  the  palea;  (scales)  of  the  receptacle,  instead  of  retaining  their  usual  membranous 
+state,  have  all  assumed  the  texture,  colour,  and  veins  of  leaves,  even  narrowing  their 
+bases  into  footstalks.     So  we  have  seen  the  bracts  of  the  Plantain,  Plantago  major, 
+
+
+GOETHE    ON    TIIE    MKTAMOKPHOSIS    OF    PLANTS.  335 
+
+36.  Nature's  power  of  collecting  a  number  of  leaves  round  a  com- 
+mon axis  is  seen  to  produce  even  a  closer  union,  so  as  to  render  these 
+clustered  and  modified  leaves  still  more  difficult  to  recognize ;  that  is 
+to  say,  it  unites  the  edges  of  one  with  the  other,  often  entirely,  but 
+frequently  only  in  part.  The  crowded  and  closely-pressed  leaves  are 
+brought  into  the  nearest  contact  with  each  other  while  yet  in  a  tender 
+state,  an  anastomosis  is  effected  by  the  operation  of  the  elaborated 
+juices  which  the  plant  now  contains,  and  they  thus  form  a  bell-shaped 
+or  so-called  monosepatous  calyx,  which  betrays  its  compound  origin  by 
+the  manner  in  which  its  border  is  more  or  less  incised  or  divided.  We 
+may  find  evidence  of  this  by  comparing  a  number  of  deeply-divided 
+calyces  with  polysepalous  ones,  especially  if  we  attentively  consider 
+the  common  calyces  (involucres)  of  many  Composite  flowers.  Thus, 
+Ave  shall  find  that  the  calvx  of  a  Marigold,  which  is  defined  in  svste- 
+matic  descriptions  as  simple  and  much  divided,  consists  both  of 
+attached  and  imbricated  leaves,  amongst  which,  as  we  said  above,  di- 
+minished stem-leaves  have,  as  it  were,  insinuated  themselves. 
+
+37.  In  many  plants  the  number  and  form  in  which  the  calyx-leaves 
+(sepals),  whether  distinct  or  united,  are  arranged  round  the  axis  of  the 
+stalk,  is  constant,  the  same  regularity  being  observable  in  the  other  sub- 
+sequent organs.  On  this  constancy  of  character  depend,  in  great  part, 
+the  progress,  stability,  and  reputation  of  botanical  science,  which  of 
+late  years  has  been  making  continual  advances.  There  are,  indeed,  in- 
+stances in  which  the  number  and  form  of  these  parts  are  not  equally 
+constant ;  yet  even  this  inconstancy  has  not  baffled  the  keen  powers  of 
+observation  which  distinguish  the  masters  of  this  science;  they  have 
+endeavoured,  by  means  of  exact  definitions,  to  impose  a  strict  limit,  so 
+to  speak,  within  which  these  aberrations  of  nature  are  restrained.* 
+
+38.  Nature  has  thus  formed  the  calyx  by  uniting  together,  around  a 
+common  centre,  generally  in  a  certain  definite  number  and  order,  many 
+leaves,  and  consequeutly  many  nodes,  which  she  had  previously  pro- 
+duced in  succession,  and  at  some  distance  from  each  other.  Should, 
+however,  the  flowering-period  have  been  checked  by  an  excessive  and 
+
+presenting  iu  all  respects  the  form  and  size  of  the  ordinary  leaves,  and  we  have  observed 
+similar  changes  in  the  scales  of  the  strobile  of  the  Hop,  and  in  those  of  the  Larch, 
+Crijptomeria.  etc.  In  Podolepis  the  bracts  are  stalked  like  ordinary  leaves.  (Vid. 
+Moquiu-Tandon,  '  Te'ratologie  Vegetale,'  p.  202.) 
+
+*  "  Calyx  tunc  plane  non  differt  a  foliis  proxime  ipsi  praecedentibus."  (v\  olff, 
+*  Theoria  Generations, '  1759,  §  114.) 
+
+
+336 
+
+
+GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS. 
+
+
+superfluous  degree  of  nourishment,  they  would  have  remained  separate 
+from  each  other,  and  would  still  have  retained  their  original  form. 
+Nature,  therefore,  forms  no  new  organ  in  the  calyx,  but  simply  unites 
+and  modifies  those  organs  with  which  we  are  already  acquainted,  and 
+advances  by  this  means  a  step  nearer  her  object.* 
+
+V.   On  the  Formation  of  the  Corolla. 
+
+39.  We  have  seen  how  the  calyx  is  produced  by  highly-elaborated 
+fluids,  gradually  generated  in  the  plant ;  and  in  the  same  way  the 
+calyx  itself  is  destined  to  become  the  organ  of  a  future  and  further 
+degree  of  elaboration.  This  will  appear  easy  of  belief  if  we  take  into 
+consideration  the  purely  mechanical  nature  of  its  operation.  The  state 
+of  contraction  and  compression  in  which  its  vessels  are  now  found,  as 
+shown  above,  renders  them  of  an  extremely  delicate  nature,  and  thus 
+well  adapts  them  for  the  process  of  a  most  elaborate  filtration. 
+
+40.  The  transition  of  the  calyx  into  the  corolla  is  exhibited  iu  va- 
+rious ways;  for  although  the  general  colour  of  the  calyx  usually  re- 
+mains green,  like  that  of  the  stem-leave?,  it  often  shows  a  change  in 
+one  part  or  another,  at  the  tips,  the  edges,  or  at  the  back,  or  over  the 
+whole  of  the  inner  surface,  while  the  outer  surface  remains  green  ;  and 
+whenever  this  change  of  colour  occurs,  we  see  it  combined  with  an  in- 
+creased refinement  of  texture.  In  this  manner  an  ambiguous  kind  of 
+calyx  is  produced,  which  might  with  equal  propriety  be  called  a  co- 
+rolla (perianth  of  Linnaeus).*)* 
+
+*  Wolff,  Nov.  Cumin.  Acad.  Pctrop.  pp.  403,  1766,  17<>7  ;  Linn.  Prolepsis,  §  6. 
+The  resemblance  of  Bepals  to  leaves  is  well  shown  in  Agrottemma  Githago,  some 
+kinds  of  Rose,  of  Pseony,  of  Gentian,  of  Mesembryanthemwm,  etc.,  while  in  the  Ca- 
+mellia, and  a  great  number  of  other  plants,  the  sepals  are  not  arranged  in  a  verticil- 
+late  manner,  but  are  disposed  in  a  spirally  imbricated  arrangement,  as  is  commonly 
+the  case  with  ordinary  leaves.  On  the  other  hand,  the  whorled  leaves  of  all  t lie 
+Stelladf,  etc.,  may  be  adduced  to  show  the  similarity  between  such  an  arrangement, 
+and  that  which  usually  obtains  in  the  calyx.  Floral  leaves  or  bracts  are  frequently 
+ouly  to  be  distinguished  from  ordinary  leaves  by  their  position  at  the  base  of  the 
+flower  ;  at  other  times  the  bracts  gradually  assume  more  and  more  of  the  appearance 
+of  the  sepals,  as  in  Calycantlnts,  Berberit,  Cactus,  and  others,  in  which  no  definite 
+line  can  be  drawn  between  sepals  and  bracts.  Iu  Peganum  and  Cruckshanksia,  the 
+sepals  are  even  provided  with  stipules.  Few  plants  show  the  gradual  passage  of 
+leaves  to  brads  and  sepals  so  well  as  [Ielleborttsfoiidus. 
+
+t  linn.  Prolcpsis,  §  8.  The  sepals  of  the  white  Water  Lily,  Nymphcea  alda,are 
+of  an  olive-green  colour  on  the  outside,  and  of  a  white  or  pinkish  hue  on  the  inner 
+side.  The  tips  of  the  sepals  in  the  Helleborus  fatidus  are  of  a  purple  colour,  aud 
+other  Rauuuculaccse  furnish  instances  of  coloured  calyces  iu  the  Winter  Aconite, 
+Larkspur,  Aconite,  Columbine,  Anemone,  etc.  The  Fuchsia  is  a  well-known  in- 
+stance of  the  same  thing. 
+
+
+GOETHE    OX    THE    METAMORPHOSIS    OF    PLANTS.  337 
+
+41.  We  remarked  that  from  the  seed-leaves  upwards  a  great  deve- 
+lopment takes  place  both  in  the  size  and  form  of  the  leaves,  especially 
+in  their  margins,  and  that  a  subsequent  diminution  of  their  size  occurs 
+in  the  calyx  ;  we  have  now  to  observe  a  second  act  of  expansion,  by 
+which  the  corolla  is  produced.  The  flower-leaves  (petals)  are  usually 
+larger  than  the  calyx-leaves  (sepals),  and  it  is  to  be  remarked  that  as 
+a  contraction  of  the  organs  occurs  in  the  calyx,  so  (having  been  in  a 
+high  degree  refined  by  means  of  a  further  riltrationof  the  fluids  in  passing 
+through  the  calyx)  they  again  expand  in  the  form  of  petals,  and  assume 
+the  appearance  of  entirely  new  and  distinct  organs.  Their  delicate  or- 
+ganization, their  colour,  and  their  scent  would  make  it  impossible  to 
+recognize  their  origin,  if  we  had  not  frequent  opportunities  of  stealthily 
+observing  nature  when  departing  from  her  general  rule. 
+
+42.  Thus,  for  instance,  within  the  calyx  (epicalyx)  of  a  Pink  a  second 
+calyx  is  often  found,  which,  being  partly  green,  was  to  all  appearance 
+originally  designed  for  a  monosepalous  notched  calyx,  but  its  jagged 
+tips,  and  edges  transformed  into  incipient  and  spreading  petals,  betray, 
+both  by  their  colour  and  texture,  the  relationship  that  exists  between 
+the  corolla  and  the  calyx. 
+
+43.  The  relationship  of  the  corolla  to  the  stem-leaves  is  also  shown 
+in  different  ways;  for  stem-leaves  already  more  or  less  coloured  maybe 
+seen  on  many  plants,  far  below  the  inflorescence,  those  nearest  to  it 
+being  coloured  throughout.* 
+
+44.  Those  instances  also  in  which  nature,  as  it  were,  altogether 
+omits  the  calyx, y  afford  additional  opportunities  of  observing  the 
+transformation  of  the  stem-leaves  into  petals.  On  the  stalks  of  tulips, 
+for  example,  a  coloured  petal,  almost  perfect  in  form,  may  often  be 
+seen.  The  case  is  even  more  remarkable  when  a  leaf,  half  green  and 
+half  coloured,  remains  attached  to  the  stem  by  the  green  part  as  more 
+properly  belonging  to  it,  whilst  the  coloured  portion  is  carried  up  with 
+the  corolla,  so  that  the  leaf  is  literally  torn  asunder.^ 
+
+*  The  brightly  coloured  bracts  in  some  of  the  species  of  Salvia,  Evphorhia, 
+Poinsettia,  etc.,  afford  good  illustrations  of  the  facts  mentioned  in  this  paragraph. 
+We  have  also  seen  several  iustances  where  the  involucre  of  the  garden  Anemone  had 
+assumed  as  brilliant  a  crimson  colour  as  the  calyx  itself. 
+
+t  Where  but  one  whorl  exists  on  the  outside  of  the  stamens  or  pistils,  that  one  is 
+called  a  calyx,  irrespective  of  its  colour.  The  term  'perianth'  is  applied  in  some  cases 
+where  it  is  difficult  to  distinguish  the  calyx  from  the  corolla. 
+
+X  Prolepsis,  §  7.     Instances  of  the  substitution  of  ordinary  leaves  for  petals  in 
+Roses,  in  Clover,  and  other  plants,  are  not  uncommon.     We  have  seen  such  in  Te 
+iioiias,  Lychnis,  etc.  See  Moquin-Tandon, '  Teratologic  Vegetale,'  pp.  203-7  and  230. 
+
+VOL.  I.  Z 
+
+
+338 
+
+
+GOETIIE    ON    THE    METAMORPHOSIS    OF    PLANTS. 
+
+
+.  45.  There  is  great  probability  in  the  opinion  that  the  eolour  and 
+scent  of  the  petals  is  to  be  ascribed  to  the  presence  of  pollen  within 
+them;  it  probably  exists  in  them  in  an  imperfectly  disengaged  state,  or 
+rather  combined  with  and  diluted  by  other  fluids.  The  very  beauty  of 
+the  colours  induces  the  idea  that  the  substance  contained  in  the  petals, 
+though  in  an  extremely  purified  condition,  has  not  yet  attained  the 
+very  highest  degree  of  purity,  at  which  stage  it  appears  white  and  colour- 
+less.* 
+
+VI.    On  the  Formation  of  the  Stamens. 
+
+46.  The  opinion  alluded  to  in  the  last  paragraph  will  appear  still 
+more  probable,  when  we  consider  the  close  connection  which  exists  be- 
+tween the  petals  and  the  stamens.  If  the  connection  between  all  the 
+other  organs  were  as  obvious,  as  universally  noticed,  and  considered  as 
+indubitable,  the  present  essay  might  be  thought  superfluous. 
+
+47.  Some  plants  normally  produce  their  petals  in  a  transitional 
+state;  as  Canna,  and  other  plants  of  the  same  family.  In  this  instance 
+a  true  petal,  but  slightly  changed,  is  contracted  at  the  upper  part,  and 
+exhibits  an  anther,  in  relation  to  which  the  rest  of  the  petal  stands  in 
+the  place  of  the  filament.! 
+
+48.  In  those  flowers  whose  habit  it  is  to  become  double,  we  may 
+trace  this  transition  through  all  its  differenl  stages.  In  Hoses,  among 
+perfect  coloured  petals,  other-  may  often  lie  seen  which  are  contracted 
+both  in  the  middle  and  at  the  side.  This  is  occasioned  by  a  little 
+protuberance  more  or  less  resembling  a  perfect  anther,  and  in  the  same 
+proportion  the  whole  petal  assumes  the  form  of  a  stamen.  In  the  case 
+of  many  double  Poppies,  some  of  the  petals  of  the  very  double  corolla 
+
+
+*  In  accidental  cases,  wlicre  the  petals  assume  more  or  less  the  appearance  of  sta- 
+mens, or  vice  versa,  the  pollen  may  be  said  to  be  in  the  petal;  and  iu  the  common 
+Mistletoe  the  inner  surface  of  the  (lower  lias  DomerDna  small  depressions  in  which 
+the  pollen  is  lodged  but  it  seems  little  better  than  a  fancy  to  attribute  the  colour  and 
+scent  of  the  petals  of  an  ordinary  flower  to  the  pollen  contained  within  them.  The 
+true  cause  of  these  phenomena  is  very  hnperfcctU  known  ;  coloured  liquids  in  the  cells 
+of  the  petals  arc  iu  many  cases  the  source  of  the  colour,  and  volatile  oils  contribute 
+in  some  eases  to  their  odour,  but  for  the  most  part  we  are  ignoraut  of  the  cause  of 
+the  exquisite  perfume  of  some  plants. 
+
+t  The  flowers  of  Canna  have  three  sepals,  an  irregular  corolla  in  five  or  six  di- 
+visions; the  whole  of  the  stamens  are  replaced  by  petals,  with  the  exception  of  oue 
+half-anther  placed  on  the  side  of  a  petaloid  filament.  The  style,  which  iu  the  adult 
+state  is  simple  and  flattened  like  a  petal,  offers  in  its  earliest  condition  three  small 
+divisions,  corresponding  to  the  three  carpels  of  the  ovary.  (See  Barneoud,  Ann.  des 
+Sc.  Nat.  3rd  ser.  Bot.  viii.  p.  344.) 
+
+
+GOETIIE    ON    THE    METAMOKPIIOS1S    OF   PLANTS.  339 
+
+are  little  changed,  and  tipped  with  perfectly  developed  anthers  ;  whilst 
+others  are  more  or  less  contracted  by  anther-like  protuberances.* 
+
+49.  "When  all  the  stamens  are  changed  into  petals,  the  flower  pro- 
+duces no  seed,  but  if  any  of  the  stamens  are  developed  whilst  the  pro- 
+cess by  which  the  flower  becomes  double  is  going  forward,  fertilization 
+may  take  place. 
+
+50.  A  stamen,  then,  is  produced  by  the  re-appearance  of  the  self- 
+same organ  diminished  and  refined,  which  we  just  before  saw  expanded 
+as  a  petal.  The  truth  of  the  proposition  put  forward  above  is  hereby 
+again  confirmed,  and  our  attention  becomes  still  more  closely  riveted 
+on  this  operation  of  alternate  contraction  and  expansion,  by  means  of 
+which  nature  at  length  attains  her  object. f 
+
+VII.   Of  the  Nectaries. 
+
+51.  However  rapidly  the  transition  takes  place  in  many  plants  from 
+the  corolla  to  the  stamens,  we  nevertheless  perceive  that  nature  cannot 
+always  effect  it  in  a  single  stride;  that  is  to  say,  she  produces  inter- 
+mediate organs  which,  in  their  form  and  office,  at  one  time  resemble 
+the  petals,  and  at  another  the  stamens.  Though  varying  extremely  in 
+form,  they  may  nevertheless  be  almost  all  comprehended  under  one 
+idea,  namely,  that  there  mag  be  slow  stages  of  transition  between  the 
+petals  and  the  stamens. 
+
+52.  Most  of  these  differently-formed  organs,  which  Liniueus  called 
+nectaries,  may  be  thus  defined  ;  and  here  we  have  fresh  reason  to  admire 
+the  great  penetration  shown  by  that  extraordinary  man,  who  without 
+clearly  comprehending  their  office,  yet  ventured,  in  reliance  upon  a 
+surmise,  to  include  apparently  different  organs  under  one  and  the  same 
+name. 
+
+*  The  transition  from  petals  to  stamens  may  be  well  seen  in  the  common  white 
+Water  Lily,  in  some  species  of  Atragene,  etc.  In  Bocagea  v'uidis  there  is  no  dif- 
+ference in  form  between  the  stamens  and  the  petals.  Double  flowers  result  from 
+the  substitution  of  petals  for  stamens  or  pistils,  and  from  other  causes.  See  I)e 
+Candolle,  Mem.  sur  les  Fleurs  Doubles,  Mem.  Soc.  Arc.  t.  iii.  p.  402,  and  Moquin- 
+Tandou,  'Teratologic  Vegetale,'  p.  211. 
+
+*j"  Wolff's  original  opinion  was  that  the  stamens  were  equivalent  to  so  many  buds 
+placed  in  the  axil  of  the  petals  or  sepals  (see  '  Theoria  Generatiouis,'  1759,  §  114) — 
+an  opinion  which  more  receutly  has  received  the  support  of  Agaidh  and  Endlicher. 
+Wolff  himself,  however,  seems  to  have  abandoned  his  original  notion,  for  in  his  me- 
+moir, "  De  formatione  intestinorum  praecipue  turn  et  de  amnio  spurio  aliisque  parti- 
+bus  embryouis  Gallinacei,  nondum  visis,"  etc.,  in  Comm.  Acad.  Petrop.  xii.  p.  403, 
+anno  1706,  he  considers  the  stamens  as  essentially  leaves.  See  also,  Linn.  Prolepsis, 
+§  viii. 
+
+z  2 
+
+
+340  GOETHE    ON    Till:    MllI'.YMoIUMloslS    OF    PLANTS. 
+
+53.  Many  petals,  without  being  perceptibly  altered  in  form,  never- 
+theless indicate  their  relation  to  the  stamens  by  having  little  cavil 
+or  by  gland*  attached  to  them,  from  which  a  honey-like  liquid  exudes. 
+That  thi-  may  possibly  be  the  fructifying  mixture  inayel  imperfect, 
+unelaborated  -tat.-,  we  may  partly  conjecture  on  the  grounds  above 
+alleged,  and  this  will  appear  still  more  probable  from  reasons  to  be 
+presently  adduced.* 
+
+5-L  In  other  instances  the  Bo-called  nectaries  assume  the  appear- 
+anoe  of  independent  organs,  and  under  this  disguise  they  someti 
+mimic  the  petals,  sometimes  the  Btamens.  Take  as  example-  the  nec- 
+taries <>f  Parnaesia,  in  which  thirteen  filaments,  each  tipped  with  a 
+little  red  ball,  bear  a  strong  resemblance  to  .stamen-;  <>r  Valium  ■ 
+and  Tkuillaa,  when-  they  arc  like  filaments  without  anther-;  or  Patta- 
+petes,  in  which  they  have  a   hat-like  form,  and  arc  arranged  in  a  circle 
+
+alternating  regularly  with  the  stamens.  In  systematic  work>  these 
+organs  are  described  aajilam  'rata  petaltfbrmia.     Similar  am- 
+
+biguous formation-,  occur  in  Kiggellaria  and  the  l'a-ion-tlou .  r. 
+55.  The  name  of  aeclary,  as  explained  above,  may  be  equally  wed 
+
+applied  to  the  peculiar  accessory  corolla  {'  paraeorolla,'  Schleiden).  It 
+the  formation  of  the  petal-  i-  produced  by  expansion,  the  accessory 
+corolla  is  the  result  of  contraction,  as  in  the  case  of  the  Btamens, 
+Thus  we  sometimes  Bee  within  a  |  ami  wide-spreading  corolla,  a 
+
+smaller  and  contracted  ace.  Bsory  one,  as  in  Xarcmus,  .WW/////,  and  Jaro- 
+s tent  ma.  t 
+
+*   At  the   base  of  the  petals   of  the  Crown  Iniporiul,  Frilillaria  impcrialis,  there 
+exist-  such  a  gland  as  that  mentioned  in  the  • 
+
+t  The  crown  of  the   Narcissus  has  been  the  subject  of  much  discussion  an x 
+
+botanists,  ami  its   real  nature   can   hardly  he  Mid   to  he  ;  ictorily  made  out. 
+
+M.  Gay  (in  Bull  -       B  ri.  1859)  gives  a  concise  account  of  the  opinions 
+
+of  previous  observers.     His  own  opinion  seems  to  be  nearly  the  same  as  that  of 
+Schleiden,  and  that  the  organ  in  question  is   formed  from  the  confluence  of  six  tut ra- 
+perianthial  stipules  ('ligules,1  Schleiden).     Our  own  observations,  so  far  as  thej 
+lead  u-  to  support  l>r.  Undiej  •  that  the  corona  of  Narcissus  is  composed  of  a 
+
+row  of  antherless  stamens,  whose  filaments  arc  petaloid  and  coherent.  M.  Gays 
+objections  to  this  view  do  not  appear  to  us  valid,  while,  on  the  other  baud,  Dr.  Lind- 
+ley's  opinion  is  supported  by  the  analogy  of  Pancratium.  Moreover,  in  N.  i/icam- 
+perabtiis  the  coroua  is  somewhat  six-lobed,  the  lobes  alternating  with  the  segments 
+of  the  perianth  on  the  one  side  and  with  the  stamens  on  the  other;  again,  the  divi- 
+sions of  the  cup  which  are  placed  opposite  to  the  outer  segments  of  the  perianth 
+overlap  the  remaining  ones,  which  oppose  the  inner  piece- of  the  perianth, — an  arrange- 
+ment recalling  the  similar  deposition  of  the  stamens  in  the  commou  Polyanthus 
+Karcissiis.  In  -V.  montanus  we  have  seen,  for  several  years  in  succession,  anthers 
+placed  on  the  corona,  and  the  latter  sometimes  divided  into  segments,  not  differiii'" 
+
+
+GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS.  341 
+
+56.  Still  more  striking  and  remarkable  alterations  are  produced  in 
+the  petals  of  different  plants.  A  small  cavity,  rilled  with  a  honey-like 
+liquid,  occurs  in  the  inner  base  of  some  flowers.  This  cavity  is  much 
+deeper  in  some  families  and  species  than  in  others,  and  is  elongated  at 
+the  back  of  the  petal  in  the  shape  of  a  spur  or  horn,  the  rest  of  the 
+petal  being  also  more  or  less  modified  in  form.  The  genus  Aquilegia  is 
+a  good  example  of  this.* 
+
+57.  The  nectary  is  most  disguised  in  Aconitum  and  Nigella,  but 
+even  here  its  similarity  to  the  '  leaf-form'  may  be  perceived  by  a  little 
+attention  ;  it  has  a  strong  tendency  in  Xigella  to  become  petaloid,  the 
+flower  becoming  double  from  the  altered  nectaries.  In  Aconitum  the 
+resemblance  of  the  nectaries  to  the  helmet-shaped  sepal,  beneath  which 
+they  are  concealed,  is  evident. f 
+
+58.  Having  observed  above  that  the  nectaries  may  be  considered  as 
+transitional  organs  between  petals  and  stamens,  we  may  here  introduce 
+a  few  remarks  on  irregular  flowers.  In  Meliantkus  the  five  outer  divi- 
+sions  may  be  described  as  true  petals,  and  the  five  inner  ones  as  an 
+accessory  corolla  consisting  of  six  nectaries,  of  which  the  superior  one 
+is  most  like  the  petals,  whilst  the  inferior  one,  commonly  called  the 
+nectary,  most  differs  from  them.  In  the  same  sense  the  keel  of  papi- 
+lionaceous flowers!  might  be  called  a  nectary,  since  of  all  the  petals 
+it  is  nearest  in  form  to  the  stamens,  whilst  it  differs  widely  from  the 
+leaf-like  form  of  the  standard  (vexillum).     Thus  also  the  brush-like 
+
+
+from  the  ordinary  stamens  except  in  the  breadth  of  the  filament.  Anthers  so  placed 
+are  commonly  met  with  in  some  of  the  double  Xarcissi. 
+
+Schleideu  also  asserts  that  the  nectaries  of  Ranunculus  and  Pamassia,  the  scales 
+of  Silenea,  and  the  crown  of  the  Fassion-flower,  are  secondary  productions  from  the 
+petals,  and  not  independent  foliar  organs  ;  but,  on  the  other  hand,  some  of  the  rays 
+of  the  crown  of  the  Passion-flower  have  been  observed  to  be  replaced  by  anthers 
+(Moquin-Taudon,  'Teratologic  Vegetale,'  p.  220),  while  in  Passiflora  Murucuja  the 
+rays  are  combined  into  a  cup,  like  that  of  Narcissus  or  like  that  of  Melia,  except 
+that  it  does  not  bear  anthers.  In  Saponaria  and  some  others  of  the  Silenea  we 
+have  remarked  the  scales  of  the  corona  bearing  anthers  as  though  they  were  re- 
+ferable to  the  adhesion  of  two  stamens,  the  anthers  of  which  are  usually  wanting 
+(Journ.  Linn.  Soc.  i.  1857,  p.  159). 
+
+*  In  Angracum  sesquipedale,  an  Orchid  native  of  Madagascar,  the  nectary  mea- 
+sures nearly  a  foot  in  length. 
+
+t  The  parts  called  by  Goethe  nectaries,  in  the  Aconite,  Nigella,  etc.,  are  now  con- 
+sidered as  petals,  the  outer  pieces  as  sepals,  in  spite  of  their  colour  and  form.  In 
+the  Winter  Aconite,  Ermthis  hyemalis,  a  transition  may  sometimes  be  seen  between 
+the  large,  flat,  coloured  sepals  and  the  small,  tubular,  greenish  petals  (nectaries). 
+
+t  The  keel  in  papilionaceous  flowers  is  evidently  formed  by  the  junction  of  two 
+petals. 
+
+
+312  GOETHE    OS    THE    METAMORPHOSIS    OF   PLANTS. 
+
+appendages  attached  to  the  end  of  the  keel,  in  some  species  of  Poly- 
+gala,  may  be  explained,  and  a  distinct  idea  formed  as  to  what  these 
+organs  really  are. 
+
+59.  It  would  be  superfluous  to  assert  that  it  is  not  the  object  of 
+these  remarks  to  re-entangle  what  has  been  separated  and  classified  by 
+the  labours  of  observers  and  systematists  ;  the  intention  is  simply  to 
+render  the  different  forms  of  plants  more  susceptible  of  explanation  by 
+means  of  the  views  here  put  forward. 
+
+VIII.  A  fete  more  Remarks  on  the  Stamens. 
+
+60.  It  has  been  placed  beyond  all  doubt,  by  microscopic  observa- 
+tions, that  the  stamens  and  pistils,  no  less  than  the  other  organs  of 
+plants,  are  produced  by  spiral  vessels.  We  found  an  argument  upon 
+this  as  to  the  intrinsic  identity  of  the  various  parts  of  plants,  however 
+different  the  forms  under  which  they  appear.* 
+
+61.  Now  the  spiral  vessels  being  situated  in  the  very  centre  of  the 
+bundles  of  sap-vessels,  and  entirely  surrounded  by  them,  we  shall  be 
+able  to  form  a  truer  estimate  of  their  strong  contractile  power,  if  we 
+imagine  them  (as,  indeed,  they  have  all  the  appearance  of  elastic 
+springs)  in  the  very  act  of  exerting  their  utmost  force,  till  having 
+gained  the  mastery,  they  altogether  overcome  the  expansive  power  of 
+the  sap-vessels. 
+
+62.  The  ramification  of  the  bundles  of  sap-vessels  is  now  rendered 
+impossible,  nor  can  they  any  longer  unite  and  form  a  network  by  ana- 
+stomosis; the  (cellular  tissue)  which  generally  fills  up  the  interstices  of 
+the  network  is  no  longer  developed  ;  all  the  causes  which  produced  the 
+expansion  of  the  stem-leaves,  the  sepals,  and  the  petals,  are  at  an  end, 
+and  an  extremely  simple  little  filament  makes  its  appearance. 
+
+63.  No  sooner  are  the  delicate  membranes  of  the  anther  formed, 
+than  the  extremely  attenuated  sap-vessels  terminate  in  them.  And 
+now,  if  it  be  admitted  that  these  are  the  very  same  vessels  in  a  state  of 
+extreme  contraction  as  those  which  before  were  continually  increasing 
+in  length,  ramifying  and  uniting  with  each  other;  if  at  this  stage, 
+moreover,  we  see  highly  organized  pollen  developed  from  them,f  which 
+
+*  It  can  hardly  be  correctly  said  that  the  stamens  and  other  organs  of  plants  arc 
+produced  by  spiral  vessels,  since  all  these  parts  begin  as  little  knobs  or  pimples  of 
+fine  cellular  tissue,  and  spiral  vessels  are  not  formed  therein  till  after  development 
+has  proceeded  some  way. 
+
+t  The  mode  of  explaining  the  formation  of  the  pollen  is  now  known  to  be  in- 
+orrcct. 
+
+
+GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS.  343 
+
+compensates  by  its  energy  for  what  those  vessels  have  lost  in  power  of 
+expansion  ;  if,  when  this  pollen  is  set  free,  it  immediately  seeks  the 
+pistils  (placed  by  nature  in  close  proximity  with  the  stamens),  if  it 
+attaches  itself  to  the  pistils,  and  imparts  its  influence  to  them, — then 
+are  we  by  no  means  averse  to  consider  the  union  of  the  male  and 
+female  organs  as  an  ideal  anastomosis,*  and  we  think  that,  for  the 
+moment  at  hast,  we  have  brought  the  ideas  of  growth  and  reproduc- 
+tion a  step  nearer  to  each  other. 
+
+64.  The  subtile  substance  which  is  organized  in  the  anthers  looks 
+like  mere  powder,  but  the  little  pollen-grains  are  in  fact  nothing  more 
+or  less  than  vessels  (cells)  in  which  an  extremely  refined  moisture  is 
+enclosed.  We  coincide,  then,  in  the  opinion  of  those  who  maintain  that 
+this  moisture  is  absorbed  by  the  pistils  to  which  the  pollen-grains 
+attach  themselves,  and  that  thus  the  fructification  is  effected.  This 
+appears  the  more  probable,  from  the  fact  that  some  plants  secrete  no 
+pollen-grains,  but  moisture  only.f 
+
+(').").  ^Ye  are  here  reminded  of  the  honey-like  liquid  of  the  nectaries, 
+and  its  probable  connection  with  the  elaborated  moisture  contained  in 
+the  pollen-grains.  Perhaps  the  nectaries  are  preparatory  organs,  and 
+their  honey-like  moisture  may  possibly  be  absorbed,  perfected,  and 
+fully  elaborated  by  the  anthers  ;  an  opiniou  which  derives  greater  pro- 
+bability from  the  disappearance  of  this  fluid  after  fructification  has 
+taken  place.} 
+
+GO.  We  must,  not  omit  a  cursory  remark  as  to  the  different  ways  in 
+which  the  filaments  unite  with  each  other  in  some  flowers  (Mona- 
+delphia,  etc.),  and  the  anthers  in  others  (Syngenesia),  exhibiting  the 
+most  curious  examples  of  anastomosis  and  combination  between  organs 
+which  at  an  earlier  stage  were  perfectly  distinct. 
+
+*  The  discovery  of  the  polleu-tuhes  has  rendered  this  far  more  certain  than  it  was 
+at  the  time  when  Goethe  wrote. 
+
+f  It  is  needless  to  do  more  than  remark  that  modern  research  has  completely  shown 
+the  falsity  of  the  opinion  stated  in  this  paragraph. 
+
+X  Vaucher  (Hist.  Phys.  PL  Europ.  p.  13)  held  that  the  honey-like  liquid  of 
+flowers  plays  a  very  important  part  in  the  fertilization  of  the  ovule,  especially  by  dis- 
+solving the  pollen  and  fitting  it  for  its  office,  lie  pointed  out  the  existence  of  nec- 
+taries or  secreting  organs  in  many  flowers  where  they  had  not  previously  been  de- 
+tected. See  also  Bronguiart,  '  Sur  les  Glaudes  Septales  de  l'Ovaire,'  Ann.  Sc.  Nat.  4th 
+ser.  ii.  p.  1.  Darwin  (*  On  the  Various  Coutrivances  by  which  British  and  Foreign 
+Orchids  are  Fertilized  by  Insects,'  1SG2,  p.  2?8,  etc.)  shows  that  the  nectar  is  of  the 
+highest  importance  to  Orchids,  by  attracting  insects,  without  whose  agency  fertiliza- 
+tiou  could  uot  be  effected. 
+
+
+341       GOETHE  ON  THE  METAMORPHOSIS  OF  PLANTS. 
+
+IX.   On  the  Formation  of  the  Style. 
+
+67.  If  thus  far  our  object  has  been  to  show  that  the  different  organs 
+of  plants,  developed  in  succession,  are  intrinsically  identical,  however 
+unlike  externally,  it  will  be  easily  conjectured  that  our  next  aim  will  be 
+to  explain  the  structure  of  the  pistil  on  the  same  principle. 
+
+68.  We  will  first  consider  the  style  as  independent  of  the  fruit,  as 
+indeed  we  often  find  it  in  nature,  and  the  fact  of  its  being  thus  distinct 
+will  make  our  task  the  easier. 
+
+69.  The  style  then,  we  observe,  is  to  be  referred  to  the  same  period 
+of  growth  as  the  stamens ;  the  stamens,  that  is  to  say,  are  the  result 
+of  contraction,  and  the  same  thing  may  be  often  asserted  of  the  styles; 
+if,  indeed,  their  proportions  do  not  always  keep  pace  with  those  of  the 
+stamens,  the  difference  in  their  length  is  but  slight.  In  many  instances 
+the  style  has  almost  the  appearance  of  a  filament  without  an  anther, 
+and  they  are  more  nearly  allied  in  external  form  than  any  of  the  other 
+organs.  Since  both  are  produced  by  spiral  vessels,*  it  becomes  so 
+much  the  more  evident  thai  neither  pistils  nor  stamens  are  distinct  or- 
+gans, and  if  by  this  consideration  their  close  relationship  is  rendered 
+obvious,  it  appears  to  us  that  the  idea  of  an  anastomosis,  as  applied  to 
+their  union,  is  both  appropriate  and  intelligible. 
+
+70.  We  often  find  that  the  style  is  composed  of  many  single  styles 
+united ;  the  parts  which  compose  it  are  scarcely  discernible  even  at  the 
+tip,  nor  even  there  are  they  always  separated.  Such  adhesion  (upon 
+the  effect  of  which  we  have  already  often  remarked)  may  easily  take 
+place  in  this  instance,  indeed  it  mud  inevitably  occur,  because  these 
+delicate  organs,  before  the  time  of  their  perfect  development  arrives, 
+are  pressed  together  in  the  centre  of  the  Bower-bud,  and  may  there  effect 
+the  very  closest  union. 
+
+71.  There  are  many  instances  of  a  constant  kind  in  which  nature 
+shows  us  more  or  less  clearly  the  connection  of  the  style  with  the  pre- 
+ceding organs  of  the  flower.  The  style  of  the  Iris  and  its  stigmas, 
+for  example,  are  obviously  petaloid.  The  shield-shaped  stigma  of  the 
+Sarr&qmia  betrays,  though  less  obviously,  that  it  is  composed  of  several 
+leaves,  and  even  the  green  colour  is  retained.  If  we  call  in  the  aid  of 
+the  microscope,  we  find  many  stigmas,  as  for  example  those  of  the 
+Crocus  and  the  Zannichdlia,  formed  like  perfect  mono-  or  polysepalous 
+
+calyces. 
+
+*  See  note  to  §  60. 
+
+
+INFLAMMABILITY   OF   FLOWERS    OF   DICTA  MM  US   ALBUS.      345 
+
+72.  Nature  not  uufrequently  affords  us  instances  in  which,  by  a 
+retrogressive  movement,  the  style  and  stigmas  are  reconverted  into 
+petals.  It  is,  for  example,  by  such  a  transformation  that  Ranunculus 
+Jsiaticus  becomes  double,  the  anthers  being  often  found  unchanged 
+immediately  beneath  the  corolla.  Some  other  remarkable  instances 
+will  be  mentioned  by-and-by.* 
+
+73.  We  must  here  repeat  the  observations  before  asserted,  that  the 
+style  and  stamens  are  to  be  referred  to  the  same  period  of  growth,  and 
+that  they  hereby  afford  a  fresh  illustration  of  the  argument  by  which, 
+we  endeavoured  to  prove  a  process  of  alternate  expansion  and  contrac- 
+tion. From  the  seed  to  the  topmost  stein-leaf  we  observed  the  work  of 
+expansion  going  forward  ;  we  next  saw  the  calyx  produced  by  means  of 
+contraction,  the  petals  by  expansion,  and  again  the  stamens  and  pistils 
+by  contraction.  Presently  we  shall  have  to  observe  the  highest  degree 
+of  expansion  in  the  fruit,  and  the  utmost  concentration  in  the  seed.  In 
+these  six  steps  unwearied  nature  completes  her  never-ending  work  of 
+reproduction,  by  means  of  the  male  and  female  organs. f 
+
+ESSAY    ON    THE   METAMORPHOSIS   OF  TEAM'S 
+By  J.  \V.  von  Goethe.— 179  I 
+
+Translated  hg  F.mit.v   If.   OOX  j    with  "Explanatory  Notes 
+bjf  M  \\\\i:i  i.  T.  IflSTSBS,  M.D.,  F.L.S. 
+
+(Concluded from p,  3-45.)  • 
+
+(Pl.ATF.  XI.) 
+
+X.   Of  the  Fmif. 
+
+74.  We  shall  soon  perceive  that  the  fruit  is  of  like  origin  with  the 
+previous  organs,  and  subject  to  the  same  laws.  We  here  speak  more 
+particularly  of  those  seed-vessels  which  enclose  so-called  covered  (angio- 
+spermous)  seeds,  or,  more  correctly,  which  are  formed  for  the  develop- 
+ment of  a  larger  or  smaller  number  of  fertilized  seeds  within  them.  It 
+will  be  easy  to  show  that  these  seed-vessels  may  be  explained  by  the 
+nature  and  organization  of  those  parts  of  the  plant  which  we  have  already 
+considered. 
+
+75.  Here  again  retrogressive  Metamorphosis  reminds  us  of  Nature's 
+law.  In  Pinks,  for  example,  the  very  irregularity  of  which  makes  them 
+such  familiar  and  favourite  flowers,  it  not  infrequently  happens  that  the 
+capsule  assumes  the  appearance  of  sepals,  and  the  shies  shorten.  The 
+capsule  of  the  Pink  has  even  been  transformed  into  a  true  and  perfect 
+calyx ;  little  remnants  of  the  styles  and  stigmas  remaining  attached 
+to  the  tips  of  the  divisions,  whilst  in  the  centre  of  this  second  calyx, 
+a  more  or  less  perfect  corolla  was  developed  instead  of  seed.* 
+
+*  See  §  105. 
+
+
+GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS.  361 
+
+76.  Nature  herself,  in  instances  of  regular  and  constant  occurrence, 
+has  further  disclosed  to  us  in  manifold  ways  the  fruitfulness  concealed 
+in  the  leaf.  Thus  in  the  Lime,  a  leaf  (in  rather  an  altered  state  it  is 
+true,  but  still  easily  recognized)  produces  from  its  midrib  a  little  stalk 
+with  a  perfect  blossom  and  fruit.  Still  more  remarkable  is  the  manner 
+in  which  the  blossom  and  fruit  are  situated  on  the  leaf,  in  Itttsciis* 
+
+77.  Yet  greater,  we  may  even  say  monstrous,  is  the  inherent  fruit- 
+fulness  of  the  fronds  of  Ferns,  which  by  an  internal  impulse,  and  per- 
+haps independently  of  any  definite  operation  of  stamens  and  pistils, f 
+develope,  and  scatter  around,  innumerable  seeds  (spores),  or  rather, 
+germs  capable  of  growth  ;  one  single  frond  rivalling  a  wide-spreading 
+plant,  nay,  a  huge  branching  tree,  in  fruitfulness. 
+
+78.  If  we  keep  in  view  the  observations  which  have  now  been  made, 
+we  shall  not  fail  to  recognize  the  leaf  in  all  seed-vessels,  notwithstand- 
+ing their  manifold  forms,  their  variable  structure,  and  different  combina- 
+tions. %  Thus,  for  example,  the  pod  of  a  Leguminous  plant  would  be 
+a  simple  leaf  folded  together,  with  its  margins  united.  The  husks 
+(Sc/ioteu)  would  consist  of  several  leaves  grown  one  upon  another. 
+Compound  pods  (capsules)  might  be  explained  as  composed  of  several 
+leaves  united  round  a  common  centre,  joined  together  at  their  margins, 
+but  open  towards  each  other  on  the  inner  side.    This  is  obvious  enough 
+
+*  The  illustrations  of  this  paragraph  are  not  well  chosen.  In  the  case  of  the 
+Lime-tree,  the  flower-stalk  is  simply  adherent  to  the  bract  for  a  portion  of  its  length, 
+while  the  so-called  leaves  of  Ruscus  are  more  properly  considered  as  leaf-like  branches. 
+Some,  however,  contend  that  the  leal-like  organs,  on  the  margins  of  which  the 
+flowers  are  borne,  in  Xylophylla,  are  truly  to  be  regarded  as  leaves,  and  not  as  phyl- 
+loid  blanches.  In  Bryophyllum  calycinum,  Nymphaa  mierantka,  and  many  Fcrus, 
+the  leaves  give  origin  to  a  great  number  of  buds,  by  which  the  plants  may  be  pro- 
+pagated. 
+
+t  The  recent  researches  of  Niigeli,  Suminski,  and  others,  have  proved  the  exist- 
+ence of  organs  analogous  to  stamens  and  pistils  (antheridia  and  pistillidia)  in  Ferns, 
+as  well  as  in  other  so-called  Crypt ogamous  plants,  and  have  further  shown  that  no  new 
+spores  cau  be  formed  until  alter  the  contents  of  the  pistillidium  have  been  fertilized 
+by  the  spermatozoids  formed  in,  and  emitted  from,  the  antheridia. 
+
+\  This  principle  is  made  by  De  Candolle  the  foundation  of  a  system  of  classifica- 
+tion of  fruits  aud  seed-vessels,  which  is  in  many  respects  the  simplest  and  best  that 
+has  yet  been  proposed.  The  more  receut  researches  of  Lestiboudois  completely  con- 
+firm the  opiniou  that  the  carpels  are  homologous  with  leaves.  (Ann.  Sc.  Nat.  Bot. 
+1855,  p.  242.)  The  double-flowered  Cherry  has  pretty  constantly  its  carpels  exist- 
+ing in  the  form  of  small  leaves,  aud  the  records  of  teratology  afford  numerous 
+instances  of  a  similar  foliaceous  condition  of  the  carpels.  (Moquin-Tandon,  '  Terato- 
+logic Vegetale,'  p.  204 ;  Brongniart,  '  Archives  du  Musee,'  torn.  iv.  p.  43,  etc.  etc.) 
+That  the  pistil  may  sometimes  be  formed  from  the  dilated  extremity  of  the  branch 
+was  not  suspected  in  Goethe's  time. 
+
+
+362  GOETHE    ON    TUE    METAMORPHOSIS    OF    PLANTS. 
+
+when  after  the  ripening  of  the  seed  the  capsule  bursts  asunder ,  each 
+part  then  having  the  appearance  of  an  open  legume  or  pod.  It  is  also 
+shown  by  different  species  of  the  same  genus;  for  instance,  the  cap- 
+sules in  Nigella  orienlalis  consist  of  pods  partially  muted  and  collected 
+round  an  axis,  while  in  N.  Da,  their  union  is  complete.* 
+
+79.  This  resemblance  to  the  leaf  is  most  difficult  to  discern  when 
+nature  produces  the  seed-vessel  either  in  a  soft  and  succulent,  or  in  a 
+hard  and  woody  state;  but  it  will  not  elude  our  observation  when 
+we  have  once  learnt  to  trace  it  through  all  its  transitions.  It  is  suffi- 
+cient hereto  indicate  the  general  idea,  and  by  a  few  examples  to  show 
+nature's  unity  of  design.  The  manifold  varieties  of  the  seed-vessel 
+will  afford  us  matter  for  future  and  deeper  consideration. 
+
+SO.  The  connection  of  the  seed-vessel  with  the  preceding  organs  is 
+also  shown  in  the  stigma,  which  in  many  instances  is  situated  immedi- 
+ately upon  the  germea  and  is  inseparably  united  with  it.  We  have 
+before  pointed  out  the  relation  of  the  stigma  to  the  leaf,  and  will  b 
+mention  but  one  more  instance,  namely,  the  Double  Poppy,  in  which 
+the  stigmas  are  changed  into  delicate-coloured  petals. -j- 
+
+81.  The  last  and  greatest  instance  of  expansion  effected  by  the 
+plant  in  the  course  of  its  growth,  is  seen  io  the  fruit,  which  is  often 
+great,  nay  monstrous,  both  in  internal  power  and  in  outward  form. 
+Since,  alter  fructification,  it  generally  increases  in  size,  it  would  appear 
+that  whilst  the  seed,  now  in  a  more  perfected  state,  draws  those  juices 
+from  every  part  of  the  plant  which  its  own  growth  demand-,  they  be- 
+come centred  in  the  fruit;  by  which  means  its  vessels  are  nourished, 
+enlarged,  and  often  swollen  and  expanded  to  the  greatest  extent.  That 
+refined  gases  have  a  great  share  in  this  may  be  inferred  from  what  has 
+been  previously  stated  ;  the  feet  that  the  distended  pods  of  the  bladder- 
+nut  (Colutea  arborescent)  contain  pure  gas,  has  been  established  by  ex- 
+periments. X 
+
+*  Wolf.  N.  Comm.  Acad.  lYtrop.,  op.  cit.,  expresses  precisely  the  same  opinion 
+as  to  the  nature  of  the  seed-vessel. 
+
+t  See  Linn.  '  1'rolcpsis,'  § 'J.     Iu  the  'Gardeners'  Chronicle'  of  August  ISth, 
+1855,  there  is  a  figure  of  a  Nymphaa,  in  which,  in  addition  to  other  singular  chang 
+the  atigmas  arc  replaced  by  leaves.     In  Stigmatophj/Uon  and  many  Mtdpighiacea, 
+
+as  well  as  in  some  other  plants,  the  Btigmas  arc  very  like  leaves  or  petals  (see  tab.  xi. 
+fig-  7). 
+
+%  U  by  pure  gas,  oxygen  is  meant,  the  fact  is  very  doubtful;  latterly,  however, 
+Mattencci  has  detected  carbonic  acid  gas  in  these  pods;  but  the  preseuce  of  either  of 
+these  gases  would  hardly  afford  any  assistance  towards  explaining  the  enlargement  of 
+the  SCed-Vfssel. 
+
+
+GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS.  363 
+
+XI.   Of  the  immediate  Covering  of  the  Seed. 
+
+82.  We  find  the  seed,  on  the  contrary,  in  the  highest  degree  of  con- 
+traction, but  internally  perfect.  It  may  be  perceivcd'in  various  seeds, 
+that  transformed  leaves  constitute  their  first  covering,  that  they  more 
+or  less  adapt  this  covering  to  their  shape,  and  in  most  instances  that 
+they  have  the  power  of  closely  attaching  it  and  of  entirely  changing  its 
+form.  Having  seen  above,  that  many  seeds  are  developed  in  and  from 
+a  single  leaf,  we  need  ft  el  no  surprise  that  a  single  embryo  should 
+clothe  itself  with  a  leafy  covering.* 
+
+S3.  We  see  in  many  winged  seed-vessels  traces  of  such  modified 
+leaves  imperfectly  fitted  to  the  seed, — in  those,  for  instance,  of  the  Maple, 
+the  Elm,  the  A.sh,  and  the  l>ireh.  The  Marigold  affords  us  a  very  re- 
+markable example,  in  its  three  circles  of  differently-shaped  seeds  (fruits), 
+of  the  manner  in  which  the  embryo  gradually  contracts  a  covering  of 
+larger  dimensions  than  itself,  and  closely  adapts  it  to  its  own  form.  In 
+the  outer  series  the  seed-vessel  still  retains  a  shape  resembling  that  of 
+the  leaflets  of  the  involucre,  except  that  the  rudimentary  seed  occasions 
+a  strain  on  the  midrib,  and  curves  the  leaf,  the  inner  curved  surface 
+being  longitudinally  divided  by  a  membrane  into  two  parts. 
+
+In  the  next  circle  a  still  further  change  takes  place  ;  the  little  leaf  is 
+both  narrower  and  shorter,  the  membrane  has  entirely  disappeared, 
+and  the  rudimentary  seed  is  more  plainly  shown  at  the  back,  on  which 
+moreover  little  «  sen  -  ences  are  now  perceptible;  these  two  circles  ap- 
+pear to  be  either  not  at  all,  or  imperfectly  fructified.  In  the  third  circle 
+the  curved  shape  of  the  seed  is  undis  L,  the  covering  fits  closely, 
+
+and  all  its  ridges  ami  excrescences  are  complete. f     Here  we  see  a  fresh 
+
+*  For  instances  of  the  reversion  of  seeds  or  ovules  to  leaves,  see  Lindley,  '  Ele- 
+ments of  Botany,'  p.  88;  Moquin-Tandon,  'Teratologic  Yege'tale,'  p.  205,  etc. 
+
+It  can  hardly  be  said  that  the  morphology  of  the  coats  of  the  ovule  or  seed  is  yet 
+understood.  While  there  is  much  evidence  to  show  their  foliar  origin,  there  is  also 
+much  in  favour  of  their  intrinsic  axial  nature. 
+
+See  A.  Bratin,  Mem.  war  lea  Transform,  de  l'Ovule  Yegetale,  etc.;  Ann.  Sc.  Nat. 
+I860,  torn.  xiv.  4me  serie.  Hooker  on  ovule  of  Welwitsckia,  Trans.  Linn.  Soc. 
+vol.  xxiv.  p.  ~7  ;  Griffith  in  Lindl.  Yeg.  King.  p.  143. 
+
+t  In  the  Marigold  the  acheuia  of  the  outer  or  ligulate  florets  are,  as  Goethe  de- 
+scribes them,  polymorphous ;  his  account  of  them,  though  strictly  correct  in  the 
+main,  would  not  be  very  intelligible  to  botanists  not  familiar  with  the  plant.  The 
+fruits  in  question  are  in  two  or  three  rows,  frequently  surmounted  by  a  beak,  all 
+more  or  less  curved,  and  the  outer  ones  especially  provided  with  three  leafy  wrings, 
+two  projecting  from  the  margins,  and  the  third  from  the  middle  of  the  inner  surface, 
+which  it  "'  divides  into  two  parts."  In  Tripteris,  a  South  African  genus  closely 
+allied  to  Calendula,  the  fruits  are  even  more  decidedly  three-sided  and  three-winged. 
+
+
+36-i  GOETHE    ON    THE    M  ETAMOUl'HOSIS    OF    PLAN  I  v 
+
+instance  of  the  contraction  of  an  expanded  leaf-like  organ,  occasioned 
+too,  no  doubt,  by  the  internal  strength  of  tin:  seed,  just  in  the  same 
+wav  as  we  have  seen  the  petal  contracted  by  means  of  the  anther.* 
+
+XII.  Retrospective  and  Progresuonal. 
+
+S-i.  Thus  far,  then,  we  have  carefully  followed  nature's  foots! i 
+we  have  traced  the  outward  form  of  the  plant  through  all  its  transfor- 
+mation*, from   the  period   of  it-   development    from   the  seed    till   the 
+
+il  is  produced  anew,  and  without  pretending  to  investigate  the 
+hidden  springs  of  impulse  in  nature's  Operations,  we  have  directed  our 
+attention  to  the  outward  indications  of  those  powers  by  which  one  and 
+the  same  organ  i-  gradually  transformed.  That  the  thread  of  the  argu- 
+ment mi'_rlit  be  closely  followed  up,  we  have  throughout  spoken  onlj  of 
+annual  plants ;  we  have  -imply  observed  the  transformation  of  the  lea 
+developed  at  the  nodes,  and  from  them  have  deduced  even  variety  of 
+form.  But  it  will  now  be  requisite,  in  order  to  give  due  completeness 
+to  this  inquiry,  to  speak  of  the  buds,  which  are  inconspicuously  situated 
+at  the  base  of  each  leaf:  which,  under  certain  circumstances,  are  de- 
+veloped, and  under  oth<  i  entirely  to  disappear. 
+
+XIII.  Of  Budt  and  their  Development. 
+
+85.  Every  node  is  endowed  by  nature  with  the  power  of  producing 
+one  or  more  buds.  These  are  developed  in  proximity  to  the  accom- 
+panying leaves,  which  seem  to  prepare  the  way  for  and  bring  about  the 
+formation  and  growth  of  the  bud-. 
+
+86.  In  the  successive  development  of  one  node  from  another,  in 
+the  formation  of  a  leaf  at  each  node  and  of  a  bud  adjacent  to  it,  con- 
+sists the  primary,    simple,   and   >louly-progressing   process  by  which 
+
+getable  life  is  propagated. 
+
+87.  It  is  well  known  that  such  a  bud  shows  threat  similarity  in  it- 
+operation,  to  the  ripe  seed  ;  and  that,  of  the  two,  the  entire  form  of  the 
+future  plant  may  be  often  better  recognized  in  the  bud  than  in  the 
+seed. 
+
+88.  iVlthough  the  point  at  which  the  root  will  be  developed  is  not  so 
+
+*  In  this  ami  the  preceding  section  there  is  a  little  confusion  between  true  seeds 
+and  those  seeds  to  which  the  pericarp  i-,  when  ripe,  inseparably  adherent;  these 
+latter  were  not  distinguished  from  ordinary  seeds  in  Goethe's  time.  The  argument 
+is  not  affected  by  this  confusion  of  pai 
+
+
+ii'KTIIE    ON    THE    METAMOKPIIOSlS    OF    TLANTb.  365 
+
+easily  detected  in  the  bud,  it  is  nevertheless  present  no  less  than  in  the 
+seed  ;  and,  ispeeially  under  the  inlluenee  of  moisture,  the  root  is  easily 
+and  rapidly  produced. 
+
+81).  The  hud  requires  no  cotyledons,  because  it  is  connected  with 
+the  parent  plant  (now  in  a  state  of  complete  organization),  and  re- 
+ceives nourishment  from  it  so  long  as  this  connection  last- ;  when  se- 
+parated from  it,  nourishment  is  supplied  either  by  the  plant  on  which 
+it  is  "rafted,  or  if  planted  in  the  soil,  by  roots  which  are  immediately 
+formed, 
+
+9Q.  The  bud  is  composed  of  mules  and  leaves  more  or  less  developed, 
+by  means  of  which  the  plant  continues  to  increase  in  size.  Tims  we 
+may  consider  the  lateral  branches  which  arise  from  the  nodes,  as  dis- 
+tinct little  plants  established  on  the  parent,  in  the  same  way  as  the 
+parent  plant  itself  is  established  in  the  soil.* 
+
+91.  The  resemblance  and  the  difference  which  exist  between  the  seed 
+and  the  bud,  have  been  often,  and  especially  of  late,  the  sulijeet  of  such 
+able  and  exact  investigations,  that  we  can  but  appeal  to  them  here  with 
+unqualified  approbation.f 
+
+92.  AVe  will  hut  state  what  follows.  Nature  makes  an  obvious 
+difference  in  highly-organized  plants  between  buds  and  seed-;  but  if 
+we  descend  to  plants  of  a  simpli  r  structure,  tin  difference  between  them 
+is  imperceptible  to  the  eye  of  even  the  most  acute  observer.  There  are 
+unequivocal  seeds,  ami  there  are  unequivocal  propagative  buds;  but  the 
+point  is  a  purely  ideal  one,  at  which  buds  which  simply  push  their  way 
+out  from  the  parent  plant  and  separate  from  it  without  any  apparent 
+cause,  become  one,  as  regards  their  inherent  functions,  with  fertilized 
+ami  disengaged  seeds. 
+
+'J3.   Having  well  weighed  these  things,  we  may  venture  to  infer  that 
+
+*  The  individuality  (if  the  biuls  seems  to  have  been  suspected  by  Hippocrates,  who 
+remarked  the  similarity  between  the  branch  and  a  small  tree, — 
+
+'A\\'  avrbs  <5  kAcLSos  icrrXv  wcrnep  km  rb  SevSpov  «xet- — De  Xatura  Pueri. 
+
+The  doctrine  that  a  plant  is  a  compound  being,  a  combination  of  individuals,  has 
+been  support cd  in  later  times  by  La  Hire,  Goethe,  Darwin,  Du  Petit  Thouars, 
+De  Candolle,  Gaudichaud,  and  others ;  while  Sars,  Steenstrup,  Owen,  Forbes,  etc., 
+among  zoologists,  have  indicated  analogous  phenomena  in  the  animal  kingdom. 
+These  authors  consider  the  formation  of  a  series  of  buds  as  a  process  of  vegetative 
+reproduction  alternating  with,  or  intervening  between,  that  which  is  the  result  of  the 
+sexual  process.  See  Owen  on  Parthenogenesis;  Forbes,  '  Monograph  of  the  Naked- 
+eyed  Medusa?,'  p.  87;  A.  Braun,  'Rejuvenescence  in  Nature,'  Ray  Society  Transl. 
+1853. 
+
+t  Gsertner,  '  De  Fructibus  et  Seminibus  Plantarum,'  cap.  1. 
+
+
+366  GOETHE    ON    TIIE    METAMORPHOSIS    OF    PLANTS. 
+
+seeds,  whilst  they  dififel  from  the  newly-developed  bud  (Aiifje)  in  being 
+concealed  within  a  seed-vessel,  and  from  the  more  mature  bud  (Gemma) 
+in  the  discernible  cause  of  their  formation  and  subsequent  separation 
+from  the  parent  plant,  are  yet  nearly  related  to  the  bud  at  each  of  these 
+periods. 
+
+XIV.   On  the  For  mat  ion  of  Composite  Flowers  and  Fruits. 
+
+9-t.  We  have  thus  far  endeavoured  to  explain  by  the  transformation 
+of  the  .stem-leaves,*  the  formation  of  solitary  flowers,  and  also  of  those 
+seeds  which  arc  produced  within  a  closely  adherent  covering.  It  will 
+appear,  on  a  careful  examination,  that  in  these  instances  the  (axillary) 
+buds  are  absent,  and  that,  on  the  contrary,  the  possibility  of  such  a  de- 
+velopment is  altogether  out  of  the  question.  l>ut  in  explaining  Com- 
+posite flowers  and  fruits  (whether  the  receptacle  be  conical,  cylindrical, 
+discoidal,  or  of  any  other  form),  we  must  look  to  the  development  of 
+buds  for  assistance. 
+
+95.  Now  we  commonly  see  stems  which,  instead  of  reserving  their 
+energy  and  making  a  long  preparation  for  the  production  of  a  sin. 
+(terminal)  flower,  develope  blossoms  at  their  nodes,  and  proceed  uni- 
+formly in  this  manner  to  the  very  tip.  But  the  phenomenon  thus  shown 
+is  susceptible  of  explanation  bv  the  theory  propounded  above.  All 
+flowers  developed  from  axillary  buds  are  to  be  regarded  as  perfect 
+plants,  situated  in  the  tame  way  on  the  parent  plant  as  the  parent  plant 
+i-  situated  in  the  soil.  But  as  the  juices  re©  ived  from  the  nodes  are  in  a 
+refiued  state,  the  verj  first  leaves  of  a  little  branch  arc  much  more  de- 
+fined in  shape,  than  the  earliest  leaves  which,  in  the  parent  plant,  im- 
+mediatelv  succeed  the  cotvledons ;  nav,  even  the  immediate  formation 
+of  the  calyx  and  corolla  may  not  unfrequently  occur. 
+
+96.  Even  the  blossoms  thus  produced  from  (axillary)  buds  would 
+have  become  branches  by  a  more  copious  supply  of  nourishment,  and 
+in  their  turn  parent-stems  to  another  set  of  buds. f 
+
+97.  During  the  successive  development  of  such  blossoms  at  the 
+nodes,  we  perceive  the  same  change  taking  place  in  the  stem-leaves 
+which  we  before  observed  during  the  slow  transitional  process  by  which 
+
+*  Had  Goetbe  written  "  modification,"  his  theory  would  not  have  met  with  so 
+much  opposition. 
+
+t  The  flowers  are  occasionally  more  or  less  converted  into  branches.  See  Lind- 
+lcy's  '  Elements  of  Botany,'  p.  62  ;  .Muquin-Tandon,  '  Teratologic  Vegetale,'  p.  366, 
+etc. 
+
+
+GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS.  367 
+
+tbc  calyx  was  produced.  They  gradually  diminish  in  size,  till  at  last 
+they  almost  entirely  disappear;  the  leaf-form  is  more  or  less  lost  in 
+their  diminished  state,  and  they  are  called  bracts.  The  stem  becomes 
+attenuated  in  the  same  proportion,  the  nodes  approximate,  and  all  the 
+phenomena  before  pointed  out  take  place,  except  thai  there  is  no  de- 
+cidedly terminal  flower,  because  Nature  has  already  i'ultilled  her  task  at 
+each  successive  bud. 
+
+98.  Now  when  we  have  well  considered  a  stem  thus  adorned  with  a 
+flower  at  every  node,  we  shall  be  in  a  condition  to  understand  a  com- 
+posite flower ;  and  the  more  easily  if  we  remember  what  was  stated 
+above  concerning  the  formation  of  the  calyx. 
+
+99.  Nature  forms  a  common  calyx  (involucre)  out  of  a  number  of 
+leaves  which  she  draws  close  together  and  arranges  round  an  axis. 
+With  the  same  strong  impulsive  growth  she  developes,  if  we  may  so 
+speak,  a  stem  without  an  end,  producing  all  its  axillary  buds  simulta- 
+neously, and  in  the  form  of  Jloicers,  which  are  placed  in  the  closest  pos- 
+sible proximity,  each  separate  floret  fructifying  its  own  germen.  Not 
+are  the  node-leaves  always  lost  in  this  instance  of  excessive  contraction ; 
+in  Thistles,  (as  for  instance  in  Dipsacvs  laciniatus,)  the  leaflet  faithfully 
+accompanies  the  floret  which  is  developed  from  the  contiguous  bud. 
+In  many  Grasses  also,  each  floret  is  accompanied  by  a  similar  kind  of 
+leaflet,  called  a  glume. 
+
+100.  We  thus  perceive  how  the  seeds  produced  in  a  composite  flower 
+may  be  considered  as  true  buds,  formed  and  developed  bij  means  of  the 
+male  and  female  organs.  The  examination  of  the  growth  and  manner 
+of  fruiting  of  various  plants  will  establish  this  view. 
+
+101.  This  being  so,  we  may  easily  draw  the  same  inference  as  to  the 
+seeds  produced  in  the  centre  of  a  single  (non-composite)  flower,  whether 
+they  arc  enclosed  within  a  seed-vessel,  or  not.*  For  the  argument  is 
+the  same,  whether  a  solitary  flower  encloses  a  compound  ovary,  whose 
+united  pistils  imbibe  the  fertilizing  moisture  from  the  anthers,  and  con- 
+vey it  to  the  ovules ;  or  whether  a  one-seeded  ovary  is  provided  with  its 
+own  pistil,  anthers,  and  corolla. 
+
+102.  We  are  convinced  that  with  a  little  practice  it  would  not  be 
+difficult  to  explain  in  this  manner  the  manifold  forms  of  fruits  and 
+
+*  In  the  latter  instance  Goethe  probably  had  in  view  the  one-seeded  aehenes  of 
+Labiates  and  Borages,  and  other  plants  ranked  as  gymnospermous  iu  bis  time.  See 
+note  to  §  83. 
+
+
+368  GOETHE    ON    THK    54ETAMOBPH08I8    Of    PLANTS. 
+
+flowers.  All  that  is  requisite  la  to  be  able  to  work  out  tin-  aforenamed 
+ideas  of  expansion  and  contraction,  approximation  and  anastomosis,  as 
+easily  as  we  work  out  rules  of  algebra,  and  to  know  how  to  apply  tbem 
+in  their  proper  places.*  And,  as  much  depends  upon  the  exact  ob- 
+servation and  comparison  of  the  different  gradations  through  which 
+nature  passes,  both  in  the  formation  of  genera,  species,  and  varieties, 
+and  in  the  growth  of  individual  plants, — a  series  of  illustrations  exhibit- 
+ing these  gradations,  with  explanations  expressed  in  botanical  termi- 
+nology, would  be  both  welcome  and  useful. t  We  will  now  adduce  two 
+instances  of  proliferous  flowers,  having  an  important  bearing  upon  this 
+theory. 
+
+XV.    A  Proliferous  Rose. 
+
+103.  All  that  we  have  been  endeavouring  to  grasp  by  the  aid  of 
+thought  anil  reason  is  shown  in  the  clearest  manner  in  the  instance  of 
+a  proliferous  Etose.  The  calyx  ami  corolla  are  developed  and  arranged 
+round  the  axis,  but  instead  of  the  contracted  receptacle  with  its  stamens 
+and  Btyles  in  the  centre,  the  stem,  variegated  with  green  and  red,  again 
+ascends;  and  on  it  are  successively  developed,  unexpended,  dark-red 
+petals  of  a  smaller  H/.e,  on  some  of  which  are  visible  traces  of  anthers. 
+The  stem  goes  on  growing,  prickles  appear  on  it,  the  alternate  pe- 
+tals continue  to  diminish  in  size,  and  change  at  last  into  stem-leaves, 
+also  variegated  with  red  and  gteeo  |  a  «  ries  of  regular  nodes  is  formed, 
+and  from  their  buds  small  imperfect  rose-buds  burst  forth. J 
+
+Int.  This  aanie  example  alto  affords  use  visible  proof  that,  as  has 
+been  before  explain)  d,  the  outer  border  of  the  calyx  may  be  considered 
+as  a  number  of  approximated  leaves  {folia  JloruUa,  bractea)  ;  for  the 
+calyx  here  consists  of  five  perfect,  compound  leaves,  of  three  or  five 
+
+*  "Every  plant  has  its  proper  \ itnl  lines  for  these  vibrations  of  the  metamor- 
+phosis, the  constructive  representations  of  which  lines  will  make  clearly  conceivable 
+characters  which  botanists  have  only  seized  in  the  mo>t  fragmentary  manner,  or 
+have  felt  obscurely  as  something  indescribable  in  the  habit."  (Braun,  'Rejuvenescence,' 
+
+lteufrey's  translation,  p.  83.)  No  plant  is  mon  BUggestive,  or  more  worthy  the  at- 
+tention of  morphologists  than  the  ekia,  described  with  so  much  care  and 
+acumen  by  Dr.  Hooker  in  the  paper  abo\e  referred  to. 
+
+t  Goethe's  obscure  and  unscientific  phraseology  has  constituted  one  of  the  main 
+difficulties  the  translator  has  had  to  encounter  in  rendering  the  essay  into  English; 
+and  moreover  it  may  have  afforded  a  reason  for  the  little  inclination  scientific  men 
+had  at  iirst  to  entertain  Goethe's  opinions. 
+
+J  Masters,  '  Ou  Median  and  Axillary  Prolification  in  Flowers,"  Transact.  Linn. 
+Soc.  vol.  xxiii.  pp.  359-481,  c.  icon. 
+
+
+GOETHE    OX    THE    METAMORPHOSIS    OF    PLANTS.  369 
+
+leaflets,  resembling  in  all  respects  those  which  the  rose-branches  pro- 
+duce at  their  nodes. 
+
+XVI.  A  Proliferous  Pink. 
+
+105.  We  have  in  this  proliferous  Pink  a  perfect  flower,  with  a  calyx 
+and  a  double  corolla,  and  in  the  centre  a  somewhat  imperfect  capsule. 
+From  the  sides  of  the  corolla,*  four  other  perfect  flowers  are  developed, 
+separated  from  the  parent-llower  by  stalks  of  three  nodes  or  more  in 
+length.  Each  of  these  lias  also  a  calyx  and  double  corolla,  formed  not 
+so  much  from  separate  (typical)  leaves,  as  from  a  crown  of  (typical) 
+leaves,  with  the  petioles  united,  or  rather  of  a  series  of  (typical)  flower- 
+leaves  developed  around  an  axis  and  united  on  a  little  branch.  Not- 
+withstanding this  monstrous  development,  the  filaments  and  anthers 
+are  sometimes  present.  In  some  the  capsules  are  produced  with  their 
+styles,  in  others  the  capsule  is  leaf-like,  or  rather  like  a  calyx,  and  con- 
+tains the  rudiments  of  another  double  corolla,  f 
+
+10G.  In  the  Rose  we  have,  as  it  were,  a  half  finished  flower,  from 
+the  centre  of  which  the  stein  again  shoots  upwards,  bearing  stem-leaves 
+as  before;  in  this  Pink,  with  a  well-formed  calyx  and  a  perfect  corolla, 
+and  a  capsule  situated  in  the  very  centre,  we  have  buds  developed  irit/tin 
+the  circle  of  the  petals,  producing  actual  branches  and  blossoms.  Thus, 
+both  instances  had  us  to  the  conclusion,  that  nature  ordinarily  termi- 
+nates the  period  of  growth  in  the  blossom,  and  so,  as  it  were,  closes  her 
+account,  that  by  thus  preventing  the  possibility  of  gradual  and  inde- 
+finite growth,  she  may  arrive  at  her  object  by  a  shorter  way  in  the 
+formation  of  the  seed. 
+
+XVII.  Linnauss  Theory  of  Anticipation. 
+
+107.  If  I  have  sometimes  stumbled  in  a  path  which  one  of  my  pre- 
+decessors, though  exploring  it  under  the  guidance  of  his  great  master, 
+
+*   Query,  From  the  receptacle  within  the  corolla  ? 
+
+t  The  Pink  described  in  this  paragraph  seems  to  be  the  same  as  that  mentioned  by 
+Goethe,  in  his  history  of  his  botanical  studies,  as  having  greatly  contributed  to  develope 
+the  fundamental  idea  of  the  metamorphosis  of  plants.  At  §  75  is  a  good  description 
+of  the  most  usual  kind  of  proliferous  Pink,  of  which  numerous  instances  are  cited  by 
+Moquin-Tandon,  '  Teratologic  Ye'getale,'  p.  366.  M.  Gingins-Lassaraz  cites,  as  an 
+illustration  of  this  present  paragraph,  the  case  of  Dianfhus prolifer ;  but  the  descrip- 
+tion given  by  Goethe  does  uot  correspond  to  that  flower. 
+
+A  Pink  affected  with  axillary  prolification,  and  figured  in  my  paper  on  axillary 
+prolitication  before  cited,  seems  to  resemble  closely  the  one  described  by  Goethe. 
+See  also  tab.  xi.  f.  9,  9  a. 
+
+VOL.  I.  2    B 
+
+
+370  GOETHE    ON    THE    METAMORI>HOSIS    OF    PLANTS. 
+
+describes  as  difficult  and  hazardous  ;*  if  I  have  not  entirely  succeeded 
+in  levelling  it,  and  clearing  it  of  every  obstacle  for  those  who  come 
+after  me,  I  may  yet  hope  that  this  endeavour  will  not  be  altogether 
+fruitless. 
+
+108.  It  will  be  proper  here  to  mention  the  theory  by  which  Linnaeus 
+sought  to  explain  the  phenomena  of  which  the  foregoing  pages  treat. 
+Things  such  as  those  therein  discussed,  could  not  have  escaped  his 
+penetrating  eye;  and  if  we  are  now  able  to  advance,  where  his  pro- 
+gress was  clucked,  we  are  indebted  for  this  to  the  many  observers  and 
+thinker-  who  have  removed  obstacles  from  our  path,  and  overcome 
+prejudices.  An  exact  comparison  of  his  theory  with  that  above  pro- 
+pounded, would  detain  us  too  long.  The  scientific  reader  will  easily 
+compare  them  for  himself,  and  such  a  compari-on  mnst  necessarily  enter 
+too  much  into  detail,  if  made  intelligible  to  those  who  have  never  con- 
+sidered the  subject.  We  will  only  point  out  briefly  what  hindered  Lin- 
+naeus from  making  further  progress,  and  prevented  his  reaching  the 
+goal. 
+
+109.  In  the  first  place,  his  observations  were  made  on  trees  ;f  long- 
+lived  plants  of  a  complicated  nature.  He  noticed  that  a  tree  planted 
+in  a  large  pot  and  copiously  supplied  with  water,  produced  branch  after 
+branch  for  several  years  in  succession,  but  that  if  planted  in  a  smaller 
+pot,  it  speedily  produced  both  Bowers  and  fruit.  He  perceived  that  a 
+development,  which  is  generally  gradual,  may  thus  be  forced  to  take 
+place  at  once.  He  therefore  designated  this  operation  of  nature  by 
+the  name  of  "  Prolcpsis," — anticipation, — because  the  plant  appeared 
+to  anticipate  by  hx  yean,  the  six  steps  of  which  we  have  spoken  above. 
+He  chiefly  explained  his  theory  by  the  buds  of  trees,  without  paying 
+any  particular  attention  to  annual  plants,  else  he  would  have  been 
+aware  that  his  theory  did  not  hold  equally  good  with  regard  to  them. 
+For  according  to  his  teaching,  we  must  assume  that  all  annual  plants 
+were  properly  intended  by  nature  to  be  six  years  in  coming  to  per- 
+fection, but  that  this  longer  period  is  suddenly  anticipated  at  the  time 
+of  blossoming  and  fruiting,  after  which  they  as  suddenly  wither. 
+
+*  Ferber,  in  Pra'fatione  Dissertationis  sccundse  de  Prolepsi  Flantarum. 
+
+f  "  Si  arbusculam,  qua;  in  olla  antca  posita,  quotannis  floruit  et  fructus  protulit, 
+deinde  deponutnus,  iu  uberiori  terra  calidi  caldarii,  proferet  ilia  per  plures  annos 
+niultos  ac  l'rondosos  ramos,  sine  ullo  fructu.  Id  quod  argumento  est,  folia  inde  cres- 
+ccre,  mule  prius  enati  sunt  flores ;  quemadmodum  vicissim,  quod  iu  folia  nunc  suc- 
+crescit,  id  natura  ita  moderante,  in  flores  mutatur,  si  eadein  arbor  iterum  in  olla 
+seritur."     (Liuu.  '  Prolepsis,'  §  iii.) 
+
+
+GOETHE  ON  THE  METAMORPHOSIS  OF  PLANTS.       371 
+
+110.  We,  on  the  contrary,  have  begun  by  making  observations  upon 
+annuals,  and  an  application  of  the  argument  to  longer-lived  plants  may 
+be  easily  made;  for  an  opening  bud  on  the  oldest  tree  may  be  regarded, 
+in  some  sort,  as  an  annual  plant,  although  capable  of  longer  duration, 
+and  produced  from  an  old  stem. 
+
+111.  The  second  cause  which  checked  the  further  progress  ofLinnrcns 
+was,  that  he  regarded  the  different  circles  enclosed  one  within  the 
+other  in  the  stem  of  a  plant  [namely,  the  outer  and  the  inner  bark, 
+the  wood,  and  the  pith],  as  equally  active  and  essential  parts,  alike 
+instinct  with  life  ;  and  that  he  attributed  the  origin  of  the  flower  and 
+fruit  to  these  different  rings  of  the  stem,  because,  like  them,  they  en- 
+circle each  other,  and  appear  to  be  developed  one  from  the  other.*  But 
+these  were  only  superficial  observations,  which  could  never  stand  the 
+test  of  a  closer  examination.  Xot  only  has  the  wood  within  become  too 
+hard,  but  the  outer  bark,  in  long-lived  trees,  is  both  too  hard  on  the 
+outer  side,  and  too  slightly  connected  with  the  inner  portion  of  the  stein, 
+to  be  the  cause  of  any  fresh  development.  In  many  trees  it  breaks 
+away  and  falls  off,  and  in  others  it  may  be  stripped  off  without  any  in- 
+jury to  the  tree,  so  that  it  cannot  produce  either  the  calyx  or  any 
+other  living  part  of  the  plant.  1;  Lb  in  the  second  bark  (liber)  that 
+all  the  power  of  life  and  growth  resides;  in  proportion  as  this  is  in- 
+jured, the  growth  of  the  plant  is  interrupted  ;  it  is  this  also,  as  close 
+observation  will  convince  us,  which  produces  the  external  organs  in 
+succession  on  the  stem,  or  simultaneously  in  the  flower  and  fruit. f 
+Linnaeus  only  ascribed  to  it  the  subordinate  office  of  producing  the 
+petals.  The  important  production  of  the  stamens,  on  the  contrary, 
+was  attributed  to  the  wood  ;^ it  is  clear,  nevertheless,  that  however 
+durable  this  portion  of  the  plant  may  be,  which  solidification  has 
+rendered  inactive,  it  is  dead  as  regards  any  vital  action.  But  the  most 
+important  office  of  all  was  reserved  for  the  pith  ;  that,  namely,  of  pro- 
+ducing the  pistils  and  their  numerous  seeds.  The  doubts  which  have 
+been  raised  as  to  the  great  importance  thus  ascribed  to  the  pith,  and 
+
+*  Cf.  Linn.  '  Prolepsis,'  §  7,  8.  "Wolff's  account  of  the  development  of  the 
+flower,  in  his  '  Theoria  Geuerationis,'  1759,  is  much  more  in  accordance  with  truth, 
+and,  with  some  slight  exceptions,  it  is  amply  confirmed  by  modern  observers.  To 
+Wolff  undoubtedly  belongs  the  merit  of  being  the  first  to  insist  on  the  necessity  of 
+examining  the  development  of  flowers,  and  of  being  the  first  to  give,  from  actual  ob- 
+servation, a  clear  accouut  of  the  process. 
+
+t  See  note  to  §  27.  See  also  Trecul,  Ann.  Soc.  Nat.,  3me  serie,  torn.  xx.  p.  21 1, 
+and  4me  serie,  torn.  iii. 
+
+2   B   2 
+
+
+372  GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS. 
+
+the  reasons  alleged  against  it,  appear  to  me  weighty  and  conclusive. 
+The  only  causes  which  coidd  have  given  rise  to  this  notion,  are  the  soft 
+and  undefined  state  (resembling  that  of  pith  or  parenchyma)  in  which 
+the  pistils  and  fruit  first  make  their  appearance,  and  their  position  in 
+the  centre  of  the  stem,  where  we  are  accustomed  to  see  the  pith. 
+
+XV  III.   Recapitulation . 
+
+112.  It  is  my  wish  that  this  attempt  to  explain  the  metamorphosis 
+of  plants,  may  not  only  contribute  something  towards  the  solution  of 
+this  problem,  but  may  <_rive  occasion  to  further  investigations  and  re- 
+sults. The  observations  on  which  it  is  grounded,  which  were  made  at 
+different  times,  have  been  collected  and  arranged  by  Batsch  in  his  '  An- 
+leitunp:  zur  Kenntniss  und  Geschichte  der  I'flanzcn  ;'*  and  it  will  soon 
+appear  whether  the  step  we  have  taken  has  brought  us  any  nearer  to 
+the  truth.  Let  us  now  review  as  briefly  as  possible  the  leading  points 
+in  the  foregoing  essay. 
+
+113.  When  we  consider  the  indications  of  vital  powers  existing  in 
+plants  we  find  them  manifesting  themselves  in  two  different  ways  ;  first, 
+by  growth  during  the  development  of  the  stem  and  leaves  ;  secondly, 
+by  reproduction  effected  in  the  flower  and  fruit.  When  we  narrowly 
+watch  the  growth  of  a  plant,  we  see  thai  as  it  mounts  upwards  from  node 
+to  node,  and  from  leaf  to  leaf,  a  hind  of  reproduction  is  going  forward, 
+differing  from  the  widen  reproduction  effected  in  the  flower  and  fruit, 
+inasmuch  as  it  is  a  scries  of  .success! re  and  distinct  developments. 
+This  power  of  gradual  growth  by  the  production  of  buds,  is  most 
+closebj  related  to  thai  which  effects  reproduction  at  once.  Under  dif- 
+ferent circumstances  a  plant  may, on  the  one  hand,  lie  forced  continuously 
+to  produce  leaf-buds,  or,  on  the  other,  to  develop*  the  flower.  The 
+former  result  is  produced  by  an  accumulation  of  crude  juices,  the  latter 
+by  the  preponderance  of  the  subtile  powers  latent  in  the  plant. 
+
+114.  The  manner  in  which  the  two  different  kinds  of  reproduction 
+take  place,  has  been  indicated  by  the  application  of  the  term  succes- 
+sive to  reproduction  by  leaf-buds  ;  whilst  we  spoke  of  reproduction  by 
+the  flower  and  fruit  as  sudden.  A  plant,  whilst  it  is  producing  leaf- 
+buds,  increases  more  or  less  in  size,  it  developes  a  stalk  or  stem,  the 
+nodes  are  generally  separated  by  perceptible  intervals,  and  leaves  expand 
+in  all   directions.     But,  on  the  contrary,  when  a  plant   produces  the 
+
+*  1  Thcil,  19  Capitcl. 
+
+
+GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS.  373 
+
+flower,  all  the  parts  become  contracted,  increase  in  height  and  breadth 
+has  ceased,  and  all  the  organs,  now  in  an  extremely  contracted  state,  are 
+developed  in  close  proximity. 
+
+115.  But  whether  a  plant  produces  leaf-buds,  flower,  or  fruit,  it,  is 
+still  the  selfsame  organ  which  is  carrying  nature's  laws  into  efl'eet, 
+though  performing  different  offices, and  disguised  under  different  forms.* 
+The  same  organ  which  on  the  stem  expands  as  the  leaf,  exhibiting  every 
+variety  of  form,  is  contracted  in  the  calyx,  again  expands  in  the  petal, 
+and  is  once  more  contracted  in  the  stamens  and  pistils,  to  expand  for 
+the  last  time  in  the  fruit. f 
+
+116.  This  operation  of  nature  is  combined  with  another,  by  means 
+of  which  different  organs  are  assembled  round  a  common  centre,  in  a  de- 
+finite number  and  order,  subject  however  to  variation  in  many  flowers, 
+and  under  certain  circumstances. 
+
+117.  An  anastomosis  likewise  co-operates  in  the  formation  of  the 
+flowers  and  fruit,  by  means  of  which  the  delicate  organs  of  reproduc- 
+tion are  brought  into  the  closest  connection  with  each  other,  either 
+through  the  whole  period  of  their  duration,  or  at  least  during  a  part 
+of  it. 
+
+118.  But  these  phenomena  of  approximation,  centralization,  and 
+anastomosis  are  not  peculiar  to  the  flower  and  fruit;  we  may  perceive 
+something  of  the  same  kind  also  in  the  cotyledons, 
+
+119.  Now  in  the  same  way  as  we  have  endeavoured  to  deduce  all 
+the  apparently  different  organs  of  a  plant,  whether  producing  buds  or 
+flowers, from  one  ami  the  same  organ, — namely, the  leaf,  which  is  usually 
+developed  at  the  nodes,  we  have  further  ventured  to  refer  to  the  same 
+origin,  the  fruit  (seed-vessel),  within  which  the  seeds  lie  safely  en- 
+closed. 
+
+120.  It  was  obviously  necessary  to  adopt  some  general  term  by  which 
+to  indicate  the  oue  organ  which  we  see  metamorphosed  under  so  many 
+different  forms,  and  « Inch  we  could  also  employ  in  comparing  these 
+variations  with  each  other.  The  thing  to  be  now  aimed  at  is  to  keep 
+habitually  in  view  the  two  contrary  directions,  if  we  may  so  speak,  in 
+
+*  Dr.  Dresser's  opinion  thnt  the  sepals,  petals,  etc.,  are  often  modifications  rather 
+of  the  petioles  than  ot' the  laminae  of  leaves,  though  undoubtedly  correct  in  many  in- 
+stances, by  no  means  militates  against  the  truth  of  Goethe's  propositions.  See 
+Dresser,  '  Rudiments  of  Botany,'  pp.  277,  -99. 
+
+t  See  Wigand;  '  Kritik  unci  Geschichte  der  Lehre  von  der  Metamorphose  der 
+Ptla  zen,'  184.6, p.  118. 
+
+
+374  GOETHE    ON    THE    METAMORPHOSIS    OF    PLANTS. 
+
+which  these  variations  are  developed.  For  \vc  may  say  with  equal 
+truth  that  a  stamen  is  a  diminished  petal,  or  that  a  petal  is  an  ex- 
+panded stamen  j  that  a  sepal  is  a  diminished  stem-leaf  in  a  more  re- 
+fined condition,  or  that  a  stem-leaf  is  a  sepal  in  a  state  of  expansion 
+occasioned  by  crude  juices. 
+
+121.  Thus  also  it  is  immaterial  whether  we  speak  of  the  stem,  as  the 
+flower  and  fruit  in  a  state  of  extension,  or  whether,  as  above,  we  re- 
+gard the  flower  and  fruit  as  a  shortened  stem. 
+
+122.  At  the  end  of  this  treatise  I  have  taken  into  consideration  the 
+development  of  buds,  and  have  endeavoured  to  explain  by  their  means 
+the  nature  both  of  composite  flowers,  and  of  those  seeds  which  are  un- 
+protected by  a  seed-vessel  (uubedeckte  Fruchtstiinde)* 
+
+123.  It  has  been  my  object  in  what  1  have  here  brought  forward,  to 
+state,  as  clearly  and  fully  as  possible,  a  view,  which  I  think  carries  much 
+conviction  with  it.  But  Bhould  the  evidence  appear  to  be  insufficient,  or 
+should  m\  theory  meet  with  much  opposition,  and  appear  incapable  of 
+universal  application,  it  will  become  so  much  the  more  incumbent 
+on  me  to  note  all  BUggi  -tions.  and  at  some  future  time  to  discuss  these 
+subjects  more  minutely  and  circumstantially,  thai  by  giving  greater 
+perspicacity  to  my  view,  1  may  earn  for  it  a  more  universal  approbation 
+than  I  can  expect  from  this  first  essay. f 
+
+i  an  moil  of  Plati  M. 
+
+I  _■.  1.  Passage  of  leaves  to  bracts  in  Anthyllia  vuineraria.  2.  Passage  of  sepals 
+(a)  to  petals  (b),  stamens  {c  c),  and  Btigma  <rf),  in  Nymphaa  hhinda.  3.  Tnm-i- 
+tion  from  sepal  to  tubular  petal  Ot  nectary  in  Eranlhis  hijemulis.  \.  Anther  of 
+Pterandra.    5.  a,  Stamen,  and  4,  style  od  diea.    6.  a,  Stamen,  and  6,  pistil,  of 
+
+Tli  a  1 1  drum.  7-  Stigmas  of  Braehvpterit.  8.  Exceptional  flower  of  Bpilobium  hir- 
+sniitm,  in  which  all  the  tloral  whorls  are  replaced  by  loves;  a,  foliaceons  petal  from 
+the  same.  '.'.  Exceptional  flower  of  Diantkut,  sp.  The  sepals  and  some  of  the 
+petals  are  removed,  to  show  stalked  flower-bads  occupying  the  position  of  the  >ta- 
+mens.  da.  Stalked  flower-bud  from  the  same;  the  stalk  has  a  petaloid  strap-like 
+scale  projecting  from  it;  the  sepals  and.  petals  are  increased  in  number,  the  stamens 
+abortive,  and  the  carpels  open  and  disjoined,  aud  in  this  ease  destitute  of  ovules. 
+
+
+*   See  note,  §§  S3,  101. 
+
++  For  a  brief  sketch  of  the  origin  and  progress  of  the  theory  of  vegetable  morpho- 
+logy, prior  to  the  publications  of  Wolff,  Linue,  and  Goethe,  as  well  as  for  an  attempt 
+to  show  what  share  each  author  had  in  the  establishment  of  the  doctrine,  the  reader 
+is  referred  to  an  article  in  the  Brit,  aud  For.  Medico-Chirnrgieal  Review,  January, 
+1862,  entitled  "Vegetable  Morphology,"  its  history  aud  present  condition,  by 
+Maxwell  T.  Masters. 
+
+
+375 
