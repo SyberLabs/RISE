@@ -31,6 +31,9 @@ vi.mock('../content/library.js', async importOriginal => {
 
 vi.mock('../core/content-store.js', () => ({
   loadSchoolSections: vi.fn(async id => {
+    if (id === 'jupiter.art-forms-in-nature') {
+      return [1, 2, 3].map(plate => ({ name: `Tafel ${plate} · Plate`, content: `Plate ${plate} of Kunstformen der Natur, 1904.` }));
+    }
     if (id !== 'sun.zarathustra') throw new Error(`no ${id}`);
     return [
       { name: 'Part I · Zarathustra’s Prologue', content: 'When Zarathustra was thirty years old.' },
@@ -127,6 +130,24 @@ describe('a reading opened from the Mystery School', () => {
       }
     });
     expect((await schoolReading('sun.zarathustra', null)).source).toBe('Thus Spoke Zarathustra · Part I · Zarathustra’s Prologue');
+  });
+
+  it('opens a picture work with its unit\'s own plate as the Gallery, held slow', async () => {
+    const reading = await schoolReading('jupiter.art-forms-in-nature', 2);
+    expect(reading.source).toBe('Art Forms in Nature · Tafel 3 · Plate');
+    expect(reading.config.visualConfig).toEqual({
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'collections',
+        procedural: [],
+        sourced: ['haeckel:plates/3'],
+        atriumCollections: ['haeckel:plates/3'],
+        presentation: 'continuous',
+        galleryCadence: 0
+      }
+    });
+    // A text work carries no visual of its own; the reader's Gallery stands.
+    expect((await schoolReading('sun.zarathustra', 1)).config.visualConfig).toBeUndefined();
   });
 
   it('opens nothing for a text RISE does not carry', async () => {

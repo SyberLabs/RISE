@@ -55,6 +55,22 @@ const SHARED = ['Thinking', 'Feeling', 'Sensation', 'Intuition'];
 const SACRED_TEXTS_NOTE = 'Transcribed by J. B. Hare for the Internet Sacred Text Archive (sacred-texts.com), which asks that its etexts be attributed to it and that this notice be kept with them.';
 
 export const WEB_RECIPES = {
+    // A picture work: its units are the plates of a pinned plate catalog, and its imagery is that catalog.
+    'jupiter.art-forms-in-nature': {
+        kind: 'commons-plates',
+        path: 'src/sources/visual/haeckel-catalog.generated.json',
+        book: 'Kunstformen der Natur',
+        year: 1904,
+        imagery: 'haeckel:plates',
+        count: 100,
+        language: 'de',
+        edition: {
+            statement: 'Bibliographisches Institut, Leipzig and Vienna, 1904; 100 plates; captions from Wikimedia Commons',
+            translator: null,
+            year: 1904
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
     // Local files under scripts/school-sources/<id>/.
     'gate.oration': {
         kind: 'file',

@@ -59,6 +59,7 @@ import { readCcel } from '../src/content/school/ccel.js';
 import { readFile } from '../src/content/school/file.js';
 import { readGutenberg } from '../src/content/school/gutenberg.js';
 import { readHtml } from '../src/content/school/html.js';
+import { readPlates } from '../src/content/school/plates.js';
 import { readSacredTexts } from '../src/content/school/sacred-texts.js';
 import { readTei, teiAvailability } from '../src/content/school/tei.js';
 import { readWikisource } from '../src/content/school/wikisource.js';
@@ -71,6 +72,7 @@ const OUT = resolve(ROOT, 'src/content/school/works');
 const CORPUS = resolve(ROOT, 'src/content/school/corpus.js');
 const RAW = 'https://raw.githubusercontent.com/standardebooks';
 const MIN_CHARS = 200;
+const PICTURE_MIN_CHARS = 100;
 // A marker attached to the word before it, or any [FN#n]; "[3553]" set
 // after a space is a year in Vico's chronology, not a note.
 const FOOTNOTE_MARKER = /\S\[(?:\d{1,4}|[A-Z]{1,2})\]|\[[A-Z]{1,2}\]\S|\[FN#?\d{1,4}\]|\[Footnote/u;
@@ -821,6 +823,18 @@ const SOURCES = {
             return { texts: [bytes.toString('utf8')], files: [`${artifact.path} ${sha256(bytes)}`], url: artifact.path, sha256: sha256(bytes) };
         },
         read: ([text], artifact) => readFile(text, parse, artifact)
+    },
+    // A pinned plate catalog, built from Commons by its own script; its gallery revision is the source.
+    'commons-plates': {
+        async fetch(artifact) {
+            const bytes = readFileSync(resolve(ROOT, artifact.path));
+            const { source } = JSON.parse(bytes.toString('utf8'));
+            return {
+                texts: [bytes.toString('utf8')], files: [`${artifact.path} ${sha256(bytes)}`],
+                url: source.gallery, sha256: sha256(bytes), extra: { revid: source.revid, catalog: artifact.path }
+            };
+        },
+        read: ([text], artifact) => readPlates(text, artifact)
     }
 };
 
@@ -1087,8 +1101,10 @@ function gate(id, recipe, parts, ledger) {
             const around = part.content.slice(Math.max(0, leftover.index - 40), leftover.index + 40).replace(/\s+/gu, ' ');
             failures.push(`"${part.name}" carries a footnote marker or a producer's note: …${around}…`);
         }
-        if (part.content.length < MIN_CHARS) {
-            failures.push(`"${part.name}" is ${part.content.length} characters, under ${MIN_CHARS}`);
+        // A picture work's unit is the words beside its plate; corpus.test.js says why its floor is lower.
+        const minimum = recipe.imagery ? PICTURE_MIN_CHARS : MIN_CHARS;
+        if (part.content.length < minimum) {
+            failures.push(`"${part.name}" is ${part.content.length} characters, under ${minimum}`);
         }
         const lines = part.content.split('\n').filter(line => line.trim()).length;
         if (part.verse && (part.lines === 0 || lines < part.lines)) {
@@ -1157,7 +1173,9 @@ async function ingest(id, { dryRun }) {
         edition: recipe.edition, source, rights,
         // A work not in English names its language; a note says what a reader should know of the text as served.
         ...(recipe.language ? { language: recipe.language } : {}),
-        ...(recipe.textNote ? { note: recipe.textNote } : {})
+        ...(recipe.textNote ? { note: recipe.textNote } : {}),
+        // A picture work names the pinned collection its reading shows.
+        ...(recipe.imagery ? { imagery: recipe.imagery } : {})
     };
     const dropped = Object.entries(ledger.dropped).map(([kind, count]) => `${count} ${kind}`).join(', ');
     console.log(`${id}: ${sections.length} units, ${ledger.words} words in, ${ledger.words - ledger.lost} out, 0 lost`
@@ -1174,6 +1192,7 @@ async function ingest(id, { dryRun }) {
         ...(Object.keys(ledger.dropped).length ? { dropped: ledger.dropped } : {}),
         rights,
         ...(recipe.language ? { language: recipe.language } : {}),
+        ...(recipe.imagery ? { imagery: recipe.imagery } : {}),
         structure: 'declared',
         // Groups the edition sets above its units; a unit's name carries
         // its group's position.

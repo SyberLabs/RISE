@@ -9,6 +9,7 @@
  */
 
 import { getTextById } from '../content/library.js';
+import { schoolWorkById } from '../content/school/corpus.js';
 import { corpusDivisions, houseById, recordById } from '../content/school/index.js';
 import { jevColors } from '../core/jev-palette.js';
 import { markRead } from '../core/school-progress.js';
@@ -98,6 +99,7 @@ async function corpusReading(record, entryIndex) {
     const entry = entries[index];
     if (!entry) return null;
     const look = presentation(houseById(record.house)?.theme);
+    const imagery = schoolWorkById(record.id)?.imagery;
     return {
         text: entry.content,
         source: `${record.title} · ${entry.label}`,
@@ -107,7 +109,27 @@ async function corpusReading(record, entryIndex) {
             curve: 'flat',
             verseLines: entry.verse === true,
             provenance: { kind: 'school', recordId: record.id, corpus: true, entryId: String(entry.id) },
-            ...(look ? { presentation: look } : {})
+            ...(look ? { presentation: look } : {}),
+            ...(imagery ? { visualConfig: pictureVisual(`${imagery}/${index + 1}`) } : {})
+        }
+    };
+}
+
+/**
+ * A picture work's unit n is its plate n, so the reading's field is that
+ * plate alone (the collection's `<id>/<n>`), held at the Gallery's slowest
+ * cadence.
+ */
+function pictureVisual(collection) {
+    return {
+        visualMode: 'interlocution',
+        interlocution: {
+            sourceFamily: 'collections',
+            procedural: [],
+            sourced: [collection],
+            atriumCollections: [collection],
+            presentation: 'continuous',
+            galleryCadence: 0
         }
     };
 }

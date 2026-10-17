@@ -69,6 +69,19 @@ describe('every panel category routes to a provider', () => {
         expect(await cortex._getProviderForCategory('sci-wildlife')).toBeNull();
     });
 
+    it('sends Haeckel plate ids to the plate catalog, and the retired bare id nowhere', async () => {
+        const cortex = new VisualCortex();
+        const book = await cortex._getProviderForCategory('haeckel:plates');
+        expect(book?.id).toBe('haeckel-plates');
+        expect(await cortex._getProviderForCategory('haeckel:plates/8')).toBe(book);
+        expect(await cortex._getProviderForCategory('haeckel:plates/101')).toBeNull();
+        expect(await cortex._getProviderForCategory('haeckel')).toBeNull();
+        // Page Mode resolves a collection through the same route.
+        const [plate] = await cortex.resolveCollectionWorks('haeckel:plates/8');
+        expect(plate.name).toBe('Tafel 8 · Discomedusae');
+        expect(new URL(plate.data.url).hostname).toBe('upload.wikimedia.org');
+    });
+
     it('still refuses retired Met ids', async () => {
         const cortex = new VisualCortex();
         expect(await cortex._getProviderForCategory('met-anything')).toBeNull();
