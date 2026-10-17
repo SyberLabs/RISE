@@ -519,7 +519,11 @@ of `settled`, `open`, `deferred`, or `reversed`.
   `content/works/<sha256>.json` and is fetched at read time by
   `src/core/content-store.js`, which verifies the digest on arrival. **The hash
   is the URL**, so the address an object was fetched by is the digest it must
-  have.
+  have. The Chapel's scripture (`content/chapel/<sha256>.txt`) and the Mystery
+  School's corpus (`src/content/school/corpus.js` naming the generated
+  payloads in `src/content/school/works/`, published at
+  `content/school/<sha256>.json` under the manifest's `school` list) are
+  addressed the same way, each beside the Archive's canon rather than in it.
 - **Rejected:** generated `.js` modules under `src/content/`, reached by dynamic
   `import()` from a catalog — which is what this was until it was cut.
 - **Why:** compiling books bought one real thing — Rollup hashed, split and
