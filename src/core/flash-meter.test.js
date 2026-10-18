@@ -8,13 +8,13 @@ import {
 } from './flash-meter.js';
 import { relativeLuminance, summarizeFrame } from './luminance.js';
 
-/** A solid frame of one sRGB colour, summarised on a small grid. */
+/** A small solid frame of one sRGB colour. */
 function solid(r, g, b, { width = 8, height = 8 } = {}) {
     const rgba = new Uint8ClampedArray(width * height * 4);
     for (let i = 0; i < rgba.length; i += 4) {
         rgba[i] = r; rgba[i + 1] = g; rgba[i + 2] = b; rgba[i + 3] = 255;
     }
-    return summarizeFrame(rgba, width, height, { cols: 4, rows: 4 });
+    return summarizeFrame(rgba, width, height);
 }
 
 /** A frame whose cells are grey levels, one per cell (sRGB 0..255). */
@@ -97,6 +97,27 @@ describe('general flashes in a wide field', () => {
         expect(report.worst.general).toBe(0);
     });
 
+    it('refuses a checkerboard that inverts at 12 Hz, though every coarse average stays grey', () => {
+        // One-pixel squares: any cell of two or more pixels averages to the
+        // same grey in both frames, while every pixel swings black to white.
+        const board = (phase) => {
+            const rgba = new Uint8ClampedArray(48 * 48 * 4);
+            for (let y = 0; y < 48; y++) {
+                for (let x = 0; x < 48; x++) {
+                    const v = (x + y + phase) % 2 ? 255 : 0;
+                    const i = (y * 48 + x) * 4;
+                    rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; rgba[i + 3] = 255;
+                }
+            }
+            return summarizeFrame(rgba, 48, 48);
+        };
+        const report = certifySequence(alternate(board(0), board(1), 24), {
+            frameMs: 1000 / 12, areaPx: WIDE
+        });
+        expect(report.ok).toBe(false);
+        expect(report.worst.general).toBeGreaterThanOrEqual(5);
+    });
+
     it('treats a slow dissolve as one transition, not many small ones', () => {
         const ramp = Array.from({ length: 30 }, (_, i) => solid(
             Math.round(255 * i / 29), Math.round(255 * i / 29), Math.round(255 * i / 29)
@@ -153,6 +174,12 @@ describe('the meter\'s contract', () => {
         const meter = new FlashMeter({ areaPx: WIDE });
         meter.observe(BLACK, 0);
         expect(() => meter.observe(cells(new Array(9).fill(0)), 16)).toThrow(/grid/u);
+    });
+
+    it('refuses a summary coarser than one cell per pixel', () => {
+        const rgba = new Uint8ClampedArray(8 * 8 * 4);
+        const coarse = summarizeFrame(rgba, 8, 8, { cols: 4, rows: 4 });
+        expect(() => new FlashMeter({ areaPx: WIDE }).observe(coarse, 0)).toThrow(/one cell per pixel/u);
     });
 
     it('forgets transitions older than the window', () => {

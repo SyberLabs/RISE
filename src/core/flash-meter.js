@@ -122,6 +122,10 @@ export class FlashMeter {
      * exceeds `maxFlashes`; the caller stops the stream.
      */
     observe(summary, timeMs) {
+        if (summary.cols !== summary.width || summary.rows !== summary.height) {
+            throw new RangeError(`the meter needs one cell per pixel: a ${summary.cols}×${summary.rows} grid `
+                + `averages a ${summary.width}×${summary.height} frame, and a pattern inverting inside a cell is invisible to it`);
+        }
         const cells = summary.cols * summary.rows;
         if (!this.grid) {
             this.grid = { cols: summary.cols, rows: summary.rows };

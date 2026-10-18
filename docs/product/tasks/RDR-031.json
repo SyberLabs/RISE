@@ -25,6 +25,18 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/721",
       "note": "The pure core: luminance summaries, the flash meter and the stream clock, with the spec. No surface is registered; nothing reaches a reader.",
       "date": "2026-10-18"
+    },
+    {
+      "kind": "commit",
+      "ref": "31fbdeb2",
+      "note": "#721 merged: the pure core and the spec, before Codex's checkerboard finding was fixed.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/722",
+      "note": "The meter reads one cell per pixel and refuses coarser summaries: a checkerboard inverting at 12 Hz averaged to steady grey in the 24×24 grid and certified. Three tests written first, failing on main.",
+      "date": "2026-10-18"
     }
   ],
   "activity": [
@@ -35,10 +47,14 @@
     {
       "date": "2026-10-18T05:39:19.000Z",
       "summary": "PR #721 opened: the pure core and the spec"
+    },
+    {
+      "date": "2026-10-18T05:50:14.000Z",
+      "summary": "#721 merged as 31fbdeb2; PR #722 opened to fix the meter's coarse-grid blind spot"
     }
   ],
-  "updatedAt": "2026-10-18T05:39:19.000Z",
-  "revision": 2,
+  "updatedAt": "2026-10-18T05:50:14.000Z",
+  "revision": 3,
   "summary": "A rapid serial stream of images beside the rapid serial stream of words: frames replacing frames at several per second, never passing through black, governed by the light it actually puts on the screen. The retired event economy limited risk by counting events, so this stream is measured against WCAG 2.3.1 instead, and FLASHING_ENABLED stays false.",
   "blocker": null
 }

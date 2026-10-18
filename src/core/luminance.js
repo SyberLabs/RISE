@@ -36,18 +36,20 @@ export function saturatedRedValue(r, g, b) {
     return Math.max(0, (r - g - b) * 320);
 }
 
-export const SUMMARY_GRID = 24;
-
 /**
  * Summarise an RGBA frame as a grid of cells, each holding its mean relative
  * luminance and saturated-red value. Transparent pixels are composited over
  * `ground` (sRGB codes), which is the Chamber's dark ground by default.
  *
+ * The default grid is one cell per pixel. A coarser grid averages, so a
+ * pattern finer than a cell can invert with every cell's mean unchanged; it
+ * suits ordering a reel, never the flash meter, which refuses it.
+ *
  * The grid never has more cells than the frame has pixels on either axis.
  */
 export function summarizeFrame(rgba, width, height, {
-    cols = SUMMARY_GRID,
-    rows = SUMMARY_GRID,
+    cols = width,
+    rows = height,
     ground = [0, 0, 0]
 } = {}) {
     if (!(width > 0) || !(height > 0) || rgba.length !== width * height * 4) {
@@ -87,5 +89,5 @@ export function summarizeFrame(rgba, width, height, {
             red[cell] = saturatedRedValue(r, g, b);
         }
     }
-    return Object.freeze({ cols: gridCols, rows: gridRows, luminance, red });
+    return Object.freeze({ cols: gridCols, rows: gridRows, width, height, luminance, red });
 }
