@@ -2080,6 +2080,8 @@ export class Chamber {
   chooseLook(id) {
     const look = LOOKS.find(entry => entry.id === id);
     if (!look || this.pageModeActive || !this._lookOffered(look) || this._lookNeedsReopen(look)) return false;
+    // The notice was accepted for the reading as it opened, not for a look.
+    this._revokeImageStream();
     const previousShelf = this.session.visualConfig?.interlocution?.procedural || [];
     // A look never flashes: the flash economy stops for good, before its
     // switch can write the reading's visual mode back.
@@ -2670,6 +2672,8 @@ export class Chamber {
 
   /** One scheduled cue owns the complete visual presentation transition. */
   applyScheduledVisualCue(cue, meta = {}) {
+    // The stream runs only over the Gallery; anything else on screen ends it.
+    if (!['sourced', 'procedural'].includes(cue?.kind)) this._revokeImageStream();
     // A generated scene that has failed once is not run again in this Chamber; its passages draw the fallback.
     if (cue?.kind === 'scene' && this._failedScenes?.has(cue.sceneId)) cue = this._sceneFallbackCue();
     if (this._swapAtShut) {
@@ -2772,9 +2776,9 @@ export class Chamber {
    */
   async _mountImageStream(field) {
     const { decodeStreamFrames, mountImageStream } = await import('../../visuals/image-stream.js');
-    if (this._destroyed) return;
+    if (!this._imageStreamMayMount()) return;
     const frames = await decodeStreamFrames(visualCortex.imageStreamFrameUrls());
-    if (this._destroyed) return;
+    if (!this._imageStreamMayMount()) return;
     const host = document.createElement('div');
     host.className = 'chamber-image-stream';
     Object.assign(host.style, { position: 'absolute', inset: '0', pointerEvents: 'none' });
@@ -2786,6 +2790,20 @@ export class Chamber {
     }
     this._imageStream = stream;
     if (this.player?.state === 'playing') stream.resume();
+  }
+
+  /** Re-asked after every await: the reading may have closed, or its visuals been turned off or changed. */
+  _imageStreamMayMount() {
+    return !this._destroyed && this.imageStreamGranted && !this._visualsOff();
+  }
+
+  /**
+   * Visuals turned off or changed: the stream ends for this reading. Only a
+   * new launch, which raises the notice again, can grant it again.
+   */
+  _revokeImageStream() {
+    this.imageStreamGranted = false;
+    this._dropImageStream();
   }
 
   _dropImageStream() {

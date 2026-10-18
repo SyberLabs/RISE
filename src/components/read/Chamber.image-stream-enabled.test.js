@@ -27,6 +27,8 @@ vi.mock('../../visuals/image-stream.js', () => ({
 const { Chamber } = await import('./Chamber.js');
 const { visualCortex } = await import('../../visuals/visual-cortex.js');
 const { decodeStreamFrames, mountImageStream } = await import('../../visuals/image-stream.js');
+const { directionStateFor } = await import('../../core/passage-visuals/reading-state.js');
+const { LOOKS } = await import('../../core/looks.js');
 
 function fakePlayer(state = 'playing') {
     const handlers = new Map();
@@ -44,14 +46,16 @@ function mount(opts = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const player = fakePlayer(state);
+    const session = {
+        title: 'Probe',
+        atoms: [{ content: 'First', duration: 500 }, { content: 'Second', duration: 500 }],
+        totalDuration: 1000,
+        atomCount: 2,
+        visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'continuous', procedural: ['fractal'] } }
+    };
+    if (opts.directionMode) directionStateFor(session).mode = opts.directionMode;
     const chamber = new Chamber(container, {
-        session: {
-            title: 'Probe',
-            atoms: [{ content: 'First', duration: 500 }, { content: 'Second', duration: 500 }],
-            totalDuration: 1000,
-            atomCount: 2,
-            visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'continuous', procedural: ['fractal'] } }
-        },
+        session,
         player,
         autoStart: false,
         ...(imageStream === undefined ? {} : { imageStream })
@@ -170,6 +174,105 @@ describe('the Chamber with the image stream flag on', () => {
         mountImageStream.mockReturnValueOnce(null);
         const { chamber, container } = mount();
         await settle();
+        expect(container.querySelector('.chamber-image-stream')).toBeNull();
+        chamber.destroy();
+    });
+});
+
+describe('every way of turning the visuals off or changing them ends the stream', () => {
+    /** Mount a playing stream, then assert `act` removes it for good. */
+    async function expectEnded(act) {
+        const { chamber, container, player } = mount();
+        await settle();
+        const [stream] = presenter.streams;
+        expect(stream, 'the stream mounted').toBeDefined();
+        act(chamber);
+        expect(stream.destroy).toHaveBeenCalledTimes(1);
+        expect(container.querySelector('.chamber-image-stream')).toBeNull();
+        player.emit('state', { state: 'paused' });
+        player.emit('state', { state: 'playing' });
+        await settle();
+        expect(mountImageStream).toHaveBeenCalledTimes(1);
+        expect(stream.resume).toHaveBeenCalledTimes(1);
+        return chamber;
+    }
+
+    it('Off in the Look sheet, and turning it back on does not bring the stream back', async () => {
+        const chamber = await expectEnded(c => expect(c.setVisualsOff(true)).toBe(true));
+        chamber.setVisualsOff(false);
+        await settle();
+        expect(mountImageStream).toHaveBeenCalledTimes(1);
+        chamber.destroy();
+    });
+
+    it('the visual direction set to Off', async () => {
+        const chamber = await expectEnded(c => expect(c.setVisualDirectionMode('off')).toBe(true));
+        chamber.destroy();
+    });
+
+    it('a scene, field or still put on screen, at once or held for the shut eye of the Live venue', async () => {
+        for (const swapAtShut of [false, true]) {
+            for (const cue of [
+                { kind: 'still' },
+                { kind: 'field', renderer: 'genesis', config: {} },
+                { kind: 'focal', focal: { type: 'standard', standardGlyph: 'breath' } },
+                null
+            ]) {
+                presenter.streams.length = 0;
+                vi.clearAllMocks();
+                const chamber = await expectEnded(c => {
+                    c.setVisualSwapAtShut(swapAtShut);
+                    c.applyScheduledVisualCue(cue, { transitionMs: 0 });
+                });
+                chamber.destroy();
+            }
+        }
+    });
+
+    it('a change of look', async () => {
+        let accepted = 0;
+        for (const look of LOOKS) {
+            presenter.streams.length = 0;
+            vi.clearAllMocks();
+            const { chamber, container } = mount();
+            await settle();
+            const [stream] = presenter.streams;
+            if (chamber.chooseLook(look.id)) {
+                accepted += 1;
+                expect(stream.destroy, look.id).toHaveBeenCalledTimes(1);
+                expect(container.querySelector('.chamber-image-stream')).toBeNull();
+            }
+            chamber.destroy();
+        }
+        expect(accepted).toBeGreaterThan(0);
+    });
+
+    it('keeps the stream through a change of the pool the Gallery draws from', async () => {
+        const { chamber } = mount();
+        await settle();
+        const [stream] = presenter.streams;
+        chamber.applyScheduledVisualCue({ kind: 'procedural', collections: ['fractal'] }, { transitionMs: 0 });
+        expect(stream.destroy).not.toHaveBeenCalled();
+        chamber.destroy();
+    });
+
+    it('Off already in force when the reading opens: nothing mounts, nothing resumes', async () => {
+        const { chamber, container } = mount({ directionMode: 'off' });
+        await settle();
+        expect(mountImageStream).not.toHaveBeenCalled();
+        expect(container.querySelector('.chamber-image-stream')).toBeNull();
+        chamber.destroy();
+    });
+
+    it('Off chosen while the frames decode: nothing mounts', async () => {
+        let decoded;
+        decodeStreamFrames.mockImplementationOnce(() => new Promise(resolve => { decoded = resolve; }));
+        const { chamber, container } = mount();
+        await settle();
+        chamber.setVisualsOff(true);
+        decoded(presenter.frames);
+        await settle();
+        expect(mountImageStream).not.toHaveBeenCalled();
         expect(container.querySelector('.chamber-image-stream')).toBeNull();
         chamber.destroy();
     });
