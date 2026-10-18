@@ -73,6 +73,12 @@
       "ref": "099f2a4c",
       "note": "Branch image-stream-presenter, round 3 review fixes, one commit each: 6e5cfa81 floor 64x the safe area (a flash over 307 of 19,600 pixels counts), dpr in the measured area, zoomed pages refused; 4f9001cc real time caps the rate and a refresh-rate disagreement stands the stream down; fe5d62ac Follow text ends the stream; 750c00b3 photosensitivity or reduced motion switched on while paused ends it; 09d7f8db a stream that stops itself withdraws the grant; 2c842a2a tests that fail without their guards and a wider source scan; 099f2a4c meter refuses NaN time and short summaries, empty reels refused, oversized images never decoded. Each test watched failing first; jsdom only.",
       "date": "2026-10-18"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/specs/IMAGE-STREAM-SPEC.md",
+      "note": "Before IMAGE_STREAM_ENABLED may flip (spec §7): reel compiler, phone aperture, OS magnifier decision, removing the backdrop blur from the aperture, measuring the blur footprint, verifying the zoom-refusal heuristic in real browsers, notice wording, real-browser safety review. Pinch now stands the stream down (6f87bb89).",
+      "date": "2026-10-18"
     }
   ],
   "activity": [
@@ -103,10 +109,14 @@
     {
       "date": "2026-10-18T08:22:14.000Z",
       "summary": "Round 3 review: the meter counts a change over ~2% of the aperture at any zoom; the stream stops on every off path; the rate cap holds under a mis-measured refresh"
+    },
+    {
+      "date": "2026-10-18T08:34:24.000Z",
+      "summary": "Final review round: pinch stands the stream down; the spec lists the blur, magnifier and zoom-heuristic preconditions before the flag may flip"
     }
   ],
-  "updatedAt": "2026-10-18T08:22:14.000Z",
-  "revision": 7,
+  "updatedAt": "2026-10-18T08:34:24.000Z",
+  "revision": 8,
   "summary": "A rapid serial stream of images beside the rapid serial stream of words: frames replacing frames at several per second, never passing through black, governed by the light it actually puts on the screen. The retired event economy limited risk by counting events, so this stream is measured against WCAG 2.3.1 instead, and FLASHING_ENABLED stays false.",
   "blocker": null
 }
