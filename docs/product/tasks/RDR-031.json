@@ -37,6 +37,24 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/722",
       "note": "The meter reads one cell per pixel and refuses coarser summaries: a checkerboard inverting at 12 Hz averaged to steady grey in the 24×24 grid and certified. Three tests written first, failing on main.",
       "date": "2026-10-18"
+    },
+    {
+      "kind": "commit",
+      "ref": "c8c8ba58",
+      "note": "Branch image-stream-presenter: IMAGE_STREAM_ENABLED (off) and the surface stream registered behind it; flashing-disabled.test.js extended, image-stream-enabled.test.js added.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "commit",
+      "ref": "2439a2d4",
+      "note": "Branch image-stream-presenter: the fixation-aperture presenter (7cd92e42), its runtime meter and fail-closed stops (d5263b3b), and the wiring behind the flag: gated as a flash, mounted over Gallery, never handed to the visual engine.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "test",
+      "ref": "src/visuals/image-stream.test.js",
+      "note": "Presenter: 140 px clamp, frame replaces frame, refresh measured, pause and seek, benign reel plays, strobe stopped within a second once the aperture outgrows the safe area, meter exceptions, stalls and settings stop it. Run in jsdom only; no real browser.",
+      "date": "2026-10-18"
     }
   ],
   "activity": [
@@ -51,10 +69,14 @@
     {
       "date": "2026-10-18T05:50:14.000Z",
       "summary": "#721 merged as 31fbdeb2; PR #722 opened to fix the meter's coarse-grid blind spot"
+    },
+    {
+      "date": "2026-10-18T06:33:18.000Z",
+      "summary": "Step 2: the fixation-aperture presenter, behind IMAGE_STREAM_ENABLED (off)"
     }
   ],
-  "updatedAt": "2026-10-18T05:50:14.000Z",
-  "revision": 3,
+  "updatedAt": "2026-10-18T06:33:18.000Z",
+  "revision": 4,
   "summary": "A rapid serial stream of images beside the rapid serial stream of words: frames replacing frames at several per second, never passing through black, governed by the light it actually puts on the screen. The retired event economy limited risk by counting events, so this stream is measured against WCAG 2.3.1 instead, and FLASHING_ENABLED stays false.",
   "blocker": null
 }

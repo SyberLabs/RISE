@@ -6,9 +6,11 @@ governed by the light it actually puts on the screen.**
 
 Status: PROPOSED. The pure core (`src/core/luminance.js`,
 `src/core/flash-meter.js`, `streamFrameAt` in `src/core/visual-presence.js`)
-is implemented and tested. The reel compiler, the presenter and the panel
-control are not. No surface named `'stream'` is registered, so nothing here
-can reach a reader yet. Open questions are marked ⁇.
+and the fixation-aperture presenter (`src/visuals/image-stream.js`) are
+implemented and tested. The surface `'stream'` is registered behind its own
+build flag, `IMAGE_STREAM_ENABLED`, which is **off**: while it is off no
+reader can reach the stream. The reel compiler and the panel control are not
+built. Open questions are marked ⁇.
 
 ---
 
@@ -132,6 +134,15 @@ roughly device-independent, but a phone held close subtends more of the
 visual field than WCAG's model assumes. Whether to scale the aperture down on
 coarse pointers, or by a measured viewing distance, is open.
 
+The arithmetic, for deciding it. WCAG's field is 10° over 341 px, about
+0.0293° per CSS px, so the safe area is about 18.8 deg² and the 140 px
+aperture about 16.9 deg² (90%). On a phone with a 3× display at 460 ppi a CSS
+px is about 0.166 mm, so the aperture is about 23 mm square. It reaches the
+threshold at about 31 cm from the eye; at 25 cm it covers about 150% of it,
+and at 20 cm about 235%. Staying inside the threshold at 25 cm needs a side
+of about 114 CSS px, and at 20 cm about 91. **The flag must not be switched
+on until this is decided.**
+
 ### What the meter cannot see
 
 - **The display.** Software controls the signal, not panel brightness, HDR
@@ -159,27 +170,81 @@ Runs in a worker. Input: the active image pools the cortex already warms
    area. A failing reel drops its worst frame, or halves its rate, and
    certifies again. A reel that still fails is not played.
 
-## 5. The presenter (not built)
+## 5. The presenter (built at the fixation aperture, behind its flag)
 
-`src/visuals/image-stream.js`, mounted like the Continuous Field.
+`src/visuals/image-stream.js`, loaded lazily by the Chamber.
 
-- One canvas. `requestAnimationFrame` drives it; `streamFrameAt` chooses the
-  frame from elapsed presentation time; the display refresh rate is measured
-  from frame timestamps over the first half second.
-- A runtime `FlashMeter` observes every frame actually drawn. If it ever
-  reports `ok: false`, the stream stops and the Continuous Field takes the
-  aperture. This is the second, independent, fail-closed check behind
-  certification.
-- Stands down entirely under photosensitivity mode and
-  `prefers-reduced-motion`.
+- One canvas, at most 140 CSS px square whatever it is asked for, centred in
+  the stage (the Chamber exposes no fixation point; the words are centred, so
+  the stage centre is where the eyes rest). It refuses to mount if
+  `apertureIsInherentlySafe` were ever false for its side.
+- `requestAnimationFrame` drives it; `streamFrameAt` chooses the frame from
+  the stream's own elapsed time; the display refresh rate is measured from
+  frame timestamps over the first half second, assumed 60 Hz until then.
+- Frame replaces frame: each image covers the whole aperture (cropped, never
+  letterboxed) and is drawn over the last, with no clear, fill, fade or
+  overlay.
+- A runtime `FlashMeter` observes every frame actually drawn, read back from
+  the canvas one cell per drawn pixel. Its area is what the aperture covers
+  on screen: never less than its declared size, multiplied by pinch-zoom,
+  larger if a stylesheet stretches it, and unbounded if it cannot be
+  measured. If the meter reports `ok: false`, the meter or anything else in
+  a refresh throws, or a frame is held past 500 ms (a stalled display), the
+  stream stops for good, hides, and reports one reason once.
+- Stands down entirely (never mounts) under photosensitivity mode, the
+  reader's reduced-motion setting, `prefers-reduced-motion`, a hidden
+  document, or a media query that cannot be asked, and stops at the next
+  refresh if any of the first three is switched on mid-reading.
 - Pauses with the reading. A seek recomputes the frame from time; nothing is
   replayed to catch up.
 
+**What the runtime meter can and cannot do in this regime.** Inside a 140 px
+aperture no transition can count (19,600 px² is under 21,824 px²), so the
+meter cannot trip on any content drawn at the aperture's own size, a full
+black-and-white strobe at 12 Hz included; a test states this. It trips only
+when the aperture grows on screen past the safe area (pinch-zoom, a
+stylesheet), which is the case it guards. Taming a harsh reel inside the
+aperture is the reel compiler's job (§4), not the meter's.
+
+**Decisions made while building it.**
+
+1. *The canvas is backed at CSS resolution.* Its backing store is 140 × 140
+   whatever the device pixel ratio, and the browser scales it up. The meter
+   then reads exactly what is drawn, one cell per backing pixel, at a fixed
+   19,600 cells a frame (about 0.5 ms for the summary and the meter in Node
+   on a desktop). Backed at 3× it would be 176,400 cells and about 4.6 ms a
+   frame, plus a 700 KB read-back. Images are slightly soft on dense screens.
+2. *The visual engine never sees `'stream'`.* The launch gate hands the cortex
+   Gallery for a stream session, so the event economy's flash path can never
+   be configured with the stream, and tells the Chamber separately
+   (`imageStream: true`) that it may mount the stream between the Gallery and
+   the words. When the stream stops itself the Chamber removes it and the
+   Gallery underneath remains: falling back needs no reconfiguration.
+3. *Declined or photosensitive means Gallery, not nothing.* A reader who
+   declines the notice, or reads with photosensitivity mode on, gets the
+   Gallery (which carries no risk to consent to) rather than a blank stage.
+4. *A page-first launch never streams*, including when the reader leaves the
+   page for the stream view.
+5. *Frames come from the Gallery's own pool*: up to 24 of the URLs its pool
+   holds when the Chamber opens, decoded as CORS images so their pixels can be
+   read back. An image served without CORS is left out rather than tainting
+   the canvas. Procedural works are not in that pool, so a procedural-only
+   reading has no frames and shows Gallery; the reel compiler (§4) replaces
+   this.
+6. *A hidden tab pauses it.* The Player pauses a reading when its page is
+   hidden and plays it again on return, and the stream follows the Player, so
+   a pause is never mistaken for a stall. The stream never mounts on a hidden
+   page; were the display to stop refreshing while the stream ran (with the
+   Player still playing), the return would read as a stall and stop it.
+7. *Readers' seeks do not move the stream.* Free-running (§6) means the
+   stream's clock has no mapping from a position in the text; `seek()` exists
+   on the presenter for the phase-locked option.
+
 ## 6. Coupling to the words
 
-⁇ The one decision that shapes the architecture.
+Decided: free-running, for the first presenter.
 
-- **Free-running** (default in this proposal): the stream has its own rate and
+- **Free-running** (built): the stream has its own rate and
   clock in the presenter, and the reading's pause, seek and end drive it.
   Simplest, and the rate the reader sets is the rate they see.
 - **Phase-locked**: the stream advances k frames per word, so a long word or a
@@ -192,11 +257,28 @@ moves the clock's owner, not its arithmetic.
 ## 7. Switches
 
 - `FLASHING_ENABLED` stays `false`. The stream is not the event economy.
-- The stream gets its own build flag when its presenter lands. Registering
-  `'stream'` in `PRESENTATION_SURFACES` happens in the same change, with
-  `flashing-disabled.test.js` extended so that, while the flag is off, every
-  input naming it still resolves to the Continuous Field. That test already
-  lists `'stream'` among its hostile inputs.
+- `IMAGE_STREAM_ENABLED` (`src/core/visual-presence.js`) is the stream's own
+  build flag, `false`. `'stream'` is registered in `PRESENTATION_SURFACES`
+  and resolves to the Continuous Field whenever the flag is off, even if
+  `FLASHING_ENABLED` were switched back on. `presentationFlashes('stream')` is
+  true, so every gate that asks raises its notice.
+  `flashing-disabled.test.js` proves the off state;
+  `image-stream-enabled.test.js`, `chamber-session-factory.stream.test.js` and
+  `Chamber.image-stream-enabled.test.js` state what changes when it flips.
+
+| `IMAGE_STREAM_ENABLED` | Reading asks for `'stream'` | Notice | What the reader gets |
+| --- | --- | --- | --- |
+| off | anything | none | Gallery; the presenter is never loaded |
+| on | accepted | raised first | Gallery with the stream over it |
+| on | declined | raised first | Gallery |
+| on | photosensitivity mode on | none | Gallery |
+| on | opens as a page | none | Gallery, never the stream |
+| on | a Composer Current | none | cannot ask for it |
+
+- Before the flag flips: the phone aperture (§3 ⁇), the notice's wording
+  (it still describes brief exposures between moments of reading), and a
+  reader's control to turn the stream off mid-reading (today: pause, or the
+  photosensitivity or reduced-motion settings).
 - A property test belongs beside the compiler: random reels at
   `STREAM_RATE_MAX_HZ` in a wide-field aperture, after compilation, never
   certify with more than `STREAM_MAX_FLASHES_PER_WINDOW` flashes in a window.
@@ -205,6 +287,7 @@ moves the clock's owner, not its arithmetic.
 
 1. Pure core: luminance summaries, the flash meter, the stream clock. **Done.**
 2. Presenter at fixation-aperture size, free-running, behind its flag.
+   **Built, flag off.**
 3. Reel compiler with normalisation, ordering and certification.
 4. Wide-field regime, runtime meter fallback, pattern check.
 5. Panel control (rate, regime) and the photosensitivity notice.
