@@ -37,6 +37,48 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/722",
       "note": "The meter reads one cell per pixel and refuses coarser summaries: a checkerboard inverting at 12 Hz averaged to steady grey in the 24×24 grid and certified. Three tests written first, failing on main.",
       "date": "2026-10-18"
+    },
+    {
+      "kind": "commit",
+      "ref": "c8c8ba58",
+      "note": "Branch image-stream-presenter: IMAGE_STREAM_ENABLED (off) and the surface stream registered behind it; flashing-disabled.test.js extended, image-stream-enabled.test.js added.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "commit",
+      "ref": "2439a2d4",
+      "note": "Branch image-stream-presenter: the fixation-aperture presenter (7cd92e42), its runtime meter and fail-closed stops (d5263b3b), and the wiring behind the flag: gated as a flash, mounted over Gallery, never handed to the visual engine.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "test",
+      "ref": "src/visuals/image-stream.test.js",
+      "note": "Presenter: 140 px clamp, frame replaces frame, refresh measured, pause and seek, benign reel plays, strobe stopped within a second once the aperture outgrows the safe area, meter exceptions, stalls and settings stop it. Run in jsdom only; no real browser.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/723",
+      "note": "Step 2 as a draft pull request: the presenter, its runtime meter and the wiring, all behind IMAGE_STREAM_ENABLED (off).",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "commit",
+      "ref": "bb69ca50",
+      "note": "Branch image-stream-presenter: review findings on step 2 fixed, one commit each (88535adc meter armed at every size and zoom stand-down; 2e5a076e consent end; b1fe126c Off, cues and look change end the stream; 30cdeae9 whole-refresh holds under jitter; a8b2360c photosensitivity before earlier consent; e96d7f82 opaque frames only; 9de25a74 certifySequence and FlashMeter refuse missing frame time or area; 1f0efcc6 bounded decoding; bb69ca50 tests that fail without their guards). Each test watched failing first; jsdom only.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "commit",
+      "ref": "099f2a4c",
+      "note": "Branch image-stream-presenter, round 3 review fixes, one commit each: 6e5cfa81 floor 64x the safe area (a flash over 307 of 19,600 pixels counts), dpr in the measured area, zoomed pages refused; 4f9001cc real time caps the rate and a refresh-rate disagreement stands the stream down; fe5d62ac Follow text ends the stream; 750c00b3 photosensitivity or reduced motion switched on while paused ends it; 09d7f8db a stream that stops itself withdraws the grant; 2c842a2a tests that fail without their guards and a wider source scan; 099f2a4c meter refuses NaN time and short summaries, empty reels refused, oversized images never decoded. Each test watched failing first; jsdom only.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "document",
+      "ref": "docs/specs/IMAGE-STREAM-SPEC.md",
+      "note": "Before IMAGE_STREAM_ENABLED may flip (spec §7): reel compiler, phone aperture, OS magnifier decision, removing the backdrop blur from the aperture, measuring the blur footprint, verifying the zoom-refusal heuristic in real browsers, notice wording, real-browser safety review. Pinch now stands the stream down (6f87bb89).",
+      "date": "2026-10-18"
     }
   ],
   "activity": [
@@ -51,10 +93,30 @@
     {
       "date": "2026-10-18T05:50:14.000Z",
       "summary": "#721 merged as 31fbdeb2; PR #722 opened to fix the meter's coarse-grid blind spot"
+    },
+    {
+      "date": "2026-10-18T06:33:18.000Z",
+      "summary": "Step 2: the fixation-aperture presenter, behind IMAGE_STREAM_ENABLED (off)"
+    },
+    {
+      "date": "2026-10-18T06:36:36.000Z",
+      "summary": "PR #723 opened as a draft: the presenter behind its flag, held until Codex's findings are fixed"
+    },
+    {
+      "date": "2026-10-18T07:47:51.000Z",
+      "summary": "Review findings on step 2 fixed: the meter is armed at every size; Off, consent end and look change stop the stream"
+    },
+    {
+      "date": "2026-10-18T08:22:14.000Z",
+      "summary": "Round 3 review: the meter counts a change over ~2% of the aperture at any zoom; the stream stops on every off path; the rate cap holds under a mis-measured refresh"
+    },
+    {
+      "date": "2026-10-18T08:34:24.000Z",
+      "summary": "Final review round: pinch stands the stream down; the spec lists the blur, magnifier and zoom-heuristic preconditions before the flag may flip"
     }
   ],
-  "updatedAt": "2026-10-18T05:50:14.000Z",
-  "revision": 3,
+  "updatedAt": "2026-10-18T08:34:24.000Z",
+  "revision": 8,
   "summary": "A rapid serial stream of images beside the rapid serial stream of words: frames replacing frames at several per second, never passing through black, governed by the light it actually puts on the screen. The retired event economy limited risk by counting events, so this stream is measured against WCAG 2.3.1 instead, and FLASHING_ENABLED stays false.",
   "blocker": null
 }

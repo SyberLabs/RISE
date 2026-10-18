@@ -33,8 +33,10 @@ const GENERAL_DARKER_CEILING = 0.8;
 const RED_DELTA = 20;
 
 /**
- * A stream no larger than the safe area cannot produce a countable flash,
- * whatever it shows and however fast. Its safety is geometry, not analysis.
+ * Whether an area, as the page measures it, is within the safe area. This is
+ * arithmetic, not a safety argument: page zoom, magnifiers and blur enlarge
+ * what the reader sees without changing what the page measures, so no
+ * stream is exempt from the meter for being small (IMAGE-STREAM-SPEC §3).
  */
 export function apertureIsInherentlySafe(cssWidth, cssHeight, safeAreaPx = FLASH_SAFE_AREA_PX) {
     const area = Number(cssWidth) * Number(cssHeight);
@@ -102,7 +104,11 @@ export class FlashMeter {
         windowMs = FLASH_WINDOW_MS,
         maxFlashes = STREAM_MAX_FLASHES_PER_WINDOW
     } = {}) {
-        this.areaPx = Math.max(0, Number(areaPx) || 0);
+        // A missing area would make every transition count as none: refuse it.
+        if (typeof areaPx !== 'number' || !(areaPx >= 0)) {
+            throw new RangeError(`the meter needs the area the frames cover, in CSS px², not ${String(areaPx)}`);
+        }
+        this.areaPx = areaPx;
         this.safeAreaPx = safeAreaPx;
         this.windowMs = windowMs;
         this.maxFlashes = maxFlashes;
@@ -127,6 +133,14 @@ export class FlashMeter {
                 + `averages a ${summary.width}×${summary.height} frame, and a pattern inverting inside a cell is invisible to it`);
         }
         const cells = summary.cols * summary.rows;
+        // A NaN time would drop every earlier event from the window, and a
+        // short array would leave cells unread: both would fail open.
+        if (typeof timeMs !== 'number' || !Number.isFinite(timeMs)) {
+            throw new RangeError(`a frame needs the finite time it reached the screen, not ${String(timeMs)}`);
+        }
+        if (summary.luminance?.length !== cells || summary.red?.length !== cells) {
+            throw new RangeError(`a ${summary.cols}×${summary.rows} summary needs ${cells} values in each channel`);
+        }
         if (!this.grid) {
             this.grid = { cols: summary.cols, rows: summary.rows };
             this.general = new ChannelTracker(cells, GENERAL_DELTA, GENERAL_DARKER_CEILING);
@@ -162,12 +176,26 @@ export class FlashMeter {
  * Play a reel through a fresh meter, looping until every window of a steady
  * stream has been seen (at least two loops, so the wrap from the last frame
  * to the first is always checked), and report the worst window.
+ *
+ * The reel is judged at the area it is given, with no floor of its own: the
+ * floor is the presenter's policy (METER_FLOOR_AREA_PX in
+ * visuals/image-stream.js), and a core module does not import a presenter.
+ * Whoever certifies a reel for the stream passes the area the runtime meter
+ * will judge it by. A reel certified at a smaller area is not a risk, only
+ * wasted work: the runtime meter applies the floor regardless and stops it.
  */
 export function certifySequence(frames, { frameMs, areaPx, ...meterOptions } = {}) {
+    // Without a frame time a reel would certify having checked nothing, or
+    // never finish; without frames it would certify nothing. Refuse both.
+    if (typeof frameMs !== 'number' || !Number.isFinite(frameMs) || frameMs <= 0) {
+        throw new RangeError(`a reel needs a positive, finite frame time in ms, not ${String(frameMs)}`);
+    }
+    if (!Array.isArray(frames) || frames.length === 0) {
+        throw new RangeError('an empty reel has nothing to certify');
+    }
     const meter = new FlashMeter({ areaPx, ...meterOptions });
     const worst = { general: 0, red: 0 };
     let firstViolationMs = null;
-    if (!frames.length) return { ok: true, worst, firstViolationMs };
 
     const reelMs = frames.length * frameMs;
     const loops = Math.max(2, Math.ceil((reelMs + meter.windowMs) / reelMs));

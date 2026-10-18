@@ -196,7 +196,47 @@ describe('the meter\'s contract', () => {
         expect(meter.observe(WHITE, 1000)).toMatchObject({ ok: true, flashes: { general: 0, red: 0 } });
     });
 
-    it('has nothing to certify in an empty reel', () => {
-        expect(certifySequence([], { frameMs: 100, areaPx: WIDE }).ok).toBe(true);
+    it('refuses an empty reel rather than certifying nothing', () => {
+        expect(() => certifySequence([], { frameMs: 100, areaPx: WIDE })).toThrow(RangeError);
+    });
+});
+
+describe('refusing an observation it cannot place', () => {
+    it('refuses a time that is not a finite number, which would empty the window', () => {
+        for (const time of [NaN, undefined, Infinity, 'soon']) {
+            const meter = new FlashMeter({ areaPx: WIDE });
+            meter.observe(BLACK, 0);
+            expect(() => meter.observe(WHITE, time), String(time)).toThrow(RangeError);
+        }
+    });
+
+    it('refuses a summary whose arrays do not hold one value per cell', () => {
+        const meter = new FlashMeter({ areaPx: WIDE });
+        const short = { ...BLACK, luminance: BLACK.luminance.subarray(1) };
+        const shortRed = { ...BLACK, red: BLACK.red.subarray(1) };
+        expect(() => meter.observe(short, 0)).toThrow(RangeError);
+        expect(() => meter.observe(shortRed, 0)).toThrow(RangeError);
+    });
+});
+
+describe('refusing to measure what it cannot', () => {
+    const reel = () => [solid(0, 0, 0), solid(255, 255, 255)];
+
+    it('refuses a reel with no frame time, rather than certifying it unchecked or looping forever', () => {
+        for (const frameMs of [undefined, null, NaN, 0, -1, Infinity, 'fast']) {
+            expect(() => certifySequence(reel(), { frameMs, areaPx: WIDE }), String(frameMs)).toThrow(RangeError);
+            expect(() => certifySequence([], { frameMs, areaPx: WIDE }), 'empty, ' + String(frameMs)).toThrow(RangeError);
+        }
+    });
+
+    it('refuses a reel with no area, which would make every transition count as none', () => {
+        for (const areaPx of [undefined, null, NaN, -1, 'wide']) {
+            expect(() => certifySequence(reel(), { frameMs: 100, areaPx }), String(areaPx)).toThrow(RangeError);
+            expect(() => new FlashMeter({ areaPx }), String(areaPx)).toThrow(RangeError);
+        }
+    });
+
+    it('still measures an area it is told is unbounded', () => {
+        expect(certifySequence(alternate(BLACK, WHITE, 24), { frameMs: 1000 / 12, areaPx: Infinity }).ok).toBe(false);
     });
 });
