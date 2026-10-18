@@ -720,15 +720,25 @@ describe('never mounting at all', () => {
 
 describe('decoding the frames', () => {
     /** An Image that decodes, or refuses, by its URL. */
+    /** Which URLs were decoded: the size is known at load, before decoding. */
+    const decodedUrls = [];
     class FakeImage {
-        constructor() { this.width = 0; this.height = 0; this.naturalWidth = 0; this.naturalHeight = 0; }
+        constructor() { this.width = 0; this.height = 0; this.naturalWidth = 0; this.naturalHeight = 0; this._src = ''; }
+        get src() { return this._src; }
+        set src(url) {
+            this._src = url;
+            if (!url || url.includes('slow')) return;
+            queueMicrotask(() => {
+                const [width, height] = url.includes('huge') ? [4000, 3000]
+                    : url.includes('eight') ? [4000, 2000] : [200, 100];
+                this.width = this.naturalWidth = width;
+                this.height = this.naturalHeight = height;
+                this.onload?.();
+            });
+        }
         decode() {
-            if (this.src.includes('bad')) return Promise.reject(new Error('EncodingError'));
-            if (this.src.includes('slow')) return new Promise(() => {});
-            const [width, height] = this.src.includes('huge') ? [4000, 3000]
-                : this.src.includes('eight') ? [4000, 2000] : [200, 100];
-            this.width = this.naturalWidth = width;
-            this.height = this.naturalHeight = height;
+            decodedUrls.push(this._src);
+            if (this._src.includes('bad')) return Promise.reject(new Error('EncodingError'));
             return Promise.resolve();
         }
     }
@@ -772,10 +782,12 @@ describe('decoding the frames', () => {
         }
     });
 
-    it('leaves out an image of more than eight megapixels', async () => {
+    it('leaves out an image of more than eight megapixels, without decoding it', async () => {
         vi.stubGlobal('Image', FakeImage);
+        decodedUrls.length = 0;
         const frames = await decodeStreamFrames(['https://a.test/huge.jpg', 'https://a.test/eight.jpg']);
         expect(frames.map(image => image.src)).toEqual(['https://a.test/eight.jpg']);
+        expect(decodedUrls).toEqual(['https://a.test/eight.jpg']);
     });
 
     it('decodes nothing from nothing', async () => {

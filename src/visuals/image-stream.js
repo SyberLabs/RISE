@@ -368,13 +368,24 @@ export async function decodeStreamFrames(urls, { limit = STREAM_FRAMES_MAX } = {
     const decoded = await Promise.all(wanted.map(async url => {
         const image = createRemoteImage();
         image.crossOrigin = 'anonymous';
+        const loaded = new Promise((resolve, reject) => {
+            image.onload = resolve;
+            image.onerror = reject;
+        });
         image.src = url;
         let timer = null;
         const timedOut = new Promise(resolve => { timer = setTimeout(() => resolve(false), DECODE_TIMEOUT_MS); });
-        try {
-            const done = await Promise.race([image.decode().then(() => true), timedOut]);
+        // The natural size is known once the image has loaded, before its
+        // pixels are decoded, so an oversized one is never decoded at all.
+        const ready = async () => {
+            await loaded;
             const pixels = (image.naturalWidth || image.width) * (image.naturalHeight || image.height);
-            if (done && pixels <= DECODE_MAX_PIXELS) return image;
+            if (!(pixels <= DECODE_MAX_PIXELS)) return false;
+            await image.decode();
+            return true;
+        };
+        try {
+            if (await Promise.race([ready(), timedOut])) return image;
             image.src = '';
             return null;
         } catch {
