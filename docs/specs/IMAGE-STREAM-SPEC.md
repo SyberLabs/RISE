@@ -227,10 +227,12 @@ Runs in a worker. Input: the active image pools the cortex already warms
   however the timestamps jitter. Choosing from elapsed time instead put frame
   boundaries exactly on refresh instants, where ±0.05 ms of jitter held a
   12 Hz frame four refreshes (15 Hz) and the next six. `streamFrameAt` now
-  reads time as the nearest whole refresh for the same reason. A wrongly
-  measured rate (a throttled tab, a display that changes its rate) can still
-  make holds uneven; the meter and the stall stop are the guard, not the
-  clock.
+  reads time as the nearest whole refresh for the same reason. Real time
+  caps the count: a frame is never replaced sooner than one frame at the
+  asked rate (less 2.5 ms of jitter), so a wrongly measured rate (a throttled
+  tab, a display that changes its rate) cannot speed the stream up; and when
+  the median of the last 30 refresh intervals is more than a fifth away from
+  the measured rate, the stream stands down.
 - Frame replaces frame: each image covers the whole aperture (cropped, never
   letterboxed) and is drawn over the last, with no clear, fill, fade or
   overlay.

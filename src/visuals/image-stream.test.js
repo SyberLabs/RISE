@@ -264,6 +264,40 @@ describe('frame replaces frame', () => {
     });
 });
 
+describe('the rate cap when the display is not the rate it was measured at', () => {
+    for (const [measured, real] of [[30, 60], [60, 120]]) {
+        it(`never shows faster than asked when measured at ${measured} Hz and refreshing at ${real}, then stands down`, () => {
+            const display = fakeDisplay();
+            const onFallback = vi.fn();
+            const stream = mountImageStream(stage(), { frames: reel(40), hz: 12, onFallback, ...display });
+            const changes = [];
+            stream.canvas.getContext('2d').drawImage.mockImplementation(() => changes.push(display.now()));
+            stream.resume();
+            display.run(600, measured);
+            const switchedAt = display.now();
+            display.run(1500, real);
+            const holds = changes.slice(1).map((at, i) => at - changes[i]);
+            expect(changes.filter(at => at > switchedAt).length, 'frames shown after the switch').toBeGreaterThan(1);
+            for (const hold of holds) {
+                // Never sooner than one frame at 12 Hz, less one refresh of rounding.
+                expect(hold).toBeGreaterThanOrEqual(1000 / 12 - 1000 / real - 1e-6);
+            }
+            expect(onFallback).toHaveBeenCalledWith('refresh');
+            const stoppedAt = changes.at(-1);
+            expect(stoppedAt - switchedAt).toBeLessThan(1000);
+        });
+    }
+
+    it('keeps playing when the display keeps the rate it was measured at, jitter and all', () => {
+        const display = fakeDisplay({ jitterMs: 1, random: seeded(7) });
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(40), hz: 12, onFallback, ...display });
+        stream.resume();
+        display.run(5000, 60);
+        expect(onFallback).not.toHaveBeenCalled();
+    });
+});
+
 describe('its own clock, driven by the reading', () => {
     it('stays still until the reading plays', () => {
         const display = fakeDisplay();

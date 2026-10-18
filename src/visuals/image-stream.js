@@ -60,6 +60,13 @@ const DECODE_TIMEOUT_MS = 5000;
 // A frame held this long is far beyond any slot (the slowest is 250 ms at
 // 4 Hz): the display is not keeping time, so the stream stops.
 const STALL_MS = 500;
+// The clock counts refreshes at the measured rate, and real time caps it: a
+// frame is never replaced sooner than one frame at the asked rate, less this
+// much for timestamp jitter. If the last 30 refresh intervals disagree with
+// the measured rate by more than a fifth, the stream stands down.
+const RATE_CAP_TOLERANCE_MS = 2.5;
+const REFRESH_CHECK_COUNT = 30;
+const REFRESH_DISAGREEMENT = 0.2;
 
 /**
  * Whether the reader's settings and the page allow the stream at all. Any
@@ -164,6 +171,8 @@ export class ImageStream {
         this._measuredMs = 0;
         this._measuredRefreshes = 0;
         this._shownIndex = null;
+        this._changedAtMs = null;
+        this._intervals = [];
         this._tick = ts => this._onRefresh(ts);
 
         const canvas = document.createElement('canvas');
@@ -192,6 +201,7 @@ export class ImageStream {
     resume() {
         if (this.running || !this.canvas || this._fellBack) return;
         this._lastTs = null;
+        this._intervals = [];
         this._rafId = this._raf(this._tick);
     }
 
@@ -230,6 +240,7 @@ export class ImageStream {
                     // A whole number of refreshes per timestamp: jitter rounds
                     // away, and a missed refresh still counts as time shown.
                     this._refreshes += Math.max(1, Math.round(delta * this._refreshHz / 1000));
+                    if (this._refreshRateDisagrees(delta)) return this._fallBack('refresh');
                 }
             }
             this._lastTs = ts;
@@ -237,14 +248,30 @@ export class ImageStream {
                 hz: this.hz,
                 refreshHz: this._refreshHz
             });
-            if (index !== this._shownIndex) {
+            const capOpen = this._changedAtMs === null
+                || this._shownMs - this._changedAtMs >= 1000 / this.hz - RATE_CAP_TOLERANCE_MS;
+            if (index !== this._shownIndex && capOpen) {
                 this._draw(index);
+                this._changedAtMs = this._shownMs;
                 if (!this._lightIsSafe()) return this._fallBack(this._fallBackReason || 'meter');
             }
         } catch {
             return this._fallBack('error');
         }
         this._rafId = this._raf(this._tick);
+    }
+
+    /**
+     * Whether the display has stopped refreshing at the rate it was measured
+     * at: the median of the last 30 intervals more than a fifth away from it.
+     */
+    _refreshRateDisagrees(delta) {
+        this._intervals.push(delta);
+        if (this._intervals.length > REFRESH_CHECK_COUNT) this._intervals.shift();
+        if (this._intervals.length < REFRESH_CHECK_COUNT) return false;
+        const sorted = [...this._intervals].sort((a, b) => a - b);
+        const median = (sorted[REFRESH_CHECK_COUNT / 2 - 1] + sorted[REFRESH_CHECK_COUNT / 2]) / 2;
+        return Math.abs(median * this._refreshHz / 1000 - 1) > REFRESH_DISAGREEMENT;
     }
 
     /** Read back the frame just drawn and put it through the meter. */
@@ -296,8 +323,9 @@ export class ImageStream {
      * to the nearest whole hertz: a millisecond of timestamp jitter at either
      * end of the window moves the raw figure by about 0.4%, which would
      * otherwise hold 120 Hz frames 16 refreshes instead of 15. A rate that is
-     * wrong (a throttled tab, a display that changes its rate) is not a
-     * safety question: the meter and the stall stop are.
+     * wrong (a throttled tab, a display that changes its rate) cannot speed
+     * the stream up: real time caps every frame, and the refresh check stands
+     * the stream down.
      */
     _measure(delta) {
         if (this._refreshHz !== null || !(delta > 0)) return;
