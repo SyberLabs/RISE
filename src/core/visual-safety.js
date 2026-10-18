@@ -111,13 +111,14 @@ export function grantVisualInterlocutionConsent(scope) {
 
 export function requestVisualInterlocutionConsent(scope) {
     const normalizedScope = normalizeConsentScope(scope);
+    // Photosensitivity mode outranks any acceptance, earlier or current.
+    if (document.documentElement.classList.contains('photosensitivity-mode')) {
+        return Promise.resolve(false);
+    }
     if (hasVisualInterlocutionConsent(normalizedScope)) return Promise.resolve(true);
     if (acceptedLaunchConsent && acceptedLaunchConsentScope !== normalizedScope) {
         acceptedLaunchConsent = false;
         acceptedLaunchConsentScope = null;
-    }
-    if (document.documentElement.classList.contains('photosensitivity-mode')) {
-        return Promise.resolve(false);
     }
     if (pendingConsent?.scope === normalizedScope) return pendingConsent.promise;
     pendingConsent?.cancel?.();

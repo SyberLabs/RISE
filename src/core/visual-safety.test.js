@@ -71,6 +71,16 @@ describe('visual safety boundary', () => {
     expect(hasVisualInterlocutionConsent()).toBe(false);
   });
 
+  it('refuses under photosensitivity mode even for a scope already accepted', async () => {
+    grantVisualInterlocutionConsent('accepted-earlier');
+    document.documentElement.classList.add('photosensitivity-mode');
+    expect(await requestVisualInterlocutionConsent('accepted-earlier')).toBe(false);
+
+    grantVisualInterlocutionConsent('live-session');
+    beginVisualInterlocutionSession('live-session');
+    expect(await requestVisualInterlocutionConsent('live-session')).toBe(false);
+  });
+
   it('consumes acceptance into one active chamber session, then revokes it', async () => {
     const pending = requestVisualInterlocutionConsent();
     document.querySelector('#safety-accept').click();
