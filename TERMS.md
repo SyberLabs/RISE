@@ -39,14 +39,26 @@ You can open **Manage billing** from RISE Plus to update your payment details,
 view invoices, or cancel renewal. Access continues through the paid period
 unless the payment is refunded, disputed, or otherwise invalidated. Use
 **Restore Plus** with your purchase email to recover access on another browser.
-Recovering a subscription does not restore browser-local text or audio.
+Recovering a subscription does not restore browser-local text. It permits
+replay of audio RISE still retains under the same verified Plus billing identity.
 
-New voicing requests use your character allowance. Replaying audio already
-stored in the same browser does not. Changing the voice, clearing the audio,
-or voicing on another device may use the allowance again. A request the voice
-provider bills can count even if delivery fails; contact
+New voicing requests use your character allowance. RISE privately saves the
+audio and playback timings for up to 30 days; replay of the same text and voice
+under the same active Plus identity uses no additional allowance, including on
+another device. Changed voice or synthesis settings can require a new render.
+This is a bounded replay cache, not an archive or a backup of your source text.
+Optional SyberLabs sign-in is separate; a new purchase that creates a different
+Stripe customer does not automatically inherit earlier audio.
+
+**Settings > Delete saved Plus audio** removes server audio and timings.
+Copies already loaded on other devices cannot be recalled. Browser erase and
+Forget Plus affect only that browser. Deletion does not
+refund or reset usage. Expired, deleted, missing or uncertain renders are not
+automatically generated or charged again; safety records prevent that retry.
+A request the voice provider bills can count even if delivery fails; contact
 **syberlabs.support@gmail.com** for help with a failed paid render or a billing
-problem. If a limit or service interruption prevents voicing, free reading
+problem. Generation limits and provider outages do not by themselves prevent
+replay of available saved audio while access remains active. Free reading
 remains available. Nothing in these terms limits mandatory consumer rights.
 
 Administrator voice access requires separate Cloudflare

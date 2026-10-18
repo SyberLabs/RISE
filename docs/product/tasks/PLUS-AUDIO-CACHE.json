@@ -1,0 +1,60 @@
+{
+  "id": "PLUS-AUDIO-CACHE",
+  "title": "Reuse saved Plus audio across devices",
+  "lane": "reader",
+  "milestone": "Paid voice release",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex-account-audio-cache",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Same verified Plus billing account or individual administrator can retrieve an unchanged successful render across devices without a second provider call or debit.",
+    "Concurrent misses, lost responses, ambiguous provider outcomes and deletion races cannot create duplicate spending.",
+    "Cache identity covers effective text and synthesis settings, canonical timings rebuild different phrase segmentation, and owner isolation holds on every read and delete.",
+    "Finite storage and retention, explicit deletion, unchanged entitlement policies and browser logout behavior are tested and disclosed.",
+    "Required PR checks and exact deployment evidence are recorded separately from real-device/live-provider acceptance; checkout remains disabled."
+  ],
+  "evidence": [
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/637",
+      "date": "2026-10-12",
+      "note": "Draft review; not merged or deployed. Private-provider credentials remain a separate blocker."
+    },
+    {
+      "kind": "test",
+      "ref": "worker/plus-audio-runtime.test.js",
+      "date": "2026-10-12",
+      "note": "Real workerd/SQLite verifies concurrent single claim, restart persistence and deletion fencing. Full 16 MiB audio plus timing path with 10,000 characters renders and replays under a 64 MiB V8 heap cap with one provider call and one debit. No live provider call."
+    },
+    {
+      "kind": "test",
+      "ref": "vitest.fast.config.js",
+      "date": "2026-10-12",
+      "note": "Required 115-file subset passed 2,579 tests with 4 existing skips after independent review fixes, including stale-account deletion/generation preconditions and bounded audio memory."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-12T04:38:58.975596Z",
+      "summary": "Claimed Seth’s cross-device audio reuse request; isolated backend/client ownership and existing-subscription scope agreed. No shared checkout, credential or permission changes."
+    },
+    {
+      "date": "2026-10-12T04:55:21.158542Z",
+      "summary": "Published draft PR #637, verified durable storage and current focused/full-fast checks, and fixed provider-readiness status coupling before independent review. No live-device acceptance claimed."
+    },
+    {
+      "date": "2026-10-12T05:19:30.081Z",
+      "summary": "Fixed independent review blockers: constant-stack bounded audio decoding, streamed large JSON boundaries and account scope preconditions for deletion and generation. Full-size workerd persistence and replay pass with a 64 MiB V8 heap cap; no live-provider acceptance or deployment claimed."
+    },
+    {
+      "date": "2026-10-18T17:40:14.650Z",
+      "summary": "Prepared separate integration of #637 without altering its branch; resolved only the fast-test count conflict, preserving 157 combined files. Fresh unit, build, legal, architecture and Worker dry-run evidence recorded; not merged or deployed."
+    }
+  ],
+  "updatedAt": "2026-10-18T17:40:14.650Z",
+  "revision": 4,
+  "summary": "Integration of draft #637 onto main 96df625 preserves current ImageStream and School behavior. The combined 157-file fast subset passed 3,640 tests with 4 existing skips; production build and both Worker dry-runs passed. Independent review, required CI and real-device/provider acceptance remain pending. Checkout stays disabled.",
+  "blocker": null
+}
