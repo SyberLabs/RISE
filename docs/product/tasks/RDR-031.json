@@ -79,6 +79,12 @@
       "ref": "docs/specs/IMAGE-STREAM-SPEC.md",
       "note": "Before IMAGE_STREAM_ENABLED may flip (spec §7): reel compiler, phone aperture, OS magnifier decision, removing the backdrop blur from the aperture, measuring the blur footprint, verifying the zoom-refusal heuristic in real browsers, notice wording, real-browser safety review. Pinch now stands the stream down (6f87bb89).",
       "date": "2026-10-18"
+    },
+    {
+      "kind": "test",
+      "ref": "src/visuals/image-stream.test.js",
+      "note": "Codex reliability follow-up on codex/image-stream-memory-budget: reproduced the 24-image retained-memory and concurrent-load regressions before fixing them. Sequential requests and a cumulative 16-megapixel retained budget, checked before explicit decode; late loads and failed decodes are released. The entire reel keeps a five-second deadline. 145 focused tests across seven files passed; build and 62.8 KB first-load measurement passed. Unit mocks do not establish browser peak memory or human safety acceptance. Both build flags remain false.",
+      "date": "2026-10-18"
     }
   ],
   "activity": [
@@ -113,10 +119,14 @@
     {
       "date": "2026-10-18T08:34:24.000Z",
       "summary": "Final review round: pinch stands the stream down; the spec lists the blur, magnifier and zoom-heuristic preconditions before the flag may flip"
+    },
+    {
+      "date": "2026-10-18T17:34:48.337Z",
+      "summary": "Codex reliability follow-up: bounded cumulative image memory and serial loading on a separate branch; existing feature owner and acceptance gates unchanged."
     }
   ],
-  "updatedAt": "2026-10-18T08:34:24.000Z",
-  "revision": 8,
+  "updatedAt": "2026-10-18T17:34:48.337Z",
+  "revision": 9,
   "summary": "A rapid serial stream of images beside the rapid serial stream of words: frames replacing frames at several per second, never passing through black, governed by the light it actually puts on the screen. The retired event economy limited risk by counting events, so this stream is measured against WCAG 2.3.1 instead, and FLASHING_ENABLED stays false.",
   "blocker": null
 }
