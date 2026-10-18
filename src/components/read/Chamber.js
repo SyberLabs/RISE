@@ -2764,7 +2764,10 @@ export class Chamber {
     console.log('[Chamber] Continuous Field (Gallery) host mounted');
     this.applyChamberMask();
     this.syncMaskGroundPlate();
-    if (IMAGE_STREAM_ENABLED && this.imageStreamGranted) void this._mountImageStream(field);
+    if (IMAGE_STREAM_ENABLED && this.imageStreamGranted) {
+      // A presenter chunk that cannot load leaves the Gallery as it is.
+      this._mountImageStream(field).catch(error => console.warn('[Chamber] The image stream could not start:', error));
+    }
   }
 
   /**

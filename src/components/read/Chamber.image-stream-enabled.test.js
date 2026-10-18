@@ -177,6 +177,25 @@ describe('the Chamber with the image stream flag on', () => {
         expect(container.querySelector('.chamber-image-stream')).toBeNull();
         chamber.destroy();
     });
+
+    it('says once, and leaves no rejection unhandled, when the presenter cannot load', async () => {
+        const unhandled = vi.fn();
+        process.on('unhandledRejection', unhandled);
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            decodeStreamFrames.mockRejectedValueOnce(new Error('Failed to fetch dynamically imported module'));
+            const { chamber, container } = mount();
+            await settle();
+            await new Promise(resolve => setTimeout(resolve, 20));
+            expect(unhandled).not.toHaveBeenCalled();
+            expect(warn.mock.calls.filter(([message]) => String(message).includes('image stream'))).toHaveLength(1);
+            expect(mountImageStream).not.toHaveBeenCalled();
+            expect(container.querySelector('.chamber-image-stream')).toBeNull();
+            chamber.destroy();
+        } finally {
+            process.off('unhandledRejection', unhandled);
+        }
+    });
 });
 
 describe('every way of turning the visuals off or changing them ends the stream', () => {

@@ -42,6 +42,11 @@ export const STREAM_APERTURE_PX = 140;
 export const METER_FLOOR_AREA_PX = FLASH_SAFE_AREA_PX * 4;
 
 const REFRESH_MEASURE_MS = 500;
+// A small pool, decoded in memory: at most 24 frames, none over eight
+// megapixels (32 MB decoded), none waited on for more than five seconds.
+const STREAM_FRAMES_MAX = 24;
+const DECODE_MAX_PIXELS = 8_000_000;
+const DECODE_TIMEOUT_MS = 5000;
 // A frame held this long is far beyond any slot (the slowest is 250 ms at
 // 4 Hz): the display is not keeping time, so the stream stops.
 const STALL_MS = 500;
@@ -285,19 +290,26 @@ export class ImageStream {
  * meter; an image served without CORS fails here instead of tainting the
  * canvas, which would stop the stream at its first frame.
  */
-export async function decodeStreamFrames(urls, { limit = 24 } = {}) {
+export async function decodeStreamFrames(urls, { limit = STREAM_FRAMES_MAX } = {}) {
     const wanted = (Array.isArray(urls) ? urls : [])
         .filter(url => typeof url === 'string' && url)
-        .slice(0, limit);
+        .slice(0, Math.min(STREAM_FRAMES_MAX, Math.max(0, Number(limit) || 0)));
     const decoded = await Promise.all(wanted.map(async url => {
         const image = createRemoteImage();
         image.crossOrigin = 'anonymous';
         image.src = url;
+        let timer = null;
+        const timedOut = new Promise(resolve => { timer = setTimeout(() => resolve(false), DECODE_TIMEOUT_MS); });
         try {
-            await image.decode();
-            return image;
+            const done = await Promise.race([image.decode().then(() => true), timedOut]);
+            const pixels = (image.naturalWidth || image.width) * (image.naturalHeight || image.height);
+            if (done && pixels <= DECODE_MAX_PIXELS) return image;
+            image.src = '';
+            return null;
         } catch {
             return null;
+        } finally {
+            clearTimeout(timer);
         }
     }));
     return decoded.filter(Boolean);

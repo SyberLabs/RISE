@@ -588,11 +588,14 @@ describe('never mounting at all', () => {
 describe('decoding the frames', () => {
     /** An Image that decodes, or refuses, by its URL. */
     class FakeImage {
-        constructor() { this.width = 0; this.height = 0; }
+        constructor() { this.width = 0; this.height = 0; this.naturalWidth = 0; this.naturalHeight = 0; }
         decode() {
             if (this.src.includes('bad')) return Promise.reject(new Error('EncodingError'));
-            this.width = 200;
-            this.height = 100;
+            if (this.src.includes('slow')) return new Promise(() => {});
+            const [width, height] = this.src.includes('huge') ? [4000, 3000]
+                : this.src.includes('eight') ? [4000, 2000] : [200, 100];
+            this.width = this.naturalWidth = width;
+            this.height = this.naturalHeight = height;
             return Promise.resolve();
         }
     }
@@ -618,6 +621,28 @@ describe('decoding the frames', () => {
         const urls = Array.from({ length: 100 }, (_, i) => `https://a.test/${i}.jpg`);
         expect(await decodeStreamFrames(urls)).toHaveLength(24);
         expect(await decodeStreamFrames(urls, { limit: 3 })).toHaveLength(3);
+        expect(await decodeStreamFrames(urls, { limit: 100 })).toHaveLength(24);
+    });
+
+    it('gives up on an image that has not decoded in five seconds', async () => {
+        vi.useFakeTimers();
+        try {
+            vi.stubGlobal('Image', FakeImage);
+            let frames = null;
+            void decodeStreamFrames(['https://a.test/slow.jpg', 'https://a.test/ok.jpg']).then(result => { frames = result; });
+            await vi.advanceTimersByTimeAsync(4999);
+            expect(frames).toBeNull();
+            await vi.advanceTimersByTimeAsync(1);
+            expect(frames.map(image => image.src)).toEqual(['https://a.test/ok.jpg']);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('leaves out an image of more than eight megapixels', async () => {
+        vi.stubGlobal('Image', FakeImage);
+        const frames = await decodeStreamFrames(['https://a.test/huge.jpg', 'https://a.test/eight.jpg']);
+        expect(frames.map(image => image.src)).toEqual(['https://a.test/eight.jpg']);
     });
 
     it('decodes nothing from nothing', async () => {
