@@ -65,6 +65,14 @@ describe('frame summaries', () => {
         expect(summary.red[0]).toBe(320);
     });
 
+    it('keeps one cell per pixel unless a coarser grid is asked for', () => {
+        const summary = summarizeFrame(frame(48, 30, () => [0, 0, 0, 255]), 48, 30);
+        expect(summary.cols).toBe(48);
+        expect(summary.rows).toBe(30);
+        expect(summary.width).toBe(48);
+        expect(summary.height).toBe(30);
+    });
+
     it('refuses a buffer that does not match its dimensions', () => {
         expect(() => summarizeFrame(new Uint8ClampedArray(12), 2, 2)).toThrow(/dimensions/u);
     });

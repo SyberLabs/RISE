@@ -88,9 +88,12 @@ RISE keeps one in hand: `STREAM_MAX_FLASHES_PER_WINDOW = 2`.
 
 ### How the meter applies it (`src/core/flash-meter.js`)
 
-Each frame is summarised as a coarse grid of cells
-(`summarizeFrame`, default 24 × 24), each holding mean relative luminance
-and a saturated-red value, both averaged in linear light.
+Each frame is summarised as a grid of cells (`summarizeFrame`, one cell
+per pixel by default), each holding mean relative luminance and a
+saturated-red value, both averaged in linear light. The meter refuses any
+coarser grid: a cell's mean cannot see a pattern inverting inside it, so a
+checkerboard and its inverse would read as the same grey while every pixel
+flashes. Coarse grids serve only to order a reel.
 
 Per cell, the meter tracks turning points: a cell **transitions** when it has
 moved by at least the threshold away from its last extreme, in the opposite
