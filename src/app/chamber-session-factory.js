@@ -197,7 +197,7 @@ export async function createChamberSession(operations, container, sessionData) {
         ui.showLoading('Preparing Session');
 
         // The Plus voice, for a reading of the reader's own that brings no
-        // recitation of its own: kept in this browser once voiced, otherwise
+        // recitation of its own: saved audio is checked on the server with
         // one request, awaited, never retried. A refusal leaves the reading
         // silent and is said once the Chamber is up. The Worker voices a
         // Current, not a chapter, so a longer text is not sent.
@@ -208,10 +208,10 @@ export async function createChamberSession(operations, container, sessionData) {
             && (requiredVoice || operations.getSettings()?.plusVoice !== false);
         const entitlement = ownVoice ? await fetchPlusStatus() : null;
         assertCurrent();
-        if (requiredVoice && (!ownVoice || !entitlement?.available || !(entitlement.admin || entitlement.subscriber))) {
-            refuseRequiredVoice('Could not confirm ElevenLabs access or availability. Your text is still here. Check availability and try again.');
+        if (requiredVoice && (!ownVoice || !(entitlement?.admin || entitlement?.subscriber))) {
+            refuseRequiredVoice('Could not confirm ElevenLabs access. Your text is still here. Check availability and try again.');
         }
-        if (ownVoice && ((entitlement?.available && (entitlement.admin || entitlement.subscriber))
+        if (ownVoice && ((entitlement?.admin || entitlement?.subscriber)
             || (plus.claimed && !plus.lapsed))) {
             const { spokenAtoms, voiceReading } = await import('../audio/plus-voice.js');
             assertCurrent();
@@ -219,7 +219,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 plusRefused = 'TOO_LONG';
             } else {
                 ui.updateLoadingStatus('Asking for the Plus voice...');
-                const voiced = await voiceReading(session.atoms, { voice: plusVoiceSlug(requiredVoice ? session.origin.voice : operations.getSettings()?.plusVoiceSlug) });
+                const voiced = await voiceReading(session.atoms, { audioScope: entitlement?.audioScope, voice: plusVoiceSlug(requiredVoice ? session.origin.voice : operations.getSettings()?.plusVoiceSlug) });
                 assertCurrent();
                 if (voiced.ok) {
                     plusVoicing = voiced;
@@ -251,7 +251,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 audioEngine,
                 voiceId: session.voiceId,
                 ...(plusVoicing
-                    ? { manifest: plusVoicing.manifest, fetchImpl: plusVoicing.fetchImpl }
+                    ? { manifest: plusVoicing.manifest, fetchImpl: plusVoicing.fetchImpl, signal: plusVoicing.signal }
                     : { packUrl: session.recitation.pack })
             });
             recitationVoice.enabled = true;

@@ -24,7 +24,8 @@ Inside ChatGPT or Claude, RISE receives only the reading your assistant writes
 for it, plays it, and keeps nothing.
 If you subscribe to RISE Plus or sign in as an authorized administrator and its voice is on, the text of readings of your
 own material is sent through RISE's server to ElevenLabs to be voiced, and the
-audio is kept only in your browser; see section 4.
+audio and playback timings are saved privately by RISE for up to 30 days so
+the same verified Plus account can replay them on another device; see section 4.
 
 Create's hosted writing service has been retired and is unavailable. RISE no
 longer sends thoughts or revision instructions to any writer.
@@ -132,7 +133,7 @@ Session storage is discarded when you close the tab.
 | `rise-personal-assets` | Audio and imagery you have added to your own compositions | yes |
 | `rise-workshop-media` | Media belonging to projects you are building | yes |
 | `rise-source-cache` | A cache of texts and catalogue responses, so the same request is not repeated | yes |
-| `rise-plus-voice` | Plus only: the audio voiced for your own readings, so playing it again costs nothing | yes |
+| `rise-plus-voice` | Legacy browser-only Plus audio; current playback does not read or add to this database | yes |
 | `rise-local-works` | Texts you imported to read, on this device's shelf | no — removing a text from the Library deletes it |
 
 ### Cache Storage
@@ -145,9 +146,10 @@ Session storage is discarded when you close the tab.
 These hold RISE's own published files, nothing of yours. Clearing your
 browser's site data removes them.
 
-If you use the Plus voice, the audio voiced for your readings is stored only in
-this browser's IndexedDB. Erase clears it. Voicing the same text again on
-another device, or after Erase, uses your allowance again.
+Current Plus playback retrieves audio through an authenticated server request.
+Older browser-only audio is not uploaded or migrated automatically. Browser
+erase clears legacy local copies; it does not delete server-saved Plus audio.
+Use **Settings > Delete saved Plus audio** for that separate action.
 
 ### Text you paste or upload
 
@@ -245,10 +247,31 @@ sign-in, with separate shared daily and monthly allowances.
   audio to your browser. Before voicing, the server checks with Stripe that the
   subscription is active, at most once a minute, and Stripe tells it when a
   subscription ends or its payment is refunded or disputed. RISE's server
-  keeps no copy of your text or of the audio.
-- **Where the audio is kept.** Only in your browser's IndexedDB (section 3).
-  Erase clears it. Voicing the same text again on another device, or after
-  Erase, uses your allowance again.
+  does not persist the submitted text. Spoken audio itself can contain the
+  same sensitive information as that text.
+- **Where the audio is kept.** RISE saves generated audio and character playback
+  timings in a private Cloudflare Durable Object for up to 30 days. It uses a
+  hash of the verified Stripe customer identity, or the verified administrator
+  issuer and subject, to separate owners. A synthesis fingerprint includes the
+  text, voice, model, format and settings; only the fingerprint is stored, not
+  the source text. There are no public audio URLs. A current active entitlement
+  is required to retrieve a saved render. Replaying the same render under that
+  identity, including on another device, makes no new vendor request and uses
+  no additional voice allowance. A new purchase that creates a different Stripe
+  customer does not automatically inherit the previous customer's saved audio;
+  optional SyberLabs sign-in is separate from this billing identity.
+- **Deletion and interrupted requests.** **Settings > Delete saved Plus audio**
+  deletes that owner's audio and timings and prevents an in-flight render from
+  putting them back. Copies already loaded on another device cannot be recalled.
+  It does not reset usage or billing. Browser erase and
+  Forget Plus only affect this browser. After deletion, expiry, missing data or
+  an uncertain provider response, RISE keeps a small safety record so the same
+  render is not automatically generated or charged again. These records contain
+  fingerprints and state, not text, audio or timings, and remain until a reviewed
+  support reset. Storage is limited to 64 MiB of retained or reserved render data
+  and 1,024 render records per owner; at the limit, new requests are refused
+  before a vendor call. Contact **syberlabs.support@gmail.com** for deletion
+  requests when you can no longer sign in, or for an unavailable saved render.
 - **What the server keeps.** For each Stripe subscription, in a Cloudflare
   Durable Object: the characters voiced in the current billing period and
   in the current UTC day; what
@@ -257,17 +280,22 @@ sign-in, with separate shared daily and monthly allowances.
   requests it made this minute; whether it was ended, refunded or disputed;
   and the ids of the last 50 Stripe events about it. The server also keeps the
   paid-invoice budget, its cost-policy snapshot and reserved or charged voice costs used to enforce the
-  spend ceiling. The new planned offer includes 60,000 characters per paid
+  spend ceiling. Bounded reservation identifiers, request amounts and release
+  states prevent a repeated operation from changing that budget twice; they
+  rotate with the relevant billing period or UTC day. The new planned offer includes 60,000 characters per paid
   billing period, with a separate daily limit of 25,000 characters. Checkout
   remains closed until the configured offer can fund that allowance under the
   server's cost safeguards. Earlier subscriptions retain their invoice-derived
   allowance, bounded by 105,000 characters, which may be lower according to
-  taxes, discounts and fee or fixed-cost reserves. If the subscription lapses or a limit is reached,
-  reading continues without the voice.
+  taxes, discounts and fee or fixed-cost reserves. If the subscription lapses,
+  voice access ends. Reaching a generation limit does not prevent an active
+  subscriber from replaying saved audio. Free reading remains available.
 - **Administrator sign-in.** Cloudflare Access authenticates approved
   administrators and provides a signed authorization token, including their
   email and subject identifier, under [Cloudflare's policy](https://www.cloudflare.com/privacypolicy/).
-  The Worker verifies the token; it does not persist the email, subject or token.
+  The Worker verifies the token; it does not persist the raw email, subject or token.
+  Its saved audio is isolated by a hash of the verified issuer and subject;
+  administrators do not share each other's saved audio.
   A separate Durable Object counts the administrators' shared daily voice
   usage and monthly voice spend, enforcing their configured ceilings.
   No reading text or audio is stored in that meter. This identity processing
@@ -436,8 +464,8 @@ We state these plainly because the absence is the point.
   administrator sign-in. Neither grants authority through a browser role flag.
 - **The Plus voice.** With a Plus subscription or verified administrator access and its voice on, the text of readings
   of your own material goes through RISE's server to ElevenLabs on our account,
-  and the audio is kept only in your browser. RISE's server keeps no copy of
-  either (section 4).
+  and audio with playback timings is saved privately for up to 30 days. RISE
+  does not persist the submitted text (section 4).
 - **No analytics.** No Google Analytics, no Tag Manager, no Plausible, no
   Sentry, no product analytics of any kind. No third-party script of any kind
   runs on the page.
@@ -488,6 +516,9 @@ You hold browser-local data directly. Explicit account backups have the separate
   does not name.
 - **Clear it yourself.** Clearing site data for this domain in your browser
   removes browser-local data for that domain. It does not remove separately saved account backups.
+- **Delete saved Plus audio.** While signed in with active Plus or administrator
+  voice access, use the separate confirmed Settings action to remove server
+  audio and timings. It retains the safety records described in section 4.
 
 If you are in the UK, EU or another jurisdiction granting data-subject rights,
 those rights — access, rectification, erasure, restriction, portability,
@@ -499,15 +530,16 @@ For the on-device data in section 3 we cannot action such a request, because we
 have no server copy unless you explicitly saved that text work to your account. The local erase control can delete
 that copy immediately. If you connected OpenRouter, it processes your requests
 under its own policy; contact OpenRouter about its processing or retention.
-Text you voiced with Plus is retained by ElevenLabs under its own policy, as
-section 4 describes.
+RISE's saved Plus audio has the separate deletion and retention controls in
+section 4. Text you voiced with Plus is retained by ElevenLabs under its own
+policy; deleting RISE's copy does not delete the provider's records.
 
 ---
 
 ## 9. California residents
 
 RISE is published from California. Our server processing includes hosting request
-data, explicit SyberLabs account backups and, for Plus, voicing, subscription budget/usage records and
+data, explicit SyberLabs account backups and, for Plus, voicing, private saved audio and timings, subscription budget/usage records and
 administrator identity verification and shared daily/monthly meters, as
 described in section 4; AI requests go to the connection you chose.
 
@@ -570,7 +602,10 @@ including the separate shared administrator meter; a newer month replaces
 the administrator monthly spend meter. RISE stores no reading text or
 audio in these records. ElevenLabs retains voiced text
 and audio, and Stripe retains payment records, under their own policies; see
-section 4.
+section 4. Separately, saved Plus audio and timings expire after 30 days or are
+removed by the server-audio deletion control. A storage alarm cleans expired
+bytes; expired renders are refused even before that cleanup runs. Bounded
+fingerprint safety records remain to prevent an automatic repeat vendor charge.
 
 Data on your device persists until you erase it or clear your browser storage.
 

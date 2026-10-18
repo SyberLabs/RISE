@@ -1,5 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
-import { PLUS_DEFAULT_VOICE, fetchPlusStatus, fetchPlusVoices, forgetPlus, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
+import { PLUS_DEFAULT_VOICE, fetchPlusStatus, fetchPlusVoices, forgetPlus, erasePlusAudio, plusAllowance, plusState, plusVoiceSlug } from '../app/plus.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import { roomHeader, roomIcon } from './room-chrome.js';
 import './Settings.css';
@@ -273,8 +273,8 @@ export class Settings {
      */
     plusVoiceRow() {
         const plus = plusState();
-        const admin = this.plusStatus?.available && this.plusStatus.admin;
-        const subscriber = this.plusStatus?.available && this.plusStatus.subscriber;
+        const admin = this.plusStatus?.admin;
+        const subscriber = this.plusStatus?.subscriber;
         if (!admin && !subscriber && (!plus.claimed || plus.lapsed)) {
             return `
             <div class="settings-row settings-action">
@@ -305,11 +305,19 @@ export class Settings {
             <div class="settings-row">
               <div class="settings-label-group">
                 <label class="settings-label" for="settings-plus-voice">Voice</label>
-                <p class="settings-hint">Changing voice voices your readings again and uses allowance.</p>
+                <p class="settings-hint">A new voice uses allowance only when no matching saved audio exists.</p>
               </div>
               <select id="settings-plus-voice" data-plus-voice>
                 <option value="${plusVoiceSlug(this.settings.plusVoiceSlug)}" selected>${plusVoiceSlug(this.settings.plusVoiceSlug) === PLUS_DEFAULT_VOICE.slug ? PLUS_DEFAULT_VOICE.label : plusVoiceSlug(this.settings.plusVoiceSlug)}</option>
               </select>
+            </div>
+            <div class="settings-row settings-action">
+              <div class="settings-label-group">
+                <span class="settings-label">Saved Plus audio</span>
+                <p class="settings-hint" id="plus-audio-delete-hint">Saved for 30 days for replay across devices. Deleting it keeps your subscription and used allowance; the same audio will not be generated again automatically.</p>
+                <p data-plus-audio-status role="status" aria-live="polite"></p>
+              </div>
+              <button type="button" class="btn-secondary" data-action="erase-plus-audio" aria-describedby="plus-audio-delete-hint">Delete saved Plus audio</button>
             </div>
             ${admin ? '' : `<div class="settings-row settings-action">
               <div class="settings-label-group">
@@ -520,6 +528,10 @@ export class Settings {
         });
 
 
+        this.container.querySelector('[data-action="erase-plus-audio"]')?.addEventListener('click', () => {
+            void this.erasePlusAudio();
+        });
+
         const voicePicker = this.container.querySelector('[data-plus-voice]');
         if (voicePicker) {
             voicePicker.addEventListener('change', () => {
@@ -537,7 +549,7 @@ export class Settings {
         const region = this.container.querySelector('[data-plus-region]');
         const status = await fetchPlusStatus();
         if (!region?.isConnected || this.destroyed || generation !== this.plusStatusGeneration) return;
-        if (!this.plusStatus && !status.adminLogin && (!status.available || (!status.admin && !status.subscriber))) return;
+        if (!this.plusStatus && !status.adminLogin && !status.admin && !status.subscriber) return;
         this.plusStatus = status;
         region.innerHTML = this.plusVoiceRow();
         const toggle = region.querySelector('[data-setting="plusVoice"]');
@@ -653,7 +665,7 @@ export class Settings {
     }
 
     async clearHistory() {
-        const confirm = window.confirm('Clear all personal RISE data? This deletes journals, saved sequences, loaded text, uploaded images, personal audio, and cached sources. This cannot be undone.');
+        const confirm = window.confirm('Clear personal RISE data from this browser? This deletes journals, saved sequences, loaded text, uploaded images, personal audio, and cached sources. Saved Plus audio on your account is unchanged; delete it separately in Plus settings. This cannot be undone.');
         if (!confirm) return;
 
         try {
@@ -682,6 +694,27 @@ export class Settings {
             option.selected = slug === chosen;
             return option;
         }));
+    }
+
+    async erasePlusAudio() {
+        if (this.erasingPlusAudio) return;
+        const audioScope = this.plusStatus?.audioScope;
+        if (!window.confirm('Delete all saved Plus audio for your current account? This cannot be undone. Your subscription and used allowance stay unchanged. Deleted recordings will not be generated or charged again automatically.')) return;
+        const button = this.container.querySelector('[data-action="erase-plus-audio"]');
+        const status = this.container.querySelector('[data-plus-audio-status]');
+        this.erasingPlusAudio = true;
+        button.disabled = true;
+        status.textContent = 'Deleting saved Plus audio…';
+        try {
+            const result = await erasePlusAudio({ audioScope });
+            if (this.destroyed || !status.isConnected) return;
+            status.textContent = result.ok
+                ? `Saved Plus audio deleted. Your subscription and used allowance are unchanged.${result.localCleared ? '' : ' Older browser audio could not be cleared; clear browser data in Settings.'}`
+                : result.message;
+        } finally {
+            this.erasingPlusAudio = false;
+            if (!this.destroyed && button.isConnected) { button.disabled = false; button.focus(); }
+        }
     }
 
     /** The panel is drawn again so the row shows the way to buy Plus. */
