@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { DISTRIBUTOR_MATTER } from '../archive/divisions.js';
 import { SCHOOL_CANON } from './canon.js';
-import { SCHOOL_WORKS } from './corpus.js';
+import { SCHOOL_WORKS, schoolWorkById } from './corpus.js';
 
 const RECORD_IDS = new Set(SCHOOL_CANON.map(record => record.id));
 const LIFE70 = /^(?:pd|unknown|until:\d{4})$/u;
@@ -42,7 +42,7 @@ describe('the School corpus', () => {
 
   it('serves the texts of the three slices: Standard Ebooks; Project Gutenberg; Wikisource, CCEL, sacred-texts, EEBO-TCP, the Victorian Web and local files', () => {
     expect(SCHOOL_WORKS.map(work => [work.id, work.units])).toEqual([
-      ['gate.oration', 47],
+      ['gate.oration', 94],
       ['sun.fragments', 21],
       ['sun.symposium-phaedrus-timaeus', 6],
       ['sun.zarathustra', 81],
@@ -109,13 +109,32 @@ describe('the School corpus', () => {
 
   it('names the language of every work not read in English', () => {
     expect(Object.fromEntries(SCHOOL_WORKS.filter(work => 'language' in work).map(work => [work.id, work.language]))).toEqual({
-      'gate.oration': 'la',
       'mercury.philosophie-der-technik': 'de',
       'mars.muqaddimah': 'fr',
       'mars.new-science': 'fr',
       'jupiter.art-forms-in-nature': 'de',
       'jupiter.harmonices-mundi': 'la'
     });
+  });
+
+  it('reads the Gate in RISE’s English first, the Latin after it, each without its running sentence numbers', async () => {
+    const { GATE_ORATION_SECTIONS: sections, GATE_ORATION_META: meta } = await import('./works/gate.oration.js');
+    const paragraphs = Array.from({ length: 47 }, (_, index) => `§ ${index + 1}`);
+    expect(sections.map(section => section.name)).toEqual([...paragraphs, ...paragraphs.map(name => `Latin · ${name}`)]);
+    expect(sections[0].content).toMatch(/^I have read, most reverend Fathers, in the records of the Arabs/u);
+    expect(sections[47].content).toMatch(/^Legi, Patres colendissimi, in Arabum monumentis/u);
+    for (const section of sections) expect(section.content, section.name).not.toMatch(/(?:^|\s)\d{1,3}\.\s/u);
+    // 293 sentences, numbered once in each language.
+    expect(meta.dropped).toEqual({ 'sentence numbers': 586 });
+    // The English is RISE's own and a draft, and the entry says both.
+    expect(schoolWorkById('gate.oration')).toMatchObject({
+      edition: { statement: 'English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, not yet read against it by a person (notes on uncertain readings are in the source folder). Latin: the Pico Project text, 1486.', translator: 'RISE', year: 2026 },
+      rights: { us: 'pd', life70: 'pd', note: 'English CC BY 4.0, RISE 2026', licence: 'English translation CC BY 4.0, RISE 2026' },
+      translation: 'RISE translation, English draft, Latin beside it'
+    });
+    expect(meta.source.artifacts.map(source => source.url)).toEqual([
+      'scripts/school-sources/gate.oration/oratio.en.md', 'scripts/school-sources/gate.oration/oratio.la.md'
+    ]);
   });
 
   for (const work of SCHOOL_WORKS) {
