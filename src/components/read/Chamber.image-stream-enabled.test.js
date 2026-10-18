@@ -134,6 +134,7 @@ describe('the Chamber with the image stream flag on', () => {
         const [stream] = presenter.streams;
         stream.options.onFallback('meter');
         expect(stream.destroy).toHaveBeenCalledTimes(1);
+        expect(chamber.imageStreamGranted, 'a stream that stopped itself is not granted again').toBe(false);
         expect(container.querySelector('.chamber-image-stream')).toBeNull();
         expect(container.querySelector('#chamber-continuous-field')).not.toBeNull();
         player.emit('state', { state: 'paused' });
@@ -176,6 +177,16 @@ describe('the Chamber with the image stream flag on', () => {
         const { chamber, container } = mount();
         await settle();
         expect(container.querySelector('.chamber-image-stream')).toBeNull();
+        chamber.destroy();
+    });
+
+    it('leaves no empty host behind when the presenter throws while mounting', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        mountImageStream.mockImplementationOnce(() => { throw new Error('canvas unavailable'); });
+        const { chamber, container } = mount();
+        await settle();
+        expect(container.querySelector('.chamber-image-stream')).toBeNull();
+        expect(warn).toHaveBeenCalledTimes(1);
         chamber.destroy();
     });
 

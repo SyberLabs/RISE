@@ -2788,11 +2788,15 @@ export class Chamber {
     host.className = 'chamber-image-stream';
     Object.assign(host.style, { position: 'absolute', inset: '0', pointerEvents: 'none' });
     this._insertBehindReading(field, host);
-    const stream = mountImageStream(host, { frames, onFallback: () => this._dropImageStream() });
-    if (!stream) {
-      host.remove();
-      return;
+    let stream = null;
+    try {
+      // A stream that stops itself (its meter, a stall, a setting) is not
+      // granted again for this reading.
+      stream = mountImageStream(host, { frames, onFallback: () => this._revokeImageStream() });
+    } finally {
+      if (!stream) host.remove();
     }
+    if (!stream) return;
     this._imageStream = stream;
     if (this.player?.state === 'playing') stream.resume();
   }
