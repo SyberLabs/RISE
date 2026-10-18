@@ -44,9 +44,10 @@ export const STREAM_APERTURE_PX = 140;
  *
  * No floor covers blur at 500%: the 40 px margin alone covers 200² = 40,000
  * px² there. So zoom the page can see is handled apart from the floor
- * (refused at mount, a change mid-stream stops it, pinch-zoom and the
- * device pixel ratio multiply the measured area), and an OS magnifier above
- * about 2.5× over the glass tile is a residual risk the floor only narrows
+ * (refused at mount, any change of browser zoom or pinch-zoom mid-stream
+ * stops it, the device pixel ratio multiplies the measured area), and an OS
+ * magnifier above about 2.5× over the glass tile is a residual risk the
+ * floor only narrows
  * (IMAGE-STREAM-SPEC §3).
  */
 export const METER_FLOOR_AREA_PX = FLASH_SAFE_AREA_PX * 64;
@@ -85,8 +86,9 @@ export function imageStreamMayRun() {
     }
 }
 
+/** Browser zoom moves the first two, pinch-zoom the third; none may move while the stream runs. */
 function zoomSignature() {
-    return `${window.devicePixelRatio}:${window.innerWidth}`;
+    return `${window.devicePixelRatio}:${window.innerWidth}:${window.visualViewport?.scale}`;
 }
 
 /**
@@ -305,14 +307,16 @@ export class ImageStream {
 
     /**
      * The CSS px² the meter judges the aperture by: what it measures on
-     * screen, multiplied by the device pixel ratio and pinch-zoom (each
-     * squared, never below 1), never less
+     * screen, multiplied by the device pixel ratio (squared, never below 1),
+     * never less
      * than METER_FLOOR_AREA_PX, and unbounded when it cannot be measured, so
      * any transition counts.
      */
     _screenAreaPx() {
         const rect = this.canvas.getBoundingClientRect();
-        const zoom = magnification(window.devicePixelRatio) * magnification(window.visualViewport?.scale);
+        // Pinch-zoom is not multiplied in: it is refused at mount and stands
+        // the stream down the moment it changes.
+        const zoom = magnification(window.devicePixelRatio);
         const area = Math.max(this.side * this.side, rect.width * rect.height) * zoom * zoom;
         return Number.isFinite(area) ? Math.max(METER_FLOOR_AREA_PX, area) : Infinity;
     }

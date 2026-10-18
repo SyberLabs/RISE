@@ -353,13 +353,13 @@ describe('its own clock, driven by the reading', () => {
 
 describe('the runtime meter: every frame drawn is measured, and the stream fails closed', () => {
     it('plays a benign reel at 8 Hz for five seconds without tripping, measuring every frame', () => {
-        // Magnified by pinch-zoom: what keeps this reel playing is that its
-        // light barely changes, not the size it is shown at.
+        // At a device pixel ratio of 10 the measured area is above the floor:
+        // what keeps this reel playing is that its light barely changes.
+        vi.stubGlobal('devicePixelRatio', 10);
         const display = fakeDisplay();
         const onFallback = vi.fn();
         const stream = mountImageStream(stage(), { frames: reel(40), hz: 8, onFallback, ...display });
         const ctx = wirePixels(stream);
-        vi.stubGlobal('visualViewport', { scale: 3 });
         stream.resume();
         display.run(5000);
         expect(onFallback).not.toHaveBeenCalled();
@@ -414,12 +414,11 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         }
     });
 
-    it('stops a strobe within one second once pinch-zoom makes the aperture larger than the safe area', () => {
+    it('stops a strobe on the frame that completes a third flash, and draws nothing after', () => {
         const display = fakeDisplay();
         const onFallback = vi.fn();
         const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
         const ctx = wirePixels(stream);
-        vi.stubGlobal('visualViewport', { scale: 3 });
         stream.resume();
         display.run(1500);
         expect(onFallback).toHaveBeenCalledTimes(1);
@@ -635,25 +634,38 @@ describe('a flash over a small part of the aperture counts', () => {
         expect(play(patch(306))).toBeNull();
     });
 
-    it('still counts it at device pixel ratios of 3 and 5 and under pinch-zoom of 3 and 5', () => {
+    it('still counts it at device pixel ratios of 3 and 5', () => {
         for (const dpr of [3, 5]) {
             vi.stubGlobal('devicePixelRatio', dpr);
             expect(play(patch(307)), `dpr ${dpr}`).toBe('meter');
             vi.unstubAllGlobals();
         }
-        for (const scale of [3, 5]) {
-            expect(play(patch(307), () => vi.stubGlobal('visualViewport', { scale })), `pinch ${scale}`).toBe('meter');
-            vi.unstubAllGlobals();
-        }
     });
+
+    for (const paused of [false, true]) {
+        it(`stands down before drawing when pinch-zoom begins ${paused ? 'while paused' : 'mid-stream'}`, () => {
+            // 306 pixels pass the floor even at pinch 3, so only the zoom check stops this.
+            const display = fakeDisplay();
+            const onFallback = vi.fn();
+            const stream = mountImageStream(stage(), { frames: patch(306), hz: 12, onFallback, ...display });
+            const ctx = stream.canvas.getContext('2d');
+            stream.resume();
+            display.run(1000);
+            if (paused) stream.pause();
+            const drawnBefore = ctx.drawImage.mock.calls.length;
+            vi.stubGlobal('visualViewport', { scale: 3 });
+            stream.resume();
+            display.run(1000);
+            expect(onFallback).toHaveBeenCalledWith('zoom');
+            expect(ctx.drawImage.mock.calls.length).toBe(drawnBefore);
+        });
+    }
 
     it('judges by the magnified area once it is larger than the floor: dpr 10 counts 250 cells', () => {
         // 19,600 × 10² = 1,960,000 CSS px²: a change counts beyond 218 cells.
         expect(play(patch(250))).toBeNull();
         vi.stubGlobal('devicePixelRatio', 10);
         expect(play(patch(250))).toBe('meter');
-        vi.unstubAllGlobals();
-        expect(play(patch(250), () => vi.stubGlobal('visualViewport', { scale: 10 }))).toBe('meter');
     });
 });
 
