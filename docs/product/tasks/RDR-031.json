@@ -19,16 +19,26 @@
       "ref": "docs/specs/IMAGE-STREAM-SPEC.md",
       "note": "The proposal: the stream, the flash meter that measures light rather than counting events, the fixation aperture, and the order of work. The pure core is built on the branch.",
       "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/721",
+      "note": "The pure core: luminance summaries, the flash meter and the stream clock, with the spec. No surface is registered; nothing reaches a reader.",
+      "date": "2026-10-18"
     }
   ],
   "activity": [
     {
       "date": "2026-10-18T05:36:37.000Z",
       "summary": "Claimed: the pure core (luminance summaries, the flash meter, the stream clock) is built on image-stream-core; no surface is registered, so no reader can reach it."
+    },
+    {
+      "date": "2026-10-18T05:39:19.000Z",
+      "summary": "PR #721 opened: the pure core and the spec"
     }
   ],
-  "updatedAt": "2026-10-18T05:36:37.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-18T05:39:19.000Z",
+  "revision": 2,
   "summary": "A rapid serial stream of images beside the rapid serial stream of words: frames replacing frames at several per second, never passing through black, governed by the light it actually puts on the screen. The retired event economy limited risk by counting events, so this stream is measured against WCAG 2.3.1 instead, and FLASHING_ENABLED stays false.",
   "blocker": null
 }
