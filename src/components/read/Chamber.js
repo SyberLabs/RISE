@@ -2545,7 +2545,9 @@ export class Chamber {
     );
     this._visualSchedule = this._directedSchedule;
     // The reading's own Gallery engine must not flash up before the first
-    // directed cue arrives with the first atom.
+    // directed cue arrives with the first atom. The image stream runs only
+    // over the Gallery, so following the text ends it.
+    this._revokeImageStream();
     visualCortex.applyCue({ kind: 'still' }, { cueId: 'passage-direction' });
     void this._startVisualScoring();
     return true;

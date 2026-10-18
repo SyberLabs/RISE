@@ -29,6 +29,7 @@ const { visualCortex } = await import('../../visuals/visual-cortex.js');
 const { decodeStreamFrames, mountImageStream } = await import('../../visuals/image-stream.js');
 const { directionStateFor } = await import('../../core/passage-visuals/reading-state.js');
 const { LOOKS } = await import('../../core/looks.js');
+const { compileSession } = await import('../../core/session-compiler.js');
 
 function fakePlayer(state = 'playing') {
     const handlers = new Map();
@@ -46,7 +47,7 @@ function mount(opts = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const player = fakePlayer(state);
-    const session = {
+    const session = opts.session || {
         title: 'Probe',
         atoms: [{ content: 'First', duration: 500 }, { content: 'Second', duration: 500 }],
         totalDuration: 1000,
@@ -246,6 +247,46 @@ describe('every way of turning the visuals off or changing them ends the stream'
                 chamber.destroy();
             }
         }
+    });
+
+    it('Follow text, which puts a still on screen before its first directed cue', async () => {
+        // A reading whose own text can be followed, opened holding its Gallery.
+        const session = compileSession({
+            title: 'Follow',
+            text: 'The first passage speaks of light.\n\nThe second passage speaks of water and of stone.',
+            wpm: 300,
+            chunkMode: 'phrase',
+            visualConfig: {
+                visualMode: 'interlocution',
+                interlocution: { presentation: 'continuous', procedural: [], sourced: ['wikimedia-impressionism'] }
+            }
+        });
+        const { chamber, container } = mount({ session });
+        await settle();
+        const [stream] = presenter.streams;
+        expect(stream, 'the stream mounted').toBeDefined();
+        expect(chamber.toggleHoldScene()).toBe(true);
+        expect(stream.destroy).toHaveBeenCalledTimes(1);
+        expect(container.querySelector('.chamber-image-stream')).toBeNull();
+        expect(chamber.imageStreamGranted).toBe(false);
+        chamber.destroy();
+    });
+
+    it('Follow text already in force when the reading opens: nothing mounts', async () => {
+        // An empty shelf follows the text by default, from the first frame.
+        const session = compileSession({
+            title: 'Follow',
+            text: 'The first passage speaks of light. The second speaks of stone.',
+            wpm: 300,
+            chunkMode: 'phrase',
+            visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'continuous', procedural: [], sourced: [] } }
+        });
+        const { chamber, container } = mount({ session });
+        expect(chamber._direction.mode).toBe('follow');
+        await settle();
+        expect(mountImageStream).not.toHaveBeenCalled();
+        expect(container.querySelector('.chamber-image-stream')).toBeNull();
+        chamber.destroy();
     });
 
     it('a change of look', async () => {
