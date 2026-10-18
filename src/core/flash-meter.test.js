@@ -200,3 +200,25 @@ describe('the meter\'s contract', () => {
         expect(certifySequence([], { frameMs: 100, areaPx: WIDE }).ok).toBe(true);
     });
 });
+
+describe('refusing to measure what it cannot', () => {
+    const reel = () => [solid(0, 0, 0), solid(255, 255, 255)];
+
+    it('refuses a reel with no frame time, rather than certifying it unchecked or looping forever', () => {
+        for (const frameMs of [undefined, null, NaN, 0, -1, Infinity, 'fast']) {
+            expect(() => certifySequence(reel(), { frameMs, areaPx: WIDE }), String(frameMs)).toThrow(RangeError);
+            expect(() => certifySequence([], { frameMs, areaPx: WIDE }), 'empty, ' + String(frameMs)).toThrow(RangeError);
+        }
+    });
+
+    it('refuses a reel with no area, which would make every transition count as none', () => {
+        for (const areaPx of [undefined, null, NaN, -1, 'wide']) {
+            expect(() => certifySequence(reel(), { frameMs: 100, areaPx }), String(areaPx)).toThrow(RangeError);
+            expect(() => new FlashMeter({ areaPx }), String(areaPx)).toThrow(RangeError);
+        }
+    });
+
+    it('still measures an area it is told is unbounded', () => {
+        expect(certifySequence(alternate(BLACK, WHITE, 24), { frameMs: 1000 / 12, areaPx: Infinity }).ok).toBe(false);
+    });
+});

@@ -104,7 +104,11 @@ export class FlashMeter {
         windowMs = FLASH_WINDOW_MS,
         maxFlashes = STREAM_MAX_FLASHES_PER_WINDOW
     } = {}) {
-        this.areaPx = Math.max(0, Number(areaPx) || 0);
+        // A missing area would make every transition count as none: refuse it.
+        if (typeof areaPx !== 'number' || !(areaPx >= 0)) {
+            throw new RangeError(`the meter needs the area the frames cover, in CSS px², not ${String(areaPx)}`);
+        }
+        this.areaPx = areaPx;
         this.safeAreaPx = safeAreaPx;
         this.windowMs = windowMs;
         this.maxFlashes = maxFlashes;
@@ -166,6 +170,11 @@ export class FlashMeter {
  * to the first is always checked), and report the worst window.
  */
 export function certifySequence(frames, { frameMs, areaPx, ...meterOptions } = {}) {
+    // Without a frame time a reel would certify having checked nothing, or
+    // never finish; refuse it instead.
+    if (typeof frameMs !== 'number' || !Number.isFinite(frameMs) || frameMs <= 0) {
+        throw new RangeError(`a reel needs a positive, finite frame time in ms, not ${String(frameMs)}`);
+    }
     const meter = new FlashMeter({ areaPx, ...meterOptions });
     const worst = { general: 0, red: 0 };
     let firstViolationMs = null;
