@@ -91,6 +91,7 @@ describe('the School corpus', () => {
       ['jupiter.cosmos', 4],
       ['jupiter.growth-and-form', 18],
       ['jupiter.relativity', 37],
+      ['jupiter.harmonices-mundi', 6],
       ['saturn.zhuangzi', 33],
       ['saturn.bhagavad-gita', 18],
       ['saturn.emerald-tablet', 1],
@@ -111,7 +112,8 @@ describe('the School corpus', () => {
       'mercury.philosophie-der-technik': 'de',
       'mars.muqaddimah': 'fr',
       'mars.new-science': 'fr',
-      'jupiter.art-forms-in-nature': 'de'
+      'jupiter.art-forms-in-nature': 'de',
+      'jupiter.harmonices-mundi': 'la'
     });
   });
 

@@ -142,6 +142,22 @@ export const WEB_RECIPES = {
         },
         rights: { us: 'pd', life70: 'pd' }
     },
+    'jupiter.harmonices-mundi': {
+        kind: 'file',
+        path: 'scripts/school-sources/jupiter.harmonices-mundi/harmonices-mundi-v.proofed.md',
+        extract: { from: 'Harmonices Mundi Liber V' },
+        units: 'headings',
+        level: 2,
+        count: 6,
+        language: 'la',
+        textNote: 'tables and notes left out; Greek marked [Greek]',
+        edition: {
+            statement: 'Joannis Kepleri astronomi opera omnia, ed. Christian Frisch, vol. V, Heyder & Zimmer, Frankfurt and Erlangen, 1864; Harmonices Mundi Book V (Linz, 1619), a selection: the title page, the Prooemium, chapters III, VII and VIII, and chapter X, the Epilogus; Internet Archive joanniskeplerias05kepl (Boston College), collated with three other scans of the edition and proofed against the page images by RISE, 2026, diff on file',
+            translator: null,
+            year: 1864
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
     // Converted from Project Gutenberg's LaTeX (PG 15114) by scripts/school-latex.mjs.
     'mercury.laws-of-thought': {
         kind: 'file',
