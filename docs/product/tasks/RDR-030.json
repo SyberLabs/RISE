@@ -106,6 +106,12 @@
       "ref": "9b7cf774",
       "note": "Branch school-kepler, not merged: Kepler's Harmonices Mundi Book V in Latin from Frisch's 1864 reprint (Opera omnia vol. V), title page, Prooemium, chapters III, VII, VIII and X; four OCRs collated and settled against the page images (124 readings), no [?], the Greek marked [Greek] in 41 places (39 in Caput X); 6 units, 7,688 words; 65 of 66 readable (the Futurist Manifesto absent). Diff on file, unread by a person.",
       "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/719",
+      "note": "Kepler: Harmonices Mundi Book V from Frisch 1864, six units, collated across four scans and settled against the page images; 0 unresolved readings; Greek marked.",
+      "date": "2026-10-17"
     }
   ],
   "activity": [
@@ -147,7 +153,7 @@
     }
   ],
   "updatedAt": "2026-10-18T04:48:06.822Z",
-  "revision": 9,
+  "revision": 10,
   "summary": "After RDR-029 shipped with four of 66 texts readable, the owner lifted the Standard-Ebooks-only serving rule for the School only. The survey finds a free proofed edition for 46 of the 62 missing texts, nine as scans needing a proofing pass, and six with no free English, the Gate among them. The design admits them through a School corpus beside the Archive, on the Chapel's precedent, with recipes per work and the same gates every time; six pull requests take the School from 4 to 66 readable.",
   "blocker": "The proofing diffs (Goethe, Kapp, Ibn Khaldun, Kepler) and the Oration translation await the owner's reading before they count as verified; Kepler's Caput X carries 39 [Greek] markers where Kepler quotes Proclus's Hymn to Helios."
 }
