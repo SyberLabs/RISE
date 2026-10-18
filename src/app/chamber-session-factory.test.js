@@ -395,3 +395,28 @@ describe('the Plus voice at the start of a reading', () => {
         expect(voiceReading).not.toHaveBeenCalled();
     });
 });
+
+describe('a reading that names the image stream, while its flag is off', () => {
+    it('opens as Gallery, with no notice and no stream', async () => {
+        // A hand-edited import that never passed the compiler, so the factory
+        // sees the raw name. src/core/flashing-disabled.test.js holds the rest
+        // of the flag-off half; chamber-session-factory.stream.test.js the other.
+        await import('../core/memory.js');
+        const op = operations();
+        Object.assign(op.getVisualCortex(), {
+            beginSessionVisualIdentity: vi.fn(),
+            preloadProgram: vi.fn(async () => {}),
+            preload: vi.fn(async () => {})
+        });
+        const reading = {
+            atoms: [{ content: 'One.', duration: 400 }, { content: 'Two.', duration: 400 }],
+            visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'stream', procedural: ['fractal'] } }
+        };
+        const options = await mount(op, reading);
+        expect(op.showToast).not.toHaveBeenCalled();
+        expect(reading.visualConfig.visualMode).toBe('interlocution');
+        expect(options.imageStream).not.toBe(true);
+        const configured = op.getVisualCortex().beginSessionVisualIdentity.mock.calls.map(([config]) => config.presentation);
+        expect(configured).toEqual(['continuous']);
+    });
+});

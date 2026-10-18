@@ -21,6 +21,7 @@
 import { FlashMeter, apertureIsInherentlySafe } from '../core/flash-meter.js';
 import { summarizeFrame } from '../core/luminance.js';
 import { normalizeStreamRate, streamFrameAt } from '../core/visual-presence.js';
+import { createRemoteImage } from './remote-image.js';
 
 /** The aperture's side in CSS px: 19,600 px², inside the 21,824 px² safe area. */
 export const STREAM_APERTURE_PX = 140;
@@ -207,6 +208,30 @@ export class ImageStream {
         );
         this._shownIndex = index;
     }
+}
+
+/**
+ * Decode up to `limit` images for a stream, in order, leaving out any that
+ * fail. Each is requested with CORS so its pixels can be read back for the
+ * meter; an image served without CORS fails here instead of tainting the
+ * canvas, which would stop the stream at its first frame.
+ */
+export async function decodeStreamFrames(urls, { limit = 24 } = {}) {
+    const wanted = (Array.isArray(urls) ? urls : [])
+        .filter(url => typeof url === 'string' && url)
+        .slice(0, limit);
+    const decoded = await Promise.all(wanted.map(async url => {
+        const image = createRemoteImage();
+        image.crossOrigin = 'anonymous';
+        image.src = url;
+        try {
+            await image.decode();
+            return image;
+        } catch {
+            return null;
+        }
+    }));
+    return decoded.filter(Boolean);
 }
 
 /**

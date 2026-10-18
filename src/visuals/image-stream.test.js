@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { STREAM_APERTURE_PX, mountImageStream } from './image-stream.js';
+import { STREAM_APERTURE_PX, decodeStreamFrames, mountImageStream } from './image-stream.js';
 import { apertureIsInherentlySafe } from '../core/flash-meter.js';
 
 /** A display that only refreshes when the test says so. */
@@ -392,5 +392,45 @@ describe('never mounting at all', () => {
         for (const frames of [[], null, undefined, 'frames']) {
             expect(mountImageStream(stage(), { frames, ...fakeDisplay() })).toBeNull();
         }
+    });
+});
+
+describe('decoding the frames', () => {
+    /** An Image that decodes, or refuses, by its URL. */
+    class FakeImage {
+        constructor() { this.width = 0; this.height = 0; }
+        decode() {
+            if (this.src.includes('bad')) return Promise.reject(new Error('EncodingError'));
+            this.width = 200;
+            this.height = 100;
+            return Promise.resolve();
+        }
+    }
+
+    it('decodes each URL as a CORS image with no referrer, so its pixels can be measured', async () => {
+        vi.stubGlobal('Image', FakeImage);
+        const frames = await decodeStreamFrames(['https://a.test/1.jpg', 'https://a.test/2.jpg']);
+        expect(frames.map(image => image.src)).toEqual(['https://a.test/1.jpg', 'https://a.test/2.jpg']);
+        for (const image of frames) {
+            expect(image.crossOrigin).toBe('anonymous');
+            expect(image.referrerPolicy).toBe('no-referrer');
+        }
+    });
+
+    it('leaves out what will not decode, and anything that is not a URL', async () => {
+        vi.stubGlobal('Image', FakeImage);
+        const frames = await decodeStreamFrames(['https://a.test/bad.jpg', null, 7, '', 'https://a.test/ok.jpg']);
+        expect(frames.map(image => image.src)).toEqual(['https://a.test/ok.jpg']);
+    });
+
+    it('takes a small pool, not the whole collection', async () => {
+        vi.stubGlobal('Image', FakeImage);
+        const urls = Array.from({ length: 100 }, (_, i) => `https://a.test/${i}.jpg`);
+        expect(await decodeStreamFrames(urls)).toHaveLength(24);
+        expect(await decodeStreamFrames(urls, { limit: 3 })).toHaveLength(3);
+    });
+
+    it('decodes nothing from nothing', async () => {
+        expect(await decodeStreamFrames(undefined)).toEqual([]);
     });
 });
