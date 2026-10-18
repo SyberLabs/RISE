@@ -199,9 +199,19 @@ Runs in a worker. Input: the active image pools the cortex already warms
 - One canvas, at most 140 CSS px square whatever it is asked for, centred in
   the stage (the Chamber exposes no fixation point; the words are centred, so
   the stage centre is where the eyes rest).
-- `requestAnimationFrame` drives it; `streamFrameAt` chooses the frame from
-  the stream's own elapsed time; the display refresh rate is measured from
-  frame timestamps over the first half second, assumed 60 Hz until then.
+- `requestAnimationFrame` drives it. The display refresh rate is measured
+  from frame timestamps over the first half second, to the nearest whole
+  hertz, and the first frame holds still until then. After that the stream
+  counts refreshes (each timestamp gap rounded to whole refreshes, a missed
+  refresh counted as time shown) and `streamFrameAtRefresh` chooses the
+  frame, so every frame is held exactly the same whole number of refreshes
+  however the timestamps jitter. Choosing from elapsed time instead put frame
+  boundaries exactly on refresh instants, where ±0.05 ms of jitter held a
+  12 Hz frame four refreshes (15 Hz) and the next six. `streamFrameAt` now
+  reads time as the nearest whole refresh for the same reason. A wrongly
+  measured rate (a throttled tab, a display that changes its rate) can still
+  make holds uneven; the meter and the stall stop are the guard, not the
+  clock.
 - Frame replaces frame: each image covers the whole aperture (cropped, never
   letterboxed) and is drawn over the last, with no clear, fill, fade or
   overlay.

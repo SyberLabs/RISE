@@ -4,9 +4,11 @@
  * One small canvas, centred where the reader's eyes already rest, showing
  * decoded images one after another: frame replaces frame, with no fade, no
  * overlay and nothing drawn between them, so the aperture never passes
- * through black. The display drives it; `streamFrameAt` chooses the frame
- * from the stream's own elapsed time, so a held frame is always a whole
- * number of refreshes and a seek or a late refresh never replays frames.
+ * through black. The display drives it: the stream counts the refreshes it
+ * has been shown for and `streamFrameAtRefresh` chooses the frame, so every
+ * frame is held the same whole number of refreshes however the timestamps
+ * jitter, and a seek or a late refresh never replays frames. Until the
+ * refresh rate is measured the first frame holds still.
  *
  * The small aperture lowers the risk; it is not the safety argument. Page
  * zoom, an OS magnifier or the glass tile's blur can spread its light over
@@ -22,7 +24,7 @@
 
 import { FLASH_SAFE_AREA_PX, FlashMeter } from '../core/flash-meter.js';
 import { summarizeFrame } from '../core/luminance.js';
-import { normalizeStreamRate, streamFrameAt } from '../core/visual-presence.js';
+import { normalizeStreamRate, streamFrameAtRefresh } from '../core/visual-presence.js';
 import { hasFlashingSessionConsent } from '../core/visual-safety.js';
 import { createRemoteImage } from './remote-image.js';
 
@@ -87,7 +89,7 @@ export class ImageStream {
         this._caf = caf;
         this._rafId = null;
         this._lastTs = null;
-        this._elapsedMs = 0;
+        this._refreshes = 0;
         this._refreshHz = null;
         this._measuredMs = 0;
         this._measuredRefreshes = 0;
@@ -131,7 +133,8 @@ export class ImageStream {
 
     /** Move the stream's clock. The next refresh draws the frame for that time and nothing between. */
     seek(elapsedMs) {
-        this._elapsedMs = Math.max(0, Number(elapsedMs) || 0);
+        const ms = Math.max(0, Number(elapsedMs) || 0);
+        this._refreshes = Math.round(ms * (this._refreshHz ?? 60) / 1000);
     }
 
     destroy() {
@@ -150,12 +153,17 @@ export class ImageStream {
             if (this._lastTs !== null) {
                 const delta = ts - this._lastTs;
                 if (delta > STALL_MS) return this._fallBack('stall');
-                this._elapsedMs += delta;
                 this._shownMs += delta;
-                this._measure(delta);
+                if (this._refreshHz === null) {
+                    this._measure(delta);
+                } else {
+                    // A whole number of refreshes per timestamp: jitter rounds
+                    // away, and a missed refresh still counts as time shown.
+                    this._refreshes += Math.max(1, Math.round(delta * this._refreshHz / 1000));
+                }
             }
             this._lastTs = ts;
-            const { index } = streamFrameAt(this._elapsedMs, this.frames.length, {
+            const { index } = streamFrameAtRefresh(this._refreshes, this.frames.length, {
                 hz: this.hz,
                 refreshHz: this._refreshHz
             });
@@ -207,13 +215,20 @@ export class ImageStream {
         }
     }
 
-    /** The display's refresh rate, from the first half second of refreshes. */
+    /**
+     * The display's refresh rate, from the first half second of refreshes,
+     * to the nearest whole hertz: a millisecond of timestamp jitter at either
+     * end of the window moves the raw figure by about 0.4%, which would
+     * otherwise hold 120 Hz frames 16 refreshes instead of 15. A rate that is
+     * wrong (a throttled tab, a display that changes its rate) is not a
+     * safety question: the meter and the stall stop are.
+     */
     _measure(delta) {
         if (this._refreshHz !== null || !(delta > 0)) return;
         this._measuredMs += delta;
         this._measuredRefreshes += 1;
         if (this._measuredMs >= REFRESH_MEASURE_MS) {
-            this._refreshHz = this._measuredRefreshes * 1000 / this._measuredMs;
+            this._refreshHz = Math.max(1, Math.round(this._measuredRefreshes * 1000 / this._measuredMs));
         }
     }
 

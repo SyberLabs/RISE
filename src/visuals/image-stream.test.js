@@ -8,29 +8,54 @@ import {
     grantVisualInterlocutionConsent
 } from '../core/visual-safety.js';
 
-/** A display that only refreshes when the test says so. */
-function fakeDisplay() {
+/** A seeded generator, so a failing case can be replayed. */
+function seeded(seed) {
+    return () => {
+        seed = (seed + 0x6d2b79f5) | 0;
+        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+/**
+ * A display that only refreshes when the test says so. Each refresh lands on
+ * the nominal grid plus up to jitterMs either way, as rAF timestamps do.
+ */
+function fakeDisplay({ jitterMs = 0, random = seeded(1) } = {}) {
     let queue = [];
-    let ts = 0;
+    let nominal = 0;
     let nextId = 1;
     return {
+        refreshes: 0,
         raf: callback => { const id = nextId++; queue.push({ id, callback }); return id; },
         caf: id => { queue = queue.filter(entry => entry.id !== id); },
         pending: () => queue.length,
-        /** Advance the clock by `ms` and run one refresh. */
+        now: () => nominal,
+        /** Advance the clock by ms and run one refresh. */
         refresh(ms = 1000 / 60) {
-            ts += ms;
+            nominal += ms;
+            this.refreshes += 1;
+            const ts = nominal + (random() * 2 - 1) * jitterMs;
             const due = queue;
             queue = [];
             for (const { callback } of due) callback(ts);
         },
-        /** Run refreshes at `hz` for `ms` of display time. */
+        /** Run refreshes at hz for ms of display time. */
         run(ms, hz = 60) {
             const step = 1000 / hz;
             for (let t = 0; t < ms - 1e-6; t += step) this.refresh(step);
         },
-        jump(ms) { ts += ms; }
+        jump(ms) { nominal += ms; }
     };
+}
+
+/** How many refreshes each frame after the first was held, from the refresh each was drawn on. */
+function holds(stream, display) {
+    const at = [];
+    stream.canvas.getContext('2d').drawImage.mockImplementation(() => at.push(display.refreshes));
+    // The first frame also holds while the display is measured: left out.
+    return () => at.slice(1).map((refresh, i) => refresh - at[i]).slice(1);
 }
 
 /** A decoded image the size of the aperture, one flat colour. */
@@ -150,34 +175,60 @@ describe('frame replaces frame', () => {
         expect(ctx.drawImage).toHaveBeenCalledWith(wide, 70, 0, 140, 140, 0, 0, 140, 140);
     });
 
-    it('holds each frame for whole refreshes: 8 per second asked, 7.5 shown on a 60 Hz display', () => {
+    it('shows its first frame still until it has measured the display', () => {
         const display = fakeDisplay();
-        const stream = mountImageStream(stage(), { frames: reel(40), hz: 8, ...display });
+        const stream = mountImageStream(stage(), { frames: reel(40), hz: 12, ...display });
         stream.resume();
-        display.run(1000);
-        // 8 refreshes a frame at 60 Hz is 133⅓ ms: frames 0..7 in the first second.
-        expect(drawn(stream)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+        display.run(450, 120);
+        expect(drawn(stream)).toEqual([0]);
     });
 
-    it('measures the display over the first half second and locks to it', () => {
+    it('holds each frame 8 refreshes on a 60 Hz display when 8 a second are asked (7.5 shown)', () => {
         const display = fakeDisplay();
         const stream = mountImageStream(stage(), { frames: reel(40), hz: 8, ...display });
+        const held = holds(stream, display);
         stream.resume();
-        display.run(2000, 120);
-        // 240 refreshes, the first one the start: 1991⅔ ms shown. At 120 Hz a
-        // frame is 15 refreshes, 125 ms, which ends on frame 15; assumed at
-        // 60 Hz throughout (133⅓ ms) it would end on frame 14.
-        expect(drawn(stream).at(-1)).toBe(15);
-        expect(new Set(drawn(stream)).size).toBe(drawn(stream).length);
+        display.run(3000);
+        expect(held().length).toBeGreaterThan(10);
+        expect(new Set(held())).toEqual(new Set([8]));
+    });
+
+    it('locks to a 120 Hz display it has measured: 15 refreshes, exactly 8 a second', () => {
+        const display = fakeDisplay();
+        const stream = mountImageStream(stage(), { frames: reel(40), hz: 8, ...display });
+        const held = holds(stream, display);
+        stream.resume();
+        display.run(3000, 120);
+        expect(held().length).toBeGreaterThan(10);
+        expect(new Set(held())).toEqual(new Set([15]));
+    });
+
+    it('holds every frame the same whole number of refreshes under timestamp jitter, never faster than asked', () => {
+        for (const refreshHz of [30, 60, 120, 144]) {
+            for (const hz of [4, 8, 12]) {
+                const rpf = Math.ceil(refreshHz / hz - 1e-9);
+                const display = fakeDisplay({ jitterMs: 1, random: seeded(refreshHz * 100 + hz) });
+                const stream = mountImageStream(stage(), { frames: reel(24), hz, ...display });
+                const held = holds(stream, display);
+                stream.resume();
+                display.run(10000, refreshHz);
+                const label = refreshHz + ' Hz display, ' + hz + ' asked';
+                expect(held().length, label).toBeGreaterThan(30);
+                for (const hold of held()) {
+                    expect(hold, label).toBe(rpf);
+                    expect(refreshHz / hold).toBeLessThanOrEqual(hz + 1e-9);
+                }
+                stream.destroy();
+            }
+        }
     });
 
     it('wraps the reel', () => {
         const display = fakeDisplay();
         const stream = mountImageStream(stage(), { frames: reel(3), hz: 12, ...display });
         stream.resume();
-        display.run(500);
-        // 12 asked on 60 Hz is 5 refreshes, 83⅓ ms: six frames in half a second.
-        expect(drawn(stream)).toEqual([0, 1, 2, 0, 1, 2]);
+        display.run(1200);
+        expect(drawn(stream).slice(0, 7)).toEqual([0, 1, 2, 0, 1, 2, 0]);
     });
 });
 
@@ -194,18 +245,19 @@ describe('its own clock, driven by the reading', () => {
         const display = fakeDisplay();
         const stream = mountImageStream(stage(), { frames: reel(40), hz: 8, ...display });
         stream.resume();
-        display.run(500);
-        expect(drawn(stream).at(-1)).toBe(3);
+        display.run(1000);
+        const paused = drawn(stream).at(-1);
+        expect(paused).toBeGreaterThan(0);
         stream.pause();
         expect(display.pending()).toBe(0);
         display.jump(10_000);
         display.run(500);
-        expect(drawn(stream).at(-1)).toBe(3);
+        expect(drawn(stream).at(-1)).toBe(paused);
         stream.resume();
         display.refresh();
-        // Ten paused seconds did not advance it: the next frame is 4, not 78.
-        display.run(100);
-        expect(drawn(stream).slice(-2)).toEqual([3, 4]);
+        // Ten paused seconds did not advance it: the next frame follows on.
+        display.run(150);
+        expect(drawn(stream).slice(-2)).toEqual([paused, paused + 1]);
     });
 
     it('recomputes the frame from time on a seek, and replays nothing on the way', () => {
@@ -213,11 +265,12 @@ describe('its own clock, driven by the reading', () => {
         const stream = mountImageStream(stage(), { frames: reel(40), hz: 8, ...display });
         stream.resume();
         display.run(200);
-        expect(drawn(stream)).toEqual([0, 1]);
+        expect(drawn(stream)).toEqual([0]);
         stream.seek(3000);
         display.refresh();
-        // 3000 ms at 133⅓ ms a frame is frame 22: drawn next, with nothing between.
-        expect(drawn(stream)).toEqual([0, 1, 22]);
+        // 3000 ms is 180 refreshes at 60 Hz, 8 a frame: frame 22, drawn next
+        // with nothing between.
+        expect(drawn(stream)).toEqual([0, 22]);
     });
 
     it('lets go of the canvas and the display on destroy', () => {
@@ -246,8 +299,7 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         expect(onFallback).not.toHaveBeenCalled();
         expect(stream.running).toBe(true);
         expect(stream.canvas.style.display).not.toBe('none');
-        // 300 refreshes, 4983⅓ ms shown at 133⅓ ms a frame: frames 0 to 37.
-        expect(ctx.drawImage.mock.calls.length).toBe(38);
+        expect(ctx.drawImage.mock.calls.length).toBeGreaterThan(30);
         expect(ctx.getImageData).toHaveBeenCalledTimes(ctx.drawImage.mock.calls.length);
     });
 
@@ -261,7 +313,7 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
         wirePixels(stream);
         stream.resume();
-        display.run(1000);
+        display.run(1500);
         expect(onFallback).toHaveBeenCalledTimes(1);
         expect(onFallback).toHaveBeenCalledWith('meter');
     });
@@ -277,7 +329,7 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         wirePixels(stream);
         stream.canvas.getBoundingClientRect = () => ({ width: 140, height: 140 });
         stream.resume();
-        display.run(1000);
+        display.run(1500);
         expect(onFallback).toHaveBeenCalledWith('meter');
     });
 
@@ -307,7 +359,7 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
         const ctx = wirePixels(stream);
         stream.resume();
-        display.run(1000);
+        display.run(1500);
         expect(onFallback).toHaveBeenCalledTimes(1);
         expect(onFallback).toHaveBeenCalledWith('meter');
         expect(stream.running).toBe(false);
@@ -331,7 +383,7 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         wirePixels(stream);
         stream.canvas.getBoundingClientRect = () => ({ width: 320, height: 320 });
         stream.resume();
-        display.run(1000);
+        display.run(1500);
         expect(onFallback).toHaveBeenCalledWith('meter');
     });
 
@@ -342,7 +394,7 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         wirePixels(stream);
         stream.canvas.getBoundingClientRect = () => ({ width: NaN, height: 140 });
         stream.resume();
-        display.run(1000);
+        display.run(1500);
         expect(onFallback).toHaveBeenCalledWith('meter');
     });
 

@@ -346,17 +346,30 @@ export function normalizeStreamRate(value) {
  * The stream at explicit presentation time: which of `count` frames is on
  * screen, and for how long each is held. The held time never makes the stream
  * faster than the rate asked for, so a 60 Hz display shows 8 Hz as 7.5 Hz.
+ *
+ * Time is read as the nearest whole refresh. A frame boundary in time lands
+ * exactly on a refresh, where a timestamp a fraction of a millisecond early
+ * or late would end one frame a refresh short and the next a refresh long.
  */
 export function streamFrameAt(timeMs, count, options = {}) {
+    const refreshHz = streamRefreshHz(options.refreshHz);
+    const refreshes = Math.round(Math.max(0, Number(timeMs) || 0) * refreshHz / 1000);
+    return streamFrameAtRefresh(refreshes, count, { ...options, refreshHz });
+}
+
+function streamRefreshHz(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : STREAM_REFRESH_DEFAULT_HZ;
+}
+
+/** The stream after a counted number of display refreshes: every frame held the same whole number of them. */
+export function streamFrameAtRefresh(refreshes, count, options = {}) {
     const hz = normalizeStreamRate(options.hz);
-    const parsedRefresh = Number(options.refreshHz);
-    const refreshHz = Number.isFinite(parsedRefresh) && parsedRefresh > 0
-        ? parsedRefresh
-        : STREAM_REFRESH_DEFAULT_HZ;
+    const refreshHz = streamRefreshHz(options.refreshHz);
     const refreshesPerFrame = Math.max(1, Math.ceil(refreshHz / hz - 1e-9));
     const frameMs = refreshesPerFrame * 1000 / refreshHz;
     const n = Math.max(0, count | 0);
-    const step = Math.floor(Math.max(0, Number(timeMs) || 0) / frameMs);
+    const step = Math.floor(Math.max(0, Math.floor(Number(refreshes) || 0)) / refreshesPerFrame);
     return Object.freeze({
         index: n === 0 ? null : step % n,
         cycle: n === 0 ? 0 : Math.floor(step / n),
