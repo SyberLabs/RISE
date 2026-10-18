@@ -4,6 +4,11 @@
 frames replacing frames at several per second, never passing through black,
 governed by the light it actually puts on the screen.**
 
+**The flag stays off.** What is built here is not a safety guarantee. Every
+precondition listed under "Before IMAGE_STREAM_ENABLED may flip" (§7) must be
+closed, and a safety review done in real browsers, before the flag is
+switched on.
+
 Status: PROPOSED. The pure core (`src/core/luminance.js`,
 `src/core/flash-meter.js`, `streamFrameAt` in `src/core/visual-presence.js`)
 and the fixation-aperture presenter (`src/visuals/image-stream.js`) are
@@ -121,10 +126,14 @@ proposal's first argument for building the fixation aperture first, and it
 does not hold, because the page cannot see the size the reader sees:
 
 - **Page zoom and magnifiers.** Browser zoom, Android display and text
-  scaling, and OS magnifiers enlarge the 140 CSS px canvas on screen, but
-  neither `getBoundingClientRect()` nor `visualViewport.scale` reports it.
-  At 200% zoom the aperture covers 78,400 px² of the reader's view while the
-  page still measures 19,600.
+  scaling, and OS magnifiers enlarge the 140 CSS px canvas on screen while
+  `getBoundingClientRect()` still reports 140 CSS px: at 200% zoom the
+  aperture covers 78,400 px² of the reader's view while its rectangle still
+  measures 19,600. Browser zoom does show up elsewhere (it changes
+  `devicePixelRatio` in Chrome and Firefox, and pinch-zoom changes
+  `visualViewport.scale`), and the stream watches both. Android display and
+  text scaling read as an ordinary device pixel ratio, and an OS magnifier
+  changes nothing the page can see.
 - **Blur and compositing.** The glass tile under the words
   (`backdrop-filter: blur(16px)`, on by default) and any filter, blend mode
   or overlay spread the stream's light past its square. The meter reads the
@@ -136,8 +145,8 @@ So the fixation aperture **reduces** risk and is **not** a safety guarantee.
 The runtime meter is the guard at every size, and **a flash over a small
 part of the aperture counts**. Each frame is judged as if the stream covered
 `METER_FLOOR_AREA_PX` (64 × the safe area, 1,396,736 CSS px²), or its
-measured on-screen area multiplied by the device pixel ratio and pinch-zoom
-(each squared, never below 1) if that is more. At the floor a transition
+measured on-screen area multiplied by the device pixel ratio (squared, never
+below 1) if that is more. At the floor a transition
 counts once it covers more than 19,600 / 64 = 306.25 of the aperture's
 19,600 pixels (1.56%, about a 17.5 px square).
 
@@ -149,14 +158,20 @@ words (`blur(16px)` with a dark tint) carries a ≥ 0.1 luminance change up to
 about 16–20 px past each edge, so that same change can light a 57.5 px square
 (3,306 px²) at 100%, which stays under the safe area up to 2.57×
 magnification. No floor covers blur at 500%: the 40 px of blur margin alone
-covers 40,000 px² there. So magnification the page can see is handled apart
-from the floor: the stream refuses to mount on a page that already looks
-zoomed (the CSS viewport narrower than the window by more than 10%, or
-pinch-zoom above 1), stands down if the device pixel ratio or viewport width
-changes while it runs, and multiplies the measured area by the device pixel
-ratio and pinch-zoom. **An OS magnifier, which the page cannot see, above
-about 2.5× over the glass tile remains a residual risk the floor only
-narrows.**
+covers 40,000 px² there. **The blur, not detection, sets that 2.57×
+ceiling:** without the blur the floor alone carries any magnification to
+about 8.4× (306 × 8.4² ≈ 21,824), detected or not, magnifiers included. The
+20 px margin, and so the 2.57×, is an estimate from `blur(16px)` and the
+tile's 0.36 tint; it has never been measured in a browser.
+
+Browser zoom and pinch-zoom are detected, by a heuristic: the stream refuses
+to mount on a page that already looks zoomed (the CSS viewport narrower than
+the window by more than 10%, or pinch-zoom above 1), and stands down if the
+device pixel ratio, the viewport width or the pinch-zoom scale changes while
+it runs. The floor, and the measured area multiplied by the device pixel
+ratio, are the backstop when the heuristic misses. **An OS magnifier, which
+the page cannot see, above about 2.5× over the glass tile remains a residual
+risk the floor only narrows.**
 
 | Regime | Size | What guards it |
 | --- | --- | --- |
@@ -167,8 +182,8 @@ The cost of the floor: a reel of natural images changes far more than 1.56%
 of the aperture by 0.1 in luminance at almost every frame, so **until the
 reel compiler normalises luminance (§4), natural-image reels will almost
 always trip the meter** within a second and fall back to the Gallery. The
-reel compiler, and a decision on OS magnifiers, are preconditions before the
-flag may flip.
+reel compiler, the blur and the magnifier question are among the
+preconditions listed in §7.
 
 ⁇ The CSS reference pixel is defined by visual angle, so the threshold is
 roughly device-independent, but a phone held close subtends more of the
@@ -243,12 +258,13 @@ Runs in a worker. Input: the active image pools the cortex already warms
   opaque stops the stream.
 - A runtime `FlashMeter` observes every frame actually drawn, read back from
   the canvas one cell per drawn pixel. Its area is what the aperture covers
-  on screen (multiplied by pinch-zoom, larger if a stylesheet stretches it),
-  never less than `METER_FLOOR_AREA_PX`, and unbounded if it cannot be
-  measured. A change of device pixel ratio or viewport width while it runs
-  (page zoom) stops it. If the meter reports `ok: false`, the meter or anything else in
-  a refresh throws, or a frame is held past 500 ms (a stalled display), the
-  stream stops for good, hides, and reports one reason once.
+  on screen (larger if a stylesheet stretches it) multiplied by the device
+  pixel ratio squared, never less than `METER_FLOOR_AREA_PX`, and unbounded
+  if it cannot be measured. A change of device pixel ratio, viewport width or
+  pinch-zoom scale while it runs stops it. If the meter reports `ok: false`,
+  the meter or anything else in a refresh throws, or a frame is held past
+  500 ms (a stalled display), the stream stops for good, hides, and reports
+  one reason once.
 - Stands down entirely (never mounts) without a session that accepted the
   photosensitivity notice (`hasFlashingSessionConsent`), under
   photosensitivity mode, the reader's reduced-motion setting,
@@ -354,16 +370,44 @@ moves the clock's owner, not its arithmetic.
 | on | opens as a page | none | Gallery, never the stream |
 | on | a Composer Current | none | cannot ask for it |
 
-- Before the flag flips: the phone aperture (§3 ⁇), the notice's wording
-  (it still describes brief exposures between moments of reading), and the
-  reel compiler (§4), without which most real reels trip the armed meter
-  within a second. The reader can end the stream mid-reading with Off in
-  the Look sheet, pause, or the photosensitivity or reduced-motion settings.
-  A consent request that blocks without showing the notice (the dialog
-  missing from the page) is a known gap, left for the notice's rework.
 - A property test belongs beside the compiler: random reels at
   `STREAM_RATE_MAX_HZ` in a wide-field aperture, after compilation, never
   certify with more than `STREAM_MAX_FLASHES_PER_WINDOW` flashes in a window.
+
+### Before IMAGE_STREAM_ENABLED may flip
+
+Each of these must be closed, with the evidence recorded in RDR-031, before
+the flag is switched on. `image-stream-enabled.test.js` fails if this list
+disappears.
+
+1. **The reel compiler** (§4), normalising luminance, without which
+   natural-image reels trip the armed meter within a second.
+2. **The phone aperture** (§3 ⁇): whether 140 CSS px is too large on a phone
+   held close.
+3. **A decision on OS magnifiers**, which the page cannot see.
+4. **Removing the backdrop blur from the aperture while the stream runs.**
+   The glass tile's blur, not zoom detection, sets the 2.57× ceiling;
+   without it the floor alone covers any magnification to about 8.4×.
+5. **Measuring the blur footprint in a real browser.** The 20 px margin and
+   the 2.57× it implies are estimates from `blur(16px)` and a 0.36 tint.
+6. **Verifying the zoom-refusal heuristic in real browsers.** The
+   `outerWidth / innerWidth` check reads "not zoomed" when `outerWidth` is 0
+   (some WebViews and in-app browsers), may read wrongly in Firefox (whose
+   outer size may be divided by the zoom factor: verify), and cannot see zoom
+   under Firefox's resistFingerprinting or Tor (`outerWidth` equals
+   `innerWidth`). Inside a card or an iframe, `visualViewport.scale` stays 1
+   under the host's pinch-zoom and a full-width iframe passes the ratio
+   check: that would fail open, so the stream must not run in a card or
+   iframe until this is solved.
+7. **The notice's wording**: it still describes brief exposures between
+   moments of reading, not a stream.
+8. **A real-browser safety review** of the presenter on desktop and phone
+   browsers, with the stream's light measured on screen.
+
+The reader can already end the stream mid-reading with Off in the Look
+sheet, pause, or the photosensitivity or reduced-motion settings. A consent
+request that blocks without showing the notice (the dialog missing from the
+page) is a known gap, left for the notice's rework.
 
 ## 8. Order of work
 

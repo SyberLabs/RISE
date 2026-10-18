@@ -105,3 +105,16 @@ describe('the one door every presentation comes through', () => {
         expect(offenders).toEqual([]);
     });
 });
+
+describe('before the flag may flip', () => {
+    it('keeps the list of preconditions in the spec, so none can be dropped quietly', () => {
+        const spec = readFileSync(join(ROOT, 'docs/specs/IMAGE-STREAM-SPEC.md'), 'utf8');
+        const start = spec.indexOf('### Before IMAGE_STREAM_ENABLED may flip');
+        expect(start, 'the preconditions heading is gone from the spec').toBeGreaterThan(-1);
+        const list = spec.slice(start, spec.indexOf('\n## ', start + 1));
+        for (const item of ['reel compiler', 'phone', 'OS magnifier', 'backdrop blur', 'blur footprint',
+            'zoom-refusal heuristic', 'notice', 'real-browser safety review']) {
+            expect(list, item).toContain(item);
+        }
+    });
+});
