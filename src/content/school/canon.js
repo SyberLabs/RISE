@@ -197,7 +197,9 @@ export const SCHOOL_CANON = freeze([
     edition: 'Robert Lawson, 1920', why: 'Space and time rewritten for a lay reader',
     work: { corpus: true } }),
   text({ id: 'jupiter.harmonices-mundi', degree: 3, title: 'Harmonices Mundi', author: 'Johannes Kepler', date: '1619',
-    edition: 'Latin, orig. only', rights: 'orig-only', why: 'The music of the spheres made quantitative' }),
+    edition: 'Latin, orig. only', rights: 'orig-only', why: 'The music of the spheres made quantitative',
+    note: 'A selection from Book V in Frisch\'s edition (1864): the title page, the Prooemium, chapters III, VII and VIII, and chapter X, the Epilogus; chapters I, II, IV to VI and IX, the Appendix, Kepler\'s notes and the tables are left out, and the Greek quotations are marked [Greek]',
+    work: { corpus: true } }),
 
   // Saturn: House of the Mysteries
   text({ id: 'saturn.tao-te-ching', degree: 1, title: 'Tao Te Ching', author: 'Laozi', date: 'c. 400 BCE',

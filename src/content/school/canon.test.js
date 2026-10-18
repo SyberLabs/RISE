@@ -170,6 +170,7 @@ describe('the canon', () => {
       'gate.oration': 'A free English edition is the school\'s first commission',
       'mercury.philosophie-der-technik': 'A selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); chapters IV to XIII, from Gliedmaassen und Maasse to Der Staat, are left out; ten places where the damaged scan lost lines are marked […], and 79 unsettled readings [?]',
       'moon.psychological-types': 'Chapter X, General Description of the Types, is read now; the rest of Baynes\'s translation follows after a proofing pass of the 1924 printing',
+      'jupiter.harmonices-mundi': 'A selection from Book V in Frisch\'s edition (1864): the title page, the Prooemium, chapters III, VII and VIII, and chapter X, the Epilogus; chapters I, II, IV to VI and IX, the Appendix, Kepler\'s notes and the tables are left out, and the Greek quotations are marked [Greek]',
       'mars.muqaddimah': 'A selection from de Slane\'s volume I: the opening of Book I, the first preliminary discourse, and the second section as far as the chapter on esprit de corps and sovereignty; the rest of the Prolégomènes is left out',
       'saturn.sermons': 'Claud Field\'s seven sermons are read now; C. de B. Evans\'s 1924 volume follows after a proofing pass'
     });
