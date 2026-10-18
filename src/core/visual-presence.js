@@ -12,14 +12,16 @@ export const VISUAL_PRESENCE_DEFAULT_MS = 200;
 // opaque overlay; 'behind-stream' flashes beneath the reading; 'continuous'
 // (Gallery) is a persistent crossfading field behind the reading
 // (CONTINUOUS-FIELD-SPEC). 'continuous-word' is the same field projected
-// into Word ink — one clock, two mounts. Shared here so persisted
+// into Word ink — one clock, two mounts. 'stream' is the Image Stream
+// (IMAGE-STREAM-SPEC), behind its own flag below. Shared here so persisted
 // settings, the session compiler, the panel, and playback cannot drift
 // apart.
 const PRESENTATION_SURFACES = Object.freeze([
     'full-frame',
     'behind-stream',
     'continuous',
-    'continuous-word'
+    'continuous-word',
+    'stream'
 ]);
 
 /**
@@ -41,6 +43,22 @@ const PRESENTATION_SURFACES = Object.freeze([
  * when somebody does.
  */
 export const FLASHING_ENABLED = false;
+
+/**
+ * THE BUILD FLAG FOR THE IMAGE STREAM. Separate from FLASHING_ENABLED.
+ *
+ * It gates the surface named 'stream': rapid serial images at the fixation
+ * point (IMAGE-STREAM-SPEC). The stream is not the event economy, so turning
+ * flashing back on does not bring it, and turning this on does not bring the
+ * event economy back.
+ *
+ * While this is false, no reader can reach the stream: `normalizePresentation`
+ * resolves 'stream' to Gallery whatever else is switched on, the launch gate
+ * never grants it, and the Chamber never loads or constructs its presenter.
+ * `flashing-disabled.test.js` proves the off state, and
+ * `image-stream-enabled.test.js` states what changes when this flips.
+ */
+export const IMAGE_STREAM_ENABLED = false;
 
 /** What a flashing surface becomes. Gallery never flashes and never blacks. */
 export const SAFE_PRESENTATION = 'continuous';
@@ -68,10 +86,24 @@ export function presentationFlashes(value) {
  * through here.
  */
 export function normalizePresentation(value) {
+    return resolvePresentation(value, { flashing: FLASHING_ENABLED, stream: IMAGE_STREAM_ENABLED });
+}
+
+/**
+ * `normalizePresentation` with its two switches as arguments, so a test can
+ * state what each one does without a build that flips it. Production calls
+ * `normalizePresentation`; image-stream-enabled.test.js fails if any other
+ * module calls this, because a caller passing `stream: true` would reach the
+ * stream with its flag off.
+ */
+export function resolvePresentation(value, { flashing, stream }) {
     const known = PRESENTATION_SURFACES.includes(value) ? value : SAFE_PRESENTATION;
+    // The stream answers only to its own flag: the event economy's switch
+    // must never be what lets it through.
+    if (known === 'stream') return stream === true ? known : SAFE_PRESENTATION;
     // The refusal is here rather than at each caller because this is the one
     // door every stored, imported and authored value already comes through.
-    return FLASHING_ENABLED || !presentationFlashes(known) ? known : SAFE_PRESENTATION;
+    return flashing === true || !presentationFlashes(known) ? known : SAFE_PRESENTATION;
 }
 
 export function isContinuousPresentation(value) {
@@ -294,7 +326,8 @@ export function galleryWallAt(timeMs, count, options = {}) {
 }
 
 // The Image Stream (IMAGE-STREAM-SPEC): rapid serial presentation of images,
-// frame replacing frame. Not a surface yet; this is its clock. Rate is in
+// frame replacing frame. This is its clock; its surface, 'stream', waits
+// behind IMAGE_STREAM_ENABLED. Rate is in
 // images per second, and every frame is held for a whole number of display
 // refreshes so no image is dropped or doubled by a timer landing between
 // refreshes. Safety is the flash meter's job, not the rate's.
