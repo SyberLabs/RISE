@@ -37,6 +37,7 @@
     "study:awareness": "vite-node scripts/study-chunker-awareness.mjs",
     "audit:text": "vite-node scripts/audit-text-quality.mjs",
     "build:audubon": "node scripts/build-audubon-catalog.mjs",
+    "build:haeckel": "node scripts/build-haeckel-catalog.mjs",
     "build:pericopes": "node scripts/build-pericopes.mjs",
     "build:voice-pack": "node scripts/build-voice-pack.mjs",
     "release:voice:plan": "node scripts/build-voice-pack.mjs --input scripts/voice-packs/keystones.mjs --dry-run",

@@ -3,7 +3,7 @@
   "title": "The Mystery School's complete library",
   "lane": "reader",
   "milestone": "Mystery School",
-  "status": "planned",
+  "status": "in_review",
   "delivery": "branch",
   "owner": "Claude coordinator",
   "priority": "next",
@@ -40,6 +40,90 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/712",
       "note": "PR 2: the Gutenberg adapter and 24 texts; 38 readable. Humboldt deferred to the proofing pass.",
       "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "19f6a12a",
+      "note": "PR 2 merged (#712) and deployed: the Gutenberg adapter and 24 texts; 38 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/713",
+      "note": "PR 3: Wikisource, CCEL, sacred-texts, TEI, Victorian Web and file adapters; 20 texts and the Gate's Latin; 58 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "a7b6d03e",
+      "note": "PR 3 merged (#713) and deployed: the web adapters, 20 texts and the Latin at the Gate; 58 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/714",
+      "note": "PR 4: Boole from LaTeX, Cosmos vol. 1, the Metamorphosis of Plants proofed from the scan (diff on file, unread), Jung chapter X; 62 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "370c3252",
+      "note": "PR 4 merged (#714) and deployed: Boole, Cosmos vol. 1, the Metamorphosis of Plants, Jung chapter X, with two Codex fixes; 62 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/716",
+      "note": "PR 5: Kapp (German) and Ibn Khaldun (French) as proofed selections with diffs on file; Kepler not served; 64 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "6d4edc9b",
+      "note": "PR 5 merged (#716) and deployed: Kapp and Ibn Khaldun as proofed selections; the Kapp note discloses its scan gaps (Codex); Kepler not served; 64 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/717",
+      "note": "PR 6: Haeckel's 100 plates pinned from Commons as a picture work; 65 readable. Open: Kepler (page-image proofing), the human reading of every proofing diff and of the Oration translation.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "494d9c2b",
+      "note": "PR 6 merged (#717): Haeckel's hundred plates; 65 of 66 readable.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/718",
+      "note": "PR 7: the Gate serves RISE's English draft (a model's translation from the Latin alone, not yet read against it by a person; CC BY 4.0) with the Latin after it; 94 units.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "9b7cf774",
+      "note": "Branch school-kepler, not merged: Kepler's Harmonices Mundi Book V in Latin from Frisch's 1864 reprint (Opera omnia vol. V), title page, Prooemium, chapters III, VII, VIII and X; four OCRs collated and settled against the page images (124 readings), no [?], the Greek marked [Greek] in 41 places (39 in Caput X); 6 units, 7,688 words; 65 of 66 readable (the Futurist Manifesto absent). Diff on file, unread by a person.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/719",
+      "note": "Kepler: Harmonices Mundi Book V from Frisch 1864, six units, collated across four scans and settled against the page images; 0 unresolved readings; Greek marked.",
+      "date": "2026-10-17"
+    },
+    {
+      "kind": "commit",
+      "ref": "9e85fbb0",
+      "note": "Branch school-futurist, not merged: the Futurist Manifesto in French as Marinetti reprinted it in Poupées électriques (Sansot, 1909), from French Wikisource checked word by word against the scan (five Wikisource slips set back to the print, four printer's errors corrected), then the anonymous English of 1912 (Sackville Gallery catalogue; the eleven points and the closing) proofed from the Internet Archive OCR against the page images; 3 units, 3,242 words; 66 of 66 readable, none absent. Diffs on file, unread by a person.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/720",
+      "note": "The Futurist Manifesto: Marinetti's French (Sansot 1909 reprint of the Figaro text, from French Wikisource checked against the scan; 10 changes) then the anonymous English of 1912 (proofed from the OCR; 34 hunks); 3 units; 66 of 66 readable. Diffs unread by a person.",
+      "date": "2026-10-18"
     }
   ],
   "activity": [
@@ -54,10 +138,42 @@
     {
       "date": "2026-10-17T01:45:50.000Z",
       "summary": "PR 2 opened: Gutenberg adapter, 24 texts"
+    },
+    {
+      "date": "2026-10-17T09:33:04.000Z",
+      "summary": "PR 3 opened: web adapters, 20 texts, the Latin Oration at the Gate"
+    },
+    {
+      "date": "2026-10-17T10:18:31.000Z",
+      "summary": "PR 4 opened: the hard cases; 62 readable"
+    },
+    {
+      "date": "2026-10-17T10:51:09.000Z",
+      "summary": "PR 5 opened: the original-language selections; 64 readable"
+    },
+    {
+      "date": "2026-10-17T11:10:04.000Z",
+      "summary": "PR 6 opened: Haeckel as a picture work; 65 of 66 readable"
+    },
+    {
+      "date": "2026-10-17T18:19:38.000Z",
+      "summary": "The Gate serves RISE's English draft with the Latin after it, at the owner's direction"
+    },
+    {
+      "date": "2026-10-18T04:48:06.822Z",
+      "summary": "Kepler's Book V proofed from Frisch's reprint and served in Latin; 65 of 66 readable (the Futurist Manifesto absent)"
+    },
+    {
+      "date": "2026-10-18T05:06:34.201Z",
+      "summary": "Every record is readable: the Futurist Manifesto served"
+    },
+    {
+      "date": "2026-10-18T05:09:58.078Z",
+      "summary": "PR 720 opened: the Futurist Manifesto; 66 of 66 readable"
     }
   ],
-  "updatedAt": "2026-10-17T01:45:50.000Z",
-  "revision": 3,
+  "updatedAt": "2026-10-18T05:09:58.078Z",
+  "revision": 12,
   "summary": "After RDR-029 shipped with four of 66 texts readable, the owner lifted the Standard-Ebooks-only serving rule for the School only. The survey finds a free proofed edition for 46 of the 62 missing texts, nine as scans needing a proofing pass, and six with no free English, the Gate among them. The design admits them through a School corpus beside the Archive, on the Chapel's precedent, with recipes per work and the same gates every time; six pull requests take the School from 4 to 66 readable.",
-  "blocker": null
+  "blocker": "The proofing diffs (Goethe, Kapp, Ibn Khaldun, Kepler, Marinetti) and RISE's English draft of the Oration await the owner's reading before they count as verified."
 }

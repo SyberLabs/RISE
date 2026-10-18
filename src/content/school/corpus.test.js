@@ -9,14 +9,26 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { DISTRIBUTOR_MATTER } from '../archive/divisions.js';
 import { SCHOOL_CANON } from './canon.js';
-import { SCHOOL_WORKS } from './corpus.js';
+import { SCHOOL_WORKS, schoolWorkById } from './corpus.js';
 
 const RECORD_IDS = new Set(SCHOOL_CANON.map(record => record.id));
 const LIFE70 = /^(?:pd|unknown|until:\d{4})$/u;
 const SOURCE_URL = {
   'standard-ebooks': /^https:\/\/standardebooks\.org\/ebooks\//u,
-  gutenberg: /^https:\/\/www\.gutenberg\.org\/ebooks\/\d+$/u
+  gutenberg: /^https:\/\/www\.gutenberg\.org\/ebooks\/\d+$/u,
+  wikisource: /^https:\/\/en\.wikisource\.org\/wiki\/\S+$/u,
+  'sacred-texts': /^https:\/\/sacred-texts\.com\/[a-z0-9/]+\/index\.htm$/u,
+  ccel: /^https:\/\/ccel\.org\/ccel\/[a-z0-9]+\/[a-z0-9]+$/u,
+  'eebo-tcp': /^https:\/\/github\.com\/textcreationpartnership\/A\d{5}$/u,
+  html: /^https:\/\/\S+$/u,
+  file: /^scripts\/school-sources\/[a-z]+\.[a-z0-9-]+\/[\w.-]+$/u,
+  'commons-plates': /^https:\/\/commons\.wikimedia\.org\/wiki\/\S+$/u
 };
+// A picture work's unit is the words beside its plate: the plate's title,
+// its place in the book, and what Commons says of it. Three of Haeckel's
+// hundred (Tafel 8, 42, 62) carry a one-line note and no organism list, so
+// they cannot reach 200 characters honestly; the plate is the reading there.
+const PICTURE_MIN_CHARS = 100;
 const BARE_NUMERAL = /^(?:[IVXLCDM]+|\d+)\.?$/u;
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 
@@ -28,26 +40,41 @@ describe('the School corpus', () => {
     for (const id of ids) expect(RECORD_IDS.has(id), id).toBe(true);
   });
 
-  it('serves the Standard Ebooks texts of the first slice and the Project Gutenberg texts of the second', () => {
+  it('serves the texts of the three slices: Standard Ebooks; Project Gutenberg; Wikisource, CCEL, sacred-texts, EEBO-TCP, the Victorian Web and local files', () => {
     expect(SCHOOL_WORKS.map(work => [work.id, work.units])).toEqual([
+      ['gate.oration', 94],
       ['sun.fragments', 21],
       ['sun.symposium-phaedrus-timaeus', 6],
       ['sun.zarathustra', 81],
+      ['sun.monadology', 9],
       ['sun.ethics', 5],
+      ['sun.enneads', 54],
+      ['sun.nature', 9],
       ['mercury.new-atlantis', 1],
       ['mercury.lovelace-notes', 8],
+      ['mercury.ninth-bridgewater', 17],
+      ['mercury.laws-of-thought', 22],
+      ['mercury.on-governors', 5],
       ['mercury.book-of-the-machines', 4],
       ['mercury.machine-stops', 3],
       ['mercury.rur', 4],
+      ['mercury.increasing-human-energy', 16],
+      ['mercury.philosophie-der-technik', 4],
       ['moon.life-after-death', 16],
       ['moon.stream-of-thought', 8],
       ['moon.varieties', 15],
+      ['moon.cosmic-consciousness', 55],
       ['moon.interpretation-of-dreams', 7],
+      ['moon.psychological-types', 26],
       ['moon.human-personality', 10],
+      ['moon.matter-and-memory', 6],
+      ['moon.tertium-organum', 24],
+      ['venus.marriage-of-heaven-and-hell', 9],
       ['venus.hymns-to-the-night', 6],
       ['venus.defence-of-poetry', 1],
       ['venus.leaves-of-grass', 36],
       ['venus.spiritual-in-art', 9],
+      ['venus.futurist-manifesto', 3],
       ['venus.faust', 28],
       ['venus.biographia-literaria', 25],
       ['venus.aesthetic-education', 27],
@@ -55,16 +82,81 @@ describe('the School corpus', () => {
       ['mars.peloponnesian-war', 26],
       ['mars.renaissance-in-italy', 46],
       ['mars.golden-bough', 70],
+      ['mars.muqaddimah', 19],
       ['mars.new-science', 6],
       ['mars.decline-of-the-west', 25],
       ['jupiter.nature-of-things', 6],
       ['jupiter.flatland', 22],
+      ['jupiter.art-forms-in-nature', 100],
+      ['jupiter.metamorphosis-of-plants', 19],
+      ['jupiter.cosmos', 4],
       ['jupiter.growth-and-form', 18],
       ['jupiter.relativity', 37],
+      ['jupiter.harmonices-mundi', 6],
       ['saturn.zhuangzi', 33],
       ['saturn.bhagavad-gita', 18],
+      ['saturn.emerald-tablet', 1],
+      ['saturn.upanishads', 12],
+      ['saturn.corpus-hermeticum', 18],
+      ['saturn.masnavi', 6],
+      ['saturn.cloud-of-unknowing', 76],
+      ['saturn.interior-castle', 29],
+      ['saturn.mystical-theology', 5],
+      ['saturn.sermons', 7],
+      ['saturn.occult-philosophy', 199],
       ['saturn.heroic-frenzies', 11]
     ]);
+  });
+
+  it('names the language of every work not read in English', () => {
+    expect(Object.fromEntries(SCHOOL_WORKS.filter(work => 'language' in work).map(work => [work.id, work.language]))).toEqual({
+      'mercury.philosophie-der-technik': 'de',
+      'venus.futurist-manifesto': 'fr',
+      'mars.muqaddimah': 'fr',
+      'mars.new-science': 'fr',
+      'jupiter.art-forms-in-nature': 'de',
+      'jupiter.harmonices-mundi': 'la'
+    });
+  });
+
+  it('reads the Gate in RISE’s English first, the Latin after it, each without its running sentence numbers', async () => {
+    const { GATE_ORATION_SECTIONS: sections, GATE_ORATION_META: meta } = await import('./works/gate.oration.js');
+    const paragraphs = Array.from({ length: 47 }, (_, index) => `§ ${index + 1}`);
+    expect(sections.map(section => section.name)).toEqual([...paragraphs, ...paragraphs.map(name => `Latin · ${name}`)]);
+    expect(sections[0].content).toMatch(/^I have read, most reverend Fathers, in the records of the Arabs/u);
+    expect(sections[47].content).toMatch(/^Legi, Patres colendissimi, in Arabum monumentis/u);
+    for (const section of sections) expect(section.content, section.name).not.toMatch(/(?:^|\s)\d{1,3}\.\s/u);
+    // 293 sentences, numbered once in each language.
+    expect(meta.dropped).toEqual({ 'sentence numbers': 586 });
+    // The English is RISE's own and a draft, and the entry says both.
+    expect(schoolWorkById('gate.oration')).toMatchObject({
+      edition: { statement: 'English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, not yet read against it by a person (notes on uncertain readings are in the source folder). Latin: the Pico Project text, 1486.', translator: 'RISE', year: 2026 },
+      rights: { us: 'pd', life70: 'pd', note: 'English CC BY 4.0, RISE 2026', licence: 'English translation CC BY 4.0, RISE 2026' },
+      translation: 'RISE translation, English draft, Latin beside it'
+    });
+    expect(meta.source.artifacts.map(source => source.url)).toEqual([
+      'scripts/school-sources/gate.oration/oratio.en.md', 'scripts/school-sources/gate.oration/oratio.la.md'
+    ]);
+  });
+
+  it('reads the Futurist Manifesto in Marinetti’s French, then the anonymous English of 1912 under its own label', async () => {
+    const { VENUS_FUTURIST_MANIFESTO_SECTIONS: sections, VENUS_FUTURIST_MANIFESTO_META: meta } = await import('./works/venus.futurist-manifesto.js');
+    expect(sections.map(section => section.name)).toEqual([
+      'Le Futurisme', 'Manifeste du Futurisme', 'English · 1912 (anonymous translation) · Initial Manifesto of Futurism'
+    ]);
+    expect(sections[0].content).toMatch(/^Nous avions veillé toute la nuit, mes amis et moi/u);
+    expect(sections[1].content).toMatch(/^1\. Nous voulons chanter l’amour du danger/u);
+    expect(sections[1].content).toMatch(/le défi insolent aux étoiles !\n\nF\.-T\. Marinetti\.$/u);
+    expect(sections[2].content).toMatch(/^1\. We shall sing the love of danger/u);
+    // Readings settled against the scans, where Wikisource or the print had them wrong.
+    expect(sections[0].content).toContain('nos cadavres tordus en bagues byzantines');
+    expect(sections[1].content).toContain('plus jeunes et plus vaillants que nous');
+    expect(sections[2].content).toContain('courage, daring, and rebellion');
+    expect(meta.source.artifacts.map(source => source.url)).toEqual([
+      'scripts/school-sources/venus.futurist-manifesto/manifeste.proofed.md',
+      'scripts/school-sources/venus.futurist-manifesto/initial-manifesto.proofed.md'
+    ]);
+    expect(schoolWorkById('venus.futurist-manifesto').edition.statement).toMatch(/^Le Figaro, 20 February 1909; French as Marinetti reprinted it in Poupées électriques/u);
   });
 
   for (const work of SCHOOL_WORKS) {
@@ -74,15 +166,15 @@ describe('the School corpus', () => {
         for (const source of work.source.artifacts ?? [work.source]) {
           expect(SOURCE_URL[source.kind], `${work.id}: ${source.kind}`).toBeDefined();
           expect(source.url).toMatch(SOURCE_URL[source.kind]);
-          // A Gutenberg file is named by the hash of the bytes the ingest read.
-          if (source.kind === 'gutenberg') {
-            expect(source.artifact).toBe('html');
-            expect(source.sha256).toMatch(/^[0-9a-f]{64}$/u);
-          }
+          // Every source but a Standard Ebooks repository is named by the hash of the bytes the ingest read.
+          if (source.kind === 'gutenberg') expect(source.artifact).toBe('html');
+          if (source.kind !== 'standard-ebooks') expect(source.sha256, `${work.id}: ${source.kind}`).toMatch(/^[0-9a-f]{64}$/u);
         }
         expect(work.source.retrieved).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
         expect(work.rights.us).toBe('pd');
         expect(work.rights.life70).toMatch(LIFE70);
+        // A work not in English names its language; an English one names none.
+        if ('language' in work) expect(work.language, work.id).toMatch(/^[a-z]{2}$/u);
       });
 
       it('is the payload its checksum names, and its META agrees', async () => {
@@ -97,6 +189,8 @@ describe('the School corpus', () => {
         expect(meta.edition).toEqual(work.edition);
         expect(meta.source).toMatchObject(work.source);
         expect(meta.rights).toEqual(work.rights);
+        expect(meta.language).toBe(work.language);
+        expect(meta.imagery).toBe(work.imagery);
       });
 
       it('names every unit uniquely and readably, and serves no distributor matter', async () => {
@@ -107,7 +201,7 @@ describe('the School corpus', () => {
         for (const section of sections) {
           expect(Object.keys(section).every(key => ['name', 'content', 'verse'].includes(key)), section.name).toBe(true);
           expect(section.name, section.name).not.toMatch(BARE_NUMERAL);
-          expect(section.content.length, section.name).toBeGreaterThanOrEqual(200);
+          expect(section.content.length, section.name).toBeGreaterThanOrEqual(work.imagery ? PICTURE_MIN_CHARS : 200);
           expect(section.name, section.name).not.toMatch(DISTRIBUTOR_MATTER);
           expect(section.content, section.name).not.toMatch(DISTRIBUTOR_MATTER);
           if ('verse' in section) expect(section.verse).toBe(true);

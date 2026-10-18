@@ -99,6 +99,26 @@ describe('the Gutenberg reader', () => {
     expect(read.sourceWords).toBe(read.importedWords);
   });
 
+  it('drops the paragraphs a recipe names by how their text opens, and strikes what it names inline, counting both by kind', () => {
+    const cosmos = edition(`<h5>DELINEATION OF NATURE.</h5>
+<p>The political disturbances of the civilized world at the close
+p 4
+of the last century prevented our author,* and detained him.</p>
+<p style="margin-top: 2em">[footnote] *For the following remarks I am indebted to the Reviews.</p>
+<p>[Footnote continues]  The same traveler says, "To whatever height we rise."</p>
+<p>p 5</p>
+<p>He went to Spain. [Greek words] remain.</p>`);
+    const read = readGutenberg(cosmos, parse, {
+      units: [{ heading: 'DELINEATION OF NATURE.', name: 'Delineation of Nature' }],
+      dropBlocks: [{ pattern: '^\\s*\\[+footnote(?: continues)?\\]', kind: 'footnotes' }],
+      strike: [{ pattern: '(?<=^|\\n)[ \\t]*p \\d+[ \\t]*(?=\\n|$)', kind: 'page numbers' }, { pattern: '\\*+', kind: 'footnote markers' }]
+    });
+    expect(read.parts[0].content).toBe('The political disturbances of the civilized world at the close of the last century prevented our author, and detained him.\n\n'
+      + 'He went to Spain. [Greek words] remain.');
+    expect(read.dropped).toMatchObject({ footnotes: 22, 'page numbers': 4, 'footnote markers': 1 });
+    expect(read.sourceWords).toBe(read.importedWords);
+  });
+
   it('reads a table a row to a line', () => {
     const table = edition('<h2>NOTE D.</h2><table><tr><th>Number of Operation.</th><th>Nature.</th></tr><tr><td>1</td><td>×</td></tr><tr><td>2</td><td>×</td></tr></table>');
     const read = readGutenberg(table, parse, { units: [{ heading: 'NOTE D.', name: 'Note D' }] });
@@ -249,6 +269,30 @@ describe('the Gutenberg reader', () => {
   });
 });
 
+describe('whole and numbered units', () => {
+  it('reads the whole span as one unit, named by the recipe or by its first heading', () => {
+    const page = edition('<p class="c">SIXTH TRACTATE</p><p>1.</p><p>Beauty addresses itself chiefly to sight.</p>');
+    const read = readGutenberg(page, parse, { units: 'whole', name: 'I.6: Beauty' });
+    expect(read.parts.map(part => [part.name, part.content])).toEqual([
+      ['I.6: Beauty', 'SIXTH TRACTATE\n\n1.\n\nBeauty addresses itself chiefly to sight.']
+    ]);
+    expect(read.sourceWords).toBe(read.importedWords);
+    const headed = readGutenberg(edition('<h2>CHAPTER I.<br>NATURE.</h2><p>To go into solitude.</p>'), parse, { units: 'whole' });
+    expect(headed.parts[0]).toMatchObject({ name: 'Chapter I. Nature', content: 'CHAPTER I. NATURE.\n\nTo go into solitude.' });
+    expect(headed.sourceWords).toBe(headed.importedWords);
+  });
+
+  it('opens a unit at every tenth numbered paragraph, keeping the paragraph, and refuses a broken count', () => {
+    const sections = Array.from({ length: 23 }, (_, index) => `<p>${index + 1}. Section ${index + 1} of the work.</p>`).join('');
+    const read = readGutenberg(edition(sections), parse, { units: 'numbered', every: 10 });
+    expect(read.parts.map(part => part.name)).toEqual(['§§ 1–10', '§§ 11–20', '§§ 21–23']);
+    expect(read.parts[1].content.split('\n\n')[0]).toBe('11. Section 11 of the work.');
+    expect(read.sourceWords).toBe(read.importedWords);
+    const skipped = edition('<p>1. One.</p><p>2. Two.</p><p>4. Four.</p>');
+    expect(() => readGutenberg(skipped, parse, { units: 'numbered', every: 10 })).toThrow(/section 3/u);
+  });
+});
+
 describe('titleCase', () => {
   it('sets a shouted heading in title case and keeps its numerals', () => {
     expect(titleCase('PART II. ON THE NATURE AND ORIGIN OF THE MIND')).toBe('Part II. On the Nature and Origin of the Mind');
@@ -256,6 +300,8 @@ describe('titleCase', () => {
     expect(titleCase('The Song Celestial')).toBe('The Song Celestial');
     expect(titleCase('I')).toBe('I');
     expect(titleCase('THE PROBLEM OF THE ESTATES—NOBILITY AND PRIESTHOOD')).toBe('The Problem of the Estates—Nobility and Priesthood');
+    expect(titleCase("THE ANGEL'S GREETING")).toBe("The Angel's Greeting");
+    expect(titleCase("'WIRELESS' TELEGRAPHY")).toBe("'Wireless' Telegraphy");
   });
 
   it('removes letter markers on either side of their word, with their notes, and names a unit by its heading title when told to', () => {

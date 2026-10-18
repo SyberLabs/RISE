@@ -17,7 +17,6 @@ vi.mock('../content/library.js', async importOriginal => {
   });
   const texts = [
     divided('literary-meditations', 'Meditations', ['Book I', 'Book II']),
-    divided('literary-essays-emerson', 'Essays', ['History', 'Self-Reliance', 'Nature']),
     {
       id: 'sacred-tao-te-ching',
       title: 'Tao Te Ching',
@@ -32,6 +31,9 @@ vi.mock('../content/library.js', async importOriginal => {
 
 vi.mock('../core/content-store.js', () => ({
   loadSchoolSections: vi.fn(async id => {
+    if (id === 'jupiter.art-forms-in-nature') {
+      return [1, 2, 3].map(plate => ({ name: `Tafel ${plate} · Plate`, content: `Plate ${plate} of Kunstformen der Natur, 1904.` }));
+    }
     if (id !== 'sun.zarathustra') throw new Error(`no ${id}`);
     return [
       { name: 'Part I · Zarathustra’s Prologue', content: 'When Zarathustra was thirty years old.' },
@@ -92,12 +94,6 @@ describe('a reading opened from the Mystery School', () => {
     expect(reading.config.continuation.entryIndex).toBe(1);
   });
 
-  it('opens the division a record pins by its label', async () => {
-    const reading = await schoolReading('sun.nature', null);
-    expect(reading.source).toBe('Essays · Nature');
-    expect(reading.config.provenance.entryId).toBe('2');
-  });
-
   it('reads an undivided work whole', async () => {
     const reading = await schoolReading('saturn.tao-te-ching', null);
     expect(reading.text).toBe('The way\n\nthat can be named');
@@ -136,8 +132,27 @@ describe('a reading opened from the Mystery School', () => {
     expect((await schoolReading('sun.zarathustra', null)).source).toBe('Thus Spoke Zarathustra · Part I · Zarathustra’s Prologue');
   });
 
+  it('opens a picture work with its unit\'s own plate as the Gallery, held slow', async () => {
+    const reading = await schoolReading('jupiter.art-forms-in-nature', 2);
+    expect(reading.source).toBe('Art Forms in Nature · Tafel 3 · Plate');
+    expect(reading.config.visualConfig).toEqual({
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'collections',
+        procedural: [],
+        sourced: ['haeckel:plates/3'],
+        atriumCollections: ['haeckel:plates/3'],
+        presentation: 'continuous',
+        galleryCadence: 0
+      }
+    });
+    // A text work carries no visual of its own; the reader's Gallery stands.
+    expect((await schoolReading('sun.zarathustra', 1)).config.visualConfig).toBeUndefined();
+  });
+
   it('opens nothing for a text RISE does not carry', async () => {
-    expect(await schoolReading('sun.monadology', null)).toBeNull();
+    // The Library mock registers no Divine Comedy, as if the Archive withheld it.
+    expect(await schoolReading('venus.divine-comedy', null)).toBeNull();
     expect(await schoolReading('sun.nothing', null)).toBeNull();
   });
 });

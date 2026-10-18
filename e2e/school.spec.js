@@ -61,6 +61,26 @@ test('a School corpus text reads from its own shelf', async ({ page }) => {
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 });
 
+test('a picture work shows its unit\'s own plate as the reading\'s field', async ({ page }) => {
+  // The plate's bytes are served here so the proof does not depend on Commons; the request is what is proved.
+  const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+  await page.route('https://upload.wikimedia.org/**', route => route.fulfill({ status: 200, contentType: 'image/gif', body: pixel }));
+  await page.goto('/school/jupiter.art-forms-in-nature');
+  const lectern = page.locator('.school-lectern');
+  await expect(lectern).toHaveAttribute('data-focus', 'jupiter.art-forms-in-nature', { timeout: 15_000 });
+  await expect(lectern).toContainText('A picture work: each unit is one plate');
+  await expect(lectern.locator('button[data-entry]')).toHaveCount(100, { timeout: 15_000 });
+
+  const plate = page.waitForRequest(request => request.url().startsWith('https://upload.wikimedia.org/')
+    && request.url().includes('Haeckel_Discomedusae_8.jpg'), { timeout: 30_000 });
+  await lectern.locator('button[data-entry="7"]').click();
+  await expect(page).toHaveURL(/\/read$/u);
+  await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
+  await page.locator('#begin-btn').click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+  console.log(`HAECKEL_PLATE ${(await plate).url()}`);
+});
+
 test('a path named in the address is chosen and read in the Lectern', async ({ page }) => {
   await page.goto('/school/path-ficino');
   await expect(page.locator('.school-lectern')).toContainText('The Ficino Path', { timeout: 15_000 });

@@ -106,13 +106,14 @@ describe('the canon', () => {
     for (const record of SCHOOL_CANON) {
       expect(['us-pd', 'us-only', 'orig-only'], record.id).toContain(record.rights);
       if (/US only/u.test(record.edition)) expect(record.rights, record.id).toBe('us-only');
-      if (/orig\. only/u.test(record.edition)) expect(record.rights, record.id).toBe('orig-only');
+      // The Gate's plan edition reads "orig. only", but RISE now serves its own English translation.
+      if (/orig\. only/u.test(record.edition) && record.id !== 'gate.oration') expect(record.rights, record.id).toBe('orig-only');
     }
     expect(SCHOOL_CANON.filter(record => record.rights === 'us-only').map(record => record.id)).toEqual([
       'mercury.machine-stops', 'mercury.rur', 'moon.psychological-types', 'mars.decline-of-the-west'
     ]);
     expect(SCHOOL_CANON.filter(record => record.rights === 'orig-only').map(record => record.id)).toEqual([
-      'gate.oration', 'mercury.philosophie-der-technik', 'venus.futurist-manifesto', 'mars.muqaddimah', 'mars.new-science', 'jupiter.harmonices-mundi'
+      'mercury.philosophie-der-technik', 'mars.muqaddimah', 'mars.new-science', 'jupiter.harmonices-mundi'
     ]);
   });
 
@@ -120,11 +121,8 @@ describe('the canon', () => {
     const pointed = SCHOOL_CANON.filter(record => record.work?.id);
     expect(Object.fromEntries(pointed.map(record => [record.id, record.work.id]))).toEqual({
       'sun.meditations': 'literary-meditations',
-      'sun.nature': 'literary-essays-emerson',
       'venus.divine-comedy': 'the-divine-comedy',
-      'saturn.tao-te-ching': 'sacred-tao-te-ching',
-      'saturn.emerald-tablet': 'sacred-emerald-tablet',
-      'saturn.corpus-hermeticum': 'sacred-corpus-hermeticum'
+      'saturn.tao-te-ching': 'sacred-tao-te-ching'
     });
     for (const record of pointed) {
       expect(ARCHIVE_IDS.has(record.work.id), `${record.id} -> ${record.work.id}`).toBe(true);
@@ -143,7 +141,8 @@ describe('the canon', () => {
 
   it('pins an entry by its division label, and the served work carries that label', () => {
     const pinned = SCHOOL_CANON.filter(record => record.work?.entry);
-    expect(pinned.map(record => [record.id, record.work.entry])).toEqual([['sun.nature', 'Nature']]);
+    // Nature's 1844 stand-in left when the 1836 book entered the corpus; no record pins an entry now.
+    expect(pinned.map(record => [record.id, record.work.entry])).toEqual([]);
     for (const record of pinned) {
       expect(DIVISION_INDEX[record.work.id]?.labels, record.id).toContain(record.work.entry);
     }
@@ -166,13 +165,16 @@ describe('the canon', () => {
     });
   });
 
-  it('notes the stand-in, the near misses and the commission', () => {
+  it('notes the commission and the edition still to come', () => {
     expect(Object.fromEntries(SCHOOL_CANON.filter(record => record.note !== null)
       .map(record => [record.id, record.note]))).toEqual({
-      'gate.oration': 'A free English edition is the school\'s first commission',
-      'sun.nature': 'The 1844 essay stands in until the 1836 book is carried',
-      'venus.marriage-of-heaven-and-hell': 'RISE carries Blake\'s Songs of Innocence and of Experience, not the Marriage',
-      'saturn.masnavi': 'RISE carries Rumi\'s Dīvān, not the Masnavi'
+      'gate.oration': 'Read in RISE\'s English draft, with the Latin after it; the English awaits a reading against the Latin',
+      'mercury.philosophie-der-technik': 'A selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); chapters IV to XIII, from Gliedmaassen und Maasse to Der Staat, are left out; ten places where the damaged scan lost lines are marked […], and 79 unsettled readings [?]',
+      'moon.psychological-types': 'Chapter X, General Description of the Types, is read now; the rest of Baynes\'s translation follows after a proofing pass of the 1924 printing',
+      'venus.futurist-manifesto': 'Read in Marinetti\'s French as he reprinted it in 1909, then in the anonymous English of 1912, which gives the eleven points and the closing but not the opening narrative',
+      'jupiter.harmonices-mundi': 'A selection from Book V in Frisch\'s edition (1864): the title page, the Prooemium, chapters III, VII and VIII, and chapter X, the Epilogus; chapters I, II, IV to VI and IX, the Appendix, Kepler\'s notes and the tables are left out, and the Greek quotations are marked [Greek]',
+      'mars.muqaddimah': 'A selection from de Slane\'s volume I: the opening of Book I, the first preliminary discourse, and the second section as far as the chapter on esprit de corps and sovereignty; the rest of the Prolégomènes is left out',
+      'saturn.sermons': 'Claud Field\'s seven sermons are read now; C. de B. Evans\'s 1924 volume follows after a proofing pass'
     });
   });
 
@@ -180,7 +182,7 @@ describe('the canon', () => {
     const byId = Object.fromEntries(SCHOOL_CANON.map(record => [record.id, record]));
     expect(byId['gate.oration']).toMatchObject({
       title: 'Oration on the Dignity of Man', author: 'Pico della Mirandola', date: '1486',
-      edition: 'Latin, orig. only (verify a pre-1931 English)', degree: 0, rights: 'orig-only', work: null,
+      edition: 'Latin, orig. only (verify a pre-1931 English)', degree: 0, rights: 'us-pd', work: { corpus: true },
       why: 'The Renaissance manifesto: the human as the being with no fixed place, who must shape itself'
     });
     expect(byId['mercury.lovelace-notes']).toMatchObject({
@@ -193,7 +195,7 @@ describe('the canon', () => {
     });
     expect(byId['sun.nature']).toMatchObject({
       title: 'Nature', author: 'Emerson', date: '1836', edition: 'Original', degree: 1,
-      work: { id: 'literary-essays-emerson', entry: 'Nature' }
+      work: { corpus: true }
     });
     expect(byId['saturn.interior-castle']).toMatchObject({ author: 'Teresa of Ávila', date: '1577', degree: 2 });
     expect(byId['venus.faust']).toMatchObject({ date: '1808, 1832', edition: 'Bayard Taylor, 1870', degree: 2 });
