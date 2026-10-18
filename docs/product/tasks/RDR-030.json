@@ -118,6 +118,12 @@
       "ref": "9e85fbb0",
       "note": "Branch school-futurist, not merged: the Futurist Manifesto in French as Marinetti reprinted it in Poupées électriques (Sansot, 1909), from French Wikisource checked word by word against the scan (five Wikisource slips set back to the print, four printer's errors corrected), then the anonymous English of 1912 (Sackville Gallery catalogue; the eleven points and the closing) proofed from the Internet Archive OCR against the page images; 3 units, 3,242 words; 66 of 66 readable, none absent. Diffs on file, unread by a person.",
       "date": "2026-10-18"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/720",
+      "note": "The Futurist Manifesto: Marinetti's French (Sansot 1909 reprint of the Figaro text, from French Wikisource checked against the scan; 10 changes) then the anonymous English of 1912 (proofed from the OCR; 34 hunks); 3 units; 66 of 66 readable. Diffs unread by a person.",
+      "date": "2026-10-18"
     }
   ],
   "activity": [
@@ -160,10 +166,14 @@
     {
       "date": "2026-10-18T05:06:34.201Z",
       "summary": "Every record is readable: the Futurist Manifesto served"
+    },
+    {
+      "date": "2026-10-18T05:09:58.078Z",
+      "summary": "PR 720 opened: the Futurist Manifesto; 66 of 66 readable"
     }
   ],
-  "updatedAt": "2026-10-18T05:06:34.201Z",
-  "revision": 11,
+  "updatedAt": "2026-10-18T05:09:58.078Z",
+  "revision": 12,
   "summary": "After RDR-029 shipped with four of 66 texts readable, the owner lifted the Standard-Ebooks-only serving rule for the School only. The survey finds a free proofed edition for 46 of the 62 missing texts, nine as scans needing a proofing pass, and six with no free English, the Gate among them. The design admits them through a School corpus beside the Archive, on the Chapel's precedent, with recipes per work and the same gates every time; six pull requests take the School from 4 to 66 readable.",
   "blocker": "The proofing diffs (Goethe, Kapp, Ibn Khaldun, Kepler, Marinetti) and RISE's English draft of the Oration await the owner's reading before they count as verified."
 }
