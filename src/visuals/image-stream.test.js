@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { STREAM_APERTURE_PX, mountImageStream } from './image-stream.js';
 import { apertureIsInherentlySafe } from '../core/flash-meter.js';
 
@@ -52,9 +52,25 @@ function drawn(stream) {
     return ctx.drawImage.mock.calls.map(([source]) => source.id);
 }
 
+/** Let the canvas give back the pixels of the frame last drawn, as a real one would. */
+function wirePixels(stream) {
+    const ctx = stream.canvas.getContext('2d');
+    let last = null;
+    ctx.drawImage.mockImplementation(source => { last = source; });
+    ctx.getImageData.mockImplementation((x, y, width, height) => ({ width, height, data: last.rgba }));
+    return ctx;
+}
+
+/** Black and white, alternating every frame, over the whole aperture. */
+function strobe(count = 12) {
+    return Array.from({ length: count }, (_, i) => frame(i, i % 2 ? [255, 255, 255] : [0, 0, 0]));
+}
+
 afterEach(() => {
     document.body.replaceChildren();
     document.documentElement.classList.remove('photosensitivity-mode', 'reduced-motion');
+    delete document.visibilityState;
+    vi.unstubAllGlobals();
 });
 
 describe('the fixation aperture', () => {
@@ -198,5 +214,183 @@ describe('its own clock, driven by the reading', () => {
         stream.destroy();
         expect(host.querySelector('canvas')).toBeNull();
         expect(display.pending()).toBe(0);
+    });
+});
+
+describe('the runtime meter: every frame drawn is measured, and the stream fails closed', () => {
+    it('plays a benign reel at 8 Hz for five seconds without tripping, measuring every frame', () => {
+        // Magnified by pinch-zoom, so the meter is not excused by geometry:
+        // what keeps this reel playing is that its light barely changes.
+        vi.stubGlobal('visualViewport', { scale: 3 });
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(40), hz: 8, onFallback, ...display });
+        const ctx = wirePixels(stream);
+        stream.resume();
+        display.run(5000);
+        expect(onFallback).not.toHaveBeenCalled();
+        expect(stream.running).toBe(true);
+        expect(stream.canvas.style.display).not.toBe('none');
+        // 300 refreshes, 4983⅓ ms shown at 133⅓ ms a frame: frames 0 to 37.
+        expect(ctx.drawImage.mock.calls.length).toBe(38);
+        expect(ctx.getImageData).toHaveBeenCalledTimes(ctx.drawImage.mock.calls.length);
+    });
+
+    it('lets a black-and-white strobe inside the aperture play: its area cannot count (WCAG 2.3.1)', () => {
+        // The fixation regime's whole premise, stated so nobody has to infer
+        // it: 19,600 px² changing at once is under the 21,824 px² a flash
+        // must exceed. What can make this trip is the aperture growing on
+        // screen, which the next tests do.
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
+        wirePixels(stream);
+        stream.resume();
+        display.run(3000);
+        expect(onFallback).not.toHaveBeenCalled();
+    });
+
+    it('stops a strobe within one second once pinch-zoom makes the aperture larger than the safe area', () => {
+        vi.stubGlobal('visualViewport', { scale: 3 });
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
+        const ctx = wirePixels(stream);
+        stream.resume();
+        display.run(1000);
+        expect(onFallback).toHaveBeenCalledTimes(1);
+        expect(onFallback).toHaveBeenCalledWith('meter');
+        expect(stream.running).toBe(false);
+        expect(stream.canvas.style.display).toBe('none');
+        expect(display.pending()).toBe(0);
+        // Every frame after the first is a transition, and a flash is two.
+        // Two flashes in a second are allowed; the frame that completes the
+        // third (the seventh drawn) is refused.
+        const drawnBefore = ctx.drawImage.mock.calls.length;
+        expect(drawnBefore).toBe(7);
+        stream.resume();
+        display.run(1000);
+        expect(ctx.drawImage.mock.calls.length).toBe(drawnBefore);
+        expect(onFallback).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops a strobe once a stylesheet stretches the canvas beyond the safe area', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
+        wirePixels(stream);
+        stream.canvas.getBoundingClientRect = () => ({ width: 320, height: 320 });
+        stream.resume();
+        display.run(1000);
+        expect(onFallback).toHaveBeenCalledWith('meter');
+    });
+
+    it('treats an aperture it cannot measure as the largest there is', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
+        wirePixels(stream);
+        stream.canvas.getBoundingClientRect = () => ({ width: NaN, height: 140 });
+        stream.resume();
+        display.run(1000);
+        expect(onFallback).toHaveBeenCalledWith('meter');
+    });
+
+    it('stops when the meter throws, as it does for pixels it cannot read', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(4), onFallback, ...display });
+        const ctx = stream.canvas.getContext('2d');
+        ctx.getImageData.mockImplementation(() => {
+            throw new DOMException('The canvas has been tainted by cross-origin data.', 'SecurityError');
+        });
+        stream.resume();
+        display.refresh();
+        expect(onFallback).toHaveBeenCalledTimes(1);
+        expect(onFallback).toHaveBeenCalledWith('error');
+        expect(stream.canvas.style.display).toBe('none');
+        expect(display.pending()).toBe(0);
+    });
+
+    it('stops when a summary cannot be made of what was read', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(4), onFallback, ...display });
+        stream.canvas.getContext('2d').getImageData
+            .mockImplementation(() => ({ width: 1, height: 1, data: new Uint8ClampedArray(4) }));
+        stream.resume();
+        display.refresh();
+        expect(onFallback).toHaveBeenCalledWith('error');
+    });
+
+    it('stops when the display stalls and a frame is held far beyond its slot', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(40), onFallback, ...display });
+        wirePixels(stream);
+        stream.resume();
+        display.run(300);
+        display.refresh(600);
+        expect(onFallback).toHaveBeenCalledWith('stall');
+        expect(stream.canvas.style.display).toBe('none');
+    });
+
+    it('does not count a pause as a stall', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(40), onFallback, ...display });
+        wirePixels(stream);
+        stream.resume();
+        display.run(300);
+        stream.pause();
+        display.jump(5000);
+        stream.resume();
+        display.run(300);
+        expect(onFallback).not.toHaveBeenCalled();
+        expect(stream.running).toBe(true);
+    });
+
+    it('stands down mid-reading when photosensitivity mode is switched on', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(40), onFallback, ...display });
+        wirePixels(stream);
+        stream.resume();
+        display.run(300);
+        document.documentElement.classList.add('photosensitivity-mode');
+        display.refresh();
+        expect(onFallback).toHaveBeenCalledWith('stand-down');
+        expect(stream.canvas.style.display).toBe('none');
+    });
+});
+
+describe('never mounting at all', () => {
+    const refusals = {
+        'photosensitivity mode': () => document.documentElement.classList.add('photosensitivity-mode'),
+        'the reader\'s reduced-motion setting': () => document.documentElement.classList.add('reduced-motion'),
+        'prefers-reduced-motion': () => vi.stubGlobal('matchMedia', query => ({
+            matches: query === '(prefers-reduced-motion: reduce)'
+        })),
+        'a hidden document': () => Object.defineProperty(document, 'visibilityState', {
+            configurable: true, value: 'hidden'
+        }),
+        'a media query that cannot be asked': () => vi.stubGlobal('matchMedia', () => { throw new Error('no'); })
+    };
+
+    for (const [condition, arrange] of Object.entries(refusals)) {
+        it(`stands down under ${condition}`, () => {
+            arrange();
+            const host = stage();
+            const display = fakeDisplay();
+            expect(mountImageStream(host, { frames: reel(4), ...display })).toBeNull();
+            expect(host.querySelector('canvas')).toBeNull();
+            expect(display.pending()).toBe(0);
+        });
+    }
+
+    it('stands down with nothing to show', () => {
+        for (const frames of [[], null, undefined, 'frames']) {
+            expect(mountImageStream(stage(), { frames, ...fakeDisplay() })).toBeNull();
+        }
     });
 });

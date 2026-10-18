@@ -10,16 +10,42 @@
  *
  * Its safety is geometry: the aperture is no larger than the area a flash
  * must exceed to count (`apertureIsInherentlySafe`), and it refuses to mount
- * if that were ever untrue.
+ * if that were ever untrue. Behind that, a runtime FlashMeter reads every
+ * frame it draws, one cell per drawn pixel, against the area the aperture
+ * actually covers on screen (pinch-zoom and stylesheets included). The meter
+ * tripping, the meter throwing, the display stalling, or the reader turning
+ * on photosensitivity or reduced motion stops the stream for good, hides it,
+ * and tells the caller once, so the Continuous Field is what remains.
  */
 
-import { apertureIsInherentlySafe } from '../core/flash-meter.js';
+import { FlashMeter, apertureIsInherentlySafe } from '../core/flash-meter.js';
+import { summarizeFrame } from '../core/luminance.js';
 import { normalizeStreamRate, streamFrameAt } from '../core/visual-presence.js';
 
 /** The aperture's side in CSS px: 19,600 px², inside the 21,824 px² safe area. */
 export const STREAM_APERTURE_PX = 140;
 
 const REFRESH_MEASURE_MS = 500;
+// A frame held this long is far beyond any slot (the slowest is 250 ms at
+// 4 Hz): the display is not keeping time, so the stream stops.
+const STALL_MS = 500;
+
+/**
+ * Whether the reader's settings and the page allow the stream at all. Any
+ * doubt, including a media query that cannot be asked, is a no.
+ */
+export function imageStreamMayRun() {
+    try {
+        const root = document.documentElement;
+        if (root.classList.contains('photosensitivity-mode')) return false;
+        if (root.classList.contains('reduced-motion')) return false;
+        if (typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+        return document.visibilityState !== 'hidden';
+    } catch {
+        return false;
+    }
+}
 
 function apertureSide(value) {
     const side = Math.floor(Number(value));
@@ -29,8 +55,12 @@ function apertureSide(value) {
 }
 
 export class ImageStream {
-    constructor(stage, { frames, hz, side, raf, caf }) {
+    constructor(stage, { frames, hz, side, raf, caf, onFallback }) {
         this.frames = frames;
+        this._onFallback = onFallback;
+        this._fellBack = false;
+        this._meter = new FlashMeter({ areaPx: side * side });
+        this._shownMs = 0;
         this.hz = normalizeStreamRate(hz);
         this.side = side;
         this._raf = raf;
@@ -59,7 +89,7 @@ export class ImageStream {
             pointerEvents: 'none'
         });
         this.canvas = canvas;
-        this._ctx = canvas.getContext('2d');
+        this._ctx = canvas.getContext('2d', { willReadFrequently: true });
         stage.appendChild(canvas);
     }
 
@@ -68,7 +98,7 @@ export class ImageStream {
     }
 
     resume() {
-        if (this.running || !this.canvas) return;
+        if (this.running || !this.canvas || this._fellBack) return;
         this._lastTs = null;
         this._rafId = this._raf(this._tick);
     }
@@ -93,18 +123,65 @@ export class ImageStream {
 
     _onRefresh(ts) {
         this._rafId = null;
-        if (this._lastTs !== null) {
-            const delta = ts - this._lastTs;
-            this._elapsedMs += delta;
-            this._measure(delta);
+        try {
+            if (!imageStreamMayRun()) return this._fallBack('stand-down');
+            if (this._lastTs !== null) {
+                const delta = ts - this._lastTs;
+                if (delta > STALL_MS) return this._fallBack('stall');
+                this._elapsedMs += delta;
+                this._shownMs += delta;
+                this._measure(delta);
+            }
+            this._lastTs = ts;
+            const { index } = streamFrameAt(this._elapsedMs, this.frames.length, {
+                hz: this.hz,
+                refreshHz: this._refreshHz
+            });
+            if (index !== this._shownIndex) {
+                this._draw(index);
+                if (!this._lightIsSafe()) return this._fallBack('meter');
+            }
+        } catch {
+            return this._fallBack('error');
         }
-        this._lastTs = ts;
-        const { index } = streamFrameAt(this._elapsedMs, this.frames.length, {
-            hz: this.hz,
-            refreshHz: this._refreshHz
-        });
-        if (index !== this._shownIndex) this._draw(index);
         this._rafId = this._raf(this._tick);
+    }
+
+    /** Read back the frame just drawn and put it through the meter. */
+    _lightIsSafe() {
+        const { data } = this._ctx.getImageData(0, 0, this.side, this.side);
+        const summary = summarizeFrame(data, this.side, this.side);
+        // The meter's area is set per frame because the aperture's size on
+        // screen can change under it. Time is time shown: a seek moves the
+        // stream's clock, never the meter's window.
+        this._meter.areaPx = this._screenAreaPx();
+        return this._meter.observe(summary, this._shownMs).ok;
+    }
+
+    /**
+     * The CSS px² the aperture covers as the reader sees it: never less than
+     * its declared size, more under pinch-zoom or a stylesheet that stretches
+     * it, and unbounded when it cannot be measured, so any transition counts.
+     */
+    _screenAreaPx() {
+        const rect = this.canvas.getBoundingClientRect();
+        const scale = Number(window.visualViewport?.scale);
+        const zoom = Number.isFinite(scale) && scale > 0 ? scale : 1;
+        const area = Math.max(this.side * this.side, rect.width * rect.height) * zoom * zoom;
+        return Number.isFinite(area) ? area : Infinity;
+    }
+
+    /** Stop for good, hide the aperture, and say so once. */
+    _fallBack(reason) {
+        if (this._fellBack) return;
+        this._fellBack = true;
+        this.pause();
+        if (this.canvas) this.canvas.style.display = 'none';
+        try {
+            this._onFallback?.(reason);
+        } catch {
+            // The stream is already stopped and hidden; nothing more to undo.
+        }
     }
 
     /** The display's refresh rate, from the first half second of refreshes. */
@@ -140,6 +217,7 @@ export class ImageStream {
  * @param {Array<CanvasImageSource & {width:number,height:number}>} options.frames decoded images
  * @param {number} [options.hz]      images per second, 4 to 12
  * @param {number} [options.sizePx]  the aperture's side, at most STREAM_APERTURE_PX
+ * @param {Function} [options.onFallback] called once, with a reason, when the stream stops itself
  * @param {Function} [options.raf]   requestAnimationFrame, injectable for tests
  * @param {Function} [options.caf]   cancelAnimationFrame
  */
@@ -147,6 +225,7 @@ export function mountImageStream(stage, {
     frames,
     hz,
     sizePx,
+    onFallback,
     raf = callback => requestAnimationFrame(callback),
     caf = id => cancelAnimationFrame(id)
 } = {}) {
@@ -155,5 +234,6 @@ export function mountImageStream(stage, {
     // aperture could ever hold a flash that counts.
     if (!apertureIsInherentlySafe(side, side)) return null;
     if (!stage || !Array.isArray(frames) || frames.length === 0) return null;
-    return new ImageStream(stage, { frames, hz, side, raf, caf });
+    if (!imageStreamMayRun()) return null;
+    return new ImageStream(stage, { frames, hz, side, raf, caf, onFallback });
 }
