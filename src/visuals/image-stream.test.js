@@ -321,11 +321,11 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
     it('plays a benign reel at 8 Hz for five seconds without tripping, measuring every frame', () => {
         // Magnified by pinch-zoom: what keeps this reel playing is that its
         // light barely changes, not the size it is shown at.
-        vi.stubGlobal('visualViewport', { scale: 3 });
         const display = fakeDisplay();
         const onFallback = vi.fn();
         const stream = mountImageStream(stage(), { frames: reel(40), hz: 8, onFallback, ...display });
         const ctx = wirePixels(stream);
+        vi.stubGlobal('visualViewport', { scale: 3 });
         stream.resume();
         display.run(5000);
         expect(onFallback).not.toHaveBeenCalled();
@@ -350,19 +350,15 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         expect(onFallback).toHaveBeenCalledWith('meter');
     });
 
-    it('stops a strobe within one second under a page zoom the page cannot measure', () => {
-        // Browser zoom at 200%: the device pixel ratio doubles and the CSS
-        // viewport halves, while the canvas still measures 140 CSS px.
-        vi.stubGlobal('devicePixelRatio', 2);
+    it('refuses to mount on a page that is already zoomed', () => {
+        // Browser zoom at 200%: the CSS viewport is half the window.
+        vi.stubGlobal('outerWidth', 1024);
         vi.stubGlobal('innerWidth', 512);
-        const display = fakeDisplay();
-        const onFallback = vi.fn();
-        const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
-        wirePixels(stream);
-        stream.canvas.getBoundingClientRect = () => ({ width: 140, height: 140 });
-        stream.resume();
-        display.run(1500);
-        expect(onFallback).toHaveBeenCalledWith('meter');
+        expect(mountImageStream(stage(), { frames: reel(4), ...fakeDisplay() })).toBeNull();
+        vi.unstubAllGlobals();
+        // Pinch-zoomed before the reading began.
+        vi.stubGlobal('visualViewport', { scale: 2 });
+        expect(mountImageStream(stage(), { frames: reel(4), ...fakeDisplay() })).toBeNull();
     });
 
     it('stands down once if the page is zoomed while the stream runs', () => {
@@ -385,11 +381,11 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
     });
 
     it('stops a strobe within one second once pinch-zoom makes the aperture larger than the safe area', () => {
-        vi.stubGlobal('visualViewport', { scale: 3 });
         const display = fakeDisplay();
         const onFallback = vi.fn();
         const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
         const ctx = wirePixels(stream);
+        vi.stubGlobal('visualViewport', { scale: 3 });
         stream.resume();
         display.run(1500);
         expect(onFallback).toHaveBeenCalledTimes(1);
@@ -521,6 +517,63 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         display.refresh();
         expect(onFallback).toHaveBeenCalledWith('stand-down');
         expect(stream.canvas.style.display).toBe('none');
+    });
+});
+
+/**
+ * Black, then black with its first `cells` pixels white, alternating: a flash
+ * over a part of the aperture only.
+ */
+function patch(cells, count = 12) {
+    return Array.from({ length: count }, (_, i) => {
+        const image = frame(i, [0, 0, 0]);
+        if (i % 2) for (let p = 0; p < cells; p++) image.rgba.fill(255, p * 4, p * 4 + 3);
+        return image;
+    });
+}
+
+/** Mount a 12 Hz reel, let `arrange` act on the mounted stream, run two seconds, and say why it stopped. */
+function play(frames, arrange = () => {}) {
+    const display = fakeDisplay();
+    const onFallback = vi.fn();
+    const stream = mountImageStream(stage(), { frames, hz: 12, onFallback, ...display });
+    expect(stream, 'mounted').not.toBeNull();
+    arrange(stream);
+    stream.resume();
+    display.run(2000);
+    return onFallback.mock.calls[0]?.[0] ?? null;
+}
+
+describe('a flash over a small part of the aperture counts', () => {
+    // At METER_FLOOR_AREA_PX (64 × the safe area) over 19,600 cells, a
+    // transition counts once it covers more than 19,600 / 64 = 306.25 cells.
+    it('counts a change over 307 of the 19,600 cells at the aperture\'s own size', () => {
+        expect(play(patch(307))).toBe('meter');
+    });
+
+    it('does not count a change over 306 cells, so the threshold is the one stated', () => {
+        expect(play(patch(306))).toBeNull();
+    });
+
+    it('still counts it at device pixel ratios of 3 and 5 and under pinch-zoom of 3 and 5', () => {
+        for (const dpr of [3, 5]) {
+            vi.stubGlobal('devicePixelRatio', dpr);
+            expect(play(patch(307)), `dpr ${dpr}`).toBe('meter');
+            vi.unstubAllGlobals();
+        }
+        for (const scale of [3, 5]) {
+            expect(play(patch(307), () => vi.stubGlobal('visualViewport', { scale })), `pinch ${scale}`).toBe('meter');
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('judges by the magnified area once it is larger than the floor: dpr 10 counts 250 cells', () => {
+        // 19,600 × 10² = 1,960,000 CSS px²: a change counts beyond 218 cells.
+        expect(play(patch(250))).toBeNull();
+        vi.stubGlobal('devicePixelRatio', 10);
+        expect(play(patch(250))).toBe('meter');
+        vi.unstubAllGlobals();
+        expect(play(patch(250), () => vi.stubGlobal('visualViewport', { scale: 10 }))).toBe('meter');
     });
 });
 

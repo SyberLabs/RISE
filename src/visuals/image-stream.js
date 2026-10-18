@@ -32,14 +32,24 @@ import { createRemoteImage } from './remote-image.js';
 export const STREAM_APERTURE_PX = 140;
 
 /**
- * The least area the meter assumes the stream covers: four times the safe
- * area, 87,296 CSS px², a little more than the 140 px aperture at 200% page
- * zoom (78,400). Page zoom and magnifiers enlarge the canvas without
- * changing what the page measures, and a backdrop blur over the aperture
- * spreads its light, so the aperture's own size is never trusted. At this
- * floor a change over more than a quarter of the aperture counts.
+ * The least area the meter judges the stream by: 64 × the safe area,
+ * 1,396,736 CSS px². What it buys: a transition counts once it covers more
+ * than 19,600 / 64 = 306.25 of the aperture's 19,600 pixels (1.56%, about a
+ * 17.5 px square). The largest change it lets pass, 306 px, then covers
+ *
+ *   - at 500% zoom, no blur:            306 × 25 = 7,650 px², 0.35 × the safe area;
+ *   - under the glass tile's blur(16px), which carries a ≥ 0.1 change up to
+ *     about 20 px past each edge: (17.5 + 40)² = 3,306 px² at 100%, still
+ *     under the safe area up to √(21,824 / 3,306) = 2.57× magnification.
+ *
+ * No floor covers blur at 500%: the 40 px margin alone covers 200² = 40,000
+ * px² there. So zoom the page can see is handled apart from the floor
+ * (refused at mount, a change mid-stream stops it, pinch-zoom and the
+ * device pixel ratio multiply the measured area), and an OS magnifier above
+ * about 2.5× over the glass tile is a residual risk the floor only narrows
+ * (IMAGE-STREAM-SPEC §3).
  */
-export const METER_FLOOR_AREA_PX = FLASH_SAFE_AREA_PX * 4;
+export const METER_FLOOR_AREA_PX = FLASH_SAFE_AREA_PX * 64;
 
 const REFRESH_MEASURE_MS = 500;
 // A small pool, decoded in memory: at most 24 frames, none over eight
@@ -70,6 +80,26 @@ export function imageStreamMayRun() {
 
 function zoomSignature() {
     return `${window.devicePixelRatio}:${window.innerWidth}`;
+}
+
+/**
+ * Whether the page already looks zoomed: browser zoom makes the CSS viewport
+ * narrower than the window, and pinch-zoom scales the visual viewport. A
+ * window with something docked beside the page reads as zoomed too, and the
+ * stream simply does not start: a refusal costs nothing.
+ */
+function pageLooksZoomed() {
+    const outer = Number(window.outerWidth);
+    const inner = Number(window.innerWidth);
+    const ratio = outer > 0 && inner > 0 ? outer / inner : 1;
+    const scale = Number(window.visualViewport?.scale);
+    return ratio > 1.1 || ratio < 0.9 || (Number.isFinite(scale) && scale > 1.01);
+}
+
+/** A magnification the page reports, never less than 1. */
+function magnification(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 1 ? number : 1;
 }
 
 /** Cover a side × side square with the source, cropping its longer side. */
@@ -236,14 +266,14 @@ export class ImageStream {
 
     /**
      * The CSS px² the meter judges the aperture by: what it measures on
-     * screen (pinch-zoom and stretching stylesheets included), never less
+     * screen, multiplied by the device pixel ratio and pinch-zoom (each
+     * squared, never below 1), never less
      * than METER_FLOOR_AREA_PX, and unbounded when it cannot be measured, so
      * any transition counts.
      */
     _screenAreaPx() {
         const rect = this.canvas.getBoundingClientRect();
-        const scale = Number(window.visualViewport?.scale);
-        const zoom = Number.isFinite(scale) && scale > 0 ? scale : 1;
+        const zoom = magnification(window.devicePixelRatio) * magnification(window.visualViewport?.scale);
         const area = Math.max(this.side * this.side, rect.width * rect.height) * zoom * zoom;
         return Number.isFinite(area) ? Math.max(METER_FLOOR_AREA_PX, area) : Infinity;
     }
@@ -337,6 +367,7 @@ export function mountImageStream(stage, {
 } = {}) {
     const side = apertureSide(sizePx);
     if (!stage || !Array.isArray(frames) || !hasFlashingSessionConsent() || !imageStreamMayRun()) return null;
+    if (pageLooksZoomed()) return null;
     const opaque = frames.filter(source => frameIsOpaque(source, side));
     if (opaque.length === 0) return null;
     return new ImageStream(stage, { frames: opaque, hz, side, raf, caf, onFallback });

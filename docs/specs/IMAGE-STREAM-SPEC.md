@@ -133,23 +133,42 @@ does not hold, because the page cannot see the size the reader sees:
   inside 140 CSS px than WCAG's model assumes (below).
 
 So the fixation aperture **reduces** risk and is **not** a safety guarantee.
-The runtime meter is the guard at every size: it judges each frame as if the
-stream covered at least `METER_FLOOR_AREA_PX`, four times the safe area
-(87,296 CSS px², a little more than the aperture at 200% zoom), or what it
-measures on screen if that is more, so a change over more than a quarter of
-the aperture counts. A full black-and-white strobe at 12 Hz stops within a
-second at any size. The stream also stands down if the device pixel ratio or
-the viewport width changes while it runs, which is what zooming looks like.
+The runtime meter is the guard at every size, and **a flash over a small
+part of the aperture counts**. Each frame is judged as if the stream covered
+`METER_FLOOR_AREA_PX` (64 × the safe area, 1,396,736 CSS px²), or its
+measured on-screen area multiplied by the device pixel ratio and pinch-zoom
+(each squared, never below 1) if that is more. At the floor a transition
+counts once it covers more than 19,600 / 64 = 306.25 of the aperture's
+19,600 pixels (1.56%, about a 17.5 px square).
+
+Why 64. The first floor (4×) counted only a change over a quarter of the
+aperture: 4,900 pixels, which at 200% zoom already cover 0.9× the safe area,
+2.0× at 300% and 5.6× at 500%. At 64× the largest uncounted change (306 px)
+covers 7,650 px² at 500% zoom, 0.35× the safe area. The glass tile under the
+words (`blur(16px)` with a dark tint) carries a ≥ 0.1 luminance change up to
+about 16–20 px past each edge, so that same change can light a 57.5 px square
+(3,306 px²) at 100%, which stays under the safe area up to 2.57×
+magnification. No floor covers blur at 500%: the 40 px of blur margin alone
+covers 40,000 px² there. So magnification the page can see is handled apart
+from the floor: the stream refuses to mount on a page that already looks
+zoomed (the CSS viewport narrower than the window by more than 10%, or
+pinch-zoom above 1), stands down if the device pixel ratio or viewport width
+changes while it runs, and multiplies the measured area by the device pixel
+ratio and pinch-zoom. **An OS magnifier, which the page cannot see, above
+about 2.5× over the glass tile remains a residual risk the floor only
+narrows.**
 
 | Regime | Size | What guards it |
 | --- | --- | --- |
 | Fixation aperture | 140 CSS px square | the runtime meter at its floor area; reels normalised by the compiler (§4) |
 | Wide field | larger, up to behind-stream | each reel certified by `certifySequence`, re-checked at runtime |
 
-The cost of the floor: a reel of unrelated pictures will usually change more
-than a quarter of the aperture at every frame, so until the reel compiler
-normalises and orders reels (§4), most real reels will trip the meter within
-a second and fall back to the Gallery.
+The cost of the floor: a reel of natural images changes far more than 1.56%
+of the aperture by 0.1 in luminance at almost every frame, so **until the
+reel compiler normalises luminance (§4), natural-image reels will almost
+always trip the meter** within a second and fall back to the Gallery. The
+reel compiler, and a decision on OS magnifiers, are preconditions before the
+flag may flip.
 
 ⁇ The CSS reference pixel is defined by visual angle, so the threshold is
 roughly device-independent, but a phone held close subtends more of the
