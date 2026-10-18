@@ -158,6 +158,37 @@ export const WEB_RECIPES = {
         },
         rights: { us: 'pd', life70: 'pd' }
     },
+    // Marinetti's French first, under the reprint's own two headings; the 1912 English, which has no narrative, after it.
+    'venus.futurist-manifesto': {
+        artifacts: [
+            {
+                kind: 'file',
+                path: 'scripts/school-sources/venus.futurist-manifesto/manifeste.proofed.md',
+                extract: { from: 'Le Futurisme' },
+                units: 'headings',
+                level: 2
+            },
+            {
+                kind: 'file',
+                path: 'scripts/school-sources/venus.futurist-manifesto/initial-manifesto.proofed.md',
+                extract: { from: 'Initial Manifesto of Futurism' },
+                units: 'headings',
+                level: 2,
+                prefix: 'English · 1912 (anonymous translation)'
+            }
+        ],
+        count: 3,
+        language: 'fr',
+        edition: {
+            statement: 'Le Figaro, 20 February 1909; French as Marinetti reprinted it in Poupées électriques, E. Sansot et Cie, Paris, 1909, '
+                + 'text from French Wikisource (three of its sixteen pages validated, thirteen proofread once), checked against the scan by RISE, 2026, diff on file. '
+                + 'English: the anonymous Initial Manifesto of Futurism, Sackville Gallery catalogue, London, 1912, the eleven points and the closing only, '
+                + 'proofed from the Internet Archive scan by RISE, 2026, diff on file',
+            translator: null,
+            year: 1909
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
     // Converted from Project Gutenberg's LaTeX (PG 15114) by scripts/school-latex.mjs.
     'mercury.laws-of-thought': {
         kind: 'file',
