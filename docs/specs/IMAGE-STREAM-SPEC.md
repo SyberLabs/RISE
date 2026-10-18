@@ -215,6 +215,11 @@ Runs in a worker. Input: the active image pools the cortex already warms
 - Frame replaces frame: each image covers the whole aperture (cropped, never
   letterboxed) and is drawn over the last, with no clear, fill, fade or
   overlay.
+- Every frame is opaque. The meter composites over black, but what lies under
+  the canvas is the Gallery, so a frame with any transparency (a PNG with an
+  alpha channel) would let light through that the meter never reads. Such
+  frames are left out when the stream mounts, and a read-back that is not
+  opaque stops the stream.
 - A runtime `FlashMeter` observes every frame actually drawn, read back from
   the canvas one cell per drawn pixel. Its area is what the aperture covers
   on screen (multiplied by pinch-zoom, larger if a stylesheet stretches it),

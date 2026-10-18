@@ -59,12 +59,19 @@ function holds(stream, display) {
 }
 
 /** A decoded image the size of the aperture, one flat colour. */
-function frame(id, [r, g, b] = [120, 120, 120], width = STREAM_APERTURE_PX, height = STREAM_APERTURE_PX) {
+function frame(id, [r, g, b] = [120, 120, 120], width = STREAM_APERTURE_PX, height = STREAM_APERTURE_PX, alpha = 255) {
     const rgba = new Uint8ClampedArray(width * height * 4);
     for (let i = 0; i < rgba.length; i += 4) {
-        rgba[i] = r; rgba[i + 1] = g; rgba[i + 2] = b; rgba[i + 3] = 255;
+        rgba[i] = r; rgba[i + 1] = g; rgba[i + 2] = b; rgba[i + 3] = alpha;
     }
     return { id, width, height, rgba };
+}
+
+/** A PNG with an alpha channel: a white disc's worth of pixels at half opacity. */
+function translucent(id) {
+    const image = frame(id, [255, 255, 255]);
+    for (let i = 3; i < image.rgba.length; i += 8) image.rgba[i] = 128;
+    return image;
 }
 
 function reel(count) {
@@ -105,7 +112,32 @@ function acceptNotice() {
 
 beforeEach(acceptNotice);
 
+let restoreGetContext = () => {};
+// The setup mock makes any property it is asked for, so a WeakSet remembers.
+const readingBack = new WeakSet();
+
+// Every canvas gives back the pixels of the frame last drawn on it, as a real
+// one would, so the opacity check and the meter read what was drawn.
+beforeEach(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    const original = getContext.getMockImplementation();
+    restoreGetContext = () => getContext.mockImplementation(original);
+    getContext.mockImplementation(function readBack(type, options) {
+        const ctx = original.call(this, type, options);
+        if (ctx && !readingBack.has(ctx)) {
+            readingBack.add(ctx);
+            let last = null;
+            ctx.drawImage.mockImplementation(source => { last = source; });
+            ctx.getImageData.mockImplementation((x, y, width, height) => ({
+                width, height, data: last ? last.rgba : frame(-1, [120, 120, 120], width, height).rgba
+            }));
+        }
+        return ctx;
+    });
+});
+
 afterEach(() => {
+    restoreGetContext();
     endVisualInterlocutionSession();
     document.body.replaceChildren();
     document.documentElement.classList.remove('photosensitivity-mode', 'reduced-motion');
@@ -488,6 +520,34 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         document.documentElement.classList.add('photosensitivity-mode');
         display.refresh();
         expect(onFallback).toHaveBeenCalledWith('stand-down');
+        expect(stream.canvas.style.display).toBe('none');
+    });
+});
+
+describe('frames that are not opaque', () => {
+    it('are left out, so the Gallery never shows through a frame unmeasured', () => {
+        const display = fakeDisplay();
+        const frames = [frame(0), translucent(1), frame(2), translucent(3)];
+        const stream = mountImageStream(stage(), { frames, hz: 12, ...display });
+        stream.resume();
+        display.run(2000);
+        expect(drawn(stream).length).toBeGreaterThan(4);
+        expect(drawn(stream).every(id => id === 0 || id === 2)).toBe(true);
+    });
+
+    it('leave nothing to mount when every frame is translucent', () => {
+        expect(mountImageStream(stage(), { frames: [translucent(0), translucent(1)], ...fakeDisplay() })).toBeNull();
+    });
+
+    it('stop the stream if what is read back from the screen is not opaque', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(4), onFallback, ...display });
+        stream.canvas.getContext('2d').getImageData
+            .mockImplementation((x, y, width, height) => ({ width, height, data: translucent(9).rgba }));
+        stream.resume();
+        display.refresh();
+        expect(onFallback).toHaveBeenCalledWith('transparent');
         expect(stream.canvas.style.display).toBe('none');
     });
 });

@@ -67,6 +67,40 @@ function zoomSignature() {
     return `${window.devicePixelRatio}:${window.innerWidth}`;
 }
 
+/** Cover a side × side square with the source, cropping its longer side. */
+function drawCover(ctx, source, side) {
+    const crop = Math.min(source.width, source.height);
+    ctx.drawImage(
+        source,
+        (source.width - crop) / 2, (source.height - crop) / 2, crop, crop,
+        0, 0, side, side
+    );
+}
+
+function isOpaque(rgba) {
+    for (let i = 3; i < rgba.length; i += 4) if (rgba[i] !== 255) return false;
+    return true;
+}
+
+/**
+ * Whether a frame, drawn as the aperture draws it, covers every pixel. A
+ * frame with any transparency (a PNG with an alpha channel) would let the
+ * Gallery show through light the meter never reads, so it is left out; so is
+ * one whose pixels cannot be read.
+ */
+function frameIsOpaque(source, side) {
+    try {
+        const scratch = document.createElement('canvas');
+        scratch.width = side;
+        scratch.height = side;
+        const ctx = scratch.getContext('2d', { willReadFrequently: true });
+        drawCover(ctx, source, side);
+        return isOpaque(ctx.getImageData(0, 0, side, side).data);
+    } catch {
+        return false;
+    }
+}
+
 function apertureSide(value) {
     const side = Math.floor(Number(value));
     return Number.isFinite(side) && side > 0
@@ -79,6 +113,7 @@ export class ImageStream {
         this.frames = frames;
         this._onFallback = onFallback;
         this._fellBack = false;
+        this._fallBackReason = null;
         this._meter = new FlashMeter({ areaPx: METER_FLOOR_AREA_PX });
         // Page zoom changes both; neither should move while the stream runs.
         this._zoomSignature = zoomSignature();
@@ -169,7 +204,7 @@ export class ImageStream {
             });
             if (index !== this._shownIndex) {
                 this._draw(index);
-                if (!this._lightIsSafe()) return this._fallBack('meter');
+                if (!this._lightIsSafe()) return this._fallBack(this._fallBackReason || 'meter');
             }
         } catch {
             return this._fallBack('error');
@@ -181,6 +216,12 @@ export class ImageStream {
     _lightIsSafe() {
         const { data } = this._ctx.getImageData(0, 0, this.side, this.side);
         const summary = summarizeFrame(data, this.side, this.side);
+        // The meter composites over black; what is under the canvas is the
+        // Gallery, so a canvas that is not opaque is light it has not seen.
+        if (!isOpaque(data)) {
+            this._fallBackReason = 'transparent';
+            return false;
+        }
         // The meter's area is set per frame because the aperture's size on
         // screen can change under it. Time is time shown: a seek moves the
         // stream's clock, never the meter's window.
@@ -232,17 +273,8 @@ export class ImageStream {
         }
     }
 
-    /** Cover the whole aperture with the frame, cropping its longer side. */
     _draw(index) {
-        const source = this.frames[index];
-        const width = source.width;
-        const height = source.height;
-        const crop = Math.min(width, height);
-        this._ctx.drawImage(
-            source,
-            (width - crop) / 2, (height - crop) / 2, crop, crop,
-            0, 0, this.side, this.side
-        );
+        drawCover(this._ctx, this.frames[index], this.side);
         this._shownIndex = index;
     }
 }
@@ -292,7 +324,8 @@ export function mountImageStream(stage, {
     caf = id => cancelAnimationFrame(id)
 } = {}) {
     const side = apertureSide(sizePx);
-    if (!stage || !Array.isArray(frames) || frames.length === 0) return null;
-    if (!hasFlashingSessionConsent() || !imageStreamMayRun()) return null;
-    return new ImageStream(stage, { frames, hz, side, raf, caf, onFallback });
+    if (!stage || !Array.isArray(frames) || !hasFlashingSessionConsent() || !imageStreamMayRun()) return null;
+    const opaque = frames.filter(source => frameIsOpaque(source, side));
+    if (opaque.length === 0) return null;
+    return new ImageStream(stage, { frames: opaque, hz, side, raf, caf, onFallback });
 }
