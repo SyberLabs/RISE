@@ -253,10 +253,14 @@ Runs in a worker. Input: the active image pools the cortex already warms
   photosensitivity notice (`hasFlashingSessionConsent`), under
   photosensitivity mode, the reader's reduced-motion setting,
   `prefers-reduced-motion`, a hidden document, or a media query that cannot
-  be asked. It asks every refresh and stops if the session's consent ends
-  (the reading closing, cleared data, the error boundary's visual recovery,
-  or a Gallery session taking over) or any of those settings is switched on.
-- Decoding is bounded: at most 24 frames, none over eight megapixels, none
+  be asked, or on a page that already looks zoomed. It asks every refresh
+  and on every resume, and stops if the session's consent ends (the reading
+  closing, cleared data, the error boundary's visual recovery, or a Gallery
+  session taking over). It watches the root element's classes from mount, so
+  photosensitivity mode or reduced motion switched on at any moment, paused
+  or not, ends it; switching the setting off again does not bring it back.
+- Decoding is bounded: at most 24 frames, none over eight megapixels (checked
+  from the natural size once loaded, before any pixels are decoded), none
   waited on for more than five seconds. A presenter that cannot load is
   caught and logged once; the Gallery stays.
 - Pauses with the reading. A seek recomputes the frame from time; nothing is
@@ -307,7 +311,11 @@ judges every frame at no less than `METER_FLOOR_AREA_PX`.
    the Live venue holds for its shut eye), and any change of look remove it
    and withdraw its grant. Turning visuals back on does not bring it back:
    only a new launch, which raises the notice again, can. Off already in
-   force at launch, or chosen while frames decode, mounts nothing.
+   force at launch, or chosen while frames decode, mounts nothing. Follow
+   text, which puts a still on the visual engine directly, ends it too,
+   including a reading that follows its text from the first frame. A stream
+   that stops itself (its meter, a stall, zoom, a setting, the refresh check)
+   withdraws the grant the same way.
 9. *Photosensitivity mode outranks an earlier acceptance.* The consent
    request checks the mode before any scope already accepted.
 
