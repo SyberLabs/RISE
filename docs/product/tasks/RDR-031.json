@@ -61,6 +61,12 @@
       "ref": "https://github.com/SyberLabs/RISE/pull/723",
       "note": "Step 2 as a draft pull request: the presenter, its runtime meter and the wiring, all behind IMAGE_STREAM_ENABLED (off).",
       "date": "2026-10-18"
+    },
+    {
+      "kind": "commit",
+      "ref": "bb69ca50",
+      "note": "Branch image-stream-presenter: review findings on step 2 fixed, one commit each (88535adc meter armed at every size and zoom stand-down; 2e5a076e consent end; b1fe126c Off, cues and look change end the stream; 30cdeae9 whole-refresh holds under jitter; a8b2360c photosensitivity before earlier consent; e96d7f82 opaque frames only; 9de25a74 certifySequence and FlashMeter refuse missing frame time or area; 1f0efcc6 bounded decoding; bb69ca50 tests that fail without their guards). Each test watched failing first; jsdom only.",
+      "date": "2026-10-18"
     }
   ],
   "activity": [
@@ -83,10 +89,14 @@
     {
       "date": "2026-10-18T06:36:36.000Z",
       "summary": "PR #723 opened as a draft: the presenter behind its flag, held until Codex's findings are fixed"
+    },
+    {
+      "date": "2026-10-18T07:47:51.000Z",
+      "summary": "Review findings on step 2 fixed: the meter is armed at every size; Off, consent end and look change stop the stream"
     }
   ],
-  "updatedAt": "2026-10-18T06:36:36.000Z",
-  "revision": 5,
+  "updatedAt": "2026-10-18T07:47:51.000Z",
+  "revision": 6,
   "summary": "A rapid serial stream of images beside the rapid serial stream of words: frames replacing frames at several per second, never passing through black, governed by the light it actually puts on the screen. The retired event economy limited risk by counting events, so this stream is measured against WCAG 2.3.1 instead, and FLASHING_ENABLED stays false.",
   "blocker": null
 }

@@ -228,10 +228,16 @@ Runs in a worker. Input: the active image pools the cortex already warms
   (page zoom) stops it. If the meter reports `ok: false`, the meter or anything else in
   a refresh throws, or a frame is held past 500 ms (a stalled display), the
   stream stops for good, hides, and reports one reason once.
-- Stands down entirely (never mounts) under photosensitivity mode, the
-  reader's reduced-motion setting, `prefers-reduced-motion`, a hidden
-  document, or a media query that cannot be asked, and stops at the next
-  refresh if any of the first three is switched on mid-reading.
+- Stands down entirely (never mounts) without a session that accepted the
+  photosensitivity notice (`hasFlashingSessionConsent`), under
+  photosensitivity mode, the reader's reduced-motion setting,
+  `prefers-reduced-motion`, a hidden document, or a media query that cannot
+  be asked. It asks every refresh and stops if the session's consent ends
+  (the reading closing, cleared data, the error boundary's visual recovery,
+  or a Gallery session taking over) or any of those settings is switched on.
+- Decoding is bounded: at most 24 frames, none over eight megapixels, none
+  waited on for more than five seconds. A presenter that cannot load is
+  caught and logged once; the Gallery stays.
 - Pauses with the reading. A seek recomputes the frame from time; nothing is
   replayed to catch up.
 
@@ -274,6 +280,15 @@ judges every frame at no less than `METER_FLOOR_AREA_PX`.
 7. *Readers' seeks do not move the stream.* Free-running (§6) means the
    stream's clock has no mapping from a position in the text; `seek()` exists
    on the presenter for the phase-locked option.
+8. *Turning the visuals off or changing them ends the stream for the
+   reading.* Off in the Look sheet or the visual direction, any cue that is
+   not a Gallery pool change (a still, a field, a scene, a focal, the change
+   the Live venue holds for its shut eye), and any change of look remove it
+   and withdraw its grant. Turning visuals back on does not bring it back:
+   only a new launch, which raises the notice again, can. Off already in
+   force at launch, or chosen while frames decode, mounts nothing.
+9. *Photosensitivity mode outranks an earlier acceptance.* The consent
+   request checks the mode before any scope already accepted.
 
 ## 6. Coupling to the words
 
@@ -311,9 +326,12 @@ moves the clock's owner, not its arithmetic.
 | on | a Composer Current | none | cannot ask for it |
 
 - Before the flag flips: the phone aperture (§3 ⁇), the notice's wording
-  (it still describes brief exposures between moments of reading), and a
-  reader's control to turn the stream off mid-reading (today: pause, or the
-  photosensitivity or reduced-motion settings).
+  (it still describes brief exposures between moments of reading), and the
+  reel compiler (§4), without which most real reels trip the armed meter
+  within a second. The reader can end the stream mid-reading with Off in
+  the Look sheet, pause, or the photosensitivity or reduced-motion settings.
+  A consent request that blocks without showing the notice (the dialog
+  missing from the page) is a known gap, left for the notice's rework.
 - A property test belongs beside the compiler: random reels at
   `STREAM_RATE_MAX_HZ` in a wide-field aperture, after compilation, never
   certify with more than `STREAM_MAX_FLASHES_PER_WINDOW` flashes in a window.
