@@ -1,0 +1,47 @@
+{
+  "id": "FND-016",
+  "title": "Restore full-unit coverage after fixture and stream lifecycle additions",
+  "lane": "shared",
+  "milestone": "Release reliability",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Codex unit-regression repair",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "The historical Figure Kit study retains its approved SVG goldens while the engine-list guard continues scanning runtime source.",
+    "Scheduled field and legacy focal tests supply the real DOM container their Chamber lifecycle requires.",
+    "Field transition coverage verifies active image-stream teardown and revocation as well as cue routing.",
+    "Focused regression tests and required CI pass before reviewed integration."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/39112991881",
+      "note": "Baseline full validation reported the historical Figure Kit fixture as a duplicate engine inventory and two Chamber journey shells without a container.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/read/Chamber.journey.test.js",
+      "note": "Reproduced both querySelector failures against main 96df6259 with pinned dependencies; after supplying containers and asserting stream cleanup, the focused three-file run passed all 86 tests. The engine-list failure was separately reproduced before its exact fixture exception. Production source and SVG goldens unchanged.",
+      "date": "2026-10-18"
+    },
+    {
+      "kind": "test",
+      "ref": "src/components/read",
+      "note": "Default-config run of all 38 Chamber test files plus the engine-list guard and Figure Kit: 40 files, 481 tests passed. New cleanup assertions fail if scheduled-cue stream revocation is removed (mutation restored). Roadmap validation and CI hygiene passed. Full unit/browser suites have not run locally.",
+      "date": "2026-10-18"
+    }
+  ],
+  "summary": "Test harness corrections only; no runtime, feature-flag, deployment or human acceptance claim.",
+  "blocker": null,
+  "activity": [
+    {
+      "date": "2026-10-18T17:34:00.000Z",
+      "summary": "Claimed the October 18 full-unit fixture and lifecycle regressions; reproduced all three failures and prepared the narrow test-only correction."
+    }
+  ],
+  "updatedAt": "2026-10-18T17:34:00.000Z",
+  "revision": 1
+}

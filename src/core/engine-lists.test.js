@@ -22,7 +22,8 @@ const ALLOWED = Object.freeze({
   'src/core/visual-catalog.js': 'the catalog\'s manifests, keyed by registered engine',
   'src/app/jev-reading.js': 'Jev\'s closed choices, a model-facing contract checked by validateJevRecommendation',
   'src/core/jev-sequence.js': 'the phases Jev\'s closed choices are scheduled through',
-  'src/core/visual-style-definitions.js': 'the engines whose style can be configured'
+  'src/core/visual-style-definitions.js': 'the engines whose style can be configured',
+  'src/core/figures/fixtures/specs.js': 'the approved historical figure study, used only by unit/render-check tests and checked against SVG goldens'
 });
 
 function sourceFiles(dir, out = []) {

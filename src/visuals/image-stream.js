@@ -53,10 +53,12 @@ export const STREAM_APERTURE_PX = 140;
 export const METER_FLOOR_AREA_PX = FLASH_SAFE_AREA_PX * 64;
 
 const REFRESH_MEASURE_MS = 500;
-// A small pool, decoded in memory: at most 24 frames, none over eight
-// megapixels (32 MB decoded), none waited on for more than five seconds.
+// A small pool, loaded one at a time: at most 24 frames and sixteen
+// megapixels retained (64 MB nominal RGBA), none over eight megapixels. The whole
+// reel gets five seconds, so sequential loading cannot multiply the wait.
 const STREAM_FRAMES_MAX = 24;
 const DECODE_MAX_PIXELS = 8_000_000;
+const DECODE_TOTAL_MAX_PIXELS = 16_000_000;
 const DECODE_TIMEOUT_MS = 5000;
 // A frame held this long is far beyond any slot (the slowest is 250 ms at
 // 4 Hz): the display is not keeping time, so the stream stops.
@@ -369,7 +371,12 @@ export async function decodeStreamFrames(urls, { limit = STREAM_FRAMES_MAX } = {
     const wanted = (Array.isArray(urls) ? urls : [])
         .filter(url => typeof url === 'string' && url)
         .slice(0, Math.min(STREAM_FRAMES_MAX, Math.max(0, Number(limit) || 0)));
-    const decoded = await Promise.all(wanted.map(async url => {
+    const decoded = [];
+    let retainedPixels = 0;
+    const deadline = performance.now() + DECODE_TIMEOUT_MS;
+    for (const url of wanted) {
+        const remainingMs = deadline - performance.now();
+        if (remainingMs <= 0 || retainedPixels >= DECODE_TOTAL_MAX_PIXELS) break;
         const image = createRemoteImage();
         image.crossOrigin = 'anonymous';
         const loaded = new Promise((resolve, reject) => {
@@ -378,27 +385,39 @@ export async function decodeStreamFrames(urls, { limit = STREAM_FRAMES_MAX } = {
         });
         image.src = url;
         let timer = null;
-        const timedOut = new Promise(resolve => { timer = setTimeout(() => resolve(false), DECODE_TIMEOUT_MS); });
-        // The natural size is known once the image has loaded, before its
-        // pixels are decoded, so an oversized one is never decoded at all.
+        let active = true;
+        let accepted = false;
+        let pixels = 0;
+        const timedOut = new Promise(resolve => { timer = setTimeout(() => resolve(false), remainingMs); });
+        // Check natural size before explicitly decoding. Browsers may also
+        // allocate while loading: one request at a time bounds concurrency,
+        // not the browser's internal peak memory usage.
         const ready = async () => {
             await loaded;
-            const pixels = (image.naturalWidth || image.width) * (image.naturalHeight || image.height);
-            if (!(pixels <= DECODE_MAX_PIXELS)) return false;
+            if (!active) return false;
+            pixels = (image.naturalWidth || image.width) * (image.naturalHeight || image.height);
+            if (!(pixels > 0 && pixels <= DECODE_MAX_PIXELS)
+                || retainedPixels + pixels > DECODE_TOTAL_MAX_PIXELS) return false;
             await image.decode();
             return true;
         };
         try {
-            if (await Promise.race([ready(), timedOut])) return image;
-            image.src = '';
-            return null;
+            if (await Promise.race([ready(), timedOut])) {
+                accepted = true;
+                retainedPixels += pixels;
+                decoded.push(image);
+            }
         } catch {
-            return null;
+            // Leave out a failed load or decode and try the next URL.
         } finally {
+            active = false;
             clearTimeout(timer);
+            image.onload = null;
+            image.onerror = null;
+            if (!accepted) image.src = '';
         }
-    }));
-    return decoded.filter(Boolean);
+    }
+    return decoded;
 }
 
 /**

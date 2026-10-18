@@ -779,7 +779,7 @@ describe('decoding the frames', () => {
         expect(await decodeStreamFrames(urls, { limit: 100 })).toHaveLength(24);
     });
 
-    it('gives up on an image that has not decoded in five seconds', async () => {
+    it('gives the whole reel five seconds rather than multiplying the wait by its length', async () => {
         vi.useFakeTimers();
         try {
             vi.stubGlobal('Image', FakeImage);
@@ -788,7 +788,7 @@ describe('decoding the frames', () => {
             await vi.advanceTimersByTimeAsync(4999);
             expect(frames).toBeNull();
             await vi.advanceTimersByTimeAsync(1);
-            expect(frames.map(image => image.src)).toEqual(['https://a.test/ok.jpg']);
+            expect(frames).toEqual([]);
         } finally {
             vi.useRealTimers();
         }
@@ -804,5 +804,114 @@ describe('decoding the frames', () => {
 
     it('decodes nothing from nothing', async () => {
         expect(await decodeStreamFrames(undefined)).toEqual([]);
+    });
+
+    it('caps the whole reel at sixteen megapixels, rather than twenty-four full-size images', async () => {
+        vi.stubGlobal('Image', FakeImage);
+        decodedUrls.length = 0;
+        const urls = Array.from({ length: 24 }, (_, i) => `https://a.test/eight-${i}.jpg`);
+        const frames = await decodeStreamFrames(urls);
+        expect(frames.map(image => image.src)).toEqual(urls.slice(0, 2));
+        expect(decodedUrls).toEqual(urls.slice(0, 2));
+    });
+
+    it('loads and decodes one image at a time', async () => {
+        const images = [];
+        let finishDecode;
+        class HeldImage extends FakeImage {
+            constructor() { super(); images.push(this); }
+            decode() { return new Promise(resolve => { finishDecode = resolve; }); }
+        }
+        vi.stubGlobal('Image', HeldImage);
+        const pending = decodeStreamFrames(['https://a.test/1.jpg', 'https://a.test/2.jpg']);
+        await vi.waitFor(() => expect(finishDecode).toBeTypeOf('function'));
+        expect(images).toHaveLength(1);
+        finishDecode();
+        await vi.waitFor(() => expect(images).toHaveLength(2));
+        finishDecode();
+        expect(await pending).toHaveLength(2);
+    });
+
+    it('skips an image that exceeds the remaining budget before decoding, and still accepts smaller ones', async () => {
+        const images = [];
+        class TrackedImage extends FakeImage {
+            constructor() { super(); images.push(this); }
+        }
+        vi.stubGlobal('Image', TrackedImage);
+        decodedUrls.length = 0;
+        const urls = ['small', 'eight-1', 'eight-2', 'smaller'].map(name => `https://a.test/${name}.jpg`);
+        const frames = await decodeStreamFrames(urls);
+        expect(frames.map(image => image.src)).toEqual([urls[0], urls[1], urls[3]]);
+        expect(decodedUrls).toEqual([urls[0], urls[1], urls[3]]);
+        expect(images[2].src).toBe('');
+        for (const image of images) {
+            expect(image.onload).toBeNull();
+            expect(image.onerror).toBeNull();
+        }
+    });
+
+    it('releases failed decodes without spending the retained-pixel budget', async () => {
+        const images = [];
+        class TrackedImage extends FakeImage {
+            constructor() { super(); images.push(this); }
+        }
+        vi.stubGlobal('Image', TrackedImage);
+        const urls = ['eight-bad', 'eight-1', 'eight-2'].map(name => `https://a.test/${name}.jpg`);
+        expect((await decodeStreamFrames(urls)).map(image => image.src)).toEqual(urls.slice(1));
+        expect(images[0].src).toBe('');
+    });
+
+    it('does not decode a late load or start another request after the reel deadline', async () => {
+        vi.useFakeTimers();
+        try {
+            const images = [];
+            class TrackedImage extends FakeImage {
+                constructor() { super(); images.push(this); }
+            }
+            vi.stubGlobal('Image', TrackedImage);
+            decodedUrls.length = 0;
+            const pending = decodeStreamFrames(['https://a.test/slow.jpg', 'https://a.test/ok.jpg']);
+            const lateLoad = images[0].onload;
+            await vi.advanceTimersByTimeAsync(5000);
+            expect(await pending).toEqual([]);
+            expect(images).toHaveLength(1);
+            expect(images[0].src).toBe('');
+            images[0].width = images[0].naturalWidth = 200;
+            images[0].height = images[0].naturalHeight = 100;
+            lateLoad();
+            await Promise.resolve();
+            expect(decodedUrls).toEqual([]);
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('returns the accepted prefix and releases an in-flight decode at the deadline', async () => {
+        vi.useFakeTimers();
+        try {
+            const images = [];
+            let finishDecode;
+            class StalledDecodeImage extends FakeImage {
+                constructor() { super(); images.push(this); }
+                decode() {
+                    if (this.src.includes('stalled')) return new Promise(resolve => { finishDecode = resolve; });
+                    return super.decode();
+                }
+            }
+            vi.stubGlobal('Image', StalledDecodeImage);
+            const pending = decodeStreamFrames(['https://a.test/ok.jpg', 'https://a.test/stalled.jpg', 'https://a.test/other.jpg']);
+            await vi.advanceTimersByTimeAsync(5000);
+            const frames = await pending;
+            expect(frames.map(image => image.src)).toEqual(['https://a.test/ok.jpg']);
+            expect(images).toHaveLength(2);
+            expect(images[1].src).toBe('');
+            finishDecode();
+            await Promise.resolve();
+            expect(frames).toHaveLength(1);
+            expect(vi.getTimerCount()).toBe(0);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });
