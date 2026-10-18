@@ -449,15 +449,12 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         expect(onFallback).toHaveBeenCalledWith('meter');
     });
 
-    it('treats an aperture it cannot measure as the largest there is', () => {
-        const display = fakeDisplay();
-        const onFallback = vi.fn();
-        const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
-        wirePixels(stream);
-        stream.canvas.getBoundingClientRect = () => ({ width: NaN, height: 140 });
-        stream.resume();
-        display.run(1500);
-        expect(onFallback).toHaveBeenCalledWith('meter');
+    it('treats an aperture it cannot measure as unbounded, so a change on any pixel counts', () => {
+        // Ten pixels pass at the floor (it takes 307); only an unbounded area
+        // counts them.
+        expect(play(patch(10))).toBeNull();
+        const unmeasurable = stream => { stream.canvas.getBoundingClientRect = () => ({ width: NaN, height: 140 }); };
+        expect(play(patch(10), unmeasurable)).toBe('meter');
     });
 
     it('stops when the meter throws, as it does for pixels it cannot read', () => {

@@ -8,7 +8,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { IMAGE_STREAM_ENABLED } from '../../core/visual-presence.js';
 
 const presenter = vi.hoisted(() => ({ loads: 0 }));
@@ -81,36 +81,71 @@ describe('the Chamber with the image stream flag off', () => {
         expect(source).toContain("import('../../visuals/image-stream.js')");
     });
 
-    it('starts the stream from no call site in src/ that is not inside the flag and the grant', () => {
-        const GUARD = 'if (IMAGE_STREAM_ENABLED && this.imageStreamGranted) {';
-        const CONTENT = resolve(import.meta.dirname, '../../content');
-        const offenders = [];
-        let calls = 0;
+    /** Every production module under src/ but src/content, as [path, text]. */
+    function productionSources() {
+        // src/content is 127 MB of works held as data; no code there calls
+        // the Chamber or the presenter, and flashing-disabled.test.js already
+        // checks it for presentation names.
+        const SRC = resolve(import.meta.dirname, '../..');
+        const CONTENT = join(SRC, 'content');
+        const found = [];
         const walk = (dir) => {
             for (const entry of readdirSync(dir)) {
                 const full = join(dir, entry);
-                // src/content is 127 MB of works held as data; no code there
-                // calls the Chamber or the normaliser, and flashing-disabled.test.js
-                // already checks it for presentation names.
                 if (statSync(full).isDirectory()) { if (full !== CONTENT) walk(full); continue; }
                 if (!entry.endsWith('.js') || /\.(?:test|spec)\.js$/u.test(entry)) continue;
-                const text = readFileSync(full, 'utf8');
-                if (!text.includes('_mountImageStream(')) continue;
-                for (const match of text.matchAll(/_mountImageStream\(/gu)) {
-                    const before = text.slice(0, match.index);
-                    if (before.trimEnd().endsWith('async')) continue;
-                    calls += 1;
-                    const guard = before.lastIndexOf(GUARD);
-                    // Inside the guarded block: the guard precedes it and no
-                    // brace has closed since.
-                    if (guard === -1 || before.slice(guard + GUARD.length).includes('}')) {
-                        offenders.push(`${entry}:${before.split('\n').length}`);
-                    }
-                }
+                found.push([relative(SRC, full).replace(/\\/gu, '/'), readFileSync(full, 'utf8')]);
             }
         };
-        walk(resolve(import.meta.dirname, '../..'));
+        walk(SRC);
+        return found;
+    }
+
+    /** The body of Chamber's _mountImageStream, the one place the presenter may be reached. */
+    function mountMethod(text) {
+        return text.match(/\n {2}async _mountImageStream\(field\) \{[\s\S]*?\r?\n {2}\}\r?\n/u)?.[0] ?? '';
+    }
+
+    it('starts the stream from no call site in src/ that is not inside the flag and the grant', () => {
+        const GUARD = 'if (IMAGE_STREAM_ENABLED && this.imageStreamGranted) {';
+        const offenders = [];
+        let calls = 0;
+        for (const [path, text] of productionSources()) {
+            if (!text.includes('_mountImageStream(')) continue;
+            for (const match of text.matchAll(/_mountImageStream\(/gu)) {
+                const before = text.slice(0, match.index);
+                if (before.trimEnd().endsWith('async')) continue;
+                calls += 1;
+                const guard = before.lastIndexOf(GUARD);
+                // Inside the guarded block: the guard precedes it and no
+                // brace has closed since.
+                if (guard === -1 || before.slice(guard + GUARD.length).includes('}')) {
+                    offenders.push(`${path}:${before.split('\n').length}`);
+                }
+            }
+        }
         expect(calls).toBeGreaterThan(0);
         expect(offenders).toEqual([]);
-    });
+    }, 30_000);
+
+    it('lets nothing in src/ import the presenter or mount it except that one method', () => {
+        const offenders = [];
+        let imports = 0;
+        for (const [path, text] of productionSources()) {
+            if (path === 'visuals/image-stream.js') continue;
+            const allowed = path === 'components/read/Chamber.js' ? mountMethod(text) : '';
+            // A module specifier: a quoted path ending in image-stream or image-stream.js.
+            for (const match of text.matchAll(/['"`][^'"`\n]*\/image-stream(?:\.js)?['"`]/gu)) {
+                imports += 1;
+                const statement = text.slice(Math.max(0, match.index - 8), match.index + match[0].length + 1);
+                if (!(allowed && allowed.includes(statement))) offenders.push(`${path}: ${match[0]}`);
+            }
+            for (const match of text.matchAll(/(?<![\w.])mountImageStream\(|\.mountImageStream\(/gu)) {
+                const around = text.slice(match.index - 1, match.index + 40);
+                if (!(allowed && allowed.includes(around))) offenders.push(`${path}: mountImageStream(`);
+            }
+        }
+        expect(imports).toBe(1);
+        expect(offenders).toEqual([]);
+    }, 30_000);
 });
