@@ -13,8 +13,9 @@
  * more of the screen than the page can measure, so a runtime FlashMeter reads
  * every frame it draws, one cell per drawn pixel, and judges it as if it
  * covered at least METER_FLOOR_AREA_PX. The meter tripping, anything in a
- * refresh throwing, the display stalling, the page being zoomed, or the
- * reader turning on photosensitivity or reduced motion stops the stream for
+ * refresh throwing, the display stalling, the page being zoomed, the
+ * reading's accepted notice ending, or the reader turning on
+ * photosensitivity or reduced motion stops the stream for
  * good, hides it, and tells the caller once, so the Continuous Field is what
  * remains.
  */
@@ -22,6 +23,7 @@
 import { FLASH_SAFE_AREA_PX, FlashMeter } from '../core/flash-meter.js';
 import { summarizeFrame } from '../core/luminance.js';
 import { normalizeStreamRate, streamFrameAt } from '../core/visual-presence.js';
+import { hasFlashingSessionConsent } from '../core/visual-safety.js';
 import { createRemoteImage } from './remote-image.js';
 
 /** The aperture's side in CSS px: 19,600 px², under the 21,824 px² safe area, which lowers the risk and excuses nothing. */
@@ -142,6 +144,7 @@ export class ImageStream {
     _onRefresh(ts) {
         this._rafId = null;
         try {
+            if (!hasFlashingSessionConsent()) return this._fallBack('consent');
             if (!imageStreamMayRun()) return this._fallBack('stand-down');
             if (zoomSignature() !== this._zoomSignature) return this._fallBack('zoom');
             if (this._lastTs !== null) {
@@ -275,6 +278,6 @@ export function mountImageStream(stage, {
 } = {}) {
     const side = apertureSide(sizePx);
     if (!stage || !Array.isArray(frames) || frames.length === 0) return null;
-    if (!imageStreamMayRun()) return null;
+    if (!hasFlashingSessionConsent() || !imageStreamMayRun()) return null;
     return new ImageStream(stage, { frames, hz, side, raf, caf, onFallback });
 }

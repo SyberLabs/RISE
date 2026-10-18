@@ -1,6 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { STREAM_APERTURE_PX, decodeStreamFrames, mountImageStream } from './image-stream.js';
 import { apertureIsInherentlySafe } from '../core/flash-meter.js';
+import {
+    beginNonFlashingVisualSession,
+    beginVisualInterlocutionSession,
+    endVisualInterlocutionSession,
+    grantVisualInterlocutionConsent
+} from '../core/visual-safety.js';
 
 /** A display that only refreshes when the test says so. */
 function fakeDisplay() {
@@ -66,7 +72,16 @@ function strobe(count = 12) {
     return Array.from({ length: count }, (_, i) => frame(i, i % 2 ? [255, 255, 255] : [0, 0, 0]));
 }
 
+/** What the launch gate holds after an accepted photosensitivity notice. */
+function acceptNotice() {
+    grantVisualInterlocutionConsent('stream-test');
+    beginVisualInterlocutionSession('stream-test');
+}
+
+beforeEach(acceptNotice);
+
 afterEach(() => {
+    endVisualInterlocutionSession();
     document.body.replaceChildren();
     document.documentElement.classList.remove('photosensitivity-mode', 'reduced-motion');
     delete document.visibilityState;
@@ -385,6 +400,32 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         expect(stream.running).toBe(true);
     });
 
+    it('stands down once the reading consent ends: cleared data, a visual error, the session closing', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(40), onFallback, ...display });
+        wirePixels(stream);
+        stream.resume();
+        display.run(300);
+        endVisualInterlocutionSession();
+        display.refresh();
+        expect(onFallback).toHaveBeenCalledTimes(1);
+        expect(onFallback).toHaveBeenCalledWith('consent');
+        expect(stream.canvas.style.display).toBe('none');
+    });
+
+    it('stands down when the session becomes one that never accepted the notice', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(40), onFallback, ...display });
+        wirePixels(stream);
+        stream.resume();
+        display.run(300);
+        beginNonFlashingVisualSession('gallery');
+        display.refresh();
+        expect(onFallback).toHaveBeenCalledWith('consent');
+    });
+
     it('stands down mid-reading when photosensitivity mode is switched on', () => {
         const display = fakeDisplay();
         const onFallback = vi.fn();
@@ -409,7 +450,9 @@ describe('never mounting at all', () => {
         'a hidden document': () => Object.defineProperty(document, 'visibilityState', {
             configurable: true, value: 'hidden'
         }),
-        'a media query that cannot be asked': () => vi.stubGlobal('matchMedia', () => { throw new Error('no'); })
+        'a media query that cannot be asked': () => vi.stubGlobal('matchMedia', () => { throw new Error('no'); }),
+        'no accepted notice': () => endVisualInterlocutionSession(),
+        'a Gallery session, which never accepted the notice': () => beginNonFlashingVisualSession('gallery')
     };
 
     for (const [condition, arrange] of Object.entries(refusals)) {

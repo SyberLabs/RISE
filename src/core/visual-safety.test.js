@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  beginNonFlashingVisualSession,
   beginVisualInterlocutionSession,
   endVisualInterlocutionSession,
+  hasFlashingSessionConsent,
   grantVisualInterlocutionConsent,
   hasVisualInterlocutionConsent,
   requestVisualInterlocutionConsent,
@@ -80,6 +82,28 @@ describe('visual safety boundary', () => {
 
     endVisualInterlocutionSession();
     expect(hasVisualInterlocutionConsent()).toBe(false);
+  });
+
+  it('holds a flashing capability only from an accepted notice, until the session ends', async () => {
+    expect(hasFlashingSessionConsent()).toBe(false);
+    beginNonFlashingVisualSession('gallery');
+    expect(hasVisualInterlocutionConsent()).toBe(true);
+    expect(hasFlashingSessionConsent(), 'a Gallery session never consented to a flash').toBe(false);
+
+    const pending = requestVisualInterlocutionConsent('stream');
+    document.querySelector('#safety-accept').click();
+    expect(await pending).toBe(true);
+    expect(hasFlashingSessionConsent(), 'accepted but not yet a session').toBe(false);
+    expect(beginVisualInterlocutionSession('stream')).toBe(true);
+    expect(hasFlashingSessionConsent()).toBe(true);
+
+    beginNonFlashingVisualSession('next-gallery');
+    expect(hasFlashingSessionConsent(), 'a later Gallery session replaces it').toBe(false);
+
+    grantVisualInterlocutionConsent('again');
+    beginVisualInterlocutionSession('again');
+    endVisualInterlocutionSession();
+    expect(hasFlashingSessionConsent()).toBe(false);
   });
 
   it('binds a launch grant to the draft that displayed the warning', async () => {
