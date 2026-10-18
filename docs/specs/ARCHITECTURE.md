@@ -172,7 +172,7 @@ flowchart LR
     scenes["scenes<br/>engine manifests, cues; scene runtime<br/>9 modules"]
     sources["sources<br/>text and visual providers<br/>14 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
-    visuals["visuals<br/>procedural generation<br/>60 modules"]
+    visuals["visuals<br/>procedural generation<br/>61 modules"]
     wormhole["wormhole<br/>7 modules"]
 
     affect --> |7| core
@@ -216,7 +216,7 @@ flowchart LR
     scenes --> |1| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
-    visuals --> |25| core
+    visuals --> |28| core
     visuals --> |4| sources
     wormhole --> |2| app
     wormhole --> |2| core
