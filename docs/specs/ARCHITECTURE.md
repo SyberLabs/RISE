@@ -216,7 +216,7 @@ flowchart LR
     scenes --> |1| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
-    visuals --> |28| core
+    visuals --> |29| core
     visuals --> |4| sources
     wormhole --> |2| app
     wormhole --> |2| core
