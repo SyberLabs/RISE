@@ -192,6 +192,15 @@ export class ImageStream {
         this.canvas = canvas;
         this._ctx = canvas.getContext('2d', { willReadFrequently: true });
         stage.appendChild(canvas);
+        // Photosensitivity mode or reduced motion switched on at any moment,
+        // paused or not, ends the stream: switching it off again does not
+        // bring it back.
+        if (typeof MutationObserver === 'function') {
+            this._observer = new MutationObserver(() => {
+                if (!imageStreamMayRun()) this._fallBack('stand-down');
+            });
+            this._observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        }
     }
 
     get running() {
@@ -200,6 +209,8 @@ export class ImageStream {
 
     resume() {
         if (this.running || !this.canvas || this._fellBack) return;
+        if (!hasFlashingSessionConsent()) return this._fallBack('consent');
+        if (!imageStreamMayRun()) return this._fallBack('stand-down');
         this._lastTs = null;
         this._intervals = [];
         this._rafId = this._raf(this._tick);
@@ -218,6 +229,7 @@ export class ImageStream {
     }
 
     destroy() {
+        this._observer?.disconnect();
         this.pause();
         this.canvas?.remove();
         this.canvas = null;
@@ -309,6 +321,7 @@ export class ImageStream {
     _fallBack(reason) {
         if (this._fellBack) return;
         this._fellBack = true;
+        this._observer?.disconnect();
         this.pause();
         if (this.canvas) this.canvas.style.display = 'none';
         try {

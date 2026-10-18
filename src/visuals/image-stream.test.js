@@ -540,6 +540,55 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         expect(onFallback).toHaveBeenCalledWith('consent');
     });
 
+    for (const mode of ['photosensitivity-mode', 'reduced-motion']) {
+        it(`stays down after ${mode} is switched on and off again while paused`, async () => {
+            const display = fakeDisplay();
+            const onFallback = vi.fn();
+            const stream = mountImageStream(stage(), { frames: reel(40), onFallback, ...display });
+            const ctx = wirePixels(stream);
+            stream.resume();
+            display.run(1000);
+            stream.pause();
+            document.documentElement.classList.add(mode);
+            await Promise.resolve();
+            document.documentElement.classList.remove(mode);
+            await Promise.resolve();
+            const drawnBefore = ctx.drawImage.mock.calls.length;
+            stream.resume();
+            display.run(1000);
+            expect(onFallback).toHaveBeenCalledWith('stand-down');
+            expect(ctx.drawImage.mock.calls.length).toBe(drawnBefore);
+            expect(stream.canvas.style.display).toBe('none');
+        });
+
+        it(`refuses to resume while ${mode} is on, before drawing anything`, () => {
+            const display = fakeDisplay();
+            const onFallback = vi.fn();
+            const stream = mountImageStream(stage(), { frames: reel(40), onFallback, ...display });
+            stream.resume();
+            display.run(1000);
+            stream.pause();
+            // Synchronously: the class observer has not run yet, so this is the resume check.
+            document.documentElement.classList.add(mode);
+            stream.resume();
+            expect(onFallback).toHaveBeenCalledWith('stand-down');
+            expect(display.pending()).toBe(0);
+        });
+    }
+
+    it('refuses to resume once the reading consent ended while paused', () => {
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: reel(40), onFallback, ...display });
+        stream.resume();
+        display.run(300);
+        stream.pause();
+        endVisualInterlocutionSession();
+        stream.resume();
+        expect(onFallback).toHaveBeenCalledWith('consent');
+        expect(display.pending()).toBe(0);
+    });
+
     it('stands down mid-reading when photosensitivity mode is switched on', () => {
         const display = fakeDisplay();
         const onFallback = vi.fn();
