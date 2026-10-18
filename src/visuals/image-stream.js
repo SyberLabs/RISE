@@ -373,9 +373,9 @@ export async function decodeStreamFrames(urls, { limit = STREAM_FRAMES_MAX } = {
         .slice(0, Math.min(STREAM_FRAMES_MAX, Math.max(0, Number(limit) || 0)));
     const decoded = [];
     let retainedPixels = 0;
-    const deadline = Date.now() + DECODE_TIMEOUT_MS;
+    const deadline = performance.now() + DECODE_TIMEOUT_MS;
     for (const url of wanted) {
-        const remainingMs = deadline - Date.now();
+        const remainingMs = deadline - performance.now();
         if (remainingMs <= 0 || retainedPixels >= DECODE_TOTAL_MAX_PIXELS) break;
         const image = createRemoteImage();
         image.crossOrigin = 'anonymous';
