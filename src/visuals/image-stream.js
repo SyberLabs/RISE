@@ -8,23 +8,34 @@
  * from the stream's own elapsed time, so a held frame is always a whole
  * number of refreshes and a seek or a late refresh never replays frames.
  *
- * Its safety is geometry: the aperture is no larger than the area a flash
- * must exceed to count (`apertureIsInherentlySafe`), and it refuses to mount
- * if that were ever untrue. Behind that, a runtime FlashMeter reads every
- * frame it draws, one cell per drawn pixel, against the area the aperture
- * actually covers on screen (pinch-zoom and stylesheets included). The meter
- * tripping, the meter throwing, the display stalling, or the reader turning
- * on photosensitivity or reduced motion stops the stream for good, hides it,
- * and tells the caller once, so the Continuous Field is what remains.
+ * The small aperture lowers the risk; it is not the safety argument. Page
+ * zoom, an OS magnifier or the glass tile's blur can spread its light over
+ * more of the screen than the page can measure, so a runtime FlashMeter reads
+ * every frame it draws, one cell per drawn pixel, and judges it as if it
+ * covered at least METER_FLOOR_AREA_PX. The meter tripping, anything in a
+ * refresh throwing, the display stalling, the page being zoomed, or the
+ * reader turning on photosensitivity or reduced motion stops the stream for
+ * good, hides it, and tells the caller once, so the Continuous Field is what
+ * remains.
  */
 
-import { FlashMeter, apertureIsInherentlySafe } from '../core/flash-meter.js';
+import { FLASH_SAFE_AREA_PX, FlashMeter } from '../core/flash-meter.js';
 import { summarizeFrame } from '../core/luminance.js';
 import { normalizeStreamRate, streamFrameAt } from '../core/visual-presence.js';
 import { createRemoteImage } from './remote-image.js';
 
-/** The aperture's side in CSS px: 19,600 px², inside the 21,824 px² safe area. */
+/** The aperture's side in CSS px: 19,600 px², under the 21,824 px² safe area, which lowers the risk and excuses nothing. */
 export const STREAM_APERTURE_PX = 140;
+
+/**
+ * The least area the meter assumes the stream covers: four times the safe
+ * area, 87,296 CSS px², a little more than the 140 px aperture at 200% page
+ * zoom (78,400). Page zoom and magnifiers enlarge the canvas without
+ * changing what the page measures, and a backdrop blur over the aperture
+ * spreads its light, so the aperture's own size is never trusted. At this
+ * floor a change over more than a quarter of the aperture counts.
+ */
+export const METER_FLOOR_AREA_PX = FLASH_SAFE_AREA_PX * 4;
 
 const REFRESH_MEASURE_MS = 500;
 // A frame held this long is far beyond any slot (the slowest is 250 ms at
@@ -48,6 +59,10 @@ export function imageStreamMayRun() {
     }
 }
 
+function zoomSignature() {
+    return `${window.devicePixelRatio}:${window.innerWidth}`;
+}
+
 function apertureSide(value) {
     const side = Math.floor(Number(value));
     return Number.isFinite(side) && side > 0
@@ -60,7 +75,9 @@ export class ImageStream {
         this.frames = frames;
         this._onFallback = onFallback;
         this._fellBack = false;
-        this._meter = new FlashMeter({ areaPx: side * side });
+        this._meter = new FlashMeter({ areaPx: METER_FLOOR_AREA_PX });
+        // Page zoom changes both; neither should move while the stream runs.
+        this._zoomSignature = zoomSignature();
         this._shownMs = 0;
         this.hz = normalizeStreamRate(hz);
         this.side = side;
@@ -126,6 +143,7 @@ export class ImageStream {
         this._rafId = null;
         try {
             if (!imageStreamMayRun()) return this._fallBack('stand-down');
+            if (zoomSignature() !== this._zoomSignature) return this._fallBack('zoom');
             if (this._lastTs !== null) {
                 const delta = ts - this._lastTs;
                 if (delta > STALL_MS) return this._fallBack('stall');
@@ -160,16 +178,17 @@ export class ImageStream {
     }
 
     /**
-     * The CSS px² the aperture covers as the reader sees it: never less than
-     * its declared size, more under pinch-zoom or a stylesheet that stretches
-     * it, and unbounded when it cannot be measured, so any transition counts.
+     * The CSS px² the meter judges the aperture by: what it measures on
+     * screen (pinch-zoom and stretching stylesheets included), never less
+     * than METER_FLOOR_AREA_PX, and unbounded when it cannot be measured, so
+     * any transition counts.
      */
     _screenAreaPx() {
         const rect = this.canvas.getBoundingClientRect();
         const scale = Number(window.visualViewport?.scale);
         const zoom = Number.isFinite(scale) && scale > 0 ? scale : 1;
         const area = Math.max(this.side * this.side, rect.width * rect.height) * zoom * zoom;
-        return Number.isFinite(area) ? area : Infinity;
+        return Number.isFinite(area) ? Math.max(METER_FLOOR_AREA_PX, area) : Infinity;
     }
 
     /** Stop for good, hide the aperture, and say so once. */
@@ -255,9 +274,6 @@ export function mountImageStream(stage, {
     caf = id => cancelAnimationFrame(id)
 } = {}) {
     const side = apertureSide(sizePx);
-    // The whole safety case of this regime: refuse rather than draw if the
-    // aperture could ever hold a flash that counts.
-    if (!apertureIsInherentlySafe(side, side)) return null;
     if (!stage || !Array.isArray(frames) || frames.length === 0) return null;
     if (!imageStreamMayRun()) return null;
     return new ImageStream(stage, { frames, hz, side, raf, caf, onFallback });

@@ -33,8 +33,10 @@ const GENERAL_DARKER_CEILING = 0.8;
 const RED_DELTA = 20;
 
 /**
- * A stream no larger than the safe area cannot produce a countable flash,
- * whatever it shows and however fast. Its safety is geometry, not analysis.
+ * Whether an area, as the page measures it, is within the safe area. This is
+ * arithmetic, not a safety argument: page zoom, magnifiers and blur enlarge
+ * what the reader sees without changing what the page measures, so no
+ * stream is exempt from the meter for being small (IMAGE-STREAM-SPEC §3).
  */
 export function apertureIsInherentlySafe(cssWidth, cssHeight, safeAreaPx = FLASH_SAFE_AREA_PX) {
     const area = Number(cssWidth) * Number(cssHeight);

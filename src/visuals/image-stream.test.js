@@ -74,7 +74,7 @@ afterEach(() => {
 });
 
 describe('the fixation aperture', () => {
-    it('is no larger than the safe area, so its safety is geometry', () => {
+    it('is no larger than the safe area, which lowers the risk but excuses nothing', () => {
         expect(apertureIsInherentlySafe(STREAM_APERTURE_PX, STREAM_APERTURE_PX)).toBe(true);
     });
 
@@ -219,8 +219,8 @@ describe('its own clock, driven by the reading', () => {
 
 describe('the runtime meter: every frame drawn is measured, and the stream fails closed', () => {
     it('plays a benign reel at 8 Hz for five seconds without tripping, measuring every frame', () => {
-        // Magnified by pinch-zoom, so the meter is not excused by geometry:
-        // what keeps this reel playing is that its light barely changes.
+        // Magnified by pinch-zoom: what keeps this reel playing is that its
+        // light barely changes, not the size it is shown at.
         vi.stubGlobal('visualViewport', { scale: 3 });
         const display = fakeDisplay();
         const onFallback = vi.fn();
@@ -236,18 +236,53 @@ describe('the runtime meter: every frame drawn is measured, and the stream fails
         expect(ctx.getImageData).toHaveBeenCalledTimes(ctx.drawImage.mock.calls.length);
     });
 
-    it('lets a black-and-white strobe inside the aperture play: its area cannot count (WCAG 2.3.1)', () => {
-        // The fixation regime's whole premise, stated so nobody has to infer
-        // it: 19,600 px² changing at once is under the 21,824 px² a flash
-        // must exceed. What can make this trip is the aperture growing on
-        // screen, which the next tests do.
+    it('stops a black-and-white strobe within one second at the aperture\'s own size', () => {
+        // 19,600 px² is under the 21,824 px² a WCAG flash must exceed, but
+        // page zoom, OS magnifiers and the glass tile's blur can all enlarge
+        // the light on screen without the page seeing it. The meter is armed
+        // at every size.
         const display = fakeDisplay();
         const onFallback = vi.fn();
         const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
         wirePixels(stream);
         stream.resume();
-        display.run(3000);
-        expect(onFallback).not.toHaveBeenCalled();
+        display.run(1000);
+        expect(onFallback).toHaveBeenCalledTimes(1);
+        expect(onFallback).toHaveBeenCalledWith('meter');
+    });
+
+    it('stops a strobe within one second under a page zoom the page cannot measure', () => {
+        // Browser zoom at 200%: the device pixel ratio doubles and the CSS
+        // viewport halves, while the canvas still measures 140 CSS px.
+        vi.stubGlobal('devicePixelRatio', 2);
+        vi.stubGlobal('innerWidth', 512);
+        const display = fakeDisplay();
+        const onFallback = vi.fn();
+        const stream = mountImageStream(stage(), { frames: strobe(), hz: 12, onFallback, ...display });
+        wirePixels(stream);
+        stream.canvas.getBoundingClientRect = () => ({ width: 140, height: 140 });
+        stream.resume();
+        display.run(1000);
+        expect(onFallback).toHaveBeenCalledWith('meter');
+    });
+
+    it('stands down once if the page is zoomed while the stream runs', () => {
+        for (const [name, value] of [['devicePixelRatio', 2], ['innerWidth', 400]]) {
+            vi.stubGlobal('devicePixelRatio', 1);
+            vi.stubGlobal('innerWidth', 1024);
+            const display = fakeDisplay();
+            const onFallback = vi.fn();
+            const stream = mountImageStream(stage(), { frames: reel(40), onFallback, ...display });
+            wirePixels(stream);
+            stream.resume();
+            display.run(300);
+            expect(onFallback).not.toHaveBeenCalled();
+            vi.stubGlobal(name, value);
+            display.run(300);
+            expect(onFallback, name).toHaveBeenCalledTimes(1);
+            expect(onFallback).toHaveBeenCalledWith('zoom');
+            expect(stream.canvas.style.display).toBe('none');
+        }
     });
 
     it('stops a strobe within one second once pinch-zoom makes the aperture larger than the safe area', () => {

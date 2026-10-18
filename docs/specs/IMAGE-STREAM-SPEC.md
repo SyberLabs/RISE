@@ -113,21 +113,43 @@ over-counts against WCAG's "any one 10 degree field" and so errs safe.
 meter for two full loops, so the wrap from last frame to first is checked,
 and reports the worst window.
 
-### The lever that makes it tractable: the aperture
+### The aperture lowers the risk; the meter is the guard
 
-If the whole stream occupies no more than the safe area, **no transition can
-ever count**, whatever the images are and however fast they change
-(`apertureIsInherentlySafe`). RSVP research uses small central images in any
-case, and RISE already centres the reader's gaze on the word's fixation
-point. So there are two regimes.
+A stream no larger than the safe area (`apertureIsInherentlySafe`) would,
+by WCAG's arithmetic, never hold a transition that counts. That was this
+proposal's first argument for building the fixation aperture first, and it
+does not hold, because the page cannot see the size the reader sees:
 
-| Regime | Size | What makes it safe |
+- **Page zoom and magnifiers.** Browser zoom, Android display and text
+  scaling, and OS magnifiers enlarge the 140 CSS px canvas on screen, but
+  neither `getBoundingClientRect()` nor `visualViewport.scale` reports it.
+  At 200% zoom the aperture covers 78,400 px² of the reader's view while the
+  page still measures 19,600.
+- **Blur and compositing.** The glass tile under the words
+  (`backdrop-filter: blur(16px)`, on by default) and any filter, blend mode
+  or overlay spread the stream's light past its square. The meter reads the
+  canvas, not the screen.
+- **Viewing distance.** A phone held close puts more of the visual field
+  inside 140 CSS px than WCAG's model assumes (below).
+
+So the fixation aperture **reduces** risk and is **not** a safety guarantee.
+The runtime meter is the guard at every size: it judges each frame as if the
+stream covered at least `METER_FLOOR_AREA_PX`, four times the safe area
+(87,296 CSS px², a little more than the aperture at 200% zoom), or what it
+measures on screen if that is more, so a change over more than a quarter of
+the aperture counts. A full black-and-white strobe at 12 Hz stops within a
+second at any size. The stream also stands down if the device pixel ratio or
+the viewport width changes while it runs, which is what zooming looks like.
+
+| Regime | Size | What guards it |
 | --- | --- | --- |
-| Fixation aperture | at most 21,824 CSS px² (about 147 px square) | geometry alone |
+| Fixation aperture | 140 CSS px square | the runtime meter at its floor area; reels normalised by the compiler (§4) |
 | Wide field | larger, up to behind-stream | each reel certified by `certifySequence`, re-checked at runtime |
 
-**Build the fixation aperture first.** Its safety follows from its size, so
-it does not depend on the analysis code being right.
+The cost of the floor: a reel of unrelated pictures will usually change more
+than a quarter of the aperture at every frame, so until the reel compiler
+normalises and orders reels (§4), most real reels will trip the meter within
+a second and fall back to the Gallery.
 
 ⁇ The CSS reference pixel is defined by visual angle, so the threshold is
 roughly device-independent, but a phone held close subtends more of the
@@ -176,8 +198,7 @@ Runs in a worker. Input: the active image pools the cortex already warms
 
 - One canvas, at most 140 CSS px square whatever it is asked for, centred in
   the stage (the Chamber exposes no fixation point; the words are centred, so
-  the stage centre is where the eyes rest). It refuses to mount if
-  `apertureIsInherentlySafe` were ever false for its side.
+  the stage centre is where the eyes rest).
 - `requestAnimationFrame` drives it; `streamFrameAt` chooses the frame from
   the stream's own elapsed time; the display refresh rate is measured from
   frame timestamps over the first half second, assumed 60 Hz until then.
@@ -186,9 +207,10 @@ Runs in a worker. Input: the active image pools the cortex already warms
   overlay.
 - A runtime `FlashMeter` observes every frame actually drawn, read back from
   the canvas one cell per drawn pixel. Its area is what the aperture covers
-  on screen: never less than its declared size, multiplied by pinch-zoom,
-  larger if a stylesheet stretches it, and unbounded if it cannot be
-  measured. If the meter reports `ok: false`, the meter or anything else in
+  on screen (multiplied by pinch-zoom, larger if a stylesheet stretches it),
+  never less than `METER_FLOOR_AREA_PX`, and unbounded if it cannot be
+  measured. A change of device pixel ratio or viewport width while it runs
+  (page zoom) stops it. If the meter reports `ok: false`, the meter or anything else in
   a refresh throws, or a frame is held past 500 ms (a stalled display), the
   stream stops for good, hides, and reports one reason once.
 - Stands down entirely (never mounts) under photosensitivity mode, the
@@ -198,13 +220,11 @@ Runs in a worker. Input: the active image pools the cortex already warms
 - Pauses with the reading. A seek recomputes the frame from time; nothing is
   replayed to catch up.
 
-**What the runtime meter can and cannot do in this regime.** Inside a 140 px
-aperture no transition can count (19,600 px² is under 21,824 px²), so the
-meter cannot trip on any content drawn at the aperture's own size, a full
-black-and-white strobe at 12 Hz included; a test states this. It trips only
-when the aperture grows on screen past the safe area (pinch-zoom, a
-stylesheet), which is the case it guards. Taming a harsh reel inside the
-aperture is the reel compiler's job (§4), not the meter's.
+**The runtime meter is armed at every size.** The first build let the
+aperture's size excuse it: inside 140 px no transition could count, so a
+full black-and-white strobe at 12 Hz played. Review found that page zoom and
+the glass tile's blur make that size untrustworthy (§3), so the meter now
+judges every frame at no less than `METER_FLOOR_AREA_PX`.
 
 **Decisions made while building it.**
 
