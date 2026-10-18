@@ -74,6 +74,7 @@ describe('the School corpus', () => {
       ['venus.defence-of-poetry', 1],
       ['venus.leaves-of-grass', 36],
       ['venus.spiritual-in-art', 9],
+      ['venus.futurist-manifesto', 3],
       ['venus.faust', 28],
       ['venus.biographia-literaria', 25],
       ['venus.aesthetic-education', 27],
@@ -110,6 +111,7 @@ describe('the School corpus', () => {
   it('names the language of every work not read in English', () => {
     expect(Object.fromEntries(SCHOOL_WORKS.filter(work => 'language' in work).map(work => [work.id, work.language]))).toEqual({
       'mercury.philosophie-der-technik': 'de',
+      'venus.futurist-manifesto': 'fr',
       'mars.muqaddimah': 'fr',
       'mars.new-science': 'fr',
       'jupiter.art-forms-in-nature': 'de',
@@ -135,6 +137,26 @@ describe('the School corpus', () => {
     expect(meta.source.artifacts.map(source => source.url)).toEqual([
       'scripts/school-sources/gate.oration/oratio.en.md', 'scripts/school-sources/gate.oration/oratio.la.md'
     ]);
+  });
+
+  it('reads the Futurist Manifesto in Marinetti’s French, then the anonymous English of 1912 under its own label', async () => {
+    const { VENUS_FUTURIST_MANIFESTO_SECTIONS: sections, VENUS_FUTURIST_MANIFESTO_META: meta } = await import('./works/venus.futurist-manifesto.js');
+    expect(sections.map(section => section.name)).toEqual([
+      'Le Futurisme', 'Manifeste du Futurisme', 'English · 1912 (anonymous translation) · Initial Manifesto of Futurism'
+    ]);
+    expect(sections[0].content).toMatch(/^Nous avions veillé toute la nuit, mes amis et moi/u);
+    expect(sections[1].content).toMatch(/^1\. Nous voulons chanter l’amour du danger/u);
+    expect(sections[1].content).toMatch(/le défi insolent aux étoiles !\n\nF\.-T\. Marinetti\.$/u);
+    expect(sections[2].content).toMatch(/^1\. We shall sing the love of danger/u);
+    // Readings settled against the scans, where Wikisource or the print had them wrong.
+    expect(sections[0].content).toContain('nos cadavres tordus en bagues byzantines');
+    expect(sections[1].content).toContain('plus jeunes et plus vaillants que nous');
+    expect(sections[2].content).toContain('courage, daring, and rebellion');
+    expect(meta.source.artifacts.map(source => source.url)).toEqual([
+      'scripts/school-sources/venus.futurist-manifesto/manifeste.proofed.md',
+      'scripts/school-sources/venus.futurist-manifesto/initial-manifesto.proofed.md'
+    ]);
+    expect(schoolWorkById('venus.futurist-manifesto').edition.statement).toMatch(/^Le Figaro, 20 February 1909; French as Marinetti reprinted it in Poupées électriques/u);
   });
 
   for (const work of SCHOOL_WORKS) {

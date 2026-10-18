@@ -213,11 +213,12 @@ describe('the action a text offers', () => {
   });
 
   it('gives an original-language-only text no outward link', async () => {
-    mount({ initialFocus: 'venus.futurist-manifesto' });
+    // Vico's French is not in this test's manifest, so the record stands as not carried.
+    mount({ initialFocus: 'mars.new-science' });
     await settle();
     expect(lectern().querySelector('.school-action a')).toBeNull();
     expect(lectern().textContent).toContain('Original language only');
-    expect(lectern().textContent).toContain('Original (French)');
+    expect(lectern().textContent).toContain('Michelet, French abridgment, 1827');
   });
 
   it('reads the Gate in English, the Latin after it, and names no original language', async () => {

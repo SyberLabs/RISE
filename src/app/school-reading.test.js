@@ -151,7 +151,8 @@ describe('a reading opened from the Mystery School', () => {
   });
 
   it('opens nothing for a text RISE does not carry', async () => {
-    expect(await schoolReading('venus.futurist-manifesto', null)).toBeNull();
+    // The Library mock registers no Divine Comedy, as if the Archive withheld it.
+    expect(await schoolReading('venus.divine-comedy', null)).toBeNull();
     expect(await schoolReading('sun.nothing', null)).toBeNull();
   });
 });

@@ -113,7 +113,7 @@ describe('the canon', () => {
       'mercury.machine-stops', 'mercury.rur', 'moon.psychological-types', 'mars.decline-of-the-west'
     ]);
     expect(SCHOOL_CANON.filter(record => record.rights === 'orig-only').map(record => record.id)).toEqual([
-      'mercury.philosophie-der-technik', 'venus.futurist-manifesto', 'mars.muqaddimah', 'mars.new-science', 'jupiter.harmonices-mundi'
+      'mercury.philosophie-der-technik', 'mars.muqaddimah', 'mars.new-science', 'jupiter.harmonices-mundi'
     ]);
   });
 
@@ -171,6 +171,7 @@ describe('the canon', () => {
       'gate.oration': 'Read in RISE\'s English draft, with the Latin after it; the English awaits a reading against the Latin',
       'mercury.philosophie-der-technik': 'A selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); chapters IV to XIII, from Gliedmaassen und Maasse to Der Staat, are left out; ten places where the damaged scan lost lines are marked […], and 79 unsettled readings [?]',
       'moon.psychological-types': 'Chapter X, General Description of the Types, is read now; the rest of Baynes\'s translation follows after a proofing pass of the 1924 printing',
+      'venus.futurist-manifesto': 'Read in Marinetti\'s French as he reprinted it in 1909, then in the anonymous English of 1912, which gives the eleven points and the closing but not the opening narrative',
       'jupiter.harmonices-mundi': 'A selection from Book V in Frisch\'s edition (1864): the title page, the Prooemium, chapters III, VII and VIII, and chapter X, the Epilogus; chapters I, II, IV to VI and IX, the Appendix, Kepler\'s notes and the tables are left out, and the Greek quotations are marked [Greek]',
       'mars.muqaddimah': 'A selection from de Slane\'s volume I: the opening of Book I, the first preliminary discourse, and the second section as far as the chapter on esprit de corps and sovereignty; the rest of the Prolégomènes is left out',
       'saturn.sermons': 'Claud Field\'s seven sermons are read now; C. de B. Evans\'s 1924 volume follows after a proofing pass'
