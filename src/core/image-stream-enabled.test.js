@@ -24,6 +24,7 @@ import {
  */
 
 const ROOT = resolve(import.meta.dirname, '../..');
+const CONTENT = join(ROOT, 'src', 'content');
 const STREAM_ON = Object.freeze({ flashing: FLASHING_ENABLED, stream: true });
 const STREAM_OFF = Object.freeze({ flashing: FLASHING_ENABLED, stream: false });
 
@@ -89,7 +90,10 @@ describe('the one door every presentation comes through', () => {
         const walk = (dir) => {
             for (const entry of readdirSync(dir)) {
                 const full = join(dir, entry);
-                if (statSync(full).isDirectory()) { walk(full); continue; }
+                // src/content is 127 MB of works held as data; no code there
+                // calls the Chamber or the normaliser, and flashing-disabled.test.js
+                // already checks it for presentation names.
+                if (statSync(full).isDirectory()) { if (full !== CONTENT) walk(full); continue; }
                 if (!entry.endsWith('.js') || /\.(?:test|spec)\.js$/u.test(entry)) continue;
                 if (full.endsWith(join('core', 'visual-presence.js'))) continue;
                 if (readFileSync(full, 'utf8').includes('resolvePresentation')) {

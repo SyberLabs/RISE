@@ -83,12 +83,16 @@ describe('the Chamber with the image stream flag off', () => {
 
     it('starts the stream from no call site in src/ that is not inside the flag and the grant', () => {
         const GUARD = 'if (IMAGE_STREAM_ENABLED && this.imageStreamGranted) {';
+        const CONTENT = resolve(import.meta.dirname, '../../content');
         const offenders = [];
         let calls = 0;
         const walk = (dir) => {
             for (const entry of readdirSync(dir)) {
                 const full = join(dir, entry);
-                if (statSync(full).isDirectory()) { walk(full); continue; }
+                // src/content is 127 MB of works held as data; no code there
+                // calls the Chamber or the normaliser, and flashing-disabled.test.js
+                // already checks it for presentation names.
+                if (statSync(full).isDirectory()) { if (full !== CONTENT) walk(full); continue; }
                 if (!entry.endsWith('.js') || /\.(?:test|spec)\.js$/u.test(entry)) continue;
                 const text = readFileSync(full, 'utf8');
                 if (!text.includes('_mountImageStream(')) continue;
