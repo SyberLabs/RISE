@@ -293,6 +293,45 @@ export function galleryWallAt(timeMs, count, options = {}) {
     });
 }
 
+// The Image Stream (IMAGE-STREAM-SPEC): rapid serial presentation of images,
+// frame replacing frame. Not a surface yet; this is its clock. Rate is in
+// images per second, and every frame is held for a whole number of display
+// refreshes so no image is dropped or doubled by a timer landing between
+// refreshes. Safety is the flash meter's job, not the rate's.
+export const STREAM_RATE_MIN_HZ = 4;
+export const STREAM_RATE_DEFAULT_HZ = 8;
+export const STREAM_RATE_MAX_HZ = 12;
+const STREAM_REFRESH_DEFAULT_HZ = 60;
+
+export function normalizeStreamRate(value) {
+    const parsed = Number(value);
+    const hz = Number.isFinite(parsed) ? parsed : STREAM_RATE_DEFAULT_HZ;
+    return Math.max(STREAM_RATE_MIN_HZ, Math.min(STREAM_RATE_MAX_HZ, hz));
+}
+
+/**
+ * The stream at explicit presentation time: which of `count` frames is on
+ * screen, and for how long each is held. The held time never makes the stream
+ * faster than the rate asked for, so a 60 Hz display shows 8 Hz as 7.5 Hz.
+ */
+export function streamFrameAt(timeMs, count, options = {}) {
+    const hz = normalizeStreamRate(options.hz);
+    const parsedRefresh = Number(options.refreshHz);
+    const refreshHz = Number.isFinite(parsedRefresh) && parsedRefresh > 0
+        ? parsedRefresh
+        : STREAM_REFRESH_DEFAULT_HZ;
+    const refreshesPerFrame = Math.max(1, Math.ceil(refreshHz / hz - 1e-9));
+    const frameMs = refreshesPerFrame * 1000 / refreshHz;
+    const n = Math.max(0, count | 0);
+    const step = Math.floor(Math.max(0, Number(timeMs) || 0) / frameMs);
+    return Object.freeze({
+        index: n === 0 ? null : step % n,
+        cycle: n === 0 ? 0 : Math.floor(step / n),
+        frameMs,
+        refreshesPerFrame
+    });
+}
+
 // Behind-stream imagery is peripheral, not a cut: it needs dwell time
 // to register beneath the text, so its default presence is a full beat
 export const VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS = 1000;

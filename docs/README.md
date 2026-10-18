@@ -104,6 +104,7 @@ history, not a distinction; read the status column instead.
 | --- | --- | --- |
 | [vision/PAGE-MODE-SPEC.md](vision/PAGE-MODE-SPEC.md) | Contract | Page projection, v1. Matches `src/page/`. |
 | [specs/RHYTHMIC-VISUAL-PRESENCE-SPEC.md](specs/RHYTHMIC-VISUAL-PRESENCE-SPEC.md) | Contract | Rhythmic visual presence, as built. |
+| [specs/IMAGE-STREAM-SPEC.md](specs/IMAGE-STREAM-SPEC.md) | Proposal | A rapid serial stream of images governed by a measured flash meter: WCAG 2.3.1 applied to the light on the screen, a fixation aperture safe by its size, and the order of work. The retired event economy stays off. Only the pure core (`src/core/flash-meter.js`, `src/core/luminance.js`) is built (RDR-031). |
 | [specs/LATERAL-TRAVERSAL-SPEC.md](specs/LATERAL-TRAVERSAL-SPEC.md) | Contract | The Shuttle. Implemented in `src/core/shuttle.js`. |
 | [specs/CONTINUOUS-FIELD-SPEC.md](specs/CONTINUOUS-FIELD-SPEC.md) | Contract | Gallery's continuous field. Implemented in `src/visuals/continuous-field.js`. |
 | [specs/JEV-VARIANCE.md](specs/JEV-VARIANCE.md) | Contract | One-call Jev reading diversity, intent precedence, and bounded cache slots. |
