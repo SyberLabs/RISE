@@ -7,8 +7,8 @@
  * Chamber.image-stream-enabled.test.js.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { IMAGE_STREAM_ENABLED } from '../../core/visual-presence.js';
 
 const presenter = vi.hoisted(() => ({ loads: 0 }));
@@ -61,25 +61,52 @@ describe('the Chamber with the image stream flag off', () => {
         expect(IMAGE_STREAM_ENABLED).toBe(false);
     });
 
-    for (const presentation of ['continuous', 'stream']) {
-        it(`never loads or mounts the stream for a ${presentation} session, even when told it may`, async () => {
-            const { chamber, container, player } = mount(presentation);
-            await settle();
-            player.emit('state', { state: 'playing' });
-            player.emit('state', { state: 'paused' });
-            await settle();
-            expect(presenter.loads).toBe(0);
-            expect(container.querySelector('canvas.image-stream')).toBeNull();
-            expect(container.querySelector('.chamber-image-stream')).toBeNull();
-            chamber.destroy();
-        });
-    }
+    // The launch gate hands the Chamber a Gallery session for a stream (it
+    // never sees 'stream'), so this is the session that reaches the flag check.
+    it('never loads or mounts the stream for a Gallery session, even when told it may', async () => {
+        const { chamber, container, player } = mount('continuous');
+        await settle();
+        player.emit('state', { state: 'playing' });
+        player.emit('state', { state: 'paused' });
+        await settle();
+        expect(presenter.loads).toBe(0);
+        expect(container.querySelector('canvas.image-stream')).toBeNull();
+        expect(container.querySelector('.chamber-image-stream')).toBeNull();
+        chamber.destroy();
+    });
 
-    it('reaches the presenter only through a lazy import behind the flag', () => {
+    it('reaches the presenter only through a lazy import', () => {
         const source = readFileSync(resolve(import.meta.dirname, 'Chamber.js'), 'utf8');
         expect(source).not.toMatch(/^import[^;]*image-stream\.js/mu);
-        const lazy = source.indexOf("import('../../visuals/image-stream.js')");
-        expect(lazy).toBeGreaterThan(-1);
-        expect(source).toContain('IMAGE_STREAM_ENABLED && this.imageStreamGranted');
+        expect(source).toContain("import('../../visuals/image-stream.js')");
+    });
+
+    it('starts the stream from no call site in src/ that is not inside the flag and the grant', () => {
+        const GUARD = 'if (IMAGE_STREAM_ENABLED && this.imageStreamGranted) {';
+        const offenders = [];
+        let calls = 0;
+        const walk = (dir) => {
+            for (const entry of readdirSync(dir)) {
+                const full = join(dir, entry);
+                if (statSync(full).isDirectory()) { walk(full); continue; }
+                if (!entry.endsWith('.js') || /\.(?:test|spec)\.js$/u.test(entry)) continue;
+                const text = readFileSync(full, 'utf8');
+                if (!text.includes('_mountImageStream(')) continue;
+                for (const match of text.matchAll(/_mountImageStream\(/gu)) {
+                    const before = text.slice(0, match.index);
+                    if (before.trimEnd().endsWith('async')) continue;
+                    calls += 1;
+                    const guard = before.lastIndexOf(GUARD);
+                    // Inside the guarded block: the guard precedes it and no
+                    // brace has closed since.
+                    if (guard === -1 || before.slice(guard + GUARD.length).includes('}')) {
+                        offenders.push(`${entry}:${before.split('\n').length}`);
+                    }
+                }
+            }
+        };
+        walk(resolve(import.meta.dirname, '../..'));
+        expect(calls).toBeGreaterThan(0);
+        expect(offenders).toEqual([]);
     });
 });
