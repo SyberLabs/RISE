@@ -1,0 +1,477 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-19",
+  "audience": "team",
+  "title": "What changed in RISE, 16–19 October",
+  "period": {
+    "from": "2026-10-16T10:01:58.703Z",
+    "to": "2026-10-19T16:05:26.845Z"
+  },
+  "generatedAt": "2026-10-19T16:05:26.845Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 726,
+      "title": "Integrate private Plus audio reuse with current main",
+      "url": "https://github.com/SyberLabs/RISE/pull/726",
+      "mergedAt": "2026-10-18T18:00:38Z",
+      "mergeSha": "c53b188a05def03743e98d67b831f1bbcd137eaf",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 724,
+      "title": "Bound cumulative Image Stream decode memory",
+      "url": "https://github.com/SyberLabs/RISE/pull/724",
+      "mergedAt": "2026-10-18T17:48:38Z",
+      "mergeSha": "7533c0e76e5ef8b951158622cd0e10dd662390b2",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 725,
+      "title": "test: restore full-unit fixture and Chamber lifecycle coverage",
+      "url": "https://github.com/SyberLabs/RISE/pull/725",
+      "mergedAt": "2026-10-18T17:44:02Z",
+      "mergeSha": "d0ef58a6ebf28f455c1e23cc5c6f6f63d78ec5e4",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 723,
+      "title": "The Image Stream presenter: a fixation-size stream behind a flag that is off (RDR-031, step 2)",
+      "url": "https://github.com/SyberLabs/RISE/pull/723",
+      "mergedAt": "2026-10-18T08:42:17Z",
+      "mergeSha": "96df625933d487e17b11e664f7e5179716937570",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 722,
+      "title": "The flash meter reads one cell per pixel, so an inverting pattern cannot hide inside a cell (RDR-031)",
+      "url": "https://github.com/SyberLabs/RISE/pull/722",
+      "mergedAt": "2026-10-18T05:57:21Z",
+      "mergeSha": "3a4df6f39f5e56c2410bd03a0bc8e15146f580a1",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 721,
+      "title": "The Image Stream core: a flash meter that measures light, and the stream's clock (RDR-031)",
+      "url": "https://github.com/SyberLabs/RISE/pull/721",
+      "mergedAt": "2026-10-18T05:46:42Z",
+      "mergeSha": "31fbdeb200fdadcadbe5c0d9ac61cb7aa97128c9",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 720,
+      "title": "The Mystery School's last text: the Futurist Manifesto in French and the 1912 English (RDR-030)",
+      "url": "https://github.com/SyberLabs/RISE/pull/720",
+      "mergedAt": "2026-10-18T05:18:24Z",
+      "mergeSha": "b808807584a6e7ca1d74a2cfd3eb236182e7aac6",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 719,
+      "title": "The Mystery School's Kepler: Harmonices Mundi Book V from Frisch's 1864 edition (RDR-030)",
+      "url": "https://github.com/SyberLabs/RISE/pull/719",
+      "mergedAt": "2026-10-18T05:01:14Z",
+      "mergeSha": "207ca4c76b90c9a14447fb7276997406f1900d02",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 718,
+      "title": "The Gate reads in RISE's English draft, the Latin after it (RDR-030)",
+      "url": "https://github.com/SyberLabs/RISE/pull/718",
+      "mergedAt": "2026-10-17T18:26:38Z",
+      "mergeSha": "55b1f5858dcafe47759ff4e90b4fe3fa668a7a28",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 717,
+      "title": "The Mystery School corpus: Haeckel's hundred plates as a picture work (RDR-030, PR 6)",
+      "url": "https://github.com/SyberLabs/RISE/pull/717",
+      "mergedAt": "2026-10-17T11:17:54Z",
+      "mergeSha": "494d9c2bce37055d4c4961feabe768fd4e258758",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 716,
+      "title": "The Mystery School corpus: Kapp and Ibn Khaldun as proofed selections; Kepler stops at the scan (RDR-030, PR 5)",
+      "url": "https://github.com/SyberLabs/RISE/pull/716",
+      "mergedAt": "2026-10-17T11:04:51Z",
+      "mergeSha": "6d4edc9b6d592696c6f3aa7f396b79c9c383f67c",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 714,
+      "title": "The Mystery School corpus: Boole, Cosmos, the Metamorphosis of Plants and Jung's chapter X (RDR-030, PR 4)",
+      "url": "https://github.com/SyberLabs/RISE/pull/714",
+      "mergedAt": "2026-10-17T10:38:48Z",
+      "mergeSha": "370c3252773e6045040fc5ecf89cdfd1571c1cf8",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 713,
+      "title": "The Mystery School corpus: the web adapters, 20 texts and the Latin at the Gate (RDR-030, PR 3)",
+      "url": "https://github.com/SyberLabs/RISE/pull/713",
+      "mergedAt": "2026-10-17T09:50:34Z",
+      "mergeSha": "a7b6d03e4dbeb173a6e77a43acaf7a2043160a50",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 712,
+      "title": "The Mystery School corpus: the Gutenberg adapter and 24 texts (RDR-030, PR 2)",
+      "url": "https://github.com/SyberLabs/RISE/pull/712",
+      "mergedAt": "2026-10-17T01:53:23Z",
+      "mergeSha": "19f6a12ac4cf2e07df659b53334592114c49a873",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 711,
+      "title": "The Gate: the Latin Oration and RISE's draft translation, for the owner's reading (RDR-030)",
+      "url": "https://github.com/SyberLabs/RISE/pull/711",
+      "mergedAt": "2026-10-17T01:21:50Z",
+      "mergeSha": "2e49f8d59ad1ae79e972f2d5ba6610ea1794e1b2",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 710,
+      "title": "The Mystery School corpus: ten Standard Ebooks texts served beside the Archive (RDR-030, PR 1)",
+      "url": "https://github.com/SyberLabs/RISE/pull/710",
+      "mergedAt": "2026-10-17T01:00:54Z",
+      "mergeSha": "7823b900009db56db51a3af9dfb2cdd2f5437c04",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 709,
+      "title": "The Mystery School's complete library: investigation and design (RDR-030)",
+      "url": "https://github.com/SyberLabs/RISE/pull/709",
+      "mergedAt": "2026-10-17T00:11:46Z",
+      "mergeSha": "67a3ec16ccc4d339d9a87b196fd104dd794126d5",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 708,
+      "title": "The Mystery School: the Reader's graded canon as a Library pane (RDR-029)",
+      "url": "https://github.com/SyberLabs/RISE/pull/708",
+      "mergedAt": "2026-10-16T23:40:39Z",
+      "mergeSha": "063e3a923802a9d87c703b3b31340bcf9e5773bb",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 707,
+      "title": "From the shell she glides straight from its seed, a closing frame draws in from the cut, and a visual changes only under the shut eye",
+      "url": "https://github.com/SyberLabs/RISE/pull/707",
+      "mergedAt": "2026-10-16T21:37:14Z",
+      "mergeSha": "0208164cfbdf169f794670486a95cac310d279f6",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 706,
+      "title": "Sophia's frame transitions move as one gesture: the eye shuts once between frames, she glides on an arc, the face draws in step",
+      "url": "https://github.com/SyberLabs/RISE/pull/706",
+      "mergedAt": "2026-10-16T11:39:07Z",
+      "mergeSha": "05fe83f7205f38170114cc78b3c163af32cb4c5e",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 705,
+      "title": "SVC-002 records #703 and the digest that supersedes 2026-10-16",
+      "url": "https://github.com/SyberLabs/RISE/pull/705",
+      "mergedAt": "2026-10-16T10:13:31Z",
+      "mergeSha": "31f6fdb99e039da399342c97aa8b532f33c29b14",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "records-only"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "rise-weekly-digest",
+    "title": "This week in RISE",
+    "theme": "classic",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "scenes": [
+      {
+        "id": "opening",
+        "engine": "attractor"
+      },
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Frame lengths, ms</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4EEE4\" text-anchor=\"start\">Frame lengths, ms</text><text x=\"56\" y=\"108\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.6\" text-anchor=\"start\">Full frame unchanged; others as before</text><rect x=\"120\" y=\"298\" width=\"140\" height=\"132\" rx=\"3\" fill=\"#F4EEE4\" fill-opacity=\"0.34\"/><text x=\"190\" y=\"282\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4EEE4\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">1100</text><text x=\"190\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.7\" text-anchor=\"middle\">Inner</text><rect x=\"330\" y=\"238\" width=\"140\" height=\"192\" rx=\"3\" fill=\"#F4EEE4\" fill-opacity=\"0.34\"/><text x=\"400\" y=\"222\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4EEE4\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">1600</text><text x=\"400\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.7\" text-anchor=\"middle\">Shell</text><rect x=\"540\" y=\"202\" width=\"140\" height=\"228\" rx=\"3\" fill=\"#F4EEE4\" fill-opacity=\"0.34\"/><text x=\"610\" y=\"186\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4EEE4\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">1900</text><text x=\"610\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.7\" text-anchor=\"middle\">Full</text><line x1=\"86\" y1=\"430\" x2=\"714\" y2=\"430\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>The three states of a text</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4EEE4\" text-anchor=\"start\">The three states of a text</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.8\" text-anchor=\"start\">Readable in RISE</text><text x=\"361.83\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.6\" text-anchor=\"start\">opens in the reader</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.8\" text-anchor=\"start\">Carried, not served</text><text x=\"361.83\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.6\" text-anchor=\"start\">with the reason</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.8\" text-anchor=\"start\">Not yet carried</text><text x=\"361.83\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.6\" text-anchor=\"start\">free edition named</text></svg>"
+      },
+      {
+        "id": "picture-3",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Readable School texts</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4EEE4\" text-anchor=\"start\">Readable School texts</text><text x=\"56\" y=\"108\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.6\" text-anchor=\"start\">The week's first corpus steps</text><rect x=\"120\" y=\"415.45\" width=\"140\" height=\"14.55\" rx=\"3\" fill=\"#F4EEE4\" fill-opacity=\"0.34\"/><text x=\"190\" y=\"399.45\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4EEE4\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">4</text><text x=\"190\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.7\" text-anchor=\"middle\">Start</text><rect x=\"330\" y=\"379.09\" width=\"140\" height=\"50.91\" rx=\"3\" fill=\"#F4EEE4\" fill-opacity=\"0.34\"/><text x=\"400\" y=\"363.09\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4EEE4\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">14</text><text x=\"400\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.7\" text-anchor=\"middle\">Ten texts</text><rect x=\"540\" y=\"291.82\" width=\"140\" height=\"138.18\" rx=\"3\" fill=\"#C8AE83\"/><text x=\"610\" y=\"275.82\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#C8AE83\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">38</text><text x=\"610\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.7\" text-anchor=\"middle\">Gutenberg</text><line x1=\"86\" y1=\"430\" x2=\"714\" y2=\"430\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/></svg>"
+      },
+      {
+        "id": "picture-4",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Readable School texts</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4EEE4\" text-anchor=\"start\">Readable School texts</text><text x=\"56\" y=\"108\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.6\" text-anchor=\"start\">Web readers, then proofing</text><rect x=\"120\" y=\"291.82\" width=\"140\" height=\"138.18\" rx=\"3\" fill=\"#F4EEE4\" fill-opacity=\"0.34\"/><text x=\"190\" y=\"275.82\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4EEE4\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">38</text><text x=\"190\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.7\" text-anchor=\"middle\">Gutenberg</text><rect x=\"330\" y=\"219.09\" width=\"140\" height=\"210.91\" rx=\"3\" fill=\"#F4EEE4\" fill-opacity=\"0.34\"/><text x=\"400\" y=\"203.09\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4EEE4\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">58</text><text x=\"400\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.7\" text-anchor=\"middle\">Web</text><rect x=\"540\" y=\"204.55\" width=\"140\" height=\"225.45\" rx=\"3\" fill=\"#C8AE83\"/><text x=\"610\" y=\"188.55\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#C8AE83\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">62</text><text x=\"610\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.7\" text-anchor=\"middle\">Proofed</text><line x1=\"86\" y1=\"430\" x2=\"714\" y2=\"430\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/></svg>"
+      },
+      {
+        "id": "picture-5",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>The Image Stream core</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4EEE4\" text-anchor=\"start\">The Image Stream core</text><circle cx=\"66\" cy=\"149\" r=\"7\" fill=\"#C8AE83\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#C8AE83\" text-anchor=\"start\" font-weight=\"600\">Flash meter</text><text x=\"286.92\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#C8AE83\" text-anchor=\"start\">counts flashes</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.8\" text-anchor=\"start\">Stream clock</text><text x=\"286.92\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.6\" text-anchor=\"start\">4 to 12 per second</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.8\" text-anchor=\"start\">Default rate</text><text x=\"286.92\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" fill-opacity=\"0.6\" text-anchor=\"start\">8 per second</text></svg>"
+      },
+      {
+        "id": "picture-6",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Replaying private audio</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4EEE4\" text-anchor=\"start\">Replaying private audio</text><rect x=\"210\" y=\"124\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"154\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" text-anchor=\"middle\">Same Plus identity</text><line x1=\"400\" y1=\"170\" x2=\"400\" y2=\"186\" stroke=\"#F4EEE4\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 178 L400 186 L407 178\" fill=\"none\" stroke=\"#F4EEE4\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"190\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"220\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" text-anchor=\"middle\">Same text and voice</text><line x1=\"400\" y1=\"236\" x2=\"400\" y2=\"252\" stroke=\"#F4EEE4\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 244 L400 252 L407 244\" fill=\"none\" stroke=\"#F4EEE4\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"256\" width=\"380\" height=\"42\" rx=\"21\" fill=\"#C8AE83\" fill-opacity=\"0.14\" stroke=\"#C8AE83\" stroke-opacity=\"1\" stroke-width=\"2.5\"/><text x=\"400\" y=\"286\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#C8AE83\" text-anchor=\"middle\" font-weight=\"600\">Retained audio</text><line x1=\"400\" y1=\"302\" x2=\"400\" y2=\"318\" stroke=\"#F4EEE4\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 310 L400 318 L407 310\" fill=\"none\" stroke=\"#F4EEE4\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"322\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F4EEE4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"352\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4EEE4\" text-anchor=\"middle\">Replay, no new debit</text></svg>"
+      },
+      {
+        "id": "eye",
+        "engine": "still"
+      }
+    ],
+    "beats": [
+      {
+        "say": "This week Sophia moved more smoothly, the Mystery School became a full library, and the Image Stream got its first parts.",
+        "scene": "opening"
+      },
+      {
+        "say": "In RISE Live, Sophia's frame transitions now move as one gesture. The eye shuts once between frames, and she glides on an arc while the face draws in step.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "Traces on a real graphics card found the faults. The eye used to reopen between two frames, and the face drew a frame behind."
+      },
+      {
+        "say": "Going from the shell to the full frame is now one gesture that only shrinks. From the cut to rest, it dropped from 2.83 seconds to 2.37.",
+        "scene": "eye"
+      },
+      {
+        "say": "A closing frame now draws in from the first moment of the cut. A new visual changes only while the eye is shut."
+      },
+      {
+        "say": "The Mystery School is now a pane in the Library. It is a wheel with the Gate at the centre and seven houses around it, and a lectern beside it reads whatever the wheel points at.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "It holds 66 texts, and only four were readable at the start. Each text shows one of three honest states: readable, carried but not served, or not yet carried."
+      },
+      {
+        "say": "Then the corpus grew. Ten Standard Ebooks texts came first, then twenty-four from Project Gutenberg, taking the school from four readable texts to fourteen, then thirty-eight.",
+        "scene": "picture-3"
+      },
+      {
+        "say": "New readers for the web brought in twenty more, the Gate's Latin among them. Boole, Humboldt's Cosmos, Goethe's Metamorphosis of Plants and a chapter of Jung followed, after conversion or a proofing pass.",
+        "scene": "picture-4"
+      },
+      {
+        "say": "Kapp and Ibn Khaldun arrived as proofed selections. Haeckel's hundred plates arrived as a picture work, where each unit is one plate.",
+        "scene": "eye"
+      },
+      {
+        "say": "The Gate now reads Pico's Oration in RISE's English draft, with the Latin after it. A model made the draft from the Latin alone, and no person has yet read it against the Latin. Kepler's Harmonices Mundi, Book V, is readable in Latin as six units. The Futurist Manifesto, in French and in English, was the last text, so all 66 are readable. A person has still to read the proofing diffs."
+      },
+      {
+        "say": "A separate piece of work began: the Image Stream. Its core is a flash meter that measures the light a stream puts on the screen, and a clock of four to twelve images a second.",
+        "scene": "picture-5"
+      },
+      {
+        "say": "Its presenter is a canvas of at most 140 pixels, behind a flag that is off. No reader can reach it, and flashing stays off. The meter judges every frame, and any trip hands the space back to the Gallery.",
+        "scene": "eye"
+      },
+      {
+        "say": "Plus listeners can now replay retained private audio across devices. The same verified Plus identity, text and voice reuse the audio with no new provider call and no new debit.",
+        "scene": "picture-6"
+      },
+      {
+        "say": "Checkout remains disabled, and no live provider call is claimed."
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      706
+    ],
+    "2": [
+      706
+    ],
+    "3": [
+      707
+    ],
+    "4": [
+      707
+    ],
+    "5": [
+      708
+    ],
+    "6": [
+      708
+    ],
+    "7": [
+      710,
+      712
+    ],
+    "8": [
+      713,
+      714
+    ],
+    "9": [
+      716,
+      717
+    ],
+    "10": [
+      718,
+      719,
+      720
+    ],
+    "11": [
+      721
+    ],
+    "12": [
+      723
+    ],
+    "13": [
+      726
+    ]
+  },
+  "quality": {
+    "firstPass": false,
+    "repairs": {
+      "composition": 1,
+      "illustrator": 0
+    },
+    "checks": {
+      "density": 2
+    },
+    "density": {
+      "pictures": 6,
+      "includedChanges": 15,
+      "speakingBeats": 13,
+      "pictured": 8,
+      "longestUnpictured": 2
+    }
+  }
+}
