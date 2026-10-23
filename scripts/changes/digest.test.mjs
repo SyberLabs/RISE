@@ -4,12 +4,21 @@ import { test } from 'node:test';
 import { parseOptions, runProcess } from './digest.mjs';
 
 test('reads --since, --out, --dry-run and --supersede, and refuses anything else', () => {
-  assert.deepEqual(parseOptions(['--since', '2026-10-13', '--out', 'x', '--dry-run']), { since: '2026-10-13', out: 'x', dryRun: true, supersede: undefined });
-  assert.deepEqual(parseOptions([]), { since: undefined, out: undefined, dryRun: false, supersede: undefined });
-  assert.deepEqual(parseOptions(['--supersede', '2026-10-16']), { since: undefined, out: undefined, dryRun: false, supersede: '2026-10-16' });
+  const rest = { figures: undefined, repo: undefined };
+  assert.deepEqual(parseOptions(['--since', '2026-10-13', '--out', 'x', '--dry-run']), { since: '2026-10-13', out: 'x', dryRun: true, supersede: undefined, ...rest });
+  assert.deepEqual(parseOptions([]), { since: undefined, out: undefined, dryRun: false, supersede: undefined, ...rest });
+  assert.deepEqual(parseOptions(['--supersede', '2026-10-16']), { since: undefined, out: undefined, dryRun: false, supersede: '2026-10-16', ...rest });
   assert.throws(() => parseOptions(['--supersede', '../index']), /--supersede/);
   assert.throws(() => parseOptions(['--token', 'abc']));
   assert.throws(() => parseOptions(['positional']));
+});
+
+test('accepts --figures kit and --repo owner/name, and refuses a scene mode or a repository path', () => {
+  assert.deepEqual(parseOptions(['--figures', 'kit', '--repo', 'SyberLabs/RISE']), {
+    since: undefined, out: undefined, dryRun: false, supersede: undefined, figures: 'kit', repo: 'SyberLabs/RISE'
+  });
+  assert.throws(() => parseOptions(['--figures', 'scene']), /--figures/);
+  assert.throws(() => parseOptions(['--repo', 'https://github.com/SyberLabs/RISE']), /owner\/name/);
 });
 
 test('runs a child in a fresh directory with its files, its stdin and only the environment given', async () => {

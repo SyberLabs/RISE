@@ -11,9 +11,11 @@ const MODEL = 'claude-sonnet-5-5';
 const notFound = () => Object.assign(new Error('gh: Not Found (HTTP 404)'), { stderr: 'gh: Not Found (HTTP 404)' });
 
 /** gh as the workflow sees it: the index on changes-data (or none), then GraphQL pages. */
-function fakeGh({ index = null, pages }) {
+function fakeGh({ index = null, pages, repository } = {}) {
   const queue = [...pages];
+  const record = repository ?? { full_name: REPO, private: false, visibility: 'public' };
   return async args => {
+    if (args[0] === 'api' && args.at(-1) === `repos/${REPO}`) return JSON.stringify(record);
     if (args.includes('api') && args.some(arg => arg.includes('contents/index.json'))) {
       if (index === null) throw notFound();
       return JSON.stringify(index);
@@ -239,6 +241,39 @@ describe('runDigest on the week of #652–#671', () => {
     await expect(runDigest({ gh: fakeGh({ index: marked, pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, supersede: '2026-10-14', model: MODEL, log: () => {} }))
       .rejects.toThrow(/already superseded by 2026-10-14-2/);
     expect(calls).toHaveLength(0);
+  });
+
+  it('stops before reading pull requests or calling a model when the repository is not public', async () => {
+    const calls = [];
+    const gh = async args => {
+      calls.push(args);
+      return JSON.stringify({ full_name: REPO, private: true, visibility: 'private' });
+    };
+    const ask = async () => { throw new Error('the model was called'); };
+    await expect(runDigest({ gh, ask, repo: REPO, now, log: () => {} })).rejects.toThrow('The repository is not public, so the run stops before reading it');
+    expect(calls).toEqual([['api', '--method', 'GET', `repos/${REPO}`]]);
+  });
+
+  it('refuses a figures mode other than kit before asking GitHub', async () => {
+    const gh = async () => { throw new Error('GitHub was asked'); };
+    await expect(runDigest({ gh, ask: async () => {}, repo: REPO, figures: 'scene', now, log: () => {} })).rejects.toThrow(/--figures kit/);
+  });
+
+  it('refuses a repository name that is not owner/name before asking GitHub', async () => {
+    const gh = async () => { throw new Error('GitHub was asked'); };
+    const ask = async () => { throw new Error('the model was called'); };
+    await expect(runDigest({ gh, ask, repo: 'https://github.com/SyberLabs/RISE', now, log: () => {} })).rejects.toThrow(/owner\/name/);
+  });
+
+  it('refuses an illustrator brief before drawing it when the digest may use kit figures only', async () => {
+    const composition = fixture('composition.json');
+    const { ask, calls } = scriptedAsk([fixture('route-answer.txt'), composition, composition, composition]);
+    await expect(runDigest({
+      gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, figures: 'kit', log: () => {}
+    })).rejects.toThrow(/refused 3 times/);
+    expect(calls).toHaveLength(4);
+    expect(calls.slice(1).every(call => /kit figures only/.test(call.system))).toBe(true);
+    expect(calls.some(call => /"medium": "figure" \| "scene"/.test(call.system))).toBe(false);
   });
 
   it('fails without writing when the composition is still refused after two repairs', async () => {
