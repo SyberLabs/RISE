@@ -405,6 +405,13 @@ describe('admitComposition', () => {
       expect(said).not.toMatch(/"100"/);
     });
 
+    it('refuses an illustrator brief when the digest may draw kit figures only', () => {
+      const verdict = admit({ current: current(beats), sources: { 1: [652], 2: [653] } }, { kitOnly: true });
+      expect(verdict.ok).toBe(false);
+      expect(verdict.diagnostics.join('\n')).toMatch(/kit figures only/);
+      expect(verdict.rules).toHaveProperty('composition');
+    });
+
     it('refuses more than two pictures for the illustrator: a kit kind draws a measurement, a sequence, a sorting or a layout', () => {
       const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [picture(1), picture(4), picture(7)] });
       expect(verdict.diagnostics.join('\n')).toMatch(/3 pictures for the illustrator; at most 2/);

@@ -90,7 +90,7 @@ export function sourcesProblems(sources, beatCount, included) {
   return problems;
 }
 
-function changeProblems(change, index) {
+function changeProblems(change, index, repo) {
   const path = `changes[${index}]`;
   if (!isObject(change) || !sameKeys(change, ['number', 'title', 'url', 'mergedAt', 'mergeSha', 'route', 'included', 'reason'])) {
     return [`${path} must have exactly number, title, url, mergedAt, mergeSha, route, included, reason`];
@@ -98,7 +98,7 @@ function changeProblems(change, index) {
   const problems = [];
   if (!Number.isInteger(change.number) || change.number < 1) problems.push(`${path}.number must be a pull request number`);
   if (!title(change.title)) problems.push(`${path}.title must be 1 to ${LIMITS.title} characters`);
-  if (change.url !== pullUrl(change.number)) problems.push(`${path}.url must be ${pullUrl(change.number)}`);
+  if (change.url !== pullUrl(change.number, repo)) problems.push(`${path}.url must be ${pullUrl(change.number, repo)}`);
   if (!isIso(change.mergedAt)) problems.push(`${path}.mergedAt must be an ISO time`);
   if (typeof change.mergeSha !== 'string' || !SHA.test(change.mergeSha)) problems.push(`${path}.mergeSha must be 40 hex characters`);
   const route = change.route;
@@ -153,7 +153,7 @@ export function densityLine({ pictures, includedChanges, speakingBeats, pictured
 }
 
 /** What is wrong with a digest's envelope; empty when it keeps the contract. */
-export function digestProblems(digest) {
+export function digestProblems(digest, repo = REPOSITORY) {
   const keys = ['schema', 'id', 'audience', 'title', 'period', 'generatedAt', 'model', 'changes', 'current', 'sources'];
   // Optional: `quality`, the run's first-pass score, and `notes`, what the run let go (a picture not drawn), one sentence each.
   const optional = ['quality', 'notes'].filter(key => isObject(digest) && Object.hasOwn(digest, key));
@@ -176,7 +176,7 @@ export function digestProblems(digest) {
   }
   if (!Array.isArray(digest.changes)) return [...problems, 'changes must be a list'];
   if (digest.changes.length > LIMITS.changes) problems.push(`At most ${LIMITS.changes} changes are listed; this digest has ${digest.changes.length}`);
-  digest.changes.forEach((change, index) => problems.push(...changeProblems(change, index)));
+  digest.changes.forEach((change, index) => problems.push(...changeProblems(change, index, repo)));
   const numbers = digest.changes.map(change => change?.number);
   if (new Set(numbers).size !== numbers.length) problems.push('A pull request is listed twice');
   const included = digest.changes.filter(change => change?.included === true).map(change => change.number);
