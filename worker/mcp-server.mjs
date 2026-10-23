@@ -27,8 +27,9 @@ import { logQuality } from './mcp-quality.mjs';
  *
  * It is off unless MCP_ENABLED is 'true'. It answers only requests from no
  * browser origin or from its own (an MCP host's server has none; a page on
- * another site must not be able to make a browser talk to it), refuses a
- * protocol version it does not speak before reading anything, holds each client
+ * another site must not be able to make a browser talk to it), refuses malformed
+ * version headers before reading the body and validates modern versions after parsing,
+ * holds each client
  * address but Anthropic's shared egress to the site's rate limiter where the
  * platform offers one, reads a bounded body, and returns nothing it was sent
  * except a validator's message, a scene parser's diagnostic (src/core/scene-admission.js), a figure's (svg-admission.js) or an argument's name, clipped.
@@ -50,6 +51,15 @@ export const GUIDE_TOOL_NAME = 'rise_guide';
 export const SERVER_INFO = Object.freeze({ name: 'rise', title: 'RISE', version: '1.0.0' });
 /** Newest first. A client's version is answered with itself if it is here, and otherwise with the newest. */
 export const PROTOCOL_VERSIONS = Object.freeze(['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
+export const MODERN_VERSIONS = Object.freeze(['2026-07-28']);
+const SUPPORTED_VERSIONS = Object.freeze([...MODERN_VERSIONS, ...PROTOCOL_VERSIONS]);
+const UI_EXTENSION = 'io.modelcontextprotocol/ui';
+const PROTOCOL_VERSION_META = 'io.modelcontextprotocol/protocolVersion';
+const CLIENT_CAPABILITIES_META = 'io.modelcontextprotocol/clientCapabilities';
+const SERVER_INFO_META = 'io.modelcontextprotocol/serverInfo';
+const LIST_TTL_MS = 300_000;
+const RESOURCE_TTL_MS = 60_000;
+const DISCOVER_TTL_MS = 3_600_000;
 const MAX_BODY_BYTES = 262_144;
 const MAX_MESSAGE = 300;
 /** Lines of scene refusals in one answer, across every scene. */
@@ -343,8 +353,12 @@ function http(status, body, headers = {}) {
   return new Response(body === null ? null : JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
 }
 
-const result = (id, value) => http(200, { jsonrpc: '2.0', id, result: value });
+const result = (id, value, modern = false) => http(200, { jsonrpc: '2.0', id, result: modern ? { resultType: 'complete', ...value } : value });
 const failure = (id, code, message, data) => http(200, { jsonrpc: '2.0', id: id ?? null, error: { code, message, ...(data === undefined ? {} : { data }) } });
+const modernFailure = (status, id, code, message, data) => http(status, {
+  jsonrpc: '2.0', id: typeof id === 'string' || typeof id === 'number' ? id : null,
+  error: { code, message, ...(data === undefined ? {} : { data }) }
+});
 
 /** Text that came from what the model sent, fit to be echoed: no control characters, clipped. */
 const clean = (text, length = MAX_MESSAGE) => clip(String(text).replace(/[\u0000-\u001F\u007F]/gu, ' '), length);
@@ -370,17 +384,17 @@ function sceneRefusals(current) {
   return { lines: lines.slice(0, MAX_SCENE_LINES), repair: code ? 'the scene’s code' : 'the figure' };
 }
 
-function call(id, params) {
+function call(id, params, modern = false) {
   if (!params || typeof params !== 'object' || params.name !== TOOL_NAME) return failure(id, -32602, 'Unknown tool');
   const args = params.arguments;
   if (!args || typeof args !== 'object' || Array.isArray(args) || !args.current || typeof args.current !== 'object') {
-    return result(id, { content: [{ type: 'text', text: `Call ${TOOL_NAME} with {"current": <a Current>}.` }], isError: true });
+    return result(id, { content: [{ type: 'text', text: `Call ${TOOL_NAME} with {"current": <a Current>}.` }], isError: true }, modern);
   }
   const extra = Object.keys(args).find(key => key !== 'current');
   if (extra !== undefined) {
     const why = extra === 'theme' ? '"theme" belongs inside the Current, not beside it'
       : `unknown argument "${clip(extra.replace(/[\u0000-\u001F\u007F]/gu, ''), 40)}"`;
-    return result(id, { content: [{ type: 'text', text: `RISE refused these arguments: ${why}. Call ${TOOL_NAME} with {"current": <a Current>} only.` }], isError: true });
+    return result(id, { content: [{ type: 'text', text: `RISE refused these arguments: ${why}. Call ${TOOL_NAME} with {"current": <a Current>} only.` }], isError: true }, modern);
   }
   try {
     if (serializedUtf8Bytes(args.current) > MCP_CURRENT_BYTES) {
@@ -388,18 +402,18 @@ function call(id, params) {
     }
     validateRiseCurrent(args.current);
   } catch (error) {
-    return result(id, { content: [{ type: 'text', text: refusal(error) }], isError: true });
+    return result(id, { content: [{ type: 'text', text: refusal(error) }], isError: true }, modern);
   }
   const refused = sceneRefusals(args.current);
   if (refused.lines.length) {
     const text = [...refused.lines, `Repair ${refused.repair} and call ${TOOL_NAME} again with the whole Current.`].join('\n');
-    return result(id, { content: [{ type: 'text', text }], isError: true });
+    return result(id, { content: [{ type: 'text', text }], isError: true }, modern);
   }
   // The app admits the Current from structuredContent; the model, which wrote it, is told only what was accepted.
   const answer = result(id, {
     content: [{ type: 'text', text: receipt(args.current) }],
     structuredContent: { current: args.current }
-  });
+  }, modern);
   logQuality(args.current);
   return answer;
 }
@@ -420,20 +434,23 @@ function receipt(current) {
 }
 
 /** rise_guide: one style's full guidance, or a refusal that names the styles and echoes nothing it was sent. */
-function guide(id, params) {
+function guide(id, params, modern = false) {
   const args = params.arguments;
   const keys = args && typeof args === 'object' && !Array.isArray(args) ? Object.keys(args) : null;
   const style = keys?.length === 1 && keys[0] === 'style' && typeof args.style === 'string' && RISE_CURRENT_STYLES.includes(args.style) ? args.style : null;
   if (style === null) {
-    return result(id, { content: [{ type: 'text', text: `Call ${GUIDE_TOOL_NAME} with {"style": <a style>} only; the styles are ${RISE_CURRENT_STYLES.join(', ')}.` }], isError: true });
+    return result(id, { content: [{ type: 'text', text: `Call ${GUIDE_TOOL_NAME} with {"style": <a style>} only; the styles are ${RISE_CURRENT_STYLES.join(', ')}.` }], isError: true }, modern);
   }
-  return result(id, { content: [{ type: 'text', text: styleGuide(style) }] });
+  return result(id, { content: [{ type: 'text', text: styleGuide(style) }] }, modern);
 }
 
-function read(id, params, origin, witness, card) {
+function read(id, params, origin, witness, card, modern = false, clientSupportsUi = false) {
   const style = GUIDE_URIS.get(params?.uri);
-  if (style !== undefined) return result(id, { contents: [{ uri: params.uri, mimeType: GUIDE_MIME, text: styleGuide(style) }] });
-  if (params?.uri !== APP_URI) return failure(id, -32002, 'Resource not found', { uri: typeof params?.uri === 'string' ? clip(params.uri, 200) : null });
+  if (style !== undefined) return result(id, { contents: [{ uri: params.uri, mimeType: GUIDE_MIME, text: styleGuide(style) }], ...(modern ? { ttlMs: RESOURCE_TTL_MS, cacheScope: 'public' } : {}) }, modern);
+  if (modern && params?.uri === APP_URI && !clientSupportsUi) return modernFailure(200, id, -32602, 'Client does not support the MCP Apps UI extension');
+  if (params?.uri !== APP_URI) return modern
+    ? modernFailure(200, id, -32602, 'Resource not found', { uri: typeof params?.uri === 'string' ? clip(params.uri, 200) : null })
+    : failure(id, -32002, 'Resource not found', { uri: typeof params?.uri === 'string' ? clip(params.uri, 200) : null });
   return result(id, {
     contents: [{
       uri: APP_URI,
@@ -458,12 +475,76 @@ function read(id, params, origin, witness, card) {
         // Read by the host's model when the app loads, so that it need not describe the app itself.
         'openai/widgetDescription': 'A spoken reading of the answer, its words and a visual shown as they are spoken, which the reader starts with Play and can pause and resume.'
       }
-    }]
+    }],
+    ...(modern ? { ttlMs: RESOURCE_TTL_MS, cacheScope: 'public' } : {})
+  }, modern);
+}
+
+function modernMetadata(message) {
+  const meta = message?.params?._meta;
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta) || !Object.prototype.hasOwnProperty.call(meta, PROTOCOL_VERSION_META)) return null;
+  return { version: meta[PROTOCOL_VERSION_META], clientCapabilities: meta[CLIENT_CAPABILITIES_META] };
+}
+
+function supportsUi(clientCapabilities) {
+  const mimeTypes = clientCapabilities?.extensions?.[UI_EXTENSION]?.mimeTypes;
+  return Array.isArray(mimeTypes) && mimeTypes.includes(APP_MIME);
+}
+
+function decodeMcpName(value) {
+  if (value === null) return null;
+  const prefix = '=?base64?';
+  const suffix = '?=';
+  if (!value.startsWith(prefix) || !value.endsWith(suffix)) {
+    return /^[\x20-\x7e\t]*$/u.test(value) && value.trim() === value ? value : null;
+  }
+  const encoded = value.slice(prefix.length, -suffix.length);
+  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(encoded)) return null;
+  try {
+    const binary = atob(encoded);
+    return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(binary, char => char.charCodeAt(0)));
+  } catch {
+    return null;
+  }
+}
+
+function headerMismatch(request, message, requestedVersion) {
+  const version = request.headers.get('MCP-Protocol-Version');
+  if (version === null || typeof requestedVersion !== 'string' || version !== requestedVersion) {
+    return 'Header mismatch: MCP-Protocol-Version must match request metadata';
+  }
+  const method = request.headers.get('Mcp-Method');
+  if (method === null || method !== message?.method) return 'Header mismatch: Mcp-Method must match the request method';
+  if (['tools/call', 'resources/read', 'prompts/get'].includes(message?.method)) {
+    const expected = message.method === 'tools/call' ? message.params?.name : message.method === 'resources/read' ? message.params?.uri : message.params?.name;
+    const name = decodeMcpName(request.headers.get('Mcp-Name'));
+    if (typeof expected !== 'string' || name === null || name !== expected) return 'Header mismatch: Mcp-Name must match the request name';
+  }
+  return null;
+}
+
+function toolsForClient(gate0, modern, clientSupportsUi) {
+  const tools = gate0 ? [TOOL, GUIDE_TOOL, GATE0_TOOL] : [TOOL, GUIDE_TOOL];
+  if (!modern || clientSupportsUi) return tools;
+  return tools.map(tool => {
+    if (!tool._meta?.ui && !tool._meta?.['ui/resourceUri']) return tool;
+    const meta = Object.fromEntries(Object.entries(tool._meta).filter(([key]) => key !== 'ui' && key !== 'ui/resourceUri'));
+    return { ...tool, _meta: meta };
   });
 }
 
+function resourcesForClient(clientSupportsUi) {
+  return [
+    ...(clientSupportsUi ? [{ uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current: spoken in the device’s own voice and shown as it is spoken.', mimeType: APP_MIME }] : []),
+    ...[...GUIDE_URIS].map(([uri, style]) => ({
+      uri, name: `rise-guide-${style}`, title: `RISE style: ${style}`,
+      description: `The format reference for the ${style} style, with worked Currents.`, mimeType: GUIDE_MIME
+    }))
+  ];
+}
+
 /** One JSON-RPC message, answered. `null` for one that is not answered (a notification or a response). */
-export function dispatch(message, origin, { gate0 = false, witness = false, card = null } = {}) {
+export function dispatch(message, origin, { gate0 = false, witness = false, card = null, modern = false, clientCapabilities = {} } = {}) {
   if (!message || typeof message !== 'object' || Array.isArray(message) || message.jsonrpc !== '2.0') {
     return failure(null, -32600, 'Invalid request');
   }
@@ -471,6 +552,34 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
   if (typeof method !== 'string') return http(202, null);
   if (id === undefined) return http(202, null);
   if (typeof id !== 'string' && typeof id !== 'number') return failure(null, -32600, 'Invalid request');
+
+  if (modern) {
+    const clientSupportsUi = supportsUi(clientCapabilities);
+    switch (method) {
+      case 'server/discover':
+        return result(id, {
+          supportedVersions: [...MODERN_VERSIONS],
+          capabilities: { tools: {}, resources: {}, extensions: { [UI_EXTENSION]: {} } },
+          instructions: INSTRUCTIONS,
+          _meta: { [SERVER_INFO_META]: SERVER_INFO },
+          ttlMs: DISCOVER_TTL_MS,
+          cacheScope: 'public'
+        }, true);
+      case 'tools/list':
+        return result(id, { tools: toolsForClient(gate0, true, clientSupportsUi), ttlMs: LIST_TTL_MS, cacheScope: 'public' }, true);
+      case 'tools/call': {
+        if (params?.name === GUIDE_TOOL_NAME) return guide(id, params, true);
+        if (!gate0 || params?.name !== GATE0_TOOL_NAME) return call(id, params, true);
+        const probe = callGate0(params.arguments, Date.now());
+        if (probe.log) console.log(probe.log);
+        return result(id, probe.result, true);
+      }
+      case 'resources/list':
+        return result(id, { resources: resourcesForClient(clientSupportsUi), ttlMs: LIST_TTL_MS, cacheScope: 'public' }, true);
+      case 'resources/read': return read(id, params, origin, witness, card, true, clientSupportsUi);
+      default: return modernFailure(404, id, -32601, 'Method not found');
+    }
+  }
 
   switch (method) {
     case 'initialize': {
@@ -483,7 +592,7 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
       });
     }
     case 'ping': return result(id, {});
-    case 'tools/list': return result(id, { tools: gate0 ? [TOOL, GUIDE_TOOL, GATE0_TOOL] : [TOOL, GUIDE_TOOL] });
+    case 'tools/list': return result(id, { tools: toolsForClient(gate0, false, false) });
     case 'tools/call': {
       if (params?.name === GUIDE_TOOL_NAME) return guide(id, params);
       if (!gate0 || params?.name !== GATE0_TOOL_NAME) return call(id, params);
@@ -491,16 +600,7 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
       if (probe.log) console.log(probe.log);
       return result(id, probe.result);
     }
-    case 'resources/list':
-      return result(id, {
-        resources: [
-          { uri: APP_URI, name: 'rise-current', title: 'RISE', description: 'Plays a Current: spoken in the device’s own voice and shown as it is spoken.', mimeType: APP_MIME },
-          ...[...GUIDE_URIS].map(([uri, style]) => ({
-            uri, name: `rise-guide-${style}`, title: `RISE style: ${style}`,
-            description: `The format reference for the ${style} style, with worked Currents.`, mimeType: GUIDE_MIME
-          }))
-        ]
-      });
+    case 'resources/list': return result(id, { resources: resourcesForClient(true) });
     case 'resources/read': return read(id, params, origin, witness, card);
     default: return failure(id, -32601, 'Method not found');
   }
@@ -516,9 +616,8 @@ export async function handleMcp(request, env) {
   if (request.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
     return http(415, { error: { code: 'JSON_REQUIRED', message: 'Send application/json.' } });
   }
-  // A client names the version it negotiated. A malformed one is refused before anything is read; a
-  // well-formed one this server does not list is served, because a host speaking a newer revision is
-  // answered in this server's newest at initialize and must not be shut out of the subset it uses.
+  // Malformed version headers are refused before anything is read. Legacy requests remain permissive
+  // for well-formed headers; modern per-request metadata is checked against the header after parsing.
   const version = request.headers.get('MCP-Protocol-Version');
   if (version !== null && !/^\d{4}-\d{2}-\d{2}$/u.test(version)) {
     return http(400, { error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: `This server speaks MCP ${PROTOCOL_VERSIONS.join(', ')}.` } });
@@ -569,9 +668,20 @@ export async function handleMcp(request, env) {
     return failure(null, -32700, 'Parse error');
   }
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
+  const modern = modernMetadata(message);
+  if (modern !== null) {
+    const mismatch = headerMismatch(request, message, modern.version);
+    if (mismatch !== null) return modernFailure(400, message?.id, -32020, mismatch);
+    if (!MODERN_VERSIONS.includes(modern.version)) {
+      return modernFailure(400, message?.id, -32022, 'Unsupported protocol version', {
+        supported: [...SUPPORTED_VERSIONS], requested: modern.version
+      });
+    }
+  }
   // The self-contained card is the deployed page itself, read when the host asks for the app.
   let card = null;
-  if (env.MCP_SELF_CONTAINED === 'true' && message?.method === 'resources/read' && message.params?.uri === APP_URI && typeof env.ASSETS?.fetch === 'function') {
+  if (env.MCP_SELF_CONTAINED === 'true' && message?.method === 'resources/read' && message.params?.uri === APP_URI
+    && (modern === null || supportsUi(modern.clientCapabilities)) && typeof env.ASSETS?.fetch === 'function') {
     try {
       const page = await env.ASSETS.fetch(new Request(`${origin}/index.html`));
       if (page.ok) card = await page.text();
@@ -579,7 +689,10 @@ export async function handleMcp(request, env) {
       /* the relay card is served instead */
     }
   }
-  return dispatch(message, origin, { gate0: env.MCP_GATE0 === 'true', witness: env.MCP_WITNESS === 'true', card });
+  return dispatch(message, origin, {
+    gate0: env.MCP_GATE0 === 'true', witness: env.MCP_WITNESS === 'true', card,
+    modern: modern !== null, clientCapabilities: modern?.clientCapabilities
+  });
 }
 
 /**

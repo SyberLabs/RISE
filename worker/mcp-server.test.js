@@ -10,6 +10,7 @@
  * only while switched on.
  */
 import { describe, expect, it, vi } from 'vitest';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
 import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, STYLE_LINES, styleGuide } from '../src/live/guide/index.js';
@@ -19,7 +20,7 @@ import worker from './index.mjs';
 import { admitSvg } from '../src/core/svg-admission.js';
 import { describeDiagnostic } from '../src/core/scene-admission.js';
 import { DISPLAY_MODES } from '../src/live/hosts/mcp-port.js';
-import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, GUIDE_TOOL, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
+import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, GUIDE_TOOL, handleLive, handleMcp, MCP_PATH, MODERN_VERSIONS, PROTOCOL_VERSIONS, SERVER_INFO, TOOL } from './mcp-server.mjs';
 
 const SITE = 'https://rise.example';
 /** The most the tool's description may say, in characters. */
@@ -38,6 +39,26 @@ function post(body, { headers = {}, env = ON, url = `${SITE}${MCP_PATH}`, raw } 
 
 const rpc = (method, params, id = 1) => ({ jsonrpc: '2.0', id, method, params });
 const json = async response => JSON.parse(await response.text());
+const MODERN_VERSION = '2026-07-28';
+const modernRequest = (method, params = {}, { version = MODERN_VERSION, capabilities = {} } = {}) => rpc(method, {
+  ...params,
+  _meta: {
+    'io.modelcontextprotocol/protocolVersion': version,
+    'io.modelcontextprotocol/clientCapabilities': capabilities
+  }
+});
+function modernPost(method, params = {}, { version = MODERN_VERSION, capabilities = {}, headers = {} } = {}) {
+  const body = modernRequest(method, params, { version, capabilities });
+  const name = method === 'tools/call' ? params.name : method === 'resources/read' ? params.uri : undefined;
+  return post(body, {
+    headers: {
+      'MCP-Protocol-Version': version,
+      'Mcp-Method': method,
+      ...(name === undefined ? {} : { 'Mcp-Name': name }),
+      ...headers
+    }
+  });
+}
 
 describe('when it is switched on', () => {
   it('is off unless MCP_ENABLED is exactly the text true, and says so', async () => {
@@ -136,13 +157,155 @@ describe('who may ask, and how', () => {
     for (const id of [7, 0, 'abc', '']) expect((await json(await post(rpc('ping', undefined, id)))).id).toBe(id);
   });
 
-  it('takes a request in any well-formed protocol version, newer ones included, and refuses a malformed one before reading the body', async () => {
-    for (const version of [...PROTOCOL_VERSIONS, '2026-07-28', '1999-01-01']) expect((await post(rpc('ping'), { headers: { 'MCP-Protocol-Version': version } })).status, version).toBe(200);
+  it('keeps legacy requests permissive for well-formed version headers and refuses malformed versions before reading the body', async () => {
+    for (const version of [...PROTOCOL_VERSIONS, ...MODERN_VERSIONS, '1999-01-01']) {
+      expect((await post(rpc('ping'), { headers: { 'MCP-Protocol-Version': version } })).status, version).toBe(200);
+    }
     for (const version of ['latest', '', '2026-7-28', '2026-07-28; charset=x']) {
       const response = await post(null, { raw: '{not json', headers: { 'MCP-Protocol-Version': version } });
       expect(response.status, version).toBe(400);
       expect(await json(response)).toEqual({ error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: expect.any(String) } });
     }
+  });
+
+  it('rejects missing modern standard headers with HeaderMismatch', async () => {
+    const missingVersion = await post(modernRequest('tools/list'), { headers: { 'Mcp-Method': 'tools/list' } });
+    expect(missingVersion.status).toBe(400);
+    expect((await json(missingVersion)).error.code).toBe(-32020);
+    const missingMethod = await post(modernRequest('tools/list'), { headers: { 'MCP-Protocol-Version': MODERN_VERSION } });
+    expect(missingMethod.status).toBe(400);
+    expect((await json(missingMethod)).error.code).toBe(-32020);
+    const missingName = await post(modernRequest('tools/call', { name: 'rise_present', arguments: {} }), {
+      headers: { 'MCP-Protocol-Version': MODERN_VERSION, 'Mcp-Method': 'tools/call' }
+    });
+    expect(missingName.status).toBe(400);
+    expect((await json(missingName)).error.code).toBe(-32020);
+  });
+
+  it('rejects modern header/body version and method mismatches with HeaderMismatch', async () => {
+    const mismatches = [
+      { method: 'tools/list', params: {}, headers: { 'MCP-Protocol-Version': '2025-11-25' } },
+      { method: 'tools/list', params: {}, headers: { 'Mcp-Method': 'resources/list' } },
+      { method: 'tools/call', params: { name: 'rise_present', arguments: {} }, headers: { 'Mcp-Name': 'wrong-name' } }
+    ];
+    for (const { method, params, headers } of mismatches) {
+      const response = await modernPost(method, params, { headers });
+      expect(response.status).toBe(400);
+      expect((await json(response)).error.code).toBe(-32020);
+    }
+  });
+
+  it('rejects unsupported modern versions with the modern and legacy supported list', async () => {
+    const requested = '2027-01-01';
+    const response = await modernPost('tools/list', {}, { version: requested });
+    expect(response.status).toBe(400);
+    expect(await json(response)).toEqual({
+      jsonrpc: '2.0', id: 1,
+      error: {
+        code: -32022,
+        message: 'Unsupported protocol version',
+        data: { supported: [...MODERN_VERSIONS, ...PROTOCOL_VERSIONS], requested }
+      }
+    });
+  });
+
+  it('returns 404 for methods outside the modern protocol, including legacy-only methods', async () => {
+    for (const method of ['not/a/method', 'initialize', 'ping']) {
+      const response = await modernPost(method);
+      expect(response.status, method).toBe(404);
+      expect((await json(response)).error.code).toBe(-32601);
+    }
+  });
+
+  it('discovers modern versions, capabilities, instructions and server identity', async () => {
+    const response = await modernPost('server/discover');
+    expect(response.status).toBe(200);
+    expect((await json(response)).result).toEqual({
+      resultType: 'complete',
+      supportedVersions: [...MODERN_VERSIONS],
+      capabilities: {
+        tools: {},
+        resources: {},
+        extensions: { 'io.modelcontextprotocol/ui': {} }
+      },
+      instructions: expect.stringContaining('rise_present'),
+      _meta: { 'io.modelcontextprotocol/serverInfo': SERVER_INFO },
+      ttlMs: expect.any(Number),
+      cacheScope: 'public'
+    });
+  });
+
+  it('adds modern result and cache metadata while offering the UI only to capable clients', async () => {
+    const unsupported = await json(await modernPost('tools/list'));
+    expect(unsupported.result.resultType).toBe('complete');
+    expect(unsupported.result.ttlMs).toBeGreaterThanOrEqual(0);
+    expect(unsupported.result.cacheScope).toBe('public');
+    expect(unsupported.result.tools[0]._meta?.ui).toBeUndefined();
+    const uiCapabilities = { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: [APP_MIME] } } };
+    const supported = await json(await modernPost('tools/list', {}, { capabilities: uiCapabilities }));
+    expect(supported.result.tools.map(tool => tool.name)).toEqual(['rise_present', 'rise_guide']);
+    expect(supported.result.tools[0]._meta.ui.resourceUri).toBe(APP_URI);
+    const resources = await json(await modernPost('resources/list'));
+    expect(resources.result).toMatchObject({ resultType: 'complete', ttlMs: expect.any(Number), cacheScope: 'public' });
+    expect(resources.result.resources.some(resource => resource.uri === APP_URI)).toBe(false);
+    const uiResources = await json(await modernPost('resources/list', {}, { capabilities: uiCapabilities }));
+    expect(uiResources.result.resources[0].uri).toBe(APP_URI);
+    const hiddenCard = await modernPost('resources/read', { uri: APP_URI });
+    expect((await json(hiddenCard)).error.code).toBe(-32602);
+
+    const guideUri = `ui://rise/guide/${RISE_CURRENT_STYLES[0]}`;
+    const guideRead = await json(await modernPost('resources/read', { uri: guideUri }));
+    expect(guideRead.result).toMatchObject({ resultType: 'complete', ttlMs: expect.any(Number), cacheScope: 'public' });
+    const appRead = await json(await modernPost('resources/read', { uri: APP_URI }, { capabilities: uiCapabilities }));
+    expect(appRead.result).toMatchObject({ resultType: 'complete', ttlMs: expect.any(Number), cacheScope: 'public' });
+    const toolCall = await json(await modernPost('tools/call', { name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } }));
+    expect(toolCall.result.resultType).toBe('complete');
+    const guideCall = await json(await modernPost('tools/call', { name: 'rise_guide', arguments: { style: RISE_CURRENT_STYLES[0] } }));
+    expect(guideCall.result.resultType).toBe('complete');
+  });
+
+  it('drives the server through the official TypeScript SDK in both protocol eras', async () => {
+    for (const mode of ['legacy', 'auto']) {
+      const client = new Client(
+        { name: 'RISE MCP conformance test', version: '1.0.0' },
+        { versionNegotiation: { mode } }
+      );
+      const transport = new StreamableHTTPClientTransport(new URL(`${SITE}${MCP_PATH}`), {
+        fetch: (input, init) => handleMcp(new Request(input, init), ON)
+      });
+      try {
+        await client.connect(transport);
+        expect(client.getProtocolEra()).toBe(mode === 'legacy' ? 'legacy' : 'modern');
+        const { tools } = await client.listTools();
+        expect(tools.map(tool => tool.name)).toEqual(['rise_present', 'rise_guide']);
+        const result = await client.callTool({ name: 'rise_present', arguments: { current: BLACK_HOLES_CURRENT } });
+        expect(result.isError).toBeUndefined();
+        expect(result.content[0].text).toContain('RISE is presenting');
+      } finally {
+        await client.close();
+      }
+    }
+  });
+
+  it('preserves the exact legacy initialize, tools/list and tools/call response serialization', async () => {
+    const initializeResponse = await post(rpc('initialize', { protocolVersion: PROTOCOL_VERSIONS[0] }));
+    const initialize = await json(initializeResponse.clone());
+    expect(await initializeResponse.text()).toBe(JSON.stringify({
+      jsonrpc: '2.0', id: 1,
+      result: {
+        protocolVersion: PROTOCOL_VERSIONS[0],
+        capabilities: { tools: { listChanged: false }, resources: { listChanged: false } },
+        serverInfo: SERVER_INFO,
+        instructions: initialize.result.instructions
+      }
+    }));
+    const listResponse = await post(rpc('tools/list'));
+    expect(await listResponse.text()).toBe(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { tools: [TOOL, GUIDE_TOOL] } }));
+    const callResponse = await post(rpc('tools/call', { name: 'rise_present', arguments: {} }));
+    expect(await callResponse.text()).toBe(JSON.stringify({
+      jsonrpc: '2.0', id: 1,
+      result: { content: [{ type: 'text', text: 'Call rise_present with {"current": <a Current>}.' }], isError: true }
+    }));
   });
 
   it('is limited per client address through the limiter live answers use, and is as it was without one', async () => {
