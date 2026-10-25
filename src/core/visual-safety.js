@@ -11,6 +11,9 @@ let pendingConsent = null;
 let activeSessionConsent = false;
 let acceptedLaunchConsent = false;
 let activeSessionConsentScope = null;
+// Whether the active session's capability came from an accepted notice
+// (beginVisualInterlocutionSession) rather than a surface that never flashes.
+let activeSessionFlashing = false;
 let acceptedLaunchConsentScope = null;
 
 const DEFAULT_CONSENT_SCOPE = 'legacy-launch';
@@ -37,6 +40,17 @@ export function hasVisualInterlocutionConsent(scope) {
 }
 
 /**
+ * Whether the reading on screen holds a capability that came from an
+ * accepted photosensitivity notice. Cheap enough to ask every refresh: a
+ * flashing presenter stops the moment the session ends (the reading closes,
+ * data is cleared, a visual error is recovered) or is replaced by one that
+ * never accepted the notice.
+ */
+export function hasFlashingSessionConsent() {
+    return activeSessionConsent && activeSessionFlashing;
+}
+
+/**
  * Convert an accepted warning into a capability owned by one chamber
  * session. The one-use launch grant is consumed so the next session must
  * establish consent again, while the cortex can continue checking the active
@@ -47,6 +61,7 @@ export function beginVisualInterlocutionSession(scope) {
     if (!acceptedLaunchConsent || acceptedLaunchConsentScope !== normalizedScope) return false;
     activeSessionConsent = true;
     activeSessionConsentScope = normalizedScope;
+    activeSessionFlashing = true;
     acceptedLaunchConsent = false;
     acceptedLaunchConsentScope = null;
     try { sessionStorage.removeItem(VISUAL_CONSENT_KEY); } catch { /* unavailable */ }
@@ -70,6 +85,7 @@ export function beginVisualInterlocutionSession(scope) {
  */
 export function beginNonFlashingVisualSession(scope) {
     activeSessionConsent = true;
+    activeSessionFlashing = false;
     activeSessionConsentScope = normalizeConsentScope(scope);
     return true;
 }
@@ -77,6 +93,7 @@ export function beginNonFlashingVisualSession(scope) {
 /** Revoke the session capability and cancel any orphaned visible prompt. */
 export function endVisualInterlocutionSession() {
     activeSessionConsent = false;
+    activeSessionFlashing = false;
     activeSessionConsentScope = null;
     acceptedLaunchConsent = false;
     acceptedLaunchConsentScope = null;
@@ -94,13 +111,14 @@ export function grantVisualInterlocutionConsent(scope) {
 
 export function requestVisualInterlocutionConsent(scope) {
     const normalizedScope = normalizeConsentScope(scope);
+    // Photosensitivity mode outranks any acceptance, earlier or current.
+    if (document.documentElement.classList.contains('photosensitivity-mode')) {
+        return Promise.resolve(false);
+    }
     if (hasVisualInterlocutionConsent(normalizedScope)) return Promise.resolve(true);
     if (acceptedLaunchConsent && acceptedLaunchConsentScope !== normalizedScope) {
         acceptedLaunchConsent = false;
         acceptedLaunchConsentScope = null;
-    }
-    if (document.documentElement.classList.contains('photosensitivity-mode')) {
-        return Promise.resolve(false);
     }
     if (pendingConsent?.scope === normalizedScope) return pendingConsent.promise;
     pendingConsent?.cancel?.();

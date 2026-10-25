@@ -4,7 +4,8 @@
  *
  * Title, author, date, edition and why are the plan's words, verbatim.
  * `rights` follows the edition column: "US only" is 'us-only', "orig. only" is
- * 'orig-only', anything else 'us-pd'. `work` names a RISE archive work, served
+ * 'orig-only', anything else 'us-pd'; the Gate alone is 'us-pd' against its
+ * column, because RISE serves its own English translation. `work` names a RISE archive work, served
  * or withheld, or is `{ corpus: true }` for a text the School corpus serves
  * under the record's own id (./corpus.js); whether it can be read is resolved
  * from the content manifest at runtime, never written here. `work.entry` pins
@@ -29,9 +30,9 @@ function text({ id, degree, title, author, date, edition, why, rights = 'us-pd',
 export const SCHOOL_CANON = freeze([
   // The Gate
   text({ id: 'gate.oration', degree: 0, title: 'Oration on the Dignity of Man', author: 'Pico della Mirandola', date: '1486',
-    edition: 'Latin, orig. only (verify a pre-1931 English)', rights: 'orig-only',
+    edition: 'Latin, orig. only (verify a pre-1931 English)',
     why: 'The Renaissance manifesto: the human as the being with no fixed place, who must shape itself',
-    note: 'A free English edition is the school\'s first commission',
+    note: 'Read in RISE\'s English draft, with the Latin after it; the English awaits a reading against the Latin',
     work: { corpus: true } }),
 
   // Sun: House of the Logos
@@ -70,7 +71,8 @@ export const SCHOOL_CANON = freeze([
     edition: 'Original', why: 'Miracles as programmed exceptions; theology meets the engine', bridges: ['saturn'],
     work: { corpus: true } }),
   text({ id: 'mercury.laws-of-thought', degree: 3, title: 'Laws of Thought', author: 'George Boole', date: '1854',
-    edition: 'Original', why: 'Logic becomes algebra' }),
+    edition: 'Original', why: 'Logic becomes algebra',
+    work: { corpus: true } }),
   text({ id: 'mercury.on-governors', degree: 3, title: 'On Governors', author: 'James Clerk Maxwell', date: '1868',
     edition: 'Original', why: 'The first paper of control theory',
     work: { corpus: true } }),
@@ -87,7 +89,9 @@ export const SCHOOL_CANON = freeze([
     edition: 'Original (Century Magazine)', why: 'Civilization as an energy system',
     work: { corpus: true } }),
   text({ id: 'mercury.philosophie-der-technik', degree: 3, title: 'Grundlinien einer Philosophie der Technik', author: 'Ernst Kapp', date: '1877',
-    edition: 'German, orig. only', rights: 'orig-only', why: 'Tools as projected organs' }),
+    edition: 'German, orig. only', rights: 'orig-only', why: 'Tools as projected organs',
+    note: 'A selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); chapters IV to XIII, from Gliedmaassen und Maasse to Der Staat, are left out; ten places where the damaged scan lost lines are marked […], and 79 unsettled readings [?]',
+    work: { corpus: true } }),
 
   // Moon: House of Mind
   text({ id: 'moon.life-after-death', degree: 1, title: 'The Little Book of Life after Death', author: 'Gustav Fechner', date: '1836',
@@ -106,7 +110,9 @@ export const SCHOOL_CANON = freeze([
     edition: 'A. A. Brill, 1913', why: 'The night mind gets a grammar',
     work: { corpus: true } }),
   text({ id: 'moon.psychological-types', degree: 2, title: 'Psychological Types', author: 'C. G. Jung', date: '1921',
-    edition: 'H. Godwin Baynes, 1923, US only', rights: 'us-only', why: 'Typology of consciousness' }),
+    edition: 'H. Godwin Baynes, 1923, US only', rights: 'us-only', why: 'Typology of consciousness',
+    note: 'Chapter X, General Description of the Types, is read now; the rest of Baynes\'s translation follows after a proofing pass of the 1924 printing',
+    work: { corpus: true } }),
   text({ id: 'moon.human-personality', degree: 3, title: 'Human Personality and Its Survival of Bodily Death', author: 'F. W. H. Myers', date: '1903',
     edition: 'Original', why: 'The subliminal self',
     work: { corpus: true } }),
@@ -133,7 +139,9 @@ export const SCHOOL_CANON = freeze([
     edition: 'Michael Sadler, 1914', why: 'Abstraction as inner necessity',
     work: { corpus: true }, bridges: ['moon'] }),
   text({ id: 'venus.futurist-manifesto', degree: 1, title: 'The Futurist Manifesto', author: 'F. T. Marinetti', date: '1909',
-    edition: 'Original (French)', rights: 'orig-only', why: 'Speed, machine, rupture; read against the grain' }),
+    edition: 'Original (French)', why: 'Speed, machine, rupture; read against the grain',
+    note: 'Read in Marinetti\'s French as he reprinted it in 1909, then in the anonymous English of 1912, which gives the eleven points and the closing but not the opening narrative',
+    work: { corpus: true } }),
   text({ id: 'venus.divine-comedy', degree: 2, title: 'Divine Comedy', author: 'Dante', date: 'c. 1320',
     edition: 'H. W. Longfellow, 1867', why: 'The great initiatory journey of the West', work: { id: 'the-divine-comedy' } }),
   text({ id: 'venus.faust', degree: 2, title: 'Faust', author: 'Goethe', date: '1808, 1832',
@@ -159,7 +167,9 @@ export const SCHOOL_CANON = freeze([
     edition: 'Original', why: 'Myth and ritual compared; read against the grain',
     work: { corpus: true } }),
   text({ id: 'mars.muqaddimah', degree: 3, title: 'Muqaddimah', author: 'Ibn Khaldun', date: '1377',
-    edition: 'de Slane, French, 1862 to 1868', rights: 'orig-only', why: 'Group feeling and the rise and fall of dynasties' }),
+    edition: 'de Slane, French, 1862 to 1868', rights: 'orig-only', why: 'Group feeling and the rise and fall of dynasties',
+    note: 'A selection from de Slane\'s volume I: the opening of Book I, the first preliminary discourse, and the second section as far as the chapter on esprit de corps and sovereignty; the rest of the Prolégomènes is left out',
+    work: { corpus: true } }),
   text({ id: 'mars.new-science', degree: 3, title: 'The New Science', author: 'Giambattista Vico', date: '1725',
     edition: 'Michelet, French abridgment, 1827', rights: 'orig-only', why: 'History as the cycles of human making',
     work: { corpus: true } }),
@@ -175,11 +185,14 @@ export const SCHOOL_CANON = freeze([
     edition: 'Original', why: 'A parable of dimensions',
     work: { corpus: true } }),
   text({ id: 'jupiter.art-forms-in-nature', degree: 1, title: 'Art Forms in Nature', author: 'Ernst Haeckel', date: '1904',
-    edition: 'Plates, language-free', why: 'Nature\'s symmetry as pattern library' }),
+    edition: 'Plates, language-free', why: 'Nature\'s symmetry as pattern library',
+    work: { corpus: true } }),
   text({ id: 'jupiter.metamorphosis-of-plants', degree: 2, title: 'The Metamorphosis of Plants', author: 'Goethe', date: '1790',
-    edition: 'Emily Cox, in Goethe\'s Botany, 1863', why: 'Morphology seen through participatory attention', bridges: ['venus'] }),
+    edition: 'Emily Cox, in Goethe\'s Botany, 1863', why: 'Morphology seen through participatory attention', bridges: ['venus'],
+    work: { corpus: true } }),
   text({ id: 'jupiter.cosmos', degree: 2, title: 'Cosmos', author: 'Alexander von Humboldt', date: '1845',
-    edition: 'E. C. Otté, 1849', why: 'The universe as one interconnected whole' }),
+    edition: 'E. C. Otté, 1849', why: 'The universe as one interconnected whole',
+    work: { corpus: true } }),
   text({ id: 'jupiter.growth-and-form', degree: 2, title: 'On Growth and Form', author: 'D\'Arcy Thompson', date: '1917',
     edition: 'Original', why: 'Mathematics of living shape; root of generative form',
     work: { corpus: true } }),
@@ -187,7 +200,9 @@ export const SCHOOL_CANON = freeze([
     edition: 'Robert Lawson, 1920', why: 'Space and time rewritten for a lay reader',
     work: { corpus: true } }),
   text({ id: 'jupiter.harmonices-mundi', degree: 3, title: 'Harmonices Mundi', author: 'Johannes Kepler', date: '1619',
-    edition: 'Latin, orig. only', rights: 'orig-only', why: 'The music of the spheres made quantitative' }),
+    edition: 'Latin, orig. only', rights: 'orig-only', why: 'The music of the spheres made quantitative',
+    note: 'A selection from Book V in Frisch\'s edition (1864): the title page, the Prooemium, chapters III, VII and VIII, and chapter X, the Epilogus; chapters I, II, IV to VI and IX, the Appendix, Kepler\'s notes and the tables are left out, and the Greek quotations are marked [Greek]',
+    work: { corpus: true } }),
 
   // Saturn: House of the Mysteries
   text({ id: 'saturn.tao-te-ching', degree: 1, title: 'Tao Te Ching', author: 'Laozi', date: 'c. 400 BCE',

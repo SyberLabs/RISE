@@ -36,7 +36,8 @@ export class Voice {
         voiceId = null,
         manifest = voicePackManifest,
         packUrl = null,
-        fetchImpl = globalThis.fetch?.bind(globalThis)
+        fetchImpl = globalThis.fetch?.bind(globalThis),
+        signal = null
     } = {}) {
         this.audioEngine = audioEngine;
         this.enabled = false;
@@ -70,6 +71,10 @@ export class Voice {
         this.onProgress = null;
         // Told once when a clip answers 402: the Plus voice is no longer paid for.
         this.onLapse = null;
+        this._signal = signal;
+        this._abort = () => { this._failed = true; this.destroy(); };
+        if (signal?.aborted) this._abort();
+        else signal?.addEventListener('abort', this._abort, { once: true });
     }
 
     get available() {
@@ -154,6 +159,7 @@ export class Voice {
         // suspended one decodes perfectly well — it only needs it to
         // exist, and init() is idempotent, so asking costs nothing.
         await this.audioEngine?.init?.();
+        if (this._signal?.aborted) return false;
 
         this._atoms = atoms;
         this._readerIndex = fromIndex;
@@ -173,6 +179,7 @@ export class Voice {
         const entries = await Promise.all(
             targets.map(index => this._ensureIndex(index))
         );
+        if (this._signal?.aborted) return false;
 
         // READINESS IS THE CLIP ABOUT TO BE SPOKEN, NOT ALL EIGHT OF THEM.
         //
@@ -248,6 +255,7 @@ export class Voice {
         this._queue = Promise.allSettled(
             targets.map(index => this._ensureIndex(index))
         );
+        if (this._signal?.aborted) return false;
         this._evictBefore(fromIndex - 2);
         this._abortBefore(fromIndex - 2);
     }
@@ -315,10 +323,12 @@ export class Voice {
     }
 
     destroy() {
+        this._signal?.removeEventListener('abort', this._abort);
         this.stop();
         for (const controller of this._controllers.values()) controller.abort();
         this._controllers.clear();
         this._loads.clear();
+        this._shared.clear();
         this._cache.clear();
         this._missing.clear();
         this._atoms = null;
@@ -384,6 +394,7 @@ export class Voice {
                     blob = new Blob([bytes], { type: mimeType });
                     audioBuffer = await this._decode(bytes);
                 }
+                if (this._signal?.aborted) return null;
                 const sampleRate = audioBuffer?.sampleRate
                     || Number(manifestEntry.sampleRate)
                     || 24000;

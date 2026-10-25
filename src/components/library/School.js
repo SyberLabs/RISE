@@ -108,21 +108,29 @@ function focusKey(focus) {
   return focus.kind === 'path' ? `path-${focus.id}` : focus.id;
 }
 
-/** A corpus work states its life+70 status; any other record its plan rights. */
+/**
+ * A corpus work states its life+70 status, and the licence of a translation
+ * RISE made; any other record its plan rights.
+ */
 function rightsLine(record) {
-  const life70 = record.work?.corpus ? schoolWorkById(record.id)?.rights.life70 : null;
+  const rights = record.work?.corpus ? schoolWorkById(record.id)?.rights : null;
+  const life70 = rights?.life70;
   if (!life70) return RIGHTS[record.rights];
-  if (life70 === 'pd') return 'Public domain';
+  if (life70 === 'pd') return rights.licence ? `Public domain · ${rights.licence}` : 'Public domain';
   if (life70 === 'unknown') return 'Public domain in the US; translator’s dates unknown';
   return `Public domain in the US; in copyright in life+70 countries until ${life70.slice('until:'.length)}`;
 }
 
-const LANGUAGES = Object.freeze({ la: 'Latin' });
+const LANGUAGES = Object.freeze({ la: 'Latin', fr: 'French', de: 'German' });
 
-/** A corpus work not in English says so after its state; an English one says nothing more. */
+/**
+ * A corpus work not in English says so after its state, as does one served in
+ * RISE's own translation; an English one says nothing more.
+ */
 function languageNote(record) {
-  const code = record.work?.corpus ? schoolWorkById(record.id)?.language : null;
-  return code ? ` · Original language · ${LANGUAGES[code] ?? code}` : '';
+  const work = record.work?.corpus ? schoolWorkById(record.id) : null;
+  if (work?.translation) return ` · ${work.translation}`;
+  return work?.language ? ` · Original language · ${LANGUAGES[work.language] ?? work.language}` : '';
 }
 
 function freeEditionUrl(record) {
@@ -435,6 +443,8 @@ export class School {
         <div><dt>State</dt><dd>${escapeHtml(this.stateWord(record) + languageNote(record))}</dd></div>
       </dl>
       ${record.note ? `<p class="school-note">${escapeHtml(record.note)}</p>` : ''}
+      ${record.work?.corpus && schoolWorkById(record.id)?.imagery
+        ? '<p class="school-note">A picture work: each unit is one plate; the plate is the reading\'s field.</p>' : ''}
       ${bridges.length ? `<p class="school-links"><span class="school-meta">Crosses</span>${bridges.map(other => `
         <button type="button" class="school-link" data-focus="${other.id}">${other.glyph} ${escapeHtml(other.name)}</button>`).join('')}</p>` : ''}
       ${paths.length ? `<p class="school-links"><span class="school-meta">On</span>${paths.map(path => `

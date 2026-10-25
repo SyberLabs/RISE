@@ -285,6 +285,11 @@ describe('scheduled field authority', () => {
 
     it('routes one cue to the field lifecycle and the generic cortex', () => {
         const chamber = Object.create(Chamber.prototype);
+        chamber.container = document.createElement('div');
+        chamber.container.innerHTML = '<div class="chamber-image-stream"></div>';
+        chamber.imageStreamGranted = true;
+        const destroyStream = vi.fn();
+        chamber._imageStream = { destroy: destroyStream };
         chamber._visualFieldDirector = { applyCue: vi.fn() };
         const applyCortex = vi.spyOn(visualCortex, 'applyCue').mockImplementation(() => {});
         const cue = {
@@ -294,6 +299,10 @@ describe('scheduled field authority', () => {
 
         chamber.applyScheduledVisualCue(cue, { cueId: 'passage-field' });
 
+        expect(destroyStream).toHaveBeenCalledOnce();
+        expect(chamber._imageStream).toBeNull();
+        expect(chamber.imageStreamGranted).toBe(false);
+        expect(chamber.container.querySelector('.chamber-image-stream')).toBeNull();
         expect(chamber._visualFieldDirector.applyCue).toHaveBeenCalledWith(
             cue, { transitionMs: 320 });
         expect(applyCortex).toHaveBeenCalledWith(cue, {
@@ -304,6 +313,7 @@ describe('scheduled field authority', () => {
 
     it('adapts the legacy focal cue into the same dynamic field lifecycle', () => {
         const chamber = Object.create(Chamber.prototype);
+        chamber.container = document.createElement('div');
         chamber._visualFieldDirector = { applyCue: vi.fn() };
         vi.spyOn(visualCortex, 'applyCue').mockImplementation(() => {});
 

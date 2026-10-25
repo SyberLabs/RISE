@@ -164,25 +164,26 @@ flowchart LR
     app["app<br/>composition root<br/>25 modules"]
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
     components["components<br/>routed views<br/>58 modules"]
-    content["content<br/>texts, imagery, journeys<br/>295 modules"]
-    core["core<br/>session, player, router<br/>185 modules"]
+    content["content<br/>texts, imagery, journeys<br/>306 modules"]
+    core["core<br/>session, player, router<br/>187 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>76 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     scenes["scenes<br/>engine manifests, cues; scene runtime<br/>9 modules"]
-    sources["sources<br/>text and visual providers<br/>13 modules"]
+    sources["sources<br/>text and visual providers<br/>14 modules"]
     vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
-    visuals["visuals<br/>procedural generation<br/>60 modules"]
+    visuals["visuals<br/>procedural generation<br/>61 modules"]
     wormhole["wormhole<br/>7 modules"]
 
     affect --> |7| core
     app --> |2| audio
     app -.-> |8 lazy| components
-    app --> |6| content
+    app --> |7| content
     app --> |60| core
     app -.-> |1 lazy| live
     app -.-> |1 lazy| sources
     app -.-> |1 lazy| visuals
+    audio --> |1| app
     audio --> |1| content
     audio --> |8| core
     components --> |3| affect
@@ -199,6 +200,7 @@ flowchart LR
     content --> |16| core
     content --> |10| sources
     content --> |1| visuals
+    core --> |1| app
     core --> |14| audio
     core --> |16| content
     core --> |13| scenes
@@ -216,7 +218,7 @@ flowchart LR
     scenes --> |1| visuals
     sources --> |1| content
     visuals -.-> |4 lazy| content
-    visuals --> |25| core
+    visuals --> |29| core
     visuals --> |4| sources
     wormhole --> |2| app
     wormhole --> |2| core

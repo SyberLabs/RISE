@@ -2,6 +2,7 @@ import { PersonalSwells } from './personal-swells.js';
 import { READING_LIMITS } from './reading-limits.js';
 import { SourceCache } from '../sources/cache.js';
 import { PlusVoices } from '../audio/plus-voice-store.js';
+import { invalidatePlusAudio } from '../app/plus.js';
 import { WorkshopMedia, blobToDataUrl } from './workshop-media.js';
 import { endVisualInterlocutionSession } from './visual-safety.js';
 import { ERASABLE_LOCAL_KEY_PREFIXES, USER_DATA_KEYS } from './user-data-keys.js';
@@ -187,6 +188,7 @@ export async function exportUserData(settings = null, options = {}) {
 }
 
 export async function clearUserData() {
+    invalidatePlusAudio();
     try { sessionStorage.removeItem('rise.voice-demo.draft'); sessionStorage.removeItem('rise.plus.continuation'); } catch { /* Continue clearing accessible stores. */ }
     for (const key of Object.values(USER_DATA_KEYS)) localStorage.removeItem(key);
     for (let index = localStorage.length - 1; index >= 0; index -= 1) {
@@ -197,9 +199,8 @@ export async function clearUserData() {
     }
     endVisualInterlocutionSession();
 
-    // Plus voicings are erased and, like source caches, never exported: each
-    // is the vendor's audio for text the export already carries, and the
-    // MP3s would spend the JSON export's binary budget on a copy.
+    // Remove legacy browser voicings. Account audio has its own explicit
+    // deletion action in Settings and is never part of the browser export.
     const results = await Promise.allSettled([
         PersonalSwells.clear(),
         SourceCache.clear(),

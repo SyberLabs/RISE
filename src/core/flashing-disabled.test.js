@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import {
     FLASHING_ENABLED,
+    IMAGE_STREAM_ENABLED,
     SAFE_PRESENTATION,
     isContinuousPresentation,
     normalizePresentation,
@@ -37,6 +38,7 @@ const HOSTILE_INPUTS = [
     'FULL-FRAME',
     ' full-frame ',
     'flash',
+    'stream',
     'strobe',
     '',
     null,
@@ -183,5 +185,50 @@ describe('flashing is disabled in production', () => {
         expect(factory, 'the deferred/spatial gate stopped consulting the kill '
             + 'switch, so a page-mode launch would warn about an impossible flash')
             .toContain('const directFlashes = FLASHING_ENABLED');
+    });
+});
+
+/**
+ * THE IMAGE STREAM HAS ITS OWN FLAG, AND WHILE IT IS OFF NO READER CAN REACH IT.
+ *
+ * The stream (IMAGE-STREAM-SPEC) is not the event economy, so it does not
+ * come back with `FLASHING_ENABLED`. It is registered as a surface so the
+ * normaliser knows its name, and it counts as flashing so every gate that
+ * asks raises its notice. What changes when its flag flips is stated in
+ * image-stream-enabled.test.js.
+ */
+describe('the image stream is off in production', () => {
+    it('is off — every assertion below is conditional on this', () => {
+        expect(IMAGE_STREAM_ENABLED, 'the image stream has been switched on; read '
+            + 'image-stream-enabled.test.js before shipping it').toBe(false);
+    });
+
+    it('counts the stream as a surface that flashes, so every gate that asks raises its notice', () => {
+        expect(presentationFlashes('stream')).toBe(true);
+        expect(isContinuousPresentation('stream')).toBe(false);
+    });
+
+    it('refuses the stream by name, and resolves it to Gallery', () => {
+        expect(normalizePresentation('stream')).toBe(SAFE_PRESENTATION);
+    });
+
+    it('refuses the stream even if the event economy were switched back on', async () => {
+        const { resolvePresentation } = await import('./visual-presence.js');
+        expect(resolvePresentation('stream', { flashing: true, stream: IMAGE_STREAM_ENABLED }))
+            .toBe(SAFE_PRESENTATION);
+    });
+
+    it('compiles a saved stream composition down to Gallery', () => {
+        const compiled = sessionWith('stream');
+        expect(compiled.visualConfig.interlocution.presentation).toBe(SAFE_PRESENTATION);
+    });
+
+    it('offers the author no control that would select it', () => {
+        const workshop = readFileSync(join(ROOT, 'src/components/make/Workshop.js'), 'utf8');
+        const options = workshop.slice(
+            workshop.indexOf('const presentations = '),
+            workshop.indexOf('controls = `<label class="input-label">Presentation')
+        );
+        expect(options).not.toContain("'stream'");
     });
 });

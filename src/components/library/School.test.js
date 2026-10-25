@@ -14,7 +14,10 @@ vi.mock('../../core/content-store.js', () => ({
       school: [
         { id: 'sun.zarathustra', shelved: true },
         { id: 'mercury.rur', shelved: true },
-        { id: 'gate.oration', shelved: true }
+        { id: 'gate.oration', shelved: true },
+        { id: 'mars.muqaddimah', shelved: true },
+        { id: 'mercury.philosophie-der-technik', shelved: true },
+        { id: 'jupiter.art-forms-in-nature', shelved: true }
       ]
     }))
   },
@@ -210,26 +213,66 @@ describe('the action a text offers', () => {
   });
 
   it('gives an original-language-only text no outward link', async () => {
-    mount({ initialFocus: 'mercury.philosophie-der-technik' });
+    // Vico's French is not in this test's manifest, so the record stands as not carried.
+    mount({ initialFocus: 'mars.new-science' });
     await settle();
     expect(lectern().querySelector('.school-action a')).toBeNull();
     expect(lectern().textContent).toContain('Original language only');
-    expect(lectern().textContent).toContain('German, orig. only');
+    expect(lectern().textContent).toContain('Michelet, French abridgment, 1827');
   });
 
-  it('reads the Gate in its Latin, and says so', async () => {
+  it('reads the Gate in English, the Latin after it, and names no original language', async () => {
     mount({ initialFocus: 'gate.oration' });
     await settle();
     const facts = lectern().querySelector('.school-facts').textContent;
-    expect(facts).toContain('Latin, 1486; Pico Project numbering');
-    expect(facts).toContain('Original language · Latin');
+    expect(facts).not.toContain('Original language');
+    expect(facts).toContain('English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, not yet read against it by a person');
+    expect(facts).toContain('Latin: the Pico Project text, 1486.');
+    expect(facts).toContain('Readable in RISE · RISE translation, English draft, Latin beside it');
+    expect(facts).toContain('Public domain · English translation CC BY 4.0, RISE 2026');
+    expect(lectern().querySelector('.school-note').textContent)
+      .toBe('Read in RISE\'s English draft, with the Latin after it; the English awaits a reading against the Latin');
     expect(lectern().querySelector('.school-action button[data-read="gate.oration"]')).not.toBeNull();
+  });
+
+  it('says at the Gate itself that its English is RISE’s draft, the Latin beside it', async () => {
+    mount();
+    await settle();
+    expect(lectern().querySelector('.school-gate-text .school-state').textContent)
+      .toContain('Readable in RISE · RISE translation, English draft, Latin beside it');
+  });
+
+  it('reads Ibn Khaldun in de Slane’s French, and says so', async () => {
+    mount({ initialFocus: 'mars.muqaddimah' });
+    await settle();
+    const facts = lectern().querySelector('.school-facts').textContent;
+    expect(facts).toContain('Original language · French');
+    expect(lectern().querySelector('.school-action button[data-read="mars.muqaddimah"]')).not.toBeNull();
+  });
+
+  it('reads Kapp in his German, and says so', async () => {
+    mount({ initialFocus: 'mercury.philosophie-der-technik' });
+    await settle();
+    expect(lectern().querySelector('.school-facts').textContent).toContain('Original language · German');
+    expect(lectern().querySelector('.school-action button[data-read="mercury.philosophie-der-technik"]')).not.toBeNull();
   });
 
   it('names no language for a corpus text in English', async () => {
     mount({ initialFocus: 'sun.zarathustra' });
     await settle();
     expect(lectern().textContent).not.toContain('Original language');
+    expect(lectern().textContent).not.toContain('A picture work');
+  });
+
+  it('says a picture work is read through its plates', async () => {
+    mount({ initialFocus: 'jupiter.art-forms-in-nature' });
+    await settle();
+    const facts = lectern().querySelector('.school-facts').textContent;
+    expect(facts).toContain('Bibliographisches Institut, Leipzig and Vienna, 1904; 100 plates; captions from Wikimedia Commons');
+    expect(facts).toContain('Original language · German');
+    expect(lectern().querySelector('.school-note').textContent)
+      .toBe('A picture work: each unit is one plate; the plate is the reading\'s field.');
+    expect(lectern().querySelector('.school-action button[data-read="jupiter.art-forms-in-nature"]')).not.toBeNull();
   });
 });
 

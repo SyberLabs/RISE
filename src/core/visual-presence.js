@@ -12,14 +12,16 @@ export const VISUAL_PRESENCE_DEFAULT_MS = 200;
 // opaque overlay; 'behind-stream' flashes beneath the reading; 'continuous'
 // (Gallery) is a persistent crossfading field behind the reading
 // (CONTINUOUS-FIELD-SPEC). 'continuous-word' is the same field projected
-// into Word ink — one clock, two mounts. Shared here so persisted
+// into Word ink — one clock, two mounts. 'stream' is the Image Stream
+// (IMAGE-STREAM-SPEC), behind its own flag below. Shared here so persisted
 // settings, the session compiler, the panel, and playback cannot drift
 // apart.
 const PRESENTATION_SURFACES = Object.freeze([
     'full-frame',
     'behind-stream',
     'continuous',
-    'continuous-word'
+    'continuous-word',
+    'stream'
 ]);
 
 /**
@@ -41,6 +43,22 @@ const PRESENTATION_SURFACES = Object.freeze([
  * when somebody does.
  */
 export const FLASHING_ENABLED = false;
+
+/**
+ * THE BUILD FLAG FOR THE IMAGE STREAM. Separate from FLASHING_ENABLED.
+ *
+ * It gates the surface named 'stream': rapid serial images at the fixation
+ * point (IMAGE-STREAM-SPEC). The stream is not the event economy, so turning
+ * flashing back on does not bring it, and turning this on does not bring the
+ * event economy back.
+ *
+ * While this is false, no reader can reach the stream: `normalizePresentation`
+ * resolves 'stream' to Gallery whatever else is switched on, the launch gate
+ * never grants it, and the Chamber never loads or constructs its presenter.
+ * `flashing-disabled.test.js` proves the off state, and
+ * `image-stream-enabled.test.js` states what changes when this flips.
+ */
+export const IMAGE_STREAM_ENABLED = false;
 
 /** What a flashing surface becomes. Gallery never flashes and never blacks. */
 export const SAFE_PRESENTATION = 'continuous';
@@ -68,10 +86,24 @@ export function presentationFlashes(value) {
  * through here.
  */
 export function normalizePresentation(value) {
+    return resolvePresentation(value, { flashing: FLASHING_ENABLED, stream: IMAGE_STREAM_ENABLED });
+}
+
+/**
+ * `normalizePresentation` with its two switches as arguments, so a test can
+ * state what each one does without a build that flips it. Production calls
+ * `normalizePresentation`; image-stream-enabled.test.js fails if any other
+ * module calls this, because a caller passing `stream: true` would reach the
+ * stream with its flag off.
+ */
+export function resolvePresentation(value, { flashing, stream }) {
     const known = PRESENTATION_SURFACES.includes(value) ? value : SAFE_PRESENTATION;
+    // The stream answers only to its own flag: the event economy's switch
+    // must never be what lets it through.
+    if (known === 'stream') return stream === true ? known : SAFE_PRESENTATION;
     // The refusal is here rather than at each caller because this is the one
     // door every stored, imported and authored value already comes through.
-    return FLASHING_ENABLED || !presentationFlashes(known) ? known : SAFE_PRESENTATION;
+    return flashing === true || !presentationFlashes(known) ? known : SAFE_PRESENTATION;
 }
 
 export function isContinuousPresentation(value) {
@@ -290,6 +322,59 @@ export function galleryWallAt(timeMs, count, options = {}) {
         mix: into >= fade ? 1 : galleryEase(into / fade),
         dwellMs,
         crossfadeMs
+    });
+}
+
+// The Image Stream (IMAGE-STREAM-SPEC): rapid serial presentation of images,
+// frame replacing frame. This is its clock; its surface, 'stream', waits
+// behind IMAGE_STREAM_ENABLED. Rate is in
+// images per second, and every frame is held for a whole number of display
+// refreshes so no image is dropped or doubled by a timer landing between
+// refreshes. Safety is the flash meter's job, not the rate's.
+export const STREAM_RATE_MIN_HZ = 4;
+export const STREAM_RATE_DEFAULT_HZ = 8;
+export const STREAM_RATE_MAX_HZ = 12;
+const STREAM_REFRESH_DEFAULT_HZ = 60;
+
+export function normalizeStreamRate(value) {
+    const parsed = Number(value);
+    const hz = Number.isFinite(parsed) ? parsed : STREAM_RATE_DEFAULT_HZ;
+    return Math.max(STREAM_RATE_MIN_HZ, Math.min(STREAM_RATE_MAX_HZ, hz));
+}
+
+/**
+ * The stream at explicit presentation time: which of `count` frames is on
+ * screen, and for how long each is held. The held time never makes the stream
+ * faster than the rate asked for, so a 60 Hz display shows 8 Hz as 7.5 Hz.
+ *
+ * Time is read as the nearest whole refresh. A frame boundary in time lands
+ * exactly on a refresh, where a timestamp a fraction of a millisecond early
+ * or late would end one frame a refresh short and the next a refresh long.
+ */
+export function streamFrameAt(timeMs, count, options = {}) {
+    const refreshHz = streamRefreshHz(options.refreshHz);
+    const refreshes = Math.round(Math.max(0, Number(timeMs) || 0) * refreshHz / 1000);
+    return streamFrameAtRefresh(refreshes, count, { ...options, refreshHz });
+}
+
+function streamRefreshHz(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : STREAM_REFRESH_DEFAULT_HZ;
+}
+
+/** The stream after a counted number of display refreshes: every frame held the same whole number of them. */
+export function streamFrameAtRefresh(refreshes, count, options = {}) {
+    const hz = normalizeStreamRate(options.hz);
+    const refreshHz = streamRefreshHz(options.refreshHz);
+    const refreshesPerFrame = Math.max(1, Math.ceil(refreshHz / hz - 1e-9));
+    const frameMs = refreshesPerFrame * 1000 / refreshHz;
+    const n = Math.max(0, count | 0);
+    const step = Math.floor(Math.max(0, Math.floor(Number(refreshes) || 0)) / refreshesPerFrame);
+    return Object.freeze({
+        index: n === 0 ? null : step % n,
+        cycle: n === 0 ? 0 : Math.floor(step / n),
+        frameMs,
+        refreshesPerFrame
     });
 }
 

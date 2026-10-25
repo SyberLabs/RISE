@@ -86,6 +86,7 @@ export const ICONS = Object.freeze({
 import { livingTextAppearance, ensureTextContrast, scoreAtoms, planInterlocution } from '../../core/conductor.js';
 import { cueForAtom, VisualScheduleController } from '../../core/visual-scheduler.js';
 import {
+  IMAGE_STREAM_ENABLED,
   authoredVisualTransition,
   isContinuousPresentation
 } from '../../core/visual-presence.js';
@@ -232,6 +233,9 @@ export class Chamber {
     this.onExit = options.onExit || (() => { });
     this.onEnterStream = typeof options.onEnterStream === 'function'
       ? options.onEnterStream : async () => true;
+    // Granted by the launch gate only after an accepted photosensitivity
+    // notice, and read only while IMAGE_STREAM_ENABLED is on.
+    this.imageStreamGranted = options.imageStream === true;
     this.audioEngine = options.audioEngine || null;
     this.getSettings = options.getSettings || (() => ({}));
     this.onSettingsChange = options.onSettingsChange || (() => {});
@@ -2076,6 +2080,8 @@ export class Chamber {
   chooseLook(id) {
     const look = LOOKS.find(entry => entry.id === id);
     if (!look || this.pageModeActive || !this._lookOffered(look) || this._lookNeedsReopen(look)) return false;
+    // The notice was accepted for the reading as it opened, not for a look.
+    this._revokeImageStream();
     const previousShelf = this.session.visualConfig?.interlocution?.procedural || [];
     // A look never flashes: the flash economy stops for good, before its
     // switch can write the reading's visual mode back.
@@ -2539,7 +2545,9 @@ export class Chamber {
     );
     this._visualSchedule = this._directedSchedule;
     // The reading's own Gallery engine must not flash up before the first
-    // directed cue arrives with the first atom.
+    // directed cue arrives with the first atom. The image stream runs only
+    // over the Gallery, so following the text ends it.
+    this._revokeImageStream();
     visualCortex.applyCue({ kind: 'still' }, { cueId: 'passage-direction' });
     void this._startVisualScoring();
     return true;
@@ -2666,6 +2674,8 @@ export class Chamber {
 
   /** One scheduled cue owns the complete visual presentation transition. */
   applyScheduledVisualCue(cue, meta = {}) {
+    // The stream runs only over the Gallery; anything else on screen ends it.
+    if (!['sourced', 'procedural'].includes(cue?.kind)) this._revokeImageStream();
     // A generated scene that has failed once is not run again in this Chamber; its passages draw the fallback.
     if (cue?.kind === 'scene' && this._failedScenes?.has(cue.sceneId)) cue = this._sceneFallbackCue();
     if (this._swapAtShut) {
@@ -2756,6 +2766,60 @@ export class Chamber {
     console.log('[Chamber] Continuous Field (Gallery) host mounted');
     this.applyChamberMask();
     this.syncMaskGroundPlate();
+    if (IMAGE_STREAM_ENABLED && this.imageStreamGranted) {
+      // A presenter chunk that cannot load leaves the Gallery as it is.
+      this._mountImageStream(field).catch(error => console.warn('[Chamber] The image stream could not start:', error));
+    }
+  }
+
+  /**
+   * The Image Stream (IMAGE-STREAM-SPEC §5): a 140 px aperture at the centre
+   * of the stage, between the Gallery and the words, drawing frames decoded
+   * from the Gallery's own pool. It plays only while the reading plays. When
+   * it stops itself (its meter, a stall, a setting) it is removed and the
+   * Gallery underneath is what remains.
+   */
+  async _mountImageStream(field) {
+    const { decodeStreamFrames, mountImageStream } = await import('../../visuals/image-stream.js');
+    if (!this._imageStreamMayMount()) return;
+    const frames = await decodeStreamFrames(visualCortex.imageStreamFrameUrls());
+    if (!this._imageStreamMayMount()) return;
+    const host = document.createElement('div');
+    host.className = 'chamber-image-stream';
+    Object.assign(host.style, { position: 'absolute', inset: '0', pointerEvents: 'none' });
+    this._insertBehindReading(field, host);
+    let stream = null;
+    try {
+      // A stream that stops itself (its meter, a stall, a setting) is not
+      // granted again for this reading.
+      stream = mountImageStream(host, { frames, onFallback: () => this._revokeImageStream() });
+    } finally {
+      if (!stream) host.remove();
+    }
+    if (!stream) return;
+    this._imageStream = stream;
+    if (this.player?.state === 'playing') stream.resume();
+  }
+
+  /** Re-asked after every await: the reading may have closed, or its visuals been turned off or changed. */
+  _imageStreamMayMount() {
+    return !this._destroyed && this.imageStreamGranted && !this._visualsOff();
+  }
+
+  /**
+   * Visuals turned off or changed: the stream ends for this reading. Only a
+   * new launch, which raises the notice again, can grant it again.
+   */
+  _revokeImageStream() {
+    this.imageStreamGranted = false;
+    this._dropImageStream();
+  }
+
+  _dropImageStream() {
+    const stream = this._imageStream;
+    this._imageStream = null;
+    stream?.destroy();
+    this.container.querySelector('.chamber-image-stream')?.remove();
   }
 
   /**
@@ -5626,6 +5690,8 @@ export class Chamber {
 
     if (state === 'paused') this._visualFieldDirector?.pause();
     else if (state === 'playing') this._visualFieldDirector?.resume();
+    if (state === 'playing') this._imageStream?.resume();
+    else this._imageStream?.pause();
     this._syncScoringActivity();
 
     // Authored imagery is bound to the reading clock: pause holds the exact
@@ -5842,6 +5908,7 @@ export class Chamber {
     // Chamber DOM (and the host with it) is torn down.
     visualCortex.setContinuousFieldHost(null);
     visualCortex.setSequenceVideoHost(null);
+    this._dropImageStream();
     this.player = null;
   }
 }

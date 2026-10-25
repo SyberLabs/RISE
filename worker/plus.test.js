@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 /**
  * The Plus routes (worker/plus.mjs), with Stripe and the vendor behind a stubbed fetch.
  *
@@ -15,6 +16,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import worker from './index.mjs';
+import { audioStorage } from './plus-test-storage.mjs';
 import { PLUS_INTERNALS, PlusMeter, STANDING_TTL_S, STRIPE_VERSION, SUB_RATE_PER_MINUTE, VOICE_ALLOWANCE, isPlusRoute } from './plus.mjs';
 
 const SITE = 'https://rise.example';
@@ -44,7 +46,7 @@ function meterNamespace() {
   const instance = name => {
     if (!instances.has(name)) {
       const map = new Map();
-      instances.set(name, new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); }, delete: key => map.delete(key) } } }));
+      instances.set(name, new PlusMeter({ storage: audioStorage(map) }));
     }
     return instances.get(name);
   };
@@ -105,7 +107,7 @@ function vendorAnswer(text) {
  * Stripe and the vendor behind one fetch. `vendor` is 'echo' (a faithful answer),
  * 'mismatch' (billed, but says something else), 'garbage' (billed, not JSON), or a status.
  */
-function world({ sub = subscription(), session = { payment_status: 'paid', subscription: sub }, vendor = 'echo', stripeDown = false, barrier = 0, cancelDown = false } = {}) {
+function world({ sub = subscription(), session = { payment_status: 'paid', subscription: sub }, vendor = 'echo', stripeDown = false, barrier = 0, cancelDown = false, customers = {} } = {}) {
   const state = { vendorCalls: 0, vendorChars: 0, stripeGets: 0, stripeWrites: 0, cancels: [], cancelled: new Set() };
   // barrier: the subscription GET answers only once `barrier` requests wait on it, then all at once,
   // as Stripe's real latency lines parallel requests up. Without it WebCrypto's callbacks serialize
@@ -154,7 +156,7 @@ function world({ sub = subscription(), session = { payment_status: 'paid', subsc
         await held();
         // Each subscription id answers as itself, so several subscribers can share one Stripe.
         const id = decodeURIComponent(u.pathname.split('/').pop());
-        return sub ? Response.json({ ...sub, id, latest_invoice: `in_${id}`, ...(state.cancelled.has(id) ? { status: 'canceled' } : {}) }) : new Response('', { status: 404 });
+        return sub ? Response.json({ ...sub, id, customer: customers[id] ?? sub.customer, latest_invoice: `in_${id}`, ...(state.cancelled.has(id) ? { status: 'canceled' } : {}) }) : new Response('', { status: 404 });
       }
     }
     return new Response('', { status: 500 });
@@ -170,8 +172,14 @@ const POST_HEADERS = { Origin: SITE, 'Content-Type': 'application/json', 'CF-Con
 const claimRequest = (body = { session_id: 'cs_test_1' }, headers = {}) => new Request(`${SITE}/api/plus/claim`, {
   method: 'POST', headers: { ...POST_HEADERS, ...headers }, body: JSON.stringify(body)
 });
+const scopeForCookie = cookie => {
+  try {
+    const claim = JSON.parse(Buffer.from(cookie.split(';')[0].split('=')[1].split('.')[1], 'base64url').toString());
+    return createHash('sha256').update(JSON.stringify(['customer', claim.l, claim.c])).digest('hex');
+  } catch { return undefined; }
+};
 const voiceRequest = (cookie, atoms, headers = {}, extra = {}) => new Request(`${SITE}/api/plus/voice`, {
-  method: 'POST', headers: { ...POST_HEADERS, ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: JSON.stringify({ atoms, ...extra })
+  method: 'POST', headers: { ...POST_HEADERS, ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: JSON.stringify({ atoms, audioScope: scopeForCookie(cookie), ...extra })
 });
 const vendorVoiceOf = call => decodeURIComponent(new URL(call[0]).pathname.split('/')[3]);
 const setCookieOf = response => response.headers.getSetCookie()[0] ?? null;
@@ -320,7 +328,7 @@ describe('voice', () => {
   const ATOMS = ['The sun had not yet risen.', 'The sea was indistinguishable from the sky,', 'except that the sea was slightly creased.'];
   const TEXT = ATOMS.join(' ');
 
-  it('answers the contract: the pack, the audio and the allowance, and keeps nothing', async () => {
+  it('answers the contract with the pack, audio, allowance and private cache metadata', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
     const { fetcher } = world();
@@ -329,7 +337,7 @@ describe('voice', () => {
     expect(response.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     const body = await response.json();
-    expect(Object.keys(body).sort()).toEqual(['allowance', 'audio', 'pack']);
+    expect(Object.keys(body).sort()).toEqual(['allowance', 'audio', 'cache', 'pack']);
     expect(body.audio).toBe(btoa('mp3-bytes'));
     expect(body.allowance).toEqual({ used: TEXT.length, limit: VOICE_ALLOWANCE, periodEnd: EXP });
     const { pack } = body;
@@ -356,7 +364,7 @@ describe('voice', () => {
     expect(claimOf(setCookieOf(response))).toEqual({ c: 'cus_1', s: 'sub_1', exp: EXP, l: false, iat: NOW });
   });
 
-  it('voices and meters the same text again: the server dedupes nothing', async () => {
+  it('replays the same text without a second vendor request or allowance debit', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
     const { state } = world();
@@ -364,8 +372,8 @@ describe('voice', () => {
     await worker.fetch(voiceRequest(cookie, ATOMS), env);
     const again = await worker.fetch(voiceRequest(cookie, ATOMS), env);
     expect(again.status).toBe(200);
-    expect((await again.json()).allowance.used).toBe(2 * TEXT.length);
-    expect(state.vendorCalls).toBe(2);
+    expect((await again.json()).allowance.used).toBe(TEXT.length);
+    expect(state.vendorCalls).toBe(1);
   });
 
   it('refuses past the allowance before asking the vendor', async () => {
@@ -431,7 +439,7 @@ describe('voice', () => {
     const { error } = await response.json();
     expect(error.code).toBe('PLUS_UNAVAILABLE');
     expect(error.message).toContain(name);
-    expect(fetcher).not.toHaveBeenCalled();
+    expect(fetcher.mock.calls.filter(([url]) => String(url).includes('elevenlabs'))).toHaveLength(0);
   });
 
   it('retains the reservation after a vendor request with an unsuccessful answer', async () => {
@@ -536,7 +544,8 @@ describe('attacks from the security review, now refused', () => {
     const { state } = world({ barrier: 12 });
     const cookie = await cookieFor(env);
     const results = await Promise.all(Array.from({ length: 12 }, (_, i) => worker.fetch(voiceRequest(cookie, [textOf(10_000, i)]), env)));
-    expect(results.filter(r => r.status === 200)).toHaveLength(10);
+    expect(results.filter(r => r.status === 200)).toHaveLength(4);
+    expect(await Promise.all(results.filter(r => r.status !== 200).map(codeOf))).toEqual(Array(8).fill('PLUS_AUDIO_FULL'));
     expect(state.vendorChars).toBeLessThanOrEqual(VOICE_ALLOWANCE);
   });
 
@@ -625,8 +634,8 @@ describe('attacks from the security review, now refused', () => {
     expect(await codeOf(first)).toBe('VOICE_REFUSED');
     for (let i = 0; i < 4; i++) {
       const again = await worker.fetch(voiceRequest(cookie, [textOf(10_000, 1)]), env);
-      expect(again.status).toBe(402);
-      expect(await codeOf(again)).toBe('PLUS_ALLOWANCE');
+      expect(again.status).toBe(409);
+      expect(await codeOf(again)).toBe('PLUS_AUDIO_UNAVAILABLE');
     }
     expect(state.vendorChars).toBe(10_000);
     expect(await usedIn(env, 'sub:sub_1', START)).toBe(VOICE_ALLOWANCE);
@@ -645,7 +654,7 @@ describe('attacks from the security review, now refused', () => {
   it('M2: there is no shared cache: no oracle on another reader\'s text, and nothing to read back', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
-    const { state } = world();
+    const { state } = world({ customers: { sub_v: 'cus_victim', sub_a: 'cus_attacker' } });
     const secret = ['Dear Dr. Lee, my biopsy results came back positive.'];
     const victim = await worker.fetch(voiceRequest(await cookieFor(env, { c: 'cus_victim', s: 'sub_v' }), secret), env);
     const { pack: { voiced: { hash } } } = await victim.json();
@@ -752,7 +761,7 @@ describe('the daily cap across every subscriber', () => {
 describe('PlusMeter', () => {
   const meter = () => {
     const map = new Map();
-    return new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); }, delete: key => map.delete(key) } } });
+    return new PlusMeter({ storage: audioStorage(map) });
   };
   const call = async (m, op, body) => (await m.fetch(new Request(`https://plus-meter/${op}`, { method: 'POST', body: JSON.stringify(body) }))).json();
 
@@ -768,7 +777,7 @@ describe('PlusMeter', () => {
 
   it('holds one period and one count, never a history, and an older period cannot roll it back', async () => {
     const map = new Map();
-    const m = new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); } } } });
+    const m = new PlusMeter({ storage: audioStorage(map) });
     for (const period of [100, 200, 300]) await call(m, 'reserve', { period, n: 10, limit: 100 });
     expect([...map.keys()].sort()).toEqual(['since', 'used']);
     expect([map.get('since'), map.get('used')]).toEqual([300, 10]);
@@ -872,7 +881,7 @@ describe('choosing a voice', () => {
 const voiceAt = (env, cookie, n, ip = '192.0.2.1', seed = n) => worker.fetch(voiceRequest(cookie, [textOf(n, seed)], { 'CF-Connecting-IP': ip }), env);
 
 describe('Stripe is asked at most once a minute per subscription (N8)', () => {
-  it('refuses an exhausted subscription from its meter, with no Stripe call, from any number of addresses, for the rest of the period', async () => {
+  it('refuses new synthesis after allowance exhaustion while refreshing entitlement at most once a minute', async () => {
     vi.useFakeTimers({ now: NOW * 1000 });
     const env = environment();
     const { state } = world();
@@ -885,7 +894,7 @@ describe('Stripe is asked at most once a minute per subscription (N8)', () => {
     }
     vi.setSystemTime((NOW + 3600) * 1000); // long after the kept standing went stale: the period it named still runs
     expect(await codeOf(await voiceAt(env, cookie, 1))).toBe('PLUS_ALLOWANCE');
-    expect(state.stripeGets).toBe(1);
+    expect(state.stripeGets).toBe(2);
     expect(state.vendorCalls).toBe(1);
   });
 
@@ -928,7 +937,7 @@ describe('Stripe is asked at most once a minute per subscription (N8)', () => {
     for (let i = 0; i < SUB_RATE_PER_MINUTE; i++) expect((await voiceAt(env, cookie, 10, `198.51.100.${i}`)).status).toBe(200);
     const over = await voiceAt(env, cookie, 10, '198.51.100.250');
     expect([over.status, await codeOf(over)]).toEqual([429, 'RATE_LIMITED']);
-    expect(state.vendorCalls).toBe(SUB_RATE_PER_MINUTE);
+    expect(state.vendorCalls).toBe(1); // Replays still count against the abuse rate, but spend nothing.
     vi.setSystemTime((NOW + 60) * 1000);
     expect((await voiceAt(env, cookie, 10)).status).toBe(200);
   });
@@ -968,7 +977,7 @@ describe('the allowance is keyed by the Plus item\'s period start (N10, N11)', (
     live.items.data[0].current_period_end = EXP + 7 * DAY_S; // the end moves; the start does not
     live.status = 'trialing';
     vi.setSystemTime((NOW + 2 * STANDING_TTL_S) * 1000);
-    expect(await codeOf(await voiceAt(env, cookie, 10))).toBe('PLUS_ALLOWANCE');
+    expect(await codeOf(await voiceAt(env, cookie, 10))).toBe('PLUS_REQUIRED'); // Current unfunded entitlement is checked before replay/miss allowance.
     // A new billing period, which Stripe invoices, begins a new count.
     live.status = 'active';
     live.items.data[0].current_period_start = EXP;
@@ -1141,7 +1150,7 @@ describe('the Stripe webhook (N9)', () => {
   it('a revocation that lands between the gate and the reservation still stops the voicing before the vendor', async () => {
     const m = (() => {
       const map = new Map();
-      return new PlusMeter({ storage: { kv: { get: key => map.get(key), put: (key, value) => { map.set(key, value); }, delete: key => map.delete(key) } } });
+      return new PlusMeter({ storage: audioStorage(map) });
     })();
     const call = async (op, body) => (await m.fetch(new Request(`https://plus-meter/${op}`, { method: 'POST', body: JSON.stringify(body) }))).json();
     expect(await call('event', { id: 'evt_x', created: 1, action: 'revoke', kind: 'dispute' })).toEqual({ ok: true });
@@ -1412,4 +1421,212 @@ it('an intended malformed provider binding fails closed even with an existing di
   const { state } = world();
   expect((await worker.fetch(voiceRequest(await cookieFor(env), ['Hello']), env)).status).toBe(503);
   expect(state.vendorCalls).toBe(0);
+});
+
+
+describe('durable account-private audio', () => {
+  it('reuses a completed render across browser requests and atom segmentation without a second debit', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { state } = world();
+    const env = environment();
+    const cookie = await cookieFor(env);
+    const first = await worker.fetch(voiceRequest(cookie, ['Hello world']), env);
+    expect(first.status).toBe(200);
+    const saved = await first.json();
+    const replay = await worker.fetch(voiceRequest(cookie, ['Hello', 'world'], { 'CF-Connecting-IP': '192.0.2.2' }), env);
+    expect(replay.status).toBe(200);
+    const reused = await replay.json();
+    expect(reused.audio).toBe(saved.audio);
+    expect(reused.cache).toMatchObject({ hit: true, scope: saved.cache?.scope });
+    expect(Object.values(reused.pack.voices.default.entries).map(e => e.text)).toEqual(['Hello', 'world']);
+    expect(state.vendorCalls).toBe(1);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(11);
+  });
+
+  it('replays with exhausted allowance and an unavailable provider', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { state } = world();
+    const env = environment();
+    const cookie = await cookieFor(env);
+    expect((await worker.fetch(voiceRequest(cookie, ['Hello']), env)).status).toBe(200);
+    await prefill(env, 'sub:sub_1', START, VOICE_ALLOWANCE);
+    env.ELEVENLABS_API_KEY = undefined;
+    const response = await worker.fetch(voiceRequest(cookie, ['Hello']), env);
+    expect(response.status).toBe(200);
+    expect((await response.json()).cache.hit).toBe(true);
+    expect(state.vendorCalls).toBe(1);
+  });
+
+  it('serializes simultaneous misses from two devices before vendor and debit', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { state } = world({ barrier: 2 });
+    const env = environment();
+    const cookie = await cookieFor(env);
+    const answers = await Promise.all([worker.fetch(voiceRequest(cookie, ['Hello']), env), worker.fetch(voiceRequest(cookie, ['Hello']), env)]);
+    expect(answers.every(a => [200, 409].includes(a.status))).toBe(true);
+    expect(answers.some(a => a.status === 200)).toBe(true);
+    expect(state.vendorCalls).toBe(1);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(5);
+  });
+
+  it('does not replay when the signed receipt customer differs from Stripe standing', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { state } = world();
+    const env = environment();
+    expect((await worker.fetch(voiceRequest(await cookieFor(env), ['Hello']), env)).status).toBe(200);
+    const switched = await worker.fetch(voiceRequest(await cookieFor(env, { c: 'cus_other' }), ['Hello']), env);
+    expect(switched.status).toBe(402);
+    expect(state.vendorCalls).toBe(1);
+  });
+
+  it('keeps uncertain provider attempts charged once and refuses repeated synthesis', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const { state } = world({ vendor: 500 });
+    const env = environment();
+    const cookie = await cookieFor(env);
+    expect((await worker.fetch(voiceRequest(cookie, ['Hello']), env)).status).toBe(502);
+    expect((await worker.fetch(voiceRequest(cookie, ['Hello']), env)).status).toBe(409);
+    expect(state.vendorCalls).toBe(1);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(5);
+  });
+});
+
+describe('saved audio access and erasure', () => {
+  const erase = (cookie, headers = {}) => new Request(`${SITE}/api/plus/audio/erase`, { method: 'POST', headers: { ...POST_HEADERS, Cookie: cookie, ...headers }, body: JSON.stringify({ audioScope: scopeForCookie(cookie) }) });
+
+  it('erases only the authenticated owner and never regenerates the deleted render', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world({ customers: { sub_other: 'cus_other' } });
+    const first = await cookieFor(env);
+    const other = await cookieFor(env, { s: 'sub_other', c: 'cus_other' });
+    const response = await worker.fetch(voiceRequest(first, ['Hello']), env);
+    const saved = await response.json();
+    const otherResponse = await worker.fetch(voiceRequest(other, ['Hello']), env);
+    expect(otherResponse.status).toBe(200);
+    expect((await otherResponse.json()).cache.scope).not.toBe(saved.cache.scope);
+    expect(await (await worker.fetch(erase(first), env)).json()).toEqual({ erased: true });
+    const deleted = await worker.fetch(voiceRequest(first, ['Hello']), env);
+    expect([deleted.status, await codeOf(deleted)]).toEqual([409, 'PLUS_AUDIO_UNAVAILABLE']);
+    const intact = await worker.fetch(voiceRequest(other, ['Hello']), env);
+    expect(intact.status).toBe(200);
+    expect((await intact.json()).cache.hit).toBe(true);
+    expect(state.vendorCalls).toBe(2);
+  });
+
+  it('rejects stale or missing deletion scope after account A changes to B, leaving both recordings intact', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world({ customers: { sub_other: 'cus_other' } });
+    const first = await cookieFor(env);
+    const other = await cookieFor(env, { s: 'sub_other', c: 'cus_other' });
+    const saved = await (await worker.fetch(voiceRequest(first, ['Hello']), env)).json();
+    await (await worker.fetch(voiceRequest(other, ['Hello']), env)).json();
+    for (const audioScope of [saved.cache.scope, undefined]) {
+      const stale = new Request(`${SITE}/api/plus/audio/erase`, { method: 'POST', headers: { ...POST_HEADERS, Cookie: other }, body: JSON.stringify({ audioScope }) });
+      const refused = await worker.fetch(stale, env);
+      expect([refused.status, await codeOf(refused)]).toEqual([409, 'PLUS_SESSION_CHANGED']);
+    }
+    for (const cookie of [first, other]) {
+      expect((await (await worker.fetch(voiceRequest(cookie, ['Hello']), env)).json()).cache.hit).toBe(true);
+    }
+    expect(state.vendorCalls).toBe(2);
+  });
+
+  it('denies erased-audio control without verified identity and same origin', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world();
+    expect((await worker.fetch(erase(''), env)).status).toBe(402);
+    expect((await worker.fetch(erase(await cookieFor(env), { Origin: 'https://other.example' }), env)).status).toBe(403);
+    expect(state.vendorCalls).toBe(0);
+  });
+
+  it('rejects missing or stale generation scope before claiming or debiting either account', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world({ customers: { sub_other: 'cus_other' } });
+    const first = await cookieFor(env);
+    const other = await cookieFor(env, { s: 'sub_other', c: 'cus_other' });
+    for (const audioScope of [scopeForCookie(first), undefined]) {
+      const refused = await worker.fetch(voiceRequest(other, ['Hello'], {}, { audioScope }), env);
+      expect([refused.status, await codeOf(refused)]).toEqual([409, 'PLUS_SESSION_CHANGED']);
+    }
+    expect(state.vendorCalls).toBe(0);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(0);
+    expect(await usedIn(env, 'sub:sub_other', START)).toBe(0);
+    // Neither failed precondition left a reservation or no-repeat tombstone.
+    for (const cookie of [first, other]) expect((await worker.fetch(voiceRequest(cookie, ['Hello']), env)).status).toBe(200);
+    expect(state.vendorCalls).toBe(2);
+  });
+
+  it('new text and different server-authorized voice ids generate distinct renders', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    for (const [atoms, voice] of [[['Hello'], 'default'], [['Hello '], 'default'], [['Hello'], 'george']]) {
+      const response = await worker.fetch(voiceRequest(cookie, atoms, {}, { voice }), env);
+      expect(response.status).toBe(200);
+      expect((await response.json()).cache.hit).toBe(false);
+    }
+    expect(state.vendorCalls).toBe(3);
+    expect(await usedIn(env, 'sub:sub_1', START)).toBe(16);
+  });
+
+  it('checks refund revocation before serving a previously saved render', async () => {
+    vi.useFakeTimers({ now: NOW * 1000 });
+    const env = environment();
+    const { state } = world();
+    const cookie = await cookieFor(env);
+    expect((await worker.fetch(voiceRequest(cookie, ['Hello']), env)).status).toBe(200);
+    await env.PLUS_METER.get('sub:sub_1').fetch('https://plus-meter/event', { method: 'POST', body: JSON.stringify({ id: 'evt_refund', action: 'revoke', kind: 'refund', created: NOW }) });
+    const replay = await worker.fetch(voiceRequest(cookie, ['Hello']), env);
+    expect([replay.status, await codeOf(replay)]).toEqual([402, 'PLUS_REQUIRED']);
+    expect(state.vendorCalls).toBe(1);
+  });
+});
+
+it('recovers a lost save acknowledgement from durable audio without a second provider call', async () => {
+  vi.useFakeTimers({ now: NOW * 1000 });
+  const env = environment();
+  const { state } = world();
+  const original = env.PLUS_METER;
+  let drop = true;
+  env.PLUS_METER = { ...original, get: name => {
+    const stub = original.get(name);
+    return { fetch: async (url, init) => {
+      const response = await stub.fetch(url, init);
+      if (drop && url.endsWith('/audio/complete')) { drop = false; throw new Error('reply lost after commit'); }
+      return response;
+    } };
+  } };
+  const cookie = await cookieFor(env);
+  expect((await worker.fetch(voiceRequest(cookie, ['Hello']), env)).status).toBe(503);
+  const retry = await worker.fetch(voiceRequest(cookie, ['Hello']), env);
+  expect(retry.status).toBe(200);
+  expect((await retry.json()).cache.hit).toBe(true);
+  expect(state.vendorCalls).toBe(1);
+  expect(await usedIn(env, 'sub:sub_1', START)).toBe(5);
+});
+
+it('an ambiguous global reservation never reaches the vendor or starts a second attempt', async () => {
+  vi.useFakeTimers({ now: NOW * 1000 });
+  const env = environment();
+  const { state } = world();
+  const original = env.PLUS_METER;
+  let drop = true;
+  env.PLUS_METER = { ...original, get: name => {
+    const stub = original.get(name);
+    return { fetch: async (url, init) => {
+      const response = await stub.fetch(url, init);
+      if (drop && name === 'global' && url.endsWith('/reserve')) { drop = false; throw new Error('reservation acknowledgement lost'); }
+      return response;
+    } };
+  } };
+  const cookie = await cookieFor(env);
+  expect((await worker.fetch(voiceRequest(cookie, ['Hello']), env)).status).toBe(503);
+  expect((await worker.fetch(voiceRequest(cookie, ['Hello']), env)).status).toBe(409);
+  expect(state.vendorCalls).toBe(0);
+  expect(await usedIn(env, 'sub:sub_1', START)).toBe(5);
 });

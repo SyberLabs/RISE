@@ -58,7 +58,7 @@ export class Plus {
         <button class="plus-secondary" type="button" data-retry hidden>Retry confirmation</button>
         <section class="plus-details" aria-label="What changes with Plus">
           <div><p class="plus-eyebrow">ALWAYS FREE</p><h2>The reading stays yours.</h2><p>Paced text, visuals, sound, and your own material remain free. Plus adds a premium voice; it does not unlock the reader.</p></div>
-          <div><p class="plus-eyebrow">KNOW YOUR ALLOWANCE</p><h2>Clear limits. No surprise top-ups.</h2><p>Up to 5,000 characters in the voice workspace. Replaying audio already stored in this browser uses no more allowance. A new voice, another device, or erased audio requires a new voicing. A daily limit of 25,000 characters also applies.</p><p>When voice is unavailable or allowance runs out, reading continues without it.</p></div>
+          <div><p class="plus-eyebrow">KNOW YOUR ALLOWANCE</p><h2>Clear limits. No surprise top-ups.</h2><p>Up to 5,000 characters per request. Successful audio is saved for 30 days for the same Plus billing account. Replay the same text and voice on another device without another voice charge. Changed text, voice or synthesis settings may need a new voicing.</p><p>A daily limit of 25,000 characters applies to new voicings. Active Plus access is required for saved audio. When new voicing is unavailable or allowance runs out, saved audio can still play; other reading continues silently. <a href="/privacy.html">Audio storage and deletion details</a>.</p></div>
         </section>
         <section class="plus-recovery" aria-labelledby="plus-recovery-title">
           <div><p class="plus-eyebrow">ALREADY SUBSCRIBED?</p><h2 id="plus-recovery-title">Pick up on this browser.</h2><p>Use the email you paid with to restore access or manage an existing subscription. No separate RISE password.</p></div>
@@ -91,7 +91,7 @@ export class Plus {
     this.$('[data-renewal]').hidden = !canBuy;
     const allowance = status.allowance;
     this.$('[data-account]').textContent = !status.confirmed ? 'Your subscription status could not be checked. Reload this page to retry, or contact support.' : status.subscriber
-      ? `Plus is active on this browser.${allowance ? ` ${allowance.used.toLocaleString('en-US')} of ${allowance.limit.toLocaleString('en-US')} characters used this period.` : ''}${status.available ? '' : ' Voice is currently unavailable; free reading continues.'}`
+      ? `Plus is active on this browser.${allowance ? ` ${allowance.used.toLocaleString('en-US')} of ${allowance.limit.toLocaleString('en-US')} characters used this period.` : ''}${status.available ? '' : ' New voicing is currently unavailable; saved audio may still play and free reading continues.'}`
       : status.billingAvailable ? 'Your billing account is available. Plus voice is not currently active.' : '';
     if (status.subscriber && Number.isFinite(allowance?.periodEnd)) this.$('[data-account]').textContent += ` Current period ends ${new Date(allowance.periodEnd * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.`;
     this.$('input[type=email]').disabled = !config.recoveryAvailable;

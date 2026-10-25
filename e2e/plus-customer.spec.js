@@ -11,7 +11,7 @@ async function api(page, { config = offer, subscriber = false, billing = false }
     if (path.endsWith('/claim') || path.endsWith('/restore')) { subscriber = true; billing = true; return route.fulfill({ status: 204 }); }
     if (path.endsWith('/recover')) return route.fulfill({ status: 202, json: { accepted: true } });
     if (path.endsWith('/checkout')) return route.fulfill({ status: 503, json: { error: { code: 'PLUS_UNAVAILABLE', message: 'Checkout is temporarily unavailable.' } } });
-    if (path.endsWith('/status')) return route.fulfill({ json: { subscriber, available: subscriber, canSubscribe: !subscriber, billingAvailable: billing, allowance: subscriber ? { used: 15, limit: 60000, periodEnd: 2000000000 } : null } });
+    if (path.endsWith('/status')) return route.fulfill({ json: { subscriber, audioScope: subscriber ? 'a'.repeat(64) : null, available: subscriber, canSubscribe: !subscriber, billingAvailable: billing, allowance: subscriber ? { used: 15, limit: 60000, periodEnd: 2000000000 } : null } });
     return route.fulfill({ json: [] });
   });
   return calls;
@@ -57,6 +57,32 @@ test('closed checkout is honest while canceled customers can still manage billin
   await expect(page.getByRole('button', { name: 'Subscribe to Plus' })).toBeHidden();
   await expect(page.getByRole('button', { name: 'Manage billing & cancellation' })).toBeVisible();
   await expect(page.getByLabel('Your checkout email')).toBeDisabled();
+});
+
+test('saved audio deletion is a separate confirmed mobile action and preserves Plus access', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await api(page, { subscriber: true, billing: true });
+  let deletes = 0;
+  await page.route('**/api/plus/audio/erase', route => {
+    expect(route.request().postDataJSON()).toEqual({ audioScope: 'a'.repeat(64) });
+    deletes++;
+    return route.fulfill({ json: { erased: true } });
+  });
+  await page.goto('/settings');
+  const remove = page.getByRole('button', { name: 'Delete saved Plus audio' });
+  await expect(remove).toBeVisible();
+  await remove.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: test.info().outputPath('saved-audio-mobile.png'), fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  page.once('dialog', dialog => dialog.dismiss());
+  await remove.click();
+  expect(deletes).toBe(0);
+  page.once('dialog', dialog => dialog.accept());
+  await remove.click();
+  await expect(page.locator('[data-plus-audio-status]')).toContainText('Saved Plus audio deleted');
+  await expect(remove).toBeFocused();
+  expect(deletes).toBe(1);
+  await expect(page.getByRole('button', { name: 'Forget', exact: true })).toBeVisible();
 });
 
 test('an own-text draft survives the checkout return and awaits an explicit voice Begin', async ({ page }) => {

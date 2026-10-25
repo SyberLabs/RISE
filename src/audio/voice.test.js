@@ -62,6 +62,23 @@ describe('static voice-pack identity', () => {
 });
 
 describe('session admission and reverent degradation', () => {
+    it('does not admit or retain decoded audio after its account session is revoked', async () => {
+        const controller = new AbortController();
+        let decoded;
+        const voice = new Voice({ voiceId: 'af_heart', manifest: fixtureManifest(['Private words']),
+            fetchImpl: async () => response(), signal: controller.signal });
+        voice.enabled = true;
+        voice._decode = () => new Promise(resolve => { decoded = resolve; });
+        const pending = voice.prepare([{ content: 'Private words' }]);
+        await vi.waitFor(() => expect(decoded).toBeTypeOf('function'));
+        controller.abort();
+        decoded({ duration: 1, sampleRate: 24000 });
+        expect(await pending).toBe(false);
+        expect(voice.speak(0)).toBeNull();
+        expect(voice._cache.size).toBe(0);
+        voice.destroy();
+    });
+
     it('does not load when this build has no installed pack', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const voice = new Voice({

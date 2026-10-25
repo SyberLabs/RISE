@@ -3,6 +3,7 @@ import { PersonalSwells } from './personal-swells.js';
 import { SourceCache } from '../sources/cache.js';
 import { WorkshopMedia } from './workshop-media.js';
 import { PlusVoices } from '../audio/plus-voice-store.js';
+import { voiceReading } from '../audio/plus-voice.js';
 import {
     clearUserData,
     exportUserData,
@@ -110,6 +111,9 @@ describe('personal data inventory', () => {
         const clearMedia = vi.spyOn(WorkshopMedia, 'clear').mockResolvedValue(undefined);
         const clearPlusVoices = vi.spyOn(PlusVoices, 'clear').mockResolvedValue(undefined);
 
+        let finish;
+        const pending = voiceReading(['Private words'], { audioScope: 'a'.repeat(64), fetchImpl: () => new Promise(resolve => { finish = resolve; }) });
+        await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
         sessionStorage.setItem('rise.voice-demo.draft', 'private words');
         await clearUserData();
         expect(sessionStorage.getItem('rise.voice-demo.draft')).toBeNull();
@@ -120,5 +124,7 @@ describe('personal data inventory', () => {
         expect(clearCache).toHaveBeenCalledOnce();
         expect(clearMedia).toHaveBeenCalledOnce();
         expect(clearPlusVoices).toHaveBeenCalledOnce();
+        finish(Response.json({}));
+        expect(await pending).toMatchObject({ ok: false, code: 'PLUS_SESSION_CHANGED' });
     });
 });

@@ -2,6 +2,8 @@ import { Player, estimateInterlocutionCount } from '../core/player.js';
 import {
   FLASHING_ENABLED,
   GALLERY_CADENCE_DEFAULT,
+  IMAGE_STREAM_ENABLED,
+  SAFE_PRESENTATION,
   VISUAL_PRESENCE_DEFAULT_MS,
   normalizeGalleryCadence,
   normalizePresentation,
@@ -143,17 +145,39 @@ export async function createChamberSession(operations, container, sessionData) {
         void visualCortex.warmImagery(sessionImageryCollections(session.visualConfig));
 
         const presentation = session.visualConfig?.interlocution?.presentation;
+        // THE IMAGE STREAM IS NOT AN ENGINE SURFACE. The cortex runs Gallery
+        // for it, so its flash economy can never be configured with the
+        // stream, and the Chamber mounts the stream over that Gallery only
+        // when told to below, after an accepted notice. A page-first launch
+        // never streams. With IMAGE_STREAM_ENABLED off, none of this runs.
+        const streamAsked = IMAGE_STREAM_ENABLED && normalizePresentation(presentation) === 'stream';
+        let imageStream = false;
+        if (streamAsked) {
+            session.visualConfig = {
+                ...session.visualConfig,
+                interlocution: { ...session.visualConfig.interlocution, presentation: SAFE_PRESENTATION }
+            };
+        }
         // With flashing disabled nothing reaching here can flash, so the
         // notice is not raised: asking a reader to accept a risk the build
         // cannot produce is a false warning, and a false warning teaches
-        // people to click through real ones.
-        const flashes = FLASHING_ENABLED && !isContinuousPresentation(presentation);
+        // people to click through real ones. The stream is gated as a flash.
+        const flashes = FLASHING_ENABLED && !isContinuousPresentation(presentation)
+            || streamAsked;
         if (visualMode === 'interlocution' && flashes) {
             const consentScope = session.visualConfig?.consentScope;
             const consented = await requestVisualInterlocutionConsent(consentScope);
             assertCurrent();
             const activated = consented && beginVisualInterlocutionSession(consentScope);
-            if (!activated) {
+            if (streamAsked) {
+                // Declined, or photosensitivity mode on: Gallery alone, which
+                // carries no risk to consent to.
+                imageStream = activated;
+                if (!activated) {
+                    beginNonFlashingVisualSession(consentScope);
+                    operations.showToast('The image stream stays off until the safety notice is accepted.', 4000);
+                }
+            } else if (!activated) {
                 visualMode = 'off';
                 session.visualConfig = { ...session.visualConfig, visualMode: 'off' };
                 operations.showToast('Visual flashes remain off until the safety notice is accepted.', 4000);
@@ -173,7 +197,7 @@ export async function createChamberSession(operations, container, sessionData) {
         ui.showLoading('Preparing Session');
 
         // The Plus voice, for a reading of the reader's own that brings no
-        // recitation of its own: kept in this browser once voiced, otherwise
+        // recitation of its own: saved audio is checked on the server with
         // one request, awaited, never retried. A refusal leaves the reading
         // silent and is said once the Chamber is up. The Worker voices a
         // Current, not a chapter, so a longer text is not sent.
@@ -184,10 +208,10 @@ export async function createChamberSession(operations, container, sessionData) {
             && (requiredVoice || operations.getSettings()?.plusVoice !== false);
         const entitlement = ownVoice ? await fetchPlusStatus() : null;
         assertCurrent();
-        if (requiredVoice && (!ownVoice || !entitlement?.available || !(entitlement.admin || entitlement.subscriber))) {
-            refuseRequiredVoice('Could not confirm ElevenLabs access or availability. Your text is still here. Check availability and try again.');
+        if (requiredVoice && (!ownVoice || !(entitlement?.admin || entitlement?.subscriber))) {
+            refuseRequiredVoice('Could not confirm ElevenLabs access. Your text is still here. Check availability and try again.');
         }
-        if (ownVoice && ((entitlement?.available && (entitlement.admin || entitlement.subscriber))
+        if (ownVoice && ((entitlement?.admin || entitlement?.subscriber)
             || (plus.claimed && !plus.lapsed))) {
             const { spokenAtoms, voiceReading } = await import('../audio/plus-voice.js');
             assertCurrent();
@@ -195,7 +219,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 plusRefused = 'TOO_LONG';
             } else {
                 ui.updateLoadingStatus('Asking for the Plus voice...');
-                const voiced = await voiceReading(session.atoms, { voice: plusVoiceSlug(requiredVoice ? session.origin.voice : operations.getSettings()?.plusVoiceSlug) });
+                const voiced = await voiceReading(session.atoms, { audioScope: entitlement?.audioScope, voice: plusVoiceSlug(requiredVoice ? session.origin.voice : operations.getSettings()?.plusVoiceSlug) });
                 assertCurrent();
                 if (voiced.ok) {
                     plusVoicing = voiced;
@@ -227,7 +251,7 @@ export async function createChamberSession(operations, container, sessionData) {
                 audioEngine,
                 voiceId: session.voiceId,
                 ...(plusVoicing
-                    ? { manifest: plusVoicing.manifest, fetchImpl: plusVoicing.fetchImpl }
+                    ? { manifest: plusVoicing.manifest, fetchImpl: plusVoicing.fetchImpl, signal: plusVoicing.signal }
                     : { packUrl: session.recitation.pack })
             });
             recitationVoice.enabled = true;
@@ -557,6 +581,7 @@ export async function createChamberSession(operations, container, sessionData) {
             },
             onDataCleared: () => operations.handleDataCleared(),
             onEnterStream: activateDeferredVisuals,
+            imageStream,
             pendingVisualRecipe: operations.takePendingVisualRecipe?.() || null,
             onExit: (reason, data) => {
                 // Read before stop(), which resets the Player's state.

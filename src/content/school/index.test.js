@@ -63,9 +63,9 @@ describe('schoolStatus', () => {
   });
 
   it('keeps an original-only record absent, its rights shown beside the state', () => {
-    const oration = recordById('gate.oration');
-    expect(oration.rights).toBe('orig-only');
-    expect(schoolStatus(oration, MANIFEST)).toEqual({ state: 'absent', reason: null });
+    const vico = recordById('mars.new-science');
+    expect(vico.rights).toBe('orig-only');
+    expect(schoolStatus(vico, MANIFEST)).toEqual({ state: 'absent', reason: null });
   });
 
   it('is absent when the manifest shelves a work the Library does not register', () => {

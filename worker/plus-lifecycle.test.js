@@ -1,3 +1,4 @@
+import { audioStorage } from './plus-test-storage.mjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from './index.mjs';
 import { PLUS_INTERNALS, PlusMeter } from './plus.mjs';
@@ -9,7 +10,7 @@ const UUID = '8f8bb0bc-1338-42ed-9bf5-6694e538d6f1';
 const subscription = (extra = {}) => ({ id: 'sub_1', customer: 'cus_1', status: 'active', livemode: false, metadata: { rise_offer: 'v1_60000' }, items: { data: [{ id:'si_1', price: { id: PRICE }, current_period_start: NOW-1000, current_period_end: NOW+86400*20 }] }, ...extra });
 function environment(extra = {}) {
  const instances = new Map();
- return { STRIPE_SECRET_KEY:'sk_test_x', PLUS_COOKIE_SECRET:'cookie-secret', PLUS_PRICE_ID:PRICE, STRIPE_WEBHOOK_SECRET:'whsec_x', PLUS_CHECKOUT_ENABLED:'true', PLUS_PORTAL_CONFIGURATION:'bpc_1', RESEND_API_KEY:'resend-secret', PLUS_EMAIL_FROM:'RISE <rise@example.com>', ELEVENLABS_API_KEY:'vendor-secret', PLUS_VOICE_ID:'voice', PLUS_VOICES:[{slug:'default',label:'Default'}], PLUS_DAILY_CHAR_CAP:'500000', PLUS_CLAIM_LIMITER:{limit:async()=>({success:true})}, DECISION_LIMITER:{limit:async()=>({success:true})}, PLUS_METER:{idFromName:n=>n,get(name){if(!instances.has(name)){const map=new Map();instances.set(name,new PlusMeter({storage:{kv:{get:k=>map.get(k),put:(k,v)=>map.set(k,v),delete:k=>map.delete(k)}}}));}return {fetch:(url,init)=>instances.get(name).fetch(new Request(url,init))};}}, ...extra };
+ return { STRIPE_SECRET_KEY:'sk_test_x', PLUS_COOKIE_SECRET:'cookie-secret', PLUS_PRICE_ID:PRICE, STRIPE_WEBHOOK_SECRET:'whsec_x', PLUS_CHECKOUT_ENABLED:'true', PLUS_PORTAL_CONFIGURATION:'bpc_1', RESEND_API_KEY:'resend-secret', PLUS_EMAIL_FROM:'RISE <rise@example.com>', ELEVENLABS_API_KEY:'vendor-secret', PLUS_VOICE_ID:'voice', PLUS_VOICES:[{slug:'default',label:'Default'}], PLUS_DAILY_CHAR_CAP:'500000', PLUS_CLAIM_LIMITER:{limit:async()=>({success:true})}, DECISION_LIMITER:{limit:async()=>({success:true})}, PLUS_METER:{idFromName:n=>n,get(name){if(!instances.has(name)){const map=new Map();instances.set(name,new PlusMeter({ storage: audioStorage() }));}return {fetch:(url,init)=>instances.get(name).fetch(new Request(url,init))};}}, ...extra };
 }
 function world({ sub=subscription(), customers=[{id:'cus_1',email:'reader@example.com'}], priceExtra={}, portalExtra={}, failEmail=false }={}) {
  const state={ mails:[], checkouts:[], portals:[], calls:[] };

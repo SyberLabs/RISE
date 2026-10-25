@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { claimPlus, fetchPlusStatus, fetchPlusPaymentLink, fetchPlusVoices, forgetPlus, markPlusLapsed, notePlusAllowance, plusAllowance, plusNotice, plusState, plusVoiceSlug } from './plus.js';
+import { claimPlus, fetchPlusStatus, fetchPlusPaymentLink, fetchPlusVoices, forgetPlus, markPlusLapsed, notePlusAllowance, plusAllowance, plusNotice, plusState, plusVoiceSlug, plusAudioSession } from './plus.js';
 import { enterFromPlusClaim } from './plus-claim.js';
 
 afterEach(() => {
@@ -70,6 +70,17 @@ describe('Plus on this browser', () => {
     expect(plusState()).toEqual({ claimed: false, lapsed: false });
   });
 
+  it('revokes audio across tabs when the claim changes, while allowance refreshes keep playback', () => {
+    const signal = plusAudioSession();
+    window.dispatchEvent(new StorageEvent('storage', { key: 'rise.plus', oldValue: '{"claimedAt":1}', newValue: '{"claimedAt":1,"allowance":{"used":2}}' }));
+    expect(signal.aborted).toBe(false);
+    window.dispatchEvent(new StorageEvent('storage', { key: 'rise.plus', oldValue: '{"claimedAt":1}', newValue: '{"claimedAt":2}' }));
+    expect(signal.aborted).toBe(true);
+    const next = plusAudioSession();
+    window.dispatchEvent(new StorageEvent('storage', { key: null }));
+    expect(next.aborted).toBe(true);
+  });
+
   it('has one line for each refusal the Worker can give', () => {
     expect(plusNotice('PLUS_LAPSED')).toBe('Plus voice has lapsed. Reading continues silently.');
     expect(plusNotice('PLUS_ALLOWANCE')).toMatch(/allowance is used up/u);
@@ -107,14 +118,14 @@ describe('the claim page', () => {
  describe('server voice entitlement', () => {
   it('recognizes only explicit server booleans and never persists admin authority', async () => {
     const fetchImpl = vi.fn(async () => Response.json({ admin: true, subscriber: false, available: true, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: { used: 1, limit: 2, periodEnd: 3 } }));
-    expect(await fetchPlusStatus({ fetchImpl })).toEqual({ confirmed: true, admin: true, subscriber: false, available: true, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: { used: 1, limit: 2, periodEnd: 3 } });
+    expect(await fetchPlusStatus({ fetchImpl })).toEqual({ confirmed: true, admin: true, subscriber: false, available: true, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: { used: 1, limit: 2, periodEnd: 3 }, audioScope: null });
     expect(fetchImpl).toHaveBeenCalledWith('/api/plus/status', { signal: expect.any(AbortSignal) });
     expect(localStorage.getItem('rise.plus')).toBeNull();
-    expect(await fetchPlusStatus({ fetchImpl: async () => Response.json({ admin: 'true', subscriber: 1, available: true }) })).toEqual({ confirmed: false, admin: false, subscriber: false, available: true, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null });
+    expect(await fetchPlusStatus({ fetchImpl: async () => Response.json({ admin: 'true', subscriber: 1, available: true }) })).toEqual({ confirmed: false, admin: false, subscriber: false, available: true, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null, audioScope: null });
   });
   it('fails closed when status is unavailable', async () => {
     for (const fetchImpl of [async () => { throw new Error('offline'); }, async () => new Response(null, { status: 503 })]) {
-      expect(await fetchPlusStatus({ fetchImpl })).toEqual({ confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null });
+      expect(await fetchPlusStatus({ fetchImpl })).toEqual({ confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null, audioScope: null });
     }
   });
 });
@@ -124,5 +135,5 @@ describe('the claim page', () => {
    let result;
    fetchPlusStatus({ fetchImpl: () => new Promise(() => {}), timeoutMs: 20 }).then(status => { result = status; });
    await vi.advanceTimersByTimeAsync(20);
-   expect(result).toEqual({ confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null });
+   expect(result).toEqual({ confirmed: false, admin: false, subscriber: false, available: false, adminLogin: false, billingAvailable: false, canSubscribe: false, allowance: null, audioScope: null });
  });

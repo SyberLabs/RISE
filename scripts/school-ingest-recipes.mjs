@@ -48,23 +48,53 @@ const ENNEADS = [
     'On The Good, or The One'
 ].map((title, index) => [Math.floor(index / 9) + 1, (index % 9) + 1, title]);
 
+/** The four functions Jung's chapter X heads once under each type: the first is the extravert's, the second the introvert's. */
+const SHARED = ['Thinking', 'Feeling', 'Sensation', 'Intuition'];
+
 /** J. B. Hare's request, made on every sacred-texts.com etext, kept with the source and never in the text. */
 const SACRED_TEXTS_NOTE = 'Transcribed by J. B. Hare for the Internet Sacred Text Archive (sacred-texts.com), which asks that its etexts be attributed to it and that this notice be kept with them.';
 
 export const WEB_RECIPES = {
-    // Local files under scripts/school-sources/<id>/.
-    'gate.oration': {
-        kind: 'file',
-        path: 'scripts/school-sources/gate.oration/oratio.la.md',
-        extract: { from: '§ 1' },
-        units: 'headings',
-        level: 2,
-        // The Pico Project's running sentence numbers are for reference, not for reading aloud.
-        strike: { pattern: '(?<=^|\\s)\\d{1,3}\\.\\s', kind: 'sentence numbers' },
-        count: 47,
-        language: 'la',
-        edition: { statement: 'Latin, 1486; Pico Project numbering', translator: null, year: 1486 },
+    // A picture work: its units are the plates of a pinned plate catalog, and its imagery is that catalog.
+    'jupiter.art-forms-in-nature': {
+        kind: 'commons-plates',
+        path: 'src/sources/visual/haeckel-catalog.generated.json',
+        book: 'Kunstformen der Natur',
+        year: 1904,
+        imagery: 'haeckel:plates',
+        count: 100,
+        language: 'de',
+        edition: {
+            statement: 'Bibliographisches Institut, Leipzig and Vienna, 1904; 100 plates; captions from Wikimedia Commons',
+            translator: null,
+            year: 1904
+        },
         rights: { us: 'pd', life70: 'pd' }
+    },
+    // Local files under scripts/school-sources/<id>/.
+    // RISE's English first, the Latin it was made from after it, paragraph for paragraph.
+    'gate.oration': {
+        artifacts: ['oratio.en.md', 'oratio.la.md'].map((file, index) => ({
+            kind: 'file',
+            path: `scripts/school-sources/gate.oration/${file}`,
+            extract: { from: '§ 1' },
+            units: 'headings',
+            level: 2,
+            // The Pico Project's running sentence numbers are for reference, not for reading aloud.
+            strike: { pattern: '(?<=^|\\s)\\d{1,3}\\.\\s', kind: 'sentence numbers' },
+            ...(index ? { prefix: 'Latin' } : {})
+        })),
+        count: 94,
+        translation: 'RISE translation, English draft, Latin beside it',
+        edition: {
+            statement: 'English: RISE translation from the Latin, 2026, CC BY 4.0; a first draft made by a model from the Latin alone, '
+                + 'not yet read against it by a person (notes on uncertain readings are in the source folder). '
+                + 'Latin: the Pico Project text, 1486.',
+            translator: 'RISE',
+            year: 2026
+        },
+        // Pico's Latin is public domain; the translation is RISE's, under CC BY 4.0, and the Lectern's Rights line names its licence.
+        rights: { us: 'pd', life70: 'pd', note: 'English CC BY 4.0, RISE 2026', licence: 'English translation CC BY 4.0, RISE 2026' }
     },
     'saturn.emerald-tablet': {
         kind: 'file',
@@ -79,6 +109,113 @@ export const WEB_RECIPES = {
             year: null
         },
         rights: { us: 'pd', life70: 'pd' }
+    },
+    // Proofed from Internet Archive OCR: the OCR, the diff and the provenance sit beside the file.
+    'mercury.philosophie-der-technik': {
+        kind: 'file',
+        path: 'scripts/school-sources/mercury.philosophie-der-technik/grundlinien.proofed.md',
+        extract: { from: 'Vorwort' },
+        units: 'headings',
+        level: 2,
+        count: 4,
+        language: 'de',
+        edition: {
+            statement: 'Westermann, Braunschweig, 1877; selection: the Vorwort and chapters I to III (Der anthropologische Maassstab, Die Organprojection, Die ersten Werkzeuge); Internet Archive 11379066bsb (Bayerische Staatsbibliothek), proofed from the Internet Archive scan by RISE, 2026, diff on file',
+            translator: null,
+            year: 1877
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'mars.muqaddimah': {
+        kind: 'file',
+        path: 'scripts/school-sources/mars.muqaddimah/prolegomenes.proofed.md',
+        extract: { from: 'Livre premier' },
+        units: 'headings',
+        level: 2,
+        group: 1,
+        count: 19,
+        language: 'fr',
+        edition: {
+            statement: 'W. MacGuckin de Slane, Prolégomènes, Imprimerie impériale, 1863; vol. I selection: the opening of Book I, the first preliminary discourse, and the second section to “L’esprit de corps aboutit à l’acquisition de la souveraineté”; Internet Archive lesprolgomne01abdauoft, proofed from the Internet Archive scan by RISE, 2026, diff on file',
+            translator: 'W. MacGuckin de Slane',
+            year: 1863
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    'jupiter.harmonices-mundi': {
+        kind: 'file',
+        path: 'scripts/school-sources/jupiter.harmonices-mundi/harmonices-mundi-v.proofed.md',
+        extract: { from: 'Harmonices Mundi Liber V' },
+        units: 'headings',
+        level: 2,
+        count: 6,
+        language: 'la',
+        textNote: 'tables and notes left out; Greek marked [Greek]',
+        edition: {
+            statement: 'Joannis Kepleri astronomi opera omnia, ed. Christian Frisch, vol. V, Heyder & Zimmer, Frankfurt and Erlangen, 1864; Harmonices Mundi Book V (Linz, 1619), a selection: the title page, the Prooemium, chapters III, VII and VIII, and chapter X, the Epilogus; Internet Archive joanniskeplerias05kepl (Boston College), collated with three other scans of the edition and proofed against the page images by RISE, 2026, diff on file',
+            translator: null,
+            year: 1864
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    // Marinetti's French first, under the reprint's own two headings; the 1912 English, which has no narrative, after it.
+    'venus.futurist-manifesto': {
+        artifacts: [
+            {
+                kind: 'file',
+                path: 'scripts/school-sources/venus.futurist-manifesto/manifeste.proofed.md',
+                extract: { from: 'Le Futurisme' },
+                units: 'headings',
+                level: 2
+            },
+            {
+                kind: 'file',
+                path: 'scripts/school-sources/venus.futurist-manifesto/initial-manifesto.proofed.md',
+                extract: { from: 'Initial Manifesto of Futurism' },
+                units: 'headings',
+                level: 2,
+                prefix: 'English · 1912 (anonymous translation)'
+            }
+        ],
+        count: 3,
+        language: 'fr',
+        edition: {
+            statement: 'Le Figaro, 20 February 1909; French as Marinetti reprinted it in Poupées électriques, E. Sansot et Cie, Paris, 1909, '
+                + 'text from French Wikisource (three of its sixteen pages validated, thirteen proofread once), checked against the scan by RISE, 2026, diff on file. '
+                + 'English: the anonymous Initial Manifesto of Futurism, Sackville Gallery catalogue, London, 1912, the eleven points and the closing only, '
+                + 'proofed from the Internet Archive scan by RISE, 2026, diff on file',
+            translator: null,
+            year: 1909
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    // Converted from Project Gutenberg's LaTeX (PG 15114) by scripts/school-latex.mjs.
+    'mercury.laws-of-thought': {
+        kind: 'file',
+        path: 'scripts/school-sources/mercury.laws-of-thought/laws-of-thought.md',
+        extract: { from: 'Chapter I: Nature and Design of This Work' },
+        units: 'headings',
+        level: 2,
+        count: 22,
+        textNote: 'equations shown as text',
+        edition: { statement: 'Walton and Maberly, 1854; equations shown as text', translator: null, year: 1854 },
+        rights: { us: 'pd', life70: 'pd' }
+    },
+    // Proofed from the Internet Archive's OCR of the Journal of Botany, 1863; the diff beside it lists every change.
+    'jupiter.metamorphosis-of-plants': {
+        kind: 'file',
+        path: 'scripts/school-sources/jupiter.metamorphosis-of-plants/metamorphosis.proofed.md',
+        extract: { from: 'Introduction' },
+        units: 'headings',
+        level: 2,
+        count: 19,
+        edition: {
+            statement: 'Emily M. Cox, Journal of Botany, 1863; proofed from the Internet Archive scan by RISE, 2026, diff on file',
+            translator: 'Emily M. Cox',
+            year: 1863
+        },
+        // Cox's dates are not known.
+        rights: { us: 'pd', life70: 'unknown' }
     },
 
     // Wikisource: the MediaWiki API's parsed HTML of each page.
@@ -429,6 +566,61 @@ export const WEB_RECIPES = {
         rights: { us: 'pd', life70: 'pd' }
     },
     // Plain HTML, read by the recipe's selectors.
+    // Chapter X only: the one chapter of the Baynes translation anyone has proofed (Classics in the History of Psychology).
+    'moon.psychological-types': {
+        kind: 'html',
+        url: 'https://psychclassics.yorku.ca/Jung/types.htm',
+        pages: ['https://psychclassics.yorku.ca/Jung/types.htm'],
+        encoding: 'windows-1252',
+        body: 'body',
+        // The site sets its headings as centred paragraphs; the two note anchors stand bare inside brackets.
+        headings: 'p[align]',
+        drops: { 'footnote markers': 'a[href^="#"]' },
+        strike: [
+            // The 1923 printing's page breaks, set inline as [p. 413].
+            { pattern: '\\s?\\[p\\. \\d{3}\\]', kind: 'page numbers' },
+            // The brackets each of the two dropped note anchors leaves behind ("[sic]" is set the same way and stays).
+            { pattern: '(?<="devouring") \\[$|(?<=\'mneme\',)\\[$|^\\](?= As is| whereas)', kind: 'footnote markers', replace: '' },
+            // The transcriber's marks for a letter the page could not set: me[accent]tier, na[umlaut]ive, ae[]sthenic.
+            { pattern: '\\[(?:accent|umlaut)?\\]', kind: 'transcriber notes', replace: '' },
+            // Slips in the proofed transcription, each corrected as the sentence reads.
+            { pattern: 'The are, as it were', kind: 'transcription slips', replace: 'They are, as it were' },
+            { pattern: 'con~sdousness', kind: 'transcription slips', replace: 'consciousness' },
+            { pattern: "forbidden' This other", kind: 'transcription slips', replace: 'forbidden. This other' },
+            { pattern: ' ,(?=very simply explained)', kind: 'transcription slips' },
+            { pattern: '(?<=ascendancy on)\\.(?= the part)', kind: 'transcription slips', replace: '' },
+            { pattern: '(?<=as a), (?=universal psychological)', kind: 'transcription slips' },
+            { pattern: '(?<=universal psychological)\\.(?= phenomenon)', kind: 'transcription slips', replace: '' },
+            { pattern: '(?<= )ie\\.(?= )', kind: 'transcription slips', replace: 'i.e.' }
+        ],
+        extract: { from: 'A. INTRODUCTION' },
+        units: [
+            { heading: 'A. INTRODUCTION', name: 'Introduction' },
+            { heading: 'B. The Extraverted Type', group: true },
+            { heading: '(1)THE GENERAL ATTITUDE OF CONSCIOUSNESS', name: 'The Extraverted Type: The General Attitude of Consciousness' },
+            { heading: '(II) THE ATTITUDE OF THE UNCONSCIOUS', name: 'The Extraverted Type: The Attitude of the Unconscious' },
+            { heading: '(III) THE PECULIARITIES OF THE BASIC PSYCHOLOGICAL FUNCTIONS IN THE EXTRAVERTED ATTITUDE', group: true },
+            ...['Thinking', 'The Extraverted Thinking Type', 'Feeling', 'The Extraverted Feeling-Type', 'Recapitulation of Extraverted Rational Types',
+                'Sensation', 'The Extraverted Sensation Type', 'Intuition', 'The Extraverted Intuitive Type', 'Recapitulation of Extraverted Irrational Types']
+                .map((title, index) => ({ heading: `${index + 1}. ${title}`, nth: SHARED.includes(title) ? 1 : undefined, name: `The Extraverted Type: ${title.replace('Feeling-Type', 'Feeling Type')}` })),
+            { heading: 'C. THE INTROVERTED TYPE', group: true },
+            { heading: '(I) THE GENERAL ATTITUDE OF CONSCIOUSNESS', name: 'The Introverted Type: The General Attitude of Consciousness' },
+            { heading: '(II) THE UNCONSCIOUS ATTITUDE', name: 'The Introverted Type: The Unconscious Attitude' },
+            { heading: '(III) PECULIARITIES OF THE BASIC PSYCHOLOGICAL FUNCTIONS IN THE INTROVERTED ATTITUDE', group: true },
+            ...['Thinking', 'The Introverted Thinking Type', 'Feeling', 'The Introverted Feeling Type', 'Recapitulation of Introverted Rational Types',
+                'Sensation', 'The Introverted Sensation Type', 'Intuition', 'The Introverted Intuitive Type', 'Recapitulation of Introverted Irrational Types',
+                'The Principal and Auxiliary Functions']
+                .map((title, index) => ({ heading: `${index + 1}. ${title}`, nth: SHARED.includes(title) ? 2 : undefined, name: `The Introverted Type: ${title}` }))
+        ],
+        count: 26,
+        note: 'Transcribed for Classics in the History of Psychology (psychclassics.yorku.ca), an internet resource developed by Christopher D. Green, York University, Toronto. The site states that it has tried to ensure every document it posts is in the public domain, and asks any party claiming copyright to contact its editor (https://psychclassics.yorku.ca/copyright.htm, retrieved 2026-10-17).',
+        edition: {
+            statement: 'H. G. Baynes, 1923; chapter X only; the rest after a proofing pass of the 1924 printing',
+            translator: 'H. Godwin Baynes',
+            year: 1923
+        },
+        rights: { us: 'pd', life70: 'pd' }
+    },
     'mercury.ninth-bridgewater': {
         kind: 'html',
         url: 'https://victorianweb.org/science/science_texts/bridgewater/intro.htm',

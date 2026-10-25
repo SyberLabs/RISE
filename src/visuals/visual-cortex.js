@@ -1450,6 +1450,13 @@ export class VisualCortex {
         });
     }
 
+    /** The URLs of the works the Gallery's pool holds now: the image stream's frames. */
+    imageStreamFrameUrls() {
+        return this._continuousPool()
+            .map(work => work?.url)
+            .filter(url => typeof url === 'string' && url);
+    }
+
     _wordFillIsDistinct() {
         return this.config.presentation === 'continuous'
             && wordFillIsDistinct(this.config.wordFill);
@@ -2499,6 +2506,19 @@ export class VisualCortex {
                 }
             } catch (e) {
                 console.warn('[Visual Cortex] Science catalog unavailable:', e);
+            }
+            return null;
+        }
+        // Haeckel's plates — 'haeckel:' (a School picture work's launch).
+        // Pinned and pre-verified like the science catalog; never searched.
+        if (categoryId.startsWith('haeckel:')) {
+            try {
+                const haeckel = await import('../sources/visual/haeckel.js');
+                if (haeckel.hasHaeckelCollection(categoryId)) {
+                    return haeckel.getHaeckelPlatesProvider();
+                }
+            } catch (e) {
+                console.warn('[Visual Cortex] Haeckel plates unavailable:', e);
             }
             return null;
         }

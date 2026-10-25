@@ -1,7 +1,7 @@
 # Oration on the Dignity of Man
 
 Giovanni Pico della Mirandola, *Oratio de hominis dignitate* (1486). RISE translation, 2026, from the Latin.
-Licence CC BY 4.0. Draft for the owner's reading; served only when every paragraph is read.
+Licence CC BY 4.0. A draft, served in RISE before the owner's reading (owner's decision, 2026-10-17); that reading verifies it.
 
 Paragraph numbers (§) and sentence numbers follow the Pico Project numbering of the Latin in `oratio.la.md`.
 Greek and Hebrew words are given in square brackets in the transliteration the Latin edition uses.

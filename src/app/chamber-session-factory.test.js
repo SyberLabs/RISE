@@ -76,13 +76,20 @@ describe('an explicitly requested ElevenLabs demo', () => {
         expect(reading.origin.voiceFailure).toContain('allowance');
         expect(Chamber).not.toHaveBeenCalled();
     });
+    it.each([{ admin: true }, { subscriber: true }])('checks saved audio for verified access even when generation is unavailable: %j', async identity => {
+        fetchPlusStatus.mockResolvedValueOnce({ ...identity, available: false });
+        voiceReading.mockResolvedValueOnce({ ok: true, voiceId: 'eleven', manifest: {}, fetchImpl: vi.fn() });
+        const options = await mount(operations(), demo());
+        expect(options.voice.options.voiceId).toBe('eleven');
+        expect(voiceReading).toHaveBeenCalledTimes(1);
+    });
     it('uses the explicitly chosen voice even when the saved preference is off', async () => {
-        fetchPlusStatus.mockResolvedValueOnce({ subscriber: true, available: true });
+        fetchPlusStatus.mockResolvedValueOnce({ subscriber: true, available: true, audioScope: 'a'.repeat(64) });
         voiceReading.mockResolvedValueOnce({ ok: true, voiceId: 'eleven', manifest: {}, fetchImpl: vi.fn() });
         const op = operations();
         op.getSettings = () => ({ plusVoice: false, plusVoiceSlug: 'other' });
         const options = await mount(op, demo());
-        expect(voiceReading).toHaveBeenCalledWith(expect.any(Array), { voice: 'river' });
+        expect(voiceReading).toHaveBeenCalledWith(expect.any(Array), { voice: 'river', audioScope: 'a'.repeat(64) });
         expect(options.voice.options.voiceId).toBe('eleven');
     });
     it('does not mount a silent reader when the ElevenLabs audio cannot be decoded', async () => {
@@ -300,7 +307,7 @@ describe('the Plus voice at the start of a reading', () => {
         const options = await mount(voiced(), reading());
 
         expect(voiceReading).toHaveBeenCalledTimes(1);
-        expect(voiceReading).toHaveBeenCalledWith(expect.any(Array), { voice: 'default' });
+        expect(voiceReading).toHaveBeenCalledWith(expect.any(Array), { voice: 'default', audioScope: undefined });
         expect(options.session).toMatchObject({
             revealMode: 'progressive', capabilities: ['recitation-audio'],
             recitation: { enabled: true, pack: null }, voiceId: 'el_plus'
@@ -384,7 +391,7 @@ describe('the Plus voice at the start of a reading', () => {
         const op = voiced();
         op.getSettings = () => ({ plusVoiceSlug: 'river' });
         await mount(op, reading());
-        expect(voiceReading).toHaveBeenCalledWith(expect.any(Array), { voice: 'river' });
+        expect(voiceReading).toHaveBeenCalledWith(expect.any(Array), { voice: 'river', audioScope: undefined });
     });
 
     it('is left off by the reader\'s switch', async () => {
@@ -393,5 +400,30 @@ describe('the Plus voice at the start of a reading', () => {
         op.getSettings = () => ({ plusVoice: false });
         await mount(op, reading());
         expect(voiceReading).not.toHaveBeenCalled();
+    });
+});
+
+describe('a reading that names the image stream, while its flag is off', () => {
+    it('opens as Gallery, with no notice and no stream', async () => {
+        // A hand-edited import that never passed the compiler, so the factory
+        // sees the raw name. src/core/flashing-disabled.test.js holds the rest
+        // of the flag-off half; chamber-session-factory.stream.test.js the other.
+        await import('../core/memory.js');
+        const op = operations();
+        Object.assign(op.getVisualCortex(), {
+            beginSessionVisualIdentity: vi.fn(),
+            preloadProgram: vi.fn(async () => {}),
+            preload: vi.fn(async () => {})
+        });
+        const reading = {
+            atoms: [{ content: 'One.', duration: 400 }, { content: 'Two.', duration: 400 }],
+            visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'stream', procedural: ['fractal'] } }
+        };
+        const options = await mount(op, reading);
+        expect(op.showToast).not.toHaveBeenCalled();
+        expect(reading.visualConfig.visualMode).toBe('interlocution');
+        expect(options.imageStream).not.toBe(true);
+        const configured = op.getVisualCortex().beginSessionVisualIdentity.mock.calls.map(([config]) => config.presentation);
+        expect(configured).toEqual(['continuous']);
     });
 });
