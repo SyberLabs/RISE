@@ -11,7 +11,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 157;
+export const FAST_TEST_FILES = 159;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
