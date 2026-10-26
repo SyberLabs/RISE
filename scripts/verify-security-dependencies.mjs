@@ -23,4 +23,12 @@ if (info.format !== 'png' || info.width !== 1 || info.height !== 1) {
     throw new Error('sharp could not encode the compatibility probe');
 }
 
-console.log('Kokoro and Sharp compatibility verified.');
+// The speech engine parses MathML with the overridden @xmldom/xmldom in Node.
+const { default: sre } = await import('speech-rule-engine');
+await sre.setupEngine({ locale: 'en', domain: 'clearspeak', modality: 'speech' });
+const half = sre.toSpeech('<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>');
+if (half !== 'one half') {
+    throw new Error(`speech-rule-engine read one half as ${JSON.stringify(half)}`);
+}
+
+console.log('Kokoro, Sharp and the speech engine compatibility verified.');
