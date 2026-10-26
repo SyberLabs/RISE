@@ -20,7 +20,7 @@
     {
       "date": "2026-10-26",
       "kind": "observation",
-      "ref": "scratchpad audit (headless Chromium on rise.syberlabs.io/live)",
+      "ref": "https://rise.syberlabs.io/live",
       "note": "Agent audit, not a human observation: off-topic questions ended the reading at 'This demonstration can only explain black holes.'; focus fell to body after asking and Space did nothing; the demo's figure drew the black hole white with a Times label; two demo cues refused (NO_ACTIVE_VISUAL, UNSUPPORTED_SURFACE); a 401 from the account check on every visit and tab focus."
     },
     {
