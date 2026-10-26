@@ -104,6 +104,12 @@ function mount(search = '', environment = env(), options = {}) {
 const $ = selector => document.querySelector(selector);
 const question = () => $('#live-venue-question');
 const radios = () => [...container.querySelectorAll('input[name="live-venue-provider"]')];
+/** An element's text as shown: what a [hidden] part holds is not. */
+const shown = element => {
+    const copy = element.cloneNode(true);
+    for (const hidden of copy.querySelectorAll('[hidden]')) hidden.remove();
+    return copy.textContent;
+};
 const choose = id => {
     const radio = radios().find(item => item.value === id);
     radio.checked = true;
@@ -143,7 +149,8 @@ describe('the venue is /live in the app', () => {
         mount();
         const answered = $('[data-venue-open="providers"]');
         const spoken = $('[data-venue-open="voices"]');
-        expect($('.live-venue__choices').textContent).toBe('Answered by Demo · spoken by your device');
+        // The Demo's readings come with their pictures: it names no choice of who makes them.
+        expect(shown($('.live-venue__choices'))).toBe('Answered by Demo · spoken by your device');
         const panel = $('#live-venue-providers-panel');
         expect(panel.hidden).toBe(true);
         answered.click();
@@ -161,6 +168,71 @@ describe('the venue is /live in the app', () => {
         $('.live-venue').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         expect($('#live-venue-voices-panel').hidden).toBe(true);
         expect(document.activeElement).toBe(spoken);
+    });
+
+    it('names who makes the pictures for a model: RISE for a free one until the reader chooses, and keeps their choice', async () => {
+        const kept = [];
+        mount('?voice=paced', env(), { getSettings: () => ({ liveOpenRouterModel: 'nvidia/nemotron-3.5-lightning:free' }), onSettingChange: (key, value) => kept.push([key, value]) });
+        choose('openrouter');
+        const pictures = $('[data-venue-open="pictures"]');
+        expect(shown($('.live-venue__choices'))).toBe('Answered by OpenRouter · pictures by RISE · spoken by your device');
+        expect(pictures.getAttribute('aria-label')).toBe('Who makes the pictures: RISE');
+        // A model that is not free draws its own, unchosen.
+        $('#live-venue-model').value = 'anthropic/claude-haiku-5.5';
+        $('#live-venue-model').dispatchEvent(new Event('input', { bubbles: true }));
+        expect(pictures.textContent).toBe('the same model');
+        pictures.click();
+        expect($('#live-venue-pictures-panel').hidden).toBe(false);
+        const picture = value => $(`input[name="live-venue-pictures"][value="${value}"]`);
+        expect(picture('same').checked).toBe(true);
+        picture('model').checked = true;
+        picture('model').dispatchEvent(new Event('change', { bubbles: true }));
+        expect(kept).toContainEqual(['livePictures', 'model']);
+        // Another model draws them, named under its choice; empty is OpenRouter's default.
+        const model = $('#live-venue-pictures-model');
+        expect(picture('model').closest('label').nextElementSibling.querySelector('#live-venue-pictures-model')).toBe(model);
+        expect(pictures.textContent).toBe('claude-haiku-5.5');
+        model.value = 'openai/gpt-5.4-mini';
+        model.dispatchEvent(new Event('input', { bubbles: true }));
+        model.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(pictures.textContent).toBe('gpt-5.4-mini');
+        expect(kept).toContainEqual(['livePicturesModel', 'openai/gpt-5.4-mini']);
+        // Another model is OpenRouter's: with a keyed provider it cannot be chosen, and the model that answers draws.
+        choose('anthropic');
+        expect(picture('model').disabled).toBe(true);
+        expect(pictures.textContent).toBe('the same model');
+    });
+
+    it('asks a RISE-visuals room with no drawing: the composer told so, a drawn scene refused, no illustrator', async () => {
+        const opened = [];
+        let made = 0;
+        const fakeAdapter = { id: 'fake', capabilities: {}, open: async request => { opened.push(request); return {}; }, admitScene: () => null };
+        const providers = Object.freeze([
+            Object.freeze({ id: 'mock', label: 'Demo (no key)', credential: 'none', adapter: async () => fakeAdapter }),
+            Object.freeze({ id: 'openrouter', label: 'OpenRouter (your key)', credential: 'openrouter', adapter: async () => { made += 1; return fakeAdapter; } })
+        ]);
+        mount('?voice=paced', env(), { providers, getSettings: () => ({ livePictures: 'rise' }) });
+        choose('openrouter');
+        const adapter = await host.venue.adapterFor({ clock: null });
+        await adapter.open({ intent: 'answer', prompt: 'Why?' });
+        await adapter.open({ intent: 'illustrate', prompt: 'a cell' });
+        expect(opened.map(request => request.pictures)).toEqual(['rise', undefined]);
+        expect(adapter.admitScene({ id: 'cell', svg: '<svg/>' })).toBe('Scene "cell" was refused: this room shows RISE’s own visuals only.');
+        expect(await host.venue.illustratorFor({ clock: null })).toBeNull();
+        // The model that answers: its own admission, and the room's adapter draws.
+        $('input[name="live-venue-pictures"][value="same"]').checked = true;
+        $('input[name="live-venue-pictures"][value="same"]').dispatchEvent(new Event('change', { bubbles: true }));
+        await adapter.open({ intent: 'answer', prompt: 'Why?' });
+        expect(opened.at(-1).pictures).toBeUndefined();
+        expect(adapter.admitScene({ id: 'cell', svg: '<svg/>' })).toBeNull();
+        expect(await host.venue.illustratorFor({ clock: null })).toBeUndefined();
+        // Another model: its own adapter, made once.
+        $('input[name="live-venue-pictures"][value="model"]').checked = true;
+        $('input[name="live-venue-pictures"][value="model"]').dispatchEvent(new Event('change', { bubbles: true }));
+        const drawer = await host.venue.illustratorFor({ clock: null });
+        expect(drawer).not.toBe(adapter);
+        expect(await host.venue.illustratorFor({ clock: null })).toBe(drawer);
+        expect(made).toBe(2);
     });
 
     it('keeps a choice opened while the page fades in: the arrival gives the question focus only when the reader has not moved into the room', () => {

@@ -293,6 +293,44 @@ function cut(text, sizes) {
 
 const SAY = '@say Light carries every colour.\n';
 
+describe('a native scene written in a shape that means one thing', () => {
+    // As Nemotron 3.5 Lightning wrote them, 2026-10-26.
+    const declared = text => beats([text]).sent.filter(event => event.type === 'scene.declare').map(event => ({ sceneId: event.sceneId, engine: event.engine, params: event.params }));
+
+    it('reads an engine fused with one of its own values as that engine with that value', () => {
+        expect(declared('@scene earth attractor=halvorsen palette=silver intensity=0.5\n@say scene=earth Rock melts.\n'))
+            .toEqual([{ sceneId: 'earth', engine: 'attractor', params: { system: 'halvorsen', palette: 'silver', intensity: 0.5 } }]);
+        // A value none of the engine's choices holds is let go, and the engine kept.
+        expect(declared('@scene earth attractor=lorenz palette=silver\n@say scene=earth Rock melts.\n'))
+            .toEqual([{ sceneId: 'earth', engine: 'attractor', params: { palette: 'silver' } }]);
+    });
+
+    it('reads an engine named with no id as a scene of that name', () => {
+        expect(declared('@scene genesis palette=purple preset=chaotic\n@say scene=genesis It began.\n'))
+            .toEqual([{ sceneId: 'genesis', engine: 'genesis', params: { preset: 'chaotic' } }]);
+        expect(declared('@scene living-flame preset=ember-cathedral energy=0.5\n@say scene=living-flame Bees fan the cells.\n'))
+            .toEqual([expect.objectContaining({ sceneId: 'living-flame', engine: 'living-flame' })]);
+    });
+
+    it('gives a bare value to the one parameter that holds it', () => {
+        expect(declared('@scene living-flame ember-cathedral energy=0.7\n@say scene=living-flame Lava.\n'))
+            .toEqual([expect.objectContaining({ sceneId: 'living-flame', engine: 'living-flame', params: expect.objectContaining({ preset: 'ember-cathedral' }) })]);
+    });
+
+    it('starts a scene at the beat right after its declaration when that beat names none, and only then', () => {
+        const started = text => beats([text]).sealed().beats.map(beat => beat.scene ?? null);
+        expect(started('@say Gravity wins.\n@scene genesis palette=ice\n@hold 2000 cue=calm\n@say Even light stays.\n')).toEqual([null, 'genesis', null]);
+        // A beat that names its own scene starts that one; the declared one waits for the beat that names it.
+        expect(started('@scene a attractor\n@scene b genesis\n@say scene=a One.\n@say scene=b Two.\n')).toEqual(['a', 'b']);
+        expect(started('@scene sky attractor palette=blue\n@say scene=sky Blue.\n@say Still blue.\n')).toEqual(['sky', null]);
+    });
+
+    it('leaves the shape it already reads as it was: an id that is an engine’s name, then its engine', () => {
+        expect(declared('@scene genesis attractor palette=blue\n@say scene=genesis It began.\n'))
+            .toEqual([{ sceneId: 'genesis', engine: 'attractor', params: { palette: 'blue' } }]);
+    });
+});
+
 describe('beats, one per line', () => {
     it('reads the answer a model writes into the beats and scenes it means, and the reducer refuses nothing', () => {
         const { refusals, sealed, stream } = beats([BLACK_HOLES_BEATS_TEXT]);

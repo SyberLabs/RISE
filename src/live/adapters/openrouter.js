@@ -61,7 +61,7 @@ export function buildBody(request, model, { reasoning = false } = {}) {
     return {
         model,
         messages: [
-            { role: 'system', content: instructionsFor(originOf(model), request.intent) },
+            { role: 'system', content: instructionsFor(originOf(model), request.intent, request) },
             { role: 'user', content: promptFor(request) }
         ],
         stream: true,

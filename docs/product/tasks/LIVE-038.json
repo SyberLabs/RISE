@@ -1,0 +1,45 @@
+{
+  "id": "LIVE-038",
+  "title": "RISE Live: who makes the pictures (RISE's own visuals, the model that answers, or another model), and native scenes read as a model means them",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (Experience Engineer)",
+  "priority": "now",
+  "dependencies": [
+    "LIVE-035"
+  ],
+  "acceptance": [
+    "The venue's quiet line reads 'Answered by … · pictures by … · spoken by …' for a model; the Demo names no pictures choice. The pictures name opens 'Who makes the pictures': RISE's own visuals, the model that answers, another OpenRouter model (with a Model field; not offered with a keyed provider). The choice is kept as a setting.",
+    "Unchosen, a free OpenRouter model (':free') shows RISE's own visuals; any other draws its own.",
+    "RISE's own visuals: the composer is taught only the native engines (no figure, code scene, illustrator or listening scene), its prompt about a third smaller; a figure or code scene written all the same is refused by name; a picture asked for that no engine answers is let go without a failure shown, and no illustrator request is made; an engine's cue or an engine still answers.",
+    "Another model: the illustrator's requests go to that model's adapter on the same OpenRouter connection, never the room's, and are counted with the reading.",
+    "The default instructions are unchanged, byte for byte.",
+    "A native scene line in a shape that means one thing is read so: an engine fused with one of its values, an engine with no id (bare values to the one parameter holding each), and a declared scene started by the next beat when that beat names none. A free model in a room of RISE's own visuals shows a visual in most readings."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/live/runtime.illustrator.test.js",
+      "note": "Branch live-pictures (on live-openrouter-models). npx vitest run src/live/adapter.test.js src/live/host src/live/adapters src/live/runtime.illustrator.test.js src/live/runtime.test.js src/app.safety.test.js: 47 files, 1280 passed, 4 skipped; after the parser change, src/live/adapters with the runtime v2, illustrator, room, catalog and interjection suites and illustrator.test.js: 35 files, 668 passed. REALTIME_INSTRUCTIONS compared with main's: identical."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "src/live/adapters/openai-instructions.js",
+      "note": "Agent observation, not a human's: five real questions to nvidia/nemotron-3.5-lightning:free through RISE's own adapter and parser, on the owner's key, $0. A room of RISE's own visuals: prompt 3,555 to 2,290 tokens; every reading complete, none refused. Before the parser change the model wrote four @scene lines and none was kept; after it, five of five kept (attractor, genesis, genesis, fractal, neural), every reading with a visual. With drawing allowed: three readings of five had a visual (the model wrote no scene in two)."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T19:20:00.000Z",
+      "summary": "Created on the owner's go for the pictures plan (RISE only, then another model; the default RISE only for free models; the choice in the quiet line). Built on branch live-pictures. Not merged, not deployed, not accepted by a human."
+    }
+  ],
+  "updatedAt": "2026-10-26T19:20:00.000Z",
+  "revision": 1,
+  "summary": "Who makes a Live reading's pictures (RISE's own visuals, the model that answers, or another OpenRouter model), chosen in the venue's quiet line; and native scene lines read as a model means them, so a free model's readings have visuals.",
+  "blocker": null
+}
