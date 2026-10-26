@@ -2518,6 +2518,22 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
+    it('keeps the photograph when the same collection’s cue comes again: a cue names no scene, and comes at every beat', async () => {
+        const { cortex } = hostedContinuousCortex();
+        cortex.updateConfig({ enabled: true, presentation: 'continuous', activeTypes: [] });
+        cortex.applyCue({ kind: 'sourced', collections: ['sci-astronomy'] });
+        await Promise.resolve(); await Promise.resolve();
+        expect(cortex._continuousField.running).toBe(true);
+        const told = vi.spyOn(cortex._continuousField, 'poolChanged');
+        // The pool is warm: the re-arm that follows every sourced cue tells the Gallery so.
+        cortex._preloadDiagrams = async () => ({ aborted: false, minimumReady: true });
+        // As the schedule gives it at the next beat of the same scene (measured: a new cueId at each beat).
+        cortex.applyCue({ kind: 'sourced', collections: ['sci-astronomy'] });
+        await vi.waitFor(() => expect(told).toHaveBeenCalled());
+        expect(told.mock.calls.every(([options]) => options?.wake === true)).toBe(true);
+        cortex.destroy();
+    });
+
     it('runs a procedural-only Gallery without requiring an external pool', async () => {
         const { cortex } = hostedContinuousCortex();
         vi.spyOn(cortex, '_renderContinuousProceduralWork')
