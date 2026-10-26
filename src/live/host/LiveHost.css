@@ -1072,7 +1072,8 @@ body:has(.live-venue) { background: var(--live-ground); }
 .live-venue__credential:empty,
 .live-venue__voice-credential:empty { display: none; }
 .live-venue .live-label { font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--live-faint); }
-.live-venue input[type="password"] {
+.live-venue input[type="password"],
+.live-venue #live-venue-model {
   min-height: 44px;
   padding: 0;
   border: 0;
@@ -1084,7 +1085,10 @@ body:has(.live-venue) { background: var(--live-ground); }
   font: inherit;
   font-size: 0.9375rem;
 }
-.live-venue input[type="password"]:focus-visible { outline: none; border-bottom-color: var(--live-line-lit); box-shadow: 0 1px 0 var(--live-line-lit); }
+.live-venue #live-venue-model::placeholder { color: var(--live-faint); }
+.live-venue label[for="live-venue-model"] { margin-top: 10px; }
+.live-venue input[type="password"]:focus-visible,
+.live-venue #live-venue-model:focus-visible { outline: none; border-bottom-color: var(--live-line-lit); box-shadow: 0 1px 0 var(--live-line-lit); }
 .live-venue .live-venue__credential button {
   align-self: flex-start;
   font-size: 0.875rem;

@@ -25,6 +25,7 @@
 
 import { connectionState, subscribeConnection, takeConnectionNotice } from '../../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
+import { OPENROUTER_DEFAULT_MODEL } from '../adapters/openrouter-model.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
 import { createFrameDirector, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualOf, visualTransform } from './frames.js';
@@ -117,6 +118,8 @@ export class LiveVenue {
         // The visual a catalog word named, while its note waits for the room to come to rest on it, then the beat's end.
         this.chosenWait = null;
         this.destroyed = false;
+        // The OpenRouter model the reader named (a setting, not a secret); empty asks the adapter's default.
+        this.openRouterModel = String(host.getSettings?.()?.liveOpenRouterModel ?? '').trim();
         // The face: its element, its engine once loaded, whether the last question failed, and (?measure=1) its states.
         const saved = host.getSettings?.()?.liveFace;
         this.faceSkin = FACE_SKINS.includes(saved) ? saved : 'sophia';
@@ -162,7 +165,12 @@ export class LiveVenue {
      * reading on screen, with what the provider reports it cost.
      */
     adapterFor({ clock }) {
-        this.adapter ??= Promise.resolve(this.chosen().adapter({ clock, getKey: () => this.host.key, onUsage: report => { this.usage = addUsage(this.usage, { report }); } }))
+        this.adapter ??= Promise.resolve(this.chosen().adapter({
+            clock,
+            getKey: () => this.host.key,
+            getModel: () => this.openRouterModel || undefined,
+            onUsage: report => { this.usage = addUsage(this.usage, { report }); }
+        }))
             .then(adapter => ({
                 ...adapter,
                 open: (request, options) => {
@@ -514,7 +522,25 @@ export class LiveVenue {
                 note.textContent = 'Connecting goes to OpenRouter and brings you back here, connected, with your question; this tab keeps the question only until you are back.';
                 this.credential.append(connect, note);
             }
+            this.credential.append(...this.modelField());
         }
+    }
+
+    /** OpenRouter's model, by its id: any the reader's account reaches, kept as a setting; empty is the default. */
+    modelField() {
+        const label = this.doc.createElement('label');
+        label.className = 'live-label';
+        label.htmlFor = 'live-venue-model';
+        label.textContent = 'Model';
+        const input = this.doc.createElement('input');
+        Object.assign(input, { id: 'live-venue-model', type: 'text', autocomplete: 'off', spellcheck: false, maxLength: 240, placeholder: OPENROUTER_DEFAULT_MODEL, value: this.openRouterModel });
+        input.setAttribute('autocapitalize', 'off');
+        input.addEventListener('input', () => { this.openRouterModel = input.value.trim(); });
+        input.addEventListener('change', () => this.host.onSettingChange?.('liveOpenRouterModel', this.openRouterModel));
+        const note = this.doc.createElement('p');
+        note.className = 'live-venue__note';
+        note.textContent = 'Any model your OpenRouter account reaches. Free ones end in :free, such as nvidia/nemotron-3.5-lightning:free.';
+        return [label, input, note];
     }
 
     /**
