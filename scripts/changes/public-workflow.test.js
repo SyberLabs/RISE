@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const text = readFileSync(resolve(process.cwd(), '.github/workflows/changes-public.yml'), 'utf8');
+const text = readFileSync(resolve(process.cwd(), '.github/workflows/changes-public.yml'), 'utf8').replace(/\r\n/g, '\n');
 
 describe('the public Changes workflow', () => {
   it('is called by a repository and is not dispatched, nor run on a pull request', () => {

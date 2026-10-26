@@ -1,0 +1,16 @@
+# Offline fixture only: do not install in an external caller without its owner's approval.
+name: Pinned Changes acceptance
+on: workflow_dispatch
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read
+jobs:
+  changes:
+    uses: SyberLabs/RISE/.github/workflows/changes-public.yml@a2dad66c44381c455a8b1050273c32327d152649
+    with:
+      dry_run: true
+    secrets:
+      # Deliberately invalid. Only run hosted in a PRIVATE fixture: its gate
+      # refuses before asking a model. No credential setup is needed.
+      model_token: offline-gate-only
