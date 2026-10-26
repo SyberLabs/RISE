@@ -1049,10 +1049,11 @@ export class LiveVenue {
 
     /**
      * Whether the visual on screen is fitted into the room's safe rectangle in the full frame: a picture with content
-     * always; in a light room every visual, which keeps its own night there rather than laying it over the room.
+     * always; in a light room every visual, which keeps its own night there rather than laying it over the room. A
+     * sourced image is the gallery's, which places it and its credit itself: scaled again, the credit would shrink.
      */
     hangs(cue) {
-        return holdsContent(cue) || (faceLight(this.faceSkin) && frameOf(cue) === 'full');
+        return holdsContent(cue) || (faceLight(this.faceSkin) && frameOf(cue) === 'full' && visualOf(cue) !== 'sourced');
     }
 
     /** The Chamber's visual whole and unmoved, and the root unmarked: as the Reader and the card always have it. */

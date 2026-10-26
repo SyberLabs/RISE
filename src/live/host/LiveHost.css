@@ -1260,8 +1260,10 @@ body:has(.live-venue) { background: var(--live-ground); }
 @media (hover: hover) {
   .live-again button:hover { background: var(--live-glass-press, rgba(232, 232, 236, 0.18)); }
 }
-.live-again input:focus-visible,
 .live-again button:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
+/* The field has no edge of its own inside the pill: the pill is what takes the ring, round as it is. */
+.live-again input:focus-visible { outline: none; }
+.live-again:has(input:focus-visible) { outline: 2px solid var(--color-light); outline-offset: 2px; }
 
 /* The note is the line between the bar and the words, which the room keeps for it; wider than the small bar, so it
    seldom wraps, and the room gives a longer one its height. */

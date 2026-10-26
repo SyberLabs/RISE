@@ -955,6 +955,8 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         const attractor = { kind: 'field', renderer: 'attractor', config: {} };
         expect(host.venue.hangs(genesis)).toBe(true);
         expect(host.venue.hangs(attractor)).toBe(false);
+        // A sourced image is placed by the gallery itself, its credit at its own size: never scaled again.
+        expect(host.venue.hangs({ kind: 'field', renderer: 'sourced', config: {} })).toBe(false);
         ask('First?');
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
         const choice = $('#rise-settings-face');
