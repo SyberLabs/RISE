@@ -75,7 +75,7 @@ Each committed passage's spoken text is computed once (`speakable`) and the same
 
 ### 3.7 Dwell
 
-- A shown-only beat: each formula phrase lasts at least its estimated speaking time plus 300 ms per level of structure, the extra capped at 2.5 s; the beat's other phrases share what is left of its hold.
+- A shown-only beat: each formula phrase lasts at least its estimated speaking time (its plain reading at 65 ms a character) plus 300 ms per structure, that extra capped at 2.5 s (`MATH_DWELL`). The beat grows by what its formulas need; its other phrases keep their share of the hold.
 - A spoken formula: the voice is the clock, and the formula stays until its speech ends; the pause after it comes from punctuation (§3.4). A precise extra 300 ms per level needs a pause inside a passage that no voice has today (browser, ElevenLabs, provider TTS and the test voice all speak a passage straight through). That is §5's follow-up.
 
 ### 3.8 What the model is told

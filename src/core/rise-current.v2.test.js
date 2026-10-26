@@ -7,6 +7,7 @@ import { cueForAtom } from './visual-scheduler.js';
 import {
   RISE_CURRENT_SCHEMA, RISE_CURRENT_SCHEMA_V2, compileRiseCurrent, materializeRiseCurrent, validateRiseCurrent
 } from './rise-current.js';
+import { MATH_DWELL, fallbackMath, mathDwellMs } from './math-text.js';
 
 const V2 = Object.freeze({
   schema: 'rise.current.v2',
@@ -209,6 +210,18 @@ describe('maths in the phrases of a Current', () => {
       'The levels are', '$$E_n = \\hbar\\omega\\left(n + \\tfrac{1}{2}\\right)$$', 'and they are evenly spaced.'
     ]);
     expect(phrases('Newton wrote \\[F = ma\\] once.')).toEqual(['Newton wrote', '\\[F = ma\\]', 'once.']);
+  });
+
+  it('holds a shown formula at least as long as it takes to say, and longer for its structure', () => {
+    const show = 'Then $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$';
+    const session = compileRiseCurrent({ ...V2, scenes: [], beats: [{ show, hold: { ms: 600 } }] });
+    const formula = session.atoms.find(atom => atom.sourceId === 'beat-0' && atom.content.includes('$'));
+    expect(formula.duration).toBe(mathDwellMs(formula.content));
+    expect(mathDwellMs('$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$')).toBe(
+      fallbackMath('x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}').speech.length * MATH_DWELL.msPerSpokenChar + 2 * MATH_DWELL.msPerStructure
+    );
+    const long = compileRiseCurrent({ ...V2, scenes: [], beats: [{ show: 'So $x$.', hold: { ms: 5000 } }] });
+    expect(long.atoms.find(atom => atom.sourceId === 'beat-0').duration).toBe(5000);
   });
 
   it('keeps every other form of maths whole, exactly as written', () => {

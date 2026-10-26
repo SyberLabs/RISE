@@ -216,6 +216,22 @@ export function hasMath(text) {
   return splitMath(text).some(part => part.kind === 'math');
 }
 
+/**
+ * How long a shown formula stays (the owner's ruling, 2026-10-26): as long as it takes to say, at an unhurried
+ * speaking pace, and 300 ms more for each structure, that extra at most 2.5 s.
+ */
+export const MATH_DWELL = Object.freeze({ msPerSpokenChar: 65, msPerStructure: 300, maxStructureMs: 2_500 });
+
+/** The least time a text's formulas need on screen; 0 for a text without maths. */
+export function mathDwellMs(text) {
+  let ms = 0;
+  for (const span of mathSpans(text)) {
+    ms += fallbackMath(span.value).speech.length * MATH_DWELL.msPerSpokenChar
+      + Math.min(MATH_DWELL.maxStructureMs, mathStructure(span.value) * MATH_DWELL.msPerStructure);
+  }
+  return ms;
+}
+
 /** How many structures (fractions, roots, sums, integrals, limits, arrays) a formula has. */
 export function mathStructure(tex) {
   let count = 0;

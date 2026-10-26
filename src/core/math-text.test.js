@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fallbackMath, hasMath, joinMath, mathStructure, splitMath, spokenWith } from './math-text.js';
+import { MATH_DWELL, fallbackMath, hasMath, joinMath, mathDwellMs, mathStructure, splitMath, spokenWith } from './math-text.js';
 import { MATH_CORPUS } from './math-corpus.js';
 
 const asParts = text => splitMath(text).map(part => (part.kind === 'text' ? ['text', part.value] : part.display ? ['math', part.value, 'display'] : ['math', part.value]));
@@ -96,6 +96,15 @@ describe('a text as it is said', () => {
     expect(text.slice(at(written.indexOf('and')))).toBe('and you are done.');
     expect(at(written.length)).toBe(text.length);
     expect(at(written.indexOf('$') + 3)).toBe(text.indexOf('<'));
+  });
+});
+
+describe('how long a shown formula stays', () => {
+  it('is its saying time and 300 ms a structure, the structure’s share at most 2.5 s, and nothing for words', () => {
+    expect(mathDwellMs('No maths.')).toBe(0);
+    expect(mathDwellMs('So $\\omega$.')).toBe('omega'.length * MATH_DWELL.msPerSpokenChar);
+    const nested = '\\frac{\\frac{\\frac{\\frac{\\frac{\\frac{\\frac{\\frac{\\frac{1}{2}}{3}}{4}}{5}}{6}}{7}}{8}}{9}}{10}';
+    expect(mathDwellMs(`$${nested}$`)).toBe(fallbackMath(nested).speech.length * MATH_DWELL.msPerSpokenChar + MATH_DWELL.maxStructureMs);
   });
 });
 
