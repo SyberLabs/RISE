@@ -12,6 +12,7 @@
 import { SKY_ROOM_TEXT, VIBRANT_ANSWER } from './sky-room-beats.js';
 import { DIAGRAM_ANSWER, illustratorTextFor, TESSERACT_TEXT, WATER_TEXT } from './water-illustrated-beats.js';
 import { NETWORK_TEXT, UNRULY_TEXT } from './neural-network-beats.js';
+import { DEMO_REFUSAL } from './demo-questions.js';
 
 const DISK = `export default function scene(rise) {
   const { lib } = rise;
@@ -46,7 +47,8 @@ const DISK = `export default function scene(rise) {
 const HORIZON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <title>The event horizon</title>
   <circle cx="100" cy="100" r="88" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 6" opacity="0.6"/>
-  <circle cx="100" cy="100" r="44" fill="currentColor"/>
+  <circle cx="100" cy="100" r="50" fill="none" stroke="currentColor" stroke-width="4" opacity="0.35"/>
+  <circle cx="100" cy="100" r="44" class="dark" stroke="currentColor" stroke-width="1.5"/>
   <text x="100" y="196" text-anchor="middle" font-size="11" fill="currentColor">event horizon</text>
 </svg>`;
 
@@ -102,7 +104,7 @@ export const BLACK_HOLES_BEATS_CURRENT = Object.freeze({
  */
 export const INTERJECTION_ANSWERS = Object.freeze({
     resume: [
-        '@say Good question: the horizon is not a surface you could touch.',
+        '@say The horizon is not a surface you could touch.',
         '@say It is only the distance past which light can no longer climb back out.',
         '@then resume',
         ''
@@ -118,8 +120,8 @@ export const INTERJECTION_ANSWERS = Object.freeze({
 /**
  * The answer for a question: black holes, the sky (the room changed while it plays, sky-room-beats.js), water and
  * the tesseract (pictures asked for, water-illustrated-beats.js), a neural network and a scene that misbehaves (scenes
- * the reader moves, neural-network-beats.js), or a plain sentence that it knows nothing else; an interjection's, its
- * own; the illustrator's, a picture.
+ * the reader moves, neural-network-beats.js), or, to anything else, what it knows and how to ask anything
+ * (demo-questions.js); an interjection's, its own; the illustrator's, a picture.
  */
 export function beatsTextFor(request) {
     if (request.intent === 'illustrate') return illustratorTextFor(request);
@@ -134,5 +136,5 @@ export function beatsTextFor(request) {
     if (/\btesseract\b/iu.test(request.prompt)) return TESSERACT_TEXT;
     if (/\bneural\b/iu.test(request.prompt)) return NETWORK_TEXT;
     if (/\bmisbehav/iu.test(request.prompt)) return UNRULY_TEXT;
-    return '@say This demonstration can only explain black holes.\n';
+    return DEMO_REFUSAL.map(line => `@say ${line}\n`).join('');
 }

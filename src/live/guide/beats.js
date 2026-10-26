@@ -121,7 +121,7 @@ const SCENE_GUIDE = [
 
 /** A figure as a model draws it: admitted by the server and the card (held by a test). */
 export const FIGURE_EXAMPLE = [
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" font-family="sans-serif" font-size="16" fill="currentColor">',
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 260" font-size="16" fill="currentColor">',
     '  <title>A right triangle with sides 3, 4 and 5</title>',
     '  <path d="M60,220 H300 V40 Z" fill="none" stroke="currentColor" stroke-width="2.5"/>',
     '  <path d="M282,220 V202 H300" fill="none" stroke="currentColor"/>',
@@ -139,6 +139,8 @@ export const FIGURE_GUIDE = [
     `- When: a labelled diagram, a chart, the parts of a thing; a picture that is right standing still. When the picture must change on cue, beat by beat, write a code scene instead.`,
     `- Shape: { "id": "...", "svg": "..." }, one SVG document of at most ${BEAT_LIMITS.svg.toLocaleString('en-US')} bytes. The root <svg> has xmlns="http://www.w3.org/2000/svg" and a viewBox; RISE scales the figure to fit behind the words, centred, and dissolves it in and out like any scene.`,
     '- Ink: draw strokes, fills and text in currentColor, and RISE gives it the reading\'s ink, so the figure suits the theme. Leave the background empty: the reading\'s own shows through.',
+    '- Dark: give class="dark" to a shape that is dark, a hole, a shadow, a body that gives no light, and RISE fills it with the theme\'s dark, whatever the room; currentColor would draw it bright.',
+    '- Labels: text takes the reading\'s face. Name a font-family only to set a figure\'s labels apart from the words.',
     '- Time: a figure takes no cues, and a hold under it lasts its ms. <animate> and its kin run inside the figure, even for a reader who asked for reduced motion, so keep any motion slow and small, or leave it out.',
     `- Elements: only ${SVG_ELEMENTS.join(', ')}. Anything else is refused by name: script, foreignObject, image, a, iframe, feImage, metadata and the rest.`,
     '- Nothing outside the figure: no event handler (on...), no href or xlink:href but "#id", no url() but url(#id), and no javascript:, data:, http:, https: or // in any value. No DOCTYPE or entity declaration, and no processing instruction but <?xml ...?> at the start. In CSS (a style attribute or a <style>): no @import, no escapes (\\), no expression(, behavior or -moz-binding.',
@@ -153,7 +155,8 @@ export const BEATS_GUIDE = [
     JSON.stringify(CURRENT_EXAMPLE_V2, null, 2),
     '',
     'Beats:',
-    '- A beat SAYS: "say" is spoken and shown. Add "show" when what is shown differs from what is said (write maths as it is read in "say", as it is written in "show"). "place": "none" speaks without showing.',
+    '- A beat SAYS: "say" is spoken and shown. Add "show" when what is shown differs from what is said. "place": "none" speaks without showing.',
+    '- Maths goes between $ signs, and $$…$$ for an equation on a line of its own. RISE typesets it and says it aloud, so "say" may hold a formula as written; add a "show" only to show it otherwise than it is said. Inside maths write \\vert for a bar, never the bar character.',
     '- A beat HOLDS: "hold": { "ms": N } says nothing for N milliseconds while the scene plays. Use it to let a picture play out before the next sentence. 200 to 60000 ms.',
     '- A beat SHOWS: "show" with "hold" and no "say" shows a line for a while, said by no one: a title, a formula, a caption.',
     `- "scene" starts one of the Current’s scenes at that beat; it keeps running under the beats that follow until another starts. A scene names an engine (${SCENE_ENGINES.join(', ')}) or is code you write (below).`,

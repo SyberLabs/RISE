@@ -14,7 +14,8 @@ import { BLACK_HOLES, HORIZON_DIVE } from '../fixtures/black-holes.js';
 import { createCurrentStream } from '../stream.js';
 import { createMockAdapter } from './mock.js';
 import { createMockBeatsAdapter } from './mock-beats.js';
-import { BLACK_HOLES_BEATS_CURRENT } from '../fixtures/black-holes-beats.js';
+import { BLACK_HOLES_BEATS_CURRENT, beatsTextFor } from '../fixtures/black-holes-beats.js';
+import { DEMO_QUESTIONS, DEMO_REFUSAL } from '../fixtures/demo-questions.js';
 import { illustratorTextFor, WATER_FIGURE, WATER_FIGURE_REFUSED } from '../fixtures/water-illustrated-beats.js';
 
 const ASK = { intent: 'answer', prompt: 'Explain black holes with RISE.' };
@@ -114,7 +115,7 @@ describe('the answer', () => {
 
     it('is honest about what it does not know', async () => {
         const snap = await snapshotOf({ request: { intent: 'answer', prompt: 'Explain the French Revolution.' } });
-        expect(snap.segments.map(s => s.text)).toEqual(['This demonstration can only explain black holes.']);
+        expect(snap.segments.map(s => s.text)).toEqual([DEMO_REFUSAL.join(' ')]);
         expect(snap.segments[0].evidence).toEqual([]);
     });
 
@@ -417,9 +418,19 @@ describe('the demo that writes in beats (the venue’s)', () => {
         expect(reducer.snapshot().origin).toEqual({ kind: 'model', name: 'RISE demo', provider: 'RISE' });
     });
 
-    it('says plainly that it knows only black holes, in one beat', async () => {
+    it('says plainly what it knows and how to ask anything, in two beats', async () => {
         const { reducer } = await stream({ intent: 'answer', prompt: 'What is a quasar?' });
-        expect(reducer.toCurrent().beats).toEqual([{ say: 'This demonstration can only explain black holes.' }]);
+        expect(reducer.toCurrent().beats).toEqual(DEMO_REFUSAL.map(say => ({ say })));
+    });
+
+    it('answers every question the entry offers with a reading of its own, never the refusal', () => {
+        const refusal = DEMO_REFUSAL.map(line => `@say ${line}\n`).join('');
+        for (const prompt of DEMO_QUESTIONS) {
+            const text = beatsTextFor({ intent: 'answer', prompt });
+            expect(text, prompt).not.toBe(refusal);
+            expect(text.split('\n').filter(line => line.startsWith('@say')).length, prompt).toBeGreaterThan(2);
+        }
+        expect(DEMO_REFUSAL[0]).toMatch(/black holes/u);
     });
 
     it('answers an interjection in two beats and resumes, or, asked to skip, replaces the rest (stage 4.5)', async () => {
