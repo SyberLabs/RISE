@@ -54,7 +54,20 @@ With `math: true` (passed only by the Current compiler), the chunker masks each 
 
 ### 3.4 Typesetting and speech (`src/core/math-typeset.js`, browser only)
 
-`loadMath()` fetches, once: KaTeX, its stylesheet, SRE, and SRE's `base` and `en` rule files as RISE's own build assets (SRE's `custom` loader with `delay: true`, so it never fetches from a CDN). SRE runs ClearSpeak with the `TriangleSymbol_Delta` preference. Two names in the English rules are corrected as they load: ℏ "h bar" (not "italic h over two pi") and `lim` "the limit" (not "lim").
+`loadMath()` fetches, once: KaTeX, its stylesheet, SRE, and SRE's `base` and `en` rule files as RISE's own build assets (SRE's `custom` loader, set before SRE is first evaluated, so it never fetches from a CDN; not `delay`, which in 4.1.4 makes the first setup load nothing). SRE runs ClearSpeak with the `TriangleSymbol_Delta` preference (Δ is "Delta", not "triangle"); `Paren_Speak` is not used, because it stops |x| being "the absolute value of x".
+
+ClearSpeak is then said as a person says it, at the layer each fix belongs to:
+
+| Written | ClearSpeak | Said | Where |
+| --- | --- | --- | --- |
+| `\hbar` | italic h over two pi | h bar | rule file, as it loads |
+| `\partial f` | partial differential f | partial f | rule file |
+| `\nabla\cdot\mathbf E`, `\nabla\times\mathbf B` | nabla times bold E | del dot bold E, del cross bold B | MathML: a del's ⋅ and × become ∙ and ⨯, named "dot" and "cross" in the rule file |
+| `\text{ m/s}` | m slash s | meters per second | MathML: a text that is wholly units (`unitWords`) |
+| `2(a+b)`, `(a+b)^2`, `f(x, y)` | open paren … close paren | 2 times the quantity a plus b; the quantity a plus b, squared; f of x comma y | speech (`asSaid`): a bracket around a sum is "the quantity", with a comma when more follows; any other is silent |
+| `\lim_{x\to0}` | lim over x right arrow 0 of | the limit as x approaches 0 of | rule file (limit) and speech (`asSaid`) |
+
+Left as ClearSpeak says them: an operator acting on a function (`H\psi`, "H of psi") and a fraction beside another ("… and denominator 2 m d squared psi over d x squared"), where a rewording would have to guess the meaning.
 
 `typeset(tex, display)` parses once with KaTeX (`output: 'htmlAndMathml'`) and returns `{ html, speech }`: the HTML for the eye, with KaTeX's MathML beside it for screen readers, and SRE's ClearSpeak reading of that same MathML (without KaTeX's `mathvariant="normal"`, which SRE would say aloud as "normal"). A span KaTeX refuses takes `fallbackMath`. Results are kept by `(tex, display)`, so a formula reads and sounds the same everywhere in a session.
 

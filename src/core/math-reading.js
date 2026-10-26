@@ -25,6 +25,59 @@ export function mathDwellMs(text) {
   return ms;
 }
 
+// ─── ClearSpeak, said as a person says it ──────────────────────────────
+
+const OPEN = '\u0001';
+const CLOSE = '\u0002';
+const INNERMOST = new RegExp(`${OPEN} ?([^${OPEN}${CLOSE}]*?) ?${CLOSE}`, 'u');
+
+/**
+ * The speech engine's ClearSpeak (run with brackets spoken), said as a person
+ * says it: a bracket that groups a sum is "the quantity", with a pause after
+ * it when more follows; one that groups anything else is silent (f of x); a
+ * limit is "the limit as x approaches 0 of".
+ */
+export function asSaid(speech) {
+  let text = String(speech ?? '').replace(/\bopen paren\b/gu, OPEN).replace(/\bclose paren\b/gu, CLOSE);
+  for (let match = INNERMOST.exec(text); match; match = INNERMOST.exec(text)) {
+    const inside = match[1].trim();
+    const after = text.slice(match.index + match[0].length);
+    const sum = /\b(?:plus|minus)\b/u.test(inside);
+    const more = after.trim() && !after.trimStart().startsWith(CLOSE) && !after.trimStart().startsWith(',');
+    text = `${text.slice(0, match.index)}${sum ? `the quantity ${inside}${more ? ',' : ''}` : inside}${after}`;
+  }
+  return text
+    .replaceAll(OPEN, 'open paren').replaceAll(CLOSE, 'close paren')
+    .replace(/\blimit over (.+?) right arrow (.+?) of\b/gu, 'the limit as $1 approaches $2 of')
+    .replace(/\s+,/gu, ',').replace(/\s+/gu, ' ').trim();
+}
+
+/** Units as `[plural, singular]`, by the symbol a formula writes them with. */
+const UNITS = {
+  m: ['meters', 'meter'], km: ['kilometers', 'kilometer'], cm: ['centimeters', 'centimeter'], mm: ['millimeters', 'millimeter'],
+  nm: ['nanometers', 'nanometer'], s: ['seconds', 'second'], ms: ['milliseconds', 'millisecond'], min: ['minutes', 'minute'],
+  h: ['hours', 'hour'], kg: ['kilograms', 'kilogram'], g: ['grams', 'gram'], J: ['joules', 'joule'], N: ['newtons', 'newton'],
+  W: ['watts', 'watt'], Hz: ['hertz', 'hertz'], eV: ['electron volts', 'electron volt'], K: ['kelvin', 'kelvin'],
+  mol: ['moles', 'mole'], A: ['amperes', 'ampere'], V: ['volts', 'volt'], C: ['coulombs', 'coulomb'], Pa: ['pascals', 'pascal'],
+  L: ['liters', 'liter']
+};
+
+/**
+ * A unit written as text (`\text{ m/s}`) in words, its denominator in the
+ * singular ("meters per second"); null for any text that is not wholly units.
+ */
+export function unitWords(text) {
+  const halves = String(text ?? '').trim().split('/');
+  if (!halves[0] || halves.length > 2) return null;
+  const said = halves.map((half, index) => half.trim().split(/[\s·⋅*]+/u).map(token => {
+    const unit = /^([A-Za-z]+)(?:\^?([23]))?$/u.exec(token);
+    const names = unit && Object.hasOwn(UNITS, unit[1]) ? UNITS[unit[1]] : null;
+    if (!names) return null;
+    return `${names[index === 0 ? 0 : 1]}${unit[2] === '2' ? ' squared' : unit[2] === '3' ? ' cubed' : ''}`;
+  }));
+  return said.some(words => words.includes(null)) ? null : said.map(words => words.join(' ')).join(' per ');
+}
+
 const GREEK = {
   alpha: 'α', beta: 'β', gamma: 'γ', delta: 'δ', epsilon: 'ϵ', varepsilon: 'ε', zeta: 'ζ', eta: 'η', theta: 'θ',
   vartheta: 'ϑ', iota: 'ι', kappa: 'κ', lambda: 'λ', mu: 'μ', nu: 'ν', xi: 'ξ', pi: 'π', varpi: 'ϖ', rho: 'ρ',

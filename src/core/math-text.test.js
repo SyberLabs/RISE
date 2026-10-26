@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hasMath, joinMath, mathStructure, splitMath, spokenWith } from './math-text.js';
-import { MATH_DWELL, fallbackMath, mathDwellMs } from './math-reading.js';
+import { MATH_DWELL, asSaid, fallbackMath, mathDwellMs, unitWords } from './math-reading.js';
 import { MATH_CORPUS } from './math-corpus.js';
 
 const asParts = text => splitMath(text).map(part => (part.kind === 'text' ? ['text', part.value] : part.display ? ['math', part.value, 'display'] : ['math', part.value]));
@@ -106,6 +106,38 @@ describe('how long a shown formula stays', () => {
     expect(mathDwellMs('So $\\omega$.')).toBe('omega'.length * MATH_DWELL.msPerSpokenChar);
     const nested = '\\frac{\\frac{\\frac{\\frac{\\frac{\\frac{\\frac{\\frac{\\frac{1}{2}}{3}}{4}}{5}}{6}}{7}}{8}}{9}}{10}';
     expect(mathDwellMs(`$${nested}$`)).toBe(fallbackMath(nested).speech.length * MATH_DWELL.msPerSpokenChar + MATH_DWELL.maxStructureMs);
+  });
+});
+
+describe('ClearSpeak, said as a person says it', () => {
+  it('says a bracket that groups a sum as the quantity, pausing after it when more follows, and says nothing for one that does not', () => {
+    expect(asSaid('2 times open paren a plus b close paren')).toBe('2 times the quantity a plus b');
+    expect(asSaid('open paren a plus b close paren squared')).toBe('the quantity a plus b, squared');
+    expect(asSaid('f of open paren x comma y close paren')).toBe('f of x comma y');
+    expect(asSaid('f of open paren x close paren equals 1')).toBe('f of x equals 1');
+    expect(asSaid('open paren 2 times open paren a minus b close paren plus 1 close paren'))
+      .toBe('the quantity 2 times the quantity a minus b, plus 1');
+    expect(asSaid('open paren negative b close paren')).toBe('negative b');
+  });
+
+  it('says a limit as it is read aloud', () => {
+    expect(asSaid('limit over x right arrow 0 of sine x over x equals 1')).toBe('the limit as x approaches 0 of sine x over x equals 1');
+  });
+
+  it('leaves what it does not know alone', () => {
+    expect(asSaid('open bracket 0 comma 1 close bracket')).toBe('open bracket 0 comma 1 close bracket');
+    expect(asSaid('a squared plus b squared')).toBe('a squared plus b squared');
+  });
+});
+
+describe('units in words', () => {
+  it('names a unit written as text, a denominator in the singular', () => {
+    expect(unitWords(' m/s')).toBe('meters per second');
+    expect(unitWords('kg m/s^2')).toBe('kilograms meters per second squared');
+    expect(unitWords('eV')).toBe('electron volts');
+    expect(unitWords('J/(mol K)')).toBeNull();
+    expect(unitWords('speed')).toBeNull();
+    expect(unitWords('')).toBeNull();
   });
 });
 

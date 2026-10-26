@@ -18,7 +18,7 @@
  */
 
 import { spokenWith } from './math-text.js';
-import { fallbackMath } from './math-reading.js';
+import { asSaid, fallbackMath, unitWords } from './math-reading.js';
 
 export { hasMath, splitMath } from './math-text.js';
 
@@ -28,16 +28,28 @@ let loading = null;
 /** A formula's speech, kept from the first time it is asked for: the voice and the speech governor must agree on it. */
 const said = new Map();
 
-/** The English rules as SRE is handed them, with two names a listener would not say: ℏ and lim. */
+/** Names in SRE's alphabets a listener would not say, wherever an alphabet lists them. */
+const RENAMED = new Map([['nabla', 'del'], ['partial differential', 'partial']]);
+
+/**
+ * The English rules as SRE is handed them, with the names a listener would say: ℏ "h bar", lim "limit", ∇ "del",
+ * ∂ "partial", and the operators a del takes (math-typeset.js engineSpeech) "dot" and "cross".
+ */
 function corrected(json) {
-  const maps = JSON.parse(json);
-  for (const entries of Object.values(maps)) {
-    if (!Array.isArray(entries)) continue;
-    for (const entry of entries) {
-      if (entry?.key === '210F') entry.mappings = { default: { default: 'h bar' } };
-      if (entry?.key === 'lim' && entry.mappings?.clearspeak) entry.mappings.clearspeak.default = 'limit';
+  const visit = node => {
+    if (Array.isArray(node)) {
+      node.forEach((item, index) => { if (RENAMED.has(item)) node[index] = RENAMED.get(item); else visit(item); });
+      return;
     }
-  }
+    if (node === null || typeof node !== 'object') return;
+    if (node.key === '210F') node.mappings = { default: { default: 'h bar' } };
+    if (node.key === '2219') node.mappings = { default: { default: 'dot' } };
+    if (node.key === '2A2F') node.mappings = { default: { default: 'cross' } };
+    if (node.key === 'lim' && node.mappings?.clearspeak) node.mappings.clearspeak.default = 'limit';
+    for (const value of Object.values(node)) visit(value);
+  };
+  const maps = JSON.parse(json);
+  visit(maps);
   return JSON.stringify(maps);
 }
 
@@ -53,6 +65,8 @@ async function loadSpeech() {
   globalThis.SREfeature = { custom };
   const module = await import('speech-rule-engine');
   const engine = module.default ?? module;
+  // Brackets as ClearSpeak's Auto says them, which asSaid (math-reading.js) rewords; Paren_Speak would lose |x| as
+  // "the absolute value of x".
   await engine.setupEngine({ locale: 'en', domain: 'clearspeak', style: 'TriangleSymbol_Delta', modality: 'speech', markup: 'none', custom });
   await engine.engineReady();
   return engine;
@@ -107,9 +121,15 @@ function engineSpeech(source, display) {
   try {
     const mathml = /<math[\s\S]*<\/math>/u.exec(katexHtml(source, display))?.[0];
     if (!mathml) return null;
-    // KaTeX marks upright letters `mathvariant="normal"`, which SRE would say aloud; the TeX annotation is not maths.
-    const speech = sre.toSpeech(mathml.replace(/<annotation[\s\S]*?<\/annotation>/gu, '').replace(/ mathvariant="normal"/gu, ''));
-    return typeof speech === 'string' && speech.trim() ? speech.replace(/\s+/gu, ' ').trim() : null;
+    const read = mathml
+      // KaTeX marks upright letters `mathvariant="normal"`, which SRE would say aloud; the TeX annotation is not maths.
+      .replace(/<annotation[\s\S]*?<\/annotation>/gu, '').replace(/ mathvariant="normal"/gu, '')
+      // A del's dot and cross are a divergence and a curl, not times: the operators SRE names "dot" and "cross" (corrected).
+      .replace(/(<mi>∇<\/mi>)<mo>⋅<\/mo>/gu, '$1<mo>∙</mo>').replace(/(<mi>∇<\/mi>)<mo>×<\/mo>/gu, '$1<mo>⨯</mo>')
+      // A unit written as text is said in words (meters per second), not letter by letter.
+      .replace(/<mtext>([^<]*)<\/mtext>/gu, (text, inner) => { const words = unitWords(inner); return words ? `<mtext>${words}</mtext>` : text; });
+    const speech = sre.toSpeech(read);
+    return typeof speech === 'string' && speech.trim() ? asSaid(speech) : null;
   } catch {
     return null;
   }
