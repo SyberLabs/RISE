@@ -74,9 +74,9 @@
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^26.0.0",
     "kokoro-js": "^1.2.1",
-    "vite": "^7.3.6",
+    "vite": "^7.3.7",
     "vite-node": "^3.2.4",
-    "vitest": "^4.1.11",
+    "vitest": "^4.1.12",
     "wrangler": "4.144.0"
   },
   "dependencies": {
@@ -88,6 +88,7 @@
     "sql.js": "^1.14.2"
   },
   "overrides": {
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "undici": "7.30.1"
   }
 }
