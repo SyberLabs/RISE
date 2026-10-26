@@ -147,7 +147,7 @@ A scene is a **native engine** with parameters, **generated code**, or a **figur
 | `RISE_CURRENT_THEME_IDS` | `classic`, `amethyst`, `prism`, `ember`, `cobalt`, `jade`, `rose`, `citrine`, `silver` | Colour themes. |
 | `RISE_CURRENT_LOOKS` | `plain`, `gallery`, `nocturne`, `garden`, `flame`, `signal`, `iris`, `revel`, `vigil`, `inlay` | Looks. |
 | `RISE_CURRENT_STYLES` | `premium-educational`, `open-field` | Styles (§4). |
-| `SCENE_ENGINES` | `still`, `attractor`, `genesis`, `living-flame`, `fractal`, `turrell`, `neural`, `rockgarden`, `harmonograph`, `ostensoria`, `apparitio` | Native engines (§6). |
+| `SCENE_ENGINES` | `still`, `attractor`, `genesis`, `living-flame`, `fractal`, `turrell`, `neural`, `rockgarden`, `harmonograph`, `ostensoria`, `apparitio`, `astronomy` | Native engines (§6). |
 
 ### 3.7 Refusal codes
 
@@ -321,6 +321,9 @@ A parameter that is `cueable` changes while the engine runs. Every other paramet
 | `harmonograph` | `procedural` | `harmonograph` | yes | — |
 | `ostensoria` | `procedural` | `ostensoria` | yes | — |
 | `apparitio` | `procedural` | `apparitio` | yes | — |
+| `astronomy` | `sourced` | `gallery` | yes | — |
+
+A `sourced` engine is a reviewed collection, not something drawn: the scene names the collection (`collection`, a pool id such as `sci-astronomy`), RISE chooses which of its works shows and hangs it with its credit, and `about` says that to the model in the engine's line (`docs/plans/LIVE-IMAGERY.md`). It takes no parameters. Composer's guide does not offer it yet, since the card does not load collection images.
 
 | Engine | Parameter | Type | Range or values | Default | Cueable |
 | --- | --- | --- | --- | --- | --- |
@@ -330,6 +333,7 @@ A parameter that is `cueable` changes while the engine runs. Every other paramet
 | `attractor` | `intensity` | number | 0.4 to 0.75 | 0.65 | yes |
 | `attractor` | `speed` | number | 0.25 to 4 | 1 | no |
 | `attractor` | `trace` | enum | `filament`, `swarm` | `filament` | no |
+| `attractor` | `streaks` | enum | `none`, `night` | `none` | no |
 | `genesis` | `preset` | enum | `harmonic`, `chaotic`, `twittering`, `architectural`, `gravitational` | `harmonic` | no |
 | `living-flame` | `preset` | enum | `ember-cathedral`, `violet-nebula`, `glacial-silk`, `solar-bloom`, `verdant-current`, `prismatic-knot` | `ember-cathedral` | no |
 | `living-flame` | `energy` | number | 0 to 1 | 0.35 | yes |

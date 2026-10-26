@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { RISE_CURRENT_VISUALS } from './rise-current.js';
 import { ENGINE_CATALOG, LISTED_ENGINES, LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERNS } from './visual-registry.js';
-import { SCENE_ENGINES } from '../scenes/manifests.js';
+import { SCENE_ENGINES, SCENE_MANIFESTS } from '../scenes/manifests.js';
 import { DEDICATED_MODE, FIELD, taxonomyLeaves } from './visual-taxonomy.js';
 
 const entry = id => ENGINE_CATALOG.find(item => item.id === id);
@@ -61,7 +61,10 @@ describe('the engine catalog', () => {
       STILL,
       ...ENGINE_CATALOG.filter(item => item.composer).map(item => CURRENT_NAME[item.id] ?? item.id)
     ];
-    expect(composerView.sort()).toEqual([...SCENE_ENGINES].sort());
+    // A reviewed collection (kind `sourced`) is no drawn engine of the catalog, and the Composer does not offer it.
+    const drawn = SCENE_MANIFESTS.filter(manifest => manifest.kind !== 'sourced').map(manifest => manifest.id);
+    expect(drawn).not.toEqual(SCENE_ENGINES);
+    expect(composerView.sort()).toEqual(drawn.sort());
     // A v1 passage's visuals are the first three of them.
     for (const visual of RISE_CURRENT_VISUALS) expect(SCENE_ENGINES).toContain(visual);
   });

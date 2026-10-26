@@ -68,9 +68,10 @@ describe('the live layer', () => {
         expect(staticImports(host).filter(target => /(^|\/)adapters\//u.test(target))).toEqual(['../adapters/gemini-model.js', '../adapters/openrouter-model.js', '../adapters/registry.js']);
         // The venue's registry lists the providers and loads each with import() only when it is asked for.
         expect(staticImports(readFileSync(join(SRC, 'live/adapters/registry.js'), 'utf8'))).toEqual([]);
+        // The venue names OpenRouter's default model for its model field: a constant, with no wire or transport.
         for (const name of ['venue.js', 'venue-entry.js']) {
             const imported = staticImports(readFileSync(join(SRC, 'live/host', name), 'utf8'));
-            expect(imported.filter(target => /(^|\/)adapters\//u.test(target)), name).toEqual(name === 'venue-entry.js' ? ['../adapters/registry.js'] : []);
+            expect(imported.filter(target => /(^|\/)adapters\//u.test(target)), name).toEqual(name === 'venue-entry.js' ? ['../adapters/registry.js'] : name === 'venue.js' ? ['../adapters/openrouter-model.js'] : []);
         }
     });
 

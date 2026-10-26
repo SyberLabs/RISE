@@ -62,14 +62,15 @@ afterEach(async () => {
  * the illustrator answers each request, `{ text, ms }`. Records every request, every command the host took, every atom
  * the reader saw and every cue the visual schedule emitted, each on the one clock.
  */
-async function open(text, { answer = '@say Of course.\n@then resume\n', illustrate = () => ({ text: fenced(FIGURE), ms: 800 }) } = {}) {
+async function open(text, { answer = '@say Of course.\n@then resume\n', illustrate = () => ({ text: fenced(FIGURE), ms: 800 }), drawer } = {}) {
     const clock = createRealClock();
     const requests = [];
+    const drawerRequests = [];
     const closed = [];
-    const adapter = createTextStreamAdapter({
-        id: 'scripted', provider: 'test',
+    const scripted = (id, asked) => createTextStreamAdapter({
+        id, provider: 'test',
         connect: async (request, sink) => {
-            requests.push(request);
+            asked.push(request);
             const drawn = request.intent === 'illustrate' ? illustrate(request) : null;
             const timer = setTimeout(() => {
                 sink.delta(drawn ? drawn.text : request.intent === 'interject' ? answer : text);
@@ -78,6 +79,9 @@ async function open(text, { answer = '@say Of course.\n@then resume\n', illustra
             return { cancel: () => clearTimeout(timer), close: () => { clearTimeout(timer); closed.push(request.intent); } };
         }
     });
+    const adapter = scripted('scripted', requests);
+    // `drawer`: null for a room of RISE's own visuals, 'other' for another model's adapter; the room's own by default.
+    const illustrator = drawer === 'other' ? scripted('drawer', drawerRequests) : drawer;
     const landed = [];
     const atoms = [];
     const cues = [];
@@ -85,7 +89,7 @@ async function open(text, { answer = '@say Of course.\n@then resume\n', illustra
     let schedule = null;
     const where = () => ({ at: performance.now(), atom: player?.sessionState.currentIndex ?? null });
     runtime = createLiveRuntime({
-        adapter, clock,
+        adapter, clock, illustrator,
         createPlayer: session => {
             player = new Player(session);
             schedule = new VisualScheduleController(session.visualProgram, (cue, { cueId }) => cues.push({ at: performance.now(), cueId, cue }), { atoms: session.atoms });
@@ -113,7 +117,7 @@ async function open(text, { answer = '@say Of course.\n@then resume\n', illustra
     await runtime.start('What are the three states of water?');
     await tick(100);
     return {
-        requests, closed, landed, atoms, cues,
+        requests, drawerRequests, closed, landed, atoms, cues,
         journal: type => runtime.journal().filter(entry => entry.type === type),
         firstAtomOf: (id, from = 0) => atoms.find(entry => entry.sourceId === id && entry.at >= from)
     };
@@ -152,6 +156,26 @@ describe('RISE answers from its own engines first', () => {
         // No request for it: the only illustrator request is the figure's.
         expect(room.requests.filter(request => request.intent === 'illustrate').map(request => request.prompt)).not.toContain('brighter attractor');
         expect(room.journal('illustration.requested').filter(entry => entry.n === 1)).toEqual([]);
+    });
+});
+
+describe('who draws: RISE’s own visuals only, or another model', () => {
+    it('in a room of RISE’s own visuals, a cue still lands; a picture no engine answers is let go unsaid, and nothing is asked', async () => {
+        const room = await open(WATER, { drawer: null });
+        await until(() => runtime.status === 'ended');
+        expect(room.journal('illustrated').map(entry => entry.medium)).toEqual(['cue']);
+        expect(room.journal('illustration.dropped')).toEqual([expect.objectContaining({ n: 2, reason: 'RISE_VISUALS_ONLY' })]);
+        expect(room.journal('illustration.failed')).toEqual([]);
+        expect(runtime.snapshot().illustration).toEqual({ drawing: 0, failed: null });
+        expect(room.requests.filter(request => request.intent === 'illustrate')).toEqual([]);
+    });
+
+    it('another model draws the picture: its adapter is asked, never the room’s', async () => {
+        const room = await open(WATER, { drawer: 'other' });
+        await until(() => room.journal('illustrated').some(entry => entry.n === 2));
+        expect(room.drawerRequests.map(request => request.intent)).toEqual(['illustrate']);
+        expect(room.requests.filter(request => request.intent === 'illustrate')).toEqual([]);
+        expect(room.journal('illustrated').find(entry => entry.n === 2)).toMatchObject({ medium: 'figure' });
     });
 });
 

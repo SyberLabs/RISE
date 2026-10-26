@@ -165,9 +165,9 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
     components["components<br/>routed views<br/>58 modules"]
     content["content<br/>texts, imagery, journeys<br/>306 modules"]
-    core["core<br/>session, player, router<br/>188 modules"]
+    core["core<br/>session, player, router<br/>190 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>78 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>79 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     scenes["scenes<br/>engine manifests, cues; scene runtime<br/>9 modules"]
     sources["sources<br/>text and visual providers<br/>14 modules"]
@@ -209,7 +209,7 @@ flowchart LR
     live -.-> |3 lazy| app
     live --> |3| audio
     live --> |1| components
-    live --> |44| core
+    live --> |48| core
     live --> |3| scenes
     live -.-> |1 lazy| visuals
     page --> |4| core
@@ -678,13 +678,17 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, six production dependencies: `sql.js` for browser-local work;
+  per room, seven production dependencies: `sql.js` for browser-local work;
   `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
   for on-device Kev, imported only by the EnterpRise worker that runs it
-  (§8.32); `katex` for maths in what a reading shows, fetched only when
-  a reading has a formula (docs/superpowers/specs/2026-10-08-creative-control-design.md
-  §10); and `acorn`, which runs only in the Cloudflare Worker, to parse a
-  scene a model wrote before it is admitted (same design, §12): a Worker
+  (§8.32); `katex` for maths in what a reading shows, and
+  `speech-rule-engine` to say that same formula aloud from KaTeX's MathML,
+  both fetched only when a reading has a formula
+  (docs/superpowers/specs/2026-10-26-math-both-channels-design.md: speaking
+  maths well is a body of rules, ClearSpeak, that a hand-written table only
+  approximates); and `acorn`, which runs only in the Cloudflare Worker, to parse a
+  scene a model wrote before it is admitted
+  (docs/superpowers/specs/2026-10-08-creative-control-design.md §12): a Worker
   has no `eval`, and admission must read the code without running it, so a
   real parser is the smallest correct tool and a pattern match is not. It
   has no dependencies of its own and reaches no page. The tokenizer already shipped inside

@@ -2,6 +2,8 @@
 
 **Status (2026-10-26):** built and tested against fakes and in a real browser with NVIDIA's endpoint stubbed. **Never run against NVIDIA's service**, and **not reachable from rise.syberlabs.io today**: NVIDIA's preflight admits browser requests only from NVIDIA's own sites (below). Offered in the Live venue as `NVIDIA (your key)`, with that said to the reader before they type a key.
 
+**NVIDIA's models, free, today:** through OpenRouter, which a browser on this site can reach. Choose OpenRouter in the venue and name `nvidia/nemotron-3.5-lightning:free` under **Model** (OpenRouter's free models: 20 a minute, 50 a day, 1,000 a day once an account has bought US$10 of credit). Measured on 2026-10-26 through RISE's own OpenRouter adapter and parser: every reading complete with nothing refused, about 1.5 s each with reasoning off (23 to 54 s with it on, which is why the adapter turns it off). Nemotron 3 Super 120B's free endpoint was down (status −5, no uptime) that day. Lightning often writes `@scene` lines RISE cannot use (`@scene sky attractor=thomas`), which the parser drops, so its readings may have no visuals.
+
 ## What it is
 
 A fourth keyed text stream beside Anthropic and OpenAI chat (`src/live/adapters/keyed-stream.js`): `src/live/adapters/nvidia.js` asks NVIDIA's OpenAI-compatible chat completions, `POST https://integrate.api.nvidia.com/v1/chat/completions` with `stream: true`, from the reader's browser with the key the reader typed. The stream is OpenAI's chat completions wire, read by `openai-chat.js`'s own `wire` (only `delta.content`, so a reasoning model's `reasoning_content` is never read). No Worker route, no new client, no change to the runtime or the parser.

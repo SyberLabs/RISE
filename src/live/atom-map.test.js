@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { compileRiseCurrent } from '../core/rise-current.js';
 import { BLACK_HOLES } from './fixtures/black-holes.js';
 import { mapAtoms } from './atom-map.js';
+import { spokenWith } from '../core/math-text.js';
 
 const compile = segments => compileRiseCurrent({
     schema: 'rise.current.v1',
@@ -92,5 +93,19 @@ describe('reading atoms against the compiled Session', () => {
     it('handles a trailing seam that has nothing after it', () => {
         const map = mapAtoms([{ content: 'a b', sourceId: 'a' }, { content: '', seam: { label: 'x' } }], [{ id: 'a', text: 'a b' }]);
         expect(map[1]).toMatchObject({ seam: true, segmentId: null });
+    });
+});
+
+describe('a passage whose formulas are said', () => {
+    it('finds each phrase in what was written and places it in what is said, exactly', () => {
+        const written = 'Solve it with $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$ and you get both roots of the quadratic at once, and the answer is always the same, every time.';
+        const session = compile([{ id: 's1', text: written }]);
+        const said = spokenWith(written, () => 'x equals the quadratic formula');
+        const map = mapAtoms(session.atoms, [{ id: 's1', text: said.text, written, at: said.at }]);
+        const words = map.filter(entry => !entry.seam).map(entry => said.text.slice(entry.start, entry.end).trim());
+        expect(words.join(' ')).toBe(said.text);
+        const formula = words.find(phrase => phrase.includes('quadratic formula'));
+        expect(formula).toMatch(/x equals the quadratic formula,$/u);
+        expect(map.filter(entry => !entry.seam).at(-1).end).toBe(said.text.length);
     });
 });

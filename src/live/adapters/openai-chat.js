@@ -43,7 +43,7 @@ export function buildBody(request, model, origin) {
     return {
         model,
         messages: [
-            { role: 'developer', content: instructionsFor(origin, request.intent) },
+            { role: 'developer', content: instructionsFor(origin, request.intent, request) },
             { role: 'user', content: promptFor(request) }
         ],
         max_completion_tokens: KEYED_LIMITS.maxTokens,

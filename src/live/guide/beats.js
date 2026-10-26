@@ -10,7 +10,7 @@
  * has little room; FIGURE_GUIDE, with the element list the admission keeps,
  * travels with every style's guidance (rise_guide).
  */
-import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_ENGINES, SCENE_LIMITS, describeManifests } from '../../core/beats.js';
+import { BANNED_SCENE_NAMES, BEAT_LIMITS, SCENE_LIMITS, SCENE_MANIFESTS, describeManifests } from '../../core/beats.js';
 import { RISE_CURRENT_STYLES } from '../../core/rise-current.js';
 import { SVG_ELEMENTS } from '../../core/svg-admission.js';
 
@@ -72,7 +72,13 @@ export const LIB_GUIDE = Object.freeze([
 ]);
 
 /** Engine parameters taught in Live's instructions only, while the connector submission is under review. */
-export const HOST_WITHHELD_PARAMETERS = Object.freeze(['trace', 'pendulums']);
+export const HOST_WITHHELD_PARAMETERS = Object.freeze(['trace', 'pendulums', 'streaks']);
+
+/**
+ * The engines a host's model is taught: not a collection, whose images come from the institutions' servers, which the
+ * card's policy does not admit (src/live/hosts/mcp-card.js) until RISE serves them (docs/plans/LIVE-IMAGERY.md §4.4).
+ */
+export const HOST_ENGINES = Object.freeze(SCENE_MANIFESTS.filter(manifest => manifest.kind !== 'sourced').map(manifest => manifest.id));
 
 /**
  * The widget set `rise.lib` gives a scene that listens (docs/plans/LIVE-CURRENT.md §20), one line each, by name. Taught
@@ -155,10 +161,11 @@ export const BEATS_GUIDE = [
     JSON.stringify(CURRENT_EXAMPLE_V2, null, 2),
     '',
     'Beats:',
-    '- A beat SAYS: "say" is spoken and shown. Add "show" when what is shown differs from what is said (write maths as it is read in "say", as it is written in "show"). "place": "none" speaks without showing.',
+    '- A beat SAYS: "say" is spoken and shown. Add "show" when what is shown differs from what is said. "place": "none" speaks without showing.',
+    '- Maths goes between $ signs, and $$…$$ for an equation on a line of its own. RISE typesets it and says it aloud, so "say" may hold a formula as written; add a "show" only to show it otherwise than it is said. Inside maths write \\vert for a bar, never the bar character.',
     '- A beat HOLDS: "hold": { "ms": N } says nothing for N milliseconds while the scene plays. Use it to let a picture play out before the next sentence. 200 to 60000 ms.',
     '- A beat SHOWS: "show" with "hold" and no "say" shows a line for a while, said by no one: a title, a formula, a caption.',
-    `- "scene" starts one of the Current’s scenes at that beat; it keeps running under the beats that follow until another starts. A scene names an engine (${SCENE_ENGINES.join(', ')}) or is code you write (below).`,
+    `- "scene" starts one of the Current’s scenes at that beat; it keeps running under the beats that follow until another starts. A scene names an engine (${HOST_ENGINES.join(', ')}) or is code you write (below).`,
     '- "place" (centre, caption, top, left, right, none), "size" (smaller, as-set, larger, display), "type" (a face by role: book-serif, humanist-sans, mono, display…) and "emphasis" (words to set apart) shape the text of a beat.',
     `- "style" (${RISE_CURRENT_STYLES.join(', ')}) sets the place, size and faces of the beats that set none, and the drawing defaults of your code scenes; each style has guidance of its own.`,
     '- "sound" names one of RISE’s sounds: an atmosphere or music bed that stays (aurora, starlight, piano, nocturne…), a tone (focus, deep, gateway), or none.',
@@ -166,7 +173,7 @@ export const BEATS_GUIDE = [
     '- Prefer v2 when the reader asks for a lesson, a walkthrough, or an animation; v1 (passages) is fine for a plain spoken reading.',
     '',
     'Scenes, their parameters ("params", each within its bounds) and their cues ("cue" on a later beat: a named cue, or set:<parameter>=<value> on a cueable one):',
-    describeManifests({ withheld: HOST_WITHHELD_PARAMETERS }),
+    describeManifests({ withheld: HOST_WITHHELD_PARAMETERS, engines: HOST_ENGINES }),
     '',
     SCENE_GUIDE,
     '',

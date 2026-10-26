@@ -19,7 +19,7 @@ import {
     CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, CURRENT_GUIDE_V2, DIVE_INSTRUCTIONS, FIGURE_EXAMPLE, FIGURE_GUIDE, LIB_GUIDE, LOOK_HINTS, SCENE_CODE_EXAMPLE,
     STYLE_EXAMPLES, STYLE_LINES, THEME_HINTS, TOOL_NAME, styleGuide
 } from './index.js';
-import { HOST_WITHHELD_PARAMETERS, WIDGET_GUIDE } from './beats.js';
+import { HOST_ENGINES, HOST_WITHHELD_PARAMETERS, WIDGET_GUIDE } from './beats.js';
 
 describe('the example', () => {
     it('is a Current the strict validator accepts', () => {
@@ -139,26 +139,35 @@ describe('the guide to beats', () => {
         expect(CURRENT_GUIDE).toContain(CURRENT_GUIDE_V2);
     });
 
-    it('teaches a host\'s model neither the swarm nor the rotary pendulums while the connector submission is under review', () => {
-        expect(HOST_WITHHELD_PARAMETERS).toEqual(['trace', 'pendulums']);
+    it('teaches a host\'s model neither the swarm, the rotary pendulums nor the night streaks while the connector submission is under review', () => {
+        expect(HOST_WITHHELD_PARAMETERS).toEqual(['trace', 'pendulums', 'streaks']);
         for (const text of [CURRENT_GUIDE, DIVE_INSTRUCTIONS, ...RISE_CURRENT_STYLES.map(id => styleGuide(id))]) {
-            expect(text).not.toMatch(/\btrace\b|pendulums|filament\|swarm|lateral\|rotary/u);
+            expect(text).not.toMatch(/\btrace\b|pendulums|filament\|swarm|lateral\|rotary|streaks|none\|night/u);
         }
-        expect(CURRENT_GUIDE_V2).toContain(`${describeManifests({ withheld: HOST_WITHHELD_PARAMETERS })}\n`);
+        expect(CURRENT_GUIDE_V2).toContain(`${describeManifests({ withheld: HOST_WITHHELD_PARAMETERS, engines: HOST_ENGINES })}\n`);
         // Admission is unchanged: a Current that names them is still accepted.
         const current = structuredClone(CURRENT_EXAMPLE_V2);
         current.scenes = [
             { id: 'field', engine: 'attractor', params: { trace: 'swarm' } },
             { id: 'calm', engine: 'harmonograph', params: { pendulums: 'rotary' } }
         ];
+        current.scenes[0].params.streaks = 'night';
         const admitted = validateRiseCurrent(current);
-        expect(admitted.scenes[0].params).toEqual({ trace: 'swarm' });
+        expect(admitted.scenes[0].params).toEqual({ trace: 'swarm', streaks: 'night' });
         expect(admitted.scenes[1].params).toEqual({ pendulums: 'rotary' });
     });
 
-    it('names every engine a scene may name, and says what "style" does', () => {
-        for (const engine of SCENE_ENGINES) expect(CURRENT_GUIDE_V2, engine).toContain(engine);
+    it('names every engine a host’s scene may name, and says what "style" does', () => {
+        for (const engine of HOST_ENGINES) expect(CURRENT_GUIDE_V2, engine).toContain(engine);
         expect(CURRENT_GUIDE_V2).toMatch(/"style"/u);
+    });
+
+    it('offers a host’s model no collection, whose images the card cannot load yet (docs/plans/LIVE-IMAGERY.md)', () => {
+        expect(SCENE_ENGINES).toContain('astronomy');
+        expect(HOST_ENGINES).toEqual(SCENE_ENGINES.filter(engine => engine !== 'astronomy'));
+        for (const text of [CURRENT_GUIDE, DIVE_INSTRUCTIONS, ...RISE_CURRENT_STYLES.map(id => styleGuide(id))]) {
+            expect(text).not.toMatch(/astronomy/iu);
+        }
     });
 });
 
