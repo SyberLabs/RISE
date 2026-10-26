@@ -687,7 +687,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
   (docs/superpowers/specs/2026-10-26-math-both-channels-design.md: speaking
   maths well is a body of rules, ClearSpeak, that a hand-written table only
   approximates); and `acorn`, which runs only in the Cloudflare Worker, to parse a
-  scene a model wrote before it is admitted (same design, §12): a Worker
+  scene a model wrote before it is admitted
+  (docs/superpowers/specs/2026-10-08-creative-control-design.md §12): a Worker
   has no `eval`, and admission must read the code without running it, so a
   real parser is the smallest correct tool and a pattern match is not. It
   has no dependencies of its own and reaches no page. The tokenizer already shipped inside
