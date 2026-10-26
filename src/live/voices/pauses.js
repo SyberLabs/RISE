@@ -179,6 +179,14 @@ export function withPauses(voice, { clock = createRealClock() } = {}) {
         },
 
         setRate(next) {
+            if (pause && next > 0 && next !== rate) {
+                const running = pause.cancel !== null;
+                stopPause();
+                const scale = rate / next;
+                pause.left *= scale;
+                pause.length *= scale;
+                if (running) runPause();
+            }
             rate = next;
             return voice.setRate(next);
         },
