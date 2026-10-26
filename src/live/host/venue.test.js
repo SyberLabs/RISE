@@ -880,6 +880,20 @@ describe('catalog words: the reader names one of RISE’s own visuals (§25)', (
         expect(runtime.interject).not.toHaveBeenCalled();
     });
 
+    it('in a reading the reader paused, shows it all the same: no new reading, nothing asked', async () => {
+        const runtime = await playing();
+        runtime.set('interrupted');
+        askAgain('astronomy');
+        expect(runtime.chooseVisual).toHaveBeenCalledWith({ engine: 'astronomy', params: {} });
+        expect(runtime.interject).not.toHaveBeenCalled();
+        expect(note()).toBe('Showing the Astronomy collection.');
+        expect(host.buildRuntime).toHaveBeenCalledTimes(1);
+        // Anything else in a paused reading is a question, as before.
+        runtime.set('interrupted');
+        askAgain('What is a nebula?');
+        await vi.waitFor(() => expect(host.buildRuntime).toHaveBeenCalledTimes(2));
+    });
+
     it('asks the model as before for anything else, and for what the reading could not show', async () => {
         const runtime = await playing();
         askAgain('attractor, and why does it never repeat?');
@@ -1196,13 +1210,39 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         root().removeAttribute('style');
     });
 
-    it('hangs a collection image in the safe rectangle, at its own size and never full-bleed, and takes it down after', async () => {
+    it('holds a collection image in Sophia’s circle, credited under it as a museum label, and takes the credit down after', async () => {
+        const { crank, chamber } = await room({ kind: 'sourced', collections: ['sci-astronomy'] });
+        crank(2000);
+        expect(engine().places.at(-1)).toMatchObject({ frame: 'shell' });
+        expect(root().dataset.liveHang).toBeUndefined();
+        expect($('.live-credit')).toBeNull();
+        // The gallery says which work it shows: its title, then the credit that names only its makers.
+        const label = { title: 'Hubble’s View of Jupiter', creditRequired: true, requiredText: 'NASA, ESA · CC BY 4.0', labelText: 'Hubble’s View of Jupiter' };
+        document.body.dispatchEvent(new CustomEvent('rise:work-shown', { bubbles: true, detail: { label, text: label.requiredText } }));
+        crank(32);
+        const credit = $('.live-credit');
+        expect(credit.textContent).toBe('Hubble’s View of Jupiter · NASA, ESA · CC BY 4.0');
+        const { aperture } = engine().places.at(-1);
+        expect(credit.style.left).toBe(`${aperture.x}px`);
+        expect(Number.parseFloat(credit.style.top)).toBeGreaterThan(aperture.y + aperture.r);
+        expect(credit.style.opacity).toBe(String(aperture.open));
+        // Another visual has no credit under it.
+        chamber.cue = { kind: 'field', renderer: 'attractor', config: {} };
+        crank(2000);
+        expect($('.live-credit')).toBeNull();
+        chamber.cue = { kind: 'sourced', collections: ['sci-astronomy'] };
+        crank(2000);
+        expect($('.live-credit')).not.toBeNull();
+        await host.venue.leave();
+        expect($('.live-credit')).toBeNull();
+    });
+
+    it('hangs a collection image in the safe rectangle where the face does not draw, at its own size, and takes it down after', async () => {
         const { crank, chamber, field } = await room({ kind: 'sourced', collections: ['sci-astronomy'] });
+        $('.live-face').dataset.faceDrawn = 'false';
         crank(2000);
         const px = name => Number.parseFloat(field.style.getPropertyValue(name));
-        expect(engine().places.at(-1)).toMatchObject({ frame: 'full', fit: null });
         expect(root().dataset.liveHang).toBe('true');
-        expect(field.style.getPropertyValue('--live-vk')).toBe('1');
         expect(px('--live-hw')).toBeLessThanOrEqual(window.innerWidth - 32);
         expect(px('--live-hw')).toBeLessThanOrEqual(1.5 * px('--live-hh') + 1e-9);
         expect(px('--live-hx')).toBeCloseTo((window.innerWidth - px('--live-hw')) / 2, 9);
@@ -1447,7 +1487,7 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(note()).toBe('');
     });
 
-    it('lets a collection’s note go once its picture is hung and the room is at rest on it', async () => {
+    it('lets a collection’s note go once its picture is in the circle and the room is at rest on it', async () => {
         const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
         crank(1700);
         const note = () => $('.live-again__note').textContent;
@@ -1455,7 +1495,7 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         expect(note()).toBe('Showing the Astronomy collection.');
         chamber.cue = { kind: 'sourced', collections: ['sci-astronomy'] };
         crank(6000);
-        expect(engine().places.at(-1)?.wipe?.hole).toBe(1);
+        expect(engine().places.at(-1)).toMatchObject({ frame: 'shell', aperture: { hole: 1 } });
         expect(note()).toBe('');
     });
 

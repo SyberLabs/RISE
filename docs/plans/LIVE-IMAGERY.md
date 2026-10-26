@@ -16,8 +16,13 @@ Decided by the owner:
    the first slice.
 3. **"Earth and sky" is its own set:** ESO's night landscapes and NASA's Earth. A later curation step that needs
    the owner's review by eye; not in the first slice.
-4. **The dark room hangs a collection image too,** framed in the safe rectangle like the light room, never
-   full-bleed. This replaces the full-bleed dark room of §4.1, §6 and §7 question 8.
+4. **A collection image is held in Sophia's circle, the outer shell, in every room** (the owner, after trying the
+   first slice, 2026-10-26; this replaces the hung picture of the first slice, and the full frame of §4.1, §6 and
+   §7 question 8). The photograph covers the circle like a porthole; its credit is a caption under the circle,
+   placed from the aperture and opening with it (`venue.js placeCredit`), the gallery's own chip having no corner
+   there. Where the face does not draw there is no circle, and the image is hung in the safe rectangle instead
+   (`frames.js hungRect`), its chip inside it. A collection holds one photograph while its scene is on screen: the
+   Gallery no longer moves on when its pool merely warms (`ContinuousField.poolChanged`, `wake`).
 
 Decided by default, from this design's recommendations; the owner may revisit any of them:
 

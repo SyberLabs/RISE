@@ -1419,6 +1419,23 @@ html[data-live-hang] #chamber-field > .chamber-continuous-field {
 }
 html[data-live-hang] #chamber-field .continuous-field-backdrop { display: none; }
 html[data-live-hang] #chamber-field .continuous-field-label[data-title]::before { content: attr(data-title) " · "; }
+/* Where the face draws, a collection's photograph is held in Sophia's circle, the shell, and covers it as a porthole
+   does: no letterbox and no wash (the gallery sets contain on the image itself, so this must be important). Its credit
+   is the caption under the circle (venue.js placeCredit), set at a size to be read, opening with the aperture. */
+html[data-live-frame="shell"] #chamber-field .chamber-continuous-field .continuous-field-artwork { object-fit: cover !important; }
+html[data-live-frame="shell"] #chamber-field .chamber-continuous-field .continuous-field-backdrop { display: none; }
+.live-credit {
+  position: fixed;
+  z-index: 7;
+  translate: -50% 0;
+  margin: 0;
+  pointer-events: none;
+  text-align: center;
+  text-wrap: balance;
+  font: 400 0.6875rem/1.45 var(--sy-font-sans, system-ui, sans-serif);
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--color-light) 72%, transparent);
+}
 /* The words sit at the foot of the room, above the ask bar, in every frame: below the circle, never over the
    visual; in the full frame over the scrim the face draws behind them. Two lines of them fit where the venue says. */
 html[data-live-frame] #chamber-field {

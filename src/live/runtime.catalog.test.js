@@ -224,6 +224,20 @@ describe('the reader names an engine', () => {
         expect(at).toBeLessThan(back);
     });
 
+    it('in a reading the reader paused, is shown and the reading plays on, as Play would, with nothing asked', async () => {
+        const room = await open();
+        await until(() => room.atoms.some(atom => atom.sourceId === 'beat-1'));
+        room.runtime.hold();
+        expect(room.runtime.status).toBe('interrupted');
+        const at = performance.now();
+        expect(room.runtime.chooseVisual({ engine: 'harmonograph', params: { pendulums: 'rotary' } })).toBe(true);
+        expect(room.runtime.status).toBe('live');
+        await until(() => room.cues.some(entry => entry.at >= at && entry.cue.collections?.[0] === 'harmonograph'));
+        expect(room.journal('visual.chosen')).toEqual([expect.objectContaining({ engine: 'harmonograph' })]);
+        await until(() => room.journal('run.finished').length > 0);
+        expect(room.requests.map(request => request.intent)).toEqual(['answer']);
+    });
+
     it('is refused unless the reading is held for the reader’s words, and for what is not an engine RISE shows', async () => {
         const room = await open();
         await until(() => room.atoms.some(atom => atom.sourceId === 'beat-1'));

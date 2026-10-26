@@ -308,6 +308,7 @@ export class ContinuousField {
         this._projectionHostCleared = false;
         this._front = 0;          // index of the visible layer
         this._currentUrl = null;
+        this._shownPoolKey = null;
         this._currentProjectionUrl = null;
         this._running = false;
         this._paused = false;
@@ -736,8 +737,10 @@ export class ContinuousField {
         layer.backdrop.removeAttribute('src');
         layer.artwork.src = work.url;
         this._renderLayerLabel(layer);
-        // Which work is shown, for a host that keeps the record of a reading's pictures (LiveHost.js, About this reading).
-        this.host?.dispatchEvent?.(new CustomEvent('rise:work-shown', { bubbles: true, detail: { label: work.artworkLabel ?? null } }));
+        // Which work is shown, for a host that keeps the record of a reading's pictures (LiveHost.js, About this reading),
+        // and the words its chip says, for a host that sets them elsewhere (venue.js, the credit under the circle).
+        const label = work.artworkLabel ?? null;
+        this.host?.dispatchEvent?.(new CustomEvent('rise:work-shown', { bubbles: true, detail: { label, text: displayedArtworkLabel(label, this.showArtworkLabels) } }));
         if (layer.artwork.complete && layer.artwork.naturalWidth) {
             this._syncLayerWash(layer);
         }
@@ -796,6 +799,8 @@ export class ContinuousField {
         const generation = this._generation;
         const projectionGeneration = this._projectionGeneration;
         const projectionHost = this.projectionHost;
+        // The pool the work is drawn from: what a wake compares with (poolChanged).
+        const key = this.poolKey();
         let work = null;
         try {
             if (this.getNextWork) {
@@ -804,12 +809,11 @@ export class ContinuousField {
                 // completion protection as image decode.
                 work = await this.getNextWork({
                     currentUrl: this._currentUrl,
-                    poolKey: this.poolKey()
+                    poolKey: key
                 });
             } else {
                 const pool = this.getPool() || [];
                 if (pool.length > 0) {
-                    const key = this.poolKey();
                     // The bag decks per pool identity: a pericope boundary
                     // starts a fresh no-repeat cycle; growth of the same pool
                     // keeps the cycle (ShuffleBag's growth-merge).
@@ -897,6 +901,7 @@ export class ContinuousField {
             if (projectionWork?.living) {
                 this._crossfadeTo(work, first, { living: true });
                 this._currentUrl = url;
+                this._shownPoolKey = key;
                 this._currentProjectionUrl = null;
                 this._finishAdvance();
                 return;
@@ -923,6 +928,7 @@ export class ContinuousField {
 
         this._crossfadeTo(work, first, projectionWork);
         this._currentUrl = url;
+        this._shownPoolKey = key;
         this._currentProjectionUrl = this._usesDistinctProjection()
             ? (projectionWork?.url || this._currentProjectionUrl)
             : url;
@@ -1043,6 +1049,9 @@ export class ContinuousField {
      */
     poolChanged(opts = {}) {
         if (!this._running) return;
+        // A wake (the pool warmed, a prepared cue was admitted) is for a work held over from another pool: one of the
+        // active pool's is already what it would bring, and is kept rather than skipped on.
+        if (opts.wake && this._currentUrl && this._shownPoolKey === this.poolKey()) return;
         if (Number.isFinite(opts.transitionMs) && opts.transitionMs >= 0) {
             this._nextCrossfadeMs = opts.transitionMs;
         }

@@ -1,0 +1,46 @@
+{
+  "id": "LIVE-040",
+  "title": "RISE Live: astronomy in Sophia's circle, one photograph per scene, and a paused reading takes a named visual",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (Experience Engineer)",
+  "priority": "now",
+  "dependencies": ["LIVE-039"],
+  "acceptance": [
+    "Where the face draws, a collection photograph is held in the shell, Sophia's circle, in both rooms, covering it like a porthole; its credit (title, makers, licence) is a caption under the circle that opens with it and never meets the words. Where the face does not draw, it is hung in the safe rectangle as before.",
+    "A collection shows one photograph while its scene is on screen: the Gallery does not move on when its pool merely warms or a prepared cue is admitted (no flash to another work and back). A change of scene still moves it.",
+    "Words that only name a visual ('astronomy') show it at once whether the reading is playing or paused; in a paused reading the reading plays on, as Play would. Before a reading and after one they are still a question."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/live",
+      "note": "The owner, on the deployed room: 'astronomy' sometimes switched the picture and sometimes started a reading about astronomy; the picture went Jupiter, a nebula for a moment, Jupiter again; the photograph filled the room; it should sit in the outer shell, framed by Sophia's circle."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/visuals/continuous-field.test.js",
+      "note": "Branch live-astro-shell. New tests failed first on the old code: the Gallery wake moved Jupiter to the nebula (continuous-field.test.js); a paused reading's 'astronomy' became a new reading (venue.test.js) and chooseVisual refused a paused reading (runtime.catalog.test.js). npx vitest run src/live/host src/scenes src/visuals/continuous-field.test.js src/live/runtime.catalog.test.js src/live/catalog-words.test.js src/live/boundary.test.js: 25 files, 853 passed; continuous-field and visual-cortex: 221 passed."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "src/live/host/venue.js",
+      "note": "Agent observation, not a human's: the dev server at 1440x900 and 390x844, dark and light rooms. Sampled every 50 ms for 9 s after 'astronomy': before, one work, a crossfade to another 0.65 s later and back at 8.9 s; after, one work throughout. The photograph fills the shell; the caption sits 9 px clear of the words on desktop and 57 px on the phone."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T23:15:00.000Z",
+      "summary": "Created from the owner's trial of the deployed astronomy slice; built on branch live-astro-shell. Not merged, not deployed, not accepted by a human."
+    }
+  ],
+  "updatedAt": "2026-10-26T23:15:00.000Z",
+  "revision": 1,
+  "summary": "Astronomy held in Sophia's circle with its credit under it, one photograph per scene (the Gallery no longer skips on a wake), and a paused reading takes a named visual instead of starting a new one.",
+  "blocker": null
+}
