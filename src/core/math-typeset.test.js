@@ -9,7 +9,7 @@ afterEach(() => resetMathForTests());
 describe('finding the maths in a text', () => {
   it('knows a text with a formula from one without', () => {
     expect(hasMath('Its length is $\\sqrt{x^2+y^2}$.')).toBe(true);
-    expect(hasMath('It costs $5 and $6.')).toBe(true);
+    expect(hasMath('It costs $5 and $6.')).toBe(false);
     expect(hasMath('No maths here.')).toBe(false);
     expect(hasMath('A lone $ sign.')).toBe(false);
     expect(hasMath(undefined)).toBe(false);
