@@ -75,13 +75,13 @@ describe('content security policy', () => {
         expect(hosts.some(host => host.includes('*'))).toBe(false);
     });
 
-    it('lets the exact Anthropic, OpenAI and ElevenLabs API origins receive a reader-owned key, in both mirrored policies', () => {
+    it('lets the exact Anthropic, OpenAI, NVIDIA and ElevenLabs API origins receive a reader-owned key, in both mirrored policies', () => {
         // The Live venue asks these from the browser on the reader's typed key (src/live/adapters/anthropic.js,
-        // openai-chat.js; src/live/voices/elevenlabs.js); a host missing here is blocked before fetch reaches it.
+        // openai-chat.js, nvidia.js; src/live/voices/elevenlabs.js); a host missing here is blocked before fetch reaches it.
         const headers = readFileSync(resolve(process.cwd(), 'public/_headers'), 'utf8').match(/Content-Security-Policy: ([^\r\n]+)/u)?.[1] ?? '';
         for (const policy of [csp, headers]) {
             const hosts = policy.split(';').map(item => item.trim()).find(item => item.startsWith('connect-src')).split(/\s+/u);
-            for (const [origin, family] of [['https://api.anthropic.com', /anthropic/u], ['https://api.openai.com', /openai/u], ['https://api.elevenlabs.io', /elevenlabs/u]]) {
+            for (const [origin, family] of [['https://api.anthropic.com', /anthropic/u], ['https://api.openai.com', /openai/u], ['https://integrate.api.nvidia.com', /nvidia/u], ['https://api.elevenlabs.io', /elevenlabs/u]]) {
                 expect(hosts.filter(host => family.test(host))).toEqual([origin]);
             }
         }

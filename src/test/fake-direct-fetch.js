@@ -21,6 +21,11 @@
  * OpenAI documents no mid-stream error event for chat completions: the fake's is
  * its error object sent as a chunk, which the adapter must not take for words.
  *
+ * NVIDIA (https://docs.api.nvidia.com/nim/reference/llm-apis, read 2026-10-26) streams OpenAI's chat completions
+ * chunks; its fake is OpenAI's wire with an NVIDIA model, and a refusal is what integrate.api.nvidia.com answered a
+ * keyless request on 2026-10-26: `application/problem+json` `{ status, title, detail }` for 401 and 403, plain text for
+ * a model it does not serve, and OpenAI's `{ error }` for a malformed body.
+ *
  * Every event is sent as bytes cut at an uneven place, so a line arrives in pieces.
  */
 import { scriptFor } from '../live/fixtures/black-holes.js';
@@ -80,7 +85,7 @@ export const openaiClose = (reason, { usage = OPENAI_USAGE, done = true } = {}) 
  * @param {boolean} [options.done] whether the stream ends with its terminal marker
  * @param {(text: string) => string} [options.textFor] the line-format answer for the reader's message
  */
-function createFakeFetch(wire, { clock, everyMs = 30, failAfter, lossAfter, cutAfter, status, errorBody, networkError, done = true, textFor }) {
+function createFakeFetch(wire, { clock, everyMs = 30, failAfter, lossAfter, cutAfter, status, errorBody, errorType = 'application/json', networkError, done = true, textFor }) {
     const calls = [];
     const streams = [];
 
@@ -88,7 +93,7 @@ function createFakeFetch(wire, { clock, everyMs = 30, failAfter, lossAfter, cutA
         calls.push({ url, init });
         if (init.signal?.aborted) throw abortError();
         if (networkError) throw networkError;
-        if (status) return new Response(errorBody ?? wire.refusal(status), { status, headers: { 'Content-Type': 'application/json' } });
+        if (status) return new Response(errorBody ?? wire.refusal(status), { status, headers: { 'Content-Type': errorType } });
         const asked = JSON.parse(init.body).messages.find(message => message.role === 'user').content;
         const text = textFor ? textFor(asked) : scriptToLines(scriptFor(requestFrom(asked)));
         const stop = new AbortController();
@@ -156,4 +161,30 @@ export function createFakeOpenAIChatFetch(options) {
         failure: `data: ${JSON.stringify({ error: { message: 'The server had an error while processing your request.', type: 'server_error', code: null, param: null } })}\n\n`,
         refusal: status => JSON.stringify({ error: { message: `Refused with ${status}`, type: status === 429 ? 'rate_limit_error' : 'invalid_request_error', code: null, param: null }, status })
     }, options);
+}
+
+/**
+ * An NVIDIA-shaped fake key for tests that prove a key is scrubbed.
+ *
+ * Joined when the test runs, so the source file never holds one contiguous literal.
+ */
+export function fakeNvidiaKey(rest = `not-a-real-key-${'0'.repeat(20)}`) {
+    return ['nv', 'api', '-', rest].join('');
+}
+
+const NVIDIA_PROBLEM = { 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 429: 'Too Many Requests', 500: 'Internal Server Error', 503: 'Service Unavailable' };
+
+export function createFakeNvidiaFetch(options) {
+    const chunk = (delta, extra) => openaiChunk(delta, { model: 'nvidia/nemotron-3.5-lightning-30b-a3b', ...extra });
+    return createFakeFetch({
+        open: () => [chunk({ role: 'assistant', content: '' })],
+        text: content => chunk({ content }),
+        close: (reason, { done }) => [
+            chunk({}, { choices: [{ index: 0, delta: {}, logprobs: null, finish_reason: reason }] }),
+            chunk({}, { choices: [], usage: OPENAI_USAGE }),
+            ...(done ? ['data: [DONE]\n\n'] : [])
+        ],
+        failure: `data: ${JSON.stringify({ error: { message: 'The server had an error while processing your request.', type: 'server_error', code: null, param: null } })}\n\n`,
+        refusal: status => JSON.stringify({ status, title: NVIDIA_PROBLEM[status] ?? 'Error', detail: `Refused with ${status}` })
+    }, { errorType: 'application/problem+json', ...options });
 }
