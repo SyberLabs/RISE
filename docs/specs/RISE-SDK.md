@@ -330,6 +330,7 @@ A parameter that is `cueable` changes while the engine runs. Every other paramet
 | `attractor` | `intensity` | number | 0.4 to 0.75 | 0.65 | yes |
 | `attractor` | `speed` | number | 0.25 to 4 | 1 | no |
 | `attractor` | `trace` | enum | `filament`, `swarm` | `filament` | no |
+| `attractor` | `streaks` | enum | `none`, `night` | `none` | no |
 | `genesis` | `preset` | enum | `harmonic`, `chaotic`, `twittering`, `architectural`, `gravitational` | `harmonic` | no |
 | `living-flame` | `preset` | enum | `ember-cathedral`, `violet-nebula`, `glacial-silk`, `solar-bloom`, `verdant-current`, `prismatic-knot` | `ember-cathedral` | no |
 | `living-flame` | `energy` | number | 0 to 1 | 0.35 | yes |
