@@ -372,7 +372,7 @@ function materializeValidatedRiseCurrent(current, lowered = null, { growing = fa
     providerId: current.origin.kind === 'model' ? current.origin.provider : 'local',
     provenance: { origin: current.origin, currentId: current.id },
     data: segment.text,
-    ...(segment.literal ? { literal: true } : {})
+    ...(segment.literal ? { literal: true } : hasMath(segment.text) ? { math: true } : {})
   }));
   return {
     program,

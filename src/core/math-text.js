@@ -77,21 +77,19 @@ function inlineClose(text, at) {
 const looksLikeMoney = tex => isDigit(tex[0]) && !/[\\^_=+<>]/u.test(tex);
 
 /**
- * A text as its words and its maths, in order: `{ kind: 'text', value }` runs
- * and `{ kind: 'math', value, display }` formulas (the TeX without its delimiters).
+ * Where each formula of a text is: `{ start, end, value, display }`, `start`
+ * and `end` around the formula with its delimiters, `value` the TeX inside.
  * Reads `$$…$$`, `\[…\]`, `$…$` (Pandoc's rule, and never money), `\(…\)`,
  * TeX in backticks, and bare TeX that begins with a known command.
  */
-export function splitMath(text) {
-  const parts = [];
-  if (typeof text !== 'string' || !text) return parts;
-  let words = '';
-  const math = (value, display) => {
+export function mathSpans(text) {
+  const spans = [];
+  if (typeof text !== 'string' || !text) return spans;
+  /** A formula from `start` to `end`; false if its TeX is blank. */
+  const math = (start, end, value, display) => {
     const tex = value.trim();
     if (!tex) return false;
-    if (words) parts.push({ kind: 'text', value: words });
-    words = '';
-    parts.push({ kind: 'math', value: tex, display });
+    spans.push({ start, end, value: tex, display });
     return true;
   };
   for (let i = 0; i < text.length;) {
@@ -99,28 +97,26 @@ export function splitMath(text) {
     const next = text[i + 1];
     if (ch === '$' && next === '$') {
       const close = text.indexOf('$$', i + 2);
-      if (close > i + 2 && math(text.slice(i + 2, close), true)) { i = close + 2; continue; }
-      words += '$$';
+      if (close > i + 2 && math(i, close + 2, text.slice(i + 2, close), true)) { i = close + 2; continue; }
       i += 2;
       continue;
     }
     if (ch === '$') {
       const close = isSpace(next) ? -1 : inlineClose(text, i);
-      if (close > 0 && !looksLikeMoney(text.slice(i + 1, close)) && math(text.slice(i + 1, close), false)) { i = close + 1; continue; }
-      words += ch;
+      if (close > 0 && !looksLikeMoney(text.slice(i + 1, close)) && math(i, close + 1, text.slice(i + 1, close), false)) { i = close + 1; continue; }
       i += 1;
       continue;
     }
     if (ch === '\\' && (next === '[' || next === '(')) {
       const close = text.indexOf(next === '[' ? '\\]' : '\\)', i + 2);
-      if (close > 0 && math(text.slice(i + 2, close), next === '[')) { i = close + 2; continue; }
+      if (close > 0 && math(i, close + 2, text.slice(i + 2, close), next === '[')) { i = close + 2; continue; }
     }
-    if (ch === '\\' && next === '$') { words += '\\$'; i += 2; continue; }
+    if (ch === '\\' && next === '$') { i += 2; continue; }
     if (ch === '\\') {
       const name = /^\\([A-Za-z]+)/u.exec(text.slice(i, i + 40));
       if (name && BARE.has(name[1])) {
         const end = bareEnd(text, i);
-        math(text.slice(i, end), false);
+        math(i, end, text.slice(i, end), false);
         i = end;
         continue;
       }
@@ -130,14 +126,28 @@ export function splitMath(text) {
       const inner = close > 0 ? text.slice(i + 1, close) : '';
       if (inner && !inner.includes('\n')) {
         const dollars = /^\s*(\$\$?)([^$]+)\1\s*$/u.exec(inner);
-        if (dollars && math(dollars[2], dollars[1] === '$$')) { i = close + 1; continue; }
-        if (/\\[A-Za-z]/u.test(inner) && math(inner, false)) { i = close + 1; continue; }
+        if (dollars && math(i, close + 1, dollars[2], dollars[1] === '$$')) { i = close + 1; continue; }
+        if (/\\[A-Za-z]/u.test(inner) && math(i, close + 1, inner, false)) { i = close + 1; continue; }
       }
     }
-    words += ch;
     i += 1;
   }
-  if (words) parts.push({ kind: 'text', value: words });
+  return spans;
+}
+
+/**
+ * A text as its words and its maths, in order: `{ kind: 'text', value }` runs
+ * and `{ kind: 'math', value, display }` formulas (the TeX without its delimiters).
+ */
+export function splitMath(text) {
+  const parts = [];
+  let cursor = 0;
+  for (const { start, end, value, display } of mathSpans(text)) {
+    if (start > cursor) parts.push({ kind: 'text', value: text.slice(cursor, start) });
+    parts.push({ kind: 'math', value, display });
+    cursor = end;
+  }
+  if (typeof text === 'string' && cursor < text.length) parts.push({ kind: 'text', value: text.slice(cursor) });
   return parts;
 }
 

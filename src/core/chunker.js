@@ -6,6 +6,7 @@
 import { Atom } from './models.js';
 import { READING_PACE } from './reading-limits.js';
 import { LITERAL_BRACKET, LITERAL_PIPE, SOURCE_MARKER, SOURCE_SCORE_CUT, restoreLiteral, isDroppedWordToken } from './source-tokens.js';
+import { mathSpans } from './math-text.js';
 
 // The vocabulary the span aligner shares with the chunker lives in the leaf
 // `source-tokens.js` so that `source-span.js` need not import the chunker and
@@ -528,6 +529,43 @@ function splitPhrases(text, preserveSpeakerHead = false) {
  */
 export const SENTENCE_BOUNDARY = /(?<=[.!?])\s+(?=[A-Z])/u;
 
+/**
+ * A formula is masked as one word so that no rule cuts inside it, and put back
+ * as written once its phrase is made. The sentinels are visible characters
+ * (control bytes are forbidden by source-hygiene) no other text uses.
+ */
+const MATH_OPEN = '⟦';
+const MATH_CLOSE = '⟧';
+const MATH_SENTINEL = new RegExp(`${MATH_OPEN}(\\d+)${MATH_CLOSE}`, 'gu');
+
+function maskMath(text) {
+    const held = [];
+    let masked = '';
+    let cursor = 0;
+    for (const span of mathSpans(text)) {
+        masked += `${text.slice(cursor, span.start)}${MATH_OPEN}${held.length}${MATH_CLOSE}`;
+        held.push({ source: text.slice(span.start, span.end), display: span.display });
+        cursor = span.end;
+    }
+    return { masked: masked + text.slice(cursor), held };
+}
+
+/** A piece with each display formula as a piece of its own, the words around it on either side. */
+function aloneDisplay(piece, held) {
+    const out = [];
+    let words = '';
+    for (const part of piece.split(/(⟦\d+⟧)/u)) {
+        const index = /^⟦(\d+)⟧$/u.exec(part)?.[1];
+        if (index !== undefined && held[Number(index)].display) {
+            if (words.trim()) out.push(words.trim());
+            out.push(part);
+            words = '';
+        } else words += part;
+    }
+    if (words.trim()) out.push(words.trim());
+    return out;
+}
+
 function splitSentences(text) {
     // We remove the pipe (|) split to distinguish this from Phrase mode
     const sentences = text.split(SENTENCE_BOUNDARY);
@@ -552,8 +590,13 @@ function splitSentences(text) {
  * `npm run study:chunking` measures PHRASE_FLOOR_WORDS instead of
  * asserting it. A boolean `true` means the shipped floor.
  */
-export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null, phraseFloor = true, verseLines = false, literal = false } = {}) {
+export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null, phraseFloor = true, verseLines = false, literal = false, math = false } = {}) {
     if (typeof text !== 'string') return [];
+
+    // `math` (a Current's text): each formula is one word, and a display formula a phrase of its own.
+    const { masked, held: formulas } = math ? maskMath(text) : { masked: text, held: [] };
+    text = masked;
+    const unmask = content => (formulas.length ? content.replace(MATH_SENTINEL, (_, index) => formulas[Number(index)].source) : content);
 
     // Authored markers are choreography — promote each to its own
     // paragraph before linguistic splitting so every mode preserves them.
@@ -690,7 +733,8 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
             // Over-long chunks are SUBDIVIDED into readable pieces (all
             // multi-word modes), never left for a ceiling to compress
             // into transient unreadable text
-            const pieces = mode === 'word' ? [chunk] : splitLongChunk(chunk);
+            const pieces = (mode === 'word' ? [chunk] : splitLongChunk(chunk))
+                .flatMap(piece => (formulas.length ? aloneDisplay(piece, formulas) : [piece]));
             const wasSplit = pieces.length > 1;
 
             for (const piece of pieces) {
@@ -733,7 +777,7 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
                 }
 
                 atoms.push(new Atom({
-                    content: cleanContent,
+                    content: unmask(cleanContent),
                     modality: 'text',
                     duration: Math.round(duration),
                     weight: 0.5,

@@ -374,6 +374,8 @@ function normalizeSources(config) {
             // session-wide flag would have to be wrong about two of them.
             verseLines: source.verseLines === true,
             ...(literal ? { literal: true } : {}),
+            // A Current's text, whose maths the chunker keeps whole (math-text.js).
+            ...(source.math === true && !literal ? { math: true } : {}),
             raw
         };
     }).filter(source => source.raw.trim().length > 0);
@@ -608,7 +610,8 @@ export function compileSession(input = {}) {
                         ? config.phraseFloor
                         : true),
                 verseLines: source.verseLines === true,
-                literal: source.literal === true
+                literal: source.literal === true,
+                math: source.math === true
             });
             // Concat, never spread: 120k atoms as `push(...)` overflows the
             // call stack before the budget check below can refuse the session.

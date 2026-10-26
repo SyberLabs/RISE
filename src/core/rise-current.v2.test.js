@@ -193,6 +193,30 @@ describe('what a v2 Current carries for the layers', () => {
   });
 });
 
+describe('maths in the phrases of a Current', () => {
+  const phrases = say => compileRiseCurrent({ ...V2, scenes: [], beats: [{ say }] }).atoms
+    .filter(atom => atom.sourceId === 'beat-0').map(atom => atom.content);
+
+  it('never cuts a formula, however long, and whatever commas or connectives it holds', () => {
+    const formula = '$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} \\text{ and } f(x, y) = x^2 + y^2 + z^2 + w^2 + v^2 + u^2 + t^2$';
+    const cut = phrases(`Solve it with ${formula} and you get both roots of the quadratic at once, every time you try.`);
+    expect(cut.filter(phrase => phrase.includes('$'))).toEqual([expect.stringContaining(formula)]);
+    expect(cut.join(' ')).toBe(`Solve it with ${formula} and you get both roots of the quadratic at once, every time you try.`);
+  });
+
+  it('gives a display formula a phrase of its own, with the words before and after on either side', () => {
+    expect(phrases('The levels are $$E_n = \\hbar\\omega\\left(n + \\tfrac{1}{2}\\right)$$ and they are evenly spaced.')).toEqual([
+      'The levels are', '$$E_n = \\hbar\\omega\\left(n + \\tfrac{1}{2}\\right)$$', 'and they are evenly spaced.'
+    ]);
+    expect(phrases('Newton wrote \\[F = ma\\] once.')).toEqual(['Newton wrote', '\\[F = ma\\]', 'once.']);
+  });
+
+  it('keeps every other form of maths whole, exactly as written', () => {
+    expect(phrases('It grows with \\omega, and `E = \\frac{1}{2}\\hbar\\omega` is its energy.').join(' '))
+      .toBe('It grows with \\omega, and `E = \\frac{1}{2}\\hbar\\omega` is its energy.');
+  });
+});
+
 describe('a style', () => {
   const PLAIN = Object.freeze({
     schema: 'rise.current.v2', id: 'styled', title: 'Styled', origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
