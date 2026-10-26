@@ -9,6 +9,8 @@
  * Nothing here is executable. It is data a provider adapter turns into events.
  */
 
+import { DEMO_REFUSAL } from './demo-questions.js';
+
 /** A Dive anchor over `phrase`, found in `text`, exactly as `rise.current.v1` wants it. */
 function anchorOver(text, phrase) {
     const from = text.indexOf(phrase);
@@ -122,7 +124,7 @@ export const UNKNOWN_ANSWER = Object.freeze({
     segments: Object.freeze([
         {
             id: 'none', visual: 'still',
-            text: 'This demonstration can only explain black holes.',
+            text: DEMO_REFUSAL.join(' '),
             state: { uncertainty: 0.8 }
         }
     ])

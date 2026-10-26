@@ -29,6 +29,7 @@ import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenu
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
 import { createFrameDirector, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualOf, visualTransform } from './frames.js';
 import { catalogNote, recogniseVisual } from '../catalog-words.js';
+import { DEMO_OFFERED, DEMO_QUESTIONS } from '../fixtures/demo-questions.js';
 
 /** How long the bar still says what a reader's catalog word showed once the room is at rest on it. */
 const CHOSEN_BEAT_MS = 1_500;
@@ -210,6 +211,7 @@ export class LiveVenue {
             <input id="live-venue-question" name="question" type="text" maxlength="2000" autocomplete="off" enterkeyhint="go" placeholder="Ask anything.">
             <button type="submit" class="live-start">Ask <span aria-hidden="true">→</span></button>
           </div>
+          <p class="live-venue__try" hidden></p>
           <p class="live-venue__choices">Answered by <button type="button" class="live-venue__choice" data-venue-open="providers" aria-expanded="false" aria-controls="live-venue-providers-panel"></button><span aria-hidden="true"> · </span>spoken by <button type="button" class="live-venue__choice" data-venue-open="voices" aria-expanded="false" aria-controls="live-venue-voices-panel"></button></p>
           <div class="live-venue__panel" id="live-venue-providers-panel" data-panel="providers" hidden>
             <fieldset class="live-venue__providers">
@@ -282,6 +284,14 @@ export class LiveVenue {
         this.form.addEventListener('submit', event => {
             event.preventDefault();
             this.ask(this.field.value);
+        });
+        // A question the Demo answers, offered while it is the one answering: asked as if typed.
+        this.tryLine = $('.live-venue__try');
+        this.tryLine.addEventListener('click', event => {
+            const question = event.target.closest?.('button[data-question]')?.dataset.question;
+            if (!question) return;
+            this.field.value = question;
+            this.ask(question);
         });
         // The face listens while the reader types a question.
         this.field.addEventListener('input', () => this.typed(this.field));
@@ -418,6 +428,24 @@ export class LiveVenue {
         if (answered) {
             answered.textContent = name;
             answered.setAttribute('aria-label', `Who answers: ${name}`);
+        }
+        // The Demo knows a few subjects: the field says so, and a few of its questions are offered under it.
+        const demo = !entry || entry.id === 'mock';
+        if (this.field) this.field.placeholder = demo ? 'Ask about black holes and more.' : 'Ask anything.';
+        if (this.tryLine) {
+            this.tryLine.hidden = !demo;
+            if (demo && !this.tryLine.childElementCount) {
+                const label = this.doc.createElement('span');
+                label.textContent = 'Try';
+                this.tryLine.replaceChildren(label, ...DEMO_QUESTIONS.slice(0, DEMO_OFFERED).map(question => {
+                    const button = this.doc.createElement('button');
+                    button.type = 'button';
+                    button.className = 'live-venue__question';
+                    button.dataset.question = question;
+                    button.textContent = question;
+                    return button;
+                }));
+            }
         }
         const voice = this.host.voiceChoice === 'elevenlabs' ? 'ElevenLabs' : 'your device';
         spoken.textContent = voice;
@@ -688,6 +716,13 @@ export class LiveVenue {
             host.controls = stage;
             this.stage = stage;
             this.reading = { runtime, stage, turn };
+            // The field the question was asked in goes, or would take every key as words: the stage takes the focus, so
+            // its keys (Space, R, F, the arrows, the pace) work and a screen reader is in the reading. Focus the reader
+            // put anywhere else is left where it is.
+            const active = this.doc.activeElement;
+            if (!active || active === this.doc.body || this.form?.contains(active) || active.closest?.('.live-again')) {
+                stage.element.focus({ preventScroll: true });
+            }
             // A sealed room has nothing to ask again: only the way back to its page.
             if (this.sealed) this.ensureLeave();
             else this.ensureBar();

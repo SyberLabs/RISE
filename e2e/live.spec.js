@@ -50,13 +50,23 @@ function watchErrors(page) {
     return errors;
 }
 
-test('expected account denial leaves unrelated HTTP and runtime errors observable', async ({ page }) => {
+test('a browser never signed in asks for no identity; one signed in before hears the denial and forgets; other errors still show', async ({ page }) => {
     const errors = watchErrors(page);
-    const accountResponse = page.waitForResponse(response => response.url() === 'https://syberlabs.io/admin/api/v1/account');
+    const ACCOUNT = 'https://syberlabs.io/admin/api/v1/account';
+    const asked = [];
+    page.on('request', request => { if (request.url() === ACCOUNT) asked.push(request.url()); });
     await page.goto(OPEN);
+    await expect(page.getByRole('link', { name: 'Staff sign in to SyberLabs' })).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.waitForTimeout(300);
+    expect(asked).toEqual([]);
+    await page.evaluate(() => localStorage.setItem('rise.account.signedIn', '1'));
+    const accountResponse = page.waitForResponse(response => response.url() === ACCOUNT);
+    await page.reload();
     const denied = await accountResponse;
     expect(denied.status()).toBe(401);
     expect(await denied.json()).toEqual({ version: 1, error: 'signin_required' });
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('rise.account.signedIn'))).toBeNull();
     await expect(page.getByRole('link', { name: 'Staff sign in to SyberLabs' })).toBeVisible();
     expect(errors).toEqual([]);
     await page.route('**/api/conformance-denial', route => route.fulfill({ status: 401, body: 'unrelated denial' }));
@@ -138,7 +148,7 @@ test.describe('the canonical flow', () => {
         await page.locator('#live-prompt').fill('What is the airspeed of an unladen swallow?');
         await page.locator('.live-start').click();
         await expect(page.locator('#live-controls')).toBeVisible();
-        await expectShown(page, 'This demonstration can only explain black holes.');
+        await expectShown(page, 'This demo knows five subjects');
         await page.getByRole('button', { name: 'Stop', exact: true }).click();
     });
 
@@ -479,7 +489,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(again).toBeVisible();
         await page.locator('#live-again-question').fill('What is a quasar?');
         await page.locator('#live-again-question').press('Enter');
-        await expectShown(page, 'This demonstration can only explain black holes.');
+        await expectShown(page, 'This demo knows five subjects');
         expect(await ground()).toBe(ember);
         await stage.getByRole('button', { name: 'Settings', exact: true }).click();
         await expect(page.locator('#rise-settings-theme')).toHaveValue('ember');
@@ -1096,7 +1106,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await page.locator('#live-again-question').press('Enter');
         await expect.poll(async () => (await journal()).find(entry => entry.type === 'earlier.sent') ?? null, { timeout: 15_000 }).not.toBeNull();
         expect((await journal()).find(entry => entry.type === 'earlier.sent')).toMatchObject({ count: 1 });
-        await expectShown(page, 'This demonstration can only explain black holes');
+        await expectShown(page, 'This demo knows five subjects');
         expect(errors).toEqual([]);
     });
 
@@ -1175,7 +1185,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect.poll(answered, { timeout: 15_000 }).not.toBeNull();
         const first = await answered();
         console.log(`interjection: the reader's words to RISE's first word of answer ${Math.round(first.at - asked.at)} ms`);
-        await expectShown(page, 'Good question');
+        await expectShown(page, 'The horizon is not a surface');
 
         // Pause during the answer holds the answer.
         const stage = page.locator('#rise-stage-controls');
@@ -1191,7 +1201,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
             .toMatchObject({ beats: 2, ending: 'resume' });
         const passages = await hooks.passages();
         expect(passages.slice(1, 3).map(passage => passage.text)).toEqual([
-            'Good question: the horizon is not a surface you could touch.',
+            'The horizon is not a surface you could touch.',
             'It is only the distance past which light can no longer climb back out.'
         ]);
         // After the answer, the held passage again from the phrase the voice was held at.
@@ -1272,7 +1282,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(stage.getByRole('button', { name: /^Play again/u })).toHaveCount(1, { timeout: 60_000 });
         await page.locator('#live-again-question').fill('What is a quasar?');
         await page.locator('#live-again-question').press('Enter');
-        await expectShown(page, 'This demonstration can only explain black holes.');
+        await expectShown(page, 'This demo knows five subjects');
         const sent = await page.evaluate(() => window.__riseLive.perception());
         expect(sent.events).toEqual(expect.arrayContaining([
             { type: 'visual.changed', by: 'rise', parameter: 'look', value: 'flame' },

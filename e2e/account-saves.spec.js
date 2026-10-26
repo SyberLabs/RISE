@@ -23,6 +23,8 @@ const seed = async page => page.evaluate(async record => {
 }, work);
 
 async function mockAccount(page, onPost = () => {}, { failListAfterSave = false } = {}) {
+  // A browser this reader has signed in on before: only such a browser looks up its identity (account-control.js).
+  await page.addInitScript(() => localStorage.setItem('rise.account.signedIn', '1'));
   let didSave = false;
   let failedList = false;
   await page.route('https://syberlabs.io/admin/api/v1/**', async route => {
@@ -97,6 +99,7 @@ test('a detail response from an old account cannot overwrite the browser library
   let accountId = 'u1';
   let releaseDetail;
   let profileReads = 0;
+  await page.addInitScript(() => localStorage.setItem('rise.account.signedIn', '1'));
   await page.route('https://syberlabs.io/admin/api/v1/**', async route => {
     const req = route.request();
     const headers = { 'Access-Control-Allow-Origin': new URL(page.url()).origin, 'Access-Control-Allow-Credentials': 'true', 'Access-Control-Allow-Headers': 'Content-Type,X-SyberLabs-Account,X-SyberLabs-Expected-User', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS' };

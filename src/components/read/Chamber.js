@@ -133,7 +133,7 @@ import { manifestFor } from '../../scenes/manifests.js';
 import { createFlashWatch, createSceneRuntime, SCENE_VISUAL_MANIFEST } from '../../scenes/scene-runtime.js';
 import { VisualFlashGate } from '../../core/visual-safety.js';
 import { mountSceneLayer } from './scene-layer.js';
-import { hexOfColor, mountFigureLayer } from './figure-layer.js';
+import { embeddedFace, hexOfColor, mountFigureLayer } from './figure-layer.js';
 import { admitSvg } from '../../core/svg-admission.js';
 import './Chamber.css';
 
@@ -2991,12 +2991,16 @@ export class Chamber {
     let record = null;
     const colors = this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session);
     this._markPicture(field, 'figure');
+    const words = getComputedStyle(field.querySelector('#atom-display') ?? field);
     const layer = mountFigureLayer({
       field,
       insertBehindReading: (host, node) => this._insertBehindReading(host, node),
       svg: cue.svg,
       // A reading that names no theme draws its figure in its words' own ink: currentColor in an image is otherwise black.
-      ink: colors?.text ?? hexOfColor(getComputedStyle(field.querySelector('#atom-display') ?? field).color),
+      ink: colors?.text ?? hexOfColor(words.color),
+      // Its dark parts (class dark) in the theme's dark, here its background, and its labels in the words' face (figure-layer.js).
+      dark: colors?.background ?? hexOfColor(getComputedStyle(field).backgroundColor) ?? hexOfColor(getComputedStyle(document.body).backgroundColor),
+      face: /<text\b/u.test(cue.svg) ? embeddedFace(document, words.fontFamily) : null,
       onError: () => {
         failed('image', 'the figure could not be drawn as an image');
         if (this._visualFieldDirector?.active === record) this.applyScheduledVisualCue(this._sceneFallbackCue(), {});

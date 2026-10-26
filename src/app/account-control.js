@@ -2,6 +2,22 @@ import { ACCOUNT_SIGN_IN, getAccount } from '../core/account-service.js';
 import { appLocation, IN_HOST_CARD } from '../core/embed-address.js';
 import './account-control.css';
 
+/**
+ * Whether this browser has been signed in, or set out to sign in: only then is identity looked up. The account
+ * service answers a reader who is not signed in with a 401, which every browser reports as an error, on every visit
+ * and every return to the tab; most readers never sign in.
+ */
+const SIGNED_IN_BEFORE = 'rise.account.signedIn';
+function signedInBefore() {
+  try { return globalThis.localStorage?.getItem(SIGNED_IN_BEFORE) === '1'; } catch { return false; }
+}
+function rememberSignedIn(signedIn) {
+  try {
+    if (signedIn) globalThis.localStorage?.setItem(SIGNED_IN_BEFORE, '1');
+    else globalThis.localStorage?.removeItem(SIGNED_IN_BEFORE);
+  } catch { /* no storage: identity is looked up only once the reader sets out to sign in */ }
+}
+
 /** Outside route containers, so reading and every room retain this entrance. */
 export function mountAccountControl() {
   // A host card shows the reading and its controls, nothing over them, and
@@ -34,11 +50,14 @@ export function mountAccountControl() {
     link.setAttribute('aria-label', 'Staff sign in to SyberLabs');
   };
   const refresh = async () => {
-    if (isolated()) { clearAccount(); return; }
+    if (isolated() || !signedInBefore()) { clearAccount(); return; }
     const generation = ++revision;
     let current = null;
-    try { current = await getAccount(); } catch { /* signed out or unavailable */ }
+    let signedOut = false;
+    try { current = await getAccount(); } catch (error) { signedOut = error?.status === 401; /* else unavailable */ }
     if (destroyed || generation !== revision) return;
+    if (current) rememberSignedIn(true);
+    else if (signedOut) rememberSignedIn(false);
     if (isolated()) { clearAccount(); return; }
     if (user?.id !== current?.id) accountRevision++;
     user = current;
@@ -53,6 +72,8 @@ export function mountAccountControl() {
       if (remembered && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) event.preventDefault();
       return;
     }
+    // Setting out to sign in: when the reader comes back, identity is looked up.
+    if (!user) rememberSignedIn(true);
     if (!user || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     if (opening) return;
