@@ -27,7 +27,7 @@ import { connectionState, subscribeConnection, takeConnectionNotice } from '../.
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { OPENROUTER_DEFAULT_MODEL } from '../adapters/openrouter-model.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
-import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
+import { FACE_SKINS, faceDark, faceLight, facePalette, faceStill } from './face-still.js';
 import { createFrameDirector, frameGeometry, frameOf, holdsContent, hungPicture, hungRect, restScale, roomLayout, visualOf, visualTransform } from './frames.js';
 import { collectionEngine } from '../../core/beats.js';
 import { catalogNote, recogniseVisual } from '../catalog-words.js';
@@ -441,7 +441,11 @@ export class LiveVenue {
      * the document's root, not the venue's, so the page behind the app's own fade-in wears the same ground.
      */
     paintSkin() {
-        for (const [name, value] of Object.entries(facePalette(this.faceSkin))) this.doc.documentElement.style.setProperty(name, value);
+        const root = this.doc.documentElement;
+        for (const [name, value] of Object.entries(facePalette(this.faceSkin))) root.style.setProperty(name, value);
+        // A light face makes a light room (LiveHost.css, "The light room"): the reading and the stage wear it too.
+        if (faceLight(this.faceSkin)) root.dataset.liveRoom = 'light';
+        else delete root.dataset.liveRoom;
     }
 
     /**
@@ -1182,6 +1186,15 @@ export class LiveVenue {
         this.faceEngine?.place?.(null);
     }
 
+    /**
+     * Whether the visual on screen is fitted into the room's safe rectangle in the full frame: a picture with content
+     * always; in a light room every visual, which keeps its own night there rather than laying it over the room. A
+     * sourced image is the gallery's, which places it and its credit itself: scaled again, the credit would shrink.
+     */
+    hangs(cue) {
+        return holdsContent(cue) || (faceLight(this.faceSkin) && frameOf(cue) === 'full' && visualOf(cue) !== 'sourced');
+    }
+
     /** The Chamber's visual whole and unmoved, and the root unmarked: as the Reader and the card always have it. */
     unframe() {
         delete this.doc.documentElement.dataset.liveFrame;
@@ -1265,7 +1278,7 @@ export class LiveVenue {
             if (key !== framing.key) {
                 framing.key = key;
                 // The outgoing figure or scene is still fading out; it stays fitted until the crossfade has run.
-                if (holdsContent(framing.cue)) framing.fitUntil = Infinity;
+                if (this.hangs(framing.cue)) framing.fitUntil = Infinity;
                 else if (framing.fitUntil === Infinity) framing.fitUntil = framing.clock + CROSSFADE_MS;
                 framing.director.see(frameOf(cue), framing.clock);
                 framing.scale = undefined;
@@ -1289,7 +1302,7 @@ export class LiveVenue {
             else this.doc.documentElement.dataset.liveFrame = 'none';
             return;
         }
-        const geometry = frameGeometry({ frame, a, cut, lid, close, carry, layout, content: holdsContent(framing.cue) || framing.clock < framing.fitUntil });
+        const geometry = frameGeometry({ frame, a, cut, lid, close, carry, layout, content: this.hangs(framing.cue) || framing.clock < framing.fitUntil });
         framing.geometry = geometry;
         const move = visualTransform(geometry, layout);
         this.doc.documentElement.dataset.liveFrame = frame;
@@ -1473,6 +1486,7 @@ export class LiveVenue {
         this.faceEngine = null;
         this.face.remove();
         for (const name of Object.keys(facePalette(this.faceSkin))) this.doc.documentElement.style.removeProperty(name);
+        delete this.doc.documentElement.dataset.liveRoom;
         if (this.host.env?.__riseFace) this.host.env.__riseFace = undefined;
         this.host.paintEmbedTheme();
     }

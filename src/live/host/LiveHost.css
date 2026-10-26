@@ -262,8 +262,8 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 .rise-stage__object,
 .rise-settings {
   box-sizing: border-box;
-  border: 1px solid rgba(232, 232, 236, 0.08);
-  background: rgba(10, 10, 12, 0.36);
+  border: 1px solid var(--live-glass-edge, rgba(232, 232, 236, 0.08));
+  background: var(--live-glass, rgba(10, 10, 12, 0.36));
   backdrop-filter: blur(16px) saturate(1.12);
   -webkit-backdrop-filter: blur(16px) saturate(1.12);
   color: var(--color-light);
@@ -285,7 +285,7 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 
 @media (hover: hover) {
   .live-host--embedded .live-start:hover:not(:disabled),
-  .rise-stage__object:hover:not(:disabled) { background: rgba(10, 10, 12, 0.48); }
+  .rise-stage__object:hover:not(:disabled) { background: var(--live-glass-hover, rgba(10, 10, 12, 0.48)); }
 }
 
 .live-host--embedded .live-start:active:not(:disabled),
@@ -529,13 +529,13 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
   min-width: 0;
   height: 44px;
   padding: 0 10px;
-  border: 1px solid rgba(232, 232, 236, 0.08);
+  border: 1px solid var(--live-glass-edge, rgba(232, 232, 236, 0.08));
   border-radius: 8px;
-  background: rgba(10, 10, 12, 0.36);
+  background: var(--live-glass, rgba(10, 10, 12, 0.36));
   color: inherit;
   font: inherit;
   font-size: 0.9rem;
-  color-scheme: dark;
+  color-scheme: var(--live-scheme, dark);
 }
 
 /* The switch's label is the rest of its row, so the whole 44 px row toggles it. */
@@ -549,9 +549,9 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
   width: 44px;
   height: 26px;
   margin: 0;
-  border: 1px solid rgba(232, 232, 236, 0.18);
+  border: 1px solid var(--live-glass-edge-lit, rgba(232, 232, 236, 0.18));
   border-radius: 13px;
-  background: rgba(232, 232, 236, 0.14);
+  background: var(--live-glass-lift, rgba(232, 232, 236, 0.14));
   cursor: pointer;
   transition: background-color 120ms ease;
 }
@@ -584,7 +584,7 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
   justify-content: center;
   width: 100%;
   height: 100%;
-  border: 1px solid rgba(232, 232, 236, 0.08);
+  border: 1px solid var(--live-glass-edge, rgba(232, 232, 236, 0.08));
   border-radius: 8px;
   font-size: 0.9rem;
 }
@@ -601,9 +601,9 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
 .rise-settings__copy {
   min-height: 44px;
   padding: 0 16px;
-  border: 1px solid rgba(232, 232, 236, 0.08);
+  border: 1px solid var(--live-glass-edge, rgba(232, 232, 236, 0.08));
   border-radius: 8px;
-  background: rgba(10, 10, 12, 0.36);
+  background: var(--live-glass, rgba(10, 10, 12, 0.36));
   color: inherit;
   font: inherit;
   cursor: pointer;
@@ -1197,9 +1197,9 @@ body:has(.live-venue) { background: var(--live-ground); }
   align-items: center;
   gap: 6px;
   padding: 4px;
-  border: 1px solid rgba(232, 232, 236, 0.08);
+  border: 1px solid var(--live-glass-edge, rgba(232, 232, 236, 0.08));
   border-radius: 26px;
-  background: rgba(10, 10, 12, 0.36);
+  background: var(--live-glass, rgba(10, 10, 12, 0.36));
   backdrop-filter: blur(16px) saturate(1.12);
   -webkit-backdrop-filter: blur(16px) saturate(1.12);
   color: var(--color-light);
@@ -1215,9 +1215,9 @@ body:has(.live-venue) { background: var(--live-ground); }
   left: max(12px, var(--safe-left, 0px));
   min-height: 44px;
   padding: 0 16px;
-  border: 1px solid rgba(232, 232, 236, 0.08);
+  border: 1px solid var(--live-glass-edge, rgba(232, 232, 236, 0.08));
   border-radius: 22px;
-  background: rgba(10, 10, 12, 0.36);
+  background: var(--live-glass, rgba(10, 10, 12, 0.36));
   backdrop-filter: blur(16px) saturate(1.12);
   -webkit-backdrop-filter: blur(16px) saturate(1.12);
   color: var(--color-light);
@@ -1225,7 +1225,7 @@ body:has(.live-venue) { background: var(--live-ground); }
   cursor: pointer;
 }
 @media (hover: hover) {
-  .live-leave:hover { background: rgba(232, 232, 236, 0.18); }
+  .live-leave:hover { background: var(--live-glass-press, rgba(232, 232, 236, 0.18)); }
 }
 .live-leave:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
 /* While the reading plays, only the microphone and a small field: the reader may speak into it, and the voice holds. */
@@ -1261,13 +1261,15 @@ body:has(.live-venue) { background: var(--live-ground); }
   font-size: 1rem;
   cursor: pointer;
 }
-.live-again .live-again__ask { padding: 0 16px; background: rgba(232, 232, 236, 0.14); }
+.live-again .live-again__ask { padding: 0 16px; background: var(--live-glass-lift, rgba(232, 232, 236, 0.14)); }
 .live-again button[aria-pressed="true"] { background: var(--color-light); color: var(--color-void); }
 @media (hover: hover) {
-  .live-again button:hover { background: rgba(232, 232, 236, 0.18); }
+  .live-again button:hover { background: var(--live-glass-press, rgba(232, 232, 236, 0.18)); }
 }
-.live-again input:focus-visible,
 .live-again button:focus-visible { outline: 2px solid var(--color-light); outline-offset: 2px; }
+/* The field has no edge of its own inside the pill: the pill is what takes the ring, round as it is. */
+.live-again input:focus-visible { outline: none; }
+.live-again:has(input:focus-visible) { outline: 2px solid var(--color-light); outline-offset: 2px; }
 
 /* The note is the line between the bar and the words, which the room keeps for it; wider than the small bar, so it
    seldom wraps, and the room gives a longer one its height. */
@@ -1282,7 +1284,7 @@ body:has(.live-venue) { background: var(--live-ground); }
   font-size: 0.85rem;
   line-height: 1.4;
   text-align: center;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  text-shadow: var(--live-note-shadow, 0 1px 3px rgba(0, 0, 0, 0.6));
 }
 .live-again__note:empty { display: none; }
 
@@ -1450,7 +1452,7 @@ html[data-live-frame] #chamber-field :is(.atom-display, .atom-band) {
   box-shadow: none;
 }
 html[data-live-frame] #chamber-field .atom-display.glass-tile::before { content: none; }
-html[data-live-frame="full"] #chamber-field .atom-display { text-shadow: 0 1px 14px rgba(4, 4, 8, 0.9), 0 0 3px rgba(4, 4, 8, 0.9); }
+html[data-live-frame="full"] #chamber-field .atom-display { text-shadow: var(--live-words-shadow, 0 1px 14px rgba(4, 4, 8, 0.9), 0 0 3px rgba(4, 4, 8, 0.9)); }
 /* In the full frame the face waits in a 48 px slot at the bar's left end. On a phone the open bar reaches the left
    edge, so it steps right to give the slot room. */
 @media (max-width: 640px) {
@@ -1470,3 +1472,65 @@ html[data-live-frame="full"] #chamber-field .atom-display { text-shadow: 0 1px 1
 :root.reduced-motion .live-face .live-face__canvas,
 :root.reduced-motion .live-face[data-face-drawn="true"] .live-face__still,
 :root.reduced-motion[data-live-frame] .live-again { transition: none; }
+
+/* The light room: a light face (Porcelain) makes the room pale, its words ink (venue.js paintSkin marks the root). The
+   reading wears the room: its ground, its words and its figures (--room-ink, --room-dark; Chamber.js) are the room's,
+   and the stage, the bar and the sheet are a pale glass. A visual made of light keeps a night of its own, the skin's
+   deep: behind its layers inside the inner eye's or the shell's aperture, and in the full frame hung as a picture in
+   the room's safe rectangle (venue.js hangs) rather than laid over the room. The smallest text is the ink 72% toward
+   the ground: 5.4:1 (WCAG AA). The reading's theme sets its colours inline, so the room's are important here. */
+html[data-live-room="light"],
+html[data-live-room="light"] .chamber {
+  --color-void: var(--live-ground) !important;
+  --color-light: var(--live-core) !important;
+  --color-cloud: var(--live-core) !important;
+  --color-fog: color-mix(in srgb, var(--live-core) 72%, var(--live-ground)) !important;
+  --color-accent: var(--live-iris) !important;
+  --room-ink: var(--live-core);
+  --room-dark: var(--live-deep);
+  --live-scheme: light;
+  --live-glass: color-mix(in srgb, rgb(255, 253, 248) 62%, transparent);
+  --live-glass-hover: color-mix(in srgb, rgb(255, 253, 248) 84%, transparent);
+  --live-glass-edge: color-mix(in srgb, var(--live-core) 14%, transparent);
+  --live-glass-edge-lit: color-mix(in srgb, var(--live-core) 26%, transparent);
+  --live-glass-lift: color-mix(in srgb, var(--live-core) 8%, transparent);
+  --live-glass-press: color-mix(in srgb, var(--live-core) 12%, transparent);
+  --live-note-shadow: none;
+  --live-words-shadow: 0 0 14px var(--live-ground), 0 0 3px var(--live-ground);
+  color-scheme: light;
+}
+html[data-live-room="light"] .live-venue {
+  --live-soft: color-mix(in srgb, var(--live-core) 80%, var(--live-ground));
+  --live-faint: color-mix(in srgb, var(--live-core) 72%, var(--live-ground));
+  --live-raised: color-mix(in srgb, rgb(255, 253, 248) 72%, var(--live-ground));
+  color-scheme: light;
+}
+/* On a pale ground the face's square darkens what is under it, as the dark room's lightens. */
+html[data-live-room="light"] .live-venue__face .live-face { mix-blend-mode: darken; }
+html[data-live-room="light"] .live-venue__panel { box-shadow: 0 24px 60px -16px color-mix(in srgb, var(--live-deep) 22%, transparent); }
+html[data-live-room="light"] .has-rise-account:has(.live-venue) .rise-account-control { color: color-mix(in srgb, var(--live-core) 72%, var(--live-ground)); }
+html[data-live-room="light"] .has-rise-account:has(.live-venue) .rise-account-control:is(:hover, :focus-visible) { color: var(--live-core); }
+
+html[data-live-room="light"]:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field::before,
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure))::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--live-deep);
+  pointer-events: none;
+}
+html[data-live-room="light"]:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field::before,
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure)) > :not(.atom-band, .movement-title),
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure))::before {
+  transform: translate(var(--live-vx, 0px), var(--live-vy, 0px)) scale(var(--live-vk, 1));
+  transform-origin: 50% 50%;
+}
+/* Hung, a picture has corners of 20 px however far it is scaled, and on a tall screen is at most square: what these
+   visuals draw is at their middle, and the rest of a tall room's height would be a slab of night over the words. */
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure)) > :not(.atom-band, .movement-title),
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure))::before {
+  clip-path: inset(max(0px, (100dvh - 100vw) / 2) 0 round calc(20px / var(--live-vk, 1)));
+}
+/* A figure is drawn on the room itself: the continuous field the Chamber keeps behind it is night, and steps aside. */
+html[data-live-room="light"][data-live-frame] #chamber-field:has(> .chamber-figure) > .chamber-continuous-field { visibility: hidden; }

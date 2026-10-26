@@ -60,6 +60,8 @@ afterEach(() => vi.restoreAllMocks());
 /**
  * An 8-bit RGBA raster that composites the frame's whole-canvas fills as the GPU does (each channel rounded to a
  * level) and draws nothing else: what is left of a stroke is only what the fades leave of it.
+ * Chromium's faint source-over does not move a level up toward a source fewer than 14 levels above it (measured
+ * at 8%), where it does move down toward one 8 below; the raster keeps that stall.
  */
 function rasterContext(width, height) {
     const pixels = new Uint8ClampedArray(width * height * 4);
@@ -79,6 +81,9 @@ function rasterContext(width, height) {
                 for (let c = 0; c < 3; c += 1) {
                     const under = pixels[i + c];
                     if (ctx.globalCompositeOperation === 'lighten') pixels[i + c] = Math.round(Math.max(source[c], under) * alpha + under * (1 - alpha));
+                    else if (ctx.globalCompositeOperation === 'darken') pixels[i + c] = Math.round(Math.min(source[c], under) * alpha + under * (1 - alpha));
+                    else if (ctx.globalCompositeOperation === 'lighter') pixels[i + c] = under + Math.round(source[c] * alpha);
+                    else if (ctx.globalCompositeOperation === 'source-over' && alpha < 1 && source[c] > under && source[c] - under < 14) pixels[i + c] = under;
                     else if (ctx.globalCompositeOperation === 'source-over') pixels[i + c] = Math.round(source[c] * alpha + under * (1 - alpha));
                 }
                 if (ctx.globalCompositeOperation !== 'destination-out') pixels[i + 3] = 255;
@@ -141,11 +146,32 @@ describe('the ground, in 8 bits', () => {
                 expect(ctx.pixels[c]).toBeGreaterThanOrEqual(sophia[c]);
             }
         }
-    });});
+    });
+
+    it('fades a light skin’s ink back to exactly its pale ground, the mirror of the dark: never above it', () => {
+        for (const name of Object.keys(ORACLE_SKINS).filter(key => ORACLE_SKINS[key].light)) {
+            const ground = ORACLE_SKINS[name].trail;
+            const ctx = rasterContext(W, H);
+            const scene = oracle({ ctx, size: { width: W, height: H, dpr: 1 }, theme: { state: 'speaking', skin: name }, reducedMotion: false, listen: vi.fn(), emit: vi.fn(), done: vi.fn() });
+            let t = 0;
+            scene.frame(0, 0);
+            for (const stroke of [[20, 40, 80], [200, 196, 190]]) {
+                ctx.paint(stroke);
+                for (let i = 0; i < 180; i += 1) { t += 1000 / 60; scene.frame(t, 1000 / 60); }
+                for (let c = 0; c < 3; c += 1) {
+                    expect(Math.abs(ctx.pixels[c] - ground[c]), `${name} after ${stroke}`).toBeLessThanOrEqual(1);
+                    expect(ctx.pixels[c]).toBeLessThanOrEqual(ground[c]);
+                }
+            }
+        }
+    });
+});
 
 describe('what the face is', () => {
-    it('is the study’s four skins and five states, exactly', () => {
-        expect(Object.keys(ORACLE_SKINS)).toEqual(['sophia', 'ember', 'jade', 'silver']);
+    it('is the study’s four skins, the light room’s Porcelain, and five states, exactly', () => {
+        expect(Object.keys(ORACLE_SKINS)).toEqual(['sophia', 'ember', 'jade', 'silver', 'porcelain']);
+        expect(Object.keys(ORACLE_SKINS).filter(name => ORACLE_SKINS[name].light)).toEqual(['porcelain']);
+        expect(ORACLE_SKINS.porcelain).toEqual({ core: [255, 253, 248], iris: [47, 95, 179], glow: [168, 192, 230], deep: [14, 27, 54], trail: [244, 239, 230], ink: [23, 42, 79], light: true });
         expect(ORACLE_SKINS.sophia).toEqual({ core: [245, 245, 220], iris: [135, 206, 235], glow: [176, 196, 222], deep: [25, 25, 112], trail: [10, 10, 15] });
         expect(ORACLE_SKINS.silver.trail).toEqual([9, 9, 11]);
         expect(Object.keys(ORACLE_STATES)).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest']);
@@ -155,7 +181,7 @@ describe('what the face is', () => {
     });
 
     it('states its parameters and cues as a manifest does, and is not an engine the model may name', () => {
-        expect(ORACLE_MANIFEST.parameters.skin.values).toEqual(['sophia', 'ember', 'jade', 'silver']);
+        expect(ORACLE_MANIFEST.parameters.skin.values).toEqual(['sophia', 'ember', 'jade', 'silver', 'porcelain']);
         expect(ORACLE_MANIFEST.parameters.state.values).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest']);
         expect(Object.keys(ORACLE_MANIFEST.cues)).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest', 'blink']);
         expect(ORACLE_MANIFEST.cues.thinking).toEqual({ state: 'thinking' });
