@@ -14,8 +14,9 @@ const text = readFileSync(join(ROOT, 'public/_headers'), 'utf8');
 describe('static site headers', () => {
     it('grant model hosts and WebAssembly to no path', () => {
         expect(text).not.toMatch(/wasm-unsafe-eval|huggingface|hf\.co|jsdelivr/u);
-        // blob: is the page's own scene modules (src/core/csp.test.js says why); nothing remote, no eval.
-        expect(text).toContain("script-src 'self' blob:;");
+        // blob: is the page's own scene modules (src/core/csp.test.js says why); the one remote origin is the
+        // Cloudflare Web Analytics beacon; no eval.
+        expect(text).toContain("script-src 'self' blob: https://static.cloudflareinsights.com;");
     });
 
     it('use only syntax every static host accepts', () => {

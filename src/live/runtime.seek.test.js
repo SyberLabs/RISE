@@ -15,6 +15,7 @@ import { createMcpAppAdapter } from './adapters/mcp-app.js';
 import { currentToEvents } from './adapters/current-events.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
 import { SKY_PREMIUM_EDUCATIONAL as SKY } from './fixtures/sky-premium-educational.js';
+import { SETTLED_MATHS } from '../test/settled-maths.js';
 
 const MS_PER_CHAR = 20;
 const SCENE_MANIFEST = { surface: 'scene', parameters: { cue: { type: 'name', cueable: true } } };
@@ -58,7 +59,7 @@ async function open({ lost = [], msPerChar = MS_PER_CHAR, connectingPace = null 
     let completedAt = null;
     let voiceCallbacks = null;
     runtime = createLiveRuntime({
-        adapter, clock,
+        adapter, clock, maths: SETTLED_MATHS,
         createPlayer: session => {
             player = new Player(session);
             player.on('atom', ({ index, atom, concealed }) => { if (!concealed) shown.push({ at: now(), index, sourceId: atom.seam ? null : atom.sourceId }); });

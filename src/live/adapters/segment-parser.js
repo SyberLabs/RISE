@@ -68,6 +68,7 @@
 import { soundKind } from '../../audio/sound-ids.js';
 import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES, cueCommands, engineTakes, validateSceneParams } from '../../core/beats.js';
 import { sceneCodeBytes } from '../../core/experience-program.js';
+import { joinMath, splitMath } from '../../core/math-text.js';
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_VISUALS } from '../../core/rise-current.js';
 import { EVENT_LIMITS, EXPERIENCE_DIMENSIONS, ILLUSTRATION_LIMITS, ILLUSTRATION_MEDIA, ROOM_PACE } from '../protocol.js';
 import { STREAM_LIMITS } from '../stream.js';
@@ -249,7 +250,7 @@ export function createSegmentParser(write) {
         if (partial) { held = partial[0]; joined = joined.slice(0, partial.index); }
         // Whitespace is one space, and belongs between words: it is sent with the words after it,
         // never on its own (the protocol refuses a blank chunk) and never at either end.
-        const body = (literal ? stripForbidden(joined) : neutralise(joined)).replace(/\s+/gu, ' ');
+        const body = (literal ? stripForbidden(joined) : neutraliseMath(joined)).replace(/\s+/gu, ' ');
         const core = body.trim();
         const started = current?.began === true;
         if (!core) {
@@ -273,8 +274,14 @@ export function createSegmentParser(write) {
 
     // ─── beats ──────────────────────────────────────────────────────────
 
-    /** Words as a beat says or shows them: neutralised, one space between, none at the ends. */
-    const words = raw => neutralise(raw).replace(/\s+/gu, ' ').trim();
+    /**
+     * Words as a beat says or shows them: neutralised, one space between, none at the ends. Maths keeps its bars as
+     * TeX names them (`\vert`, `\Vert`), not as the marker a bar is, and is written between dollars (math-text.js).
+     */
+    const neutraliseMath = raw => joinMath(splitMath(raw).map(part => (part.kind === 'math'
+        ? { ...part, value: stripForbidden(part.value).replace(/\\\|/gu, '\\Vert ').replace(/\|/gu, '\\vert ').trim() }
+        : { ...part, value: neutralise(part.value) })));
+    const words = raw => neutraliseMath(raw).replace(/\s+/gu, ' ').trim();
 
     /** One beat: its begin, its words in chunks the protocol allows, its end. Dropped whole if its words do not fit. */
     function emitBeat(body, said) {

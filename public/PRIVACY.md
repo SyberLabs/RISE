@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 12 October 2026**
+**Last updated: 26 October 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -38,8 +38,9 @@ Import and playback do not call the writer.
 The Plus service uses signed, HttpOnly cookies for voice access and billing
 management. They carry Stripe identifiers, not your name or email. If you ask
 to restore Plus, we send a short-lived recovery link to the email associated
-with your purchase through our email provider (section 4). We do not use
-analytics. RISE does not automatically upload your readings or browser history. Optional SyberLabs sign-in uses a separate host-only session cookie at `syberlabs.io` and associates chosen backups with your account. Administrators sign in through Cloudflare Access, which processes their identity and sets its authorization cookie (section 4). If you buy Plus, Stripe processes the payment and knows the email you
+with your purchase through our email provider (section 4). On
+`rise.syberlabs.io`, Cloudflare Web Analytics counts page views and page-load
+speed, without cookies or any identifier (section 4). RISE does not automatically upload your readings or browser history. Optional SyberLabs sign-in uses a separate host-only session cookie at `syberlabs.io` and associates chosen backups with your account. Administrators sign in through Cloudflare Access, which processes their identity and sets its authorization cookie (section 4). If you buy Plus, Stripe processes the payment and knows the email you
 paid with; we do not keep it. We do not sell personal information. Network
 processing occurs for hosting, external resources you request, the optional
 decision actions, and the Plus voice described below.
@@ -174,7 +175,9 @@ RISE offers two optional ways to use AI, and runs no model on its own servers:
   this tab's memory, is sent only to `openrouter.ai`, and is forgotten when you
   disconnect, reload, or close the tab. It is never sent to RISE's servers,
   stored, logged, or exported. Browser extensions you install can read what a
-  page holds; RISE loads no third-party scripts. Each request goes from your
+  page holds. The only script on the page that RISE does not host itself is
+  Cloudflare's page-view counter (below); Cloudflare already serves the page.
+  Each request goes from your
   browser to OpenRouter and TypeSafe (the Jev model) under their own policies,
   and is billed to your OpenRouter account. During sign-in, a random one-time
   verifier and state are kept in this tab's session storage and deleted when
@@ -412,6 +415,41 @@ for each decision you request, under their own policies
 for them. Local Kev keeps requests on your computer. No model call occurs when
 you prepare locally or choose settings yourself.
 
+### Page-view counts
+
+On `rise.syberlabs.io`, Cloudflare Web Analytics counts page views and measures
+how fast pages load. Cloudflare adds its script,
+`static.cloudflareinsights.com/beacon.min.js`, to each page. The script
+reports on each page view, including moves between pages inside the app.
+`rise.syberlabs.space` does not carry it.
+
+A report holds the page's address, the page you came from, and timings your
+browser measured while loading the page. Cloudflare adds your country,
+browser, operating system, and type of device. Cloudflare says it does not log
+the query string, the part of an address after `?`. We see only totals, such
+as how many views a page had and how fast it loaded.
+
+By Cloudflare's own description, the service:
+
+- sets no cookie and uses no local storage or other client-side state;
+- does not fingerprint visitors by IP address, user-agent, or any other data;
+- does not track individual visitors across other websites.
+
+It never receives the text of a reading, text you paste or write, what you ask
+Jev, Kev, or Live, or any key. None of these is ever in a page address. A
+private reading's address is `/read/session`. A public page, such as a
+Keystone or a Chapel chapter, has an address that names that public text, so
+the counts show how often that page was opened.
+
+You can block `static.cloudflareinsights.com` in your browser or with a content
+blocker. RISE works the same without it.
+
+Cloudflare describes the service at
+<https://developers.cloudflare.com/web-analytics/about/>,
+<https://developers.cloudflare.com/web-analytics/data-metrics/data-origin-and-collection/>,
+<https://developers.cloudflare.com/web-analytics/faq/> and
+<https://www.cloudflare.com/web-analytics/>.
+
 ---
 
 ## 5. What your browser fetches from other people
@@ -466,9 +504,10 @@ We state these plainly because the absence is the point.
   of your own material goes through RISE's server to ElevenLabs on our account,
   and audio with playback timings is saved privately for up to 30 days. RISE
   does not persist the submitted text (section 4).
-- **No analytics.** No Google Analytics, no Tag Manager, no Plausible, no
-  Sentry, no product analytics of any kind. No third-party script of any kind
-  runs on the page.
+- **Page-view counts only.** Cloudflare Web Analytics counts page views and
+  page-load speed on `rise.syberlabs.io` (section 4). It sets no cookie and
+  keeps no identifier. No Google Analytics, no Tag Manager, no Plausible, no
+  Sentry, no other analytics. No other third-party script runs on the page.
 - **No advertising, no pixels, no fingerprinting.**
 - **No advertising or reading-history tracking across sites or visits.**
   Subscriber and administrator authorization cookies identify their respective
@@ -490,12 +529,16 @@ answers a browser's "Do Not Track" signal. Ours is a short answer.
 
 **RISE does not track you — with or without the signal.** It does not follow
 you across other websites, does not build a profile of you over time, and does
-not carry any advertising or analytics that could. There is no behaviour here
+not carry any advertising. Its page-view counts (section 4) use no cookie or
+identifier and, by Cloudflare's description, do not follow visitors across
+sites, so they do neither. There is no behaviour here
 for a Do Not Track signal to switch off, so RISE does not act on the signal
 differently: the behaviour the signal asks a site to stop is behaviour RISE
 never performs.
 
-**RISE runs no third-party tracking scripts.** The museums and archives in
+**RISE runs no third-party tracking scripts.** Its one third-party script,
+Cloudflare's page-view counter, counts pages without identifying or following
+you (section 4). The museums and archives in
 section 5 receive direct requests for texts or artworks as described there.
 Separately, if you connect OpenRouter, the AI requests you make go from your
 browser to OpenRouter as described in section 4. These are requests for the
@@ -539,7 +582,7 @@ policy; deleting RISE's copy does not delete the provider's records.
 ## 9. California residents
 
 RISE is published from California. Our server processing includes hosting request
-data, explicit SyberLabs account backups and, for Plus, voicing, private saved audio and timings, subscription budget/usage records and
+data, Cloudflare page-view counts, explicit SyberLabs account backups and, for Plus, voicing, private saved audio and timings, subscription budget/usage records and
 administrator identity verification and shared daily/monthly meters, as
 described in section 4; AI requests go to the connection you chose.
 
@@ -571,10 +614,16 @@ We do not, and never have.
 - **Storing your work on your device**, in section 3: necessary to provide the
   service you have asked for. It holds your reading and your writing, carries no
   identifier, and is not used to observe you.
+- **Counting page views and load times** with Cloudflare Web Analytics, in
+  section 4: our legitimate interest in knowing which pages are used and how
+  fast they load, so we can fix and improve the site (Article 6(1)(f)). The
+  counts are totals. They use no cookie or identifier and never include
+  reading text or anything you type. You can object under section 8, or block
+  the script yourself.
 
-We do not rely on consent for anything today, because nothing we do requires
-it. If that changes — for example if analytics were ever introduced — we would
-ask first.
+We do not ask for consent for these counts, because they set no cookie, use no
+local storage, and identify no one. If we ever add analytics that do any of
+those things, we will ask first.
 
 ---
 
@@ -588,7 +637,9 @@ and OpenAI process Live requests under their own policies. Cloudflare and Netlif
 API request data under their own policies. Cloudflare Workers observability
 logging is on for RISE's server and keeps request metadata (method, path,
 status, timing, and the client address Cloudflare sees) for at most 7 days (3
-on Cloudflare's free plan); no tool text or reader content is logged. OpenRouter processes the requests
+on Cloudflare's free plan); no tool text or reader content is logged. Cloudflare
+keeps every page-view report for 7 days, then reduces them to a sample of about
+10%; we can see the counts for the previous six months. OpenRouter processes the requests
 you send it under its own policy; see section 4. No provider-side retention
 guarantee is made here.
 

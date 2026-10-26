@@ -7,6 +7,7 @@ import { cueForAtom } from './visual-scheduler.js';
 import {
   RISE_CURRENT_SCHEMA, RISE_CURRENT_SCHEMA_V2, compileRiseCurrent, materializeRiseCurrent, validateRiseCurrent
 } from './rise-current.js';
+import { MATH_DWELL, fallbackMath, mathDwellMs } from './math-reading.js';
 
 const V2 = Object.freeze({
   schema: 'rise.current.v2',
@@ -190,6 +191,42 @@ describe('what a v2 Current carries for the layers', () => {
     expect(session.hasMath).toBe(false);
     const withMath = compileRiseCurrent({ ...V2, beats: [{ say: 'x squared', show: 'So $x^2$.' }] });
     expect(withMath.hasMath).toBe(true);
+  });
+});
+
+describe('maths in the phrases of a Current', () => {
+  const phrases = say => compileRiseCurrent({ ...V2, scenes: [], beats: [{ say }] }).atoms
+    .filter(atom => atom.sourceId === 'beat-0').map(atom => atom.content);
+
+  it('never cuts a formula, however long, and whatever commas or connectives it holds', () => {
+    const formula = '$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} \\text{ and } f(x, y) = x^2 + y^2 + z^2 + w^2 + v^2 + u^2 + t^2$';
+    const cut = phrases(`Solve it with ${formula} and you get both roots of the quadratic at once, every time you try.`);
+    expect(cut.filter(phrase => phrase.includes('$'))).toEqual([expect.stringContaining(formula)]);
+    expect(cut.join(' ')).toBe(`Solve it with ${formula} and you get both roots of the quadratic at once, every time you try.`);
+  });
+
+  it('gives a display formula a phrase of its own, with the words before and after on either side', () => {
+    expect(phrases('The levels are $$E_n = \\hbar\\omega\\left(n + \\tfrac{1}{2}\\right)$$ and they are evenly spaced.')).toEqual([
+      'The levels are', '$$E_n = \\hbar\\omega\\left(n + \\tfrac{1}{2}\\right)$$', 'and they are evenly spaced.'
+    ]);
+    expect(phrases('Newton wrote \\[F = ma\\] once.')).toEqual(['Newton wrote', '\\[F = ma\\]', 'once.']);
+  });
+
+  it('holds a shown formula at least as long as it takes to say, and longer for its structure', () => {
+    const show = 'Then $x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$';
+    const session = compileRiseCurrent({ ...V2, scenes: [], beats: [{ show, hold: { ms: 600 } }] });
+    const formula = session.atoms.find(atom => atom.sourceId === 'beat-0' && atom.content.includes('$'));
+    expect(formula.duration).toBe(mathDwellMs(formula.content));
+    expect(mathDwellMs('$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$')).toBe(
+      fallbackMath('x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}').speech.length * MATH_DWELL.msPerSpokenChar + 2 * MATH_DWELL.msPerStructure
+    );
+    const long = compileRiseCurrent({ ...V2, scenes: [], beats: [{ show: 'So $x$.', hold: { ms: 5000 } }] });
+    expect(long.atoms.find(atom => atom.sourceId === 'beat-0').duration).toBe(5000);
+  });
+
+  it('keeps every other form of maths whole, exactly as written', () => {
+    expect(phrases('It grows with \\omega, and `E = \\frac{1}{2}\\hbar\\omega` is its energy.').join(' '))
+      .toBe('It grows with \\omega, and `E = \\frac{1}{2}\\hbar\\omega` is its energy.');
   });
 });
 

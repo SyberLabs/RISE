@@ -6,7 +6,8 @@
  * to storage, never sent to a SyberLabs server, and forgotten on reload or
  * disconnect. Page memory is not a vault: browser extensions and any script
  * running in this page could read it, which is why RISE loads no third-party
- * scripts and keeps a strict content-security policy.
+ * script but Cloudflare's Web Analytics beacon (Cloudflare already serves the
+ * page) and keeps a strict content-security policy.
  */
 import { JEV, KEV } from './decision/providers.js';
 
