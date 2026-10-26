@@ -2723,5 +2723,8 @@
 /* A formula is one word of the phrase (math-typeset.js), in the reading's ink; until KaTeX loads, its plain reading in
    the reading face. A display formula is a phrase of its own, centred, without KaTeX's block margins. */
 .atom-word.atom-math { display: inline-block; color: inherit; }
+/* KaTeX's own 1.21em suits a sans; here a formula's x-height is the reading face's, whatever the face: in font-size, ex
+   is the parent's, and 0.4306 is KaTeX_Main's x-height in em. */
+.atom-word.atom-math .katex { font-size: calc(1ex / 0.4306); }
 .atom-word.atom-math[data-display] { display: block; text-align: center; }
 .atom-word.atom-math .katex-display { margin: 0; }

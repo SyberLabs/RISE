@@ -125,6 +125,10 @@ describe('paintAtomText maths', () => {
     expect(maths[0].querySelector('.is-source')).toBeNull();
   });
 
+  it('sets a formula against the word it was written against, and apart from the one it was not', () => {
+    expect(paint('Its energy is $x^2$, never ($y$) zero.').atomDisplay.textContent).toBe('Its energy is x², never (y) zero.');
+  });
+
   it('typesets the formula once the typesetter has loaded', async () => {
     await loadMath();
     const maths = paint().atomDisplay.querySelectorAll('.atom-word.atom-math');

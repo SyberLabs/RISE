@@ -205,9 +205,20 @@ function shownWords(content, emphasis) {
   const wanted = new Set((emphasis ?? []).map(word => word.toLowerCase()));
   const bare = word => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
   const words = [];
+  // `glued`: a word written against the one before it, a formula's comma or bracket, is shown without a space between.
+  let touching = false;
   for (const part of splitMath(content)) {
-    if (part.kind === 'math') words.push({ text: part.value, emphasised: false, math: true, display: part.display });
-    else for (const word of splitWords(part.value)) words.push(wanted.has(bare(word.text)) ? { ...word, emphasised: true } : word);
+    if (part.kind === 'math') {
+      words.push({ text: part.value, emphasised: false, math: true, display: part.display, glued: touching && words.length > 0 });
+      touching = true;
+      continue;
+    }
+    splitWords(part.value).forEach((word, index) => {
+      const glued = index === 0 && touching && !/^\s/u.test(part.value);
+      const shown = wanted.has(bare(word.text)) ? { ...word, emphasised: true } : word;
+      words.push(glued ? { ...shown, glued } : shown);
+    });
+    touching = !/\s$/u.test(part.value);
   }
   return words;
 }
@@ -3463,11 +3474,11 @@ export class Chamber {
       return null;
     }
 
-    atomDisplay.innerHTML = words.map(w =>
-      `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}${w.math ? ' atom-math' : ''}"` +
+    atomDisplay.innerHTML = words.map((w, index) =>
+      `${index > 0 && !w.glued ? ' ' : ''}<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}${w.math ? ' atom-math' : ''}"` +
       `${w.math ? ` data-tex="${escapeHtml(w.text)}"${w.display ? ' data-display=""' : ''}` : ''}` +
       `${reveal ? ' data-pending=""' : ''}>${w.math ? renderMath(w.text, { display: w.display }) : escapeHtml(w.text)}</span>`
-    ).join(' ');
+    ).join('');
     if (maths && !mathReady()) this._loadMath();
 
     return reveal ? Array.from(atomDisplay.querySelectorAll('.atom-word')) : null;
