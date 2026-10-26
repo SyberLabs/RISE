@@ -141,6 +141,25 @@ export function splitMath(text) {
   return parts;
 }
 
+/**
+ * Parts back into a text that splits into the same parts: maths between
+ * dollars, or between `\(…\)` and `\[…\]` where a dollar beside it would read
+ * otherwise (a digit after, a dollar or backslash before, a formula that looks
+ * like money).
+ */
+export function joinMath(parts) {
+  let text = '';
+  parts.forEach((part, index) => {
+    if (part.kind !== 'math') { text += part.value; return; }
+    const before = text.at(-1);
+    const after = parts[index + 1]?.value?.[0];
+    const crowded = before === '$' || before === '\\' || after === '$';
+    if (part.display) text += crowded ? `\\[${part.value}\\]` : `$$${part.value}$$`;
+    else text += crowded || isDigit(after) || looksLikeMoney(part.value) ? `\\(${part.value}\\)` : `$${part.value}$`;
+  });
+  return text;
+}
+
 /** Whether a text has maths to typeset. */
 export function hasMath(text) {
   return splitMath(text).some(part => part.kind === 'math');

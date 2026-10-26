@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fallbackMath, hasMath, mathStructure, splitMath } from './math-text.js';
+import { fallbackMath, hasMath, joinMath, mathStructure, splitMath } from './math-text.js';
 import { MATH_CORPUS } from './math-corpus.js';
 
 const asParts = text => splitMath(text).map(part => (part.kind === 'text' ? ['text', part.value] : part.display ? ['math', part.value, 'display'] : ['math', part.value]));
@@ -23,6 +23,19 @@ describe('finding the maths in a text', () => {
       const words = splitMath(text).filter(part => part.kind === 'text').map(part => part.value).join('');
       for (const ch of words) expect(text).toContain(ch);
     }
+  });
+});
+
+describe('writing the parts back', () => {
+  it('gives a text that splits into the same parts', () => {
+    for (const { text } of MATH_CORPUS) expect(splitMath(joinMath(splitMath(text)))).toEqual(splitMath(text));
+  });
+
+  it('writes dollars where they read back, and the other delimiters where they would not', () => {
+    expect(joinMath(splitMath('So `E = m \\cdot c^2` holds.'))).toBe('So $E = m \\cdot c^2$ holds.');
+    expect(joinMath(splitMath('Newton wrote \\[F = ma\\] once.'))).toBe('Newton wrote $$F = ma$$ once.');
+    expect(joinMath([{ kind: 'math', value: '\\omega', display: false }, { kind: 'text', value: '2 times' }])).toBe('\\(\\omega\\)2 times');
+    expect(joinMath([{ kind: 'text', value: 'paid $' }, { kind: 'math', value: 'x', display: false }])).toBe('paid $\\(x\\)');
   });
 });
 

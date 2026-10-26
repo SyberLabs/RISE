@@ -337,6 +337,20 @@ describe('beats, one per line', () => {
         expect(sealed().beats).toEqual([{ say: 'Light carries every colour.' }, { say: 'Words in a beat stream are said.' }]);
     });
 
+    it('keeps the bars of maths as TeX names them, writes every formula between dollars, and bars outside maths are still words', () => {
+        const { sealed, refusals } = beats([
+            '@say Its size is $|x|$ and its norm $\\|v\\|$, a bar | apart.\n',
+            '@say It grows with \\omega, and `E = \\frac{1}{2}\\hbar\\omega` is its energy.\n',
+            '@say So \\[F = ma\\] holds. => It costs $5 and $10.\n'
+        ]);
+        expect(refusals).toBe(0);
+        expect(sealed().beats).toEqual([
+            { say: 'Its size is $\\vert x\\vert$ and its norm $\\Vert v\\Vert$, a bar / apart.' },
+            { say: 'It grows with $\\omega$, and $E = \\frac{1}{2}\\hbar\\omega$ is its energy.' },
+            { say: 'So $$F = ma$$ holds.', show: 'It costs $5 and $10.' }
+        ]);
+    });
+
     it('reads options before the words, said one way and shown another, and neutralises markers in words', () => {
         const { sealed, refusals } = beats([
             '@scene f attractor palette=jade\n',
