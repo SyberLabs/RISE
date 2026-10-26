@@ -229,10 +229,9 @@ C buys the last bit of fit with the one mechanism this project has repeatedly fo
 
 ### 4.1 How it is shown, room by room
 
-- **Dark room (the default): the full frame, always.** A collection image never takes the inner eye or the
-  shell: cropping a photograph or a painting to a circle makes it another picture, and the circle has no corner
-  for its credit. The image is full-bleed as the Gallery presents it (its own fit and backdrop, unchanged), with
-  the scrim behind the spoken words. The room becomes the sky.
+- **Dark room (the default): hung in the safe rectangle, never full-bleed (owner decision 2026-10-26).** A
+  collection image never takes the inner eye or the shell: cropping a photograph or a painting to a circle makes
+  it another picture. It is hung like the light room's, with the scrim behind the spoken words.
 - **One picture per scene.** A scene that outlasts the Gallery's dwell (about 15.5 seconds at the default
   cadence, `galleryCadenceTimings` in `src/core/visual-presence.js`) crossfades to another work from the same
   collection; no work repeats in a reading until the collection is spent.
@@ -343,7 +342,7 @@ Earth). That is the owner's choice.
 
 An agent can run steps 1, 2, 4 and 5. Only the owner does step 3.
 
-## 6. The smallest first slice: astronomy in the full frame, with its credit
+## 6. The smallest first slice: astronomy hung in the safe rectangle, with its credit
 
 On `/live` only (not the card), dark room and light room, Option A, one collection.
 
@@ -358,7 +357,7 @@ Nothing for landscapes, facets, the card or the Worker.
 1. `@scene sky astronomy` is read by the segment parser, admitted, and lowered to
    `{ kind: 'sourced', collections: ['sci-astronomy'] }` (unit tests in `segment-parser`, `beats`, `manifests`,
    `rise-current`). A parameter on it is refused.
-2. In the venue, a reading with that scene shows an astronomy work in the full frame within the frame's
+2. In the venue, a reading with that scene shows an astronomy work hung in the safe rectangle within the frame's
    transition, the face docked; never in the inner eye or the shell (`frames.test.js`, a venue or runtime test).
    Under reduced motion it is shown at once.
 3. The chip shows the work's credit and licence for every credit-required work; at 1440 × 900 and 390 × 844 its
@@ -390,7 +389,7 @@ Nothing for landscapes, facets, the card or the Worker.
 6. **NASA's 640-pixel files:** excluded from the full frame, shown at their full rendition within a byte budget, or
    shown only where pictures are hung (the light room)?
 7. **The card:** a RISE image route (recommended), or declare the five institution hosts?
-8. **The dark room:** full-bleed, the room becoming the sky (recommended), or hung like the light room?
+8. **The dark room:** decided 2026-10-26: hung in the safe rectangle like the light room, never full-bleed.
 9. **Under "RISE only":** when a model's figure is refused, should a collection picture take its place?
    Recommended: no; the picture would not be what the words asked for.
 10. **Sacred readings:** the spec asks whether photographic imagery belongs behind Scripture. Should a Live reading
