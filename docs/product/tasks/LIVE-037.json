@@ -1,0 +1,41 @@
+{
+  "id": "LIVE-037",
+  "title": "RISE Live: collection imagery (astronomy and landscapes) in the room",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (live-imagery-design)",
+  "priority": "next",
+  "dependencies": [
+    "LIVE-028",
+    "LIVE-029"
+  ],
+  "acceptance": [
+    "The owner decides the design in docs/plans/LIVE-IMAGERY.md: Option A (a collection is an engine; RISE chooses the work) or B (subject facets), and the open questions of its section 7 that the first slice needs (the chip's text, the collection's name).",
+    "@scene <id> astronomy is read by the segment parser, admitted, and lowered to { kind: 'sourced', collections: ['sci-astronomy'] }; a parameter on it is refused.",
+    "In the venue a reading with that scene shows an astronomy work in the full frame, never the inner eye or the shell; under reduced motion at once. The previous visual holds until the image decodes, and a failed image never leaves a black or broken frame.",
+    "The chip shows every credit-required work's credit and licence as text; at 1440x900 and 390x844 its box lies inside the room's safe rectangle and meets neither the words' zone, the ask bar, the docked face nor the sign-in link (measured in a browser test).",
+    "About this reading lists each picture shown with title, full credit, licence and source link, so the credit rulings hold in a room with no door to the Curia.",
+    "The catalog words answer 'astronomy' at once with no model call; the first-load budget and the security policy are unchanged; Composer's guide does not offer the collection until the card can show it.",
+    "Human gate: the owner watches a real model's reading that uses the collection on the deployed /live, in the dark room and the light room."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "document",
+      "ref": "docs/plans/LIVE-IMAGERY.md",
+      "note": "Design only, branch live-imagery-design. Agent measurements, not human observations: the astronomy catalog holds 216 works (ESA/Hubble 98, NASA 64, ESO 54), landscapes 216 pins (Rijksmuseum 178, Cleveland 38); sampled ESA/ESO screen images are 1280 px wide and 138-251 KB, NASA's catalog files 640 px; the MCP card admits images from RISE's origin only; Cleveland's keyless API totals 458 CC0 landscape paintings and 145 CC0 landscape photographs. Nothing built."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T18:00:00.000Z",
+      "summary": "Design written on branch live-imagery-design for the owner's decision: what exists, three options and a recommendation, the landscapes curation plan, the first slice and the owner's questions"
+    }
+  ],
+  "updatedAt": "2026-10-26T18:00:00.000Z",
+  "revision": 1,
+  "summary": "Show RISE's reviewed collections (Astronomy now, Landscapes next) in the Live room's full frame with their credits. The frames already admit a museum image; the gap is that a Live reading cannot ask for one. Design awaiting the owner's decision; first slice is astronomy on /live only.",
+  "blocker": null
+}
