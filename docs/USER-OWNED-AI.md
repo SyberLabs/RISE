@@ -54,7 +54,7 @@ Following [OpenRouter's OAuth PKCE guide](https://openrouter.ai/docs/guides/over
 
 Disconnect forgets the key in RISE. Each connection mints a new key in the reader's OpenRouter account; the reader can revoke old keys in their OpenRouter settings, and the Home panel says so.
 
-The key goes only to `https://openrouter.ai`: the CSP `connect-src` names that exact origin. It never reaches a SyberLabs server, storage, analytics (RISE has none), logs, exports, or error reports (RISE sends none). This is not a vault: browser extensions and any script in the page can read page memory. RISE loads no third-party scripts (`script-src 'self'`) to keep that surface small, and the Home panel says so to the reader.
+The key goes only to `https://openrouter.ai`: the CSP `connect-src` names that exact origin. It never reaches a SyberLabs server, storage, analytics (RISE's only analytics is Cloudflare Web Analytics page-view counting, and the key is never part of it), logs, exports, or error reports (RISE sends none). This is not a vault: browser extensions and any script in the page can read page memory. RISE loads no third-party script but Cloudflare's Web Analytics beacon (`script-src 'self' blob: https://static.cloudflareinsights.com`; Cloudflare already serves the page) to keep that surface small, and the Home panel says so to the reader.
 
 What the reader is billed for: each Home request, each Scriptorium route, while connected, section visual direction as they read a released text (the reading panel says so), and each question, interjection or Dive asked on RISE Live with OpenRouter as the provider. A repeated identical Home request in the same tab reuses the earlier answer at no charge.
 
