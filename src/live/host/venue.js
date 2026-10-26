@@ -25,6 +25,7 @@
 
 import { connectionState, subscribeConnection, takeConnectionNotice } from '../../core/ai-connection.js';
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
+import { OPENROUTER_DEFAULT_MODEL } from '../adapters/openrouter-model.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
 import { createFrameDirector, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualOf, visualTransform } from './frames.js';
@@ -34,6 +35,8 @@ import { DEMO_OFFERED, DEMO_QUESTIONS } from '../fixtures/demo-questions.js';
 /** How long the bar still says what a reader's catalog word showed once the room is at rest on it. */
 const CHOSEN_BEAT_MS = 1_500;
 
+/** Who makes the pictures (picturesPolicy): RISE's own visuals, the model that answers, another OpenRouter model. */
+const PICTURES = Object.freeze(['rise', 'same', 'model']);
 /** The venue's address: an OpenRouter sign-in started here comes back here (openrouter-callback.js). */
 const LIVE_PATH = '/live';
 /** The longest a visual takes to fade out, as the Chamber sets it. */
@@ -91,8 +94,10 @@ export class LiveVenue {
         this.state = initialVenue({ provider: this.providers[0]?.id === 'sealed' ? 'sealed' : undefined });
         // The reader's Settings choices, from one reading's stage to the next.
         this.room = {};
-        // The room's adapter, made at its first question; every question of the room is asked of it.
+        // The room's adapter, made at its first question; every question of the room is asked of it. And another
+        // model's, when it draws the pictures (illustratorFor).
         this.adapter = null;
+        this.picturesAdapter = null;
         // Each reading the room has let go, by the index of its question: its journal and its passages, for perception.
         this.readings = [];
         this.reading = null;
@@ -117,6 +122,11 @@ export class LiveVenue {
         // The visual a catalog word named, while its note waits for the room to come to rest on it, then the beat's end.
         this.chosenWait = null;
         this.destroyed = false;
+        // The OpenRouter model the reader named (a setting, not a secret); empty asks the adapter's default.
+        this.openRouterModel = String(host.getSettings?.()?.liveOpenRouterModel ?? '').trim();
+        // Who makes the pictures, as the reader chose ('' until they do: picturesPolicy), and the model that draws them.
+        this.pictures = PICTURES.includes(host.getSettings?.()?.livePictures) ? host.getSettings().livePictures : '';
+        this.picturesModel = String(host.getSettings?.()?.livePicturesModel ?? '').trim();
         // The face: its element, its engine once loaded, whether the last question failed, and (?measure=1) its states.
         const saved = host.getSettings?.()?.liveFace;
         this.faceSkin = FACE_SKINS.includes(saved) ? saved : 'sophia';
@@ -162,15 +172,50 @@ export class LiveVenue {
      * reading on screen, with what the provider reports it cost.
      */
     adapterFor({ clock }) {
-        this.adapter ??= Promise.resolve(this.chosen().adapter({ clock, getKey: () => this.host.key, onUsage: report => { this.usage = addUsage(this.usage, { report }); } }))
+        this.adapter ??= Promise.resolve(this.chosen().adapter({
+            clock,
+            getKey: () => this.host.key,
+            getModel: () => this.openRouterModel || undefined,
+            onUsage: report => { this.usage = addUsage(this.usage, { report }); }
+        }))
             .then(adapter => ({
                 ...adapter,
                 open: (request, options) => {
                     this.usage = addUsage(this.usage, { intent: request?.intent });
-                    return adapter.open(request, options);
-                }
+                    // A room of RISE's own visuals tells the composer so (openai-instructions.js); a picture asked of it is drawn.
+                    const own = this.picturesPolicy() === 'rise' && request?.intent !== 'illustrate';
+                    return adapter.open(own ? { ...request, pictures: 'rise' } : request, options);
+                },
+                // A figure or a code scene written all the same is refused there, by name.
+                admitScene: scene => (this.picturesPolicy() === 'rise'
+                    ? `Scene "${scene.id}" was refused: this room shows RISE’s own visuals only.`
+                    : adapter.admitScene?.(scene) ?? null)
             }));
         return this.adapter;
+    }
+
+    /**
+     * Who draws a picture the composer asks for (runtime.js `illustrator`): null for RISE's own visuals only; another
+     * OpenRouter model, on the same connection and counted with the reading's requests; or the room's own adapter
+     * (undefined).
+     */
+    async illustratorFor({ clock }) {
+        const policy = this.picturesPolicy();
+        if (policy === 'rise') return null;
+        if (policy !== 'model') return undefined;
+        const entry = this.providers.find(item => item.id === 'openrouter');
+        this.picturesAdapter ??= Promise.resolve(entry.adapter({
+            clock,
+            getModel: () => this.picturesModel || undefined,
+            onUsage: report => { this.usage = addUsage(this.usage, { report }); }
+        })).then(adapter => ({
+            ...adapter,
+            open: (request, options) => {
+                this.usage = addUsage(this.usage, { intent: request?.intent });
+                return adapter.open(request, options);
+            }
+        }));
+        return this.picturesAdapter;
     }
 
     /** What the reading on screen has cost, for About this reading; the demo says it spends nothing, and a sealed room asks nothing. */
@@ -212,12 +257,21 @@ export class LiveVenue {
             <button type="submit" class="live-start">Ask <span aria-hidden="true">→</span></button>
           </div>
           <p class="live-venue__try" hidden></p>
-          <p class="live-venue__choices">Answered by <button type="button" class="live-venue__choice" data-venue-open="providers" aria-expanded="false" aria-controls="live-venue-providers-panel"></button><span aria-hidden="true"> · </span>spoken by <button type="button" class="live-venue__choice" data-venue-open="voices" aria-expanded="false" aria-controls="live-venue-voices-panel"></button></p>
+          <p class="live-venue__choices">Answered by <button type="button" class="live-venue__choice" data-venue-open="providers" aria-expanded="false" aria-controls="live-venue-providers-panel"></button><span class="live-venue__pictures-choice"><span aria-hidden="true"> · </span>pictures by <button type="button" class="live-venue__choice" data-venue-open="pictures" aria-expanded="false" aria-controls="live-venue-pictures-panel"></button></span><span aria-hidden="true"> · </span>spoken by <button type="button" class="live-venue__choice" data-venue-open="voices" aria-expanded="false" aria-controls="live-venue-voices-panel"></button></p>
           <div class="live-venue__panel" id="live-venue-providers-panel" data-panel="providers" hidden>
             <fieldset class="live-venue__providers">
               <legend class="live-venue__legend">Who answers</legend>
             </fieldset>
             <div class="live-venue__credential"></div>
+          </div>
+          <div class="live-venue__panel" id="live-venue-pictures-panel" data-panel="pictures" hidden>
+            <fieldset class="live-venue__pictures">
+              <legend class="live-venue__legend">Who makes the pictures</legend>
+              <label class="live-venue__provider"><input type="radio" name="live-venue-pictures" value="rise"><span>RISE’s own visuals</span></label>
+              <label class="live-venue__provider"><input type="radio" name="live-venue-pictures" value="same"><span>The model that answers</span></label>
+              <label class="live-venue__provider"><input type="radio" name="live-venue-pictures" value="model"><span>Another OpenRouter model</span></label>
+            </fieldset>
+            <div class="live-venue__pictures-credential"></div>
           </div>
           <div class="live-venue__panel" id="live-venue-voices-panel" data-panel="voices" hidden>
             <fieldset class="live-venue__voices">
@@ -255,6 +309,15 @@ export class LiveVenue {
                 if (radio.value !== 'elevenlabs') this.host.forgetVoiceKey();
                 this.renderVoiceCredential();
                 this.renderCredential();
+            });
+        }
+        this.picturesCredential = $('.live-venue__pictures-credential');
+        for (const radio of container.querySelectorAll('input[name="live-venue-pictures"]')) {
+            radio.addEventListener('change', () => {
+                if (!radio.checked) return;
+                this.pictures = radio.value;
+                this.host.onSettingChange?.('livePictures', radio.value);
+                this.renderChoices();
             });
         }
         this.startButton = $('.live-start');
@@ -450,6 +513,58 @@ export class LiveVenue {
         const voice = this.host.voiceChoice === 'elevenlabs' ? 'ElevenLabs' : 'your device';
         spoken.textContent = voice;
         spoken.setAttribute('aria-label', `Who speaks: ${voice}`);
+        this.renderPictures();
+    }
+
+    /**
+     * Who makes the pictures: RISE's own visuals, the model that answers, or another model on the same OpenRouter
+     * account. The Demo's readings are written with their pictures, so it offers no choice.
+     */
+    picturesPolicy() {
+        const entry = this.chosen();
+        if (!entry || entry.id === 'mock') return 'same';
+        if (this.pictures === 'model') return entry.credential === 'openrouter' ? 'model' : 'same';
+        if (this.pictures) return this.pictures;
+        // Unchosen: a free model shows RISE's own visuals, which ask the least of it; any other draws its own.
+        return entry.credential === 'openrouter' && this.openRouterModel.endsWith(':free') ? 'rise' : 'same';
+    }
+
+    /** The quiet line's "pictures by", the panel's radios, and the model field under "Another OpenRouter model". */
+    renderPictures() {
+        const named = this.root?.querySelector('[data-venue-open="pictures"]');
+        if (!named) return;
+        const entry = this.chosen();
+        const policy = this.picturesPolicy();
+        this.root.querySelector('.live-venue__pictures-choice').hidden = !entry || entry.id === 'mock';
+        const model = this.picturesModel || OPENROUTER_DEFAULT_MODEL;
+        const name = { rise: 'RISE', same: 'the same model', model: model.split('/').at(-1) }[policy];
+        named.textContent = name;
+        named.setAttribute('aria-label', `Who makes the pictures: ${name}`);
+        for (const radio of this.root.querySelectorAll('input[name="live-venue-pictures"]')) {
+            radio.checked = radio.value === policy;
+            if (radio.value === 'model') radio.disabled = entry?.credential !== 'openrouter';
+        }
+        this.picturesCredential.replaceChildren();
+        this.root.querySelector('input[name="live-venue-pictures"]:checked')?.closest('label')?.after(this.picturesCredential);
+        if (policy !== 'model') return;
+        const label = this.doc.createElement('label');
+        label.className = 'live-label';
+        label.htmlFor = 'live-venue-pictures-model';
+        label.textContent = 'Model';
+        const input = this.doc.createElement('input');
+        Object.assign(input, { id: 'live-venue-pictures-model', type: 'text', autocomplete: 'off', spellcheck: false, maxLength: 240, placeholder: OPENROUTER_DEFAULT_MODEL, value: this.picturesModel });
+        input.setAttribute('autocapitalize', 'off');
+        input.addEventListener('input', () => {
+            this.picturesModel = input.value.trim();
+            const shown = (this.picturesModel || OPENROUTER_DEFAULT_MODEL).split('/').at(-1);
+            named.textContent = shown;
+            named.setAttribute('aria-label', `Who makes the pictures: ${shown}`);
+        });
+        input.addEventListener('change', () => this.host.onSettingChange?.('livePicturesModel', this.picturesModel));
+        const note = this.doc.createElement('p');
+        note.className = 'live-venue__note';
+        note.textContent = 'Draws the figures and moving scenes the answer asks for, on the same OpenRouter account.';
+        this.picturesCredential.append(label, input, note);
     }
 
     /** The voice's credential: a typed ElevenLabs key, held in the host's memory only, when that voice is chosen. */
@@ -514,7 +629,29 @@ export class LiveVenue {
                 note.textContent = 'Connecting goes to OpenRouter and brings you back here, connected, with your question; this tab keeps the question only until you are back.';
                 this.credential.append(connect, note);
             }
+            this.credential.append(...this.modelField());
         }
+    }
+
+    /** OpenRouter's model, by its id: any the reader's account reaches, kept as a setting; empty is the default. */
+    modelField() {
+        const label = this.doc.createElement('label');
+        label.className = 'live-label';
+        label.htmlFor = 'live-venue-model';
+        label.textContent = 'Model';
+        const input = this.doc.createElement('input');
+        Object.assign(input, { id: 'live-venue-model', type: 'text', autocomplete: 'off', spellcheck: false, maxLength: 240, placeholder: OPENROUTER_DEFAULT_MODEL, value: this.openRouterModel });
+        input.setAttribute('autocapitalize', 'off');
+        input.addEventListener('input', () => {
+            this.openRouterModel = input.value.trim();
+            // An unchosen "pictures by" follows the model: a free one shows RISE's own visuals.
+            this.renderPictures();
+        });
+        input.addEventListener('change', () => this.host.onSettingChange?.('liveOpenRouterModel', this.openRouterModel));
+        const note = this.doc.createElement('p');
+        note.className = 'live-venue__note';
+        note.textContent = 'Any model your OpenRouter account reaches. Free ones end in :free, such as nvidia/nemotron-3.5-lightning:free.';
+        return [label, input, note];
     }
 
     /**
@@ -775,6 +912,7 @@ export class LiveVenue {
         await this.letGo();
         this.room = {};
         this.adapter = null;
+        this.picturesAdapter = null;
         this.readings = [];
         this.host.paintEmbedTheme();
         await this.host.stop();

@@ -1068,11 +1068,14 @@ body:has(.live-venue) { background: var(--live-ground); }
 
 /* A key, under the provider or voice it is for. */
 .live-venue__credential,
-.live-venue__voice-credential { display: flex; flex-direction: column; gap: 2px; padding: 2px 12px 10px 31px; }
+.live-venue__voice-credential,
+.live-venue__pictures-credential { display: flex; flex-direction: column; gap: 2px; padding: 2px 12px 10px 31px; }
 .live-venue__credential:empty,
-.live-venue__voice-credential:empty { display: none; }
+.live-venue__voice-credential:empty,
+.live-venue__pictures-credential:empty { display: none; }
 .live-venue .live-label { font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--live-faint); }
-.live-venue input[type="password"] {
+.live-venue input[type="password"],
+.live-venue :is(#live-venue-model, #live-venue-pictures-model) {
   min-height: 44px;
   padding: 0;
   border: 0;
@@ -1084,7 +1087,10 @@ body:has(.live-venue) { background: var(--live-ground); }
   font: inherit;
   font-size: 0.9375rem;
 }
-.live-venue input[type="password"]:focus-visible { outline: none; border-bottom-color: var(--live-line-lit); box-shadow: 0 1px 0 var(--live-line-lit); }
+.live-venue :is(#live-venue-model, #live-venue-pictures-model)::placeholder { color: var(--live-faint); }
+.live-venue label[for="live-venue-model"] { margin-top: 10px; }
+.live-venue input[type="password"]:focus-visible,
+.live-venue :is(#live-venue-model, #live-venue-pictures-model):focus-visible { outline: none; border-bottom-color: var(--live-line-lit); box-shadow: 0 1px 0 var(--live-line-lit); }
 .live-venue .live-venue__credential button {
   align-self: flex-start;
   font-size: 0.875rem;

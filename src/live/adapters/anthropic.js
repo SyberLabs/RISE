@@ -50,7 +50,7 @@ export function buildBody(request, model, origin) {
     return {
         model,
         max_tokens: KEYED_LIMITS.maxTokens,
-        system: instructionsFor(origin, request.intent),
+        system: instructionsFor(origin, request.intent, request),
         messages: [{ role: 'user', content: promptFor(request) }],
         // Thinking is on by default on the 5.5 models and cannot be turned off on all of them; low effort keeps the
         // first words quick and the thinking inside the cap.

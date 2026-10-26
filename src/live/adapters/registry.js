@@ -31,8 +31,9 @@ export const LIVE_PROVIDERS = Object.freeze([
         id: 'openrouter',
         label: 'OpenRouter (your key)',
         credential: 'openrouter',
-        // The key stays in ai-connection.js; the adapter asks for the connection at each request, and says what each cost.
-        adapter: async ({ onUsage } = {}) => (await import('./openrouter.js')).createOpenRouterAdapter({ onUsage })
+        // The key stays in ai-connection.js; the adapter asks for the connection and the model the reader named at each
+        // request, and says what each cost.
+        adapter: async ({ onUsage, getModel } = {}) => (await import('./openrouter.js')).createOpenRouterAdapter({ onUsage, getModel })
     }),
     Object.freeze({
         id: 'anthropic',
