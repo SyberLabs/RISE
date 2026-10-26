@@ -28,12 +28,20 @@ describe('the public Changes workflow', () => {
     expect(publish).toBeGreaterThan(digest);
     expect(caller).toBeGreaterThan(install);
     expect(text.slice(caller)).not.toMatch(/npm ci/);
-    expect(text).toMatch(/repository: SyberLabs\/RISE\n {10}ref: \$\{\{ github\.workflow_sha \}\}\n {10}persist-credentials: false/);
+    expect(text).toMatch(/repository: SyberLabs\/RISE\n {10}ref: \$\{\{ job\.workflow_sha \}\}\n {10}persist-credentials: false/);
     expect(text).toMatch(/working-directory: rise/);
     const callerCheckout = text.slice(publish);
     expect(callerCheckout).toMatch(/repository: \$\{\{ github\.repository \}\}/);
     expect(callerCheckout).toMatch(/HEAD:refs\/heads\/changes-data/);
     expect(callerCheckout).not.toMatch(/--force|github\.ref|refs\/heads\/main/);
+  });
+
+  it('checks RISE out at its own workflow commit, never the caller’s', () => {
+    // A called workflow's github context belongs to the caller, so github.workflow_sha names the caller's commit,
+    // which does not exist in RISE: every cross-repository caller would fail before the public gate.
+    // job.workflow_sha is the commit of the workflow file that defines this job, which is RISE's.
+    expect(text).not.toMatch(/\$\{\{ github\.workflow_(sha|ref) \}\}/);
+    expect(text.match(/ref: \$\{\{ job\.workflow_sha \}\}/g)).toHaveLength(1);
   });
 
   it('keeps the model credential out of the publish steps', () => {
