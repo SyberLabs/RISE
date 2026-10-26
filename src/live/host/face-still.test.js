@@ -12,8 +12,9 @@ const parse = markup => {
 };
 
 describe('the still face', () => {
-    it('offers the engine’s own skins', () => {
-        expect(FACE_SKINS).toEqual(Object.keys(ORACLE_SKINS));
+    it('offers the engine’s own faces, and no light room’s skin as a face', () => {
+        expect(FACE_SKINS).toEqual(Object.keys(ORACLE_SKINS).filter(name => !ORACLE_SKINS[name].light));
+        expect(FACE_SKINS).toEqual(['sophia', 'ember', 'jade', 'silver']);
     });
 
     it('is the open eye: a lit disc, 36 petal strokes, the pupil, the catchlight and seven soft nodes', () => {

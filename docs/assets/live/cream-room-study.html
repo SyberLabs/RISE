@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The light room</title>
+<!-- Served by the app's dev server (npm run dev, then /docs/assets/live/cream-room-study.html): the room's own fonts,
+     tokens and face engine, and KaTeX, are the repository's. -->
+<link rel="stylesheet" href="/src/fonts.css">
+<link rel="stylesheet" href="/src/design-system.css">
+<link rel="stylesheet" href="/node_modules/katex/dist/katex.min.css">
+<style>
+  :root {
+    --page: #ece8e1;
+    --page-ink: #1d2433;
+    --page-dim: #5d6677;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px 64px;
+    background: var(--page);
+    color: var(--page-ink);
+    font-family: var(--sy-font-sans);
+  }
+  .intro { max-width: 1480px; margin: 0 auto 32px; }
+  .intro h1 { color: var(--page-ink); margin: 0 0 8px; font-family: var(--sy-font-serif); font-weight: 400; font-size: 44px; letter-spacing: 0.01em; }
+  .intro p { margin: 0; max-width: 760px; color: var(--page-dim); line-height: 1.55; }
+  .direction { max-width: 1480px; margin: 0 auto 56px; }
+  .direction header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; margin-bottom: 14px; }
+  .direction h2 { color: var(--page-ink); margin: 0; font-family: var(--sy-font-serif); font-weight: 400; font-size: 32px; }
+  .direction .note { color: var(--page-dim); font-size: 14px; max-width: 760px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 16px; padding: 0; list-style: none; font-size: 12px; color: var(--page-dim); }
+  .swatches li { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border-radius: 8px; background: rgba(255, 255, 255, 0.55); }
+  .swatches i { width: 22px; height: 22px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
+  .swatches b { color: var(--page-ink); font-weight: 600; }
+  .screens { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+  @media (max-width: 1100px) { .screens { grid-template-columns: 1fr; } .screens .phone { justify-self: center; } }
+  .label { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--page-dim); }
+
+  /* A screen of the room, in a candidate's colours (set as --live-* on each screen, as venue.js paintSkin does). */
+  .room {
+    --live-ink: color-mix(in srgb, var(--live-core) 92%, var(--live-ground));
+    --live-soft: color-mix(in srgb, var(--live-core) 80%, var(--live-ground));
+    --live-faint: color-mix(in srgb, var(--live-core) 72%, var(--live-ground));
+    --live-line: color-mix(in srgb, var(--live-iris) 38%, transparent);
+    --live-line-lit: color-mix(in srgb, var(--live-iris) 75%, transparent);
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    border-radius: 14px;
+    color: var(--live-ink);
+    background: var(--live-ground);
+    box-shadow: 0 1px 2px rgba(20, 24, 40, 0.08), 0 18px 48px -18px rgba(20, 24, 40, 0.28);
+    font-family: var(--sy-font-sans);
+  }
+  .phone .room { aspect-ratio: 9 / 18.5; border-radius: 28px; }
+  .room canvas.face { position: absolute; display: block; }
+  .room .corner { position: absolute; top: 14px; right: 18px; font-size: 11px; letter-spacing: 0.04em; color: var(--live-faint); }
+
+  /* The entry: the face, the name, the line, the field, the Demo's questions, who answers. */
+  .entry .face { left: 50%; top: 4%; width: 34%; aspect-ratio: 1; translate: -50% 0; }
+  .phone .entry .face { width: 86%; top: 12%; }
+  .entry .stack { position: absolute; left: 0; right: 0; top: 51%; display: grid; justify-items: center; gap: 6px; text-align: center; padding: 0 16px; }
+  .phone .entry .stack { top: 52%; }
+  .mark { margin: 0; font-family: var(--sy-font-serif); font-weight: 400; font-size: 34px; letter-spacing: 0.32em; color: var(--live-ink); }
+  .mark span { font-size: 0.5em; letter-spacing: 0.02em; font-style: italic; color: var(--live-soft); margin-left: -0.2em; }
+  .lede { margin: 0; font-family: var(--sy-font-serif); font-style: italic; font-size: 14px; color: var(--live-soft); }
+  .field { position: relative; width: min(76%, 420px); margin-top: 14px; padding: 10px 0 9px; font-family: var(--sy-font-serif); font-style: italic; font-size: 19px; color: var(--live-faint); }
+  .field::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--live-line-lit); }
+  .try { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 14px; font-size: 11px; color: var(--live-faint); }
+  .try em { font-family: var(--sy-font-serif); font-size: 13px; color: var(--live-ink); text-decoration: underline; text-decoration-color: var(--live-line); text-underline-offset: 4px; }
+  .choices { font-size: 11px; color: var(--live-faint); }
+  .choices b { color: var(--live-ink); font-weight: 600; text-decoration: underline; text-decoration-color: var(--live-line); text-underline-offset: 4px; }
+
+  /* The reading: a figure behind the words, the face docked by the bar, the instrument at the foot. */
+  .reading .figure { position: absolute; left: 50%; top: 7%; width: 30%; translate: -50% 0; color: var(--live-ink); }
+  .reading .words { position: absolute; left: 6%; right: 6%; top: 60%; text-align: center; font-family: var(--sy-font-reading); font-size: 22px; line-height: 1.4; color: var(--live-ink); }
+  .reading .words .katex { font-size: calc(1ex / 0.4306); }
+  .reading .ask { position: absolute; left: 50%; bottom: 17%; translate: -50% 0; display: flex; align-items: center; gap: 10px; }
+  .reading .ask .dock { width: 40px; height: 40px; position: relative; border-radius: 50%; overflow: hidden; }
+  .reading .ask .dock canvas { width: 40px; height: 40px; }
+  .reading .ask .bar { width: 230px; padding: 10px 16px; border-radius: 999px; font-size: 12px; color: var(--live-faint);
+    background: color-mix(in srgb, white 46%, transparent); box-shadow: inset 0 0 0 1px var(--live-line), 0 6px 18px -10px rgba(20, 30, 60, 0.35); backdrop-filter: blur(8px); }
+  .reading .instrument { position: absolute; left: 16px; right: 16px; bottom: 12px; }
+  .reading .ticks { display: flex; gap: 4px; margin-bottom: 9px; }
+  .reading .ticks i { flex: 1; height: 2px; border-radius: 2px; background: color-mix(in srgb, var(--live-core) 16%, transparent); }
+  .reading .ticks i.on { background: var(--live-iris); }
+  .reading .row { display: flex; gap: 8px; }
+  .reading .row b { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 600; color: var(--live-ink);
+    background: color-mix(in srgb, white 50%, transparent); box-shadow: inset 0 0 0 1px var(--live-line); }
+  .phone .reading .words { font-size: 19px; top: 52%; }
+  .phone .reading .figure { width: 66%; top: 12%; }
+  .phone .reading .ask .bar { width: 180px; }
+
+  .contrast { margin: 10px 0 0; font-size: 12px; color: var(--page-dim); }
+  .contrast b { color: var(--page-ink); }
+</style>
+</head>
+<body>
+<section class="intro">
+  <h1>The light room</h1>
+  <p>RISE Live in cream and blue, chosen in Settings (opt-in; the night room stays the default). Three directions, each drawn with the real face engine in a light skin, the room's own type, a figure whose dark parts are the theme's dark, and a formula typeset as the reading sets it. Under each, the contrast of its smallest text, measured.</p>
+</section>
+<main id="directions"></main>
+
+<script type="module">
+  import oracle, { ORACLE_SKINS } from '/src/scenes/engines/oracle.js';
+  import katex from '/node_modules/katex/dist/katex.mjs';
+
+  const DIRECTIONS = [
+    { skin: 'porcelain', name: 'Porcelain', note: 'A warm porcelain ground, deep navy ink, a cobalt line. The most neutral of the three: closest to fine paper.' },
+    { skin: 'vellum', name: 'Vellum', note: 'A warmer, slightly golden cream with midnight ink and lapis. The most like a printed page by lamplight.' },
+    { skin: 'delft', name: 'Delft', note: 'A cool ivory with Delft blue ink and cobalt. The crispest and most blue of the three.' }
+  ];
+  const hex = c => `#${c.map(v => v.toString(16).padStart(2, '0')).join('')}`;
+  const rgb = c => `rgb(${c.join(', ')})`;
+  const mix = (a, b, t) => a.map((v, i) => Math.round(v * t + b[i] * (1 - t)));
+  const lum = c => { const [r, g, b] = c.map(v => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return ((x + 0.05) / (y + 0.05)).toFixed(1); };
+
+  const FIGURE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 210" fill="none">
+    <circle cx="100" cy="100" r="88" stroke="currentColor" stroke-width="1" stroke-dasharray="4 6" opacity="0.6"/>
+    <circle cx="100" cy="100" r="50" stroke="currentColor" stroke-width="4" opacity="0.3"/>
+    <circle cx="100" cy="100" r="44" fill="var(--dark)" stroke="currentColor" stroke-width="1.5"/>
+    <text x="100" y="205" text-anchor="middle" font-size="12" fill="currentColor" font-family="Crimson Pro, Georgia, serif">event horizon</text>
+  </svg>`;
+  const FORMULA = katex.renderToString('E_0 = \\frac{1}{2}\\hbar\\omega', { output: 'htmlAndMathml', throwOnError: false });
+
+  /** The real face, in a skin and a state, on a canvas sized to its box. */
+  function face(canvas, skin, state) {
+    const box = canvas.getBoundingClientRect();
+    const dpr = Math.min(2, devicePixelRatio || 1);
+    canvas.width = Math.round(box.width * dpr);
+    canvas.height = Math.round(box.height * dpr);
+    const ctx = canvas.getContext('2d');
+    const scene = oracle({ ctx, size: { width: box.width, height: box.height, dpr }, theme: { skin, state }, reducedMotion: false, listen() {}, emit() {}, done() {} });
+    let last = performance.now();
+    const tick = now => { scene.frame(now, now - last); last = now; requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  }
+
+  const entry = d => `<div class="room entry" style="${d.vars}"><span class="corner">Staff sign in</span><canvas class="face" data-state="arrival"></canvas>
+    <div class="stack"><p class="mark">RISE <span>Live</span></p><p class="lede">Ask, and the answer becomes a reading.</p>
+    <div class="field">Ask about black holes and more.</div>
+    <div class="try">Try <em>How do black holes work?</em> <em>Why is the sky blue?</em> <em>What is a tesseract?</em></div>
+    <div class="choices">Answered by <b>Demo</b> · spoken by <b>your device</b></div></div></div>`;
+  const reading = d => `<div class="room reading" style="${d.vars}"><span class="corner">Staff sign in</span>
+    <div class="figure">${FIGURE}</div>
+    <div class="words">Its lowest energy is ${FORMULA}, never zero.</div>
+    <div class="ask"><div class="dock"><canvas class="face" data-state="speaking"></canvas></div><div class="bar">Ask while it reads…</div></div>
+    <div class="instrument"><div class="ticks"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+    <div class="row"><b>◂</b><b>❚❚</b><b>▸</b><b>↻</b><b>1×</b><b>⤢</b></div></div></div>`;
+
+  const host = document.getElementById('directions');
+  for (const d of DIRECTIONS) {
+    const s = ORACLE_SKINS[d.skin];
+    d.vars = `--live-ground:${rgb(s.trail)};--live-core:${rgb(s.ink)};--live-iris:${rgb(s.iris)};--live-glow:${rgb(s.glow)};--dark:${rgb(s.deep)}`;
+    const faint = mix(s.ink, s.trail, 0.72);
+    const soft = mix(s.ink, s.trail, 0.80);
+    const section = document.createElement('section');
+    section.className = 'direction';
+    section.innerHTML = `<header><h2>${d.name}</h2><span class="note">${d.note}</span></header>
+      <ul class="swatches">${[['Ground', s.trail], ['Ink', s.ink], ['Glaze', s.core], ['Line', s.iris], ['Glow', s.glow], ['Dark', s.deep]].map(([label, c]) => `<li><i style="background:${rgb(c)}"></i><b>${label}</b> ${hex(c)}</li>`).join('')}</ul>
+      <div class="screens"><div><p class="label">Entry</p>${entry(d)}</div><div><p class="label">Reading</p>${reading(d)}</div><div class="phone"><p class="label">Phone</p>${entry(d)}</div></div>
+      <p class="contrast">Contrast on the ground: words <b>${ratio(mix(s.ink, s.trail, 0.92), s.trail)}:1</b> · soft text <b>${ratio(soft, s.trail)}:1</b> · smallest text <b>${ratio(faint, s.trail)}:1</b> (AA asks 4.5:1) · the line <b>${ratio(s.iris, s.trail)}:1</b></p>`;
+    host.append(section);
+    for (const canvas of section.querySelectorAll('canvas.face')) face(canvas, d.skin, canvas.dataset.state);
+  }
+</script>
+</body>
+</html>

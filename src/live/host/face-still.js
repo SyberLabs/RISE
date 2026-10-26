@@ -5,9 +5,9 @@
  * The petals are 36 thin strokes over a lit disc rather than the engine's 108 filled petals: a first paint pays for
  * a few hundred bytes, not a few hundred paths. Its geometry is the engine's at arrival, in a 100-unit square.
  */
-import { ORACLE_SKINS, ORACLE_STATES } from '../../scenes/engines/oracle.js';
+import { ORACLE_FACES, ORACLE_SKINS, ORACLE_STATES } from '../../scenes/engines/oracle.js';
 
-export const FACE_SKINS = Object.freeze(Object.keys(ORACLE_SKINS));
+export const FACE_SKINS = ORACLE_FACES;
 
 const rgb = c => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
 const fixed = value => Number(value.toFixed(2));

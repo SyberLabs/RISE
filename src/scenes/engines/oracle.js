@@ -24,12 +24,21 @@
  * This file is sent to the worker as text (?raw) and loaded from a blob: it imports nothing.
  */
 
-/** Skins: core (the pupil's heart), iris, glow (field and nodes), deep (the pupil's depth), trail (the room's dark). */
+/**
+ * Skins: core (the pupil's heart), iris, glow (field and nodes), deep (the pupil's depth), trail (the room's ground).
+ * A `light` skin is a pale room drawn as glaze on porcelain: its heart is a white highlight, its lines darken what is
+ * under them rather than lighten it, its trail fades toward a ground above the room's, not below, and its `ink` is
+ * the room's words (a dark skin's words are its core).
+ */
 export const ORACLE_SKINS = Object.freeze({
     sophia: Object.freeze({ core: [245, 245, 220], iris: [135, 206, 235], glow: [176, 196, 222], deep: [25, 25, 112], trail: [10, 10, 15] }),
     ember: Object.freeze({ core: [255, 236, 210], iris: [240, 163, 107], glow: [214, 120, 92], deep: [70, 20, 20], trail: [14, 9, 8] }),
     jade: Object.freeze({ core: [236, 245, 230], iris: [143, 211, 181], glow: [120, 180, 150], deep: [10, 50, 40], trail: [7, 12, 10] }),
-    silver: Object.freeze({ core: [250, 250, 250], iris: [207, 211, 218], glow: [160, 166, 176], deep: [30, 32, 40], trail: [9, 9, 11] })
+    silver: Object.freeze({ core: [250, 250, 250], iris: [207, 211, 218], glow: [160, 166, 176], deep: [30, 32, 40], trail: [9, 9, 11] }),
+    // The light room's three candidates (docs/assets/live/cream-room-study.html); the owner keeps one.
+    porcelain: Object.freeze({ core: [255, 253, 248], iris: [47, 95, 179], glow: [168, 192, 230], deep: [14, 27, 54], trail: [244, 239, 230], ink: [23, 42, 79], light: true }),
+    vellum: Object.freeze({ core: [255, 250, 238], iris: [59, 108, 181], glow: [178, 198, 228], deep: [21, 33, 58], trail: [239, 230, 212], ink: [31, 46, 74], light: true }),
+    delft: Object.freeze({ core: [255, 255, 255], iris: [31, 79, 168], glow: [150, 178, 222], deep: [10, 28, 64], trail: [247, 244, 238], ink: [15, 42, 92], light: true })
 });
 
 /** Each state is a set of targets the face eases toward (time constant 0.18 s): nothing snaps. */
@@ -42,13 +51,15 @@ export const ORACLE_STATES = Object.freeze({
 });
 
 const SKIN_NAMES = Object.freeze(Object.keys(ORACLE_SKINS));
+/** The faces a reader chooses among; a light skin is the light room's, never offered as a face. */
+export const ORACLE_FACES = Object.freeze(SKIN_NAMES.filter(name => !ORACLE_SKINS[name].light));
 const STATE_NAMES = Object.freeze(Object.keys(ORACLE_STATES));
 
 /** What the face takes, in a manifest's shape (src/scenes/manifests.js): read by the venue, never by a model. */
 export const ORACLE_MANIFEST = Object.freeze({
     id: 'oracle', kind: 'presence', surface: 'oracle',
     parameters: Object.freeze({
-        skin: Object.freeze({ type: 'enum', values: SKIN_NAMES, default: 'sophia', cueable: true }),
+        skin: Object.freeze({ type: 'enum', values: ORACLE_FACES, default: 'sophia', cueable: true }),
         state: Object.freeze({ type: 'enum', values: STATE_NAMES, default: 'arrival', cueable: true })
     }),
     cues: Object.freeze({
@@ -253,7 +264,7 @@ export default function oracle(rise) {
     /** The torus; `m` carries it to the shell's rim, at 0.445 with a thin tube. */
     function drawTorus(f, m) {
         ctx.save();
-        ctx.globalCompositeOperation = 'screen';
+        ctx.globalCompositeOperation = skin.light ? 'multiply' : 'screen';
         ctx.strokeStyle = rgba(skin.glow, mix(0.04 + gaze.depth * 0.08 + live.glow * 0.03, 0.16, m));
         ctx.lineWidth = 0.5;
         const R = mix(f.s * 0.30 * live.tight, f.s * 0.445, m);
@@ -297,10 +308,17 @@ export default function oracle(rise) {
                 ctx.stroke();
             }
             const g = ctx.createRadialGradient(x, y, 0, x, y, pulse);
-            g.addColorStop(0, rgba(skin.core, 0.7 * node.lit));
-            g.addColorStop(0.4, rgba(skin.glow, 0.5 * node.lit));
-            g.addColorStop(0.7, rgba(skin.iris, 0.3 * node.lit));
-            g.addColorStop(1, rgba(skin.iris, 0));
+            if (skin.light) {
+                // On a pale ground a light is a bead of ink: densest at its heart, not a pale heart in a dark ring.
+                g.addColorStop(0, rgba(skin.iris, 0.6 * node.lit));
+                g.addColorStop(0.45, rgba(skin.glow, 0.35 * node.lit));
+                g.addColorStop(1, rgba(skin.glow, 0));
+            } else {
+                g.addColorStop(0, rgba(skin.core, 0.7 * node.lit));
+                g.addColorStop(0.4, rgba(skin.glow, 0.5 * node.lit));
+                g.addColorStop(0.7, rgba(skin.iris, 0.3 * node.lit));
+                g.addColorStop(1, rgba(skin.iris, 0));
+            }
             ctx.beginPath();
             ctx.arc(x, y, pulse, 0, TAU);
             ctx.fillStyle = g;
@@ -641,9 +659,17 @@ export default function oracle(rise) {
             // each channel's maximum: what went below is the ground again, exactly; what is brighter is untouched.
             // Laid back over the whole canvas, it also fills what the last aperture left clear, so nothing of the
             // visual shows through but the aperture this frame cuts.
-            ctx.fillStyle = rgba(skin.trail.map(level => Math.max(0, level - 8)), 0.08);
+            // A light skin is the mirror, laid back by each channel's minimum, but not by aiming above its ground:
+            // a faint fade up stalls as far as 14 levels short of its aim, and a pale ground has no such room above
+            // it. It fades toward the ground itself and adds 2 levels a frame, which always arrives.
+            ctx.fillStyle = rgba(skin.light ? skin.trail : skin.trail.map(level => Math.max(0, level - 8)), 0.08);
             ctx.fillRect(0, 0, width, height);
-            ctx.globalCompositeOperation = 'lighten';
+            if (skin.light) {
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = rgba([2, 2, 2], 1);
+                ctx.fillRect(0, 0, width, height);
+            }
+            ctx.globalCompositeOperation = skin.light ? 'darken' : 'lighten';
             ctx.fillStyle = rgba(skin.trail, 1);
             ctx.fillRect(0, 0, width, height);
             ctx.globalCompositeOperation = 'source-over';
