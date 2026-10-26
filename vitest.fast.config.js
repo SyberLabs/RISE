@@ -11,7 +11,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 159;
+export const FAST_TEST_FILES = 160;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -123,6 +123,8 @@ const FAST_TESTS = [
     'src/scenes/engines/oracle.test.js',
     'src/live/adapters/**/*.test.js',
     'src/live/host/**/*.test.js',
+    // Google-shaped fakes are assembled at runtime. This fails if a contiguous literal is committed.
+    'src/test/fake-google-key.test.js',
     'src/live/hosts/**/*.test.js',
     'src/visuals/attractor.test.js',
     'worker/mcp-server.test.js'

@@ -11,6 +11,7 @@ import { AdapterError } from '../adapter.js';
 import { createVirtualClock } from '../clock.js';
 import { createCurrentStream } from '../stream.js';
 import { createFakeGeminiTransport } from '../../test/fake-gemini-transport.js';
+import { fakeGoogleApiKey } from '../../test/fake-google-key.js';
 import { createGeminiFetchTransport } from './gemini-fetch.js';
 import { buildBody } from './gemini-wire.js';
 import { createGeminiAdapter } from './gemini.js';
@@ -161,7 +162,7 @@ describe('stopping', () => {
 });
 
 describe('a failure the provider reports in the middle of a stream', () => {
-    const KEY = 'AIzaSyD-not-a-real-key-000000000000000';
+    const KEY = fakeGoogleApiKey();
     const escaped = [...KEY].map(ch => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`).join('');
     const failing = message => async () => new Response(`data: {"error":{"status":"INTERNAL","message":"${message}"}}\n\n`, { status: 200 });
 

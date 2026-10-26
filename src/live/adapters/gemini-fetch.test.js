@@ -13,8 +13,10 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createGeminiFetchTransport } from './gemini-fetch.js';
+import { fakeGoogleApiKey } from '../../test/fake-google-key.js';
 
-const KEY = 'AIzaSyD-not-a-real-key-000000000000000';
+const KEY = fakeGoogleApiKey();
+const OTHER_KEY = fakeGoogleApiKey('OTHERKEYOTHERKEYOTHERKEYOTHERKEY1');
 const URL_OK = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?alt=sse';
 const encoder = new TextEncoder();
 
@@ -274,12 +276,11 @@ describe('when Google refuses', () => {
 
     it('scrubs the reader’s own key when it is not shaped like a Google key, and a Google-shaped key that is not theirs', async () => {
         const odd = 'not-shaped-like-anything-1234567890';
-        const other = 'AIzaSyOTHERKEYOTHERKEYOTHERKEYOTHERKEY1';
-        const fetch = async () => json(400, errorBody(400, 'INVALID_ARGUMENT', `bad ${odd} and ${other} here`));
+        const fetch = async () => json(400, errorBody(400, 'INVALID_ARGUMENT', `bad ${odd} and ${OTHER_KEY} here`));
         const transport = createGeminiFetchTransport({ getKey: () => odd, fetch });
         const error = await transport.open({ body: {} }).catch(problem => problem);
         expect(error.message).not.toContain(odd);
-        expect(error.message).not.toContain(other);
+        expect(error.message).not.toContain(OTHER_KEY);
         expect(error.message).toContain('[key]');
     });
 
@@ -309,7 +310,7 @@ describe('what the connection lets the adapter scrub with', () => {
     it('scrubs the reader’s own key, and any Google-shaped key, from whatever it is given', async () => {
         const { transport } = setup(() => streamed([]));
         const connection = await transport.open({ body: {} });
-        expect(connection.scrub(`a ${KEY} b AIzaSyOTHERKEYOTHERKEYOTHERKEYOTHERKEY1 c`)).toBe('a [key] b [key] c');
+        expect(connection.scrub(`a ${KEY} b ${OTHER_KEY} c`)).toBe('a [key] b [key] c');
         expect(connection.scrub('nothing to hide')).toBe('nothing to hide');
     });
 
