@@ -108,7 +108,7 @@ describe('the words’ ink, as a figure takes it when the reading names no theme
   });
 });
 
-describe('what else a figure is drawn with: the theme's dark and the reading face', () => {
+describe('what else a figure is drawn with: the theme’s dark and the reading face', () => {
   const TEXTED = `<svg ${NS} viewBox="0 0 4 3"><circle class="dark" cx="2" cy="1" r="1"/><text x="0" y="3">label</text></svg>`;
 
   it('gives the class dark the theme’s dark and its text the reading’s face, after the root’s start tag', () => {
