@@ -133,6 +133,40 @@ const shown = async app => (await app.locator('#atom-display').innerText()).repl
 const expectShown = (app, phrase, timeout = 15_000) => expect.poll(() => shown(app).catch(() => ''), { timeout, message: `waiting to see “${phrase}”` }).toContain(phrase);
 const begin = app => app.getByRole('button', { name: 'Play', exact: true }).click();
 
+test('the self-contained card blocks Astronomy images and retains its previous native visual', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  await page.addInitScript(() => {
+    window.__astronomyPolicy = [];
+    document.addEventListener('securitypolicyviolation', event => {
+      if (event.effectiveDirective === 'img-src') window.__astronomyPolicy.push(event.blockedURI);
+    });
+  });
+  const current = {
+    schema: 'rise.current.v2', id: 'card-astronomy-boundary', title: 'A retained picture', theme: 'cobalt',
+    origin: { kind: 'human', name: 'Automated fixture' },
+    scenes: [{ id: 'native', engine: 'attractor' }, { id: 'sky', engine: 'astronomy' }],
+    beats: [
+      { show: 'The native visual is here.', hold: { ms: 2500 }, scene: 'native' },
+      { show: 'The previous visual stays while the sky cannot load.', hold: { ms: 60_000 }, scene: 'sky' }
+    ]
+  };
+  const appOrigin = `http://127.0.0.1:${new URL(baseURL).port}`;
+  const app = await openHost(page, baseURL, { selfContained: true, appOrigin, current });
+  await expect(posterTitle(app)).toHaveText(current.title);
+  await expect.poll(() => page.evaluate(() => window.__host.workerResult?.structuredContent?.current?.id)).toBe(current.id);
+  await begin(app);
+  await expectShown(app, 'The native visual is here.');
+  const native = app.locator('.chamber-attractor canvas.attractor-canvas').first();
+  await expect(native).toBeVisible();
+  const original = await native.elementHandle();
+  await expectShown(app, 'The previous visual stays while the sky cannot load.');
+  await expect.poll(() => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__astronomyPolicy)).toContainEqual(expect.stringMatching(/^https:\/\/(?:cdn\.esahubble\.org|cdn\.eso\.org|images-assets\.nasa\.gov)\//u));
+  expect(await original.evaluate(node => node.isConnected)).toBe(true);
+  await expect(native).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 function oversizedMcpCurrent() {
   return {
     ...BLACK_HOLES_CURRENT,

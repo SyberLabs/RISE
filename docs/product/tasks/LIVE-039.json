@@ -50,6 +50,12 @@
       "kind": "test",
       "ref": "worker/mcp-server.test.js",
       "note": "Composer closure regression: advertised scene enum reuses HOST_ENGINES; shared admission still accepts Astronomy and refuses its unsupported parameters. 168 tests passed across six focused suites, including real image-preparation decode failure retaining the outgoing field. Content prerequisites built (e1e80101f3bd111d). This is local automated evidence, not a real-host or human observation."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Existing full-project Chromium harness: hand-authored Astronomy Current admitted by the actual Worker; actual card img-src securitypolicyviolation observed for an institution image; same outgoing native canvas stays connected and visible into the Astronomy beat; no page errors. One focused browser test passed. This uses a simulated host and fixture Current, not a real model, actual phone or human acceptance."
     }
   ],
   "activity": [
@@ -64,10 +70,14 @@
     {
       "date": "2026-10-26T23:31:44.644Z",
       "summary": "Release closure refreshed merged/deployed evidence; Composer schema now withholds sourced engines while shared admission and failure retention stay unchanged. Human gates remain open."
+    },
+    {
+      "date": "2026-10-26T23:34:44.891Z",
+      "summary": "Chromium exercised the real card policy and runtime: blocked Astronomy image retains its previous native visual. Real host/model/device/human gates remain separate."
     }
   ],
-  "updatedAt": "2026-10-26T23:31:44.644Z",
-  "revision": 3,
+  "updatedAt": "2026-10-26T23:34:44.891Z",
+  "revision": 4,
   "summary": "The first slice of collection imagery in Live (LIVE-037): the reviewed Astronomy collection as a native engine on /live, hung in the safe rectangle in every room with its credit, titled. Not the card, not landscapes.",
   "blocker": "Real-model, actual-phone and human acceptance remain unrecorded. Composer advertisement correction is on the release-closure candidate branch pending required checks and merge approval."
 }
