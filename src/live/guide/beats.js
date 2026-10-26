@@ -72,7 +72,7 @@ export const LIB_GUIDE = Object.freeze([
 ]);
 
 /** Engine parameters taught in Live's instructions only, while the connector submission is under review. */
-export const HOST_WITHHELD_PARAMETERS = Object.freeze(['trace', 'pendulums']);
+export const HOST_WITHHELD_PARAMETERS = Object.freeze(['trace', 'pendulums', 'streaks']);
 
 /**
  * The widget set `rise.lib` gives a scene that listens (docs/plans/LIVE-CURRENT.md §20), one line each, by name. Taught
