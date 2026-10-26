@@ -12,6 +12,7 @@
 import { SKY_ROOM_TEXT, VIBRANT_ANSWER } from './sky-room-beats.js';
 import { DIAGRAM_ANSWER, illustratorTextFor, TESSERACT_TEXT, WATER_TEXT } from './water-illustrated-beats.js';
 import { NETWORK_TEXT, UNRULY_TEXT } from './neural-network-beats.js';
+import { DEMO_REFUSAL } from './demo-questions.js';
 
 const DISK = `export default function scene(rise) {
   const { lib } = rise;
@@ -118,8 +119,8 @@ export const INTERJECTION_ANSWERS = Object.freeze({
 /**
  * The answer for a question: black holes, the sky (the room changed while it plays, sky-room-beats.js), water and
  * the tesseract (pictures asked for, water-illustrated-beats.js), a neural network and a scene that misbehaves (scenes
- * the reader moves, neural-network-beats.js), or a plain sentence that it knows nothing else; an interjection's, its
- * own; the illustrator's, a picture.
+ * the reader moves, neural-network-beats.js), or, to anything else, what it knows and how to ask anything
+ * (demo-questions.js); an interjection's, its own; the illustrator's, a picture.
  */
 export function beatsTextFor(request) {
     if (request.intent === 'illustrate') return illustratorTextFor(request);
@@ -134,5 +135,5 @@ export function beatsTextFor(request) {
     if (/\btesseract\b/iu.test(request.prompt)) return TESSERACT_TEXT;
     if (/\bneural\b/iu.test(request.prompt)) return NETWORK_TEXT;
     if (/\bmisbehav/iu.test(request.prompt)) return UNRULY_TEXT;
-    return '@say This demonstration can only explain black holes.\n';
+    return DEMO_REFUSAL.map(line => `@say ${line}\n`).join('');
 }

@@ -138,7 +138,7 @@ test.describe('the canonical flow', () => {
         await page.locator('#live-prompt').fill('What is the airspeed of an unladen swallow?');
         await page.locator('.live-start').click();
         await expect(page.locator('#live-controls')).toBeVisible();
-        await expectShown(page, 'This demonstration can only explain black holes.');
+        await expectShown(page, 'This demo knows five subjects');
         await page.getByRole('button', { name: 'Stop', exact: true }).click();
     });
 
@@ -479,7 +479,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(again).toBeVisible();
         await page.locator('#live-again-question').fill('What is a quasar?');
         await page.locator('#live-again-question').press('Enter');
-        await expectShown(page, 'This demonstration can only explain black holes.');
+        await expectShown(page, 'This demo knows five subjects');
         expect(await ground()).toBe(ember);
         await stage.getByRole('button', { name: 'Settings', exact: true }).click();
         await expect(page.locator('#rise-settings-theme')).toHaveValue('ember');
@@ -1096,7 +1096,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await page.locator('#live-again-question').press('Enter');
         await expect.poll(async () => (await journal()).find(entry => entry.type === 'earlier.sent') ?? null, { timeout: 15_000 }).not.toBeNull();
         expect((await journal()).find(entry => entry.type === 'earlier.sent')).toMatchObject({ count: 1 });
-        await expectShown(page, 'This demonstration can only explain black holes');
+        await expectShown(page, 'This demo knows five subjects');
         expect(errors).toEqual([]);
     });
 
@@ -1272,7 +1272,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect(stage.getByRole('button', { name: /^Play again/u })).toHaveCount(1, { timeout: 60_000 });
         await page.locator('#live-again-question').fill('What is a quasar?');
         await page.locator('#live-again-question').press('Enter');
-        await expectShown(page, 'This demonstration can only explain black holes.');
+        await expectShown(page, 'This demo knows five subjects');
         const sent = await page.evaluate(() => window.__riseLive.perception());
         expect(sent.events).toEqual(expect.arrayContaining([
             { type: 'visual.changed', by: 'rise', parameter: 'look', value: 'flame' },

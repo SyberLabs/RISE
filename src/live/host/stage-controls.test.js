@@ -243,11 +243,19 @@ describe('what a screen reader hears', () => {
         expect(alert.textContent).toBe('It could not be answered: the key was refused.');
     });
 
-    it('holds every sentence of the reading in a hidden list from the start', () => {
-        stage = createStageControls({ runtime: fakeRuntime('live'), onPlayAgain: () => {} });
+    it('holds every whole passage of the reading in a hidden list, and one still being written once it is whole', () => {
+        const segments = [...SEGMENTS.map(segment => ({ ...segment })), { text: '', ended: true }];
+        const runtime = fakeRuntime('live');
+        runtime.composed = () => ({ segments });
+        stage = createStageControls({ runtime, onPlayAgain: () => {} });
         const list = $('#rise-stage-controls ol');
+        const items = () => [...list.children].map(item => item.textContent);
         expect(list.getAttribute('aria-label')).toBe('The whole reading');
-        expect([...list.children].map(item => item.textContent)).toEqual(['first line', 'second line', 'still being written']);
+        expect(items()).toEqual(['first line', 'second line']);
+        segments[2].text = 'still being written, and now whole';
+        segments[2].ended = true;
+        runtime.set('live');
+        expect(items()).toEqual(['first line', 'second line', 'still being written, and now whole']);
     });
 
     it('reads each committed sentence only while the reading is silent', () => {

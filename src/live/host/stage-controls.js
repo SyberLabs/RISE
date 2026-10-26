@@ -96,6 +96,8 @@ export function createStageControls({
     root.id = 'rise-stage-controls';
     root.className = 'rise-stage';
     root.setAttribute('aria-label', 'Reading controls');
+    // Focusable by script only: a host gives it the focus when the field a question was asked in goes (venue.js begin).
+    root.tabIndex = -1;
     root.dataset.transport = full ? 'full' : 'minimal';
     const object = (name, label, glyph, keys) => `<button type="button" class="rise-stage__object rise-stage__${name}" data-stage="${name}" aria-label="${label}" aria-disabled="true"${keys ? ` aria-keyshortcuts="${keys}"` : ''}>${glyph}</button>`;
     root.innerHTML = `
@@ -222,8 +224,9 @@ export function createStageControls({
         return 'Starting';
     }
 
+    /** The reading for a screen reader: each passage once it is whole, never one still being written or with no words. */
     function wholeReading() {
-        const segments = runtime.composed?.('main')?.segments ?? [];
+        const segments = (runtime.composed?.('main')?.segments ?? []).filter(segment => segment.ended && segment.text?.trim());
         if (segments.length === listed) return;
         listed = segments.length;
         text.replaceChildren(...segments.map(segment => {

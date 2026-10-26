@@ -14,6 +14,7 @@ import { LiveHost } from './LiveHost.js';
 import { createFakeRecognition, open } from '../../test/fake-recognition.js';
 import { acceptOpenRouterKey, resetConnectionForTests } from '../../core/ai-connection.js';
 import { PENDING_KEY, takeOpenRouterReturn } from '../../core/openrouter-callback.js';
+import { DEMO_OFFERED, DEMO_QUESTIONS } from '../fixtures/demo-questions.js';
 
 // The face's engine is a worker's to draw (face-layer.test.js holds it); here it is a fake that records its cues.
 const faces = vi.hoisted(() => []);
@@ -201,6 +202,38 @@ describe('ask, read, ask again', () => {
         // While it plays, only the microphone and a small field to speak into it (the interjection).
         expect($('.live-again').hidden).toBe(false);
         expect($('.live-again').dataset.open).toBe('false');
+    });
+
+    it('while the Demo answers, says what it knows and offers questions it answers, each a press that asks it', async () => {
+        mount('?voice=paced');
+        const offered = [...container.querySelectorAll('.live-venue__try button')];
+        expect(container.querySelector('.live-venue__try').hidden).toBe(false);
+        expect(offered.map(button => button.textContent)).toEqual(DEMO_QUESTIONS.slice(0, DEMO_OFFERED));
+        expect(question().placeholder).toBe('Ask about black holes, the sky, and more.');
+        offered[1].click();
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith(DEMO_QUESTIONS[1]));
+    });
+
+    it('with a model chosen, asks for anything and offers nothing', () => {
+        mount();
+        choose('anthropic');
+        expect(container.querySelector('.live-venue__try').hidden).toBe(true);
+        expect(question().placeholder).toBe('Ask anything.');
+    });
+
+    it('gives the stage the focus as the reading begins, so its keys work, unless the reader put it elsewhere', async () => {
+        mount('?voice=paced');
+        question().focus();
+        ask('Why is the sky blue?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        expect(document.activeElement).toBe($('#rise-stage-controls'));
+        runtimes[0].set('ended');
+        const elsewhere = document.createElement('button');
+        document.body.append(elsewhere);
+        elsewhere.focus();
+        askAgain('And water?');
+        await vi.waitFor(() => expect(runtimes[1]?.start).toHaveBeenCalled());
+        expect(document.activeElement).toBe(elsewhere);
     });
 
     it('refuses an empty question in words, and builds nothing', () => {
