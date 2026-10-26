@@ -1,0 +1,49 @@
+{
+  "id": "LIVE-033",
+  "title": "RISE Live: the experience audit's six findings",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (Experience Engineer)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "First visit: while the Demo answers, the field says what it knows ('Ask about black holes and more.') and three of its questions are offered under it, each a press that asks it; every offered question gets a reading of its own; the refusal names the Demo's five subjects and how to ask anything. With a model chosen the field says 'Ask anything.' and offers nothing.",
+    "Focus: when a reading begins from a question, the stage takes the focus unless the reader put it elsewhere, so Space, R, F, the arrows and the pace keys work at once and a screen reader is in the reading.",
+    "Figures: a shape with class=\"ground\" is filled with the reading's background (the demo's black hole is dark with a lit rim); text in a figure that names no font is set in the reading's face, carried in as data, drawn under the site's font-src 'self'; models are told both.",
+    "A beat that starts a scene and cues it: the cue lands once the scene is up (at most 2 s), and only what finally happened is recorded; the demo's calm, spin and flare are all accepted.",
+    "No visit by a reader who has never signed in asks the account service, so no 401 is reported; a browser signed in before, or whose reader set out to sign in, still looks up identity, and a 401 forgets it. The account service answering 'not signed in' without an error status is that service's to change.",
+    "The hidden whole reading lists each passage once it is whole, never empty or cut short; the demo's interjection answer has no 'Good question:' opener. The Ask arrow was checked and is at full ink once it has faded in (no change). The empty paragraphs in the stage are live regions, which must exist empty (no change)."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "scratchpad audit (headless Chromium on rise.syberlabs.io/live)",
+      "note": "Agent audit, not a human observation: off-topic questions ended the reading at 'This demonstration can only explain black holes.'; focus fell to body after asking and Space did nothing; the demo's figure drew the black hole white with a Times label; two demo cues refused (NO_ACTIVE_VISUAL, UNSUPPORTED_SURFACE); a 401 from the account check on every visit and tab focus."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/live/host/venue.test.js",
+      "note": "Branch live-audit-fixes. Command: npx vitest run src/live/runtime src/live/speech-governor src/live/voice src/live/current-parity src/live/sealed-lost src/live/last-beat src/live/hosts src/live/beat-conductor src/live/host src/live/dive-voice.test.js src/live/perf.test.js src/live/red-team.test.js src/live/adapters src/live/fixtures src/components/read/figure-layer.test.js src/live/guide: 73 files, 1658 passed. src/app/account-control.test.js: 23 passed (with account-panel)."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "e2e/live.spec.js",
+      "note": "Branch live-audit-fixes, local production build, headless Chromium. npx playwright test e2e/live.spec.js e2e/account-saves.spec.js: 54 passed and one account test failed on its own mock; fixed (87efc5f9) and e2e/account-saves.spec.js rerun: 7 passed. A local preview probe: the stage has the focus after a question and Space holds the reading; the demo's cues all accepted; the figure's hole dark and its label in Crimson Pro; no console errors; no overflow at 390 px. First load 63.0 KB of 64."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T16:00:00.000Z",
+      "summary": "Created after the owner's 'attack all 1-6' on the audit's findings; built on branch live-audit-fixes. Not merged, not deployed, not accepted by a human."
+    }
+  ],
+  "updatedAt": "2026-10-26T16:00:00.000Z",
+  "revision": 1,
+  "summary": "The audit's six findings in RISE Live: the Demo's first visit, the stage's focus and keys, figures' dark parts and labels, a beat's cue waiting for its scene, no account lookup for readers who never sign in, and the hidden transcript and demo copy.",
+  "blocker": null
+}
