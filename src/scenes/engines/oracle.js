@@ -574,13 +574,16 @@ export default function oracle(rise) {
         ctx.arc(ap.x, ap.y, ap.r, 0, TAU);
         ctx.clip();
         clearHole(() => nonagon(ap.x, ap.y, ap.hole * ap.r * 1.12, ap.turn * 1.3));
+        // A light room's aperture is a window on a night of its own (LiveHost.css): the visual fades in from that night
+        // and blends into it at the rim, never into the pale ground, which over the night would be grey.
+        const behind = skin.light ? skin.deep : skin.trail;
         if (ap.fade < 1) {
-            ctx.fillStyle = rgba(skin.trail, 1 - ap.fade);
+            ctx.fillStyle = rgba(behind, 1 - ap.fade);
             ctx.fillRect(ap.x - ap.r, ap.y - ap.r, 2 * ap.r, 2 * ap.r);
         }
         const edge = ctx.createRadialGradient(ap.x, ap.y, ap.r * 0.86, ap.x, ap.y, ap.r);
-        edge.addColorStop(0, rgba(skin.trail, 0));
-        edge.addColorStop(1, rgba(skin.trail, 0.85));
+        edge.addColorStop(0, rgba(behind, 0));
+        edge.addColorStop(1, rgba(behind, 0.85));
         ctx.fillStyle = edge;
         ctx.fillRect(ap.x - ap.r, ap.y - ap.r, 2 * ap.r, 2 * ap.r);
         ctx.restore();

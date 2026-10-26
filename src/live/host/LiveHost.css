@@ -1478,6 +1478,7 @@ html[data-live-room="light"] .chamber {
 html[data-live-room="light"] .live-venue {
   --live-soft: color-mix(in srgb, var(--live-core) 80%, var(--live-ground));
   --live-faint: color-mix(in srgb, var(--live-core) 72%, var(--live-ground));
+  --live-raised: color-mix(in srgb, rgb(255, 253, 248) 72%, var(--live-ground));
   color-scheme: light;
 }
 /* On a pale ground the face's square darkens what is under it, as the dark room's lightens. */
@@ -1507,3 +1508,5 @@ html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-fie
   border-radius: calc(20px / var(--live-vk, 1));
   overflow: hidden;
 }
+/* A figure is drawn on the room itself: the continuous field the Chamber keeps behind it is night, and steps aside. */
+html[data-live-room="light"][data-live-frame] #chamber-field:has(> .chamber-figure) > .chamber-continuous-field { visibility: hidden; }
