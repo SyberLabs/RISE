@@ -48,7 +48,7 @@ const HORIZON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <title>The event horizon</title>
   <circle cx="100" cy="100" r="88" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="4 6" opacity="0.6"/>
   <circle cx="100" cy="100" r="50" fill="none" stroke="currentColor" stroke-width="4" opacity="0.35"/>
-  <circle cx="100" cy="100" r="44" class="ground" stroke="currentColor" stroke-width="1.5"/>
+  <circle cx="100" cy="100" r="44" class="dark" stroke="currentColor" stroke-width="1.5"/>
   <text x="100" y="196" text-anchor="middle" font-size="11" fill="currentColor">event horizon</text>
 </svg>`;
 

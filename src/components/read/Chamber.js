@@ -2998,8 +2998,8 @@ export class Chamber {
       svg: cue.svg,
       // A reading that names no theme draws its figure in its words' own ink: currentColor in an image is otherwise black.
       ink: colors?.text ?? hexOfColor(words.color),
-      // Its dark parts (class ground) in the reading's background, and its labels in the words' face (figure-layer.js).
-      ground: colors?.background ?? hexOfColor(getComputedStyle(field).backgroundColor) ?? hexOfColor(getComputedStyle(document.body).backgroundColor),
+      // Its dark parts (class dark) in the theme's dark, here its background, and its labels in the words' face (figure-layer.js).
+      dark: colors?.background ?? hexOfColor(getComputedStyle(field).backgroundColor) ?? hexOfColor(getComputedStyle(document.body).backgroundColor),
       face: /<text\b/u.test(cue.svg) ? embeddedFace(document, words.fontFamily) : null,
       onError: () => {
         failed('image', 'the figure could not be drawn as an image');

@@ -10,8 +10,9 @@
  * currentColor inside an image resolves in the image's document, not the
  * page's, so the theme's ink is written onto the figure's root as its
  * `color`, unless the figure sets its own. For the same reason the image
- * has neither the reading's background nor its fonts: the background is
- * given to the class `ground` (a hole, a shadow, a dark body), and the
+ * has neither the reading's colours nor its fonts: the theme's dark (its
+ * background in a dark room) is given to the class `dark` (a hole, a
+ * shadow, a body that gives no light), and the
  * reading's face is carried in as data for a figure that has text (an
  * image fetches nothing, and data is not fetched).
  */
@@ -31,14 +32,14 @@ export function inkFigure(svg, ink) {
 }
 
 /**
- * The figure as it is drawn: inkFigure's colour, then a <style> first inside the root giving the class `ground` the
- * reading's background and the figure's text the reading's face (`face`: embeddedFace's), each only when there is
+ * The figure as it is drawn: inkFigure's colour, then a <style> first inside the root giving the class `dark` the
+ * theme's dark and the figure's text the reading's face (`face`: embeddedFace's), each only when there is
  * one to give and the figure could use it, the face only when the figure names none of its own.
  */
-export function paintFigure(svg, { ink = null, ground = null, face = null } = {}) {
+export function paintFigure(svg, { ink = null, dark = null, face = null } = {}) {
   const inked = inkFigure(svg, ink);
   const rules = [
-    typeof ground === 'string' && HEX.test(ground) ? `.ground{fill:${ground}}` : '',
+    typeof dark === 'string' && HEX.test(dark) ? `.dark{fill:${dark}}` : '',
     // A face the figure names is the model's choice, and a rule here would override it.
     face && /<text\b/u.test(svg) && !/font-family/u.test(svg) ? `${face.css}text{font-family:${face.family}}` : ''
   ].join('');
@@ -114,10 +115,10 @@ export function hexOfColor(color) {
 }
 
 /**
- * `ground`: the reading's background, for the class `ground`. `face`: a promise of embeddedFace's; a figure is drawn
+ * `dark`: the theme's dark, for the class `dark`. `face`: a promise of embeddedFace's; a figure is drawn
  * once it has settled, so its text never changes face in front of the reader, and at once when there is none.
  */
-export function mountFigureLayer({ field, insertBehindReading, svg, ink = null, ground = null, face = null, onError = () => {} }) {
+export function mountFigureLayer({ field, insertBehindReading, svg, ink = null, dark = null, face = null, onError = () => {} }) {
   const img = document.createElement('img');
   img.className = 'chamber-figure';
   img.setAttribute('aria-hidden', 'true');
@@ -139,7 +140,7 @@ export function mountFigureLayer({ field, insertBehindReading, svg, ink = null, 
   });
   const draw = given => {
     if (done) return;
-    url = URL.createObjectURL(new Blob([paintFigure(svg, { ink, ground, face: given })], { type: 'image/svg+xml' }));
+    url = URL.createObjectURL(new Blob([paintFigure(svg, { ink, dark, face: given })], { type: 'image/svg+xml' }));
     img.setAttribute('src', url);
   };
   if (face) Promise.resolve(face).then(draw, () => draw(null));

@@ -108,17 +108,17 @@ describe('the words’ ink, as a figure takes it when the reading names no theme
   });
 });
 
-describe('what else a figure is drawn with: the ground and the reading face', () => {
-  const TEXTED = `<svg ${NS} viewBox="0 0 4 3"><circle class="ground" cx="2" cy="1" r="1"/><text x="0" y="3">label</text></svg>`;
+describe('what else a figure is drawn with: the theme's dark and the reading face', () => {
+  const TEXTED = `<svg ${NS} viewBox="0 0 4 3"><circle class="dark" cx="2" cy="1" r="1"/><text x="0" y="3">label</text></svg>`;
 
-  it('gives the class ground the reading’s background and its text the reading’s face, after the root’s start tag', () => {
-    const painted = paintFigure(TEXTED, { ink: '#F4EEE4', ground: '#0A0B0F', face: { css: '@font-face{font-family:"Reading face"}', family: '"Reading face", Georgia, serif' } });
-    expect(painted).toBe(`<svg color="#F4EEE4" ${NS} viewBox="0 0 4 3"><style>.ground{fill:#0A0B0F}@font-face{font-family:"Reading face"}text{font-family:"Reading face", Georgia, serif}</style><circle class="ground" cx="2" cy="1" r="1"/><text x="0" y="3">label</text></svg>`);
+  it('gives the class dark the theme’s dark and its text the reading’s face, after the root’s start tag', () => {
+    const painted = paintFigure(TEXTED, { ink: '#F4EEE4', dark: '#0A0B0F', face: { css: '@font-face{font-family:"Reading face"}', family: '"Reading face", Georgia, serif' } });
+    expect(painted).toBe(`<svg color="#F4EEE4" ${NS} viewBox="0 0 4 3"><style>.dark{fill:#0A0B0F}@font-face{font-family:"Reading face"}text{font-family:"Reading face", Georgia, serif}</style><circle class="dark" cx="2" cy="1" r="1"/><text x="0" y="3">label</text></svg>`);
   });
 
-  it('adds nothing a figure does not use: no face without text, no ground without a colour', () => {
+  it('adds nothing a figure does not use: no face without text, no dark without a colour', () => {
     expect(paintFigure(SVG, { ink: '#F4EEE4', face: { css: 'x', family: 'y' } })).toBe(inkFigure(SVG, '#F4EEE4'));
-    expect(paintFigure(TEXTED, { ink: null, ground: 'rgba(0,0,0,0)' })).toBe(TEXTED);
+    expect(paintFigure(TEXTED, { ink: null, dark: 'rgba(0,0,0,0)' })).toBe(TEXTED);
   });
 
   it('draws a figure with text once its face is ready, and in the fallback faces if it never is', async () => {

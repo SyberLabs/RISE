@@ -139,7 +139,7 @@ export const FIGURE_GUIDE = [
     `- When: a labelled diagram, a chart, the parts of a thing; a picture that is right standing still. When the picture must change on cue, beat by beat, write a code scene instead.`,
     `- Shape: { "id": "...", "svg": "..." }, one SVG document of at most ${BEAT_LIMITS.svg.toLocaleString('en-US')} bytes. The root <svg> has xmlns="http://www.w3.org/2000/svg" and a viewBox; RISE scales the figure to fit behind the words, centred, and dissolves it in and out like any scene.`,
     '- Ink: draw strokes, fills and text in currentColor, and RISE gives it the reading\'s ink, so the figure suits the theme. Leave the background empty: the reading\'s own shows through.',
-    '- Dark: give class="ground" to a shape that is dark, a hole, a shadow, a body that gives no light, and RISE fills it with the reading\'s background; currentColor would draw it bright.',
+    '- Dark: give class="dark" to a shape that is dark, a hole, a shadow, a body that gives no light, and RISE fills it with the theme\'s dark, whatever the room; currentColor would draw it bright.',
     '- Labels: text takes the reading\'s face. Name a font-family only to set a figure\'s labels apart from the words.',
     '- Time: a figure takes no cues, and a hold under it lasts its ms. <animate> and its kin run inside the figure, even for a reader who asked for reduced motion, so keep any motion slow and small, or leave it out.',
     `- Elements: only ${SVG_ELEMENTS.join(', ')}. Anything else is refused by name: script, foreignObject, image, a, iframe, feImage, metadata and the rest.`,
