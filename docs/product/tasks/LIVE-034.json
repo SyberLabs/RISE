@@ -1,0 +1,42 @@
+{
+  "id": "LIVE-034",
+  "title": "RISE Live: the light room (Porcelain, opt-in)",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (Experience Engineer)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Porcelain is a fifth face in Settings (Sophia stays the default). Choosing it makes the room light at once: a warm porcelain ground, navy ink for words, a cobalt face drawn as glaze and ink; choosing a dark face, or leaving, returns the room to dark and leaves no mark on the page.",
+    "The reading wears the room: its ground, words and figures are the room's whatever the answer's theme, and the stage, the bar and the Settings sheet are a pale glass. The smallest text is at least 4.5:1 on the ground (WCAG AA).",
+    "Lit window: a visual made of light keeps a night of its own (Porcelain's deep). In the inner eye and the shell it shows through the aperture with a crisp rim; in the full frame it is hung as a rounded picture in the safe rectangle, at most square on a tall screen, never laid over the room. A figure is drawn on the room in ink, its dark parts deep navy, with nothing night behind it.",
+    "The face's trail returns to exactly the pale ground (no tinted residue), proven against Chromium's own 8-bit blend.",
+    "The dark room and the card are unchanged: every glass colour falls back to its old value, and the light room's rules apply only under the root's data-live-room."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/live/host/venue.test.js",
+      "note": "Branch live-cream-room. npx vitest run src/live/host src/scenes src/components/read/Chamber.figure.test.js src/components/read/figure-layer.test.js: 23 files, 778 passed. src/core/system-design.test.js fails only on public/content/catalog.json, which this worktree has not built (fails the same on main here). npx vite build: exit 0; measure:first-load 62.9 KB of 64."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "src/live/host/LiveHost.css",
+      "note": "Agent observation, not a human's: the dev server at 1440x900 and 390x844 with the Demo's sky, black holes, tesseract and neural network readings, and reduced motion. Entry, the attractor in the shell's window, the black hole figure on cream, the generated disk scene hung as a picture (square on the phone), the Settings sheet; no console errors, no horizontal overflow at 390 px. Chromium probes: an 8% fade up stalls up to 14 levels short of its aim, which left the old trail green 8 below the ground; the new trail leaves no tinted pixel."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T17:50:00.000Z",
+      "summary": "Created after the owner chose Porcelain from the study and the lit-window treatment for visuals made of light; built on branch live-cream-room. Not merged, not deployed, not accepted by a human."
+    }
+  ],
+  "updatedAt": "2026-10-26T17:50:00.000Z",
+  "revision": 1,
+  "summary": "An opt-in light room for RISE Live in cream and blue: Porcelain as a face, the reading and stage in the room's colours, and visuals made of light shown as lit windows on a night of their own.",
+  "blocker": null
+}
