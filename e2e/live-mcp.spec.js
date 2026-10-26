@@ -966,6 +966,99 @@ test('a Current of beats plays in the self-contained card: a hold, a shown line,
   expect(errors).toEqual([]);
 });
 
+/** Maths in every form a model writes it, beside money (docs/superpowers/specs/2026-10-26-math-both-channels-design.md). */
+const OSCILLATOR = {
+  schema: 'rise.current.v2',
+  id: 'oscillator',
+  title: 'The quantum oscillator',
+  origin: { kind: 'model', name: 'Claude', provider: 'Anthropic' },
+  scenes: [],
+  beats: [
+    { say: 'A spring and a mass make an oscillator.' },
+    { say: 'Its lowest energy is $E_0 = \\frac{1}{2}\\hbar\\omega$, never zero.' },
+    { say: 'The levels climb evenly. $$E_n = \\hbar\\omega\\left(n + \\tfrac{1}{2}\\right)$$' },
+    { say: 'Each step is \\hbar\\omega, and a model of one costs $5 to build.' },
+    { say: 'That is all.' }
+  ]
+};
+
+test('maths is typeset whole and said as a person would say it: inline, on its own line, bare, and never money', async ({ page, baseURL }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  // A local browser voice that records each utterance, says each word where it stands (its boundary events) and
+  // lasts as long as its words: what the speech governor follows to show the phrase being said.
+  await page.addInitScript(() => {
+    const spoken = [];
+    const queue = [];
+    let current = null;
+    const next = () => {
+      if (current || queue.length === 0) return;
+      current = queue.shift();
+      const utterance = current;
+      spoken.push(utterance.text);
+      setTimeout(() => { if (current === utterance) utterance.onstart?.({}); }, 10);
+      for (const word of utterance.text.matchAll(/\S+/gu)) {
+        setTimeout(() => { if (current === utterance) utterance.onboundary?.({ name: 'word', charIndex: word.index, charLength: word[0].length }); }, 10 + word.index * 20);
+      }
+      setTimeout(() => { if (current !== utterance) return; current = null; utterance.onend?.({}); next(); }, 10 + utterance.text.length * 20);
+    };
+    const synth = {
+      get speaking() { return Boolean(current); }, get pending() { return queue.length > 0; }, paused: false,
+      getVoices: () => [{ name: 'Fake', lang: 'en-US', localService: true, default: true, voiceURI: 'fake' }],
+      addEventListener() {}, removeEventListener() {},
+      speak(utterance) { queue.push(utterance); next(); },
+      cancel() { queue.length = 0; const stopped = current; current = null; if (stopped) setTimeout(() => stopped.onerror?.({ error: 'interrupted' }), 0); },
+      pause() {}, resume() {}
+    };
+    class Utterance { constructor(text) { Object.assign(this, { text, lang: '', rate: 1, voice: null, volume: 1 }); } }
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: synth });
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', { configurable: true, value: Utterance });
+    window.__spoken = spoken;
+  });
+  await page.setViewportSize({ width: 900, height: 600 });
+  const app = await openHost(page, baseURL, { sampling: false, voice: 'browser', height: 600, current: OSCILLATOR });
+  await begin(app);
+  const display = app.locator('#atom-display');
+  const unread = display.locator('.is-source, .is-fallback');
+
+  await expectShown(app, 'Its lowest energy is');
+  await expect(display.locator('.katex')).toHaveCount(1);
+  await expect(unread).toHaveCount(0);
+  await page.screenshot({ path: 'test-results/live-mcp-maths-inline.png' });
+  // The formula is set at the words' x-height and keeps the line one line tall.
+  const line = await app.locator('body').evaluate(async body => {
+    const doc = body.ownerDocument;
+    await doc.fonts.ready;
+    const shownBox = doc.querySelector('#atom-display');
+    const ctx = doc.createElement('canvas').getContext('2d');
+    const xHeight = font => { ctx.font = font; return ctx.measureText('x').actualBoundingBoxAscent; };
+    const words = doc.defaultView.getComputedStyle(shownBox);
+    const katexPx = doc.defaultView.getComputedStyle(doc.querySelector('#atom-display .katex')).fontSize;
+    return {
+      height: shownBox.getBoundingClientRect().height, lineHeight: parseFloat(words.lineHeight),
+      wordsX: xHeight(`${words.fontSize} ${words.fontFamily}`), mathsX: xHeight(`${katexPx} KaTeX_Main`)
+    };
+  });
+  expect(line.height).toBeLessThanOrEqual(line.lineHeight + 1);
+  expect(Math.abs(line.mathsX - line.wordsX)).toBeLessThanOrEqual(1);
+
+  // The equation is a phrase of its own, centred, with nothing else beside it.
+  await expect(display.locator('.katex-display')).toHaveCount(1, { timeout: 20_000 });
+  expect(await shown(app)).not.toContain('The levels climb');
+  await page.screenshot({ path: 'test-results/live-mcp-maths-display.png' });
+
+  await expectShown(app, 'and a model of one costs $5', 20_000);
+  await expectShown(app, 'Each step is');
+  await expect(unread).toHaveCount(0);
+
+  await expectShown(app, 'That is all', 20_000);
+  const said = (await app.locator('body').evaluate(body => body.ownerDocument.defaultView.__spoken.join(' '))).replace(/\s+/gu, ' ');
+  expect(said).toContain('one half h bar omega');
+  expect(said).toContain('costs $5 to build');
+  expect(said).not.toMatch(/\\|\$\$|[{}^_]/u);
+  expect(errors).toEqual([]);
+});
+
 /** The main run's journal, once the reading has ended (the card under ?measure=1). */
 async function finishedJournal(app) {
   const journal = () => app.locator('body').evaluate(body => body.ownerDocument.defaultView.__riseLive.journal().filter(entry => entry.role === 'main'));

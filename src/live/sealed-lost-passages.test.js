@@ -21,6 +21,7 @@ import { currentToEvents } from './adapters/current-events.js';
 import { describeStatus } from './host/controls.js';
 import { createSyntheticVoice } from './voices/synthetic.js';
 import { SKY_PREMIUM_EDUCATIONAL } from './fixtures/sky-premium-educational.js';
+import { SETTLED_MATHS } from '../test/settled-maths.js';
 
 const tick = ms => vi.advanceTimersByTimeAsync(ms);
 let runtime = null;
@@ -52,7 +53,7 @@ function open(lostBeat) {
     const given = [];
     const compiled = { atoms: 0 };
     runtime = createLiveRuntime({
-        adapter, clock,
+        adapter, clock, maths: SETTLED_MATHS,
         createPlayer: session => {
             compiled.atoms = session.atoms.length;
             const player = new Player(session);
