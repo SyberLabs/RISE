@@ -48,8 +48,9 @@ function stage(session) {
 
 describe('a spoken beat placed as a caption', () => {
   it('keeps its place on every atom of the beat, revealed or concealed', async () => {
-    vi.useFakeTimers();
+    // The speech engine's setup waits on a timer of its own: load before the clock is faked.
     await loadMath();
+    vi.useFakeTimers();
     const session = compileRiseCurrent(CURRENT, { lowerLook: lowerCurrentLook });
     const captioned = session.atoms.map((atom, index) => [atom, index]).filter(([atom]) => atom.sourceId === 'beat-1');
     expect(captioned.length).toBeGreaterThan(0);
