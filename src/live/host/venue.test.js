@@ -15,6 +15,7 @@ import { createFakeRecognition, open } from '../../test/fake-recognition.js';
 import { acceptOpenRouterKey, resetConnectionForTests } from '../../core/ai-connection.js';
 import { PENDING_KEY, takeOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { DEMO_OFFERED, DEMO_QUESTIONS } from '../fixtures/demo-questions.js';
+import { beatsTextFor } from '../fixtures/black-holes-beats.js';
 
 // The face's engine is a worker's to draw (face-layer.test.js holds it); here it is a fake that records its cues.
 const faces = vi.hoisted(() => []);
@@ -209,6 +210,8 @@ describe('ask, read, ask again', () => {
         const offered = [...container.querySelectorAll('.live-venue__try button')];
         expect(container.querySelector('.live-venue__try').hidden).toBe(false);
         expect(offered.map(button => button.textContent)).toEqual(DEMO_QUESTIONS.slice(0, DEMO_OFFERED));
+        // None it offers shows a refused picture (water-illustrated-beats.js): a first visit draws what it shows.
+        for (const button of offered) expect(beatsTextFor({ intent: 'answer', prompt: button.textContent })).not.toContain('@illustrate');
         expect(question().placeholder).toBe('Ask about black holes and more.');
         offered[1].click();
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith(DEMO_QUESTIONS[1]));
