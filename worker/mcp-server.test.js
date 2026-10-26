@@ -13,6 +13,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURRENT_STYLES, RISE_CURRENT_THEME_IDS, RISE_CURRENT_VISUALS, validateRiseCurrent } from '../src/core/rise-current.js';
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
 import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, STYLE_LINES, styleGuide } from '../src/live/guide/index.js';
+import { HOST_ENGINES } from '../src/live/guide/beats.js';
 import { BEAT_CUE_PATTERN, BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
@@ -521,6 +522,17 @@ describe('the tool', () => {
       expect(result.content[0].text).toContain('Scene "triangle" was refused: line 2, column 3: <script> is not an element a figure may use.');
     });
 
+    it('refuses a scene that names a collection, which the card cannot show, and says what it may name', async () => {
+      const current = structuredClone(CURRENT_EXAMPLE_V2);
+      current.scenes.push({ id: 'sky', engine: 'astronomy' });
+      const result = await present(current);
+      expect(result.isError).toBe(true);
+      expect(result.structuredContent).toBeUndefined();
+      const [line, repair] = result.content[0].text.split('\n');
+      expect(line).toBe(`Scene "sky" was refused: the astronomy collection is not shown in this card; name one of ${HOST_ENGINES.join(', ')}, or draw the picture.`);
+      expect(repair).toBe('Repair the scene and call rise_present again with the whole Current.');
+    });
+
     it('refuses a figure over its size as the validator does, before reading it', async () => {
       const result = await present(withFigure(`<svg>${'x'.repeat(40_000)}</svg>`));
       expect(result.isError).toBe(true);
@@ -633,7 +645,10 @@ describe('the shape of a Current, as the host’s model is told it', () => {
     expect(() => validateRiseCurrent(CURRENT_EXAMPLE_V2)).not.toThrow();
     expect(v2.properties.beats.maxItems).toBe(BEAT_LIMITS.beats);
     const [native, generated] = v2.properties.scenes.items.oneOf;
-    expect(native.properties.engine.enum).toBe(SCENE_ENGINES);
+    // The card is offered no collection: its images come from the institutions' servers, which the card cannot load.
+    expect(native.properties.engine.enum).toBe(HOST_ENGINES);
+    expect(SCENE_ENGINES).toContain('astronomy');
+    expect(native.properties.engine.enum).not.toContain('astronomy');
     expect(generated).toMatchObject({ required: ['id', 'code'], additionalProperties: false });
     expect(generated.properties.code.maxLength).toBe(BEAT_LIMITS.code);
     expect(generated.properties.code.description).toMatch(/default export function.*rise.*no imports.*no network.*no timers.*frame/isu);
