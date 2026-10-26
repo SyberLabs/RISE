@@ -209,7 +209,7 @@ flowchart LR
     live -.-> |3 lazy| app
     live --> |3| audio
     live --> |1| components
-    live --> |47| core
+    live --> |48| core
     live --> |3| scenes
     live -.-> |1 lazy| visuals
     page --> |4| core

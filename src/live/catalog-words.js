@@ -49,7 +49,8 @@ const NAMES = Object.freeze({
     ostensoria: 'Ostensoria',
     apparitio: 'Apparitio',
     neural: 'the neural network',
-    rockgarden: 'the rock garden'
+    rockgarden: 'the rock garden',
+    astronomy: 'the Astronomy collection'
 });
 
 /** A cue as the reader is told it was taken. */

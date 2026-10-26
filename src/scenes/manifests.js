@@ -81,7 +81,16 @@ export const SCENE_MANIFESTS = Object.freeze([
     pendulums: choice(['lateral', 'rotary'], 'lateral')
   }),
   pattern('ostensoria', { palette: choice(['auto', 'iris', 'reliquary', 'ember', 'ice', 'verdant', 'lilac', 'teal', 'sepia', 'peacock', 'rose', 'citrine'], 'auto') }),
-  pattern('apparitio', { palette: choice(['auto', 'prism', 'marian', 'ember', 'holo'], 'auto') })
+  pattern('apparitio', { palette: choice(['auto', 'prism', 'marian', 'ember', 'holo'], 'auto') }),
+  /**
+   * A reviewed collection (docs/plans/LIVE-IMAGERY.md): RISE chooses which of its works shows, so a scene names the
+   * collection and nothing else, and `about` tells the model what that is.
+   */
+  Object.freeze({
+    id: 'astronomy', kind: 'sourced', surface: 'gallery', readableOverText: true, collection: 'sci-astronomy',
+    about: 'a photograph of the sky RISE chooses from its reviewed Astronomy collection and hangs with its credit: say what such skies show, never which object this one is',
+    parameters: Object.freeze({}), cues: Object.freeze({})
+  })
 ]);
 
 const BY_ID = new Map(SCENE_MANIFESTS.map(manifest => [manifest.id, manifest]));
@@ -91,6 +100,12 @@ export const SCENE_ENGINES = Object.freeze(SCENE_MANIFESTS.map(manifest => manif
 
 export function manifestFor(engine) {
   return BY_ID.get(engine) ?? null;
+}
+
+/** The collection a sourced cue on screen shows, by its engine's name (sceneCue's inverse); null for any other cue. */
+export function collectionEngine(cue) {
+  if (cue?.kind !== 'sourced' || !Array.isArray(cue.collections)) return null;
+  return SCENE_MANIFESTS.find(manifest => manifest.kind === 'sourced' && cue.collections.includes(manifest.collection))?.id ?? null;
 }
 
 /** One value against one parameter's bounds; null when it does not fit. */
@@ -168,6 +183,7 @@ export function sceneCue(scene, themeConfig = null) {
   const manifest = manifestFor(scene.engine);
   const params = scene.params ?? {};
   if (!manifest || manifest.kind === 'still') return { kind: 'still' };
+  if (manifest.kind === 'sourced') return { kind: 'sourced', collections: [manifest.collection] };
   if (manifest.id === 'living-flame') {
     const recipe = flamePreset(params.preset ?? LIVING_FLAME.parameters.preset.default);
     const macros = { ...recipe.macros };
@@ -192,16 +208,16 @@ export function sceneCue(scene, themeConfig = null) {
 }
 
 /**
- * The guide's account of every engine and its parameters, one line each,
+ * The guide's account of every engine (or of the `engines` given) and its parameters, one line each,
  * leaving out the parameters named in `withheld` (admission still takes them).
  */
-export function describeManifests({ withheld = [] } = {}) {
-  return SCENE_MANIFESTS.filter(manifest => manifest.id !== 'still').map(manifest => {
+export function describeManifests({ withheld = [], engines = null } = {}) {
+  return SCENE_MANIFESTS.filter(manifest => manifest.id !== 'still' && (!engines || engines.includes(manifest.id))).map(manifest => {
     const parameters = Object.entries(manifest.parameters).filter(([name]) => !withheld.includes(name)).map(([name, spec]) => {
       const bounds = spec.type === 'enum' ? spec.values.join('|') : `${spec.minimum}..${spec.maximum}`;
       return `${name} (${bounds}${spec.cueable ? ', cueable' : ''})`;
     });
     const cues = Object.keys(manifest.cues);
-    return `${manifest.id}: ${parameters.length ? parameters.join(', ') : 'no parameters'}${cues.length ? `; cues ${cues.join(', ')}` : ''}`;
+    return `${manifest.id}: ${parameters.length ? parameters.join(', ') : 'no parameters'}${cues.length ? `; cues ${cues.join(', ')}` : ''}${manifest.about ? `; ${manifest.about}` : ''}`;
   }).join('\n');
 }

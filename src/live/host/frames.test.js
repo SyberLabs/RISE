@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    CUT_MS, FRAME_ENTRY, FRAME_FOLD, FRAME_OF, FRAME_OPEN_MS, FRAME_SEED, FRAME_TOP, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualOf, visualTransform
+    CUT_MS, FRAME_ENTRY, FRAME_FOLD, FRAME_OF, FRAME_OPEN_MS, FRAME_SEED, FRAME_TOP, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, hungPicture, hungRect, restScale, roomLayout, visualOf, visualTransform
 } from './frames.js';
 
 const W = 1440;
@@ -49,6 +49,29 @@ describe('the visual chooses the frame', () => {
         expect(holdsContent({ kind: 'sourced', collections: ['rijksmuseum'] })).toBe(false);
         expect(holdsContent({ kind: 'field', renderer: 'attractor', config: {} })).toBe(false);
         expect(holdsContent(null)).toBe(false);
+    });
+
+    it('hangs a collection image as a picture; a figure, a scene, a field or a pattern is not hung', () => {
+        expect(hungPicture({ kind: 'sourced', collections: ['sci-astronomy'] })).toBe(true);
+        expect(hungPicture({ kind: 'scene', sceneId: 'h', svg: '<svg/>' })).toBe(false);
+        expect(hungPicture({ kind: 'field', renderer: 'genesis', config: {} })).toBe(false);
+        expect(hungPicture({ kind: 'procedural', collections: ['fractal'] })).toBe(false);
+        expect(hungPicture({ kind: 'still' })).toBe(false);
+        expect(hungPicture(null)).toBe(false);
+    });
+
+    it('hangs it in the safe rectangle, centred, at most square on a tall screen and at most 3:2 on a wide one', () => {
+        const wide = hungRect(layout);
+        const { safe } = layout;
+        expect(safe.w).toBeGreaterThan(1.5 * safe.h);
+        expect(wide).toEqual({ x: safe.x - 0.75 * safe.h, y: safe.y - safe.h / 2, w: 1.5 * safe.h, h: safe.h });
+        const phone = roomLayout({ width: 390, height: 844, bar: { left: 70, width: 300, height: 54 } });
+        const tall = hungRect(phone);
+        expect(phone.safe.h).toBeGreaterThan(phone.safe.w);
+        expect(tall.w).toBe(phone.safe.w);
+        expect(tall.h).toBe(phone.safe.w);
+        expect(tall.x).toBe(16);
+        expect(tall.y + tall.h / 2).toBeCloseTo(phone.safe.y, 9);
     });
 
     it('gives no frame to no visual, or to a still, which draws nothing in a Live reading: the eye stays', () => {

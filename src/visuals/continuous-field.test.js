@@ -346,6 +346,31 @@ describe('ContinuousField', () => {
         second.field.stop();
     });
 
+    it('carries a credited work’s title beside its credit, and says which work it shows', async () => {
+        const credited = {
+            url: 'pillars.jpg',
+            artworkLabel: { title: 'Pillars of Creation', labelText: 'Pillars of Creation', requiredText: 'NASA, ESA · CC BY 4.0', creditRequired: true }
+        };
+        const open = { url: 'woodcut.jpg', artworkLabel: { title: 'Woodcut of a hare', labelText: 'Woodcut of a hare', requiredText: 'Woodcut of a hare', creditRequired: false } };
+        const { field, host, clock } = mount({ getPool: () => [credited, open] });
+        const shown = [];
+        document.addEventListener('rise:work-shown', event => shown.push(event.detail.label));
+        field.start();
+        await Promise.resolve(); await Promise.resolve();
+        const first = host.querySelector('.continuous-field-label:not([hidden])');
+        expect(shown).toHaveLength(1);
+        const label = shown[0];
+        expect([credited.artworkLabel, open.artworkLabel]).toContain(label);
+        expect(first.dataset.title ?? '').toBe(label.creditRequired ? 'Pillars of Creation' : '');
+        clock.tick(1100);
+        await Promise.resolve(); await Promise.resolve();
+        expect(shown).toHaveLength(2);
+        expect(new Set(shown)).toEqual(new Set([credited.artworkLabel, open.artworkLabel]));
+        const titles = [...host.querySelectorAll('.continuous-field-label')].map(each => each.dataset.title ?? '').sort();
+        expect(titles).toEqual(['', 'Pillars of Creation']);
+        field.stop();
+    });
+
     it('crossfades: the incoming rises while the outgoing falls — never both at 0', async () => {
         const works = pool('a.jpg', 'b.jpg', 'c.jpg');
         const { field, host, clock } = mount({ getPool: () => works });

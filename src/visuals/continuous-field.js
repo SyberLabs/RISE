@@ -638,6 +638,9 @@ export class ContinuousField {
         const label = layer?.work?.artworkLabel || null;
         const text = displayedArtworkLabel(label, this.showArtworkLabels);
         applyArtworkLabelElement(layer.label, text, label?.creditRequired);
+        // A credit names its makers, not the work: a host that sets the title before it (LiveHost.css) reads it here.
+        if (label?.creditRequired && label.title) layer.label.dataset.title = label.title;
+        else delete layer.label.dataset.title;
         this._layoutLayerLabel(layer);
     }
 
@@ -733,6 +736,8 @@ export class ContinuousField {
         layer.backdrop.removeAttribute('src');
         layer.artwork.src = work.url;
         this._renderLayerLabel(layer);
+        // Which work is shown, for a host that keeps the record of a reading's pictures (LiveHost.js, About this reading).
+        this.host?.dispatchEvent?.(new CustomEvent('rise:work-shown', { bubbles: true, detail: { label: work.artworkLabel ?? null } }));
         if (layer.artwork.complete && layer.artwork.naturalWidth) {
             this._syncLayerWash(layer);
         }

@@ -41,6 +41,12 @@ describe('an engine, by its name or an alias', () => {
         expect(catalogNote({ engine: 'attractor', params: { streaks: 'night' } })).toBe('Showing the attractor (night).');
     });
 
+    it('answers a reviewed collection by its name, as it does an engine', () => {
+        expect(heard('astronomy')).toEqual({ engine: 'astronomy', params: {} });
+        expect(heard('show me astronomy')).toEqual({ engine: 'astronomy', params: {} });
+        expect(heard('Show me astronomy, please.')).toEqual({ engine: 'astronomy', params: {} });
+    });
+
     it('never matches the still, or the face’s own engine', () => {
         expect(heard('still')).toBeNull();
         expect(heard('oracle')).toBeNull();
@@ -168,7 +174,8 @@ describe('the note in the bar', () => {
             rockgarden: 'Showing the rock garden.',
             harmonograph: 'Showing the harmonograph.',
             ostensoria: 'Showing Ostensoria.',
-            apparitio: 'Showing Apparitio.'
+            apparitio: 'Showing Apparitio.',
+            astronomy: 'Showing the Astronomy collection.'
         });
         expect(catalogNote({ engine: 'genesis', cue: 'calm' })).toBe('Making Genesis calmer.');
     });
