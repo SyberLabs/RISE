@@ -7,7 +7,9 @@
   "delivery": "branch",
   "owner": "Claude (Experience Engineer)",
   "priority": "now",
-  "dependencies": ["LIVE-039"],
+  "dependencies": [
+    "LIVE-039"
+  ],
   "acceptance": [
     "Where the face draws, a collection photograph is held in the shell, Sophia's circle, in both rooms, covering it like a porthole; its credit (title, makers, licence) is a caption under the circle that opens with it and never meets the words. Where the face does not draw, it is hung in the safe rectangle as before.",
     "A collection shows one photograph while its scene is on screen: the Gallery does not move on when its pool merely warms or a prepared cue is admitted (no flash to another work and back). A change of scene still moves it.",
@@ -37,10 +39,14 @@
     {
       "date": "2026-10-26T23:15:00.000Z",
       "summary": "Created from the owner's trial of the deployed astronomy slice; built on branch live-astro-shell. Not merged, not deployed, not accepted by a human."
+    },
+    {
+      "date": "2026-10-26T23:37:00.000Z",
+      "summary": "Codex (PR #748): a new scene of the same collection keeps the photograph. Measured that a cue names no scene and is re-applied at each beat (three cueIds in one scene), so the Gallery holds it until its own dwell; refreshing exactly at a new scene needs a scene identity on the cue, a follow-up."
     }
   ],
-  "updatedAt": "2026-10-26T23:15:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-26T23:37:00.000Z",
+  "revision": 2,
   "summary": "Astronomy held in Sophia's circle with its credit under it, one photograph per scene (the Gallery no longer skips on a wake), and a paused reading takes a named visual instead of starting a new one.",
   "blocker": null
 }
