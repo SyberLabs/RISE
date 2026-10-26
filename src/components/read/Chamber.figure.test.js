@@ -251,3 +251,19 @@ describe('the ink of a figure in a reading that names no theme', () => {
     chamber.destroy();
   });
 });
+
+describe('a figure in a host’s own room (the Live venue’s light room)', () => {
+  it('is drawn in the room’s ink with its dark in the room’s dark, over the theme’s and the words’', async () => {
+    const { chamber, container } = makeChamber();
+    container.querySelector('#atom-display').style.color = 'rgb(238, 240, 255)';
+    const field = container.querySelector('#chamber-field');
+    field.style.setProperty('--room-ink', 'rgb(23, 42, 79)');
+    field.style.setProperty('--room-dark', 'rgb(14, 27, 54)');
+    chamber.applyScheduledVisualCue({ ...FIGURE, svg: `<svg ${NS} viewBox="0 0 4 3"><circle class="dark" cx="2" cy="1" r="1"/></svg>` }, { transitionMs: 0 });
+    await settle();
+    const text = await new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(blobs[0]); });
+    expect(text).toContain('<svg color="#172a4f" ');
+    expect(text).toContain('.dark{fill:#0e1b36}');
+    chamber.destroy();
+  });
+});

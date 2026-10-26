@@ -168,9 +168,10 @@ describe('the ground, in 8 bits', () => {
 });
 
 describe('what the face is', () => {
-    it('is the study’s four skins, the light room’s candidates, and five states, exactly', () => {
-        expect(Object.keys(ORACLE_SKINS)).toEqual(['sophia', 'ember', 'jade', 'silver', 'porcelain', 'vellum', 'delft']);
-        expect(Object.keys(ORACLE_SKINS).filter(name => ORACLE_SKINS[name].light)).toEqual(['porcelain', 'vellum', 'delft']);
+    it('is the study’s four skins, the light room’s Porcelain, and five states, exactly', () => {
+        expect(Object.keys(ORACLE_SKINS)).toEqual(['sophia', 'ember', 'jade', 'silver', 'porcelain']);
+        expect(Object.keys(ORACLE_SKINS).filter(name => ORACLE_SKINS[name].light)).toEqual(['porcelain']);
+        expect(ORACLE_SKINS.porcelain).toEqual({ core: [255, 253, 248], iris: [47, 95, 179], glow: [168, 192, 230], deep: [14, 27, 54], trail: [244, 239, 230], ink: [23, 42, 79], light: true });
         expect(ORACLE_SKINS.sophia).toEqual({ core: [245, 245, 220], iris: [135, 206, 235], glow: [176, 196, 222], deep: [25, 25, 112], trail: [10, 10, 15] });
         expect(ORACLE_SKINS.silver.trail).toEqual([9, 9, 11]);
         expect(Object.keys(ORACLE_STATES)).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest']);
@@ -180,7 +181,7 @@ describe('what the face is', () => {
     });
 
     it('states its parameters and cues as a manifest does, and is not an engine the model may name', () => {
-        expect(ORACLE_MANIFEST.parameters.skin.values).toEqual(['sophia', 'ember', 'jade', 'silver']);
+        expect(ORACLE_MANIFEST.parameters.skin.values).toEqual(['sophia', 'ember', 'jade', 'silver', 'porcelain']);
         expect(ORACLE_MANIFEST.parameters.state.values).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest']);
         expect(Object.keys(ORACLE_MANIFEST.cues)).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest', 'blink']);
         expect(ORACLE_MANIFEST.cues.thinking).toEqual({ state: 'thinking' });

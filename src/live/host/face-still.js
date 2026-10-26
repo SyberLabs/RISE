@@ -5,9 +5,9 @@
  * The petals are 36 thin strokes over a lit disc rather than the engine's 108 filled petals: a first paint pays for
  * a few hundred bytes, not a few hundred paths. Its geometry is the engine's at arrival, in a 100-unit square.
  */
-import { ORACLE_FACES, ORACLE_SKINS, ORACLE_STATES } from '../../scenes/engines/oracle.js';
+import { ORACLE_SKINS, ORACLE_STATES } from '../../scenes/engines/oracle.js';
 
-export const FACE_SKINS = ORACLE_FACES;
+export const FACE_SKINS = Object.freeze(Object.keys(ORACLE_SKINS));
 
 const rgb = c => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
 const fixed = value => Number(value.toFixed(2));
@@ -17,10 +17,19 @@ export function faceDark(name) {
     return rgb(ORACLE_SKINS[FACE_SKINS.includes(name) ? name : 'sophia'].trail);
 }
 
-/** A skin's colours as CSS custom properties, for the room the face rests in; Sophia's for a skin it does not know. */
+/** Whether a skin is a light room's (a pale ground, ink for words); not for a skin it does not know. */
+export function faceLight(name) {
+    return FACE_SKINS.includes(name) && ORACLE_SKINS[name].light === true;
+}
+
+/**
+ * A skin's colours as CSS custom properties, for the room the face rests in; Sophia's for a skin it does not know.
+ * `--live-core` is the base of the room's words: a dark skin's core, a light skin's ink. `--live-deep` is the skin's
+ * deepest colour, a light room's night for what is made of light.
+ */
 export function facePalette(name) {
     const skin = ORACLE_SKINS[FACE_SKINS.includes(name) ? name : 'sophia'];
-    return { '--live-ground': rgb(skin.trail), '--live-iris': rgb(skin.iris), '--live-core': rgb(skin.core), '--live-glow': rgb(skin.glow) };
+    return { '--live-ground': rgb(skin.trail), '--live-iris': rgb(skin.iris), '--live-core': rgb(skin.ink ?? skin.core), '--live-glow': rgb(skin.glow), '--live-deep': rgb(skin.deep) };
 }
 
 /** The still eye in a skin, as SVG markup; Sophia for a skin it does not know. */
@@ -44,7 +53,10 @@ export function faceStill(name) {
         + '<defs>'
         + `<radialGradient id="${id}-iris"><stop offset="0" stop-color="${rgb(skin.core)}" stop-opacity="0.35"/><stop offset="1" stop-color="${rgb(skin.iris)}" stop-opacity="0.12"/></radialGradient>`
         + `<radialGradient id="${id}-pupil"><stop offset="0" stop-color="${rgb(skin.deep)}" stop-opacity="0.95"/><stop offset="0.55" stop-color="${rgb(skin.glow)}" stop-opacity="0.55"/><stop offset="1" stop-color="${rgb(skin.iris)}" stop-opacity="0.25"/></radialGradient>`
-        + `<radialGradient id="${id}-node"><stop offset="0" stop-color="${rgb(skin.core)}" stop-opacity="0.55"/><stop offset="0.4" stop-color="${rgb(skin.glow)}" stop-opacity="0.4"/><stop offset="0.7" stop-color="${rgb(skin.iris)}" stop-opacity="0.22"/><stop offset="1" stop-color="${rgb(skin.iris)}" stop-opacity="0"/></radialGradient>`
+        // A light skin's node is a bead of ink, as the engine draws it.
+        + (skin.light
+            ? `<radialGradient id="${id}-node"><stop offset="0" stop-color="${rgb(skin.iris)}" stop-opacity="0.5"/><stop offset="0.45" stop-color="${rgb(skin.glow)}" stop-opacity="0.3"/><stop offset="1" stop-color="${rgb(skin.glow)}" stop-opacity="0"/></radialGradient>`
+            : `<radialGradient id="${id}-node"><stop offset="0" stop-color="${rgb(skin.core)}" stop-opacity="0.55"/><stop offset="0.4" stop-color="${rgb(skin.glow)}" stop-opacity="0.4"/><stop offset="0.7" stop-color="${rgb(skin.iris)}" stop-opacity="0.22"/><stop offset="1" stop-color="${rgb(skin.iris)}" stop-opacity="0"/></radialGradient>`)
         + '</defs>'
         + `<rect width="100" height="100" fill="${rgb(skin.trail)}"/>`
         + nodes

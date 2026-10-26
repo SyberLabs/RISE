@@ -27,18 +27,15 @@
 /**
  * Skins: core (the pupil's heart), iris, glow (field and nodes), deep (the pupil's depth), trail (the room's ground).
  * A `light` skin is a pale room drawn as glaze on porcelain: its heart is a white highlight, its lines darken what is
- * under them rather than lighten it, its trail fades toward a ground above the room's, not below, and its `ink` is
- * the room's words (a dark skin's words are its core).
+ * under them rather than lighten it, its trail fades up to its ground rather than down, and its `ink` is the room's
+ * words (a dark skin's words are its core).
  */
 export const ORACLE_SKINS = Object.freeze({
     sophia: Object.freeze({ core: [245, 245, 220], iris: [135, 206, 235], glow: [176, 196, 222], deep: [25, 25, 112], trail: [10, 10, 15] }),
     ember: Object.freeze({ core: [255, 236, 210], iris: [240, 163, 107], glow: [214, 120, 92], deep: [70, 20, 20], trail: [14, 9, 8] }),
     jade: Object.freeze({ core: [236, 245, 230], iris: [143, 211, 181], glow: [120, 180, 150], deep: [10, 50, 40], trail: [7, 12, 10] }),
     silver: Object.freeze({ core: [250, 250, 250], iris: [207, 211, 218], glow: [160, 166, 176], deep: [30, 32, 40], trail: [9, 9, 11] }),
-    // The light room's three candidates (docs/assets/live/cream-room-study.html); the owner keeps one.
-    porcelain: Object.freeze({ core: [255, 253, 248], iris: [47, 95, 179], glow: [168, 192, 230], deep: [14, 27, 54], trail: [244, 239, 230], ink: [23, 42, 79], light: true }),
-    vellum: Object.freeze({ core: [255, 250, 238], iris: [59, 108, 181], glow: [178, 198, 228], deep: [21, 33, 58], trail: [239, 230, 212], ink: [31, 46, 74], light: true }),
-    delft: Object.freeze({ core: [255, 255, 255], iris: [31, 79, 168], glow: [150, 178, 222], deep: [10, 28, 64], trail: [247, 244, 238], ink: [15, 42, 92], light: true })
+    porcelain: Object.freeze({ core: [255, 253, 248], iris: [47, 95, 179], glow: [168, 192, 230], deep: [14, 27, 54], trail: [244, 239, 230], ink: [23, 42, 79], light: true })
 });
 
 /** Each state is a set of targets the face eases toward (time constant 0.18 s): nothing snaps. */
@@ -51,15 +48,13 @@ export const ORACLE_STATES = Object.freeze({
 });
 
 const SKIN_NAMES = Object.freeze(Object.keys(ORACLE_SKINS));
-/** The faces a reader chooses among; a light skin is the light room's, never offered as a face. */
-export const ORACLE_FACES = Object.freeze(SKIN_NAMES.filter(name => !ORACLE_SKINS[name].light));
 const STATE_NAMES = Object.freeze(Object.keys(ORACLE_STATES));
 
 /** What the face takes, in a manifest's shape (src/scenes/manifests.js): read by the venue, never by a model. */
 export const ORACLE_MANIFEST = Object.freeze({
     id: 'oracle', kind: 'presence', surface: 'oracle',
     parameters: Object.freeze({
-        skin: Object.freeze({ type: 'enum', values: ORACLE_FACES, default: 'sophia', cueable: true }),
+        skin: Object.freeze({ type: 'enum', values: SKIN_NAMES, default: 'sophia', cueable: true }),
         state: Object.freeze({ type: 'enum', values: STATE_NAMES, default: 'arrival', cueable: true })
     }),
     cues: Object.freeze({

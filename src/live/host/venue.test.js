@@ -928,7 +928,7 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         ask('First?');
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
         const choice = $('#rise-settings-face');
-        expect([...choice.options].map(option => option.textContent)).toEqual(['Sophia', 'Ember', 'Jade', 'Silver']);
+        expect([...choice.options].map(option => option.textContent)).toEqual(['Sophia', 'Ember', 'Jade', 'Silver', 'Porcelain']);
         expect(choice.value).toBe('jade');
         choice.value = 'ember';
         choice.dispatchEvent(new Event('change', { bubbles: true }));
@@ -941,6 +941,33 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         host.destroy();
         host = null;
         expect(rootStyle().getPropertyValue('--live-ground')).toBe('');
+    });
+
+    it('makes a light room of a light face, hangs a full-bleed visual there as a picture, and leaves no mark behind', async () => {
+        const root = document.documentElement;
+        mount('?voice=paced', env(), { getSettings: () => ({ liveFace: 'porcelain' }) });
+        expect(root.dataset.liveRoom).toBe('light');
+        // The room's words are the skin's ink, and its night for what is made of light is the skin's deep.
+        expect(root.style.getPropertyValue('--live-ground')).toBe('rgb(244, 239, 230)');
+        expect(root.style.getPropertyValue('--live-core')).toBe('rgb(23, 42, 79)');
+        expect(root.style.getPropertyValue('--live-deep')).toBe('rgb(14, 27, 54)');
+        const genesis = { kind: 'field', renderer: 'genesis', config: {} };
+        const attractor = { kind: 'field', renderer: 'attractor', config: {} };
+        expect(host.venue.hangs(genesis)).toBe(true);
+        expect(host.venue.hangs(attractor)).toBe(false);
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        const choice = $('#rise-settings-face');
+        choice.value = 'sophia';
+        choice.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(root.dataset.liveRoom).toBeUndefined();
+        expect(host.venue.hangs(genesis)).toBe(false);
+        choice.value = 'porcelain';
+        choice.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(root.dataset.liveRoom).toBe('light');
+        host.destroy();
+        host = null;
+        expect(root.dataset.liveRoom).toBeUndefined();
     });
 
     it('listens while the reader types, thinks from the ask until the first words, then withdraws', async () => {

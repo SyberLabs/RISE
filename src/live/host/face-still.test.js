@@ -2,7 +2,7 @@
  * The still face: the open eye as one inline SVG, shown before the face's worker draws and as its poster.
  */
 import { describe, expect, it } from 'vitest';
-import { FACE_SKINS, faceStill } from './face-still.js';
+import { FACE_SKINS, faceLight, facePalette, faceStill } from './face-still.js';
 import { ORACLE_SKINS } from '../../scenes/engines/oracle.js';
 
 const parse = markup => {
@@ -12,9 +12,21 @@ const parse = markup => {
 };
 
 describe('the still face', () => {
-    it('offers the engine’s own faces, and no light room’s skin as a face', () => {
-        expect(FACE_SKINS).toEqual(Object.keys(ORACLE_SKINS).filter(name => !ORACLE_SKINS[name].light));
-        expect(FACE_SKINS).toEqual(['sophia', 'ember', 'jade', 'silver']);
+    it('offers the engine’s own skins, Porcelain the one light room', () => {
+        expect(FACE_SKINS).toEqual(Object.keys(ORACLE_SKINS));
+        expect(FACE_SKINS.filter(faceLight)).toEqual(['porcelain']);
+        expect(faceLight('gold')).toBe(false);
+    });
+
+    it('gives a light room ink for its words and its deep for its night; a dark room keeps its core', () => {
+        expect(facePalette('porcelain')).toEqual({
+            '--live-ground': 'rgb(244, 239, 230)', '--live-iris': 'rgb(47, 95, 179)', '--live-core': 'rgb(23, 42, 79)',
+            '--live-glow': 'rgb(168, 192, 230)', '--live-deep': 'rgb(14, 27, 54)'
+        });
+        expect(facePalette('sophia')['--live-core']).toBe('rgb(245, 245, 220)');
+        // Its still eye's nodes are beads of ink, as the engine draws them, not a pale heart in a ring.
+        const node = parse(faceStill('porcelain')).querySelector('radialGradient[id$="-node"] stop');
+        expect(node.getAttribute('stop-color')).toBe('rgb(47, 95, 179)');
     });
 
     it('is the open eye: a lit disc, 36 petal strokes, the pupil, the catchlight and seven soft nodes', () => {
