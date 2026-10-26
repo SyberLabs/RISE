@@ -19,7 +19,7 @@
       "date": "2026-10-26",
       "kind": "test",
       "ref": "src/live/adapters/openrouter.test.js",
-      "note": "Branch live-openrouter-models. npx vitest run src/live/host/venue.test.js src/app.safety.test.js src/live/adapters: 31 files, 686 passed, 4 skipped; one app.safety test (the recursive service-locator scan) timed out under that load and passes alone (26 of 26)."
+      "note": "Branch live-openrouter-models, PR #741, run on revision 5fa6dd13. npx vitest run src/live/host/venue.test.js src/app.safety.test.js src/live/adapters: 31 files, 686 passed, 4 skipped; one app.safety test (the recursive service-locator scan) timed out under that load and passes alone (26 of 26)."
     },
     {
       "date": "2026-10-26",
