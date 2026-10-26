@@ -13,6 +13,7 @@ import { createMockAdapter } from '../adapters/mock.js';
 import { BLACK_HOLES_CURRENT } from '../../test/sealed-current.js';
 import { acceptOpenRouterKey, resetConnectionForTests } from '../../core/ai-connection.js';
 import { createFakeSpeech } from '../../test/fake-speech.js';
+import { fakeGoogleApiKey } from '../../test/fake-google-key.js';
 
 const env = ({ speech = false, recognition = false, motion = false } = {}) => ({
     window: {
@@ -446,7 +447,7 @@ describe('the OpenAI provider, with the reader\u2019s own key', () => {
 });
 
 describe('the Gemini provider, with the reader’s own key', () => {
-    const KEY = 'AIzaSyD-test-key-0000000000000000000000';
+    const KEY = fakeGoogleApiKey(`D-test-key-${'0'.repeat(22)}`);
     const fakeRuntime = () => ({
         status: 'live',
         snapshot: () => ({ status: 'live', error: null, main: {}, side: null }),
