@@ -900,14 +900,17 @@ export function createLiveRuntime({
          * is shown at once and the reading plays on, with no request. `{ engine, params }` starts that engine from the
          * phrase on screen, as a picture is placed; `{ engine, cue }` cues the engine running. From the passage it was
          * chosen in, the model's own scenes, cues, visual changes and pictures are held until the reader next asks RISE
-         * something inside the reading (docs/plans/LIVE-CURRENT.md §25). Returns whether it was shown: false leaves the
-         * reading held, and nothing changed.
+         * something inside the reading (docs/plans/LIVE-CURRENT.md §25). A reading the reader paused takes it too, and
+         * plays on as Play would: a chosen visual is shown as the reading moves. Returns whether it was shown: false
+         * leaves the reading held, and nothing changed.
          */
         chooseVisual({ engine, params, cue } = {}) {
-            if (interjection.state !== 'held') throw new LiveRuntimeError('NOT_HELD', 'A visual is chosen while the reading is held for the reader');
+            const paused = status === 'interrupted' && interjection.state === 'none' && Boolean(main?.player) && !main.finished;
+            if (interjection.state !== 'held' && !paused) throw new LiveRuntimeError('NOT_HELD', 'A visual is chosen while the reading is held for the reader');
             const shown = params === undefined ? cueChosen(engine, cue) : engineChosen(engine, params, cue);
             if (!shown) return false;
-            step('cancel');
+            if (paused) note('resume', { reason: 'user', ...here() });
+            else step('cancel');
             playOn();
             return true;
         },

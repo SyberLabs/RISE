@@ -9,11 +9,14 @@
  * rim come from the same numbers.
  */
 
-/** Which frame each visual takes: a single drawn object the inner eye, a radial moving field the shell, a picture that needs the room the full frame. */
+/**
+ * Which frame each visual takes: a single drawn object the inner eye, a radial moving field or a collection's
+ * photograph the shell (Sophia's own circle round it), a picture that needs the room the full frame.
+ */
 export const FRAME_OF = Object.freeze({
-    attractor: 'shell', 'living-flame': 'shell', turrell: 'shell',
+    attractor: 'shell', 'living-flame': 'shell', turrell: 'shell', sourced: 'shell',
     harmonograph: 'inner', ostensoria: 'inner', apparitio: 'inner',
-    genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', 'night-streaks': 'full', sourced: 'full', figure: 'full', scene: 'full'
+    genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', 'night-streaks': 'full', figure: 'full', scene: 'full'
 });
 
 /**
@@ -147,9 +150,9 @@ export function holdsContent(cue) {
 }
 
 /**
- * Whether the cue on screen is a collection image (docs/plans/LIVE-IMAGERY.md), which the full frame hangs as a picture
- * in its own box, the safe rectangle (hungRect), in every room: never laid over the room, and never scaled, so the
- * credit it carries is set at its own size.
+ * Whether the cue on screen is a collection image (docs/plans/LIVE-IMAGERY.md). Where the face draws it is held in the
+ * shell; where the face does not draw, there is no circle, and it is hung as a picture in its own box, the safe
+ * rectangle (hungRect): never laid over the room, and never scaled, so the credit it carries is set at its own size.
  */
 export function hungPicture(cue) {
     return visualOf(cue) === 'sourced';

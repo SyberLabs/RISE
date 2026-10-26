@@ -16,9 +16,9 @@ const smooth = u => { const v = Math.max(0, Math.min(1, u)); return v * v * (3 -
 describe('the visual chooses the frame', () => {
     it('keeps the table in one place, keyed by engine and scene kind', () => {
         expect(FRAME_OF).toEqual({
-            attractor: 'shell', 'living-flame': 'shell', turrell: 'shell',
+            attractor: 'shell', 'living-flame': 'shell', turrell: 'shell', sourced: 'shell',
             harmonograph: 'inner', ostensoria: 'inner', apparitio: 'inner',
-            genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', 'night-streaks': 'full', sourced: 'full', figure: 'full', scene: 'full'
+            genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', 'night-streaks': 'full', figure: 'full', scene: 'full'
         });
     });
 
@@ -36,7 +36,8 @@ describe('the visual chooses the frame', () => {
         expect(frameOf({ kind: 'procedural', collections: ['harmonograph'], config: {} })).toBe('inner');
         expect(frameOf({ kind: 'procedural', collections: ['turrell'], config: {} })).toBe('shell');
         expect(frameOf({ kind: 'procedural', collections: ['fractal'], config: {} })).toBe('full');
-        expect(frameOf({ kind: 'sourced', collections: ['rijksmuseum'] })).toBe('full');
+        // A collection's photograph is held in Sophia's circle.
+        expect(frameOf({ kind: 'sourced', collections: ['sci-astronomy'] })).toBe('shell');
         expect(frameOf({ kind: 'scene', sceneId: 'h', svg: '<svg/>' })).toBe('full');
         expect(frameOf({ kind: 'scene', sceneId: 'd', code: 'export default () => ({})' })).toBe('full');
     });

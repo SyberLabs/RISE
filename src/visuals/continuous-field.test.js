@@ -354,12 +354,15 @@ describe('ContinuousField', () => {
         const open = { url: 'woodcut.jpg', artworkLabel: { title: 'Woodcut of a hare', labelText: 'Woodcut of a hare', requiredText: 'Woodcut of a hare', creditRequired: false } };
         const { field, host, clock } = mount({ getPool: () => [credited, open] });
         const shown = [];
-        document.addEventListener('rise:work-shown', event => shown.push(event.detail.label));
+        const said = [];
+        document.addEventListener('rise:work-shown', event => { shown.push(event.detail.label); said.push(event.detail.text); });
         field.start();
         await Promise.resolve(); await Promise.resolve();
         const first = host.querySelector('.continuous-field-label:not([hidden])');
         expect(shown).toHaveLength(1);
         const label = shown[0];
+        // The words its chip says, for a host that sets them elsewhere: a credit, or an open work's title.
+        expect(said[0]).toBe(label.creditRequired ? 'NASA, ESA · CC BY 4.0' : 'Woodcut of a hare');
         expect([credited.artworkLabel, open.artworkLabel]).toContain(label);
         expect(first.dataset.title ?? '').toBe(label.creditRequired ? 'Pillars of Creation' : '');
         clock.tick(1100);
@@ -517,6 +520,33 @@ describe('ContinuousField', () => {
         // the old work must not have been shown; only the new pool's
         // decode (still pending) can win
         expect(field.currentUrl).not.toBe('old-a.jpg');
+        field.stop();
+    });
+
+    it('a wake (the pool warmed, a prepared cue admitted) leaves a work of the active pool where it is, and replaces one of another', async () => {
+        let key = 'sky';
+        let works = pool('jupiter.jpg', 'nebula.jpg');
+        const { field } = mount({ getPool: () => works, poolKey: () => key, dwellMs: 60_000 });
+        field.start();
+        await Promise.resolve(); await Promise.resolve();
+        const shown = field.currentUrl;
+        expect(shown).toBeTruthy();
+        // More of the same pool decoded: the reader keeps the photograph they were given.
+        works = pool('jupiter.jpg', 'nebula.jpg', 'galaxy.jpg');
+        field.poolChanged({ wake: true });
+        await Promise.resolve(); await Promise.resolve();
+        expect(field.currentUrl).toBe(shown);
+        // A wake for a pool the work on screen is not from replaces it, as before.
+        key = 'land';
+        works = pool('valley.jpg');
+        field.poolChanged({ wake: true });
+        await Promise.resolve(); await Promise.resolve();
+        expect(field.currentUrl).toBe('valley.jpg');
+        // A change of scene is not a wake: it follows, even within the same pool.
+        works = pool('valley.jpg', 'coast.jpg');
+        field.poolChanged();
+        await Promise.resolve(); await Promise.resolve();
+        expect(field.currentUrl).toBe('coast.jpg');
         field.stop();
     });
 
