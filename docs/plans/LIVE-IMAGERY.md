@@ -1,6 +1,34 @@
 # Collection imagery in RISE Live: astronomy and landscapes
 
-**Status (2026-10-26):** a design for the owner to decide on. Nothing in it is built. Task LIVE-037.
+**Status (2026-10-26):** decided by the owner (below). The first slice, astronomy on `/live`, is task LIVE-039.
+Task LIVE-037.
+
+## Owner decisions (2026-10-26)
+
+Decided by the owner:
+
+1. **Option A, the whole collection, for now.** A collection is an engine and RISE chooses the work. Parameters
+   (Option B's facets) are deliberately deferred: they will be designed together with the other natural-language
+   visual parameters ("red kaleidoscope attractor", "solar harmonograph"). A later step, not designed here.
+2. **Landscapes' rights are frozen at harvest, with a scheduled re-verification.** A refresh, roughly monthly,
+   re-checks each frozen work against its institution and drops any whose rights changed. Astronomy already
+   follows this model (`scripts/build-science-catalog.mjs` is its refresh). The landscape harvest is not part of
+   the first slice.
+3. **"Earth and sky" is its own set:** ESO's night landscapes and NASA's Earth. A later curation step that needs
+   the owner's review by eye; not in the first slice.
+4. **The dark room hangs a collection image too,** framed in the safe rectangle like the light room, never
+   full-bleed. This replaces the full-bleed dark room of §4.1, §6 and §7 question 8.
+
+Decided by default, from this design's recommendations; the owner may revisit any of them:
+
+5. **Chip text:** the title before the credit (§4.2).
+6. **Names:** `astronomy` and `landscapes`, plain, as the model and the reader say them.
+7. **NASA's 640-pixel files** stay in the collection: every collection image is now hung in the safe rectangle,
+   not spread over the room, so a 640-pixel file is shown smaller. To revisit on sight.
+8. **The card:** a RISE image route on RISE's origin (§4.4), built after the first slice; until then Composer's
+   guide does not offer the collections.
+9. **Sacred readings:** no restriction; which pictures go with a reading is the model's and the reader's choice.
+10. **Under "RISE only"** a refused model figure is not replaced by a collection picture.
 
 The owner wants RISE Live (`/live`, where a model's answer becomes a spoken, visual reading) to show the
 collections RISE already curates, especially astronomy and landscapes. Today a Live reading can show RISE's
