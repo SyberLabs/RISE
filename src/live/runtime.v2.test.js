@@ -84,6 +84,37 @@ describe('a v2 Current in the runtime', () => {
     expect(commands).toEqual([{ surface: 'attractor', parameter: 'intensity', value: 0.75 }]);
   });
 
+  it('gives a beat’s cue to the scene the same beat starts once it is up, and records only that it landed', async () => {
+    const clock = createRealClock();
+    const port = createFakeMcpPort({ clock, answerAfterMs: 10 });
+    const adapter = createMcpAppAdapter({ port, clock, host: 'https://host.example' });
+    const voice = createSyntheticVoice({ clock, msPerChar: 10, breathMs: 50 });
+    const commands = [];
+    let upAt = null;
+    runtime = createLiveRuntime({
+      adapter, clock, voices: { create: () => voice },
+      createPlayer: session => new Player(session),
+      host: {
+        present() { upAt = Date.now() + 350; }, dismiss() {},
+        discoverVisual: () => ({ manifest: ATTRACTOR_VISUAL_MANIFEST, current: { intensity: 0.65 }, target: { intensity: 0.65 } }),
+        // The scene is put up a little after its beat begins; until then nothing is on screen to take a cue.
+        controlVisual: ({ command }) => {
+          if (Date.now() < upAt) return { status: 'refused', code: 'NO_ACTIVE_VISUAL' };
+          commands.push(command);
+          return { status: 'accepted', surface: command.surface, parameter: command.parameter, requested: command.value, effective: command.value };
+        }
+      }
+    });
+    const started = runtime.start('Why is the sky blue?');
+    port.answer({ ...V2, beats: [{ say: 'Sunlight carries every colour.', scene: 'field', cue: 'bright' }, V2.beats[3]] }, 10);
+    await tick(100);
+    await started;
+    await tick(5_000);
+    expect(commands).toEqual([{ surface: 'attractor', parameter: 'intensity', value: 0.75 }]);
+    const receipts = runtime.journal().filter(entry => entry.type === 'visual.control');
+    expect(receipts.map(entry => entry.status)).toEqual(['accepted']);
+  });
+
   it('keeps the voice as the clock through a hold: a spoken beat after one waits for the reading, and shows while it is said', async () => {
     const msPerChar = 10;
     const caption = { say: 'Scattering goes as one over lambda to the fourth.', show: 'Scattering goes as $1/\\lambda^4$.', place: 'caption' };

@@ -3,7 +3,7 @@
  * reading, from a blob: URL it owns and lets go of.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { hexOfColor, inkFigure, mountFigureLayer } from './figure-layer.js';
+import { embeddedFace, hexOfColor, inkFigure, mountFigureLayer, paintFigure } from './figure-layer.js';
 
 const NS = 'xmlns="http://www.w3.org/2000/svg"';
 const SVG = `<svg ${NS} viewBox="0 0 4 3"><path d="M0,3 L4,3 z" stroke="currentColor"/></svg>`;
@@ -105,5 +105,57 @@ describe('the words’ ink, as a figure takes it when the reading names no theme
     expect(hexOfColor('canvastext')).toBe(null);
     expect(hexOfColor('')).toBe(null);
     expect(hexOfColor(undefined)).toBe(null);
+  });
+});
+
+describe('what else a figure is drawn with: the theme’s dark and the reading face', () => {
+  const TEXTED = `<svg ${NS} viewBox="0 0 4 3"><circle class="dark" cx="2" cy="1" r="1"/><text x="0" y="3">label</text></svg>`;
+
+  it('gives the class dark the theme’s dark and its text the reading’s face, after the root’s start tag', () => {
+    const painted = paintFigure(TEXTED, { ink: '#F4EEE4', dark: '#0A0B0F', face: { css: '@font-face{font-family:"Reading face"}', family: '"Reading face", Georgia, serif' } });
+    expect(painted).toBe(`<svg color="#F4EEE4" ${NS} viewBox="0 0 4 3"><style>.dark{fill:#0A0B0F}@font-face{font-family:"Reading face"}text{font-family:"Reading face", Georgia, serif}</style><circle class="dark" cx="2" cy="1" r="1"/><text x="0" y="3">label</text></svg>`);
+  });
+
+  it('adds nothing a figure does not use: no face without text, no dark without a colour', () => {
+    expect(paintFigure(SVG, { ink: '#F4EEE4', face: { css: 'x', family: 'y' } })).toBe(inkFigure(SVG, '#F4EEE4'));
+    expect(paintFigure(TEXTED, { ink: null, dark: 'rgba(0,0,0,0)' })).toBe(TEXTED);
+  });
+
+  it('draws a figure with text once its face is ready, and in the fallback faces if it never is', async () => {
+    let ready;
+    const face = new Promise(resolve => { ready = resolve; });
+    const layer = mountFigureLayer({ field: field(), insertBehindReading: behind, svg: TEXTED, ink: '#F4EEE4', face });
+    expect(layer.node.getAttribute('src')).toBeNull();
+    ready(null);
+    await vi.waitFor(() => expect(layer.node.getAttribute('src')).toBe('blob:figure/1'));
+    const text = await new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(blobs[0]); });
+    expect(text).toBe(paintFigure(TEXTED, { ink: '#F4EEE4' }));
+  });
+
+  it('carries the reading’s face into the image from the page’s own @font-face rules, its files as data', async () => {
+    const rule = (family, src, range) => ({ type: 5, style: { getPropertyValue: name => ({ 'font-family': family, 'font-style': 'normal', 'font-weight': '400', src, 'unicode-range': range })[name] ?? '' } });
+    const doc = {
+      baseURI: 'https://rise.example/live',
+      styleSheets: [{ href: 'https://rise.example/assets/fonts.css', cssRules: [
+        rule('"Crimson Pro"', 'url("/fonts/crimson.woff2") format("woff2")', 'U+0000-00FF'),
+        rule('"Other"', 'url("/fonts/other.woff2") format("woff2")', '')
+      ] }]
+    };
+    const fetched = [];
+    vi.stubGlobal('fetch', async url => { fetched.push(String(url)); return { ok: true, arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer }; });
+    const face = await embeddedFace(doc, '"Crimson Pro", Georgia, serif');
+    expect(fetched).toEqual(['https://rise.example/fonts/crimson.woff2']);
+    expect(face).toEqual({
+      css: '@font-face{font-family:"RISE reading face";src:url(data:font/woff2;base64,AQID) format("woff2");unicode-range:U+0000-00FF}',
+      family: '"RISE reading face", Georgia, serif'
+    });
+    expect(await embeddedFace(doc, '"Nowhere", Georgia, serif')).toEqual({ css: '', family: 'Georgia, serif' });
+  });
+});
+
+describe('a face the figure chose', () => {
+  it('is kept: the reading’s face is given only to a figure that names none', () => {
+    const chosen = `<svg ${NS} viewBox="0 0 4 3" font-family="monospace"><text x="0" y="3">x = 1</text></svg>`;
+    expect(paintFigure(chosen, { face: { css: 'c', family: 'f' } })).toBe(chosen);
   });
 });
