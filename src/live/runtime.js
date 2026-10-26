@@ -46,9 +46,18 @@ import { SETTING_PARAMETERS } from './perception.js';
 import { withExperientialState } from './state-visuals.js';
 import { STREAM_LIMITS, createCurrentStream } from './stream.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
+import { hasMath } from '../core/math-text.js';
+import { loadMath, speakable } from '../core/math-typeset.js';
 
-/** voiceTailMs: how long a reading whose words have all been shown waits for its voice to finish saying them. */
-export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500, voiceTailMs: 20_000 });
+/**
+ * voiceTailMs: how long a reading whose words have all been shown waits for its voice to finish saying them.
+ * mathWaitMs: how long a passage with maths waits for the typesetter before it is given with its plain reading.
+ */
+export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500, voiceTailMs: 20_000, mathWaitMs: 3_000 });
+
+/** Whether a Current shows or says maths: any beat's words, or any passage's. */
+const currentHasMath = current => (current.beats ?? []).some(beat => hasMath(beat.say) || hasMath(beat.show))
+    || (current.segments ?? []).some(segment => hasMath(segment.text));
 
 export class LiveRuntimeError extends Error {
     constructor(code, message) {
@@ -65,10 +74,44 @@ const sceneNamed = id => typeof id === 'string' && id.length > 0 && id.length <=
 export function createLiveRuntime({
     adapter, createPlayer, host = {}, voices = null, clock = createRealClock(), graceMs, reconnects = RUNTIME_LIMITS.reconnects,
     // Told every journal entry as it is written, so a host can show the voice's trace where a reader can copy it.
-    onNote = null
+    onNote = null,
+    // The typesetter: fetched at the first sign of maths, and how a passage is said (math-typeset.js).
+    maths = { load: loadMath, speakable }
 }) {
     assertAdapter(adapter);
     if (typeof createPlayer !== 'function') throw new TypeError('A runtime is handed the host’s Player factory');
+
+    /** The typesetter has loaded, failed, or been waited for mathWaitMs: no passage waits for it any more. */
+    let mathSettled = false;
+    let mathWaiting = null;
+    /** The runs that held a passage with maths, each lowered again when the wait is over. */
+    const heldForMath = new Set();
+
+    /** Start the typesetter if it is not started, and say whether a passage with maths must still wait for it. */
+    function mathPending() {
+        if (mathSettled) return false;
+        mathWaiting ??= Promise.race([Promise.resolve().then(() => maths.load()).catch(() => {}), clock.sleep(RUNTIME_LIMITS.mathWaitMs)])
+            .then(() => {
+                mathSettled = true;
+                const held = [...heldForMath];
+                heldForMath.clear();
+                for (const run of held) if (!run.closed) lower(run);
+            });
+        return true;
+    }
+
+    /**
+     * A passage as the voice says it and the speech governor times it: its formulas said, and where each written
+     * place falls in what is said (atom-map.js). Kept per passage, so the voice and the governor have the same words.
+     */
+    function spokenOf(run, segment) {
+        const kept = run.spoken.get(segment.id);
+        if (kept?.written === segment.text) return kept;
+        const { text, at } = maths.speakable(segment.text);
+        const entry = { id: segment.id, text, written: segment.text, at };
+        run.spoken.set(segment.id, entry);
+        return entry;
+    }
 
     let status = 'idle';
     let error = null;
@@ -325,6 +368,12 @@ export function createLiveRuntime({
             const { sealed } = reading;
             ended = reading.segments;
             let current = reading.current;
+            // A passage with maths waits for the typesetter, so its formula is never shown as source and then
+            // snapped into place, and is said as a formula; what is already on screen reads on meanwhile.
+            if (!graft && currentHasMath(current) && mathPending()) {
+                heldForMath.add(run);
+                return;
+            }
             // The scene each passage starts, by the name its own Current gave it (an answer's without the room's prefix).
             run.sceneOf = new Map((current.beats ?? []).map((beat, index) => {
                 const piece = run.room?.arrangement.pieces[index];
@@ -365,7 +414,7 @@ export function createLiveRuntime({
             });
         }
         const segments = ended.map(({ id, text }) => ({ id, text }));
-        run.governor.update({ atoms: session.atoms, segments });
+        run.governor.update({ atoms: session.atoms, segments: segments.map(segment => spokenOf(run, segment)) });
         // Passages no voice says: a hold, or a beat shown for a while (rise-current.js).
         run.unspokenIds = session.unspokenIds ?? null;
         // Spoken passages that follow one of those: each is given to the voice when the reading reaches it (see speak).
@@ -426,7 +475,7 @@ export function createLiveRuntime({
         for (const segment of fresh) {
             if (run.unspokenIds?.has(segment.id)) continue;
             try {
-                run.voice.enqueue({ id: segment.id, text: segment.text });
+                run.voice.enqueue({ id: segment.id, text: spokenOf(run, segment).text });
                 run.owed.add(segment.id);
                 run.given.push(segment.id);
             } catch (caught) {
@@ -528,6 +577,8 @@ export function createLiveRuntime({
                     for await (const event of run.connection.events) {
                         if (run.closed) return;
                         const result = run.stream.apply(event);
+                        // The typesetter is fetched at the first formula written, before its passage has ended.
+                        if (!mathSettled && (hasMath(event.text) || hasMath(event.beat?.show))) mathPending();
                         if (result.applied > 0) {
                             attempts = 0;
                             noteRefusedScenes(run);
@@ -586,6 +637,8 @@ export function createLiveRuntime({
         const run = {
             role, request, stream: createCurrentStream({ admitScene: adapter.admitScene ?? null }), connection: null, player: null, voice: null, governor: null, conductor: null, unspokenIds: null,
             lowered: 0, presenting: null, presented: false, unspoken: [], segmentId: null, closed: false, finished: false, error: null, speaking: null, abort: new AbortController(), pumping: null,
+            // Each passage as it is said (spokenOf).
+            spoken: new Map(),
             // The model's changes to the room not yet landed (landRoomChanges), how many of the stream's it has taken,
             // the atom the last one landed on (one a phrase), and the scenes the reading starts, as it names them.
             changes: [], roomSeen: 0, roomNoted: 0, roomPhrase: null, lastPhrase: null, scenes: [],

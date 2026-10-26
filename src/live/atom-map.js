@@ -20,7 +20,8 @@
 
 /**
  * @param {Array<{content: string, sourceId?: string, seam?: object}>} atoms
- * @param {Array<{id: string, text: string}>} segments
+ * @param {Array<{id: string, text: string, written?: string, at?: (offset: number) => number}>} segments
+ *   `text` as said; `written` and `at` when it is said otherwise than written (math-text.js spokenWith)
  * @returns {Array<{index: number, segmentId: string|null, seam: boolean, start: number, end: number}>}
  *   one entry per atom, in order. A seam belongs to the segment it precedes.
  */
@@ -49,9 +50,13 @@ export function mapAtoms(atoms, segments) {
     });
 
     for (const [segmentId, group] of groups) {
-        const text = byId.get(segmentId)?.text ?? '';
+        const segment = byId.get(segmentId);
+        const text = segment?.text ?? '';
         const contents = group.map(entry => atoms[entry.index].content ?? '');
-        const starts = locate(text, contents);
+        // A passage said otherwise than written (its formulas said): found in what was written, placed in what is said.
+        const starts = segment?.at
+            ? locate(segment.written ?? '', contents).map(start => segment.at(start))
+            : locate(text, contents);
         group.forEach((entry, i) => {
             entry.start = starts[i];
             entry.end = i + 1 < group.length ? starts[i + 1] : text.length;
