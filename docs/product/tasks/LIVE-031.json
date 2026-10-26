@@ -1,0 +1,51 @@
+{
+  "id": "LIVE-031",
+  "title": "Maths seen and heard from one parse, in RISE Live and Composer",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (Experience Engineer)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Every form a model writes maths in is found: $…$ (never money such as $5 and $10), $$…$$, \\(…\\), \\[…\\], TeX in backticks, and bare TeX that begins with a known command; file paths and \\n stay prose (src/core/math-corpus.js).",
+    "Each formula is parsed once by KaTeX: typeset for the eye with MathML beside it for a screen reader, and said by the Speech Rule Engine in ClearSpeak from that MathML (E = ½ℏω is said 'E equals one half h bar omega'). A spoken form the model writes (say => show) still wins.",
+    "No backslash command, brace or dollar of maths is ever shown as prose or said by a voice: before the typesetter has loaded, or for TeX KaTeX refuses, both channels take a plain Unicode reading.",
+    "In a streamed Live answer a passage with maths is held until the typesetter has loaded (at most 3 s), so a formula is never shown as source and then snapped into place; the voice and the speech governor are given the same spoken words, and the formula's phrase is on screen while its speech is said.",
+    "A formula is never cut between phrases; a display equation is a phrase of its own, centred; inline maths is set at the words' x-height and keeps the line one line tall; a comma written against a formula stays against it.",
+    "A shown formula (a beat no voice says) stays at least as long as it takes to say plus 300 ms per structure, the extra at most 2.5 s (owner, 2026-10-26).",
+    "Nothing is added to the first load (63.1 KB against the 64 KB budget); KaTeX, the speech engine and its English rules load only for a reading with maths, from RISE's own assets.",
+    "A spoken formula's extra 300 ms per structure needs a pause inside a passage that no voice has yet; follow-up, not this task."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "document",
+      "ref": "docs/superpowers/specs/2026-10-26-math-both-channels-design.md",
+      "note": "The diagnosis (four causes, reproduced through the Live parser and the Current compiler; the production demo answers only about black holes and a real model needs the reader's key), the owner's three decisions of 2026-10-26 (SRE ClearSpeak; dwell as proposed; a display equation a beat of its own), and the design."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/core/math-text.test.js",
+      "note": "Branch live-math-both-channels. Command: npx vitest run src/core/math-text.test.js src/core/math-typeset.test.js src/core/rise-current.v2.test.js src/core/rise-current.test.js src/core/chunker.test.js src/core/session-compiler.test.js src/live/atom-map.test.js src/live/runtime.math.test.js src/components/read/Chamber.beat-typography.test.js src/components/read/Chamber.beat-place.test.js src/core/system-design.test.js: all passed. The Live runtime-related files (28 files, 442 tests; then 11 more files, 320 tests) passed after the change."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "e2e/live-mcp.spec.js",
+      "note": "Branch live-math-both-channels, local production build, headless Chromium. Command: npx playwright test e2e/live-mcp.spec.js -g \"maths is typeset whole|a Current of beats plays in the self-contained card\": 2 passed. A Current with an inline formula, a display equation, bare TeX and a price plays in the card: each formula typeset, nothing shown as source or plain reading, the equation alone and centred, the line one line tall at the words' x-height; a recording browser voice with word boundaries heard 'Its lowest energy is E sub 0 equals one half h bar omega, never zero.' and no markup. At 390 px wide the Schrödinger equation for the oscillator fits with no overflow."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T03:30:00.000Z",
+      "summary": "Created and claimed after the owner's decisions of 2026-10-26; built on branch live-math-both-channels with the evidence above. Not merged, not deployed, not accepted by a human."
+    }
+  ],
+  "updatedAt": "2026-10-26T03:30:00.000Z",
+  "revision": 1,
+  "summary": "Maths in RISE Live and Composer is typeset for the eye and said for the ear from one KaTeX parse (Speech Rule Engine, ClearSpeak), found in every form a model writes it and never in money, held in a stream until it can be shown and said, and set at the words' size; nothing added to the first load.",
+  "blocker": null
+}
