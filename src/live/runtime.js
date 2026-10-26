@@ -47,8 +47,11 @@ import { withExperientialState } from './state-visuals.js';
 import { STREAM_LIMITS, createCurrentStream } from './stream.js';
 import { ATTRACTOR_VISUAL_MANIFEST, validateVisualCommand } from '../core/visual-control-contract.js';
 
-/** voiceTailMs: how long a reading whose words have all been shown waits for its voice to finish saying them. */
-export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500, voiceTailMs: 20_000 });
+/**
+ * voiceTailMs: how long a reading whose words have all been shown waits for its voice to finish saying them.
+ * cueWaitMs, cueRetryMs: how long, and how often, a beat's cue is given again while the scene it cues is put up.
+ */
+export const RUNTIME_LIMITS = Object.freeze({ reconnects: 3, backoffMs: 250, journal: 500, voiceTailMs: 20_000, cueWaitMs: 2_000, cueRetryMs: 100 });
 
 export class LiveRuntimeError extends Error {
     constructor(code, message) {
@@ -232,20 +235,43 @@ export function createLiveRuntime({
      * `instant`: an earlier beat's cue landed at once after a seek, which the host passes on to the scene.
      */
     function cueScene(commands, instant) {
-        for (const command of commands) controlVisual(command, { instant });
+        for (const command of commands) cueOnce(command, instant, 0);
+    }
+
+    /**
+     * A beat that starts a scene and cues it gives the cue while the scene is being put up, before it is the visual on
+     * screen: refused as not up yet, the cue is given again until it lands or cueWaitMs has passed, and only what
+     * finally happened is recorded.
+     */
+    function cueOnce(command, instant, waited) {
+        const run = visualRun();
+        const receipt = attemptVisual(command, { instant });
+        const notUpYet = receipt.status === 'refused' && (receipt.code === 'NO_ACTIVE_VISUAL' || receipt.code === 'UNSUPPORTED_SURFACE');
+        if (!notUpYet || waited >= RUNTIME_LIMITS.cueWaitMs || !run || run.closed) {
+            recordVisualReceipt(run, receipt);
+            return;
+        }
+        clock.setTimer(() => {
+            if (visualRun() === run && !run.closed) cueOnce(command, instant, waited + RUNTIME_LIMITS.cueRetryMs);
+        }, RUNTIME_LIMITS.cueRetryMs);
     }
 
     function controlVisual(command, { instant = false } = {}) {
+        return recordVisualReceipt(visualRun(), attemptVisual(command, { instant }));
+    }
+
+    /** A command given to the visual on screen, and what became of it, unrecorded. */
+    function attemptVisual(command, { instant = false } = {}) {
         const run = visualRun();
         // The running engine's own manifest bounds the command; the attractor's stands in before anything is shown.
         const discovered = discoverVisual()?.manifest;
         const manifest = discovered?.parameters ? discovered : ATTRACTOR_VISUAL_MANIFEST;
         const checked = validateVisualCommand(command, manifest);
-        if (!checked.ok) return recordVisualReceipt(run, visualRefusal(checked.code));
-        if (!visualRunIsActive(run)) return recordVisualReceipt(run, visualRefusal('NOT_LIVE'));
-        if (!run.presented) return recordVisualReceipt(run, visualRefusal());
-        if (!visualRunIsLive(run)) return recordVisualReceipt(run, visualRefusal('NOT_LIVE'));
-        if (typeof host.controlVisual !== 'function') return recordVisualReceipt(run, visualRefusal());
+        if (!checked.ok) return visualRefusal(checked.code);
+        if (!visualRunIsActive(run)) return visualRefusal('NOT_LIVE');
+        if (!run.presented) return visualRefusal();
+        if (!visualRunIsLive(run)) return visualRefusal('NOT_LIVE');
+        if (typeof host.controlVisual !== 'function') return visualRefusal();
         let response;
         try {
             response = host.controlVisual({ role: run.role, player: run.player, command: checked.command, ...(instant === true ? { instant: true } : {}) });
@@ -256,11 +282,10 @@ export function createLiveRuntime({
         const kept = spec.type === 'enum' || spec.type === 'name'
             ? response?.effective === checked.command.value
             : Number.isFinite(response?.effective) && response.effective >= spec.minimum && response.effective <= spec.maximum;
-        const receipt = response?.status === 'accepted' && kept
+        return response?.status === 'accepted' && kept
             ? Object.freeze({ status: 'accepted', surface: checked.command.surface, parameter: checked.command.parameter,
                 requested: checked.requested, effective: response.effective })
             : visualRefusal(response?.code || 'NO_ACTIVE_VISUAL');
-        return recordVisualReceipt(run, receipt);
     }
 
     function set(nextStatus, nextError = error) {

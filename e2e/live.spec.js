@@ -1175,7 +1175,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         await expect.poll(answered, { timeout: 15_000 }).not.toBeNull();
         const first = await answered();
         console.log(`interjection: the reader's words to RISE's first word of answer ${Math.round(first.at - asked.at)} ms`);
-        await expectShown(page, 'Good question');
+        await expectShown(page, 'The horizon is not a surface');
 
         // Pause during the answer holds the answer.
         const stage = page.locator('#rise-stage-controls');
@@ -1191,7 +1191,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
             .toMatchObject({ beats: 2, ending: 'resume' });
         const passages = await hooks.passages();
         expect(passages.slice(1, 3).map(passage => passage.text)).toEqual([
-            'Good question: the horizon is not a surface you could touch.',
+            'The horizon is not a surface you could touch.',
             'It is only the distance past which light can no longer climb back out.'
         ]);
         // After the answer, the held passage again from the phrase the voice was held at.
