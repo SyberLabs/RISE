@@ -50,13 +50,23 @@ function watchErrors(page) {
     return errors;
 }
 
-test('expected account denial leaves unrelated HTTP and runtime errors observable', async ({ page }) => {
+test('a browser never signed in asks for no identity; one signed in before hears the denial and forgets; other errors still show', async ({ page }) => {
     const errors = watchErrors(page);
-    const accountResponse = page.waitForResponse(response => response.url() === 'https://syberlabs.io/admin/api/v1/account');
+    const ACCOUNT = 'https://syberlabs.io/admin/api/v1/account';
+    const asked = [];
+    page.on('request', request => { if (request.url() === ACCOUNT) asked.push(request.url()); });
     await page.goto(OPEN);
+    await expect(page.getByRole('link', { name: 'Staff sign in to SyberLabs' })).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await page.waitForTimeout(300);
+    expect(asked).toEqual([]);
+    await page.evaluate(() => localStorage.setItem('rise.account.signedIn', '1'));
+    const accountResponse = page.waitForResponse(response => response.url() === ACCOUNT);
+    await page.reload();
     const denied = await accountResponse;
     expect(denied.status()).toBe(401);
     expect(await denied.json()).toEqual({ version: 1, error: 'signin_required' });
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('rise.account.signedIn'))).toBeNull();
     await expect(page.getByRole('link', { name: 'Staff sign in to SyberLabs' })).toBeVisible();
     expect(errors).toEqual([]);
     await page.route('**/api/conformance-denial', route => route.fulfill({ status: 401, body: 'unrelated denial' }));

@@ -23,6 +23,8 @@ const seed = async page => page.evaluate(async record => {
 }, work);
 
 async function mockAccount(page, onPost = () => {}, { failListAfterSave = false } = {}) {
+  // A browser this reader has signed in on before: only such a browser looks up its identity (account-control.js).
+  await page.addInitScript(() => localStorage.setItem('rise.account.signedIn', '1'));
   let didSave = false;
   let failedList = false;
   await page.route('https://syberlabs.io/admin/api/v1/**', async route => {

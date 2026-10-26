@@ -1,8 +1,38 @@
 // @vitest-environment jsdom
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { mountAccountControl } from './account-control.js';
 let control;
-afterEach(() => { control?.destroy(); vi.unstubAllGlobals(); document.body.innerHTML = ''; });
+// A browser that has been signed in before; one that never has is the last tests' own.
+beforeEach(() => localStorage.setItem('rise.account.signedIn', '1'));
+afterEach(() => { control?.destroy(); vi.unstubAllGlobals(); document.body.innerHTML = ''; localStorage.clear(); });
+
+it('looks up no identity, on mount or focus, in a browser that has never been signed in', async () => {
+  localStorage.clear();
+  const fetcher = vi.fn();
+  vi.stubGlobal('fetch', fetcher);
+  control = mountAccountControl();
+  window.dispatchEvent(new Event('focus'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fetcher).not.toHaveBeenCalled();
+  expect(document.querySelector('.rise-account-control').textContent).toBe('Staff sign in');
+});
+
+it('looks up identity once the reader has set out to sign in, and forgets it when told they are signed out', async () => {
+  localStorage.clear();
+  const fetcher = vi.fn().mockResolvedValue({ ok: false, status: 401, json: async () => ({}) });
+  vi.stubGlobal('fetch', fetcher);
+  control = mountAccountControl();
+  const link = document.querySelector('.rise-account-control');
+  link.addEventListener('click', event => event.preventDefault());
+  link.click();
+  expect(localStorage.getItem('rise.account.signedIn')).toBe('1');
+  window.dispatchEvent(new Event('focus'));
+  await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(1));
+  await vi.waitFor(() => expect(localStorage.getItem('rise.account.signedIn')).toBeNull());
+  window.dispatchEvent(new Event('focus'));
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
 
 it('keeps a sign-in entrance outside hidden route containers when account is unavailable', async () => {
   document.body.innerHTML = '<main hidden><div>Reading</div></main>';
