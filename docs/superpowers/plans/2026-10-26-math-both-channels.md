@@ -73,4 +73,4 @@
 - [ ] Browser test: a Live answer with maths in its third beat shows `.katex`, no `.is-source`/`.is-fallback`.
 - [ ] `node scripts/verify-security-dependencies.mjs` speaks a formula through SRE; `npm audit --audit-level=high` clean.
 - [ ] `npx vite build` and `npm run measure:first-load` (unchanged); record the lazy chunk sizes.
-- [ ] `npm run docs:diagram` after commit; roadmap task LIVE-031; PR.
+- [ ] `npm run docs:diagram` after commit; roadmap task LIVE-032; PR.
