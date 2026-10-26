@@ -3,7 +3,7 @@
  * as text. Nothing here touches a disk or a branch; a digest that breaks the
  * contract's bounds is refused before any of it is produced.
  */
-import { DIGEST_ID, DIGEST_SCHEMA, INDEX_SCHEMA, LIMITS, SITE, densityLine, digestProblems, indexProblems, qualityLine } from './contract.js';
+import { DIGEST_ID, DIGEST_SCHEMA, INDEX_SCHEMA, LIMITS, REPOSITORY, SITE, densityLine, digestProblems, indexProblems, qualityLine } from './contract.js';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -36,12 +36,12 @@ export function digestId(to, existingIds) {
 }
 
 /** The digest envelope, refused when it breaks the contract or its 256 KB bound. */
-export function buildDigest({ id, period, generatedAt, model, changes, current, sources, quality, notes = [] }) {
+export function buildDigest({ id, period, generatedAt, model, changes, current, sources, quality, notes = [], repo = REPOSITORY }) {
   const digest = {
     schema: DIGEST_SCHEMA,
     id,
     audience: 'team',
-    title: `What changed in RISE, ${periodLabel(period)}`,
+    title: `What changed in ${repo === REPOSITORY ? 'RISE' : repo}, ${periodLabel(period)}`,
     period: { from: period.from, to: period.to },
     generatedAt,
     model: { router: model, composer: model, via: 'Claude Code' },
@@ -51,7 +51,7 @@ export function buildDigest({ id, period, generatedAt, model, changes, current, 
     ...(quality ? { quality } : {}),
     ...(notes.length ? { notes } : {})
   };
-  const problems = digestProblems(digest);
+  const problems = digestProblems(digest, repo);
   if (problems.length) throw new Error(`The digest breaks the contract: ${problems.slice(0, 5).join('; ')}`);
   const bytes = new TextEncoder().encode(serialize(digest)).length;
   if (bytes > LIMITS.fileBytes) throw new Error(`The digest is ${bytes} bytes; the contract allows ${LIMITS.fileBytes} (256 KB)`);
@@ -97,14 +97,22 @@ export function nextIndex(index, digest, { supersede } = {}) {
 const cell = text => String(text).replace(/\s+/g, ' ').replace(/\|/g, '\\|').replace(/@/g, '@\u200b').replace(/</g, '&lt;');
 
 /** The notification issue: the reading's link, the models, and every change with its route; `supersedes`, the digest it replaces. */
-export function issueFor(digest, { supersedes } = {}) {
+const digestAddress = (repository, id) => (repository === REPOSITORY
+  ? `${SITE}/changes/${id}`
+  : `https://github.com/${repository}/blob/changes-data/${id}.json`);
+
+export function issueFor(digest, { supersedes, repository = REPOSITORY } = {}) {
   const label = periodLabel(digest.period);
   const included = digest.changes.filter(change => change.included).length;
+  const subject = repository === REPOSITORY ? 'RISE' : repository;
+  const address = digestAddress(repository, digest.id);
   return {
-    title: `What changed in RISE: ${label}`,
+    title: `What changed in ${subject}: ${label}`,
     body: [
-      `The team digest for ${label} is ready: ${SITE}/changes/${digest.id}`,
-      ...(supersedes ? ['', `It replaces the earlier reading of this period, ${SITE}/changes/${supersedes}, which /changes no longer lists.`] : []),
+      `The team digest for ${label} is ready: ${address}`,
+      ...(supersedes ? ['', repository === REPOSITORY
+        ? `It replaces the earlier reading of this period, ${digestAddress(repository, supersedes)}, which /changes no longer lists.`
+        : `It replaces the earlier reading of this period, ${digestAddress(repository, supersedes)}. The list shows this digest in its place.`] : []),
       '',
       `${included} of ${digest.changes.length} merged pull requests are in it. Routed and composed by ${digest.model.router} (router) and ${digest.model.composer} (composer), via ${digest.model.via}.`,
       '',

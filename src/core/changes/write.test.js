@@ -226,6 +226,26 @@ describe('issueFor', () => {
     expect(body.match(/^\| \[#/gm)).toHaveLength(3);
   });
 
+  it('points another public repository at its own file, and keeps its pull urls', () => {
+    const repo = 'Example/public';
+    const changes = [change(1, true, { url: `https://github.com/${repo}/pull/1` })];
+    const built = buildDigest({
+      id: '2026-10-19', period, generatedAt: '2026-10-19T09:03:00.000Z', model: MODEL,
+      changes, current, sources: { 1: [1] }, repo
+    });
+    expect(built.changes[0].url).toBe('https://github.com/Example/public/pull/1');
+    expect(built.title).toBe('What changed in Example/public, 12–19 October');
+    const { title, body } = issueFor(built, { repository: repo, supersedes: '2026-10-12' });
+    expect(title).toBe('What changed in Example/public: 12–19 October');
+    expect(body).toContain('https://github.com/Example/public/blob/changes-data/2026-10-19.json');
+    expect(body).toContain('https://github.com/Example/public/blob/changes-data/2026-10-12.json');
+    expect(body).not.toContain('rise.syberlabs.io');
+    expect(() => buildDigest({
+      id: '2026-10-19', period, generatedAt: '2026-10-19T09:03:00.000Z', model: MODEL,
+      changes, current, sources: { 1: [1] }
+    })).toThrow(/url must be https:\/\/github.com\/SyberLabs\/RISE\/pull\/1/);
+  });
+
   it('keeps a pull request title from breaking the table or mentioning anyone', () => {
     const { body } = issueFor(digest({ changes: [change(2, true, { title: 'Fix | the @owner <b>table</b>\nnext' }), change(1)] }));
     const row = body.split('\n').find(line => line.startsWith('| [#2]'));

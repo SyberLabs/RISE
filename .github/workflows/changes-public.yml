@@ -1,0 +1,179 @@
+# A public repository runs this on its own runner. The model credential stays in
+# that repository's secrets. RISE's code is the pinned commit of this file
+# (github.workflow_sha); the caller's dependencies are never installed. The
+# repository is github.repository, which the script refuses unless GitHub says
+# it is public. RISE does not fetch the branch this writes.
+#
+# jobs:
+#   changes:
+#     permissions:
+#       contents: write
+#       issues: write
+#       pull-requests: read
+#     uses: SyberLabs/RISE/.github/workflows/changes-public.yml@<40-hex sha>
+#     secrets:
+#       model_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+name: Changes for a public repository
+
+on:
+  workflow_call:
+    inputs:
+      since:
+        description: 'Start of the period (ISO date or time). Empty: the newest digest''s end, or seven days back.'
+        required: false
+        type: string
+        default: ''
+      dry_run:
+        description: 'Write the files to the runner only: push nothing, open no issue.'
+        required: false
+        type: boolean
+        default: false
+      supersede:
+        description: 'A published digest id to replace. The list then shows the new digest in its place.'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      model_token:
+        required: true
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: changes-public-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    name: Write the digest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: SyberLabs/RISE
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+          path: rise
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.3
+          cache: npm
+          cache-dependency-path: rise/package-lock.json
+
+      - name: Install locked dependencies
+        working-directory: rise
+        run: npm ci
+
+      - name: Install Chromium for the rendered check
+        working-directory: rise
+        run: npx playwright install --with-deps chromium
+
+      - name: Install the Claude Code CLI
+        run: |
+          npm install --global --no-fund --no-audit @anthropic-ai/claude-code@2.1.287
+          claude --version
+
+      - name: Route, compose and admit the digest
+        id: digest
+        working-directory: rise
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.model_token }}
+          SINCE: ${{ inputs.since }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          SUPERSEDE: ${{ inputs.supersede }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/changes"
+          args=(--out "$out" --figures kit --repo "$GITHUB_REPOSITORY")
+          if [ -n "${SINCE:-}" ]; then args+=(--since "$SINCE"); fi
+          if [ -n "${SUPERSEDE:-}" ]; then args+=(--supersede "$SUPERSEDE"); fi
+          if [ "${DRY_RUN:-false}" = 'true' ]; then args+=(--dry-run); fi
+          node scripts/changes/digest.mjs "${args[@]}"
+          written=$(jq -r '.written' "$out/run.json")
+          echo "written=$written" >> "$GITHUB_OUTPUT"
+          if [ "$written" = 'true' ]; then
+            id=$(jq -r '.id' "$out/run.json")
+            if ! [[ "$id" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}(-[a-z0-9]{1,8})?$ ]]; then
+              echo "::error::The digest id is not the contract's id."
+              exit 1
+            fi
+            echo "id=$id" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Nothing written: $(jq -r '.reason' "$out/run.json")"
+          fi
+
+      - name: Show what a dry run wrote
+        if: steps.digest.outputs.written == 'true' && inputs.dry_run
+        env:
+          ID: ${{ steps.digest.outputs.id }}
+        run: |
+          cat "$RUNNER_TEMP/changes/issue.json"
+          cat "$RUNNER_TEMP/changes/index.json"
+          cat "$RUNNER_TEMP/changes/$ID.json"
+
+      - name: Find the data branch
+        id: branch
+        if: steps.digest.outputs.written == 'true' && !inputs.dry_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${GITHUB_REPOSITORY}/branches/changes-data" >/dev/null 2>&1; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out the data branch
+        if: steps.digest.outputs.written == 'true' && !inputs.dry_run
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ steps.branch.outputs.exists == 'true' && 'changes-data' || github.event.repository.default_branch }}
+          path: changes-data
+          persist-credentials: true
+
+      - name: Commit the digest to changes-data
+        if: steps.digest.outputs.written == 'true' && !inputs.dry_run
+        env:
+          ID: ${{ steps.digest.outputs.id }}
+          EXISTS: ${{ steps.branch.outputs.exists }}
+        working-directory: changes-data
+        run: |
+          set -euo pipefail
+          if [ "$EXISTS" != 'true' ]; then
+            git checkout --orphan changes-data
+            git rm -rfq --ignore-unmatch .
+            cat > README.md <<'README'
+          # changes-data
+
+          One JSON file per digest (`<id>.json`) and `index.json`, written by the pinned
+          RISE workflow `.github/workflows/changes-public.yml`. The format is
+          `docs/plans/RISE-CHANGES.md` in SyberLabs/RISE. RISE does not fetch this
+          branch. Do not edit these files by hand.
+          README
+          fi
+          cp "$RUNNER_TEMP/changes/$ID.json" "$RUNNER_TEMP/changes/index.json" .
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md index.json "$ID.json"
+          git commit -m "Changes digest $ID"
+          git push origin HEAD:refs/heads/changes-data
+
+      - name: Open the notification issue
+        if: steps.digest.outputs.written == 'true' && !inputs.dry_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          issue="$RUNNER_TEMP/changes/issue.json"
+          gh label create changes-digest --repo "$GITHUB_REPOSITORY" --color 1d76db \
+            --description 'A Changes digest is ready' || true
+          jq -r '.body' "$issue" > "$RUNNER_TEMP/changes/issue.md"
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$(jq -r '.title' "$issue")" \
+            --body-file "$RUNNER_TEMP/changes/issue.md" --label changes-digest

@@ -167,7 +167,7 @@ export function kitTexts(kit) {
  * for more than four beats, and no picture for more than six (four when a beat under it cites none of its changes).
  * The plan is held to it before anything is drawn.
  */
-export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
+export function compositionProblems(current, pictures, { beatRefs = {}, kitOnly = false } = {}) {
   const problems = [];
   const beats = current.beats;
   const scenes = new Map((current.scenes ?? []).map(scene => [scene.id, scene]));
@@ -178,7 +178,7 @@ export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
   if (!Array.isArray(pictures)) return [...problems, '"pictures" must be a list of { beat, refs, kit } or { beat, refs, medium, brief }'];
   if (pictures.length === 0) problems.push('"pictures" needs at least one picture: one for each change or group of changes that a picture explains');
   const bespoke = pictures.filter(picture => picture !== null && typeof picture === 'object' && !Array.isArray(picture) && isBrief(picture)).length;
-  if (bespoke > MAX_BESPOKE) problems.push(`"pictures" has ${bespoke} pictures for the illustrator; at most ${MAX_BESPOKE}. Draw a measurement, a sequence, a sorting, a layout, a set of rules or a before and after as a kit figure (bars, flow, columns, stack, list, compare)`);
+  if (!kitOnly && bespoke > MAX_BESPOKE) problems.push(`"pictures" has ${bespoke} pictures for the illustrator; at most ${MAX_BESPOKE}. Draw a measurement, a sequence, a sorting, a layout, a set of rules or a before and after as a kit figure (bars, flow, columns, stack, list, compare)`);
   const starts = new Set();
   pictures.forEach((picture, index) => {
     const where = `"pictures"[${index}]`;
@@ -207,6 +207,10 @@ export function compositionProblems(current, pictures, { beatRefs = {} } = {}) {
     }
     if (isKit(picture)) {
       for (const line of figureProblems(picture.kit)) problems.push(`${where}.kit: ${line}`);
+      return;
+    }
+    if (kitOnly) {
+      problems.push(`${where} is an illustrator brief. A public digest draws kit figures only (bars, flow, columns, stack, list, compare); nothing is sent to an illustrator and no scene code is written`);
       return;
     }
     if (!['figure', 'scene'].includes(picture.medium)) problems.push(`${where}.medium is figure or scene`);
@@ -313,7 +317,7 @@ function refsProblems(sources, beatCount, included) {
  * `{ ok: false, diagnostics, rules }`, the lines a repair call is given and how many
  * each rule gave.
  */
-export function admitComposition(text, { pulls, model, period }) {
+export function admitComposition(text, { pulls, model, period, kitOnly = false }) {
   const refused = (rule, line) => ({ ok: false, diagnostics: [line], rules: { [rule]: 1 } });
   let value;
   try {
@@ -377,7 +381,7 @@ export function admitComposition(text, { pulls, model, period }) {
   };
   const found = {
     scene: sceneRefusals(current),
-    composition: compositionProblems(current, value.pictures, { beatRefs: refsGiven }).map(clean),
+    composition: compositionProblems(current, value.pictures, { beatRefs: refsGiven, kitOnly }).map(clean),
     density: Array.isArray(value.pictures) ? densityProblems(current, value.pictures, { beatRefs: refsGiven, majors: pulls.filter(pull => pull.route?.significance === 'major').map(pull => pull.number) }).map(clean) : [],
     refs: refsProblems(sources, current.beats.length, pulls.map(pull => pull.number)).map(clean),
     number: [
