@@ -17,8 +17,8 @@
  * cannot load.
  */
 
-import { spokenWith } from './math-text.js';
-import { asSaid, fallbackMath, unitWords } from './math-reading.js';
+import { mathStructure, spokenWith } from './math-text.js';
+import { MATH_DWELL, asSaid, fallbackMath, unitWords } from './math-reading.js';
 
 export { hasMath, splitMath } from './math-text.js';
 
@@ -150,7 +150,9 @@ export function typeset(tex, { display = false } = {}) {
 
 /** A passage as it is said, with where each written place falls in it (math-text.js spokenWith). */
 export function speakable(text) {
-  return spokenWith(text, (tex, display) => speechOf(tex, { display }));
+  // The owner's dwell for a spoken formula: its saying time, and a pause of 300 ms a structure after it, at most 2.5 s.
+  const pauseMs = tex => Math.min(MATH_DWELL.maxStructureMs, mathStructure(tex) * MATH_DWELL.msPerStructure);
+  return spokenWith(text, (tex, display) => speechOf(tex, { display }), { pauseMs });
 }
 
 /** For tests: forget the loaded typesetter and every formula's speech. */

@@ -89,7 +89,7 @@ Each committed passage's spoken text is computed once (`speakable`) and the same
 ### 3.7 Dwell
 
 - A shown-only beat: each formula phrase lasts at least its estimated speaking time (its plain reading at 65 ms a character) plus 300 ms per structure, that extra capped at 2.5 s (`MATH_DWELL`). The beat grows by what its formulas need; its other phrases keep their share of the hold.
-- A spoken formula: the voice is the clock, and the formula stays until its speech ends; the pause after it comes from punctuation (§3.4). A precise extra 300 ms per level needs a pause inside a passage that no voice has today (browser, ElevenLabs, provider TTS and the test voice all speak a passage straight through). That is §5's follow-up.
+- A spoken formula: the voice is the clock, and the formula stays while its speech is said, then for a silence of 300 ms per structure (at most 2.5 s) after it and its punctuation. No voice can be silent inside what it is given, so `voices/pauses.js` wraps whichever voice the runtime makes: a passage with pauses is given to the voice in parts, all at once (a voice that fetches ahead still does), the voice is held for each pause on the runtime's clock, and the passage is reported as one (its start, marks at places in the whole text with the pauses in their time, its whole duration). The reader's hold stands a pause still; a seek or cancel drops it; at twice the pace it is half as long. The speech governor shows the next phrase when the voice is heard reaching it, after the pause.
 
 ### 3.8 What the model is told
 
@@ -104,6 +104,5 @@ The Live instructions and the Composer guide keep "maths you show goes between $
 
 ## 5. Not in this change
 
-- **Voice pauses inside a passage** (the precise 300 ms per level for spoken formulas, §3.7). Its own PR, across the four voices.
 - **Composer's refusal of `|` in maths** (§3.2) stays; the guide covers it.
 - **Maths in scene labels** (canvas text) stays untypeset, as the Creative Control design says.

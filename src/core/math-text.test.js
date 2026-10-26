@@ -88,6 +88,18 @@ describe('a text as it is said', () => {
     expect(spokenWith('No maths.', speak).text).toBe('No maths.');
   });
 
+  it('says where to pause after each formula, after the punctuation that follows it, and how long', () => {
+    const pauseMs = tex => (tex.includes('frac') ? 600 : 0);
+    const one = spokenWith('With $\\frac{a}{b}$ and more.', speak, { pauseMs });
+    expect(one.pauses).toEqual([{ at: one.text.indexOf(' and'), ms: 600 }]);
+    const comma = spokenWith('Energy $\\frac{a}{b}$, never zero.', speak, { pauseMs });
+    expect(comma.pauses).toEqual([{ at: comma.text.indexOf(' never'), ms: 600 }]);
+    const end = spokenWith('Take $$\\frac{a}{b}$$', speak, { pauseMs });
+    expect(end.pauses).toEqual([{ at: end.text.length, ms: 600 }]);
+    expect(spokenWith('So $x$ holds.', speak, { pauseMs }).pauses).toEqual([]);
+    expect(spokenWith('No maths.', speak).pauses).toEqual([]);
+  });
+
   it('says where each written place is in what is said', () => {
     const written = 'Solve $\\frac{a}{b}$ and you are done.';
     const { text, at } = spokenWith(written, speak);

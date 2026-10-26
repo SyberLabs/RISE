@@ -11,7 +11,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 162;
+export const FAST_TEST_FILES = 163;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -98,6 +98,7 @@ const FAST_TESTS = [
     'src/core/math-text.test.js',
     'src/core/math-typeset.test.js',
     'src/live/runtime.math.test.js',
+    'src/live/voices/pauses.test.js',
     'src/live/protocol.test.js',
     'src/live/stream.test.js',
     'src/live/runtime.test.js',

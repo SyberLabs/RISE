@@ -36,7 +36,7 @@ function typesetter() {
   let resolve;
   const loaded = new Promise(done => { resolve = done; });
   return {
-    maths: { load: () => loaded, speakable: text => spokenWith(text, () => 'E nought equals one half h bar omega') },
+    maths: { load: () => loaded, speakable: text => spokenWith(text, () => 'E nought equals one half h bar omega', { pauseMs: () => 300 }) },
     finishLoading: () => resolve()
   };
 }
@@ -79,7 +79,9 @@ describe('maths in a streamed answer', () => {
     await tick(100);
     expect(new Set(shown())).toEqual(new Set(['beat-0', 'beat-1', 'beat-2', 'beat-3']));
     await tick(10_000);
-    expect(said.find(item => item.id === 'beat-2').text).toBe('The energy is E nought equals one half h bar omega, at rest.');
+    // Said in two parts, silent between them for the pause after the formula, and whole between them.
+    const parts = said.filter(item => item.id.startsWith('beat-2'));
+    expect(parts.map(item => item.text)).toEqual(['The energy is E nought equals one half h bar omega,', ' at rest.']);
   });
 
   it('gives the passage with its plain reading once it has waited long enough', async () => {

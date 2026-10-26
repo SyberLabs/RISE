@@ -178,24 +178,29 @@ export function joinMath(parts) {
  * formula falls where its speech begins). A formula on a line of its own, or
  * one with structure, is followed by a pause the voice takes from punctuation:
  * a full stop before a new sentence or at the end, else a comma, unless the
- * text already has one there.
+ * text already has one there. `pauses`: where the voice is silent after a
+ * formula, after its punctuation, for `pauseMs(tex, display)` (voices/pauses.js).
  */
-export function spokenWith(text, speak) {
+export function spokenWith(text, speak, { pauseMs = () => 0 } = {}) {
   const spans = mathSpans(text);
-  if (!spans.length) return { text: String(text ?? ''), at: offset => offset };
+  if (!spans.length) return { text: String(text ?? ''), at: offset => offset, pauses: [] };
   let said = '';
   let cursor = 0;
   /** Written and said offsets at each boundary, in order: [written, said] pairs. */
   const marks = [];
+  const pauses = [];
   for (const span of spans) {
     said += text.slice(cursor, span.start);
     marks.push([span.start, said.length]);
     said += speak(span.value, span.display);
     const after = text.slice(span.end);
-    if (!/^[,.;:!?]/u.test(after) && (span.display || mathStructure(span.value) > 0)) {
+    const written = /^[,.;:!?]+/u.exec(after)?.[0] ?? '';
+    if (!written && (span.display || mathStructure(span.value) > 0)) {
       said += !after.trim() || (span.display && /^\s+\p{Lu}/u.test(after)) ? '.' : ',';
     }
     marks.push([span.end, said.length]);
+    const ms = pauseMs(span.value, span.display);
+    if (ms > 0) pauses.push({ at: said.length + written.length, ms });
     cursor = span.end;
   }
   said += text.slice(cursor);
@@ -210,7 +215,7 @@ export function spokenWith(text, speak) {
     }
     return mapped;
   };
-  return { text: said, at };
+  return { text: said, at, pauses };
 }
 
 /** Whether a text has maths to typeset. */

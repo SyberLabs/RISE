@@ -38,6 +38,7 @@ import { BEAT_LIMITS, CONTROL_PATTERN, EMIT_REFUSALS, cueCommands, emitValue, ma
 import { AdapterError, OPEN_LIMITS, assertAdapter } from './adapter.js';
 import { createRealClock } from './clock.js';
 import { createSpeechGovernor } from './speech-governor.js';
+import { withPauses } from './voices/pauses.js';
 import { createBeatConductor } from './beat-conductor.js';
 import { answerBeats, arrangeRoom, closeAnswer, cutAfter, growAnswer, lowerRoom, pieceKey, placeBase, runningScene, takenUp } from './graft.js';
 import { endingOf, interjectionStep } from './interjection.js';
@@ -107,8 +108,8 @@ export function createLiveRuntime({
     function spokenOf(run, segment) {
         const kept = run.spoken.get(segment.id);
         if (kept?.written === segment.text) return kept;
-        const { text, at } = maths.speakable(segment.text);
-        const entry = { id: segment.id, text, written: segment.text, at };
+        const { text, at, pauses = [] } = maths.speakable(segment.text);
+        const entry = { id: segment.id, text, written: segment.text, at, pauses };
         run.spoken.set(segment.id, entry);
         return entry;
     }
@@ -475,7 +476,8 @@ export function createLiveRuntime({
         for (const segment of fresh) {
             if (run.unspokenIds?.has(segment.id)) continue;
             try {
-                run.voice.enqueue({ id: segment.id, text: spokenOf(run, segment).text });
+                const { text, pauses } = spokenOf(run, segment);
+                run.voice.enqueue({ id: segment.id, text, ...(pauses.length ? { pauses } : {}) });
                 run.owed.add(segment.id);
                 run.given.push(segment.id);
             } catch (caught) {
@@ -675,7 +677,8 @@ export function createLiveRuntime({
             try { await run.connection.close(); } catch { /* it was never used */ }
             return null;
         }
-        run.voice = voices ? voices.create() : null;
+        // Any voice, made able to pause inside a passage after a formula (voices/pauses.js).
+        run.voice = voices ? withPauses(voices.create(), { clock }) : null;
         run.governor = createSpeechGovernor({
             voice: run.voice ?? { playedMs: () => undefined },
             clock,
