@@ -131,7 +131,7 @@ describe('the venue is /live in the app', () => {
         expect(container.querySelector('h1').textContent).toBe('RISE Live');
         expect(question().type).toBe('text');
         expect(question().labels[0].textContent).toBe('Your question');
-        expect(radios().map(radio => radio.value)).toEqual(['mock', 'openrouter', 'anthropic', 'openai', 'gemini']);
+        expect(radios().map(radio => radio.value)).toEqual(['mock', 'openrouter', 'anthropic', 'openai', 'gemini', 'nvidia']);
         expect(radios().find(radio => radio.checked).value).toBe('mock');
         expect(radios()[0].labels[0].textContent).toContain('Demo (no key)');
         expect(container.querySelector('.live-venue__privacy').textContent).toMatch(/nothing you type leaves this browser/u);
@@ -324,6 +324,36 @@ describe('whose key', () => {
             expect(container.querySelector('.live-error').textContent).toBe(`Enter your ${name} key to use this provider.`);
         }
         expect(host.buildRuntime).not.toHaveBeenCalled();
+    });
+
+    it('asks for your own NVIDIA key the same way, says it goes to NVIDIA alone, and says before it is typed that NVIDIA may refuse this page', () => {
+        mount();
+        choose('nvidia');
+        expect($('#live-venue-key').type).toBe('password');
+        expect(container.querySelector('label[for="live-venue-key"]').textContent).toBe('Your NVIDIA key');
+        expect(container.querySelector('.live-venue__privacy').textContent)
+            .toContain('Your NVIDIA key stays in this page’s memory and goes only to NVIDIA, billed to your key.');
+        expect($('#live-venue-key').nextElementSibling.textContent).toBe('NVIDIA’s API lets a browser reach it only from NVIDIA’s own sites today, so it may refuse this page.');
+        ask('Why?');
+        expect(container.querySelector('.live-error').textContent).toBe('Enter your NVIDIA key to use this provider.');
+        expect(host.buildRuntime).not.toHaveBeenCalled();
+        // No other provider carries the note.
+        choose('openai');
+        expect($('#live-venue-key').nextElementSibling).toBeNull();
+    });
+
+    it('forgets a key NVIDIA refused, and asks for it again', async () => {
+        mount('?voice=paced');
+        choose('nvidia');
+        $('#live-venue-key').value = 'nvapi-the-readers-own';
+        host.buildRuntime = vi.fn(async () => { throw Object.assign(new Error('NVIDIA did not accept your key: Authorization failed'), { code: 'KEY_REFUSED' }); });
+        ask('Why?');
+        await vi.waitFor(() => expect(container.querySelector('.live-error').textContent).toBe('Could not start: NVIDIA did not accept your key: Authorization failed'));
+        expect($('#live-venue-key').value).toBe('');
+        expect(host.key).toBe('');
+        expect(document.documentElement.outerHTML).not.toContain('nvapi-the-readers-own');
+        ask('Why?');
+        expect(container.querySelector('.live-error').textContent).toBe('Enter your NVIDIA key to use this provider.');
     });
 
     it('takes the typed key into memory only: the field is emptied, and no storage is written or opened', async () => {

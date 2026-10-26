@@ -1,0 +1,60 @@
+{
+  "id": "LIVE-031",
+  "title": "RISE Live: NVIDIA on the reader's own key",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "blocked",
+  "delivery": "merged",
+  "owner": "Claude (feat/live-nvidia-provider)",
+  "priority": "next",
+  "dependencies": [
+    "LIVE-018"
+  ],
+  "acceptance": [
+    "The venue offers NVIDIA (your key) beside Anthropic, OpenAI and Gemini: a password field held in page memory only, the plain statement that the key goes to NVIDIA from this browser and never to RISE, an empty key refused before anything is sent, a refused key forgotten.",
+    "src/live/adapters/nvidia.js is a keyed stream (keyed-stream.js) over NVIDIA's OpenAI-compatible chat completions at integrate.api.nvidia.com: one Authorization bearer header, never in an address, a log, About or an error; a catalog model id validated before anything is sent; tokens to About; About names NVIDIA and the model.",
+    "The shared live-conformance suite passes unchanged over a fake NVIDIA stream, including cut-short.",
+    "connect-src names https://integrate.api.nvidia.com exactly, in netlify.toml and public/_headers alike; local/bridge.mjs, the Worker and the connector paths are unchanged.",
+    "A session on a real NVIDIA key, from the deployed site, reads an answer. Blocked until NVIDIA's preflight admits this site's origin."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/live/adapters/nvidia.test.js",
+      "note": "Branch feat/live-nvidia-provider. Command: npx vitest run src/live/adapters/ src/live/host/venue.test.js src/core/csp.test.js: 31 files, 662 passed, 4 skipped. nvidia.test.js 26 passed; nvidia.conformance.test.js 13 passed (the unchanged shared suite, cut-short included); registry, venue and CSP tests pass with NVIDIA listed."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "e2e/live-nvidia.spec.js",
+      "note": "Branch feat/live-nvidia-provider, local production build, headless Chromium, NVIDIA's endpoint stubbed. Command: npx playwright test e2e/live-nvidia.spec.js: 4 passed. The key only in Authorization and only to NVIDIA; a refused key said without the key and forgotten; asking again while connecting sends nothing more; a request the browser cannot send is said in words."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "docs/plans/LIVE-NVIDIA.md",
+      "note": "Agent check with curl and no key, not a human observation: an OPTIONS preflight to https://integrate.api.nvidia.com/v1/chat/completions from Origin https://rise.syberlabs.io is answered 200 with no Access-Control-Allow-Origin; from https://build.nvidia.com it is admitted. A browser on this site cannot send the request today. No real NVIDIA key was used."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/734",
+      "note": "Branch feat/live-nvidia-provider. Required CI green on 423c0cd (run 40329561940). Codex's one finding (keep NVIDIA disabled until NVIDIA admits this origin) answered Not a defect by the codex-feedback workflow, which armed auto-merge; squash-merged as aa4be2f. Its new plan page was not listed in docs/README.md, which failed the Wiki build; fixed in the follow-up. Not deployed in this record; not accepted by a human."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T13:30:00.000Z",
+      "summary": "Claimed and built on branch feat/live-nvidia-provider: adapter, venue entry, CSP, unit, conformance and stubbed browser tests; blocked on NVIDIA's CORS for a real session"
+    },
+    {
+      "date": "2026-10-26T13:45:00.000Z",
+      "summary": "PR #734 merged as aa4be2f by the codex-feedback workflow's auto-merge; blocked on NVIDIA's CORS for a real session; docs index fixed for the Wiki build"
+    }
+  ],
+  "updatedAt": "2026-10-26T13:45:00.000Z",
+  "revision": 2,
+  "summary": "A fourth keyed text stream in the Live venue: NVIDIA's OpenAI-compatible chat completions, asked from the reader's browser on the reader's own key. Built and tested against fakes; NVIDIA's preflight does not yet admit this site's origin.",
+  "blocker": "NVIDIA's API admits browser requests only from *.nvidia.com origins (checked 2026-10-26). A Worker relay would pass the reader's key through RISE, which the registry's rule and docs/USER-OWNED-AI.md refuse; changing that is the owner's decision."
+}

@@ -1,9 +1,9 @@
 /**
  * A text-stream adapter (text-stream.js) for a provider asked directly from this
  * browser with the reader's typed key: one streaming POST, read as server-sent
- * events (gemini-sse.js). Anthropic (anthropic.js) and OpenAI's chat completions
- * (openai-chat.js) are each this, with their own address, headers, body,
- * refusals and wire.
+ * events (gemini-sse.js). Anthropic (anthropic.js), OpenAI's chat completions
+ * (openai-chat.js) and NVIDIA's (nvidia.js) are each this, with their own
+ * address, headers, body, refusals and wire.
  *
  * THE KEY. It is the reader's own, given by `getKey` at the moment of the
  * request (the venue holds it in the page's memory only), and the provider's
@@ -66,6 +66,8 @@ async function readSome(response, limit, signal) {
  * @param {RegExp} provider.keyShape anything that looks like this provider's key, global
  * @param {(key: string) => object} provider.headers the request's headers, the key in one of them
  * @param {(request: object, model: string, origin: object) => object} provider.body
+ * @param {(body: object|null) => object|null} [provider.errorOf] a refusal's `{ message, code? }` from its parsed body;
+ *   by default the body's `error`, the shape OpenAI and Anthropic answer in
  * @param {(status: number, error: object|null, said: string, model: string) => [string, string]} provider.refusal
  *   a refusal before the stream, as one code the page knows and one sentence a reader can act on
  * @param {(on: {text, finish, done, fail, usage}) => (data: string) => void} provider.wire reads one event's data
@@ -146,8 +148,9 @@ export function createKeyedStreamAdapter(provider, {
                     release();
                 }
                 if (controller.signal.aborted) throw stopped();
-                let error = null;
-                try { error = object(object(JSON.parse(text))?.error); } catch { /* not the provider's error shape: the status says enough */ }
+                let body = null;
+                try { body = object(JSON.parse(text)); } catch { /* not JSON: the status says enough */ }
+                const error = object(provider.errorOf ? provider.errorOf(body) : body?.error);
                 const said = typeof error?.message === 'string' && error.message.trim() ? cleaned(error.message) : `no reason given (HTTP ${response.status})`;
                 const [code, message] = provider.refusal(response.status, error, said, model);
                 throw new AdapterError(code, clip(message, KEYED_LIMITS.message));

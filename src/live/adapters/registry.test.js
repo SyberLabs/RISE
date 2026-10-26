@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { LIVE_PROVIDERS, liveProvider } from './registry.js';
 import { assertAdapter } from '../adapter.js';
 import { createVirtualClock } from '../clock.js';
-import { createFakeAnthropicFetch, createFakeOpenAIChatFetch } from '../../test/fake-direct-fetch.js';
+import { createFakeAnthropicFetch, createFakeNvidiaFetch, createFakeOpenAIChatFetch } from '../../test/fake-direct-fetch.js';
 
 describe('the providers the venue offers', () => {
     it('lists the demo first, needing no key', () => {
@@ -29,15 +29,17 @@ describe('the providers the venue offers', () => {
     });
 
     it('lists the demo, OpenRouter, then the direct providers on a typed key, in that order', () => {
-        expect(LIVE_PROVIDERS.map(entry => entry.id)).toEqual(['mock', 'openrouter', 'anthropic', 'openai', 'gemini']);
+        expect(LIVE_PROVIDERS.map(entry => entry.id)).toEqual(['mock', 'openrouter', 'anthropic', 'openai', 'gemini', 'nvidia']);
         expect(liveProvider('anthropic')).toMatchObject({ label: 'Anthropic (your key)', credential: 'key', keyName: 'Anthropic', keyGoesTo: 'Anthropic' });
         expect(liveProvider('openai')).toMatchObject({ label: 'OpenAI (your key)', credential: 'key', keyName: 'OpenAI', keyGoesTo: 'OpenAI' });
+        expect(liveProvider('nvidia')).toMatchObject({ label: 'NVIDIA (your key)', credential: 'key', keyName: 'NVIDIA', keyGoesTo: 'NVIDIA' });
     });
 
     it('makes each direct provider a text-stream adapter that RISE speaks, naming the model and who runs it', async () => {
         for (const [id, adapterId, fake, origin] of [
             ['anthropic', 'anthropic-stream', createFakeAnthropicFetch, { kind: 'model', name: 'claude-haiku-5-5', provider: 'Anthropic' }],
-            ['openai', 'openai-chat-stream', createFakeOpenAIChatFetch, { kind: 'model', name: 'gpt-6-luna', provider: 'OpenAI' }]
+            ['openai', 'openai-chat-stream', createFakeOpenAIChatFetch, { kind: 'model', name: 'gpt-6-luna', provider: 'OpenAI' }],
+            ['nvidia', 'nvidia-stream', createFakeNvidiaFetch, { kind: 'model', name: 'nvidia/nemotron-3.5-lightning-30b-a3b', provider: 'NVIDIA' }]
         ]) {
             const clock = createVirtualClock();
             vi.stubGlobal('fetch', fake({ clock }).fetch);

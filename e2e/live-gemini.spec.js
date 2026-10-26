@@ -9,10 +9,11 @@
  * See src/live/adapters/gemini-wire.js and docs/plans/LIVE-GEMINI.md.
  */
 import { scriptToLines } from '../src/test/fake-text-transport.js';
+import { fakeGoogleApiKey } from '../src/test/fake-google-key.js';
 import { BLACK_HOLES, HORIZON_DIVE } from '../src/live/fixtures/black-holes.js';
 import { expect, test } from './fixtures.js';
 
-const KEY = 'AIzaSyD-not-a-real-key-000000000000000';
+const KEY = fakeGoogleApiKey();
 const OPEN = '/live?provider=gemini&voice=paced';
 const GOOGLE = 'https://generativelanguage.googleapis.com/**';
 const MODEL_URL = model => `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`;

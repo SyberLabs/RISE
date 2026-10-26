@@ -11,6 +11,7 @@
  * believed once the answer is over or stopped.
  */
 import { describe, expect, it, vi } from 'vitest';
+import { fakeGoogleApiKey } from '../../test/fake-google-key.js';
 import { instructionsFor, promptFor } from './openai-instructions.js';
 import { GEMINI_DEFAULT_MODEL } from './gemini-model.js';
 import { buildBody, createGeminiWire, GEMINI_LIMITS } from './gemini-wire.js';
@@ -177,7 +178,7 @@ describe('the end of the answer', () => {
 });
 
 describe('what the provider says about a failure is scrubbed before anyone sees it', () => {
-    const SECRET = 'AIzaSyD-not-a-real-key-000000000000000';
+    const SECRET = fakeGoogleApiKey();
     const scrub = text => text.split(SECRET).join('[key]');
     const errorFrame = message => JSON.stringify({ error: { code: 500, message, status: 'INTERNAL' } });
 

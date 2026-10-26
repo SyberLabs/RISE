@@ -463,6 +463,12 @@ export class LiveVenue {
             Object.assign(key, { id: 'live-venue-key', type: 'password', autocomplete: 'off', spellcheck: false, maxLength: 300 });
             key.setAttribute('autocapitalize', 'off');
             this.credential.append(label, key);
+            if (entry.note) {
+                const note = this.doc.createElement('p');
+                note.className = 'live-venue__note';
+                note.textContent = entry.note;
+                this.credential.append(note);
+            }
         } else if (entry?.credential === 'openrouter' && entry.adapter) {
             if (connectionState().kind === 'openrouter') {
                 const line = this.doc.createElement('p');

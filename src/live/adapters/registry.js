@@ -1,7 +1,7 @@
 /**
  * The providers the Live venue offers a reader (src/live/host/venue.js), in the order it lists them.
  *
- * An entry is { id, label, credential, keyName?, keyGoesTo?, adapter }:
+ * An entry is { id, label, credential, keyName?, keyGoesTo?, note?, adapter }:
  *   credential  'none'        nothing is asked of the reader (the deterministic demo)
  *               'openrouter'  the site's own OpenRouter connection (src/core/ai-connection.js); the page
  *                             shows the connect control while there is none, and never handles the key
@@ -10,8 +10,9 @@
  *                             it goes to `keyGoesTo` and nowhere else
  *   adapter     async ({ clock, getKey, onUsage }) => adapter (src/live/adapter.js), loaded only when asked; null
  *               lists the provider as coming soon. `onUsage` is told what the provider reported each request
- *               cost, where it reports it (OpenRouter its price and tokens; Anthropic and OpenAI their tokens), for the
- *               venue's About this reading
+ *               cost, where it reports it (OpenRouter its price and tokens; Anthropic, OpenAI and NVIDIA their tokens),
+ *               for the venue's About this reading
+ *   note        one sentence the reader should know before typing a key, shown under the key field
  *
  * A provider is offered here only if its key goes from the browser to that provider and nowhere else.
  * OpenAI Realtime is not: its session is opened through this site's Worker route (worker/live-realtime.mjs). The
@@ -63,6 +64,16 @@ export const LIVE_PROVIDERS = Object.freeze([
             ]);
             return createGeminiAdapter({ transport: createGeminiFetchTransport({ getKey, getModel: () => undefined }) });
         }
+    }),
+    Object.freeze({
+        id: 'nvidia',
+        label: 'NVIDIA (your key)',
+        credential: 'key',
+        keyName: 'NVIDIA',
+        keyGoesTo: 'NVIDIA',
+        // NVIDIA's preflight admits only its own sites today (nvidia.js); the reader is told before typing a key.
+        note: 'NVIDIA’s API lets a browser reach it only from NVIDIA’s own sites today, so it may refuse this page.',
+        adapter: async ({ getKey, onUsage }) => (await import('./nvidia.js')).createNvidiaAdapter({ getKey, onUsage })
     })
 ]);
 
