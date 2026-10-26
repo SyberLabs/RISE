@@ -2,7 +2,8 @@ import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA,
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_EXAMPLE, STYLE_LINES, TOOL_NAME, styleGuide } from '../src/live/guide/index.js';
 import { DISPLAY_MODES } from '../src/live/hosts/mcp-port.js';
-import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES } from '../src/core/beats.js';
+import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES } from '../src/core/beats.js';
+import { HOST_ENGINES } from '../src/live/guide/beats.js';
 import { SOUND_IDS } from '../src/audio/sound-ids.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
@@ -93,7 +94,8 @@ const shortText = max => ({ type: 'string', minLength: 1, maxLength: max });
  * A Current as JSON Schema, for a host's model. Every limit and catalog is the validator's own
  * (src/core/rise-current.js), not a copy. Where JSON Schema cannot say what the validator checks
  * (trimmed ids, unique ids, the total text, an anchor inside its text) the schema is looser, never
- * stricter: the validator judges, and this is what the model is told first.
+ * stricter: the validator judges, and this is what the model is told first. The host's advertised
+ * engines are the card-ready subset of the shared admission contract (LIVE-IMAGERY §4.4).
  */
 /** The v2 Current: beats over scenes (src/core/beats.js), beside the v1 passages. */
 export function currentJsonSchemaV2() {
@@ -145,7 +147,7 @@ export function currentJsonSchemaV2() {
             type: 'object',
             properties: {
               id,
-              engine: { type: 'string', enum: SCENE_ENGINES },
+              engine: { type: 'string', enum: HOST_ENGINES },
               params: { type: 'object', description: 'The engine\u2019s parameters, by the guide\u2019s list for that engine; each within its bounds.' }
             },
             required: ['id', 'engine'],

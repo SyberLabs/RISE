@@ -125,6 +125,36 @@ describe('reader steering of a Jev visual arc', () => {
     chamber.destroy();
   });
 
+  it('retains the outgoing field when an admitted Astronomy image cannot decode in the card', async () => {
+    const { chamber } = mount(session());
+    const director = { applyCue: vi.fn() };
+    chamber._visualFieldDirector = director;
+    // A host's image policy rejection reaches the same decode failure as an unreachable image.
+    const originalDecode = HTMLImageElement.prototype.decode;
+    const decode = vi.fn().mockRejectedValue(new DOMException('Image blocked by policy', 'EncodingError'));
+    HTMLImageElement.prototype.decode = decode;
+    vi.spyOn(visualCortex, 'resolveCollectionWorks').mockResolvedValue([{
+      name: 'Astronomy work', data: { url: 'https://cdn.esahubble.org/archives/images/screen/heic2017a.jpg' }
+    }]);
+    vi.spyOn(visualCortex, 'applyCue').mockImplementation(() => {});
+    const present = vi.spyOn(visualCortex, 'presentPreparedCue');
+    const cue = { kind: 'sourced', collections: ['sci-astronomy'] };
+    try {
+      expect(chamber._presentScheduledVisualCue(cue)).toBe(false);
+      expect(await visualCortex.prepareCue(cue)).toBe(false);
+      await Promise.resolve();
+      expect(decode).toHaveBeenCalled();
+      expect(visualCortex.isCuePrepared(cue)).toBe(false);
+      expect(present).not.toHaveBeenCalled();
+      expect(director.applyCue).not.toHaveBeenCalled();
+    } finally {
+      if (originalDecode) HTMLImageElement.prototype.decode = originalDecode;
+      else delete HTMLImageElement.prototype.decode;
+      chamber._visualFieldDirector = null;
+      chamber.destroy();
+    }
+  });
+
   it('ignores a prepared scene if the reader moved into Page before it arrived', async () => {
     const reading = session();
     const original = reading.visualProgram;

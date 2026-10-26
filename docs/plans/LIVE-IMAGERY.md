@@ -278,7 +278,7 @@ The card admits only RISE's origin (§2). Three ways to show collection images t
 | 2. **A RISE image route (recommended)** | the Worker serves `/collection-image/<work-id>`, looking the id up in the generated catalogs (a closed map, not an open proxy), fetching the institution's file and caching it at the edge | the card keeps one origin; caching is RISE's to set | Worker code, edge bandwidth, and RISE re-serving the files (allowed: CC0, public domain, and CC BY with the credit shown) |
 | 3. Bundle the files | ship the images as static assets, restored like the recitation audio | no runtime fetch | about 45 MB per collection at 200 KB a work; too large for the repository |
 
-Until the route exists, Composer's guide does not offer the collection engines (`src/live/guide/beats.js` lists
+Until the route exists, Composer's guide and advertised tool schema do not offer the collection engines (`src/live/guide/beats.js` lists
 engines from the manifests; it gains a withheld list, as it already has for parameters). If a host model writes one
 anyway, the Worker admits it (the manifests are shared), the card cannot prepare the image, and the previous visual
 holds: a test must show exactly that, so the card never shows a black or broken frame.

@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_review",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude (live-astronomy)",
   "priority": "next",
   "dependencies": [
@@ -38,6 +38,18 @@
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/746",
       "note": "Draft PR, branch live-astronomy. vite build exits 0; measure:first-load 62.9 KB of 64; ci-hygiene clean; docs:diagram regenerated and committed. Not merged, not deployed, not accepted."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/ec53f05f59f285a8fa7f193a2dbfc942fb37190e",
+      "note": "Fresh release-closure refresh: #746 is merged and the exact ec53f05 release was verified by production job in run 40412737719; full validation 40414014363 succeeded. This supersedes the branch-only evidence above. No real-model, actual-phone or human acceptance is inferred."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "worker/mcp-server.test.js",
+      "note": "Composer closure regression: advertised scene enum reuses HOST_ENGINES; shared admission still accepts Astronomy and refuses its unsupported parameters. 168 tests passed across six focused suites, including real image-preparation decode failure retaining the outgoing field. Content prerequisites built (e1e80101f3bd111d). This is local automated evidence, not a real-host or human observation."
     }
   ],
   "activity": [
@@ -48,10 +60,14 @@
     {
       "date": "2026-10-26T20:00:15.992Z",
       "summary": "Draft PR 746 opened with test and render evidence"
+    },
+    {
+      "date": "2026-10-26T23:31:44.644Z",
+      "summary": "Release closure refreshed merged/deployed evidence; Composer schema now withholds sourced engines while shared admission and failure retention stay unchanged. Human gates remain open."
     }
   ],
-  "updatedAt": "2026-10-26T20:00:15.992Z",
-  "revision": 2,
+  "updatedAt": "2026-10-26T23:31:44.644Z",
+  "revision": 3,
   "summary": "The first slice of collection imagery in Live (LIVE-037): the reviewed Astronomy collection as a native engine on /live, hung in the safe rectangle in every room with its credit, titled. Not the card, not landscapes.",
-  "blocker": null
+  "blocker": "Real-model, actual-phone and human acceptance remain unrecorded. Composer advertisement correction is on the release-closure candidate branch pending required checks and merge approval."
 }

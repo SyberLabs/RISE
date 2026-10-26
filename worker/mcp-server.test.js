@@ -14,6 +14,7 @@ import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA, RISE_CURR
 import { BLACK_HOLES_CURRENT } from '../src/test/sealed-current.js';
 import { CURRENT_EXAMPLE, CURRENT_EXAMPLE_V2, CURRENT_GUIDE, STYLE_LINES, styleGuide } from '../src/live/guide/index.js';
 import { BEAT_CUE_PATTERN, BEAT_LIMITS, SCENE_ENGINES } from '../src/core/beats.js';
+import { HOST_ENGINES } from '../src/live/guide/beats.js';
 import { FOREST_AFTER_FIRE, WEATHER_CHAOS } from '../src/live/fixtures/explanations.js';
 import worker from './index.mjs';
 import { admitSvg } from '../src/core/svg-admission.js';
@@ -633,7 +634,7 @@ describe('the shape of a Current, as the host’s model is told it', () => {
     expect(() => validateRiseCurrent(CURRENT_EXAMPLE_V2)).not.toThrow();
     expect(v2.properties.beats.maxItems).toBe(BEAT_LIMITS.beats);
     const [native, generated] = v2.properties.scenes.items.oneOf;
-    expect(native.properties.engine.enum).toBe(SCENE_ENGINES);
+    expect(native.properties.engine.enum).toBe(HOST_ENGINES);
     expect(generated).toMatchObject({ required: ['id', 'code'], additionalProperties: false });
     expect(generated.properties.code.maxLength).toBe(BEAT_LIMITS.code);
     expect(generated.properties.code.description).toMatch(/default export function.*rise.*no imports.*no network.*no timers.*frame/isu);
@@ -665,6 +666,25 @@ describe('the shape of a Current, as the host’s model is told it', () => {
       expect(() => validateRiseCurrent(current)).toThrow();
       expect(conforms(v2, current).length).toBeGreaterThan(0);
     }
+  });
+
+  it('advertises only card-ready engines while retaining shared Astronomy admission', async () => {
+    const { result: listing } = await json(await post(rpc('tools/list')));
+    const schema = listing.tools[0].inputSchema.properties.current.oneOf.find(item => item.properties.schema.const === 'rise.current.v2');
+    expect(schema.properties.scenes.items.oneOf[0].properties.engine.enum).toEqual(HOST_ENGINES);
+    expect(schema.properties.scenes.items.oneOf[0].properties.engine.enum).not.toContain('astronomy');
+    expect(SCENE_ENGINES).toContain('astronomy');
+    const current = structuredClone(CURRENT_EXAMPLE_V2);
+    current.scenes[0].engine = 'astronomy';
+    expect(() => validateRiseCurrent(current)).not.toThrow();
+    const { result: accepted } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current } })));
+    expect(accepted.isError).toBeUndefined();
+    expect(accepted.structuredContent).toEqual({ current });
+    current.scenes[0].params = { intensity: 0.5 };
+    const { result: rejected } = await json(await post(rpc('tools/call', { name: 'rise_present', arguments: { current } })));
+    expect(rejected.isError).toBe(true);
+    expect(rejected.structuredContent).toBeUndefined();
+    expect(rejected.content[0].text).toMatch(/params|parameter/u);
   });
 
   it('refuses, as the validator does, a field it does not know, a theme or a visual off the catalog, another schema, no segments, and no origin', () => {
