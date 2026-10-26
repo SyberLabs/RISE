@@ -109,23 +109,35 @@ describe('paintAtomText emphasis', () => {
 });
 
 describe('paintAtomText maths', () => {
-  const paint = () => {
+  const paint = (content = 'Then $x^2$ ends.') => {
+    const container = document.createElement('div');
     const atomDisplay = document.createElement('div');
-    Chamber.prototype.paintAtomText.call({}, atomDisplay, 'Then $x^2$ ends.', { reveal: false });
-    return atomDisplay;
+    container.append(atomDisplay);
+    const chamber = { container, _loadMath: Chamber.prototype._loadMath };
+    Chamber.prototype.paintAtomText.call(chamber, atomDisplay, content, { reveal: false });
+    return { atomDisplay, chamber };
   };
 
-  it('sets a formula as one word, in source until the typesetter loads', () => {
-    const atomDisplay = paint();
-    const maths = atomDisplay.querySelectorAll('.atom-word.atom-math');
+  it('sets a formula as one word, as its plain reading until the typesetter loads, never its source', () => {
+    const maths = paint().atomDisplay.querySelectorAll('.atom-word.atom-math');
     expect(maths).toHaveLength(1);
-    expect(maths[0].querySelector('.atom-math.is-source').textContent).toBe('x^2');
+    expect(maths[0].querySelector('.atom-math.is-fallback').textContent).toBe('x²');
+    expect(maths[0].querySelector('.is-source')).toBeNull();
   });
 
   it('typesets the formula once the typesetter has loaded', async () => {
     await loadMath();
-    const maths = paint().querySelectorAll('.atom-word.atom-math');
+    const maths = paint().atomDisplay.querySelectorAll('.atom-word.atom-math');
     expect(maths).toHaveLength(1);
     expect(maths[0].querySelector('.katex')).not.toBeNull();
+  });
+
+  it('typesets a formula already shown as its plain reading when the load it began has finished', { timeout: 30_000 }, async () => {
+    const { atomDisplay, chamber } = paint('Then $$E_n = \\hbar\\omega$$');
+    expect(atomDisplay.querySelector('.is-fallback').textContent).toBe('Eₙ = ℏω');
+    await chamber._mathLoading;
+    const word = atomDisplay.querySelector('.atom-word.atom-math');
+    expect(word.querySelector('.is-fallback')).toBeNull();
+    expect(word.querySelector('.katex-display')).not.toBeNull();
   });
 });

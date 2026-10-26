@@ -12,7 +12,7 @@ import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../../visuals/work-engine-
 import { MemoryCore } from '../../core/memory.js';
 import { AttractorField } from '../../visuals/attractor.js';
 import { resolveTypeFace, stepFontSize } from '../../core/typography.js';
-import { loadMath, renderMath, splitMath } from '../../core/math-typeset.js';
+import { loadMath, mathReady, renderMath, splitMath } from '../../core/math-typeset.js';
 import { NightStreaks } from '../../visuals/night-streaks.js';
 import { KleeField } from '../../visuals/klee-field.js';
 import { VisualFieldDirector } from '../../visuals/visual-field-director.js';
@@ -217,7 +217,7 @@ export class Chamber {
     this.container = container;
     this.session = options.session;
     // A reading that shows maths fetches its typesetter as it opens, not at its first formula (math-typeset.js).
-    if (this.session?.hasMath) void loadMath().catch(() => {});
+    if (this.session?.hasMath) this._loadMath();
     this.player = options.player;
     // A host that runs the reading itself (a live Current, whose Player is
     // started by the runtime once this view is up) wants the reading shown
@@ -3465,10 +3465,22 @@ export class Chamber {
 
     atomDisplay.innerHTML = words.map(w =>
       `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}${w.math ? ' atom-math' : ''}"` +
+      `${w.math ? ` data-tex="${escapeHtml(w.text)}"${w.display ? ' data-display=""' : ''}` : ''}` +
       `${reveal ? ' data-pending=""' : ''}>${w.math ? renderMath(w.text, { display: w.display }) : escapeHtml(w.text)}</span>`
     ).join(' ');
+    if (maths && !mathReady()) this._loadMath();
 
     return reveal ? Array.from(atomDisplay.querySelectorAll('.atom-word')) : null;
+  }
+
+  /** Fetch the typesetter once; formulas drawn as their plain reading meanwhile are typeset when it has loaded. */
+  _loadMath() {
+    this._mathLoading ??= loadMath().then(() => {
+      if (this._destroyed) return;
+      for (const word of this.container?.querySelectorAll?.('.atom-word.atom-math') ?? []) {
+        if (word.querySelector('.is-fallback')) word.innerHTML = renderMath(word.dataset.tex, { display: word.dataset.display !== undefined });
+      }
+    }).catch(() => {});
   }
 
   /**

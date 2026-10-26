@@ -170,6 +170,47 @@ export function joinMath(parts) {
   return text;
 }
 
+/**
+ * A text as it is said: each formula replaced by `speak(tex, display)`, and
+ * `at(offset)`, where a written place falls in what is said (a place inside a
+ * formula falls where its speech begins). A formula on a line of its own, or
+ * one with structure, is followed by a pause the voice takes from punctuation:
+ * a full stop before a new sentence or at the end, else a comma, unless the
+ * text already has one there.
+ */
+export function spokenWith(text, speak) {
+  const spans = mathSpans(text);
+  if (!spans.length) return { text: String(text ?? ''), at: offset => offset };
+  let said = '';
+  let cursor = 0;
+  /** Written and said offsets at each boundary, in order: [written, said] pairs. */
+  const marks = [];
+  for (const span of spans) {
+    said += text.slice(cursor, span.start);
+    marks.push([span.start, said.length]);
+    said += speak(span.value, span.display);
+    const after = text.slice(span.end);
+    if (!/^[,.;:!?]/u.test(after) && (span.display || mathStructure(span.value) > 0)) {
+      said += !after.trim() || (span.display && /^\s+\p{Lu}/u.test(after)) ? '.' : ',';
+    }
+    marks.push([span.end, said.length]);
+    cursor = span.end;
+  }
+  said += text.slice(cursor);
+  const at = offset => {
+    let mapped = offset;
+    for (let i = 0; i < marks.length; i += 2) {
+      const [start, saidStart] = marks[i];
+      const [end, saidEnd] = marks[i + 1];
+      if (offset < start) return saidStart - (start - offset);
+      if (offset < end) return saidStart;
+      mapped = saidEnd + (offset - end);
+    }
+    return mapped;
+  };
+  return { text: said, at };
+}
+
 /** Whether a text has maths to typeset. */
 export function hasMath(text) {
   return splitMath(text).some(part => part.kind === 'math');

@@ -2720,6 +2720,8 @@
     font-size: calc(clamp(18px, 5.4vw, 24px) * var(--font-size-intent, 1));
   }
 }
-/* A formula is one word of the phrase (math-typeset.js); until KaTeX loads it shows as its source. */
-.atom-word.atom-math { display: inline-block; }
-.atom-math.is-source { font-family: var(--font-mono); font-size: 0.8em; opacity: 0.85; }
+/* A formula is one word of the phrase (math-typeset.js), in the reading's ink; until KaTeX loads, its plain reading in
+   the reading face. A display formula is a phrase of its own, centred, without KaTeX's block margins. */
+.atom-word.atom-math { display: inline-block; color: inherit; }
+.atom-word.atom-math[data-display] { display: block; text-align: center; }
+.atom-word.atom-math .katex-display { margin: 0; }

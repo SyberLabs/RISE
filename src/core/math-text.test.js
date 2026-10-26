@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fallbackMath, hasMath, joinMath, mathStructure, splitMath } from './math-text.js';
+import { fallbackMath, hasMath, joinMath, mathStructure, splitMath, spokenWith } from './math-text.js';
 import { MATH_CORPUS } from './math-corpus.js';
 
 const asParts = text => splitMath(text).map(part => (part.kind === 'text' ? ['text', part.value] : part.display ? ['math', part.value, 'display'] : ['math', part.value]));
@@ -71,6 +71,31 @@ describe('a formula without KaTeX', () => {
         expect(speech).not.toMatch(/[\\{}$^_&]/u);
       }
     }
+  });
+});
+
+describe('a text as it is said', () => {
+  const speak = tex => `<${tex}>`;
+
+  it('says each formula in its place, and pauses after one with structure or on a line of its own', () => {
+    expect(spokenWith('So $x$ holds.', speak).text).toBe('So <x> holds.');
+    expect(spokenWith('With $\\frac{a}{b}$ and more.', speak).text).toBe('With <\\frac{a}{b}>, and more.');
+    expect(spokenWith('With $\\frac{a}{b}$, and more.', speak).text).toBe('With <\\frac{a}{b}>, and more.');
+    expect(spokenWith('The levels are $$E$$ and they are even.', speak).text).toBe('The levels are <E>, and they are even.');
+    expect(spokenWith('The levels are $$E$$ Then more.', speak).text).toBe('The levels are <E>. Then more.');
+    expect(spokenWith('Take $$E$$', speak).text).toBe('Take <E>.');
+    expect(spokenWith('No maths.', speak).text).toBe('No maths.');
+  });
+
+  it('says where each written place is in what is said', () => {
+    const written = 'Solve $\\frac{a}{b}$ and you are done.';
+    const { text, at } = spokenWith(written, speak);
+    expect(text).toBe('Solve <\\frac{a}{b}>, and you are done.');
+    expect(at(0)).toBe(0);
+    expect(at(written.indexOf('$'))).toBe(text.indexOf('<'));
+    expect(text.slice(at(written.indexOf('and')))).toBe('and you are done.');
+    expect(at(written.length)).toBe(text.length);
+    expect(at(written.indexOf('$') + 3)).toBe(text.indexOf('<'));
   });
 });
 
