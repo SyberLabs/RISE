@@ -3,12 +3,16 @@
  * questions while the Demo answers, and must not bring the answers' scenes and figures with it.
  */
 
-/** Questions the Demo answers with a reading of its own, each matched by beatsTextFor (black-holes-beats.js). */
+/**
+ * Questions the Demo answers with a reading of its own, each matched by beatsTextFor (black-holes-beats.js). The
+ * offered ones come first. The tesseract and water show a refused picture (water-illustrated-beats.js), so neither is
+ * offered: a first visit's reading draws what it shows.
+ */
 export const DEMO_QUESTIONS = Object.freeze([
     'How do black holes work?',
     'Why is the sky blue?',
-    'What is a tesseract?',
     'How does a neural network learn?',
+    'What is a tesseract?',
     'What are the three states of water?'
 ]);
 
