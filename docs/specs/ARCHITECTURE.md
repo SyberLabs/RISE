@@ -167,7 +167,7 @@ flowchart LR
     content["content<br/>texts, imagery, journeys<br/>306 modules"]
     core["core<br/>session, player, router<br/>190 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>77 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>78 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     scenes["scenes<br/>engine manifests, cues; scene runtime<br/>9 modules"]
     sources["sources<br/>text and visual providers<br/>14 modules"]
