@@ -52,9 +52,12 @@ const originOf = model => ({ name: isOpenRouterModel(model) ? model : 'an OpenRo
 
 /**
  * The one request that asks a question: RISE's instructions (the illustrator's own, for a picture asked for), the
- * reader's words, a cap on what can be spent.
+ * reader's words, a cap on what can be spent, and no reasoning. A model that reasons by default otherwise spends the
+ * cap thinking before its first word (Nemotron 3.5 Lightning, measured 2026-10-26: 23 to 54 s and 2,000 to 4,096
+ * tokens a reading, one ending with no words; off, about 2 s and 100 tokens). `reasoning: false` leaves the field out,
+ * for a model that must reason (`effort: 'none'`, https://openrouter.ai/docs/use-cases/reasoning-tokens).
  */
-export function buildBody(request, model) {
+export function buildBody(request, model, { reasoning = false } = {}) {
     return {
         model,
         messages: [
@@ -62,8 +65,19 @@ export function buildBody(request, model) {
             { role: 'user', content: promptFor(request) }
         ],
         stream: true,
-        max_tokens: OPENROUTER_LIMITS.maxTokens
+        max_tokens: OPENROUTER_LIMITS.maxTokens,
+        ...(reasoning ? {} : { reasoning: { effort: 'none' } })
     };
+}
+
+/** OpenRouter's own words in a refusal's body, or null. */
+function messageIn(text) {
+    try {
+        const message = object(object(JSON.parse(text))?.error)?.message;
+        return typeof message === 'string' && message.trim() ? message : null;
+    } catch {
+        return null;
+    }
 }
 
 /** Each way OpenRouter refuses before it streams, as one code the page knows and one sentence a reader can act on. */
@@ -75,7 +89,12 @@ function refusal(status, said, model) {
         429: ['RATE_LIMITED', 'OpenRouter is holding back requests from your account just now (a rate limit). Wait a moment, then ask again']
     }[status];
     if (lead) return new AdapterError(lead[0], clip(`${lead[1]}: ${said}`, OPENROUTER_LIMITS.message));
-    if (status === 404 || (status === 400 && /model/iu.test(said))) {
+    // A 404 is a model OpenRouter knows with no provider answering for it (down, or excluded by the account's privacy
+    // settings); a model it does not know is a 400 that says so.
+    if (status === 404) {
+        return new AdapterError('PROVIDER_UNAVAILABLE', clip(`OpenRouter has no provider answering for “${model}” just now. Try again later or another model: ${said}`, OPENROUTER_LIMITS.message));
+    }
+    if (status === 400 && /model/iu.test(said)) {
         return new AdapterError('MODEL_NOT_FOUND', clip(`OpenRouter has no model called “${model}” for your account: ${said}`, OPENROUTER_LIMITS.message));
     }
     if (status === 408 || status >= 500) return new AdapterError('PROVIDER_UNAVAILABLE', clip(`OpenRouter could not answer just now: ${said}`, OPENROUTER_LIMITS.message));
@@ -166,23 +185,24 @@ export function createOpenRouterAdapter({
             if (typeof referer === 'string' && /^https?:\/\/[^\s/]+$/u.test(referer)) headers['HTTP-Referer'] = referer;
 
             let response;
-            try {
-                response = await chat.request({ method: 'POST', headers, body: JSON.stringify(buildBody(request, model)), signal: controller.signal });
-            } catch (error) {
-                release();
-                if (controller.signal.aborted || error?.name === 'AbortError') throw stopped();
-                throw new AdapterError('CONNECT_FAILED', clip(`Could not reach OpenRouter: ${cleaned(error?.message ?? error)}`, OPENROUTER_LIMITS.message));
+            let refused = null;
+            // Reasoning off; a model that must reason refuses that in words naming it, and is asked once more as it is.
+            for (const reasoning of [false, true]) {
+                try {
+                    response = await chat.request({ method: 'POST', headers, body: JSON.stringify(buildBody(request, model, { reasoning })), signal: controller.signal });
+                } catch (error) {
+                    release();
+                    if (controller.signal.aborted || error?.name === 'AbortError') throw stopped();
+                    throw new AdapterError('CONNECT_FAILED', clip(`Could not reach OpenRouter: ${cleaned(error?.message ?? error)}`, OPENROUTER_LIMITS.message));
+                }
+                if (response.ok) break;
+                refused = messageIn(await readSome(response, OPENROUTER_LIMITS.error));
+                if (reasoning || response.status !== 400 || !/reasoning/iu.test(refused ?? '') || controller.signal.aborted) break;
             }
             if (!response.ok) {
-                const text = await readSome(response, OPENROUTER_LIMITS.error);
                 release();
                 if (controller.signal.aborted) throw stopped();
-                let said = `no reason given (HTTP ${response.status})`;
-                try {
-                    const message = object(object(JSON.parse(text))?.error)?.message;
-                    if (typeof message === 'string' && message.trim()) said = cleaned(message);
-                } catch { /* not OpenRouter's error shape: the status says enough */ }
-                throw refusal(response.status, said, model);
+                throw refusal(response.status, refused === null ? `no reason given (HTTP ${response.status})` : cleaned(refused), model);
             }
             if (!response.body) {
                 release();

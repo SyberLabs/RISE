@@ -70,7 +70,7 @@ describe('what it is', () => {
 });
 
 describe('what it asks', () => {
-    it('sends one POST with RISE’s instructions, the reader’s words, the default model and a cap, and attribution headers only', async () => {
+    it('sends one POST with RISE’s instructions, the reader’s words, the default model, a cap and no reasoning, and attribution headers only', async () => {
         const clock = createVirtualClock();
         const fake = createFakeOpenRouterFetch({ clock });
         const controller = new AbortController();
@@ -87,8 +87,34 @@ describe('what it asks', () => {
             model: OPENROUTER_DEFAULT_MODEL,
             messages: [{ role: 'system', content: instructionsFor({ name: OPENROUTER_DEFAULT_MODEL, provider: 'OpenRouter' }) }, { role: 'user', content: ASK.prompt }],
             stream: true,
-            max_tokens: 4096
+            max_tokens: 4096,
+            reasoning: { effort: 'none' }
         });
+    });
+
+    it('asks a model that must reason once more, as it is, and reads that answer', async () => {
+        const clock = createVirtualClock();
+        const fake = createFakeOpenRouterFetch({ clock });
+        const bodies = [];
+        const request = async init => {
+            bodies.push(JSON.parse(init.body));
+            if (bodies.length === 1) return new Response(JSON.stringify({ error: { code: 400, message: 'Reasoning is mandatory for this endpoint and cannot be disabled.' } }), { status: 400 });
+            return fake.request(init);
+        };
+        const reading = read(await createOpenRouterAdapter({ getChat: () => chat(request), getModel: () => 'openai/o9-mini' }).open(ASK));
+        await clock.runAll();
+        expect((await reading).view.phase).toBe('complete');
+        expect(bodies.map(body => body.reasoning)).toEqual([{ effort: 'none' }, undefined]);
+    });
+
+    it('asks once when a refusal is not about reasoning', async () => {
+        const bodies = [];
+        const request = async init => {
+            bodies.push(init.body);
+            return new Response(JSON.stringify({ error: { code: 400, message: 'max_tokens is too large' } }), { status: 400 });
+        };
+        await expect(createOpenRouterAdapter({ getChat: () => chat(request) }).open(ASK)).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+        expect(bodies).toHaveLength(1);
     });
 
     it('carries what was said earlier in the room inside the one user message, never as turns of its own (LIVE-026)', async () => {
@@ -176,6 +202,13 @@ describe('a refusal, in words a reader can act on', () => {
         const fake = createFakeOpenRouterFetch({ clock: createVirtualClock(), status: 400, errorBody: JSON.stringify({ error: { code: 400, message: 'nobody/nothing is not a valid model ID' } }) });
         const refused = createOpenRouterAdapter({ getChat: () => chat(fake.request), getModel: () => 'nobody/nothing' }).open(ASK);
         await expect(refused).rejects.toMatchObject({ code: 'MODEL_NOT_FOUND', message: expect.stringContaining('nobody/nothing') });
+    });
+
+    it('says a model with no provider answering just now is unavailable, not unknown (OpenRouter’s 404)', async () => {
+        const fake = createFakeOpenRouterFetch({ clock: createVirtualClock(), status: 404, errorBody: JSON.stringify({ error: { code: 404, message: 'Provider returned error' } }) });
+        const refused = createOpenRouterAdapter({ getChat: () => chat(fake.request), getModel: () => 'nvidia/nemotron-3-super-120b-a12b:free' }).open(ASK);
+        await expect(refused).rejects.toMatchObject({ code: 'PROVIDER_UNAVAILABLE', message: expect.stringMatching(/no provider answering for “nvidia\/nemotron-3-super-120b-a12b:free” just now/u) });
+        await expect(refused).rejects.toMatchObject({ message: expect.not.stringMatching(/no model called/u) });
     });
 
     it('says it could not reach OpenRouter when the network fails', async () => {

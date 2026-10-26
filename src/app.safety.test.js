@@ -139,6 +139,19 @@ describe('App safety orchestration', () => {
     expect(reloaded.settings.liveFace).toBe('sophia');
   });
 
+  it('keeps the Live venue’s OpenRouter model across a reload, empty by default, and only as text', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.settings.liveOpenRouterModel).toBe('');
+    app.handleSettingsChange('liveOpenRouterModel', 'nvidia/nemotron-3.5-lightning:free');
+    const reloaded = new App();
+    reloaded.loadSettings();
+    expect(reloaded.settings.liveOpenRouterModel).toBe('nvidia/nemotron-3.5-lightning:free');
+    localStorage.setItem('rise-settings', JSON.stringify({ liveOpenRouterModel: { model: 'x' } }));
+    reloaded.loadSettings();
+    expect(reloaded.settings.liveOpenRouterModel).toBe('');
+  });
+
   it('defaults artwork labels on, restores an explicit opt-out, and propagates it live', async () => {
     const app = new App();
     app.loadSettings();

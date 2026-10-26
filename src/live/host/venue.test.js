@@ -429,6 +429,35 @@ describe('whose key', () => {
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith('Why?'));
     });
 
+    it('asks the OpenRouter model the reader names under it, remembered as a setting; empty asks the default', async () => {
+        let made = null;
+        const providers = Object.freeze([
+            Object.freeze({ id: 'mock', label: 'Demo (no key)', credential: 'none', adapter: async () => ({}) }),
+            Object.freeze({ id: 'openrouter', label: 'OpenRouter (your key)', credential: 'openrouter', adapter: async options => { made = options; return {}; } })
+        ]);
+        const kept = [];
+        mount('?voice=paced', env(), { providers, getSettings: () => ({ liveOpenRouterModel: 'nvidia/nemotron-3.5-lightning:free' }), onSettingChange: (key, value) => kept.push([key, value]) });
+        choose('openrouter');
+        const model = $('#live-venue-model');
+        expect(model.value).toBe('nvidia/nemotron-3.5-lightning:free');
+        expect(model.placeholder).toBe('anthropic/claude-haiku-5.5');
+        expect(container.querySelector('label[for="live-venue-model"]').textContent).toBe('Model');
+        await host.venue.adapterFor({ clock: null });
+        expect(made.getModel()).toBe('nvidia/nemotron-3.5-lightning:free');
+        // Typed, it is the model of the next request at once; let go of, it is kept.
+        model.value = ' google/gemma-4-31b-it:free ';
+        model.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(made.getModel()).toBe('google/gemma-4-31b-it:free');
+        model.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(kept).toEqual([['liveOpenRouterModel', 'google/gemma-4-31b-it:free']]);
+        model.value = '';
+        model.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(made.getModel()).toBeUndefined();
+        // Another provider shows no model field.
+        choose('mock');
+        expect($('#live-venue-model')).toBeNull();
+    });
+
     it('connecting keeps /live and the question for the round trip in this tab', async () => {
         mount();
         choose('openrouter');
