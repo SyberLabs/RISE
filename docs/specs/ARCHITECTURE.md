@@ -678,12 +678,15 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.10 Vanilla DOM, no UI framework
 
 - **Chosen:** direct DOM construction and template strings, one bespoke module
-  per room, six production dependencies: `sql.js` for browser-local work;
+  per room, seven production dependencies: `sql.js` for browser-local work;
   `@ai-ecoverse/kev.js`, `onnxruntime-web` and `@huggingface/tokenizers`
   for on-device Kev, imported only by the EnterpRise worker that runs it
-  (§8.32); `katex` for maths in what a reading shows, fetched only when
-  a reading has a formula (docs/superpowers/specs/2026-10-08-creative-control-design.md
-  §10); and `acorn`, which runs only in the Cloudflare Worker, to parse a
+  (§8.32); `katex` for maths in what a reading shows, and
+  `speech-rule-engine` to say that same formula aloud from KaTeX's MathML,
+  both fetched only when a reading has a formula
+  (docs/superpowers/specs/2026-10-26-math-both-channels-design.md: speaking
+  maths well is a body of rules, ClearSpeak, that a hand-written table only
+  approximates); and `acorn`, which runs only in the Cloudflare Worker, to parse a
   scene a model wrote before it is admitted (same design, §12): a Worker
   has no `eval`, and admission must read the code without running it, so a
   real parser is the smallest correct tool and a pattern match is not. It
