@@ -88,14 +88,25 @@ describe('content security policy', () => {
         expect(headers.trim()).toBe(csp.trim());
     });
 
-    it('keeps scripts self-hosted, with no executable CDN', () => {
+    it('admits the Cloudflare Web Analytics beacon and its report endpoint, exactly, in both mirrored policies', () => {
+        // Cloudflare injects beacon.min.js on rise.syberlabs.io and it posts to cloudflareinsights.com/cdn-cgi/rum;
+        // PRIVACY.md section 7 discloses it. No other Cloudflare Insights host is admitted.
+        const headers = readFileSync(resolve(process.cwd(), 'public/_headers'), 'utf8').match(/Content-Security-Policy: ([^\r\n]+)/u)?.[1] ?? '';
+        for (const policy of [csp, headers]) {
+            const hosts = name => policy.split(';').map(item => item.trim()).find(item => item.startsWith(name)).split(/\s+/u);
+            expect(hosts('script-src').filter(host => /cloudflareinsights/u.test(host))).toEqual(['https://static.cloudflareinsights.com']);
+            expect(hosts('connect-src').filter(host => /cloudflareinsights/u.test(host))).toEqual(['https://cloudflareinsights.com']);
+        }
+    });
+
+    it('keeps scripts self-hosted, with no executable CDN beyond the Cloudflare Web Analytics beacon', () => {
         // blob: is the page's own scene module: a generated scene and RISE's face are loaded by import() of a
         // blob: URL inside the blob: scene worker, which inherits this policy (src/scenes/scene-worker.js). Without
         // it every scene on the site failed in production while the e2e preview, which applies no headers, passed.
         const script = directive('script-src');
-        expect(script).toBe("script-src 'self' blob:");
+        expect(script).toBe("script-src 'self' blob: https://static.cloudflareinsights.com");
         expect(directive('worker-src')).toBe("worker-src 'self' blob:");
-        expect(script).not.toMatch(/unsafe-eval|unsafe-inline|https?:/u);
+        expect(script).not.toMatch(/unsafe-eval|unsafe-inline|\*/u);
         expect(directive('object-src')).toBe("object-src 'none'");
         expect(directive('frame-ancestors')).toBe("frame-ancestors 'none'");
     });

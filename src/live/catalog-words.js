@@ -24,6 +24,11 @@ const ALIASES = Object.freeze([
     ['swarm', { engine: 'attractor', parameter: 'trace', value: 'swarm' }],
     ['filament', { engine: 'attractor', parameter: 'trace', value: 'filament' }],
     ['rotary', { engine: 'harmonograph', parameter: 'pendulums', value: 'rotary' }],
+    // The Reader's catalog entries the room draws under another name: Klee Lines is Genesis, night streaks run under the attractor.
+    ['klee', { engine: 'genesis' }],
+    ['klee lines', { engine: 'genesis' }],
+    ['night streaks', { engine: 'attractor', parameter: 'streaks', value: 'night' }],
+    ['streaks', { engine: 'attractor', parameter: 'streaks', value: 'night' }],
     ['calmer', { cue: 'calm' }],
     ['brighter', { cue: 'bright' }],
     ['warmer', { cue: 'warm' }],

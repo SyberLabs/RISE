@@ -522,6 +522,8 @@ export class LiveHost {
         const mountedChamber = player => this.chamberPlaying(player);
         const runtime = createLiveRuntime({
             adapter: await this.buildAdapter(clock, createMockAdapter),
+            // The venue's "pictures by": RISE's own visuals (null), another model's adapter, or the room's (undefined).
+            illustrator: this.venue ? await this.venue.illustratorFor({ clock }) : undefined,
             clock,
             // The voice's trace in DevTools, always: a reader who sees the words and the voice part can copy
             // what the clock saw (voice-trace.js), as a failed scene is reported.

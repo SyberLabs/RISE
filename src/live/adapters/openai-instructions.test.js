@@ -12,7 +12,7 @@ import { createEventWriter } from '../adapter.js';
 import { createCurrentStream } from '../stream.js';
 import {
     BEAT_EXAMPLES, EARLIER_CLOSING, EARLIER_GUIDE, EARLIER_OPENING, ILLUSTRATE_GUIDE, ILLUSTRATOR_EXAMPLES, ILLUSTRATOR_INSTRUCTIONS, INTERJECTION_GUIDE, instructionsFor, PERCEPTION_GUIDE, PERSONA,
-    promptFor, READING_CLOSING, READING_OPENING, REALTIME_INSTRUCTIONS, ROOM_GUIDE, SCENE_INPUT_GUIDE
+    promptFor, READING_CLOSING, READING_OPENING, REALTIME_INSTRUCTIONS, RISE_VISUALS_INSTRUCTIONS, ROOM_GUIDE, SCENE_INPUT_GUIDE
 } from './openai-instructions.js';
 import { FIGURE_EXAMPLE, INTERACTIVE_EXAMPLE, LIB_GUIDE, SCENE_CODE_EXAMPLE, WIDGET_GUIDE } from '../guide/beats.js';
 import { admitSceneCode } from '../../core/scene-admission.js';
@@ -63,6 +63,20 @@ describe('the instructions', () => {
             const { result } = await response.json();
             expect(result.isError, result.content?.map(item => item.text).join('\n')).not.toBe(true);
         }
+    });
+
+    it('in a room of RISE’s own visuals, teach every engine and nothing drawn: no figure, code scene, illustrator or listening scene', () => {
+        for (const engine of SCENE_ENGINES.filter(id => id !== 'still')) expect(RISE_VISUALS_INSTRUCTIONS).toContain(`${engine}:`);
+        for (const drawn of ['@scene <id> svg', '@scene <id> code', '@illustrate', 'rise.listen', BEAT_EXAMPLES[1]]) expect(RISE_VISUALS_INSTRUCTIONS).not.toContain(drawn);
+        expect(RISE_VISUALS_INSTRUCTIONS).toContain(BEAT_EXAMPLES[0]);
+        expect(RISE_VISUALS_INSTRUCTIONS).toContain('This room shows RISE’s own visuals only');
+        expect(RISE_VISUALS_INSTRUCTIONS.length).toBeLessThan(REALTIME_INSTRUCTIONS.length * 0.75);
+        const origin = { name: 'nvidia/nemotron-3.5-lightning:free', provider: 'OpenRouter' };
+        expect(instructionsFor(origin, 'answer', { pictures: 'rise' }).startsWith(RISE_VISUALS_INSTRUCTIONS)).toBe(true);
+        expect(instructionsFor(origin, 'answer').startsWith(REALTIME_INSTRUCTIONS)).toBe(true);
+        // Every adapter tells its model from the request it is given.
+        expect(buildOpenRouterBody({ intent: 'answer', prompt: 'Why?', pictures: 'rise' }, origin.name).messages[0].content.startsWith(RISE_VISUALS_INSTRUCTIONS)).toBe(true);
+        expect(buildGeminiBody({ intent: 'answer', prompt: 'Why?', pictures: 'rise' }).systemInstruction.parts[0].text.startsWith(RISE_VISUALS_INSTRUCTIONS)).toBe(true);
     });
 
     it('ask a Dive in beats too', () => {

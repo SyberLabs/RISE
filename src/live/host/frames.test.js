@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    CUT_MS, FRAME_ENTRY, FRAME_FOLD, FRAME_OF, FRAME_OPEN_MS, FRAME_SEED, FRAME_TOP, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, hungPicture, hungRect, restScale, roomLayout, visualTransform
+    CUT_MS, FRAME_ENTRY, FRAME_FOLD, FRAME_OF, FRAME_OPEN_MS, FRAME_SEED, FRAME_TOP, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, hungPicture, hungRect, restScale, roomLayout, visualOf, visualTransform
 } from './frames.js';
 
 const W = 1440;
@@ -18,8 +18,15 @@ describe('the visual chooses the frame', () => {
         expect(FRAME_OF).toEqual({
             attractor: 'shell', 'living-flame': 'shell', turrell: 'shell',
             harmonograph: 'inner', ostensoria: 'inner', apparitio: 'inner',
-            genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', sourced: 'full', figure: 'full', scene: 'full'
+            genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', 'night-streaks': 'full', sourced: 'full', figure: 'full', scene: 'full'
         });
+    });
+
+    it('gives the attractor the whole room when night streaks run under it, and still names the visual the attractor', () => {
+        const night = { kind: 'field', renderer: 'attractor', config: { streaks: true } };
+        expect(frameOf(night)).toBe('full');
+        expect(visualOf(night)).toBe('attractor');
+        expect(frameOf({ kind: 'field', renderer: 'attractor', config: { streaks: false } })).toBe('shell');
     });
 
     it('reads the frame from the cue on screen: a field by its renderer, a pattern by its engine, a scene by its kind', () => {

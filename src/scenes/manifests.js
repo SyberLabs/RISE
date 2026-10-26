@@ -4,7 +4,7 @@
  * (docs/superpowers/specs/2026-10-08-creative-control-design.md §9).
  *
  * A manifest states only what the engine honours today, read from the
- * engine's own code: the attractor's systems, palettes, forms and trace;
+ * engine's own code: the attractor's systems, palettes, forms, trace and streaks;
  * Genesis's presets; the Living Flame recipe's macros; the climate a
  * harmonograph follows and its pendulums; the palettes the plates take. Nothing here is a promise an engine
  * does not keep. A parameter is `cueable` only where the running engine
@@ -32,7 +32,9 @@ const ATTRACTOR = Object.freeze({
     form: choice(['mirror', 'kaleido', 'bilateral'], 'mirror'),
     intensity: number(0.4, 0.75, 0.65, true),
     speed: number(0.25, 4, 1),
-    trace: choice(['filament', 'swarm'], 'filament')
+    trace: choice(['filament', 'swarm'], 'filament'),
+    // The Reader's night streaks: light rushing past a vanishing point, drawn under the filament (night-streaks.js).
+    streaks: choice(['none', 'night'], 'none')
   }),
   cues: Object.freeze({ calm: Object.freeze({ intensity: 0.45 }), bright: Object.freeze({ intensity: 0.75 }) })
 });
@@ -194,7 +196,14 @@ export function sceneCue(scene, themeConfig = null) {
       }
     };
   }
-  if (manifest.kind === 'field') return { kind: 'field', renderer: manifest.id, config: { ...(themeConfig ?? {}), ...params } };
+  if (manifest.kind === 'field') {
+    const { streaks, ...rest } = params;
+    const config = { ...(themeConfig ?? {}), ...rest };
+    // The Chamber draws the attractor's night streaks for `streaks: true` only.
+    if (streaks === 'night') config.streaks = true;
+    else if (streaks === 'none') delete config.streaks;
+    return { kind: 'field', renderer: manifest.id, config };
+  }
   return { kind: 'procedural', collections: [manifest.id], config: { ...params } };
 }
 

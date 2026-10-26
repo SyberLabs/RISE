@@ -1,0 +1,52 @@
+{
+  "id": "LIVE-037",
+  "title": "RISE Live: collection imagery (astronomy and landscapes) in the room",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude (live-imagery-design)",
+  "priority": "next",
+  "dependencies": [
+    "LIVE-028",
+    "LIVE-029"
+  ],
+  "acceptance": [
+    "The owner decides the design in docs/plans/LIVE-IMAGERY.md. Decided 2026-10-26: Option A (a collection is an engine; RISE chooses the work), landscapes' rights frozen at harvest with a monthly re-verification, 'Earth and sky' its own later set, and every collection image hung in the safe rectangle in both rooms.",
+    "First slice (LIVE-039): @scene <id> astronomy is read, admitted and lowered to { kind: 'sourced', collections: ['sci-astronomy'] }; a parameter on it is refused.",
+    "In the venue a reading with that scene shows an astronomy work hung in the safe rectangle of the full frame, in the dark room and the light room, never full-bleed and never in the inner eye or the shell; the previous visual holds until the image decodes, and a failed image never leaves a black or broken frame.",
+    "The chip shows the title before the credit and licence; at 1440x900 and 390x844 its box meets neither the words' zone, the ask bar, the docked face nor the sign-in link.",
+    "About this reading lists each picture shown with title, full credit, licence and source link.",
+    "The catalog words answer 'astronomy' at once with no model call; the first-load budget and the security policy are unchanged; Composer's guide does not offer the collection until the card can show it.",
+    "Later steps, each its own task: landscapes in Live (harvest frozen at harvest, monthly re-verification); the card's RISE image route; the 'Earth and sky' set after the owner's review by eye; collection parameters designed with the other natural-language visual parameters.",
+    "Human gate: the owner watches a real model's reading that uses the collection on the deployed /live, in the dark room and the light room."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "document",
+      "ref": "docs/plans/LIVE-IMAGERY.md",
+      "note": "Design only, branch live-imagery-design. Agent measurements, not human observations: the astronomy catalog holds 216 works (ESA/Hubble 98, NASA 64, ESO 54), landscapes 216 pins (Rijksmuseum 178, Cleveland 38); sampled ESA/ESO screen images are 1280 px wide and 138-251 KB, NASA's catalog files 640 px; the MCP card admits images from RISE's origin only; Cleveland's keyless API totals 458 CC0 landscape paintings and 145 CC0 landscape photographs. Nothing built."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/743",
+      "note": "Draft PR, branch live-imagery-design: the design. The owner's answers of 2026-10-26, relayed by the coordinating agent, are recorded in its 'Owner decisions' section; questions 5 to 10 are decided by default from the design's recommendations and may be revisited. Not merged."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T18:00:00.000Z",
+      "summary": "Design written on branch live-imagery-design for the owner's decision: what exists, three options and a recommendation, the landscapes curation plan, the first slice and the owner's questions"
+    },
+    {
+      "date": "2026-10-26T19:36:45.945Z",
+      "summary": "Owner decisions of 2026-10-26 recorded in the design; first slice (LIVE-039) under way"
+    }
+  ],
+  "updatedAt": "2026-10-26T19:36:45.945Z",
+  "revision": 2,
+  "summary": "Show RISE's reviewed collections (Astronomy now, Landscapes next) in the Live room, hung in the safe rectangle with their credits. Decided by the owner 2026-10-26 (Option A, every image hung, landscapes frozen at harvest with a monthly re-check). The first slice, astronomy on /live, is being built as LIVE-039.",
+  "blocker": null
+}

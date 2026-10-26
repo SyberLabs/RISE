@@ -66,8 +66,9 @@
  */
 
 import { soundKind } from '../../audio/sound-ids.js';
-import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES, cueCommands, engineTakes, validateSceneParams } from '../../core/beats.js';
+import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES, cueCommands, engineTakes, manifestFor, validateSceneParams } from '../../core/beats.js';
 import { sceneCodeBytes } from '../../core/experience-program.js';
+import { joinMath, splitMath } from '../../core/math-text.js';
 import { RISE_CURRENT_LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_VISUALS } from '../../core/rise-current.js';
 import { EVENT_LIMITS, EXPERIENCE_DIMENSIONS, ILLUSTRATION_LIMITS, ILLUSTRATION_MEDIA, ROOM_PACE } from '../protocol.js';
 import { STREAM_LIMITS } from '../stream.js';
@@ -173,6 +174,8 @@ export function createSegmentParser(write) {
     let beatCount = 0;
     const scenes = new Map();
     let running = null;
+    // The scene declared since the last beat, which the next beat starts if it names none of its own (sceneAndCue).
+    let declared = null;
     let awaitingFence = null;
     let fence = null;
     /** The ending an `@then` line named, the last one; null if none. */
@@ -249,7 +252,7 @@ export function createSegmentParser(write) {
         if (partial) { held = partial[0]; joined = joined.slice(0, partial.index); }
         // Whitespace is one space, and belongs between words: it is sent with the words after it,
         // never on its own (the protocol refuses a blank chunk) and never at either end.
-        const body = (literal ? stripForbidden(joined) : neutralise(joined)).replace(/\s+/gu, ' ');
+        const body = (literal ? stripForbidden(joined) : neutraliseMath(joined)).replace(/\s+/gu, ' ');
         const core = body.trim();
         const started = current?.began === true;
         if (!core) {
@@ -273,8 +276,14 @@ export function createSegmentParser(write) {
 
     // ─── beats ──────────────────────────────────────────────────────────
 
-    /** Words as a beat says or shows them: neutralised, one space between, none at the ends. */
-    const words = raw => neutralise(raw).replace(/\s+/gu, ' ').trim();
+    /**
+     * Words as a beat says or shows them: neutralised, one space between, none at the ends. Maths keeps its bars as
+     * TeX names them (`\vert`, `\Vert`), not as the marker a bar is, and is written between dollars (math-text.js).
+     */
+    const neutraliseMath = raw => joinMath(splitMath(raw).map(part => (part.kind === 'math'
+        ? { ...part, value: stripForbidden(part.value).replace(/\\\|/gu, '\\Vert ').replace(/\|/gu, '\\vert ').trim() }
+        : { ...part, value: neutralise(part.value) })));
+    const words = raw => neutraliseMath(raw).replace(/\s+/gu, ' ').trim();
 
     /** One beat: its begin, its words in chunks the protocol allows, its end. Dropped whole if its words do not fit. */
     function emitBeat(body, said) {
@@ -291,8 +300,14 @@ export function createSegmentParser(write) {
         write('segment.end', { segmentId });
     }
 
-    /** The scene a beat starts and the cue it gives, kept only where the scene exists and takes the cue. */
+    /**
+     * The scene a beat starts and the cue it gives, kept only where the scene exists and takes the cue. A beat right after
+     * a scene's declaration that names no scene starts the one declared: a model that declares a scene where it means it
+     * to begin often writes no scene= (Nemotron 3.5 Lightning, 2026-10-26), and a declared scene no beat starts is never seen.
+     */
     function sceneAndCue(body, options) {
+        if (options.scene === undefined && declared !== null) options = { ...options, scene: declared };
+        declared = null;
         if (options.scene !== undefined) {
             if (scenes.has(options.scene)) {
                 body.scene = options.scene;
@@ -372,9 +387,36 @@ export function createSegmentParser(write) {
         emitBeat(body, '');
     }
 
+    /**
+     * The two shapes a model writes for a native scene that mean one thing only, read as it meant them (measured with
+     * Nemotron 3.5 Lightning, 2026-10-26): the engine fused with one of its own values, `@scene earth attractor=halvorsen`,
+     * which is the attractor whose one parameter holding that value has it; and the engine named with no id,
+     * `@scene genesis palette=purple`, which is a scene of the engine's own name, its bare values given to the one
+     * parameter that holds each. Anything else is as written.
+     */
+    function asMeant(tokens) {
+        const [first = '', second = '', ...rest] = tokens;
+        const fused = /^([a-z-]+)=(\S+)$/u.exec(second);
+        if (fused && SCENE_ENGINES.includes(fused[1])) {
+            const [, engine, value] = fused;
+            const holding = Object.entries(manifestFor(engine).parameters).filter(([, parameter]) => parameter.values?.includes(value));
+            return [first, engine, ...(holding.length === 1 ? [`${holding[0][0]}=${value}`] : []), ...rest];
+        }
+        if (SCENE_ENGINES.includes(first) && !SCENE_ENGINES.includes(second) && !['code', 'svg'].includes(second.toLowerCase())) {
+            // A bare value one of the engine's parameters alone holds (`@scene living-flame ember-cathedral`) is that parameter's.
+            const named = tokens.slice(1).map(token => {
+                if (token.includes('=')) return token;
+                const holding = Object.entries(manifestFor(first).parameters).filter(([, parameter]) => parameter.values?.includes(token));
+                return holding.length === 1 ? `${holding[0][0]}=${token}` : token;
+            });
+            return [first, first, ...named];
+        }
+        return tokens;
+    }
+
     /** `@scene <id> <engine> [param=value …]` declares a native scene now; `@scene <id> code|svg` waits for its fence. */
     function sceneLine(tokens) {
-        const [sceneId, what = '', ...params] = tokens;
+        const [sceneId, what = '', ...params] = asMeant(tokens);
         if (!SCENE_ID.test(sceneId ?? '') || scenes.has(sceneId) || scenes.size >= BEAT_LIMITS.scenes) return;
         const form = what.toLowerCase();
         if (form === 'code' || form === 'svg') {
@@ -395,6 +437,7 @@ export function createSegmentParser(write) {
             }
         }
         scenes.set(sceneId, { engine: what });
+        declared = sceneId;
         write('scene.declare', { sceneId, engine: what, ...(Object.keys(kept).length ? { params: kept } : {}) });
     }
 
@@ -405,6 +448,7 @@ export function createSegmentParser(write) {
         const source = lines.join('\n');
         if (over || !source.trim() || scenes.has(id) || scenes.size >= BEAT_LIMITS.scenes) return;
         scenes.set(id, { form });
+        declared = id;
         write('scene.declare', { sceneId: id, form });
         for (let offset = 0; offset < source.length; offset += EVENT_LIMITS.sceneChunk) {
             write('scene.text', { sceneId: id, offset, text: source.slice(offset, offset + EVENT_LIMITS.sceneChunk) });

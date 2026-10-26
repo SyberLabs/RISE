@@ -139,10 +139,10 @@ describe('the guide to beats', () => {
         expect(CURRENT_GUIDE).toContain(CURRENT_GUIDE_V2);
     });
 
-    it('teaches a host\'s model neither the swarm nor the rotary pendulums while the connector submission is under review', () => {
-        expect(HOST_WITHHELD_PARAMETERS).toEqual(['trace', 'pendulums']);
+    it('teaches a host\'s model neither the swarm, the rotary pendulums nor the night streaks while the connector submission is under review', () => {
+        expect(HOST_WITHHELD_PARAMETERS).toEqual(['trace', 'pendulums', 'streaks']);
         for (const text of [CURRENT_GUIDE, DIVE_INSTRUCTIONS, ...RISE_CURRENT_STYLES.map(id => styleGuide(id))]) {
-            expect(text).not.toMatch(/\btrace\b|pendulums|filament\|swarm|lateral\|rotary/u);
+            expect(text).not.toMatch(/\btrace\b|pendulums|filament\|swarm|lateral\|rotary|streaks|none\|night/u);
         }
         expect(CURRENT_GUIDE_V2).toContain(`${describeManifests({ withheld: HOST_WITHHELD_PARAMETERS, engines: HOST_ENGINES })}\n`);
         // Admission is unchanged: a Current that names them is still accepted.
@@ -151,8 +151,9 @@ describe('the guide to beats', () => {
             { id: 'field', engine: 'attractor', params: { trace: 'swarm' } },
             { id: 'calm', engine: 'harmonograph', params: { pendulums: 'rotary' } }
         ];
+        current.scenes[0].params.streaks = 'night';
         const admitted = validateRiseCurrent(current);
-        expect(admitted.scenes[0].params).toEqual({ trace: 'swarm' });
+        expect(admitted.scenes[0].params).toEqual({ trace: 'swarm', streaks: 'night' });
         expect(admitted.scenes[1].params).toEqual({ pendulums: 'rotary' });
     });
 

@@ -1,0 +1,52 @@
+{
+  "id": "LIVE-036",
+  "title": "RISE Live: the room's native engines at parity with the Reader's",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (Experience Engineer)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Klee: the Reader's Klee Lines (src/core/visual-registry.js, labelled Genesis; DEDICATED_MODE klee -> genesis) is the room's Genesis, so it is not a second engine; the reader's words 'klee' and 'klee lines' show Genesis at once, and 'chaotic klee' Genesis with that preset.",
+    "Night streaks: the Reader draws them only under the attractor (Chamber.js `streaks: true`; visual-catalog.js attractor.streaks), so the room takes them as the attractor's start-only parameter streaks (none|night), lowered to `streaks: true`; 'none' takes away streaks a theme would have drawn. 'night streaks', 'streaks' and 'night attractor' show them at once.",
+    "Frames: the attractor with night streaks under it takes the full frame (the streaks are drawn off the centre line, which the shell's circle clips); the visual is still named the attractor, so the catalog word's note clears as for any engine.",
+    "The host's guide (Composer, under connector review) is not taught streaks (HOST_WITHHELD_PARAMETERS); Live's instructions and admission take it, as with trace and pendulums. SCENE_ENGINES, the MCP tool's engine enum and the Composer's engine set are unchanged.",
+    "Visual Lab recipes as named presets: investigated, no code; the path and the owner's decisions are in the PR description."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/scenes/manifests.test.js",
+      "note": "Branch live-native-parity. Red first (5 failed for the missing feature, then 2 in frames.test.js), then green: npx vitest run src/scenes/manifests.test.js src/live/catalog-words.test.js src/live/guide/index.test.js src/core/rise-sdk.test.js src/live/adapters/openai-instructions.test.js src/core/visual-registry.test.js src/live/perception.test.js src/live/runtime.catalog.test.js src/live/host/frames.test.js src/core/beats.test.js worker/mcp-server.test.js: 11 files, 334 passed; src/live/host/frames.test.js 44 passed; current-events.whole, perception, runtime.catalog, stage-controls, visual-control-contract, rise-current, segment-parser, illustrator, system-design: 9 files, 327 passed (system-design after npm run content:build)."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "src/live/host/frames.js",
+      "note": "Agent render of /live?voice=paced on the branch's dev server, headless Chromium, not a human observation: the Demo reading, then typed 'show me klee' (note 'Showing Genesis.', full frame, Klee field drawing), 'night streaks' (note 'Showing the attractor (night).', full frame, streaks under the filament), 'neon halvorsen attractor night streaks'; at 1280x800 and 390x844; no page or console errors. In the shell the streaks were mostly clipped, which is why they take the full frame."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/742",
+      "note": "Draft PR from branch live-native-parity (commits b83e8b03, ceb96306). Not merged, not deployed, not accepted by a human."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T19:00:00.000Z",
+      "summary": "Created for the owner's ask that the room's native catalog reach the Reader's; built on branch live-native-parity. Not merged, not deployed, not accepted by a human."
+    },
+    {
+      "date": "2026-10-26T19:25:59.773Z",
+      "summary": "Opened draft PR #742"
+    }
+  ],
+  "updatedAt": "2026-10-26T19:25:59.773Z",
+  "revision": 2,
+  "summary": "Parity of RISE Live's native engines with the Reader's catalog: Klee Lines named as the room's Genesis, the night streaks as the attractor's streaks parameter in the full frame, and a finding on shipping Visual Lab recipes as presets.",
+  "blocker": null
+}

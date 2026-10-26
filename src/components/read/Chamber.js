@@ -12,7 +12,7 @@ import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../../visuals/work-engine-
 import { MemoryCore } from '../../core/memory.js';
 import { AttractorField } from '../../visuals/attractor.js';
 import { resolveTypeFace, stepFontSize } from '../../core/typography.js';
-import { loadMath, renderMath, splitMath } from '../../core/math-typeset.js';
+import { loadMath, mathReady, renderMath, splitMath } from '../../core/math-typeset.js';
 import { NightStreaks } from '../../visuals/night-streaks.js';
 import { KleeField } from '../../visuals/klee-field.js';
 import { VisualFieldDirector } from '../../visuals/visual-field-director.js';
@@ -205,9 +205,20 @@ function shownWords(content, emphasis) {
   const wanted = new Set((emphasis ?? []).map(word => word.toLowerCase()));
   const bare = word => word.toLowerCase().replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '');
   const words = [];
+  // `glued`: a word written against the one before it, a formula's comma or bracket, is shown without a space between.
+  let touching = false;
   for (const part of splitMath(content)) {
-    if (part.kind === 'math') words.push({ text: part.value, emphasised: false, math: true, display: part.display });
-    else for (const word of splitWords(part.value)) words.push(wanted.has(bare(word.text)) ? { ...word, emphasised: true } : word);
+    if (part.kind === 'math') {
+      words.push({ text: part.value, emphasised: false, math: true, display: part.display, glued: touching && words.length > 0 });
+      touching = true;
+      continue;
+    }
+    splitWords(part.value).forEach((word, index) => {
+      const glued = index === 0 && touching && !/^\s/u.test(part.value);
+      const shown = wanted.has(bare(word.text)) ? { ...word, emphasised: true } : word;
+      words.push(glued ? { ...shown, glued } : shown);
+    });
+    touching = !/\s$/u.test(part.value);
   }
   return words;
 }
@@ -217,7 +228,7 @@ export class Chamber {
     this.container = container;
     this.session = options.session;
     // A reading that shows maths fetches its typesetter as it opens, not at its first formula (math-typeset.js).
-    if (this.session?.hasMath) void loadMath().catch(() => {});
+    if (this.session?.hasMath) this._loadMath();
     this.player = options.player;
     // A host that runs the reading itself (a live Current, whose Player is
     // started by the runtime once this view is up) wants the reading shown
@@ -3467,12 +3478,24 @@ export class Chamber {
       return null;
     }
 
-    atomDisplay.innerHTML = words.map(w =>
-      `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}${w.math ? ' atom-math' : ''}"` +
+    atomDisplay.innerHTML = words.map((w, index) =>
+      `${index > 0 && !w.glued ? ' ' : ''}<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}${w.math ? ' atom-math' : ''}"` +
+      `${w.math ? ` data-tex="${escapeHtml(w.text)}"${w.display ? ' data-display=""' : ''}` : ''}` +
       `${reveal ? ' data-pending=""' : ''}>${w.math ? renderMath(w.text, { display: w.display }) : escapeHtml(w.text)}</span>`
-    ).join(' ');
+    ).join('');
+    if (maths && !mathReady()) this._loadMath();
 
     return reveal ? Array.from(atomDisplay.querySelectorAll('.atom-word')) : null;
+  }
+
+  /** Fetch the typesetter once; formulas drawn as their plain reading meanwhile are typeset when it has loaded. */
+  _loadMath() {
+    this._mathLoading ??= loadMath().then(() => {
+      if (this._destroyed) return;
+      for (const word of this.container?.querySelectorAll?.('.atom-word.atom-math') ?? []) {
+        if (word.querySelector('.is-fallback')) word.innerHTML = renderMath(word.dataset.tex, { display: word.dataset.display !== undefined });
+      }
+    }).catch(() => {});
   }
 
   /**

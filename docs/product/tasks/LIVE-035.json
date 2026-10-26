@@ -1,0 +1,41 @@
+{
+  "id": "LIVE-035",
+  "title": "RISE Live: a fast reading on any OpenRouter model the reader names, free ones included",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (Experience Engineer)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Under OpenRouter in the venue's 'Who answers', a Model field names the model asked (placeholder the default, anthropic/claude-haiku-5.5); typed, it is the next request's model at once; it is kept as the liveOpenRouterModel setting across a reload; empty asks the default; no other provider shows it.",
+    "OpenRouter is asked with reasoning off (reasoning.effort none). A model that must reason refuses that with a 400 naming reasoning and is asked exactly once more without the field; any other refusal is asked once.",
+    "OpenRouter's 404 (a known model with no provider answering) is said as unavailable, never as 'no model called' that name; a 400 naming the model still says it has none by that name.",
+    "A free NVIDIA model (nvidia/nemotron-3.5-lightning:free) gives a complete reading in a few seconds through RISE's own adapter and parser."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/live/adapters/openrouter.test.js",
+      "note": "Branch live-openrouter-models, PR #741, run on revision 5fa6dd13. npx vitest run src/live/host/venue.test.js src/app.safety.test.js src/live/adapters: 31 files, 686 passed, 4 skipped; one app.safety test (the recursive service-locator scan) timed out under that load and passes alone (26 of 26)."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "docs/plans/LIVE-NVIDIA.md",
+      "note": "Agent observation, not a human's: real OpenRouter requests on the owner's key from a local script, through RISE's own adapter and stream parser, $0. Before: nemotron-3.5-lightning:free took 23 to 54 s and 2,000 to 4,096 tokens a reading, one ending with no words. After (this branch): 1.4 to 1.9 s, 68 to 134 tokens, three of three complete with no refusal. nemotron-3-super-120b-a12b:free answered 404 'Provider returned error' while its only endpoint showed status -5. Lightning wrote unusable @scene lines in two of three readings (dropped by the parser): a follow-up."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T18:45:00.000Z",
+      "summary": "Created after the owner asked for free real inference (NVIDIA's own API refuses this site's origin, LIVE-031); built on branch live-openrouter-models. Not merged, not deployed, not accepted by a human."
+    }
+  ],
+  "updatedAt": "2026-10-26T18:45:00.000Z",
+  "revision": 1,
+  "summary": "Any OpenRouter model by name in the Live venue, free NVIDIA Nemotron included, asked with reasoning off so a reading takes seconds, and an honest word when a model's provider is down.",
+  "blocker": null
+}

@@ -13,7 +13,7 @@
 export const FRAME_OF = Object.freeze({
     attractor: 'shell', 'living-flame': 'shell', turrell: 'shell',
     harmonograph: 'inner', ostensoria: 'inner', apparitio: 'inner',
-    genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', sourced: 'full', figure: 'full', scene: 'full'
+    genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', 'night-streaks': 'full', sourced: 'full', figure: 'full', scene: 'full'
 });
 
 /**
@@ -131,9 +131,12 @@ export function visualOf(cue) {
     return cue.kind ?? null;
 }
 
-/** The frame a cue takes, or null for no visual (the eye). A kind the table does not name takes the whole room. */
+/**
+ * The frame a cue takes, or null for no visual (the eye). A kind the table does not name takes the whole room. Night
+ * streaks under the attractor are drawn off the centre line, so they take the room's frame, not the attractor's.
+ */
 export function frameOf(cue) {
-    const visual = visualOf(cue);
+    const visual = visualOf(cue) === 'attractor' && cue.config?.streaks === true ? 'night-streaks' : visualOf(cue);
     if (visual === null) return null;
     return Object.hasOwn(FRAME_OF, visual) ? FRAME_OF[visual] : 'full';
 }

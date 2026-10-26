@@ -368,9 +368,14 @@ function illustration(value) {
 
 export function validateOpenRequest(input) {
     const source = plain(input, 'request');
-    only(source, ['intent', 'prompt', 'parent', 'perception', 'reading', 'illustration', 'earlier'], 'request');
+    only(source, ['intent', 'prompt', 'parent', 'perception', 'reading', 'illustration', 'earlier', 'pictures'], 'request');
     if (!['answer', 'dive', 'interject', 'illustrate'].includes(source.intent)) throw new AdapterError('OPEN_REQUEST', 'Unknown intent');
     const request = { intent: source.intent, prompt: text(source.prompt, OPEN_LIMITS.prompt, 'request.prompt') };
+    if (source.pictures !== undefined) {
+        // A room that shows RISE's own visuals only (openai-instructions.js): the composer's, never the illustrator's.
+        if (source.pictures !== 'rise' || source.intent === 'illustrate') throw new AdapterError('OPEN_REQUEST', 'Unknown pictures at request.pictures');
+        request.pictures = 'rise';
+    }
     if (source.intent === 'illustrate') {
         // A picture asked for: the brief is the prompt; nothing a question carries goes with it (docs/plans/LIVE-CURRENT.md §19).
         if (source.illustration === undefined) throw new AdapterError('OPEN_REQUEST', 'An illustrator is given what to draw and the room');
