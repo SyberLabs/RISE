@@ -11,7 +11,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 159;
+export const FAST_TEST_FILES = 162;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -94,6 +94,10 @@ const FAST_TESTS = [
     'src/app/school-reading.test.js',
     'src/enterprise/**/*.test.js',
     'src/core/rise-current.test.js',
+    // Maths seen and heard from one parse: found in every form, never money, said by ClearSpeak, held until it can be.
+    'src/core/math-text.test.js',
+    'src/core/math-typeset.test.js',
+    'src/live/runtime.math.test.js',
     'src/live/protocol.test.js',
     'src/live/stream.test.js',
     'src/live/runtime.test.js',
