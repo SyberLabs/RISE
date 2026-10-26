@@ -65,7 +65,8 @@ function refusal(status, error, said, model) {
     return ['BAD_REQUEST', `OpenAI would not take the request: ${said}`];
 }
 
-function wire(on) {
+/** Reads one chat completions chunk; NVIDIA's OpenAI-compatible stream (nvidia.js) is read by it too. */
+export function wire(on) {
     return data => {
         if (data === '[DONE]') { on.done(); return; }
         let chunk;

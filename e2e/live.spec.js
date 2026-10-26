@@ -1121,7 +1121,7 @@ test.describe('the venue: the Reader site’s /live, where RISE owns the room', 
         // The same reading, the one it began with: no other was asked.
         expect(await startOf()).toEqual(started);
         expect(journal.some(entry => entry.type === 'perception.sent')).toBe(false);
-        expect(requested.slice(before).filter(url => /openrouter\.ai|googleapis\.com|api\.openai\.com/u.test(url))).toEqual([]);
+        expect(requested.slice(before).filter(url => /openrouter\.ai|googleapis\.com|api\.openai\.com|integrate\.api\.nvidia\.com/u.test(url))).toEqual([]);
         expect(errors).toEqual([]);
     });
 
