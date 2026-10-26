@@ -431,7 +431,7 @@ export class LiveVenue {
         }
         // The Demo knows a few subjects: the field says so, and a few of its questions are offered under it.
         const demo = !entry || entry.id === 'mock';
-        if (this.field) this.field.placeholder = demo ? 'Ask about black holes, the sky, and more.' : 'Ask anything.';
+        if (this.field) this.field.placeholder = demo ? 'Ask about black holes and more.' : 'Ask anything.';
         if (this.tryLine) {
             this.tryLine.hidden = !demo;
             if (demo && !this.tryLine.childElementCount) {

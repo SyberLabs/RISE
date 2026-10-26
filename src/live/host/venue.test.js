@@ -209,7 +209,7 @@ describe('ask, read, ask again', () => {
         const offered = [...container.querySelectorAll('.live-venue__try button')];
         expect(container.querySelector('.live-venue__try').hidden).toBe(false);
         expect(offered.map(button => button.textContent)).toEqual(DEMO_QUESTIONS.slice(0, DEMO_OFFERED));
-        expect(question().placeholder).toBe('Ask about black holes, the sky, and more.');
+        expect(question().placeholder).toBe('Ask about black holes and more.');
         offered[1].click();
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith(DEMO_QUESTIONS[1]));
     });
