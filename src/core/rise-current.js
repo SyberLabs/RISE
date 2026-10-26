@@ -1,7 +1,8 @@
 import { compileSession } from './session-compiler.js';
 import { RiseCurrentError, fail, hasLiteralForbidden, hasReservedMarker, id as trimmedId, keys, label, object } from './current-validation.js';
 import { BEAT_TYPES, lowerBeats, validateBeats, validateScenes } from './beats.js';
-import { hasMath, mathDwellMs } from './math-text.js';
+import { hasMath, mathSpans } from './math-text.js';
+import { mathDwellMs } from './math-reading.js';
 import { STYLES, styleOf } from './styles.js';
 import { cueCommands, sceneCue } from '../scenes/manifests.js';
 
@@ -277,7 +278,7 @@ function timeBeats(session, current) {
           ? segment.shownMs - given
           : Math.round(segment.shownMs * (atom.content.length / letters));
         given += atom.duration;
-        // A formula stays at least as long as it takes to take in (math-text.js MATH_DWELL): the beat grows by it.
+        // A formula stays at least as long as it takes to take in (math-reading.js MATH_DWELL): the beat grows by it.
         atom.duration = Math.max(atom.duration, mathDwellMs(atom.content));
         atom.beatTimed = true;
       });
@@ -429,6 +430,7 @@ export function compileRiseCurrent(input, { projection = 'stream', lowerLook = n
     provenance,
     chunkMode: 'sentence',
     projection,
+    mathSpans,
     ...presentation
   });
   return current.schema === RISE_CURRENT_SCHEMA_V2 ? timeBeats(session, current) : session;

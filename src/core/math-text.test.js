@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MATH_DWELL, fallbackMath, hasMath, joinMath, mathDwellMs, mathStructure, splitMath, spokenWith } from './math-text.js';
+import { hasMath, joinMath, mathStructure, splitMath, spokenWith } from './math-text.js';
+import { MATH_DWELL, fallbackMath, mathDwellMs } from './math-reading.js';
 import { MATH_CORPUS } from './math-corpus.js';
 
 const asParts = text => splitMath(text).map(part => (part.kind === 'text' ? ['text', part.value] : part.display ? ['math', part.value, 'display'] : ['math', part.value]));

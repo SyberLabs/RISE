@@ -7,7 +7,7 @@ import { cueForAtom } from './visual-scheduler.js';
 import {
   RISE_CURRENT_SCHEMA, RISE_CURRENT_SCHEMA_V2, compileRiseCurrent, materializeRiseCurrent, validateRiseCurrent
 } from './rise-current.js';
-import { MATH_DWELL, fallbackMath, mathDwellMs } from './math-text.js';
+import { MATH_DWELL, fallbackMath, mathDwellMs } from './math-reading.js';
 
 const V2 = Object.freeze({
   schema: 'rise.current.v2',

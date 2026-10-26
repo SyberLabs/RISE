@@ -548,6 +548,8 @@ function createAuthoredBoundary(boundary, position, seam = null) {
 }
 
 export function compileSession(input = {}) {
+    // Where the formulas of a source with maths are: given by the Current's compiler, never kept on the session.
+    const mathSpans = typeof input.mathSpans === 'function' ? input.mathSpans : null;
     const config = normalizeSessionConfig(input);
     const sources = normalizeSources(config);
     if (sources.length === 0) throw new TypeError('A session requires at least one non-empty text source');
@@ -611,7 +613,7 @@ export function compileSession(input = {}) {
                         : true),
                 verseLines: source.verseLines === true,
                 literal: source.literal === true,
-                math: source.math === true
+                mathSpans: source.math === true ? mathSpans : null
             });
             // Concat, never spread: 120k atoms as `push(...)` overflows the
             // call stack before the budget check below can refuse the session.

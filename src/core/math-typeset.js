@@ -17,7 +17,8 @@
  * cannot load.
  */
 
-import { fallbackMath, spokenWith } from './math-text.js';
+import { spokenWith } from './math-text.js';
+import { fallbackMath } from './math-reading.js';
 
 export { hasMath, splitMath } from './math-text.js';
 
