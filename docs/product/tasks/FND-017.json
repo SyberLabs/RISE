@@ -1,0 +1,47 @@
+{
+  "id": "FND-017",
+  "title": "Let Cloudflare Web Analytics run and say so in the Privacy Policy",
+  "lane": "shared",
+  "milestone": "Release validation",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "claude-analytics (live-analytics-allowed)",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "The production CSP in public/_headers and netlify.toml admits exactly https://static.cloudflareinsights.com in script-src and https://cloudflareinsights.com in connect-src, and nothing else changes; src/core/csp.test.js pins both origins in both policies.",
+    "PRIVACY.md no longer says RISE has no analytics; it states what Cloudflare Web Analytics collects and does not collect, citing Cloudflare's documentation, its retention, and the legal basis, and replaces the 'we would ask first' promise.",
+    "The published public/PRIVACY.md and public/privacy.html match the source (npm run verify:legal).",
+    "After deploy, the owner observes no CSP error for the beacon in the browser console on rise.syberlabs.io and sees page views arrive in the Cloudflare Web Analytics dashboard."
+  ],
+  "evidence": [
+    {
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/",
+      "note": "Live HTML fetched with a browser user-agent carries Cloudflare's auto-injected beacon.min.js (data-cf-beacon version 2024.11.0, spa mode); the served CSP script-src is 'self' blob:, which refuses it. rise.syberlabs.space carries no beacon.",
+      "date": "2026-10-26"
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/csp.test.js",
+      "note": "Red first: 3 failed, 13 passed across csp, enterprise/headers and cloudflare-headers tests before the policy change; after it, 8 header/CSP-related files 113 passed. Home and CSP tests 58 passed; verify:legal clean; ci-hygiene 9 checks clean; vite build exit 0.",
+      "date": "2026-10-26"
+    },
+    {
+      "kind": "document",
+      "ref": "PRIVACY.md",
+      "note": "Owner decision 2026-10-26: keep Cloudflare Web Analytics and revise the promise (option A), not an opt-in switch. Sources: developers.cloudflare.com/web-analytics/about/, data-metrics/data-origin-and-collection/, data-metrics/dimensions/, faq/, and www.cloudflare.com/web-analytics/.",
+      "date": "2026-10-26"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T20:00:00.000Z",
+      "summary": "Created and claimed on branch live-analytics-allowed: CSP admits the beacon, Privacy Policy discloses it, two now-false 'no third-party script' claims corrected. Owner observation after deploy pending."
+    }
+  ],
+  "updatedAt": "2026-10-26T20:00:00.000Z",
+  "revision": 1,
+  "summary": "Admit the auto-injected Cloudflare Web Analytics beacon in the production CSP and replace the Privacy Policy's 'no analytics' promise with an honest, sourced description.",
+  "blocker": null
+}
