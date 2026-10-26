@@ -1,0 +1,218 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-26",
+  "audience": "team",
+  "title": "What changed in RISE, 19–26 October",
+  "period": {
+    "from": "2026-10-19T16:05:26.845Z",
+    "to": "2026-10-26T15:53:18.694Z"
+  },
+  "generatedAt": "2026-10-26T15:53:18.694Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 735,
+      "title": "docs: list LIVE-NVIDIA so the Wiki builds; record #734 on LIVE-031",
+      "url": "https://github.com/SyberLabs/RISE/pull/735",
+      "mergedAt": "2026-10-26T13:53:31Z",
+      "mergeSha": "e0225e2a8c6b60b08ce74bae413c8b5983ffd0e5",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 734,
+      "title": "Live: NVIDIA as a keyed venue provider (reader's own key)",
+      "url": "https://github.com/SyberLabs/RISE/pull/734",
+      "mergedAt": "2026-10-26T13:27:32Z",
+      "mergeSha": "aa4be2f502494699c93404f89994b9483ac1ed8a",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 733,
+      "title": "Assemble Google-shaped test fakes at runtime",
+      "url": "https://github.com/SyberLabs/RISE/pull/733",
+      "mergedAt": "2026-10-26T11:32:48Z",
+      "mergeSha": "f3b97c3ecaf6be70525c91fd939380b7f42fdf56",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 730,
+      "title": "Gate public Changes runs before any read or model call",
+      "url": "https://github.com/SyberLabs/RISE/pull/730",
+      "mergedAt": "2026-10-26T00:34:14Z",
+      "mergeSha": "198104df4850c05586853bc904d418d0f103ca6d",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 731,
+      "title": "deps: clear the npm audit advisories that fail required CI",
+      "url": "https://github.com/SyberLabs/RISE/pull/731",
+      "mergedAt": "2026-10-26T00:26:56Z",
+      "mergeSha": "a8d7053f90aad77ccaeaec5572abd91c5731e95e",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "weekly-digest-oct-26",
+    "title": "This week in RISE: a public gate and NVIDIA in Live",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "scenes": [
+      {
+        "id": "opening",
+        "engine": "attractor"
+      },
+      {
+        "id": "close",
+        "engine": "living-flame"
+      },
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>What a public run does</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">What a public run does</text><rect x=\"210\" y=\"124\" width=\"380\" height=\"42\" rx=\"21\" fill=\"#E84BFF\" fill-opacity=\"0.14\" stroke=\"#E84BFF\" stroke-opacity=\"1\" stroke-width=\"2.5\"/><text x=\"400\" y=\"154\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"middle\" font-weight=\"600\">Ask if public</text><line x1=\"400\" y1=\"170\" x2=\"400\" y2=\"186\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 178 L400 186 L407 178\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"190\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"220\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" text-anchor=\"middle\">Read the index</text><line x1=\"400\" y1=\"236\" x2=\"400\" y2=\"252\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 244 L400 252 L407 244\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"256\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"286\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" text-anchor=\"middle\">Read pull requests</text><line x1=\"400\" y1=\"302\" x2=\"400\" y2=\"318\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 310 L400 318 L407 310\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"322\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"352\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" text-anchor=\"middle\">Call the model</text></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>NVIDIA in RISE Live</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">NVIDIA in RISE Live</text><circle cx=\"66\" cy=\"149\" r=\"7\" fill=\"#E84BFF\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Venue entry</text><text x=\"305.29\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">NVIDIA, your key</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Adapter</text><text x=\"305.29\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Streams chat</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Connect origin</text><text x=\"305.29\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Allowed in CSP</text></svg>"
+      }
+    ],
+    "beats": [
+      {
+        "say": "Two changes this week. A gate for public digests, and NVIDIA in RISE Live.",
+        "scene": "opening"
+      },
+      {
+        "say": "First, infrastructure. A Changes digest that another public repository runs now has its first security gate.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "A run asks GitHub whether the repository is public. If it is not, the run stops before the index, the pull requests, or a model."
+      },
+      {
+        "say": "A name that is not owner slash name never becomes a request. The error repeats nothing GitHub returned."
+      },
+      {
+        "say": "Figures kit is the public mode. An illustrator brief is refused and can be repaired. A scene that carries code is not written. The weekly RISE digest may still ask the illustrator for a brief."
+      },
+      {
+        "say": "A callable workflow lets another public repository run this. It uses the pinned RISE commit and never installs the caller's dependencies. The model credential is present only in the step that runs the digest, and publishing never forces a push."
+      },
+      {
+        "say": "A digest from another repository cannot be shown on the Changes page yet, because the app still requires pull request addresses from RISE. And the Monday job now depends on GitHub's API saying RISE is public."
+      },
+      {
+        "say": "Second, RISE Live. NVIDIA is now a fourth keyed provider, listed as NVIDIA, your key.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "It works like Anthropic and OpenAI chat. The reader's browser calls NVIDIA's chat endpoint with the key the reader typed. There is no Worker route."
+      },
+      {
+        "say": "The key travels in one authorization header. It never appears in an address, a log, the About page or an error. The key field is a password field kept in page memory only."
+      },
+      {
+        "say": "The default model is nvidia nemotron 3.5 lightning 30b a3b. Only the reply content is read, never the reasoning. A 401 or 403 means the key was refused, and the venue forgets it."
+      },
+      {
+        "say": "There is a catch. NVIDIA's API does not accept requests from the RISE site's browser yet. Its preflight answer carries no allow-origin header for the site, so the browser blocks the request."
+      },
+      {
+        "say": "RISE says so in a plain sentence under the key field, and keeps the key, since NVIDIA never refused it. A Worker relay would work, but it would send keys through RISE, which the rules forbid, so none was built. Changing that is the owner's call."
+      },
+      {
+        "say": "NVIDIA stays listed, with that warning.",
+        "scene": "close"
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      730
+    ],
+    "2": [
+      730
+    ],
+    "3": [
+      730
+    ],
+    "4": [
+      730
+    ],
+    "5": [
+      730
+    ],
+    "6": [
+      730
+    ],
+    "7": [
+      734
+    ],
+    "8": [
+      734
+    ],
+    "9": [
+      734
+    ],
+    "10": [
+      734
+    ],
+    "11": [
+      734
+    ],
+    "12": [
+      734
+    ]
+  },
+  "quality": {
+    "firstPass": true,
+    "repairs": {
+      "composition": 0,
+      "illustrator": 0
+    },
+    "checks": {},
+    "density": {
+      "pictures": 2,
+      "includedChanges": 2,
+      "speakingBeats": 12,
+      "pictured": 12,
+      "longestUnpictured": 0
+    }
+  }
+}
