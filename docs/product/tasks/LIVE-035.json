@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_review",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude (Experience Engineer)",
   "priority": "now",
   "dependencies": [],
@@ -26,16 +26,38 @@
       "kind": "observation",
       "ref": "docs/plans/LIVE-NVIDIA.md",
       "note": "Agent observation, not a human's: real OpenRouter requests on the owner's key from a local script, through RISE's own adapter and stream parser, $0. Before: nemotron-3.5-lightning:free took 23 to 54 s and 2,000 to 4,096 tokens a reading, one ending with no words. After (this branch): 1.4 to 1.9 s, 68 to 134 tokens, three of three complete with no refusal. nemotron-3-super-120b-a12b:free answered 404 'Provider returned error' while its only endpoint showed status -5. Lightning wrote unusable @scene lines in two of three readings (dropped by the parser): a follow-up."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/7590a390cb7a49c005df380637b1c2355a1efbfd",
+      "note": "Fresh release-closure reconciliation: PR #741 merged at 7590a390cb7a49c005df380637b1c2355a1efbfd, included in main ec53f05f59f285a8fa7f193a2dbfc942fb37190e. This supersedes earlier branch-only delivery notes; owner, status and acceptance criteria are preserved."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/40412737719",
+      "note": "Production job succeeded and verified the exact ec53f05 release; the separate private voice-provider job failed assets-upload-session access. The red overall workflow is not evidence of a public outage. Full validation run 40414014363 succeeded."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/release.txt",
+      "note": "Agent HTTP observation during release closure: 200 and body ec53f05f59f285a8fa7f193a2dbfc942fb37190e. This confirms the release marker, not feature acceptance, real-model output, an actual phone or a human approval."
     }
   ],
   "activity": [
     {
       "date": "2026-10-26T18:45:00.000Z",
       "summary": "Created after the owner asked for free real inference (NVIDIA's own API refuses this site's origin, LIVE-031); built on branch live-openrouter-models. Not merged, not deployed, not accepted by a human."
+    },
+    {
+      "date": "2026-10-26T23:38:06.110Z",
+      "summary": "Reconciled obsolete branch delivery against exact merged history and verified ec53f05 release; preserved owner/status/acceptance and kept model/device/human gates separate."
     }
   ],
-  "updatedAt": "2026-10-26T18:45:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-26T23:38:06.110Z",
+  "revision": 2,
   "summary": "Any OpenRouter model by name in the Live venue, free NVIDIA Nemotron included, asked with reasoning off so a reading takes seconds, and an honest word when a model's provider is down.",
   "blocker": null
 }

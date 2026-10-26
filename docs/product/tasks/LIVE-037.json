@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_progress",
-  "delivery": "branch",
+  "delivery": "merged",
   "owner": "Claude (live-imagery-design)",
   "priority": "next",
   "dependencies": [
@@ -33,6 +33,30 @@
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/743",
       "note": "Draft PR, branch live-imagery-design: the design. The owner's answers of 2026-10-26, relayed by the coordinating agent, are recorded in its 'Owner decisions' section; questions 5 to 10 are decided by default from the design's recommendations and may be revisited. Not merged."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/91267984f2475e107665834b67ba604ad951f045",
+      "note": "Fresh release-closure reconciliation: PR #743 merged at 91267984f2475e107665834b67ba604ad951f045, included in main ec53f05f59f285a8fa7f193a2dbfc942fb37190e. This supersedes earlier branch-only delivery notes; owner, status and acceptance criteria are preserved. Delivery is merged for the design record; the Astronomy first slice is deployed under LIVE-039. Landscapes, the card image route, Earth and sky, and owner acceptance remain separate unfinished scope."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/40412737719",
+      "note": "Production job succeeded and verified the exact ec53f05 release; the separate private voice-provider job failed assets-upload-session access. The red overall workflow is not evidence of a public outage. Full validation run 40414014363 succeeded."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/release.txt",
+      "note": "Agent HTTP observation during release closure: 200 and body ec53f05f59f285a8fa7f193a2dbfc942fb37190e. This confirms the release marker, not feature acceptance, real-model output, an actual phone or a human approval."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/live",
+      "note": "Execution-owner agent report from the production browser: Astronomy pictures and credits observed in dark and Porcelain rooms, theme changes, pause/resume at Passage 5 and Back to Passage 4. Windows browser viewport 463x645; not an actual phone. Demo reading and catalog choice, not real-model or human acceptance. No acceptance status is inferred."
     }
   ],
   "activity": [
@@ -43,10 +67,14 @@
     {
       "date": "2026-10-26T19:36:45.945Z",
       "summary": "Owner decisions of 2026-10-26 recorded in the design; first slice (LIVE-039) under way"
+    },
+    {
+      "date": "2026-10-26T23:38:06.358Z",
+      "summary": "Reconciled obsolete branch delivery against exact merged history and verified ec53f05 release; preserved owner/status/acceptance and kept model/device/human gates separate."
     }
   ],
-  "updatedAt": "2026-10-26T19:36:45.945Z",
-  "revision": 2,
+  "updatedAt": "2026-10-26T23:38:06.358Z",
+  "revision": 3,
   "summary": "Show RISE's reviewed collections (Astronomy now, Landscapes next) in the Live room, hung in the safe rectangle with their credits. Decided by the owner 2026-10-26 (Option A, every image hung, landscapes frozen at harvest with a monthly re-check). The first slice, astronomy on /live, is being built as LIVE-039.",
   "blocker": null
 }

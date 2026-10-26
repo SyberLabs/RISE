@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_review",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude (Experience Engineer)",
   "priority": "now",
   "dependencies": [],
@@ -33,6 +33,24 @@
       "kind": "pr",
       "ref": "https://github.com/SyberLabs/RISE/pull/742",
       "note": "Draft PR from branch live-native-parity (commits b83e8b03, ceb96306). Not merged, not deployed, not accepted by a human."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/e17bda7bb8a6af26122838a34314e9b7f3cf9ad6",
+      "note": "Fresh release-closure reconciliation: PR #742 merged at e17bda7bb8a6af26122838a34314e9b7f3cf9ad6, included in main ec53f05f59f285a8fa7f193a2dbfc942fb37190e. This supersedes earlier branch-only delivery notes; owner, status and acceptance criteria are preserved."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/40412737719",
+      "note": "Production job succeeded and verified the exact ec53f05 release; the separate private voice-provider job failed assets-upload-session access. The red overall workflow is not evidence of a public outage. Full validation run 40414014363 succeeded."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/release.txt",
+      "note": "Agent HTTP observation during release closure: 200 and body ec53f05f59f285a8fa7f193a2dbfc942fb37190e. This confirms the release marker, not feature acceptance, real-model output, an actual phone or a human approval."
     }
   ],
   "activity": [
@@ -43,10 +61,14 @@
     {
       "date": "2026-10-26T19:25:59.773Z",
       "summary": "Opened draft PR #742"
+    },
+    {
+      "date": "2026-10-26T23:38:06.266Z",
+      "summary": "Reconciled obsolete branch delivery against exact merged history and verified ec53f05 release; preserved owner/status/acceptance and kept model/device/human gates separate."
     }
   ],
-  "updatedAt": "2026-10-26T19:25:59.773Z",
-  "revision": 2,
+  "updatedAt": "2026-10-26T23:38:06.266Z",
+  "revision": 3,
   "summary": "Parity of RISE Live's native engines with the Reader's catalog: Klee Lines named as the room's Genesis, the night streaks as the attractor's streaks parameter in the full frame, and a finding on shipping Visual Lab recipes as presets.",
   "blocker": null
 }

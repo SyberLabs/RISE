@@ -4,7 +4,7 @@
   "lane": "live-sdk",
   "milestone": "RISE LIVE",
   "status": "in_review",
-  "delivery": "branch",
+  "delivery": "deployed",
   "owner": "Claude (Experience Engineer)",
   "priority": "now",
   "dependencies": [],
@@ -27,16 +27,44 @@
       "kind": "observation",
       "ref": "src/live/host/LiveHost.css",
       "note": "Agent observation, not a human's: the dev server at 1440x900 and 390x844 with the Demo's sky, black holes, tesseract and neural network readings, and reduced motion. Entry, the attractor in the shell's window, the black hole figure on cream, the generated disk scene hung as a picture (square on the phone), the Settings sheet; no console errors, no horizontal overflow at 390 px. Chromium probes: an 8% fade up stalls up to 14 levels short of its aim, which left the old trail green 8 below the ground; the new trail leaves no tinted pixel."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "commit",
+      "ref": "https://github.com/SyberLabs/RISE/commit/ec53f05f59f285a8fa7f193a2dbfc942fb37190e",
+      "note": "Fresh release-closure reconciliation: PR #740 merged at ec53f05f59f285a8fa7f193a2dbfc942fb37190e, included in main ec53f05f59f285a8fa7f193a2dbfc942fb37190e. This supersedes earlier branch-only delivery notes; owner, status and acceptance criteria are preserved."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/40412737719",
+      "note": "Production job succeeded and verified the exact ec53f05 release; the separate private voice-provider job failed assets-upload-session access. The red overall workflow is not evidence of a public outage. Full validation run 40414014363 succeeded."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/release.txt",
+      "note": "Agent HTTP observation during release closure: 200 and body ec53f05f59f285a8fa7f193a2dbfc942fb37190e. This confirms the release marker, not feature acceptance, real-model output, an actual phone or a human approval."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/live",
+      "note": "Execution-owner agent report from the production browser: Astronomy pictures and credits observed in dark and Porcelain rooms, theme changes, pause/resume at Passage 5 and Back to Passage 4. Windows browser viewport 463x645; not an actual phone. Demo reading and catalog choice, not real-model or human acceptance. No acceptance status is inferred."
     }
   ],
   "activity": [
     {
       "date": "2026-10-26T17:50:00.000Z",
       "summary": "Created after the owner chose Porcelain from the study and the lit-window treatment for visuals made of light; built on branch live-cream-room. Not merged, not deployed, not accepted by a human."
+    },
+    {
+      "date": "2026-10-26T23:38:06.021Z",
+      "summary": "Reconciled obsolete branch delivery against exact merged history and verified ec53f05 release; preserved owner/status/acceptance and kept model/device/human gates separate."
     }
   ],
-  "updatedAt": "2026-10-26T17:50:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-26T23:38:06.021Z",
+  "revision": 2,
   "summary": "An opt-in light room for RISE Live in cream and blue: Porcelain as a face, the reading and stage in the room's colours, and visuals made of light shown as lit windows on a night of their own.",
   "blocker": null
 }
