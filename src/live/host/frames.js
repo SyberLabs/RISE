@@ -143,6 +143,25 @@ export function holdsContent(cue) {
     return CONTENT.has(visualOf(cue));
 }
 
+/**
+ * Whether the cue on screen is a collection image (docs/plans/LIVE-IMAGERY.md), which the full frame hangs as a picture
+ * in its own box, the safe rectangle (hungRect), in every room: never laid over the room, and never scaled, so the
+ * credit it carries is set at its own size.
+ */
+export function hungPicture(cue) {
+    return visualOf(cue) === 'sourced';
+}
+
+/**
+ * The box a hung picture is given: the room's safe rectangle, centred in it, at most square on a tall screen and at
+ * most 3:2 on a wide one, so a photograph is matted, not set in a band across the room.
+ */
+export function hungRect({ safe }) {
+    const h = Math.min(safe.h, safe.w);
+    const w = Math.min(safe.w, 1.5 * h);
+    return { x: safe.x - w / 2, y: safe.y - h / 2, w, h };
+}
+
 /** How shut the aperture is, `elapsed` ms into a cut; null once it is open again. */
 export function cutAmount(elapsed) {
     const { close, hold, open } = CUT_MS;

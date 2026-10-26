@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENGINE_CATALOG } from '../core/visual-registry.js';
 import { FLAME_PRESET_IDS } from '../visuals/living-flame/flame-presets.js';
-import { cueCommands, describeManifests, fitParameter, manifestFor, SCENE_ENGINES, SCENE_MANIFESTS, sceneCue, validateSceneParams } from './manifests.js';
+import { collectionEngine, cueCommands, describeManifests, fitParameter, manifestFor, SCENE_ENGINES, SCENE_MANIFESTS, sceneCue, validateSceneParams } from './manifests.js';
 
 const refuses = (engine, params, code) => {
   let caught = null;
@@ -103,6 +103,19 @@ describe('what a scene lowers to on the score', () => {
     expect(sceneCue({ engine: 'still' })).toEqual({ kind: 'still' });
   });
 
+  it('is a sourced cue naming the reviewed collection, for a collection; which work shows is RISE’s choice', () => {
+    expect(sceneCue({ engine: 'astronomy' })).toEqual({ kind: 'sourced', collections: ['sci-astronomy'] });
+    expect(manifestFor('astronomy')).toMatchObject({ kind: 'sourced', parameters: {}, cues: {} });
+    expect(() => validateSceneParams('astronomy', { subject: 'nebula' }, '$.params')).toThrow(/astronomy takes no parameters/u);
+  });
+
+  it('is read back to the collection’s name from the cue on screen; any other cue has none', () => {
+    expect(collectionEngine(sceneCue({ engine: 'astronomy' }))).toBe('astronomy');
+    expect(collectionEngine({ kind: 'sourced', collections: ['aic-landscapes'] })).toBeNull();
+    expect(collectionEngine(sceneCue({ engine: 'turrell' }))).toBeNull();
+    expect(collectionEngine(null)).toBeNull();
+  });
+
   it('is a scene cue carrying the code, for a generated scene', () => {
     const code = 'export default () => ({ frame() {} })';
     expect(sceneCue({ id: 'vector', code })).toEqual({ kind: 'scene', sceneId: 'vector', code });
@@ -127,5 +140,14 @@ describe('the guide’s account', () => {
     expect(text).toContain('speed (0.25..4); cues calm, bright');
     expect(text).toContain('harmonograph: climate (auto|emberDawn|solarFlare|midnightWater|stormViolet|jadeVeil|whiteHeat)\n');
     expect(text.split('\n')).toHaveLength(describeManifests().split('\n').length);
+  });
+
+  it('says what a collection is, since its name alone does not: RISE chooses the work, so the words do not name it', () => {
+    expect(describeManifests()).toContain('astronomy: no parameters; a photograph of the sky RISE chooses from its reviewed Astronomy collection and hangs with its credit: say what such skies show, never which object this one is');
+  });
+
+  it('describes only the engines it is given, when given them', () => {
+    const text = describeManifests({ engines: ['attractor', 'turrell'] });
+    expect(text.split('\n').map(line => line.split(':')[0])).toEqual(['attractor', 'turrell']);
   });
 });

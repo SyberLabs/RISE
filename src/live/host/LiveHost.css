@@ -1395,6 +1395,22 @@ html[data-live-frame="full"][data-live-fit] #chamber-field > .chamber-scene {
 /* An engine's name, set at the gallery's corner, has no corner in a circle. A credit a museum image requires is shown,
    in the full frame, where such an image always is. */
 html:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field .continuous-field-label { visibility: hidden; }
+/* A collection image (docs/plans/LIVE-IMAGERY.md) is hung, in every room: the gallery itself is placed in the box the
+   venue sets from the one geometry (frames.js hungRect, the safe rectangle), unscaled, so its credit is laid out and
+   set at its own size inside the picture's box, clear of the words, the bar, the docked face and the corner's link.
+   It is matted in black, not in the Reader's blurred wash, which in a box this small reads as a stain at its sides.
+   Its title goes before a credit, which names only the work's makers. */
+html[data-live-hang] #chamber-field > .chamber-continuous-field {
+  inset: auto;
+  left: var(--live-hx);
+  top: var(--live-hy);
+  width: var(--live-hw);
+  height: var(--live-hh);
+  border-radius: 20px;
+  background: #000;
+}
+html[data-live-hang] #chamber-field .continuous-field-backdrop { display: none; }
+html[data-live-hang] #chamber-field .continuous-field-label[data-title]::before { content: attr(data-title) " · "; }
 /* The words sit at the foot of the room, above the ask bar, in every frame: below the circle, never over the
    visual; in the full frame over the scrim the face draws behind them. Two lines of them fit where the venue says. */
 html[data-live-frame] #chamber-field {

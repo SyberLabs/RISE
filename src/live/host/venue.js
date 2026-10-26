@@ -27,7 +27,8 @@ import { connectionState, subscribeConnection, takeConnectionNotice } from '../.
 import { claimOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenue, interjectionPerception, perceptionFor, usageLine, venueStep } from './venue-entry.js';
 import { FACE_SKINS, faceDark, facePalette, faceStill } from './face-still.js';
-import { createFrameDirector, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualOf, visualTransform } from './frames.js';
+import { createFrameDirector, frameGeometry, frameOf, holdsContent, hungPicture, hungRect, restScale, roomLayout, visualOf, visualTransform } from './frames.js';
+import { collectionEngine } from '../../core/beats.js';
 import { catalogNote, recogniseVisual } from '../catalog-words.js';
 import { DEMO_OFFERED, DEMO_QUESTIONS } from '../fixtures/demo-questions.js';
 
@@ -1051,6 +1052,23 @@ export class LiveVenue {
         const field = this.doc.querySelector('#chamber-field');
         for (const name of ['--live-vx', '--live-vy', '--live-vk']) field?.style.removeProperty(name);
         for (const layer of field?.children ?? []) delete layer.dataset.liveScale;
+        this.hang(null);
+    }
+
+    /**
+     * A collection image hung in its own box, the safe rectangle (frames.js hungRect), in every room and whether or not
+     * the face draws (LiveHost.css, "A collection image"); anything else, or `layout` null, takes it down.
+     */
+    hang(layout) {
+        const root = this.doc.documentElement;
+        const field = this.doc.querySelector('#chamber-field');
+        const box = layout && hungPicture(this.framing?.cue) ? hungRect(layout) : null;
+        if (box) root.dataset.liveHang = 'true';
+        else delete root.dataset.liveHang;
+        for (const [name, value] of [['--live-hx', box?.x], ['--live-hy', box?.y], ['--live-hw', box?.w], ['--live-hh', box?.h]]) {
+            if (box) field?.style.setProperty(name, `${value}px`);
+            else field?.style.removeProperty(name);
+        }
     }
 
     /**
@@ -1118,7 +1136,7 @@ export class LiveVenue {
         const { frame, a, cut, lid, close, carry } = framing.director.at(framing.clock);
         // A catalog word's note: kept until the visual it named is on screen and the room is at rest on it, then a beat.
         const wait = this.chosenWait;
-        if (wait?.until === null && visualOf(framing.cue) === wait.engine && framing.director.settled(framing.clock)) wait.until = framing.clock + CHOSEN_BEAT_MS;
+        if (wait?.until === null && (collectionEngine(framing.cue) ?? visualOf(framing.cue)) === wait.engine && framing.director.settled(framing.clock)) wait.until = framing.clock + CHOSEN_BEAT_MS;
         else if (wait && wait.until !== null && framing.clock >= wait.until) this.letChosenGo();
         const measured = this.measureRoom();
         const layout = { ...measured, dock: this.followDock(framing, measured.dock, step) };
@@ -1128,6 +1146,7 @@ export class LiveVenue {
             framing.geometry = null;
             this.gateSwaps(framing, null);
             this.unframe();
+            this.hang(layout);
             if (frameOf(framing.cue)) this.face.dataset.faceAside = 'true';
             else this.doc.documentElement.dataset.liveFrame = 'none';
             return;
@@ -1142,6 +1161,7 @@ export class LiveVenue {
         field?.style.setProperty('--live-vx', `${move.x}px`);
         field?.style.setProperty('--live-vy', `${move.y}px`);
         field?.style.setProperty('--live-vk', String(move.k));
+        this.hang(layout);
         framing.scale ??= String(Math.round(restScale(frameOf(framing.cue), layout) * 1e4) / 1e4);
         if (field) this.declareScales(field, framing.scale);
         delete this.face.dataset.faceAside;

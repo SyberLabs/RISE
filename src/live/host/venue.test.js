@@ -1059,7 +1059,34 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
     afterEach(() => {
         delete root().dataset.liveFrame;
         delete root().dataset.liveFit;
+        delete root().dataset.liveHang;
         root().removeAttribute('style');
+    });
+
+    it('hangs a collection image in the safe rectangle, at its own size and never full-bleed, and takes it down after', async () => {
+        const { crank, chamber, field } = await room({ kind: 'sourced', collections: ['sci-astronomy'] });
+        crank(2000);
+        const px = name => Number.parseFloat(field.style.getPropertyValue(name));
+        expect(engine().places.at(-1)).toMatchObject({ frame: 'full', fit: null });
+        expect(root().dataset.liveHang).toBe('true');
+        expect(field.style.getPropertyValue('--live-vk')).toBe('1');
+        expect(px('--live-hw')).toBeLessThanOrEqual(window.innerWidth - 32);
+        expect(px('--live-hw')).toBeLessThanOrEqual(1.5 * px('--live-hh') + 1e-9);
+        expect(px('--live-hx')).toBeCloseTo((window.innerWidth - px('--live-hw')) / 2, 9);
+        // 12 px below the corner's sign-in link, whose foot is 54 px down.
+        expect(px('--live-hy')).toBeGreaterThan(66 - 1e-9);
+        expect(px('--live-hh')).toBeGreaterThan(0);
+        expect(px('--live-hh')).toBeLessThanOrEqual(px('--live-hw'));
+        chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+        crank(2000);
+        expect(root().dataset.liveHang).toBeUndefined();
+        expect(field.style.getPropertyValue('--live-hw')).toBe('');
+        chamber.cue = { kind: 'sourced', collections: ['sci-astronomy'] };
+        crank(2000);
+        expect(root().dataset.liveHang).toBe('true');
+        await host.venue.leave();
+        expect(root().dataset.liveHang).toBeUndefined();
+        expect(field.style.getPropertyValue('--live-hw')).toBe('');
     });
 
     it('frames the visual on screen as it chooses: the root marked, the layers scaled by the one geometry the face is sent', async () => {
@@ -1284,6 +1311,18 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         crank(1400);
         expect(note()).toBe('Showing Genesis.');
         crank(200);
+        expect(note()).toBe('');
+    });
+
+    it('lets a collection’s note go once its picture is hung and the room is at rest on it', async () => {
+        const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        crank(1700);
+        const note = () => $('.live-again__note').textContent;
+        askAgain('show me astronomy');
+        expect(note()).toBe('Showing the Astronomy collection.');
+        chamber.cue = { kind: 'sourced', collections: ['sci-astronomy'] };
+        crank(6000);
+        expect(engine().places.at(-1)?.wipe?.hole).toBe(1);
         expect(note()).toBe('');
     });
 

@@ -210,6 +210,16 @@ export class LiveHost {
         // field report says whether a drag reached the card or the app took it (band.cancel).
         this.onBandNote = event => this.trace('[RISE band]', voiceLine({ at: performance.now(), ...event.detail }));
         container.ownerDocument.defaultView?.addEventListener('rise-band-note', this.onBandNote);
+        // The collection pictures a reading showed (continuous-field.js), each once, for About this reading: the full
+        // record a credit's chip is allowed to shorten against (docs/plans/LIVE-IMAGERY.md §4.2).
+        this.pictures = { runtime: null, labels: [] };
+        this.onWorkShown = event => {
+            const label = event.detail?.label;
+            if (!label) return;
+            if (this.pictures.runtime !== this.runtime) this.pictures = { runtime: this.runtime, labels: [] };
+            if (!this.pictures.labels.includes(label)) this.pictures.labels.push(label);
+        };
+        container.ownerDocument.defaultView?.addEventListener('rise:work-shown', this.onWorkShown);
         // A scene that listens (Chamber.js `_mountSceneCue`; docs/plans/LIVE-CURRENT.md §20): the stage takes its keys
         // first, and what the reader set is journaled for perception and said in the stage's hidden live region.
         this.onSceneListen = () => this.controls?.hearScene?.();
@@ -651,6 +661,11 @@ export class LiveHost {
         } else lines.push('audio: none');
         const keeper = this.audioKeeper;
         lines.push(`audio session: ${this.env.navigator?.audioSession?.type ?? 'none'}${keeper ? `, silent loop ${keeper.paused ? 'paused' : 'playing'}` : ''}`);
+        if (this.pictures.runtime === this.runtime) {
+            for (const label of this.pictures.labels) {
+                lines.push(`picture: ${[label.title, label.fullCredit, label.rightsBasis, label.sourceUrl].filter(Boolean).join(' — ')}`);
+            }
+        }
         return [...lines, '', ...this.traceLines].join('\n');
     }
 
@@ -1517,6 +1532,7 @@ export class LiveHost {
         this.destroyed = true;
         this.container.ownerDocument.defaultView?.removeEventListener('rise-scene-diagnostic', this.onSceneDiagnostic);
         this.container.ownerDocument.defaultView?.removeEventListener('rise-band-note', this.onBandNote);
+        this.container.ownerDocument.defaultView?.removeEventListener('rise:work-shown', this.onWorkShown);
         this.container.ownerDocument.defaultView?.removeEventListener('rise-scene-listen', this.onSceneListen);
         this.container.ownerDocument.defaultView?.removeEventListener('rise-scene-input', this.onSceneInput);
         this.embeddedStartupCancelled = true;

@@ -1,0 +1,34 @@
+{
+  "id": "LIVE-039",
+  "title": "RISE Live: the Astronomy collection hung in the room, with its credit",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (live-astronomy)",
+  "priority": "next",
+  "dependencies": [
+    "LIVE-028",
+    "LIVE-029"
+  ],
+  "acceptance": [
+    "@scene <id> astronomy is read, admitted and lowered to { kind: 'sourced', collections: ['sci-astronomy'] }; a parameter on it is refused; RISE chooses the work from the reviewed collection.",
+    "In the venue a collection image is hung in the full frame's safe rectangle in every room (at most square on a tall screen, at most 3:2 on a wide one), never full-bleed and never in the inner eye or the shell; the gallery is placed there unscaled, matted in black.",
+    "The chip shows the title before the credit and licence; at 1440x900 and 390x844 its box lies inside the picture's box and meets neither the words, the ask bar, the docked face nor the sign-in link.",
+    "About this reading lists each picture the reading showed, once, with title, full credit, licence and source link.",
+    "'astronomy' and 'show me astronomy' are answered by the venue at once with no model call; the bar's note goes once the picture is hung and the room is at rest on it.",
+    "Composer's guide does not offer the collection until the card can show it; the first-load budget and the security policy are unchanged.",
+    "Human gate: the owner watches a real model's reading that uses the collection on the deployed /live, in the dark room and the light room."
+  ],
+  "evidence": [],
+  "activity": [
+    {
+      "date": "2026-10-26T21:00:00.000Z",
+      "summary": "Built on branch live-astronomy, the first slice of LIVE-037's design (docs/plans/LIVE-IMAGERY.md on PR #743): astronomy as a native engine, hung in the full frame with its titled credit, About this reading's pictures"
+    }
+  ],
+  "updatedAt": "2026-10-26T21:00:00.000Z",
+  "revision": 1,
+  "summary": "The first slice of collection imagery in Live (LIVE-037): the reviewed Astronomy collection as a native engine on /live, hung in the safe rectangle in every room with its credit, titled. Not the card, not landscapes.",
+  "blocker": null
+}
