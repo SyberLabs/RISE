@@ -32,16 +32,26 @@
       "ref": "PRIVACY.md",
       "note": "Owner decision 2026-10-26: keep Cloudflare Web Analytics and revise the promise (option A), not an opt-in switch. Sources: developers.cloudflare.com/web-analytics/about/, data-metrics/data-origin-and-collection/, data-metrics/dimensions/, faq/, and www.cloudflare.com/web-analytics/.",
       "date": "2026-10-26"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/738",
+      "note": "Draft PR: CSP origins, Privacy Policy revision, two corrected claims, this record. Remote CI and owner observation after deploy pending; not merged.",
+      "date": "2026-10-26"
     }
   ],
   "activity": [
     {
       "date": "2026-10-26T20:00:00.000Z",
       "summary": "Created and claimed on branch live-analytics-allowed: CSP admits the beacon, Privacy Policy discloses it, two now-false 'no third-party script' claims corrected. Owner observation after deploy pending."
+    },
+    {
+      "date": "2026-10-26T17:25:21.709Z",
+      "summary": "Opened draft PR 738; remote CI and owner observation after deploy pending."
     }
   ],
-  "updatedAt": "2026-10-26T20:00:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-26T17:25:21.709Z",
+  "revision": 2,
   "summary": "Admit the auto-injected Cloudflare Web Analytics beacon in the production CSP and replace the Privacy Policy's 'no analytics' promise with an honest, sourced description.",
   "blocker": null
 }
