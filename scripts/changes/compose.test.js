@@ -112,6 +112,14 @@ describe('buildComposeRequest', () => {
     expect(system).toMatch(/where each part sits/);
   });
 
+  it('tells a public digest to draw kit figures only, with no illustrator and no scene', () => {
+    const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period, kitOnly: true });
+    expect(system).toMatch(/kit figures only/);
+    expect(system).not.toMatch(/illustrator/i);
+    expect(system).not.toMatch(/"medium": "figure" \| "scene"/);
+    expect(system).toMatch(/"pictures": \[\{"beat": <beat index>, "refs": \[\.\.\.\], "kit": \{\.\.\.\}\}/);
+  });
+
   it('gives each kit slot its budget in characters, the kit’s own numbers', () => {
     const { system } = buildComposeRequest({ pulls: [pull(1)], model: MODEL, period });
     const said = pattern => Number(pattern.exec(system)?.[1]);

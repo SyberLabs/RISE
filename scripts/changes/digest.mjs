@@ -2,7 +2,7 @@
 /**
  * RISE Changes: one digest of what merged into main (docs/plans/RISE-CHANGES.md).
  *
- *   node scripts/changes/digest.mjs [--since <ISO>] [--out <dir>] [--dry-run] [--supersede <id>]
+ *   node scripts/changes/digest.mjs [--since <ISO>] [--out <dir>] [--dry-run] [--supersede <id>] [--figures kit] [--repo owner/name]
  *
  * Reads GitHub through `gh` (GH_TOKEN) and asks Claude through the Claude
  * Code CLI (CLAUDE_CODE_OAUTH_TOKEN, passed to the CLI's environment only).
@@ -21,6 +21,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createAsk } from '../../src/core/changes/claude-cli.js';
+import { repositoryNameProblems } from '../../src/core/changes/repository.js';
 import { runDigest } from './run-digest.js';
 import { openRenderCheck } from './render-check.mjs';
 import { serialize } from '../../src/core/changes/write.js';
@@ -33,13 +34,21 @@ const CLAUDE_MAX_OUTPUT = 8 * 1024 * 1024;
 export function parseOptions(argv) {
   const { values } = parseArgs({
     args: argv,
-    options: { since: { type: 'string' }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false }, supersede: { type: 'string' } },
+    options: {
+      since: { type: 'string' }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false }, supersede: { type: 'string' },
+      figures: { type: 'string' }, repo: { type: 'string' }
+    },
     strict: true,
     allowPositionals: false
   });
   const supersede = values.supersede || undefined;
   if (supersede !== undefined && !DIGEST_ID.test(supersede)) throw new Error('--supersede names a digest id: a date, with a short suffix for a second run that day');
-  return { since: values.since || undefined, out: values.out, dryRun: values['dry-run'], supersede };
+  const figures = values.figures || undefined;
+  if (figures !== undefined && figures !== 'kit') throw new Error('--figures kit is the only public-digest mode');
+  const repo = values.repo || undefined;
+  const name = repo === undefined ? null : repositoryNameProblems(repo);
+  if (name) throw new Error(name);
+  return { since: values.since || undefined, out: values.out, dryRun: values['dry-run'], supersede, figures, repo };
 }
 
 /** `gh` with these arguments, without the Claude credential: its stdout, or an error carrying its stderr. */
@@ -112,7 +121,7 @@ export async function main(argv, { env = process.env, log = line => console.log(
   };
   let result;
   try {
-    result = await runDigest({ gh: runGh, ask, since: options.since, supersede: options.supersede, log, renderCheck });
+    result = await runDigest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, log, renderCheck });
   } finally {
     if (renderer) await (await renderer.catch(() => null))?.close();
   }
