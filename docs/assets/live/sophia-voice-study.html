@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sophia's voice</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:wght@300;400;500&display=swap">
+<style>
+  /* A study for the owner (docs/assets/live/): how Sophia and the visual in her shell answer the voice that speaks a
+     reading. Self-contained, like the face study it builds on (sophia-face-study.html): open it in a browser. */
+  :root {
+    --bg: #07080d;
+    --ink: #d8d3c4;
+    --ink-dim: #8a8779;
+    --line: rgba(216, 211, 196, 0.14);
+    --accent: #87cee9;
+    --font-display: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --font-ui: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: dark;
+  }
+  html[data-skin="porcelain"] {
+    --bg: #f4efe6;
+    --ink: #172a4f;
+    --ink-dim: #5d6b85;
+    --line: rgba(23, 42, 79, 0.16);
+    --accent: #2f5fb3;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-weight: 300;
+    padding: 12px 16px 20px;
+    overflow-x: hidden;
+  }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 16px; flex-wrap: wrap; }
+  .name { font-family: var(--font-display); font-weight: 400; font-size: clamp(22px, 3vw, 30px); letter-spacing: 0.04em; margin: 0; }
+  .name em { font-style: italic; color: var(--accent); }
+  .status { font-size: 12px; letter-spacing: 0.1em; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .stages { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+  @media (max-width: 860px) { .stages { grid-template-columns: 1fr; } }
+  figure { margin: 0; display: grid; justify-items: center; gap: 6px; min-width: 0; }
+  figcaption { font-family: var(--font-display); font-style: italic; font-size: 17px; color: var(--ink-dim); }
+  .stages canvas {
+    display: block;
+    width: min(100%, 62vh, 600px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    touch-action: none;
+  }
+  .stack { position: relative; width: min(100%, 62vh, 600px); }
+  .stack canvas { width: 100%; }
+  #face-halo { position: absolute; inset: 0; pointer-events: none; }
+  .signal { margin: 14px auto 0; max-width: 1220px; }
+  .signal canvas { display: block; width: 100%; height: 64px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .signal p { margin: 6px 0 0; font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+  .bar { max-width: 1220px; margin: 14px auto 0; display: grid; gap: 12px; }
+  .group { display: flex; gap: 6px 8px; align-items: center; flex-wrap: wrap; }
+  .group-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); min-width: 4.5em; }
+  button, .file {
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 12px;
+    cursor: pointer;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+  }
+  button:hover, .file:hover { border-color: var(--ink-dim); }
+  button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+  button:focus-visible, .file:focus-within, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  input[type="text"] {
+    flex: 1 1 260px;
+    min-width: 0;
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 6px 2px;
+  }
+  label.slider { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-dim); }
+  input[type="range"] { width: 120px; accent-color: var(--accent); }
+  .note { max-width: 1220px; margin: 14px auto 0; font-size: 12px; line-height: 1.6; color: var(--ink-dim); }
+  .note strong { color: var(--ink); font-weight: 500; }
+</style>
+</head>
+<body>
+<header>
+  <h1 class="name">RISE <em>Sophia</em>, and the voice</h1>
+  <div class="status" id="status" aria-live="polite">Silent. Choose a voice below.</div>
+</header>
+
+<main class="stages">
+  <figure>
+    <div class="stack">
+      <canvas id="face" role="img" aria-label="Sophia's face, answering the voice"></canvas>
+      <canvas id="face-halo" aria-hidden="true"></canvas>
+    </div>
+    <figcaption>The face</figcaption>
+  </figure>
+  <figure>
+    <canvas id="shell" role="img" aria-label="A Thomas attractor inside Sophia's shell, answering the voice"></canvas>
+    <figcaption>The visual, in her shell</figcaption>
+  </figure>
+</main>
+
+<section class="signal" aria-label="The voice signal">
+  <canvas id="trace" aria-hidden="true"></canvas>
+  <p id="signal-note">The line is the voice's loudness over the last four seconds; each tick is a syllable or word the face answers.</p>
+</section>
+
+<div class="bar">
+  <div class="group" role="group" aria-label="Voice">
+    <span class="group-label">Voice</span>
+    <button type="button" id="speak">Device voice</button>
+    <button type="button" id="simulate">Stand-in, silent</button>
+    <label class="file">Voice file…<input type="file" id="file" accept="audio/*"></label>
+    <button type="button" id="replay" disabled>Play file again</button>
+    <button type="button" id="mic">Microphone</button>
+    <button type="button" id="stop">Stop</button>
+  </div>
+  <div class="group">
+    <span class="group-label">Words</span>
+    <input type="text" id="words" aria-label="Words the device voice speaks" value="Light from a distant star left it before there were eyes to see it, and arrives tonight as if it had been sent to you.">
+  </div>
+  <div class="group" role="group" aria-label="The face">
+    <span class="group-label">Face</span>
+    <button type="button" data-halo="ripples" aria-pressed="true">Echo ripples</button>
+    <button type="button" data-halo="breath" aria-pressed="false">Breathing halo</button>
+    <button type="button" data-halo="shimmer" aria-pressed="false">Petal shimmer</button>
+    <button type="button" id="stepback" aria-pressed="true">Steps back while speaking</button>
+    <label class="slider">Strength <input type="range" id="halo-strength" min="0" max="2" step="0.05" value="1"></label>
+  </div>
+  <div class="group" role="group" aria-label="The visual">
+    <span class="group-label">Visual</span>
+    <button type="button" data-warp="tremble" aria-pressed="true">Tremble</button>
+    <button type="button" data-warp="ripple" aria-pressed="false">Ripple</button>
+    <button type="button" data-warp="breathe" aria-pressed="false">Breathe</button>
+    <label class="slider">Strength <input type="range" id="warp-strength" min="0" max="2" step="0.05" value="1"></label>
+  </div>
+  <div class="group" role="group" aria-label="Skin">
+    <span class="group-label">Skin</span>
+    <button type="button" data-skin="sophia" aria-pressed="true">Sophia</button>
+    <button type="button" data-skin="porcelain" aria-pressed="false">Porcelain</button>
+  </div>
+</div>
+
+<p class="note" id="reduced-note" hidden><strong>Your system asks for reduced motion.</strong> In RISE the voice would move nothing for you; here the effects are on so they can be judged. <button type="button" id="reduced-off">Turn them off</button></p>
+
+<p class="note">
+  <strong>What drives what.</strong> A voice file and the microphone are measured as sound, every frame (the real thing, as an
+  ElevenLabs voice would be). The device voice cannot be measured: browsers never hand its sound to the page, only
+  the moment each word starts. Its signal is a stand-in built from those moments, each word swelling by its syllables;
+  where a voice sends no word timings, the stand-in times the words itself. <strong>Stand-in, silent</strong> is that timed
+  stand-in with no sound, for judging the motion alone. Try a file from <code>voice-samples/</code> in the main folder against
+  the device voice to see the gap.
+</p>
+<p class="note">
+  <strong>Kept to.</strong> The voice moves shape, not light: what follows each syllable is position and outline, and
+  brightness follows the voice by a fifth at most, in thin lines and soft glows, never a whole field. The face's eye
+  stays seated; the pupil looks within the iris.
+  The visual shown is the Thomas attractor, drawn more simply than RISE draws it; the warp is applied to its points
+  on the screen, which is where RISE's own attractor would take it.
+</p>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const TAU = Math.PI * 2;
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+  const mix = (a, b, k) => a + (b - a) * k;
+  const smooth = u => u * u * (3 - 2 * u);
+  const rgba = (c, a) => `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
+  const reducedAsked = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let effectsOn = true;
+  if (reducedAsked) $('reduced-note').hidden = false;
+  $('reduced-off').addEventListener('click', () => { effectsOn = !effectsOn; $('reduced-off').textContent = effectsOn ? 'Turn them off' : 'Turn them on'; });
+
+  // The skins of src/scenes/engines/oracle.js.
+  const SKINS = {
+    sophia: { core: [245, 245, 220], iris: [135, 206, 235], glow: [176, 196, 222], deep: [25, 25, 112], trail: [10, 10, 15] },
+    porcelain: { core: [255, 253, 248], iris: [47, 95, 179], glow: [168, 192, 230], deep: [14, 27, 54], trail: [244, 239, 230], ink: [23, 42, 79], light: true }
+  };
+  let skin = SKINS.sophia;
+
+  let clock = 0;
+
+  /* ─────────────── The voice signal: one loudness (0 to 1) and its onsets, whatever speaks ─────────────── */
+
+  const voice = { level: 0, slow: 0, kind: 'silent', lastOnset: -1 };
+  const onsetListeners = [];
+  const history = new Float32Array(240);
+  const ticks = [];
+  let historyAt = 0;
+
+  // Sound, measured: a file or the microphone through an analyser.
+  let audio = null;
+  let analyser = null;
+  let samples = null;
+  let playing = null;
+  let micStream = null;
+  let lastBuffer = null;
+  function audioContext() {
+    if (!audio) {
+      audio = new AudioContext();
+      analyser = audio.createAnalyser();
+      analyser.fftSize = 1024;
+      samples = new Float32Array(analyser.fftSize);
+    }
+    if (audio.state === 'suspended') audio.resume();
+    return audio;
+  }
+  function measured() {
+    analyser.getFloatTimeDomainData(samples);
+    let sum = 0;
+    for (let i = 0; i < samples.length; i += 1) sum += samples[i] * samples[i];
+    const db = 20 * Math.log10(Math.sqrt(sum / samples.length) + 1e-7);
+    return clamp01((db + 52) / 40);
+  }
+
+  // The stand-in: syllable swells, timed by the device voice's word boundaries or, without them, by the words.
+  const standIn = { bumps: [], timed: false, boundaries: 0, endsAt: 0 };
+  function syllables(word) {
+    const groups = word.toLowerCase().replace(/[^a-z]/g, '').replace(/e$/, '').match(/[aeiouy]+/g);
+    return Math.max(1, Math.min(6, groups ? groups.length : 1));
+  }
+  /** Lays a word's syllables from `at`; returns how long the word and its gap take at the voice's pace. */
+  function addWord(word, at) {
+    const n = syllables(word);
+    const each = 0.165;
+    for (let i = 0; i < n; i += 1) {
+      const stressed = i === 0 || (n > 2 && i === n - 2);
+      standIn.bumps.push({ at: at + i * each, len: each * 0.5, peak: (stressed ? 0.82 : 0.58) * (0.9 + Math.random() * 0.2) });
+    }
+    const pause = /[,.;:!?]$/.test(word) ? 0.32 : 0.05;
+    return n * each + pause;
+  }
+  function timeWords(text, from) {
+    let at = from;
+    for (const word of text.match(/\S+/g) || []) at += addWord(word, at);
+    return at;
+  }
+  function standInLevel() {
+    let v = 0;
+    standIn.bumps = standIn.bumps.filter(b => clock - b.at < 1.2);
+    for (const b of standIn.bumps) {
+      const u = clock - b.at;
+      if (u < 0) continue;
+      // Each syllable swells and falls away before the next, as a voice's loudness does about five times a second.
+      const e = u < 0.035 ? smooth(u / 0.035) : u < b.len ? 1 - 0.3 * (u - 0.035) / (b.len - 0.035) : 0.7 * Math.exp(-(u - b.len) / 0.04);
+      v = Math.max(v, e * b.peak);
+    }
+    return v;
+  }
+
+  function updateVoice(dt) {
+    let raw = 0;
+    if (voice.kind === 'real' && analyser) raw = measured();
+    else if (voice.kind === 'stand-in') {
+      raw = standInLevel();
+      if (standIn.timed && clock > standIn.endsAt + 0.4) stop('Finished.');
+    }
+    // Quick to rise, slower to fall: a voice's loudness as the eye would follow it.
+    const k = raw > voice.level ? 1 - Math.exp(-dt / 0.025) : 1 - Math.exp(-dt / 0.07);
+    voice.level = mix(voice.level, raw, k);
+    voice.slow = mix(voice.slow, voice.level, 1 - Math.exp(-dt / 0.35));
+    // An onset: the loudness jumping above its own recent run, no closer than 160 ms to the last.
+    const lift = voice.level - voice.slow;
+    if (lift > 0.12 && clock - voice.lastOnset > 0.16) {
+      voice.lastOnset = clock;
+      const strength = clamp01(lift * 3);
+      ticks.push({ at: clock, strength });
+      for (const listen of onsetListeners) listen(strength);
+    }
+    // The trace: sixty samples a second, four seconds.
+    historyAt += dt;
+    while (historyAt >= 1 / 60) {
+      historyAt -= 1 / 60;
+      history.copyWithin(0, 1);
+      history[history.length - 1] = voice.level;
+    }
+    while (ticks.length && clock - ticks[0].at > 4) ticks.shift();
+  }
+
+  /* ─────────────── The voice sources ─────────────── */
+
+  const status = $('status');
+  const pressed = (id, on) => $(id).setAttribute('aria-pressed', String(on));
+  function stop(message = 'Silent. Choose a voice below.') {
+    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+    if (playing) { playing.onended = null; try { playing.stop(); } catch {} playing.disconnect(); playing = null; }
+    if (micStream) { micStream.getTracks().forEach(track => track.stop()); micStream = null; }
+    standIn.bumps = [];
+    standIn.timed = false;
+    voice.kind = 'silent';
+    for (const id of ['speak', 'simulate', 'mic']) pressed(id, false);
+    status.textContent = message;
+  }
+  $('stop').addEventListener('click', () => stop());
+
+  $('speak').addEventListener('click', () => {
+    stop();
+    const text = $('words').value.trim() || 'Ask anything.';
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onstart = () => {
+      voice.kind = 'stand-in';
+      standIn.boundaries = 0;
+      // Until a word boundary arrives, the stand-in times the words itself; the first boundary replaces it.
+      standIn.timed = false;
+      timeWords(text, clock);
+      status.textContent = 'Device voice · waiting for word timings (the stand-in times the words meanwhile)';
+    };
+    utterance.onboundary = event => {
+      if (event.name && event.name !== 'word') return;
+      if (standIn.boundaries === 0) standIn.bumps = standIn.bumps.filter(b => b.at <= clock);
+      standIn.boundaries += 1;
+      const word = text.slice(event.charIndex).match(/^\S+/)?.[0] || 'word';
+      addWord(word, clock);
+      status.textContent = `Device voice · word timings arriving (${standIn.boundaries})`;
+    };
+    utterance.onend = () => {
+      const timings = standIn.boundaries;
+      setTimeout(() => stop(timings ? `Device voice finished · ${timings} word timings arrived` : 'Device voice finished · it sent no word timings, so the stand-in timed the words'), 400);
+    };
+    utterance.onerror = () => stop('The device voice could not speak.');
+    speechSynthesis.speak(utterance);
+    pressed('speak', true);
+    status.textContent = 'Device voice · starting';
+  });
+
+  $('simulate').addEventListener('click', () => {
+    stop();
+    voice.kind = 'stand-in';
+    standIn.timed = true;
+    standIn.endsAt = timeWords($('words').value.trim() || 'Ask anything.', clock + 0.2);
+    pressed('simulate', true);
+    status.textContent = 'Stand-in, silent · the words timed at a reading pace';
+  });
+
+  function playBuffer(buffer, name) {
+    stop();
+    const context = audioContext();
+    playing = context.createBufferSource();
+    playing.buffer = buffer;
+    playing.connect(analyser);
+    playing.connect(context.destination);
+    playing.onended = () => stop(`${name} finished.`);
+    playing.start();
+    voice.kind = 'real';
+    status.textContent = `${name} · measured as sound`;
+  }
+  $('file').addEventListener('change', async event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    try {
+      lastBuffer = { buffer: await audioContext().decodeAudioData(await file.arrayBuffer()), name: file.name };
+      $('replay').disabled = false;
+      playBuffer(lastBuffer.buffer, lastBuffer.name);
+    } catch {
+      stop('That file could not be read as sound.');
+    }
+    event.target.value = '';
+  });
+  $('replay').addEventListener('click', () => lastBuffer && playBuffer(lastBuffer.buffer, lastBuffer.name));
+
+  $('mic').addEventListener('click', async () => {
+    if (micStream) { stop(); return; }
+    stop();
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const source = audioContext().createMediaStreamSource(micStream);
+      source.connect(analyser);
+      voice.kind = 'real';
+      pressed('mic', true);
+      status.textContent = 'Microphone · measured as sound (nothing is recorded or sent)';
+    } catch {
+      stop('The microphone was not allowed.');
+    }
+  });
+
+  /* ─────────────── The choices ─────────────── */
+
+  const halo = { ripples: true, breath: false, shimmer: false };
+  const warp = { tremble: true, ripple: false, breathe: false };
+  let stepBack = true;
+  for (const b of document.querySelectorAll('[data-halo]')) b.addEventListener('click', () => { halo[b.dataset.halo] = !halo[b.dataset.halo]; b.setAttribute('aria-pressed', String(halo[b.dataset.halo])); });
+  for (const b of document.querySelectorAll('[data-warp]')) b.addEventListener('click', () => { warp[b.dataset.warp] = !warp[b.dataset.warp]; b.setAttribute('aria-pressed', String(warp[b.dataset.warp])); });
+  $('stepback').addEventListener('click', () => { stepBack = !stepBack; pressed('stepback', stepBack); });
+  for (const b of document.querySelectorAll('[data-skin]')) b.addEventListener('click', () => {
+    skin = SKINS[b.dataset.skin];
+    document.documentElement.dataset.skin = b.dataset.skin;
+    for (const other of document.querySelectorAll('[data-skin]')) other.setAttribute('aria-pressed', String(other === b));
+    face.clear();
+  });
+  const haloStrength = () => Number($('halo-strength').value) * (effectsOn ? 1 : 0);
+  const warpStrength = () => Number($('warp-strength').value) * (effectsOn ? 1 : 0);
+
+  /* ─────────────── The face (sophia-face-study.html, with the seated eye of src/scenes/engines/oracle.js) ─────────────── */
+
+  const face = (() => {
+    const canvas = $('face');
+    const ctx = canvas.getContext('2d');
+    // The halo has its own layer, cleared every frame: the face's slow trails would smear each ring into many.
+    const overlay = $('face-halo');
+    const hctx = overlay.getContext('2d');
+    const STATES = {
+      arrival: { open: 0.55, orbit: 0.10, spin: 0.08, field: 0.9, tight: 1.00, glow: 0.55, presence: 1.0 },
+      speaking: { open: 0.70, orbit: 0.10, spin: 0.06, field: 0.6, tight: 1.10, glow: 0.35, presence: 0.22 }
+    };
+    const live = { ...STATES.arrival };
+    let size = 0, centre = 0;
+    let torus = [];
+    const nodes = Array.from({ length: 7 }, (_, i) => ({ angle: (i / 7) * TAU, phase: Math.random() * TAU, pace: 0.5 + Math.random() * 0.5, lit: 0.5 }));
+    let gazeX = 0, gazeY = 0, aimX = 0, aimY = 0, depth = 0, aimDepth = 0;
+    let nextBlink = 3 + Math.random() * 4, blinkAt = -1;
+    const rings = [];
+
+    function fit() {
+      const rect = canvas.getBoundingClientRect();
+      size = Math.round(rect.width);
+      const dpr = Math.min(2, devicePixelRatio || 1);
+      canvas.width = Math.round(size * dpr);
+      canvas.height = Math.round(size * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      overlay.width = canvas.width;
+      overlay.height = canvas.height;
+      hctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      centre = size / 2;
+      torus = [];
+      for (let i = 0; i < 48; i += 1) {
+        const ring = [];
+        for (let j = 0; j <= 24; j += 1) ring.push({ u: (i / 48) * TAU, v: (j / 24) * TAU });
+        ring.R = size * 0.30; ring.r = size * 0.09;
+        torus.push(ring);
+      }
+      clear();
+    }
+    function clear() { ctx.fillStyle = rgba(skin.trail, 1); ctx.fillRect(0, 0, size, size); }
+
+    canvas.addEventListener('pointermove', e => {
+      const rect = canvas.getBoundingClientRect();
+      const dx = (e.clientX - rect.left) / rect.width - 0.5, dy = (e.clientY - rect.top) / rect.height - 0.5;
+      aimX = Math.max(-1, Math.min(1, dx * 2));
+      aimY = Math.max(-1, Math.min(1, dy * 2));
+      aimDepth = 1 - Math.min(Math.hypot(dx, dy) / 0.45, 1);
+    });
+    canvas.addEventListener('pointerleave', () => { aimX = 0; aimY = 0; aimDepth = 0; });
+
+    onsetListeners.push(strength => {
+      if (!halo.ripples || haloStrength() <= 0) return;
+      rings.push({ born: clock, strength, seed: Math.random() * TAU });
+      if (rings.length > 10) rings.shift();
+    });
+
+    function blinkAmount() {
+      if (blinkAt < 0 && clock > nextBlink) blinkAt = clock;
+      if (blinkAt < 0) return 0;
+      const b = clock - blinkAt;
+      if (b < 0.22) return smooth(b / 0.22);
+      if (b < 0.29) return 1;
+      if (b < 0.65) return 1 - smooth((b - 0.29) / 0.36);
+      blinkAt = -1;
+      nextBlink = clock + 4 + Math.random() * 4;
+      return 0;
+    }
+
+    function eye() {
+      const R = size * (0.075 + live.open * 0.035) + depth * size * 0.015;
+      return { ex: centre + gazeX * size * 0.008, ey: centre + gazeY * size * 0.008, R };
+    }
+
+    function drawField() {
+      for (let i = 0; i < 24; i += 1) {
+        const a = (i / 24) * TAU;
+        ctx.beginPath();
+        for (let j = 0; j <= 40; j += 1) {
+          const u = j / 40;
+          const wave = Math.sin(clock * 2 * live.field + a * 3 + u * Math.PI * 4) * 0.1;
+          const spiral = u * TAU + clock * 0.6 * live.field + a;
+          const r = size * 0.10 + u * size * 0.35 * live.tight * (1 + wave);
+          const x = centre + r * Math.cos(spiral), y = centre + r * Math.sin(spiral);
+          if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = rgba(skin.iris, 0.10 + 0.10 * live.glow);
+        ctx.lineWidth = 0.8 + Math.sin(clock + a) * 0.4;
+        ctx.stroke();
+      }
+    }
+
+    function drawTorus() {
+      ctx.save();
+      ctx.globalCompositeOperation = skin.light ? 'multiply' : 'screen';
+      ctx.strokeStyle = rgba(skin.light ? skin.iris : skin.glow, 0.04 + depth * 0.08 + live.glow * 0.03);
+      ctx.lineWidth = 0.5;
+      for (const ring of torus) {
+        ctx.beginPath();
+        for (let j = 0; j < ring.length; j += 1) {
+          const { u, v } = ring[j];
+          const r = ring.r * (1 + Math.sin(clock * 0.8 * (0.5 + live.spin) + u * 2 + v) * 0.2) * live.tight;
+          const x = centre + (ring.R * live.tight + r * Math.cos(v)) * Math.cos(u + clock * 0.05);
+          const y = centre + (ring.R * live.tight + r * Math.cos(v)) * Math.sin(u + clock * 0.05);
+          if (j === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function drawNodes(dt) {
+      const orbitR = size * 0.25 * live.tight;
+      for (const node of nodes) {
+        node.angle += live.orbit * 0.4 * dt;
+        const x = centre + orbitR * Math.cos(node.angle), y = centre + orbitR * Math.sin(node.angle);
+        const near = Math.max(0, 1 - Math.hypot(gazeX * size * 0.5 + centre - x, gazeY * size * 0.5 + centre - y) / (size * 0.2));
+        node.lit = mix(node.lit, 0.45 + near * 0.35 + live.glow * 0.3, 0.1);
+        const pulse = 16 + Math.sin(clock * node.pace * (1 + live.orbit) + node.phase) * 8 * node.lit;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, pulse);
+        if (skin.light) {
+          // On a pale ground a light is a bead of ink, densest at its heart.
+          g.addColorStop(0, rgba(skin.ink, 0.55 * node.lit));
+          g.addColorStop(0.35, rgba(skin.iris, 0.35 * node.lit));
+          g.addColorStop(1, rgba(skin.glow, 0));
+        } else {
+          g.addColorStop(0, rgba(skin.core, 0.7 * node.lit));
+          g.addColorStop(0.4, rgba(skin.glow, 0.5 * node.lit));
+          g.addColorStop(0.7, rgba(skin.iris, 0.3 * node.lit));
+          g.addColorStop(1, rgba(skin.iris, 0));
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, pulse, 0, TAU);
+        ctx.fillStyle = g;
+        ctx.fill();
+      }
+    }
+
+    /** The eye; with the shimmer, each petal trembles with the voice, and the iris brightens by a fifth at most. */
+    function drawEye() {
+      const { ex, ey, R } = eye();
+      const closed = blinkAmount();
+      const shimmer = halo.shimmer ? clamp01(voice.level) * haloStrength() : 0;
+      ctx.save();
+      ctx.translate(ex, ey);
+      for (let layer = 0; layer < 3; layer += 1) {
+        const fold = clamp01((closed - (2 - layer) * 0.18) / 0.64);
+        ctx.rotate(clock * (0.06 + layer * 0.04) * (0.6 + live.spin) + layer + fold * 0.9);
+        const reach = 1 - fold * 0.92;
+        const flare = 0.1 + fold * 0.07;
+        const lit = 1 + Math.min(0.2, shimmer * 0.12);
+        for (let i = 0; i < 36; i += 1) {
+          const a = (i / 36) * TAU;
+          const tremble = 1 + shimmer * 0.07 * Math.sin(clock * 37 + i * 2.39 + layer * 1.3);
+          const r1 = R * (0.3 + layer * 0.3) * reach, r2 = R * (0.5 + layer * 0.3) * reach * tremble;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(r1 * Math.cos(a), r1 * Math.sin(a));
+          ctx.lineTo(r2 * Math.cos(a + flare), r2 * Math.sin(a + flare));
+          const g = ctx.createLinearGradient(0, 0, r2 * Math.cos(a), r2 * Math.sin(a));
+          const heart = skin.light ? skin.ink : skin.core;
+          g.addColorStop(0, rgba(heart, (0.32 - layer * 0.1) * (0.5 + live.open * 0.5) * lit));
+          g.addColorStop(1, rgba(skin.iris, (0.12 - layer * 0.03) * (0.5 + live.open * 0.5) * lit));
+          ctx.fillStyle = g;
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+      // The pupil looks, within the iris; the catchlight stays where the light falls.
+      const pupil = R * (0.34 - depth * 0.08) * (1 + Math.sin(clock * 0.9) * 0.05) * (1 - closed * 0.9);
+      const px = ex + gazeX * R * 0.22 * (1 - closed), py = ey + gazeY * R * 0.22 * (1 - closed);
+      const pg = ctx.createRadialGradient(px, py, 0, px, py, Math.max(1, pupil));
+      pg.addColorStop(0, rgba(skin.deep, 0.95));
+      pg.addColorStop(0.55, rgba(skin.glow, 0.55));
+      pg.addColorStop(1, rgba(skin.iris, 0.25));
+      ctx.beginPath();
+      ctx.arc(px, py, Math.max(0.5, pupil), 0, TAU);
+      ctx.fillStyle = pg;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(ex - pupil * 0.35, ey - pupil * 0.38, Math.max(0.5, pupil * 0.16), 0, TAU);
+      ctx.fillStyle = rgba(skin.core, (0.55 + live.open * 0.3) * (1 - closed));
+      ctx.fill();
+    }
+
+    /**
+     * The voice's halo, drawn at its own strength over the face (a face stepped back still carries her voice): the
+     * breathing glow around the eye and the echo rings leaving it.
+     */
+    function drawHalo() {
+      const scale = 0.72 + live.presence * 0.28;
+      const { ex, ey, R } = eye();
+      const hx = centre + (ex - centre) * scale, hy = centre + (ey - centre) * scale, hR = R * scale;
+      const strength = haloStrength();
+      const tone = skin.light ? skin.iris : skin.glow;
+      hctx.clearRect(0, 0, size, size);
+      if (halo.breath && strength > 0) {
+        const L = clamp01(voice.level) * strength;
+        const outer = hR * (1.3 + 0.9 * L);
+        const g = hctx.createRadialGradient(hx, hy, hR * 0.95, hx, hy, outer);
+        g.addColorStop(0, rgba(tone, 0));
+        g.addColorStop(0.18, rgba(tone, Math.min(0.2, 0.16 * L)));
+        g.addColorStop(1, rgba(tone, 0));
+        hctx.beginPath();
+        hctx.arc(hx, hy, outer, 0, TAU);
+        hctx.fillStyle = g;
+        hctx.fill();
+      }
+      for (let i = rings.length - 1; i >= 0; i -= 1) {
+        const ring = rings[i];
+        const u = (clock - ring.born) / 1.8;
+        if (u >= 1) { rings.splice(i, 1); continue; }
+        const out = 1 - Math.pow(1 - u, 2.2);
+        const r = hR * 1.15 + size * 0.34 * out;
+        const alpha = Math.min(0.35, (0.18 + ring.strength * 0.2) * strength) * Math.pow(1 - u, 1.6);
+        const wobble = 0.012 * clamp01(voice.level) * strength;
+        hctx.beginPath();
+        for (let k = 0; k <= 96; k += 1) {
+          const a = (k / 96) * TAU;
+          const rr = r * (1 + wobble * Math.sin(a * 6 + clock * 9 + ring.seed));
+          const x = hx + rr * Math.cos(a), y = hy + rr * Math.sin(a);
+          if (k === 0) hctx.moveTo(x, y); else hctx.lineTo(x, y);
+        }
+        hctx.strokeStyle = rgba(tone, alpha);
+        hctx.lineWidth = 0.5 + 1.2 * (1 - u);
+        hctx.stroke();
+      }
+    }
+
+    function draw(dt) {
+      const target = voice.kind !== 'silent' ? { ...STATES.speaking, presence: stepBack ? 0.22 : 1 } : STATES.arrival;
+      const k = 1 - Math.exp(-dt / 0.18);
+      for (const key of Object.keys(live)) live[key] = mix(live[key], target[key], k);
+      gazeX = mix(gazeX, aimX, 1 - Math.exp(-dt / 0.35));
+      gazeY = mix(gazeY, aimY, 1 - Math.exp(-dt / 0.35));
+      depth = mix(depth, aimDepth, 1 - Math.exp(-dt / 0.4));
+      ctx.fillStyle = rgba(skin.trail, 0.08);
+      ctx.fillRect(0, 0, size, size);
+      ctx.save();
+      ctx.globalAlpha = live.presence;
+      const scale = 0.72 + live.presence * 0.28;
+      ctx.translate(centre, centre);
+      ctx.scale(scale, scale);
+      ctx.translate(-centre, -centre);
+      drawField();
+      drawTorus();
+      drawNodes(dt);
+      drawEye();
+      ctx.restore();
+      drawHalo();
+    }
+
+    return { fit, draw, clear };
+  })();
+
+  /* ─────────────── The visual in the shell: a Thomas attractor (src/visuals/attractor.js), warped on the screen ─────────────── */
+
+  const shell = (() => {
+    const canvas = $('shell');
+    const ctx = canvas.getContext('2d');
+    const N = 13000;
+    const px = new Float32Array(N), py = new Float32Array(N), pz = new Float32Array(N);
+    const sx = new Float32Array(N), sy = new Float32Array(N), bright = new Float32Array(N);
+    let cx = 0, cy = 0, cz = 0, modelR = 1;
+    let size = 0;
+    const ripples = [];
+    {
+      // Thomas, b = 0.19, integrated with RK4 as RISE integrates it.
+      const f = (x, y, z, o) => { o[0] = Math.sin(y) - 0.19 * x; o[1] = Math.sin(z) - 0.19 * y; o[2] = Math.sin(x) - 0.19 * z; };
+      let x = 0.5, y = 0.6, z = -0.7;
+      const dt = 0.025, k1 = [0, 0, 0], k2 = [0, 0, 0], k3 = [0, 0, 0], k4 = [0, 0, 0];
+      const step = () => {
+        f(x, y, z, k1);
+        f(x + 0.5 * dt * k1[0], y + 0.5 * dt * k1[1], z + 0.5 * dt * k1[2], k2);
+        f(x + 0.5 * dt * k2[0], y + 0.5 * dt * k2[1], z + 0.5 * dt * k2[2], k3);
+        f(x + dt * k3[0], y + dt * k3[1], z + dt * k3[2], k4);
+        x += dt / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]);
+        y += dt / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]);
+        z += dt / 6 * (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]);
+      };
+      for (let i = 0; i < 1000; i += 1) step();
+      for (let i = 0; i < N; i += 1) { step(); px[i] = x; py[i] = y; pz[i] = z; cx += x; cy += y; cz += z; }
+      cx /= N; cy /= N; cz /= N;
+      for (let i = 0; i < N; i += 1) modelR = Math.max(modelR, Math.hypot(px[i] - cx, py[i] - cy, pz[i] - cz));
+    }
+    onsetListeners.push(strength => {
+      if (!warp.ripple || warpStrength() <= 0) return;
+      ripples.push({ born: clock, strength });
+      if (ripples.length > 6) ripples.shift();
+    });
+    function fit() {
+      const rect = canvas.getBoundingClientRect();
+      size = Math.round(rect.width);
+      const dpr = Math.min(2, devicePixelRatio || 1);
+      canvas.width = Math.round(size * dpr);
+      canvas.height = Math.round(size * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    const HEADS = [{ speed: 0.052, phase: 0, peak: 1 }, { speed: 0.034, phase: 0.41, peak: 0.78 }, { speed: 0.071, phase: 0.73, peak: 0.62 }];
+    const wrap = v => v - Math.floor(v);
+
+    function draw() {
+      const W = size, C = W / 2;
+      const aperture = W * 0.452;
+      ctx.clearRect(0, 0, W, W);
+      // The shell: the visual's dark, inside her rim.
+      ctx.fillStyle = skin.light ? '#f4efe6' : '#07080d';
+      ctx.fillRect(0, 0, W, W);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(C, C, aperture, 0, TAU);
+      ctx.fillStyle = '#04050a';
+      ctx.fill();
+      ctx.clip();
+
+      const strength = warpStrength();
+      const L = clamp01(voice.level) * strength;
+      const yaw = clock * 0.06, pitch = -0.3 + 0.22 * Math.sin(clock * 0.21);
+      const cyA = Math.cos(yaw), syA = Math.sin(yaw), cxA = Math.cos(pitch), sxA = Math.sin(pitch);
+      const breathe = warp.breathe ? 1 + 0.035 * L : 1;
+      const scale = (aperture * 0.86 / modelR) * breathe;
+      const focal = modelR * 3.2;
+      const amp = warp.tremble ? aperture * 0.018 * L : 0;
+      const heads = HEADS.map(h => wrap(clock * h.speed + h.phase));
+      for (let i = ripples.length - 1; i >= 0; i -= 1) if (clock - ripples[i].born > 1.6) ripples.splice(i, 1);
+
+      for (let i = 0; i < N; i += 1) {
+        const ax = px[i] - cx, ay = py[i] - cy, az = pz[i] - cz;
+        const x1 = ax * cyA + az * syA, z1 = -ax * syA + az * cyA;
+        const y2 = ay * cxA - z1 * sxA, z2 = ay * sxA + z1 * cxA;
+        const persp = focal / (focal + z2);
+        let x = x1 * scale * persp, y = y2 * scale * persp;
+        // Tremble: a standing wave along the filament, so it shivers as a string does, never as noise.
+        if (amp) {
+          x += amp * Math.sin(i * 0.045 + clock * 29);
+          y += amp * Math.cos(i * 0.038 + clock * 23);
+        }
+        // Ripple: each onset sends a ring out from the centre that lifts the points it passes.
+        if (ripples.length) {
+          const d = Math.hypot(x, y) || 1;
+          let push = 0;
+          for (const r of ripples) {
+            const u = (clock - r.born) / 1.6;
+            const at = aperture * 1.2 * u;
+            const off = (d - at) / (aperture * 0.07);
+            push += Math.exp(-off * off) * aperture * 0.035 * (0.5 + r.strength) * (1 - u) * strength;
+          }
+          x += (x / d) * push;
+          y += (y / d) * push;
+        }
+        sx[i] = x; sy[i] = y;
+        let flow = 0;
+        const p = i / N;
+        for (let k = 0; k < 3; k += 1) {
+          let fwd = wrap(heads[k] - p);
+          if (fwd > 0.5) fwd -= 1;
+          flow += HEADS[k].peak * (Math.exp(-(fwd * fwd) / 0.000288) + (fwd > 0 ? 0.42 * Math.exp(-(fwd * fwd) / 0.0098) : 0));
+        }
+        bright[i] = 0.06 + flow + 0.05 * (persp - 0.85);
+      }
+
+      // Two passes, a wide dim halo and a fine bright core, in runs of points sharing a brightness.
+      const lift = warp.breathe ? 1 + Math.min(0.2, 0.25 * L) : 1;
+      ctx.translate(C, C);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const pass of [{ w: 2.6, mul: 0.5, col: '200,222,255' }, { w: 0.7, mul: 1, col: '255,255,255' }]) {
+        ctx.lineWidth = pass.w;
+        for (let start = 0; start < N - 1; start += 60) {
+          const end = Math.min(N - 1, start + 60);
+          let b = 0;
+          for (let i = start; i < end; i += 1) b += bright[i];
+          b /= end - start;
+          ctx.strokeStyle = `rgba(${pass.col}, ${Math.min(0.8, 0.14 + b * 0.5) * pass.mul * lift})`;
+          ctx.beginPath();
+          ctx.moveTo(sx[start], sy[start]);
+          for (let i = start + 1; i <= end; i += 1) ctx.lineTo(sx[i], sy[i]);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+      ctx.globalCompositeOperation = 'source-over';
+      // Her rim around the shell.
+      ctx.beginPath();
+      ctx.arc(C, C, aperture, 0, TAU);
+      ctx.strokeStyle = rgba(skin.light ? skin.iris : skin.glow, 0.35);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    return { fit, draw };
+  })();
+
+  /* ─────────────── The trace ─────────────── */
+
+  const trace = (() => {
+    const canvas = $('trace');
+    const ctx = canvas.getContext('2d');
+    let W = 0, H = 0;
+    function fit() {
+      const rect = canvas.getBoundingClientRect();
+      W = rect.width; H = rect.height;
+      const dpr = Math.min(2, devicePixelRatio || 1);
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      const ink = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      for (let i = 0; i < history.length; i += 1) {
+        const x = (i / (history.length - 1)) * W, y = H - 4 - history[i] * (H - 10);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.fillStyle = ink;
+      for (const tick of ticks) {
+        const x = W - ((clock - tick.at) / 4) * W;
+        ctx.globalAlpha = 0.4 + tick.strength * 0.6;
+        ctx.fillRect(x - 0.75, 0, 1.5, 7);
+      }
+      ctx.globalAlpha = 1;
+    }
+    return { fit, draw };
+  })();
+
+  /* ─────────────── One clock for everything ─────────────── */
+
+  function fitAll() { face.fit(); shell.fit(); trace.fit(); }
+  addEventListener('resize', fitAll);
+  fitAll();
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    clock += dt;
+    updateVoice(dt);
+    face.draw(dt);
+    shell.draw();
+    trace.draw();
+    requestAnimationFrame(frame);
+  }
+  document.addEventListener('visibilitychange', () => { last = performance.now(); });
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
