@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      deploy_private_provider:
+        description: 'Deploy the private provider after its account owner confirms access; public production is unchanged.'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -68,7 +73,7 @@ jobs:
       # with test flags, so the release is moved aside before it runs. Production
       # deploys this artifact and only after this whole job, gate included, passes.
       - name: Stage the tested release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_private_provider))
         env:
           TESTED_SHA: ${{ github.sha }}
         run: |
@@ -83,7 +88,7 @@ jobs:
           cp -r "$RUNNER_TEMP/voice-provider-bundle" "$RUNNER_TEMP/release/voice-provider"
           cp wrangler.plus-preview.jsonc "$RUNNER_TEMP/release/voice-provider/wrangler.plus-preview.jsonc"
       - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_private_provider))
         with:
           name: rise-release-${{ github.sha }}
           path: ${{ runner.temp }}/release/
@@ -96,10 +101,11 @@ jobs:
       # required check opened one. The gate is the fast browser subset.
       - name: Browser gate
         run: npm run test:e2e:gate
-  # The private voice provider (rise-plus-preview) is its own job: it deploys before production
-  # when it can, and its failure is reported but never holds the site (production needs only CI).
+  # Public releases retain the private provider already live. Its account owner
+  # must confirm resource access before an explicit main-branch provider dispatch.
+  # That dispatch builds and verifies its own artifact but does not deploy the public site.
   voice-provider:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy_private_provider
     needs: [ci]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -142,7 +148,8 @@ jobs:
           echo "Deployed private voice provider version: \`${version:-unknown}\` (RISE $TESTED_SHA)" >> "$GITHUB_STEP_SUMMARY"
 
   production:
-    # Waits for the provider's attempt so it goes first when it can, and deploys whether it passed or not.
+    # A normal public push skips the provider and retains its existing version.
+    # The explicit provider dispatch never deploys public production.
     if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.ci.result == 'success'
     # Deploy only what the CI job above built and tested on this push.
     needs: [ci, voice-provider]
@@ -187,9 +194,10 @@ jobs:
           PROVIDER_RESULT: ${{ needs.voice-provider.result }}
         run: |
           set -euo pipefail
-          # The provider deploys first when it can (production's PLUS_VOICE_PROVIDER binding calls it),
-          # but its failure never holds the site: only Plus voices depend on it.
-          if [ "$PROVIDER_RESULT" != success ]; then
+          # A public release normally leaves the service binding on its existing provider version.
+          if [ "$PROVIDER_RESULT" = skipped ]; then
+            echo 'Private voice provider: retained the existing version; no deployment requested.' >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$PROVIDER_RESULT" != success ]; then
             echo "::warning::The private voice provider did not deploy ($PROVIDER_RESULT); production deploys without it, and Plus voices use the provider version already live."
             echo "Private voice provider: **$PROVIDER_RESULT** (production deployed regardless; Plus voices use the provider version already live)." >> "$GITHUB_STEP_SUMMARY"
           fi
