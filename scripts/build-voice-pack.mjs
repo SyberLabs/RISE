@@ -253,9 +253,10 @@ async function main() {
         const { key, text, spokenText } = phrases[index];
         const prior = pack.entries[key];
         const output = resolve(PUBLIC_ROOT, 'audio', 'recitation', voiceId, `${key}.opus`);
+        const priorOutput = prior?.asset ? resolve(PUBLIC_ROOT, 'audio', 'recitation', voiceId, basename(prior.asset)) : output;
         const priorSpokenText = prior?.spokenText || prior?.text;
         if (!args.force && prior?.text === text && priorSpokenText === spokenText
-            && existsSync(output)) {
+            && existsSync(priorOutput)) {
             retained++;
             console.log(`[voice-pack] ${index + 1}/${phrases.length} retained ${text}`);
             continue;
@@ -269,8 +270,9 @@ async function main() {
         const wav = Buffer.from(audio.toWav());
         const wavTemp = `${output}.wav`;
         await atomicWrite(wavTemp, wav);
+        let encoded;
         try {
-            encodeOpus(wavTemp, output);
+            encoded = encodeOpus(wavTemp, output);
         } finally {
             await rm(wavTemp, { force: true });
         }
@@ -278,7 +280,7 @@ async function main() {
         pack.entries[key] = {
             text,
             ...(spokenText !== text ? { spokenText } : {}),
-            asset: `/audio/recitation/${voiceId}/${key}.opus`,
+            asset: `/audio/recitation/${voiceId}/${basename(encoded)}`,
             mimeType: 'audio/ogg; codecs=opus',
             sampleRate,
             durationMs: Math.round((samples.length / sampleRate) * 1000),

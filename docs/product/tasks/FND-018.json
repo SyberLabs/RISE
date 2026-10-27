@@ -1,0 +1,40 @@
+{
+  "id": "FND-018",
+  "title": "Give static narration retakes new immutable audio URLs",
+  "lane": "shared",
+  "milestone": "Release validation",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex Mac TTS quality track",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A changed encoded recitation take has a new content-addressed URL; previously published audio bytes remain at their old paths.",
+    "Both static recitation authoring commands publish the returned audio path, keep phrase lookup keys and timing metadata, and retain already generated files without unnecessary synthesis.",
+    "No production audio regeneration, voice/provider switch, account/session/entitlement change, paid call or deployment occurs in this source candidate. Listening quality and a later audio release require separate evidence."
+  ],
+  "evidence": [
+    {
+      "kind": "observation",
+      "ref": "https://rise.syberlabs.io/audio/recitation/af_heart/10-1237qhv.opus",
+      "note": "Public HEAD at 2026-10-27T00:22Z: 200 audio/ogg, Cache-Control public,max-age=31536000,immutable; release.txt cff309ee209d88c5d1684c9d46dc3730218eb0c7. This establishes cache policy, not a demonstrated stale browser cache.",
+      "date": "2026-10-27"
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/lib/opus.test.mjs",
+      "note": "Real ffmpeg with original synthetic PCM tones. The encoder test failed against the old encoder; changed takes now have different digest paths and leave prior files intact. The real WAV conversion command preserves timing metadata and publishes a path that exists. No model/API used.",
+      "date": "2026-10-27"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-27T00:27:00.000Z",
+      "summary": "Claimed on isolated codex/tts-quality-selection after the user requested a new voice-quality/performance track. Diagnosis found static --force retakes reuse text-only URLs despite the immutable cache policy. The dormant website Plus selector candidate was independently rejected because the current site no longer loads it."
+    }
+  ],
+  "updatedAt": "2026-10-27T00:27:00.000Z",
+  "revision": 1,
+  "summary": "Source candidate for safe static voice retakes. Existing production voice assets remain unchanged; synthesis quality, hosted provider choice and listening acceptance remain open.",
+  "blocker": null
+}
