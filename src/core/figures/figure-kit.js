@@ -16,8 +16,9 @@
  * uses (textAdvance, quality/svg-layout.js), widened for the reader's fonts and for bold: a label that does not fit is refused
  * with its slot's budget, never shrunk or cut. Numbers are printed exactly as given; nothing is computed into text.
  * A brand is data, never a program: a name and three #RRGGBB colors, ground, ink and accent. The geometry, the type
- * sizes and the six kinds stay the kit's. A brand whose words would fall under the layout check's contrast is refused
- * with its ratio; nothing is tinted to make it pass.
+ * sizes and the six kinds stay the kit's. A brand sets every label in its ink at full strength, where a theme softens
+ * some: a company's ink is chosen for its ground, not for the kit's tints. A brand whose words would fall under the
+ * layout check's contrast is refused with its ratio; nothing is tinted to make it pass.
  * Pure and deterministic, and it imports nothing from the live layer.
  */
 import { MIN_CONTRAST, contrastRatio, parseColour, seenOn, textAdvance } from '../quality/svg-layout.js';
@@ -51,8 +52,6 @@ const SANS_WIDTH = 1.1;
 const BOLD_WIDTH = 1.08;
 const AVERAGE_EM = 0.56;
 const LABEL_MAX = 120;
-/** The faintest the kit sets a label in (a note, a detail, a compare's subject): the ink a brand is checked at. */
-const FAINTEST_INK = 0.6;
 /** The accent's tint behind a changed flow step, whose label is set in the accent on it. */
 const CHANGED_TINT = 0.14;
 const BRAND_KEYS = Object.freeze(['name', 'ground', 'ink', 'accent']);
@@ -394,8 +393,8 @@ function compareProblems(spec) {
 
 /**
  * What keeps the kit from drawing in `brand`, one plain sentence each; empty when it can. Every color a label is set in,
- * on what it is set on, must clear the layout check's contrast: the ink at full and at its faintest, the accent on the
- * ground and on its own tint behind a changed step.
+ * on what it is set on, must clear the layout check's contrast: the ink on the ground, the accent on the ground and on
+ * its own tint behind a changed step.
  */
 export function brandProblems(brand) {
   const shape = keysProblem('brand', brand, BRAND_KEYS, BRAND_KEYS);
@@ -409,7 +408,6 @@ export function brandProblems(brand) {
   const tint = seenOn(accent, CHANGED_TINT, ground);
   const pairs = [
     [`ink ${brand.ink} on ground ${brand.ground}`, contrastRatio(ink, ground)],
-    [`ink ${brand.ink} at ${FAINTEST_INK} opacity, the faintest a label is set, on ground ${brand.ground}`, contrastRatio(seenOn(ink, FAINTEST_INK, ground), ground)],
     [`accent ${brand.accent} on ground ${brand.ground}`, contrastRatio(accent, ground)],
     [`accent ${brand.accent} on its own tint behind a changed step`, contrastRatio(accent, tint)]
   ];
@@ -444,7 +442,7 @@ function hair(x1, y1, x2, y2, ink, opacity = 0.35, strokeWidth = 1.5) {
 
 function header(spec, t, { note = false } = {}) {
   return (spec.title === undefined ? '' : text(MARGIN, 70, spec.title, { size: SIZE.title, family: SERIF, fill: t.text }))
-    + (note && spec.note !== undefined ? text(MARGIN, 108, spec.note, { fill: t.text, opacity: 0.6 }) : '');
+    + (note && spec.note !== undefined ? text(MARGIN, 108, spec.note, { fill: t.text, opacity: t.soft(0.6) }) : '');
 }
 
 function bars(spec, t) {
@@ -456,8 +454,8 @@ function bars(spec, t) {
     const h = item.value * scale;
     const y = BAR_BASE - h;
     body += `<rect x="${number(x)}" y="${number(y)}" width="${barW}" height="${number(h)}" rx="3" fill="${item.changed ? t.accent : t.text}"${item.changed ? '' : ' fill-opacity="0.34"'}/>`;
-    body += text(x + barW / 2, y - 16, String(item.value), { size: SIZE.value, anchor: 'middle', weight: 600, fill: item.changed ? t.accent : t.text, opacity: item.changed ? 1 : 0.75, nums: true });
-    body += text(x + barW / 2, BAR_BASE + 42, item.label, { anchor: 'middle', fill: t.text, opacity: 0.7 });
+    body += text(x + barW / 2, y - 16, String(item.value), { size: SIZE.value, anchor: 'middle', weight: 600, fill: item.changed ? t.accent : t.text, opacity: item.changed ? 1 : t.soft(0.75), nums: true });
+    body += text(x + barW / 2, BAR_BASE + 42, item.label, { anchor: 'middle', fill: t.text, opacity: t.soft(0.7) });
   });
   return body + hair(x0 - 34, BAR_BASE, x0 + total + 34, BAR_BASE, t.text);
 }
@@ -513,7 +511,7 @@ function columns(spec, t) {
     const cx = centres[i];
     if (column.glyph !== undefined) body += glyph(column.glyph, cx, 168, t);
     body += text(cx, 236, column.name, { size: SIZE.column, family: SERIF, anchor: 'middle', fill: t.text });
-    column.items.forEach((item, k) => { body += text(cx, 284 + k * 38, item, { anchor: 'middle', fill: t.text, opacity: 0.8 }); });
+    column.items.forEach((item, k) => { body += text(cx, 284 + k * 38, item, { anchor: 'middle', fill: t.text, opacity: t.soft(0.8) }); });
   });
   return body;
 }
@@ -548,7 +546,7 @@ function stack(spec, t) {
     }
     if (zone.label === spec.dock) body += `<circle cx="${STACK_DOCK_X}" cy="${number(cy)}" r="11" fill="${accent}"/>`;
     body += hair(from + 6, cy, STACK_LEADER_END, cy, changed ? accent : ink, changed ? 1 : 0.3);
-    body += text(STACK_LABEL_X, cy + 9, zone.label, { fill: changed ? accent : ink, opacity: changed ? 1 : 0.8, weight: changed ? 600 : 400 });
+    body += text(STACK_LABEL_X, cy + 9, zone.label, { fill: changed ? accent : ink, opacity: changed ? 1 : t.soft(0.8), weight: changed ? 600 : 400 });
   });
   return body;
 }
@@ -563,8 +561,8 @@ function list(spec, t) {
     body += changed
       ? `<circle cx="${LIST_MARK + 10}" cy="${number(y - 9)}" r="7" fill="${t.accent}"/>`
       : hair(LIST_MARK, y - 9, LIST_MARK + 20, y - 9, t.text);
-    body += text(LIST_LABEL_X, y, item.label, { fill: changed ? t.accent : t.text, opacity: changed ? 1 : 0.8, weight: changed ? 600 : 400 });
-    if (item.detail !== undefined) body += text(detail.x, y, item.detail, { fill: changed ? t.accent : t.text, opacity: changed ? 1 : 0.6 });
+    body += text(LIST_LABEL_X, y, item.label, { fill: changed ? t.accent : t.text, opacity: changed ? 1 : t.soft(0.8), weight: changed ? 600 : 400 });
+    if (item.detail !== undefined) body += text(detail.x, y, item.detail, { fill: changed ? t.accent : t.text, opacity: changed ? 1 : t.soft(0.6) });
   });
   return body;
 }
@@ -572,13 +570,13 @@ function list(spec, t) {
 function compare(spec, t) {
   const headers = spec.headers ?? COMPARE_HEADERS;
   let body = header(spec, t);
-  body += text(MARGIN, COMPARE_HEADER, headers.before, { fill: t.text, opacity: 0.6 });
+  body += text(MARGIN, COMPARE_HEADER, headers.before, { fill: t.text, opacity: t.soft(0.6) });
   body += text(COMPARE_AFTER_X, COMPARE_HEADER, headers.after, { fill: t.accent });
   body += hair(MARGIN, COMPARE_RULE, W - MARGIN, COMPARE_RULE, t.text, 0.2);
   compareGeometry(spec.rows.length).forEach(({ subject, cells }, i) => {
     const row = spec.rows[i];
-    body += text(MARGIN, subject, row.subject, { family: SERIF, italic: true, fill: t.text, opacity: 0.6 });
-    body += text(MARGIN, cells, row.before, { fill: t.text, opacity: 0.8 });
+    body += text(MARGIN, subject, row.subject, { family: SERIF, italic: true, fill: t.text, opacity: t.soft(0.6) });
+    body += text(MARGIN, cells, row.before, { fill: t.text, opacity: t.soft(0.8) });
     const y = cells - 9;
     body += hair(COMPARE_ARROW.from, y, COMPARE_ARROW.to, y, t.text, 0.55)
       + `<path d="M${COMPARE_ARROW.to - 8} ${number(y - 7)} L${COMPARE_ARROW.to} ${number(y)} L${COMPARE_ARROW.to - 8} ${number(y + 7)}" fill="none" stroke="${t.text}" stroke-opacity="0.55" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>`;
@@ -613,7 +611,9 @@ export function renderFigure(spec, { theme, brand } = {}) {
     if (refused.length) throw new Error(`The figure kit cannot draw in this brand: ${refused.slice(0, 5).join('; ')}`);
   }
   const palette = brand === undefined ? jevPalette(theme) ?? jevPalette(DEFAULT_THEME) : null;
-  const t = brand === undefined ? { text: palette.text, accent: palette.accent } : { text: brand.ink, accent: brand.accent };
+  const t = brand === undefined
+    ? { text: palette.text, accent: palette.accent, soft: opacity => opacity }
+    : { text: brand.ink, accent: brand.accent, soft: () => 1 };
   const ground = brand === undefined ? '' : `<rect width="${W}" height="${H}" fill="${brand.ground}"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><title>${escape(spec.title ?? describe(spec))}</title>${ground}${DRAW[spec.kind](spec, t)}</svg>`;
 }

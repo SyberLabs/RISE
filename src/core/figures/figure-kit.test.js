@@ -253,7 +253,7 @@ describe('a brand', () => {
     let level = 0;
     while (brandProblems({ ...LIGHT, ink: gray(level + 1) }).length === 0) level += 1;
     const edge = { ...LIGHT, ink: gray(level) };
-    expect(brandProblems({ ...LIGHT, ink: gray(level + 1) }).join('\n')).toMatch(/at 0\.6 opacity, the faintest a label is set/);
+    expect(brandProblems({ ...LIGHT, ink: gray(level + 1) }).join('\n')).toMatch(/^ink #[0-9a-f]{6} on ground #FFFFFF is 4\.4:1/);
     for (const brand of [LIGHT, edge, asBrand(['ember', JEV_PALETTES.ember])]) {
       for (const spec of specs) {
         const svg = renderFigure(spec, { brand });
@@ -267,9 +267,14 @@ describe('a brand', () => {
     }
   });
 
-  it('sets no label fainter than the ink the brand is checked at', () => {
-    const opacities = specs.flatMap(spec => [...renderFigure(spec, { brand: LIGHT }).matchAll(/<text [^>]*fill-opacity="([\d.]+)"/g)].map(match => Number(match[1])));
-    expect(Math.min(...opacities)).toBe(0.6);
+  it('sets every label in the brand’s ink at full strength, where a theme softens some', () => {
+    const softened = svg => [...svg.matchAll(/<text [^>]*fill-opacity="/g)].length;
+    for (const spec of specs) expect(softened(renderFigure(spec, { brand: LIGHT }))).toBe(0);
+    expect(softened(renderFigure(STUDY.compare, { theme: 'cobalt' }))).toBeGreaterThan(0);
+  });
+
+  it('admits a mid-gray ink on white that a softened label would fail', () => {
+    expect(brandProblems({ ...LIGHT, ink: '#707070' })).toEqual([]);
   });
 
   const refusals = [
@@ -282,7 +287,6 @@ describe('a brand', () => {
     ['a color name', { ...LIGHT, ink: 'black' }, /brand\.ink is a color written #RRGGBB/],
     ['a color that carries markup', { ...LIGHT, accent: '#0B57D0"/><script>' }, /brand\.accent is a color written #RRGGBB/],
     ['ink too close to the ground', { ...LIGHT, ink: '#909090' }, /^ink #909090 on ground #FFFFFF is 3\.1:1; the kit needs 4\.5:1\. Choose colors further apart: nothing is tinted/],
-    ['ink that clears 4.5:1 only at full strength', { ...LIGHT, ink: '#707070' }, /^ink #707070 at 0\.6 opacity, the faintest a label is set, on ground #FFFFFF is [\d.]+:1/],
     ['an accent too close to the ground', { ...LIGHT, accent: '#9CC3FF' }, /^accent #9CC3FF on ground #FFFFFF is/],
     ['an accent that clears the ground but not its own tint', { ...LIGHT, accent: '#2B6CB0' }, /^accent #2B6CB0 on its own tint behind a changed step is 4\.4:1/]
   ];

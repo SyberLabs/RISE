@@ -7,11 +7,13 @@
   "delivery": "branch",
   "owner": "Claude",
   "priority": "now",
-  "dependencies": ["SVC-002"],
+  "dependencies": [
+    "SVC-002"
+  ],
   "acceptance": [
     "A brand is data only: a name and three #RRGGBB colors (ground, ink, accent); any other key, a short hex, a color name or markup is refused with a plain sentence. No SVG, font, CSS or code is accepted.",
-    "renderFigure(spec, { brand }) draws each of the six kinds in the brand's ink and accent on a ground the figure carries itself, with the kit's own geometry and type sizes; a theme and a brand together are refused.",
-    "A brand is refused, with its ratio, when any color a label is set in falls under the layout check's 4.5:1 on what it is set on: the ink at full and at the faintest a label is set, the accent on the ground and on its tint behind a changed step. Nothing is tinted to make a brand pass.",
+    "renderFigure(spec, { brand }) draws each of the six kinds in the brand's ink and accent on a ground the figure carries itself, with the kit's own geometry and type sizes; every label is set in the brand's ink at full strength (the owner's call, 2026-10-27), where a theme softens notes and details; a theme and a brand together are refused.",
+    "A brand is refused, with its ratio, when any color a label is set in falls under the layout check's 4.5:1 on what it is set on: the ink on the ground, the accent on the ground and on its tint behind a changed step. Nothing is tinted to make a brand pass.",
     "Every figure the kit draws in an admitted brand is admitted and layout-clean, down to the lightest ink the check admits."
   ],
   "evidence": [
@@ -30,6 +32,6 @@
   ],
   "updatedAt": "2026-10-27T17:15:00.000Z",
   "revision": 1,
-  "summary": "Step 1 of the brand record: the six kinds take a checked brand and refuse one that fails contrast. Not wired into the digest or the public workflow yet; the wordmark's place is the owner's call.",
+  "summary": "Step 1 of the brand record: the six kinds take a checked brand, set every label in its ink at full strength, and refuse one that fails contrast. Not wired into the digest or the public workflow yet; the wordmark's place is next.",
   "blocker": null
 }
