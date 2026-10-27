@@ -347,6 +347,15 @@ Earth). That is the owner's choice.
 
 An agent can run steps 1, 2, 4 and 5. Only the owner does step 3.
 
+**Step 1 and the sheet are built (task LIVE-041).** `scripts/harvest-landscape-candidates.mjs` writes
+`src/content/landscapes/candidates.generated.json`: Landscapes (Cleveland paintings and photographs, Rijksmuseum
+photographs) and Earth and sky (ESO's cut night landscapes, NASA's Earth). Each work is resolved by the Reader's own
+adapter or feed reader and its chip composed by `artwork-label.js`. The owner reviews it at
+`docs/assets/live/landscape-review.html` on the dev server and downloads `landscape-decisions.json`, which becomes the
+pins file. The Rijksmuseum route reads the image's own rights (`VisualItem.subject_to`): the Reader's adapter matches
+a public-domain address anywhere in the VisualItem, including its metadata record's CC0, and so admits In Copyright
+photographs.
+
 ## 6. The smallest first slice: astronomy hung in the safe rectangle, with its credit
 
 On `/live` only (not the card), dark room and light room, Option A, one collection.

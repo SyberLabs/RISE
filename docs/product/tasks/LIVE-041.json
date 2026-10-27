@@ -1,0 +1,47 @@
+{
+  "id": "LIVE-041",
+  "title": "Collection imagery: the Landscapes and Earth and sky candidate sheets for the owner's review",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (imagery-landscapes-candidates)",
+  "priority": "next",
+  "dependencies": ["LIVE-037"],
+  "acceptance": [
+    "A rerunnable, keyless harvest (scripts/harvest-landscape-candidates.mjs) writes src/content/landscapes/candidates.generated.json: Landscapes (Cleveland CC0 paintings and photographs, Rijksmuseum public-domain photographs) and Earth and sky (ESO's night landscapes cut from Astronomy, NASA's Earth). Every API field is validated and bounded; every image is probed; each work's licence class and chip are composed by artwork-label.js.",
+    "The owner reviews both sets by eye at docs/assets/live/landscape-review.html on the dev server: Keep, Cut and a note per card, keyboard K, C, U, N and arrows, counts per set, a filter, decisions kept in the browser and downloaded as landscape-decisions.json.",
+    "Nothing is wired into a room: no manifest entry, no pins file, no runtime change. The pins come from the owner's downloaded decisions in a later step.",
+    "Human gate: the owner's keep-or-cut decisions on both sheets."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "scripts/harvest-landscape-candidates.test.mjs",
+      "note": "Branch imagery-landscapes-candidates. node --test scripts/harvest-landscape-candidates.test.mjs: 10 passed (URL host and credential refusal, plain bounded text, pixel bounds, open/CC BY/NASA credit composition, Rijksmuseum image rights). harvest-science.mjs moved onto scripts/lib/collection-feeds.mjs: its ESO and NASA output is byte-identical before and after (--no-verify, 100 and 75 works). node scripts/ci-hygiene.mjs clean."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "docs/assets/live/landscape-review.html",
+      "note": "Agent observation, not a human's. Harvest of 2026-10-26, every image probed: Landscapes 180 (Cleveland paintings 100, Cleveland photographs 50, Rijksmuseum photographs 30), Earth and sky 78 (ESO 38, NASA 40); licences open 180, cc-by 38, public-domain-credit 40. Page rendered by Playwright on the dev server at 1440x900 and 390x844: no horizontal overflow, no console errors; K, C, a note, the Kept filter, reload persistence and the downloaded landscape-decisions.json all worked."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "src/content/imagery/adapters/rijks.js",
+      "note": "Agent finding, not fixed here: the Reader's Rijksmuseum adapter tests for a public-domain address anywhere in the VisualItem, which also carries its metadata record's CC0, so it admits In Copyright images (reproduced offline; live example rijks:200114544, image InC, metadata CC0). The harvest reads VisualItem.subject_to instead."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T23:30:00.000Z",
+      "summary": "Created and built on branch imagery-landscapes-candidates from the LIVE-IMAGERY owner decisions. Draft PR; not merged, not deployed, not reviewed by the owner."
+    }
+  ],
+  "updatedAt": "2026-10-26T23:30:00.000Z",
+  "revision": 1,
+  "summary": "Candidate sheets for Landscapes (180) and Earth and sky (78), harvested keyless with rights frozen at harvest, and a review page for the owner's keep-or-cut decisions.",
+  "blocker": null
+}
