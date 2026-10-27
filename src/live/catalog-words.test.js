@@ -26,6 +26,25 @@ describe('an engine, by its name or an alias', () => {
         expect(heard('swarm')).toEqual({ engine: 'attractor', params: { trace: 'swarm' } });
         expect(heard('filament')).toEqual({ engine: 'attractor', params: { trace: 'filament' } });
         expect(heard('rotary')).toEqual({ engine: 'harmonograph', params: { pendulums: 'rotary' } });
+        expect(heard('klee')).toEqual({ engine: 'genesis', params: {} });
+        expect(heard('show me klee lines')).toEqual({ engine: 'genesis', params: {} });
+        expect(heard('night streaks')).toEqual({ engine: 'attractor', params: { streaks: 'night' } });
+        expect(heard('show me the streaks')).toEqual({ engine: 'attractor', params: { streaks: 'night' } });
+    });
+
+    it('names the Reader’s catalog entries the room draws under another name: Klee as Genesis, night streaks under the attractor', () => {
+        expect(heard('night attractor')).toEqual({ engine: 'attractor', params: { streaks: 'night' } });
+        expect(heard('halvorsen attractor night streaks')).toEqual({ engine: 'attractor', params: { system: 'halvorsen', streaks: 'night' } });
+        expect(heard('chaotic klee')).toEqual({ engine: 'genesis', params: { preset: 'chaotic' } });
+        expect(heard('night streaks harmonograph')).toBeNull();
+        expect(heard('night')).toBeNull();
+        expect(catalogNote({ engine: 'attractor', params: { streaks: 'night' } })).toBe('Showing the attractor (night).');
+    });
+
+    it('answers a reviewed collection by its name, as it does an engine', () => {
+        expect(heard('astronomy')).toEqual({ engine: 'astronomy', params: {} });
+        expect(heard('show me astronomy')).toEqual({ engine: 'astronomy', params: {} });
+        expect(heard('Show me astronomy, please.')).toEqual({ engine: 'astronomy', params: {} });
     });
 
     it('never matches the still, or the face’s own engine', () => {
@@ -155,7 +174,8 @@ describe('the note in the bar', () => {
             rockgarden: 'Showing the rock garden.',
             harmonograph: 'Showing the harmonograph.',
             ostensoria: 'Showing Ostensoria.',
-            apparitio: 'Showing Apparitio.'
+            apparitio: 'Showing Apparitio.',
+            astronomy: 'Showing the Astronomy collection.'
         });
         expect(catalogNote({ engine: 'genesis', cue: 'calm' })).toBe('Making Genesis calmer.');
     });

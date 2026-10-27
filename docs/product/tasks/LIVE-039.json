@@ -1,0 +1,57 @@
+{
+  "id": "LIVE-039",
+  "title": "RISE Live: the Astronomy collection hung in the room, with its credit",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (live-astronomy)",
+  "priority": "next",
+  "dependencies": [
+    "LIVE-028",
+    "LIVE-029"
+  ],
+  "acceptance": [
+    "@scene <id> astronomy is read, admitted and lowered to { kind: 'sourced', collections: ['sci-astronomy'] }; a parameter on it is refused; RISE chooses the work from the reviewed collection.",
+    "In the venue a collection image is hung in the full frame's safe rectangle in every room (at most square on a tall screen, at most 3:2 on a wide one), never full-bleed and never in the inner eye or the shell; the gallery is placed there unscaled, matted in black.",
+    "The chip shows the title before the credit and licence; at 1440x900 and 390x844 its box lies inside the picture's box and meets neither the words, the ask bar, the docked face nor the sign-in link.",
+    "About this reading lists each picture the reading showed, once, with title, full credit, licence and source link.",
+    "'astronomy' and 'show me astronomy' are answered by the venue at once with no model call; the bar's note goes once the picture is hung and the room is at rest on it.",
+    "Composer's guide does not offer the collection until the card can show it; the first-load budget and the security policy are unchanged.",
+    "Human gate: the owner watches a real model's reading that uses the collection on the deployed /live, in the dark room and the light room."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/live/host/venue.test.js",
+      "note": "Branch live-astronomy. Targeted vitest over 33 files: 1261 tests, 1258 passed; the 3 failures (src/app/jev-reading.integration.test.js, content manifest HTTP 404) fail the same way without the change, the content not being built locally. New: hanging and hungRect (frames), the lowering and collectionEngine (manifests), the note clearing once the picture is hung (venue), the chip's title mark and work-shown announcement (continuous-field), About's picture lines (LiveHost), Composer not offering the collection (guide), astronomy on screen within 50 ms (runtime.catalog)."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "src/live/host/LiveHost.css",
+      "note": "Agent observation, not a human's: dev server, Playwright at 1440x900 and 390x844, 'show me astronomy' in the Demo's black-holes reading. The picture hung in the safe rectangle (829x553 desktop, 358x358 phone), the chip inside it, meeting neither the words, the bar, the docked face nor the sign-in link; no console errors; the note clears 3.3 s after the choice. The light room rendered on a throwaway merge with PR 740: right only with !hungPicture(cue) added to its hangs()."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/746",
+      "note": "Draft PR, branch live-astronomy. vite build exits 0; measure:first-load 62.9 KB of 64; ci-hygiene clean; docs:diagram regenerated and committed. Not merged, not deployed, not accepted."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T21:00:00.000Z",
+      "summary": "Built on branch live-astronomy, the first slice of LIVE-037's design (docs/plans/LIVE-IMAGERY.md on PR #743): astronomy as a native engine, hung in the full frame with its titled credit, About this reading's pictures"
+    },
+    {
+      "date": "2026-10-26T20:00:15.992Z",
+      "summary": "Draft PR 746 opened with test and render evidence"
+    }
+  ],
+  "updatedAt": "2026-10-26T20:00:15.992Z",
+  "revision": 2,
+  "summary": "The first slice of collection imagery in Live (LIVE-037): the reviewed Astronomy collection as a native engine on /live, hung in the safe rectangle in every room with its credit, titled. Not the card, not landscapes.",
+  "blocker": null
+}

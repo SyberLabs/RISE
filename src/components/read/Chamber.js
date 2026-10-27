@@ -3003,14 +3003,16 @@ export class Chamber {
     const colors = this._colourTheme ? jevColors(this._colourTheme) : sessionColorTheme(this.session);
     this._markPicture(field, 'figure');
     const words = getComputedStyle(field.querySelector('#atom-display') ?? field);
+    // A host that dresses the reading in its own room (the Live venue's light room) names the figure's ink and dark.
+    const room = getComputedStyle(field);
     const layer = mountFigureLayer({
       field,
       insertBehindReading: (host, node) => this._insertBehindReading(host, node),
       svg: cue.svg,
       // A reading that names no theme draws its figure in its words' own ink: currentColor in an image is otherwise black.
-      ink: colors?.text ?? hexOfColor(words.color),
+      ink: hexOfColor(room.getPropertyValue('--room-ink')) ?? colors?.text ?? hexOfColor(words.color),
       // Its dark parts (class dark) in the theme's dark, here its background, and its labels in the words' face (figure-layer.js).
-      dark: colors?.background ?? hexOfColor(getComputedStyle(field).backgroundColor) ?? hexOfColor(getComputedStyle(document.body).backgroundColor),
+      dark: hexOfColor(room.getPropertyValue('--room-dark')) ?? colors?.background ?? hexOfColor(room.backgroundColor) ?? hexOfColor(getComputedStyle(document.body).backgroundColor),
       face: /<text\b/u.test(cue.svg) ? embeddedFace(document, words.fontFamily) : null,
       onError: () => {
         failed('image', 'the figure could not be drawn as an image');

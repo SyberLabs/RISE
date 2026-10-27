@@ -2413,3 +2413,28 @@ describe('a provider’s voice on the reader’s key (design §8 stage 7)', () =
         expect(host.voiceKind).toBe('browser');
     });
 });
+
+describe('the pictures a reading showed, in About this reading (docs/plans/LIVE-IMAGERY.md §4.2)', () => {
+    const pillars = {
+        title: 'Pillars of Creation', creditRequired: true, licence: 'cc-by',
+        rightsBasis: 'Creative Commons Attribution 4.0 International License',
+        fullCredit: 'NASA, ESA and the Hubble Heritage Team (STScI/AURA). Acknowledgement: P. Scowen', requiredText: 'NASA, ESA and the Hubble Heritage Team (STScI/AURA) · CC BY 4.0',
+        sourceUrl: 'https://esahubble.org/images/heic1501a/'
+    };
+    const shown = label => container.querySelector('#somewhere').dispatchEvent(new CustomEvent('rise:work-shown', { bubbles: true, detail: { label } }));
+
+    it('lists each picture once, with its title, its whole credit, its licence and where it is from; and only this reading’s', () => {
+        mount();
+        container.insertAdjacentHTML('beforeend', '<div id="somewhere"></div>');
+        expect(host.aboutReading()).not.toMatch(/^picture:/mu);
+        const reading = () => ({ journal: () => [], stop: () => {} });
+        host.runtime = reading();
+        shown(pillars);
+        shown(pillars);
+        shown(null);
+        const lines = host.aboutReading().split('\n').filter(line => line.startsWith('picture:'));
+        expect(lines).toEqual(['picture: Pillars of Creation — NASA, ESA and the Hubble Heritage Team (STScI/AURA). Acknowledgement: P. Scowen — Creative Commons Attribution 4.0 International License — https://esahubble.org/images/heic1501a/']);
+        host.runtime = reading();
+        expect(host.aboutReading()).not.toMatch(/^picture:/mu);
+    });
+});

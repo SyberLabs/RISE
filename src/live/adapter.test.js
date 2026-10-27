@@ -141,6 +141,14 @@ describe('the channel', () => {
 });
 
 describe('a request to open', () => {
+    it('carries a room of RISE’s own visuals to the composer, never to the illustrator, and no other pictures', () => {
+        const parent = { currentId: 'a', segmentId: 's2', atCharacter: 12, context: ['A black hole is a region.'] };
+        expect(validateOpenRequest({ intent: 'dive', prompt: 'the event horizon', parent, pictures: 'rise' }).pictures).toBe('rise');
+        expect(validateOpenRequest({ intent: 'answer', prompt: 'Why?', pictures: 'rise' })).toEqual({ intent: 'answer', prompt: 'Why?', pictures: 'rise' });
+        expect(() => validateOpenRequest({ intent: 'answer', prompt: 'Why?', pictures: 'drawn' })).toThrow(expect.objectContaining({ code: 'OPEN_REQUEST' }));
+        expect(() => validateOpenRequest({ intent: 'illustrate', prompt: 'a cell', pictures: 'rise', illustration: { medium: 'figure', attempt: 1, said: [] } })).toThrow(expect.objectContaining({ code: 'OPEN_REQUEST' }));
+    });
+
     it('is a plain, bounded object', () => {
         expect(validateOpenRequest({ intent: 'answer', prompt: 'Explain black holes.' })).toEqual({
             intent: 'answer', prompt: 'Explain black holes.'

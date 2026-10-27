@@ -78,9 +78,13 @@ export function createLiveRuntime({
     // Told every journal entry as it is written, so a host can show the voice's trace where a reader can copy it.
     onNote = null,
     // The typesetter: fetched at the first sign of maths, and how a passage is said (math-typeset.js).
-    maths = { load: loadMath, speakable }
+    maths = { load: loadMath, speakable },
+    // Who draws a picture the composer asks for that no engine answers (illustrator.js): the room's adapter, another
+    // model's, or null for a room that shows RISE's own visuals only.
+    illustrator = adapter
 }) {
     assertAdapter(adapter);
+    if (illustrator !== null) assertAdapter(illustrator);
     if (typeof createPlayer !== 'function') throw new TypeError('A runtime is handed the host’s Player factory');
 
     /** The typesetter has loaded, failed, or been waited for mathWaitMs: no passage waits for it any more. */
@@ -896,14 +900,17 @@ export function createLiveRuntime({
          * is shown at once and the reading plays on, with no request. `{ engine, params }` starts that engine from the
          * phrase on screen, as a picture is placed; `{ engine, cue }` cues the engine running. From the passage it was
          * chosen in, the model's own scenes, cues, visual changes and pictures are held until the reader next asks RISE
-         * something inside the reading (docs/plans/LIVE-CURRENT.md §25). Returns whether it was shown: false leaves the
-         * reading held, and nothing changed.
+         * something inside the reading (docs/plans/LIVE-CURRENT.md §25). A reading the reader paused takes it too, and
+         * plays on as Play would: a chosen visual is shown as the reading moves. Returns whether it was shown: false
+         * leaves the reading held, and nothing changed.
          */
         chooseVisual({ engine, params, cue } = {}) {
-            if (interjection.state !== 'held') throw new LiveRuntimeError('NOT_HELD', 'A visual is chosen while the reading is held for the reader');
+            const paused = status === 'interrupted' && interjection.state === 'none' && Boolean(main?.player) && !main.finished;
+            if (interjection.state !== 'held' && !paused) throw new LiveRuntimeError('NOT_HELD', 'A visual is chosen while the reading is held for the reader');
             const shown = params === undefined ? cueChosen(engine, cue) : engineChosen(engine, params, cue);
             if (!shown) return false;
-            step('cancel');
+            if (paused) note('resume', { reason: 'user', ...here() });
+            else step('cancel');
             playOn();
             return true;
         },
@@ -1384,12 +1391,14 @@ export function createLiveRuntime({
             admitPicture(item, { engine: native.engine, ...(Object.keys(native.params).length ? { params: native.params } : {}) }, 'cue');
             return;
         }
+        // A room that shows RISE's own visuals only draws nothing: what no engine answers is let go, unsaid.
+        if (illustrator === null) { dropPicture(item, 'RISE_VISUALS_ONLY'); return; }
         item.medium = rung;
         item.controller = new AbortController();
         set(status);
         void Promise.resolve()
             .then(() => draw({
-                adapter, brief, medium: rung, room: illustrationRoom(entry, running), signal: item.controller.signal,
+                adapter: illustrator, brief, medium: rung, room: illustrationRoom(entry, running), signal: item.controller.signal,
                 now: () => clock.now(), onNote: (type, body) => note(type, { n, ...body })
             }))
             .catch(caught => ({ status: 'failed', reason: String(caught?.code ?? 'FAILED').slice(0, 80), attempts: 0 }))

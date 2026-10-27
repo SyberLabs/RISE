@@ -61,7 +61,7 @@ export { describeManifests } from '../scenes/manifests.js';
 /** What a native scene's parameters and cues may be, by the same route: the line format checks them as it reads. */
 export { cueCommands, validateSceneParams } from '../scenes/manifests.js';
 /** The manifests themselves, by the same route: the reader's catalog words are read from them (live/catalog-words.js). */
-export { manifestFor, SCENE_MANIFESTS } from '../scenes/manifests.js';
+export { collectionEngine, manifestFor, SCENE_MANIFESTS } from '../scenes/manifests.js';
 
 /**
  * Whether some engine takes a command while it runs, as controlVisual takes one: with a surface, that engine; without,

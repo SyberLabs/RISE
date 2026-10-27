@@ -24,12 +24,18 @@
  * This file is sent to the worker as text (?raw) and loaded from a blob: it imports nothing.
  */
 
-/** Skins: core (the pupil's heart), iris, glow (field and nodes), deep (the pupil's depth), trail (the room's dark). */
+/**
+ * Skins: core (the pupil's heart), iris, glow (field and nodes), deep (the pupil's depth), trail (the room's ground).
+ * A `light` skin is a pale room drawn as glaze on porcelain: its heart is a white highlight, its lines darken what is
+ * under them rather than lighten it, its trail fades up to its ground rather than down, and its `ink` is the room's
+ * words (a dark skin's words are its core).
+ */
 export const ORACLE_SKINS = Object.freeze({
     sophia: Object.freeze({ core: [245, 245, 220], iris: [135, 206, 235], glow: [176, 196, 222], deep: [25, 25, 112], trail: [10, 10, 15] }),
     ember: Object.freeze({ core: [255, 236, 210], iris: [240, 163, 107], glow: [214, 120, 92], deep: [70, 20, 20], trail: [14, 9, 8] }),
     jade: Object.freeze({ core: [236, 245, 230], iris: [143, 211, 181], glow: [120, 180, 150], deep: [10, 50, 40], trail: [7, 12, 10] }),
-    silver: Object.freeze({ core: [250, 250, 250], iris: [207, 211, 218], glow: [160, 166, 176], deep: [30, 32, 40], trail: [9, 9, 11] })
+    silver: Object.freeze({ core: [250, 250, 250], iris: [207, 211, 218], glow: [160, 166, 176], deep: [30, 32, 40], trail: [9, 9, 11] }),
+    porcelain: Object.freeze({ core: [255, 253, 248], iris: [47, 95, 179], glow: [168, 192, 230], deep: [14, 27, 54], trail: [244, 239, 230], ink: [23, 42, 79], light: true })
 });
 
 /** Each state is a set of targets the face eases toward (time constant 0.18 s): nothing snaps. */
@@ -253,7 +259,7 @@ export default function oracle(rise) {
     /** The torus; `m` carries it to the shell's rim, at 0.445 with a thin tube. */
     function drawTorus(f, m) {
         ctx.save();
-        ctx.globalCompositeOperation = 'screen';
+        ctx.globalCompositeOperation = skin.light ? 'multiply' : 'screen';
         ctx.strokeStyle = rgba(skin.glow, mix(0.04 + gaze.depth * 0.08 + live.glow * 0.03, 0.16, m));
         ctx.lineWidth = 0.5;
         const R = mix(f.s * 0.30 * live.tight, f.s * 0.445, m);
@@ -297,10 +303,17 @@ export default function oracle(rise) {
                 ctx.stroke();
             }
             const g = ctx.createRadialGradient(x, y, 0, x, y, pulse);
-            g.addColorStop(0, rgba(skin.core, 0.7 * node.lit));
-            g.addColorStop(0.4, rgba(skin.glow, 0.5 * node.lit));
-            g.addColorStop(0.7, rgba(skin.iris, 0.3 * node.lit));
-            g.addColorStop(1, rgba(skin.iris, 0));
+            if (skin.light) {
+                // On a pale ground a light is a bead of ink: densest at its heart, not a pale heart in a dark ring.
+                g.addColorStop(0, rgba(skin.iris, 0.6 * node.lit));
+                g.addColorStop(0.45, rgba(skin.glow, 0.35 * node.lit));
+                g.addColorStop(1, rgba(skin.glow, 0));
+            } else {
+                g.addColorStop(0, rgba(skin.core, 0.7 * node.lit));
+                g.addColorStop(0.4, rgba(skin.glow, 0.5 * node.lit));
+                g.addColorStop(0.7, rgba(skin.iris, 0.3 * node.lit));
+                g.addColorStop(1, rgba(skin.iris, 0));
+            }
             ctx.beginPath();
             ctx.arc(x, y, pulse, 0, TAU);
             ctx.fillStyle = g;
@@ -561,13 +574,16 @@ export default function oracle(rise) {
         ctx.arc(ap.x, ap.y, ap.r, 0, TAU);
         ctx.clip();
         clearHole(() => nonagon(ap.x, ap.y, ap.hole * ap.r * 1.12, ap.turn * 1.3));
+        // A light room's aperture is a window on a night of its own (LiveHost.css): the visual fades in from that night
+        // and blends into it at the rim, never into the pale ground, which over the night would be grey.
+        const behind = skin.light ? skin.deep : skin.trail;
         if (ap.fade < 1) {
-            ctx.fillStyle = rgba(skin.trail, 1 - ap.fade);
+            ctx.fillStyle = rgba(behind, 1 - ap.fade);
             ctx.fillRect(ap.x - ap.r, ap.y - ap.r, 2 * ap.r, 2 * ap.r);
         }
         const edge = ctx.createRadialGradient(ap.x, ap.y, ap.r * 0.86, ap.x, ap.y, ap.r);
-        edge.addColorStop(0, rgba(skin.trail, 0));
-        edge.addColorStop(1, rgba(skin.trail, 0.85));
+        edge.addColorStop(0, rgba(behind, 0));
+        edge.addColorStop(1, rgba(behind, 0.85));
         ctx.fillStyle = edge;
         ctx.fillRect(ap.x - ap.r, ap.y - ap.r, 2 * ap.r, 2 * ap.r);
         ctx.restore();
@@ -641,9 +657,17 @@ export default function oracle(rise) {
             // each channel's maximum: what went below is the ground again, exactly; what is brighter is untouched.
             // Laid back over the whole canvas, it also fills what the last aperture left clear, so nothing of the
             // visual shows through but the aperture this frame cuts.
-            ctx.fillStyle = rgba(skin.trail.map(level => Math.max(0, level - 8)), 0.08);
+            // A light skin is the mirror, laid back by each channel's minimum, but not by aiming above its ground:
+            // a faint fade up stalls as far as 14 levels short of its aim, and a pale ground has no such room above
+            // it. It fades toward the ground itself and adds 2 levels a frame, which always arrives.
+            ctx.fillStyle = rgba(skin.light ? skin.trail : skin.trail.map(level => Math.max(0, level - 8)), 0.08);
             ctx.fillRect(0, 0, width, height);
-            ctx.globalCompositeOperation = 'lighten';
+            if (skin.light) {
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = rgba([2, 2, 2], 1);
+                ctx.fillRect(0, 0, width, height);
+            }
+            ctx.globalCompositeOperation = skin.light ? 'darken' : 'lighten';
             ctx.fillStyle = rgba(skin.trail, 1);
             ctx.fillRect(0, 0, width, height);
             ctx.globalCompositeOperation = 'source-over';

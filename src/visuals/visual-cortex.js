@@ -808,7 +808,7 @@ export class VisualCortex {
         this._nextCueTransitionMs = Number.isFinite(meta.transitionMs)
             ? Math.max(0, meta.transitionMs)
             : null;
-        this._notifyContinuousPoolChanged();
+        this._notifyContinuousPoolChanged({ wake: true });
         return true;
     }
 
@@ -929,7 +929,7 @@ export class VisualCortex {
                 // it can wait a full dwell interval and visually skip a short
                 // episode such as Matthew 27's one-verse flagellation.
                 if (this._isContinuousMode()) {
-                    this._notifyContinuousPoolChanged();
+                    this._notifyContinuousPoolChanged({ wake: true });
                 }
             }
             return status;
@@ -2235,8 +2235,11 @@ export class VisualCortex {
         this._syncSequenceVideoCue();
     }
 
-    /** A pericope/cue pool change: the field crossfades to the new pool. */
-    _notifyContinuousPoolChanged() {
+    /**
+     * A pericope/cue pool change: the field crossfades to the new pool. `wake`: the pool warmed or a prepared cue was
+     * admitted, which moves a work held over from another pool and leaves one of this pool's (ContinuousField.poolChanged).
+     */
+    _notifyContinuousPoolChanged({ wake = false } = {}) {
         if (this._continuousField && this._continuousField.running) {
             // Stillness is a cue with no sourced categories at all (a
             // works-less pericope); an empty pool WITH active categories is
@@ -2246,6 +2249,7 @@ export class VisualCortex {
             this._nextCueTransitionMs = null;
             this._continuousField.poolChanged({
                 stillness,
+                ...(wake ? { wake } : {}),
                 ...(Number.isFinite(transitionMs) ? { transitionMs } : {})
             });
         }

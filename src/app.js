@@ -996,6 +996,12 @@ class App {
             cardVoice: '',
             // RISE's face in the Live venue, by skin (src/live/host/face-still.js FACE_SKINS); Sophia unless the reader chose.
             liveFace: 'sophia',
+            // The OpenRouter model the Live venue asks, by its id; empty is the adapter's default (openrouter-model.js).
+            liveOpenRouterModel: '',
+            // Who makes the Live venue's pictures (venue.js picturesPolicy): '' until the reader chooses, and the model
+            // that draws them when it is another OpenRouter model.
+            livePictures: '',
+            livePicturesModel: '',
 
             // Audio
             masterVolume: 0.75,
@@ -1060,7 +1066,12 @@ class App {
                 // Checked where it is used: a name no installed voice has is Automatic (LiveHost.js).
                 cardVoice: typeof merged.cardVoice === 'string' ? merged.cardVoice.slice(0, 200) : defaultSettings.cardVoice,
                 // Checked where it is used: a skin the face does not have is Sophia (src/live/host/venue.js).
-                liveFace: typeof merged.liveFace === 'string' ? merged.liveFace.slice(0, 20) : defaultSettings.liveFace
+                liveFace: typeof merged.liveFace === 'string' ? merged.liveFace.slice(0, 20) : defaultSettings.liveFace,
+                // Checked where it is used: a name that is not a model id is refused before anything is sent (openrouter.js).
+                liveOpenRouterModel: typeof merged.liveOpenRouterModel === 'string' ? merged.liveOpenRouterModel.slice(0, 240) : defaultSettings.liveOpenRouterModel,
+                // Checked where they are used: a choice the venue does not offer is unchosen (venue.js).
+                livePictures: typeof merged.livePictures === 'string' ? merged.livePictures.slice(0, 8) : defaultSettings.livePictures,
+                livePicturesModel: typeof merged.livePicturesModel === 'string' ? merged.livePicturesModel.slice(0, 240) : defaultSettings.livePicturesModel
             };
             for (const key of booleanKeys) this.settings[key] = merged[key] === true;
         } catch (e) {

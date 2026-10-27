@@ -1,8 +1,9 @@
 # A public repository runs this on its own runner. The model credential stays in
 # that repository's secrets. RISE's code is the pinned commit of this file
-# (github.workflow_sha); the caller's dependencies are never installed. The
-# repository is github.repository, which the script refuses unless GitHub says
-# it is public. RISE does not fetch the branch this writes.
+# (job.workflow_sha: in a called workflow, github.workflow_sha names the
+# caller's commit, which is not in RISE); the caller's dependencies are never
+# installed. The repository is github.repository, which the script refuses
+# unless GitHub says it is public. RISE does not fetch the branch this writes.
 #
 # jobs:
 #   changes:
@@ -55,7 +56,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           repository: SyberLabs/RISE
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ job.workflow_sha }}
           persist-credentials: false
           path: rise
 

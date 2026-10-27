@@ -104,6 +104,12 @@ function mount(search = '', environment = env(), options = {}) {
 const $ = selector => document.querySelector(selector);
 const question = () => $('#live-venue-question');
 const radios = () => [...container.querySelectorAll('input[name="live-venue-provider"]')];
+/** An element's text as shown: what a [hidden] part holds is not. */
+const shown = element => {
+    const copy = element.cloneNode(true);
+    for (const hidden of copy.querySelectorAll('[hidden]')) hidden.remove();
+    return copy.textContent;
+};
 const choose = id => {
     const radio = radios().find(item => item.value === id);
     radio.checked = true;
@@ -143,7 +149,8 @@ describe('the venue is /live in the app', () => {
         mount();
         const answered = $('[data-venue-open="providers"]');
         const spoken = $('[data-venue-open="voices"]');
-        expect($('.live-venue__choices').textContent).toBe('Answered by Demo · spoken by your device');
+        // The Demo's readings come with their pictures: it names no choice of who makes them.
+        expect(shown($('.live-venue__choices'))).toBe('Answered by Demo · spoken by your device');
         const panel = $('#live-venue-providers-panel');
         expect(panel.hidden).toBe(true);
         answered.click();
@@ -161,6 +168,71 @@ describe('the venue is /live in the app', () => {
         $('.live-venue').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         expect($('#live-venue-voices-panel').hidden).toBe(true);
         expect(document.activeElement).toBe(spoken);
+    });
+
+    it('names who makes the pictures for a model: RISE for a free one until the reader chooses, and keeps their choice', async () => {
+        const kept = [];
+        mount('?voice=paced', env(), { getSettings: () => ({ liveOpenRouterModel: 'nvidia/nemotron-3.5-lightning:free' }), onSettingChange: (key, value) => kept.push([key, value]) });
+        choose('openrouter');
+        const pictures = $('[data-venue-open="pictures"]');
+        expect(shown($('.live-venue__choices'))).toBe('Answered by OpenRouter · pictures by RISE · spoken by your device');
+        expect(pictures.getAttribute('aria-label')).toBe('Who makes the pictures: RISE');
+        // A model that is not free draws its own, unchosen.
+        $('#live-venue-model').value = 'anthropic/claude-haiku-5.5';
+        $('#live-venue-model').dispatchEvent(new Event('input', { bubbles: true }));
+        expect(pictures.textContent).toBe('the same model');
+        pictures.click();
+        expect($('#live-venue-pictures-panel').hidden).toBe(false);
+        const picture = value => $(`input[name="live-venue-pictures"][value="${value}"]`);
+        expect(picture('same').checked).toBe(true);
+        picture('model').checked = true;
+        picture('model').dispatchEvent(new Event('change', { bubbles: true }));
+        expect(kept).toContainEqual(['livePictures', 'model']);
+        // Another model draws them, named under its choice; empty is OpenRouter's default.
+        const model = $('#live-venue-pictures-model');
+        expect(picture('model').closest('label').nextElementSibling.querySelector('#live-venue-pictures-model')).toBe(model);
+        expect(pictures.textContent).toBe('claude-haiku-5.5');
+        model.value = 'openai/gpt-5.4-mini';
+        model.dispatchEvent(new Event('input', { bubbles: true }));
+        model.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(pictures.textContent).toBe('gpt-5.4-mini');
+        expect(kept).toContainEqual(['livePicturesModel', 'openai/gpt-5.4-mini']);
+        // Another model is OpenRouter's: with a keyed provider it cannot be chosen, and the model that answers draws.
+        choose('anthropic');
+        expect(picture('model').disabled).toBe(true);
+        expect(pictures.textContent).toBe('the same model');
+    });
+
+    it('asks a RISE-visuals room with no drawing: the composer told so, a drawn scene refused, no illustrator', async () => {
+        const opened = [];
+        let made = 0;
+        const fakeAdapter = { id: 'fake', capabilities: {}, open: async request => { opened.push(request); return {}; }, admitScene: () => null };
+        const providers = Object.freeze([
+            Object.freeze({ id: 'mock', label: 'Demo (no key)', credential: 'none', adapter: async () => fakeAdapter }),
+            Object.freeze({ id: 'openrouter', label: 'OpenRouter (your key)', credential: 'openrouter', adapter: async () => { made += 1; return fakeAdapter; } })
+        ]);
+        mount('?voice=paced', env(), { providers, getSettings: () => ({ livePictures: 'rise' }) });
+        choose('openrouter');
+        const adapter = await host.venue.adapterFor({ clock: null });
+        await adapter.open({ intent: 'answer', prompt: 'Why?' });
+        await adapter.open({ intent: 'illustrate', prompt: 'a cell' });
+        expect(opened.map(request => request.pictures)).toEqual(['rise', undefined]);
+        expect(adapter.admitScene({ id: 'cell', svg: '<svg/>' })).toBe('Scene "cell" was refused: this room shows RISE’s own visuals only.');
+        expect(await host.venue.illustratorFor({ clock: null })).toBeNull();
+        // The model that answers: its own admission, and the room's adapter draws.
+        $('input[name="live-venue-pictures"][value="same"]').checked = true;
+        $('input[name="live-venue-pictures"][value="same"]').dispatchEvent(new Event('change', { bubbles: true }));
+        await adapter.open({ intent: 'answer', prompt: 'Why?' });
+        expect(opened.at(-1).pictures).toBeUndefined();
+        expect(adapter.admitScene({ id: 'cell', svg: '<svg/>' })).toBeNull();
+        expect(await host.venue.illustratorFor({ clock: null })).toBeUndefined();
+        // Another model: its own adapter, made once.
+        $('input[name="live-venue-pictures"][value="model"]').checked = true;
+        $('input[name="live-venue-pictures"][value="model"]').dispatchEvent(new Event('change', { bubbles: true }));
+        const drawer = await host.venue.illustratorFor({ clock: null });
+        expect(drawer).not.toBe(adapter);
+        expect(await host.venue.illustratorFor({ clock: null })).toBe(drawer);
+        expect(made).toBe(2);
     });
 
     it('keeps a choice opened while the page fades in: the arrival gives the question focus only when the reader has not moved into the room', () => {
@@ -430,6 +502,35 @@ describe('whose key', () => {
         expect(container.querySelector('.live-venue__credential').textContent).toMatch(/Connected/u);
         ask('Why?');
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalledWith('Why?'));
+    });
+
+    it('asks the OpenRouter model the reader names under it, remembered as a setting; empty asks the default', async () => {
+        let made = null;
+        const providers = Object.freeze([
+            Object.freeze({ id: 'mock', label: 'Demo (no key)', credential: 'none', adapter: async () => ({}) }),
+            Object.freeze({ id: 'openrouter', label: 'OpenRouter (your key)', credential: 'openrouter', adapter: async options => { made = options; return {}; } })
+        ]);
+        const kept = [];
+        mount('?voice=paced', env(), { providers, getSettings: () => ({ liveOpenRouterModel: 'nvidia/nemotron-3.5-lightning:free' }), onSettingChange: (key, value) => kept.push([key, value]) });
+        choose('openrouter');
+        const model = $('#live-venue-model');
+        expect(model.value).toBe('nvidia/nemotron-3.5-lightning:free');
+        expect(model.placeholder).toBe('anthropic/claude-haiku-5.5');
+        expect(container.querySelector('label[for="live-venue-model"]').textContent).toBe('Model');
+        await host.venue.adapterFor({ clock: null });
+        expect(made.getModel()).toBe('nvidia/nemotron-3.5-lightning:free');
+        // Typed, it is the model of the next request at once; let go of, it is kept.
+        model.value = ' google/gemma-4-31b-it:free ';
+        model.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(made.getModel()).toBe('google/gemma-4-31b-it:free');
+        model.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(kept).toEqual([['liveOpenRouterModel', 'google/gemma-4-31b-it:free']]);
+        model.value = '';
+        model.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(made.getModel()).toBeUndefined();
+        // Another provider shows no model field.
+        choose('mock');
+        expect($('#live-venue-model')).toBeNull();
     });
 
     it('connecting keeps /live and the question for the round trip in this tab', async () => {
@@ -779,6 +880,20 @@ describe('catalog words: the reader names one of RISE’s own visuals (§25)', (
         expect(runtime.interject).not.toHaveBeenCalled();
     });
 
+    it('in a reading the reader paused, shows it all the same: no new reading, nothing asked', async () => {
+        const runtime = await playing();
+        runtime.set('interrupted');
+        askAgain('astronomy');
+        expect(runtime.chooseVisual).toHaveBeenCalledWith({ engine: 'astronomy', params: {} });
+        expect(runtime.interject).not.toHaveBeenCalled();
+        expect(note()).toBe('Showing the Astronomy collection.');
+        expect(host.buildRuntime).toHaveBeenCalledTimes(1);
+        // Anything else in a paused reading is a question, as before.
+        runtime.set('interrupted');
+        askAgain('What is a nebula?');
+        await vi.waitFor(() => expect(host.buildRuntime).toHaveBeenCalledTimes(2));
+    });
+
     it('asks the model as before for anything else, and for what the reading could not show', async () => {
         const runtime = await playing();
         askAgain('attractor, and why does it never repeat?');
@@ -931,7 +1046,7 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         ask('First?');
         await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
         const choice = $('#rise-settings-face');
-        expect([...choice.options].map(option => option.textContent)).toEqual(['Sophia', 'Ember', 'Jade', 'Silver']);
+        expect([...choice.options].map(option => option.textContent)).toEqual(['Sophia', 'Ember', 'Jade', 'Silver', 'Porcelain']);
         expect(choice.value).toBe('jade');
         choice.value = 'ember';
         choice.dispatchEvent(new Event('change', { bubbles: true }));
@@ -944,6 +1059,35 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         host.destroy();
         host = null;
         expect(rootStyle().getPropertyValue('--live-ground')).toBe('');
+    });
+
+    it('makes a light room of a light face, hangs a full-bleed visual there as a picture, and leaves no mark behind', async () => {
+        const root = document.documentElement;
+        mount('?voice=paced', env(), { getSettings: () => ({ liveFace: 'porcelain' }) });
+        expect(root.dataset.liveRoom).toBe('light');
+        // The room's words are the skin's ink, and its night for what is made of light is the skin's deep.
+        expect(root.style.getPropertyValue('--live-ground')).toBe('rgb(244, 239, 230)');
+        expect(root.style.getPropertyValue('--live-core')).toBe('rgb(23, 42, 79)');
+        expect(root.style.getPropertyValue('--live-deep')).toBe('rgb(14, 27, 54)');
+        const genesis = { kind: 'field', renderer: 'genesis', config: {} };
+        const attractor = { kind: 'field', renderer: 'attractor', config: {} };
+        expect(host.venue.hangs(genesis)).toBe(true);
+        expect(host.venue.hangs(attractor)).toBe(false);
+        // A sourced image is placed by the gallery itself, its credit at its own size: never scaled again.
+        expect(host.venue.hangs({ kind: 'field', renderer: 'sourced', config: {} })).toBe(false);
+        ask('First?');
+        await vi.waitFor(() => expect(runtimes[0]?.start).toHaveBeenCalled());
+        const choice = $('#rise-settings-face');
+        choice.value = 'sophia';
+        choice.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(root.dataset.liveRoom).toBeUndefined();
+        expect(host.venue.hangs(genesis)).toBe(false);
+        choice.value = 'porcelain';
+        choice.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(root.dataset.liveRoom).toBe('light');
+        host.destroy();
+        host = null;
+        expect(root.dataset.liveRoom).toBeUndefined();
     });
 
     it('listens while the reader types, thinks from the ask until the first words, then withdraws', async () => {
@@ -1062,7 +1206,60 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
     afterEach(() => {
         delete root().dataset.liveFrame;
         delete root().dataset.liveFit;
+        delete root().dataset.liveHang;
         root().removeAttribute('style');
+    });
+
+    it('holds a collection image in Sophia’s circle, credited under it as a museum label, and takes the credit down after', async () => {
+        const { crank, chamber } = await room({ kind: 'sourced', collections: ['sci-astronomy'] });
+        crank(2000);
+        expect(engine().places.at(-1)).toMatchObject({ frame: 'shell' });
+        expect(root().dataset.liveHang).toBeUndefined();
+        expect($('.live-credit')).toBeNull();
+        // The gallery says which work it shows: its title, then the credit that names only its makers.
+        const label = { title: 'Hubble’s View of Jupiter', creditRequired: true, requiredText: 'NASA, ESA · CC BY 4.0', labelText: 'Hubble’s View of Jupiter' };
+        document.body.dispatchEvent(new CustomEvent('rise:work-shown', { bubbles: true, detail: { label, text: label.requiredText } }));
+        crank(32);
+        const credit = $('.live-credit');
+        expect(credit.textContent).toBe('Hubble’s View of Jupiter · NASA, ESA · CC BY 4.0');
+        const { aperture } = engine().places.at(-1);
+        expect(credit.style.left).toBe(`${aperture.x}px`);
+        expect(Number.parseFloat(credit.style.top)).toBeGreaterThan(aperture.y + aperture.r);
+        expect(credit.style.opacity).toBe(String(aperture.open));
+        // Another visual has no credit under it.
+        chamber.cue = { kind: 'field', renderer: 'attractor', config: {} };
+        crank(2000);
+        expect($('.live-credit')).toBeNull();
+        chamber.cue = { kind: 'sourced', collections: ['sci-astronomy'] };
+        crank(2000);
+        expect($('.live-credit')).not.toBeNull();
+        await host.venue.leave();
+        expect($('.live-credit')).toBeNull();
+    });
+
+    it('hangs a collection image in the safe rectangle where the face does not draw, at its own size, and takes it down after', async () => {
+        const { crank, chamber, field } = await room({ kind: 'sourced', collections: ['sci-astronomy'] });
+        $('.live-face').dataset.faceDrawn = 'false';
+        crank(2000);
+        const px = name => Number.parseFloat(field.style.getPropertyValue(name));
+        expect(root().dataset.liveHang).toBe('true');
+        expect(px('--live-hw')).toBeLessThanOrEqual(window.innerWidth - 32);
+        expect(px('--live-hw')).toBeLessThanOrEqual(1.5 * px('--live-hh') + 1e-9);
+        expect(px('--live-hx')).toBeCloseTo((window.innerWidth - px('--live-hw')) / 2, 9);
+        // 12 px below the corner's sign-in link, whose foot is 54 px down.
+        expect(px('--live-hy')).toBeGreaterThan(66 - 1e-9);
+        expect(px('--live-hh')).toBeGreaterThan(0);
+        expect(px('--live-hh')).toBeLessThanOrEqual(px('--live-hw'));
+        chamber.cue = { kind: 'field', renderer: 'genesis', config: {} };
+        crank(2000);
+        expect(root().dataset.liveHang).toBeUndefined();
+        expect(field.style.getPropertyValue('--live-hw')).toBe('');
+        chamber.cue = { kind: 'sourced', collections: ['sci-astronomy'] };
+        crank(2000);
+        expect(root().dataset.liveHang).toBe('true');
+        await host.venue.leave();
+        expect(root().dataset.liveHang).toBeUndefined();
+        expect(field.style.getPropertyValue('--live-hw')).toBe('');
     });
 
     it('frames the visual on screen as it chooses: the root marked, the layers scaled by the one geometry the face is sent', async () => {
@@ -1287,6 +1484,18 @@ describe('the three frames: the face holds each visual the reading shows (§23)'
         crank(1400);
         expect(note()).toBe('Showing Genesis.');
         crank(200);
+        expect(note()).toBe('');
+    });
+
+    it('lets a collection’s note go once its picture is in the circle and the room is at rest on it', async () => {
+        const { crank, chamber } = await room({ kind: 'field', renderer: 'attractor', config: {} });
+        crank(1700);
+        const note = () => $('.live-again__note').textContent;
+        askAgain('show me astronomy');
+        expect(note()).toBe('Showing the Astronomy collection.');
+        chamber.cue = { kind: 'sourced', collections: ['sci-astronomy'] };
+        crank(6000);
+        expect(engine().places.at(-1)).toMatchObject({ frame: 'shell', aperture: { hole: 1 } });
         expect(note()).toBe('');
     });
 

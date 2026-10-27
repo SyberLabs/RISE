@@ -9,11 +9,14 @@
  * rim come from the same numbers.
  */
 
-/** Which frame each visual takes: a single drawn object the inner eye, a radial moving field the shell, a picture that needs the room the full frame. */
+/**
+ * Which frame each visual takes: a single drawn object the inner eye, a radial moving field or a collection's
+ * photograph the shell (Sophia's own circle round it), a picture that needs the room the full frame.
+ */
 export const FRAME_OF = Object.freeze({
-    attractor: 'shell', 'living-flame': 'shell', turrell: 'shell',
+    attractor: 'shell', 'living-flame': 'shell', turrell: 'shell', sourced: 'shell',
     harmonograph: 'inner', ostensoria: 'inner', apparitio: 'inner',
-    genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', sourced: 'full', figure: 'full', scene: 'full'
+    genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', 'night-streaks': 'full', figure: 'full', scene: 'full'
 });
 
 /**
@@ -131,9 +134,12 @@ export function visualOf(cue) {
     return cue.kind ?? null;
 }
 
-/** The frame a cue takes, or null for no visual (the eye). A kind the table does not name takes the whole room. */
+/**
+ * The frame a cue takes, or null for no visual (the eye). A kind the table does not name takes the whole room. Night
+ * streaks under the attractor are drawn off the centre line, so they take the room's frame, not the attractor's.
+ */
 export function frameOf(cue) {
-    const visual = visualOf(cue);
+    const visual = visualOf(cue) === 'attractor' && cue.config?.streaks === true ? 'night-streaks' : visualOf(cue);
     if (visual === null) return null;
     return Object.hasOwn(FRAME_OF, visual) ? FRAME_OF[visual] : 'full';
 }
@@ -141,6 +147,25 @@ export function frameOf(cue) {
 /** Whether the cue on screen is a picture with content of its own, fitted clear of the bar and the words. */
 export function holdsContent(cue) {
     return CONTENT.has(visualOf(cue));
+}
+
+/**
+ * Whether the cue on screen is a collection image (docs/plans/LIVE-IMAGERY.md). Where the face draws it is held in the
+ * shell; where the face does not draw, there is no circle, and it is hung as a picture in its own box, the safe
+ * rectangle (hungRect): never laid over the room, and never scaled, so the credit it carries is set at its own size.
+ */
+export function hungPicture(cue) {
+    return visualOf(cue) === 'sourced';
+}
+
+/**
+ * The box a hung picture is given: the room's safe rectangle, centred in it, at most square on a tall screen and at
+ * most 3:2 on a wide one, so a photograph is matted, not set in a band across the room.
+ */
+export function hungRect({ safe }) {
+    const h = Math.min(safe.h, safe.w);
+    const w = Math.min(safe.w, 1.5 * h);
+    return { x: safe.x - w / 2, y: safe.y - h / 2, w, h };
 }
 
 /** How shut the aperture is, `elapsed` ms into a cut; null once it is open again. */

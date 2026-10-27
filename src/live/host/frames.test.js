@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    CUT_MS, FRAME_ENTRY, FRAME_FOLD, FRAME_OF, FRAME_OPEN_MS, FRAME_SEED, FRAME_TOP, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, restScale, roomLayout, visualTransform
+    CUT_MS, FRAME_ENTRY, FRAME_FOLD, FRAME_OF, FRAME_OPEN_MS, FRAME_SEED, FRAME_TOP, createFrameDirector, cutAmount, frameGeometry, frameOf, holdsContent, hungPicture, hungRect, restScale, roomLayout, visualOf, visualTransform
 } from './frames.js';
 
 const W = 1440;
@@ -16,10 +16,17 @@ const smooth = u => { const v = Math.max(0, Math.min(1, u)); return v * v * (3 -
 describe('the visual chooses the frame', () => {
     it('keeps the table in one place, keyed by engine and scene kind', () => {
         expect(FRAME_OF).toEqual({
-            attractor: 'shell', 'living-flame': 'shell', turrell: 'shell',
+            attractor: 'shell', 'living-flame': 'shell', turrell: 'shell', sourced: 'shell',
             harmonograph: 'inner', ostensoria: 'inner', apparitio: 'inner',
-            genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', sourced: 'full', figure: 'full', scene: 'full'
+            genesis: 'full', fractal: 'full', neural: 'full', rockgarden: 'full', 'night-streaks': 'full', figure: 'full', scene: 'full'
         });
+    });
+
+    it('gives the attractor the whole room when night streaks run under it, and still names the visual the attractor', () => {
+        const night = { kind: 'field', renderer: 'attractor', config: { streaks: true } };
+        expect(frameOf(night)).toBe('full');
+        expect(visualOf(night)).toBe('attractor');
+        expect(frameOf({ kind: 'field', renderer: 'attractor', config: { streaks: false } })).toBe('shell');
     });
 
     it('reads the frame from the cue on screen: a field by its renderer, a pattern by its engine, a scene by its kind', () => {
@@ -29,7 +36,8 @@ describe('the visual chooses the frame', () => {
         expect(frameOf({ kind: 'procedural', collections: ['harmonograph'], config: {} })).toBe('inner');
         expect(frameOf({ kind: 'procedural', collections: ['turrell'], config: {} })).toBe('shell');
         expect(frameOf({ kind: 'procedural', collections: ['fractal'], config: {} })).toBe('full');
-        expect(frameOf({ kind: 'sourced', collections: ['rijksmuseum'] })).toBe('full');
+        // A collection's photograph is held in Sophia's circle.
+        expect(frameOf({ kind: 'sourced', collections: ['sci-astronomy'] })).toBe('shell');
         expect(frameOf({ kind: 'scene', sceneId: 'h', svg: '<svg/>' })).toBe('full');
         expect(frameOf({ kind: 'scene', sceneId: 'd', code: 'export default () => ({})' })).toBe('full');
     });
@@ -42,6 +50,29 @@ describe('the visual chooses the frame', () => {
         expect(holdsContent({ kind: 'sourced', collections: ['rijksmuseum'] })).toBe(false);
         expect(holdsContent({ kind: 'field', renderer: 'attractor', config: {} })).toBe(false);
         expect(holdsContent(null)).toBe(false);
+    });
+
+    it('hangs a collection image as a picture; a figure, a scene, a field or a pattern is not hung', () => {
+        expect(hungPicture({ kind: 'sourced', collections: ['sci-astronomy'] })).toBe(true);
+        expect(hungPicture({ kind: 'scene', sceneId: 'h', svg: '<svg/>' })).toBe(false);
+        expect(hungPicture({ kind: 'field', renderer: 'genesis', config: {} })).toBe(false);
+        expect(hungPicture({ kind: 'procedural', collections: ['fractal'] })).toBe(false);
+        expect(hungPicture({ kind: 'still' })).toBe(false);
+        expect(hungPicture(null)).toBe(false);
+    });
+
+    it('hangs it in the safe rectangle, centred, at most square on a tall screen and at most 3:2 on a wide one', () => {
+        const wide = hungRect(layout);
+        const { safe } = layout;
+        expect(safe.w).toBeGreaterThan(1.5 * safe.h);
+        expect(wide).toEqual({ x: safe.x - 0.75 * safe.h, y: safe.y - safe.h / 2, w: 1.5 * safe.h, h: safe.h });
+        const phone = roomLayout({ width: 390, height: 844, bar: { left: 70, width: 300, height: 54 } });
+        const tall = hungRect(phone);
+        expect(phone.safe.h).toBeGreaterThan(phone.safe.w);
+        expect(tall.w).toBe(phone.safe.w);
+        expect(tall.h).toBe(phone.safe.w);
+        expect(tall.x).toBe(16);
+        expect(tall.y + tall.h / 2).toBeCloseTo(phone.safe.y, 9);
     });
 
     it('gives no frame to no visual, or to a still, which draws nothing in a Live reading: the eye stays', () => {
