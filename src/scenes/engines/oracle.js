@@ -4,7 +4,7 @@
  *
  * A port of the approved studies (docs/assets/live/sophia-face-study.html, the face; docs/assets/live/sophia-aperture-study.html,
  * the three frames): a central eye of three layers of 36 petals drifting at their own paces, a breathing pupil that
- * narrows as the reader's pointer comes near, a catchlight set against the gaze, seven orbiting nodes, a field of 24
+ * narrows as the reader's pointer comes near and looks toward it within the iris, a fixed catchlight, seven orbiting nodes, a field of 24
  * spiral lines, a torus, phi recursion circles, and a slow trail in the skin's own dark. Its geometry, colours,
  * timings and blink are the owner's decisions; change them in the studies first.
  *
@@ -46,6 +46,11 @@ export const ORACLE_STATES = Object.freeze({
     speaking: Object.freeze({ open: 0.70, orbit: 0.10, spin: 0.06, field: 0.6, tight: 1.10, glow: 0.35 }),
     rest: Object.freeze({ open: 0.45, orbit: 0.07, spin: 0.05, field: 0.7, tight: 1.05, glow: 0.45 })
 });
+
+/** How the face follows the pointer: the eye leans a hair (a fraction of the face's size) and stays in its socket;
+ *  the pupil travels within the iris (a fraction of the eye's radius). */
+export const EYE_LEAN = 0.008;
+export const PUPIL_REACH = 0.22;
 
 const SKIN_NAMES = Object.freeze(Object.keys(ORACLE_SKINS));
 const STATE_NAMES = Object.freeze(Object.keys(ORACLE_STATES));
@@ -494,17 +499,22 @@ export default function oracle(rise) {
         // The pupil: it breathes, narrows as the reader comes close, and draws to a point as the petals close over it.
         const breath = 1 + Math.sin(t * 0.9) * 0.05;
         const pupil = R * (0.34 - gaze.depth * 0.08) * breath * (1 - shut * 0.9);
-        const pg = ctx.createRadialGradient(ex, ey, 0, ex, ey, Math.max(1, pupil));
+        // The eye stays seated; only the pupil looks, within the iris, toward the reader's pointer.
+        const reach = R * PUPIL_REACH * (1 - shut);
+        const px = ex + gaze.x * reach;
+        const py = ey + gaze.y * reach;
+        const pg = ctx.createRadialGradient(px, py, 0, px, py, Math.max(1, pupil));
         pg.addColorStop(0, rgba(skin.deep, 0.95));
         pg.addColorStop(0.55, rgba(skin.glow, 0.55));
         pg.addColorStop(1, rgba(skin.iris, 0.25));
         ctx.beginPath();
-        ctx.arc(ex, ey, Math.max(0.5, pupil), 0, TAU);
+        ctx.arc(px, py, Math.max(0.5, pupil), 0, TAU);
         ctx.fillStyle = pg;
         ctx.fill();
-        // A catchlight, set against the gaze, so the eye reads as wet and lit from one side; gone while closed.
+        // A catchlight where the light falls on the eye: it stays put as the pupil moves beneath it, so the eye reads
+        // as wet and lit from one side; gone while closed.
         ctx.beginPath();
-        ctx.arc(ex - pupil * 0.35 - gaze.x * 2, ey - pupil * 0.38 - gaze.y * 2, Math.max(0.5, pupil * 0.16), 0, TAU);
+        ctx.arc(ex - pupil * 0.35, ey - pupil * 0.38, Math.max(0.5, pupil * 0.16), 0, TAU);
         ctx.fillStyle = rgba(skin.core, (0.55 + live.open * 0.3) * (1 - shut));
         ctx.fill();
     }
@@ -512,7 +522,7 @@ export default function oracle(rise) {
     /** The eye's own place and size in the face: its gaze and breath; docked (`small`), it is most of the face. */
     function eyeOf(f, small, seed = 1) {
         const R = mix((f.s * (0.075 + live.open * 0.035) + gaze.depth * f.s * 0.015) * seed, f.s * 0.28, small);
-        return { x: f.x + gaze.x * f.s * 0.045 * (1 - small), y: f.y + gaze.y * f.s * 0.045 * (1 - small), R };
+        return { x: f.x + gaze.x * f.s * EYE_LEAN * (1 - small), y: f.y + gaze.y * f.s * EYE_LEAN * (1 - small), R };
     }
 
     /** The face's field, recursion, torus and lights at its place, dimmed and spread as the geometry has them. */

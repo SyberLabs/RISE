@@ -324,6 +324,29 @@ describe('the gaze', () => {
         expect(scene.inspect().gaze.x).toBeLessThanOrEqual(1);
     });
 
+    it('keeps the eye in its socket and moves only the pupil, within the iris, toward the pointer', () => {
+        /** The pupil and the catchlight, the frame's last two arcs, after the gaze has settled on `x`. */
+        const settled = x => {
+            const { scene, run, ctx } = make({ width: 400, height: 400, dpr: 1 });
+            if (x !== null) scene.input({ type: 'pointermove', x, y: 200, buttons: 0, key: null, modifiers: {} });
+            run(4800, 16);
+            ctx.counts.arcs.length = 0;
+            run(16, 16);
+            return ctx.counts.arcs.slice(-2);
+        };
+        // The catchlight sits at a fixed place on the eye, up and left of its centre by a share of the pupil.
+        const [[restX, , restPupil], [restLight]] = settled(null);
+        const [[lookX, , pupil], [lookLight]] = settled(4000);
+        const restEye = restLight + restPupil * 0.35;
+        const eye = lookLight + pupil * 0.35;
+        // The eye leans under 1% of the face; the pupil goes further, and its edge stays well inside the eye (the iris
+        // is the pupil over 0.34).
+        expect(eye - restEye).toBeGreaterThan(0);
+        expect(eye - restEye).toBeLessThan(4);
+        expect(lookX - restX).toBeGreaterThan(2 * (eye - restEye));
+        expect(lookX - eye + pupil).toBeLessThan((pupil / 0.34) * 0.7);
+    });
+
     it('draws nearer as the pointer comes to the centre, and looks ahead again when it leaves', () => {
         const { scene, run } = make({ width: 400, height: 400 });
         scene.input({ type: 'pointermove', x: 200, y: 200, buttons: 0, key: null, modifiers: {} });

@@ -1310,6 +1310,32 @@ body:has(.live-venue) { background: var(--live-ground); }
 }
 .has-rise-account:has(.live-venue) .rise-account-control:focus-visible { outline: 1.5px solid color-mix(in srgb, var(--live-iris) 70%, transparent); outline-offset: 2px; }
 
+/* The room's switch (venue.js paintSkin): the sign-in's twin in the opposite corner, the same quiet word, naming the
+   room it leads to. */
+.live-venue .live-venue__room {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  z-index: 900;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: color-mix(in srgb, var(--live-core) 56%, var(--live-ground));
+  font: 400 0.75rem/1.6 var(--sy-font-sans, sans-serif);
+  letter-spacing: 0.08em;
+  text-decoration: underline 1px transparent;
+  text-underline-offset: 5px;
+  cursor: pointer;
+  transition: color 200ms ease, text-decoration-color 200ms ease;
+}
+.live-venue .live-venue__room:is(:hover, :focus-visible) {
+  color: color-mix(in srgb, var(--live-core) 72%, var(--live-ground));
+  text-decoration-color: color-mix(in srgb, var(--live-iris) 70%, transparent);
+}
+.live-venue .live-venue__room:focus-visible { outline: 1.5px solid color-mix(in srgb, var(--live-iris) 70%, transparent); outline-offset: 2px; }
+
 /* RISE's face (venue.js, face-layer.js; docs/plans/LIVE-CURRENT.md §22, §23). In the entry it rests above the name.
    In the room it covers the whole room for the whole reading, between the Chamber's visual layers (z-index 1 to 5)
    and the reading's words (10), below the stage and the bar: ground everywhere but the aperture its engine leaves
