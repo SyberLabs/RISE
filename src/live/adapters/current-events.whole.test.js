@@ -22,6 +22,7 @@ import { BLACK_HOLES_CURRENT } from '../../test/sealed-current.js';
 import { createRealClock } from '../clock.js';
 import { BLACK_HOLES_BEATS_CURRENT } from '../fixtures/black-holes-beats.js';
 import { SKY_PREMIUM_EDUCATIONAL } from '../fixtures/sky-premium-educational.js';
+import { HOST_ENGINES } from '../guide/beats.js';
 import { STYLE_EXAMPLES, TOOL_NAME } from '../guide/index.js';
 import { createCurrentStream } from '../stream.js';
 import { currentToEvents } from './current-events.js';
@@ -123,7 +124,8 @@ function everything(natives, id) {
     };
 }
 
-const natives = SCENE_MANIFESTS;
+/** The engines the card is offered; a collection is refused by name. */
+const natives = SCENE_MANIFESTS.filter(manifest => HOST_ENGINES.includes(manifest.id));
 const ADMITTED = [
     ...Object.values(STYLE_EXAMPLES).flat().map(({ current }) => [current.id, current]),
     ['the Sky field fixture', SKY_PREMIUM_EDUCATIONAL],
