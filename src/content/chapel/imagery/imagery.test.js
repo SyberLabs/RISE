@@ -246,7 +246,8 @@ describe('Rijksmuseum adapter', () => {
   });
 
   it('refuses when the VisualItem carries no PD/CC0 statement — silence is not permission', async () => {
-    const visualNoLicense = { ...VISUAL_PD, subject_to: [] };
+    // The old fixture's legacy rights field is not the image's own rights statement.
+    const visualNoLicense = { ...VISUAL_PD, subject_to: [], rights: 'https://creativecommons.org/publicdomain/mark/1.0/' };
     const fetchImpl = fetchFor({
       'https://id.rijksmuseum.nl/200107790': OBJECT,
       'https://id.rijksmuseum.nl/202107790': visualNoLicense,

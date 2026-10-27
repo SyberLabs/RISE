@@ -1,0 +1,39 @@
+{
+  "id": "FND-020",
+  "title": "Align Old Masters readiness fixture with image-owned rights",
+  "lane": "shared",
+  "milestone": "Release validation",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex RISE release owner",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "The Old Masters readiness fixture provides an explicit image-owned subject_to statement and passes the existing readiness, fallback, geometry and exact request-chain assertions.",
+    "Missing image-owned rights remain refused even when a legacy rights field says public domain; runtime rights policy and assertions are unchanged."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/40447600987/job/122002475664",
+      "note": "Actual checkout 392c657b: Old Masters readiness failed at fit-mask.spec.js:713 on both attempts, expecting image but staying visual. Local no-retry Chromium reproduction on equal-tree 5aa9869 failed identically after content prerequisites were built. The fixture used rights, while #753 requires the image's own subject_to. This is fixture evidence, not a production-image outage.",
+      "date": "2026-10-27"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/fit-mask.spec.js",
+      "note": "After correcting only the fixture's rights shape, the unchanged Old Masters atomic-readiness assertion and exact object/visual/digital/image request chain pass in real local Chromium, with retries disabled. All 24 imagery tests pass, including a legacy rights value that cannot replace missing own subject_to. No runtime adapter change or human acceptance is claimed.",
+      "date": "2026-10-27"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-27T04:20:00.000Z",
+      "summary": "Claimed the authorized narrow fixture correction on current main; preserve readiness assertions, image request chain and runtime rights admission."
+    }
+  ],
+  "updatedAt": "2026-10-27T04:20:00.000Z",
+  "revision": 1,
+  "summary": "Fixture-only rights-contract alignment and a stronger missing-rights negative case. Final checks, independent review and hosted validation remain pending.",
+  "blocker": null
+}
