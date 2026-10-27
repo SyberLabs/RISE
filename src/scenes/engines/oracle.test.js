@@ -327,6 +327,8 @@ describe('the gaze', () => {
     it('keeps the eye in its socket and moves only the pupil, within the iris, toward the pointer', () => {
         /** The pupil and the catchlight, the frame's last two arcs, after the gaze has settled on `x`. */
         const settled = x => {
+            // The first blink waits 3 to 7 seconds; pin it past the run, since a blink shuts the eye and shrinks the reach.
+            vi.spyOn(Math, 'random').mockReturnValue(0.99);
             const { scene, run, ctx } = make({ width: 400, height: 400, dpr: 1 });
             if (x !== null) scene.input({ type: 'pointermove', x, y: 200, buttons: 0, key: null, modifiers: {} });
             run(4800, 16);
