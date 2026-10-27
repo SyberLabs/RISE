@@ -1,0 +1,67 @@
+{
+  "id": "LIVE-041",
+  "title": "Collection imagery: the Landscapes and Earth and sky collections in RISE Live, from the owner's review",
+  "lane": "live-sdk",
+  "milestone": "RISE LIVE",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude (imagery-landscapes-candidates)",
+  "priority": "next",
+  "dependencies": [
+    "LIVE-037"
+  ],
+  "acceptance": [
+    "A rerunnable, keyless harvest (scripts/harvest-landscape-candidates.mjs) proposes candidates: every API field validated and bounded, every image probed, each chip composed by artwork-label.js; a work the owner has kept or cut is never offered again.",
+    "The owner reviews a sheet by eye at docs/assets/live/landscape-review.html; the reviewed sheet and the owner's decisions file are kept in src/content/landscapes/.",
+    "landscape-pins.js records every reviewed work's verdict (kept, cut by the owner by eye on 2026-10-26, favourite) and matches the decisions file exactly: Landscapes 68 kept and 112 cut, Earth and sky 65 kept and 13 cut.",
+    "scripts/build-landscape-catalog.mjs builds landscapes-catalog.generated.json from the kept works only, rights frozen at the harvest; --verify re-resolves every catalogued work at its source and exits 1 on any change in rights, owed credit or image.",
+    "Live has two collection engines beside astronomy, landscapes (sci-landscapes) and earth-and-sky (sci-earth-and-sky), with about lines, catalog words, the RISE-SDK rows, and no place in a host's guide; a collection opens on one of the owner's favourites, its credit under Sophia's circle; the first-load budget holds.",
+    "Human gate: the owner sees both collections in a real reading on the deployed /live, in the dark room and the light room."
+  ],
+  "evidence": [
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "scripts/harvest-landscape-candidates.test.mjs",
+      "note": "Branch imagery-landscapes-candidates. node --test scripts/harvest-landscape-candidates.test.mjs scripts/build-landscape-catalog.test.mjs: 14 passed. harvest-science.mjs moved onto scripts/lib/collection-feeds.mjs with byte-identical ESO and NASA output."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "test",
+      "ref": "src/content/landscapes/landscape-pins.test.js",
+      "note": "npx vitest run on landscape-pins, provider, manifests, catalog-words, live guide, mask-ground, csp-image-hosts, rise-sdk, visual-cortex and visual-cortex.routing: all passed. The favourites test failed with the provider seam removed. A new cortex test failed first: a cue's prepared NASA work lost its acknowledgement (_asImageItem dropped creditRequired); fixed."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "docs/assets/live/landscape-review.html",
+      "note": "Owner's review by eye of the 258-work sheet (Landscapes 180, Earth and sky 78), 2026-10-26: 125 cuts (112 and 13), every other work kept; favourites Point Judith, Rhode Island (Heade), The Pink Cloud (Cross) and NASA Blue Marble 2007 West."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "src/live/host/venue.js",
+      "note": "Agent observation, not a human's: the dev server, Demo reading, 'landscapes' then 'earth and sky', dark room and Porcelain light room at 1440x900 and 390x844. Both opened in the shell on a favourite (Point Judith; Blue Marble) with the credit captioned under the circle, the NASA acknowledgement included; no page errors. build-landscape-catalog --verify: 133 works, 0 changed. vite build and measure:first-load 63.3 KB of 64 KB; ci-hygiene clean."
+    },
+    {
+      "date": "2026-10-26",
+      "kind": "observation",
+      "ref": "src/content/imagery/adapters/rijks.js",
+      "note": "Agent finding, not fixed here (PR #753 takes it): the Rijksmuseum adapter admits In Copyright images because it matches the metadata record's CC0. The 539 Rijksmuseum pins in museum-pins.js all have public-domain image rights."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-26T23:30:00.000Z",
+      "summary": "Created and built on branch imagery-landscapes-candidates from the LIVE-IMAGERY owner decisions. Draft PR; not merged, not deployed, not reviewed by the owner."
+    },
+    {
+      "date": "2026-10-27T01:03:33.898Z",
+      "summary": "Built the shipped collections from the owner's review: pins, catalog with verify mode, the landscapes and earth-and-sky engines, favourites first. Draft PR #752; not merged, not deployed, not accepted."
+    }
+  ],
+  "updatedAt": "2026-10-27T01:03:33.898Z",
+  "revision": 2,
+  "summary": "Landscapes (68) and Earth and sky (65), pinned from the owner's review by eye, built into a frozen catalog with a verify mode, and shown in Live as two collection engines that open on the owner's favourites.",
+  "blocker": null
+}

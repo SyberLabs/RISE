@@ -6,6 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VisualCortex } from './visual-cortex.js';
+import { displayedArtworkLabel, normalizeArtworkLabel } from './artwork-label.js';
 import { KleeFlashes } from './klee-flashes.js';
 import { ContinuousField } from './continuous-field.js';
 import { WorkEngineField } from './work-engine-field.js';
@@ -957,6 +958,35 @@ describe('VisualCortex external asset hydration', () => {
         expect(provider.getRandom).toHaveBeenCalledTimes(1);
         expect(loadImage).toHaveBeenCalledTimes(1);
         expect(cortex._poolFor('aic-oldmasters').images).toHaveLength(1);
+    });
+
+    it('keeps the acknowledgement a public-domain work asks for when a listed work becomes a cue’s first', async () => {
+        const cortex = new VisualCortex();
+        vi.spyOn(cortex, '_getProviderForCategory').mockResolvedValue({
+            getImagesInCategory: vi.fn().mockResolvedValue([{
+                id: 'nasa:blue-marble', title: 'NASA Blue Marble 2007 West', url: 'https://images-assets.nasa.gov/a.jpg',
+                license: 'Public domain (NASA) — acknowledgement required',
+                attribution: 'NASA/GSFC · Public domain (NASA) — acknowledgement required', creditRequired: true
+            }])
+        });
+        const [item] = await cortex.resolveCollectionWorks('sci-earth-and-sky', { limit: 1 });
+        const label = normalizeArtworkLabel(item);
+        expect(label.licence).toBe('public-domain-credit');
+        expect(displayedArtworkLabel(label, false)).toBe('NASA/GSFC · Public domain (NASA) — acknowledgement required');
+    });
+
+    it('asks the provider for an opening work only into an empty pool, the one shown first', async () => {
+        const cortex = new VisualCortex();
+        let n = 0;
+        const provider = { getRandom: vi.fn(async () => ({ name: 'A work', data: { url: `work-${++n}.jpg` } })) };
+        vi.spyOn(cortex, '_getProviderForCategory').mockResolvedValue(provider);
+        vi.spyOn(cortex, '_loadImage').mockImplementation(async url => ({ img: { src: url }, url, category: 'sci-landscapes' }));
+
+        await cortex._loadIntoPool('sci-landscapes');
+        await cortex._loadIntoPool('sci-landscapes');
+
+        expect(provider.getRandom.mock.calls.map(([filter]) => filter.opening)).toEqual([true, false]);
+        expect(cortex._takeFromPool(cortex._poolFor('sci-landscapes')).img.src).toBe('work-1.jpg');
     });
 
     it('preserves normalized artwork metadata on the decoded asset', async () => {

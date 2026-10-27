@@ -147,7 +147,7 @@ A scene is a **native engine** with parameters, **generated code**, or a **figur
 | `RISE_CURRENT_THEME_IDS` | `classic`, `amethyst`, `prism`, `ember`, `cobalt`, `jade`, `rose`, `citrine`, `silver` | Colour themes. |
 | `RISE_CURRENT_LOOKS` | `plain`, `gallery`, `nocturne`, `garden`, `flame`, `signal`, `iris`, `revel`, `vigil`, `inlay` | Looks. |
 | `RISE_CURRENT_STYLES` | `premium-educational`, `open-field` | Styles (§4). |
-| `SCENE_ENGINES` | `still`, `attractor`, `genesis`, `living-flame`, `fractal`, `turrell`, `neural`, `rockgarden`, `harmonograph`, `ostensoria`, `apparitio`, `astronomy` | Native engines (§6). |
+| `SCENE_ENGINES` | `still`, `attractor`, `genesis`, `living-flame`, `fractal`, `turrell`, `neural`, `rockgarden`, `harmonograph`, `ostensoria`, `apparitio`, `astronomy`, `landscapes`, `earth-and-sky` | Native engines (§6). |
 
 ### 3.7 Refusal codes
 
@@ -322,8 +322,10 @@ A parameter that is `cueable` changes while the engine runs. Every other paramet
 | `ostensoria` | `procedural` | `ostensoria` | yes | — |
 | `apparitio` | `procedural` | `apparitio` | yes | — |
 | `astronomy` | `sourced` | `gallery` | yes | — |
+| `landscapes` | `sourced` | `gallery` | yes | — |
+| `earth-and-sky` | `sourced` | `gallery` | yes | — |
 
-A `sourced` engine is a reviewed collection, not something drawn: the scene names the collection (`collection`, a pool id such as `sci-astronomy`), RISE chooses which of its works shows and hangs it with its credit, and `about` says that to the model in the engine's line (`docs/plans/LIVE-IMAGERY.md`). It takes no parameters. Composer's guide does not offer it yet, since the card does not load collection images.
+A `sourced` engine is a reviewed collection, not something drawn: the scene names the collection (`collection`, a pool id such as `sci-astronomy`), RISE chooses which of its works shows and hangs it with its credit, and `about` says that to the model in the engine's line (`docs/plans/LIVE-IMAGERY.md`). It takes no parameters. Composer's guide does not offer it yet, since the card does not load collection images. The three collections are Astronomy (`sci-astronomy`), Landscapes (`sci-landscapes`, paintings and photographs) and Earth and sky (`sci-earth-and-sky`, the Earth from orbit and observatories under the night sky); a collection's first photograph in a reading is one of the owner's favourites where it has any.
 
 | Engine | Parameter | Type | Range or values | Default | Cueable |
 | --- | --- | --- | --- | --- | --- |

@@ -15,6 +15,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import science from '../sources/visual/science-catalog.generated.json';
+import landscapes from '../sources/visual/landscapes-catalog.generated.json';
 import audubon from '../sources/visual/audubon-catalog.generated.json';
 import haeckel from '../sources/visual/haeckel-catalog.generated.json';
 import { DORE_PLATES } from '../content/chapel/imagery/dore.js';
@@ -70,8 +71,8 @@ describe('img-src names every picture host and nothing wider', () => {
 
     it('matches the catalogues, the Chapel and the runtime museums exactly', () => {
         const expected = new Set();
-        // Science: the reader shows `image` (and `thumb` for the preview).
-        for (const work of science.works) {
+        // Science, Landscapes and Earth and sky: the reader shows `image` (and `thumb` for the preview).
+        for (const work of [...science.works, ...landscapes.works]) {
             expected.add(origin(work.image));
             expected.add(origin(work.thumb));
         }

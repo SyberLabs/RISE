@@ -35,7 +35,8 @@ const CARRIES_SECRET = /[?&](api_?key|access_?token|token|signature|sig|auth)=/i
 
 const CATALOGUES = [
     'src/sources/visual/science-catalog.generated.json',
-    'src/sources/visual/audubon-catalog.generated.json'
+    'src/sources/visual/audubon-catalog.generated.json',
+    'src/sources/visual/landscapes-catalog.generated.json'
 ];
 
 for (const path of CATALOGUES) {
