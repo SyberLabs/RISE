@@ -14,7 +14,10 @@
  *
  * CANDIDATES, NOT A SHELF. Nothing here reaches a reader: the owner reviews the
  * sheet by eye (`docs/assets/live/landscape-review.html`), and the kept works
- * become a pins file in a later step. Rights are frozen at the date this ran.
+ * enter `landscape-pins.js`. A work the owner has judged, kept or cut, is never
+ * offered again. The sheet the owner reviewed on 2026-10-26 is kept as
+ * `sheet-2026-10-26.json`, the frozen record the catalog is built from; this
+ * script writes the next sheet. Rights are frozen at the date this ran.
  *
  * Every field from an API is untrusted: text is reduced to plain text and
  * bounded, a URL must be https on the source's own host and carry no
@@ -23,8 +26,8 @@
  * reader (`lib/collection-feeds.mjs`), and its credit is composed by
  * `artwork-label.js`, so the sheet shows what the Reader would show.
  *
- * The monthly re-check reuses `harvestSource` and `verifyAll`: re-resolving a
- * kept id through the same adapter answers whether its rights still hold.
+ * The monthly re-check (`build-landscape-catalog.mjs --verify`) re-resolves
+ * every pinned work through the same per-work resolvers exported here.
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -37,6 +40,7 @@ import { resolveClevelandWork } from '../src/content/imagery/adapters/cleveland.
 import { resolveRijksWork } from '../src/content/imagery/adapters/rijks.js';
 import { MUSEUM_CATEGORY_PINS } from '../src/sources/visual/museum-pins.js';
 import { ASTRONOMY } from '../src/content/science/imagery/science-pins.js';
+import { LANDSCAPE_COLLECTIONS, REVIEW } from '../src/content/landscapes/landscape-pins.js';
 import {
     CARRIES_SECRET, USER_AGENT, djangoplicityRow, getJson, interleave, nasaRow, resourceOf, sleep, verifyAll
 } from './lib/collection-feeds.mjs';
@@ -218,6 +222,32 @@ const CLEVELAND_FIELDS = 'id,title,creation_date,creators,images,url,share_licen
 const pinnedIds = (source) => new Set(Object.values(MUSEUM_CATEGORY_PINS).flat()
     .filter(pin => pin.source === source).map(pin => `${source}:${pin.id}`));
 
+/** A work the owner has already judged is never offered again: kept, it is shelved; cut, it stays cut. */
+const VERDICTS = new Map(Object.values(LANDSCAPE_COLLECTIONS).flatMap(collection => [
+    ...collection.kept.map(id => [id, 'kept']), ...collection.cut.map(id => [id, 'cut'])]));
+export const reviewedWhy = (id) => (VERDICTS.has(id) ? `reviewed by the owner ${REVIEW.date} (${VERDICTS.get(id)})` : '');
+
+/**
+ * One Cleveland record through the Reader's own adapter, handed the record already in hand so no second request is
+ * made; the adapter re-checks `share_license_status === 'CC0'` itself.
+ */
+export async function clevelandCandidate(record, register) {
+    if (!record || typeof record !== 'object') return { why: 'no record' };
+    const resolved = await resolveClevelandWork(record.id, {
+        fetchImpl: async () => ({ ok: true, json: async () => ({ data: record }) })
+    });
+    if (!resolved) return { why: 'not CC0 or no image (adapter)' };
+    const images = record.images || {};
+    return candidate({
+        id: resolved.id, sourceName: resolved.sourceName, title: resolved.title, maker: resolved.artist,
+        date: resolved.date, image: resolved.imageUrl,
+        imageWidth: images.web?.width, imageHeight: images.web?.height,
+        full: resolved.fullImageUrl, fullWidth: images.print?.width, fullHeight: images.print?.height,
+        thumb: resolved.imageUrl, page: resolved.sourceUrl, rights: resolved.rights,
+        hint: text(record.department, 80)
+    }, { set: 'landscapes', source: 'cleveland', register });
+}
+
 /**
  * Cleveland's keyless search, `cc0=1`, then each record through the Reader's own
  * adapter, handed the record the search already returned so no second request
@@ -237,22 +267,10 @@ async function cleveland(type, { register, budget }, leftOut) {
     const byDepartment = new Map();
     for (const record of records) {
         if (!record || typeof record !== 'object') continue;
-        const resolved = await resolveClevelandWork(record.id, {
-            fetchImpl: async () => ({ ok: true, json: async () => ({ data: record }) })
-        });
-        if (!resolved) { leftOut.push({ id: `cleveland:${text(String(record.id), 20)}`, title: text(record.title, 120), why: 'not CC0 or no image (adapter)' }); continue; }
-        const images = record.images || {};
-        const result = candidate({
-            id: resolved.id, sourceName: resolved.sourceName, title: resolved.title, maker: resolved.artist,
-            date: resolved.date, image: resolved.imageUrl,
-            imageWidth: images.web?.width, imageHeight: images.web?.height,
-            full: resolved.fullImageUrl, fullWidth: images.print?.width, fullHeight: images.print?.height,
-            thumb: resolved.imageUrl, page: resolved.sourceUrl, rights: resolved.rights,
-            hint: text(record.department, 80)
-        }, { set: 'landscapes', source: 'cleveland', register });
-        if (!result.work) { leftOut.push({ id: resolved.id, title: resolved.title, why: result.why }); continue; }
+        const result = await clevelandCandidate(record, register);
+        if (!result.work) { leftOut.push({ id: `cleveland:${text(String(record.id), 20)}`, title: text(record.title, 120), why: result.why }); continue; }
         const work = result.work;
-        const why = pinned.has(work.id) ? 'already pinned in the Reader' : (titleScreen(work.title) || shapeScreen(work));
+        const why = reviewedWhy(work.id) || (pinned.has(work.id) ? 'already pinned in the Reader' : (titleScreen(work.title) || shapeScreen(work)));
         if (why) { leftOut.push({ id: work.id, title: work.title, why }); continue; }
         const department = work.hint || '';
         if (!byDepartment.has(department)) byDepartment.set(department, []);
@@ -332,45 +350,53 @@ async function rijksPhotographs({ budget }, leftOut) {
     for (const lodId of refs) {
         if (kept.length >= budget * 2) break;
         const id = `rijks:${lodId}`;
-        if (pinned.has(id)) { leftOut.push({ id, title: '', why: 'already pinned in the Reader' }); continue; }
-        // Copies of the object and the VisualItem the adapter reads: the sheet's date and makers, and the image's own rights.
-        let object = null, visual = null;
-        const fetchImpl = async (url, init) => {
-            const res = await politeFetch(url, init);
-            if (res.ok && url === `https://id.rijksmuseum.nl/${lodId}`) object = await res.clone().json().catch(() => null);
-            else if (res.ok && object && url === object.shows?.[0]?.id) visual = await res.clone().json().catch(() => null);
-            return res;
-        };
-        const resolved = await resolveRijksWork(lodId, { fetchImpl, timeoutMs: 30000 });
-        if (!resolved) { leftOut.push({ id, title: '', why: 'not public domain or unresolvable (adapter)' }); continue; }
-        if (!rijksImageIsPublicDomain(visual)) {
-            leftOut.push({ id, title: resolved.title, why: `image rights ${rijksImageRights(visual).join(', ') || 'unstated'}, not public domain` });
-            continue;
-        }
-        const screen = titleScreen(resolved.title);
-        if (screen) { leftOut.push({ id, title: resolved.title, why: screen }); continue; }
-        let info = null;
-        try {
-            const res = await politeFetch(resolved.fullImageUrl.replace(/\/full\/max\/0\/default\.jpg$/, '/info.json'));
-            info = res.ok ? await res.json() : null;
-        } catch { info = null; }
-        const fullWidth = pixels(info?.width), fullHeight = pixels(info?.height);
-        const shownWidth = fullWidth ? Math.min(843, fullWidth) : null;
-        const result = candidate({
-            id: resolved.id, sourceName: resolved.sourceName, title: resolved.title,
-            maker: resolved.artist || rijksMakers(object), chipMaker: resolved.artist,
-            date: resolved.date || rijksDate(object), image: resolved.imageUrl,
-            imageWidth: shownWidth, imageHeight: shownWidth && fullHeight ? Math.round(fullHeight * shownWidth / fullWidth) : null,
-            full: resolved.fullImageUrl, fullWidth, fullHeight,
-            thumb: resolved.imageUrl.replace('/full/843,/', '/full/400,/'),
-            page: resolved.sourceUrl, rights: resolved.rights
-        }, { set: 'landscapes', source: 'rijks', register: 'photograph' });
-        if (!result.work) { leftOut.push({ id, title: resolved.title, why: result.why }); continue; }
-        const why = shapeScreen(result.work);
-        if (why) { leftOut.push({ id, title: resolved.title, why }); continue; }
+        const known = reviewedWhy(id) || (pinned.has(id) ? 'already pinned in the Reader' : '');
+        if (known) { leftOut.push({ id, title: '', why: known }); continue; }
+        const result = await rijksCandidate(lodId);
+        if (!result.work) { leftOut.push({ id, title: result.title || '', why: result.why }); continue; }
+        const why = titleScreen(result.work.title) || shapeScreen(result.work);
+        if (why) { leftOut.push({ id, title: result.work.title, why }); continue; }
         kept.push(result.work);
     }
     return cut(capPerMaker(kept, PER_MAKER, leftOut), budget, leftOut);
+}
+
+/**
+ * One Rijksmuseum work through the Reader's adapter (three hops), the image's own rights read from the VisualItem it
+ * fetched, and one more request for the image's pixel size.
+ */
+export async function rijksCandidate(lodId) {
+    if (!/^\d{1,12}$/.test(String(lodId))) return { why: 'malformed id' };
+    // Copies of the object and the VisualItem the adapter reads: the sheet's date and makers, and the image's own rights.
+    let object = null, visual = null;
+    const fetchImpl = async (url, init) => {
+        const res = await politeFetch(url, init);
+        if (res.ok && url === `https://id.rijksmuseum.nl/${lodId}`) object = await res.clone().json().catch(() => null);
+        else if (res.ok && object && url === object.shows?.[0]?.id) visual = await res.clone().json().catch(() => null);
+        return res;
+    };
+    const resolved = await resolveRijksWork(lodId, { fetchImpl, timeoutMs: 30000 });
+    if (!resolved) return { why: 'not public domain or unresolvable (adapter)' };
+    if (!rijksImageIsPublicDomain(visual)) {
+        return { title: resolved.title, why: `image rights ${rijksImageRights(visual).join(', ') || 'unstated'}, not public domain` };
+    }
+    let info = null;
+    try {
+        const res = await politeFetch(resolved.fullImageUrl.replace(/\/full\/max\/0\/default\.jpg$/, '/info.json'));
+        info = res.ok ? await res.json() : null;
+    } catch { info = null; }
+    const fullWidth = pixels(info?.width), fullHeight = pixels(info?.height);
+    const shownWidth = fullWidth ? Math.min(843, fullWidth) : null;
+    const result = candidate({
+        id: resolved.id, sourceName: resolved.sourceName, title: resolved.title,
+        maker: resolved.artist || rijksMakers(object), chipMaker: resolved.artist,
+        date: resolved.date || rijksDate(object), image: resolved.imageUrl,
+        imageWidth: shownWidth, imageHeight: shownWidth && fullHeight ? Math.round(fullHeight * shownWidth / fullWidth) : null,
+        full: resolved.fullImageUrl, fullWidth, fullHeight,
+        thumb: resolved.imageUrl.replace('/full/843,/', '/full/400,/'),
+        page: resolved.sourceUrl, rights: resolved.rights
+    }, { set: 'landscapes', source: 'rijks', register: 'photograph' });
+    return result.work ? result : { title: resolved.title, why: result.why };
 }
 
 /**
@@ -386,26 +412,37 @@ async function eso(leftOut) {
     const out = [];
     for (const row of list) {
         if (!row || typeof row !== 'object') continue;
-        const mapped = djangoplicityRow(row, { id: 'eso', sourceName: 'ESO', sourceBase: 'https://www.eso.org/public/images/' });
+        const mapped = esoRow(row);
         if (astronomy.has(mapped.id)) continue;
+        const known = reviewedWhy(mapped.id);
+        if (known) { leftOut.push({ id: mapped.id, title: text(mapped.title, 120), why: known }); continue; }
         if (!mapped.subject.branches.some(b => b === 'A' || b === 'E')) {
             leftOut.push({ id: mapped.id, title: text(mapped.title, 120), why: `AVM ${mapped.subject.label || 'none'}: not a night landscape` });
             continue;
         }
-        const small = resourceOf(row, 'Small', 'Large');
-        const large = resourceOf(row, 'Large');
-        const result = candidate({
-            id: mapped.id, sourceName: mapped.sourceName, title: mapped.title, maker: mapped.artist,
-            date: mapped.date, description: mapped.description,
-            image: mapped.image, imageWidth: small?.Dimensions?.[0], imageHeight: small?.Dimensions?.[1],
-            full: large?.URL, fullWidth: large?.Dimensions?.[0], fullHeight: large?.Dimensions?.[1],
-            thumb: mapped.thumb, page: mapped.page, rights: mapped.rights, credit: mapped.credit,
-            hint: `AVM ${mapped.subject.label}`
-        }, { set: 'earth-and-sky', source: 'eso', register: 'photograph' });
+        const result = esoCandidate(row);
         if (!result.work) { leftOut.push({ id: mapped.id, title: text(mapped.title, 120), why: result.why }); continue; }
         out.push(result.work);
     }
     return out;
+}
+
+const esoRow = (row) => djangoplicityRow(row, { id: 'eso', sourceName: 'ESO', sourceBase: 'https://www.eso.org/public/images/' });
+
+/** One ESO feed row (or the row `/public/images/<id>/api/json/` answers) as a candidate. */
+export function esoCandidate(row) {
+    if (!row || typeof row !== 'object') return { why: 'no record' };
+    const mapped = esoRow(row);
+    const small = resourceOf(row, 'Small', 'Large');
+    const large = resourceOf(row, 'Large');
+    return candidate({
+        id: mapped.id, sourceName: mapped.sourceName, title: mapped.title, maker: mapped.artist,
+        date: mapped.date, description: mapped.description,
+        image: mapped.image, imageWidth: small?.Dimensions?.[0], imageHeight: small?.Dimensions?.[1],
+        full: large?.URL, fullWidth: large?.Dimensions?.[0], fullHeight: large?.Dimensions?.[1],
+        thumb: mapped.thumb, page: mapped.page, rights: mapped.rights, credit: mapped.credit,
+        hint: `AVM ${mapped.subject.label}`
+    }, { set: 'earth-and-sky', source: 'eso', register: 'photograph' });
 }
 
 /** NASA's Earth from orbit: several keyless searches, interleaved so no one query fills the sheet. */
@@ -427,20 +464,11 @@ async function nasa({ budget }, leftOut) {
         const row = nasaRow(item);
         if (seen.has(row.id)) continue;
         seen.add(row.id);
-        if (astronomy.has(row.id)) { leftOut.push({ id: row.id, title: text(row.title, 120), why: 'already in Astronomy' }); continue; }
-        if (row.thirdPartyRisk) { leftOut.push({ id: row.id, title: text(row.title, 120), why: 'third-party rights named in its prose' }); continue; }
+        const known = reviewedWhy(row.id) || (astronomy.has(row.id) ? 'already in Astronomy' : '');
+        if (known) { leftOut.push({ id: row.id, title: text(row.title, 120), why: known }); continue; }
         const screen = titleScreen(String(row.title || ''));
         if (screen) { leftOut.push({ id: row.id, title: text(row.title, 120), why: screen }); continue; }
-        const linkOf = (href) => (item.links || []).find(l => l?.href === href) || {};
-        const shown = linkOf(row.image);
-        const largest = (item.links || []).filter(l => pixels(l?.width) && pixels(l?.height))
-            .sort((a, b) => b.width - a.width)[0] || shown;
-        const result = candidate({
-            id: row.id, sourceName: row.sourceName, title: row.title, maker: row.artist, date: row.date,
-            description: row.description, image: row.image, imageWidth: shown.width, imageHeight: shown.height,
-            full: largest.href, fullWidth: largest.width, fullHeight: largest.height,
-            thumb: row.thumb, page: row.page, rights: row.rights, credit: row.credit, creditRequired: row.creditRequired
-        }, { set: 'earth-and-sky', source: 'nasa', register: 'photograph' });
+        const result = nasaCandidate(item);
         if (!result.work) { leftOut.push({ id: row.id, title: text(row.title, 120), why: result.why }); continue; }
         const why = shapeScreen(result.work);
         if (why) { leftOut.push({ id: row.id, title: result.work.title, why }); continue; }
@@ -449,7 +477,24 @@ async function nasa({ budget }, leftOut) {
     return cut(out, budget, leftOut);
 }
 
-/** One source's candidates, by name: the unit the monthly re-check reruns. */
+/** One NASA search item as a candidate; prose naming third-party rights withholds it. */
+export function nasaCandidate(item) {
+    if (!item || typeof item !== 'object') return { why: 'no record' };
+    const row = nasaRow(item);
+    if (row.thirdPartyRisk) return { why: 'third-party rights named in its prose' };
+    const linkOf = (href) => (item.links || []).find(l => l?.href === href) || {};
+    const shown = linkOf(row.image);
+    const largest = (item.links || []).filter(l => pixels(l?.width) && pixels(l?.height))
+        .sort((a, b) => b.width - a.width)[0] || shown;
+    return candidate({
+        id: row.id, sourceName: row.sourceName, title: row.title, maker: row.artist, date: row.date,
+        description: row.description, image: row.image, imageWidth: shown.width, imageHeight: shown.height,
+        full: largest.href, fullWidth: largest.width, fullHeight: largest.height,
+        thumb: row.thumb, page: row.page, rights: row.rights, credit: row.credit, creditRequired: row.creditRequired
+    }, { set: 'earth-and-sky', source: 'nasa', register: 'photograph' });
+}
+
+/** One source's candidates, by name. */
 export async function harvestSource(name, leftOut) {
     switch (name) {
         case 'cleveland-paintings': return cleveland('Painting', { register: 'painting', budget: BUDGET.clevelandPainting }, leftOut);

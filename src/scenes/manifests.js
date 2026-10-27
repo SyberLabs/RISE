@@ -90,6 +90,16 @@ export const SCENE_MANIFESTS = Object.freeze([
     id: 'astronomy', kind: 'sourced', surface: 'gallery', readableOverText: true, collection: 'sci-astronomy',
     about: 'a photograph of the sky RISE chooses from its reviewed Astronomy collection and hangs with its credit: say what such skies show, never which object this one is',
     parameters: Object.freeze({}), cues: Object.freeze({})
+  }),
+  Object.freeze({
+    id: 'landscapes', kind: 'sourced', surface: 'gallery', readableOverText: true, collection: 'sci-landscapes',
+    about: 'a landscape, painted or photographed, RISE chooses from its reviewed Landscapes collection and hangs with its credit: say what such places show, never which place this one is',
+    parameters: Object.freeze({}), cues: Object.freeze({})
+  }),
+  Object.freeze({
+    id: 'earth-and-sky', kind: 'sourced', surface: 'gallery', readableOverText: true, collection: 'sci-earth-and-sky',
+    about: 'a photograph of the Earth from orbit or of an observatory under the night sky, which RISE chooses from its reviewed Earth and sky collection and hangs with its credit: say what such views show, never which one this is',
+    parameters: Object.freeze({}), cues: Object.freeze({})
   })
 ]);
 

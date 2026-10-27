@@ -1,8 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
-    candidate, checkedUrl, pixels, rijksDate, rijksImageIsPublicDomain, rijksMakers, shapeScreen, text, titleScreen
+    candidate, checkedUrl, pixels, reviewedWhy, rijksDate, rijksImageIsPublicDomain, rijksMakers, shapeScreen, text, titleScreen
 } from './harvest-landscape-candidates.mjs';
+
+test('a work the owner judged is never offered again, kept or cut', () => {
+    assert.equal(reviewedWhy('cleveland:148810'), 'reviewed by the owner 2026-10-26 (cut)');
+    assert.equal(reviewedWhy('cleveland:144967'), 'reviewed by the owner 2026-10-26 (kept)');
+    assert.equal(reviewedWhy('cleveland:1'), '');
+});
 
 const cleveland = {
     id: 'cleveland:141639', sourceName: 'The Cleveland Museum of Art', title: 'Twilight in the Wilderness',

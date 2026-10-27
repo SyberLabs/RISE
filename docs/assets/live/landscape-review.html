@@ -147,7 +147,10 @@
 <main id="sets"></main>
 <script>
 (() => {
-  const DATA = '../../../src/content/landscapes/candidates.generated.json';
+  // The next harvest's sheet by default; `?sheet=sheet-2026-10-26` reopens a reviewed one.
+  const asked = new URLSearchParams(location.search).get('sheet') || '';
+  const SHEET = /^[a-z0-9-]{1,60}$/.test(asked) ? asked : 'candidates.generated';
+  const DATA = `../../../src/content/landscapes/${SHEET}.json`;
   const STORE = 'rise.landscape-review.v1';
   const SETS = [['landscapes', 'Landscapes'], ['earth-and-sky', 'Earth and sky']];
   const LICENCE_NAMES = { open: 'Open', 'cc-by': 'CC BY', 'public-domain-credit': 'Public domain, credit asked' };
@@ -388,7 +391,7 @@
     counts();
   }).catch((error) => {
     document.getElementById('meta').textContent = '';
-    document.getElementById('sets').append(el('p', 'error', `Could not load the candidates (${error.message}). Open this page through the dev server.`));
+    document.getElementById('sets').append(el('p', 'error', `Could not load ${SHEET}.json (${error.message}). Open this page through the dev server after a harvest, or add ?sheet=sheet-2026-10-26 for the reviewed sheet.`));
   });
 })();
 </script>

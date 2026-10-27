@@ -1084,7 +1084,9 @@ export class VisualCortex {
                 sourceName: work.sourceName,
                 sourceUrl: work.sourceUrl,
                 rightsBasis: work.license || work.rights,
-                attribution: work.attribution
+                attribution: work.attribution,
+                // NASA's basis reads as public domain: without this its asked-for acknowledgement classifies as open.
+                ...(work.creditRequired === true ? { creditRequired: true } : {})
             }
         };
     }
@@ -3037,7 +3039,9 @@ export class VisualCortex {
                 const image = await provider.getRandom({
                     category: this._providerCategory(categoryId),
                     signal,
-                    timeoutMs: 8000
+                    timeoutMs: 8000,
+                    // The first work into an empty pool is the one shown first; a provider may open on a favourite.
+                    opening: pool.images.length === 0
                 });
                 if (!image?.data?.url) throw new Error(`Provider returned no image URL for ${categoryId}`);
                 requestedUrl = image.data.url;

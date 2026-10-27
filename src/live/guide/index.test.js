@@ -163,10 +163,11 @@ describe('the guide to beats', () => {
     });
 
     it('offers a host’s model no collection, whose images the card cannot load yet (docs/plans/LIVE-IMAGERY.md)', () => {
-        expect(SCENE_ENGINES).toContain('astronomy');
-        expect(HOST_ENGINES).toEqual(SCENE_ENGINES.filter(engine => engine !== 'astronomy'));
+        const collections = ['astronomy', 'landscapes', 'earth-and-sky'];
+        for (const engine of collections) expect(SCENE_ENGINES).toContain(engine);
+        expect(HOST_ENGINES).toEqual(SCENE_ENGINES.filter(engine => !collections.includes(engine)));
         for (const text of [CURRENT_GUIDE, DIVE_INSTRUCTIONS, ...RISE_CURRENT_STYLES.map(id => styleGuide(id))]) {
-            expect(text).not.toMatch(/astronomy/iu);
+            expect(text).not.toMatch(/astronomy|sci-landscapes|earth-and-sky|earth and sky collection|landscapes collection/iu);
         }
     });
 });

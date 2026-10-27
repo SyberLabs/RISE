@@ -45,6 +45,14 @@ describe('an engine, by its name or an alias', () => {
         expect(heard('astronomy')).toEqual({ engine: 'astronomy', params: {} });
         expect(heard('show me astronomy')).toEqual({ engine: 'astronomy', params: {} });
         expect(heard('Show me astronomy, please.')).toEqual({ engine: 'astronomy', params: {} });
+        for (const words of ['landscapes', 'a landscape', 'show me a landscape', 'Landscapes, please.']) {
+            expect(heard(words), words).toEqual({ engine: 'landscapes', params: {} });
+        }
+        for (const words of ['earth and sky', 'Earth-and-sky', 'earth from space', 'show me the earth from space', 'earth from orbit']) {
+            expect(heard(words), words).toEqual({ engine: 'earth-and-sky', params: {} });
+        }
+        expect(heard('earth')).toBeNull();
+        expect(heard('what does the earth look like from space')).toBeNull();
     });
 
     it('never matches the still, or the face’s own engine', () => {
@@ -175,7 +183,9 @@ describe('the note in the bar', () => {
             harmonograph: 'Showing the harmonograph.',
             ostensoria: 'Showing Ostensoria.',
             apparitio: 'Showing Apparitio.',
-            astronomy: 'Showing the Astronomy collection.'
+            astronomy: 'Showing the Astronomy collection.',
+            landscapes: 'Showing the Landscapes collection.',
+            'earth-and-sky': 'Showing the Earth and sky collection.'
         });
         expect(catalogNote({ engine: 'genesis', cue: 'calm' })).toBe('Making Genesis calmer.');
     });

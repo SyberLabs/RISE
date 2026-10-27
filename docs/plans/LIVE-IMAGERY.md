@@ -347,14 +347,24 @@ Earth). That is the owner's choice.
 
 An agent can run steps 1, 2, 4 and 5. Only the owner does step 3.
 
-**Step 1 and the sheet are built (task LIVE-041).** `scripts/harvest-landscape-candidates.mjs` writes
-`src/content/landscapes/candidates.generated.json`: Landscapes (Cleveland paintings and photographs, Rijksmuseum
-photographs) and Earth and sky (ESO's cut night landscapes, NASA's Earth). Each work is resolved by the Reader's own
-adapter or feed reader and its chip composed by `artwork-label.js`. The owner reviews it at
-`docs/assets/live/landscape-review.html` on the dev server and downloads `landscape-decisions.json`, which becomes the
-pins file. The Rijksmuseum route reads the image's own rights (`VisualItem.subject_to`): the Reader's adapter matches
-a public-domain address anywhere in the VisualItem, including its metadata record's CC0, and so admits In Copyright
-photographs.
+**Built (task LIVE-041): the steps above, for Landscapes and Earth and sky.**
+
+1. `scripts/harvest-landscape-candidates.mjs` harvested a sheet of 258: Landscapes (Cleveland paintings and
+   photographs, Rijksmuseum photographs) and Earth and sky (ESO's cut night landscapes, NASA's Earth). Each work is
+   resolved by the Reader's own adapter or feed reader and its chip composed by `artwork-label.js`. The Rijksmuseum route
+   reads the image's own rights (`VisualItem.subject_to`), since the adapter's whole-record match admits In Copyright
+   photographs.
+2. The owner reviewed it by eye at `docs/assets/live/landscape-review.html` on 2026-10-26. The sheet is kept as
+   `src/content/landscapes/sheet-2026-10-26.json` and the owner's file as `landscape-decisions.2026-10-26.json`; a
+   later harvest never offers a kept or cut work again.
+3. `src/content/landscapes/landscape-pins.js` holds every verdict: Landscapes 68 kept and 112 cut, Earth and sky 65 kept
+   and 13 cut, and the owner's three favourites.
+4. `scripts/build-landscape-catalog.mjs` builds `src/sources/visual/landscapes-catalog.generated.json` from the kept
+   works only, rights frozen at the harvest; `--verify` re-resolves every catalogued work at its source and exits 1 on
+   any change in rights, owed credit or image (the monthly re-check).
+5. The engines `landscapes` and `earth-and-sky` (pools `sci-landscapes`, `sci-earth-and-sky`, served by the science
+   catalog provider) sit beside `astronomy`. A collection opens on one of its favourites: they lead the provider's list,
+   whose first work a cue prepares.
 
 ## 6. The smallest first slice: astronomy hung in the safe rectangle, with its credit
 
