@@ -144,6 +144,11 @@ export class LiveVenue {
         this.stillWatch = typeof MutationObserver === 'function' ? new MutationObserver(() => this.followStillness()) : null;
         this.stillWatch?.observe(this.doc.documentElement, { attributes: true, attributeFilter: ['class'] });
         if (host.params?.has('measure')) this.measureFace();
+        // The work a collection shows and the words of its chip, for its credit under the circle (placeCredit).
+        this.shownWork = null;
+        this.creditLine = null;
+        this.onWorkShown = event => { this.shownWork = event.detail ?? null; };
+        this.doc.defaultView.addEventListener('rise:work-shown', this.onWorkShown);
         // Connecting or disconnecting OpenRouter elsewhere in the tab is shown here at once.
         this.stopConnection = subscribeConnection(() => { if (this.chosen()?.credential === 'openrouter') this.renderCredential(); });
         // A sealed room asks nothing: no sign-in comes back to it, and nothing is said to it.
@@ -731,6 +736,8 @@ export class LiveVenue {
                 this.say('RISE is answering; ask again once it has.');
                 return;
             }
+            // A reading the reader paused: words that only name a visual show it there, and it plays on.
+            if (runtime.status === 'interrupted' && this.showChosen(runtime, words)) return;
             // A reading that takes no interjection is held first, as Pause holds it, and the question reads anew.
             if (runtime.status === 'live') {
                 try { runtime.hold(); } catch { /* it is no longer live */ }
@@ -1204,11 +1211,13 @@ export class LiveVenue {
         for (const name of ['--live-vx', '--live-vy', '--live-vk']) field?.style.removeProperty(name);
         for (const layer of field?.children ?? []) delete layer.dataset.liveScale;
         this.hang(null);
+        this.placeCredit(null);
     }
 
     /**
-     * A collection image hung in its own box, the safe rectangle (frames.js hungRect), in every room and whether or not
-     * the face draws (LiveHost.css, "A collection image"); anything else, or `layout` null, takes it down.
+     * A collection image hung in its own box, the safe rectangle (frames.js hungRect), in every room, where the face
+     * does not draw and so there is no circle to hold it (LiveHost.css, "A collection image"); anything else, or
+     * `layout` null, takes it down.
      */
     hang(layout) {
         const root = this.doc.documentElement;
@@ -1220,6 +1229,38 @@ export class LiveVenue {
             if (box) field?.style.setProperty(name, `${value}px`);
             else field?.style.removeProperty(name);
         }
+    }
+
+    /**
+     * The credit of a collection photograph held in a circle, set under it as a museum sets a label: the gallery's own
+     * chip has no corner in a circle (LiveHost.css). The same words the chip carries, the title before a credit that
+     * names only the work's makers; it opens with the aperture and goes with it. Null, or anything else, takes it down.
+     */
+    placeCredit(geometry, layout = null) {
+        const ap = geometry?.aperture;
+        const shown = ap && visualOf(this.framing?.cue) === 'sourced' ? this.shownWork : null;
+        const said = typeof shown?.text === 'string' ? shown.text : '';
+        const text = said && shown.label?.creditRequired && shown.label.title ? `${shown.label.title} · ${said}` : said;
+        if (!text) {
+            this.creditLine?.remove();
+            this.creditLine = null;
+            return;
+        }
+        if (!this.creditLine) {
+            this.creditLine = this.doc.createElement('p');
+            this.creditLine.className = 'live-credit';
+            this.doc.body.append(this.creditLine);
+        }
+        if (this.creditLine.textContent !== text) this.creditLine.textContent = text;
+        // As wide as the room allows, below the band the face draws round the aperture (out to about 1.13 of its
+        // radius), and never lower than just above the words: a long credit rides up over the band, not the words.
+        const style = this.creditLine.style;
+        style.left = `${ap.x}px`;
+        style.width = `${Math.round(this.doc.defaultView.innerWidth - 32)}px`;
+        const below = ap.y + ap.r * 1.14 + 6;
+        const ceiling = (layout?.wordsTop ?? Infinity) - 6 - this.creditLine.offsetHeight;
+        style.top = `${Math.round(Math.min(below, ceiling))}px`;
+        style.opacity = String(ap.open);
     }
 
     /**
@@ -1312,7 +1353,9 @@ export class LiveVenue {
         field?.style.setProperty('--live-vx', `${move.x}px`);
         field?.style.setProperty('--live-vy', `${move.y}px`);
         field?.style.setProperty('--live-vk', String(move.k));
-        this.hang(layout);
+        // Where the face draws, a collection photograph is held in its circle and credited under it, not hung.
+        this.hang(null);
+        this.placeCredit(geometry, layout);
         framing.scale ??= String(Math.round(restScale(frameOf(framing.cue), layout) * 1e4) / 1e4);
         if (field) this.declareScales(field, framing.scale);
         delete this.face.dataset.faceAside;
@@ -1472,6 +1515,8 @@ export class LiveVenue {
         if (this.destroyed) return;
         this.destroyed = true;
         this.stopConnection();
+        this.doc.defaultView.removeEventListener('rise:work-shown', this.onWorkShown);
+        this.creditLine?.remove();
         this.doc.defaultView.clearTimeout(this.chosenTimer);
         this.listener?.destroy();
         this.stopFollowing?.();
