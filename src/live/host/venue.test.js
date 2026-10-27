@@ -149,8 +149,12 @@ describe('the venue is /live in the app', () => {
         mount();
         const answered = $('[data-venue-open="providers"]');
         const spoken = $('[data-venue-open="voices"]');
-        // The Demo's readings come with their pictures: it names no choice of who makes them.
-        expect(shown($('.live-venue__choices'))).toBe('Answered by Demo · spoken by your device');
+        // The Demo's readings come with RISE's pictures: the line names them from the first load, the panel explains.
+        expect(shown($('.live-venue__choices'))).toBe('Answered by Demo · pictures by RISE · spoken by your device');
+        $('[data-venue-open="pictures"]').click();
+        expect([...document.querySelectorAll('input[name="live-venue-pictures"]')].every(radio => radio.disabled)).toBe(true);
+        expect($('#live-venue-pictures-panel .live-venue__note').textContent).toMatch(/come with their own pictures/u);
+        $('.live-venue').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         const panel = $('#live-venue-providers-panel');
         expect(panel.hidden).toBe(true);
         answered.click();
@@ -1088,6 +1092,22 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         host.destroy();
         host = null;
         expect(root.dataset.liveRoom).toBeUndefined();
+    });
+
+    it('switches between the light room and the dark face last worn from the corner, and keeps the choice', () => {
+        const kept = [];
+        const root = document.documentElement;
+        mount('?voice=paced', env(), { getSettings: () => ({ liveFace: 'jade' }), onSettingChange: (key, value) => kept.push([key, value]) });
+        const corner = $('.live-venue__room');
+        expect(corner.textContent).toBe('Light room');
+        corner.click();
+        expect(root.dataset.liveRoom).toBe('light');
+        expect(face().dataset.faceSkin).toBe('porcelain');
+        expect(corner.textContent).toBe('Dark room');
+        corner.click();
+        expect(root.dataset.liveRoom).toBeUndefined();
+        expect(face().dataset.faceSkin).toBe('jade');
+        expect(kept).toEqual([['liveFace', 'porcelain'], ['liveFace', 'jade']]);
     });
 
     it('listens while the reader types, thinks from the ask until the first words, then withdraws', async () => {

@@ -131,6 +131,7 @@ export class LiveVenue {
         // The face: its element, its engine once loaded, whether the last question failed, and (?measure=1) its states.
         const saved = host.getSettings?.()?.liveFace;
         this.faceSkin = FACE_SKINS.includes(saved) ? saved : 'sophia';
+        this.darkFace = 'sophia';
         this.face = this.makeFace();
         this.faceEngine = null;
         // The room's frame while the face is in the room (§23): its director, clock and animation frame, or null.
@@ -254,6 +255,7 @@ export class LiveVenue {
         container.innerHTML = `
       <main class="live-host live-venue${arriving ? ' live-venue--arriving' : ''}" aria-labelledby="live-venue-title">
         <div class="live-venue__face"><div class="live-venue__bloom" aria-hidden="true"></div></div>
+        <button type="button" class="live-venue__room"></button>
         <h1 class="live-venue__mark" id="live-venue-title">RISE <span>Live</span></h1>
         <p class="live-venue__lede">Ask, and the answer becomes a reading.</p>
         <form class="live-venue__ask" novalidate>
@@ -298,6 +300,8 @@ export class LiveVenue {
       </main>`;
         const $ = selector => container.querySelector(selector);
         this.root = $('.live-venue');
+        this.roomSwitch = $('.live-venue__room');
+        this.roomSwitch.addEventListener('click', () => this.chooseFace(faceLight(this.faceSkin) ? this.darkFace : 'porcelain'));
         this.paintSkin();
         this.form = $('.live-venue__ask');
         this.field = $('#live-venue-question');
@@ -451,6 +455,9 @@ export class LiveVenue {
         // A light face makes a light room (LiveHost.css, "The light room"): the reading and the stage wear it too.
         if (faceLight(this.faceSkin)) root.dataset.liveRoom = 'light';
         else delete root.dataset.liveRoom;
+        // The corner's switch names the room it leads to, and goes back to the dark face last worn.
+        if (!faceLight(this.faceSkin)) this.darkFace = this.faceSkin;
+        if (this.roomSwitch) this.roomSwitch.textContent = faceLight(this.faceSkin) ? 'Dark room' : 'Light room';
     }
 
     /**
@@ -544,18 +551,27 @@ export class LiveVenue {
         const named = this.root?.querySelector('[data-venue-open="pictures"]');
         if (!named) return;
         const entry = this.chosen();
-        const policy = this.picturesPolicy();
-        this.root.querySelector('.live-venue__pictures-choice').hidden = !entry || entry.id === 'mock';
+        // The Demo's readings were written by RISE with their pictures: the line says so, and the panel only explains.
+        const demo = entry?.id === 'mock';
+        const policy = demo ? 'rise' : this.picturesPolicy();
+        this.root.querySelector('.live-venue__pictures-choice').hidden = !entry;
         const model = this.picturesModel || OPENROUTER_DEFAULT_MODEL;
         const name = { rise: 'RISE', same: 'the same model', model: model.split('/').at(-1) }[policy];
         named.textContent = name;
         named.setAttribute('aria-label', `Who makes the pictures: ${name}`);
         for (const radio of this.root.querySelectorAll('input[name="live-venue-pictures"]')) {
             radio.checked = radio.value === policy;
-            if (radio.value === 'model') radio.disabled = entry?.credential !== 'openrouter';
+            radio.disabled = demo || (radio.value === 'model' && entry?.credential !== 'openrouter');
         }
         this.picturesCredential.replaceChildren();
         this.root.querySelector('input[name="live-venue-pictures"]:checked')?.closest('label')?.after(this.picturesCredential);
+        if (demo) {
+            const note = this.doc.createElement('p');
+            note.className = 'live-venue__note';
+            note.textContent = 'The Demo’s readings come with their own pictures. Choose who answers to choose who makes them.';
+            this.picturesCredential.append(note);
+            return;
+        }
         if (policy !== 'model') return;
         const label = this.doc.createElement('label');
         label.className = 'live-label';
