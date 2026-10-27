@@ -24,4 +24,8 @@ describe('the reviewed brands', () => {
   it('holds GitHits provisional until GitHits confirms its colors', () => {
     expect(BRANDS.githits.confirmed).toBe(false);
   });
+
+  it('holds OpenStatus provisional until OpenStatus confirms its colors', () => {
+    expect(BRANDS.openstatus.confirmed).toBe(false);
+  });
 });
