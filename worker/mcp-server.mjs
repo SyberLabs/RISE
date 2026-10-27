@@ -2,7 +2,8 @@ import { RISE_CURRENT_LIMITS as LIMITS, RISE_CURRENT_LOOKS, RISE_CURRENT_SCHEMA,
 import { MCP_CURRENT_BYTES, serializedUtf8Bytes } from '../src/live/hosts/mcp-size.js';
 import { CURRENT_EXAMPLE, STYLE_LINES, TOOL_NAME, styleGuide } from '../src/live/guide/index.js';
 import { DISPLAY_MODES } from '../src/live/hosts/mcp-port.js';
-import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES, SCENE_ENGINES } from '../src/core/beats.js';
+import { BEAT_CUE_PATTERN, BEAT_LIMITS, BEAT_PLACES, BEAT_SIZES, BEAT_TYPES } from '../src/core/beats.js';
+import { HOST_ENGINES } from '../src/live/guide/beats.js';
 import { SOUND_IDS } from '../src/audio/sound-ids.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
@@ -145,7 +146,7 @@ export function currentJsonSchemaV2() {
             type: 'object',
             properties: {
               id,
-              engine: { type: 'string', enum: SCENE_ENGINES },
+              engine: { type: 'string', enum: HOST_ENGINES },
               params: { type: 'object', description: 'The engine\u2019s parameters, by the guide\u2019s list for that engine; each within its bounds.' }
             },
             required: ['id', 'engine'],
@@ -356,18 +357,25 @@ function refusal(error) {
 
 /**
  * Every generated scene's code, parsed and held to the scene rules (src/core/scene-admission.js), and every figure's SVG,
- * held to the figure rules the card holds it to again (svg-admission.js): the refusal's lines, or none.
+ * held to the figure rules the card holds it to again (svg-admission.js): the refusal's lines, or none. A scene naming
+ * an engine the card is not offered (a collection, whose images it cannot load: HOST_ENGINES) is refused by name.
  */
 function sceneRefusals(current) {
   const lines = [];
   let code = false;
+  let named = false;
   for (const scene of Array.isArray(current.scenes) ? current.scenes : []) {
+    if (scene?.engine !== undefined && !HOST_ENGINES.includes(scene.engine)) {
+      named = true;
+      lines.push(clean(`Scene "${scene.id}" was refused: the ${scene.engine} collection is not shown in this card; name one of ${HOST_ENGINES.join(', ')}, or draw the picture.`));
+      continue;
+    }
     const verdict = scene?.code !== undefined ? admitSceneCode(scene.code) : scene?.svg !== undefined ? admitSvg(scene.svg) : { ok: true };
     if (verdict.ok) continue;
     code ||= scene.code !== undefined;
     for (const diagnostic of verdict.diagnostics) lines.push(clean(`Scene "${scene.id}" was refused: ${describeDiagnostic(diagnostic)}`));
   }
-  return { lines: lines.slice(0, MAX_SCENE_LINES), repair: code ? 'the scene’s code' : 'the figure' };
+  return { lines: lines.slice(0, MAX_SCENE_LINES), repair: named ? 'the scene' : code ? 'the scene’s code' : 'the figure' };
 }
 
 function call(id, params) {

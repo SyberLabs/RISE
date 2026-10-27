@@ -5,7 +5,7 @@
  * Each WAV is deleted only after its Opus file exists and is non-empty.
  */
 import { readdirSync, readFileSync, rmSync, statSync, writeFileSync, existsSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { encodeOpus } from './lib/opus.mjs';
 
@@ -21,14 +21,13 @@ for (const voiceId of readdirSync(RECITATION)) {
   for (const name of readdirSync(dir).filter(file => file.endsWith('.wav'))) {
     const key = name.slice(0, -4);
     const wavPath = join(dir, name);
-    const opusPath = join(dir, `${key}.opus`);
-    encodeOpus(wavPath, opusPath);
+    const opusPath = encodeOpus(wavPath, join(dir, `${key}.opus`));
     if (!existsSync(opusPath) || statSync(opusPath).size === 0) {
       throw new Error(`Opus encode produced nothing for ${wavPath}`);
     }
     const entry = manifest.voices?.[voiceId]?.entries?.[key];
     if (entry) {
-      entry.asset = `/audio/recitation/${voiceId}/${key}.opus`;
+      entry.asset = `/audio/recitation/${voiceId}/${basename(opusPath)}`;
       entry.mimeType = 'audio/ogg; codecs=opus';
     }
     rmSync(wavPath);
