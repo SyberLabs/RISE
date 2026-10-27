@@ -11,7 +11,7 @@
   "acceptance": [
     "A changed encoded recitation take has a new content-addressed URL; previously published audio bytes remain at their old paths.",
     "Both static recitation authoring commands publish the returned audio path, keep phrase lookup keys and timing metadata, and retain already generated files without unnecessary synthesis.",
-    "No production audio regeneration, voice/provider switch, account/session/entitlement change, paid call or deployment occurs in this source candidate. Listening quality and a later audio release require separate evidence."
+    "No production audio regeneration, voice/provider switch, account/session/entitlement change or paid call occurs in this source change. Listening quality and a later audio release require separate evidence; source integration follows the coordinating release lane."
   ],
   "evidence": [
     {
@@ -25,16 +25,32 @@
       "ref": "scripts/lib/opus.test.mjs",
       "note": "Real ffmpeg with original synthetic PCM tones. The encoder test failed against the old encoder; changed takes now have different digest paths and leave prior files intact. The real WAV conversion command preserves timing metadata and publishes a path that exists. No model/API used.",
       "date": "2026-10-27"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/754",
+      "note": "Workflow coverage was published through the authorized existing GitHub website editor in 5ac9ffde791a85eb356166f115fa027d220e7a13. It enables the setup action’s existing ffmpeg input and adds scripts/lib/opus.test.mjs to the existing required Node command. The three regressions use real ffmpeg and synthetic audio. Final-head required CI and independent review are pending; prior-head CI is not claimed as final-head evidence.",
+      "date": "2026-10-27"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/pull/754#issuecomment-6431156445",
+      "note": "Independent source review and exact local 73-test command passed on prepared 014b4612. Published workflow blob 73d36cd450e99266e9436801cc5f73bd88030aed matches that reviewed file. Fresh final-head checks/review remain required.",
+      "date": "2026-10-27"
     }
   ],
   "activity": [
     {
       "date": "2026-10-27T00:27:00.000Z",
       "summary": "Claimed on isolated codex/tts-quality-selection after the user requested a new voice-quality/performance track. Diagnosis found static --force retakes reuse text-only URLs despite the immutable cache policy. The dormant website Plus selector candidate was independently rejected because the current site no longer loads it."
+    },
+    {
+      "date": "2026-10-27T02:12:20.550Z",
+      "summary": "Recorded authorized workflow coverage publication at 5ac9ffde; final-head checks and independent review remain pending."
     }
   ],
-  "updatedAt": "2026-10-27T00:27:00.000Z",
-  "revision": 1,
+  "updatedAt": "2026-10-27T02:12:20.550Z",
+  "revision": 2,
   "summary": "Source candidate for safe static voice retakes. Existing production voice assets remain unchanged; synthesis quality, hosted provider choice and listening acceptance remain open.",
   "blocker": null
 }
