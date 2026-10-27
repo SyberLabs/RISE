@@ -1,0 +1,43 @@
+{
+  "id": "FND-019",
+  "title": "Allow required CI and full unit validation to finish after slow setup",
+  "lane": "shared",
+  "milestone": "Release validation",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex RISE release owner",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Required CI and full unit jobs retain ffmpeg, Chromium, audio hydration, the existing commands and all assertions, with a bounded time limit that accommodates observed slow package setup.",
+    "Required CI and independent review pass on the final candidate; the previously missing full unit shard is checked on the released tree or a clearly identified equivalent candidate."
+  ],
+  "evidence": [
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/40439093832",
+      "note": "On released 2cbae518, shards 3 and 4 exceeded the 15-minute job limit during Ubuntu package setup, before unit tests ran. Retry of shard 3 passed 2166 tests with 43 skipped; shard 4 again timed out during Chromium dependency setup. Successful browser and other unit results remain separate.",
+      "date": "2026-10-27"
+    },
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/40444194657",
+      "note": "The first #755 candidate's required CI also exhausted its 15-minute job cap during ffmpeg package downloads, before Fast release checks or the browser gate ran. Extend the same bounded allowance to this job; do not retry the unchanged candidate.",
+      "date": "2026-10-27"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-27T03:25:00.000Z",
+      "summary": "Claimed the narrow full-unit timeout correction after two observed setup timeouts; preserve real Chromium and ffmpeg checks."
+    },
+    {
+      "date": "2026-10-27T03:50:00.000Z",
+      "summary": "Required CI independently reproduced the same setup timeout. Add its bounded 30-minute cap, integrate current main and collect fresh checks and review."
+    }
+  ],
+  "updatedAt": "2026-10-27T03:50:00.000Z",
+  "revision": 2,
+  "summary": "Increase only required CI and full-unit job timeouts from 15 to 30 minutes after both exhausted their cap in dependency setup. Hosted validation remains pending; browser job limits, deployment behavior and human acceptance are unchanged.",
+  "blocker": null
+}
