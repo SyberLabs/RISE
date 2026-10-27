@@ -1,0 +1,33 @@
+{
+  "id": "FND-019",
+  "title": "Allow full unit validation to finish after slow runner setup",
+  "lane": "shared",
+  "milestone": "Release validation",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "codex RISE release owner",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Full unit jobs retain ffmpeg, Chromium, audio hydration, the existing shard commands and all assertions, with a bounded time limit that accommodates observed slow package setup.",
+    "Required CI and independent review pass on the final candidate; the previously missing full unit shard is checked on the released tree or a clearly identified equivalent candidate."
+  ],
+  "evidence": [
+    {
+      "kind": "observation",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/40439093832",
+      "note": "On released 2cbae518, shards 3 and 4 exceeded the 15-minute job limit during Ubuntu package setup, before unit tests ran. Retry of shard 3 passed 2166 tests with 43 skipped; shard 4 again timed out during Chromium dependency setup. Successful browser and other unit results remain separate.",
+      "date": "2026-10-27"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-27T03:25:00.000Z",
+      "summary": "Claimed the narrow full-unit timeout correction after two observed setup timeouts; preserve real Chromium and ffmpeg checks."
+    }
+  ],
+  "updatedAt": "2026-10-27T03:25:00.000Z",
+  "revision": 1,
+  "summary": "Increase only the full-unit job timeout from 15 to 30 minutes. Hosted candidate validation remains pending; this does not alter deployment, browser jobs or human acceptance.",
+  "blocker": null
+}
