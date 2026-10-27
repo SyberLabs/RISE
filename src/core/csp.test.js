@@ -88,14 +88,15 @@ describe('content security policy', () => {
         expect(headers.trim()).toBe(csp.trim());
     });
 
-    it('admits the Cloudflare Web Analytics beacon and its report endpoint, exactly, in both mirrored policies', () => {
-        // Cloudflare injects beacon.min.js on rise.syberlabs.io and it posts to cloudflareinsights.com/cdn-cgi/rum;
-        // PRIVACY.md section 7 discloses it. No other Cloudflare Insights host is admitted.
+    it('admits the Cloudflare Web Analytics beacon script, exactly, and no Insights host to connect to, in both mirrored policies', () => {
+        // Cloudflare injects beacon.min.js on rise.syberlabs.io and it reports to the site's own
+        // /cdn-cgi/rum, which 'self' covers (Cloudflare's CSP guidance); PRIVACY.md section 7 discloses it.
+        // No other Cloudflare Insights host is admitted.
         const headers = readFileSync(resolve(process.cwd(), 'public/_headers'), 'utf8').match(/Content-Security-Policy: ([^\r\n]+)/u)?.[1] ?? '';
         for (const policy of [csp, headers]) {
             const hosts = name => policy.split(';').map(item => item.trim()).find(item => item.startsWith(name)).split(/\s+/u);
             expect(hosts('script-src').filter(host => /cloudflareinsights/u.test(host))).toEqual(['https://static.cloudflareinsights.com']);
-            expect(hosts('connect-src').filter(host => /cloudflareinsights/u.test(host))).toEqual(['https://cloudflareinsights.com']);
+            expect(hosts('connect-src').filter(host => /cloudflareinsights/u.test(host))).toEqual([]);
         }
     });
 

@@ -9,7 +9,7 @@
   "priority": "now",
   "dependencies": [],
   "acceptance": [
-    "The production CSP in public/_headers and netlify.toml admits exactly https://static.cloudflareinsights.com in script-src and https://cloudflareinsights.com in connect-src, and nothing else changes; src/core/csp.test.js pins both origins in both policies.",
+    "The production CSP in public/_headers and netlify.toml admits exactly https://static.cloudflareinsights.com in script-src and nothing else changes (the injected beacon reports to the site's own /cdn-cgi/rum, covered by 'self'); src/core/csp.test.js pins the script origin and that connect-src admits no Cloudflare Insights host, in both policies.",
     "PRIVACY.md no longer says RISE has no analytics; it states what Cloudflare Web Analytics collects and does not collect, citing Cloudflare's documentation, its retention, and the legal basis, and replaces the 'we would ask first' promise.",
     "The published public/PRIVACY.md and public/privacy.html match the source (npm run verify:legal).",
     "After deploy, the owner observes no CSP error for the beacon in the browser console on rise.syberlabs.io and sees page views arrive in the Cloudflare Web Analytics dashboard."
