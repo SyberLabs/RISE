@@ -421,7 +421,7 @@ async function installOldMastersSourceGate(page) {
         headers,
         body: JSON.stringify({
           id: visualUrl,
-          rights: 'https://creativecommons.org/publicdomain/mark/1.0/',
+          subject_to: [{ classified_as: [{ id: 'https://creativecommons.org/publicdomain/mark/1.0/' }] }],
           digitally_shown_by: [{ id: digitalUrl }]
         })
       });
