@@ -1424,6 +1424,9 @@ html[data-live-hang] #chamber-field .continuous-field-label[data-title]::before 
    is the caption under the circle (venue.js placeCredit), set at a size to be read, opening with the aperture. */
 html[data-live-frame="shell"] #chamber-field .chamber-continuous-field .continuous-field-artwork { object-fit: cover !important; }
 html[data-live-frame="shell"] #chamber-field .chamber-continuous-field .continuous-field-backdrop { display: none; }
+/* The Gallery's scrim darkens a picture the words lie on. In the circle and hung, the words are below the picture,
+   never over it: the photograph is shown as it is. */
+html:is([data-live-frame="shell"], [data-live-hang]) #chamber-field .chamber-continuous-field::after { content: none; }
 .live-credit {
   position: fixed;
   z-index: 7;

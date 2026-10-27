@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
     ScienceCatalogProvider,
     bareCategory,
@@ -60,6 +60,65 @@ describe('science catalog provider', () => {
             seen.add(item.id);
         }
         expect(seen.size).toBe(40);
+    });
+});
+
+describe('the Landscapes and Earth and sky collections', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('are claimed and served from their own catalog', async () => {
+        const provider = new ScienceCatalogProvider();
+        expect(hasScienceCollection('sci-landscapes')).toBe(true);
+        expect(hasScienceCollection('sci-earth-and-sky')).toBe(true);
+        expect(await provider.getImagesInCategory('sci-landscapes')).toHaveLength(68);
+        expect(await provider.getImagesInCategory('sci-earth-and-sky')).toHaveLength(65);
+    });
+
+    it('open on one of the owner’s favourites, then shuffle the whole collection', async () => {
+        const provider = new ScienceCatalogProvider();
+        for (const roll of [0, 0.99]) {
+            vi.spyOn(Math, 'random').mockReturnValue(roll);
+            const opening = await provider.getRandom({ category: 'sci-landscapes', opening: true });
+            expect(['cleveland:144967', 'cleveland:84371']).toContain(opening.id);
+            vi.restoreAllMocks();
+        }
+        expect((await provider.getRandom({ category: 'sci-earth-and-sky', opening: true })).id)
+            .toBe('nasa:GSFC_20171208_Archive_e002131');
+
+        const seen = new Set();
+        for (let i = 0; i < 68; i++) seen.add((await provider.getRandom({ category: 'sci-landscapes' })).id);
+        expect(seen.size).toBe(68);
+    });
+
+    it('list the favourites first, so a cue’s prepared first work is one of them', async () => {
+        const provider = new ScienceCatalogProvider();
+        const [first] = await provider.getImagesInCategory('sci-landscapes', 1);
+        expect(['cleveland:144967', 'cleveland:84371']).toContain(first.id);
+        expect((await provider.getImagesInCategory('sci-earth-and-sky', 1))[0].id).toBe('nasa:GSFC_20171208_Archive_e002131');
+        const all = await provider.getImagesInCategory('sci-landscapes');
+        expect(all.slice(0, 2).every(image => image.favourite)).toBe(true);
+        expect(all.slice(2).some(image => image.favourite)).toBe(false);
+    });
+
+    it('open as usual where a collection has no favourite', async () => {
+        const provider = new ScienceCatalogProvider();
+        const opening = await provider.getRandom({ category: 'sci-astronomy', opening: true });
+        expect(opening.data.favourite).toBe(false);
+    });
+
+    it('carry a credit for every work that owes one, and title and maker for the open ones', async () => {
+        const provider = new ScienceCatalogProvider();
+        for (const category of ['sci-landscapes', 'sci-earth-and-sky']) {
+            for (const image of await provider.getImagesInCategory(category)) {
+                const label = normalizeArtworkLabel({ name: image.title, metadata: {
+                    artist: image.artist, license: image.license, attribution: image.attribution,
+                    creditRequired: image.creditRequired, sourceName: image.sourceName, sourceUrl: image.sourceUrl
+                } });
+                expect(artworkMayBeShown(label), image.id).toBe(true);
+                if (image.creditRequired) expect(displayedArtworkLabel(label, false), image.id).toBe(image.attribution);
+                else expect(displayedArtworkLabel(label, true), image.id).toBe([image.title, image.artist].filter(Boolean).join(' · '));
+            }
+        }
     });
 });
 

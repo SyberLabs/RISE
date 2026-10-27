@@ -119,10 +119,15 @@ describe('what a scene lowers to on the score', () => {
     expect(sceneCue({ engine: 'astronomy' })).toEqual({ kind: 'sourced', collections: ['sci-astronomy'] });
     expect(manifestFor('astronomy')).toMatchObject({ kind: 'sourced', parameters: {}, cues: {} });
     expect(() => validateSceneParams('astronomy', { subject: 'nebula' }, '$.params')).toThrow(/astronomy takes no parameters/u);
+    expect(sceneCue({ engine: 'landscapes' })).toEqual({ kind: 'sourced', collections: ['sci-landscapes'] });
+    expect(sceneCue({ engine: 'earth-and-sky' })).toEqual({ kind: 'sourced', collections: ['sci-earth-and-sky'] });
+    expect(() => validateSceneParams('landscapes', { place: 'alps' }, '$.params')).toThrow(/landscapes takes no parameters/u);
   });
 
   it('is read back to the collection’s name from the cue on screen; any other cue has none', () => {
     expect(collectionEngine(sceneCue({ engine: 'astronomy' }))).toBe('astronomy');
+    expect(collectionEngine(sceneCue({ engine: 'landscapes' }))).toBe('landscapes');
+    expect(collectionEngine(sceneCue({ engine: 'earth-and-sky' }))).toBe('earth-and-sky');
     expect(collectionEngine({ kind: 'sourced', collections: ['aic-landscapes'] })).toBeNull();
     expect(collectionEngine(sceneCue({ engine: 'turrell' }))).toBeNull();
     expect(collectionEngine(null)).toBeNull();
@@ -156,6 +161,8 @@ describe('the guide’s account', () => {
 
   it('says what a collection is, since its name alone does not: RISE chooses the work, so the words do not name it', () => {
     expect(describeManifests()).toContain('astronomy: no parameters; a photograph of the sky RISE chooses from its reviewed Astronomy collection and hangs with its credit: say what such skies show, never which object this one is');
+    expect(describeManifests()).toContain('landscapes: no parameters; a landscape, painted or photographed, RISE chooses from its reviewed Landscapes collection and hangs with its credit: say what such places show, never which place this one is');
+    expect(describeManifests()).toContain('earth-and-sky: no parameters; a photograph of the Earth from orbit or of an observatory under the night sky, which RISE chooses from its reviewed Earth and sky collection and hangs with its credit: say what such views show, never which one this is');
   });
 
   it('describes only the engines it is given, when given them', () => {

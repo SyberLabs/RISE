@@ -1,0 +1,53 @@
+# Collection imagery (docs/plans/LIVE-IMAGERY.md): rights are frozen at harvest and re-checked once a month. The
+# Landscapes and Earth and sky catalogs are re-resolved work by work through the harvest's own resolvers; a work whose
+# rights, owed credit or image changed, or that is gone, fails the run and opens one issue listing it, for the owner to
+# re-pin or cut. Nothing is written to the repository. This job is never a required check and never runs on pull requests.
+name: Imagery rights
+
+on:
+  schedule:
+    - cron: '0 7 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: imagery-rights
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Re-check the frozen collections
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.3
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Verify Landscapes and Earth and sky
+        id: verify
+        run: |
+          set -o pipefail
+          node scripts/build-landscape-catalog.mjs --verify 2>&1 | tee verify.log
+      - name: Say what changed
+        if: failure() && steps.verify.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo 'The monthly re-check found frozen collection works whose rights, owed credit or image changed, or that are gone.'
+            echo 'Re-pin or cut each one (src/content/landscapes/landscape-pins.js), then rebuild the catalog.'
+            echo
+            echo '```'
+            tail -n 200 verify.log
+            echo '```'
+            echo
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > issue.md
+          gh issue create --title "Imagery rights: the monthly re-check found changes ($(date -u +%Y-%m))" --body-file issue.md

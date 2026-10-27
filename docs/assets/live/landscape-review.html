@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Landscape Review</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<style>
+  /* A working sheet for the owner's keep-or-cut review of the landscape candidates. Reads the harvest's JSON; writes nothing but this browser's storage and a downloaded file. */
+  :root {
+    --ground: #f6f3ec;
+    --card: #fffdf8;
+    --ink: #22201b;
+    --ink-dim: #6d685d;
+    --line: rgba(34, 32, 27, 0.13);
+    --accent: #2f5d8a;
+    --keep: #2e7d4f;
+    --keep-wash: rgba(46, 125, 79, 0.12);
+    --cut: #a3412f;
+    --cut-wash: rgba(163, 65, 47, 0.1);
+    --focus: #2f5d8a;
+    --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+    --font-ui: "Instrument Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #121214;
+      --card: #1b1b1f;
+      --ink: #e8e4da;
+      --ink-dim: #9a958a;
+      --line: rgba(232, 228, 218, 0.14);
+      --accent: #8cb8e0;
+      --keep: #6cc38f;
+      --keep-wash: rgba(108, 195, 143, 0.14);
+      --cut: #e08a78;
+      --cut-wash: rgba(224, 138, 120, 0.13);
+      --focus: #8cb8e0;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 15px/1.45 var(--font-ui);
+    overflow-x: hidden;
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 2;
+    background: color-mix(in srgb, var(--ground) 94%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 16px;
+  }
+  .bar { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+  h1 { font: 400 26px/1.1 var(--font-display); margin: 0; letter-spacing: 0.01em; }
+  .meta { color: var(--ink-dim); font-size: 13px; }
+  .spacer { flex: 1; }
+  .group { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .group button { border: 0; border-radius: 0; }
+  button {
+    font: 500 13px/1 var(--font-ui);
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 12px;
+    cursor: pointer;
+    min-height: 34px;
+  }
+  button[aria-pressed="true"] { background: var(--ink); color: var(--ground); }
+  button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .keys { color: var(--ink-dim); font-size: 12px; }
+  kbd { font: 500 11px/1 var(--font-ui); border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; background: var(--card); }
+  main { max-width: 1400px; margin: 0 auto; padding: 8px 16px 64px; }
+  section.set { margin-top: 28px; }
+  section.set > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-bottom: 12px; }
+  h2 { font: 400 30px/1.1 var(--font-display); margin: 0; }
+  .counts { font-size: 13px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+  .counts b { font-weight: 600; color: var(--ink); }
+  .counts .k { color: var(--keep); } .counts .c { color: var(--cut); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+  }
+  .card:focus { outline: none; }
+  .card.current { box-shadow: 0 0 0 2px var(--focus); }
+  .card[data-decision="keep"] { background: var(--keep-wash); border-color: var(--keep); }
+  .card[data-decision="cut"] { background: var(--cut-wash); border-color: var(--cut); }
+  .card[data-decision="cut"] .frame img { opacity: 0.45; filter: grayscale(0.7); }
+  .frame { position: relative; display: grid; place-items: center; aspect-ratio: 1; overflow: hidden; }
+  .frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: var(--line); }
+  body[data-view="whole"] .frame img { object-fit: contain; border-radius: 6px; background: transparent; }
+  .frame .missing { color: var(--ink-dim); font-size: 13px; }
+  .title { font: 400 19px/1.2 var(--font-display); margin: 0; overflow-wrap: anywhere; }
+  .line { font-size: 13px; color: var(--ink-dim); overflow-wrap: anywhere; }
+  .chip { font-size: 12.5px; border-left: 2px solid var(--accent); padding-left: 8px; overflow-wrap: anywhere; }
+  .chip .lic { display: inline-block; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 10.5px; color: var(--accent); margin-right: 6px; }
+  .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .row a { font-size: 13px; color: var(--accent); margin-left: auto; }
+  .keep[aria-pressed="true"] { background: var(--keep); color: #fff; border-color: var(--keep); }
+  .cut[aria-pressed="true"] { background: var(--cut); color: #fff; border-color: var(--cut); }
+  input.note {
+    width: 100%; font: 13px/1.3 var(--font-ui); color: var(--ink); background: transparent;
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px;
+  }
+  .empty { color: var(--ink-dim); padding: 24px 0; }
+  .error { color: var(--cut); padding: 24px 0; }
+  @media (max-width: 600px) {
+    h1 { font-size: 22px; }
+    .keys { display: none; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body data-view="circle">
+<header class="top">
+  <div class="bar">
+    <h1>Landscape review</h1>
+    <span class="meta" id="meta">Loading candidates…</span>
+    <span class="spacer"></span>
+    <div class="group" role="group" aria-label="Show">
+      <button type="button" data-filter="all" aria-pressed="true">All</button>
+      <button type="button" data-filter="undecided" aria-pressed="false">Undecided</button>
+      <button type="button" data-filter="keep" aria-pressed="false">Kept</button>
+      <button type="button" data-filter="cut" aria-pressed="false">Cut</button>
+    </div>
+    <div class="group" role="group" aria-label="Picture">
+      <button type="button" data-view="circle" aria-pressed="true">Circle</button>
+      <button type="button" data-view="whole" aria-pressed="false">Whole</button>
+    </div>
+    <button type="button" id="download">Download decisions</button>
+  </div>
+  <div class="bar keys" style="margin-top:6px">
+    <span><kbd>K</kbd> keep · <kbd>C</kbd> cut · <kbd>U</kbd> undecided · <kbd>N</kbd> note · <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>Esc</kbd> leave the note</span>
+  </div>
+</header>
+<main id="sets"></main>
+<script>
+(() => {
+  // The next harvest's sheet by default; `?sheet=sheet-2026-10-26` reopens a reviewed one.
+  const asked = new URLSearchParams(location.search).get('sheet') || '';
+  const SHEET = /^[a-z0-9-]{1,60}$/.test(asked) ? asked : 'candidates.generated';
+  const DATA = `../../../src/content/landscapes/${SHEET}.json`;
+  const STORE = 'rise.landscape-review.v1';
+  const SETS = [['landscapes', 'Landscapes'], ['earth-and-sky', 'Earth and sky']];
+  const LICENCE_NAMES = { open: 'Open', 'cc-by': 'CC BY', 'public-domain-credit': 'Public domain, credit asked' };
+
+  // Decisions live only in this browser; storage can be refused (private window), so every touch is guarded.
+  let decisions = {};
+  try { decisions = JSON.parse(localStorage.getItem(STORE) || '{}') || {}; } catch { decisions = {}; }
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(decisions)); } catch { /* the session still holds them */ } };
+
+  let filter = 'all';
+  let cards = [];
+  let current = -1;
+  const sections = new Map();
+
+  const el = (tag, className, textContent) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (textContent) node.textContent = textContent;
+    return node;
+  };
+  const https = (value) => (typeof value === 'string' && value.startsWith('https://') ? value : '');
+  const decisionOf = (id) => decisions[id]?.decision || 'undecided';
+
+  function card(work, set) {
+    const node = el('article', 'card');
+    node.tabIndex = -1;
+    node.dataset.id = work.id;
+    node.dataset.set = set;
+
+    const frame = el('div', 'frame');
+    const src = https(work.image);
+    if (src) {
+      const img = new Image();
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.alt = work.title || '';
+      img.src = src;
+      img.addEventListener('error', () => frame.replaceChildren(el('span', 'missing', 'Image did not load')));
+      frame.append(img);
+    } else {
+      frame.append(el('span', 'missing', 'No image'));
+    }
+
+    const title = el('h3', 'title', work.title);
+    const date = /^\d{4}-\d\d-\d\dT/.test(work.date || '') ? work.date.slice(0, 10) : work.date;
+    const who = [work.maker, date].filter(Boolean).join(' · ');
+    const source = [work.sourceName, work.register].filter(Boolean).join(' · ');
+    const size = [
+      work.imageWidth && work.imageHeight ? `${work.imageWidth} × ${work.imageHeight} shown` : '',
+      work.fullWidth && work.fullHeight && work.full !== work.image ? `${work.fullWidth} × ${work.fullHeight} largest` : ''
+    ].filter(Boolean).join(' · ');
+
+    const chip = el('div', 'chip');
+    chip.append(el('span', 'lic', LICENCE_NAMES[work.licence] || work.licence), document.createTextNode(work.chip || '(no chip)'));
+    chip.title = work.requiredCredit ? 'Credit owed, shown on every appearance' : 'No credit owed; the chip shows title and maker when labels are on';
+
+    const keep = el('button', 'keep', 'Keep');
+    keep.type = 'button';
+    const cut = el('button', 'cut', 'Cut');
+    cut.type = 'button';
+    keep.addEventListener('click', () => decide(work.id, 'keep', false));
+    cut.addEventListener('click', () => decide(work.id, 'cut', false));
+    const row = el('div', 'row');
+    row.append(keep, cut);
+    const page = https(work.page);
+    if (page) {
+      const link = el('a', '', 'Source');
+      link.href = page;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      row.append(link);
+    }
+
+    const note = el('input', 'note');
+    note.type = 'text';
+    note.maxLength = 200;
+    note.placeholder = 'Note (optional)';
+    note.setAttribute('aria-label', `Note on ${work.title}`);
+    note.value = decisions[work.id]?.note || '';
+    note.addEventListener('input', () => {
+      const entry = decisions[work.id] || { decision: null, note: '' };
+      entry.note = note.value.slice(0, 200);
+      decisions[work.id] = entry;
+      save();
+    });
+
+    node.append(frame, title);
+    if (who) node.append(el('div', 'line', who));
+    node.append(el('div', 'line', [source, size].filter(Boolean).join(' · ')));
+    if (work.hint) node.append(el('div', 'line', work.hint));
+    node.append(chip, row, note);
+    node.addEventListener('click', (event) => { if (!event.target.closest('a')) focusCard(cards.indexOf(node), false); });
+    paint(node);
+    return node;
+  }
+
+  function paint(node) {
+    const d = decisionOf(node.dataset.id);
+    node.dataset.decision = d;
+    node.querySelector('.keep').setAttribute('aria-pressed', String(d === 'keep'));
+    node.querySelector('.cut').setAttribute('aria-pressed', String(d === 'cut'));
+    node.hidden = filter !== 'all' && filter !== d;
+  }
+
+  function counts() {
+    for (const [set, view] of sections) {
+      const ids = cards.filter(c => c.dataset.set === set).map(c => c.dataset.id);
+      const kept = ids.filter(id => decisionOf(id) === 'keep').length;
+      const cutN = ids.filter(id => decisionOf(id) === 'cut').length;
+      view.counts.replaceChildren();
+      const part = (cls, n, label) => { const b = el('b', cls, String(n)); const s = el('span'); s.append(b, ` ${label}`); return s; };
+      view.counts.append(part('', ids.length, 'candidates · '), part('k', kept, 'kept · '), part('c', cutN, 'cut · '),
+        part('', ids.length - kept - cutN, 'undecided'));
+      const shown = ids.filter(id => filter === 'all' || decisionOf(id) === filter).length;
+      view.empty.hidden = shown > 0;
+    }
+  }
+
+  function decide(id, decision, advance) {
+    const entry = decisions[id] || { decision: null, note: '' };
+    // A second click on the same button undoes it; a key always sets, so a run of K never toggles back.
+    entry.decision = !advance && entry.decision === decision ? null : decision;
+    decisions[id] = entry;
+    save();
+    const node = cards.find(c => c.dataset.id === id);
+    const index = cards.indexOf(node);
+    paint(node);
+    counts();
+    if (advance) move(1, index);
+  }
+
+  const visible = () => cards.filter(c => !c.hidden);
+
+  function focusCard(index, scroll = true) {
+    cards[current]?.classList.remove('current');
+    current = index;
+    const node = cards[current];
+    if (!node) return;
+    node.classList.add('current');
+    if (scroll) {
+      node.focus({ preventScroll: true });
+      node.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
+  /** Step through the visible cards; a card hidden by the filter after a decision is stepped from where it was. */
+  function move(step, from = current) {
+    const list = visible();
+    if (!list.length) return;
+    const after = cards.slice(from + 1).find(c => !c.hidden);
+    const before = cards.slice(0, Math.max(0, from)).reverse().find(c => !c.hidden);
+    let target;
+    if (cards[from] && !cards[from].hidden) {
+      const at = list.indexOf(cards[from]);
+      target = list[Math.min(list.length - 1, Math.max(0, at + step))];
+    } else {
+      target = step > 0 ? (after || before) : (before || after);
+    }
+    focusCard(cards.indexOf(target || list[0]));
+  }
+
+  const columns = (node) => {
+    const grid = node?.parentElement;
+    return grid ? getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length : 1;
+  };
+
+  document.addEventListener('keydown', (event) => {
+    if (event.target instanceof HTMLInputElement) {
+      if (event.key === 'Escape' || event.key === 'Enter') { event.target.blur(); cards[current]?.focus({ preventScroll: true }); }
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const node = cards[current];
+    const key = event.key.toLowerCase();
+    if (key === 'arrowright') { move(1); event.preventDefault(); }
+    else if (key === 'arrowleft') { move(-1); event.preventDefault(); }
+    else if (key === 'arrowdown') { move(columns(node)); event.preventDefault(); }
+    else if (key === 'arrowup') { move(-columns(node)); event.preventDefault(); }
+    else if (!node) { if (key === 'k' || key === 'c') move(1, -1); }
+    else if (key === 'k') decide(node.dataset.id, 'keep', true);
+    else if (key === 'c') decide(node.dataset.id, 'cut', true);
+    else if (key === 'u') { const e = decisions[node.dataset.id]; if (e) { e.decision = null; save(); paint(node); counts(); } }
+    else if (key === 'n') { node.querySelector('.note').focus(); event.preventDefault(); }
+  });
+
+  for (const button of document.querySelectorAll('[data-filter]')) {
+    button.addEventListener('click', () => {
+      filter = button.dataset.filter;
+      for (const b of document.querySelectorAll('[data-filter]')) b.setAttribute('aria-pressed', String(b === button));
+      for (const node of cards) paint(node);
+      counts();
+    });
+  }
+  for (const button of document.querySelectorAll('button[data-view]')) {
+    button.addEventListener('click', () => {
+      document.body.dataset.view = button.dataset.view;
+      for (const b of document.querySelectorAll('button[data-view]')) b.setAttribute('aria-pressed', String(b === button));
+    });
+  }
+
+  document.getElementById('download').addEventListener('click', () => {
+    const out = {};
+    for (const node of cards) {
+      const entry = decisions[node.dataset.id];
+      if (entry && (entry.decision || entry.note)) out[node.dataset.id] = { decision: entry.decision || null, note: entry.note || '' };
+    }
+    const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2) + '\n'], { type: 'application/json' }));
+    const a = el('a');
+    a.href = url;
+    a.download = 'landscape-decisions.json';
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  fetch(DATA).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }).then((data) => {
+    const works = Array.isArray(data?.works) ? data.works : [];
+    document.getElementById('meta').textContent =
+      `${works.length} candidates · rights as of ${data.rightsVerifiedAt || 'unknown'} · decisions stay in this browser until downloaded`;
+    const root = document.getElementById('sets');
+    for (const [set, name] of SETS) {
+      const section = el('section', 'set');
+      const head = el('header');
+      const countsNode = el('span', 'counts');
+      head.append(el('h2', '', name), countsNode);
+      const grid = el('div', 'grid');
+      const empty = el('p', 'empty', 'Nothing here under this filter.');
+      for (const work of works.filter(w => w.set === set)) {
+        const node = card(work, set);
+        cards.push(node);
+        grid.append(node);
+      }
+      section.append(head, grid, empty);
+      root.append(section);
+      sections.set(set, { counts: countsNode, empty });
+    }
+    counts();
+  }).catch((error) => {
+    document.getElementById('meta').textContent = '';
+    document.getElementById('sets').append(el('p', 'error', `Could not load ${SHEET}.json (${error.message}). Open this page through the dev server after a harvest, or add ?sheet=sheet-2026-10-26 for the reviewed sheet.`));
+  });
+})();
+</script>
+</body>
+</html>

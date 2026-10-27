@@ -29,6 +29,10 @@ const ALIASES = Object.freeze([
     ['klee lines', { engine: 'genesis' }],
     ['night streaks', { engine: 'attractor', parameter: 'streaks', value: 'night' }],
     ['streaks', { engine: 'attractor', parameter: 'streaks', value: 'night' }],
+    // The collections in the words a reader uses for one picture of them.
+    ['landscape', { engine: 'landscapes' }],
+    ['earth from space', { engine: 'earth-and-sky' }],
+    ['earth from orbit', { engine: 'earth-and-sky' }],
     ['calmer', { cue: 'calm' }],
     ['brighter', { cue: 'bright' }],
     ['warmer', { cue: 'warm' }],
@@ -50,7 +54,9 @@ const NAMES = Object.freeze({
     apparitio: 'Apparitio',
     neural: 'the neural network',
     rockgarden: 'the rock garden',
-    astronomy: 'the Astronomy collection'
+    astronomy: 'the Astronomy collection',
+    landscapes: 'the Landscapes collection',
+    'earth-and-sky': 'the Earth and sky collection'
 });
 
 /** A cue as the reader is told it was taken. */

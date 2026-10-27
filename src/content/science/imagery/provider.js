@@ -21,7 +21,6 @@
  * vocabulary living in two places where only one copy learns a new word.
  */
 
-import { SCIENCE_CATEGORIES } from './science-pins.js';
 import { ShuffleBag } from '../../../sources/visual/shuffle-bag.js';
 
 /** Panel-issued ids are namespaced so they never collide with `aic-`. */
@@ -32,27 +31,33 @@ export const bareCategory = (categoryId) =>
         ? String(categoryId).slice(SCIENCE_PREFIX.length)
         : String(categoryId || '');
 
+/**
+ * Every frozen, pre-verified collection by its bare id, with the generated catalog that holds it. Each catalog is
+ * imported only when one of its collections is asked for: a reader who never opens one should not pay for it, and a
+ * restored session can name `sci-astronomy` without the panel having rendered this visit.
+ */
+const CATALOGS = Object.freeze({
+    astronomy: () => import('../../../sources/visual/science-catalog.generated.json'),
+    landscapes: () => import('../../../sources/visual/landscapes-catalog.generated.json'),
+    'earth-and-sky': () => import('../../../sources/visual/landscapes-catalog.generated.json')
+});
+
 export function hasScienceCollection(categoryId) {
-    return Object.hasOwn(SCIENCE_CATEGORIES, bareCategory(categoryId));
+    return Object.hasOwn(CATALOGS, bareCategory(categoryId));
 }
 
-let catalogPromise = null;
-/**
- * Loaded lazily. A reader who never opens a science collection should not
- * pay for the catalog, and a restored session can name `sci-astronomy`
- * without the panel having rendered this visit.
- */
-async function loadCatalog() {
-    if (!catalogPromise) {
-        catalogPromise = import('../../../sources/visual/science-catalog.generated.json')
+const catalogPromises = new Map();
+async function loadCatalog(bare) {
+    if (!catalogPromises.has(bare)) {
+        catalogPromises.set(bare, CATALOGS[bare]()
             .then(m => m.default || m)
             .catch((error) => {
                 console.warn('[Science] catalog unavailable:', error);
-                catalogPromise = null;
+                catalogPromises.delete(bare);
                 return null;
-            });
+            }));
     }
-    return catalogPromise;
+    return catalogPromises.get(bare);
 }
 
 export class ScienceCatalogProvider {
@@ -76,7 +81,12 @@ export class ScienceCatalogProvider {
         const images = await this.getImagesInCategory(categoryId, 200, filter);
         if (images.length === 0) return null;
 
-        const image = this._bag.draw(categoryId, images);
+        // A collection's opening photograph, the first into an empty pool, is one of the owner's favourites where it
+        // has any; every draw after it is the usual shuffle.
+        const favourites = filter.opening ? images.filter(item => item.favourite) : [];
+        const image = favourites.length
+            ? favourites[Math.floor(Math.random() * favourites.length)]
+            : this._bag.draw(categoryId, images);
         if (!image) return null;
 
         return {
@@ -108,15 +118,20 @@ export class ScienceCatalogProvider {
      */
     async getImagesInCategory(categoryId, limit = 200) {
         const bare = bareCategory(categoryId);
-        if (!Object.hasOwn(SCIENCE_CATEGORIES, bare)) return [];
+        if (!Object.hasOwn(CATALOGS, bare)) return [];
 
-        const catalog = await loadCatalog();
+        const catalog = await loadCatalog(bare);
         const collection = catalog?.collections?.[bare];
         if (!collection) return [];
 
         const wanted = new Set(collection.works || []);
+        const favourites = new Set(collection.favourites || []);
+        // The owner's favourites lead the list, in the catalog's order: a cue's prepared first work is the list's first
+        // (visual-cortex prepareCue). The order is fixed, since the ShuffleBag reads a reordered list as a new deck.
+        const lead = (work) => (favourites.has(work.id) ? 0 : 1);
         return (catalog.works || [])
             .filter(work => wanted.has(work.id))
+            .sort((a, b) => lead(a) - lead(b))
             .slice(0, limit)
             .map(work => ({
                 id: work.id,
@@ -132,7 +147,8 @@ export class ScienceCatalogProvider {
                 // catalog already decided which is which.
                 creditRequired: work.licence !== 'open',
                 sourceUrl: work.sourceUrl,
-                sourceName: work.sourceName
+                sourceName: work.sourceName,
+                favourite: favourites.has(work.id)
             }));
     }
 

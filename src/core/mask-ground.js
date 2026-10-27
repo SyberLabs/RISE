@@ -44,6 +44,7 @@ const SOURCE_PROFILES = Object.freeze({
     blend: GROUNDS.transparent,
 
     astronomy: GROUNDS.dark,
+    'earth-and-sky': GROUNDS.dark,
     oldmasters: GROUNDS.dark,
     renaissance: GROUNDS.dark,
     impressionism: GROUNDS.light,
