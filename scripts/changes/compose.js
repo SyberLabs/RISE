@@ -21,6 +21,7 @@ export const KIT_EXAMPLES = Object.freeze({
 });
 import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
 import { quoted } from './route.js';
+import { RISE_PRODUCT } from './customers.js';
 
 export const REPAIRS = 2;
 
@@ -37,12 +38,12 @@ function budgetSentence(b) {
   ].join(' ');
 }
 
-function instructions(model, kitOnly) {
+function instructions(model, kitOnly, product) {
   return [
-    'You write the weekly digest of RISE for the team that builds it: one RISE Current that RISE will speak aloud and show, telling the team what changed this week and why it matters.',
+    `You write the weekly digest of ${product.name} for the team that builds it: one RISE Current that RISE will speak aloud and show, telling the team what changed this week and why it matters.`,
     '',
     'What to say:',
-    '- Open with one short beat that names the week. Then group the changes by theme (for example: the reader, RISE Live, the connector, visuals, infrastructure), one or a few beats per theme, and close with one short beat.',
+    `- Open with one short beat that names the week. Then group the changes by theme (for example: ${product.themes}), one or a few beats per theme, and close with one short beat.`,
     '- Plain words, meant to be heard: short sentences, no markdown, no lists, no file paths, no code names a newcomer would not know. You speak as RISE, plainly: no flourish, no slogan and no metaphor, at the opening and the close as everywhere. Speak of what changed, never of what a later run, test or review will show.',
     '- The close says the week’s last fact and stops: no summary and no slogan.',
     '- Every claim comes ONLY from the titles and bodies of the pull requests given. Invent no capability, outcome, number, date, name or reason that is not written there. Use a number only when a pull request states it.',
@@ -88,7 +89,7 @@ function instructions(model, kitOnly) {
 }
 
 /** The composer's request: pure, so the same week builds the same request. */
-export function buildComposeRequest({ pulls, context = [], model, period, kitOnly = false }) {
+export function buildComposeRequest({ pulls, context = [], model, period, kitOnly = false, product = RISE_PRODUCT }) {
   const entry = included => pull => ({
     number: pull.number,
     included,
@@ -103,7 +104,7 @@ export function buildComposeRequest({ pulls, context = [], model, period, kitOnl
     .sort((a, b) => Date.parse(a.mergedAt) - Date.parse(b.mergedAt) || a.number - b.number);
   const count = `${pulls.length} pull request${pulls.length === 1 ? '' : 's'}`;
   return {
-    system: instructions(model, kitOnly),
+    system: instructions(model, kitOnly, product),
     prompt: `The week runs from ${period.from} to ${period.to}. Write the digest of the ${count} marked included; the pull requests are given in merge order.\n\n${quoted('pull_requests', data)}`
   };
 }
@@ -130,8 +131,8 @@ function repairRequest(request, answer, diagnostics) {
  * The admitted `{ current, sources, pictures, unspoken, dropped }`, or an error after the last repair is refused. `tally` is told each
  * rule a refusal fired and each repair asked for (the digest's first-pass score).
  */
-export async function composeCurrent({ ask, pulls, context = [], model, period, log, tally = { fired() {}, repaired() {} }, kitOnly = false }) {
-  const request = buildComposeRequest({ pulls, context, model, period, kitOnly });
+export async function composeCurrent({ ask, pulls, context = [], model, period, log, tally = { fired() {}, repaired() {} }, kitOnly = false, product }) {
+  const request = buildComposeRequest({ pulls, context, model, period, kitOnly, product });
   let next = request;
   for (let attempt = 0; attempt <= REPAIRS; attempt += 1) {
     const answer = await ask({ ...next, model });

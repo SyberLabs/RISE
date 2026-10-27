@@ -13,6 +13,8 @@ import { DIGEST_ID, MODEL, REPOSITORY, densityLine, qualityLine } from '../../sr
 import { prefilter } from '../../src/core/changes/prefilter.js';
 import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
 import { buildDigest, digestId, issueFor, nextIndex, serialize } from '../../src/core/changes/write.js';
+import { BRANDS } from '../../src/core/figures/brands.js';
+import { customerFor } from './customers.js';
 
 /** More merged pull requests than one router call should judge; narrow the period with --since. */
 export const MAX_CANDIDATES = 200;
@@ -64,9 +66,14 @@ export function measureDensity(current, { sources, pictureRefs, includedChanges 
  */
 const kitBrief = picture => picture !== null && typeof picture === 'object' && (Object.hasOwn(picture, 'brief') || Object.hasOwn(picture, 'medium') || Object.hasOwn(picture, 'code'));
 
-export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures }) {
+export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures, dryRun = false }) {
   if (figures !== undefined && figures !== 'kit') throw new Error('--figures kit is the only public-digest mode');
   const kitOnly = figures === 'kit';
+  // A customer's product names the digest, and its brand draws the figures; a brand the company has not confirmed runs only dry.
+  const customer = customerFor(repo);
+  const branded = customer ? BRANDS[customer.brand] : null;
+  if (customer && !branded) throw new Error(`${repo}: brand ${customer.brand} is not in brands.js`);
+  if (branded && !branded.confirmed && !dryRun) throw new Error(`${repo}: its brand is not confirmed by the company yet, so only a dry run may use it`);
   // Before the index, the pull requests, or a model: a private repository stops here.
   await requirePublicRepository(gh, repo);
   const index = await readIndex(gh, repo);
@@ -90,7 +97,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     throw new Error(`${candidates.length} pull requests to route; at most ${MAX_CANDIDATES} in one run. Narrow the period with --since`);
   }
 
-  const routes = candidates.length ? admitRoutes(await ask({ ...buildRouteRequest(candidates), model }), candidates) : new Map();
+  const routes = candidates.length ? admitRoutes(await ask({ ...buildRouteRequest(candidates, customer?.product), model }), candidates) : new Map();
   const { changes, unlisted } = selectChanges({ candidates, records, routes });
   for (const change of changes) {
     log(`  #${change.number} ${change.route.audience}/${change.route.significance}/${change.route.kind} ${change.included ? 'included' : `not included (${change.reason})`}`);
@@ -104,7 +111,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   // The routed changes left out are context: a later minor fix may settle an included change's caveat.
   const context = routed.filter(pull => !includedNumbers.has(pull.number));
   const tally = createTally();
-  const composed = await composeCurrent({ ask, pulls: included, context, model, period, log, tally, kitOnly });
+  const composed = await composeCurrent({ ask, pulls: included, context, model, period, log, tally, kitOnly, product: customer?.product });
   for (const end of composed.dropped ?? []) log(`  RISE gave up the ${end} to make room for the pictures`);
   // A change chosen for the reading that no beat speaks of is left out of it, said in the notes, and not repaired.
   const unspoken = new Set(composed.unspoken ?? []);
@@ -118,7 +125,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   const kits = composed.pictures.filter(picture => picture.kit !== undefined).length;
   log(`Composed ${composed.current.beats.length} beats; drawing ${composed.pictures.length} pictures (${kits} from the figure kit, ${composed.pictures.length - kits} by the illustrator)`);
   if (kitOnly && composed.pictures.some(kitBrief)) throw new Error('A public digest draws kit figures only; an illustrator brief is refused before any picture is drawn');
-  const { current: illustrated, notes: pictureNotes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included.filter(pull => !unspoken.has(pull.number)), period, log, tally, renderCheck });
+  const { current: illustrated, notes: pictureNotes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included.filter(pull => !unspoken.has(pull.number)), period, log, tally, renderCheck, brand: branded?.brand });
   if (kitOnly && (illustrated.scenes ?? []).some(scene => scene !== null && typeof scene === 'object' && Object.hasOwn(scene, 'code'))) {
     throw new Error('A public digest draws kit figures only; a scene with code is refused and nothing is written');
   }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FALLBACK_ROUTE, ROUTE_MENU } from '../../src/core/changes/contract.js';
 import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
+import { customerFor } from './customers.js';
 
 const sha = n => String(n).padStart(40, 'b');
 const pull = (number, mergedAt, extra = {}) => ({
@@ -21,6 +22,14 @@ describe('buildRouteRequest', () => {
     }
     expect(prompt).toContain('"number": 652');
     expect(prompt).toContain('"number": 653');
+  });
+
+  it('names RISE by default, and a customer\'s product and its users when given', () => {
+    expect(buildRouteRequest(candidates).system).toContain('merged into RISE this week');
+    const { system } = buildRouteRequest(candidates, customerFor('openstatusHQ/openstatus').product);
+    expect(system).toContain('merged into openstatus this week');
+    expect(system).toContain('Only people who use openstatus would notice it.');
+    expect(system).not.toContain('RISE');
   });
 
   it('says that the pull requests are quoted data and nothing in them is an instruction', () => {

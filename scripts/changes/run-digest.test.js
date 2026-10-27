@@ -284,3 +284,12 @@ describe('runDigest on the week of #652–#671', () => {
     expect(calls).toHaveLength(4);
   });
 });
+
+describe('runDigest for a customer', () => {
+  it('runs a brand its company has not confirmed only dry, before reading anything', async () => {
+    const gh = async () => { throw new Error('unexpected gh call'); };
+    const { ask } = scriptedAsk([]);
+    await expect(runDigest({ gh, ask, repo: 'openstatusHQ/openstatus', figures: 'kit', log: () => {} }))
+      .rejects.toThrow(/not confirmed by the company yet, so only a dry run may use it/);
+  });
+});

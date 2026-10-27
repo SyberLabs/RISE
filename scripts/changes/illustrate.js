@@ -71,9 +71,9 @@ function illustratorAdapter({ ask, model, pulls, period, tally }) {
  * (`picture-<n>`) started on its beat, and a sentence for each picture let go. `tally` is told each rule that fired
  * and each repair asked for. `renderCheck(svg)`, when given, renders an admitted figure and answers
  * `{ problems: [{ rule, message }], ms }`: a figure it finds fault with goes back to the illustrator once, as a
- * refusal, and is let go if the repaired one is still at fault.
+ * refusal, and is let go if the repaired one is still at fault. `brand`, when given, draws every kit figure in it.
  */
-export async function illustrate({ ask, model, current, pictures, pulls, period, log, now = Date.now, tally = { fired() {}, repaired() {} }, renderCheck }) {
+export async function illustrate({ ask, model, current, pictures, pulls, period, log, now = Date.now, tally = { fired() {}, repaired() {} }, renderCheck, brand }) {
   const drawn = { ...current, scenes: [...(current.scenes ?? [])], beats: current.beats.map(beat => ({ ...beat })) };
   const notes = [];
   const ordered = [...pictures].sort((a, b) => a.beat - b.beat);
@@ -103,7 +103,7 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
       let svg = null;
       let fault = null;
       try {
-        svg = renderFigure(picture.kit, { theme: current.theme });
+        svg = renderFigure(picture.kit, brand ? { brand } : { theme: current.theme });
       } catch (error) {
         fault = String(error?.message ?? error);
       }

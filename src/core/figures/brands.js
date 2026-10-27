@@ -1,7 +1,7 @@
 /**
  * The brands RISE has drawn its figures in for a customer, each reviewed in a pull request the way the reading themes
  * are: the three colors are looked at on every kind (fixtures/<kind>-<id>.svg) before the brand is used. A brand is
- * `confirmed` only once the company has approved its colors; until then nothing runs in it.
+ * `confirmed` only once the company has approved its colors; until then it runs only in a dry run (run-digest.js).
  */
 export const BRANDS = Object.freeze({
   /**
