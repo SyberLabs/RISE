@@ -227,6 +227,12 @@ describe('a brand', () => {
   const specs = [...Object.values(STUDY), ...boundSpecs()];
   const gray = level => `#${level.toString(16).padStart(2, '0').repeat(3)}`;
 
+  for (const kind of FIGURE_KINDS) {
+    it(`draws the study's ${kind} in a light brand exactly as the golden`, () => {
+      expect(renderFigure(STUDY[kind], { brand: LIGHT })).toBe(golden(`${kind}-northwind.svg`));
+    });
+  }
+
   it('admits the nine reading themes as brands', () => {
     for (const entry of Object.entries(JEV_PALETTES)) expect(brandProblems(asBrand(entry))).toEqual([]);
     expect(brandProblems(LIGHT)).toEqual([]);
@@ -235,7 +241,8 @@ describe('a brand', () => {
   it('draws every kind on the brand’s own ground, in its ink, with what changed in its accent', () => {
     for (const kind of FIGURE_KINDS) {
       const svg = renderFigure(STUDY[kind], { brand: LIGHT });
-      expect(svg).toContain('</title><rect width="800" height="500" fill="#FFFFFF"/>');
+      expect(svg).toContain('</title><rect width="800" height="500" fill="#FFFFFF"/><text x="56" y="30"');
+      expect(svg).toMatch(/font-weight="600">Northwind<\/text>/);
       expect(svg).toContain(`fill="${LIGHT.ink}"`);
       expect(svg).toContain(LIGHT.accent);
       for (const { text, accent } of Object.values(JEV_PALETTES)) {
@@ -283,6 +290,7 @@ describe('a brand', () => {
     ['a missing color', { name: 'Northwind', ground: '#FFFFFF', ink: '#1A1A1A' }, /needs accent/],
     ['an empty name', { ...LIGHT, name: ' ' }, /brand\.name is a label/],
     ['a name on two lines', { ...LIGHT, name: 'North\nwind' }, /brand\.name is a label/],
+    ['a name too wide for its wordmark', { ...LIGHT, name: 'W'.repeat(40) }, /^brand\.name "W+" is [\d.]+ characters wide at 25 units; its slot holds \d+ characters/],
     ['a short hex', { ...LIGHT, ground: '#FFF' }, /brand\.ground is a color written #RRGGBB/],
     ['a color name', { ...LIGHT, ink: 'black' }, /brand\.ink is a color written #RRGGBB/],
     ['a color that carries markup', { ...LIGHT, accent: '#0B57D0"/><script>' }, /brand\.accent is a color written #RRGGBB/],
@@ -298,6 +306,12 @@ describe('a brand', () => {
       expect(() => renderFigure(STUDY.bars, { brand })).toThrow(/^The figure kit cannot draw in this brand: /);
     });
   }
+
+  it('sets the name as its wordmark, escaped as every label is', () => {
+    const svg = renderFigure(STUDY.flow, { brand: { ...LIGHT, name: '<svg onload="x"> & Co' } });
+    expect(svg).toContain('>&lt;svg onload=&quot;x&quot;&gt; &amp; Co</text>');
+    expect(admitSvg(svg)).toEqual({ ok: true });
+  });
 
   it('draws in a theme or a brand, not both', () => {
     expect(() => renderFigure(STUDY.bars, { theme: 'cobalt', brand: LIGHT })).toThrow('The figure kit draws in a theme or a brand, not both');

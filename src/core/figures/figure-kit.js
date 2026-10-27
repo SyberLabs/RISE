@@ -16,9 +16,10 @@
  * uses (textAdvance, quality/svg-layout.js), widened for the reader's fonts and for bold: a label that does not fit is refused
  * with its slot's budget, never shrunk or cut. Numbers are printed exactly as given; nothing is computed into text.
  * A brand is data, never a program: a name and three #RRGGBB colors, ground, ink and accent. The geometry, the type
- * sizes and the six kinds stay the kit's. A brand sets every label in its ink at full strength, where a theme softens
- * some: a company's ink is chosen for its ground, not for the kit's tints. A brand whose words would fall under the
- * layout check's contrast is refused with its ratio; nothing is tinted to make it pass.
+ * sizes and the six kinds stay the kit's; the brand's name is its wordmark, set as any label is, above the title. A
+ * brand sets every label in its ink at full strength, where a theme softens some: a company's ink is chosen for its
+ * ground, not for the kit's tints. A brand whose words would fall under the layout check's contrast is refused with its
+ * ratio; nothing is tinted to make it pass.
  * Pure and deterministic, and it imports nothing from the live layer.
  */
 import { MIN_CONTRAST, contrastRatio, parseColour, seenOn, textAdvance } from '../quality/svg-layout.js';
@@ -55,6 +56,8 @@ const LABEL_MAX = 120;
 /** The accent's tint behind a changed flow step, whose label is set in the accent on it. */
 const CHANGED_TINT = 0.14;
 const BRAND_KEYS = Object.freeze(['name', 'ground', 'ink', 'accent']);
+/** The wordmark's baseline: the brand's name, at label size above the title, clear of it and of every kind's body. */
+const WORDMARK_Y = 30;
 const HEX = /^#[0-9A-Fa-f]{6}$/u;
 
 const KEYS = Object.freeze({
@@ -400,6 +403,7 @@ export function brandProblems(brand) {
   const shape = keysProblem('brand', brand, BRAND_KEYS, BRAND_KEYS);
   if (shape.length) return shape;
   const problems = labelProblem('brand.name', brand.name);
+  if (isLabel(brand.name)) problems.push(...fit('brand.name', brand.name, SIZE.label, W - 2 * MARGIN, { bold: true }));
   for (const key of ['ground', 'ink', 'accent']) {
     if (typeof brand[key] !== 'string' || !HEX.test(brand[key])) problems.push(`brand.${key} is a color written #RRGGBB`);
   }
@@ -614,6 +618,7 @@ export function renderFigure(spec, { theme, brand } = {}) {
   const t = brand === undefined
     ? { text: palette.text, accent: palette.accent, soft: opacity => opacity }
     : { text: brand.ink, accent: brand.accent, soft: () => 1 };
-  const ground = brand === undefined ? '' : `<rect width="${W}" height="${H}" fill="${brand.ground}"/>`;
+  const ground = brand === undefined ? ''
+    : `<rect width="${W}" height="${H}" fill="${brand.ground}"/>${text(MARGIN, WORDMARK_Y, brand.name, { fill: brand.ink, weight: 600 })}`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><title>${escape(spec.title ?? describe(spec))}</title>${ground}${DRAW[spec.kind](spec, t)}</svg>`;
 }
