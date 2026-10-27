@@ -141,6 +141,14 @@ describe('text-low-contrast', () => {
     expect(problems.map(problem => problem.message)).toEqual(['the text "143.9" at x 290, y 100 is #eef0ff on the <rect> on line 1 (#eef0ff), a contrast of 1:1; ink it in currentColor or a light colour, at least 4.5:1']);
   });
 
+  it('sees a translucent rect over the filled rect it lies on, not over the room’s ground', () => {
+    // A light ground drawn by the figure, a faint dark-blue tint on it, dark-blue words on the tint: they read.
+    const tinted = '<rect width="400" height="400" fill="#ffffff"/><rect x="20" y="60" width="300" height="60" fill="#0b57d0" fill-opacity="0.14"/>';
+    expect(rules(fig(`${tinted}<text x="40" y="100" fill="#0b57d0">Changed</text>`))).toEqual([]);
+    // The same tint with no rect under it is seen over the room's near-black ground, where the words do not read.
+    expect(rules(fig('<rect x="20" y="60" width="300" height="60" fill="#0b57d0" fill-opacity="0.14"/><text x="40" y="100" fill="#0b57d0">Changed</text>'))).toEqual(['text-low-contrast']);
+  });
+
   it('measures against the ground it is given', () => {
     expect(svgLayoutProblems(fig('<text x="20" y="100">Ink</text>'), { ground: '#ffffff' }).problems.map(problem => problem.rule)).toEqual(['text-low-contrast']);
   });

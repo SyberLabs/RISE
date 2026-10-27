@@ -1,0 +1,35 @@
+{
+  "id": "SVC-003",
+  "title": "RISE Changes: a checked brand record for the figure kit",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": ["SVC-002"],
+  "acceptance": [
+    "A brand is data only: a name and three #RRGGBB colors (ground, ink, accent); any other key, a short hex, a color name or markup is refused with a plain sentence. No SVG, font, CSS or code is accepted.",
+    "renderFigure(spec, { brand }) draws each of the six kinds in the brand's ink and accent on a ground the figure carries itself, with the kit's own geometry and type sizes; a theme and a brand together are refused.",
+    "A brand is refused, with its ratio, when any color a label is set in falls under the layout check's 4.5:1 on what it is set on: the ink at full and at the faintest a label is set, the accent on the ground and on its tint behind a changed step. Nothing is tinted to make a brand pass.",
+    "Every figure the kit draws in an admitted brand is admitted and layout-clean, down to the lightest ink the check admits."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/core/figures/figure-kit.test.js",
+      "note": "Branch claude/project-thread-4c3484, local (Linux, Node 22): npx vitest run src/core/figures src/core/quality scripts/changes: 11 files, 287 passed. Fast set 166 files: 3825 passed, 6 failed in try-session, keystones and system-design, which fail the same way on unmodified main in this checkout. ci-hygiene clean.",
+      "date": "2026-10-27"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-27T17:15:00.000Z",
+      "summary": "Opened from the owner's brand record direction (step 1 of 4: the slot and the contrast refusal)."
+    }
+  ],
+  "updatedAt": "2026-10-27T17:15:00.000Z",
+  "revision": 1,
+  "summary": "Step 1 of the brand record: the six kinds take a checked brand and refuse one that fails contrast. Not wired into the digest or the public workflow yet; the wordmark's place is the owner's call.",
+  "blocker": null
+}

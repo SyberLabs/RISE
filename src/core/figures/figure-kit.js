@@ -5,7 +5,9 @@
  * what something is checked for) and `compare` (what was so before a change and after it) follow its house style.
  *
  *   renderFigure(spec, { theme })  the figure as an SVG string, or a throw naming what figureProblems refuses
+ *   renderFigure(spec, { brand })  the same figure in a company's three colors, on its own ground
  *   figureProblems(spec)           plain sentences, empty when the kit can draw the spec
+ *   brandProblems(brand)           plain sentences, empty when the kit can draw in the brand
  *
  * The house style: one accent (the reading theme's, jev-palette.js) for what changed; hairlines at a third of the ink
  * instead of boxes; serif titles and system-sans labels, since a figure is an image and cannot load a web font. The
@@ -13,9 +15,12 @@
  * phone 390 pixels wide. Every slot is measured before anything is drawn, with the advance widths the layout check
  * uses (textAdvance, quality/svg-layout.js), widened for the reader's fonts and for bold: a label that does not fit is refused
  * with its slot's budget, never shrunk or cut. Numbers are printed exactly as given; nothing is computed into text.
+ * A brand is data, never a program: a name and three #RRGGBB colors, ground, ink and accent. The geometry, the type
+ * sizes and the six kinds stay the kit's. A brand whose words would fall under the layout check's contrast is refused
+ * with its ratio; nothing is tinted to make it pass.
  * Pure and deterministic, and it imports nothing from the live layer.
  */
-import { textAdvance } from '../quality/svg-layout.js';
+import { MIN_CONTRAST, contrastRatio, parseColour, seenOn, textAdvance } from '../quality/svg-layout.js';
 import { jevPalette } from '../jev-palette.js';
 
 export const FIGURE_KINDS = Object.freeze(['bars', 'flow', 'columns', 'stack', 'list', 'compare']);
@@ -46,6 +51,12 @@ const SANS_WIDTH = 1.1;
 const BOLD_WIDTH = 1.08;
 const AVERAGE_EM = 0.56;
 const LABEL_MAX = 120;
+/** The faintest the kit sets a label in (a note, a detail, a compare's subject): the ink a brand is checked at. */
+const FAINTEST_INK = 0.6;
+/** The accent's tint behind a changed flow step, whose label is set in the accent on it. */
+const CHANGED_TINT = 0.14;
+const BRAND_KEYS = Object.freeze(['name', 'ground', 'ink', 'accent']);
+const HEX = /^#[0-9A-Fa-f]{6}$/u;
 
 const KEYS = Object.freeze({
   bars: ['kind', 'title', 'note', 'max', 'items'],
@@ -381,6 +392,33 @@ function compareProblems(spec) {
   return problems;
 }
 
+/**
+ * What keeps the kit from drawing in `brand`, one plain sentence each; empty when it can. Every color a label is set in,
+ * on what it is set on, must clear the layout check's contrast: the ink at full and at its faintest, the accent on the
+ * ground and on its own tint behind a changed step.
+ */
+export function brandProblems(brand) {
+  const shape = keysProblem('brand', brand, BRAND_KEYS, BRAND_KEYS);
+  if (shape.length) return shape;
+  const problems = labelProblem('brand.name', brand.name);
+  for (const key of ['ground', 'ink', 'accent']) {
+    if (typeof brand[key] !== 'string' || !HEX.test(brand[key])) problems.push(`brand.${key} is a color written #RRGGBB`);
+  }
+  if (problems.length) return problems;
+  const [ground, ink, accent] = [brand.ground, brand.ink, brand.accent].map(parseColour);
+  const tint = seenOn(accent, CHANGED_TINT, ground);
+  const pairs = [
+    [`ink ${brand.ink} on ground ${brand.ground}`, contrastRatio(ink, ground)],
+    [`ink ${brand.ink} at ${FAINTEST_INK} opacity, the faintest a label is set, on ground ${brand.ground}`, contrastRatio(seenOn(ink, FAINTEST_INK, ground), ground)],
+    [`accent ${brand.accent} on ground ${brand.ground}`, contrastRatio(accent, ground)],
+    [`accent ${brand.accent} on its own tint behind a changed step`, contrastRatio(accent, tint)]
+  ];
+  for (const [what, ratio] of pairs) {
+    if (ratio < MIN_CONTRAST) problems.push(`${what} is ${Math.floor(ratio * 10) / 10}:1; the kit needs ${MIN_CONTRAST}:1. Choose colors further apart: nothing is tinted to make a brand pass`);
+  }
+  return problems;
+}
+
 const CHECKS = { bars: barsProblems, flow: flowProblems, columns: columnsProblems, stack: stackProblems, list: listProblems, compare: compareProblems };
 
 /** What keeps the kit from drawing `spec`, one plain sentence each; empty when it can. */
@@ -432,7 +470,7 @@ function flow(spec, t) {
     const y = ys[i];
     const changed = step === spec.changed;
     const cy = y + nodeH / 2;
-    body += `<rect x="${number(x)}" y="${number(y)}" width="${FLOW_NODE_WIDTH}" height="${nodeH}" rx="${nodeH / 2}" fill="${changed ? t.accent : 'none'}"${changed ? ' fill-opacity="0.14"' : ''} stroke="${changed ? t.accent : t.text}" stroke-opacity="${changed ? 1 : 0.35}" stroke-width="${changed ? 2.5 : 1.5}"/>`;
+    body += `<rect x="${number(x)}" y="${number(y)}" width="${FLOW_NODE_WIDTH}" height="${nodeH}" rx="${nodeH / 2}" fill="${changed ? t.accent : 'none'}"${changed ? ` fill-opacity="${CHANGED_TINT}"` : ''} stroke="${changed ? t.accent : t.text}" stroke-opacity="${changed ? 1 : 0.35}" stroke-width="${changed ? 2.5 : 1.5}"/>`;
     body += text(W / 2, cy + 9, step, { anchor: 'middle', fill: changed ? t.accent : t.text, weight: changed ? 600 : 400 });
     if (i < spec.steps.length - 1) {
       const a = y + nodeH + 4;
@@ -562,13 +600,20 @@ function describe(spec) {
 }
 
 /**
- * The figure the kit draws for `spec`, in the reading theme `theme` (a jev-palette.js id; cobalt when none or unknown).
- * Throws with figureProblems' sentences when the kit cannot draw it.
+ * The figure the kit draws for `spec`, in the reading theme `theme` (a jev-palette.js id; cobalt when none or unknown),
+ * or in `brand`'s ink and accent on a ground of its own. Throws with figureProblems' or brandProblems' sentences when
+ * the kit cannot draw it, and when given both a theme and a brand.
  */
-export function renderFigure(spec, { theme } = {}) {
+export function renderFigure(spec, { theme, brand } = {}) {
   const problems = figureProblems(spec);
   if (problems.length) throw new Error(`The figure kit cannot draw this ${isObject(spec) && typeof spec.kind === 'string' ? spec.kind : 'figure'}: ${problems.slice(0, 5).join('; ')}`);
-  const palette = jevPalette(theme) ?? jevPalette(DEFAULT_THEME);
-  const t = { text: palette.text, accent: palette.accent };
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><title>${escape(spec.title ?? describe(spec))}</title>${DRAW[spec.kind](spec, t)}</svg>`;
+  if (brand !== undefined) {
+    if (theme !== undefined) throw new Error('The figure kit draws in a theme or a brand, not both');
+    const refused = brandProblems(brand);
+    if (refused.length) throw new Error(`The figure kit cannot draw in this brand: ${refused.slice(0, 5).join('; ')}`);
+  }
+  const palette = brand === undefined ? jevPalette(theme) ?? jevPalette(DEFAULT_THEME) : null;
+  const t = brand === undefined ? { text: palette.text, accent: palette.accent } : { text: brand.ink, accent: brand.accent };
+  const ground = brand === undefined ? '' : `<rect width="${W}" height="${H}" fill="${brand.ground}"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><title>${escape(spec.title ?? describe(spec))}</title>${ground}${DRAW[spec.kind](spec, t)}</svg>`;
 }

@@ -24,7 +24,7 @@ import { svgTree } from '../svg-admission.js';
 /** The room a digest's figure is seen in: a phone's width, its near-black ground, and the words' ink for currentColor. */
 export const ROOM = Object.freeze({ width: 390, ground: '#0a0a0f', ink: '#eef0ff' });
 export const MIN_PIXELS = 12;
-const MIN_CONTRAST = 4.5;
+export const MIN_CONTRAST = 4.5;
 export const LAYOUT_RULES = Object.freeze(['text-overlap', 'text-crosses-shape', 'text-outside', 'text-too-small', 'text-low-contrast']);
 
 const MAX_PROBLEMS = 10;
@@ -144,7 +144,7 @@ const boxUnder = (m, box) => {
 };
 
 /** An sRGB colour `{ r, g, b, alpha }` from hex, rgb(), rgba() or a common name; null for anything else. */
-function parseColour(value) {
+export function parseColour(value) {
   const text = String(value).trim().toLowerCase();
   const named = NAMED_COLOURS[text];
   if (named) return parseColour(named);
@@ -162,7 +162,7 @@ function parseColour(value) {
 const fillOpacity = props => Math.min(1, Math.max(0, plainNumber(props['fill-opacity'] ?? 1) ?? 1));
 
 /** A colour at `alpha` (times its own) laid over `under`, as the eye sees it. */
-function seenOn(colour, alpha, under) {
+export function seenOn(colour, alpha, under) {
   const a = colour.alpha * alpha;
   return { r: colour.r * a + under.r * (1 - a), g: colour.g * a + under.g * (1 - a), b: colour.b * a + under.b * (1 - a), alpha: 1 };
 }
@@ -178,7 +178,7 @@ function luminance({ r, g, b }) {
   return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 }
 
-function contrastRatio(one, other) {
+export function contrastRatio(one, other) {
   const [light, dark] = [luminance(one), luminance(other)].sort((x, y) => y - x);
   return (light + 0.05) / (dark + 0.05);
 }
@@ -416,10 +416,12 @@ export function svgLayoutProblems(svg, { roomWidth = ROOM.width, ground = ROOM.g
       const box = node.name === 'rect' ? { x0: x, y0: y, x1: x + w, y1: y + h }
         : node.name === 'circle' ? { x0: x - w, y0: y - w, x1: x + w, y1: y + w }
           : { x0: x - w, y0: y - h, x1: x + w, y1: y + h };
-      // A filled rect is the ground of a label drawn wholly on it.
+      // A filled rect is the ground of a label drawn wholly on it, seen over the filled rect it lies wholly on, if any.
       const fill = node.name === 'rect' && filled ? colourOf(props.fill ?? 'black', props) : null;
-      const backdrop = fill && seenOn(fill, opacity * fillOpacity(props), groundColour);
-      shapes.push({ name: node.name, line, box: boxUnder(matrix, box), half, where: box, ...(backdrop ? { backdrop } : {}) });
+      const placed = boxUnder(matrix, box);
+      const below = fill && shapes.findLast(shape => shape.backdrop && within(placed, shape.box));
+      const backdrop = fill && seenOn(fill, opacity * fillOpacity(props), below?.backdrop ?? groundColour);
+      shapes.push({ name: node.name, line, box: placed, half, where: box, ...(backdrop ? { backdrop } : {}) });
       return;
     }
     let paths;
