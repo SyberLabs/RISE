@@ -69,9 +69,12 @@ export async function resolveRijksWork(id, options = {}) {
         const visual = await getJson(visualRef);
         if (!visual) return null;
 
-        // The stated license of the IMAGE. Silence is not permission.
-        const visualText = JSON.stringify(visual);
-        const isPublicDomain = /creativecommons\.org\/publicdomain\/(mark|zero)/.test(visualText);
+        // The stated license of the IMAGE, in its own subject_to: never a record about it (subject_of[].subject_to
+        // is the metadata's CC0, which every VisualItem carries, whatever the image's rights). Silence is not permission.
+        const statements = (Array.isArray(visual.subject_to) ? visual.subject_to : [])
+            .flatMap(right => [right?.id, ...(Array.isArray(right?.classified_as) ? right.classified_as.map(kind => kind?.id) : [])])
+            .filter(value => typeof value === 'string');
+        const isPublicDomain = statements.some(value => /^https?:\/\/creativecommons\.org\/publicdomain\/(mark|zero)\//.test(value));
         if (!isPublicDomain) return null;
 
         const digitalRef = (visual.digitally_shown_by || [])[0]?.id;
