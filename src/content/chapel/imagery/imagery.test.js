@@ -255,6 +255,28 @@ describe('Rijksmuseum adapter', () => {
     expect(await resolveRijksWork(200107790, { fetchImpl })).toBeNull();
   });
 
+  it('reads the image’s own statement, never the CC0 of a record about it (as rijks:200114544 is: In Copyright)', async () => {
+    const inCopyright = {
+      ...VISUAL_PD,
+      subject_to: [{ classified_as: [{ id: 'https://rightsstatements.org/vocab/InC/1.0/' }] }],
+      subject_of: [{ subject_to: [{ classified_as: [{ id: 'https://creativecommons.org/publicdomain/zero/1.0/' }] }] }]
+    };
+    const fetchImpl = fetchFor({
+      'https://id.rijksmuseum.nl/200107790': OBJECT,
+      'https://id.rijksmuseum.nl/202107790': inCopyright,
+      'https://id.rijksmuseum.nl/500558': DIGITAL
+    });
+    expect(await resolveRijksWork(200107790, { fetchImpl })).toBeNull();
+    // The same statement given as the rights object's own id, as well as by classification, is read.
+    const byId = { ...VISUAL_PD, subject_to: [{ id: 'https://creativecommons.org/publicdomain/zero/1.0/' }] };
+    const fetchById = fetchFor({
+      'https://id.rijksmuseum.nl/200107790': OBJECT,
+      'https://id.rijksmuseum.nl/202107790': byId,
+      'https://id.rijksmuseum.nl/500558': DIGITAL
+    });
+    expect(await resolveRijksWork(200107790, { fetchImpl: fetchById })).toMatchObject({ rights: 'CC0' });
+  });
+
   it('refuses off-domain hops and non-IIIF access points', async () => {
     const hijacked = { ...OBJECT, shows: [{ id: 'https://evil.example/visual' }] };
     const fetchImpl = fetchFor({ 'https://id.rijksmuseum.nl/200107790': hijacked });
