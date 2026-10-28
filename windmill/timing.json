@@ -1,0 +1,176 @@
+{
+  "marks": {
+    "open": 438,
+    "play": 5318
+  },
+  "endMs": 180230,
+  "passages": [
+    {
+      "segmentId": "beat-0",
+      "key": "beat-0",
+      "spoken": true,
+      "text": "This week Windmill gained configurable roles, agents that can wait for a person, and AI review of changes.",
+      "startMs": 1989,
+      "endMs": 7013
+    },
+    {
+      "segmentId": "beat-1",
+      "key": "beat-1",
+      "spoken": true,
+      "text": "Workspace roles are now defined for the whole instance, instead of the fixed developer and operator pair. A new settings screen edits them, and a role can now be allowed or refused to fork a workspace.",
+      "scene": "picture-1",
+      "startMs": 8730,
+      "endMs": 19263
+    },
+    {
+      "segmentId": "beat-2",
+      "key": "beat-2",
+      "spoken": true,
+      "text": "Every role picker and every screen check now reads what the role is allowed to do.",
+      "startMs": 21349,
+      "endMs": 21349
+    },
+    {
+      "segmentId": "beat-3",
+      "key": "beat-3",
+      "spoken": true,
+      "text": "Protection rulesets can also map a member's role to the role they get inside a fork.",
+      "startMs": 26586,
+      "endMs": 26586
+    },
+    {
+      "segmentId": "beat-4",
+      "key": "beat-4",
+      "spoken": true,
+      "text": "Home and a new AI session now share one composer. It gets a mode picker: Use, Plan, or Use and build. Sessions can build, test and run standalone AI agents, and a tool on an agent step can require approval or ask a person a question.",
+      "scene": "picture-2",
+      "startMs": 31952,
+      "endMs": 44719
+    },
+    {
+      "segmentId": "beat-5",
+      "key": "beat-5",
+      "spoken": true,
+      "text": "Every agent link now opens the agent editor, and AI sessions on protected production workspaces now open read-only.",
+      "startMs": 46558,
+      "endMs": 49343
+    },
+    {
+      "segmentId": "beat-6",
+      "key": "beat-6",
+      "spoken": true,
+      "text": "While an agent waits for an answer, it gives up its worker.",
+      "startMs": 53849,
+      "endMs": 53849
+    },
+    {
+      "segmentId": "beat-7",
+      "key": "beat-7",
+      "spoken": true,
+      "text": "Over MCP, one address now gives outside clients such as Claude the AI session toolset. The token decides what a client gets: 60 tools, 28, or 26. Clients that support cards can also show runs and deploy reviews in the conversation.",
+      "scene": "picture-3",
+      "startMs": 57665,
+      "endMs": 66698
+    },
+    {
+      "segmentId": "beat-8",
+      "key": "beat-8",
+      "spoken": true,
+      "text": "A card can show a run live, a table of runs, a deploy review, or an item.",
+      "startMs": 72136,
+      "endMs": 75968
+    },
+    {
+      "segmentId": "beat-9",
+      "key": "beat-9",
+      "spoken": true,
+      "text": "Slack agents now answer through a workspace's own Slack app. Native triggers can act through per-user or shared connections. A raw app can chat with a saved agent through an agent runnable, and app conversations are named by the memory id query parameter.",
+      "scene": "picture-4",
+      "startMs": 76815,
+      "endMs": 88589
+    },
+    {
+      "segmentId": "beat-10",
+      "key": "beat-10",
+      "spoken": true,
+      "text": "Native triggers no longer share one connection for the whole workspace.",
+      "startMs": 92783,
+      "endMs": 92783
+    },
+    {
+      "segmentId": "beat-11",
+      "key": "beat-11",
+      "spoken": true,
+      "text": "Agent runnables no longer read the memory id from their arguments.",
+      "startMs": 97340,
+      "endMs": 97340
+    },
+    {
+      "segmentId": "beat-12",
+      "key": "beat-12",
+      "spoken": true,
+      "text": "A variable can now carry a date after which a workspace handler runs. The handler never receives the value. Deploying a flow or script now asks you to confirm who it runs as when that changes.",
+      "scene": "picture-5",
+      "startMs": 101583,
+      "endMs": 112672
+    },
+    {
+      "segmentId": "beat-13",
+      "key": "beat-13",
+      "spoken": true,
+      "text": "The mute option for the workspace error handler moved to the editor menu.",
+      "startMs": 113638,
+      "endMs": 113638
+    },
+    {
+      "segmentId": "beat-14",
+      "key": "beat-14",
+      "spoken": true,
+      "text": "Compare and Deploy now offers an AI review of a fork's changes. Folder resources can hold review instructions for it. A new command, wmill review, runs the review on git sync pull requests, and a git sync setting runs it on the instance.",
+      "scene": "picture-6",
+      "startMs": 118318,
+      "endMs": 130093
+    },
+    {
+      "segmentId": "beat-15",
+      "key": "beat-15",
+      "spoken": true,
+      "text": "Those instructions are read from the parent workspace.",
+      "startMs": 133167,
+      "endMs": 133167
+    },
+    {
+      "segmentId": "beat-16",
+      "key": "beat-16",
+      "spoken": true,
+      "text": "The instance setting needs no CI and reviews every pull request with the workspace's default model.",
+      "startMs": 136667,
+      "endMs": 136667
+    },
+    {
+      "segmentId": "beat-17",
+      "key": "beat-17",
+      "spoken": true,
+      "text": "In the CLI, raw apps now rebuild when only the shared ui folder changes, sync push fails when pushing ui fails, and app dev and lint resolve ui imports. Trigger arguments get an untrusted-input check, an AI resource's base url can use a variable, and a deployed flow's dynamic select gets OIDC tokens.",
+      "scene": "picture-7",
+      "startMs": 142958,
+      "endMs": 158266
+    },
+    {
+      "segmentId": "beat-18",
+      "key": "beat-18",
+      "spoken": true,
+      "text": "Job arguments from triggers, flow resumes and asset subscribers now pass the check against variable and resource references.",
+      "startMs": 161780,
+      "endMs": 167973
+    },
+    {
+      "segmentId": "beat-19",
+      "key": "beat-19",
+      "spoken": true,
+      "text": "An AI resource's base url can use a variable, and a deployed flow's dynamic select now gets OIDC tokens for users who can only run the flow.",
+      "startMs": 169629,
+      "endMs": 175633
+    }
+  ]
+}

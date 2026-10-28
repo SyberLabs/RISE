@@ -1,0 +1,15 @@
+{
+  "schema": "syberlabs.changes-index/v1",
+  "digests": [
+    {
+      "id": "2026-10-28",
+      "audience": "team",
+      "title": "What changed in Windmill, 21–28 October",
+      "period": {
+        "from": "2026-10-21T08:26:41.044Z",
+        "to": "2026-10-28T08:26:41.044Z"
+      },
+      "count": 24
+    }
+  ]
+}

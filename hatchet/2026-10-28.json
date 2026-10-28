@@ -1,0 +1,1054 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-28",
+  "audience": "team",
+  "title": "What changed in Hatchet, 21–28 October",
+  "period": {
+    "from": "2026-10-21T08:26:52.186Z",
+    "to": "2026-10-28T08:26:52.186Z"
+  },
+  "generatedAt": "2026-10-28T08:26:52.186Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 5350,
+      "title": "ci: add a manual trigger to publish the serverless package",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5350",
+      "mergedAt": "2026-10-27T19:52:15Z",
+      "mergeSha": "0785cd67cee9b77d6e4622aa52cafcba00c0a4fc",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5349,
+      "title": "ci: publish the TypeScript SDK and serverless package with npm OIDC",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5349",
+      "mergedAt": "2026-10-27T19:41:17Z",
+      "mergeSha": "d0205ef1b306a79f9d2532e3a5de93aede2d88c4",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5283,
+      "title": "fix(engine): remove advisory lock on DAG replays using the DAG operator",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5283",
+      "mergedAt": "2026-10-27T19:31:23Z",
+      "mergeSha": "5c9e68ec890b69fa4bbb21c0ec0adae5847c8275",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5346,
+      "title": "fix(ts): worker shutdown waiting for durable tasks correctly",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5346",
+      "mergedAt": "2026-10-27T19:09:53Z",
+      "mergeSha": "05422c24a4973057a6eb4e20233a6a5f3c397e61",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5345,
+      "title": "fix(engine): fixing a couple of deadlocks on dag creation",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5345",
+      "mergedAt": "2026-10-27T18:53:22Z",
+      "mergeSha": "f5ec04587acef3c63ee3f1c5844e285273bc9112",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5344,
+      "title": "fix(engine): don't retry dag and task events writes into since-dropped partitions over and over",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5344",
+      "mergedAt": "2026-10-27T17:32:33Z",
+      "mergeSha": "0b90bf6563c08a116aa270f0dca6301da23d43c0",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5343,
+      "title": "fix(engine): partition pruning for task status update query",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5343",
+      "mergedAt": "2026-10-27T17:17:07Z",
+      "mergeSha": "98293f40200852767236fd7a109e700e59382e4e",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "performance"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 4949,
+      "title": "feat: serverless typescript sdk",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/4949",
+      "mergedAt": "2026-10-27T15:55:57Z",
+      "mergeSha": "dcc3dbb76fa92d43ad8c45975ea9f8add9a631dd",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5168,
+      "title": "feat(api): declare 429 on authenticated operations",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5168",
+      "mergedAt": "2026-10-27T08:55:02Z",
+      "mergeSha": "50cb934e6179e4fb758a3b48b5470e9da4f5d5b6",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5027,
+      "title": "feat(engine): cap how many pool connections one tenant can hold",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5027",
+      "mergedAt": "2026-10-27T08:54:01Z",
+      "mergeSha": "4cb10f811029a335720a56b659cfd111e4a8a273",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5338,
+      "title": "fix(engine): dag operator failing to report parent outputs after parent replay",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5338",
+      "mergedAt": "2026-10-27T08:48:43Z",
+      "mergeSha": "e71b0b63292101736b5b1ab76c8cd2ae733ba2dc",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5337,
+      "title": "fix(engine): deadlocks on mark tasks as acked",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5337",
+      "mergedAt": "2026-10-26T22:14:31Z",
+      "mergeSha": "4c840e0881716a94adcad5cb5e56228f20a1107f",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5336,
+      "title": "fix(engine): make deploy of worker acks safe",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5336",
+      "mergedAt": "2026-10-26T20:53:30Z",
+      "mergeSha": "722335ac78d171312afbf8774ec5e433d16778bf",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5335,
+      "title": "feat(durable-streams): add optional cursor argument to `reset`",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5335",
+      "mergedAt": "2026-10-26T20:41:15Z",
+      "mergeSha": "75a8c490b8e2408b572818ee917ef3865272e1d4",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5277,
+      "title": "fix(engine): worker acks",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5277",
+      "mergedAt": "2026-10-26T17:18:59Z",
+      "mergeSha": "bf9cc8b8c93138487e989dffdcff98418fa3b9fe",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5307,
+      "title": "fix(engine): durable invocation hangs until eviction on stream disconnect",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5307",
+      "mergedAt": "2026-10-26T16:57:39Z",
+      "mergeSha": "7bae7e80ed99e1256b83d2c8074cf1bb8fc602d6",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5333,
+      "title": "fix: TS SDK generate not up to date",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5333",
+      "mergedAt": "2026-10-26T16:53:29Z",
+      "mergeSha": "1cf5b21f4221909e0588304f0528f54321603442",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5262,
+      "title": "chore(engine): remove olap payload job",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5262",
+      "mergedAt": "2026-10-26T16:15:08Z",
+      "mergeSha": "676caaa91007d3771774795364ef5493d872be24",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5330,
+      "title": "refactor(engine): adding a couple more Elixir-themed helpers to `listutils`",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5330",
+      "mergedAt": "2026-10-26T15:54:16Z",
+      "mergeSha": "c739b4aaaa3f8e893e021d6a9f1295442b10c156",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5329,
+      "title": "chore: changelog entries for next OSS release",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5329",
+      "mergedAt": "2026-10-26T14:50:40Z",
+      "mergeSha": "4bba49661c0dfd0f500c07a0ab768112eaafd881",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5166,
+      "title": "feat(engine): add fairpool connection gate",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5166",
+      "mergedAt": "2026-10-26T14:39:14Z",
+      "mergeSha": "72ba18c6c012b8c2c415151e1250e34d429ff78d",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5285,
+      "title": "feat(durable-streams): add a frontend UI",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5285",
+      "mergedAt": "2026-10-26T13:29:53Z",
+      "mergeSha": "8a0ad8de6bc48407a54d9440682a48d987fcd85d",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5325,
+      "title": "fix: dependabot alerts",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5325",
+      "mergedAt": "2026-10-26T10:26:41Z",
+      "mergeSha": "09e3522beaec078e6f6967403ab6be88596c0ad7",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5165,
+      "title": "refactor(engine): run trigger preflight before the owned transaction",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5165",
+      "mergedAt": "2026-10-26T08:49:52Z",
+      "mergeSha": "f18f1adf8afb35e70ac2f1f9d007cc83b29aeec1",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "performance"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5310,
+      "title": "chore: Bump github.com/labstack/echo/v4 from 4.15.4 to 4.16.1 in /sdks/go/examples/embedded",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5310",
+      "mergedAt": "2026-10-26T08:36:07Z",
+      "mergeSha": "9762e5456238c821b62628319c2c530f4a0ed927",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5322,
+      "title": "chore: Bump the go-modules group across 1 directory with 18 updates",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5322",
+      "mergedAt": "2026-10-26T08:35:39Z",
+      "mergeSha": "f5fc37e46cf27826560d01e3d1d85ce70b8cd892",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5306,
+      "title": "chore: Bump zod from 4.3.6 to 4.6.6 in /frontend/docs",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5306",
+      "mergedAt": "2026-10-26T08:34:45Z",
+      "mergeSha": "7960209c36f285e33a7ce3591b8a5ce25378ea6a",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5323,
+      "title": "chore: Bump the github-actions group across 1 directory with 7 updates",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5323",
+      "mergedAt": "2026-10-26T08:14:19Z",
+      "mergeSha": "e9beacea6ff856d3827c06fa048499c6d6c8df75",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5324,
+      "title": "chore: Bump the npm-dev-deps group across 1 directory with 9 updates",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5324",
+      "mergedAt": "2026-10-26T08:13:01Z",
+      "mergeSha": "86c7eee9d77836312d7cd746d079ed7dfe6269bb",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5312,
+      "title": "fix: bump typescript SDK version",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5312",
+      "mergedAt": "2026-10-23T22:38:48Z",
+      "mergeSha": "af128ec1672adaf8e3cc4afd339ce5c2c6f08c35",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5311,
+      "title": "fix: accidentally broke backwards compatibility with engine",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5311",
+      "mergedAt": "2026-10-23T22:31:12Z",
+      "mergeSha": "2b3dfd8d7753c5f604fbae4cd6ac64160eca33ea",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5308,
+      "title": "fix: allow batching messages on publish for durable streams",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5308",
+      "mergedAt": "2026-10-23T21:46:22Z",
+      "mergeSha": "aef20b00755da5b1e7e69197e7189848309afb20",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5304,
+      "title": "fix(ts): durable stream shutdown, worker label propagation",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5304",
+      "mergedAt": "2026-10-23T19:37:11Z",
+      "mergeSha": "75cc06618b0bcace877b959ab0dbb066c345e494",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5293,
+      "title": "feat: add durable streams to the serverless operator",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5293",
+      "mergedAt": "2026-10-23T18:29:26Z",
+      "mergeSha": "0aadfd16111f88d8a9ffb6e3bc9c4635f00ebcb3",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5292,
+      "title": "feat: REST API, `refreshTimeout`, and `releaseSlot` in the `/core` package",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5292",
+      "mergedAt": "2026-10-23T18:29:02Z",
+      "mergeSha": "16342d7942ab94cf7f46bb706aafafa31bf5c3dd",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5301,
+      "title": "perf(ticker): stop rewriting already-owned cron and scheduled rows on every poll",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5301",
+      "mergedAt": "2026-10-23T16:05:08Z",
+      "mergeSha": "02a114866cfa8ae3031b86d20337577e0373bb7a",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5303,
+      "title": "chore(engine): fix migration numbering",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5303",
+      "mergedAt": "2026-10-23T15:48:58Z",
+      "mergeSha": "65cd93e0d4ad08ba0a026e791df6cf338fb4ea79",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5302,
+      "title": "fix(engine): return errors out of the dag operator verbatim",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5302",
+      "mergedAt": "2026-10-23T14:17:34Z",
+      "mergeSha": "00840e9989f0f044514169bc794a09d3e05979a2",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5296,
+      "title": "fix(engine): evaluate dag conditions against empty parent output",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5296",
+      "mergedAt": "2026-10-23T13:07:34Z",
+      "mergeSha": "ae05c4bb06c3335b502c1979a5af87313f710180",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 5295,
+      "title": "fix(engine): [dag operator] return outputs even when empty, and ignore invalid CELs on conditions",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5295",
+      "mergedAt": "2026-10-23T08:35:07Z",
+      "mergeSha": "51c6e516f31a8897375583f203579c888319f2c9",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 5287,
+      "title": "fix: all open Dependabot alerts",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5287",
+      "mergedAt": "2026-10-22T20:38:08Z",
+      "mergeSha": "fb2e849bf62ef7325aacc812b67283b4450e5cb6",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5288,
+      "title": "fix(db): index DAG orchestration action lookup",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5288",
+      "mergedAt": "2026-10-22T20:37:57Z",
+      "mergeSha": "0a7745268b5f39cbadf97332ff4044f9b33edb55",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 5209,
+      "title": "feat(engine): rate limit pause",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5209",
+      "mergedAt": "2026-10-22T18:50:12Z",
+      "mergeSha": "79f2e2091674acb31d7d8607d61fa513a2f8625a",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5281,
+      "title": "refactor: add `read_payloads` as sql method which can be shared across queries",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5281",
+      "mergedAt": "2026-10-22T18:28:44Z",
+      "mergeSha": "dd134fc7f67ffc9a8c665923a53fa8e3b46fa91c",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5282,
+      "title": "feat: add durable streams to the core SDK",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5282",
+      "mergedAt": "2026-10-22T17:42:24Z",
+      "mergeSha": "97a6521f3e003d7198b4d4a32a2e2bd88390706b",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 5284,
+      "title": "docs: list Sydney as a live data plane region",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5284",
+      "mergedAt": "2026-10-22T17:24:42Z",
+      "mergeSha": "ae6db1c77e5bc07a204d3fcdb2d6a43d33de59bd",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5267,
+      "title": "feat(engine): index cron names for search",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5267",
+      "mergedAt": "2026-10-22T15:46:14Z",
+      "mergeSha": "572404dd5dd8bed29dd7c65ae746ecb0807e64f9",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "performance"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5265,
+      "title": "fix(engine): replays of dag tasks can cause hang",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5265",
+      "mergedAt": "2026-10-22T15:40:07Z",
+      "mergeSha": "39c48da85b93773757eda40ae9f6b0b29d6cce3a",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 5274,
+      "title": "fix(engine): reject negative worker slot units",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5274",
+      "mergedAt": "2026-10-22T14:26:49Z",
+      "mergeSha": "be2b32675edd7c6c8e164173cda55cee132e5f9d",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5279,
+      "title": "fix(engine): tighten SNS signature verification",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5279",
+      "mergedAt": "2026-10-22T14:16:38Z",
+      "mergeSha": "5964405fd9a9f9f677e2cc21c9cffa0937cacddb",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5275,
+      "title": "ci: use fixed Node in publish jobs for eMudhra CA distrust",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5275",
+      "mergedAt": "2026-10-21T22:58:22Z",
+      "mergeSha": "2c2f73ff8c8bce320740cfc13e1d83bbe4cab5e6",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 5266,
+      "title": "feat(engine): add env vars for default tenant entitlements",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5266",
+      "mergedAt": "2026-10-21T21:36:49Z",
+      "mergeSha": "17903289721d766e292ede7c66c65307cbdc07d2",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5264,
+      "title": "fix(ts-core): properly export `HatchetError` and redirect settings",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5264",
+      "mergedAt": "2026-10-21T20:04:40Z",
+      "mergeSha": "bd6e8267843230fd63b8a38d43eac61a896d39f9",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5263,
+      "title": "fix: missing eventKeyWorkflowsCache in task_test.go",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5263",
+      "mergedAt": "2026-10-21T19:22:44Z",
+      "mergeSha": "77540a840934890374e5ec7f1a7ae42065ab883a",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5261,
+      "title": "fix: exhaustive checks from serverless operator",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5261",
+      "mergedAt": "2026-10-21T17:44:36Z",
+      "mergeSha": "666431a3a40e956f631ccfa3a9721103c7004a41",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5259,
+      "title": "perf: add some more caching to the trigger path",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5259",
+      "mergedAt": "2026-10-21T16:21:41Z",
+      "mergeSha": "251778819dda9e6fd57cb5141b235adb40f92002",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 5260,
+      "title": "fix(engine): handle durable wait_for conditions without base",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5260",
+      "mergedAt": "2026-10-21T16:03:54Z",
+      "mergeSha": "438a27fc9c084b7ca995019fd4887311e2cc2eec",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 5224,
+      "title": "refactor(engine): shared payloads",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5224",
+      "mergedAt": "2026-10-21T15:58:25Z",
+      "mergeSha": "826734a64e87e6a684252de34b6489a8a8d8e4fe",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "performance"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 4912,
+      "title": "feat: serverless operator",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/4912",
+      "mergedAt": "2026-10-21T14:44:53Z",
+      "mergeSha": "3d22fcde818a18a119fa5d7c17bc675ec9a02d78",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 5258,
+      "title": "chore: upgrade ca-certificates on publishing CI jobs (eMudhra distrust)",
+      "url": "https://github.com/hatchet-dev/hatchet/pull/5258",
+      "mergedAt": "2026-10-21T13:29:45Z",
+      "mergeSha": "0b4834d4d18b1a75dddb96f2f1fc769cc8af166f",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "hatchet-week-2026-10-28",
+    "title": "Hatchet this week: serverless, fair connections, and fixes",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "scenes": [
+      {
+        "id": "opening",
+        "engine": "attractor"
+      },
+      {
+        "id": "close",
+        "engine": "living-flame"
+      },
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Serverless operator path</title><rect width=\"800\" height=\"500\" fill=\"#03091C\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\" font-weight=\"600\">Hatchet</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F8FAFC\" text-anchor=\"start\">Serverless operator path</text><rect x=\"210\" y=\"124\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"154\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Engine</text><line x1=\"400\" y1=\"170\" x2=\"400\" y2=\"186\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 178 L400 186 L407 178\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"190\" width=\"380\" height=\"42\" rx=\"21\" fill=\"#3392FF\" fill-opacity=\"0.14\" stroke=\"#3392FF\" stroke-opacity=\"1\" stroke-width=\"2.5\"/><text x=\"400\" y=\"220\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#3392FF\" text-anchor=\"middle\" font-weight=\"600\">Serverless operator</text><line x1=\"400\" y1=\"236\" x2=\"400\" y2=\"252\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 244 L400 252 L407 244\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"256\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"286\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Signed HTTP call</text><line x1=\"400\" y1=\"302\" x2=\"400\" y2=\"318\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 310 L400 318 L407 310\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"322\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"352\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Websocket if durable</text></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Cap per tenant</title><rect width=\"800\" height=\"500\" fill=\"#03091C\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\" font-weight=\"600\">Hatchet</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F8FAFC\" text-anchor=\"start\">Cap per tenant</text><rect x=\"210\" y=\"124\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"154\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Tenant call</text><line x1=\"400\" y1=\"170\" x2=\"400\" y2=\"186\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 178 L400 186 L407 178\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"190\" width=\"380\" height=\"42\" rx=\"21\" fill=\"#3392FF\" fill-opacity=\"0.14\" stroke=\"#3392FF\" stroke-opacity=\"1\" stroke-width=\"2.5\"/><text x=\"400\" y=\"220\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#3392FF\" text-anchor=\"middle\" font-weight=\"600\">Fairpool gate</text><line x1=\"400\" y1=\"236\" x2=\"400\" y2=\"252\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 244 L400 252 L407 244\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"256\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"286\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Pool connection</text></svg>"
+      },
+      {
+        "id": "picture-3",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Where payloads are kept</title><rect width=\"800\" height=\"500\" fill=\"#03091C\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\" font-weight=\"600\">Hatchet</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F8FAFC\" text-anchor=\"start\">Where payloads are kept</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#3392FF\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#F8FAFC\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\" font-style=\"italic\">Payload copies</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\">Copied everywhere</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#3392FF\" text-anchor=\"start\" font-weight=\"600\">One shared ref</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\" font-style=\"italic\">Payloads over RabbitMQ</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\">Written</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#3392FF\" text-anchor=\"start\" font-weight=\"600\">Not written</text></svg>"
+      },
+      {
+        "id": "picture-4",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Pausing a rate limit key</title><rect width=\"800\" height=\"500\" fill=\"#03091C\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\" font-weight=\"600\">Hatchet</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F8FAFC\" text-anchor=\"start\">Pausing a rate limit key</text><rect x=\"210\" y=\"124\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"154\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Pause a rate key</text><line x1=\"400\" y1=\"170\" x2=\"400\" y2=\"186\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 178 L400 186 L407 178\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"190\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"220\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Tasks suspend</text><line x1=\"400\" y1=\"236\" x2=\"400\" y2=\"252\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 244 L400 252 L407 244\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"256\" width=\"380\" height=\"42\" rx=\"21\" fill=\"#3392FF\" fill-opacity=\"0.14\" stroke=\"#3392FF\" stroke-opacity=\"1\" stroke-width=\"2.5\"/><text x=\"400\" y=\"286\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#3392FF\" text-anchor=\"middle\" font-weight=\"600\">No limit consumed</text><line x1=\"400\" y1=\"302\" x2=\"400\" y2=\"318\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 310 L400 318 L407 310\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"322\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"352\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Pause runs out</text></svg>"
+      },
+      {
+        "id": "picture-5",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Worker acks a started task</title><rect width=\"800\" height=\"500\" fill=\"#03091C\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"start\" font-weight=\"600\">Hatchet</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F8FAFC\" text-anchor=\"start\">Worker acks a started task</text><rect x=\"210\" y=\"124\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"154\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Task sent to worker</text><line x1=\"400\" y1=\"170\" x2=\"400\" y2=\"186\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 178 L400 186 L407 178\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"190\" width=\"380\" height=\"42\" rx=\"21\" fill=\"#3392FF\" fill-opacity=\"0.14\" stroke=\"#3392FF\" stroke-opacity=\"1\" stroke-width=\"2.5\"/><text x=\"400\" y=\"220\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#3392FF\" text-anchor=\"middle\" font-weight=\"600\">Worker acks start</text><line x1=\"400\" y1=\"236\" x2=\"400\" y2=\"252\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 244 L400 252 L407 244\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"256\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"286\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">No ack in a minute</text><line x1=\"400\" y1=\"302\" x2=\"400\" y2=\"318\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M393 310 L400 318 L407 310\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"210\" y=\"322\" width=\"380\" height=\"42\" rx=\"21\" fill=\"none\" stroke=\"#F8FAFC\" stroke-opacity=\"0.35\" stroke-width=\"1.5\"/><text x=\"400\" y=\"352\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F8FAFC\" text-anchor=\"middle\">Task reassigned</text></svg>"
+      },
+      {
+        "id": "eye",
+        "engine": "still"
+      }
+    ],
+    "beats": [
+      {
+        "say": "This week Hatchet gained a serverless path, a cap on database connections per tenant, and a run of engine fixes.",
+        "scene": "opening"
+      },
+      {
+        "say": "The largest change is a serverless operator. It bridges the engine and serverless platforms, which cannot hold the long client connections the engine relies on. The new TypeScript serverless SDK serves the other side, with handlers for Cloudflare and Vercel.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "The operator calls tasks over an HTTP endpoint and sends a signing secret, so clients can verify the call came from it. For durable tasks, the endpoint upgrades to a websocket and the operator proxies the stream in both directions."
+      },
+      {
+        "say": "Durable streams now run through that operator proxy as well."
+      },
+      {
+        "say": "The core TypeScript package gained the REST API, refreshTimeout and releaseSlot. Durable streams can now batch messages on publish, trading latency for throughput. Reset also takes an optional cursor, so you can go back to any position.",
+        "scene": "eye"
+      },
+      {
+        "say": "The dashboard has a new page for durable streams. It shows how many messages each has, and the retention."
+      },
+      {
+        "say": "Next, one tenant can no longer take every connection in the engine's database pool. A new gate caps how many connections one tenant can hold at once, and a separate cap covers shared engine work.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "Each cap is a percent of the pool. The default is 100, which means no cap. A tenant over its cap waits up to five seconds, then is told to retry."
+      },
+      {
+        "say": "The API spec now declares a 429 response, with a Retry-After header, on every authenticated operation. The Python, TypeScript and Ruby clients were regenerated to match.",
+        "scene": "eye"
+      },
+      {
+        "say": "Payloads are now stored once and shared by reference, instead of being duplicated everywhere. Whatever is written first claims a reference, and everything that can share it does.",
+        "scene": "picture-3"
+      },
+      {
+        "say": "The core database is the payload store for now, so the OLAP side reads payloads from it. That means the two retention settings are no longer fully separate. Payloads are also no longer written over RabbitMQ."
+      },
+      {
+        "say": "The ticker stopped rewriting cron and scheduled rows it already owns on every poll. A steady poll now writes nothing.",
+        "scene": "eye"
+      },
+      {
+        "say": "Replaying DAG tasks under the DAG operator no longer takes a tenant-wide advisory lock. The lock on the orchestrator task is enough."
+      },
+      {
+        "say": "Rate limit keys can now be paused. Tasks using a paused key are suspended, and no rate limit is consumed until the pause runs out.",
+        "scene": "picture-4"
+      },
+      {
+        "say": "Paused runs do not hold concurrency slots. So there is a small chance they race with tasks dispatched at the moment the pause ends, the same as with workflow pause."
+      },
+      {
+        "say": "Workers now acknowledge when they start a task. If no ack arrives within a minute, the engine reassigns the task. This guards against a rare dropped message that left a task hanging until its timeout. A setting turns acks on and controls whether assignments are written to the database. A stable order now prevents deadlocks when marking tasks as acked.",
+        "scene": "picture-5"
+      },
+      {
+        "say": "More fixes. A durable invocation no longer hangs until eviction when its stream disconnects. A child task now gets its parent's output after the parent is replayed. A couple of common deadlocks on DAG creation are fixed. In the TypeScript SDK, durable stream shutdown, worker label propagation and worker shutdown waiting for durable tasks were fixed, and a change that would have broken engine compatibility was fixed before publishing.",
+        "scene": "eye"
+      },
+      {
+        "say": "Last, the TypeScript SDK and the serverless package now publish to npm with trusted publishing instead of a token. Each package needs a trusted publisher set up on npm first.",
+        "scene": "close"
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      4912,
+      4949
+    ],
+    "2": [
+      4912
+    ],
+    "3": [
+      4912,
+      5293
+    ],
+    "4": [
+      5292,
+      5308,
+      5335
+    ],
+    "5": [
+      5285
+    ],
+    "6": [
+      5166,
+      5027
+    ],
+    "7": [
+      5027
+    ],
+    "8": [
+      5168
+    ],
+    "9": [
+      5224
+    ],
+    "10": [
+      5224
+    ],
+    "11": [
+      5301
+    ],
+    "12": [
+      5283
+    ],
+    "13": [
+      5209
+    ],
+    "14": [
+      5209
+    ],
+    "15": [
+      5277,
+      5336,
+      5337
+    ],
+    "16": [
+      5307,
+      5338,
+      5345,
+      5304,
+      5346,
+      5311
+    ],
+    "17": [
+      5349
+    ]
+  },
+  "quality": {
+    "firstPass": false,
+    "repairs": {
+      "composition": 2,
+      "illustrator": 0
+    },
+    "checks": {
+      "composition": 3,
+      "density": 2,
+      "number": 4
+    },
+    "density": {
+      "pictures": 5,
+      "includedChanges": 24,
+      "speakingBeats": 17,
+      "pictured": 10,
+      "longestUnpictured": 2
+    }
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "marks": {
+    "open": 326,
+    "play": 5216
+  },
+  "endMs": 81626,
+  "passages": [
+    {
+      "segmentId": "beat-0",
+      "key": "beat-0",
+      "spoken": true,
+      "text": "This week OpenSpec learned to install without Node.js, and to preview its own updates.",
+      "scene": "opening",
+      "startMs": 1816,
+      "endMs": 1816
+    },
+    {
+      "segmentId": "beat-1",
+      "key": "beat-1",
+      "spoken": true,
+      "text": "First, installing. OpenSpec now ships standalone binaries, so you no longer need Node.js first.",
+      "scene": "picture-1",
+      "startMs": 7401,
+      "endMs": 8544
+    },
+    {
+      "segmentId": "beat-2",
+      "key": "beat-2",
+      "spoken": true,
+      "text": "On macOS and Linux it is one curl line. On Windows it is one PowerShell line.",
+      "startMs": 13414,
+      "endMs": 15882
+    },
+    {
+      "segmentId": "beat-3",
+      "key": "beat-3",
+      "spoken": true,
+      "text": "Every release carries a binary for macOS, Linux and Windows, on Intel, AMD and ARM, plus a checksum file.",
+      "startMs": 18343,
+      "endMs": 22988
+    },
+    {
+      "segmentId": "beat-4",
+      "key": "beat-4",
+      "spoken": true,
+      "text": "If you are already on npm, switching is offered, never forced. The install command puts the binary in place and prints the command that removes the old copy. It never removes it for you.",
+      "startMs": 25011,
+      "endMs": 34801
+    },
+    {
+      "segmentId": "beat-5",
+      "key": "beat-5",
+      "spoken": true,
+      "text": "Next, the update command. It gained a dry run flag, which reports the files an update would add, change or delete.",
+      "scene": "picture-2",
+      "startMs": 36701,
+      "endMs": 43142
+    },
+    {
+      "segmentId": "beat-6",
+      "key": "beat-6",
+      "spoken": true,
+      "text": "A dry run writes nothing, makes no network call and never prompts. Add the json flag and you get the plan as JSON.",
+      "startMs": 43927,
+      "endMs": 48075
+    },
+    {
+      "segmentId": "beat-7",
+      "key": "beat-7",
+      "spoken": true,
+      "text": "The preview comes from the real update's own code path. Tests compare the plan with the actual before and after of a real update.",
+      "startMs": 51148,
+      "endMs": 54612
+    },
+    {
+      "segmentId": "beat-8",
+      "key": "beat-8",
+      "spoken": true,
+      "text": "Last, a fix to the verify guidance. Verify used to accept a near-equivalent heading as the baseline for a removed requirement.",
+      "scene": "picture-3",
+      "startMs": 59301,
+      "endMs": 61524
+    },
+    {
+      "segmentId": "beat-9",
+      "key": "beat-9",
+      "spoken": true,
+      "text": "After a sync, a similarly named added requirement could match, and the removal was reported as still implemented. Verify now matches by exact normalized name, and recovers the baseline from git history if the name is missing.",
+      "startMs": 67270,
+      "endMs": 77122
+    }
+  ]
+}

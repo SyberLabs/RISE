@@ -1,0 +1,15 @@
+{
+  "schema": "syberlabs.changes-index/v1",
+  "digests": [
+    {
+      "id": "2026-10-28",
+      "audience": "team",
+      "title": "What changed in openstatus, 21–28 October",
+      "period": {
+        "from": "2026-10-21T08:29:48.727Z",
+        "to": "2026-10-28T08:29:48.727Z"
+      },
+      "count": 17
+    }
+  ]
+}

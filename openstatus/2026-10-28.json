@@ -1,0 +1,644 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-28",
+  "audience": "team",
+  "title": "What changed in openstatus, 21–28 October",
+  "period": {
+    "from": "2026-10-21T08:29:48.727Z",
+    "to": "2026-10-28T08:29:48.727Z"
+  },
+  "generatedAt": "2026-10-28T08:29:48.727Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 3010,
+      "title": "checker: spread pubsub check starts over a per-monitor window",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/3010",
+      "mergedAt": "2026-10-27T20:32:05Z",
+      "mergeSha": "050a6031a204093b73420fb49623bd5a8b8044fe",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 3009,
+      "title": "fix(web): restore speed checker search title and description",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/3009",
+      "mergedAt": "2026-10-27T19:39:38Z",
+      "mergeSha": "d896d3cd98821e23d55b1245bfef3a736be460ba",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 3005,
+      "title": "private location: improvment",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/3005",
+      "mergedAt": "2026-10-27T09:21:10Z",
+      "mergeSha": "c3cbe8aebdadfc088f670cf071d54cffa3aba354",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 3008,
+      "title": "checker: exit non-zero when the pubsub consumer fails",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/3008",
+      "mergedAt": "2026-10-27T08:13:44Z",
+      "mergeSha": "5270a3ed4456d810ad835ec31def9869a79c7483",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2982,
+      "title": "checker: fix dns only txt",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2982",
+      "mergedAt": "2026-10-26T19:51:38Z",
+      "mergeSha": "b4ba2b9deb649eca7d483e52debb20bf83ca2c46",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 3003,
+      "title": "fix(status-page): order reports by latest update in getLight",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/3003",
+      "mergedAt": "2026-10-26T16:12:39Z",
+      "mergeSha": "5dde4602020e86a7bc8dac059c161be6568088e1",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2983,
+      "title": "feat(status-page): render bars and timestamps in the page's time zone",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2983",
+      "mergedAt": "2026-10-25T18:12:31Z",
+      "mergeSha": "734d10a4ee996bbfecd1de9f0a8bba8e4aa80e19",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2985,
+      "title": "fix(status-page): order reports by latest update",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2985",
+      "mergedAt": "2026-10-25T12:39:52Z",
+      "mergeSha": "3fa4995bc8713465eac529e7e0db6eb08066b659",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2988,
+      "title": "fix(dashboard): sort timing phases chronologically in mapTimingPhases",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2988",
+      "mergedAt": "2026-10-25T12:37:14Z",
+      "mergeSha": "6c06a3befb08c47529783e22d68afea3b86ecb91",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2992,
+      "title": "refactor: share one checker payload builder and drop dead code",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2992",
+      "mergedAt": "2026-10-25T12:35:36Z",
+      "mergeSha": "ce51ab0c64f693495d0ea7d39f6dfa1345315891",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2990,
+      "title": "Add Contact link to company navigation section",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2990",
+      "mergedAt": "2026-10-25T09:57:34Z",
+      "mergeSha": "a3db2d03590256e6ad364f1ec0790063ce3a366f",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "design"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2984,
+      "title": "checker: less task at same time",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2984",
+      "mergedAt": "2026-10-24T11:23:35Z",
+      "mergeSha": "bab71c8b93d15d2363217ee5eba6f9eaabb408d1",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2980,
+      "title": "feat(dashboard): period-aware latency charts, monitor pause/resume, and get_workspace MCP tool",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2980",
+      "mergedAt": "2026-10-24T09:49:37Z",
+      "mergeSha": "6dd5c0518ef6c8fa650e63d6e7f9e5ab0c16cb7d",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2981,
+      "title": "checker: consume less task at the same time",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2981",
+      "mergedAt": "2026-10-23T12:25:29Z",
+      "mergeSha": "2a86675b73c3d24fa9091065b3c1a807c67428ff",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2979,
+      "title": "fix(web): style cdn checker results table and align play tool icons",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2979",
+      "mergedAt": "2026-10-23T10:47:06Z",
+      "mergeSha": "4280384994047eb69bdd1c2afc4e081e2008ad88",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "design"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2971,
+      "title": "feat(web): markdown frontmatter, shared listing metadata, mono prose typography",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2971",
+      "mergedAt": "2026-10-23T10:26:58Z",
+      "mergeSha": "054f2c498bc8b9e0a5cf7d8fb20866d9269d2e13",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2977,
+      "title": "feat(web): incident records use case for audits",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2977",
+      "mergedAt": "2026-10-23T09:46:17Z",
+      "mergeSha": "18f6246ebfa1a715117e5501cf9cc2287fa75e92",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2973,
+      "title": "feat(dashboard): empty states for data tables and charts",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2973",
+      "mergedAt": "2026-10-22T15:31:58Z",
+      "mergeSha": "ddb362fcac80c1282b1e6a99f2c0e44b606673a6",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2976,
+      "title": "workflows: scale fly VM down to shared-cpu-2x",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2976",
+      "mergedAt": "2026-10-22T13:40:27Z",
+      "mergeSha": "e8707fd91018e64d765e84f1aed21475f35b790d",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2975,
+      "title": "feat(web): monitor CTAs on free tools, checker deep links and signup attribution",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2975",
+      "mergedAt": "2026-10-22T13:08:21Z",
+      "mergeSha": "ff384bc71f8d54f30b8802df748e3176ad18f539",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2974,
+      "title": "checker: batch Tinybird events per data source",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2974",
+      "mergedAt": "2026-10-22T12:06:03Z",
+      "mergeSha": "739c89a6184e628ceb38ee9ad0beb6be4356d2da",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2972,
+      "title": "feat(dashboard): list translations in the plan comparison",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2972",
+      "mergedAt": "2026-10-22T10:56:06Z",
+      "mergeSha": "9ba1abdf573669f152a3f201544c67657787272e",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2964,
+      "title": "workflows: publish checker tasks to Pub/Sub behind CHECKER_TRANSPORT",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2964",
+      "mergedAt": "2026-10-22T10:24:44Z",
+      "mergeSha": "03e80cbb17d8624cebd5efd630ec7d724abec9b5",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2963,
+      "title": "checker: consume cron checks from Pub/Sub",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2963",
+      "mergedAt": "2026-10-22T08:30:37Z",
+      "mergeSha": "aa2852e541337635d8593e1f43a3ab9a33f14279",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2970,
+      "title": "seo: incident management guides and product page retitle",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2970",
+      "mergedAt": "2026-10-22T08:26:23Z",
+      "mergeSha": "17ec508354851d04b6be264b044e429bd2db1908",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2962,
+      "title": "checker: split cron check logic out of the gin handlers",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2962",
+      "mergedAt": "2026-10-22T08:10:57Z",
+      "mergeSha": "03ea3b307f1778eb947af052c0589de8cc8bf15d",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2945,
+      "title": "feat(page): add a default time zone column",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2945",
+      "mergedAt": "2026-10-22T07:03:14Z",
+      "mergeSha": "1a328788568b2c7b337a3071dc605fca1452f095",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2944,
+      "title": "feat(status-timeline): compute bar days in a time zone",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2944",
+      "mergedAt": "2026-10-22T06:38:33Z",
+      "mergeSha": "1417edf0a5e5dc46fc9d8c549ebf15483426d2ed",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2968,
+      "title": "workflows: better sizing",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2968",
+      "mergedAt": "2026-10-21T20:02:48Z",
+      "mergeSha": "5e167f8d9e4f242f9f73d5ffa650e6404cbb3638",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2967,
+      "title": "email: improve deliverability",
+      "url": "https://github.com/openstatusHQ/openstatus/pull/2967",
+      "mergedAt": "2026-10-21T14:40:16Z",
+      "mergeSha": "52ec4c3149042132c83d993c75e55126ecb22727",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "openstatus-weekly-digest",
+    "title": "openstatus this week",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "beats": [
+      {
+        "say": "This week brought time zones to status pages, a Pub/Sub detour for the checker, and new empty states in the dashboard."
+      },
+      {
+        "say": "First, the checker. Cron checks can now be pulled from Pub/Sub, and the workflows service can publish checker tasks there. Both sit behind flags, and Cloud Tasks stays the default."
+      },
+      {
+        "say": "The cutover was rolled back after about 15 minutes. Every checker woke at the same moment and sent one write per check to Tinybird, which allows 100 appends a second. It returned about 1,400 rate-limit errors every 90 seconds, and each one made a check run again.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "The fix batches events per data source. Each buffer flushes after two seconds plus up to one second of jitter, or at 5 megabytes. A check is acknowledged only once its batch is recorded."
+      },
+      {
+        "say": "A second change spreads check starts. Each check now begins at its scheduled time plus a fixed per-monitor offset, up to two seconds by default. Starting up to 400 checks at once had pushed DNS p50 from about 5 milliseconds to about 80.",
+        "scene": "eye"
+      },
+      {
+        "say": "Next, status pages and time zones. Two foundations landed. The day range for a bar can now be computed in any zone, so days with summer time are 23 or 25 hours long. And each page can store a default time zone, which starts as UTC.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "Then the status page itself was wired up. It renders its bars and timestamps in the page's zone, and monitor charts use the page zone instead of the browser's. Non-UTC pages read the 15-minute data.",
+        "scene": "picture-3"
+      },
+      {
+        "say": "Two fixes also corrected report order. Public status page reports now sort by their newest update, not the oldest, in both the full and the light page data.",
+        "scene": "eye"
+      },
+      {
+        "say": "On the dashboard, every list, chart slot and section now shares one empty-state kit. Monitors, status pages, notifications, incidents, maintenances, status reports, subscribers, private locations and downtime get a real first-run state.",
+        "scene": "picture-4"
+      },
+      {
+        "say": "Tables show the state under the real header. A filter that matches nothing gets a No matches row with a clear action. Charts keep their height, and metric cards show a dash when a window has no checks."
+      },
+      {
+        "say": "Latency charts now follow the selected period. Before, the last day showed 14 days on HTTP monitors. Resolution is also capped per period, and the resolution dropdown now reaches the non-HTTP latency charts.",
+        "scene": "picture-5"
+      },
+      {
+        "say": "Free workspaces are limited to a 7-day window, and longer periods sit behind the upgrade dialog. Axis labels adapt to the range, and the degraded line now shows when its threshold is near the data."
+      },
+      {
+        "say": "Monitors can be paused or resumed from the quick actions menu in the header, sidebar and table. A new read-only get workspace tool is available in MCP, dashboard chat and the Slack agent. It returns plan and usage counts."
+      },
+      {
+        "say": "On the website, the free tools now point to monitoring. The speed checker ends with a Monitor this URL box, and the cURL builder offers to run a request from 28 regions or monitor it. Status directory pages invite you to test the service from 28 regions.",
+        "scene": "picture-6"
+      },
+      {
+        "say": "Signups now carry first-touch attribution through a cookie, so signups by landing page can be answered. The onboarding skipped and completed events are now actually sent."
+      },
+      {
+        "say": "Two new guides cover Slack incident management and the incident commander role. The incident management product page now targets commercial search terms.",
+        "scene": "eye"
+      },
+      {
+        "say": "A new use case page presents the incident record as audit evidence. It maps the record to SOC 2, ISO 27001, NIS2 and DORA, and says where openstatus stops."
+      },
+      {
+        "say": "Every markdown response now starts with the same frontmatter, and Copy markdown works on the home page. Pages also advertise their markdown twin in the HTML.",
+        "scene": "picture-7"
+      },
+      {
+        "say": "Listing titles and descriptions now live in one place, and mono prose pages keep headings near body size, so hierarchy comes from weight."
+      },
+      {
+        "say": "The checker payload is now built in one place for cron, the public API and the dashboard trigger. That fixed the first check after creating a monitor, which ignored the don't follow redirects setting. About 80 unused files were removed.",
+        "scene": "eye"
+      },
+      {
+        "say": "Email deliverability was also improved."
+      },
+      {
+        "say": "The time zone picker in the dashboard has not landed yet, so every status page is still on UTC."
+      }
+    ],
+    "scenes": [
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Checks into Tinybird</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-weight=\"600\">openstatus</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#FAFAFA\" text-anchor=\"start\">Checks into Tinybird</text><g><line x1=\"251.41\" y1=\"290\" x2=\"320.81\" y2=\"290\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"262.98\" cy=\"290\" r=\"4\" fill=\"#FAFAFA\"><animateMotion path=\"M-11.57 0 L57.83 0\" dur=\"1.2s\" begin=\"-0.2s\" repeatCount=\"indefinite\"/></circle><line x1=\"251.41\" y1=\"282\" x2=\"320.81\" y2=\"282\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"286.11\" cy=\"282\" r=\"4\" fill=\"#FAFAFA\"><animateMotion path=\"M-34.7 0 L34.7 0\" dur=\"1.2s\" begin=\"-0.6s\" repeatCount=\"indefinite\"/></circle><line x1=\"251.41\" y1=\"274\" x2=\"320.81\" y2=\"274\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"309.24\" cy=\"274\" r=\"4\" fill=\"#FAFAFA\"><animateMotion path=\"M-57.83 0 L11.57 0\" dur=\"1.2s\" begin=\"-1s\" repeatCount=\"indefinite\"/></circle><path d=\"M309.81 274 L320.81 282 L309.81 290\" fill=\"none\" stroke=\"#FAFAFA\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g><g stroke-dasharray=\"6 6\"><animate attributeName=\"opacity\" values=\"1;0.12\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/><animate attributeName=\"stroke-dasharray\" values=\"none;6 6\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/><line x1=\"479.19\" y1=\"290\" x2=\"552.44\" y2=\"290\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"491.4\" cy=\"290\" r=\"4\" fill=\"#FAFAFA\" opacity=\"0\"><animateMotion path=\"M-12.21 0 L61.04 0\" dur=\"1.2s\" begin=\"-0.2s\" repeatCount=\"indefinite\"/><animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/></circle><line x1=\"479.19\" y1=\"282\" x2=\"552.44\" y2=\"282\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"515.81\" cy=\"282\" r=\"4\" fill=\"#FAFAFA\" opacity=\"0\"><animateMotion path=\"M-36.62 0 L36.62 0\" dur=\"1.2s\" begin=\"-0.6s\" repeatCount=\"indefinite\"/><animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/></circle><line x1=\"479.19\" y1=\"274\" x2=\"552.44\" y2=\"274\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"540.23\" cy=\"274\" r=\"4\" fill=\"#FAFAFA\" opacity=\"0\"><animateMotion path=\"M-61.04 0 L12.21 0\" dur=\"1.2s\" begin=\"-1s\" repeatCount=\"indefinite\"/><animate attributeName=\"opacity\" values=\"1;0\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/></circle><path d=\"M541.44 274 L552.44 282 L541.44 290\" fill=\"none\" stroke=\"#FAFAFA\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g><g><animate attributeName=\"opacity\" values=\"0.12;1\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/><animate attributeName=\"stroke-dasharray\" values=\"6 6;none\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/><line x1=\"400\" y1=\"315\" x2=\"400\" y2=\"371\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"400\" cy=\"343\" r=\"5\" fill=\"#FAFAFA\"><animateMotion path=\"M0 -28 L0 28\" dur=\"1.8s\" begin=\"-0.9s\" repeatCount=\"indefinite\"/><animate attributeName=\"opacity\" values=\"0;1\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/></circle><path d=\"M408 360 L400 371 L392 360\" fill=\"none\" stroke=\"#FAFAFA\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g><g><animate attributeName=\"opacity\" values=\"0.12;1\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/><animate attributeName=\"stroke-dasharray\" values=\"6 6;none\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/><line x1=\"462.03\" y1=\"371\" x2=\"567.3\" y2=\"315\" stroke=\"#20C45F\" stroke-opacity=\"1\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"514.67\" cy=\"343\" r=\"5\" fill=\"#20C45F\"><animateMotion path=\"M-52.63 28 L52.63 -28\" dur=\"1.8s\" begin=\"-0.9s\" repeatCount=\"indefinite\"/><animate attributeName=\"opacity\" values=\"0;1\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/></circle><path d=\"M553.83 313.1 L567.3 315 L561.35 327.23\" fill=\"none\" stroke=\"#20C45F\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"499.85\" y=\"322.03\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"middle\" font-style=\"italic\">2s</text></g><g><rect x=\"97.92\" y=\"257\" width=\"145.49\" height=\"50\" rx=\"25\" fill=\"none\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\"/><text x=\"170.67\" y=\"291\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"middle\">Pub/Sub</text></g><g><rect x=\"328.81\" y=\"257\" width=\"142.38\" height=\"50\" rx=\"10\" fill=\"none\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\"/><text x=\"400\" y=\"291\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"middle\">Checker</text></g><g><rect x=\"560.44\" y=\"257\" width=\"137.79\" height=\"50\" rx=\"4\" fill=\"none\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"2\"/><line x1=\"566.44\" y1=\"265\" x2=\"692.23\" y2=\"265\" stroke=\"#FAFAFA\" stroke-opacity=\"0.6\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"629.33\" y=\"291\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"middle\">Tinybird</text></g><g><animate attributeName=\"opacity\" values=\"0.12;1\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/><animate attributeName=\"stroke-dasharray\" values=\"6 6;none\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/><rect x=\"328.83\" y=\"379\" width=\"142.35\" height=\"50\" rx=\"10\" fill=\"#20C45F\" fill-opacity=\"0.14\" stroke=\"#20C45F\" stroke-opacity=\"1\" stroke-width=\"2\"/><text x=\"400\" y=\"413\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"middle\" font-weight=\"600\">Batcher</text></g><text x=\"56\" y=\"476\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Per check<animate attributeName=\"font-weight\" values=\"600;400\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/></text><line x1=\"203.05\" y1=\"467\" x2=\"229.05\" y2=\"467\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M222.05 461 L229.05 467 L222.05 473\" fill=\"none\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"244.05\" y=\"476\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-weight=\"600\">Batched<animate attributeName=\"font-weight\" values=\"400;600\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/></text><rect x=\"244.05\" y=\"486\" width=\"108.97\" height=\"4\" rx=\"2\" fill=\"#20C45F\"><animate attributeName=\"x\" values=\"56;244.05\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/><animate attributeName=\"width\" values=\"132.05;108.97\" keyTimes=\"0;0.5\" calcMode=\"discrete\" dur=\"6.4s\" repeatCount=\"indefinite\"/></rect></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Two foundations for zones</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-weight=\"600\">openstatus</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#FAFAFA\" text-anchor=\"start\">Two foundations for zones</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Day ranges</text><text x=\"276.28\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Zone aware</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Stored zone</text><text x=\"276.28\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Defaults to UTC</text></svg>"
+      },
+      {
+        "id": "picture-3",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Bars and timestamps</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-weight=\"600\">openstatus</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#FAFAFA\" text-anchor=\"start\">Bars and timestamps</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#FAFAFA\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-style=\"italic\">Bar days</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">UTC</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"start\" font-weight=\"600\">Page's zone</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-style=\"italic\">Timestamps</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">UTC</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"start\" font-weight=\"600\">Page's zone</text><text x=\"56\" y=\"412\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-style=\"italic\">Monitor charts</text><text x=\"56\" y=\"448\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Browser's zone</text><line x1=\"384\" y1=\"439\" x2=\"416\" y2=\"439\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 432 L416 439 L408 446\" fill=\"none\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"448\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"start\" font-weight=\"600\">Page's zone</text></svg>"
+      },
+      {
+        "id": "picture-4",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>One empty state kit</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-weight=\"600\">openstatus</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#FAFAFA\" text-anchor=\"start\">One empty state kit</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Icon</text><text x=\"222.77\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">What belongs here</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Reason</text><text x=\"222.77\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Why it is empty</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Action</text><text x=\"222.77\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">One primary action</text><line x1=\"56\" y1=\"317\" x2=\"76\" y2=\"317\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Escape</text><text x=\"222.77\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">One escape hatch</text></svg>"
+      },
+      {
+        "id": "picture-5",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Latency follows the period</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-weight=\"600\">openstatus</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#FAFAFA\" text-anchor=\"start\">Latency follows the period</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#FAFAFA\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-style=\"italic\">Last day, HTTP</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Showed 14 days</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"start\" font-weight=\"600\">Shows one day</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-style=\"italic\">14 days, others</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Showed 30 days</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#FAFAFA\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"start\" font-weight=\"600\">Shows 14 days</text></svg>"
+      },
+      {
+        "id": "picture-6",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Monitor calls to action</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-weight=\"600\">openstatus</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#FAFAFA\" text-anchor=\"start\">Monitor calls to action</text><circle cx=\"66\" cy=\"149\" r=\"7\" fill=\"#20C45F\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"start\" font-weight=\"600\">Speed checker</text><text x=\"326.1\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#20C45F\" text-anchor=\"start\">Monitor this URL</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">cURL builder</text><text x=\"326.1\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Run or monitor</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Status directory</text><text x=\"326.1\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">28 region test</text></svg>"
+      },
+      {
+        "id": "picture-7",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Every markdown page starts with</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\" font-weight=\"600\">openstatus</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#FAFAFA\" text-anchor=\"start\">Every markdown page starts with</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Title</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Absolute url</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Date and updated</text><line x1=\"56\" y1=\"317\" x2=\"76\" y2=\"317\" stroke=\"#FAFAFA\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#FAFAFA\" text-anchor=\"start\">Description</text></svg>"
+      },
+      {
+        "id": "eye",
+        "engine": "still"
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      2963,
+      2964
+    ],
+    "2": [
+      2974
+    ],
+    "3": [
+      2974
+    ],
+    "4": [
+      3010
+    ],
+    "5": [
+      2944,
+      2945
+    ],
+    "6": [
+      2983
+    ],
+    "7": [
+      2985,
+      3003
+    ],
+    "8": [
+      2973
+    ],
+    "9": [
+      2973
+    ],
+    "10": [
+      2980
+    ],
+    "11": [
+      2980
+    ],
+    "12": [
+      2980
+    ],
+    "13": [
+      2975
+    ],
+    "14": [
+      2975
+    ],
+    "15": [
+      2970
+    ],
+    "16": [
+      2977
+    ],
+    "17": [
+      2971
+    ],
+    "18": [
+      2971
+    ],
+    "19": [
+      2992
+    ],
+    "20": [
+      2967
+    ]
+  },
+  "quality": {
+    "firstPass": false,
+    "repairs": {
+      "composition": 1,
+      "illustrator": 0
+    },
+    "checks": {
+      "composition": 1
+    },
+    "density": {
+      "pictures": 7,
+      "includedChanges": 17,
+      "speakingBeats": 20,
+      "pictured": 13,
+      "longestUnpictured": 2
+    }
+  }
+}

@@ -1,0 +1,297 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-28",
+  "audience": "team",
+  "title": "What changed in OpenSpec, 21–28 October",
+  "period": {
+    "from": "2026-10-21T08:22:43.683Z",
+    "to": "2026-10-28T08:22:43.683Z"
+  },
+  "generatedAt": "2026-10-28T08:22:43.683Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 2142,
+      "title": "fix(website): use the OpenSpec pixel-O favicon on the docs site",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2142",
+      "mergedAt": "2026-10-24T03:59:33Z",
+      "mergeSha": "6d04a1b58dedc95729d34e4f223d9d483aae210a",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "design"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2136,
+      "title": "chore(release): version packages",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2136",
+      "mergedAt": "2026-10-24T00:49:09Z",
+      "mergeSha": "8e0288df12d401b0e183e2f47254d22528c1dffb",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2137,
+      "title": "feat(cli): ship standalone binaries for installs without Node.js",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2137",
+      "mergedAt": "2026-10-24T00:33:17Z",
+      "mergeSha": "31c6d1c43468754332d1ab16de6dff1e1e92419c",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2141,
+      "title": "fix(security): patch vitest, vite and launch-editor dev tooling",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2141",
+      "mergedAt": "2026-10-23T00:57:34Z",
+      "mergeSha": "1cecb72258b7395d82709d3c126bfdeb41bfec80",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2140,
+      "title": "fix(security): bump next to 16.4.2 in the website",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2140",
+      "mergedAt": "2026-10-23T00:57:34Z",
+      "mergeSha": "56ef0ac1fd2270e88d276b40da9f23ec0f9c6e96",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2109,
+      "title": "feat(update): add --dry-run to report what an update would change",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2109",
+      "mergedAt": "2026-10-22T21:23:10Z",
+      "mergeSha": "c2304240c5b671d86eb6756743ab921fe20270e1",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2114,
+      "title": "fix(verify): match REMOVED baselines by exact normalized name",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2114",
+      "mergedAt": "2026-10-22T21:20:26Z",
+      "mergeSha": "6b15619931472f4b6bf9c91cafd4c76bd72d72b5",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 2120,
+      "title": "fix(new-change): name the configured schema in the progress line",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2120",
+      "mergedAt": "2026-10-22T21:13:44Z",
+      "mergeSha": "832e2cf836b8c8cdefa2f5e500145bd55323ea06",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2116,
+      "title": "perf(cli): load ora only when a spinner is shown",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2116",
+      "mergedAt": "2026-10-22T21:13:44Z",
+      "mergeSha": "15b3b50f15dc7210b2ae6189b5d76f74fd528b0f",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "performance"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2124,
+      "title": "chore(deps): bump the website-dependencies group in /website with 10 updates",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2124",
+      "mergedAt": "2026-10-22T21:13:05Z",
+      "mergeSha": "d2490453a81bf5dc3693cb8728f8eb16ba7056dc",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2121,
+      "title": "ci: bump the github-actions group with 3 updates",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2121",
+      "mergedAt": "2026-10-22T21:13:05Z",
+      "mergeSha": "264afd80edfea130d490c7cd06d80cfdcf975254",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 2125,
+      "title": "chore(deps): bump zod, smol-toml and typescript-eslint",
+      "url": "https://github.com/Fission-AI/OpenSpec/pull/2125",
+      "mergedAt": "2026-10-22T21:12:39Z",
+      "mergeSha": "5cec33feb4a43ef9e8d5393e305125fd1b7f1b0f",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "openspec-weekly-digest",
+    "title": "OpenSpec this week",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "scenes": [
+      {
+        "id": "opening",
+        "engine": "attractor"
+      },
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Installing OpenSpec</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\" font-weight=\"600\">OpenSpec</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4F4\" text-anchor=\"start\">Installing OpenSpec</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#D89074\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#F4F4F4\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\" font-style=\"italic\">How you install</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">Through npm</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#F4F4F4\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#F4F4F4\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#D89074\" text-anchor=\"start\" font-weight=\"600\">One line script</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\" font-style=\"italic\">Node.js</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">Needed first</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#F4F4F4\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#F4F4F4\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#D89074\" text-anchor=\"start\" font-weight=\"600\">Not needed</text></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>What a dry run reports</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\" font-weight=\"600\">OpenSpec</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4F4\" text-anchor=\"start\">What a dry run reports</text><circle cx=\"66\" cy=\"149\" r=\"7\" fill=\"#D89074\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#D89074\" text-anchor=\"start\" font-weight=\"600\">Changes</text><text x=\"246.86\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#D89074\" text-anchor=\"start\">add, update, delete</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4F4F4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">Notes</text><text x=\"246.86\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">parts not previewed</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#F4F4F4\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">Failures</text><text x=\"246.86\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">tools that would fail</text></svg>"
+      },
+      {
+        "id": "picture-3",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Matching a removed requirement</title><rect width=\"800\" height=\"500\" fill=\"#0A0A0A\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\" font-weight=\"600\">OpenSpec</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4F4\" text-anchor=\"start\">Matching a removed requirement</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#D89074\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#F4F4F4\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\" font-style=\"italic\">Baseline match</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">Near-equivalent</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#F4F4F4\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#F4F4F4\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#D89074\" text-anchor=\"start\" font-weight=\"600\">Exact name</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\" font-style=\"italic\">Name missing</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4F4\" text-anchor=\"start\">Still implemented</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#F4F4F4\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#F4F4F4\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#D89074\" text-anchor=\"start\" font-weight=\"600\">Git history</text></svg>"
+      }
+    ],
+    "beats": [
+      {
+        "say": "This week OpenSpec learned to install without Node.js, and to preview its own updates.",
+        "scene": "opening"
+      },
+      {
+        "say": "First, installing. OpenSpec now ships standalone binaries, so you no longer need Node.js first.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "On macOS and Linux it is one curl line. On Windows it is one PowerShell line."
+      },
+      {
+        "say": "Every release carries a binary for macOS, Linux and Windows, on Intel, AMD and ARM, plus a checksum file."
+      },
+      {
+        "say": "If you are already on npm, switching is offered, never forced. The install command puts the binary in place and prints the command that removes the old copy. It never removes it for you."
+      },
+      {
+        "say": "Next, the update command. It gained a dry run flag, which reports the files an update would add, change or delete.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "A dry run writes nothing, makes no network call and never prompts. Add the json flag and you get the plan as JSON."
+      },
+      {
+        "say": "The preview comes from the real update's own code path. Tests compare the plan with the actual before and after of a real update."
+      },
+      {
+        "say": "Last, a fix to the verify guidance. Verify used to accept a near-equivalent heading as the baseline for a removed requirement.",
+        "scene": "picture-3"
+      },
+      {
+        "say": "After a sync, a similarly named added requirement could match, and the removal was reported as still implemented. Verify now matches by exact normalized name, and recovers the baseline from git history if the name is missing."
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      2137
+    ],
+    "2": [
+      2137
+    ],
+    "3": [
+      2137
+    ],
+    "4": [
+      2137
+    ],
+    "5": [
+      2109
+    ],
+    "6": [
+      2109
+    ],
+    "7": [
+      2109
+    ],
+    "8": [
+      2114
+    ],
+    "9": [
+      2114
+    ]
+  },
+  "quality": {
+    "firstPass": false,
+    "repairs": {
+      "composition": 1,
+      "illustrator": 0
+    },
+    "checks": {
+      "engine": 1
+    },
+    "density": {
+      "pictures": 3,
+      "includedChanges": 3,
+      "speakingBeats": 9,
+      "pictured": 9,
+      "longestUnpictured": 0
+    }
+  }
+}

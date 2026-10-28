@@ -1,0 +1,164 @@
+{
+  "marks": {
+    "open": 540,
+    "play": 5451
+  },
+  "endMs": 216932,
+  "passages": [
+    {
+      "segmentId": "beat-0",
+      "key": "beat-0",
+      "spoken": true,
+      "text": "This week Hatchet gained a serverless path, a cap on database connections per tenant, and a run of engine fixes.",
+      "scene": "opening",
+      "startMs": 1994,
+      "endMs": 7371
+    },
+    {
+      "segmentId": "beat-1",
+      "key": "beat-1",
+      "spoken": true,
+      "text": "The largest change is a serverless operator. It bridges the engine and serverless platforms, which cannot hold the long client connections the engine relies on. The new TypeScript serverless SDK serves the other side, with handlers for Cloudflare and Vercel.",
+      "scene": "picture-1",
+      "startMs": 9139,
+      "endMs": 19122
+    },
+    {
+      "segmentId": "beat-2",
+      "key": "beat-2",
+      "spoken": true,
+      "text": "The operator calls tasks over an HTTP endpoint and sends a signing secret, so clients can verify the call came from it. For durable tasks, the endpoint upgrades to a websocket and the operator proxies the stream in both directions.",
+      "startMs": 25306,
+      "endMs": 36208
+    },
+    {
+      "segmentId": "beat-3",
+      "key": "beat-3",
+      "spoken": true,
+      "text": "Durable streams now run through that operator proxy as well.",
+      "startMs": 39779,
+      "endMs": 39779
+    },
+    {
+      "segmentId": "beat-4",
+      "key": "beat-4",
+      "spoken": true,
+      "text": "The core TypeScript package gained the REST API, refreshTimeout and releaseSlot. Durable streams can now batch messages on publish, trading latency for throughput. Reset also takes an optional cursor, so you can go back to any position.",
+      "scene": "eye",
+      "startMs": 43658,
+      "endMs": 53820
+    },
+    {
+      "segmentId": "beat-5",
+      "key": "beat-5",
+      "spoken": true,
+      "text": "The dashboard has a new page for durable streams. It shows how many messages each has, and the retention.",
+      "startMs": 58446,
+      "endMs": 61536
+    },
+    {
+      "segmentId": "beat-6",
+      "key": "beat-6",
+      "spoken": true,
+      "text": "Next, one tenant can no longer take every connection in the engine's database pool. A new gate caps how many connections one tenant can hold at once, and a separate cap covers shared engine work.",
+      "scene": "picture-2",
+      "startMs": 65112,
+      "endMs": 74404
+    },
+    {
+      "segmentId": "beat-7",
+      "key": "beat-7",
+      "spoken": true,
+      "text": "Each cap is a percent of the pool. The default is 100, which means no cap. A tenant over its cap waits up to five seconds, then is told to retry.",
+      "startMs": 77358,
+      "endMs": 82001
+    },
+    {
+      "segmentId": "beat-8",
+      "key": "beat-8",
+      "spoken": true,
+      "text": "The API spec now declares a 429 response, with a Retry-After header, on every authenticated operation. The Python, TypeScript and Ruby clients were regenerated to match.",
+      "scene": "eye",
+      "startMs": 86507,
+      "endMs": 92881
+    },
+    {
+      "segmentId": "beat-9",
+      "key": "beat-9",
+      "spoken": true,
+      "text": "Payloads are now stored once and shared by reference, instead of being duplicated everywhere. Whatever is written first claims a reference, and everything that can share it does.",
+      "scene": "picture-3",
+      "startMs": 97138,
+      "endMs": 102962
+    },
+    {
+      "segmentId": "beat-10",
+      "key": "beat-10",
+      "spoken": true,
+      "text": "The core database is the payload store for now, so the OLAP side reads payloads from it. That means the two retention settings are no longer fully separate. Payloads are also no longer written over RabbitMQ.",
+      "startMs": 108331,
+      "endMs": 118055
+    },
+    {
+      "segmentId": "beat-11",
+      "key": "beat-11",
+      "spoken": true,
+      "text": "The ticker stopped rewriting cron and scheduled rows it already owns on every poll. A steady poll now writes nothing.",
+      "scene": "eye",
+      "startMs": 121316,
+      "endMs": 126516
+    },
+    {
+      "segmentId": "beat-12",
+      "key": "beat-12",
+      "spoken": true,
+      "text": "Replaying DAG tasks under the DAG operator no longer takes a tenant-wide advisory lock. The lock on the orchestrator task is enough.",
+      "startMs": 128729,
+      "endMs": 134175
+    },
+    {
+      "segmentId": "beat-13",
+      "key": "beat-13",
+      "spoken": true,
+      "text": "Rate limit keys can now be paused. Tasks using a paused key are suspended, and no rate limit is consumed until the pause runs out.",
+      "scene": "picture-4",
+      "startMs": 137069,
+      "endMs": 141706
+    },
+    {
+      "segmentId": "beat-14",
+      "key": "beat-14",
+      "spoken": true,
+      "text": "Paused runs do not hold concurrency slots. So there is a small chance they race with tasks dispatched at the moment the pause ends, the same as with workflow pause.",
+      "startMs": 145277,
+      "endMs": 154194
+    },
+    {
+      "segmentId": "beat-15",
+      "key": "beat-15",
+      "spoken": true,
+      "text": "Workers now acknowledge when they start a task. If no ack arrives within a minute, the engine reassigns the task. This guards against a rare dropped message that left a task hanging until its timeout. A setting turns acks on and controls whether assignments are written to the database. A stable order now prevents deadlocks when marking tasks as acked.",
+      "scene": "picture-5",
+      "startMs": 155599,
+      "endMs": 173388
+    },
+    {
+      "segmentId": "beat-16",
+      "key": "beat-16",
+      "spoken": true,
+      "text": "More fixes. A durable invocation no longer hangs until eviction when its stream disconnects. A child task now gets its parent's output after the parent is replayed. A couple of common deadlocks on DAG creation are fixed. In the TypeScript SDK, durable stream shutdown, worker label propagation and worker shutdown waiting for durable tasks were fixed, and a change that would have broken engine compatibility was fixed before publishing.",
+      "scene": "eye",
+      "startMs": 177641,
+      "endMs": 200262
+    },
+    {
+      "segmentId": "beat-17",
+      "key": "beat-17",
+      "spoken": true,
+      "text": "Last, the TypeScript SDK and the serverless package now publish to npm with trusted publishing instead of a token. Each package needs a trusted publisher set up on npm first.",
+      "scene": "close",
+      "startMs": 204888,
+      "endMs": 212009
+    }
+  ]
+}

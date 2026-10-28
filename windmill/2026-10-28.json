@@ -1,0 +1,1066 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-10-28",
+  "audience": "team",
+  "title": "What changed in Windmill, 21–28 October",
+  "period": {
+    "from": "2026-10-21T08:26:41.044Z",
+    "to": "2026-10-28T08:26:41.044Z"
+  },
+  "generatedAt": "2026-10-28T08:26:41.044Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 12050,
+      "title": "fix(cli): resolve /ui/ in app dev and lint, bare ui/ imports from the app",
+      "url": "https://github.com/windmill-labs/windmill/pull/12050",
+      "mergedAt": "2026-10-28T05:08:29Z",
+      "mergeSha": "3ee745192c510b90a41499972fca025cf8e33a90",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12051,
+      "title": "feat: rebuild raw apps on a ui/-only change, fail sync push on ui/ errors",
+      "url": "https://github.com/windmill-labs/windmill/pull/12051",
+      "mergedAt": "2026-10-28T05:07:56Z",
+      "mergeSha": "d3872cb18343b7cf08e520ebecc5246fe464d933",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12056,
+      "title": "feat: review git sync pull requests with ai on the instance",
+      "url": "https://github.com/windmill-labs/windmill/pull/12056",
+      "mergedAt": "2026-10-28T05:05:47Z",
+      "mergeSha": "375bf03cdcbdc379aa78321cc464b55fbb03f848",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12055,
+      "title": "feat: review git sync pull requests with wmill review",
+      "url": "https://github.com/windmill-labs/windmill/pull/12055",
+      "mergedAt": "2026-10-28T04:49:07Z",
+      "mergeSha": "fbe776d611c818e54e2fd7c211d39949f7faa8e8",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12046,
+      "title": "fix: issue oidc tokens to a deployed flow's dynamic select",
+      "url": "https://github.com/windmill-labs/windmill/pull/12046",
+      "mergedAt": "2026-10-28T00:28:43Z",
+      "mergeSha": "60d07dc0d9d8c926853666973b0b3064d33b25c7",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12037,
+      "title": "feat: folder-scoped review instructions for the deployment ai review",
+      "url": "https://github.com/windmill-labs/windmill/pull/12037",
+      "mergedAt": "2026-10-28T00:25:08Z",
+      "mergeSha": "62fbd508c8ceb5336633fffd0fb9afbad6cfdee5",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12053,
+      "title": "fix: resolve $var: in an AI resource's base_url",
+      "url": "https://github.com/windmill-labs/windmill/pull/12053",
+      "mergedAt": "2026-10-27T23:53:35Z",
+      "mergeSha": "210a235be602dd3d1bf00eeb9b6ce4ef75d165cb",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12054,
+      "title": "feat: per-role fork capability and fork role mapping on rulesets",
+      "url": "https://github.com/windmill-labs/windmill/pull/12054",
+      "mergedAt": "2026-10-27T23:43:34Z",
+      "mergeSha": "ca8f0a16c18de3307e1b545afe72140ff1bc604d",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12031,
+      "title": "chore: apply the untrusted-input check to trigger, resume and asset args",
+      "url": "https://github.com/windmill-labs/windmill/pull/12031",
+      "mergedAt": "2026-10-27T22:55:10Z",
+      "mergeSha": "e3b4dcffbc9614b613f0784c78899165142f8726",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12015,
+      "title": "feat: confirm run-as on flow and script deploy, mute from editor menu",
+      "url": "https://github.com/windmill-labs/windmill/pull/12015",
+      "mergedAt": "2026-10-27T22:52:02Z",
+      "mergeSha": "75e3e7ea419d1ec6c69280ba2ec4d82367263b10",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12025,
+      "title": "feat: app conversations through the memory_id query parameter",
+      "url": "https://github.com/windmill-labs/windmill/pull/12025",
+      "mergedAt": "2026-10-27T22:51:36Z",
+      "mergeSha": "07d4f7fe613b285963fa27749bfb44bb91e237a1",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12041,
+      "title": "fix: drop superseded list replies after a workspace or filter change",
+      "url": "https://github.com/windmill-labs/windmill/pull/12041",
+      "mergedAt": "2026-10-27T22:50:38Z",
+      "mergeSha": "003a6a9fd639a76bdf272096a37601bdef45a251",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11969,
+      "title": "feat: show runs, run tables, deploy reviews and items as mcp apps cards",
+      "url": "https://github.com/windmill-labs/windmill/pull/11969",
+      "mergedAt": "2026-10-27T22:42:15Z",
+      "mergeSha": "8121dc2b1cd322914a19469cb2e764f44fc525a3",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11954,
+      "title": "feat: build, test and run standalone ai agents from ai sessions",
+      "url": "https://github.com/windmill-labs/windmill/pull/11954",
+      "mergedAt": "2026-10-27T09:46:43Z",
+      "mergeSha": "8dd46a4d14ecbce4e2ee4a71561d7a5e917dfed3",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12013,
+      "title": "refactor: harmonize flow and script settings layout",
+      "url": "https://github.com/windmill-labs/windmill/pull/12013",
+      "mergedAt": "2026-10-27T00:24:10Z",
+      "mergeSha": "0249bb94ac2c7cfd3f3d8943e525056927d77b27",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 12029,
+      "title": "feat: add ai review to fork deploys and deployment requests",
+      "url": "https://github.com/windmill-labs/windmill/pull/12029",
+      "mergedAt": "2026-10-26T23:40:40Z",
+      "mergeSha": "bac1e463e5759add52b34e0555d2530d671b2251",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12023,
+      "title": "fix: compute list row rights when drawn instead of reloading",
+      "url": "https://github.com/windmill-labs/windmill/pull/12023",
+      "mergedAt": "2026-10-26T22:15:20Z",
+      "mergeSha": "b813c1b35d20291e0bf2ec23add0f76de7788e27",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 12028,
+      "title": "fix: build hub script urls and cache keys from the parsed id only",
+      "url": "https://github.com/windmill-labs/windmill/pull/12028",
+      "mergedAt": "2026-10-26T22:14:32Z",
+      "mergeSha": "e2e2e7d7c4924fe29a912c603554f8545184d704",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 12010,
+      "title": "feat: build MCP OAuth urls from the api base url, narrowable per surface",
+      "url": "https://github.com/windmill-labs/windmill/pull/12010",
+      "mergedAt": "2026-10-26T22:02:28Z",
+      "mergeSha": "e0da5605163ce5157e9b605667c5e5fc85894db9",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11826,
+      "title": "feat: tool approval and a question tool for ai agent steps",
+      "url": "https://github.com/windmill-labs/windmill/pull/11826",
+      "mergedAt": "2026-10-26T18:22:46Z",
+      "mergeSha": "a1bc9ec0c27ab615460b145e59d7e7b8fdea8406",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 12027,
+      "title": "fix: detect attached -c and --no-config in DENO_FLAGS",
+      "url": "https://github.com/windmill-labs/windmill/pull/12027",
+      "mergedAt": "2026-10-26T18:20:59Z",
+      "mergeSha": "a2b91fd17e785f4c707eea092bc0b993419d7d7d",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 12024,
+      "title": "fix: serve new MCP OAuth sign-ins the session toolset on the tools server URLs",
+      "url": "https://github.com/windmill-labs/windmill/pull/12024",
+      "mergedAt": "2026-10-26T17:25:47Z",
+      "mergeSha": "ee4150a69cca745ce3a909cefa5b9c1627a5f992",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11998,
+      "title": "feat: per-user Anthropic Workload Identity Federation for Windmill AI",
+      "url": "https://github.com/windmill-labs/windmill/pull/11998",
+      "mergedAt": "2026-10-25T15:37:29Z",
+      "mergeSha": "6c8fd6cfe2057f2822230bdf9ad2058f537df996",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11995,
+      "title": "fix: pin node to 24.22.1 in the worker image for CVE-2026-111497",
+      "url": "https://github.com/windmill-labs/windmill/pull/11995",
+      "mergedAt": "2026-10-25T02:19:39Z",
+      "mergeSha": "0e79e934b6342150ee31de08a19400de482b1969",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11990,
+      "title": "chore: tighten file handling in deno/bun, stricter codebase tarball,executor isolation",
+      "url": "https://github.com/windmill-labs/windmill/pull/11990",
+      "mergedAt": "2026-10-24T00:45:04Z",
+      "mergeSha": "ccf889269b8897be707cde639b2531d522c286c9",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11953,
+      "title": "fix: use linkedin openid connect default scopes",
+      "url": "https://github.com/windmill-labs/windmill/pull/11953",
+      "mergedAt": "2026-10-23T16:20:07Z",
+      "mergeSha": "001313aa242c6de053a9deb0c6cdb64580ce1cee",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 10837,
+      "title": "feat: run a workspace handler when a variable's value expires",
+      "url": "https://github.com/windmill-labs/windmill/pull/10837",
+      "mergedAt": "2026-10-23T16:12:56Z",
+      "mergeSha": "7a29abc7eec491c35217445c1c08486ff030a22c",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11960,
+      "title": "feat: fill docusign, salesforce and quickbooks fields on connect",
+      "url": "https://github.com/windmill-labs/windmill/pull/11960",
+      "mergedAt": "2026-10-23T16:01:14Z",
+      "mergeSha": "11f2a4c7ffac980036f839759ae93da6ff3f22e4",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11978,
+      "title": "fix: fork a raw app into the raw app builder, in its session when there",
+      "url": "https://github.com/windmill-labs/windmill/pull/11978",
+      "mergedAt": "2026-10-23T15:58:45Z",
+      "mergeSha": "3d6a2bcef2e284d64690db04db32a2326a4b0670",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11979,
+      "title": "fix: keep the log indexer starting when a stored day chunk is broken",
+      "url": "https://github.com/windmill-labs/windmill/pull/11979",
+      "mergedAt": "2026-10-23T15:58:18Z",
+      "mergeSha": "79fe8ab03f6f052bf7fe763b6f8a0a23fe922611",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11974,
+      "title": "fix: share settings.yaml's git sync block between a fork and its parent",
+      "url": "https://github.com/windmill-labs/windmill/pull/11974",
+      "mergedAt": "2026-10-23T15:47:14Z",
+      "mergeSha": "fe38a1d3763a11f8b0bc4b07d61824d3a7b51850",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11976,
+      "title": "fix: return variable.value as text so widening it changes no result type",
+      "url": "https://github.com/windmill-labs/windmill/pull/11976",
+      "mergedAt": "2026-10-23T14:10:13Z",
+      "mergeSha": "f6f3a0a1f24cd9ea0d78207d6848147ebd73bea0",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11940,
+      "title": "feat: add a use/plan/build mode picker and read-only prod sessions",
+      "url": "https://github.com/windmill-labs/windmill/pull/11940",
+      "mergedAt": "2026-10-23T13:53:05Z",
+      "mergeSha": "d6c2b2c68344bb95939701c418116b2e7d4715a3",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11889,
+      "title": "feat: composer pills that teach Windmill from the workspace",
+      "url": "https://github.com/windmill-labs/windmill/pull/11889",
+      "mergedAt": "2026-10-23T13:06:38Z",
+      "mergeSha": "ebeea514926f60295f3f11f516f4ccda3448f829",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11898,
+      "title": "feat: let flow builder operators build AI agents",
+      "url": "https://github.com/windmill-labs/windmill/pull/11898",
+      "mergedAt": "2026-10-23T13:05:20Z",
+      "mergeSha": "e5dedd147e1db0c4f36796ba292188bcdb0efc5a",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11943,
+      "title": "feat: manage and create folders from the home tree view",
+      "url": "https://github.com/windmill-labs/windmill/pull/11943",
+      "mergedAt": "2026-10-23T12:50:31Z",
+      "mergeSha": "da443d2fb263ecaf90320809b1bb2fc8a4f65b20",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11965,
+      "title": "fix: change an app's access mode under the deploy row lock",
+      "url": "https://github.com/windmill-labs/windmill/pull/11965",
+      "mergedAt": "2026-10-23T12:49:06Z",
+      "mergeSha": "725b15f546cf20c2e5908acffb105d73fe907558",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11966,
+      "title": "fix: send app editor inspector picks to a new AI session as a chip",
+      "url": "https://github.com/windmill-labs/windmill/pull/11966",
+      "mergedAt": "2026-10-23T12:47:35Z",
+      "mergeSha": "28d2556c941f66cad353eca3809f43e8d8cf3c05",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11967,
+      "title": "fix: keep a staged flow path across reloads and follow moves in session tabs",
+      "url": "https://github.com/windmill-labs/windmill/pull/11967",
+      "mergedAt": "2026-10-23T12:47:03Z",
+      "mergeSha": "6b56656bd650f2db5fbd74e23b55b926c6f69dd7",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11972,
+      "title": "fix: make the autoscaling Test scaling button run the integration",
+      "url": "https://github.com/windmill-labs/windmill/pull/11972",
+      "mergedAt": "2026-10-23T12:43:37Z",
+      "mergeSha": "72c6b10821cfa35ff3deb3a3ecc729ed75a9dbc6",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11970,
+      "title": "fix: list usr columns explicitly in whoami's user lookup",
+      "url": "https://github.com/windmill-labs/windmill/pull/11970",
+      "mergedAt": "2026-10-23T11:51:06Z",
+      "mergeSha": "fb193d7a816ae97fa8fc60608270296e159dfd3c",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11962,
+      "title": "perf: keep unchanged transcript rows stable while a chat reply streams",
+      "url": "https://github.com/windmill-labs/windmill/pull/11962",
+      "mergedAt": "2026-10-22T23:37:45Z",
+      "mergeSha": "4c97368c9d7661b553fcf4a29b729862f0cb3d29",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "performance"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11958,
+      "title": "feat: worker group toggle to keep the worker's proxy out of jobs",
+      "url": "https://github.com/windmill-labs/windmill/pull/11958",
+      "mergedAt": "2026-10-22T22:47:13Z",
+      "mergeSha": "8a0318a28f5cfda7557b0f94db20ef17b0664ee4",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11952,
+      "title": "fix: compare fork secret variables by decrypted value",
+      "url": "https://github.com/windmill-labs/windmill/pull/11952",
+      "mergedAt": "2026-10-22T21:50:32Z",
+      "mergeSha": "0dd131b38074423de5c769cae478c6ea0ae365c2",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11921,
+      "title": "feat: chat with a saved agent from a raw app through an agent runnable",
+      "url": "https://github.com/windmill-labs/windmill/pull/11921",
+      "mergedAt": "2026-10-22T19:01:09Z",
+      "mergeSha": "c6a93a9b565752da6c8b55d383e5bee88f00f229",
+      "route": {
+        "audience": "readers",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11938,
+      "title": "fix: stop audit inserts from silently rolling back saves",
+      "url": "https://github.com/windmill-labs/windmill/pull/11938",
+      "mergedAt": "2026-10-22T15:15:05Z",
+      "mergeSha": "5ef19a88a90b3a4fe05a78547416082dc51763f5",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11941,
+      "title": "feat: add job_id and flow_path to flow step error objects",
+      "url": "https://github.com/windmill-labs/windmill/pull/11941",
+      "mergedAt": "2026-10-22T14:34:08Z",
+      "mergeSha": "eeb48f0c26ccc5162430eddec24adc2601eb5f99",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11352,
+      "title": "feat: let native triggers act through per-user or shared connections",
+      "url": "https://github.com/windmill-labs/windmill/pull/11352",
+      "mergedAt": "2026-10-22T14:17:51Z",
+      "mergeSha": "dc1fb5087be7169045aad57e955dabe3e29de82e",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11361,
+      "title": "fix: link a variable to its OAuth account only in the connect flow",
+      "url": "https://github.com/windmill-labs/windmill/pull/11361",
+      "mergedAt": "2026-10-22T14:17:05Z",
+      "mergeSha": "d6adac8b7579ad6c3df5caab9a735451c1ddd896",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11912,
+      "title": "feat: slack agents through a workspace's own slack app",
+      "url": "https://github.com/windmill-labs/windmill/pull/11912",
+      "mergedAt": "2026-10-22T11:51:10Z",
+      "mergeSha": "34de8bc06d2b04f7929bb8cf35f9a34d0e0071fa",
+      "route": {
+        "audience": "readers",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11928,
+      "title": "feat: home list settings menu with sort, library and user-folder toggles",
+      "url": "https://github.com/windmill-labs/windmill/pull/11928",
+      "mergedAt": "2026-10-21T18:58:45Z",
+      "mergeSha": "73f655db98dd0f0fd03881c36e6c9310fb2687a2",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11635,
+      "title": "feat: home and empty ai sessions share one session composer",
+      "url": "https://github.com/windmill-labs/windmill/pull/11635",
+      "mergedAt": "2026-10-21T18:02:46Z",
+      "mergeSha": "56b2e106daedb5ae381052d3116346a88ba3f206",
+      "route": {
+        "audience": "readers",
+        "significance": "major",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11738,
+      "title": "feat: serve the ai session toolset over mcp at /api/mcp",
+      "url": "https://github.com/windmill-labs/windmill/pull/11738",
+      "mergedAt": "2026-10-21T17:12:50Z",
+      "mergeSha": "892334f008d5b6b73de38fdf2831b1a63eeb0a51",
+      "route": {
+        "audience": "readers",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11888,
+      "title": "feat: move the open in AI session button to the page header",
+      "url": "https://github.com/windmill-labs/windmill/pull/11888",
+      "mergedAt": "2026-10-21T16:34:01Z",
+      "mergeSha": "34db23952a765bbb9c912d74d2a37092703f50f7",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11911,
+      "title": "fix: compact the AI chat history between tool iterations",
+      "url": "https://github.com/windmill-labs/windmill/pull/11911",
+      "mergedAt": "2026-10-21T16:02:19Z",
+      "mergeSha": "17de2ba983bee5cb7df700476ec8a0169c97ecbd",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11922,
+      "title": "feat: ship php only on the full images",
+      "url": "https://github.com/windmill-labs/windmill/pull/11922",
+      "mergedAt": "2026-10-21T16:01:38Z",
+      "mergeSha": "b87486141df5b4f9b93900c0ee3264cf4b4610ec",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11920,
+      "title": "fix: refuse restarting a flow past an approval that was never granted",
+      "url": "https://github.com/windmill-labs/windmill/pull/11920",
+      "mergedAt": "2026-10-21T15:48:59Z",
+      "mergeSha": "2c6bcc09c9b6f768592b31ec540d727263a807cc",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    },
+    {
+      "number": 11824,
+      "title": "feat: workspace roles settings UI and capability-based gating",
+      "url": "https://github.com/windmill-labs/windmill/pull/11824",
+      "mergedAt": "2026-10-21T14:31:04Z",
+      "mergeSha": "8dbdfa194912bf36a705392899b9f84b5a54fd55",
+      "route": {
+        "audience": "readers",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11821,
+      "title": "feat: configurable workspace roles with per-workspace overrides",
+      "url": "https://github.com/windmill-labs/windmill/pull/11821",
+      "mergedAt": "2026-10-21T13:51:55Z",
+      "mergeSha": "21d2a49971b858ff8aef2776a36989b57ba49415",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 11908,
+      "title": "fix: revoke mcp oauth grants on password change and reset",
+      "url": "https://github.com/windmill-labs/windmill/pull/11908",
+      "mergedAt": "2026-10-21T11:58:04Z",
+      "mergeSha": "c04477723c9d7544ea9c595e33fdcff5cce0c79d",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "limit"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "windmill-week-2026-10-28",
+    "title": "Windmill this week",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "beats": [
+      {
+        "say": "This week Windmill gained configurable roles, agents that can wait for a person, and AI review of changes."
+      },
+      {
+        "say": "Workspace roles are now defined for the whole instance, instead of the fixed developer and operator pair. A new settings screen edits them, and a role can now be allowed or refused to fork a workspace.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "Every role picker and every screen check now reads what the role is allowed to do."
+      },
+      {
+        "say": "Protection rulesets can also map a member's role to the role they get inside a fork."
+      },
+      {
+        "say": "Home and a new AI session now share one composer. It gets a mode picker: Use, Plan, or Use and build. Sessions can build, test and run standalone AI agents, and a tool on an agent step can require approval or ask a person a question.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "Every agent link now opens the agent editor, and AI sessions on protected production workspaces now open read-only."
+      },
+      {
+        "say": "While an agent waits for an answer, it gives up its worker."
+      },
+      {
+        "say": "Over MCP, one address now gives outside clients such as Claude the AI session toolset. The token decides what a client gets: 60 tools, 28, or 26. Clients that support cards can also show runs and deploy reviews in the conversation.",
+        "scene": "picture-3"
+      },
+      {
+        "say": "A card can show a run live, a table of runs, a deploy review, or an item."
+      },
+      {
+        "say": "Slack agents now answer through a workspace's own Slack app. Native triggers can act through per-user or shared connections. A raw app can chat with a saved agent through an agent runnable, and app conversations are named by the memory id query parameter.",
+        "scene": "picture-4"
+      },
+      {
+        "say": "Native triggers no longer share one connection for the whole workspace."
+      },
+      {
+        "say": "Agent runnables no longer read the memory id from their arguments."
+      },
+      {
+        "say": "A variable can now carry a date after which a workspace handler runs. The handler never receives the value. Deploying a flow or script now asks you to confirm who it runs as when that changes.",
+        "scene": "picture-5"
+      },
+      {
+        "say": "The mute option for the workspace error handler moved to the editor menu."
+      },
+      {
+        "say": "Compare and Deploy now offers an AI review of a fork's changes. Folder resources can hold review instructions for it. A new command, wmill review, runs the review on git sync pull requests, and a git sync setting runs it on the instance.",
+        "scene": "picture-6"
+      },
+      {
+        "say": "Those instructions are read from the parent workspace."
+      },
+      {
+        "say": "The instance setting needs no CI and reviews every pull request with the workspace's default model."
+      },
+      {
+        "say": "In the CLI, raw apps now rebuild when only the shared ui folder changes, sync push fails when pushing ui fails, and app dev and lint resolve ui imports. Trigger arguments get an untrusted-input check, an AI resource's base url can use a variable, and a deployed flow's dynamic select gets OIDC tokens.",
+        "scene": "picture-7"
+      },
+      {
+        "say": "Job arguments from triggers, flow resumes and asset subscribers now pass the check against variable and resource references."
+      },
+      {
+        "say": "An AI resource's base url can use a variable, and a deployed flow's dynamic select now gets OIDC tokens for users who can only run the flow."
+      }
+    ],
+    "scenes": [
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>What a role can be set to</title><rect width=\"800\" height=\"500\" fill=\"#FBFBFD\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-weight=\"600\">Windmill</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#1D2430\" text-anchor=\"start\">What a role can be set to</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Code</text><text x=\"363.37\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">on or off</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Flows and apps</text><text x=\"363.37\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">none to full</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Schedules, triggers</text><text x=\"363.37\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">on or off</text><circle cx=\"66\" cy=\"317\" r=\"7\" fill=\"#2652DF\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\" font-weight=\"600\">Fork</text><text x=\"363.37\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\">on or off</text></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>AI sessions this week</title><rect width=\"800\" height=\"500\" fill=\"#FBFBFD\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-weight=\"600\">Windmill</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#1D2430\" text-anchor=\"start\">AI sessions this week</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Shared composer</text><text x=\"345.03\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Home and sessions</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Mode picker</text><text x=\"345.03\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Use, Plan, Build</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Agents</text><text x=\"345.03\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">build, test, run</text><circle cx=\"66\" cy=\"317\" r=\"7\" fill=\"#2652DF\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\" font-weight=\"600\">Approval</text><text x=\"345.03\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\">tool calls</text></svg>"
+      },
+      {
+        "id": "picture-3",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>What an MCP token gets</title><rect width=\"800\" height=\"500\" fill=\"#FBFBFD\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-weight=\"600\">Windmill</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#1D2430\" text-anchor=\"start\">What an MCP token gets</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Build and run</text><text x=\"302.96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">60 tools</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Read and run</text><text x=\"302.96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">28 tools</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Read only</text><text x=\"302.96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">26 tools</text><circle cx=\"66\" cy=\"317\" r=\"7\" fill=\"#2652DF\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\" font-weight=\"600\">Cards in chat</text><text x=\"302.96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\">runs, reviews</text></svg>"
+      },
+      {
+        "id": "picture-4",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Connections and apps</title><rect width=\"800\" height=\"500\" fill=\"#FBFBFD\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-weight=\"600\">Windmill</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#1D2430\" text-anchor=\"start\">Connections and apps</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#1D2430\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-style=\"italic\">Slack agents</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Instance app only</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#1D2430\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#1D2430\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\" font-weight=\"600\">Workspace app too</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-style=\"italic\">Native triggers</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">One connection</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#1D2430\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#1D2430\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\" font-weight=\"600\">Per user or shared</text><text x=\"56\" y=\"412\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-style=\"italic\">Agent runnable</text><text x=\"56\" y=\"448\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Not available</text><line x1=\"384\" y1=\"439\" x2=\"416\" y2=\"439\" stroke=\"#1D2430\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 432 L416 439 L408 446\" fill=\"none\" stroke=\"#1D2430\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"448\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\" font-weight=\"600\">Chat as the app</text></svg>"
+      },
+      {
+        "id": "picture-5",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Variables and deploys</title><rect width=\"800\" height=\"500\" fill=\"#FBFBFD\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-weight=\"600\">Windmill</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#1D2430\" text-anchor=\"start\">Variables and deploys</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Value expiry</text><text x=\"312.85\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">runs a handler</text><circle cx=\"66\" cy=\"205\" r=\"7\" fill=\"#2652DF\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\" font-weight=\"600\">Deploy run-as</text><text x=\"312.85\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\">asks first</text></svg>"
+      },
+      {
+        "id": "picture-6",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Where the AI review runs</title><rect width=\"800\" height=\"500\" fill=\"#FBFBFD\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-weight=\"600\">Windmill</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#1D2430\" text-anchor=\"start\">Where the AI review runs</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Fork deploys</text><text x=\"336.02\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">AI review</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Instructions</text><text x=\"336.02\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">per folder</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">wmill review</text><text x=\"336.02\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">pull requests</text><circle cx=\"66\" cy=\"317\" r=\"7\" fill=\"#2652DF\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\" font-weight=\"600\">Instance setting</text><text x=\"336.02\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\">every PR</text></svg>"
+      },
+      {
+        "id": "picture-7",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>CLI and safety fixes</title><rect width=\"800\" height=\"500\" fill=\"#FBFBFD\"/><text x=\"56\" y=\"30\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\" font-weight=\"600\">Windmill</text><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#1D2430\" text-anchor=\"start\">CLI and safety fixes</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">UI-only change</text><text x=\"314.42\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">rebuilds raw app</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Sync push</text><text x=\"314.42\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">fails on ui errors</text><circle cx=\"66\" cy=\"261\" r=\"7\" fill=\"#2652DF\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\" font-weight=\"600\">Trigger args</text><text x=\"314.42\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#2652DF\" text-anchor=\"start\">checked</text><line x1=\"56\" y1=\"317\" x2=\"76\" y2=\"317\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">AI base URL</text><text x=\"314.42\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">accepts variable</text><line x1=\"56\" y1=\"373\" x2=\"76\" y2=\"373\" stroke=\"#1D2430\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"382\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">Dynamic select</text><text x=\"314.42\" y=\"382\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#1D2430\" text-anchor=\"start\">gets OIDC tokens</text></svg>"
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      11821,
+      11824,
+      12054
+    ],
+    "2": [
+      11824
+    ],
+    "3": [
+      12054
+    ],
+    "4": [
+      11635,
+      11940,
+      11954,
+      11826
+    ],
+    "5": [
+      11954,
+      11940
+    ],
+    "6": [
+      11826
+    ],
+    "7": [
+      11738,
+      11969
+    ],
+    "8": [
+      11969
+    ],
+    "9": [
+      11912,
+      11352,
+      11921,
+      12025
+    ],
+    "10": [
+      11352
+    ],
+    "11": [
+      11921,
+      12025
+    ],
+    "12": [
+      10837,
+      12015
+    ],
+    "13": [
+      12015
+    ],
+    "14": [
+      12029,
+      12037,
+      12055,
+      12056
+    ],
+    "15": [
+      12037
+    ],
+    "16": [
+      12055,
+      12056
+    ],
+    "17": [
+      12051,
+      12050,
+      12031,
+      12053,
+      12046
+    ],
+    "18": [
+      12031
+    ],
+    "19": [
+      12053,
+      12046
+    ]
+  },
+  "quality": {
+    "firstPass": false,
+    "repairs": {
+      "composition": 1,
+      "illustrator": 0
+    },
+    "checks": {
+      "composition": 7,
+      "density": 1
+    },
+    "density": {
+      "pictures": 7,
+      "includedChanges": 24,
+      "speakingBeats": 19,
+      "pictured": 19,
+      "longestUnpictured": 0
+    }
+  }
+}

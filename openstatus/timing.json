@@ -1,0 +1,196 @@
+{
+  "marks": {
+    "open": 410,
+    "play": 5290
+  },
+  "endMs": 256797,
+  "passages": [
+    {
+      "segmentId": "beat-0",
+      "key": "beat-0",
+      "spoken": true,
+      "text": "This week brought time zones to status pages, a Pub/Sub detour for the checker, and new empty states in the dashboard.",
+      "startMs": 1969,
+      "endMs": 6929
+    },
+    {
+      "segmentId": "beat-1",
+      "key": "beat-1",
+      "spoken": true,
+      "text": "First, the checker. Cron checks can now be pulled from Pub/Sub, and the workflows service can publish checker tasks there. Both sit behind flags, and Cloud Tasks stays the default.",
+      "startMs": 9454,
+      "endMs": 17075
+    },
+    {
+      "segmentId": "beat-2",
+      "key": "beat-2",
+      "spoken": true,
+      "text": "The cutover was rolled back after about 15 minutes. Every checker woke at the same moment and sent one write per check to Tinybird, which allows 100 appends a second. It returned about 1,400 rate-limit errors every 90 seconds, and each one made a check run again.",
+      "scene": "picture-1",
+      "startMs": 20776,
+      "endMs": 34843
+    },
+    {
+      "segmentId": "beat-3",
+      "key": "beat-3",
+      "spoken": true,
+      "text": "The fix batches events per data source. Each buffer flushes after two seconds plus up to one second of jitter, or at 5 megabytes. A check is acknowledged only once its batch is recorded.",
+      "startMs": 37240,
+      "endMs": 45290
+    },
+    {
+      "segmentId": "beat-4",
+      "key": "beat-4",
+      "spoken": true,
+      "text": "A second change spreads check starts. Each check now begins at its scheduled time plus a fixed per-monitor offset, up to two seconds by default. Starting up to 400 checks at once had pushed DNS p50 from about 5 milliseconds to about 80.",
+      "scene": "eye",
+      "startMs": 48933,
+      "endMs": 60707
+    },
+    {
+      "segmentId": "beat-5",
+      "key": "beat-5",
+      "spoken": true,
+      "text": "Next, status pages and time zones. Two foundations landed. The day range for a bar can now be computed in any zone, so days with summer time are 23 or 25 hours long. And each page can store a default time zone, which starts as UTC.",
+      "scene": "picture-2",
+      "startMs": 63723,
+      "endMs": 74010
+    },
+    {
+      "segmentId": "beat-6",
+      "key": "beat-6",
+      "spoken": true,
+      "text": "Then the status page itself was wired up. It renders its bars and timestamps in the page's zone, and monitor charts use the page zone instead of the browser's. Non-UTC pages read the 15-minute data.",
+      "scene": "picture-3",
+      "startMs": 78206,
+      "endMs": 88120
+    },
+    {
+      "segmentId": "beat-7",
+      "key": "beat-7",
+      "spoken": true,
+      "text": "Two fixes also corrected report order. Public status page reports now sort by their newest update, not the oldest, in both the full and the light page data.",
+      "scene": "eye",
+      "startMs": 90636,
+      "endMs": 98811
+    },
+    {
+      "segmentId": "beat-8",
+      "key": "beat-8",
+      "spoken": true,
+      "text": "On the dashboard, every list, chart slot and section now shares one empty-state kit. Monitors, status pages, notifications, incidents, maintenances, status reports, subscribers, private locations and downtime get a real first-run state.",
+      "scene": "picture-4",
+      "startMs": 100461,
+      "endMs": 112604
+    },
+    {
+      "segmentId": "beat-9",
+      "key": "beat-9",
+      "spoken": true,
+      "text": "Tables show the state under the real header. A filter that matches nothing gets a No matches row with a clear action. Charts keep their height, and metric cards show a dash when a window has no checks.",
+      "startMs": 115247,
+      "endMs": 122551
+    },
+    {
+      "segmentId": "beat-10",
+      "key": "beat-10",
+      "spoken": true,
+      "text": "Latency charts now follow the selected period. Before, the last day showed 14 days on HTTP monitors. Resolution is also capped per period, and the resolution dropdown now reaches the non-HTTP latency charts.",
+      "scene": "picture-5",
+      "startMs": 127862,
+      "endMs": 134107
+    },
+    {
+      "segmentId": "beat-11",
+      "key": "beat-11",
+      "spoken": true,
+      "text": "Free workspaces are limited to a 7-day window, and longer periods sit behind the upgrade dialog. Axis labels adapt to the range, and the degraded line now shows when its threshold is near the data.",
+      "startMs": 140843,
+      "endMs": 148833
+    },
+    {
+      "segmentId": "beat-12",
+      "key": "beat-12",
+      "spoken": true,
+      "text": "Monitors can be paused or resumed from the quick actions menu in the header, sidebar and table. A new read-only get workspace tool is available in MCP, dashboard chat and the Slack agent. It returns plan and usage counts.",
+      "startMs": 153210,
+      "endMs": 164857
+    },
+    {
+      "segmentId": "beat-13",
+      "key": "beat-13",
+      "spoken": true,
+      "text": "On the website, the free tools now point to monitoring. The speed checker ends with a Monitor this URL box, and the cURL builder offers to run a request from 28 regions or monitor it. Status directory pages invite you to test the service from 28 regions.",
+      "scene": "picture-6",
+      "startMs": 167067,
+      "endMs": 178468
+    },
+    {
+      "segmentId": "beat-14",
+      "key": "beat-14",
+      "spoken": true,
+      "text": "Signups now carry first-touch attribution through a cookie, so signups by landing page can be answered. The onboarding skipped and completed events are now actually sent.",
+      "startMs": 182970,
+      "endMs": 189408
+    },
+    {
+      "segmentId": "beat-15",
+      "key": "beat-15",
+      "spoken": true,
+      "text": "Two new guides cover Slack incident management and the incident commander role. The incident management product page now targets commercial search terms.",
+      "scene": "eye",
+      "startMs": 193663,
+      "endMs": 198617
+    },
+    {
+      "segmentId": "beat-16",
+      "key": "beat-16",
+      "spoken": true,
+      "text": "A new use case page presents the incident record as audit evidence. It maps the record to SOC 2, ISO 27001, NIS2 and DORA, and says where openstatus stops.",
+      "startMs": 203305,
+      "endMs": 210925
+    },
+    {
+      "segmentId": "beat-17",
+      "key": "beat-17",
+      "spoken": true,
+      "text": "Every markdown response now starts with the same frontmatter, and Copy markdown works on the home page. Pages also advertise their markdown twin in the HTML.",
+      "scene": "picture-7",
+      "startMs": 213072,
+      "endMs": 219515
+    },
+    {
+      "segmentId": "beat-18",
+      "key": "beat-18",
+      "spoken": true,
+      "text": "Listing titles and descriptions now live in one place, and mono prose pages keep headings near body size, so hierarchy comes from weight.",
+      "startMs": 222966,
+      "endMs": 226366
+    },
+    {
+      "segmentId": "beat-19",
+      "key": "beat-19",
+      "spoken": true,
+      "text": "The checker payload is now built in one place for cron, the public API and the dashboard trigger. That fixed the first check after creating a monitor, which ignored the don't follow redirects setting. About 80 unused files were removed.",
+      "scene": "eye",
+      "startMs": 231622,
+      "endMs": 244077
+    },
+    {
+      "segmentId": "beat-20",
+      "key": "beat-20",
+      "spoken": true,
+      "text": "Email deliverability was also improved.",
+      "startMs": 246414,
+      "endMs": 246414
+    },
+    {
+      "segmentId": "beat-21",
+      "key": "beat-21",
+      "spoken": true,
+      "text": "The time zone picker in the dashboard has not landed yet, so every status page is still on UTC.",
+      "startMs": 248990,
+      "endMs": 252261
+    }
+  ]
+}

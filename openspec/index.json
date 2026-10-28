@@ -1,0 +1,15 @@
+{
+  "schema": "syberlabs.changes-index/v1",
+  "digests": [
+    {
+      "id": "2026-10-28",
+      "audience": "team",
+      "title": "What changed in OpenSpec, 21–28 October",
+      "period": {
+        "from": "2026-10-21T08:22:43.683Z",
+        "to": "2026-10-28T08:22:43.683Z"
+      },
+      "count": 3
+    }
+  ]
+}
