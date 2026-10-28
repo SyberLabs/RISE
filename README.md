@@ -6,7 +6,7 @@
 
 [**Live app →**](https://rise.syberlabs.io/) · [Architecture](docs/specs/ARCHITECTURE.md) · [Documentation](docs/README.md)
 
-**Status:** Open beta · **License:** Apache 2.0 · **Built by** Mateo Robles (SyberLabs), with engineering infrastructure by Seth Carlson
+**Status:** Open beta · **License:** Apache 2.0 · **Built by** SyberLabs
 
 ---
 
