@@ -50,7 +50,7 @@ jobs:
           done
           job=$(awk -F'\t' -v n="Write a dry-run digest of $REPO" '$2==n && $3=="success" {print $1}' jobs.tsv | tail -1)
           if [ -z "$job" ]; then echo "No successful sample of $REPO"; exit 1; fi
-          gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$job/logs" > job.log
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -o job.log "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/jobs/$job/logs"
           node .github/changes-sample/from-log.mjs job.log "$RUNNER_TEMP/digest"
           ls -la "$RUNNER_TEMP/digest"
 
