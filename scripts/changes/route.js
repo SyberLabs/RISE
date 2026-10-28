@@ -8,15 +8,16 @@
  */
 import { parseModelJson } from './admit.js';
 import { FALLBACK_ROUTE, LIMITS, ROUTE_MENU } from '../../src/core/changes/contract.js';
+import { RISE_PRODUCT } from './customers.js';
 
 const EXCERPT = 1500;
 const LISTED_FILES = 30;
 
-const QUESTIONS = Object.freeze({
+const questions = product => ({
   audience: {
     skip: 'Nobody needs to hear about it: bookkeeping, a revert, a typo, a bump with no effect.',
-    team: 'The people building RISE should know: internals, process, tests, infrastructure, plans.',
-    readers: 'Only people who read with RISE would notice it.',
+    team: `The people building ${product.name} should know: internals, process, tests, infrastructure, plans.`,
+    readers: `Only ${product.users} would notice it.`,
     both: 'Readers would notice it and the team should know it.'
   },
   significance: {
@@ -42,11 +43,11 @@ export function quoted(tag, value) {
   return `<${tag}>\n${JSON.stringify(value, null, 2).replace(/</g, '\\u003c')}\n</${tag}>`;
 }
 
-const SYSTEM = [
-  'You route the pull requests merged into RISE this week. RISE is a reading app: it speaks a text aloud and shows it with visuals.',
+const system = product => [
+  `You route the pull requests merged into ${product.name} this week. ${product.about}`,
   'For each pull request, answer three questions, choosing exactly one of the listed values for each:',
   '',
-  ...Object.entries(QUESTIONS).flatMap(([question, options]) => [
+  ...Object.entries(questions(product)).flatMap(([question, options]) => [
     `${question}:`,
     ...Object.entries(options).map(([value, meaning]) => `- ${value}: ${meaning}`)
   ]),
@@ -58,7 +59,7 @@ const SYSTEM = [
 ].join('\n');
 
 /** The router's request: pure, so the same pull requests build the same request. */
-export function buildRouteRequest(candidates) {
+export function buildRouteRequest(candidates, product = RISE_PRODUCT) {
   const pulls = candidates.map(pull => ({
     number: pull.number,
     title: pull.title,
@@ -68,7 +69,7 @@ export function buildRouteRequest(candidates) {
     body: Array.from(pull.body).slice(0, EXCERPT).join('')
   }));
   return {
-    system: SYSTEM,
+    system: system(product),
     prompt: `Route these ${pulls.length} pull requests.\n\n${quoted('pull_requests', pulls)}`
   };
 }

@@ -1,7 +1,7 @@
 /**
  * The brands RISE has drawn its figures in for a customer, each reviewed in a pull request the way the reading themes
  * are: the three colors are looked at on every kind (fixtures/<kind>-<id>.svg) before the brand is used. A brand is
- * `confirmed` only once the company has approved its colors; until then nothing runs in it.
+ * `confirmed` only once the company has approved its colors; until then it runs only in a dry run (run-digest.js).
  */
 export const BRANDS = Object.freeze({
   /**
@@ -12,5 +12,16 @@ export const BRANDS = Object.freeze({
   githits: Object.freeze({
     confirmed: false,
     brand: Object.freeze({ name: 'GitHits', ground: '#13161A', ink: '#D5D9DF', accent: '#FF4FAE' })
+  }),
+  /**
+   * Provisional, read on 2026-10-27 from openstatusHQ/openstatus packages/ui/src/globals.css (their site was out of
+   * reach): the dark theme's background and foreground, oklch(0.145 0 0) and oklch(0.985 0 0), which are also the
+   * logo's black disc and white strokes, and the success green, oklch(0.72 0.19 150), that their status bars show for
+   * operational. Converted from OKLCH to sRGB and rounded. The light theme fails the kit: no accent of theirs reaches
+   * 4.5:1 on white and on its own tint. OpenStatus confirms.
+   */
+  openstatus: Object.freeze({
+    confirmed: false,
+    brand: Object.freeze({ name: 'openstatus', ground: '#0A0A0A', ink: '#FAFAFA', accent: '#20C45F' })
   })
 });

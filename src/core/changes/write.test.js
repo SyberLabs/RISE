@@ -240,6 +240,12 @@ describe('issueFor', () => {
     expect(body).toContain('https://github.com/Example/public/blob/changes-data/2026-10-19.json');
     expect(body).toContain('https://github.com/Example/public/blob/changes-data/2026-10-12.json');
     expect(body).not.toContain('rise.syberlabs.io');
+    const named = buildDigest({
+      id: '2026-10-19', period, generatedAt: '2026-10-19T09:03:00.000Z', model: MODEL,
+      changes, current, sources: { 1: [1] }, repo, name: 'example'
+    });
+    expect(named.title).toBe('What changed in example, 12–19 October');
+    expect(issueFor(named, { repository: repo, name: 'example' }).title).toBe('What changed in example: 12–19 October');
     expect(() => buildDigest({
       id: '2026-10-19', period, generatedAt: '2026-10-19T09:03:00.000Z', model: MODEL,
       changes, current, sources: { 1: [1] }

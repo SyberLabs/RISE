@@ -121,7 +121,7 @@ export async function main(argv, { env = process.env, log = line => console.log(
   };
   let result;
   try {
-    result = await runDigest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, log, renderCheck });
+    result = await runDigest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, dryRun: options.dryRun, log, renderCheck });
   } finally {
     if (renderer) await (await renderer.catch(() => null))?.close();
   }

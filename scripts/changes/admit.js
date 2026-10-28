@@ -106,8 +106,8 @@ export const CITED_HELD_BEATS = 6;
 export const UNPICTURED_BEATS = 2;
 /** The scenes a Current has room for: the connector's bound, shared by the opening, the close, RISE's eye and the pictures. */
 const SCENE_ROOM = 8;
-/** What a refusal for a missing picture suggests: the kinds a week of rules and process changes is drawn with. */
-const KIND_HINT = 'for a rule or a process change, a list or a compare';
+/** What a refusal for a missing picture suggests: the kinds a week of rules, process and service changes is drawn with. */
+const KIND_HINT = 'for a rule or a process change, a list or a compare; for a change to what flows between services, queues and stores, a system';
 /** The answer's fields that name RISE's engines, and the beat each is placed on. */
 export const ENDS = Object.freeze(['opening', 'close']);
 const ENGINE_RULE = 'RISE’s engines open and close a digest; a change is shown with a kit picture';
@@ -146,11 +146,15 @@ const named = numbers => {
   return tags.length === 1 ? tags[0] : `${tags.slice(0, -1).join(', ')} and ${tags.at(-1)}`;
 };
 
-/** Every string and printed number a kit figure shows: what the number rule reads (a bar's max is a scale, never printed). */
+/**
+ * Every string and printed number a kit figure shows: what the number rule reads. A bar's max is a scale, a system
+ * node's "at" its place on the grid, and its "id" (with the "from" and "to" that name one) a name; none is printed.
+ */
+const UNPRINTED = new Set(['max', 'at', 'id', 'from', 'to', 'kind', 'shape', 'glyph']);
 export function kitTexts(kit) {
   const texts = [];
   const walk = (value, key) => {
-    if (key === 'max' || key === 'kind' || key === 'shape' || key === 'glyph') return;
+    if (UNPRINTED.has(key)) return;
     if (typeof value === 'string') texts.push(value);
     else if (typeof value === 'number') texts.push(String(value));
     else if (Array.isArray(value)) value.forEach(item => walk(item));

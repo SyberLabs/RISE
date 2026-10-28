@@ -35,13 +35,16 @@ export function digestId(to, existingIds) {
   return id;
 }
 
+/** What a digest's title calls the product: `name` when given (a customer's product), else RISE or the repository. */
+const productName = (repository, name) => name ?? (repository === REPOSITORY ? 'RISE' : repository);
+
 /** The digest envelope, refused when it breaks the contract or its 256 KB bound. */
-export function buildDigest({ id, period, generatedAt, model, changes, current, sources, quality, notes = [], repo = REPOSITORY }) {
+export function buildDigest({ id, period, generatedAt, model, changes, current, sources, quality, notes = [], repo = REPOSITORY, name }) {
   const digest = {
     schema: DIGEST_SCHEMA,
     id,
     audience: 'team',
-    title: `What changed in ${repo === REPOSITORY ? 'RISE' : repo}, ${periodLabel(period)}`,
+    title: `What changed in ${productName(repo, name)}, ${periodLabel(period)}`,
     period: { from: period.from, to: period.to },
     generatedAt,
     model: { router: model, composer: model, via: 'Claude Code' },
@@ -101,10 +104,10 @@ const digestAddress = (repository, id) => (repository === REPOSITORY
   ? `${SITE}/changes/${id}`
   : `https://github.com/${repository}/blob/changes-data/${id}.json`);
 
-export function issueFor(digest, { supersedes, repository = REPOSITORY } = {}) {
+export function issueFor(digest, { supersedes, repository = REPOSITORY, name } = {}) {
   const label = periodLabel(digest.period);
   const included = digest.changes.filter(change => change.included).length;
-  const subject = repository === REPOSITORY ? 'RISE' : repository;
+  const subject = productName(repository, name);
   const address = digestAddress(repository, digest.id);
   return {
     title: `What changed in ${subject}: ${label}`,

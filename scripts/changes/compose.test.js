@@ -100,10 +100,13 @@ describe('buildComposeRequest', () => {
     expect(system).toMatch(/"pictures"/);
     expect(system).toMatch(/brief/i);
     for (const kind of ['bars', 'flow', 'columns', 'stack', 'list', 'compare']) expect(system).toContain(`"kind": "${kind}"`);
-    expect(system).toMatch(/a measurement, a sequence, a sorting, a layout, a set of rules or a before and after/);
+    expect(system).toMatch(/a measurement, a sequence, a sorting, a layout, a set of rules, a before and after, or a change to how a system’s parts connect/);
     expect(system).toMatch(/A rule or a process change is a list \(the rules, or what is checked\) or a compare \(what was so before and after\)/);
+    expect(system).toMatch(/name the services, queues or stores a change runs through, draw a system rather than a flow or a compare/);
+    expect(system).toContain('"kind": "system"');
     expect(system).toMatch(/A picture must show something the words alone do not/);
     expect(system).toMatch(/A picture’s "refs" are the pull requests it shows, each among its beat’s refs/);
+    expect(system).toMatch(/A theme’s first beat names in its refs every change its picture shows\. When the major changes outnumber the pictures there is room for, one picture shows several of them, on a beat whose refs name them all\./);
     expect(system).toMatch(/at most 2/);
     expect(system).toMatch(/illustrator/i);
     expect(system).toMatch(/figure/);
@@ -143,6 +146,12 @@ describe('buildComposeRequest', () => {
     expect(said(/compare: subject (\d+)/)).toBe(KIT_BUDGETS.compare.subject);
     expect(said(/before and after (\d+)/)).toBe(KIT_BUDGETS.compare.cell);
     expect(said(/headers (\d+)/)).toBe(KIT_BUDGETS.compare.header);
+    expect(said(/system: node (\d+)/)).toBe(KIT_BUDGETS.system.node.least);
+    expect(said(/system: node \d+ \((\d+) with 3 columns/)).toBe(KIT_BUDGETS.system.node.three);
+    expect(said(/with 3 columns, (\d+) with 2\)/)).toBe(KIT_BUDGETS.system.node.most);
+    expect(said(/state (\d+)\./)).toBe(KIT_BUDGETS.system.state);
+    expect(system).toMatch(/never stop a phrase partway/);
+    expect(system).toMatch(/never ends on a verb that waits for its object or a preposition that waits for its noun/);
   });
 
   it('asks for one picture a theme, held across its beats, and says the density floor and the room in numbers', () => {

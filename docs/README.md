@@ -70,6 +70,7 @@ history, not a distinction; read the status column instead.
 | [plans/LIVE-RED-TEAM.md](plans/LIVE-RED-TEAM.md) | Record | An adversarial review of the live layer and its fixes: the trust boundary, twelve confirmed defects and how each was fixed, the architectural risks, what held, streaming and plugin readiness, the experiments a real provider must settle, and what still blocks switching Live or MCP on. |
 | [plans/CURRENT-CONSOLIDATION.md](plans/CURRENT-CONSOLIDATION.md) | Intent | Phase 0 map for consolidating every entrance around one compiled reading: the room inventory, the gaps in the contract, who scores affect, and the decisions that wait on the creator. Nothing in it is built. |
 | [plans/RISE-CHANGES.md](plans/RISE-CHANGES.md) | Contract | RISE Changes: the weekly digest of merged pull requests as a narrated reading. The files on the `changes-data` branch, the Worker route and the app pages that read them, the trust rules, and how the generator collects, routes, composes and admits. |
+| [plans/SYSTEM-FIGURES.md](plans/SYSTEM-FIGURES.md) | Contract | System figures: how the figure kit draws the parts a change touched and its states, how to add a reference case and its goldens, and the calls a gateway builds on. |
 
 ## The Archive - texts and their editing
 

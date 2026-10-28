@@ -17,10 +17,12 @@ export const KIT_EXAMPLES = Object.freeze({
   columns: '{"kind": "columns", "title": "Where each visual opens", "columns": [{"name": "Inner eye", "glyph": "eye", "items": ["harmonograph", "ostensoria"]}, {"name": "Full frame", "glyph": "full", "items": ["figures", "genesis"]}]}',
   stack: '{"kind": "stack", "title": "The room, bottom to top", "zones": [{"label": "Controls", "shape": "ticks"}, {"label": "Ask bar", "shape": "bar"}, {"label": "Spoken words", "shape": "lines"}, {"label": "The picture", "shape": "circle"}], "changed": "Ask bar", "dock": "Ask bar"}',
   list: '{"kind": "list", "title": "What a figure is checked for", "items": [{"label": "Overlap", "detail": "no two labels touch"}, {"label": "Outside", "detail": "nothing past the edge"}, {"label": "Rendered", "detail": "measured in a browser"}], "changed": "Rendered"}',
-  compare: '{"kind": "compare", "title": "A change no beat cites", "rows": [{"subject": "The reading", "before": "Repaired to cite it", "after": "Left out"}, {"subject": "The page", "before": "Says nothing", "after": "Lists it as unspoken"}]}'
+  compare: '{"kind": "compare", "title": "A change no beat cites", "rows": [{"subject": "The reading", "before": "Repaired to cite it", "after": "Left out"}, {"subject": "The page", "before": "Says nothing", "after": "Lists it as unspoken"}]}',
+  system: '{"kind": "system", "title": "Whose model recommends", "states": ["Our model", "The reader’s"], "nodes": [{"id": "reader", "label": "Reader", "at": [0, 1]}, {"id": "worker", "label": "Worker", "at": [1, 0]}, {"id": "ours", "label": "Our model", "at": [2, 0], "shape": "store", "in": ["Our model"]}, {"id": "openrouter", "label": "OpenRouter", "at": [2, 1], "changed": true, "in": ["The reader’s"]}], "links": [{"from": "reader", "to": "worker", "in": ["Our model"]}, {"from": "worker", "to": "ours", "in": ["Our model"]}, {"from": "reader", "to": "openrouter", "label": "their key", "changed": true, "in": ["The reader’s"]}]}'
 });
 import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
 import { quoted } from './route.js';
+import { RISE_PRODUCT } from './customers.js';
 
 export const REPAIRS = 2;
 
@@ -33,16 +35,18 @@ function budgetSentence(b) {
     `columns: name ${b.columns.name.least} (${b.columns.name.most} with 2 columns), item ${b.columns.item.least} (${b.columns.item.most} with 2 columns);`,
     `stack: label ${b.stack.label};`,
     `list: label ${b.list.label.least} (${b.list.label.most} when no item has a detail), detail ${b.list.detail};`,
-    `compare: subject ${b.compare.subject}, before and after ${b.compare.cell}, headers ${b.compare.header}.`
+    `compare: subject ${b.compare.subject}, before and after ${b.compare.cell}, headers ${b.compare.header};`,
+    `system: node ${b.system.node.least} (${b.system.node.three} with 3 columns, ${b.system.node.most} with 2), state ${b.system.state}.`,
+    'A title is a whole phrase within its budget: when a title would run over, choose fewer words, never stop a phrase partway. Read each title alone before you give it: it never ends on a verb that waits for its object or a preposition that waits for its noun (not “Every empty state has”, but “One empty state everywhere”).'
   ].join(' ');
 }
 
-function instructions(model, kitOnly) {
+function instructions(model, kitOnly, product) {
   return [
-    'You write the weekly digest of RISE for the team that builds it: one RISE Current that RISE will speak aloud and show, telling the team what changed this week and why it matters.',
+    `You write the weekly digest of ${product.name} for the team that builds it: one RISE Current that RISE will speak aloud and show, telling the team what changed this week and why it matters.`,
     '',
     'What to say:',
-    '- Open with one short beat that names the week. Then group the changes by theme (for example: the reader, RISE Live, the connector, visuals, infrastructure), one or a few beats per theme, and close with one short beat.',
+    `- Open with one short beat that names the week. Then group the changes by theme (for example: ${product.themes}), one or a few beats per theme, and close with one short beat.`,
     '- Plain words, meant to be heard: short sentences, no markdown, no lists, no file paths, no code names a newcomer would not know. You speak as RISE, plainly: no flourish, no slogan and no metaphor, at the opening and the close as everywhere. Speak of what changed, never of what a later run, test or review will show.',
     '- The close says the week’s last fact and stops: no summary and no slogan.',
     '- Every claim comes ONLY from the titles and bodies of the pull requests given. Invent no capability, outcome, number, date, name or reason that is not written there. Use a number only when a pull request states it.',
@@ -54,14 +58,15 @@ function instructions(model, kitOnly) {
       ? 'Pictures. Give each theme one picture, on the theme\u2019s first beat, held across its beats: RISE shows it while they are said. A public digest draws kit figures only. RISE draws every picture itself with its figure kit, from data you give. A brief, a medium, or scene code is refused and nothing is drawn by another model.'
       : 'Pictures. Give each theme one picture, on the theme\u2019s first beat, held across its beats: RISE shows it while they are said. RISE draws most pictures itself with its figure kit, from data you give; its illustrator draws the rest from a brief.',
     `- No more than ${UNPICTURED_BEATS} beats in a row that speak of a change may go without a picture of it, and every change marked "significance": "major" gets a picture. A beat that only opens, holds or closes needs none.`,
-    '- Use a kit figure whenever the change is a measurement, a sequence, a sorting, a layout, a set of rules or a before and after. A rule or a process change is a list (the rules, or what is checked) or a compare (what was so before and after). Give only data, as the pull requests state it: RISE places every label, so nothing can collide, and it prints each number exactly as given. One element may be marked as what changed. A picture must show something the words alone do not: values to compare, a step that changed, where things sit, several things sorted, the rules, a before and after; columns of one word each, or two steps or two items with nothing marked, are refused.',
+    '- Use a kit figure whenever the change is a measurement, a sequence, a sorting, a layout, a set of rules, a before and after, or a change to how a system\u2019s parts connect. A change that adds, removes, reroutes or batches what flows between services, queues and stores is a system: draw the parts the pull requests name, the paths between them, and each state the change passed through (before, after, and a rollback when there was one). Whenever the pull requests name the services, queues or stores a change runs through, draw a system rather than a flow or a compare: a flow is for steps taken in order, not for parts that connect. A rule or a process change is a list (the rules, or what is checked) or a compare (what was so before and after). Give only data, as the pull requests state it: RISE places every label, so nothing can collide, and it prints each number exactly as given. One element may be marked as what changed. A picture must show something the words alone do not: values to compare, a step that changed, where things sit, several things sorted, the rules, a before and after; columns of one word each, or two steps or two items with nothing marked, are refused.',
     `  - ${KIT_EXAMPLES.bars}`,
     `  - ${KIT_EXAMPLES.flow}`,
     `  - ${KIT_EXAMPLES.columns}`,
     `  - ${KIT_EXAMPLES.stack}`,
     `  - ${KIT_EXAMPLES.list}`,
     `  - ${KIT_EXAMPLES.compare}`,
-    '  bars: 2 to 4 items, max the scale\u2019s top, value numbers from a pull request. flow: 2 to 7 steps, an optional loop between two of them. columns: 2 to 4 columns of 1 to 6 items, glyph eye, shell, full or dot. stack: 2 to 5 zones bottom to top, shape circle, lines, bar or ticks, an optional dock dot beside one. list: 2 to 6 items, each a label and an optional detail, one marked changed by its label. compare: 2 to 4 rows of subject, before and after, under headers Before and After unless you give "headers": {"before", "after"}. "title" is optional for all.',
+    `  - ${KIT_EXAMPLES.system}`,
+    '  bars: 2 to 4 items, max the scale\u2019s top, value numbers from a pull request. flow: 2 to 7 steps, an optional loop between two of them. columns: 2 to 4 columns of 1 to 6 items, glyph eye, shell, full or dot. stack: 2 to 5 zones bottom to top, shape circle, lines, bar or ticks, an optional dock dot beside one. list: 2 to 6 items, each a label and an optional detail, one marked changed by its label. compare: 2 to 4 rows of subject, before and after, under headers Before and After unless you give "headers": {"before", "after"}. system: 3 to 8 nodes, each an id, a label and "at": [column 0 to 3, row 0 to 2], shape service, queue or store; 2 to 10 links from one node id to another, "many": true for a path that carries many messages at once, an optional short label; optional "states", 2 or 3 in order, with "in" on a node or link listing the states it is in (none means every state); mark changed parts "changed": true. RISE draws the last state still, what it does without dashed, and steps through the states with moving dots where it can. Place the nodes so no link has to pass through another node. "title" is optional for all.',
     `  ${budgetSentence(KIT_BUDGETS)}`,
     kitOnly
       ? '- Every picture is a kit figure. Do not write a brief, a medium, or scene code.'
@@ -76,7 +81,7 @@ function instructions(model, kitOnly) {
       ? '{"current": <a rise.current.v2 Current whose beats each carry "refs">, "pictures": [{"beat": <beat index>, "refs": [...], "kit": {...}}, ...], "opening": {"engine": "attractor"}, "close": {"engine": "living-flame"}}'
       : '{"current": <a rise.current.v2 Current whose beats each carry "refs">, "pictures": [{"beat": <beat index>, "refs": [...], "kit": {...}} | {"beat": <beat index>, "refs": [...], "medium": "figure" | "scene", "brief": "..."}, ...], "opening": {"engine": "attractor"}, "close": {"engine": "living-flame"}}',
     '- "refs" sits on each beat beside its words: the numbers of the pull requests that beat speaks about, as in {"say": "...", "refs": [652, 655]}; a beat that only opens, holds or closes has none. Every included pull request is in the refs of at least one beat, and no other number is; one no beat speaks of is left out of the reading. RISE takes "refs" off the beats before it plays the Current.',
-    '- A picture’s "refs" are the pull requests it shows, each among its beat’s refs: put each picture on the beat that speaks of what it shows. Its numbers must be written in those pull requests.',
+    '- A picture’s "refs" are the pull requests it shows, each among its beat’s refs: put each picture on the beat that speaks of what it shows. A theme’s first beat names in its refs every change its picture shows. When the major changes outnumber the pictures there is room for, one picture shows several of them, on a beat whose refs name them all. Its numbers must be written in those pull requests.',
     '- A picture starts on its beat (a beat index counts from 0 in "current.beats"), never the first beat under an opening or the last under a close, and runs until the next picture starts or a beat speaks of none of its changes, where RISE’s eye returns.',
     `- "current.origin" is {"kind": "model", "name": "${model}", "provider": "${COMPOSER_PROVIDER}"}.`,
     '- "current.schema" is "rise.current.v2".',
@@ -88,7 +93,7 @@ function instructions(model, kitOnly) {
 }
 
 /** The composer's request: pure, so the same week builds the same request. */
-export function buildComposeRequest({ pulls, context = [], model, period, kitOnly = false }) {
+export function buildComposeRequest({ pulls, context = [], model, period, kitOnly = false, product = RISE_PRODUCT }) {
   const entry = included => pull => ({
     number: pull.number,
     included,
@@ -103,7 +108,7 @@ export function buildComposeRequest({ pulls, context = [], model, period, kitOnl
     .sort((a, b) => Date.parse(a.mergedAt) - Date.parse(b.mergedAt) || a.number - b.number);
   const count = `${pulls.length} pull request${pulls.length === 1 ? '' : 's'}`;
   return {
-    system: instructions(model, kitOnly),
+    system: instructions(model, kitOnly, product),
     prompt: `The week runs from ${period.from} to ${period.to}. Write the digest of the ${count} marked included; the pull requests are given in merge order.\n\n${quoted('pull_requests', data)}`
   };
 }
@@ -130,8 +135,8 @@ function repairRequest(request, answer, diagnostics) {
  * The admitted `{ current, sources, pictures, unspoken, dropped }`, or an error after the last repair is refused. `tally` is told each
  * rule a refusal fired and each repair asked for (the digest's first-pass score).
  */
-export async function composeCurrent({ ask, pulls, context = [], model, period, log, tally = { fired() {}, repaired() {} }, kitOnly = false }) {
-  const request = buildComposeRequest({ pulls, context, model, period, kitOnly });
+export async function composeCurrent({ ask, pulls, context = [], model, period, log, tally = { fired() {}, repaired() {} }, kitOnly = false, product }) {
+  const request = buildComposeRequest({ pulls, context, model, period, kitOnly, product });
   let next = request;
   for (let attempt = 0; attempt <= REPAIRS; attempt += 1) {
     const answer = await ask({ ...next, model });

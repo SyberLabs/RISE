@@ -6,7 +6,8 @@ import { FIGURE_BOUNDS, figureProblems } from '../figure-kit.js';
 
 /**
  * The study's four figures (docs/assets/changes/figure-kit-study.html), the room given bottom to top, and one figure of
- * each kind added after it: a list (what a figure is checked for) and a compare (what became of a change no beat cites).
+ * each kind added after it: a list (what a figure is checked for), a compare (what became of a change no beat cites) and
+ * a system (where a reader's recommendations come from, before RISE stopped paying for them and after).
  */
 export const STUDY = Object.freeze({
   bars: { kind: 'bars', title: 'The swarm, frames per second', note: '1440 × 900, outer shell', max: 150, items: [{ label: 'Before', value: 16.4 }, { label: 'After', value: 143.9, changed: true }] },
@@ -33,6 +34,18 @@ export const STUDY = Object.freeze({
     { subject: 'The reading', before: 'Repaired to cite it', after: 'Left out' },
     { subject: 'The page', before: 'Says nothing', after: 'Lists it as unspoken' },
     { subject: 'The run', before: 'A repair', after: 'A note' }
+  ] },
+  system: { kind: 'system', title: 'Whose model recommends', states: ['Our model', 'The reader’s'], nodes: [
+    { id: 'reader', label: 'Reader', at: [0, 1] },
+    { id: 'worker', label: 'Worker', at: [1, 0] },
+    { id: 'ours', label: 'Our model', at: [2, 0], shape: 'store', in: ['Our model'] },
+    { id: 'openrouter', label: 'OpenRouter', at: [2, 1], changed: true, in: ['The reader’s'] },
+    { id: 'kev', label: 'Kev', at: [2, 2], changed: true, in: ['The reader’s'] }
+  ], links: [
+    { from: 'reader', to: 'worker', in: ['Our model'] },
+    { from: 'worker', to: 'ours', in: ['Our model'] },
+    { from: 'reader', to: 'openrouter', label: 'their key', changed: true, in: ['The reader’s'] },
+    { from: 'reader', to: 'kev', label: 'their computer', changed: true, in: ['The reader’s'] }
   ] }
 });
 
@@ -47,7 +60,7 @@ const word = n => 'Wm'.repeat(Math.ceil(n / 2)).slice(0, n);
 
 /** Specs at every bound: the most items, each slot's longest label. */
 export function boundSpecs() {
-  const { flow, columns, list, compare } = FIGURE_BOUNDS;
+  const { flow, columns, list, compare, system } = FIGURE_BOUNDS;
   return [
     longest(n => ({ kind: 'bars', title: word(n), note: 'note', max: 100, items: [{ label: 'a', value: 1 }, { label: 'b', value: 100, changed: true }] })),
     longest(n => ({ kind: 'bars', title: 'T', note: word(n), max: 100, items: [{ label: 'a', value: 1 }, { label: 'b', value: 100 }] })),
@@ -62,11 +75,18 @@ export function boundSpecs() {
     longest(n => ({ kind: 'list', items: Array.from({ length: list.items[1] }, (_, i) => ({ label: `${word(n)}${i}` })), changed: `${word(n)}0` })),
     ...[2, 3, 4].map(count => longest(n => ({ kind: 'compare', title: 'Compare', rows: Array.from({ length: count }, (_, i) => ({ subject: `${word(n)}${i}`, before: `${word(n)}${i}b`, after: `${word(n)}${i}a` })) }))),
     longest(n => ({ kind: 'compare', headers: { before: word(n), after: `${word(n)}a` }, rows: Array.from({ length: compare.rows[1] }, (_, i) => ({ subject: `s${i}`, before: 'b', after: 'a' })) })),
+    ...[[[0, 0], [1, 1], [0, 2]], [[0, 0], [1, 1], [2, 0]], [[0, 0], [1, 1], [2, 0], [3, 1]]].map(places => longest(n => ({ kind: 'system', title: 'System',
+      nodes: places.map((at, i) => ({ id: `n${i}`, label: `${word(n)}${i}`, at, changed: i === 0 })),
+      links: places.slice(1).map((_, i) => ({ from: `n${i}`, to: `n${i + 1}`, many: i === 0 })).concat([{ from: 'n1', to: 'n0' }]) }))),
+    longest(n => ({ kind: 'system', states: Array.from({ length: system.states[1] }, (_, i) => `${word(n)}${i}`), nodes: [{ id: 'a', label: 'a', at: [0, 0] }, { id: 'b', label: 'b', at: [1, 0] }, { id: 'c', label: 'c', at: [1, 1], in: [`${word(n)}2`] }], links: [{ from: 'a', to: 'b' }, { from: 'b', to: 'c', in: [`${word(n)}2`] }] })),
+    { kind: 'system', title: 'Every part', nodes: Array.from({ length: system.nodes[1] }, (_, i) => ({ id: `n${i}`, label: `Part ${i}`, at: [i % 4, Math.floor(i / 4)], shape: ['service', 'queue', 'store'][i % 3], changed: i === 5 })),
+      links: [[0, 1], [1, 2], [2, 3], [4, 5], [5, 6], [6, 7], [0, 4], [1, 5], [2, 6], [3, 7]].map(([from, to], i) => ({ from: `n${from}`, to: `n${to}`, many: i === 1, changed: i === 4 })) },
     { kind: 'bars', max: 1, items: [{ label: 'x', value: 0 }, { label: 'y', value: 1 }] },
     { kind: 'flow', steps: ['a', 'b'], changed: 'b' },
     { kind: 'columns', columns: [{ name: 'a', items: ['x', 'x2'] }, { name: 'b', items: ['y', 'y2'] }] },
     { kind: 'stack', zones: [{ label: 'a', shape: 'ticks' }, { label: 'b', shape: 'lines' }] },
     { kind: 'list', items: [{ label: 'a' }, { label: 'b' }], changed: 'b' },
-    { kind: 'compare', rows: [{ subject: 'a', before: 'b', after: 'c' }, { subject: 'd', before: 'e', after: 'f' }] }
+    { kind: 'compare', rows: [{ subject: 'a', before: 'b', after: 'c' }, { subject: 'd', before: 'e', after: 'f' }] },
+    { kind: 'system', nodes: [{ id: 'a', label: 'a', at: [0, 0] }, { id: 'b', label: 'b', at: [1, 0], changed: true }, { id: 'c', label: 'c', at: [0, 1] }], links: [{ from: 'a', to: 'b' }, { from: 'c', to: 'b' }] }
   ];
 }

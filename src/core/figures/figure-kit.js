@@ -25,14 +25,15 @@
 import { MIN_CONTRAST, contrastRatio, parseColour, seenOn, textAdvance } from '../quality/svg-layout.js';
 import { jevPalette } from '../jev-palette.js';
 
-export const FIGURE_KINDS = Object.freeze(['bars', 'flow', 'columns', 'stack', 'list', 'compare']);
+export const FIGURE_KINDS = Object.freeze(['bars', 'flow', 'columns', 'stack', 'list', 'compare', 'system']);
 export const FIGURE_BOUNDS = Object.freeze({
   bars: Object.freeze({ items: Object.freeze([2, 4]) }),
   flow: Object.freeze({ steps: Object.freeze([2, 7]) }),
   columns: Object.freeze({ columns: Object.freeze([2, 4]), items: Object.freeze([1, 6]) }),
   stack: Object.freeze({ zones: Object.freeze([2, 5]) }),
   list: Object.freeze({ items: Object.freeze([2, 6]) }),
-  compare: Object.freeze({ rows: Object.freeze([2, 4]) })
+  compare: Object.freeze({ rows: Object.freeze([2, 4]) }),
+  system: Object.freeze({ nodes: Object.freeze([3, 8]), links: Object.freeze([2, 10]), states: Object.freeze([2, 3]) })
 });
 const GLYPHS = Object.freeze(['eye', 'shell', 'full', 'dot']);
 const SHAPES = Object.freeze(['circle', 'lines', 'bar', 'ticks']);
@@ -66,7 +67,8 @@ const KEYS = Object.freeze({
   columns: ['kind', 'title', 'columns'],
   stack: ['kind', 'title', 'zones', 'changed', 'dock'],
   list: ['kind', 'title', 'items', 'changed'],
-  compare: ['kind', 'title', 'headers', 'rows']
+  compare: ['kind', 'title', 'headers', 'rows'],
+  system: ['kind', 'title', 'states', 'nodes', 'links']
 });
 
 // ─── geometry ──────────────────────────────────────────────────────────
@@ -160,6 +162,137 @@ function compareGeometry(count) {
   });
 }
 
+// A system: parts set on a grid of up to four columns and three rows, the paths between them, and the states it
+// passes through.
+/** Each row's centre for one, two and three rows: under the title, over the legend of states. */
+const SYSTEM_ROWS = Object.freeze({ 1: [276], 2: [208, 344], 3: [160, 282, 404] });
+const SYSTEM_SHAPES = Object.freeze(['service', 'queue', 'store']);
+/** A part is a box around its label: this much room either side of the label, and this tall. */
+const SYSTEM_PAD = 20;
+const SYSTEM_BOX = 50;
+/** Two parts in neighbouring columns keep at least this much ground between their boxes. */
+const SYSTEM_APART = 12;
+/** A service is a soft box, a queue a capsule, a store a box with a shelf under its top edge. */
+const SYSTEM_RADIUS = Object.freeze({ service: 10, queue: 25, store: 4 });
+const SYSTEM_SHELF = 8;
+/** A link stops this far short of the boxes it joins; a link marked many is three strands this far apart. */
+const SYSTEM_GAP = 8;
+const SYSTEM_STRANDS = Object.freeze([-8, 0, 8]);
+const SYSTEM_DOT = 5;
+/** Two links between the same parts, one each way, run in lanes this far either side of the line between them. */
+const SYSTEM_LANE = 10;
+const SYSTEM_STATE_SECONDS = 3.2;
+const SYSTEM_ID = /^[a-z][a-z0-9-]{0,23}$/u;
+const SYSTEM_LEGEND = 476;
+const SYSTEM_LEGEND_GAP = 56;
+const systemSlot = count => (W - 2 * MARGIN) / count;
+/** The widest a part's label may be with `count` columns: its box, padded, leaves its neighbour room. */
+const systemLabelRoom = count => systemSlot(count) - SYSTEM_APART - 2 * SYSTEM_PAD;
+
+/** A system's columns: as many as its rightmost part needs, two at least, sharing the frame's inside. */
+function systemColumns(spec) {
+  const count = Math.max(2, ...spec.nodes.map(node => node.at[0] + 1));
+  const slot = systemSlot(count);
+  return { count, slot, x: column => MARGIN + slot * (column + 0.5) };
+}
+
+/** A label's box, [left, top, right, bottom], from where it is set and its measured width. */
+function labelBox(x, y, value, { anchor = 'middle', italic = false, bold = false } = {}) {
+  const wide = width(value, SIZE.label, { bold }) * (italic ? 1.02 : 1);
+  const left = anchor === 'middle' ? x - wide / 2 : anchor === 'end' ? x - wide : x;
+  return [left, y - SIZE.label * 0.8, left + wide, y + SIZE.label * 0.25];
+}
+const overlaps = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+const grown = (box, by) => [box[0] - by, box[1] - by, box[2] + by, box[3] + by];
+
+/** Whether the segment from p to q passes through `box` (Liang-Barsky). */
+function crosses([x1, y1], [x2, y2], [left, top, right, bottom]) {
+  let lo = 0;
+  let hi = 1;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  for (const [p, q] of [[-dx, x1 - left], [dx, right - x1], [-dy, y1 - top], [dy, bottom - y1]]) {
+    if (p === 0) {
+      if (q < 0) return false;
+      continue;
+    }
+    const r = q / p;
+    if (p < 0) lo = Math.max(lo, r);
+    else hi = Math.min(hi, r);
+    if (lo > hi) return false;
+  }
+  return true;
+}
+
+/** How far along the segment from `p` (inside `box`) by (dx, dy) it leaves the box, SYSTEM_GAP clear of it. */
+function leaves(p, dx, dy, box) {
+  const [left, top, right, bottom] = grown(box, SYSTEM_GAP);
+  return Math.min(dx > 0 ? (right - p[0]) / dx : dx < 0 ? (left - p[0]) / dx : Infinity, dy > 0 ? (bottom - p[1]) / dy : dy < 0 ? (top - p[1]) / dy : Infinity);
+}
+
+/**
+ * Every position the drawing and the check share: each part's box and label, each link's ends, strands and arrowhead,
+ * and where each link's label sits. A link's label takes the first of its places that is in the frame and clear of
+ * every box, strand and label already placed: beside its middle, on the side away from a link running the other way,
+ * then the other side, then beside a third of the way along and two thirds. Pure, so the check measures what is drawn.
+ */
+function systemLayout(spec) {
+  const { x } = systemColumns(spec);
+  const ys = SYSTEM_ROWS[Math.max(...spec.nodes.map(node => node.at[1] + 1))];
+  const nodes = new Map(spec.nodes.map(node => {
+    const cx = x(node.at[0]);
+    const cy = ys[node.at[1]];
+    const half = width(node.label, SIZE.label, { bold: node.changed === true }) / 2 + SYSTEM_PAD;
+    return [node.id, { node, shape: node.shape ?? 'service', cx, cy, box: [cx - half, cy - SYSTEM_BOX / 2, cx + half, cy + SYSTEM_BOX / 2], baseline: cy + 9 }];
+  }));
+  const links = spec.links.map(link => {
+    const a = nodes.get(link.from);
+    const b = nodes.get(link.to);
+    const dx = b.cx - a.cx;
+    const dy = b.cy - a.cy;
+    const length = Math.hypot(dx, dy);
+    // The normal pointing up, or right for an upright link, whichever way the link runs.
+    let [nx, ny] = [-dy / length, dx / length];
+    if (ny > 1e-9 || (Math.abs(ny) <= 1e-9 && nx < 0)) [nx, ny] = [-nx, -ny];
+    const paired = spec.links.some(other => other.from === link.to && other.to === link.from);
+    const side = paired && link.from > link.to ? -1 : 1;
+    const lane = paired ? side * SYSTEM_LANE : 0;
+    // Each strand runs beside the line between the centres, and stops where it meets either box.
+    const strand = offset => {
+      const from = [a.cx + nx * (lane + offset), a.cy + ny * (lane + offset)];
+      const to = [b.cx + nx * (lane + offset), b.cy + ny * (lane + offset)];
+      const out = leaves(from, dx, dy, a.box);
+      const into = 1 - leaves(to, -dx, -dy, b.box);
+      return [[from[0] + dx * out, from[1] + dy * out], [from[0] + dx * into, from[1] + dy * into]];
+    };
+    const [start, end] = strand(0);
+    const strands = (link.many ? SYSTEM_STRANDS : [0]).map(strand);
+    return { link, start, end, nx, ny, side, strands };
+  });
+  const placedLabels = [...nodes.values()].map(placed => labelBox(placed.cx, placed.baseline, placed.node.label, { bold: placed.node.changed === true }));
+  const clean = (box, own) => box[0] >= 8 && box[2] <= W - 8 && box[1] >= 96 && box[3] <= SYSTEM_LEGEND - SIZE.label * 0.8 - 8
+    && [...nodes.values()].every(placed => !overlaps(box, grown(placed.box, 4)))
+    && links.every((other, k) => !other.strands.some(([p, q]) => crosses(p, q, grown(box, k === own ? SYSTEM_DOT + 4 : 4))))
+    && placedLabels.every(other => !overlaps(box, grown(other, 4)));
+  links.forEach((placed, i) => {
+    const { link, start, end, nx, ny, side } = placed;
+    if (link.label === undefined) return;
+    const wide = width(link.label, SIZE.label) * 1.02;
+    const tall = SIZE.label * 1.05;
+    const clear = (link.many ? 8 : 0) + SYSTEM_DOT + 8 + Math.abs(nx) * wide / 2 + Math.abs(ny) * tall / 2;
+    const spots = [0.5, 1 / 3, 2 / 3].flatMap(along => [side, -side].map(away => {
+      const cx = start[0] + (end[0] - start[0]) * along + nx * away * clear;
+      const cy = start[1] + (end[1] - start[1]) * along + ny * away * clear;
+      return { x: cx, y: cy + tall / 2 - SIZE.label * 0.25 };
+    }));
+    const boxes = spots.map(spot => labelBox(spot.x, spot.y, link.label, { italic: true }));
+    const at = Math.max(0, boxes.findIndex(box => clean(box, i)));
+    placed.label = { ...spots[at], box: boxes[at], clean: clean(boxes[at], i) };
+    placedLabels.push(boxes[at]);
+  });
+  return { nodes, links };
+}
+
 // ─── measuring ─────────────────────────────────────────────────────────
 
 const round1 = value => Math.round(value * 10) / 10;
@@ -207,6 +340,10 @@ export const KIT_BUDGETS = Object.freeze({
     subject: budget(W - 2 * MARGIN, SIZE.label, { serif: true }),
     cell: budget(COMPARE_CELL, SIZE.label, { bold: true }),
     header: budget(COMPARE_CELL, SIZE.label)
+  }),
+  system: Object.freeze({
+    node: Object.freeze({ least: budget(systemLabelRoom(4), SIZE.label, { bold: true }), three: budget(systemLabelRoom(3), SIZE.label, { bold: true }), most: budget(systemLabelRoom(2), SIZE.label, { bold: true }) }),
+    state: budget((W - 2 * MARGIN - 2 * SYSTEM_LEGEND_GAP) / 3, SIZE.label, { bold: true })
   })
 });
 
@@ -421,7 +558,98 @@ export function brandProblems(brand) {
   return problems;
 }
 
-const CHECKS = { bars: barsProblems, flow: flowProblems, columns: columnsProblems, stack: stackProblems, list: listProblems, compare: compareProblems };
+/** The states a part is drawn in: those it names, or every state. */
+const statesOf = (part, spec) => part.in ?? spec.states ?? [];
+
+function systemProblems(spec) {
+  const problems = headerProblems(spec);
+  const { nodes: nodeBounds, links: linkBounds, states: stateBounds } = FIGURE_BOUNDS.system;
+  if (spec.states !== undefined) {
+    problems.push(...countProblem('states', spec.states, stateBounds, 'states, in order'));
+    if (Array.isArray(spec.states)) {
+      spec.states.forEach((state, i) => problems.push(...labelProblem(`states[${i}]`, state)));
+      if (new Set(spec.states).size !== spec.states.length) problems.push('states names each state once');
+    }
+  }
+  problems.push(...countProblem('nodes', spec.nodes, nodeBounds, 'nodes'));
+  problems.push(...countProblem('links', spec.links, linkBounds, 'links'));
+  if (problems.length) return problems;
+  const states = spec.states ?? [];
+  const inProblems = (path, part) => {
+    if (part.in === undefined) return [];
+    if (!states.length) return [`${path}.in names states, and this system has none`];
+    if (!Array.isArray(part.in) || part.in.length === 0 || part.in.some(state => !states.includes(state)) || new Set(part.in).size !== part.in.length) {
+      return [`${path}.in lists the states it is in, each named as in states`];
+    }
+    return [];
+  };
+  const ids = new Set();
+  const places = new Set();
+  spec.nodes.forEach((node, i) => {
+    const path = `nodes[${i}]`;
+    const shape = keysProblem(path, node, ['id', 'label', 'at', 'shape', 'in', 'changed'], ['id', 'label', 'at']);
+    if (shape.length) return void problems.push(...shape);
+    if (typeof node.id !== 'string' || !SYSTEM_ID.test(node.id)) problems.push(`${path}.id is a short lower-case name: letters, digits and hyphens`);
+    else if (ids.has(node.id)) problems.push(`${path}.id "${node.id}" is given twice`);
+    ids.add(node.id);
+    problems.push(...labelProblem(`${path}.label`, node.label));
+    const at = node.at;
+    if (!Array.isArray(at) || at.length !== 2 || !Number.isInteger(at[0]) || !Number.isInteger(at[1]) || at[0] < 0 || at[0] > 3 || at[1] < 0 || at[1] > 2) {
+      problems.push(`${path}.at is [column, row]: a column 0 to 3, left to right, and a row 0 to 2, top to bottom`);
+    } else if (places.has(at.join())) problems.push(`${path}.at [${at.join(', ')}] is taken by another node`);
+    else places.add(at.join());
+    if (node.shape !== undefined && !SYSTEM_SHAPES.includes(node.shape)) problems.push(`${path}.shape is service, queue or store`);
+    if (node.changed !== undefined && typeof node.changed !== 'boolean') problems.push(`${path}.changed is true or false`);
+    problems.push(...inProblems(path, node));
+  });
+  if (problems.length) return problems;
+  const byId = new Map(spec.nodes.map(node => [node.id, node]));
+  spec.links.forEach((link, i) => {
+    const path = `links[${i}]`;
+    const shape = keysProblem(path, link, ['from', 'to', 'label', 'many', 'in', 'changed'], ['from', 'to']);
+    if (shape.length) return void problems.push(...shape);
+    if (!byId.has(link.from) || !byId.has(link.to) || link.from === link.to) return void problems.push(`${path} joins two different nodes, each named by its id`);
+    if (link.label !== undefined) problems.push(...labelProblem(`${path}.label`, link.label));
+    for (const key of ['many', 'changed']) if (link[key] !== undefined && typeof link[key] !== 'boolean') problems.push(`${path}.${key} is true or false`);
+    const states = inProblems(path, link);
+    problems.push(...states);
+    if (!states.length) {
+      for (const end of [link.from, link.to]) {
+        if (statesOf(link, spec).some(state => !statesOf(byId.get(end), spec).includes(state))) problems.push(`${path} runs in a state where node ${end} is not`);
+      }
+    }
+  });
+  if (problems.length) return problems;
+  spec.links.forEach((link, i) => spec.links.slice(i + 1).forEach((other, k) => {
+    if (link.from !== other.from || link.to !== other.to) return;
+    const a = statesOf(link, spec);
+    const b = statesOf(other, spec);
+    if (!a.length || a.some(state => b.includes(state))) problems.push(`links[${i}] and links[${i + k + 1}] join the same nodes in the same state; give each its own states`);
+  }));
+  if (!states.length && ![...spec.nodes, ...spec.links].some(part => part.changed === true)) {
+    problems.push('a system with no states and nothing changed shows no change; mark what changed, or give it two or three states');
+  }
+  if (problems.length) return problems;
+  // Every label measured where it is drawn: each part's in its box, each link's beside it, all in the frame and apart.
+  const { count } = systemColumns(spec);
+  spec.nodes.forEach((node, i) => problems.push(...fit(`nodes[${i}].label`, node.label, SIZE.label, systemLabelRoom(count), { bold: node.changed === true })));
+  if (problems.length) return problems;
+  const { nodes, links } = systemLayout(spec);
+  links.forEach(({ link, start, end, strands, label }, i) => {
+    if (Math.hypot(end[0] - start[0], end[1] - start[1]) < 28) problems.push(`links[${i}] is too short to draw between its nodes; move them apart`);
+    for (const [id, other] of nodes) {
+      if (id !== link.from && id !== link.to && strands.some(([p, q]) => crosses(p, q, grown(other.box, 4)))) problems.push(`links[${i}] runs through node ${id}; move the nodes so it goes around`);
+    }
+    if (label && !label.clean) problems.push(`links[${i}].label "${link.label}" has no place beside its link clear of the frame's edge, the nodes, the other links and labels; shorten it or move the nodes`);
+  });
+  if (states.length) {
+    const across = states.reduce((sum, state) => sum + width(state, SIZE.label, { bold: true }), 0) + (states.length - 1) * SYSTEM_LEGEND_GAP;
+    if (across > W - 2 * MARGIN) problems.push(`the states read ${Math.round(across)} units across in the legend, and ${W - 2 * MARGIN} fit; shorten their names`);
+  }
+  return problems;
+}
+
+const CHECKS = { bars: barsProblems, flow: flowProblems, columns: columnsProblems, stack: stackProblems, list: listProblems, compare: compareProblems, system: systemProblems };
 
 /** What keeps the kit from drawing `spec`, one plain sentence each; empty when it can. */
 export function figureProblems(spec) {
@@ -589,7 +817,82 @@ function compare(spec, t) {
   return body;
 }
 
-const DRAW = { bars, flow, columns, stack, list, compare };
+/**
+ * A system: its parts, the paths between them and what changed. The still drawing is the last state, with what that
+ * state does without dashed. Where SMIL runs, the figure steps through its states in turn, each part showing only while
+ * its states last, and dots run along every path (a dot to each strand of a link marked many). Given `state`, it is a
+ * still of that state alone, with no animation: a frame for a page, a print or a picture that cannot move.
+ */
+function system(spec, t, { state } = {}) {
+  const states = spec.states ?? [];
+  const animated = state === undefined && states.length >= 2;
+  const last = state ?? states.at(-1);
+  const { nodes, links } = systemLayout(spec);
+  const cycle = number(states.length * SYSTEM_STATE_SECONDS);
+  const keyTimes = states.map((_, i) => number(i / states.length)).join(';');
+  const step = (attribute, values) => `<animate attributeName="${attribute}" values="${values.join(';')}" keyTimes="${keyTimes}" calcMode="discrete" dur="${cycle}s" repeatCount="indefinite"/>`;
+  // A part shown in its own states and faint in the others. In the still drawing, which is the last state, a part
+  // that state does without is dashed and a path it does without carries no dot; where SMIL runs, both follow the states.
+  const gone = part => part.in !== undefined && !part.in.includes(last);
+  const live = part => animated && part.in !== undefined;
+  const timeline = part => (live(part) ? step('opacity', states.map(state => (part.in.includes(state) ? 1 : 0.12))) + step('stroke-dasharray', states.map(state => (part.in.includes(state) ? 'none' : '6 6'))) : '');
+  const group = part => `<g${gone(part) ? ' stroke-dasharray="6 6"' : ''}>${timeline(part)}`;
+  let body = header(spec, t);
+  for (const { link, start, end, nx, ny, strands, label } of links) {
+    const ink = link.changed ? t.accent : t.text;
+    const strength = link.changed ? 1 : 0.6;
+    const seconds = link.many ? 1.2 : 1.8;
+    let g = group(link);
+    strands.forEach(([p, q], k) => {
+      // Each strand's dot starts its own share of the way along, so the dots of a link marked many never sit abreast.
+      const along = (k + 0.5) / strands.length;
+      const at = [p[0] + (q[0] - p[0]) * along, p[1] + (q[1] - p[1]) * along];
+      const run = `M${number(p[0] - at[0])} ${number(p[1] - at[1])} L${number(q[0] - at[0])} ${number(q[1] - at[1])}`;
+      g += `<line x1="${number(p[0])}" y1="${number(p[1])}" x2="${number(q[0])}" y2="${number(q[1])}" stroke="${ink}" stroke-opacity="${strength}" stroke-width="2" stroke-linecap="round"/>`
+        + `<circle cx="${number(at[0])}" cy="${number(at[1])}" r="${link.many ? 4 : SYSTEM_DOT}" fill="${ink}"${gone(link) ? ' opacity="0"' : ''}>`
+        + `<animateMotion path="${run}" dur="${seconds}s" begin="${number(-along * seconds)}s" repeatCount="indefinite"/>`
+        + (live(link) ? step('opacity', states.map(state => (link.in.includes(state) ? 1 : 0))) : '') + '</circle>';
+    });
+    // The arrowhead, on the middle strand.
+    const length = Math.hypot(end[0] - start[0], end[1] - start[1]);
+    const [ux, uy] = [(end[0] - start[0]) / length, (end[1] - start[1]) / length];
+    const wing = sign => `${number(end[0] - ux * 11 + nx * sign * 8)} ${number(end[1] - uy * 11 + ny * sign * 8)}`;
+    g += `<path d="M${wing(1)} L${number(end[0])} ${number(end[1])} L${wing(-1)}" fill="none" stroke="${ink}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
+    if (label) g += text(label.x, label.y, link.label, { anchor: 'middle', italic: true, fill: ink });
+    body += `${g}</g>`;
+  }
+  for (const { node, shape, cx, box, baseline } of nodes.values()) {
+    const ink = node.changed ? t.accent : t.text;
+    const [x0, y0, x1, y1] = box;
+    let g = group(node) + `<rect x="${number(x0)}" y="${number(y0)}" width="${number(x1 - x0)}" height="${number(y1 - y0)}" rx="${SYSTEM_RADIUS[shape]}" ${node.changed ? `fill="${ink}" fill-opacity="${CHANGED_TINT}"` : 'fill="none"'} stroke="${ink}" stroke-opacity="${node.changed ? 1 : 0.6}" stroke-width="2"/>`;
+    if (shape === 'store') g += hair(x0 + 6, y0 + SYSTEM_SHELF, x1 - 6, y0 + SYSTEM_SHELF, ink, node.changed ? 1 : 0.6);
+    g += text(cx, baseline, node.label, { anchor: 'middle', fill: ink, weight: node.changed ? 600 : 400 });
+    body += `${g}</g>`;
+  }
+  if (!states.length) return body;
+  // The states in order along the foot, each given the room it takes in bold; the one showing is set bold with a bar
+  // under it, and both step along with the states where SMIL runs.
+  const showing = states.indexOf(last);
+  let x = MARGIN;
+  const spans = states.map(name => {
+    const span = { x, wide: width(name, SIZE.label, { bold: true }) };
+    x += span.wide + SYSTEM_LEGEND_GAP;
+    return span;
+  });
+  states.forEach((name, i) => {
+    const weight = animated ? step('font-weight', states.map((_, k) => (k === i ? 600 : 400))) : '';
+    body += text(spans[i].x, SYSTEM_LEGEND, name, { fill: t.text, weight: i === showing ? 600 : 400 }).replace('</text>', `${weight}</text>`);
+    if (i === states.length - 1) return;
+    const ax = spans[i].x + spans[i].wide + 15;
+    body += hair(ax, SYSTEM_LEGEND - 9, ax + 26, SYSTEM_LEGEND - 9, t.text, 0.55)
+      + `<path d="M${number(ax + 19)} ${SYSTEM_LEGEND - 15} L${number(ax + 26)} ${SYSTEM_LEGEND - 9} L${number(ax + 19)} ${SYSTEM_LEGEND - 3}" fill="none" stroke="${t.text}" stroke-opacity="0.55" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>`;
+  });
+  const shown = spans[showing];
+  return body + `<rect x="${number(shown.x)}" y="${SYSTEM_LEGEND + 10}" width="${number(shown.wide)}" height="4" rx="2" fill="${t.accent}">`
+    + (animated ? step('x', spans.map(span => number(span.x))) + step('width', spans.map(span => number(span.wide))) : '') + '</rect>';
+}
+
+const DRAW = { bars, flow, columns, stack, list, compare, system };
 
 /** The words a figure's <title> says when its spec gives no title: what it shows, from its own labels. */
 function describe(spec) {
@@ -598,17 +901,23 @@ function describe(spec) {
   if (spec.kind === 'columns') return spec.columns.map(column => `${column.name}: ${column.items.join(', ')}`).join('; ');
   if (spec.kind === 'list') return spec.items.map(item => (item.detail === undefined ? item.label : `${item.label}, ${item.detail}`)).join('; ');
   if (spec.kind === 'compare') return spec.rows.map(row => `${row.subject}: ${row.before}, then ${row.after}`).join('; ');
+  if (spec.kind === 'system') {
+    const label = new Map(spec.nodes.map(node => [node.id, node.label]));
+    return spec.links.map(link => `${label.get(link.from)} to ${label.get(link.to)}${link.in ? ` (${link.in.join(', ')})` : ''}`).join('; ');
+  }
   return `bottom to top: ${spec.zones.map(zone => zone.label).join(', ')}`;
 }
 
 /**
  * The figure the kit draws for `spec`, in the reading theme `theme` (a jev-palette.js id; cobalt when none or unknown),
- * or in `brand`'s ink and accent on a ground of its own. Throws with figureProblems' or brandProblems' sentences when
- * the kit cannot draw it, and when given both a theme and a brand.
+ * or in `brand`'s ink and accent on a ground of its own. A system with states may be drawn still in one `state` of its
+ * own. Throws with figureProblems' or brandProblems' sentences when the kit cannot draw it, when given both a theme and
+ * a brand, and when given a state the spec does not have.
  */
-export function renderFigure(spec, { theme, brand } = {}) {
+export function renderFigure(spec, { theme, brand, state } = {}) {
   const problems = figureProblems(spec);
   if (problems.length) throw new Error(`The figure kit cannot draw this ${isObject(spec) && typeof spec.kind === 'string' ? spec.kind : 'figure'}: ${problems.slice(0, 5).join('; ')}`);
+  if (state !== undefined && !(spec.kind === 'system' && spec.states?.includes(state))) throw new Error(`The figure kit draws a state only of a system that has it; this ${spec.kind} has no state "${state}"`);
   if (brand !== undefined) {
     if (theme !== undefined) throw new Error('The figure kit draws in a theme or a brand, not both');
     const refused = brandProblems(brand);
@@ -620,5 +929,5 @@ export function renderFigure(spec, { theme, brand } = {}) {
     : { text: brand.ink, accent: brand.accent, soft: () => 1 };
   const ground = brand === undefined ? ''
     : `<rect width="${W}" height="${H}" fill="${brand.ground}"/>${text(MARGIN, WORDMARK_Y, brand.name, { fill: brand.ink, weight: 600 })}`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><title>${escape(spec.title ?? describe(spec))}</title>${ground}${DRAW[spec.kind](spec, t)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><title>${escape(spec.title ?? describe(spec))}</title>${ground}${DRAW[spec.kind](spec, t, { state })}</svg>`;
 }
