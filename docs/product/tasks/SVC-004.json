@@ -1,0 +1,40 @@
+{
+  "id": "SVC-004",
+  "title": "RISE Changes: a system figure kind with reference cases",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [
+    "SVC-003"
+  ],
+  "acceptance": [
+    "The figure kit draws a system: 3 to 8 nodes (service, queue or store) on 4 columns and 3 rows, 2 to 10 links, and 2 or 3 states. What changed is drawn in the accent. The still is the last state with what it lacks dashed, and SMIL steps through the states with dots along live paths.",
+    "renderFigure(spec, { state }) draws a still of one state of a system and refuses any other kind or state.",
+    "figureProblems refuses, in plain sentences: a label over its budget, a link through another node or too short to see, a link label with no clear place, a legend wider than the frame, a link in a state its node lacks, and a system with no states and nothing changed.",
+    "Every system figure is admitted and layout-clean in every theme and brand, on the room's ground and its own.",
+    "The composer is shown a system example and its budgets from KIT_BUDGETS, and is steered to a system when the pull requests name the services, queues or stores a change runs through.",
+    "Reference cases from real pull requests live in src/core/figures/fixtures/systems.js. Each case's animation and each state's still are goldens, and npm run figures:systems draws them onto a contact sheet from a fresh checkout with no model, network or browser.",
+    "docs/plans/SYSTEM-FIGURES.md explains how to add a case and names the stable entry points."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/core/figures/system-cases.test.js",
+      "note": "Branch claude/project-thread-1oazj7, local (Linux, Node 22): npx vitest run src/core/figures scripts/changes src/core/changes: 360 passed. Fast set has 6 failures in try-session, keystones and system-design, which fail the same way without this work. ci-hygiene, vite build, measure:first-load, docs:diagram (core module count only) and the wiki build are clean. Chromium is not installed here, so the rendered check did not run locally. The composer steering is unverified until another dry run: dry run 40649426916 (before the steering) chose no system figure.",
+      "date": "2026-10-28"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-28T08:20:00.000Z",
+      "summary": "Opened from the owner's ask for figures about dynamic system designs, then made reproducible: OpenStatus reference cases, state stills, a contact sheet command and a how-to."
+    }
+  ],
+  "updatedAt": "2026-10-28T08:20:00.000Z",
+  "revision": 1,
+  "summary": "A system figure kind that draws the parts a change touched and steps through its states, with three OpenStatus reference cases held to goldens and a contact sheet command. Composer steering toward it is untested until the next dry run.",
+  "blocker": null
+}
