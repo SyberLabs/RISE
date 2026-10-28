@@ -619,6 +619,7 @@ function systemProblems(spec) {
       }
     }
   });
+  if (problems.length) return problems;
   spec.links.forEach((link, i) => spec.links.slice(i + 1).forEach((other, k) => {
     if (link.from !== other.from || link.to !== other.to) return;
     const a = statesOf(link, spec);

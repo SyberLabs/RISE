@@ -163,6 +163,7 @@ describe('figureProblems', () => {
     ['an unknown node shape', system({ nodes: [{ ...node('a', [0, 0]), shape: 'cloud' }, node('b', [1, 0]), node('c', [1, 1])] }), /service, queue or store/],
     ['a node id given twice', system({ nodes: [node('a', [0, 0]), node('a', [1, 0]), node('c', [1, 1])] }), /"a" is given twice/],
     ['a link to no node', system({ links: [link('a', 'b'), link('b', 'z')] }), /links\[1\] joins two different nodes/],
+    ['a link that is not an object', system({ links: [link('a', 'b'), null] }), /links\[1\]/],
     ['a link in a state its node is not in', system({ states: ['Before', 'After'], nodes: [node('a', [0, 0]), node('b', [1, 0]), { ...node('c', [1, 1]), in: ['After'] }], links: [link('a', 'b'), { ...link('b', 'c'), in: ['Before'] }] }), /links\[1\] runs in a state where node c is not/],
     ['a state no one named', system({ states: ['Before', 'After'], nodes: [node('a', [0, 0]), node('b', [1, 0]), { ...node('c', [1, 1]), in: ['Later'] }] }), /nodes\[2\]\.in lists the states it is in/],
     ['two links between the same nodes in the same state', system({ links: [link('a', 'b'), link('a', 'b')] }), /join the same nodes in the same state/],

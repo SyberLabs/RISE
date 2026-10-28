@@ -147,13 +147,14 @@ const named = numbers => {
 };
 
 /**
- * Every string and printed number a kit figure shows: what the number rule reads (a bar's max is a scale and a system
- * node's "at" its place on the grid, neither printed).
+ * Every string and printed number a kit figure shows: what the number rule reads. A bar's max is a scale, a system
+ * node's "at" its place on the grid, and its "id" (with the "from" and "to" that name one) a name; none is printed.
  */
+const UNPRINTED = new Set(['max', 'at', 'id', 'from', 'to', 'kind', 'shape', 'glyph']);
 export function kitTexts(kit) {
   const texts = [];
   const walk = (value, key) => {
-    if (key === 'max' || key === 'at' || key === 'kind' || key === 'shape' || key === 'glyph') return;
+    if (UNPRINTED.has(key)) return;
     if (typeof value === 'string') texts.push(value);
     else if (typeof value === 'number') texts.push(String(value));
     else if (Array.isArray(value)) value.forEach(item => walk(item));
