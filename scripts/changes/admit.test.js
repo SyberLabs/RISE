@@ -439,6 +439,13 @@ describe('admitComposition', () => {
       expect(elsewhere.diagnostics.join('\n')).toMatch(/"700", which no pull request the picture cites states/);
     });
 
+    it('reads a system node\u2019s place on the grid as a place, never as a number the picture shows', () => {
+      const system = { kind: 'system', nodes: [{ id: 'swarm', label: 'Swarm', at: [0, 0] }, { id: 'frame', label: 'Frame', at: [1, 0], changed: true }, { id: 'store', label: 'Store', at: [2, 1], shape: 'store' }], links: [{ from: 'swarm', to: 'frame' }, { from: 'frame', to: 'store' }] };
+      const verdict = admit({ current: current(nine), opening: OPEN, sources, pictures: [kit(1, system), kit(4), kit(7)] });
+      expect(verdict.diagnostics ?? []).toEqual([]);
+      expect(verdict.ok).toBe(true);
+    });
+
     it('refuses more pictures than a Current has room for beside its engines', () => {
       const many = Array.from({ length: 30 }, (_, i) => ({ say: i === 1 ? 'The swarm draws 700 particles.' : i === 4 ? 'Sophia holds every visual in a frame.' : 'More.' }));
       const pictures = Array.from({ length: 8 }, (_, i) => kit(1 + i * 3));

@@ -106,6 +106,7 @@ describe('buildComposeRequest', () => {
     expect(system).toContain('"kind": "system"');
     expect(system).toMatch(/A picture must show something the words alone do not/);
     expect(system).toMatch(/A picture’s "refs" are the pull requests it shows, each among its beat’s refs/);
+    expect(system).toMatch(/A theme’s first beat names in its refs every change its picture shows\. When the major changes outnumber the pictures there is room for, one picture shows several of them, on a beat whose refs name them all\./);
     expect(system).toMatch(/at most 2/);
     expect(system).toMatch(/illustrator/i);
     expect(system).toMatch(/figure/);

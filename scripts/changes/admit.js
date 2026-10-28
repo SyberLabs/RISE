@@ -146,11 +146,14 @@ const named = numbers => {
   return tags.length === 1 ? tags[0] : `${tags.slice(0, -1).join(', ')} and ${tags.at(-1)}`;
 };
 
-/** Every string and printed number a kit figure shows: what the number rule reads (a bar's max is a scale, never printed). */
+/**
+ * Every string and printed number a kit figure shows: what the number rule reads (a bar's max is a scale and a system
+ * node's "at" its place on the grid, neither printed).
+ */
 export function kitTexts(kit) {
   const texts = [];
   const walk = (value, key) => {
-    if (key === 'max' || key === 'kind' || key === 'shape' || key === 'glyph') return;
+    if (key === 'max' || key === 'at' || key === 'kind' || key === 'shape' || key === 'glyph') return;
     if (typeof value === 'string') texts.push(value);
     else if (typeof value === 'number') texts.push(String(value));
     else if (Array.isArray(value)) value.forEach(item => walk(item));
