@@ -81,3 +81,46 @@ describe('every Worker configuration', () => {
     }
   });
 });
+
+describe('release deployment controls', () => {
+  const workflow = readFileSync('.github/workflows/ci.yml', 'utf8').replace(/\r\n/g, '\n');
+
+  it('requires an explicit main-branch dispatch to deploy the private provider', () => {
+    expect(workflow).toContain("deploy_private_provider:\n        description: 'Deploy the private provider after its account owner confirms access; public production is unchanged.'\n        type: boolean\n        default: false");
+    const provider = workflow.split('  voice-provider:\n')[1].split('  production:\n')[0];
+    expect(provider).toContain("if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.deploy_private_provider");
+    expect(provider).toContain('needs: [ci]');
+    expect(provider).toContain('Verify the tested provider bundle');
+    expect(provider).toContain('test "$TESTED_SHA" = "$current"');
+  });
+
+  it('stages the tested artifact for a normal public push or an explicit private-provider dispatch', () => {
+    const condition = "if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_private_provider))";
+    expect(workflow.split(condition)).toHaveLength(3);
+    const production = workflow.split('  production:\n')[1];
+    expect(production).toContain("if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.ci.result == 'success'");
+    expect(production).toContain('needs: [ci, voice-provider]');
+    expect(production).toContain('Verify public production serves the exact release');
+    expect(production).toContain('Record prior production versions');
+    expect(config.services).toContainEqual({ binding: 'PLUS_VOICE_PROVIDER', service: 'rise-plus-preview', entrypoint: 'VoiceProvider' });
+  });
+
+  it.each([
+    ['push', 'refs/heads/main', false, true, false, true],
+    ['workflow_dispatch', 'refs/heads/main', false, false, false, false],
+    ['workflow_dispatch', 'refs/heads/main', true, true, true, false],
+    ['workflow_dispatch', 'refs/heads/feature', true, false, false, false],
+    ['pull_request', 'refs/pull/1/merge', true, false, false, false]
+  ])('%s on %s with provider=%s stages=%s, provider=%s, public=%s', (event_name, ref, deploy_private_provider, staged, privateDeploy, publicDeploy) => {
+    const jobIf = name => workflow.split(`  ${name}:\n`)[1].match(/^    if: (.+)$/m)[1];
+    // These conditions use the JavaScript-compatible logical subset of Actions
+    // expressions. This checks the schedule matrix offline, not GitHub's engine.
+    const evaluate = condition => Function('github', 'inputs', 'needs', 'always', `return (${condition});`)(
+      { event_name, ref }, { deploy_private_provider }, { ci: { result: 'success' } }, () => true
+    );
+    const stageIf = workflow.split('      - name: Stage the tested release\n')[1].match(/^        if: (.+)$/m)[1];
+    expect(evaluate(stageIf)).toBe(staged);
+    expect(evaluate(jobIf('voice-provider'))).toBe(privateDeploy);
+    expect(evaluate(jobIf('production'))).toBe(publicDeploy);
+  });
+});
