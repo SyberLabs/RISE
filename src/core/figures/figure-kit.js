@@ -642,7 +642,7 @@ function systemProblems(spec) {
     if (label && !label.clean) problems.push(`links[${i}].label "${link.label}" has no place beside its link clear of the frame's edge, the nodes, the other links and labels; shorten it or move the nodes`);
   });
   if (states.length) {
-    const across = states.reduce((sum, state, i) => sum + width(state, SIZE.label, { bold: i === states.length - 1 }), 0) + (states.length - 1) * SYSTEM_LEGEND_GAP;
+    const across = states.reduce((sum, state) => sum + width(state, SIZE.label, { bold: true }), 0) + (states.length - 1) * SYSTEM_LEGEND_GAP;
     if (across > W - 2 * MARGIN) problems.push(`the states read ${Math.round(across)} units across in the legend, and ${W - 2 * MARGIN} fit; shorten their names`);
   }
   return problems;
@@ -817,13 +817,15 @@ function compare(spec, t) {
 }
 
 /**
- * A system: its parts, the paths between them and what changed. The still drawing is the last state, with what only an
- * earlier state had drawn dashed. Where SMIL runs, the figure steps through its states in turn, each part showing only
- * while its states last, and dots run along every path (a dot to each strand of a link marked many).
+ * A system: its parts, the paths between them and what changed. The still drawing is the last state, with what that
+ * state does without dashed. Where SMIL runs, the figure steps through its states in turn, each part showing only while
+ * its states last, and dots run along every path (a dot to each strand of a link marked many). Given `state`, it is a
+ * still of that state alone, with no animation: a frame for a page, a print or a picture that cannot move.
  */
-function system(spec, t) {
+function system(spec, t, { state } = {}) {
   const states = spec.states ?? [];
-  const last = states.at(-1);
+  const animated = state === undefined && states.length >= 2;
+  const last = state ?? states.at(-1);
   const { nodes, links } = systemLayout(spec);
   const cycle = number(states.length * SYSTEM_STATE_SECONDS);
   const keyTimes = states.map((_, i) => number(i / states.length)).join(';');
@@ -831,7 +833,7 @@ function system(spec, t) {
   // A part shown in its own states and faint in the others. In the still drawing, which is the last state, a part
   // that state does without is dashed and a path it does without carries no dot; where SMIL runs, both follow the states.
   const gone = part => part.in !== undefined && !part.in.includes(last);
-  const live = part => states.length >= 2 && part.in !== undefined;
+  const live = part => animated && part.in !== undefined;
   const timeline = part => (live(part) ? step('opacity', states.map(state => (part.in.includes(state) ? 1 : 0.12))) + step('stroke-dasharray', states.map(state => (part.in.includes(state) ? 'none' : '6 6'))) : '');
   const group = part => `<g${gone(part) ? ' stroke-dasharray="6 6"' : ''}>${timeline(part)}`;
   let body = header(spec, t);
@@ -867,23 +869,26 @@ function system(spec, t) {
     body += `${g}</g>`;
   }
   if (!states.length) return body;
-  // The states in order along the foot, and a bar under the one showing, stepping along with them where SMIL runs.
+  // The states in order along the foot, each given the room it takes in bold; the one showing is set bold with a bar
+  // under it, and both step along with the states where SMIL runs.
+  const showing = states.indexOf(last);
   let x = MARGIN;
-  const spans = states.map((state, i) => {
-    const span = { x, wide: width(state, SIZE.label, { bold: i === states.length - 1 }) };
+  const spans = states.map(name => {
+    const span = { x, wide: width(name, SIZE.label, { bold: true }) };
     x += span.wide + SYSTEM_LEGEND_GAP;
     return span;
   });
-  states.forEach((state, i) => {
-    body += text(spans[i].x, SYSTEM_LEGEND, state, { fill: t.text, weight: i === states.length - 1 ? 600 : 400 });
+  states.forEach((name, i) => {
+    const weight = animated ? step('font-weight', states.map((_, k) => (k === i ? 600 : 400))) : '';
+    body += text(spans[i].x, SYSTEM_LEGEND, name, { fill: t.text, weight: i === showing ? 600 : 400 }).replace('</text>', `${weight}</text>`);
     if (i === states.length - 1) return;
     const ax = spans[i].x + spans[i].wide + 15;
     body += hair(ax, SYSTEM_LEGEND - 9, ax + 26, SYSTEM_LEGEND - 9, t.text, 0.55)
       + `<path d="M${number(ax + 19)} ${SYSTEM_LEGEND - 15} L${number(ax + 26)} ${SYSTEM_LEGEND - 9} L${number(ax + 19)} ${SYSTEM_LEGEND - 3}" fill="none" stroke="${t.text}" stroke-opacity="0.55" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>`;
   });
-  const shown = spans.at(-1);
+  const shown = spans[showing];
   return body + `<rect x="${number(shown.x)}" y="${SYSTEM_LEGEND + 10}" width="${number(shown.wide)}" height="4" rx="2" fill="${t.accent}">`
-    + step('x', spans.map(span => number(span.x))) + step('width', spans.map(span => number(span.wide))) + '</rect>';
+    + (animated ? step('x', spans.map(span => number(span.x))) + step('width', spans.map(span => number(span.wide))) : '') + '</rect>';
 }
 
 const DRAW = { bars, flow, columns, stack, list, compare, system };
@@ -904,12 +909,14 @@ function describe(spec) {
 
 /**
  * The figure the kit draws for `spec`, in the reading theme `theme` (a jev-palette.js id; cobalt when none or unknown),
- * or in `brand`'s ink and accent on a ground of its own. Throws with figureProblems' or brandProblems' sentences when
- * the kit cannot draw it, and when given both a theme and a brand.
+ * or in `brand`'s ink and accent on a ground of its own. A system with states may be drawn still in one `state` of its
+ * own. Throws with figureProblems' or brandProblems' sentences when the kit cannot draw it, when given both a theme and
+ * a brand, and when given a state the spec does not have.
  */
-export function renderFigure(spec, { theme, brand } = {}) {
+export function renderFigure(spec, { theme, brand, state } = {}) {
   const problems = figureProblems(spec);
   if (problems.length) throw new Error(`The figure kit cannot draw this ${isObject(spec) && typeof spec.kind === 'string' ? spec.kind : 'figure'}: ${problems.slice(0, 5).join('; ')}`);
+  if (state !== undefined && !(spec.kind === 'system' && spec.states?.includes(state))) throw new Error(`The figure kit draws a state only of a system that has it; this ${spec.kind} has no state "${state}"`);
   if (brand !== undefined) {
     if (theme !== undefined) throw new Error('The figure kit draws in a theme or a brand, not both');
     const refused = brandProblems(brand);
@@ -921,5 +928,5 @@ export function renderFigure(spec, { theme, brand } = {}) {
     : { text: brand.ink, accent: brand.accent, soft: () => 1 };
   const ground = brand === undefined ? ''
     : `<rect width="${W}" height="${H}" fill="${brand.ground}"/>${text(MARGIN, WORDMARK_Y, brand.name, { fill: brand.ink, weight: 600 })}`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><title>${escape(spec.title ?? describe(spec))}</title>${ground}${DRAW[spec.kind](spec, t)}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><title>${escape(spec.title ?? describe(spec))}</title>${ground}${DRAW[spec.kind](spec, t, { state })}</svg>`;
 }
