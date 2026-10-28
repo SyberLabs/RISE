@@ -15,6 +15,11 @@ const size = { width: 1280, height: 720 };
 const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const context = await browser.newContext({ viewport: size, recordVideo: { dir: outDir, size } });
 await context.addInitScript(r => { globalThis.__RISE_SAMPLE_REPO = r; }, repo);
+// The staff sign-in link is not part of the reading, so it stays out of the frame.
+await context.addInitScript(() => {
+  const hide = () => document.head.append(Object.assign(document.createElement('style'), { textContent: '.rise-account-control{display:none!important}' }));
+  if (document.head) hide(); else document.addEventListener('DOMContentLoaded', hide);
+});
 await context.route('**/content/changes/index.json', r => r.fulfill({ json: index }));
 await context.route(`**/content/changes/${digest.id}.json`, r => r.fulfill({ json: digest }));
 const page = await context.newPage();
@@ -29,6 +34,7 @@ const warn = page.locator('#photosensitivity-modal');
 await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
 if (await warn.isVisible()) await warn.locator('#safety-accept').click();
 marks.play = Date.now() - videoStart;
+if (await page.getByText('Staff sign in', { exact: true }).locator('visible=true').count()) throw new Error('the staff sign-in link is in frame');
 const origin = await page.evaluate(() => performance.timeOrigin);
 
 let passages = [];
