@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import worker from './index.mjs';
-import { CHANGES_MAX_BYTES, CHANGES_UPSTREAM } from './changes.mjs';
+import { CHANGES_MAX_BYTES, CHANGES_UPSTREAM, serveChangesFile } from './changes.mjs';
+import { LISTED } from '../src/core/changes/listed.js';
 
 const SITE = 'https://rise.example';
 const DIGEST = '{"schema":"syberlabs.changes-digest/v1"}';
@@ -144,5 +145,42 @@ describe('RISE Changes files', () => {
     const response = await get('/content/changes/2026-10-19.json');
     expect(response.status).toBe(200);
     expect((await response.arrayBuffer()).byteLength).toBe(CHANGES_MAX_BYTES);
+  });
+
+  describe('a listed team', () => {
+    const TEAMS = { acme: { repo: 'acme-labs/widgets', brand: 'githits' } };
+    const team = (path, init) => serveChangesFile(new Request(`${SITE}${path}`, init), TEAMS);
+
+    it.each(['index.json', '2026-10-19.json'])('proxies %s from the team\'s own changes-data branch', async (file) => {
+      const fetcher = upstream();
+      const response = await team(`/content/changes/acme/${file}`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('application/json; charset=utf-8');
+      expect(fetcher.mock.calls[0][0]).toBe(`https://raw.githubusercontent.com/acme-labs/widgets/changes-data/${file}`);
+      expect(fetcher.mock.calls[0][1]).toMatchObject({ method: 'GET', redirect: 'manual' });
+    });
+
+    it.each([
+      '/content/changes/other/index.json',
+      '/content/changes/Acme/index.json',
+      '/content/changes/acme/',
+      '/content/changes/acme/README.md',
+      '/content/changes/acme/x/index.json',
+      '/content/changes/acme%2Findex.json',
+      '/content/changes/acme/index.json?ref=main',
+      '/content/changes/constructor/index.json',
+      '/content/changes/__proto__/index.json'
+    ])('refuses %s without asking upstream', async (path) => {
+      const fetcher = upstream();
+      expect((await team(path)).status).toBe(404);
+      expect(fetcher).not.toHaveBeenCalled();
+    });
+
+    it('is a 404 at the site for a slug the site does not list', async () => {
+      expect(Object.hasOwn(LISTED, 'acme')).toBe(false);
+      const fetcher = upstream();
+      expect((await get('/content/changes/acme/index.json')).status).toBe(404);
+      expect(fetcher).not.toHaveBeenCalled();
+    });
   });
 });

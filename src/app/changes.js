@@ -6,7 +6,8 @@
  * it speaks about, how every merged pull request was routed, and, when it was
  * superseded, a link to the reading that replaces it. The weekly workflow writes the files to the
  * `changes-data` branch and the Worker serves them at `/content/changes/`
- * (worker/changes.mjs). Everything in them is model- or PR-written, so each
+ * (worker/changes.mjs). `/changes/<slug>` and `/changes/<slug>/<id>` are the same for a team RISE lists
+ * (src/core/changes/listed.js), from that team's own branch, under its own name. Everything in them is model- or PR-written, so each
  * file is held to its contract (src/core/changes/contract.js, the generator's
  * own check) before anything of it is shown, and the
  * digest's Current to the admission a card's Current passes at the Worker's
@@ -18,7 +19,8 @@
 import './changes.css';
 import { RISE_CURRENT_SCHEMA_V2, validateRiseCurrent } from '../core/rise-current.js';
 import { sceneRefusal } from '../core/scene-admission.js';
-import { DIGEST_ID, LIMITS, densityLine, digestProblems, indexProblems, qualityLine } from '../core/changes/contract.js';
+import { DIGEST_ID, LIMITS, REPOSITORY, densityLine, digestProblems, indexProblems, qualityLine } from '../core/changes/contract.js';
+import { listedTeam } from '../core/changes/listed.js';
 
 const BADGES = { team: 'Team', readers: 'Readers' };
 
@@ -49,12 +51,12 @@ function admitCurrent(current, composer) {
 }
 
 /**
- * One digest, held to the contract (src/core/changes/contract.js) and served as `id`, its Current admitted, with its
- * included changes in order. Throws for anything else: the page then shows no part of it.
+ * One digest of `repo`, held to the contract (src/core/changes/contract.js) and served as `id`, its Current admitted,
+ * with its included changes in order. Throws for anything else: the page then shows no part of it.
  */
-export function admitChangesDigest(value, id) {
+export function admitChangesDigest(value, id, repo = REPOSITORY) {
   if (utf8Bytes(value) > LIMITS.fileBytes) refuse('the digest is over 256 KB');
-  const problems = digestProblems(value);
+  const problems = digestProblems(value, repo);
   if (problems.length) refuse(problems.join('; '));
   if (value.id !== id) refuse('the digest is not the one asked for');
   admitCurrent(value.current, value.model.composer);
@@ -69,15 +71,18 @@ async function fetchJson(path) {
   return response.json();
 }
 
+/** Where the Worker serves the files: RISE's own, or a listed team's (null for RISE). */
+const filesOf = team => (team ? `/content/changes/${team.slug}/` : '/content/changes/');
+
 /** The index's entries; none while no index has been written. */
-export async function loadChangesIndex(load = fetchJson) {
-  const index = await load('/content/changes/index.json');
+export async function loadChangesIndex(load = fetchJson, team = null) {
+  const index = await load(`${filesOf(team)}index.json`);
   return index === null ? [] : admitChangesIndex(index);
 }
 
-export async function loadChangesDigest(id, load = fetchJson) {
+export async function loadChangesDigest(id, load = fetchJson, team = null) {
   if (typeof id !== 'string' || !DIGEST_ID.test(id)) refuse('the address names no digest');
-  return admitChangesDigest(await load(`/content/changes/${id}.json`), id);
+  return admitChangesDigest(await load(`${filesOf(team)}${id}.json`), id, team?.repo);
 }
 
 const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', timeZone: 'UTC' });
@@ -94,7 +99,8 @@ export function periodWords({ from, to }) {
 }
 
 const escape = value => String(value).replace(/[&<>"']/gu, c => `&#${c.charCodeAt(0)};`);
-const changesPath = id => (id ? `/changes/${encodeURIComponent(id)}` : '/changes');
+const changesPath = (id, team = null) => `/changes${team ? `/${team.slug}` : ''}${id ? `/${encodeURIComponent(id)}` : ''}`;
+const nameOf = team => team?.name ?? 'RISE';
 const plural = (count, one) => `${count} ${one}${count === 1 ? '' : 's'}`;
 const EYEBROW = '<p class="portal-eyebrow"><span class="portal-dot" aria-hidden="true"></span>RISE Changes</p>';
 const badge = audience => `<span class="changes-badge">${BADGES[audience]}</span>`;
@@ -115,15 +121,15 @@ function reasonWords({ included, reason, route }) {
   return route.significance === 'minor' ? 'Left out: minor' : 'Left out';
 }
 
-function listView(digests) {
+function listView(digests, team = null) {
   const rows = digests.filter(entry => entry.supersededBy === undefined).map(({ id, audience, title, period: when, count }) => `<li class="changes-digest">
-        <a class="changes-digest-title" href="${changesPath(id)}" data-changes-go>${escape(title)}</a>
+        <a class="changes-digest-title" href="${changesPath(id, team)}" data-changes-go>${escape(title)}</a>
         <p class="changes-meta">${escape(periodWords(when))} · ${plural(count, 'change')} in the reading ${badge(audience)}</p>
       </li>`).join('');
   return `${EYEBROW}
-    <h1 class="portal-title changes-title" id="portal-ask-title" tabindex="-1">What changed in RISE</h1>
+    <h1 class="portal-title changes-title" id="portal-ask-title" tabindex="-1">What changed in ${escape(nameOf(team))}</h1>
     <div id="changes">
-      <p class="portal-help">Each digest is the pull requests merged into RISE over a week, told as a RISE reading. A model writes it; RISE checks it before showing it. Nothing here calls a model.</p>
+      <p class="portal-help">Each digest is the pull requests merged into ${escape(nameOf(team))} over a week, told as a RISE reading. A model writes it; RISE checks it before showing it. Nothing here calls a model.</p>
       ${digests.length ? `<ul class="changes-digests">${rows}</ul>`
         : '<p class="portal-help" role="status">No digest has been written yet.</p>'}
     </div>`;
@@ -139,21 +145,21 @@ function whoWrote(digest) {
  * What the room is given to play a digest: the admitted Current, the page's address, who wrote it, and the pull
  * requests it speaks about, which About this reading lists while it plays.
  */
-export function sealedReading(digest) {
+export function sealedReading(digest, team = null) {
   return {
     current: digest.current,
-    path: changesPath(digest.id),
+    path: changesPath(digest.id, team),
     who: whoWrote(digest),
     about: ['What changed:', ...digest.included.map(({ number, title }) => `#${number} ${title}`)]
   };
 }
 
 /** The line a superseded digest's page carries: the reading that replaced it, by its title, one press away. */
-function supersededLine(replacement) {
-  return `<p class="portal-help changes-superseded">A newer reading of this period replaces this one: <a href="${changesPath(replacement.id)}" data-changes-go>${escape(replacement.title)}</a>.</p>`;
+function supersededLine(replacement, team) {
+  return `<p class="portal-help changes-superseded">A newer reading of this period replaces this one: <a href="${changesPath(replacement.id, team)}" data-changes-go>${escape(replacement.title)}</a>.</p>`;
 }
 
-function detailView(digest, replacement = null) {
+function detailView(digest, replacement = null, team = null) {
   const when = periodWords(digest.period);
   const { router, via } = digest.model;
   const included = digest.included.map(({ number, title, url }) => `<li>
@@ -167,7 +173,7 @@ function detailView(digest, replacement = null) {
     <h1 class="portal-title changes-title" id="portal-ask-title" tabindex="-1">${escape(digest.title)}</h1>
     <div id="changes">
       <p class="changes-meta">${escape(when)} · ${plural(digest.included.length, 'change')} in the reading ${badge(digest.audience)}</p>
-      ${replacement ? supersededLine(replacement) : ''}
+      ${replacement ? supersededLine(replacement, team) : ''}
       <div class="portal-actions">
         <button class="portal-primary" type="button" data-changes-play>Open the reading</button>
         <p class="portal-status" id="changes-status" role="status" aria-live="polite"></p>
@@ -186,7 +192,7 @@ function detailView(digest, replacement = null) {
         ${digest.notes ?`<p class="portal-help">What the run let go:</p>
         <ul class="changes-notes">${digest.notes.map(note => `<li>${escape(note)}</li>`).join('')}</ul>` : ''}
       </details>
-      <p class="portal-help"><a href="/changes" data-changes-go>All digests</a></p>
+      <p class="portal-help"><a href="${changesPath(null, team)}" data-changes-go>All digests</a></p>
     </div>`;
 }
 
@@ -200,27 +206,30 @@ function emptyView(line, href, link) {
 }
 
 /**
- * Show a changes address in `section`: the list (no `digestId`), or one digest. Its reading is one press
- * away: `launch(sealedReading(digest))` opens RISE's room for the admitted Current, at the digest's own address.
+ * Show a changes address in `section`: the list (no `digestId`), or one digest, RISE's or the listed team's at `team`
+ * (a slug; `teams` defaults to src/core/changes/listed.js). Its reading is one press away:
+ * `launch(sealedReading(digest))` opens RISE's room for the admitted Current, at the digest's own address.
  * `go(path)` moves to another address in place.
  */
-export async function mountChanges(section, { digestId = null, launch, go, load }) {
+export async function mountChanges(section, { team: slug = null, digestId = null, launch, go, load, teams }) {
   section.innerHTML = `${EYEBROW}<p class="portal-status" role="status">Loading…</p>`;
+  const team = slug === null ? null : listedTeam(slug, teams);
   let digest = null;
   try {
-    if (digestId === null) section.innerHTML = listView(await loadChangesIndex(load));
+    if (slug !== null && team === null) section.innerHTML = emptyView('RISE shows no team\'s digests at this address.', '/changes', 'What changed in RISE');
+    else if (digestId === null) section.innerHTML = listView(await loadChangesIndex(load, team), team);
     else {
       // The index says whether a re-run replaced this digest; a list that cannot be read only costs that line.
-      const [loaded, entries] = await Promise.all([loadChangesDigest(digestId, load), loadChangesIndex(load).catch(() => [])]);
+      const [loaded, entries] = await Promise.all([loadChangesDigest(digestId, load, team), loadChangesIndex(load, team).catch(() => [])]);
       digest = loaded;
       const replacedBy = entries.find(entry => entry.id === digestId)?.supersededBy;
-      section.innerHTML = detailView(digest, entries.find(entry => entry.id === replacedBy) ?? null);
+      section.innerHTML = detailView(digest, entries.find(entry => entry.id === replacedBy) ?? null, team);
     }
   } catch (error) {
     console.warn('[RISE] Changes unavailable:', error);
     section.innerHTML = digestId === null
       ? emptyView('The list of digests could not be shown.', '/', 'Back to Home')
-      : emptyView('This digest could not be shown.', '/changes', 'All digests');
+      : emptyView('This digest could not be shown.', changesPath(null, team), 'All digests');
   }
   if (moved) section.querySelector('h1')?.focus();
   moved = false;
@@ -238,7 +247,7 @@ export async function mountChanges(section, { digestId = null, launch, go, load 
     play.disabled = true;
     status.textContent = 'Opening the reading…';
     try {
-      await launch(sealedReading(digest));
+      await launch(sealedReading(digest, team));
       status.textContent = '';
     } catch (error) {
       status.textContent = error.message || 'This reading could not be opened.';

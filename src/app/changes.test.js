@@ -28,15 +28,25 @@ const refused = (mutate) => {
 
 describe('RISE Changes addresses', () => {
   it('reads the list and one digest from the address, and nothing else', () => {
-    expect(changesFromPath('/changes')).toEqual({ digestId: null });
-    expect(changesFromPath('/changes/')).toEqual({ digestId: null });
-    expect(changesFromPath('/changes/2026-10-13')).toEqual({ digestId: '2026-10-13' });
+    expect(changesFromPath('/changes')).toEqual({ team: null, digestId: null });
+    expect(changesFromPath('/changes/')).toEqual({ team: null, digestId: null });
+    expect(changesFromPath('/changes/2026-10-13')).toEqual({ team: null, digestId: '2026-10-13' });
     expect(changesFromPath('/changes/2026-10-13/more')).toBeNull();
     expect(changesFromPath('/changelog')).toBeNull();
     expect(changesFromPath('/changes/%E0')).toBeNull();
     expect(sceneSampleFromPath('/changes/2026-10-13')).toBe('changes');
     expect(routeFromPath('/changes')).toMatchObject({ id: 'home', data: { demoMode: true } });
     expect(routeFromPath('/changes/2026-10-13')).toMatchObject({ id: 'home', data: { demoMode: true } });
+  });
+
+  it('reads a team slug, which starts with a letter, and that team\'s digest after it', () => {
+    expect(changesFromPath('/changes/acme')).toEqual({ team: 'acme', digestId: null });
+    expect(changesFromPath('/changes/acme/2026-10-13')).toEqual({ team: 'acme', digestId: '2026-10-13' });
+    expect(changesFromPath('/changes/acme/2026-10-13/more')).toBeNull();
+    expect(changesFromPath('/changes/Acme/2026-10-13')).toBeNull();
+    expect(changesFromPath('/changes/acme/%E0')).toBeNull();
+    expect(sceneSampleFromPath('/changes/acme/2026-10-13')).toBe('changes');
+    expect(routeFromPath('/changes/acme/2026-10-13')).toMatchObject({ id: 'home', data: { demoMode: true } });
   });
 });
 
@@ -305,5 +315,54 @@ describe('RISE Changes pages', () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+});
+
+describe('a listed team\'s digests', () => {
+  const TEAMS = { acme: { repo: 'acme-labs/widgets', brand: 'githits' } };
+  const teamDigest = () => {
+    const digest = changesDigestFixture();
+    for (const change of digest.changes) change.url = `https://github.com/acme-labs/widgets/pull/${change.number}`;
+    return digest;
+  };
+  const teamFiles = (digest = teamDigest()) => vi.fn(async path => {
+    if (path === '/content/changes/acme/index.json') return changesIndexFixture();
+    if (path === `/content/changes/acme/${CHANGES_ID}.json`) return digest;
+    throw new Error(`${path}: 404`);
+  });
+
+  it('lists the team\'s digests under its brand\'s name, from its own files, at its own addresses', async () => {
+    const load = teamFiles();
+    const { section } = await mount({ team: 'acme', teams: TEAMS, load });
+    expect(section.querySelector('h1').textContent).toBe('What changed in GitHits');
+    expect(section.textContent).toContain('the pull requests merged into GitHits over a week');
+    expect([...section.querySelectorAll('.changes-digests li a')].map(link => link.getAttribute('href'))).toEqual([`/changes/acme/${CHANGES_ID}`, '/changes/acme/2026-10-12']);
+    expect(load).toHaveBeenCalledWith('/content/changes/acme/index.json');
+  });
+
+  it('shows and plays one of its digests at its own address', async () => {
+    const { section, launch } = await mount({ team: 'acme', teams: TEAMS, digestId: CHANGES_ID, load: teamFiles() });
+    expect(section.querySelector('[data-changes-play]')).not.toBeNull();
+    expect(section.querySelector('.changes-included a').getAttribute('href')).toBe('https://github.com/acme-labs/widgets/pull/652');
+    expect([...section.querySelectorAll('a[data-changes-go]')].at(-1).getAttribute('href')).toBe('/changes/acme');
+    section.querySelector('[data-changes-play]').click();
+    await vi.waitFor(() => expect(launch).toHaveBeenCalledTimes(1));
+    expect(launch.mock.calls[0][0].path).toBe(`/changes/acme/${CHANGES_ID}`);
+  });
+
+  it('refuses a team\'s digest that links another repository\'s pull requests, RISE\'s included', async () => {
+    const { section, launch } = await mount({ team: 'acme', teams: TEAMS, digestId: CHANGES_ID, load: teamFiles(changesDigestFixture()) });
+    expect(section.textContent).toContain('This digest could not be shown.');
+    expect(section.querySelector('[data-changes-play]')).toBeNull();
+    expect(section.querySelector('a[data-changes-go]').getAttribute('href')).toBe('/changes/acme');
+    expect(launch).not.toHaveBeenCalled();
+  });
+
+  it('reads nothing for a slug RISE does not list', async () => {
+    const load = teamFiles();
+    const { section } = await mount({ team: 'other', teams: TEAMS, load });
+    expect(section.textContent).toContain('RISE shows no team\'s digests at this address.');
+    expect(section.querySelector('a[data-changes-go]').getAttribute('href')).toBe('/changes');
+    expect(load).not.toHaveBeenCalled();
   });
 });

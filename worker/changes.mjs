@@ -1,6 +1,8 @@
 /**
  * RISE Changes files (src/app/changes.js): `/content/changes/<file>` is the file of that name on the
- * repository's `changes-data` branch, which the weekly digest workflow writes and nothing deploys.
+ * repository's `changes-data` branch, which the weekly digest workflow writes and nothing deploys, and
+ * `/content/changes/<slug>/<file>` is the same file on a listed team's own branch (src/core/changes/listed.js).
+ * No other repository is ever fetched: the slug names it, and an unlisted slug is a 404.
  *
  * Only the index and dated digests are asked for, by GET or HEAD with no query; everything else, and
  * anything upstream does not answer with a 200 (a redirect included), is a JSON 404, never cached. A
@@ -12,10 +14,13 @@
  * (developers.cloudflare.com/workers/runtime-apis/request/, /workers/examples/cache-using-fetch/).
  */
 
+import { listedTeam } from '../src/core/changes/listed.js';
+
 export const CHANGES_UPSTREAM = 'https://raw.githubusercontent.com/SyberLabs/RISE/changes-data/';
 export const CHANGES_PREFIX = '/content/changes/';
 export const CHANGES_MAX_BYTES = 256 * 1024;
 
+const RAW = 'https://raw.githubusercontent.com/';
 const FILE = /^(?:index|\d{4}-\d{2}-\d{2}(?:-[a-z0-9]{1,8})?)\.json$/u;
 // The index changes each week; a digest is written once, and a rerun the same day may replace it.
 const INDEX_TTL = 300;
@@ -58,14 +63,23 @@ async function bounded(response) {
   return body;
 }
 
-export async function serveChangesFile(request) {
+/** The branch's address for a path under the prefix: RISE's own, or a listed team's; null for anything else. */
+function upstreamFor(rest, teams) {
+  const [first, name, more] = rest.split('/');
+  if (name === undefined) return { base: CHANGES_UPSTREAM, name: first };
+  const team = more === undefined ? listedTeam(first, teams) : null;
+  return team ? { base: `${RAW}${team.repo}/changes-data/`, name } : null;
+}
+
+export async function serveChangesFile(request, teams) {
   const url = new URL(request.url);
-  const name = url.pathname.slice(CHANGES_PREFIX.length);
-  if ((request.method !== 'GET' && request.method !== 'HEAD') || url.search !== '' || !FILE.test(name)) return notFound();
+  const found = upstreamFor(url.pathname.slice(CHANGES_PREFIX.length), teams);
+  if ((request.method !== 'GET' && request.method !== 'HEAD') || url.search !== '' || !found || !FILE.test(found.name)) return notFound();
+  const { base, name } = found;
   const ttl = name === 'index.json' ? INDEX_TTL : DIGEST_TTL;
   let body;
   try {
-    const upstream = await fetch(`${CHANGES_UPSTREAM}${name}`, {
+    const upstream = await fetch(`${base}${name}`, {
       method: 'GET',
       redirect: 'manual',
       cf: { cacheEverything: true, cacheTtlByStatus: { '200-299': ttl, '300-599': -1 } }
