@@ -106,8 +106,8 @@ export const CITED_HELD_BEATS = 6;
 export const UNPICTURED_BEATS = 2;
 /** The scenes a Current has room for: the connector's bound, shared by the opening, the close, RISE's eye and the pictures. */
 const SCENE_ROOM = 8;
-/** What a refusal for a missing picture suggests: the kinds a week of rules and process changes is drawn with. */
-const KIND_HINT = 'for a rule or a process change, a list or a compare';
+/** What a refusal for a missing picture suggests: the kinds a week of rules, process and service changes is drawn with. */
+const KIND_HINT = 'for a rule or a process change, a list or a compare; for a change to what flows between services, queues and stores, a system';
 /** The answer's fields that name RISE's engines, and the beat each is placed on. */
 export const ENDS = Object.freeze(['opening', 'close']);
 const ENGINE_RULE = 'RISE’s engines open and close a digest; a change is shown with a kit picture';

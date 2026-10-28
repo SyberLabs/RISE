@@ -306,7 +306,7 @@ describe('admitComposition', () => {
         const moved = { 1: [652], 2: [653], 3: [653], 4: [653], 5: [653], 6: [653], 7: [653], 8: [653] };
         const verdict = admit({ current: current(nine), opening: OPEN, sources: moved, pictures: [{ ...kit(1), refs: [652] }] });
         expect(verdict.ok).toBe(false);
-        expect(verdict.diagnostics.join('\n')).toMatch(/beats 2 to 8 speak of #653 with no picture of it; at most 2 speaking beats in a row go without one\. Give each theme one picture on its first beat, held across its beats: for a rule or a process change, a list or a compare/);
+        expect(verdict.diagnostics.join('\n')).toMatch(/beats 2 to 8 speak of #653 with no picture of it; at most 2 speaking beats in a row go without one\. Give each theme one picture on its first beat, held across its beats: for a rule or a process change, a list or a compare; for a change to what flows between services, queues and stores, a system/);
         expect(verdict.rules).toEqual({ density: 1 });
       });
 
@@ -322,7 +322,7 @@ describe('admitComposition', () => {
         const options = { pulls: [routed('notable')(652), routed('major')(653)] };
         const verdict = admit({ current: current(beats), sources: { 1: [652], 2: [653] } }, options);
         expect(verdict.ok).toBe(false);
-        expect(verdict.diagnostics).toEqual(['#653 is a major change and no picture shows it; give it a picture on a beat that speaks of it: for a rule or a process change, a list or a compare']);
+        expect(verdict.diagnostics).toEqual(['#653 is a major change and no picture shows it; give it a picture on a beat that speaks of it: for a rule or a process change, a list or a compare; for a change to what flows between services, queues and stores, a system']);
         expect(verdict.rules).toEqual({ density: 1 });
         const shown = admit({ current: current(beats), sources: { 1: [652], 2: [653] }, pictures: [PICTURE, { beat: 2, refs: [653], kit: { kind: 'list', items: [{ label: 'Inner eye' }, { label: 'Outer shell' }, { label: 'Full frame' }] } }] }, options);
         expect(shown.ok).toBe(true);
