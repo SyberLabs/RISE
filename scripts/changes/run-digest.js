@@ -145,12 +145,12 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   log(`Quality JSON: ${JSON.stringify(quality)}`);
 
   const id = digestId(period.to, (index?.digests ?? []).map(entry => entry.id));
-  const digest = buildDigest({ id, period, generatedAt: now.toISOString(), model, changes: spokenChanges, current, sources, quality, notes, repo });
+  const digest = buildDigest({ id, period, generatedAt: now.toISOString(), model, changes: spokenChanges, current, sources, quality, notes, repo, name: customer?.product.name });
   const next = nextIndex(index, digest, { supersede: replaced?.id });
   return {
     written: true,
     id,
     files: { [`${id}.json`]: serialize(digest), 'index.json': serialize(next) },
-    issue: issueFor(digest, { supersedes: replaced?.id, repository: repo })
+    issue: issueFor(digest, { supersedes: replaced?.id, repository: repo, name: customer?.product.name })
   };
 }

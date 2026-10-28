@@ -73,6 +73,22 @@ describe('renderFigure', () => {
     expect(admitSvg(svg).ok).toBe(true);
   });
 
+  it('draws a system still as its last state, and steps through its states where SMIL runs', () => {
+    const { accent } = JEV_PALETTES.cobalt;
+    const svg = renderFigure(STUDY.system, { theme: 'cobalt' });
+    const states = STUDY.system.states.length;
+    // What the last state does without is dashed, and its paths carry no dot when nothing moves.
+    expect(svg.match(/<g stroke-dasharray="6 6">/g)).toHaveLength(3);
+    expect(svg.match(/<circle [^>]*opacity="0">/g)).toHaveLength(2);
+    // Each part in some states shows, faint otherwise, one discrete step a state.
+    expect(svg).toContain(`<animate attributeName="opacity" values="1;0.12" keyTimes="0;0.5" calcMode="discrete" dur="${states * 3.2}s" repeatCount="indefinite"/>`);
+    expect(svg).toContain('<animate attributeName="stroke-dasharray" values="none;6 6"');
+    // A dot runs along every path, and a bar in the accent steps along the legend.
+    expect(svg.match(/<animateMotion /g)).toHaveLength(STUDY.system.links.length);
+    expect(svg).toMatch(new RegExp(`<rect x="[\\d.]+" y="486" width="[\\d.]+" height="4" rx="2" fill="${accent}"><animate attributeName="x"`));
+    expect(svg).toMatch(new RegExp(`fill="${accent}"[^>]*font-weight="600">OpenRouter<`));
+  });
+
   it('refuses to draw a spec the kit refuses', () => {
     expect(() => renderFigure({ kind: 'bars', max: 1, items: [] }, { theme: 'cobalt' })).toThrow(/2 to 4 items/);
   });
@@ -103,8 +119,11 @@ describe('every figure the kit draws is admitted and layout-clean by constructio
 });
 
 describe('figureProblems', () => {
+  const node = (id, at) => ({ id, label: id, at });
+  const link = (from, to) => ({ from, to });
+  const system = parts => ({ kind: 'system', nodes: [{ ...node('a', [0, 0]), changed: true }, node('b', [1, 0]), node('c', [1, 1])], links: [link('a', 'b'), link('b', 'c')], ...parts });
   const cases = [
-    ['an unknown kind', { kind: 'pie' }, /kind is one of bars, flow, columns, stack, list, compare/],
+    ['an unknown kind', { kind: 'pie' }, /kind is one of bars, flow, columns, stack, list, compare, system/],
     ['a key the kind does not take', { ...STUDY.flow, colour: 'red' }, /flow takes/],
     ['one bar', { kind: 'bars', max: 1, items: [{ label: 'a', value: 1 }] }, /2 to 4 items/],
     ['five bars', { kind: 'bars', max: 1, items: Array.from({ length: 5 }, () => ({ label: 'a', value: 1 })) }, /2 to 4 items/],
@@ -136,7 +155,20 @@ describe('figureProblems', () => {
     ['a compare of five rows', { kind: 'compare', rows: Array.from({ length: 5 }, (_, i) => ({ subject: `s${i}`, before: 'b', after: 'c' })) }, /2 to 4 rows/],
     ['a row without its after', { kind: 'compare', rows: [{ subject: 'a', before: 'b' }, { subject: 'd', before: 'e', after: 'f' }] }, /rows\[0\] takes subject, before, after and needs after/],
     ['a row the same before and after', { kind: 'compare', rows: [{ subject: 'a', before: 'b', after: 'b' }, { subject: 'd', before: 'e', after: 'f' }] }, /rows\[0\] says "b" before and after; a compare shows what changed/],
-    ['headers that are not { before, after }', { kind: 'compare', headers: { before: 'Was' }, rows: [{ subject: 'a', before: 'b', after: 'c' }, { subject: 'd', before: 'e', after: 'f' }] }, /headers takes before, after and needs after/]
+    ['headers that are not { before, after }', { kind: 'compare', headers: { before: 'Was' }, rows: [{ subject: 'a', before: 'b', after: 'c' }, { subject: 'd', before: 'e', after: 'f' }] }, /headers takes before, after and needs after/],
+    ['a system of two nodes', system({ nodes: [node('a', [0, 0]), node('b', [1, 0])], links: [link('a', 'b'), link('b', 'a')] }), /3 to 8 nodes/],
+    ['a system of nine nodes', system({ nodes: Array.from({ length: 9 }, (_, i) => node(`n${i}`, [i % 4, Math.floor(i / 4)])) }), /3 to 8 nodes/],
+    ['a node at another node’s place', system({ nodes: [node('a', [0, 0]), node('b', [0, 0]), node('c', [1, 1])] }), /nodes\[1\]\.at \[0, 0\] is taken by another node/],
+    ['a node past the grid', system({ nodes: [node('a', [4, 0]), node('b', [1, 0]), node('c', [1, 1])] }), /a column 0 to 3/],
+    ['an unknown node shape', system({ nodes: [{ ...node('a', [0, 0]), shape: 'cloud' }, node('b', [1, 0]), node('c', [1, 1])] }), /service, queue or store/],
+    ['a node id given twice', system({ nodes: [node('a', [0, 0]), node('a', [1, 0]), node('c', [1, 1])] }), /"a" is given twice/],
+    ['a link to no node', system({ links: [link('a', 'b'), link('b', 'z')] }), /links\[1\] joins two different nodes/],
+    ['a link in a state its node is not in', system({ states: ['Before', 'After'], nodes: [node('a', [0, 0]), node('b', [1, 0]), { ...node('c', [1, 1]), in: ['After'] }], links: [link('a', 'b'), { ...link('b', 'c'), in: ['Before'] }] }), /links\[1\] runs in a state where node c is not/],
+    ['a state no one named', system({ states: ['Before', 'After'], nodes: [node('a', [0, 0]), node('b', [1, 0]), { ...node('c', [1, 1]), in: ['Later'] }] }), /nodes\[2\]\.in lists the states it is in/],
+    ['two links between the same nodes in the same state', system({ links: [link('a', 'b'), link('a', 'b')] }), /join the same nodes in the same state/],
+    ['a system with no states and nothing changed', { kind: 'system', nodes: [node('a', [0, 0]), node('b', [1, 0]), node('c', [1, 1])], links: [link('a', 'b'), link('b', 'c')] }, /shows no change/],
+    ['a link through a node', system({ nodes: [{ ...node('a', [0, 0]), changed: true }, node('b', [1, 0]), node('c', [2, 0])], links: [link('a', 'c'), link('a', 'b')] }), /links\[0\] runs through node b/],
+    ['a link’s label with no room beside it', system({ links: [{ ...link('a', 'b'), label: 'W'.repeat(40) }, link('b', 'c')] }), /links\[0\]\.label "W+" has no place beside its link/]
   ];
   for (const [name, spec, pattern] of cases) {
     it(`refuses ${name}`, () => {
@@ -197,6 +229,10 @@ describe('figureProblems', () => {
     expect(holds(bars(2, long))).toBe(KIT_BUDGETS.bars.label.most);
     expect(holds({ kind: 'flow', steps: [long, 'b'], changed: long })).toBe(KIT_BUDGETS.flow.step);
     expect(holds({ kind: 'flow', steps: ['a', 'b'], loop: { from: 'a', to: 'b', label: long } })).toBe(KIT_BUDGETS.flow.loop);
+    const parts = (columns, label) => ({ kind: 'system', nodes: Array.from({ length: Math.max(3, columns) }, (_, i) => ({ id: `n${i}`, label: i === 0 ? label : `n${i}`, at: [i % columns, i < columns ? 0 : 1], changed: i === 0 })), links: [{ from: 'n0', to: 'n1' }, { from: 'n1', to: 'n2' }] });
+    expect(holds(parts(4, long))).toBe(KIT_BUDGETS.system.node.least);
+    expect(holds(parts(3, long))).toBe(KIT_BUDGETS.system.node.three);
+    expect(holds(parts(2, long))).toBe(KIT_BUDGETS.system.node.most);
     expect(holds(columns(4, 'name'))).toBe(KIT_BUDGETS.columns.name.least);
     expect(holds(columns(2, 'name'))).toBe(KIT_BUDGETS.columns.name.most);
     expect(holds(columns(4, 'item'))).toBe(KIT_BUDGETS.columns.item.least);
@@ -217,7 +253,7 @@ describe('figureProblems', () => {
   });
 
   it('exposes its bounds', () => {
-    expect(FIGURE_BOUNDS).toEqual({ bars: { items: [2, 4] }, flow: { steps: [2, 7] }, columns: { columns: [2, 4], items: [1, 6] }, stack: { zones: [2, 5] }, list: { items: [2, 6] }, compare: { rows: [2, 4] } });
+    expect(FIGURE_BOUNDS).toEqual({ bars: { items: [2, 4] }, flow: { steps: [2, 7] }, columns: { columns: [2, 4], items: [1, 6] }, stack: { zones: [2, 5] }, list: { items: [2, 6] }, compare: { rows: [2, 4] }, system: { nodes: [3, 8], links: [2, 10], states: [2, 3] } });
   });
 });
 
