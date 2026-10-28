@@ -1,6 +1,7 @@
 # A sample digest of another public repository, on this branch only and dry: the
 # script writes to the runner, the files are uploaded as an artifact, and the job
 # can push nothing and open nothing (read-only token). Delete before merging.
+# Rerun 2: with the system figure kind.
 name: Changes sample (dry run)
 
 on:
