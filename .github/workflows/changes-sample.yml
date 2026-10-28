@@ -1,0 +1,55 @@
+# Sample digests of other public repositories, on this branch only and dry: the
+# script writes to the runner, the files are printed and uploaded as an artifact,
+# and the job can push nothing and open nothing (read-only token). Delete before merging.
+name: Changes sample (dry run)
+
+on:
+  push:
+    branches: [claude/project-thread-f5b56b]
+    paths: [.github/workflows/changes-sample.yml]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  sample:
+    name: Write a dry-run digest of ${{ matrix.repo }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        repo: [windmill-labs/windmill, hatchet-dev/hatchet, Fission-AI/OpenSpec, openstatusHQ/openstatus]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.3
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install Chromium for the rendered check
+        run: npx playwright install --with-deps chromium
+
+      - name: Install the Claude Code CLI
+        run: |
+          npm install --global --no-fund --no-audit @anthropic-ai/claude-code@2.1.287
+          claude --version
+
+      - name: Route, compose and admit the digest (dry run)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          REPO: ${{ matrix.repo }}
+        run: node scripts/changes/digest.mjs --repo "$REPO" --figures kit --dry-run --out "$RUNNER_TEMP/changes"
+
+      - name: Show what the dry run wrote
+        if: always()
+        run: for f in "$RUNNER_TEMP"/changes/*.json; do echo "=== $(basename "$f")"; cat "$f"; echo; done

@@ -23,5 +23,32 @@ export const BRANDS = Object.freeze({
   openstatus: Object.freeze({
     confirmed: false,
     brand: Object.freeze({ name: 'openstatus', ground: '#0A0A0A', ink: '#FAFAFA', accent: '#20C45F' })
+  }),
+  /**
+   * Provisional, read on 2026-10-28 from windmill-labs/windmill frontend/src/lib/assets/tokens/tokens.json (their site
+   * was out of reach): the light mode's surface-primary, text-emphasis and text-accent, the blue of the logo's
+   * gradient. Their light mode is the app's default and passes the kit. Windmill confirms.
+   */
+  windmill: Object.freeze({
+    confirmed: false,
+    brand: Object.freeze({ name: 'Windmill', ground: '#FBFBFD', ink: '#1D2430', accent: '#2652DF' })
+  }),
+  /**
+   * Provisional, read on 2026-10-28 from hatchet-dev/hatchet frontend/app/src/index.css (their site was out of reach):
+   * the dark theme's background and foreground, hsl(226 82% 6%) and hsl(210 40% 98%), and --brand, hsl(212 100% 60%),
+   * the logo's blue. The light theme fails the kit: their blue is 3.1:1 on white. Hatchet confirms.
+   */
+  hatchet: Object.freeze({
+    confirmed: false,
+    brand: Object.freeze({ name: 'Hatchet', ground: '#03091C', ink: '#F8FAFC', accent: '#3392FF' })
+  }),
+  /**
+   * Provisional, read on 2026-10-28 from Fission-AI/OpenSpec (their site was out of reach): the pixel logo's white on
+   * black, the CLI palette's white (src/core/styles/palette.ts) as ink, and the dark accent of their site's step
+   * listings (website/components/file-steps.tsx). Fission AI confirms.
+   */
+  openspec: Object.freeze({
+    confirmed: false,
+    brand: Object.freeze({ name: 'OpenSpec', ground: '#0A0A0A', ink: '#F4F4F4', accent: '#D89074' })
   })
 });

@@ -20,6 +20,36 @@ export const CUSTOMERS = Object.freeze({
       themes: 'status pages, monitoring and the checker, the dashboard, the website, infrastructure'
     }),
     brand: 'openstatus'
+  }),
+  /** Written from their README; a sample on our side only until Windmill confirms the brand. */
+  'windmill-labs/windmill': Object.freeze({
+    product: Object.freeze({
+      name: 'Windmill',
+      about: 'Windmill is an open source, self hostable platform that turns scripts into workflows, apps and AI agents.',
+      users: 'people who build with Windmill',
+      themes: 'the editor and flows, workers and the runtime, apps, AI and agents, the CLI and integrations'
+    }),
+    brand: 'windmill'
+  }),
+  /** Written from their README; a sample on our side only until Hatchet confirms the brand. */
+  'hatchet-dev/hatchet': Object.freeze({
+    product: Object.freeze({
+      name: 'Hatchet',
+      about: 'Hatchet is an orchestration engine for background tasks, AI agents and durable workflows.',
+      users: 'people who run their work on Hatchet',
+      themes: 'the engine and workers, the SDKs, the dashboard, durable workflows, infrastructure'
+    }),
+    brand: 'hatchet'
+  }),
+  /** Written from their README; a sample on our side only until Fission AI confirms the brand. */
+  'fission-ai/openspec': Object.freeze({
+    product: Object.freeze({
+      name: 'OpenSpec',
+      about: 'OpenSpec is an open source spec framework that keeps specs and change proposals in the repo before a coding agent writes code.',
+      users: 'people who work with OpenSpec',
+      themes: 'the CLI and its commands, specs and change proposals, agent integrations, the docs'
+    }),
+    brand: 'openspec'
   })
 });
 
