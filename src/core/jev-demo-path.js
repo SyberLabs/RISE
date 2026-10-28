@@ -24,16 +24,24 @@ export function arenaFromPath(pathname) {
   }
 }
 
+/** A team's slug in a changes address: it starts with a letter, so it never reads as a digest id, which starts with a date. */
+export const TEAM_SLUG = /^[a-z][a-z0-9-]{0,38}$/u;
+
 /**
- * A RISE Changes address as { digestId }, null when absent: `/changes` (the
- * list) or `/changes/<id>` (src/app/changes.js judges the id). Null for
- * anything else.
+ * A RISE Changes address as { team, digestId }, either null when absent: `/changes` (RISE's list),
+ * `/changes/<id>` (src/app/changes.js judges the id), `/changes/<slug>` (a team's list) or
+ * `/changes/<slug>/<id>`; a slug starts with a letter and an id with a date (src/core/changes/listed.js
+ * says which slugs are listed). Null for anything else.
  */
 export function changesFromPath(pathname) {
-  const found = /^\/changes(?:\/([^/]+))?$/u.exec(String(pathname || '').replace(/\/+$/u, ''));
+  const found = /^\/changes(?:\/([^/]+)(?:\/([^/]+))?)?$/u.exec(String(pathname || '').replace(/\/+$/u, ''));
   if (!found) return null;
+  const [, first, second] = found;
+  const team = first !== undefined && TEAM_SLUG.test(first) ? first : null;
+  if (second !== undefined && team === null) return null;
   try {
-    return { digestId: found[1] === undefined ? null : decodeURIComponent(found[1]) };
+    const id = team === null ? first : second;
+    return { team, digestId: id === undefined ? null : decodeURIComponent(id) };
   } catch {
     return null;
   }

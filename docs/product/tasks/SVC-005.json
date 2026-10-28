@@ -1,0 +1,38 @@
+{
+  "id": "SVC-005",
+  "title": "RISE Changes: play a listed team's digests on rise.syberlabs.io",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [
+    "SVC-003"
+  ],
+  "acceptance": [
+    "/changes/<slug> lists, and /changes/<slug>/<id> shows and plays, the digests of a team listed in src/core/changes/listed.js, read from that team's own changes-data branch and named by its brand.",
+    "The Worker fetches /content/changes/<slug>/<file> from raw.githubusercontent.com/<owner>/<repo>/changes-data/ only for a listed slug; every other slug, path or method is a 404 that never reaches upstream. RISE's own /changes and /content/changes/<file> are unchanged.",
+    "A team is listed only with another team's owner/name repository and a brand its company has confirmed in brands.js; nothing is listed until one is.",
+    "A team's digest is held to the same contract as RISE's, with its pull request links checked against the team's own repository; a digest linking any other repository, RISE's included, is refused and not played.",
+    "The first load carries no brand data: the slug grammar lives with the address parser, and the list and brands load only with the changes page."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/app/changes.test.js",
+      "note": "Branch claude/project-thread-4c3484, local (Linux, Node 22): changes page, listed teams, Worker files, route, figures, quality and scripts/changes: 22 files, 509 passed; system-design fails on a generated catalog path missing in this checkout, as on main. vite build clean; first load 63.4 KB br of a 64.0 KB budget.",
+      "date": "2026-10-28"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-28T08:25:00.000Z",
+      "summary": "Opened from the owner's ask to put RISE Changes in production, read as RISE playing listed teams' digests (gateway framing, option A)."
+    }
+  ],
+  "updatedAt": "2026-10-28T08:25:00.000Z",
+  "revision": 1,
+  "summary": "rise.syberlabs.io can play a listed team's weekly digest at /changes/<slug>, from that team's own branch. No team is listed until a company confirms its brand.",
+  "blocker": null
+}

@@ -1,0 +1,44 @@
+{
+  "id": "SVC-003",
+  "title": "RISE Changes: a checked brand record for the figure kit",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [
+    "SVC-002"
+  ],
+  "acceptance": [
+    "A brand is data only: a name and three #RRGGBB colors (ground, ink, accent); any other key, a short hex, a color name or markup is refused with a plain sentence. No SVG, font, CSS or code is accepted.",
+    "renderFigure(spec, { brand }) draws each of the six kinds in the brand's ink and accent on a ground the figure carries itself, with the kit's own geometry and type sizes; every label is set in the brand's ink at full strength (the owner's call, 2026-10-27), where a theme softens notes and details; a theme and a brand together are refused.",
+    "The brand's name is its wordmark: set by the kit's own escaping text function at label size above the title, in the brand's ink, and refused with its budget when it does not fit the width.",
+    "A brand is refused, with its ratio, when any color a label is set in falls under the layout check's 4.5:1 on what it is set on: the ink on the ground, the accent on the ground and on its tint behind a changed step. Nothing is tinted to make a brand pass.",
+    "Every figure the kit draws in an admitted brand is admitted and layout-clean, down to the lightest ink the check admits.",
+    "Each kind in one light brand (Northwind: #FFFFFF, #1A1A1A, #0B57D0) is pinned as a golden SVG under src/core/figures/fixtures, so the brand's figures can be looked at in review.",
+    "Each brand RISE draws in for a customer is a reviewed file entry (src/core/figures/brands.js) with its six kinds pinned as goldens, and is marked confirmed only once the company approves its colors. GitHits is the first, provisional: ground #13161A, ink #D5D9DF, accent #FF4FAE, sampled from a screenshot of githits.com and not yet confirmed by GitHits."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/core/figures/brands.test.js",
+      "note": "Branch claude/project-thread-4c3484, local (Linux, Node 22): npx vitest run src/core/figures src/core/quality scripts/changes: 12 files, 303 passed. Fast set collects 167 files; 6 failures in try-session, keystones and system-design, which fail the same way on unmodified main in this checkout. ci-hygiene clean. Chromium is not installed in this checkout, so the rendered check was not run locally; the six GitHits figures were rendered to PNG with cairosvg and looked at.",
+      "date": "2026-10-27"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-10-27T17:15:00.000Z",
+      "summary": "Opened from the owner's brand record direction (step 1 of 4: the slot and the contrast refusal)."
+    },
+    {
+      "date": "2026-10-27T19:30:00.000Z",
+      "summary": "Full ink for brands and the wordmark (owner calls). GitHits added as the first brand, provisional until GitHits confirms its colors; no run in it until then."
+    }
+  ],
+  "updatedAt": "2026-10-27T19:30:00.000Z",
+  "revision": 2,
+  "summary": "The six kinds take a checked brand with its name as a wordmark above the title, set every label in its ink at full strength, and refuse a brand that fails contrast. GitHits is the first brand, provisional until GitHits confirms its colors. Not wired into the digest or the public workflow yet.",
+  "blocker": null
+}

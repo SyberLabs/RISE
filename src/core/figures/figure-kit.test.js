@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { admitSvg } from '../svg-admission.js';
 import { JEV_PALETTES } from '../jev-palette.js';
 import { ROOM, svgLayoutProblems } from '../quality/svg-layout.js';
-import { FIGURE_BOUNDS, FIGURE_KINDS, KIT_BUDGETS, figureProblems, renderFigure } from './figure-kit.js';
+import { FIGURE_BOUNDS, FIGURE_KINDS, KIT_BUDGETS, brandProblems, figureProblems, renderFigure } from './figure-kit.js';
 import { STUDY, boundSpecs } from './fixtures/specs.js';
 
 // A Windows checkout may give the goldens CRLF; the kit writes LF.
@@ -218,5 +218,106 @@ describe('figureProblems', () => {
 
   it('exposes its bounds', () => {
     expect(FIGURE_BOUNDS).toEqual({ bars: { items: [2, 4] }, flow: { steps: [2, 7] }, columns: { columns: [2, 4], items: [1, 6] }, stack: { zones: [2, 5] }, list: { items: [2, 6] }, compare: { rows: [2, 4] } });
+  });
+});
+
+describe('a brand', () => {
+  const LIGHT = Object.freeze({ name: 'Northwind', ground: '#FFFFFF', ink: '#1A1A1A', accent: '#0B57D0' });
+  const asBrand = ([id, palette]) => ({ name: id, ground: palette.background, ink: palette.text, accent: palette.accent });
+  const specs = [...Object.values(STUDY), ...boundSpecs()];
+  const gray = level => `#${level.toString(16).padStart(2, '0').repeat(3)}`;
+
+  for (const kind of FIGURE_KINDS) {
+    it(`draws the study's ${kind} in a light brand exactly as the golden`, () => {
+      expect(renderFigure(STUDY[kind], { brand: LIGHT })).toBe(golden(`${kind}-northwind.svg`));
+    });
+  }
+
+  it('admits the nine reading themes as brands', () => {
+    for (const entry of Object.entries(JEV_PALETTES)) expect(brandProblems(asBrand(entry))).toEqual([]);
+    expect(brandProblems(LIGHT)).toEqual([]);
+  });
+
+  it('draws every kind on the brand’s own ground, in its ink, with what changed in its accent', () => {
+    for (const kind of FIGURE_KINDS) {
+      const svg = renderFigure(STUDY[kind], { brand: LIGHT });
+      expect(svg).toContain('</title><rect width="800" height="500" fill="#FFFFFF"/><text x="56" y="30"');
+      expect(svg).toMatch(/font-weight="600">Northwind<\/text>/);
+      expect(svg).toContain(`fill="${LIGHT.ink}"`);
+      expect(svg).toContain(LIGHT.accent);
+      for (const { text, accent } of Object.values(JEV_PALETTES)) {
+        expect(svg).not.toContain(text);
+        expect(svg).not.toContain(accent);
+      }
+    }
+  });
+
+  it('leaves the themes as they were: no ground of their own', () => {
+    expect(renderFigure(STUDY.flow, { theme: 'cobalt' })).not.toContain('<rect width="800"');
+  });
+
+  it('keeps every figure admitted and layout-clean, down to the lightest ink the check admits on white', () => {
+    let level = 0;
+    while (brandProblems({ ...LIGHT, ink: gray(level + 1) }).length === 0) level += 1;
+    const edge = { ...LIGHT, ink: gray(level) };
+    expect(brandProblems({ ...LIGHT, ink: gray(level + 1) }).join('\n')).toMatch(/^ink #[0-9a-f]{6} on ground #FFFFFF is 4\.4:1/);
+    for (const brand of [LIGHT, edge, asBrand(['ember', JEV_PALETTES.ember])]) {
+      for (const spec of specs) {
+        const svg = renderFigure(spec, { brand });
+        expect(admitSvg(svg)).toEqual({ ok: true });
+        // The figure carries its ground, so the room behind it does not matter.
+        for (const ground of [ROOM.ground, '#FFFFFF']) {
+          const { problems, notes } = svgLayoutProblems(svg, { ground });
+          expect({ ink: brand.ink, kind: spec.kind, problems, notes }).toEqual({ ink: brand.ink, kind: spec.kind, problems: [], notes: [] });
+        }
+      }
+    }
+  });
+
+  it('sets every label in the brand’s ink at full strength, where a theme softens some', () => {
+    const softened = svg => [...svg.matchAll(/<text [^>]*fill-opacity="/g)].length;
+    for (const spec of specs) expect(softened(renderFigure(spec, { brand: LIGHT }))).toBe(0);
+    expect(softened(renderFigure(STUDY.compare, { theme: 'cobalt' }))).toBeGreaterThan(0);
+  });
+
+  it('admits a mid-gray ink on white that a softened label would fail', () => {
+    expect(brandProblems({ ...LIGHT, ink: '#707070' })).toEqual([]);
+  });
+
+  const refusals = [
+    ['a record that is not an object', 'Northwind', /^brand is an object$/],
+    ['a key it does not take', { ...LIGHT, font: 'Inter' }, /^brand takes name, ground, ink, accent$/],
+    ['a missing color', { name: 'Northwind', ground: '#FFFFFF', ink: '#1A1A1A' }, /needs accent/],
+    ['an empty name', { ...LIGHT, name: ' ' }, /brand\.name is a label/],
+    ['a name on two lines', { ...LIGHT, name: 'North\nwind' }, /brand\.name is a label/],
+    ['a name too wide for its wordmark', { ...LIGHT, name: 'W'.repeat(40) }, /^brand\.name "W+" is [\d.]+ characters wide at 25 units; its slot holds \d+ characters/],
+    ['a short hex', { ...LIGHT, ground: '#FFF' }, /brand\.ground is a color written #RRGGBB/],
+    ['a color name', { ...LIGHT, ink: 'black' }, /brand\.ink is a color written #RRGGBB/],
+    ['a color that carries markup', { ...LIGHT, accent: '#0B57D0"/><script>' }, /brand\.accent is a color written #RRGGBB/],
+    ['ink too close to the ground', { ...LIGHT, ink: '#909090' }, /^ink #909090 on ground #FFFFFF is 3\.1:1; the kit needs 4\.5:1\. Choose colors further apart: nothing is tinted/],
+    ['an accent too close to the ground', { ...LIGHT, accent: '#9CC3FF' }, /^accent #9CC3FF on ground #FFFFFF is/],
+    ['an accent that clears the ground but not its own tint', { ...LIGHT, accent: '#2B6CB0' }, /^accent #2B6CB0 on its own tint behind a changed step is 4\.4:1/]
+  ];
+  for (const [name, brand, pattern] of refusals) {
+    it(`refuses ${name}`, () => {
+      const problems = brandProblems(brand);
+      expect(problems.length).toBeGreaterThan(0);
+      expect(problems.join('\n')).toMatch(pattern);
+      expect(() => renderFigure(STUDY.bars, { brand })).toThrow(/^The figure kit cannot draw in this brand: /);
+    });
+  }
+
+  it('sets the name as its wordmark, escaped as every label is', () => {
+    const svg = renderFigure(STUDY.flow, { brand: { ...LIGHT, name: '<svg onload="x"> & Co' } });
+    expect(svg).toContain('>&lt;svg onload=&quot;x&quot;&gt; &amp; Co</text>');
+    expect(admitSvg(svg)).toEqual({ ok: true });
+  });
+
+  it('draws in a theme or a brand, not both', () => {
+    expect(() => renderFigure(STUDY.bars, { theme: 'cobalt', brand: LIGHT })).toThrow('The figure kit draws in a theme or a brand, not both');
+  });
+
+  it('refuses the figure before the brand, as it always has', () => {
+    expect(() => renderFigure({ kind: 'bars', max: 1, items: [] }, { brand: { ...LIGHT, ink: '#909090' } })).toThrow(/2 to 4 items/);
   });
 });
