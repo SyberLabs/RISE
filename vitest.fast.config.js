@@ -11,7 +11,7 @@ import base from './vite.config.js';
 // number is changed in the same pull request.
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 169;
+export const FAST_TEST_FILES = 174;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',
@@ -58,6 +58,13 @@ const FAST_TESTS = [
     // The figure kit: four kinds RISE draws itself, admitted and layout-clean at every bound.
     'src/core/figures/**/*.test.js',
     'worker/mcp-quality.test.js',
+    // The event counts: nothing telemetry/events.json does not name is written, and no answer changes for them.
+    'worker/telemetry.test.js',
+    // The reader's counts: the beacon's door, the browser's sender, and where a reading and a failure are counted.
+    'worker/count.test.js',
+    'src/core/telemetry.test.js',
+    'src/core/error-boundary.test.js',
+    'src/components/read/Chamber.counts.test.js',
     'src/core/jev-palette.test.js',
     'src/components/read/Chamber.jev-look.test.js',
     'src/app/jev-reading.test.js',

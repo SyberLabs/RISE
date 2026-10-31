@@ -34,6 +34,7 @@
 import { GEMINI_DEFAULT_MODEL } from '../adapters/gemini-model.js';
 import { OPENROUTER_DEFAULT_MODEL } from '../adapters/openrouter-model.js';
 import { describeDegradations, detectCapabilities } from '../capabilities.js';
+import { count } from '../../core/telemetry.js';
 import { admitCatalogVisual } from '../../core/visual-catalog.js';
 import { jevColors } from '../../core/jev-palette.js';
 import { lookTheme } from '../../core/current-look.js';
@@ -173,6 +174,9 @@ export class LiveHost {
         this.params = new URLSearchParams(search);
         this.env = env;
         this.caps = detectCapabilities(env);
+        // What this browser lacks, counted once a host from the record asked once (src/core/telemetry.js).
+        if (this.caps.speechOutput === 'none') count('rise.app.failed', { class: 'speech_unavailable' });
+        if (!this.caps.webgl2) count('rise.app.failed', { class: 'webgl_unavailable' });
         this.runtime = null;
         this.controls = null;
         // Which voice the reading uses, and how many voices the browser offered, once each is known.
