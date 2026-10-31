@@ -1707,7 +1707,7 @@ describe('inside an MCP host', () => {
             start: vi.fn(async () => {}),
             stop: vi.fn(async () => {})
         };
-        const { environment, sent, listeners, hostSays } = framed({ answer: () => null });
+        const { environment, sent, hostSays } = framed({ answer: () => null });
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });

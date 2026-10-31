@@ -1020,7 +1020,7 @@ export class LiveHost {
     }
 
     /** The live Current condition: the real runtime, with the fixed answer and a prompt to ask about the horizon. */
-    presentEvalCurrent({ container, done, note }) {
+    presentEvalCurrent({ done, note }) {
         this.providerName = 'mock';
         let finished = false;
         const guide = document.createElement('section');

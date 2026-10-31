@@ -20,7 +20,7 @@ export async function loadPublicCatalog(signal, { fetcher = fetch, now = Date.no
     if (signal?.aborted) throw new DecisionError('CANCELED');
     throw new DecisionError('CATALOG_UNAVAILABLE', 'The reading catalog could not be loaded.');
   }
-  let body = null;
+  let body;
   try { body = await response.json(); } catch { body = null; }
   const catalog = response.ok ? readPublicCatalog(body) : null;
   if (!catalog) throw new DecisionError('CATALOG_UNAVAILABLE', body?.error?.message || 'The reading catalog is unavailable.');

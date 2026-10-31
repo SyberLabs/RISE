@@ -3,8 +3,6 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { Settings } from '../Settings.js';
-import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
 import { JEV_PALETTES, jevPalette } from '../../core/jev-palette.js';
 
 function fakePlayer(initialState = 'playing') {

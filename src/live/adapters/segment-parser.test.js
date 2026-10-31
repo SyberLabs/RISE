@@ -16,7 +16,7 @@ import { BLACK_HOLES_BEATS_CURRENT, BLACK_HOLES_BEATS_TEXT } from '../fixtures/b
 import { sceneRefusal } from '../../core/scene-admission.js';
 
 /** Feed deltas through a parser into a real reducer; return what the reducer holds. */
-function run(deltas, { seed } = {}) {
+function run(deltas) {
     const writer = createEventWriter('parse-1');
     const stream = createCurrentStream();
     stream.apply(writer.next('current.open', { title: 'Parsed', origin: { kind: 'model', name: 'Test', provider: 'test' } }));

@@ -329,7 +329,6 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
     if (hasBaseRgb) {
         rgb.splice(0, rgb.length, ...preserveAccentDominance(base, rgb));
     }
-    const round3 = value => Number(value.toFixed(3));
 
     return {
         color: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,

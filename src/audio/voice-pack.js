@@ -3,7 +3,6 @@ import {
     DEFAULT_VOICE_ID,
     VOICE_PACK_SCHEMA,
     normalizeVoiceText,
-    speakableText,
     voiceAssetKey
 } from './voice-pack-key.js';
 

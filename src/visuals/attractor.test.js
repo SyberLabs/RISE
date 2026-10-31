@@ -534,11 +534,7 @@ describe('Attractor adaptive quality', () => {
 
 describe('Attractor visual control', () => {
   it('interpolates and retargets brightness inside its frame loop', () => {
-    let frame;
-    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
-      frame = callback;
-      return 2;
-    });
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 2);
     const field = new AttractorField(makeHost(), { intensity: 0.65, adaptive: false });
     const start = performance.now();
     expect(field.controlVisual({ surface: 'attractor', parameter: 'intensity', value: 0.75 }))

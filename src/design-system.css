@@ -38,18 +38,12 @@
   --sy-text-3: #8990BB;          /* dim: meta, placeholders (6.5:1 on ink) */
   --sy-on-primary: #07061C;
   --sy-brand: #4890F0;
-  --sy-brand-deep: #0048F0;
   --sy-ice: #90D8F0;
-  --sy-violet: #9A6BFF;
-  --sy-magenta: #FF58D6;
-  --sy-amber: #FFB54A;
-  --sy-spectrum: linear-gradient(100deg, #90D8F0 0%, #4890F0 30%, #9A6BFF 58%, #FF58D6 80%, #FFB54A 100%);
   /* The primary ("solid") button: a vellum fill leaning ice to lilac. */
   --sy-primary-fill: linear-gradient(100deg, #C9F0FF, #EEF0FF 45%, #E3D4FF);
   --sy-primary-glow: 0 0 0 1px rgba(255, 255, 255, 0.2) inset, 0 10px 40px -12px rgba(72, 144, 240, 0.8);
   --sy-primary-glow-hover: 0 0 0 1px rgba(255, 255, 255, 0.4) inset, 0 14px 48px -10px rgba(154, 107, 255, 0.87);
   --sy-success: #6FF5A8;
-  --sy-research: #C7A4FF;
   --sy-warning: #FFC96B;
   --sy-danger: #FF7A8A;
   --sy-accent-rise: #F2D9A6;
@@ -76,7 +70,6 @@
   --sy-space-7: 48px;
   --sy-space-8: 64px;
   --sy-space-9: 96px;
-  --sy-space-10: 128px;
 
   --sy-radius-sm: 4px;
   --sy-radius: 10px;        /* fields */
@@ -336,67 +329,6 @@ small {
 
 .font-mono {
   font-family: var(--font-mono);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   ATLAS PRIMITIVES (SyberLabs v2)
-   The spectrum word and the plate frame. Chrome
-   only: none of these belong on the reading surface.
-   ───────────────────────────────────────────────────────────── */
-
-/* At most one per screen: the italic word in a display headline. */
-.sy-spectrum {
-  font-style: italic;
-  background: var(--sy-spectrum);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  /* Room for the italic overhang inside the clip, given back to the line so
-     the punctuation after the word does not drift. */
-  padding-right: 0.08em;
-  margin-right: -0.06em;
-}
-
-@media (forced-colors: active) {
-  .sy-spectrum {
-    background: none;
-    color: CanvasText;
-  }
-}
-
-/* Plate caption layer: labels, numbers, parameters. */
-
-/* Plate frame: a rule border, a second rule inset 4px, and 8px corner
-   registration ticks in rule-2. Around sigils and featured media. */
-.sy-plate {
-  position: relative;
-  border: 1px solid var(--sy-line-strong);
-  outline: 1px solid var(--sy-line);
-  outline-offset: -5px;
-  background: radial-gradient(circle at 50% 50%, #0D0B30, var(--sy-bg));
-}
-
-.sy-plate::before,
-.sy-plate::after {
-  content: '';
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  border: solid var(--sy-plate-tick, var(--sy-line-strong));
-  opacity: 0.8;
-  pointer-events: none;
-}
-
-.sy-plate::before {
-  top: -6px;
-  left: -6px;
-  border-width: 1px 0 0 1px;
-}
-
-.sy-plate::after {
-  bottom: -6px;
-  right: -6px;
-  border-width: 0 1px 1px 0;
 }
 
 /* ═══════════════════════════════════════════════════════════

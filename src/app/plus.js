@@ -161,7 +161,7 @@ export async function claimPlus(sessionId, { fetchImpl = globalThis.fetch?.bind(
     notePlusClaimed();
     return { ok: true };
   }
-  let body = null;
+  let body;
   try {
     body = await response.json();
   } catch {

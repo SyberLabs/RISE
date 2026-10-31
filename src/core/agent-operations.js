@@ -72,15 +72,6 @@ export const AGENT_OPERATION_OPS = Object.freeze([
   'request-compile'
 ]);
 
-const MUTATING_OPS = new Set([
-  'add-source', 'remove-source', 'reorder-source', 'import-asset',
-  'assign-visual', 'replace-visual', 'erase-visual',
-  'assign-audio', 'replace-audio', 'erase-audio',
-  'assign-narration', 'replace-narration', 'erase-narration',
-  'configure-field', 'set-pace', 'create-sync-group', 'remove-sync-group',
-  'set-atmosphere', 'set-render-profile'
-]);
-
 const PENDING_OPS = new Set(['request-asset']);
 const HOST_REQUEST_OPS = new Set(['request-preview', 'request-compile']);
 const UNIMPLEMENTED_OPS = new Set(['create-transition', 'revise-transition']);

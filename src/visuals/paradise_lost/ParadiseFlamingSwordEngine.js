@@ -295,7 +295,7 @@ export class ParadiseFlamingSwordEngine {
         this.swordMesh = { vertices, edges, faces };
     }
 
-    generate(signal = {}, seed = 'sword-seed', options = {}) {
+    generate(signal = {}, seed = 'sword-seed') {
         this.seed = seed;
         const rng = createSeededRandom(seed);
         this.time = 0;
@@ -339,7 +339,7 @@ export class ParadiseFlamingSwordEngine {
         return true;
     }
 
-    step(dt = 0.016, signal = {}) {
+    step(dt = 0.016) {
         this.time += dt;
 
         // Update rising divine flames
@@ -372,7 +372,7 @@ export class ParadiseFlamingSwordEngine {
         }
     }
 
-    render(canvas, options = {}) {
+    render(canvas) {
         if (!canvas) return false;
         const ctx = canvas.getContext('2d');
         if (!ctx) return false;
@@ -552,7 +552,7 @@ export class ParadiseFlamingSwordEngine {
         ctx.lineJoin = 'round';
         ctx.beginPath();
 
-        this.swordMesh.edges.forEach(([v1, v2, type]) => {
+        this.swordMesh.edges.forEach(([v1, v2]) => {
             const p1 = projVertices[v1];
             const p2 = projVertices[v2];
             ctx.moveTo(p1[0], p1[1]);
@@ -635,7 +635,7 @@ export class ParadiseFlamingSwordEngine {
         ctx.save();
         
         this.inscriptions.forEach((insc, idx) => {
-            const [px, py, pScale, rz] = project3D(0.0, insc.yPos, 0.02);
+            const [px, py, pScale] = project3D(0.0, insc.yPos, 0.02);
 
             // Compute 3D rotation angle of blade at inscription point
             const [pTopX, pTopY] = project3D(0.0, insc.yPos + 0.1, 0.02);

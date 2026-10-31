@@ -141,7 +141,7 @@ export function createKeyedStreamAdapter(provider, {
                 throw new AdapterError('CONNECT_FAILED', clip(`Could not reach ${provider.name}: ${cleaned(error?.message ?? error)}`, KEYED_LIMITS.message));
             }
             if (!response.ok) {
-                let text = '';
+                let text;
                 try {
                     text = await readSome(response, KEYED_LIMITS.error, controller.signal);
                 } finally {

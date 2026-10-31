@@ -672,7 +672,7 @@ test('Fit mask and contour share one glyph geometry (mask shapes with the real f
       const range = document.createRange();
       range.selectNodeContents(atom);
       const atomWidth = range.getBoundingClientRect().width;   // real-font advance
-      let maskWidth = 0;
+      let maskWidth;
       try { maskWidth = maskText.getComputedTextLength(); }
       catch { try { maskWidth = maskText.getBBox().width; } catch { maskWidth = 0; } }
       if (atomWidth > 4 && maskWidth > 4) {

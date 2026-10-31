@@ -257,7 +257,7 @@ export const textMethods = {
     if (this.locked) return;
     if (this.programInfo) return this.explainProgramOwnership(returnFocus);
     const settings = this.textMaterialSettings();
-    let wordFill = null;
+    let wordFill;
     // The edge survives the ink: it is the Fit word's, not the fill's.
     const keptBorder = normalizeWordFill(this.selection.wordFill).border || 'cream';
     if (value === 'accent') {

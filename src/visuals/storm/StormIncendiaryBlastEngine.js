@@ -66,7 +66,7 @@ export class StormIncendiaryBlastEngine {
         return value;
     }
 
-    generate(signal = {}, seed = 'crater-seed', options = {}) {
+    generate(signal = {}, seed = 'crater-seed') {
         this.seed = seed;
         const rng = createSeededRandom(seed);
 
@@ -242,7 +242,7 @@ export class StormIncendiaryBlastEngine {
         }
     }
 
-    step(dt = 0.016, signal = {}) {
+    step(dt = 0.016) {
         this.time += dt * this.params.speed;
 
         // Cool thermal heat maps over time
@@ -309,8 +309,6 @@ export class StormIncendiaryBlastEngine {
         for (let i = this.smokePuffs.length - 1; i >= 0; i--) {
             const sm = this.smokePuffs[i];
             sm.life += dt;
-            const progress = sm.life / sm.maxLife;
-            
             sm.vx *= 0.94;
             sm.vy -= 15 * dt; // Thermal buoyancy rising
 
@@ -373,7 +371,7 @@ export class StormIncendiaryBlastEngine {
                 // Final shading brightness
                 const shade = dot * shadow;
 
-                let r = 0, g = 0, b = 0;
+                let r, g, b;
 
                 if (pal === 'sulfur_mud') {
                     r = Math.floor(shade * (130 + hVal * 40));
@@ -490,7 +488,7 @@ export class StormIncendiaryBlastEngine {
             const tailX = px - (s.vx * 0.03 * normLife);
             const tailY = py - (s.vy * 0.03 * normLife);
 
-            let strokeColor = 'rgba(255, 255, 240, ';
+            let strokeColor;
             if (s.temp > 0.8) strokeColor = 'rgba(255, 255, 210, '; // White-hot lead
             else if (s.temp > 0.4) strokeColor = 'rgba(255, 140, 30, '; // Molten yellow/amber
             else strokeColor = 'rgba(200, 45, 10, '; // Scorched iron red

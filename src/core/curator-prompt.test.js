@@ -26,7 +26,7 @@ import {
 } from './library-extent.js';
 import { resolveLibrarySourceIds } from './scriptorium-resolve.js';
 import {
-    EXPERIENCE_PROGRAM_LIMITS, EXPERIENCE_PROGRAM_SCHEMA
+    EXPERIENCE_PROGRAM_SCHEMA
 } from './experience-program.js';
 import {
     MAX_SAFE_TARGET_WORDS, READING_LIMITS, READING_PACE

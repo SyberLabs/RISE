@@ -18,7 +18,7 @@ if (!textPath || !outDir) {
 } else {
     const text = readFileSync(textPath, 'utf8');
     const scoresPath = new URL('../../docs/affect/emopair-scores.json', import.meta.url);
-    let scores = { models: {} };
+    let scores;
     try {
         scores = JSON.parse(readFileSync(scoresPath, 'utf8'));
     } catch {

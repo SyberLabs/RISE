@@ -259,7 +259,7 @@ describe('a change of pace', () => {
         const aEnd = end('a')[0];
         expect(log.filter(e => e[1] === 'rateApplied')).toEqual([[aEnd, 'rateApplied', 'a', 2]]);
         // Every mark says the played time it was reached at.
-        for (const [at, , id, , tMs] of log.filter(e => e[1] === 'mark' && e[2] === 'a')) expect(at).toBe(tMs);
+        for (const [at, , , , tMs] of log.filter(e => e[1] === 'mark' && e[2] === 'a')) expect(at).toBe(tMs);
     });
 
     it('takes a rate set while held when released, and reports it then', async () => {

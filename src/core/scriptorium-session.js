@@ -26,7 +26,7 @@ import { CuratorContextValidationError, exportCuratorContext } from './curator-c
 import { buildCuratorPrompt } from './curator-prompt.js';
 import { requestJevRoute } from './jev-client.js';
 import { describeProgramRundown } from './program-rundown.js';
-import { clampReadingWpm, MAX_SAFE_TARGET_WORDS } from './reading-limits.js';
+import { clampReadingWpm } from './reading-limits.js';
 import {
   describeImportFailure,
   ExperienceProgramIoError,

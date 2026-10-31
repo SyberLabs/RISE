@@ -76,7 +76,7 @@ export async function beginOpenRouterConnect({
 }
 
 function readPending(storage) {
-  let raw = null;
+  let raw;
   try {
     raw = storage.getItem(PENDING_KEY);
     storage.removeItem(PENDING_KEY);

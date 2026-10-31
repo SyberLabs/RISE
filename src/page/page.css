@@ -132,8 +132,6 @@
 
 /* Rhythm slots the compositor assigned */
 .page-text.rhythm-tight  { margin-top: -0.1em; margin-bottom: 0.5em; }
-.page-text.rhythm-normal { }
-.page-text.rhythm-open   { margin-top: 0.5em; }
 /* Stillness: a works-less episode reads with deliberate air, never a
    scramble to fill the space. */
 .page-text.rhythm-still  { margin-top: 1.6em; }
@@ -164,8 +162,6 @@
   color: var(--color-fog);
   user-select: none;
 }
-.page-symbol.rhythm-tight { margin: 0.6rem 0; }
-.page-symbol.rhythm-still { margin: clamp(2rem, 5vh, 3rem) 0; }
 
 /* ─── Chapter opening ─── */
 .page-chapter {

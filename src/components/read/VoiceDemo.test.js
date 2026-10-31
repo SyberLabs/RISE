@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
 import { VoiceDemo } from './VoiceDemo.js';
-import { fetchPlusStatus, fetchPlusVoices, fetchPlusPaymentLink } from '../../app/plus.js';
+import { fetchPlusStatus, fetchPlusPaymentLink } from '../../app/plus.js';
 vi.mock('../../app/plus.js', async original => ({ ...await original(), fetchPlusStatus: vi.fn(), fetchPlusVoices: vi.fn(async () => [{ slug: 'river', label: 'River' }]), fetchPlusPaymentLink: vi.fn(async () => null) }));
 let demo;
 afterEach(() => { demo?.destroy(); document.body.innerHTML = ''; sessionStorage.clear(); vi.clearAllMocks(); });

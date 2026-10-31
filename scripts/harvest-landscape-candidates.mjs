@@ -380,7 +380,7 @@ export async function rijksCandidate(lodId) {
     if (!rijksImageIsPublicDomain(visual)) {
         return { title: resolved.title, why: `image rights ${rijksImageRights(visual).join(', ') || 'unstated'}, not public domain` };
     }
-    let info = null;
+    let info;
     try {
         const res = await politeFetch(resolved.fullImageUrl.replace(/\/full\/max\/0\/default\.jpg$/, '/info.json'));
         info = res.ok ? await res.json() : null;

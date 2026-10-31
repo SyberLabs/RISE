@@ -2206,7 +2206,7 @@ describe('Continuous Field (Gallery) wiring', () => {
     });
 
     it('does NOT start the field until mode, host, and consent all hold', () => {
-        const { cortex, host } = hostedContinuousCortex();
+        const { cortex } = hostedContinuousCortex();
         // host present + consent, but not in continuous mode
         expect(cortex._continuousField?.running).toBeFalsy();
         // enter continuous mode with a pool

@@ -1,7 +1,6 @@
 import { visualCortex } from '../visuals/visual-cortex.js';
 import { resolveFitProjection } from './fit-projection.js';
 import { GROUNDS, maskGroundFromConfig } from './mask-ground.js';
-import { resolveSessionWordFill } from './visual-selection.js';
 
 /**
  * How long a word waits to be dressed before plain type beats nothing.

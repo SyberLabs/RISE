@@ -54,7 +54,7 @@ export function createLiveStage({
     const id = wanted;
     timer = setTimeout(async () => {
       timer = null;
-      let made = null;
+      let made;
       try {
         made = await factories[id](host, wantedStyle);
       } catch {

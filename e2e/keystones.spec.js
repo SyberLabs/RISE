@@ -1,11 +1,6 @@
 import { test, expect, revealChamberControls } from './fixtures.js';
 
-
-async function authorize(page) {
-}
-
 test('Keystone corridor has durable cold, reload, launch, and Back behavior', async ({ page }) => {
-  await authorize(page);
   await page.goto('/');
   await expect(page.locator('[data-home="roll"]')).toBeVisible({ timeout: 15_000 });
 
@@ -122,7 +117,6 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
 });
 
 test('pilot completion offers a consented answer and one next reading', async ({ page }) => {
-  await authorize(page);
   await page.goto('/keystone/meditations');
   await expect(page.locator('[data-enter]')).toBeEnabled({ timeout: 15_000 });
   await page.locator('[data-enter]').click();

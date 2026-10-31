@@ -122,7 +122,7 @@ describe('Workshop Composition Studio architecture', () => {
     });
 
     it('coordinates one asset library, score canvas, and contextual inspector', () => {
-        const { workshop, container } = makeWorkshop();
+        const { container } = makeWorkshop();
 
         const form = container.querySelector('#workshop-form');
         const panes = [...form.querySelectorAll(':scope > .studio-pane')];

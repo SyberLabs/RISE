@@ -24,7 +24,7 @@ function storage() {
 
 export function loadFlameScenes() {
   if (memory) return [...memory];
-  let list = [];
+  let list;
   try {
     const parsed = JSON.parse(storage()?.getItem(FLAME_SCENES_KEY) || '[]');
     list = (Array.isArray(parsed) ? parsed : []).map(normalizeFlameRecipe).filter(Boolean);

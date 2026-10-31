@@ -761,7 +761,6 @@ html[data-embed="mcp"]:has(.rise-stage[data-transport="full"][data-bar="hidden"]
   --live-ground: rgb(10, 10, 15);
   --live-iris: rgb(135, 206, 235);
   --live-core: rgb(245, 245, 220);
-  --live-glow: rgb(176, 196, 222);
 }
 /* Behind the app's own fade-in, too: the page under the room is the room's ground, never the site's. */
 body:has(.live-venue) { background: var(--live-ground); }

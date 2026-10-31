@@ -168,7 +168,6 @@ export class Player {
         // See govern().
         this._governors = [];
         this.progressFrameId = null; // For smooth progress animation
-        this.transitionDuration = 300; // ms for fade transitions
         this.atomStartTime = null;
         this.currentAtomRemainingTime = null;
         // Stable denominator for progress through the current atom. Remaining
@@ -796,9 +795,9 @@ export class Player {
     /**
      * Show the atom the head is on again, to a view that has just been
      * mounted on a Player already part way through (a Dive that has come
-     * back). Nothing about the reading changes: the head, the timers, the
-     * state and the high-water mark are as they were, and the atom is the
-     * same one, so a listener that has not seen it can draw it.
+     * back). Nothing about the reading changes: the head, the timers and the
+     * state are as they were, and the atom is the same one, so a listener
+     * that has not seen it can draw it.
      */
     replayCurrent() {
         const atom = this.sessionState.currentAtom;
@@ -1062,9 +1061,6 @@ export class Player {
     _prepareCurrentAtom({ concealed = false } = {}) {
         const atom = this.sessionState.currentAtom;
         if (!atom) return false;
-        // The high-water mark rises with every atom shown (spec §6):
-        // rewound positions are below it; it never falls.
-        this.shuttle.markPosition(this.sessionState.currentIndex);
         this.emit('atom', {
             atom,
             index: this.sessionState.currentIndex,

@@ -16,9 +16,6 @@
  *   ← from home enters rewind at -2×, deeper to -4×, -8×.
  *   Stepping TOWARD home descends and STOPS at home — one keypress
  *   never glides through 1× into the opposite direction.
- *
- * The high-water mark (spec §6): the maximum position ever reached.
- * It never decreases; everything behind it is paid for.
  */
 
 export const SHUTTLE_LADDER = Object.freeze([-8, -4, -2, 1, 2, 4, 8]);
@@ -27,7 +24,6 @@ const HOME_INDEX = SHUTTLE_LADDER.indexOf(1);
 export class Shuttle {
     constructor() {
         this._ladderIndex = HOME_INDEX;
-        this._highWaterMark = 0;
     }
 
     /** Signed velocity: 1 at home, 2/4/8 forward, -2/-4/-8 in rewind. */
@@ -74,17 +70,6 @@ export class Shuttle {
     reset() {
         this._ladderIndex = HOME_INDEX;
         return this.velocity;
-    }
-
-    /**
-     * Record a reached position. Called wherever the atom index
-     * advances; the mark only ever rises.
-     */
-    markPosition(index) {
-        if (Number.isInteger(index) && index > this._highWaterMark) {
-            this._highWaterMark = index;
-        }
-        return this._highWaterMark;
     }
 
     /**

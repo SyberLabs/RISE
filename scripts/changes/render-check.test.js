@@ -8,7 +8,7 @@ import { PUBLISHED } from '../../src/core/quality/fixtures/figures.js';
 import { renderFigure } from '../../src/core/figures/figure-kit.js';
 import { STUDY, boundSpecs } from '../../src/core/figures/fixtures/specs.js';
 
-let hasChromium = false;
+let hasChromium;
 try {
   const { chromium } = await import('@playwright/test');
   hasChromium = existsSync(chromium.executablePath());

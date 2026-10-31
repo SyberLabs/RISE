@@ -4981,7 +4981,7 @@ export class Chamber {
   _fieldSamples(count, sample, title) {
     const works = [];
     for (let n = 0; n < count; n++) {
-      let url = null;
+      let url;
       try { url = sample(n); } catch { url = null; }
       // A field that will not draw yields stillness, never a broken frame.
       if (url) works.push({ name: title, data: { url, title } });

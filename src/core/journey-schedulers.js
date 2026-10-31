@@ -18,7 +18,6 @@
  * reading it is following.
  */
 
-import { movementForSource } from './journey-compiler.js';
 import { cueForAtom } from './visual-scheduler.js';
 
 /**

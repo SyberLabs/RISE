@@ -649,7 +649,7 @@ export async function inspectAcquisition(requestValue, options = {}) {
   const selected = selectProviders(providers, request);
   const candidates = [];
   for (const provider of selected) {
-    let found = [];
+    let found;
     try {
       found = await provider.inspect(request, options);
     } catch (error) {
