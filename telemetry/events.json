@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "dataset": "syberlabs_events",
+  "events": {
+    "rise.current.admitted": {
+      "owner": "Composer",
+      "decision": "Which host apps use RISE's connector, and how long and how pictured the readings their models compose are, to decide where Composer work goes next.",
+      "blobs": [
+        { "name": "host", "values": ["claude", "chatgpt", "other"], "derived": "the request: Anthropic's published connector egress, or a User-Agent that begins openai-mcp/; neither the address nor the string is written" }
+      ],
+      "doubles": [
+        { "name": "beats" },
+        { "name": "scenes" }
+      ]
+    },
+    "rise.current.refused": {
+      "owner": "Composer",
+      "decision": "Which refusals each host app's model meets, to decide what to fix first in the tool's description, the guide and the validator.",
+      "blobs": [
+        { "name": "host", "values": ["claude", "chatgpt", "other"], "derived": "the request: Anthropic's published connector egress, or a User-Agent that begins openai-mcp/; neither the address nor the string is written" },
+        {
+          "name": "code",
+          "values": [
+            "MCP_ARGUMENTS", "MCP_TOO_LARGE",
+            "CURRENT_ANCHOR", "CURRENT_DIVES", "CURRENT_DUPLICATE_ID", "CURRENT_ID", "CURRENT_LITERAL", "CURRENT_LOOK",
+            "CURRENT_OBJECT", "CURRENT_ORIGIN", "CURRENT_PROVIDER", "CURRENT_QUOTE", "CURRENT_RESERVED_TEXT", "CURRENT_SCHEMA",
+            "CURRENT_SEGMENTS", "CURRENT_STYLE", "CURRENT_TEXT", "CURRENT_THEME", "CURRENT_TOTAL_TEXT", "CURRENT_UNKNOWN_FIELD",
+            "CURRENT_VISUAL",
+            "BEAT_COUNT", "BEAT_CUE", "BEAT_EMPHASIS", "BEAT_HOLD", "BEAT_KIND", "BEAT_PLACE", "BEAT_SCENE", "BEAT_SIZE",
+            "BEAT_SOUND", "BEAT_TRANSITION", "BEAT_TYPE",
+            "SCENE_CODE", "SCENE_COUNT", "SCENE_ENGINE", "SCENE_PARAM", "SCENE_SVG",
+            "SCENE_COLLECTION", "SCENE_CODE_ADMISSION", "SCENE_SVG_ADMISSION",
+            "other"
+          ]
+        }
+      ],
+      "doubles": []
+    }
+  }
+}
