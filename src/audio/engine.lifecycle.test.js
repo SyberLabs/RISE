@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../core/telemetry.js', () => ({ count: vi.fn() }));
+
+import { count } from '../core/telemetry.js';
 import { AudioEngine } from './engine.js';
 
 describe('AudioEngine lifecycle ownership', () => {
@@ -66,6 +70,7 @@ describe('AudioEngine lifecycle ownership', () => {
   });
 
   it('reports initialization failure through its injected boundary', async () => {
+    count.mockClear();
     const onUnavailable = vi.fn();
     vi.stubGlobal('AudioContext', class BlockedAudioContext {
       constructor() { throw new Error('blocked'); }
@@ -78,6 +83,8 @@ describe('AudioEngine lifecycle ownership', () => {
       'Audio initialization blocked. Interact to enable.',
       4000
     );
+    // And counted as its class alone (src/core/telemetry.js), with nothing of the error in it.
+    expect(count.mock.calls).toEqual([['rise.app.failed', { class: 'audio_failed' }]]);
   });
 
   /**

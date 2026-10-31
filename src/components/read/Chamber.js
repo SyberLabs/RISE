@@ -101,7 +101,8 @@ import {
 import { hasNextLibraryDivision } from '../../core/reading-continuation.js';
 import { READING_PACE } from '../../core/reading-limits.js';
 import { resolveChamberStreamFace } from '../../core/chamber-stream-face.js';
-import { beginStep } from '../../core/begin-steps.js';
+import { beginStep, takeBegin } from '../../core/begin-steps.js';
+import { count } from '../../core/telemetry.js';
 import { clearChromeTheme, paintChromeTheme } from '../../core/chrome-theme.js';
 import {
   estimateGlyphBox,
@@ -192,6 +193,19 @@ const PROGRESSIVE_GLASS_PANE = 'linear-gradient(to right, '
 /** What a reader is told when the Player could not go on (onPlayerError). */
 const READING_HELD_NOTICE = 'The reading could not continue here. Press play to try again.';
 
+/** The provenances of RISE's own library: an Archive or Library work, a School text, a Chapel book and a Keystone. */
+const LIBRARY_KINDS = Object.freeze(['library-work', 'library-division', 'school', 'chapel-book', 'keystone']);
+
+/**
+ * Where a reading came from, for its count (src/core/telemetry.js): the reader's own text, a reading kept at a public
+ * address (route-url.js), a work of RISE's library, or other.
+ */
+function readingSource(session) {
+  if (session?.provenance?.kind === 'local-text') return 'import';
+  if (typeof session?.publicPath === 'string') return 'public';
+  return LIBRARY_KINDS.includes(session?.provenance?.kind) ? 'library' : 'other';
+}
+
 /**
  * The words of what is shown, with its formulas each as one word (math-typeset.js) and a beat's
  * emphasis marked on the words it names, whatever their punctuation or case.
@@ -258,6 +272,11 @@ export class Chamber {
     this._settingsFailed = false;
     this._jevLook = {};
     this._destroyed = false;
+    // The reading's counts (src/core/telemetry.js): when it began, and whether its end and its first word are counted.
+    this._begunAt = null;
+    this._endCounted = false;
+    this._firstWordCounted = false;
+    this._onPageHide = null;
     this._firstReadChoiceSeen = false;
     this._fitBoxSnapshot = null;
     this.fitMask = new FitMaskRuntime(this);
@@ -524,6 +543,7 @@ export class Chamber {
       this._pageOpenTimer = setTimeout(() => {
         this._pageOpenTimer = null;
         this.togglePageMode(true);
+        this._countBegun('page');
       }, 120);
     } else if (this.autoStart && !this.hostPlays) {
       // Auto-start if requested (skip pre-session screen), in a task of its
@@ -1474,6 +1494,8 @@ export class Chamber {
           concealed,
           spoken
         });
+        // The first word spoken or shown ends R2's interval, when Home's Begin opened the reading.
+        if (!concealed && !isBoundary && data.atom?.content?.trim()) this._countFirstWord();
 
         // Refill after painting: generation is the slow neighbour and
         // must never delay the frame the reader is waiting on.
@@ -1709,6 +1731,8 @@ export class Chamber {
     display.style.display = 'none';
     pre.style.display = '';
     pre.style.opacity = '1';
+    // The reader's second press is no part of R2's interval: this reading's first word is not counted.
+    takeBegin();
     return true;
   }
 
@@ -5591,6 +5615,7 @@ export class Chamber {
   }
 
   onSessionComplete() {
+    this._countEnded('yes');
     if (this.chromeless) {
       // The host shows what comes next; the field holds its last frame under the last sentence.
       this._visualFieldDirector?.pause();
@@ -5689,9 +5714,43 @@ export class Chamber {
     this.announceMovement(READING_HELD_NOTICE);
   }
 
+  /**
+   * The reading's begin, counted once (src/core/telemetry.js): where it came from, and whether it opened as the stream
+   * or the page. From then on a reader who closes the tab ends it as surely as one who leaves it.
+   */
+  _countBegun(mode) {
+    if (this._begunAt !== null) return;
+    this._begunAt = performance.now();
+    count('rise.reading.begun', { source: readingSource(this.session), mode });
+    this._onPageHide = () => this._countEnded('no');
+    window.addEventListener('pagehide', this._onPageHide);
+  }
+
+  /**
+   * Its end, counted once: whether it reached its last word, and its minutes since it began, which the server buckets.
+   */
+  _countEnded(end) {
+    if (this._begunAt === null || this._endCounted) return;
+    this._endCounted = true;
+    count('rise.reading.ended', { end, minutes: (performance.now() - this._begunAt) / 60_000 });
+  }
+
+  /**
+   * Its first word, counted once, when Home's Begin opened it: R2's interval (src/core/begin-steps.js), measured on
+   * the reader's own device.
+   */
+  _countFirstWord() {
+    if (this._firstWordCounted) return;
+    this._firstWordCounted = true;
+    if (this.session?.origin?.view !== 'home') return;
+    const ms = takeBegin();
+    if (ms !== null) count('rise.reading.first_word', { ms });
+  }
+
   onStateChange(data) {
     const state = data.state;
     console.log('[Chamber] Player state change:', state);
+    if (state === 'playing') this._countBegun('stream');
     if (state === 'playing' && this._readingHeld) {
       this._readingHeld = false;
       this.announceMovement(this._activeMovement?.title || null);
@@ -5848,6 +5907,11 @@ export class Chamber {
     for (const off of this._playerOffs || []) off();
     this._playerOffs = [];
     this._destroyed = true;
+    // A reading left before its end ends here, and a Home reading left before its first word leaves no interval open.
+    this._countEnded('no');
+    if (!this._firstWordCounted && this.session?.origin?.view === 'home') takeBegin();
+    if (this._onPageHide) window.removeEventListener('pagehide', this._onPageHide);
+    this._onPageHide = null;
     this._glass?.destroy();
     this._stopGlassMotion();
     if (this._syncFullscreenControl) {

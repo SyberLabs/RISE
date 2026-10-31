@@ -138,6 +138,7 @@ import { soundTrimDb } from './sound-levels.js';
 import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 import { audioDiag } from '../core/audio-diagnostics.js';
 import { siteUrl } from '../core/embed-address.js';
+import { count } from '../core/telemetry.js';
 import { AudioLifecycle, AUDIO_STATUS } from './lifecycle.js';
 
 /**
@@ -450,6 +451,8 @@ export class AudioEngine {
                 this.sessionGain = null;
                 this.voiceGain = null;
                 this.isInitialized = false;
+                // Counted with nothing of the error in it (src/core/telemetry.js).
+                count('rise.app.failed', { class: 'audio_failed' });
                 this.onUnavailable('Audio initialization blocked. Interact to enable.', 4000);
                 throw error;
             }

@@ -22,6 +22,10 @@ const allowed = event => (Object.hasOwn(EVENTS.events, event) ? EVENTS.events[ev
 /** The values the allowlist gives an event's field, for a caller that must fit what it has to them. */
 export const valuesOf = (event, name) => allowed(event)?.blobs.find(blob => blob.name === name)?.values ?? [];
 
+/** A count: a whole number from 0, and within what its field gives it, one of its values or a step up to its most. */
+const isCount = (value, { values, max = Number.MAX_SAFE_INTEGER, step = 1 }) => Number.isSafeInteger(value) && value >= 0
+  && value <= max && value % step === 0 && (values === undefined || values.includes(value));
+
 /**
  * An event's data point, or null for anything the allowlist does not name: an event it does not list, a field it does
  * not give the event, one of the event's fields missing, a value off its field's list, or a number that is not a count.
@@ -32,7 +36,7 @@ export function dataPoint(event, fields) {
   const names = [...spec.blobs, ...spec.doubles].map(field => field.name);
   if (Object.keys(fields).length !== names.length || !names.every(name => Object.hasOwn(fields, name))) return null;
   if (!spec.blobs.every(({ name, values }) => Array.isArray(values) && values.includes(fields[name]))) return null;
-  if (!spec.doubles.every(({ name }) => Number.isSafeInteger(fields[name]) && fields[name] >= 0)) return null;
+  if (!spec.doubles.every(double => isCount(fields[double.name], double))) return null;
   return {
     indexes: [event],
     blobs: [event, RELEASE, ...spec.blobs.map(({ name }) => fields[name])],

@@ -75,5 +75,11 @@
     "name": "PLUS_CLAIM_LIMITER",
     "namespace_id": "2026100802",
     "simple": { "limit": 5, "period": 60 }
+  }, {
+    // POST /api/count (worker/count.mjs) answers 204 whatever happens; each address is counted at most 60 times a
+    // minute, and the rest are dropped unwritten. Production alone binds it, as it alone binds EVENTS.
+    "name": "COUNT_LIMITER",
+    "namespace_id": "2026103102",
+    "simple": { "limit": 60, "period": 60 }
   }]
 }

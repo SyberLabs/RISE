@@ -90,7 +90,7 @@ describe('the allowlist', () => {
   it('is version 1 of one dataset, and each event is <system>.<object>.<outcome> with an owner and the decision it informs', () => {
     expect(allowlist.version).toBe(1);
     expect(allowlist.dataset).toBe('syberlabs_events');
-    expect(Object.keys(allowlist.events)).toEqual([ADMITTED, REFUSED]);
+    expect(Object.keys(allowlist.events)).toEqual([ADMITTED, REFUSED, 'rise.reading.begun', 'rise.reading.ended', 'rise.app.failed', 'rise.reading.first_word']);
     for (const [event, spec] of Object.entries(allowlist.events)) {
       expect(event).toMatch(/^[a-z]+\.[a-z_]+\.[a-z_]+$/u);
       expect(Object.keys(spec), event).toEqual(['owner', 'decision', 'blobs', 'doubles']);
@@ -107,7 +107,12 @@ describe('the allowlist', () => {
         expect(blob.values.every(value => typeof value === 'string' && /^[A-Za-z0-9_]+$/u.test(value)), `${event}.${blob.name}`).toBe(true);
         expect(new Set(blob.values).size, `${event}.${blob.name}`).toBe(blob.values.length);
       }
-      for (const double of spec.doubles) expect(Object.keys(double), `${event}.${double.name}`).toEqual(['name']);
+      // A count is any whole number from 0, or one of a rising list of them, or a step up to a most.
+      for (const double of spec.doubles) {
+        expect([['name'], ['name', 'values'], ['name', 'max', 'step']], `${event}.${double.name}`).toContainEqual(Object.keys(double));
+        if (double.values) expect(double.values.every((value, i) => Number.isSafeInteger(value) && value >= 0 && (i === 0 || value > double.values[i - 1])), `${event}.${double.name}`).toBe(true);
+        if (double.max !== undefined) expect(Number.isSafeInteger(double.max) && Number.isSafeInteger(double.step) && double.step > 0 && double.max % double.step === 0, `${event}.${double.name}`).toBe(true);
+      }
       const names = [...spec.blobs, ...spec.doubles].map(field => field.name);
       expect(new Set(names).size, event).toBe(names.length);
       // The event and the release lead the blobs, and the 1 the doubles; Analytics Engine takes twenty of each.
@@ -135,6 +140,19 @@ describe('a data point', () => {
     expect(dataPoint(ADMITTED, fields)).toEqual({ indexes: [ADMITTED], blobs: [ADMITTED, 'unknown', 'claude'], doubles: [1, 3, 1] });
     expect(dataPoint(ADMITTED, { scenes: 1, beats: 3, host: 'claude' })).toEqual(dataPoint(ADMITTED, fields));
     expect(dataPoint(REFUSED, { code: 'CURRENT_THEME', host: 'chatgpt' })).toEqual({ indexes: [REFUSED], blobs: [REFUSED, 'unknown', 'chatgpt', 'CURRENT_THEME'], doubles: [1] });
+    expect(dataPoint('rise.reading.ended', { browser: 'safari', device: 'mobile', end: 'yes', minutes: 10 }))
+      .toEqual({ indexes: ['rise.reading.ended'], blobs: ['rise.reading.ended', 'unknown', 'safari', 'mobile', 'yes'], doubles: [1, 10] });
+    expect(dataPoint('rise.reading.first_word', { browser: 'edge', device: 'desktop', ms: 60_000 }))
+      .toEqual({ indexes: ['rise.reading.first_word'], blobs: ['rise.reading.first_word', 'unknown', 'edge', 'desktop'], doubles: [1, 60_000] });
+  });
+
+  it('is nothing for a number off its field’s list, past its most, or between its steps', () => {
+    const ended = minutes => dataPoint('rise.reading.ended', { browser: 'chrome', device: 'desktop', end: 'no', minutes });
+    const first = ms => dataPoint('rise.reading.first_word', { browser: 'chrome', device: 'desktop', ms });
+    expect([1, 2, 5, 10, 20, 30, 60, 120].every(minutes => ended(minutes) !== null)).toBe(true);
+    for (const minutes of [0, 3, 7.5, 121, 240]) expect(ended(minutes), String(minutes)).toBeNull();
+    expect([0, 50, 1250, 60_000].every(ms => first(ms) !== null)).toBe(true);
+    for (const ms of [1234, 25, 60_050, -50, 1250.5]) expect(first(ms), String(ms)).toBeNull();
   });
 
   it('is nothing for anything the allowlist does not name', () => {

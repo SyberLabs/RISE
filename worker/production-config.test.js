@@ -60,6 +60,16 @@ describe('the production Worker', () => {
     for (const file of others) expect(load(file).analytics_engine_datasets, file).toBeUndefined();
   });
 
+  // A reader's beacon (worker/count.mjs) is written only within its address's limit, a namespace of its own, and only
+  // production declares it, as only production binds the dataset.
+  it('holds each address to 60 counts a minute, and is the only configuration that does', () => {
+    expect(config.ratelimits).toContainEqual({ name: 'COUNT_LIMITER', namespace_id: expect.stringMatching(/^\d+$/u), simple: { limit: 60, period: 60 } });
+    const namespaces = config.ratelimits.map(limiter => limiter.namespace_id);
+    expect(new Set(namespaces).size).toBe(namespaces.length);
+    const others = readdirSync('.').filter(file => /^wrangler\..*\.jsonc$/u.test(file) && file !== 'wrangler.production.jsonc');
+    for (const file of others) expect(load(file).ratelimits ?? [], file).not.toContainEqual(expect.objectContaining({ name: 'COUNT_LIMITER' }));
+  });
+
   // The vendor id of a voice comes only from this list; "default" is the PLUS_VOICE_ID secret.
   it('offers a default voice and an id for every other one', () => {
     const voices = config.vars.PLUS_VOICES;

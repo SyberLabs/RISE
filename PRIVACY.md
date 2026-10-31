@@ -454,6 +454,22 @@ Cloudflare describes the service at
 <https://developers.cloudflare.com/web-analytics/faq/> and
 <https://www.cloudflare.com/web-analytics/>.
 
+RISE's own server also keeps anonymous event counts, which the page on
+`rise.syberlabs.io` sends to `/api/count`: that a reading began (and whether it
+came from RISE's library, your own text, a public page or elsewhere, and
+whether it opened as a stream or a page); that it ended (whether it reached its
+last word, and roughly how many minutes it lasted); how long its first word
+took after you pressed Begin on Home; and that one of a few failures happened
+(no speech voice, audio that would not start, no WebGL graphics, or an
+unexpected error). Each count also names your browser's family and whether
+your device is a phone or tablet or a computer, which the server reads from the
+user-agent and does not keep. The counts set no cookie, use no storage in your
+browser, and carry no identifier: not your address, not the user-agent, not a
+session. They never include reading text or anything you type. Each address may send 60 a minute, counted for that minute
+by Cloudflare's rate limiter. Nothing is sent from inside ChatGPT or Claude,
+from a page that frames RISE, or from `rise.syberlabs.space`. The counts are
+kept for three months.
+
 ---
 
 ## 5. What your browser fetches from other people
@@ -512,6 +528,12 @@ We state these plainly because the absence is the point.
   page-load speed on `rise.syberlabs.io` (section 4). It sets no cookie and
   keeps no identifier. No Google Analytics, no Tag Manager, no Plausible, no
   Sentry, no other analytics. No other third-party script runs on the page.
+- **Anonymous event counts.** RISE's own server also counts a few events on
+  `rise.syberlabs.io` (section 4): a reading's begin and end, how long its first
+  word took after Begin, and a few kinds of failure, each with the browser's
+  family and whether the device is a phone or tablet or a computer. They set no
+  cookie, use no storage, carry no identifier, never include reading text or
+  anything you type, and are kept for three months.
 - **No advertising, no pixels, no fingerprinting.**
 - **No advertising or reading-history tracking across sites or visits.**
   Subscriber and administrator authorization cookies identify their respective
@@ -624,6 +646,11 @@ We do not, and never have.
   counts are totals. They use no cookie or identifier and never include
   reading text or anything you type. You can object under section 8, or block
   the script yourself.
+- **Counting reading events** with RISE's anonymous event counts, in section 4:
+  the same legitimate interest, in knowing how readings begin and end and what
+  fails in them, so we can fix and improve the site (Article 6(1)(f)). Each
+  count is one anonymous event with no cookie or identifier, and never includes
+  reading text or anything you type. You can object under section 8.
 
 We do not ask for consent for these counts, because they set no cookie, use no
 local storage, and identify no one. If we ever add analytics that do any of
@@ -643,7 +670,8 @@ logging is on for RISE's server and keeps request metadata (method, path,
 status, timing, and the client address Cloudflare sees) for at most 7 days (3
 on Cloudflare's free plan); no tool text or reader content is logged. RISE's
 counts of calls to its tool inside ChatGPT or Claude (section 4) hold no text
-and no identifier and are kept for three months. Cloudflare
+and no identifier and are kept for three months. RISE's anonymous event counts
+from `rise.syberlabs.io` (section 4) are kept for three months. Cloudflare
 keeps every page-view report for 7 days, then reduces them to a sample of about
 10%; we can see the counts for the previous six months. OpenRouter processes the requests
 you send it under its own policy; see section 4. No provider-side retention
