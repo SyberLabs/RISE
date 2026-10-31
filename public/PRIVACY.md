@@ -380,6 +380,10 @@ text of its passages, and optionally a theme, a look, and short notes.
   is) are kept in your browser's storage for the player.
 - Requests to the tool are counted per IP address for one minute, by
   Cloudflare's rate limiter, to stop abuse.
+- RISE counts each call to the tool by the app it came from (ChatGPT, Claude
+  or another) and its outcome (accepted, with how many passages and pictures
+  the reading has, or refused, with the kind of fault), with no text and no
+  identifier, and keeps the counts for three months.
 - Cloudflare Workers observability logging is on for RISE's server: Cloudflare
   keeps request metadata (method, path, status, timing, and the client address
   Cloudflare sees) for its short retention window, at most 7 days (3 on its free
@@ -637,7 +641,9 @@ and OpenAI process Live requests under their own policies. Cloudflare and Netlif
 API request data under their own policies. Cloudflare Workers observability
 logging is on for RISE's server and keeps request metadata (method, path,
 status, timing, and the client address Cloudflare sees) for at most 7 days (3
-on Cloudflare's free plan); no tool text or reader content is logged. Cloudflare
+on Cloudflare's free plan); no tool text or reader content is logged. RISE's
+counts of calls to its tool inside ChatGPT or Claude (section 4) hold no text
+and no identifier and are kept for three months. Cloudflare
 keeps every page-view report for 7 days, then reduces them to a sample of about
 10%; we can see the counts for the previous six months. OpenRouter processes the requests
 you send it under its own policy; see section 4. No provider-side retention

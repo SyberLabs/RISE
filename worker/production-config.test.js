@@ -50,6 +50,16 @@ describe('the production Worker', () => {
     expect(Number(config.vars.PLUS_DAILY_CHAR_CAP)).toBeGreaterThan(0);
   });
 
+  // The event counts (worker/telemetry.mjs) are production's alone: a preview, the demo or staging counts nothing,
+  // and the one dataset is the one telemetry/events.json allows.
+  it('binds the event counts’ dataset, and is the only configuration that does', () => {
+    const allowlist = JSON.parse(readFileSync('telemetry/events.json', 'utf8'));
+    expect(config.analytics_engine_datasets).toEqual([{ binding: 'EVENTS', dataset: allowlist.dataset }]);
+    const others = readdirSync('.').filter(file => /^wrangler\..*\.jsonc$/u.test(file) && file !== 'wrangler.production.jsonc');
+    expect(others.length).toBeGreaterThan(0);
+    for (const file of others) expect(load(file).analytics_engine_datasets, file).toBeUndefined();
+  });
+
   // The vendor id of a voice comes only from this list; "default" is the PLUS_VOICE_ID secret.
   it('offers a default voice and an id for every other one', () => {
     const voices = config.vars.PLUS_VOICES;
