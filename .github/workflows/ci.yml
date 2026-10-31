@@ -22,6 +22,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          # The fast-test check diffs HEAD^..HEAD: on a pull request, the base branch and GitHub's merge commit.
+          fetch-depth: 2
       - uses: ./.github/actions/setup
         with:
           ffmpeg: 'true'
@@ -41,7 +43,7 @@ jobs:
           npm run docs:diagram
           git diff --exit-code -- docs/specs/ARCHITECTURE.md
           npm run content:build
-          # The list and the number of files it must collect live in vitest.fast.config.js.
+          # The list lives in vitest.fast.config.js; the check after the run names any test that leaves it.
           npx vitest run --config vitest.fast.config.js \
             --reporter=default --reporter=json --outputFile.json="$RUNNER_TEMP/fast-tests.json" &
           tests=$!
@@ -54,13 +56,25 @@ jobs:
           # Attest the private provider wrapper/config before root deploys the key-holding preview.
           ./node_modules/.bin/wrangler deploy --config wrangler.plus-preview.jsonc --dry-run --outdir "$RUNNER_TEMP/voice-provider-bundle"
           wait "$tests"
+          # No test leaves the fast run without a sound (#377): every entry must match a file the run
+          # collected, and a test this change moves must still be collected where it lands.
           # shellcheck disable=SC2016 # JavaScript, not shell, expands ${...} here.
           FAST_TESTS_REPORT="$RUNNER_TEMP/fast-tests.json" node --input-type=module -e '
+            import { execFileSync } from "node:child_process";
             import { readFileSync } from "node:fs";
-            import { FAST_TEST_FILES } from "./vitest.fast.config.js";
-            const ran = JSON.parse(readFileSync(process.env.FAST_TESTS_REPORT, "utf8")).testResults.length;
-            if (ran !== FAST_TEST_FILES) {
-              console.error(`The fast unit tests collected ${ran} files; vitest.fast.config.js expects ${FAST_TEST_FILES}.`);
+            import { matchesGlob, relative } from "node:path";
+            import fast from "./vitest.fast.config.js";
+            const { include, exclude } = fast.test;
+            const ran = JSON.parse(readFileSync(process.env.FAST_TESTS_REPORT, "utf8")).testResults.map(file => relative(".", file.name));
+            const collects = file => include.some(glob => matchesGlob(file, glob)) && !exclude.some(glob => matchesGlob(file, glob));
+            const lost = include.filter(glob => !ran.some(file => matchesGlob(file, glob)))
+              .map(glob => `vitest.fast.config.js lists ${glob}, which matches no file the fast run collected.`);
+            const renames = execFileSync("git", ["diff", "--name-status", "--find-renames", "--diff-filter=R", "HEAD^", "HEAD"], { encoding: "utf8" });
+            for (const [, from, to] of renames.split("\n").filter(Boolean).map(line => line.split("\t"))) {
+              if (collects(from) && !ran.includes(to)) lost.push(`${from} moved to ${to}, which the fast run does not collect.`);
+            }
+            if (lost.length) {
+              console.error(lost.join("\n"));
               process.exit(1);
             }'
           wait "$audit"

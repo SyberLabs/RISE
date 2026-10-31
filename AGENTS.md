@@ -126,8 +126,8 @@ current scope; the live Realtime page stays switched off by default. See
   `npm run measure:first-load`, which holds what `dist/index.html` fetches to
   a ratcheting brotli budget declared in the script, then the browser gate
   (`npm run test:e2e:gate`, a few minutes). It runs for every pull request,
-  including prose-only changes. The fast unit test list, and the number of
-  files it must collect, are in `vitest.fast.config.js`.
+  including prose-only changes. The fast unit test list is in
+  `vitest.fast.config.js`; a new test under a listed directory needs no edit.
 - After a merge, the `CI` job runs again on `main` and uploads the `dist/` it
   built; the `production` job waits for it and deploys that artifact without
   rebuilding. The full unit, Scriptorium, and sharded browser suites run on
