@@ -242,7 +242,7 @@ const NO_SOUNDSCAPE = 'none';
  *
  * @returns {{ family: string, id: string, kind: string }}
  */
-export function visualAssetReference(assetId) {
+function visualAssetReference(assetId) {
   const id = String(assetId ?? '');
   for (const prefix of ['project-image:', 'project-video:', 'sequence-asset:']) {
     if (id.startsWith(prefix)) {
@@ -265,7 +265,7 @@ export function visualAssetReference(assetId) {
 }
 
 /** The same for an audio `assetId`: `soundscape:`, `tone:` or `swell:`. */
-export function audioAssetReference(assetId) {
+function audioAssetReference(assetId) {
   const id = String(assetId ?? '');
   if (id.startsWith('soundscape:')) {
     return { family: 'soundscapes', id: id.slice('soundscape:'.length) };

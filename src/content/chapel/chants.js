@@ -28,11 +28,6 @@
 
 import { freezeManifest } from '../manifest.js';
 
-export const CHANT_FAMILIES = Object.freeze({
-  gregorian: 'Gregorian',
-  znamenny: 'Znamenny'
-});
-
 export const CHAPEL_CHANTS = freezeManifest([
   // ── Gregorian ──
   {

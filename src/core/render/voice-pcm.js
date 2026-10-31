@@ -67,7 +67,7 @@ function addBytes(map, key, value) {
  * asset id or recitation path. Asset records may also carry `.bytes` when
  * they never enter preflight validation.
  */
-export function collectVoiceBytes(inventory = {}, extra = null) {
+function collectVoiceBytes(inventory = {}, extra = null) {
   const map = new Map();
   const bags = [extra, inventory.voiceBytes, inventory.bytesById];
   for (const bag of bags) {
@@ -84,7 +84,7 @@ export function collectVoiceBytes(inventory = {}, extra = null) {
   return map;
 }
 
-export function readPublicRecitationAsset(assetPath) {
+function readPublicRecitationAsset(assetPath) {
   const relative = String(assetPath || '').replace(/^\/+/, '');
   if (!relative.startsWith('audio/recitation/') || relative.includes('..')) return null;
   try {
@@ -242,7 +242,7 @@ export function resolveSpokenClips(plan, {
   return clips;
 }
 
-export function resampleAudio(clip, destRate, destChannels) {
+function resampleAudio(clip, destRate, destChannels) {
   const srcRate = clip.sampleRate;
   const srcChannels = clip.channels;
   const src = clip.pcm;

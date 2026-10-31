@@ -28,7 +28,7 @@ export const optLabel = o => (typeof o === 'string' ? o[0].toUpperCase() + o.sli
  * acting on. An inert chip with no reason attached reads as a broken one, so
  * each state now names itself where the cursor already is.
  */
-export const CHIP_REASON = Object.freeze({
+const CHIP_REASON = Object.freeze({
   readOnly: 'This reading came with its own visual program, which owns this choice.'
 });
 

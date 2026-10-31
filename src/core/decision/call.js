@@ -7,7 +7,7 @@
  */
 import { validProviderResponse, validProviderResult } from './providers.js';
 
-export const DEFAULT_DEADLINE_MS = 8000;
+const DEFAULT_DEADLINE_MS = 8000;
 const MAX_RESPONSE_BYTES = 256 * 1024;
 
 const MESSAGES = Object.freeze({
@@ -30,10 +30,6 @@ export class DecisionError extends Error {
     this.name = 'DecisionError';
     this.code = code;
   }
-}
-
-export function decisionMessage(code) {
-  return MESSAGES[code] || MESSAGES.UPSTREAM;
 }
 
 function statusCode(status) {

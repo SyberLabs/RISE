@@ -293,7 +293,7 @@ test.describe('passage-directed visuals', () => {
       const chamber = window.__RISE_TEST__.getView('read')?.paneInstance('chamber');
       for (let i = 0; i < 12; i += 1) {
         chamber.setVisualDirectionMode(i % 3 === 0 ? 'off' : i % 3 === 1 ? 'follow' : 'hold');
-        chamber._editHeldFlame(recipe => ({ ...recipe, symmetry: 1 + (i % 8) }));
+        chamber._holdRecipe({ ...chamber._currentFlameConfig()?.recipe, symmetry: 1 + (i % 8) });
         await new Promise(resolve => setTimeout(resolve, 150));
       }
     });
@@ -311,16 +311,16 @@ test.describe('Visual Lab', () => {
     await page.waitForTimeout(1500);
     const lit = await litFraction(page);
     expect(lit).toBeGreaterThan(0.005);
-    const before = await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').currentRecipe.id);
+    const before = await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').recipe.id);
     await page.setInputFiles('[name="vl-import"]', {
       name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{"schema":"nope"}')
     });
     await expect(page.locator('#vl-status')).toHaveText(/unsupported Living Flame version.*unchanged/);
-    expect(await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').currentRecipe.id)).toBe(before);
+    expect(await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').recipe.id)).toBe(before);
     await page.locator('[data-vl="mutate"]').click();
     await expect(page.locator('[data-vl="undo"]')).toBeEnabled();
     await page.locator('[data-vl="undo"]').click();
-    expect(await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').currentRecipe.id)).toBe(before);
+    expect(await page.evaluate(() => window.__RISE_TEST__.getView('make').tabInstance('visual-lab').recipe.id)).toBe(before);
   });
 
   test.describe('at pixel ratio 2, where every quality step resizes the canvas', () => {

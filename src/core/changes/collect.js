@@ -10,7 +10,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 50;
 
 /** Newest-updated first: a pull request merged in the period was updated in it or later. */
-export const MERGED_PULLS_QUERY = `query($owner: String!, $name: String!, $cursor: String) {
+const MERGED_PULLS_QUERY = `query($owner: String!, $name: String!, $cursor: String) {
   repository(owner: $owner, name: $name) {
     pullRequests(baseRefName: "main", states: MERGED, first: ${PAGE_SIZE}, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
       pageInfo { hasNextPage endCursor }

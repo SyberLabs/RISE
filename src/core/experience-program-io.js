@@ -663,7 +663,7 @@ export function assertProgramWithinContext(program, contextValue) {
  * for a soundscape nobody offers was refused at one door and persisted at the
  * other under "Nothing refused."
  */
-export function assertOperationSetWithinContext(operationSetValue, contextValue) {
+function assertOperationSetWithinContext(operationSetValue, contextValue) {
   const context = validateCuratorContext(contextValue);
   const readSource = createCuratorSourceReader(context);
   const readings = new Map();

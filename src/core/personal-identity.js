@@ -1,6 +1,6 @@
 // Deliberately small: MemoryCore uses this on the initial load path.
 export const isPersonalProject = value => value?.provenance?.kind === 'personal-generated';
-export const isPersonalId = id => typeof id === 'string' && id.startsWith('personal-');
+const isPersonalId = id => typeof id === 'string' && id.startsWith('personal-');
 
 export function canonicalPersonal(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalPersonal).join(',')}]`;

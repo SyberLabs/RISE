@@ -179,11 +179,6 @@ export class VisualScheduleController {
         if (this._shownAtom) this.observe(this._shownAtom);
     }
 
-    /** True when there is a program that is enabled. */
-    get active() {
-        return !!this.program && this.program.enabled !== false;
-    }
-
     /**
      * Observe one atom. Emits a cue only on change (one activation
      * per segment). Returns the resolved { id, cue } for inspection,

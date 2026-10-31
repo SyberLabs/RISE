@@ -60,9 +60,7 @@ export class MovementScheduleController {
         this._index();
     }
 
-    get active() { return !!this.program; }
     get generation() { return this._generation; }
-    get activeId() { return this._activeId; }
 
     /**
      * Observe one atom.
@@ -93,11 +91,6 @@ export class MovementScheduleController {
 
     /** Where the reading is, without observing anything. */
     get current() { return this._current || null; }
-
-    reset() {
-        this._activeId = null;
-        this._current = null;
-    }
 }
 
 /**
@@ -149,8 +142,6 @@ export class AudioScheduleController {
         this._lastAtom = null;
     }
 
-    get active() { return !!this.program && this._enabled; }
-    get generation() { return this._generation; }
     get activeCueId() { return this._activeBedId; }
     get activeBedId() { return this._activeBedId; }
     get activeSwellId() { return this._activeSwellId; }
@@ -361,13 +352,5 @@ export class AudioScheduleController {
     /** Restore silence on stop and destroy (§8.3). */
     silence() {
         this.stop();
-    }
-
-    reset() {
-        this._activeBedId = null;
-        this._activeSwellId = null;
-        this._activeBedCue = null;
-        this._activeSwellCue = null;
-        this._lastAtom = null;
     }
 }

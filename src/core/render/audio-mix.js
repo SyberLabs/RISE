@@ -345,7 +345,7 @@ export function measureLoudnessLufs(pcm, channels = RENDER_AUDIO_CHANNELS) {
   return -0.691 + 10 * Math.log10(mean);
 }
 
-export function applyLoudness(pcm, {
+function applyLoudness(pcm, {
   targetLufs,
   channels = RENDER_AUDIO_CHANNELS,
   truePeakDbtp = TRUE_PEAK_DBTP

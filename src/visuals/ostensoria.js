@@ -164,7 +164,7 @@ function coverBlit(ctx, canvas, src){
   fitPlateBlit(ctx, canvas, src, VOID);
 }
 
-export const OSTENSORIA_SPARSE_TRIES = 12;
+const OSTENSORIA_SPARSE_TRIES = 12;
 
 export class Ostensoria {
   constructor() {
@@ -497,13 +497,6 @@ export class Ostensoria {
     plate.height = this.fH;
     const ctx = plate.getContext && plate.getContext('2d');
     if(!ctx?.createImageData) return null;
-    return plate;
-  }
-
-  _developPlate(){
-    const plate = this._openPlate();
-    if(!plate) return null;
-    this._develop(plate.getContext('2d'));
     return plate;
   }
 

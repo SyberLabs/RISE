@@ -12,9 +12,9 @@ import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
-export const KEV_ROUTE = '/api/local/kev/systemone';
-export const STATUS_ROUTE = '/api/local/status';
-export const MAX_BODY_BYTES = 256 * 1024;
+const KEV_ROUTE = '/api/local/kev/systemone';
+const STATUS_ROUTE = '/api/local/status';
+const MAX_BODY_BYTES = 256 * 1024;
 const UPSTREAM_TIMEOUT_MS = 30_000;
 const MAX_QUESTIONS = 64;
 const LOOPBACK = new Set(['127.0.0.1', 'localhost']);
@@ -22,7 +22,7 @@ const LOOPBACK = new Set(['127.0.0.1', 'localhost']);
 /// The production policy minus the two hosts local RISE never needs: OpenRouter's and Google's Gemini API.
 // Both take a reader-owned key for hosted inference, and local RISE keeps the reader's prompts on their own
 // computer, so `/live?provider=gemini` cannot reach Google from here (a hosted RISE page can).
-export const LOCAL_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; "
+const LOCAL_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; "
   + "img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; "
   + "connect-src 'self' https://www.gutenberg.org https://export.arxiv.org "
   + 'https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org '
@@ -57,11 +57,11 @@ function refuse(res, status, code, message) {
 }
 
 /** The exact origins this server may be addressed as. */
-export function allowedOrigins(port) {
+function allowedOrigins(port) {
   return new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
 }
 
-export function hostAllowed(host, port) {
+function hostAllowed(host, port) {
   if (typeof host !== 'string') return false;
   const match = /^(127\.0\.0\.1|localhost):(\d+)$/u.exec(host.toLowerCase());
   return Boolean(match && LOOPBACK.has(match[1]) && Number(match[2]) === port);
@@ -168,7 +168,7 @@ async function serveStatic(req, res, { distDir, indexHtml }) {
 }
 
 /** Mark the shell so the app knows it is local RISE (ai-connection.js isLocalRise). */
-export function markLocal(html) {
+function markLocal(html) {
   return html.replace('<head>', '<head>\n    <meta name="rise-local" content="1">');
 }
 

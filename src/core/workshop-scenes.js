@@ -25,7 +25,7 @@ import {
   visualCueIsConfigurable
 } from './visual-style-definitions.js';
 
-export const SCENE_EXCERPT_CHARS = 180;
+const SCENE_EXCERPT_CHARS = 180;
 const BED_LANE = 'audio';
 
 export class SceneError extends Error {
@@ -69,7 +69,7 @@ function laneSummary(clips, text, nameOf) {
   };
 }
 
-export function isWrittenSource(source) {
+function isWrittenSource(source) {
   return source?.metadata?.source === 'written';
 }
 

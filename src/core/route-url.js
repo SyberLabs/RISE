@@ -21,10 +21,10 @@
 import { KEYSTONE_ROUTE_PREFIX, TRY_RISE_PATH } from './keystone-paths.js';
 import { ARENA_DECIDERS } from './jev-demo-path.js';
 
-export const VISUAL_LAB_PATH = '/visual-lab';
-export const VISUAL_CATALOG_PATH = '/visual-catalog';
+const VISUAL_LAB_PATH = '/visual-lab';
+const VISUAL_CATALOG_PATH = '/visual-catalog';
 export const LIVE_PATH = '/live';
-export const EMOTIONS_PATH = '/emotions';
+const EMOTIONS_PATH = '/emotions';
 
 /**
  * Every id RISE has routed stays valid forever, mapped onto one of the five

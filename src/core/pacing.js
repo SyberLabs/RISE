@@ -256,14 +256,6 @@ export class PacingEngine {
         this.breath = { cycles: breathCycles(totalMs) };
     }
 
-    /**
-     * Set base WPM
-     * @param {number} wpm
-     */
-    setWpm(wpm) {
-        this.baseWpm = this.normalizeWpm(wpm);
-    }
-
     normalizeWpm(wpm) {
         const value = Number(wpm);
         return Number.isFinite(value)

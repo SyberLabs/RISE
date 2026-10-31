@@ -440,5 +440,3 @@ export class Router {
         this.viewStack = [];
     }
 }
-
-export default Router;

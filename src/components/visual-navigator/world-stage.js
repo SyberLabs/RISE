@@ -50,7 +50,7 @@ const reducedMotion = () => typeof window.matchMedia === 'function'
  * One line of the reader's own text to judge the visual against: the first
  * sentence long enough to be prose rather than a title, cut at a word.
  */
-export function sampleLine(text, limit = 110) {
+function sampleLine(text, limit = 110) {
   if (typeof text !== 'string' || !text.trim()) return '';
   const head = text.slice(0, 4000);
   const sentences = head.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]?/g) || [];

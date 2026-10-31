@@ -9,7 +9,7 @@
 
 import { clamp, experienceState, slot, unavailableState } from '../schema.js';
 
-export const AUDIO_MODEL_NOTE = Object.freeze({
+const AUDIO_MODEL_NOTE = Object.freeze({
     id: 'audio-dsp-prior-v1',
     musicEmotionModel: 'not-run',
     reason: 'No music-emotion checkpoint was benchmarked on RISE material. Interpretable DSP features are the v1 path.'

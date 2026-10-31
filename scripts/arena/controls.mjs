@@ -60,7 +60,7 @@ export function drawLabels(cases, seed, runDigest) {
 }
 
 /** sha256 hex of a run's captured answers: JSON.stringify(run.results). */
-export const resultsDigest = runText => sha256(JSON.stringify(JSON.parse(runText).results)).toString('hex');
+const resultsDigest = runText => sha256(JSON.stringify(JSON.parse(runText).results)).toString('hex');
 
 /** drawLabels for a captured run file's answers, after checking the revealed seed against the commitment. */
 export function revealLabels(controls, seed, runFile) {

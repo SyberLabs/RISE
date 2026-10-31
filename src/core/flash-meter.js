@@ -23,9 +23,9 @@
  * See docs/specs/IMAGE-STREAM-SPEC.md §3.
  */
 
-export const WCAG_FIELD_PX = 341 * 256;
+const WCAG_FIELD_PX = 341 * 256;
 export const FLASH_SAFE_AREA_PX = WCAG_FIELD_PX / 4;
-export const FLASH_WINDOW_MS = 1000;
+const FLASH_WINDOW_MS = 1000;
 export const STREAM_MAX_FLASHES_PER_WINDOW = 2;
 
 const GENERAL_DELTA = 0.1;

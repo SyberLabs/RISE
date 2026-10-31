@@ -82,7 +82,7 @@ function ordinalOf(token) {
  * judge, and deliberately line-anchored so prose mid-paragraph cannot
  * qualify however it is capitalised.
  */
-export function headingCandidates(text) {
+function headingCandidates(text) {
     if (typeof text !== 'string' || !text) return [];
     const out = [];
     const lines = text.split('\n');
@@ -229,7 +229,7 @@ function ascendingRatio(items) {
  * Returned strongest first, so a work using both books and chapters
  * offers the finer of the two.
  */
-export function schemesIn(text, { minCount = 3, minAscending = 0.6 } = {}) {
+function schemesIn(text, { minCount = 3, minAscending = 0.6 } = {}) {
     const candidates = headingCandidates(text).filter(c => Number.isFinite(c.ordinal));
     const byWord = new Map();
     for (const c of candidates) {
@@ -309,7 +309,7 @@ export function mostlyVerse(parts) {
     return total > 0 && verse / total > 0.5;
 }
 
-export function paragraphIsHeading(text) {
+function paragraphIsHeading(text) {
     const raw = String(text || '').trim();
     if (!raw || raw.length > 90 || raw.includes('\n')) return false;
     if (NUMBERED.test(raw) || BARE_ORDINAL.test(raw) || MATTER.test(raw)) return true;
@@ -487,7 +487,7 @@ const capitalise = (w) => w ? w[0].toUpperCase() + w.slice(1) : w;
  * @param {string} text the work's full text
  * @param {{maxWords?: number, minWords?: number}} [opts]
  */
-export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
+function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
     // THE ONE PLACE THIS MODULE MEETS A NON-STRING, and it is answered here
     // rather than inside the counter. `divide(null)` has always returned an
     // undivided nothing; the deleted `wordsIn` made that work by coercing
@@ -934,7 +934,7 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000, de
  * @param {{levels?: string[], readingUnit?: string}} structure
  * @returns {string[]} candidate division nouns, singular and lowercased
  */
-export function declaredVocabulary(structure) {
+function declaredVocabulary(structure) {
     const out = [];
     const add = (word) => {
         if (!word) return;
@@ -1114,7 +1114,7 @@ export function firstBodyOrdinal(entries, { noun = null } = {}) {
     return ordinal;
 }
 
-export function isFrontMatterLabel(label) {
+function isFrontMatterLabel(label) {
     return /^front matter\b/iu.test(String(label || '').trim());
 }
 
@@ -1133,7 +1133,7 @@ export function isInformativeLabel(label) {
     return !/^(\p{L}+\s+)?([0-9]+|[ivxlcdm]+)\.?(\s*\([^)]*\))?$/iu.test(name);
 }
 
-export function titledSchemeFromNames(names, { minCount = 3 } = {}) {
+function titledSchemeFromNames(names, { minCount = 3 } = {}) {
     const list = (names || []).map(n => String(n || '').trim());
     const usable = list.filter(n =>
         n && n.length <= 60 && n !== 'Front matter' && !parseHeading(n));
@@ -1151,7 +1151,7 @@ export function titledSchemeFromNames(names, { minCount = 3 } = {}) {
 }
 
 /** "ORAINVILLE" -> "Orainville"; leaves mixed-case names alone. */
-export function displayTitle(name) {
+function displayTitle(name) {
     const raw = String(name || '').trim();
     if (!raw || raw !== raw.toUpperCase()) return raw;
     return raw.toLowerCase().replace(/(^|[\s(\u2014-])([a-z])/g,

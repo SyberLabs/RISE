@@ -74,7 +74,7 @@ function shadow(scope) {
 }
 
 /** The prototypes whose `constructor` is Function, AsyncFunction, GeneratorFunction or AsyncGeneratorFunction. */
-export const realmFunctionPrototypes = () => [
+const realmFunctionPrototypes = () => [
   Function.prototype,
   Object.getPrototypeOf(async function () {}),
   Object.getPrototypeOf(function* () {}),

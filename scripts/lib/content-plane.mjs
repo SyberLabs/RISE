@@ -52,10 +52,10 @@ const SCHOOL_DIR = resolve(OUT, 'school');
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
 /** The generators name a work's export from its id, and always have. */
-export const sectionsExportName = id =>
+const sectionsExportName = id =>
     `${id.toUpperCase().replace(/-/g, '_')}_SECTIONS`;
 
-export const metaExportName = id =>
+const metaExportName = id =>
     `${id.toUpperCase().replace(/-/g, '_')}_META`;
 
 async function readWork(id) {

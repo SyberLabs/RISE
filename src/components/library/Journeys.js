@@ -258,8 +258,4 @@ export class Journeys {
             }
         });
     }
-
-    activate() {}
-    deactivate() {}
-    destroy() {}
 }

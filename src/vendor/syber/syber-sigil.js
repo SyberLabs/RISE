@@ -6,9 +6,7 @@
    params(name)                          -> { P:[a,b,c,d], box:[cx,cy,size], caption }
    draw(canvas, name, { color, animate }) -> { P, caption, cancel() }
      color    '#rrggbb' | '#rgb' | 'rgb(r,g,b)'. Default: the canvas's --sy-accent (or --a), else vellum.
-     animate  draw in over ~16 frames (default true). Off under prefers-reduced-motion.
-   drawAll(root = document)  draws every canvas[data-sigil] (name = data-sigil, color = data-color or
-                             --sy-accent) when it scrolls into view. Returns { disconnect() }. */
+     animate  draw in over ~16 frames (default true). Off under prefers-reduced-motion. */
 
 const fmt = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(3);
 const line = P => 'a ' + fmt(P[0]) + ' · b ' + fmt(P[1]) + ' · c ' + fmt(P[2]) + ' · d ' + fmt(P[3]);
@@ -18,7 +16,7 @@ function prng(a) { return () => { a = (a + 0x6d2b79f5) >>> 0; let t = Math.imul(
 const dj = (P, n, f) => { let x = 0.1, y = 0.1; for (let i = 0; i < n + 100; i++) { const nx = Math.sin(P[0] * y) - Math.cos(P[1] * x); y = Math.sin(P[2] * x) - Math.cos(P[3] * y); x = nx; if (i >= 100) f(x, y); } };
 const cache = new Map();
 
-export function params(name) {
+function params(name) {
   const seed = String(name == null ? '' : name).trim().toLowerCase();
   if (cache.has(seed)) return cache.get(seed);
   let h = 2166136261; for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
@@ -77,17 +75,4 @@ export function draw(canvas, name, opts = {}) {
     if (done < TOTAL) raf = requestAnimationFrame(chunk);
   })();
   return { P, caption, cancel() { if (raf) cancelAnimationFrame(raf); raf = 0; } };
-}
-
-export function drawAll(root = document) {
-  const list = [...root.querySelectorAll('canvas[data-sigil]')];
-  const one = c => {
-    const r = draw(c, c.dataset.sigil, { color: c.dataset.color, animate: c.dataset.animate !== 'false' });
-    const cap = c.dataset.captionFor && document.getElementById(c.dataset.captionFor);
-    if (cap) cap.textContent = r.caption;
-  };
-  if (!('IntersectionObserver' in window)) { list.forEach(one); return { disconnect() {} }; }
-  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); one(e.target); } }), { rootMargin: '0px 0px -10% 0px' });
-  list.forEach(c => io.observe(c));
-  return { disconnect: () => io.disconnect() };
 }

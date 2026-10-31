@@ -3,8 +3,8 @@
  *
  * The theme-to-engine map (src/core/theme-engine-map.js) was written from
  * hue arithmetic, never rendered. This renders one still per engine under
- * each of the nine themes through the harness scripts/build-engine-stills.mjs
- * uses, and reads the pixels back as numbers: is the still painted, do themes
+ * each of the nine themes through window.__RISE_TEST__.ensureVisualCortex(),
+ * and reads the pixels back as numbers: is the still painted, do themes
  * the map sends to different cells give different pictures, and do the
  * engines that derive their colour from the reading's own colours land on
  * them. Only numbers cross from the page; pixel arrays stay in the browser.

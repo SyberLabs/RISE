@@ -14,7 +14,7 @@ import { resolveSourceSpan } from './source-span.js';
 import { validateWorkshopProject } from './workshop-project.js';
 import { normalizeFieldStyle } from './visual-style-definitions.js';
 
-export const PORTABLE_SEQUENCE_SCHEMA = 'rise.portable-sequence.v1';
+const PORTABLE_SEQUENCE_SCHEMA = 'rise.portable-sequence.v1';
 export const PORTABLE_SEQUENCE_MAX_BYTES = 2_000_000;
 const PORTABLE_BASIS = 'pre-1930-us';
 const PROCEDURAL_IDS = new Set(PROCEDURAL_PATTERN_IDS);

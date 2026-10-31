@@ -109,7 +109,7 @@ const SCENE_ROOM = 8;
 /** What a refusal for a missing picture suggests: the kinds a week of rules, process and service changes is drawn with. */
 const KIND_HINT = 'for a rule or a process change, a list or a compare; for a change to what flows between services, queues and stores, a system';
 /** The answer's fields that name RISE's engines, and the beat each is placed on. */
-export const ENDS = Object.freeze(['opening', 'close']);
+const ENDS = Object.freeze(['opening', 'close']);
 const ENGINE_RULE = 'RISE’s engines open and close a digest; a change is shown with a kit picture';
 const BRIEF_MIN = 20;
 const BRIEF_MAX = 300;
@@ -151,7 +151,7 @@ const named = numbers => {
  * node's "at" its place on the grid, and its "id" (with the "from" and "to" that name one) a name; none is printed.
  */
 const UNPRINTED = new Set(['max', 'at', 'id', 'from', 'to', 'kind', 'shape', 'glyph']);
-export function kitTexts(kit) {
+function kitTexts(kit) {
   const texts = [];
   const walk = (value, key) => {
     if (UNPRINTED.has(key)) return;
@@ -171,7 +171,7 @@ export function kitTexts(kit) {
  * for more than four beats, and no picture for more than six (four when a beat under it cites none of its changes).
  * The plan is held to it before anything is drawn.
  */
-export function compositionProblems(current, pictures, { beatRefs = {}, kitOnly = false } = {}) {
+function compositionProblems(current, pictures, { beatRefs = {}, kitOnly = false } = {}) {
   const problems = [];
   const beats = current.beats;
   const scenes = new Map((current.scenes ?? []).map(scene => [scene.id, scene]));
@@ -247,7 +247,7 @@ export function compositionProblems(current, pictures, { beatRefs = {}, kitOnly 
  * rests freely on beats without refs), and a picture for every major change a beat speaks of. `majors` are the
  * included changes routed major. Refused like the composition rule, and repaired.
  */
-export function densityProblems(current, pictures, { beatRefs = {}, majors = [] } = {}) {
+function densityProblems(current, pictures, { beatRefs = {}, majors = [] } = {}) {
   const refsAt = refsMap(beatRefs);
   const starts = plannedStarts(current, pictures);
   const problems = [];

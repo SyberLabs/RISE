@@ -15,9 +15,9 @@ import { escapeHtml, safeUrl } from '../../core/sanitize.js';
 import { stillQueue } from '../visual-navigator/preview.js';
 import './scene-stack.css';
 
-export const PACE_MIN = 120;
-export const PACE_MAX = 400;
-export const PACE_SNAPS = Object.freeze([160, 200, 260, 320]);
+const PACE_MIN = 120;
+const PACE_MAX = 400;
+const PACE_SNAPS = Object.freeze([160, 200, 260, 320]);
 export const DIVIDE_OFFER_WORDS = 400;
 const SNAP_WITHIN = 8;
 const LONG_PRESS_MS = 250;

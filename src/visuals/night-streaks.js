@@ -89,18 +89,6 @@ export class NightStreaks {
 
     motionTime(now) { return this._motionBase + ((now - this.t0) / 1000) * this.speed; }
 
-    setSpeed(speed) {
-        const next = clampSpeed(speed);
-        if (next === this.speed) return false;
-        const now = performance.now();
-        this._motionBase = this.motionTime(now);
-        this.t0 = now;
-        this.speed = next;
-        return true;
-    }
-
-    setIntensity(v) { if (Number.isFinite(v)) this.intensity = Math.min(1, Math.max(0.2, v)); }
-
     draw(t) {
         const { ctx, W, H } = this;
         if (!ctx || !W || !H) return;

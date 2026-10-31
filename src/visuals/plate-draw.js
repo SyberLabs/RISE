@@ -20,8 +20,8 @@ const VOID = PLATE_VOID;
 
 export const OSTENSORIA_PAPER_RGB = [10, 10, 12];
 export const APPARITIO_VOID_RGB = [10, 10, 12];
-export const PLATE_FIT_INSET = 0.08;
-export const PLATE_FIT_MIN_PAD = 24;
+const PLATE_FIT_INSET = 0.08;
+const PLATE_FIT_MIN_PAD = 24;
 
 function clamp01(x) {
   return x < 0 ? 0 : x > 1 ? 1 : x;

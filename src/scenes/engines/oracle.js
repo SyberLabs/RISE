@@ -49,8 +49,8 @@ export const ORACLE_STATES = Object.freeze({
 
 /** How the face follows the pointer: the eye leans a hair (a fraction of the face's size) and stays in its socket;
  *  the pupil travels within the iris (a fraction of the eye's radius). */
-export const EYE_LEAN = 0.008;
-export const PUPIL_REACH = 0.22;
+const EYE_LEAN = 0.008;
+const PUPIL_REACH = 0.22;
 
 const SKIN_NAMES = Object.freeze(Object.keys(ORACLE_SKINS));
 const STATE_NAMES = Object.freeze(Object.keys(ORACLE_STATES));

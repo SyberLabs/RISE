@@ -186,7 +186,7 @@ class LocalAppTests(unittest.TestCase):
         root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
         with open(os.path.join(root, "src", "core", "decision", "providers.js"), encoding="utf-8") as source:
             text = source.read()
-        for value in (local_app.KEV_CODE_REVISION, KEV_MODEL_REVISION, EXPECTED_BASE, BASE_REVISION):
+        for value in (local_app.KEV_CODE_REVISION, KEV_MODEL_REVISION):
             self.assertIn(value, text)
 
 

@@ -29,7 +29,7 @@ export const STALE_AFTER_MS = 30 * 60 * 1000;
 export const ASSUME_DEAD_AFTER_MS = 6 * 60 * 60 * 1000;
 
 /** How long a live page may take to produce one frame. */
-export const PAINT_PROBE_MS = 1200;
+const PAINT_PROBE_MS = 1200;
 
 const HIDDEN_AT = 'rise_tab_hidden_at';
 

@@ -296,29 +296,6 @@ describe('PacingEngine', () => {
       expect(positions).toEqual([0, 0.5, 1]);
     });
   });
-
-  describe('setWpm', () => {
-    it('changes base WPM', () => {
-      const atom = { modality: Modality.TEXT, content: 'word' };
-
-      engine.setWpm(440);
-      const fastDuration = engine.computeDuration(atom);
-
-      engine.setWpm(110);
-      const slowDuration = engine.computeDuration(atom);
-
-      expect(fastDuration).toBeLessThan(slowDuration);
-    });
-
-    it('normalizes malformed and out-of-range WPM', () => {
-      engine.setWpm(0);
-      expect(engine.baseWpm).toBe(50);
-      engine.setWpm('not-a-number');
-      expect(engine.baseWpm).toBe(320);
-      engine.setWpm(5000);
-      expect(engine.baseWpm).toBe(1000);
-    });
-  });
 });
 
 describe('Constants', () => {

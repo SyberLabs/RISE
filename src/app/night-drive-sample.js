@@ -10,9 +10,9 @@ import { compileJevAudioProgram, compileJevVisualProgram } from '../core/jev-seq
 
 // Walt Whitman, "Song of the Open Road" (Leaves of Grass, 1856), as phrased
 // in RISE's own sequence `grass-road` (src/sources/text/data/literary_deep.js).
-export const NIGHT_DRIVE_TEXT = 'Afoot and light-hearted | I take to the open road, | healthy, free, | the world before me, | the long brown path before me | leading wherever I choose. | [PAUSE] | Henceforth I ask not | good-fortune, | I myself am good-fortune. | Henceforth I whimper no more, | postpone no more, | need nothing, | done with indoor complaints, | libraries, | querulous criticisms, | strong and content | I travel the open road. | [PAUSE] | The earth — that is sufficient. | I do not want the constellations | any nearer, | I know they are very well | where they are.';
+const NIGHT_DRIVE_TEXT = 'Afoot and light-hearted | I take to the open road, | healthy, free, | the world before me, | the long brown path before me | leading wherever I choose. | [PAUSE] | Henceforth I ask not | good-fortune, | I myself am good-fortune. | Henceforth I whimper no more, | postpone no more, | need nothing, | done with indoor complaints, | libraries, | querulous criticisms, | strong and content | I travel the open road. | [PAUSE] | The earth — that is sufficient. | I do not want the constellations | any nearer, | I know they are very well | where they are.';
 
-export const NIGHT_DRIVE_SELECTORS = Object.freeze({
+const NIGHT_DRIVE_SELECTORS = Object.freeze({
   section: 'first', wpm: 300, curve: 'flat', chunkMode: 'phrase',
   audio: 'night-drive', middleAudio: 'night-drive', finaleAudio: 'night-drive',
   visualMode: 'attractor', visualStyle: 'immersive', visualPalette: 'neon',

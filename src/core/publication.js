@@ -14,20 +14,20 @@ import { RENDER_MANIFEST_SCHEMA } from './render/environment.js';
 import { RENDER_PROFILE_IDS } from './render/limits.js';
 
 export const PUBLICATION_REVIEW_SCHEMA = 'rise.publication-review-item.v1';
-export const PUBLICATION_METADATA_SCHEMA = 'rise.publication-metadata.v1';
+const PUBLICATION_METADATA_SCHEMA = 'rise.publication-metadata.v1';
 export const PUBLICATION_APPROVAL_SCHEMA = 'rise.publication-approval.v1';
 export const PUBLICATION_RECEIPT_SCHEMA = 'rise.publication-receipt.v1';
 
-export const PUBLICATION_DESTINATION_KINDS = Object.freeze(['social-short', 'archive']);
-export const PUBLICATION_THUMBNAILS = Object.freeze(['poster', 'thumbnail']);
-export const PUBLICATION_CAPTION_MODES = Object.freeze([
+const PUBLICATION_DESTINATION_KINDS = Object.freeze(['social-short', 'archive']);
+const PUBLICATION_THUMBNAILS = Object.freeze(['poster', 'thumbnail']);
+const PUBLICATION_CAPTION_MODES = Object.freeze([
   'sidecar', 'burn-in', 'sidecar-and-burn-in'
 ]);
-export const PUBLICATION_STATUSES = Object.freeze([
+const PUBLICATION_STATUSES = Object.freeze([
   'queued', 'approved', 'rejected', 'scheduled', 'delivered', 'withdrawn', 'failed'
 ]);
 
-export const PUBLICATION_LIMITS = Object.freeze({
+const PUBLICATION_LIMITS = Object.freeze({
   maxIdLength: 160,
   maxTitleLength: 120,
   maxDescriptionLength: 500,
@@ -138,7 +138,7 @@ function deepFreeze(value) {
   return value;
 }
 
-export function assertNoSecrets(value, path = '$') {
+function assertNoSecrets(value, path = '$') {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) {
     value.forEach((item, index) => assertNoSecrets(item, `${path}[${index}]`));
@@ -154,7 +154,7 @@ export function assertNoSecrets(value, path = '$') {
   return value;
 }
 
-export function validatePublicationMetadata(value, path = '$') {
+function validatePublicationMetadata(value, path = '$') {
   const source = record(value, path);
   assertNoSecrets(source, path);
   onlyKeys(source, METADATA_FIELDS, path);
@@ -221,7 +221,7 @@ function validateArtifact(value, path) {
   return Object.freeze(artifact);
 }
 
-export function validatePublicationReviewItem(value, path = '$') {
+function validatePublicationReviewItem(value, path = '$') {
   const source = record(value, path);
   assertNoSecrets(source, path);
   onlyKeys(source, REVIEW_FIELDS, path);
@@ -333,7 +333,7 @@ export function validatePublicationReceipt(value, path = '$') {
   return deepFreeze(receipt);
 }
 
-export async function packageIdentityHash({ manifest, metadata, thumbnail }) {
+async function packageIdentityHash({ manifest, metadata, thumbnail }) {
   return contentHashOf({
     schema: 'rise.publication-artifact.v1',
     jobHash: manifest.jobHash,
@@ -444,13 +444,6 @@ export function schedulePublication({ item, notBefore, now = null }) {
     fail('PUBLICATION_SCHEDULE', 'notBefore must be in the future', '$.notBefore');
   }
   return deepFreeze({ ...review, status: 'scheduled', scheduledFor: when });
-}
-
-export function createPublicationQueue(items = []) {
-  return deepFreeze({
-    items: (items || []).map(item => validatePublicationReviewItem(item)),
-    receipts: []
-  });
 }
 
 export async function deliverApproved({

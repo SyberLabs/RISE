@@ -15,7 +15,7 @@ function requiredString(value, field) {
     return value.trim().slice(0, 200);
 }
 
-export function judgment(input = {}) {
+function judgment(input = {}) {
     const question = questionById(input.questionId);
     if (!question) throw new TypeError(`Unknown pairwise question: ${input.questionId}`);
     const leftId = requiredString(input.leftId, 'leftId');
@@ -48,7 +48,7 @@ export function recordJudgment(store, input) {
     return Object.freeze([...prior, next]);
 }
 
-export const MIN_HUMAN_JUDGMENTS = 24;
+const MIN_HUMAN_JUDGMENTS = 24;
 
 export function canFitReadout(store) {
     const human = (store || []).filter(item => item.annotatorKind === 'human').length;

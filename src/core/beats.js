@@ -79,7 +79,7 @@ export { CONTROL_PATTERN, EMIT_REFUSALS, emitValue } from '../scenes/scene-proto
 /** The names a scene may not use, declared once in scene-bans.js; the guide names them by this route. */
 export { BANNED_SCENE_NAMES } from '../scenes/scene-bans.js';
 /** The one source text that chunks to a single silent, timed atom (chunker.js PAUSE_DURATIONS). */
-export const HOLD_MARKER = '[HOLD]';
+const HOLD_MARKER = '[HOLD]';
 
 /** What a cue may be, as a regex source: the validator's, and the JSON Schema's pattern for it (worker/mcp-server.mjs). */
 export const BEAT_CUE_PATTERN = '^[A-Za-z0-9_:=.-]+$';

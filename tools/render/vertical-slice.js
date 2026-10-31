@@ -13,11 +13,11 @@ import { contentHashOf } from '../../src/core/render/hash.js';
 import { RENDER_JOB_SCHEMA } from '../../src/core/render/environment.js';
 import { pinnedRendererForProfile } from '../../src/core/render/job.js';
 
-export const SLICE_SOURCE_ID = 'source-1';
-export const SLICE_IMAGE_ID = 'asset-rain-window';
-export const SLICE_VIDEO_ID = 'asset-water';
+const SLICE_SOURCE_ID = 'source-1';
+const SLICE_IMAGE_ID = 'asset-rain-window';
+const SLICE_VIDEO_ID = 'asset-water';
 
-export const SLICE_TEXT = [
+const SLICE_TEXT = [
   'Happy families are all alike; every unhappy family is unhappy in its own way.',
   "Everything was in confusion in the Oblonskys' house.",
   'The wife had discovered that the husband was carrying on an intrigue with a French girl,',
@@ -25,7 +25,7 @@ export const SLICE_TEXT = [
   'that she could not go on living in the same house with him.'
 ].join(' ');
 
-export function sliceSequenceAssets() {
+function sliceSequenceAssets() {
   return [
     {
       id: SLICE_IMAGE_ID,
@@ -49,7 +49,7 @@ export function sliceSequenceAssets() {
   ];
 }
 
-export function sliceProgram() {
+function sliceProgram() {
   return validateExperienceProgram({
     schema: EXPERIENCE_PROGRAM_SCHEMA,
     id: 'slice-memory',
@@ -124,7 +124,7 @@ export function sliceProgram() {
   });
 }
 
-export function sliceSources() {
+function sliceSources() {
   return [{
     id: SLICE_SOURCE_ID,
     name: 'Anna Karenina · I',
@@ -133,7 +133,7 @@ export function sliceSources() {
   }];
 }
 
-export function sliceSessionInput() {
+function sliceSessionInput() {
   return {
     wpm: 160,
     chunkMode: 'phrase',

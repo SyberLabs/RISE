@@ -198,8 +198,7 @@ export class MuseumProvider extends SourceProvider {
             contentType: 'image',
             tier: 2, // Sacred tier
             description: 'Ultra-high-resolution art and cinematic photography',
-            supportsSearch: true,
-            supportsPreload: true
+            supportsSearch: true
         });
 
         this.baseUrl = 'https://api.artic.edu/api/v1/artworks';

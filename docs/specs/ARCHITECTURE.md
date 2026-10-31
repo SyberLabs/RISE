@@ -164,14 +164,14 @@ flowchart LR
     app["app<br/>composition root<br/>25 modules"]
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
     components["components<br/>routed views<br/>58 modules"]
-    content["content<br/>texts, imagery, journeys<br/>307 modules"]
+    content["content<br/>texts, imagery, journeys<br/>305 modules"]
     core["core<br/>session, player, router<br/>194 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>79 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     scenes["scenes<br/>engine manifests, cues; scene runtime<br/>9 modules"]
-    sources["sources<br/>text and visual providers<br/>14 modules"]
-    vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
+    sources["sources<br/>text and visual providers<br/>13 modules"]
+    vendor["vendor<br/>SyberLabs design kit<br/>1 module"]
     visuals["visuals<br/>procedural generation<br/>61 modules"]
     wormhole["wormhole<br/>7 modules"]
 
@@ -194,7 +194,7 @@ flowchart LR
     components -.-> |1 lazy| page
     components --> |3| scenes
     components --> |4| sources
-    components -.-> |2 lazy| vendor
+    components -.-> |1 lazy| vendor
     components --> |18| visuals
     content --> |3| audio
     content --> |16| core
@@ -213,7 +213,7 @@ flowchart LR
     live --> |3| scenes
     live -.-> |1 lazy| visuals
     page --> |4| core
-    page --> |4| visuals
+    page --> |3| visuals
     scenes --> |1| core
     scenes --> |1| visuals
     sources --> |1| content
@@ -361,8 +361,8 @@ routed rooms: `src/components/Admit.js`,
 `src/components/room-chrome.js` (header, icons, Alert), the pane host
 `src/components/room-panes.js`, and the SyberLabs
 chrome helper `src/components/atlas.js`, which lazily imports the vendored
-design-system kit in `src/vendor/syber/` (the ambient atmosphere behind Home
-and the RISE sigil) so neither engine is part of first load.
+design-system kit in `src/vendor/syber/` (the RISE sigil) so it is not part
+of first load.
 
 Everything else in `src/components/` sits in a directory, by the room it
 serves:

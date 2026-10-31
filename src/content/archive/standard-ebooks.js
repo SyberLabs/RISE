@@ -88,7 +88,7 @@ const CONTAINER_SELECTOR = [
   'section[epub\\:type~="volume"]'
 ].join(',');
 
-export class StandardEbooksStructureError extends Error {
+class StandardEbooksStructureError extends Error {
   constructor(message, details = {}) {
     super(message);
     this.name = 'StandardEbooksStructureError';

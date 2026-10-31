@@ -92,7 +92,7 @@ function readArgs(text, at, count) {
 }
 
 /** Babel's LGR transliteration ("p'ajos") as Unicode Greek ("πάθος"). */
-export function greek(text) {
+function greek(text) {
     let out = '';
     let marks = '';
     const source = text.replace(/\\~/gu, '~').replace(/\\dots/gu, '…');
@@ -123,7 +123,7 @@ export function greek(text) {
  * Greek words the edition set as mathematics ("\acute{\omega}\varsigma\ \kappa\alpha\grave{\iota}") as
  * Unicode Greek; null when the formula holds anything but Greek letters, their accents and punctuation.
  */
-export function mathGreek(tex, inner = false) {
+function mathGreek(tex, inner = false) {
     let rest = tex;
     let out = '';
     while (rest) {

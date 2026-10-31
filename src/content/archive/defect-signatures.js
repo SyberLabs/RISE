@@ -153,11 +153,6 @@ export const DEFECT_SIGNATURES = Object.freeze([
     }
 ]);
 
-/** @returns {DefectSignature|undefined} */
-export function defectSignature(id) {
-    return DEFECT_SIGNATURES.find(signature => signature.id === id);
-}
-
 /**
  * Every signature that fires on one line, with the line as its own evidence.
  * Per LINE rather than per work: a pattern that must match a whole payload

@@ -21,7 +21,7 @@ const INERTIA = 10;                // per second: how quickly its speed follows 
 // less room above the gate than below it, so the ring is tight and the ship is drawn a little
 // under life size: its whole hull stays in the picture at every bearing.
 export const RING_RADIUS = 0.9;
-export const SHIP_SCALE = 0.62;
+const SHIP_SCALE = 0.62;
 const GATE_HEIGHT = 0.16 * Math.tan((38 * Math.PI) / 360);   // the gate's height, per unit of depth
 const REST_DEPTH = 6.3;
 

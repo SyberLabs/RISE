@@ -19,16 +19,16 @@ import {
 import { RENDER_LIMITS, RENDER_RIGHTS_STATUSES } from './limits.js';
 
 export const PROJECT_ASSET_SCHEMA = 'rise.project-asset.v1';
-export const PROJECT_ASSET_MANIFEST_SCHEMA = 'rise.project-asset-manifest.v1';
+const PROJECT_ASSET_MANIFEST_SCHEMA = 'rise.project-asset-manifest.v1';
 export const ASSET_TRANSFER_BUNDLE_SCHEMA = 'rise.asset-transfer-bundle.v1';
 
-export const PROJECT_ASSET_KINDS = Object.freeze([
+const PROJECT_ASSET_KINDS = Object.freeze([
   'image', 'video', 'audio', 'font', 'document'
 ]);
 export const PROJECT_ASSET_ORIGINS = Object.freeze([
   'upload', 'remote-acquisition', 'generated', 'library'
 ]);
-export const PROJECT_ASSET_STORAGE_KINDS = Object.freeze([
+const PROJECT_ASSET_STORAGE_KINDS = Object.freeze([
   'workshop-idb', 'personal-swells-idb', 'library', 'inline', 'bundle'
 ]);
 
@@ -359,7 +359,7 @@ export function validateProjectAsset(value, path = '$') {
   return deepFreeze(asset);
 }
 
-export function validateProjectAssetManifest(value, path = '$') {
+function validateProjectAssetManifest(value, path = '$') {
   const source = record(value, path);
   onlyKeys(source, MANIFEST_FIELDS, path);
   if (source.schema !== PROJECT_ASSET_MANIFEST_SCHEMA) {
@@ -396,7 +396,7 @@ export function defaultUploadRights() {
   });
 }
 
-export function libraryRights() {
+function libraryRights() {
   return Object.freeze({
     status: 'verified',
     distributionAllowed: true,

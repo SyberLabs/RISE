@@ -219,7 +219,7 @@ export function createScriptoriumSession(options = {}) {
   return new ScriptoriumSession(options);
 }
 
-export class ScriptoriumSession {
+class ScriptoriumSession {
   constructor({ wpm = null, getWpm = readerWpm, prepareAssets = null, mintId = null } = {}) {
     // NULL IS NOT A PACE. `Number(null)` is 0 and 0 is finite, so a surface
     // that passed no override was clamped to the window's floor and quoted a

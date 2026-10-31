@@ -5,7 +5,7 @@ import './NamingModal.css';
  * Its classes (.naming-modal-*) are also the dialog every Compose prompt
  * uses, so the styles live in NamingModal.css rather than in this file.
  */
-export class NamingModal {
+class NamingModal {
   constructor() {
     this.container = null;
     this.resolve = null;

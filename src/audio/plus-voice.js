@@ -3,7 +3,7 @@
 import { VOICE_PACK_SCHEMA, normalizeVoiceText } from './voice-pack-key.js';
 import { fetchPlusStatus, plusAudioSession } from '../app/plus.js';
 
-export const PLUS_VOICE_ROUTE = '/api/plus/voice';
+const PLUS_VOICE_ROUTE = '/api/plus/voice';
 
 /** The spoken phrases of a compiled session, as the Worker and the Voice both key them. */
 export function spokenAtoms(atoms) {

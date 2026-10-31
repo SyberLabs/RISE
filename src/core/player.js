@@ -89,7 +89,7 @@ function rejectionCounterFor(reason) {
  * Word no longer strobes five times as often as Phrase. Rolls still
  * happen only at eligible semantic boundaries.
  */
-export const HAZARD_ANCHOR_MS = 1000;
+const HAZARD_ANCHOR_MS = 1000;
 
 /**
  * Estimate demand from eligible semantic transitions. Expected flashes
@@ -550,17 +550,6 @@ export class Player {
         this.stopProgressAnimation();
         
         this.emit('state', { state: 'paused' });
-    }
-
-    /**
-     * Toggle play/pause
-     */
-    toggle() {
-        if (this.sessionState.state === 'playing' || this.sessionState.state === 'interlocuting') {
-            this.pause();
-        } else {
-            this.play();
-        }
     }
 
     /**

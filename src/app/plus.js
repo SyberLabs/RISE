@@ -77,7 +77,6 @@ export async function fetchPlusPaymentLink({ fetchImpl = globalThis.fetch?.bind(
     return null;
   }
 }
-export const PLUS_PRICE = '$8.99 a month';
 /** One voicing is one vendor request (worker/plus.mjs VOICE_MAX_CHARS). */
 export const PLUS_VOICE_MAX_CHARS = 10_000;
 

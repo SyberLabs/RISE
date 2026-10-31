@@ -20,7 +20,7 @@ export const AUDUBON_CORPORA = Object.freeze({
     QUADRUPEDS: 'quadrupeds-folio'
 });
 
-export const AUDUBON_EXPECTED_COUNTS = Object.freeze({
+const AUDUBON_EXPECTED_COUNTS = Object.freeze({
     [AUDUBON_CORPORA.BIRDS]: 435,
     [AUDUBON_CORPORA.QUADRUPEDS]: 150
 });

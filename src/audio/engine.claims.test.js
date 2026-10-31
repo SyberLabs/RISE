@@ -18,7 +18,6 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
     BRAINWAVE_BANDS,
-    SOLFEGGIO_FREQUENCIES,
     CARRIER_TUNINGS,
     resolveCarrierTuning
 } from './engine.js';
@@ -49,9 +48,6 @@ describe('a pitch is described by what it is, never by what it does', () => {
     });
 
     it('carries no `description` on any frequency table', () => {
-        for (const [name, entry] of Object.entries(SOLFEGGIO_FREQUENCIES)) {
-            expect(Object.keys(entry), `SOLFEGGIO_FREQUENCIES.${name}`).toEqual(['freq']);
-        }
         for (const [name, entry] of Object.entries(BRAINWAVE_BANDS)) {
             expect(Object.keys(entry).sort(), `BRAINWAVE_BANDS.${name}`)
                 .toEqual(['default', 'max', 'min']);
@@ -60,8 +56,6 @@ describe('a pitch is described by what it is, never by what it does', () => {
 
     it('keeps every frequency a reader could already choose', () => {
         // Deleting the claim must not delete the option.
-        expect(Object.values(SOLFEGGIO_FREQUENCIES).map(e => e.freq))
-            .toEqual([396, 417, 528, 639, 741, 852]);
         expect(BRAINWAVE_BANDS.delta.min).toBe(0.5);
         expect(BRAINWAVE_BANDS.gamma.max).toBe(100);
         expect(new Set(Object.values(CARRIER_TUNINGS)))

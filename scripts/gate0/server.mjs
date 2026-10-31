@@ -5,13 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { ATTRACTOR_VISUAL_MANIFEST } from '../../src/core/visual-control-contract.js';
 
-export const MCP_PATH = '/mcp';
+const MCP_PATH = '/mcp';
 export const WIDGET_URI = 'ui://rise/gate0/v1.html';
 export const APP_MIME = 'text/html;profile=mcp-app';
 export const TOOL_NAME = 'rise_set_visual';
-export const MAX_BODY_BYTES = 16_384;
-export const MAX_LOG_ENTRIES = 128;
-export const PROTOCOL_VERSIONS = Object.freeze(['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
+const MAX_BODY_BYTES = 16_384;
+const MAX_LOG_ENTRIES = 128;
+const PROTOCOL_VERSIONS = Object.freeze(['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 const TOOL = Object.freeze({

@@ -501,8 +501,11 @@ describe('the Scriptorium as the reader meets it', () => {
             expect([...held].sort()).toEqual([...SEQUENCE_STATE].sort());
         });
 
+        /** Session state the room never reads, so it has no getter to prove. */
+        const UNREAD = Object.freeze(['lengthChosen', 'swells', 'jevRoute', 'jevRouteRequestId', 'projectId']);
+
         it('reports whatever the session currently holds, and forgets when it does', () => {
-            for (const field of SEQUENCE_STATE) {
+            for (const field of SEQUENCE_STATE.filter(name => !UNREAD.includes(name))) {
                 const first = { field, generation: 1 };
                 const second = { field, generation: 2 };
                 room.session[field] = first;

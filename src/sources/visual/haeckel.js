@@ -90,11 +90,6 @@ export class HaeckelPlatesProvider {
         const plate = plateNumber(categoryId);
         return (plate ? plates.filter(entry => entry.plate === plate) : plates).slice(0, limit).map(work);
     }
-
-    /** Already resolved; nothing further to fetch. */
-    async getImageInfo(item) {
-        return item || null;
-    }
 }
 
 let instance = null;

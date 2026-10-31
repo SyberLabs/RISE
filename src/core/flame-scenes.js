@@ -10,7 +10,7 @@
 import { normalizeFlameRecipe } from './flame-recipe.js';
 
 export const FLAME_SCENES_KEY = 'rise:flame-scenes:v1';
-export const FLAME_SCENES_LIMIT = 50;
+const FLAME_SCENES_LIMIT = 50;
 
 let memory = null;
 

@@ -5,7 +5,7 @@
  * semantic response, playback, safety, and the UI cannot drift apart.
  */
 
-export const VISUAL_PRESENCE_MIN_MS = 150;
+const VISUAL_PRESENCE_MIN_MS = 150;
 export const VISUAL_PRESENCE_DEFAULT_MS = 200;
 
 // The interlocution presentation surfaces. 'full-frame' cuts to an
@@ -381,7 +381,7 @@ export function streamFrameAtRefresh(refreshes, count, options = {}) {
 // Behind-stream imagery is peripheral, not a cut: it needs dwell time
 // to register beneath the text, so its default presence is a full beat
 export const VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS = 1000;
-export const VISUAL_PRESENCE_MAX_MS = 2000;
+const VISUAL_PRESENCE_MAX_MS = 2000;
 export const VISUAL_PRESENCE_STEPS_MS = Object.freeze([
     150, 200, 300, 450, 700, 1000, 1400, 2000
 ]);

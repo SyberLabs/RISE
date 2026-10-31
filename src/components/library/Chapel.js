@@ -399,9 +399,6 @@ export class Chapel {
     }
   }
 
-  activate() {}
-  deactivate() {}
-
   destroy() {
     this._abortController.abort();
     this.container.innerHTML = '';

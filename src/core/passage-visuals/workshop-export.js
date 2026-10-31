@@ -13,7 +13,7 @@ import { normalizeQuote, snapCharacterRangeToTokens } from '../source-span.js';
 import { workshopEditorDataToProject } from '../workshop-project.js';
 import { compileTreatmentCue } from './treatments.js';
 
-export const PASSAGE_DIRECTION_LOCAL = 'local';
+const PASSAGE_DIRECTION_LOCAL = 'local';
 
 function fingerprint(text, edge) {
   const normalized = normalizeQuote(text);

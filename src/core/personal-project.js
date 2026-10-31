@@ -2,7 +2,7 @@ import { validateWorkshopProject, workshopProjectToSessionConfig } from './works
 import { validatePiece } from './personal-piece-contract.js';
 import { canonicalPersonal, isPersonalProject } from './personal-identity.js';
 
-export const PRESENTATION_VERSION = 'personal-neutral-v1';
+const PRESENTATION_VERSION = 'personal-neutral-v1';
 const safeDefaults = () => ({
   reading: { wpm: 160, chunkMode: 'sentence', curve: 'flat', displayMode: 'focal' },
   visual: { surface: 'off', config: { visualMode: 'off' } },
@@ -55,7 +55,7 @@ export function createPersonalProject(result, parent = null) {
   });
 }
 
-export function validatePersonalProject(value) {
+function validatePersonalProject(value) {
   exact(value, ['schema','id','title','intent','sources','assets','experienceProgram','defaults','provenance','paceV2','revision','updatedAt']);
   if (value.schema !== 'rise.workshop-project.v1' || !idOK(value.id)
     || value.intent !== 'personal-reading' || value.paceV2 !== true
@@ -101,7 +101,7 @@ export function importPersonalProject(text) {
 
 export function serializePersonalProject(project) { return JSON.stringify(validatePersonalProject(project), null, 2); }
 export function personalSession(project) { return workshopProjectToSessionConfig(validatePersonalProject(project)); }
-export function readablePersonalText(project) { return `${project.title}\n\n${project.sources[0].data}\n`; }
+function readablePersonalText(project) { return `${project.title}\n\n${project.sources[0].data}\n`; }
 
 // Inline so an unkept draft never depends on a chunk a deploy may remove.
 function download(filename, text, type) {

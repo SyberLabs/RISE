@@ -24,23 +24,23 @@ export const ACQUISITION_REQUEST_SCHEMA = 'rise.acquisition-request.v1';
 export const ACQUISITION_CANDIDATE_SCHEMA = 'rise.acquisition-candidate.v1';
 export const ACQUISITION_VERDICT_SCHEMA = 'rise.acquisition-verdict.v1';
 
-export const ACQUISITION_KINDS = Object.freeze([
+const ACQUISITION_KINDS = Object.freeze([
   'image', 'video', 'audio', 'font', 'document', 'voice'
 ]);
-export const ACQUISITION_SOURCE_PREFERENCES = Object.freeze([
+const ACQUISITION_SOURCE_PREFERENCES = Object.freeze([
   'public-domain', 'project-media', 'generated'
 ]);
-export const ACQUISITION_RELATIONSHIPS = Object.freeze([
+const ACQUISITION_RELATIONSHIPS = Object.freeze([
   'archive', 'project-only', 'temporary-private'
 ]);
-export const ACQUISITION_DEFERRED_KINDS = Object.freeze(['video', 'audio']);
+const ACQUISITION_DEFERRED_KINDS = Object.freeze(['video', 'audio']);
 
-export const ACQUISITION_ALLOWED_HOSTS = Object.freeze([
+const ACQUISITION_ALLOWED_HOSTS = Object.freeze([
   'api.artic.edu',
   'www.artic.edu'
 ]);
 
-export const ACQUISITION_LIMITS = Object.freeze({
+const ACQUISITION_LIMITS = Object.freeze({
   maxIdLength: 160,
   maxQueryLength: 400,
   maxPurposeLength: 200,
@@ -334,7 +334,7 @@ function validateFetched(value, path) {
   });
 }
 
-export function validateAcquisitionCandidate(value, path = '$') {
+function validateAcquisitionCandidate(value, path = '$') {
   const source = record(value, path);
   onlyKeys(source, CANDIDATE_FIELDS, path);
   if (source.schema !== ACQUISITION_CANDIDATE_SCHEMA) {
@@ -400,7 +400,7 @@ export function validateAcquisitionCandidate(value, path = '$') {
   return deepFreeze(candidate);
 }
 
-export function validateAcquisitionVerdict(value, path = '$') {
+function validateAcquisitionVerdict(value, path = '$') {
   const source = record(value, path);
   onlyKeys(source, VERDICT_FIELDS, path);
   if (source.schema !== ACQUISITION_VERDICT_SCHEMA) {

@@ -75,7 +75,7 @@ async function fetchJson(path) {
 const filesOf = team => (team ? `/content/changes/${team.slug}/` : '/content/changes/');
 
 /** The index's entries; none while no index has been written. */
-export async function loadChangesIndex(load = fetchJson, team = null) {
+async function loadChangesIndex(load = fetchJson, team = null) {
   const index = await load(`${filesOf(team)}index.json`);
   return index === null ? [] : admitChangesIndex(index);
 }
@@ -145,7 +145,7 @@ function whoWrote(digest) {
  * What the room is given to play a digest: the admitted Current, the page's address, who wrote it, and the pull
  * requests it speaks about, which About this reading lists while it plays.
  */
-export function sealedReading(digest, team = null) {
+function sealedReading(digest, team = null) {
   return {
     current: digest.current,
     path: changesPath(digest.id, team),

@@ -11,7 +11,7 @@ import { DIMENSIONS, EMOTION_LABELS } from '../dimensions.js';
 import { contentHash } from '../hash.js';
 import { experienceState, slot, unavailableState } from '../schema.js';
 import { extractFeatures } from './features.js';
-import { EMOTION_CUES, LEXICON } from './lexicon.js';
+import { EMOTION_CUES } from './lexicon.js';
 import {
     activeParameterCount,
     denseParameterCount,
@@ -116,8 +116,4 @@ export function encodeText(text) {
             parameters: TEXT_ENCODER_MANIFEST.activeParameters
         }
     });
-}
-
-export function knownLexiconSize() {
-    return Object.keys(LEXICON).length;
 }

@@ -66,7 +66,7 @@ function isSymbol(atom) {
 const PROCEDURAL_FIGURES = true;
 
 /** Page collection ids for Living Flame stills: `living-flame:<recipe id>`. */
-export const LIVING_FLAME_PAGE_PREFIX = 'living-flame:';
+const LIVING_FLAME_PAGE_PREFIX = 'living-flame:';
 
 /**
  * A cue's sourced collections, or [] for stillness. A works-less episode

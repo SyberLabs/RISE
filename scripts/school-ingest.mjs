@@ -948,7 +948,7 @@ function wholeFile(fileParts, headings) {
 
 /**
  * Every bodymatter file, in spine order, read as the Archive's importer reads
- * it (scripts/attic/standard-ebooks-ingest.mjs): a file that only names a
+ * it (the deleted standard-ebooks-ingest.mjs): a file that only names a
  * group prefixes the readings after it, and a file whose part the selector
  * does not name is read whole.
  */

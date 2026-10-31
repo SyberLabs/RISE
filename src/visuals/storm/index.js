@@ -44,8 +44,3 @@ export const STORM_OF_STEEL_ENGINES = STORM_OF_STEEL_ENGINE_META.map(entry => ({
     ...entry,
     engineClass: CLASSES[entry.id]
 }));
-
-export function createStormEngine(engineId) {
-    const entry = STORM_OF_STEEL_ENGINES.find(e => e.id === engineId) || STORM_OF_STEEL_ENGINES[0];
-    return new entry.engineClass();
-}

@@ -110,10 +110,6 @@ export const SCIENCE_CATEGORIES = Object.freeze({
     astronomy: Object.freeze({ name: ASTRONOMY.name, kind: 'cosmos' })
 });
 
-export const SCIENCE_KIND_LABELS = Object.freeze({
-    cosmos: 'The cosmos'
-});
-
 /**
  * ESO's shortlist is CLOSED — its 54 approvals now sit in ASTRONOMY above.
  *
@@ -168,13 +164,3 @@ export const RETIRED = Object.freeze([
             + 'harvest rather than surviving as a remnant of a natural-history one'
     })
 ]);
-
-/**
- * No live botanical source: live search cannot promise reviewed imagery.
- * A future botanical register needs a reviewable, pinnable collection
- * (illustration / photography), not a query switched back on.
- */
-export const BOTANICAL_DEFERRED = Object.freeze({
-    why: 'Wikimedia botanical service disconnected — live search admits imagery nobody reviewed',
-    wanted: 'a reviewable, pinnable collection of botanical illustration and photography'
-});

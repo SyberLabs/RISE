@@ -9,7 +9,7 @@
  * nothing GitHub returned.
  */
 
-export const PUBLIC_REPOSITORY_REFUSAL = 'The repository is not public, so the run stops before reading it';
+const PUBLIC_REPOSITORY_REFUSAL = 'The repository is not public, so the run stops before reading it';
 
 /** A repository record larger than this is refused unparsed. A real record is far smaller. */
 const MAX_RECORD = 128 * 1024;

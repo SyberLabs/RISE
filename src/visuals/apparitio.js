@@ -397,13 +397,6 @@ export class Apparitio {
     return plate;
   }
 
-  _developPlate(){
-    const plate = this._openPlate();
-    if(!plate) return null;
-    this._develop(plate.getContext('2d'));
-    return plate;
-  }
-
   _develop(ctx){
     this._initDevelop(ctx);
     while(!this._stepDevelop(1e9)) {}

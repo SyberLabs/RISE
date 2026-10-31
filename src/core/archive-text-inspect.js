@@ -37,7 +37,7 @@ const FURNITURE = [
 
 const WORD = /[A-Za-z][A-Za-z'’-]*/g;
 
-export function gibberishRate(text) {
+function gibberishRate(text) {
   const tokens = text.match(WORD) || [];
   if (!tokens.length) return 1;
   let bad = 0;
@@ -50,7 +50,7 @@ export function gibberishRate(text) {
   return bad / tokens.length;
 }
 
-export function lineRates(text) {
+function lineRates(text) {
   const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   if (!lines.length) return { apparatus: 0, furniture: 0, lines: 0 };
   let apparatus = 0;
@@ -62,7 +62,7 @@ export function lineRates(text) {
   return { apparatus: apparatus / lines.length, furniture: furniture / lines.length, lines: lines.length };
 }
 
-export function symbolRate(text) {
+function symbolRate(text) {
   const total = text.length || 1;
   const odd = (text.match(/[^\w\s.,;:!?'"()\[\]—–\-’‘“”]/g) || []).length;
   return odd / total;

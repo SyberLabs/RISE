@@ -1,4 +1,4 @@
-export const WORKSHOP_INSPECTOR_KINDS = Object.freeze([
+const WORKSHOP_INSPECTOR_KINDS = Object.freeze([
   'project',
   'source',
   'visualAsset',

@@ -45,11 +45,6 @@ export class Shuttle {
         return this.velocity < 0;
     }
 
-    /** The maximum atom index ever reached this session. */
-    get highWaterMark() {
-        return this._highWaterMark;
-    }
-
     /**
      * → : one rung toward (or past) forward speed. From rewind this
      * steps TOWARD home and stops there (spec: never through home on

@@ -12,7 +12,7 @@ import { hostedTeacher } from './teacher.js';
 import { TEXT_ENCODER_MANIFEST, encodeText } from '../text/encode.js';
 import { LEXICAL_MANIFEST, encodeLexical } from '../text/lexical.js';
 
-export function unavailableModels() {
+function unavailableModels() {
     return cachedEncoders()
         .filter(model => model.available === false)
         .map(model => ({
@@ -24,7 +24,7 @@ export function unavailableModels() {
         }));
 }
 
-export function runnableModels() {
+function runnableModels() {
     const base = [
         {
             id: LEXICAL_MANIFEST.id,
