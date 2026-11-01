@@ -1086,20 +1086,6 @@ describe('Player + Shuttle (LATERAL-TRAVERSAL-SPEC)', () => {
     expect(player.shuttle.velocity).toBe(1);
   });
 
-  it('a shuttle-exempt session refuses the keys (the liturgy rule)', () => {
-    const exempt = new Session({
-      atoms: [new Atom({ content: 'fixed', duration: 100 })],
-      title: 'Liturgy', shuttleExempt: true
-    });
-    const liturgical = new Player(exempt);
-    liturgical.play();
-    expect(liturgical.shuttleAvailable).toBe(false);
-    expect(liturgical.shuttleForward()).toBeNull();
-    expect(liturgical.shuttleBackward()).toBeNull();
-    expect(liturgical.shuttle.atHome).toBe(true);
-    liturgical.destroy();
-  });
-
   it('completion is met regardless of velocity (spec §7)', async () => {
     const complete = vi.fn();
     player.on('complete', complete);

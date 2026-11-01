@@ -90,7 +90,8 @@ function fakePlayer() {
     on: vi.fn(),
     setInterlocutionHandler: vi.fn(),
     setSpeedFactor: vi.fn(),
-    shuttleAvailable: false
+    shuttleForward: vi.fn(() => null),
+    shuttleBackward: vi.fn(() => null)
   };
   return player;
 }

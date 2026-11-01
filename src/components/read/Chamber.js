@@ -1630,12 +1630,11 @@ export class Chamber {
   }
 
   /**
-   * One shuttle keypress (direction +1 = →, -1 = ←). Liturgical
-   * sessions are traversal-exempt; outside a playing session the
-   * keys are inert.
+   * One shuttle keypress (direction +1 = →, -1 = ←). Outside a
+   * playing session the keys are inert.
    */
   shuttleStep(direction) {
-    if (!this.player?.shuttleAvailable) return;
+    if (!this.player) return;
     const velocity = direction > 0
       ? this.player.shuttleForward()
       : this.player.shuttleBackward();
