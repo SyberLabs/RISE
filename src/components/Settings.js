@@ -22,18 +22,6 @@ import {
  */
 
 /**
- * A READING CANNOT BE RESUMED ONCE ABANDONED — the exit overlay says so:
- * "The current sequence will be abandoned." So the panel a reader opens from
- * inside a reading is not the panel they visit from Home. It carries
- * what can rescue a reading in progress — the type, the chrome, the volume,
- * the two safety switches — and none of what is meaningless or destructive
- * there: the LOBBY drone does not play during a reading, and exporting or
- * CLEARING personal data mid-reading wipes the session and reloads the page.
- * The in-session surface is the control bar; this door only widens it.
- */
-const SESSION_SCOPE = 'session';
-
-/**
  * THE BAR IS THE IN-SESSION SETTINGS; THIS DOOR ONLY WIDENS IT.
  *
  * The Chamber's door opened Home's panel over the whole screen, and
@@ -71,9 +59,7 @@ export class Settings {
     constructor(container, options = {}) {
         this.container = container;
         this.settings = options.settings || {};
-        this.scope = options.scope === SESSION_SCOPE || options.scope === BAR_SCOPE
-            ? options.scope
-            : 'portal';
+        this.scope = options.scope === BAR_SCOPE ? BAR_SCOPE : 'portal';
 
         this.onNavigate = options.onNavigate || (() => { });
         this.onClose = typeof options.onClose === 'function' ? options.onClose : null;
@@ -89,10 +75,6 @@ export class Settings {
         }
     }
 
-    get inSession() {
-        return this.scope === SESSION_SCOPE || this.scope === BAR_SCOPE;
-    }
-
     get inBar() {
         return this.scope === BAR_SCOPE;
     }
@@ -103,18 +85,13 @@ export class Settings {
 
     render() {
         if (this.inBar) return this.renderBar();
-        const backLabel = this.onClose ? 'Back' : 'Home';
-        const backAria = this.onClose ? 'Back' : 'Back to Home';
-        // One main landmark per page: the full panel is the page's main
-        // region; opened over a reading it sits inside the Reader's own.
-        const region = this.inSession ? 'div' : 'main';
         this.container.innerHTML = `
       <div class="settings">
         <a href="#settings-content" class="skip-link">Skip to settings</a>
 
-        ${roomHeader({ back: backLabel, backLabel: backAria, backClass: 'settings-back' })}
+        ${roomHeader({ back: 'Home', backLabel: 'Back to Home', backClass: 'settings-back' })}
 
-        <${region} class="settings-content" id="settings-content" aria-labelledby="settings-title">
+        <main class="settings-content" id="settings-content" aria-labelledby="settings-title">
           <h1 id="settings-title" class="settings-title room-title">Settings</h1>
 
           <form class="settings-form">
@@ -181,7 +158,7 @@ export class Settings {
               </div>
             </div>
 
-            ${this.inSession ? '' : `<div data-plus-region>${this.plusVoiceRow()}</div>`}
+            <div data-plus-region>${this.plusVoiceRow()}</div>
           </section>
 
           <section class="settings-section" aria-labelledby="safety-heading">
@@ -195,7 +172,6 @@ export class Settings {
                 Boolean(this.settings.reducedMotion))}
           </section>
 
-          ${this.inSession ? '' : `
           <section class="settings-section" aria-labelledby="affect-heading">
             <h2 id="affect-heading" class="settings-section-title">Affect</h2>
 
@@ -243,9 +219,8 @@ export class Settings {
               <p class="about-tagline">RISE 2.0, an experimental reading interface by SyberLabs.</p>
             </div>
           </section>
-          `}
           </form>
-        </${region}>
+        </main>
       </div>
     `;
     }
@@ -519,7 +494,7 @@ export class Settings {
         });
 
         this.attachPlusEvents();
-        if (!this.inSession && !this.plusStatusLoaded) this.plusStatusLoaded = this.fillPlusStatus();
+        if (!this.inBar && !this.plusStatusLoaded) this.plusStatusLoaded = this.fillPlusStatus();
     }
 
     attachPlusEvents() {
@@ -737,7 +712,7 @@ export class Settings {
         if (this._active) return;
         this._active = true;
         this.customerPlus?.activate();
-        if (!this.customerPlus && !this.inSession && (this.plusStatus?.admin || this.plusStatusInvalidated)) this.plusStatusLoaded = this.fillPlusStatus();
+        if (!this.customerPlus && !this.inBar && (this.plusStatus?.admin || this.plusStatusInvalidated)) this.plusStatusLoaded = this.fillPlusStatus();
         document.addEventListener('keydown', this.boundKeyboardHandler);
         if (this.container.querySelector('[data-affect-toggle]')?.checked) void this.showAffect(true);
         this.scrollToAffect();

@@ -5,7 +5,6 @@
   "workers_dev": true,
   "preview_urls": false,
   "vars": {
-    "PERSONAL_PIECE_ENABLED": "false",
     "LIVE_REALTIME_ENABLED": "false",
     "MCP_ENABLED": "true",
     "MCP_GATE0": "true"

@@ -167,7 +167,7 @@ function flameFillLut(tone) {
 }
 
 function resolveTone(options) {
-    return options.tone || boundFlameFillTone(options.roomTone || ROOM_FLAME_TONE, {
+    return boundFlameFillTone(ROOM_FLAME_TONE, {
         reducedMotion: options.reducedMotion === true,
         visibleAreaRatio: options.visibleAreaRatio
     });
@@ -250,15 +250,13 @@ export function applyFlameFillToCanvas(canvas, options = {}) {
     if (!ctx || typeof ctx.getImageData !== 'function' || !canvas.width || !canvas.height) {
         return false;
     }
-    const reducedMotion = options.reducedMotion
-        ?? prefersFlameFillReducedMotion();
     // getImageData already hands back a private copy, so fill it in place
     // rather than allocating a second full-canvas buffer per flash.
     const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
     writeFlameFill(
         image.data,
         image.data,
-        flameFillLut(resolveTone({ ...options, reducedMotion })),
+        flameFillLut(resolveTone(options)),
         canvas.width,
         canvas.height
     );

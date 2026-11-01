@@ -239,7 +239,6 @@ export class Via {
         line.textContent = chant.attribution || `${chant.title} — ${chant.performer}`;
         line.hidden = false;
       };
-      engine.stopAmbient?.();
       engine.startSoundscape?.(this.sound);
     } catch (e) {
       console.warn('[Via] Sound unavailable:', e);

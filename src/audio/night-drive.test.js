@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createNightDrive, NIGHT_DRIVE_LIMITS } from './night-drive.js';
+import { createNightDrive } from './night-drive.js';
 
 // Minimal Web Audio stand-in that records when each oscillator starts.
 function fakeContext() {
@@ -17,20 +17,14 @@ function fakeContext() {
 }
 
 describe('Night Drive bed', () => {
-  it('puts a kick on every beat at the requested tempo', () => {
+  it('puts a kick on every beat at 124 BPM', () => {
     const { ctx, starts } = fakeContext();
-    const bed = createNightDrive(ctx, ctx.destination, { bpm: 124 });
+    const bed = createNightDrive(ctx, ctx.destination);
     bed.renderInto(4);
     // kicks are the sine oscillators whose pitch drops from 150 Hz
     const kicks = starts.filter(s => s.kind === 'osc' && s.o.type === 'sine').map(s => s.t);
     const gaps = kicks.slice(1).map((t, i) => t - kicks[i]);
     for (const g of gaps) expect(g).toBeCloseTo(60 / 124, 6);
     expect(kicks.length).toBe(Math.ceil((4 - 0.02) / (60 / 124)));
-  });
-
-  it('clamps tempo to the supported range', () => {
-    const { ctx } = fakeContext();
-    expect(createNightDrive(ctx, ctx.destination, { bpm: 300 }).bpm).toBe(NIGHT_DRIVE_LIMITS.bpm.max);
-    expect(createNightDrive(ctx, ctx.destination, { bpm: 10 }).bpm).toBe(NIGHT_DRIVE_LIMITS.bpm.min);
   });
 });

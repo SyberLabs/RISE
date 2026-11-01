@@ -238,7 +238,7 @@ export class Library {
       </div>
     `;
 
-    drawRiseSigil(this.container.querySelector('.sl-sigil'), { animate: false });
+    drawRiseSigil(this.container.querySelector('.sl-sigil'));
     this.updateActiveNav();
   }
 

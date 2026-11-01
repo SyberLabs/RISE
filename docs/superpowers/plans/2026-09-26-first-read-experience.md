@@ -23,7 +23,7 @@
 
 **Files:** Modify `src/components/Portal.js`, `src/components/Portal.css`, `src/app/route-manifest.js`, `src/app.js`; test `src/components/Portal.test.js` and `e2e/keystones.spec.js`.
 
-**Interfaces:** The Portal receives `onLaunchFirstRead: () => Promise<void>` from the route manifest. `app.launchKeystone(slug, { firstReadPreview = false } = {})` continues to use `resolveKeystone` and passes the marker to `handleBeginSession`. The compiled session carries `firstReadPreview: true` only for this action.
+**Interfaces:** The Portal receives `onLaunchFirstRead: () => Promise<void>` from the route manifest. `app.launchKeystone(slug, { firstReadPreview = false } = {})` continues to use `resolveKeystone` and passes the marker to `handleBeginSession`. The compiled session carries `firstReadPreview: true` only for this action. *(Since changed: `launchKeystone(slug)` takes only the slug; the first-read preview now runs through `launchJevReading(decision, { firstReadPreview })`.)*
 
 - [ ] Write a Portal test that finds one primary `.portal-first-read` button labelled “Experience 30 seconds,” clicks it twice, and verifies one `onLaunchFirstRead` call while pending. Assert the Jev form is still present.
 - [ ] Run `npx vitest run src/components/Portal.test.js` and verify the new test fails because the button is absent.

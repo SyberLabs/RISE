@@ -51,7 +51,7 @@ async function renderAdmittedPackage(input, job, options = {}) {
   const fromMs = excerpt?.fromMs || 0;
   const toMs = excerpt?.toMs == null ? plan.durationMs : excerpt.toMs;
   const audio = mixAudio(plan, {
-    sampleRate: options.sampleRate || tier.sampleRate,
+    sampleRate: tier.sampleRate,
     fromMs,
     toMs,
     inventory: input.inventory
@@ -108,18 +108,6 @@ async function renderAdmittedPackage(input, job, options = {}) {
     package: pack,
     credits: owedCreditLines({ sources: input.sources, inventory: input.inventory })
   });
-}
-
-/**
- * Quarantined. A poster package is not a compile.
- * Compile always muxes through renderArtifact.
- */
-export async function renderProfilePackage() {
-  fail(
-    'RENDER_COMPILE_POSTER',
-    'A poster package is not a compile. Use renderArtifact.',
-    '$'
-  );
 }
 
 /** Preview only. Not a compile. Compile muxes through renderArtifact. */

@@ -352,10 +352,12 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
  * Keep accent Living Text readable over the Chamber's 80% ink scrim, even
  * for a saved accent whose original hue does not meet text contrast by itself.
  * Mix toward the system's light ink only as far as needed, preserving the
- * accent's identity while guaranteeing the requested ratio against the
+ * accent's identity while guaranteeing a 4.5:1 ratio against the
  * worst-case white artwork behind that scrim.
  */
-export function ensureTextContrast(rgb, backgroundRgb, minimumRatio = 4.5, targetRgb = [238, 240, 255]) {
+export function ensureTextContrast(rgb, backgroundRgb) {
+    const minimumRatio = 4.5;
+    const targetRgb = [238, 240, 255];
     const linear = channel => {
         const value = channel / 255;
         return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
@@ -404,9 +406,8 @@ function ema(values, alphas) {
 const SMOOTHING_TAU_MS = 8000;
 const FALLBACK_ATOM_MS = 300;
 
-function smoothingAlphas(atoms, fixedAlpha) {
+function smoothingAlphas(atoms) {
     return atoms.map(atom => {
-        if (typeof fixedAlpha === 'number') return fixedAlpha;
         const duration = Number(atom?.duration);
         const ms = Number.isFinite(duration) && duration > 0 ? duration : FALLBACK_ATOM_MS;
         return 1 - Math.exp(-ms / SMOOTHING_TAU_MS);
@@ -418,13 +419,9 @@ function smoothingAlphas(atoms, fixedAlpha) {
  *
  * @param {Array} atoms - session atoms ({ content, duration, ... }); markers
  *                        and empty atoms are fine, they inherit via smoothing
- * @param {Object} options
- * @param {number} [options.alpha] - fixed per-atom EMA factor override;
- *                        omitted (the default) selects duration-derived
- *                        time-based smoothing
  * @returns {Array<{valence:number, arousal:number, confidence:number}>}
  */
-export function scoreAtoms(atoms, options = {}) {
+export function scoreAtoms(atoms) {
     if (!Array.isArray(atoms) || atoms.length === 0) return [];
     const n = atoms.length;
 
@@ -450,7 +447,7 @@ export function scoreAtoms(atoms, options = {}) {
 
     // 3. Forward-backward EMA — zero-lag smoothing with anticipation:
     //    the backward pass lets the signal start turning before a passage does.
-    const alphas = smoothingAlphas(atoms, options.alpha);
+    const alphas = smoothingAlphas(atoms);
     const reversedAlphas = [...alphas].reverse();
     const fwdV = ema(rawV, alphas);
     const bwdV = ema([...rawV].reverse(), reversedAlphas).reverse();
@@ -833,16 +830,16 @@ export function planKleeModulation(signal) {
  * judgment (arousal reads stronger visually) — it lives here once, shared
  * by every generator's preload queue.
  *
- * @param {Array} items - candidates; signals read via getSignal(item)
+ * @param {Array} items - candidates; signals read from item.signal
  * @returns {number} index of the nearest item (first item when none carry signals)
  */
-export function pickNearestSignalIndex(items, signal, getSignal = item => item.signal) {
+export function pickNearestSignalIndex(items, signal) {
     if (!Array.isArray(items) || items.length === 0) return -1;
     if (!signal) return 0;
     let bestIndex = 0;
     let bestDistance = Infinity;
     for (let i = 0; i < items.length; i++) {
-        const tag = getSignal(items[i]);
+        const tag = items[i].signal;
         if (!tag) continue;
         const dv = tag.valence - signal.valence;
         const da = (tag.arousal - signal.arousal) * 1.5;

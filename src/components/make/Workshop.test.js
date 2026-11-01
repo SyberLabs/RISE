@@ -108,19 +108,6 @@ describe('Workshop Composition Studio architecture', () => {
         container.remove();
     });
 
-    it('uses the injected audio provider for shell feedback', () => {
-        const audioEngine = { playClick: vi.fn() };
-        const { workshop, container } = makeWorkshop(vi.fn(), {
-            audioEngineProvider: () => audioEngine
-        });
-
-        container.querySelector('[data-action="back"]').click();
-
-        expect(audioEngine.playClick).toHaveBeenCalledOnce();
-        workshop.destroy();
-        container.remove();
-    });
-
     it('coordinates one asset library, score canvas, and contextual inspector', () => {
         const { container } = makeWorkshop();
 
@@ -527,7 +514,7 @@ describe('Workshop Phase 6 audio authoring', () => {
         expect(workshop.scoreView).toBe('combined');
         expect(workshop.pendingScoreSelection).toMatchObject({ fromCharacter: 0, toCharacter: 5 });
         expect(container.querySelector('#studio-audio-library-panel').hidden).toBe(false);
-        workshop.cancelPendingScoreSelection({ announce: false });
+        workshop.cancelPendingScoreSelection();
         workshop.destroy();
         container.remove();
     });
@@ -990,13 +977,13 @@ describe('Workshop visual selection repair', () => {
         await vi.waitFor(() => expect(workshop.pendingScoreSelection)
             .toMatchObject({ fromCharacter: 0, toCharacter: 3 }));
 
-        workshop.cancelPendingScoreSelection({ announce: false });
+        workshop.cancelPendingScoreSelection();
         const touchText = selectCharacters(container, 4, 12);
         touchText.dispatchEvent(new Event('touchend', { bubbles: true }));
         await vi.waitFor(() => expect(workshop.pendingScoreSelection)
             .toMatchObject({ fromCharacter: 4, toCharacter: 12 }));
 
-        workshop.cancelPendingScoreSelection({ announce: false });
+        workshop.cancelPendingScoreSelection();
         const keyboardText = selectCharacters(container, 13, 20);
         keyboardText.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true }));
         expect(workshop.pendingScoreSelection).toMatchObject({ fromCharacter: 13, toCharacter: 20 });
@@ -1300,7 +1287,7 @@ describe('Workshop draft lifecycle', () => {
         expect(workshop.sessionData.title).toBe('');
         expect(workshop.sessionData.sources).toHaveLength(0);
 
-        await workshop.openSavedBlueprintAsync(saved.id, { preserveCurrent: false });
+        await workshop.openSavedBlueprintAsync(saved.id);
         expect(workshop.sessionData.title).toBe('First form');
 
         const titleInput = container.querySelector('#session-title');

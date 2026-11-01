@@ -164,29 +164,6 @@ describe('KleeFlashes', () => {
         await flashes.renderFlash(canvas, 80, null);
         expect(flashes.episode.progress).toBeGreaterThan(progressAfterFirst);
     });
-
-    it('renders Klee ASCII from the same seeded progressive episode geometry', async () => {
-        const { flashes, engine } = makeFlashes();
-        engine.palette = ['#ffaa66'];
-        engine.lines = [{
-            colorIndex: 0,
-            alpha: 1,
-            weight: 1,
-            points: [[0, 0], [400, 200], [800, 0]]
-        }];
-        engine.forms = [];
-        flashes.configure({ preset: 'harmonic' });
-
-        const first = await flashes.createAsciiFlash(80, null, { columns: 48, rows: 24 });
-        const seed = flashes.episode.seed;
-        const second = await flashes.createAsciiFlash(80, null, { columns: 48, rows: 24 });
-
-        expect(first.metadata.source).toBe('klee');
-        expect(second.metadata.seed).toBe(seed);
-        expect(second.metadata.progress).toBeGreaterThan(first.metadata.progress);
-        expect(second.glyphs).toMatch(/^[\x20-\x7e]+$/);
-        expect(engine.render).not.toHaveBeenCalled();
-    });
 });
 
 describe('VisualCortex Klee delegation', () => {
@@ -496,16 +473,6 @@ describe('VisualCortex Klee delegation', () => {
         expect(dispose).not.toHaveBeenCalled();
     });
 
-    it('normalizes render language independently of the active source set', () => {
-        const cortex = new VisualCortex();
-        cortex.updateConfig({ renderLanguage: 'ascii', activeTypes: ['klee'] });
-        expect(cortex.config.renderLanguage).toBe('ascii');
-        expect(cortex.config.activeTypes).toEqual(['klee']);
-
-        cortex.updateConfig({ renderLanguage: 'ansi' });
-        expect(cortex.config.renderLanguage).toBe('native');
-    });
-
     it('treats a configured Global Pool subset, including empty, as authoritative', () => {
         const cortex = new VisualCortex();
         const selected = 'data:image/png;base64,SELECTED';
@@ -515,42 +482,6 @@ describe('VisualCortex Klee delegation', () => {
 
         cortex.updateConfig({ globalVisuals: [] });
         expect(cortex._globalVisualUris()).toEqual([]);
-    });
-
-    it('routes a Klee flash through the structural ASCII adapter, not native canvas render', async () => {
-        grantVisualInterlocutionConsent();
-        const cortex = new VisualCortex();
-        const createAsciiFlash = vi.fn().mockResolvedValue({ layers: [['x']], palette: ['white'] });
-        const renderFlash = vi.fn();
-        cortex.initialized = true;
-        cortex.container = { hidden: true, style: {} };
-        cortex._kleeCanvas = {};
-        cortex.kleeFlashes = { createAsciiFlash, renderFlash };
-        cortex._asciiCanvas = { hidden: true, width: 800, height: 400 };
-        cortex.asciiRenderer = { render: vi.fn(() => true) };
-        cortex._flashGate = { canAllow: () => true, commit: () => true };
-        cortex._resizeKleeCanvas = vi.fn();
-        cortex.updateConfig({ renderLanguage: 'ascii', activeTypes: ['klee'] });
-        // Inline RAF whose clock keeps advancing: under commit-frame
-        // anchoring the presentation clock starts at the first frame,
-        // so each subsequent frame must move time forward to settle.
-        let inlineFrameClock = performance.now();
-        const raf = vi.spyOn(globalThis, 'requestAnimationFrame')
-            .mockImplementation(callback => callback(inlineFrameClock += 1000));
-
-        const result = await cortex.flash(33, 'klee', { valence: 0.2, arousal: 0.7 });
-
-        expect(createAsciiFlash).toHaveBeenCalledOnce();
-        expect(renderFlash).not.toHaveBeenCalled();
-        expect(cortex.asciiRenderer.render).toHaveBeenCalledOnce();
-        expect(cortex._asciiCanvas.hidden).toBe(false);
-        expect(result).toMatchObject({
-            presented: true,
-            requestedDurationMs: 150,
-            presentedDurationMs: 150,
-            reason: 'presented'
-        });
-        raf.mockRestore();
     });
 });
 
@@ -1627,7 +1558,7 @@ describe('VisualCortex adaptive image wash', () => {
         expect(cortex.imageWashEl.hasAttribute('src')).toBe(false);
     });
 
-    it('hides the wash before a procedural or ASCII frame presents', () => {
+    it('hides the wash before a procedural frame presents', () => {
         const cortex = new VisualCortex();
         cortex.imageWashEl = document.createElement('img');
         cortex.imageWashEl.hidden = false;
@@ -2230,7 +2161,6 @@ describe('Continuous Field (Gallery) wiring', () => {
     it('materializes a Fractal Flame as an immutable Gallery work', async () => {
         const cortex = new VisualCortex();
         cortex.initialized = true;
-        cortex.config.renderLanguage = 'native';
         cortex.fractal = {
             isReady: vi.fn(() => false),
             fillQueue: vi.fn().mockResolvedValue(undefined),
@@ -2258,7 +2188,6 @@ describe('Continuous Field (Gallery) wiring', () => {
         // because a Fit mask projecting the Gallery waits on it.
         const cortex = new VisualCortex();
         cortex.initialized = true;
-        cortex.config.renderLanguage = 'native';
         cortex.fractal = {
             isReady: vi.fn(() => true),
             generate: vi.fn(() => true)
@@ -2293,7 +2222,6 @@ describe('Continuous Field (Gallery) wiring', () => {
     it('exports a word fill at once, so a Fit word is never shown before its mask', async () => {
         const cortex = new VisualCortex();
         cortex.initialized = true;
-        cortex.config.renderLanguage = 'native';
         cortex.fractal = {
             isReady: vi.fn(() => true),
             generate: vi.fn(() => true)
@@ -2313,7 +2241,6 @@ describe('Continuous Field (Gallery) wiring', () => {
     it('adapts every Rhythmic procedural into the common Gallery work contract', async () => {
         const cortex = new VisualCortex();
         cortex.initialized = true;
-        cortex.config.renderLanguage = 'native';
         cortex._resizeKleeCanvas = vi.fn();
         const canvas = {
             width: 1200,
@@ -2373,7 +2300,6 @@ describe('Continuous Field (Gallery) wiring', () => {
         function stubbedEngines() {
             const cortex = new VisualCortex();
             cortex.initialized = true;
-            cortex.config.renderLanguage = 'native';
             cortex._resizeKleeCanvas = vi.fn();
             const canvas = {
                 width: 1200,
@@ -2476,7 +2402,7 @@ describe('Continuous Field (Gallery) wiring', () => {
             expect(cortex.turrell.generate).toHaveBeenCalledWith(THEME_ENGINE_MAP[theme].turrell);
             expect(cortex.neural.generate).toHaveBeenCalledWith(THEME_ENGINE_MAP[theme].neural);
             expect(cortex.rockgarden.renderRockGarden).toHaveBeenCalledWith(cortex._kleeCanvas, {
-                ...rockGardenInk(JEV_PALETTES[theme]), brushStroke: true
+                ...rockGardenInk(JEV_PALETTES[theme])
             });
             cortex.destroy();
         });
@@ -2488,7 +2414,7 @@ describe('Continuous Field (Gallery) wiring', () => {
             await renderThree(cortex);
 
             expect(cortex.rockgarden.renderRockGarden).toHaveBeenCalledWith(cortex._kleeCanvas, {
-                backgroundColor: '#1C0B0A', strokeColor: 'rgba(255, 240, 228, 0.8)', brushStroke: true
+                backgroundColor: '#1C0B0A', strokeColor: 'rgba(255, 240, 228, 0.8)'
             });
             cortex.destroy();
         });
@@ -2502,7 +2428,7 @@ describe('Continuous Field (Gallery) wiring', () => {
             expect(cortex.turrell.generate).toHaveBeenCalledWith(null);
             expect(cortex.neural.generate).toHaveBeenCalledWith(null);
             expect(cortex.rockgarden.renderRockGarden).toHaveBeenCalledWith(cortex._kleeCanvas, {
-                backgroundColor: '#0A0A0C', strokeColor: 'rgba(232, 232, 236, 0.8)', brushStroke: true
+                backgroundColor: '#0A0A0C', strokeColor: 'rgba(232, 232, 236, 0.8)'
             });
             cortex.destroy();
         });
@@ -2519,32 +2445,6 @@ describe('Continuous Field (Gallery) wiring', () => {
 
         cortex.applyCue({ kind: 'procedural', collections: ['ostensoria'], config: { palette: 'ember' } });
         expect(Ostensoria.prototype.beginBake.mock.calls.at(-1)[2]).toEqual({ palette: 'ember' });
-        cortex.destroy();
-    });
-
-    it('renders a Fractal Flame Gallery through the selected ASCII language', async () => {
-        const cortex = new VisualCortex();
-        cortex.initialized = true;
-        cortex.config.renderLanguage = 'ascii';
-        const asciiFrame = { layers: [['#']], rows: 1, columns: 1 };
-        const item = { imageData: {}, asciiFrame };
-        cortex.fractal = {
-            isReady: vi.fn(() => true),
-            takeFrame: vi.fn(() => item)
-        };
-        cortex._fractalCanvas = {};
-        cortex.asciiCompiler = { compileImageData: vi.fn() };
-        cortex.asciiRenderer = { render: vi.fn(() => true) };
-        cortex._asciiCanvas = {
-            toDataURL: vi.fn(() => 'data:image/webp;base64,ascii-flame')
-        };
-
-        const work = await cortex._renderContinuousProceduralWork('fractal');
-
-        expect(cortex.fractal.takeFrame).toHaveBeenCalledWith(null);
-        expect(cortex.asciiRenderer.render).toHaveBeenCalledWith(asciiFrame);
-        expect(work.sourceType).toBe('fractal');
-        expect(work.url).toContain('ascii-flame');
         cortex.destroy();
     });
 
@@ -2619,21 +2519,17 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
-    it('includes procedural identity and render language in the Gallery pool key', () => {
+    it('includes procedural identity in the Gallery pool key', () => {
         const { cortex } = hostedContinuousCortex();
         vi.spyOn(cortex, '_renderContinuousProceduralWork')
             .mockResolvedValue({ url: 'data:image/webp;base64,flame' });
         cortex.updateConfig({
             enabled: true,
             presentation: 'continuous',
-            activeTypes: ['fractal'],
-            renderLanguage: 'native'
+            activeTypes: ['fractal']
         });
-        const nativeKey = cortex._continuousPoolKey();
-        cortex.updateConfig({ renderLanguage: 'ascii' });
 
-        expect(nativeKey).toContain('fractal');
-        expect(cortex._continuousPoolKey()).not.toBe(nativeKey);
+        expect(cortex._continuousPoolKey()).toContain('fractal');
         cortex.destroy();
     });
 
@@ -2891,7 +2787,6 @@ describe('Continuous Field (Gallery) wiring', () => {
         const apply = vi.spyOn(flameFillAdapter, 'applyFlameFillToCanvas').mockReturnValue(true);
         const cortex = new VisualCortex();
         cortex.initialized = true;
-        cortex.config.renderLanguage = 'native';
         cortex.fractal = {
             isReady: vi.fn(() => true),
             fillQueue: vi.fn(),

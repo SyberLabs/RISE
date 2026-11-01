@@ -145,20 +145,6 @@ describe('Ostensoria sparse retry', () => {
         expect(again.acceptedSeed).toBe(engine.acceptedSeed);
     });
 
-    it('keeps a blank when acceptSparse is set', () => {
-        const calls = [];
-        const engine = new Ostensoria();
-        engine._bake = function (_signal, seed) {
-            calls.push(seed);
-            this.cur = { seed };
-            emptyField(this);
-        };
-        engine.generate(null, 'BLANK-1', { acceptSparse: true });
-        expect(calls).toEqual(['BLANK-1']);
-        expect(engine.coverage.sparse).toBe(true);
-        expect(engine.coverage.voidFraction).toBeGreaterThanOrEqual(VOID_FRACTION_LIMIT);
-    });
-
     it('leaves a dense seed on the first bake', () => {
         const calls = [];
         const engine = new Ostensoria();

@@ -110,12 +110,11 @@ It is dealt with in Phase 2; the brief already says the Constellation replaces i
 randomness, NO semantic track, NO probabilistic selection anywhere in this
 module … The conductor's cleverness stays outside the fixed forms"*
 (`liturgy-runner.js:10-13`). The Lateral Traversal spec §8 says liturgical
-sessions are traversal-exempt "by covenant". The Session model has a
-`shuttleExempt` flag for this, but **nothing in `src/` ever sets it**
-(search: only `models.js` and `player.js` mention it). The exemption holds because
-liturgy is structurally never on the Player. `liturgyToAtoms` exists
-(`liturgy-runner.js:104`) and has no non-test caller. I mention both and delete
-neither.
+sessions are traversal-exempt "by covenant". The Session model had a
+`shuttleExempt` flag for this, but nothing in `src/` ever set it. The exemption
+holds because liturgy is structurally never on the Player. `liturgyToAtoms` had
+no non-test caller. Both were deleted as dead code on 2026-10-31 (#765 and the
+follow-up sweep), with the owner's approval.
 
 **Fold or withhold?** The thesis says nothing is deleted and each non-fitting
 thing is folded or withheld *with a stated reason*. My recommendation is
@@ -125,8 +124,8 @@ thing is folded or withheld *with a stated reason*. My recommendation is
   two differ in exactly the property the Current exists to provide: a Current can
   be slowed, dived into, and read against an undercurrent. A liturgy must do none
   of those.
-- Folding it (compiling steps to atoms with `liturgyToAtoms`, which already
-  exists) would put a prayer on the surface where Phase 1c threads, 1d
+- Folding it (compiling steps to atoms, as the deleted `liturgyToAtoms` did)
+  would put a prayer on the surface where Phase 1c threads, 1d
   dive/surface, and Phase 2 affect all attach. The covenant is "no semantic
   track". The safest implementation of a covenant is a system that cannot reach it.
 - So the rule becomes a **test that can fail**: launching a liturgy yields no
@@ -298,7 +297,7 @@ which pull request 172 already answered.)
 | A | `conductor.js` `LEXICON`, `scoreChunk`, `scoreAtoms` | A hand-curated valence and arousal lexicon; smoothed per-atom track `{valence −1..1, arousal 0..1, confidence}` | Production. Opt-in (below) |
 | B | `Chamber.js:275-288` and `chamber-session-factory.js:284` | **Two call sites** score the session and share one memo on `session.semanticTrack` | Production |
 | C | `passage-visuals/director.js` `blockSignal` | Calls `scoreChunk` per block with **its own confidence formula** (`hits / max(3, tokens·0.04)`) versus A's `hits / 3` | Production |
-| D | `player.js:645-651` via `responsiveFrequency`, and the visual engines: `harmonograph`, `fractal`, `klee`, `ascii-engine`, `treatments.js`, and others that read `{valence, arousal}` | **Consumers** of the signal shape | Production |
+| D | `player.js:645-651` via `responsiveFrequency`, and the visual engines: `harmonograph`, `fractal`, `klee`, `treatments.js`, and others that read `{valence, arousal}` | **Consumers** of the signal shape | Production |
 | E | `pull 296: src/affect/text/lexicon.js`, `encode.js` | A second lexicon, a negation window, an unfitted linear readout, twelve axes | Not imported by the reading runtime. Only `Emotions.js` imports it |
 | F | `pull 296: modalities/pacing.js` | A prior that places words per minute on arousal, centred at 220 | Same |
 
@@ -394,9 +393,9 @@ schedules" is the natural result and testable. Two collisions to settle first:
   Whether that deferral has ended is the creator's to say (decision D5).
 
 **1e (breath).** `StateCurve.at(position)` is indexed by *progress through the
-reading*, and a breath is periodic in *time*. The existing zero-mean doctrine
-(`semanticTexture` in `pacing.js`) is the right shape: a periodic multiplier that
-averages to one, so it never changes the reading's length. The reading track cannot
+reading*, and a breath is periodic in *time*. The zero-mean doctrine (once
+`semanticTexture` in `pacing.js`, deleted because nothing enabled it) is the right
+shape: a periodic multiplier that averages to one, so it never changes the reading's length. The reading track cannot
 carry it: a scored pace is a clip, a track holds 512, and a long book has far more
 breaths. It needs a function in `pacing.js`, clamped by the pace window and by the
 100 ms to 10 s duration limits already there. It must behave sensibly at 50 and at

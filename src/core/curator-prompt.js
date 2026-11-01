@@ -87,7 +87,8 @@ const number = (value) => Number(value).toLocaleString('en-US');
  * A list of ids as a model can read it: named, wrapped, and honest about
  * what it left out. `${count} offered` is not a capability list.
  */
-function idLines(ids, indent = '  ') {
+function idLines(ids) {
+  const indent = '    ';
   const named = ids.slice(0, MAX_NAMED);
   const lines = [];
   let line = '';
@@ -449,9 +450,9 @@ function capabilityLines(ctx) {
         'IMAGERY — a `sourced` cue draws photographs from a museum collection;',
         'a `procedural` cue draws a generated field from a pool, and may name',
         'engines within it.',
-        ...(museums.length ? ['  museum collections:', ...idLines(museums, '    ')] : []),
-        ...(pools.length ? ['  procedural pools:', ...idLines(pools, '    ')] : []),
-        ...(engines.length ? ['  engines:', ...idLines(engines, '    ')] : []),
+        ...(museums.length ? ['  museum collections:', ...idLines(museums)] : []),
+        ...(pools.length ? ['  procedural pools:', ...idLines(pools)] : []),
+        ...(engines.length ? ['  engines:', ...idLines(engines)] : []),
         ...(families.length
           ? [`  work-engine families: ${families.join(', ')}`,
             '    — imagery written for one book and named after it. These are',

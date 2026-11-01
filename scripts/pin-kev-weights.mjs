@@ -42,16 +42,16 @@ async function measured(url, onBytes) {
     return { bytes, sha256: hash.digest('hex') };
 }
 
-/** The pin record for `ids` at `ref`, merged over `pins`. */
-export async function pinBundles({ hub = HUB, ref = 'main', ids = Object.keys(DEVICE_MODELS), models = DEVICE_MODELS, pins = KEV_PINS, log = () => {} } = {}) {
-    const { sha } = await (await fetchOk(`${hub}/api/models/${REPO}/revision/${encodeURIComponent(ref)}`)).json();
+/** The pin record for `ids` at `ref`, merged over KEV_PINS. */
+export async function pinBundles({ ref = 'main', ids = Object.keys(DEVICE_MODELS), log = () => {} } = {}) {
+    const { sha } = await (await fetchOk(`${HUB}/api/models/${REPO}/revision/${encodeURIComponent(ref)}`)).json();
     if (!/^[0-9a-f]{40}$/u.test(sha ?? '')) throw new Error(`${REPO}@${ref} did not resolve to a commit`);
     log(`${REPO}@${ref} is ${sha}`);
-    const out = { ...pins };
+    const out = { ...KEV_PINS };
     for (const id of ids) {
-        const model = models[id];
-        if (!model) throw new Error(`unknown device model ${id}; have ${Object.keys(models).join(', ')}`);
-        const base = `${hub}/${REPO}/resolve/${sha}/${model.bundle}`;
+        const model = DEVICE_MODELS[id];
+        if (!model) throw new Error(`unknown device model ${id}; have ${Object.keys(DEVICE_MODELS).join(', ')}`);
+        const base = `${HUB}/${REPO}/resolve/${sha}/${model.bundle}`;
         const manifestBytes = Buffer.from(await (await fetchOk(`${base}/manifest.json`)).arrayBuffer());
         const manifest = JSON.parse(manifestBytes.toString('utf8'));
         if (!runMatches(manifest.run, model.run)) throw new Error(`${model.bundle}@${sha} reports ${manifest.run}, not the pinned ${model.run}`);

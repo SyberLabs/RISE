@@ -136,7 +136,7 @@ export class AudioScheduleController {
         this._activeBedCue = this.defaultCue;
         this._activeSwellCue = null;
         this._generation = 0;
-        this._enabled = options.enabled !== false;
+        this._enabled = true;
         this._paused = false;
         this._lastAtom = null;
     }
@@ -218,7 +218,8 @@ export class AudioScheduleController {
         return null;
     }
 
-    _cancelBed(cue = this._activeBedCue) {
+    _cancelBed() {
+        const cue = this._activeBedCue;
         if (!cue || cue.kind === 'hold') return;
         if (cue.kind === 'soundscape') this._command('stopSoundscape')?.(cue.fadeMs === 0);
         if (cue.kind === 'tone') this._command('applyPreset')?.('silent');

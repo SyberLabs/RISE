@@ -489,8 +489,7 @@ export async function projectWorkshopMedia({
   record,
   meta = {},
   bytes = null,
-  rights = null,
-  provenance = null
+  rights = null
 } = {}) {
   const media = record && typeof record === 'object' ? record : {};
   const id = exactId(media.id || meta.id, '$.id');
@@ -520,7 +519,7 @@ export async function projectWorkshopMedia({
     provenance: mergeProvenance({
       origin: 'upload',
       ...(acquiredAt ? { acquiredAt, createdAt: acquiredAt } : {})
-    }, meta.provenance || provenance),
+    }, meta.provenance),
     rights: rights || defaultUploadRights(),
     transformations: []
   };
@@ -534,8 +533,7 @@ export async function projectPersonalSwell({
   record,
   projectId,
   bytes = null,
-  rights = null,
-  provenance = null
+  rights = null
 } = {}) {
   const swell = record && typeof record === 'object' ? record : {};
   const id = exactId(swell.id, '$.id');
@@ -556,11 +554,11 @@ export async function projectPersonalSwell({
         : payload?.size,
     contentHash,
     storage: { kind: 'personal-swells-idb', recordId: id },
-    provenance: mergeProvenance({
+    provenance: {
       origin: 'upload',
       provider: 'Personal swell shelf',
       ...(acquiredAt ? { acquiredAt, createdAt: acquiredAt } : {})
-    }, provenance),
+    },
     rights: rights || defaultUploadRights(),
     transformations: []
   });
@@ -611,8 +609,7 @@ export async function admitTransformedAsset({
   dimensions = null,
   durationMs = null,
   transformation,
-  rights = null,
-  storageKind = null
+  rights = null
 } = {}) {
   const source = validateProjectAsset(parent);
   const nextId = exactId(id, '$.id');
@@ -644,7 +641,7 @@ export async function admitTransformedAsset({
     byteLength: payload.byteLength,
     contentHash,
     storage: {
-      kind: storageKind || (source.storage.kind === 'library' ? 'bundle' : source.storage.kind),
+      kind: source.storage.kind === 'library' ? 'bundle' : source.storage.kind,
       recordId: nextId
     },
     provenance: source.provenance,

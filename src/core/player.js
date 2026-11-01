@@ -178,9 +178,7 @@ export class Player {
 
         // THE SHUTTLE (LATERAL-TRAVERSAL-SPEC): signed traversal
         // velocity on a discrete ladder, orthogonal to pace
-        // (speedFactor is the ↑↓ axis; the shuttle is ←→). Sessions
-        // may opt out entirely (liturgical rooms are traversal-exempt,
-        // spec §8) via session.shuttleExempt.
+        // (speedFactor is the ↑↓ axis; the shuttle is ←→).
         this.shuttle = new Shuttle();
         this.speechSyncId = 0; // Guard against late callbacks from old speech requests
         this.speechWatchdogId = null; // A spoken atom that never reports its end
@@ -644,11 +642,6 @@ export class Player {
 
     // ─── The Shuttle (LATERAL-TRAVERSAL-SPEC) ───
 
-    /** Liturgical rooms are traversal-exempt (spec §8). */
-    get shuttleAvailable() {
-        return this.sessionState.session?.shuttleExempt !== true;
-    }
-
     /**
      * → : one rung toward forward speed (or toward home from rewind).
      * @returns {number|null} the new velocity, or null when unavailable
@@ -666,7 +659,6 @@ export class Player {
     }
 
     _shuttleStep(step) {
-        if (!this.shuttleAvailable) return null;
         if (!['playing', 'interlocuting'].includes(this.sessionState.state)) return null;
         const before = this.shuttle.velocity;
         const atomFraction = this._currentAtomFraction();
@@ -717,7 +709,6 @@ export class Player {
             this.shuttle.reset();
             this.emit('shuttle', { velocity: 1, reason: 'live-end' });
         }
-        this.emit('waiting', { index: this.sessionState.currentIndex });
     }
 
     /**

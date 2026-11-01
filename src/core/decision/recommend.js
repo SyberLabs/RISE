@@ -498,7 +498,8 @@ export function buildRecommendRequest({ intent, catalog, turn = 0, nightDrive = 
 }
 
 /** Per-tab memory: turn counters and validated decisions, bounded. */
-function memoryStore(limit = 32) {
+function memoryStore() {
+  const limit = 32;
   const turns = new Map();
   const decisions = new Map();
   return {
@@ -521,16 +522,16 @@ function memoryStore(limit = 32) {
  * validated decisions) stays in `store`, by default this tab's memory.
  * Nothing is sent anywhere except the one connection's decision request.
  *
- * @param loadCatalog async (signal) => admitted catalog, or throws
+ * @param loadCatalog async () => admitted catalog, or throws
  * @param getConnection () => the reader's connection, or null
  */
 export function createRecommender({ loadCatalog, getConnection, store = memoryStore() }) {
-  return async function recommend(rawIntent, { nightDrive = true, signal } = {}) {
+  return async function recommend(rawIntent, { nightDrive = true } = {}) {
     const intent = readIntent(rawIntent);
     if (!intent) throw new DecisionError('INVALID_REQUEST', `Enter a reading intent of ${INTENT_MIN} to ${INTENT_MAX} characters.`);
     const connection = getConnection();
     if (!connection) throw new DecisionError('NOT_CONNECTED');
-    const catalog = await loadCatalog(signal);
+    const catalog = await loadCatalog();
     const provider = connection.provider;
     const identity = `${provider.name}:${provider.revision}`;
     const turn = await store.nextTurn(`${identity}:${intent}`);
@@ -538,7 +539,7 @@ export function createRecommender({ loadCatalog, getConnection, store = memorySt
     const key = `${identity}:${cacheKey}`;
     const cached = await store.get(key);
     if (cached) return { ...cached, decisionCacheStatus: 'hit' };
-    const value = await callDecision(connection, body, { signal, deadlineMs: RECOMMEND_DEADLINE_MS });
+    const value = await callDecision(connection, body, { deadlineMs: RECOMMEND_DEADLINE_MS });
     const decision = validDecision(value, hints.eligibleBooks, intent, choices, provider);
     if (!decision) throw new DecisionError('INVALID_RESPONSE', 'The decision model returned an invalid choice.');
     await store.set(key, decision);

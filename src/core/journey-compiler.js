@@ -324,12 +324,8 @@ export function compileJourney(journey, options = {}) {
         throw new JourneyCompileError('JOURNEY_NO_MOVEMENTS',
             'A Journey needs at least one movement.', { journeyId });
     }
-    // Flat segment records predate authored Journeys and remain an explicit
-    // legacy input adapter. A manifest that declares movements is the new
-    // authored shape and must identify its schema; omission is not v1.
-    const declaresMovements = Array.isArray(journey.movements) && journey.movements.length > 0;
-    if ((declaresMovements && journey.schemaVersion !== SCHEMA)
-        || (!declaresMovements && journey.schemaVersion && journey.schemaVersion !== SCHEMA)) {
+    // A manifest must identify its schema; omission is not v1.
+    if (journey.schemaVersion !== SCHEMA) {
         throw new JourneyCompileError('JOURNEY_SCHEMA',
             `Unknown Journey schema: ${journey.schemaVersion || '(missing)'}.`, { journeyId });
     }
@@ -615,7 +611,7 @@ export function compileJourney(journey, options = {}) {
         ],
         metadata: {
             kind: 'journey',
-            journeySchema: declaresMovements ? SCHEMA : 'legacy-flat'
+            journeySchema: SCHEMA
         }
     });
     return lowerExperienceProgram(experienceProgram);

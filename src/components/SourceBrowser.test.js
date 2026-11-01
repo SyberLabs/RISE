@@ -35,11 +35,7 @@ describe('SourceBrowser request ownership', () => {
     const textProviders = vi.spyOn(SourceRegistry, 'getTextProviders').mockReturnValue([provider]);
 
     const onSelect = vi.fn();
-    const browser = new SourceBrowser({
-      providerIds: ['library-archive'],
-      autoSelectProviderId: 'library-archive',
-      onSelect
-    });
+    const browser = new SourceBrowser({ onSelect });
     await new Promise(resolve => setTimeout(resolve, 20));
 
     expect(browser.activeProvider).toBe(provider);

@@ -17,10 +17,10 @@ split. The following findings are now **resolved — do not re-fix**:
 ### Resolved by commit `fd181b0` (temporal contract, Phase 1)
 - **Finding 1 (nominal ≠ delivered WPM).** The 1.4375× always-on
   complexity/weight multiplication is gone; `Atom.duration` as authored
-  by the chunker is the reading contract. Semantic texture survives as
+  by the chunker is the reading contract. Semantic texture survived as
   **opt-in, zero-mean** modulation bounded [0.8, 1.2] (`semanticTexture`
-  config on PacingEngine, default off; neutral 0.5/0.5 atoms map to
-  exactly 1.0). Punctuation is **additive terminal time** (old multiplier
+  config on PacingEngine, default off); nothing ever enabled it, and it
+  has since been deleted. Punctuation is **additive terminal time** (old multiplier
   minus one, once per chunk) — word-mode feel mathematically unchanged.
   Word-length texture rescaled to ~zero-mean.
 - **Finding 2 (split duplication / long atoms).** Noncapturing lookbehind;

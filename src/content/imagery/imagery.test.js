@@ -244,7 +244,7 @@ describe('App forwards the authored visual fields to the cortex', () => {
     expect(anchor, 'interlocution cortex config not found').toBeGreaterThan(0);
     const block = source.slice(anchor - 2000, anchor + 2000);
     for (const field of [
-      'harmonographClimate', 'kleePreset', 'renderLanguage',
+      'harmonographClimate', 'kleePreset',
       'presentation', 'galleryCadence', 'activeTypes',
       'colorTheme', 'ostensoriaPalette', 'apparitioPalette'
     ]) {

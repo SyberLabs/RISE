@@ -66,17 +66,8 @@ export function buildKernelRequest({
   profileId = DEFAULT_RENDER_PROFILE_ID,
   projectId,
   projectRevision,
-  seed,
   painter,
-  scale,
-  outputPath,
-  fromMs,
-  toMs,
-  tier,
-  ffmpegPath,
-  job,
-  caption,
-  motion
+  caption
 } = {}) {
   return defined({
     schema: KERNEL_REQUEST_SCHEMA,
@@ -87,17 +78,8 @@ export function buildKernelRequest({
     profileId: profileId || DEFAULT_RENDER_PROFILE_ID,
     projectId,
     projectRevision,
-    seed,
     painter,
-    scale,
-    outputPath,
-    fromMs,
-    toMs,
-    tier,
-    ffmpegPath,
-    job,
-    caption: caption == null ? undefined : (resolveCaptionStyle(caption) || undefined),
-    motion
+    caption: caption == null ? undefined : (resolveCaptionStyle(caption) || undefined)
   });
 }
 
@@ -108,20 +90,13 @@ export function kernelRequestFromWorkshopPayload(payload, options = {}) {
     program: payload.experienceProgram,
     sources: payload.sources,
     sessionInput: sessionInputFromWorkshopPayload(payload),
-    profileId: payload.defaults?.render?.profileId
-      || options.profileId
-      || DEFAULT_RENDER_PROFILE_ID,
+    profileId: payload.defaults?.render?.profileId || DEFAULT_RENDER_PROFILE_ID,
     projectId: options.projectId
       || payload.id
       || payload.experienceProgramId
       || payload.experienceProgram.id,
     projectRevision: payload.revision,
-    painter: options.painter,
-    scale: options.scale,
-    fromMs: options.fromMs,
-    toMs: options.toMs,
-    tier: options.tier,
-    caption: options.caption
+    painter: options.painter
   });
 }
 

@@ -802,7 +802,7 @@ class App {
     }
 
     /** Resolve, compile, and launch an exact canonical composition. */
-    async launchKeystone(slug, { firstReadPreview = false } = {}) {
+    async launchKeystone(slug) {
         try {
             const [keystones, archive] = await Promise.all([
                 import('./content/keystones.js'),
@@ -819,8 +819,7 @@ class App {
             await this.handleBeginSession({
                 ...result.sessionInput,
                 publicPath: keystones.keystonePath(slug),
-                origin: KEYSTONE_SESSION_ORIGIN,
-                firstReadPreview
+                origin: KEYSTONE_SESSION_ORIGIN
             });
         } catch (error) {
             console.error('[RISE] Keystone launch refused:', error);

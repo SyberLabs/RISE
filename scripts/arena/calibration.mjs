@@ -230,8 +230,8 @@ function summarize(rows, { seed, reps, sims, bins }) {
  * `acceptable`), and rows whose probabilities or confidence were missing or
  * outside [0, 1].
  */
-export function calibration(rows, { seed = 1, reps = 2000, sims = 2000, bins = 10 } = {}) {
-  const opts = { seed, reps, sims, bins };
+export function calibration(rows, { reps = 2000, sims = 2000 } = {}) {
+  const opts = { seed: 1, reps, sims, bins: 10 };
   const report = {};
   for (const [providerId, mine] of groupBy(rows, 'providerId')) {
     const scorable = mine.filter(r => r.choice != null && (typeof r.correct === 'boolean' || Array.isArray(r.acceptable)))
@@ -247,7 +247,7 @@ export function calibration(rows, { seed = 1, reps = 2000, sims = 2000, bins = 1
     const primary = fromP.filter(r => r.explicit);
     report[providerId] = {
       primary: primary.length
-        ? { metric: 'binary Brier, explicit-constraint fields', n: primary.length, ...clusterBootstrap(primary, brierBinary, { reps, seed }) }
+        ? { metric: 'binary Brier, explicit-constraint fields', n: primary.length, ...clusterBootstrap(primary, brierBinary, { reps, seed: 1 }) }
         : { metric: 'binary Brier, explicit-constraint fields', n: 0 },
       secondary: {
         probabilities: { ...summarize(fromP, opts), multiclassBrier: { n: single.length, value: brierMulticlass(single) } },

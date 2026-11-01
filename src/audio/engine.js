@@ -40,32 +40,8 @@ export const BRAINWAVE_BANDS = {
     gamma: { min: 30, max: 100, default: 40 }
 };
 
-/**
- * Carrier frequency options, named by what they are.
- *
- * `sacred` was the shipped default and the name asserted something the
- * tuning does not do. 432 Hz is a pitch standard; it is now called one.
- * `sacred` and `verdi` remain accepted as aliases so a stored session
- * config from before this change still resolves.
- */
-export const CARRIER_TUNINGS = {
-    standard: 200,    // Original RISE default
-    concert: 220,     // A3 with A4 = 440 Hz
-    a432_low: 216,    // A3 with A4 = 432 Hz
-    a432: 432         // A4 = 432 Hz
-};
-
-/** Names this module used to ship, kept so old saved configs resolve. */
-const CARRIER_TUNING_ALIASES = Object.freeze({
-    verdi: 'a432_low',
-    sacred: 'a432'
-});
-
-/** Canonical tuning id for a stored or supplied name. */
-export function resolveCarrierTuning(name) {
-    const id = CARRIER_TUNING_ALIASES[name] || name;
-    return Object.hasOwn(CARRIER_TUNINGS, id) ? id : 'a432';
-}
+/** The carrier: A4 = 432 Hz, a pitch standard and nothing more. */
+const CARRIER_FREQUENCY = 432;
 
 /**
  * Layer presets for different session types
@@ -138,7 +114,7 @@ const GATE_OPEN_MS = 60;
 
 /**
  * Audio Engine for RISE
- * Handles ambient audio, binaural beats, and synchronized triggers
+ * Handles soundscapes, binaural beats, and synchronized triggers
  */
 /* `ui` and `typing` never duck: a keystroke or a click is feedback and must
    still be heard. Recitation runs through its own voiceGain, outside these
@@ -146,7 +122,7 @@ const GATE_OPEN_MS = 60;
    transition can attenuate the voice they make room for.
    BED_LAYERS omits `swell` — a layer is what the bed steps back FOR. */
 const MUSICAL_LAYERS = Object.freeze(['binaural', 'harmonics', 'noise', 'drone',
-    'ambient', 'swell', 'soundscape']);
+    'swell', 'soundscape']);
 const BED_LAYERS = Object.freeze(MUSICAL_LAYERS.filter(name => name !== 'swell'));
 
 /**
@@ -192,7 +168,6 @@ export class AudioEngine {
             harmonics: null,
             noise: null,
             drone: null,
-            ambient: null,
             typing: null,
             ui: null,
             swell: null,
@@ -205,7 +180,6 @@ export class AudioEngine {
             harmonics: null,
             noise: null,
             drone: null,
-            ambient: null,
             typing: null,
             ui: null,
             swell: null,
@@ -219,7 +193,6 @@ export class AudioEngine {
                 click: null,
                 hiss: null
             },
-            swells: [],
             personalSwells: []
         };
 
@@ -237,15 +210,10 @@ export class AudioEngine {
         // Configuration
         this.config = {
             masterVolume: 0.7,
-            carrierTuning: 'a432',    // A4 = 432 Hz
             binauralBeatFreq: 6,      // Theta
             fadeTime: 2.0,            // seconds
             entrainmentMode: 'binaural',  // binaural | monaural | isochronic | spatial
             entrainmentWaveform: 'sine',  // sine | triangle | sawtooth
-            entrainmentSpatial: false,
-            entrainmentSpatialRate: 0.02,   // rotations per second
-            entrainmentSpatialRadius: 1.2,  // meters
-            isochronicDepth: 1.0,           // 0-1, pulse depth
 
             // Layer volumes (0-1)
             layerVolumes: {
@@ -253,7 +221,6 @@ export class AudioEngine {
                 harmonics: 0.15,
                 noise: 0.1,
                 drone: 0.2,
-                ambient: 0.5,
                 typing: 0.6,
                 ui: 0.5,
                 swell: 0.4,
@@ -286,15 +253,7 @@ export class AudioEngine {
                 typingConfig: siteUrl('/audio/typing-config.json'),
                 typingSprite: siteUrl('/audio/typing-sprite.ogg'),
                 click: siteUrl('/audio/click.wav'),
-                hiss: siteUrl('/audio/hiss.wav'),
-                // No built-in swells ship today. The two HQ files these
-                // paths named were never added to public/, so every boot
-                // fetched them, hit the SPA catch-all, and got index.html
-                // back with a 200 — logging a decode warning on a healthy
-                // launch. Personal swells still load via
-                // reloadPersonalSwells(); restore entries here only when
-                // the audio actually exists.
-                swells: []
+                hiss: siteUrl('/audio/hiss.wav')
             }
         };
 
@@ -765,11 +724,8 @@ export class AudioEngine {
 
     }
 
-    /**
-     * Get carrier frequency based on current tuning
-     */
     getCarrierFrequency() {
-        return CARRIER_TUNINGS[resolveCarrierTuning(this.config.carrierTuning)];
+        return CARRIER_FREQUENCY;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -792,29 +748,10 @@ export class AudioEngine {
             }
         }
 
-        if (typeof config.spatial === 'boolean') {
-            this.config.entrainmentSpatial = config.spatial;
-        }
-
-        if (typeof config.spatialRate === 'number' && config.spatialRate > 0) {
-            this.config.entrainmentSpatialRate = config.spatialRate;
-        }
-
-        if (typeof config.spatialRadius === 'number' && config.spatialRadius > 0) {
-            this.config.entrainmentSpatialRadius = config.spatialRadius;
-        }
-
-        if (typeof config.isochronicDepth === 'number') {
-            this.config.isochronicDepth = Math.max(0, Math.min(1, config.isochronicDepth));
-        }
-
         if (this.layers.binaural) {
             this.startEntrainment(this.config.binauralBeatFreq, {
                 mode: this.config.entrainmentMode,
-                waveform: this.config.entrainmentWaveform,
-                spatial: this.config.entrainmentSpatial,
-                spatialRate: this.config.entrainmentSpatialRate,
-                spatialRadius: this.config.entrainmentSpatialRadius
+                waveform: this.config.entrainmentWaveform
             });
         }
     }
@@ -826,8 +763,11 @@ export class AudioEngine {
         }
     }
 
-    _startSpatialRotation(panner, rate, radius) {
+    _startSpatialRotation(panner) {
         this._clearSpatialRotation();
+
+        const rate = 0.02;   // rotations per second
+        const radius = 1.2;  // meters
 
         const start = performance.now();
         const update = () => {
@@ -862,10 +802,7 @@ export class AudioEngine {
         const requestedMode = options.mode || this.config.entrainmentMode || 'binaural';
         const mode = requestedMode === 'spatial' ? 'monaural' : requestedMode;
         const waveform = options.waveform || this.config.entrainmentWaveform || 'sine';
-        const spatialEnabled = requestedMode === 'spatial' || options.spatial === true || this.config.entrainmentSpatial === true;
-        const spatialRate = options.spatialRate || this.config.entrainmentSpatialRate;
-        const spatialRadius = options.spatialRadius || this.config.entrainmentSpatialRadius;
-        const depth = typeof options.isochronicDepth === 'number' ? options.isochronicDepth : this.config.isochronicDepth;
+        const spatialEnabled = requestedMode === 'spatial';
 
         const oscType = ['sine', 'triangle', 'sawtooth'].includes(waveform) ? waveform : 'sine';
 
@@ -941,7 +878,7 @@ export class AudioEngine {
 
                 mixGain.connect(panner);
                 panner.connect(this.layerGains.binaural);
-                this._startSpatialRotation(panner, spatialRate, spatialRadius);
+                this._startSpatialRotation(panner);
                 layer.panner = panner;
             } else {
                 mixGain.connect(this.layerGains.binaural);
@@ -975,7 +912,7 @@ export class AudioEngine {
 
                 pulseGain.connect(panner);
                 panner.connect(this.layerGains.binaural);
-                this._startSpatialRotation(panner, spatialRate, spatialRadius);
+                this._startSpatialRotation(panner);
                 layer.panner = panner;
             } else {
                 pulseGain.connect(this.layerGains.binaural);
@@ -985,12 +922,12 @@ export class AudioEngine {
             lfo.type = 'square';
             lfo.frequency.value = beatFrequency;
 
+            // Full pulse depth: the gain swings between 0 and 1.
             const lfoGain = this.context.createGain();
-            const depthClamped = Math.max(0, Math.min(1, depth));
-            lfoGain.gain.value = 0.5 * depthClamped;
+            lfoGain.gain.value = 0.5;
 
             const lfoOffset = this.context.createConstantSource();
-            lfoOffset.offset.value = 1 - (0.5 * depthClamped);
+            lfoOffset.offset.value = 0.5;
 
             lfo.connect(lfoGain);
             lfoGain.connect(pulseGain.gain);
@@ -1071,8 +1008,8 @@ export class AudioEngine {
      * directly to `masterGain`, outside these named musical layer gains,
      * so this cannot attenuate the voice being made room for.
      */
-    setVoiceDucking(ducked, options = {}) {
-        this._setDucking('voice', ducked, { layers: MUSICAL_LAYERS, ...options });
+    setVoiceDucking(ducked) {
+        this._setDucking('voice', ducked, { layers: MUSICAL_LAYERS });
     }
 
     /**
@@ -1087,9 +1024,9 @@ export class AudioEngine {
      * is one long musical gesture rather than a phrase-by-phrase yielding.
      * The layer itself is not in this set: it is the thing being made room for.
      */
-    setLayerDucking(ducked, options = {}) {
+    setLayerDucking(ducked) {
         this._setDucking('layer', ducked, {
-            layers: BED_LAYERS, floor: 0.34, downSec: 0.6, upSec: 1.2, ...options
+            layers: BED_LAYERS, floor: 0.34, downSec: 0.6, upSec: 1.2
         });
     }
 
@@ -1509,78 +1446,6 @@ export class AudioEngine {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // LAYER: AMBIENT (External Audio)
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Load and play ambient audio file
-     * @param {string} url - URL or path to audio file
-     */
-    async playAmbient(url) {
-        if (!this.isInitialized) await this.init();
-        await this.resume();
-
-        this.stopAmbient();
-
-        try {
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await this.context.decodeAudioData(arrayBuffer);
-
-            const source = this.context.createBufferSource();
-            source.buffer = audioBuffer;
-            source.loop = true;
-            source.connect(this.layerGains.ambient);
-            source.start();
-
-            this.layers.ambient = source;
-            this.setLayerVolume('ambient', this.config.layerVolumes.ambient, true);
-
-            console.log('[AudioEngine] Ambient playing:', url);
-        } catch (error) {
-            console.error('[AudioEngine] Failed to load ambient:', error);
-        }
-    }
-
-    /**
-     * Stop ambient audio
-     */
-    stopAmbient(instant = false) {
-        if (this.layers.ambient) {
-            const oldSource = this.layers.ambient;
-            this.layers.ambient = null;
-            const fadeTime = instant ? 0 : this.config.fadeTime;
-            const previousVolume = this.config.layerVolumes.ambient;
-
-            if (this.layerGains.ambient) {
-                this.layerGains.ambient.gain.cancelScheduledValues(this.context.currentTime);
-                if (instant) {
-                    this.layerGains.ambient.gain.setValueAtTime(0, this.context.currentTime);
-                } else {
-                    this.layerGains.ambient.gain.linearRampToValueAtTime(
-                        0,
-                        this.context.currentTime + fadeTime
-                    );
-                }
-            }
-
-            if (instant) {
-                try { oldSource.stop(); } catch (e) { warnOnce('stopAmbient', e); }
-            } else {
-                setTimeout(() => {
-                    try {
-                        oldSource.stop();
-                    } catch (e) {
-                        /* ignore InvalidStateError */
-                    }
-                }, fadeTime * 1000);
-            }
-
-            this.config.layerVolumes.ambient = previousVolume;
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════
 
     // ═══════════════════════════════════════════════════════════
     // ASSET LOADING & HIGH-FIDELITY METHODS
@@ -1624,17 +1489,15 @@ export class AudioEngine {
             console.error('[AudioEngine] Failed to load typing config', e);
         }
 
-        const [typingBuffer, clickBuffer, hissBuffer, swellBuffers] = await Promise.all([
+        const [typingBuffer, clickBuffer, hissBuffer] = await Promise.all([
             loadBuffer(this.config.paths.typingSprite),
             loadBuffer(this.config.paths.click),
-            loadBuffer(this.config.paths.hiss),
-            Promise.all(this.config.paths.swells.map(loadBuffer))
+            loadBuffer(this.config.paths.hiss)
         ]);
 
         this.buffers.typing = typingBuffer;
         this.buffers.ui.click = clickBuffer;
         this.buffers.ui.hiss = hissBuffer;
-        this.buffers.swells = (swellBuffers || []).filter(b => b !== null);
 
         // A page with no storage (a host's card is an opaque origin, whose
         // indexedDB.open throws SecurityError) has no personal swells; it
@@ -1696,45 +1559,30 @@ export class AudioEngine {
     }
 
     /**
-     * Play a high-fidelity synth swell
-     * @param {number|string} idOrIndex
+     * Play one of the reader's personal swells by id
+     * @param {string} id
      */
-    async playSwell(idOrIndex = null) {
+    async playSwell(id) {
         if (!this.isInitialized) await this.init();
 
-        const standardSwells = this.buffers.swells || [];
-        const personalSwells = this.buffers.personalSwells || [];
-        const allSwells = [...standardSwells, ...personalSwells];
-
-        if (allSwells.length === 0) return;
+        if (!this.buffers.personalSwells?.length) return;
 
         try {
-            let buffer = null;
-
-            if (typeof idOrIndex === 'string') {
-                // A NAMED SWELL FAILS CLOSED. This used to warn and then
-                // play a RANDOM different swell, which is not graceful
-                // degradation but false execution: the score asks for
-                // funeral-bell and the runtime sounds a rising cosmic
-                // swell, with nothing on screen to say so.
-                //
-                // The standing law is the same one the imagery follows —
-                // a work that will not resolve is ABSENT, never a
-                // substitute. Silence is a valid scored state; the wrong
-                // sound is not. Asking for no particular swell (below)
-                // is a different request and still takes any of them.
-                buffer = this.personalPool ? this.personalPool.get(idOrIndex) : null;
-                if (!buffer) {
-                    console.warn('[AudioEngine] playSwell: "' + idOrIndex + '" is not in the pool; silence.');
-                    return;
-                }
-            } else if (typeof idOrIndex === 'number' && idOrIndex !== null) {
-                buffer = allSwells[idOrIndex % allSwells.length];
-            } else {
-                buffer = allSwells[Math.floor(Math.random() * allSwells.length)];
+            // A NAMED SWELL FAILS CLOSED. This used to warn and then
+            // play a RANDOM different swell, which is not graceful
+            // degradation but false execution: the score asks for
+            // funeral-bell and the runtime sounds a rising cosmic
+            // swell, with nothing on screen to say so.
+            //
+            // The standing law is the same one the imagery follows —
+            // a work that will not resolve is ABSENT, never a
+            // substitute. Silence is a valid scored state; the wrong
+            // sound is not.
+            const buffer = this.personalPool ? this.personalPool.get(id) : null;
+            if (!buffer) {
+                console.warn('[AudioEngine] playSwell: "' + id + '" is not in the pool; silence.');
+                return;
             }
-
-            if (!buffer) return;
 
             // ONE SWELL AT A TIME. `this.layers.swell` is a single slot and
             // always was, but the previous source was never stopped — so two
@@ -1897,7 +1745,7 @@ export class AudioEngine {
 
     /**
      * Set individual layer volume
-     * @param {'binaural' | 'harmonics' | 'noise' | 'drone' | 'ambient' | 'typing' | 'ui' | 'swell'} layer
+     * @param {'binaural' | 'harmonics' | 'noise' | 'drone' | 'typing' | 'ui' | 'swell'} layer
      * @param {number} volume - 0.0 to 1.0
      * @param {boolean} fade - Whether to fade to new volume
      */
@@ -1954,10 +1802,7 @@ export class AudioEngine {
                 this.currentBand = preset.binaural.band;
                 this.startEntrainment(band.default, {
                     mode: this.config.entrainmentMode,
-                    waveform: this.config.entrainmentWaveform,
-                    spatial: this.config.entrainmentSpatial,
-                    spatialRate: this.config.entrainmentSpatialRate,
-                    spatialRadius: this.config.entrainmentSpatialRadius
+                    waveform: this.config.entrainmentWaveform
                 });
                 this.config.layerVolumes.binaural = preset.binaural.volume;
             }
@@ -1997,28 +1842,6 @@ export class AudioEngine {
         else if (this.sounding?.kind === 'tone') this.sounding = null;
     }
 
-    /**
-     * Set entrainment target by brainwave band name
-     * @param {'delta' | 'theta' | 'alpha' | 'beta' | 'gamma'} band
-     */
-    setEntrainmentBand(band) {
-        const bandInfo = BRAINWAVE_BANDS[band];
-        if (!bandInfo) {
-            console.warn('[AudioEngine] Unknown band:', band);
-            return;
-        }
-
-        this.currentBand = band;
-        this.startEntrainment(bandInfo.default, {
-            mode: this.config.entrainmentMode,
-            waveform: this.config.entrainmentWaveform,
-            spatial: this.config.entrainmentSpatial,
-            spatialRate: this.config.entrainmentSpatialRate,
-            spatialRadius: this.config.entrainmentSpatialRadius
-        });
-        console.log(`[AudioEngine] Beat band: ${band} (${bandInfo.default}Hz)`);
-    }
-
     // ═══════════════════════════════════════════════════════════
 
     _getEntrainmentBeatParam() {
@@ -2034,61 +1857,6 @@ export class AudioEngine {
         }
 
         return null;
-    }
-
-    /**
-     * Apply a dynamic beat-frequency ramp
-     * @param {Object} ramp
-     */
-    applyEntrainmentRamp(ramp = {}) {
-        const target = this._getEntrainmentBeatParam();
-        if (!target) return;
-
-        let points = [];
-        if (Array.isArray(ramp.points) && ramp.points.length >= 2) {
-            points = ramp.points;
-        } else if (typeof ramp.startHz === 'number' && typeof ramp.endHz === 'number' && typeof ramp.durationSec === 'number') {
-            points = [
-                { time: 0, beat: ramp.startHz },
-                { time: ramp.durationSec, beat: ramp.endHz }
-            ];
-        }
-
-        points = points
-            .map(point => ({ time: Math.max(0, point.time || 0), beat: point.beat }))
-            .filter(point => typeof point.beat === 'number');
-
-        if (points.length < 2) return;
-
-        points.sort((a, b) => a.time - b.time);
-
-        const now = this.context.currentTime;
-        const curve = ramp.curve || 'exponential';
-
-        target.param.cancelScheduledValues(now);
-
-        const startBeat = points[0].beat;
-        if (target.type === 'dual') {
-            target.param.setValueAtTime(target.base + startBeat, now);
-        } else {
-            target.param.setValueAtTime(startBeat, now);
-        }
-
-        for (let i = 1; i < points.length; i++) {
-            const t = now + points[i].time;
-            const beat = points[i].beat;
-            const value = target.type === 'dual' ? target.base + beat : beat;
-            const prev = target.type === 'dual' ? target.base + points[i - 1].beat : points[i - 1].beat;
-
-            if (curve === 'exponential' && value > 0 && prev > 0) {
-                target.param.exponentialRampToValueAtTime(value, t);
-            } else {
-                target.param.linearRampToValueAtTime(value, t);
-            }
-        }
-
-        this.config.binauralBeatFreq = points[points.length - 1].beat;
-        console.log('[AudioEngine] Entrainment ramp: ' + points[0].beat + 'Hz -> ' + points[points.length - 1].beat + 'Hz');
     }
 
     /**
@@ -2318,13 +2086,10 @@ export class AudioEngine {
     /**
      * Start all audio for a session
      * @param {Object} options
-     * @param {string} [options.ambientUrl] - URL to ambient audio
-     * @param {string} [options.entrainmentBand] - Brainwave band name
      * @param {string} [options.preset] - Layer preset name
      * @param {Object} [options.entrainment] - Entrainment settings
      * @param {string} [options.entrainment.mode] - binaural | monaural | isochronic | spatial
      * @param {string} [options.entrainment.waveform] - sine | triangle | sawtooth
-     * @param {Object} [options.entrainment.ramp] - { startHz, endHz, durationSec, curve } or { points: [{time, beat}] }
      * @param {string} [options.entrainment.curve] - Session pacing curve name
      * @param {number} [options.entrainment.durationSec] - Session duration in seconds
      * @param {boolean} [options.entrainment.autoRamp] - Use curve-derived ramp when true
@@ -2353,25 +2118,17 @@ export class AudioEngine {
         await new Promise(resolve => setTimeout(resolve, 50));
         if (generation !== this._sessionGeneration || this._destroyed) return { cancelled: true };
 
-        // Prevent overlap: Stop menu ambience before starting session
-        this.stopAmbient(true);
         this.sessionActive = true;
 
         if (options.entrainment) {
             this.setEntrainmentConfig({
                 mode: options.entrainment.mode,
-                waveform: options.entrainment.waveform,
-                spatial: options.entrainment.spatial,
-                spatialRate: options.entrainment.spatialRate,
-                spatialRadius: options.entrainment.spatialRadius,
-                isochronicDepth: options.entrainment.isochronicDepth
+                waveform: options.entrainment.waveform
             });
         }
 
         if (options.preset) {
             this.applyPreset(options.preset);
-        } else if (options.entrainmentBand) {
-            this.setEntrainmentBand(options.entrainmentBand);
         }
 
         if (options.soundscape) {
@@ -2381,13 +2138,9 @@ export class AudioEngine {
         this._positionRamp = null;
         this._positionRampSteeredAt = null;
         if (options.entrainment) {
-            const explicitRamp = options.entrainment.ramp;
             const autoRamp = options.entrainment.autoRamp;
             const curveRamp = autoRamp ? this.buildCurveRamp(options.entrainment.curve, options.entrainment.durationSec) : null;
-            if (explicitRamp) {
-                // Explicit ramps keep their documented wall-clock contract
-                this.applyEntrainmentRamp(explicitRamp);
-            } else if (curveRamp) {
+            if (curveRamp) {
                 // Curve-derived ramps follow the READING clock: store the
                 // curve, start at its first point, and let the player
                 // steer via setEntrainmentPosition (progress events).
@@ -2403,10 +2156,6 @@ export class AudioEngine {
                         + startBeat + 'Hz -> ' + curveRamp.points[curveRamp.points.length - 1].beat + 'Hz');
                 }
             }
-        }
-
-        if (options.ambientUrl) {
-            await this.playAmbient(options.ambientUrl);
         }
 
         // A swell on entry only when one was actually chosen, and only when no
@@ -2467,10 +2216,6 @@ export class AudioEngine {
             // This brings the volume back to config.masterVolume (0.7) for the menu
             if (this.context) this.setVolume(this.config.masterVolume);
 
-            // 3. NO MENU AMBIENCE: the lobby drone is gone (Q6). stopAmbient(true)
-            // ensures any lingering session ambience is dead.
-            this.stopAmbient(true);
-
             console.log('[AudioEngine] Session stopped.');
             resolve({ cancelled: false });
           }, transitionTime);
@@ -2494,7 +2239,6 @@ export class AudioEngine {
         this.stopDrone(true);
         this.stopSwell(true);
         this.stopSoundscape(true);
-        this.stopAmbient(true);
         this._unbindContextLifecycle();
         if (this.context) {
             this.context.close().catch(e => warnOnce('close', e));

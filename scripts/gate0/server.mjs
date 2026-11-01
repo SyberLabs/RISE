@@ -35,9 +35,9 @@ const TOOL = Object.freeze({
   }
 });
 
-export function createRunState({ runId = randomUUID(), now = () => new Date().toISOString(), logLimit = MAX_LOG_ENTRIES } = {}) {
+export function createRunState({ runId = randomUUID(), logLimit = MAX_LOG_ENTRIES } = {}) {
   if (!Number.isInteger(logLimit) || logLimit < 1 || logLimit > MAX_LOG_ENTRIES) throw new RangeError('logLimit is outside the Gate 0 bound');
-  return { runId, now, logLimit, sequence: 0, visual: 'still', intensity: null, log: [] };
+  return { runId, now: () => new Date().toISOString(), logLimit, sequence: 0, visual: 'still', intensity: null, log: [] };
 }
 
 function plainObject(value) {

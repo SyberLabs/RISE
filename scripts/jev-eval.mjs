@@ -1,12 +1,14 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
-/** Lower bound of the Wilson score interval for k passes in n samples (default 95%). */
-function wilsonLowerBound(k, n, z = 1.96) {
+const Z = 1.96;
+
+/** Lower bound of the 95% Wilson score interval for k passes in n samples. */
+function wilsonLowerBound(k, n) {
   if (!(n > 0)) return 0;
   const p = k / n;
-  const z2 = z * z;
-  const bound = (p + z2 / (2 * n) - z * Math.sqrt(p * (1 - p) / n + z2 / (4 * n * n))) / (1 + z2 / n);
+  const z2 = Z * Z;
+  const bound = (p + z2 / (2 * n) - Z * Math.sqrt(p * (1 - p) / n + z2 / (4 * n * n))) / (1 + z2 / n);
   return Math.round(Math.max(0, bound) * 1e4) / 1e4;
 }
 

@@ -347,14 +347,13 @@ export function measureLoudnessLufs(pcm, channels = RENDER_AUDIO_CHANNELS) {
 
 function applyLoudness(pcm, {
   targetLufs,
-  channels = RENDER_AUDIO_CHANNELS,
-  truePeakDbtp = TRUE_PEAK_DBTP
+  channels = RENDER_AUDIO_CHANNELS
 } = {}) {
   if (typeof targetLufs !== 'number' || !Number.isFinite(targetLufs)) return pcm;
   const measured = measureLoudnessLufs(pcm, channels);
   if (!Number.isFinite(measured)) return pcm;
   let gain = 10 ** ((targetLufs - measured) / 20);
-  const ceiling = 10 ** (truePeakDbtp / 20);
+  const ceiling = 10 ** (TRUE_PEAK_DBTP / 20);
   let peak = 0;
   for (let i = 0; i < pcm.length; i += 1) {
     const abs = Math.abs(pcm[i] * gain);
@@ -372,9 +371,7 @@ export function mixAudio(plan, {
   toMs = null,
   inventory = {},
   voiceBytes = null,
-  readVoiceAsset = null,
-  manifest = undefined,
-  loudnessLufs = plan.loudnessLufs
+  manifest = undefined
 } = {}) {
   const start = Math.max(0, fromMs | 0);
   const end = Math.min(plan.durationMs, toMs == null ? plan.durationMs : toMs | 0);
@@ -398,7 +395,7 @@ export function mixAudio(plan, {
   }
 
   const spoken = hasSpokenRuns(plan)
-    ? renderSpokenPcm(plan, { inventory, voiceBytes, readVoiceAsset, manifest }, {
+    ? renderSpokenPcm(plan, { inventory, voiceBytes, manifest }, {
       sampleRate,
       channels,
       fromMs: start,
@@ -441,7 +438,7 @@ export function mixAudio(plan, {
       pcm[i * channels + ch] = sample;
     }
   }
-  applyLoudness(pcm, { targetLufs: loudnessLufs, channels });
+  applyLoudness(pcm, { targetLufs: plan.loudnessLufs, channels });
   return Object.freeze({ sampleRate, channels, frames, pcm, fromMs: start, toMs: end });
 }
 

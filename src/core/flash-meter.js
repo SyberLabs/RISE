@@ -94,14 +94,10 @@ export class FlashMeter {
     /**
      * @param {object} options
      * @param {number} options.areaPx       CSS px² the frames are drawn over.
-     * @param {number} [options.safeAreaPx] area a transition must exceed to count.
-     * @param {number} [options.windowMs]   the sliding window, one second.
      * @param {number} [options.maxFlashes] flashes allowed in any window.
      */
     constructor({
         areaPx,
-        safeAreaPx = FLASH_SAFE_AREA_PX,
-        windowMs = FLASH_WINDOW_MS,
         maxFlashes = STREAM_MAX_FLASHES_PER_WINDOW
     } = {}) {
         // A missing area would make every transition count as none: refuse it.
@@ -109,8 +105,6 @@ export class FlashMeter {
             throw new RangeError(`the meter needs the area the frames cover, in CSS px², not ${String(areaPx)}`);
         }
         this.areaPx = areaPx;
-        this.safeAreaPx = safeAreaPx;
-        this.windowMs = windowMs;
         this.maxFlashes = maxFlashes;
         this.reset();
     }
@@ -151,7 +145,7 @@ export class FlashMeter {
         }
 
         const cellArea = this.areaPx / cells;
-        const counts = (transitioned) => transitioned * cellArea > this.safeAreaPx;
+        const counts = (transitioned) => transitioned * cellArea > FLASH_SAFE_AREA_PX;
         const transition = {
             general: counts(this.general.observe(summary.luminance)),
             red: counts(this.red.observe(summary.red))
@@ -159,7 +153,7 @@ export class FlashMeter {
 
         const flashes = {};
         for (const channel of ['general', 'red']) {
-            const kept = this.events[channel].filter(t => timeMs - t < this.windowMs);
+            const kept = this.events[channel].filter(t => timeMs - t < FLASH_WINDOW_MS);
             if (transition[channel]) kept.push(timeMs);
             this.events[channel] = kept;
             flashes[channel] = Math.floor(kept.length / 2);
@@ -198,7 +192,7 @@ export function certifySequence(frames, { frameMs, areaPx, ...meterOptions } = {
     let firstViolationMs = null;
 
     const reelMs = frames.length * frameMs;
-    const loops = Math.max(2, Math.ceil((reelMs + meter.windowMs) / reelMs));
+    const loops = Math.max(2, Math.ceil((reelMs + FLASH_WINDOW_MS) / reelMs));
     for (let i = 0; i < frames.length * loops; i++) {
         const timeMs = i * frameMs;
         const report = meter.observe(frames[i % frames.length], timeMs);

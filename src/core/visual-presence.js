@@ -470,12 +470,10 @@ export function visualPresenceTransition(value) {
 }
 
 /** One cue must never spend most of its authored life dissolving. */
-export function authoredVisualTransition(durationMs, ceilingMs = 320) {
-    const ceiling = Math.max(0, Number(ceilingMs) || 0);
+export function authoredVisualTransition(durationMs) {
     const parsed = Number(durationMs);
-    if (!Number.isFinite(parsed) || parsed <= 0) return Math.round(ceiling);
-    const duration = Math.max(0, parsed);
-    return Math.round(Math.min(ceiling, duration * 0.2));
+    if (!Number.isFinite(parsed) || parsed <= 0) return 320;
+    return Math.round(Math.min(320, parsed * 0.2));
 }
 
 export function minimumVisualPresenceRest(value) {

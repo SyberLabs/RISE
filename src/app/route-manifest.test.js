@@ -133,15 +133,12 @@ describe('createRouteManifest', () => {
     await createRouteManifest(operations).find(route => route.id === 'make')
       .create({}, { pane: 'visual-catalog', search: '?q=light' }, { Make });
     const tabs = received.tabCapabilities;
-    expect(Object.keys(tabs)).toEqual(['workshop', 'vault', 'scriptorium', 'visual-lab', 'visual-catalog']);
+    expect(Object.keys(tabs)).toEqual(['workshop', 'vault', 'scriptorium', 'visual-lab']);
     expect(tabs.workshop.onBlueprintsChanged).toBe(operations.refreshVaultBlueprints);
     expect(tabs.vault.onSelectBlueprint).toBe(operations.handleCreateSession);
     expect(tabs.scriptorium.onSettingsTransaction).toBe(operations.handleSettingsTransaction);
-    expect(tabs['visual-lab'].mode).toBe('route');
     tabs['visual-lab'].onEditInWorkshop();
     expect(operations.handleNavigate).toHaveBeenCalledWith('workshop');
-    tabs['visual-catalog'].onNavigate('home');
-    expect(operations.handleNavigate).toHaveBeenCalledWith('home');
     expect(shown).toEqual([{ pane: 'visual-catalog', search: '?q=light' }]);
   });
 

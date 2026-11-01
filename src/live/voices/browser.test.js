@@ -617,15 +617,15 @@ describe('waiting for the browser to have voices', () => {
             addEventListener: (_name, fn) => listeners.add(fn),
             removeEventListener: (_name, fn) => listeners.delete(fn)
         };
-        const late = whenVoicesAvailable(synth, { clock, timeoutMs: 800 });
+        const late = whenVoicesAvailable(synth, { clock });
         voices = [{ name: 'a' }, { name: 'b' }];
         for (const fn of [...listeners]) fn();
         expect(await late).toHaveLength(2);
         expect(clock.pending()).toBe(0);
 
         voices = [];
-        const never = whenVoicesAvailable(synth, { clock, timeoutMs: 800 });
-        await clock.advance(800);
+        const never = whenVoicesAvailable(synth, { clock });
+        await clock.advance(2500);
         expect(await never).toEqual([]);
         expect(listeners.size).toBe(0);
     });

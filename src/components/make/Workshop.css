@@ -387,13 +387,6 @@
   gap: var(--sy-space-3);
 }
 
-.workshop-studio .studio-back {
-  margin-left: calc(var(--sy-space-3) * -1);
-  padding: 0 var(--sy-space-3);
-  font-size: 14px;
-  line-height: 20px;
-}
-
 .workshop-studio .studio-brand {
   min-width: 0;
   padding-left: var(--sy-space-4);
@@ -3097,15 +3090,6 @@
     font-size: 11px;
   }
   .workshop-studio[data-studio-viewport="phone"] .studio-header-primary .btn-ghost { min-height: 44px; }
-  .workshop-studio[data-studio-viewport="phone"] [data-action="back"] { min-width: 44px; padding: 0 10px; }
-  .workshop-studio[data-studio-viewport="phone"] [data-action="back"] span:not(.icon) {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
   .workshop-studio[data-studio-viewport="phone"] .studio-command-cluster {
     flex: none;
     width: auto;

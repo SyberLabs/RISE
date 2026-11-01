@@ -166,24 +166,11 @@ describe('PacingEngine', () => {
       expect(duration).toBe(500);
     });
 
-    it('semantic texture is OFF by default — authored duration is the contract', () => {
+    it('authored duration is the contract — complexity does not change it', () => {
       const simple = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 0 };
       const complex = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 1 };
 
       expect(engine.computeDuration(simple)).toBe(engine.computeDuration(complex));
-    });
-
-    it('opt-in texture is zero-mean: neutral atoms are untouched, range is bounded', () => {
-      const textured = new PacingEngine({ baseWpm: 320, semanticTexture: true });
-      textured.setStateCurve(StateCurve.flat());
-
-      const neutral = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 0.5, weight: 0.5 };
-      expect(textured.computeDuration(neutral, 0.5)).toBe(300);
-
-      const dense = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 1, weight: 1 };
-      const light = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 0, weight: 0 };
-      expect(textured.computeDuration(dense, 0.5)).toBe(360);  // ×1.2 ceiling
-      expect(textured.computeDuration(light, 0.5)).toBe(240);  // ×0.8 floor
     });
 
     it('applies state curve at position', () => {
@@ -198,17 +185,17 @@ describe('PacingEngine', () => {
     });
 
     it('respects min duration', () => {
-      const engine = new PacingEngine({ baseWpm: 800, minDuration: 100 });
+      const engine = new PacingEngine({ baseWpm: 800 });
       const atom = { modality: Modality.TEXT, content: 'a' };
 
       expect(engine.computeDuration(atom)).toBeGreaterThanOrEqual(100);
     });
 
     it('respects max duration', () => {
-      const engine = new PacingEngine({ baseWpm: 10, maxDuration: 5000 });
+      const engine = new PacingEngine({ baseWpm: 10 });
       const atom = { modality: Modality.TEXT, content: 'word '.repeat(100) };
 
-      expect(engine.computeDuration(atom)).toBeLessThanOrEqual(5000);
+      expect(engine.computeDuration(atom)).toBe(10000);
     });
   });
 

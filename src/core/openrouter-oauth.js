@@ -40,8 +40,8 @@ function base64url(bytes) {
   return btoa(binary).replace(/\+/gu, '-').replace(/\//gu, '_').replace(/=+$/u, '');
 }
 
-export async function codeChallenge(verifier, cryptoImpl = globalThis.crypto) {
-  const digest = await cryptoImpl.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+export async function codeChallenge(verifier) {
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
   return base64url(new Uint8Array(digest));
 }
 
@@ -54,14 +54,13 @@ export async function beginOpenRouterConnect({
   storage = sessionStorageOrNull(),
   origin = globalThis.location?.origin,
   navigate = url => globalThis.location.assign(url),
-  cryptoImpl = globalThis.crypto,
   now = Date.now,
   returnTo = null,
   draft = ''
 } = {}) {
-  const verifier = base64url(cryptoImpl.getRandomValues(new Uint8Array(32)));
-  const state = base64url(cryptoImpl.getRandomValues(new Uint8Array(24)));
-  const challenge = await codeChallenge(verifier, cryptoImpl);
+  const verifier = base64url(globalThis.crypto.getRandomValues(new Uint8Array(32)));
+  const state = base64url(globalThis.crypto.getRandomValues(new Uint8Array(24)));
+  const challenge = await codeChallenge(verifier);
   const back = returnPath(returnTo);
   const question = back && typeof draft === 'string' ? draft.trim().slice(0, DRAFT_LIMIT) : '';
   // Throws in a storage-less private window; the caller shows the error.
@@ -96,8 +95,7 @@ function readPending(storage) {
 export async function completeOpenRouterConnect(taken, {
   storage = sessionStorageOrNull(),
   fetcher = fetch,
-  now = Date.now,
-  timeoutMs = 15000
+  now = Date.now
 } = {}) {
   const pending = readPending(storage);
   if (!taken) return { code: 'INVALID_CALLBACK' };
@@ -118,7 +116,7 @@ export async function completeOpenRouterConnect(taken, {
       referrerPolicy: 'no-referrer',
       redirect: 'error',
       cache: 'no-store',
-      signal: AbortSignal.timeout(timeoutMs)
+      signal: AbortSignal.timeout(15000)
     });
   } catch {
     return { code: 'UNAVAILABLE' };
@@ -134,10 +132,10 @@ export async function completeOpenRouterConnect(taken, {
 }
 
 /** Finish what takeOpenRouterReturn found on page load, and tell the page that claimed it (takeConnectionNotice). */
-export async function finishOpenRouterReturn(found, options) {
+export async function finishOpenRouterReturn(found) {
   const { callback, abandoned } = found || {};
   if (!callback && !abandoned) return null;
-  const { code } = callback ? await completeOpenRouterConnect(callback, options) : { code: 'CANCELED' };
+  const { code } = callback ? await completeOpenRouterConnect(callback) : { code: 'CANCELED' };
   postConnectionNotice(outcomeMessage(code), code === 'CONNECTED' ? 'success' : 'error');
   return code;
 }

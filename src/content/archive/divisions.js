@@ -632,7 +632,7 @@ export function parseHeading(name) {
  * "CHAPTER II" — so the name is the only witness to where a division
  * begins, and it is a witness that lies 27% of the time.
  */
-export function schemeFromNames(names, { minCount = 3, minAscending = 0.5 } = {}) {
+export function schemeFromNames(names) {
     const parsed = names.map((n, i) => ({ i, h: parseHeading(n) }));
     const byWord = new Map();
     for (const { i, h } of parsed) {
@@ -644,10 +644,10 @@ export function schemeFromNames(names, { minCount = 3, minAscending = 0.5 } = {}
 
     let best = null;
     for (const [word, items] of byWord) {
-        if (items.length < minCount) continue;
+        if (items.length < 3) continue;
         if (!plausibleNumbering(word === '#' ? null : word, items)) continue;
         const ascending = ascendingRatio(items);
-        if (ascending < minAscending) continue;
+        if (ascending < 0.5) continue;
         const score = ascending * items.length;
         if (!best || score > best.score) {
             best = {

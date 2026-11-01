@@ -13,11 +13,6 @@ import {
 import { createDefaultAcquisitionProviders } from './acquisition-providers.js';
 import { emptyWorkshopProject } from './workshop-project.js';
 import { runProducer } from './producer.js';
-import {
-  PUBLICATION_REVIEW_SCHEMA,
-  approvePublication,
-  PublicationError
-} from './publication.js';
 import { PREFLIGHT_VERDICTS } from './render/preflight.js';
 
 const SOURCE_ID = 'source-anna';
@@ -25,7 +20,6 @@ const SOURCE_TEXT = [
   'Happy families are all alike; every unhappy family is unhappy in its own way.',
   "Everything was in confusion in the Oblonskys' house."
 ].join(' ');
-const NOW = '2026-08-13T21:00:00.000Z';
 
 const ffmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' });
 const hasFfmpeg = !ffmpeg.error && ffmpeg.status === 0;
@@ -94,8 +88,7 @@ describe('producer runtime', () => {
       resolvedSources: {
         [SOURCE_ID]: { id: SOURCE_ID, name: 'Anna', data: SOURCE_TEXT }
       },
-      render: false,
-      now: NOW
+      render: false
     });
     expect(produced.admitted).toEqual([]);
     expect(produced.approved).toEqual([]);
@@ -106,7 +99,7 @@ describe('producer runtime', () => {
     expect(AGENT_OPERATION_OPS).not.toContain('publish');
   }, 20_000);
 
-  it.skipIf(!hasFfmpeg && !process.env.CI)('request-compile muxes an MP4 and queues human review', async () => {
+  it.skipIf(!hasFfmpeg && !process.env.CI)('request-compile muxes an MP4 for human review', async () => {
     expect(hasFfmpeg, 'CI installs ffmpeg; if it is missing, that step broke').toBe(true);
     const dir = mkdtempSync(join(tmpdir(), 'rise-producer-mp4-'));
     const outputPath = join(dir, 'experience.mp4');
@@ -117,7 +110,6 @@ describe('producer runtime', () => {
         resolvedSources: {
           [SOURCE_ID]: { id: SOURCE_ID, name: 'Anna', data: SOURCE_TEXT }
         },
-        now: NOW,
         tier: 'draft',
         encode: {
           painter: 'clerk',
@@ -136,29 +128,6 @@ describe('producer runtime', () => {
       expect(artifact.package['poster.bmp']).toBeTruthy();
       expect(artifact.srt).toMatch(/-->/);
       expect(readFileSync(artifact.mp4Path).subarray(4, 8).toString()).toBe('ftyp');
-      expect(produced.reviewItems).toHaveLength(1);
-      expect(produced.reviewItems[0].schema).toBe(PUBLICATION_REVIEW_SCHEMA);
-      expect(produced.reviewItems[0].status).toBe('queued');
-      expect(produced.reviewItems[0].rights.distributionClass).toBe('private-review');
-      try {
-        approvePublication({
-          item: produced.reviewItems[0],
-          approval: {
-            schema: 'rise.publication-approval.v1',
-            reviewItemId: produced.reviewItems[0].id,
-            artifactHash: produced.reviewItems[0].artifact.packageHash,
-            decision: 'approve',
-            actor: 'human',
-            authority: 'user',
-            watchedArtifact: true,
-            decidedAt: NOW
-          }
-        });
-        throw new Error('expected refusal');
-      } catch (error) {
-        expect(error).toBeInstanceOf(PublicationError);
-        expect(error.code).toBe('PUBLICATION_RIGHTS_UNRESOLVED');
-      }
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -196,8 +165,7 @@ describe('producer runtime', () => {
           arrayBuffer: async () => jpeg.buffer
         })
       }),
-      render: false,
-      now: NOW
+      render: false
     });
     expect(produced.acquisition).toHaveLength(1);
     expect(produced.acquisition[0].admitted).toBe(false);

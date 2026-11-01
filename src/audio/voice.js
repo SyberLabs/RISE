@@ -67,7 +67,6 @@ export class Voice {
         this._queue = Promise.resolve();
         this._warned = new Set();
         this._reportedPlayback = false;
-        this.onProgress = null;
         // Told once when a clip answers 402: the Plus voice is no longer paid for.
         this.onLapse = null;
         this._signal = signal;
@@ -411,11 +410,6 @@ export class Voice {
                     sampleRate
                 };
                 if (index >= this._readerIndex - 2) this._cache.set(index, entry);
-                this.onProgress?.({
-                    phase: 'asset',
-                    loaded: this._cache.size,
-                    total: LEAD
-                });
                 return entry;
             } catch (error) {
                 if (error?.name !== 'AbortError') {

@@ -61,9 +61,9 @@ async function loadCatalog(bare) {
 }
 
 export class ScienceCatalogProvider {
-    constructor(options = {}) {
-        this.id = options.id || 'science-catalog';
-        this.name = options.name || 'Science collections';
+    constructor() {
+        this.id = 'science-catalog';
+        this.name = 'Science collections';
         this.contentType = 'image';
         // A curated collection is finite; raw random would repeat a
         // nebula before the reader had seen the rest.

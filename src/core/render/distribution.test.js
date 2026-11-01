@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildVerticalSlice } from '../../../tools/render/vertical-slice.js';
-import { renderDistributionPackages, renderPreview, renderProfilePackage } from './distribution.js';
+import { renderDistributionPackages, renderPreview } from './distribution.js';
 import { verifyRenderPackage } from '../../../tools/render/verify.js';
 import { writeRenderPackageDir, readRenderPackageDir } from '../../../tools/render/package-fs.js';
 import { owedCreditLines } from './package.js';
@@ -66,14 +66,6 @@ describe('distribution packages', () => {
     expect(preview.mp4Path).toBeUndefined();
     expect(await verifyRenderPackage(preview.package)).toMatchObject({ ok: true });
   }, 20_000);
-
-  it('refuses renderProfilePackage as a compile', async () => {
-    await expect(renderProfilePackage({}, 'social-portrait-1080', { compile: true }))
-      .rejects.toMatchObject({
-        name: 'RenderError',
-        code: 'RENDER_COMPILE_POSTER'
-      });
-  });
 
   it('writes a directory the verification CLI can inspect', async () => {
     const slice = await buildVerticalSlice();

@@ -278,11 +278,13 @@ const round = (value, places = 3) => (value === null ? null : Math.round(value *
 
 /**
  * The difference in means between two independent groups, with a 95% interval
- * from resampling each group with replacement. Deterministic for a given seed.
+ * from resampling each group 2000 times with replacement. Deterministic: the
+ * seed is fixed.
  */
-export function bootstrapDifference(a, b, { resamples = 2000, seed = 20260929 } = {}) {
+export function bootstrapDifference(a, b) {
     if (a.length === 0 || b.length === 0) return null;
-    const random = mulberry32(seed);
+    const resamples = 2000;
+    const random = mulberry32(20260929);
     const draw = values => { let sum = 0; for (let i = 0; i < values.length; i += 1) sum += values[Math.floor(random() * values.length)]; return sum / values.length; };
     const differences = [];
     for (let i = 0; i < resamples; i += 1) differences.push(draw(a) - draw(b));

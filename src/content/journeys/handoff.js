@@ -88,7 +88,7 @@ function passageLineMetrics(text) {
  *
  * @param {object} journey an authored manifest
  * @param {object[]} passages the passage records it names
- * @param {{checksums?: object, texts?: object[]}} [options]
+ * @param {{checksums?: object}} [options]
  * @returns {Promise<{text: string, source: string, config: object}>}
  */
 export async function createJourneyHandoff(journey, passages, options = {}) {
@@ -127,7 +127,7 @@ export async function createJourneyHandoff(journey, passages, options = {}) {
         return { ...passage, role: segment.role || passage.role || null };
     });
 
-    const { resolved, failures, ready } = await resolveJourneyPassages(wanted, options.texts);
+    const { resolved, failures, ready } = await resolveJourneyPassages(wanted);
     if (!ready) {
         throw new JourneyHandoffError('JOURNEY_PASSAGE_UNRESOLVED',
             'A passage could not be resolved against the Archive.',

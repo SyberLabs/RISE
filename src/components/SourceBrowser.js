@@ -9,13 +9,13 @@ import { ensureSourceSystem } from '../sources/bootstrap.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { isAbortError } from '../sources/visual/request.js';
 
+/** The one provider this panel lists, opened as soon as it is ready. */
+const ARCHIVE_PROVIDER_ID = 'library-archive';
+
 export class SourceBrowser {
     constructor(options = {}) {
         this.onSelect = options.onSelect || (() => { });
         this.onClose = options.onClose || (() => { });
-
-        this.providerIds = Array.isArray(options.providerIds) ? new Set(options.providerIds) : null;
-        this.autoSelectProviderId = options.autoSelectProviderId || null;
 
         this.element = null;
         this.activeProvider = null;
@@ -114,8 +114,8 @@ export class SourceBrowser {
             .then(() => {
                 if (this._destroyed) return;
                 this.renderProviders();
-                if (this.autoSelectProviderId && SourceRegistry.get(this.autoSelectProviderId)) {
-                    void this.loadProviderContent(this.autoSelectProviderId);
+                if (SourceRegistry.get(ARCHIVE_PROVIDER_ID)) {
+                    void this.loadProviderContent(ARCHIVE_PROVIDER_ID);
                 }
             });
 
@@ -129,8 +129,8 @@ export class SourceBrowser {
     renderProviders() {
         const textList = this.element.querySelector('[data-type="text"]');
 
-        const includeProvider = provider => !this.providerIds || this.providerIds.has(provider.id);
-        const textProviders = SourceRegistry.getTextProviders().filter(includeProvider);
+        const textProviders = SourceRegistry.getTextProviders()
+            .filter(provider => provider.id === ARCHIVE_PROVIDER_ID);
 
         textList.innerHTML = textProviders.map(p => `
             <li>

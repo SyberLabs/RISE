@@ -44,14 +44,10 @@ export function passageProposalsFor(text, catalog) {
 
 /**
  * @param {string} text
- * @param {{ chunk?: object, passageProposals?: object[] }} [options]
+ * @param {{ passageProposals?: object[] }} [options]
  */
 export function buildAffectBrief(text, options = {}) {
-    const chunk = {
-        mode: 'phrase',
-        wpm: options.chunk?.wpm ?? DEFAULT_CHUNK.wpm,
-        phraseFloor: options.chunk?.phraseFloor ?? DEFAULT_CHUNK.phraseFloor
-    };
+    const chunk = { ...DEFAULT_CHUNK };
     const phrases = affectPhrases(text, chunk);
     const passageProposals = passageProposalsFor(text, (options.passageProposals || []).map(row => ({
         text,

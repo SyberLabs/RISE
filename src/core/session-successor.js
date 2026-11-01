@@ -52,7 +52,6 @@ export const SESSION_FIELD_ROLES = Object.freeze({
         'voiceEnabled',
         'voiceId',
         'selectedSwellId',
-        'shuttleExempt',
         'projection',
         'presentation'
     ])

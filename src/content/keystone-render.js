@@ -29,10 +29,8 @@ function visualCue(manifest) {
   };
 }
 
-export async function buildKeystoneRenderComposition(slug, options = {}) {
-  const result = await resolveKeystone(slug, {
-    allowIncomplete: options.allowIncomplete === true
-  });
+export async function buildKeystoneRenderComposition(slug) {
+  const result = await resolveKeystone(slug);
   if (!result.sessionInput) {
     const reason = result.blockers[0]?.message || 'The Keystone is not admitted.';
     throw new Error(reason);

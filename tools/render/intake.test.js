@@ -113,7 +113,7 @@ describe('parseRenderCliArgs', () => {
     const parsed = parseRenderCliArgs([
       'score.json', '--scale', '0.25', '--painter', 'clerk', '--out', 'out/reel',
       '--ffmpeg', 'tools/ffmpeg'
-    ], { cwd: process.cwd() });
+    ]);
     expect(parsed.scale).toBe(0.25);
     expect(parsed.painter).toBe('clerk');
     expect(parsed.profileId).toBe('social-portrait-1080');
@@ -166,7 +166,7 @@ describe('render intake', () => {
     expect(runProducer).not.toHaveBeenCalled();
   });
 
-  it('compiles an operation set through runProducer at encode.tier final', async () => {
+  it('compiles an operation set through runProducer', async () => {
     const dir = tempDir();
     const outputPath = join(dir, 'experience.mp4');
     const artifact = await renderFromDocument(operationSet, {
@@ -178,8 +178,6 @@ describe('render intake', () => {
     const call = vi.mocked(runProducer).mock.calls[0][0];
     expect(call.operationSet.operations.some(op => op.op === 'request-compile')).toBe(true);
     expect(call.encode.painter).toBe('clerk');
-    expect(call.encode.tier).toBe('final');
-    expect(call.proposePublication).toBe(false);
     expect(artifact.mp4Path).toBe(outputPath);
     expect(artifact.job.profile).toBe('social-portrait-1080');
     expect(artifact.encoded.width).toBe(1080);

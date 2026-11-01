@@ -27,22 +27,27 @@ import {
 import { createRealClock } from '../clock.js';
 import { scriptFor } from '../fixtures/black-holes.js';
 
+/** Characters per text chunk, ms between chunks, and ms before the first is written. */
+const CHUNK_CHARS = 24;
+const CHUNK_MS = 40;
+const LATENCY_MS = 20;
+
 /** The whole answer as timed events, in the order they happen. */
-function timeline(script, { chunkChars, chunkMs, latencyMs, faults }) {
+function timeline(script, faults) {
     const items = [];
     const add = (at, type, body = {}) => items.push({ at, type, body, order: items.length });
 
     add(0, 'current.open', { title: script.title, origin: script.origin });
-    let writing = latencyMs;
+    let writing = LATENCY_MS;
 
     for (const segment of script.segments) {
         add(writing, 'segment.begin', { segmentId: segment.id, ...(segment.visual ? { visual: segment.visual } : {}) });
         add(writing, 'state.set', { segmentId: segment.id, state: segment.state });
         let offset = 0;
         while (offset < segment.text.length) {
-            writing += chunkMs;
-            add(writing, 'segment.text', { segmentId: segment.id, offset, text: segment.text.slice(offset, offset + chunkChars) });
-            offset += chunkChars;
+            writing += CHUNK_MS;
+            add(writing, 'segment.text', { segmentId: segment.id, offset, text: segment.text.slice(offset, offset + CHUNK_CHARS) });
+            offset += CHUNK_CHARS;
         }
         // Lowering-affecting metadata must arrive before the segment is sealed.
         // Otherwise a caller could lower a Current after segment.end and see
@@ -62,9 +67,6 @@ function timeline(script, { chunkChars, chunkMs, latencyMs, faults }) {
 
 export function createMockAdapter({
     clock = createRealClock(),
-    chunkChars = 24,
-    chunkMs = 40,
-    latencyMs = 20,
     capacity = 64,
     faults = {},
     openingVisual
@@ -100,7 +102,7 @@ export function createMockAdapter({
             const writer = createEventWriter(currentId);
             const log = [];
             const controller = new AbortController();
-            const plan = timeline(script, { chunkChars, chunkMs, latencyMs, faults });
+            const plan = timeline(script, faults);
             let channel = createChannel({ capacity });
             let closed = false;
             let finished = false;

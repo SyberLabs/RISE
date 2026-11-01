@@ -135,16 +135,6 @@
     }
 }
 
-#ascii-canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    z-index: 110;
-    background: var(--color-void, #0A0A0C);
-}
-
 @media (prefers-reduced-motion: reduce) {
     .visual-cortex {
         transition: none !important;

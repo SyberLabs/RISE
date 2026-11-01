@@ -50,8 +50,9 @@ const reducedMotion = () => typeof window.matchMedia === 'function'
  * One line of the reader's own text to judge the visual against: the first
  * sentence long enough to be prose rather than a title, cut at a word.
  */
-function sampleLine(text, limit = 110) {
+function sampleLine(text) {
   if (typeof text !== 'string' || !text.trim()) return '';
+  const limit = 110;
   const head = text.slice(0, 4000);
   const sentences = head.replace(/\s+/g, ' ').match(/[^.!?]+[.!?]?/g) || [];
   const prose = sentences.map(s => s.trim()).find(s => s.split(' ').length >= 6) || sentences[0]?.trim() || '';
@@ -72,7 +73,7 @@ export const stageMethods = {
     this.onPick = options.onPick || (() => {});
     this.getSampleText = typeof options.getSampleText === 'function'
       ? options.getSampleText
-      : () => (typeof options.sampleText === 'string' ? options.sampleText : '');
+      : () => '';
     this.pickable = options.pickable instanceof Set ? options.pickable : null;
     this._initialLeafId = options.initialLeafId || null;
     this._onFieldCommitted = () => this._stageCommitted();
