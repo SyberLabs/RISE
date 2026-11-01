@@ -76,7 +76,6 @@ async function readSome(response, limit, signal) {
  * @param {() => string | undefined} [options.getModel] the model the reader named, if they did
  * @param {(usage: {model: string, promptTokens?: number, completionTokens?: number, totalTokens?: number}) => void} [options.onUsage]
  * @param {typeof fetch} [options.fetch]
- * @param {number} [options.capacity]
  * @param {number} [options.maxBytes] the most a stream may send before it is cut off
  */
 export function createKeyedStreamAdapter(provider, {
@@ -84,7 +83,6 @@ export function createKeyedStreamAdapter(provider, {
     getModel = () => undefined,
     onUsage,
     fetch: fetchImpl = (...args) => globalThis.fetch(...args),
-    capacity,
     maxBytes = KEYED_LIMITS.stream
 } = {}) {
     const modelOf = () => {
@@ -97,7 +95,6 @@ export function createKeyedStreamAdapter(provider, {
     return createTextStreamAdapter({
         id: provider.id,
         origin: () => originOf(modelOf()),
-        capacity,
         async connect(request, sink, { signal } = {}) {
             if (signal?.aborted) throw stopped();
             const supplied = typeof getKey === 'function' ? getKey() : '';

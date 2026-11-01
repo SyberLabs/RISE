@@ -21,7 +21,7 @@
 
 export const ELEVENLABS = Object.freeze({
     origin: 'https://api.elevenlabs.io',
-    /** The voice spoken with until the reader names another: Rachel, the one ElevenLabs' own examples use. */
+    /** The voice spoken with: Rachel, the one ElevenLabs' own examples use. */
     defaultVoiceId: '21m00Tcm4TlvDq8ikWAM',
     /** The low-latency model, the same one RISE Plus voices with; multilingual_v2 is slower to first sound. */
     defaultModelId: 'eleven_flash_v2_5',
@@ -84,18 +84,16 @@ export function marksFrom(text, alignment) {
  * { samples, sampleRate, marks, durationMs, speed, chars } or rejects with { code, message }.
  * @param {object} options
  * @param {() => string} options.getKey the reader's key, read at each request; empty means none
- * @param {string} [options.voiceId]
- * @param {string} [options.modelId]
  * @param {typeof fetch} [options.fetch]
  */
-export function createElevenLabsSpeech({ getKey, voiceId = ELEVENLABS.defaultVoiceId, modelId = ELEVENLABS.defaultModelId, fetch = globalThis.fetch } = {}) {
+export function createElevenLabsSpeech({ getKey, fetch = globalThis.fetch } = {}) {
     if (typeof getKey !== 'function') throw new TypeError('ElevenLabs speech needs the reader’s key, read at each request');
-    const url = `${ELEVENLABS.origin}/v1/text-to-speech/${encodeURIComponent(voiceId)}/with-timestamps?output_format=${ELEVENLABS.outputFormat}`;
+    const url = `${ELEVENLABS.origin}/v1/text-to-speech/${ELEVENLABS.defaultVoiceId}/with-timestamps?output_format=${ELEVENLABS.outputFormat}`;
     let chars = 0;
     return {
         id: 'elevenlabs',
-        name: `ElevenLabs ${voiceId === ELEVENLABS.defaultVoiceId ? 'Rachel' : voiceId}`,
-        modelId,
+        name: 'ElevenLabs Rachel',
+        modelId: ELEVENLABS.defaultModelId,
         /** Characters sent so far, which is what ElevenLabs bills. */
         get chars() { return chars; },
         async speak(text, { rate = 1, signal } = {}) {
@@ -108,7 +106,7 @@ export function createElevenLabsSpeech({ getKey, voiceId = ELEVENLABS.defaultVoi
                 response = await fetch(url, {
                     method: 'POST',
                     headers: { 'xi-api-key': key, 'content-type': 'application/json', accept: 'application/json' },
-                    body: JSON.stringify({ text, model_id: modelId, voice_settings: { speed } }),
+                    body: JSON.stringify({ text, model_id: ELEVENLABS.defaultModelId, voice_settings: { speed } }),
                     credentials: 'omit',
                     referrerPolicy: 'no-referrer',
                     redirect: 'error',

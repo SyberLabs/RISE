@@ -186,21 +186,17 @@ export class Ostensoria {
    * Bake a plate, then discard it if the field is ≥95% void and roll a
    * new seed. An omitted seed is a fresh random plate each try. A pinned
    * seed retries as `seed:v1`, `seed:v2`, … so catalog takes stay
-   * reproducible. Pass `acceptSparse` to keep a blank (the coverage probe).
+   * reproducible.
    */
   generate(signal, seed, options = {}) {
-    const acceptSparse = options.acceptSparse === true;
-    const maxTries = Number.isFinite(Number(options.maxSparseTries))
-      ? Math.max(1, Number(options.maxSparseTries))
-      : OSTENSORIA_SPARSE_TRIES;
     const pinned = seed == null ? null : (String(seed).trim() || 'OSTENSORIA');
     let current = pinned;
-    for (let attempt = 0; attempt < maxTries; attempt++) {
+    for (let attempt = 0; attempt < OSTENSORIA_SPARSE_TRIES; attempt++) {
       this._bake(signal, current, options);
       const coverage = measureFieldVoid(this.fieldDev, this.fMax);
       this.coverage = coverage;
       this.acceptedSeed = this.cur?.seed ?? current;
-      if (acceptSparse || coverage.voidFraction < VOID_FRACTION_LIMIT) return true;
+      if (coverage.voidFraction < VOID_FRACTION_LIMIT) return true;
       current = pinned == null ? null : `${pinned}:v${attempt + 1}`;
     }
     return true;
@@ -217,16 +213,10 @@ export class Ostensoria {
     this.order = null;
     this._plateScratch = null;
     this._dev = null;
-    const acceptSparse = options.acceptSparse === true;
-    const maxTries = Number.isFinite(Number(options.maxSparseTries))
-      ? Math.max(1, Number(options.maxSparseTries))
-      : OSTENSORIA_SPARSE_TRIES;
     const pinned = seed == null ? null : (String(seed).trim() || 'OSTENSORIA');
     this._gen = {
       signal,
       options,
-      acceptSparse,
-      maxTries,
       pinned,
       current: pinned,
       attempt: 0
@@ -246,7 +236,7 @@ export class Ostensoria {
       const coverage = measureFieldVoid(this.fieldDev, this.fMax);
       this.coverage = coverage;
       this.acceptedSeed = this.cur?.seed ?? g.current;
-      if (g.acceptSparse || coverage.voidFraction < VOID_FRACTION_LIMIT || g.attempt + 1 >= g.maxTries) {
+      if (coverage.voidFraction < VOID_FRACTION_LIMIT || g.attempt + 1 >= OSTENSORIA_SPARSE_TRIES) {
         this.ready = true;
         this._gen = null;
         this._attemptQueue = null;
@@ -352,7 +342,7 @@ export class Ostensoria {
   /**
    * @param {Object} [signal]
    * @param {string|number} [seed]
-   * @param {Object} [options] original form/look knobs; quality defaults
+   * @param {Object} [options] palette, sat and hue; quality defaults
    *   to Chamber-adaptive (never HTML draft 760)
    */
   _bake(signal, seed, options = {}) {
@@ -379,29 +369,28 @@ export class Ostensoria {
     const orders = [1,2,2,2,4,4,6,8,12];
     const form = {
       seed: seedStr,
-      family: options.family || 'auto',
-      order: options.order != null ? +options.order : orders[(sr()*orders.length)|0],
-      mirror: options.mirror != null ? !!options.mirror : sr()>0.12,
+      order: orders[(sr()*orders.length)|0],
+      mirror: sr()>0.12,
       quality: options.quality != null ? +options.quality : chamberPlateQuality()
     };
     const rolledPalette = sr() < 0.5 ? 'reliquary' : 'ice';
     const palette = RAMPS[options.palette] ? options.palette : rolledPalette;
     const preset = PALETTES[palette] || PALETTES.reliquary;
     const look = {
-      exposure: options.exposure != null ? +options.exposure : 2.1,
-      gamma: options.gamma != null ? +options.gamma : 0.9,
-      bloom: options.bloom != null ? +options.bloom : 0.6,
+      exposure: 2.1,
+      gamma: 0.9,
+      bloom: 0.6,
       hue: options.hue != null ? +options.hue : preset.hue,
-      bands: options.bands != null ? +options.bands : preset.bands,
+      bands: preset.bands,
       sat: options.sat != null ? +options.sat : preset.sat,
-      chroma: options.chroma != null ? +options.chroma : 2.2,
-      grain: options.grain != null ? +options.grain : 0.05,
+      chroma: 2.2,
+      grain: 0.05,
       palette
     };
 
     const seedRng=mulberry32(xmur3(form.seed)());
-    let kind=form.family;
-    if(kind==="auto"){ const fams=["clifford","dejong","svensson","fractal"]; kind=fams[Math.floor(seedRng()*fams.length)]; }
+    const fams=["clifford","dejong","svensson","fractal"];
+    const kind=fams[Math.floor(seedRng()*fams.length)];
     let attr=null, qual=null, tries=0;
     while(tries<48){
       const cand=makeAttractor(kind, seedRng);

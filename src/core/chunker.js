@@ -199,7 +199,6 @@ function getPunctuationPause(text, baseDuration) {
  * end of its segment), then any still-long piece is windowed into
  * near-equal word runs. Every source token appears exactly once.
  * @param {string} chunk
- * @param {number} maxWords
  * @returns {string[]}
  */
 /**
@@ -218,7 +217,7 @@ function getPunctuationPause(text, baseDuration) {
  *
  * @returns {{lineated: boolean, lines: number, medianWords: number, overCeiling: number}}
  */
-export function detectVerseLineation(text, { maxWords = MAX_CHUNK_WORDS } = {}) {
+export function detectVerseLineation(text) {
     const lines = String(text ?? '').split(/\r?\n/)
         .map(l => l.trim()).filter(Boolean);
     if (lines.length < 8) {
@@ -227,7 +226,7 @@ export function detectVerseLineation(text, { maxWords = MAX_CHUNK_WORDS } = {}) 
     const lengths = lines.map(l => l.split(/\s+/).filter(Boolean).length);
     const sorted = [...lengths].sort((a, b) => a - b);
     const medianWords = sorted[sorted.length >> 1];
-    const overCeiling = lengths.filter(n => n > maxWords).length / lengths.length;
+    const overCeiling = lengths.filter(n => n > MAX_CHUNK_WORDS).length / lengths.length;
 
     // Wrap crowding (chars near column max) is not authored verse.
     const chars = lines.map(l => l.length);
@@ -314,8 +313,7 @@ function floorOptions(phraseFloor) {
 }
 
 function applyPhraseFloor(phrases, paragraph = '', {
-    floor = PHRASE_FLOOR_WORDS,
-    maxWords = MAX_CHUNK_WORDS
+    floor = PHRASE_FLOOR_WORDS
 } = {}) {
     if (!Array.isArray(phrases) || phrases.length < 2) return phrases;
     // An author who marked their own phrasing has already answered the
@@ -325,7 +323,7 @@ function applyPhraseFloor(phrases, paragraph = '', {
     const words = piece => piece.trim().split(/\s+/).filter(Boolean).length;
     const closesSentence = piece => /[.!?][)\]"'”’]*$/.test(piece.trim());
     const joinable = (prev, next) =>
-        prev && !closesSentence(prev) && words(prev) + words(next) <= maxWords;
+        prev && !closesSentence(prev) && words(prev) + words(next) <= MAX_CHUNK_WORDS;
 
     // Backward: a short piece rejoins what it was cut from.
     const grown = [];
@@ -353,9 +351,9 @@ function applyPhraseFloor(phrases, paragraph = '', {
     return settled;
 }
 
-function splitLongChunk(chunk, maxWords = MAX_CHUNK_WORDS) {
+function splitLongChunk(chunk) {
     const words = chunk.split(/\s+/).filter(Boolean);
-    if (words.length <= maxWords) return [chunk];
+    if (words.length <= MAX_CHUNK_WORDS) return [chunk];
 
     // Stage 1: cut before connectives (hinge opens the next clause).
     // Skip after colon (speaker labels) and between adjacent connectives.
@@ -370,11 +368,11 @@ function splitLongChunk(chunk, maxWords = MAX_CHUNK_WORDS) {
     const result = [];
     for (const piece of stage1) {
         const pieceWords = piece.split(/\s+/).filter(Boolean);
-        if (pieceWords.length <= maxWords) {
+        if (pieceWords.length <= MAX_CHUNK_WORDS) {
             result.push(piece);
             continue;
         }
-        const windows = Math.ceil(pieceWords.length / maxWords);
+        const windows = Math.ceil(pieceWords.length / MAX_CHUNK_WORDS);
         const per = Math.ceil(pieceWords.length / windows);
         for (let i = 0; i < pieceWords.length; i += per) {
             result.push(pieceWords.slice(i, i + per).join(' '));

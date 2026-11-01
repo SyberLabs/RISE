@@ -297,7 +297,7 @@ which pull request 172 already answered.)
 | A | `conductor.js` `LEXICON`, `scoreChunk`, `scoreAtoms` | A hand-curated valence and arousal lexicon; smoothed per-atom track `{valence −1..1, arousal 0..1, confidence}` | Production. Opt-in (below) |
 | B | `Chamber.js:275-288` and `chamber-session-factory.js:284` | **Two call sites** score the session and share one memo on `session.semanticTrack` | Production |
 | C | `passage-visuals/director.js` `blockSignal` | Calls `scoreChunk` per block with **its own confidence formula** (`hits / max(3, tokens·0.04)`) versus A's `hits / 3` | Production |
-| D | `player.js:645-651` via `responsiveFrequency`, and the visual engines: `harmonograph`, `fractal`, `klee`, `ascii-engine`, `treatments.js`, and others that read `{valence, arousal}` | **Consumers** of the signal shape | Production |
+| D | `player.js:645-651` via `responsiveFrequency`, and the visual engines: `harmonograph`, `fractal`, `klee`, `treatments.js`, and others that read `{valence, arousal}` | **Consumers** of the signal shape | Production |
 | E | `pull 296: src/affect/text/lexicon.js`, `encode.js` | A second lexicon, a negation window, an unfitted linear readout, twelve axes | Not imported by the reading runtime. Only `Emotions.js` imports it |
 | F | `pull 296: modalities/pacing.js` | A prior that places words per minute on arousal, centred at 220 | Same |
 
@@ -393,9 +393,9 @@ schedules" is the natural result and testable. Two collisions to settle first:
   Whether that deferral has ended is the creator's to say (decision D5).
 
 **1e (breath).** `StateCurve.at(position)` is indexed by *progress through the
-reading*, and a breath is periodic in *time*. The existing zero-mean doctrine
-(`semanticTexture` in `pacing.js`) is the right shape: a periodic multiplier that
-averages to one, so it never changes the reading's length. The reading track cannot
+reading*, and a breath is periodic in *time*. The zero-mean doctrine (once
+`semanticTexture` in `pacing.js`, deleted because nothing enabled it) is the right
+shape: a periodic multiplier that averages to one, so it never changes the reading's length. The reading track cannot
 carry it: a scored pace is a clip, a track holds 512, and a long book has far more
 breaths. It needs a function in `pacing.js`, clamped by the pace window and by the
 100 ms to 10 s duration limits already there. It must behave sensibly at 50 and at

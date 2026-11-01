@@ -33,9 +33,9 @@ function readRouteAnswer(result, provider) {
   return { route: answer.choice, confidence: answer.confidence, model: result.model, ...decisionIdentity(provider) };
 }
 
-export async function decideRoute(connection, input, { signal } = {}) {
+export async function decideRoute(connection, input) {
   const body = buildRouteRequest(input);
-  const result = await callDecision(connection, body, { signal, deadlineMs: ROUTE_DEADLINE_MS });
+  const result = await callDecision(connection, body, { deadlineMs: ROUTE_DEADLINE_MS });
   const route = readRouteAnswer(result, connection.provider);
   if (!route) throw new DecisionError('INVALID_RESPONSE', 'The decision model returned an invalid route decision.');
   return route;

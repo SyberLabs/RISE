@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateCandidate, maybeEvaluate } from './evaluate.js';
+import { evaluateCandidate } from './evaluate.js';
 import { detectMovement, pacingCurve, slideWindows, textTrajectory } from './temporal.js';
 
 const LOW = 'solemn death and woe and mourning and grief';
@@ -75,8 +75,7 @@ describe('cross-modal evaluation', () => {
         expect(unmarked.components.intentionalTension).toBe(0);
     });
 
-    it('stays disabled until the flag is on, and survives a dead encoder', () => {
-        expect(maybeEvaluate({ pacing: { wpm: 'nope' } }, {}).status).toBe('disabled');
+    it('survives a dead encoder', () => {
         const result = evaluateCandidate(
             { text: LOW, pacing: { wpm: 180 } },
             { encodeText: () => { throw new Error('missing weights'); } }

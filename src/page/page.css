@@ -390,58 +390,6 @@
   text-overflow: ellipsis;
 }
 
-/* Pager: fixed above Chamber pill so controls do not wander with text length. */
-.page-pager {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(var(--space-xl) + 58px);
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  padding: var(--sy-space-1);
-  border-radius: var(--sy-radius);
-  background: var(--sy-surface);
-  border: 1px solid var(--sy-line);
-}
-
-.page-pager-btn {
-  background: transparent;
-  border: 0;
-  border-radius: var(--sy-radius);
-  color: var(--sy-text-2);
-  font: 500 16px/24px var(--sy-font-sans);
-  min-width: var(--sy-control-height);
-  min-height: var(--sy-control-height);
-  padding: 0;
-  cursor: pointer;
-  transition: color var(--sy-dur-hover) var(--sy-ease),
-    background-color var(--sy-dur-hover) var(--sy-ease);
-}
-
-.page-pager-btn:hover:not(:disabled) {
-  color: var(--sy-text);
-  background: var(--sy-surface-2);
-}
-
-/* A turn that cannot be taken is stated, not hidden: a reader at the
-   last page should see that it is the last page. */
-.page-pager-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.page-pager-count {
-  font: 500 12px/16px var(--sy-font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  color: var(--sy-text-2);
-  min-width: 6ch;
-  text-align: center;
-}
-
 @media (max-width: 640px) {
   .page-reader.is-paginated .page-article {
     padding-top: clamp(2.5rem, 8vh, 4rem);
@@ -450,12 +398,6 @@
     padding-bottom: clamp(5rem, 14vh, 7rem);
   }
   .page-runner { padding-inline: var(--sy-space-4); }
-  .page-pager {
-    /* Measured: the Chamber's pill occupies the last 90px of the
-       frame on a phone. 72 clears it with air rather than by a
-       pixel. */
-    bottom: calc(var(--space-xl) + 72px);
-  }
 }
 
 /* Inline headings: centred air matching raised chapter marks. */

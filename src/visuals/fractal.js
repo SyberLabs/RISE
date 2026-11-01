@@ -210,9 +210,8 @@ export class FractalFlame {
     }
 
     /**
-     * Consume the best queued flame for a live semantic signal. Both native
-     * and ASCII renderers use this single ownership path, so one flash can
-     * never accidentally consume two different artworks.
+     * Consume the best queued flame for a live semantic signal, so one
+     * flash can never accidentally consume two different artworks.
      */
     takeFrame(signal) {
         let item;

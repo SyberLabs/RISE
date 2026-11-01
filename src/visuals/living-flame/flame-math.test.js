@@ -147,7 +147,7 @@ describe('emptiness probe', () => {
 
 describe('undo history', () => {
   it('keeps the latest twenty recipes', () => {
-    const history = new RecipeHistory(20);
+    const history = new RecipeHistory();
     for (let i = 0; i < 25; i += 1) history.push({ id: String(i) });
     expect(history.size).toBe(20);
     expect(history.pop().id).toBe('24');

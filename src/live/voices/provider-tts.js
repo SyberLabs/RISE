@@ -32,11 +32,12 @@ const PROVIDER_VOICE_LIMITS = Object.freeze({
     prefetch: 1
 });
 
-export function createProviderVoice({ speech, context, clock = createRealClock(), rate = 1 } = {}) {
+export function createProviderVoice({ speech, context, clock = createRealClock() } = {}) {
     if (!speech || typeof speech.speak !== 'function') throw new TypeError('A provider voice needs a provider that speaks');
     if (!context || typeof context.createBufferSource !== 'function') throw new TypeError('A provider voice needs an AudioContext');
 
     let report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {}, retried() {} };
+    let rate = 1;
     let spokenRate = rate;
     let closed = false;
     let held = false;

@@ -27,8 +27,7 @@ export function createLiveStage({
   factories = DEFAULT_FACTORIES,
   dwellMs = 600,
   reducedMotion = () => typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  doc = document
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 } = {}) {
   let wanted = null;
   let wantedStyle = {};
@@ -70,14 +69,14 @@ export function createLiveStage({
   };
 
   const onVisibility = () => {
-    if (doc.visibilityState === 'hidden') {
+    if (document.visibilityState === 'hidden') {
       holds.add('hidden');
       release();
     } else if (holds.delete('hidden')) {
       arm();
     }
   };
-  doc.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener('visibilitychange', onVisibility);
 
   return {
     focus(id, style = {}) {
@@ -98,7 +97,7 @@ export function createLiveStage({
       if (destroyed) return;
       release();
       destroyed = true;
-      doc.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener('visibilitychange', onVisibility);
     },
     get mounted() {
       return engine ? wanted : null;

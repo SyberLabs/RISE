@@ -906,7 +906,7 @@ const ALL_SOUNDSCAPES = {
     'night-drive': {
         name: 'Night Drive',
         description: 'A four-on-the-floor electronic beat at 124 BPM: kick, clap, hats, rolling bass and arpeggio.',
-        create: (ctx, destination) => createNightDrive(ctx, destination, { bpm: 124, intensity: 0.6, level: 0.4 })
+        create: (ctx, destination) => createNightDrive(ctx, destination)
     },
     ...ACOUSTIC_SOUNDSCAPES,
     ...CINEMATIC_SOUNDSCAPES,

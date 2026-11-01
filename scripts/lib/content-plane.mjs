@@ -90,19 +90,17 @@ export async function buildDecisionCatalog({ source, out }) {
     return catalog;
 }
 
-export async function buildContentPlane({ write = true } = {}) {
+export async function buildContentPlane() {
     const served = ingestedArchiveTexts();
     const declared = [...CORE_WORKS, ...LEGACY_REINGESTED_WORKS, ...LITERATURE_WORKS];
     const metaById = new Map(declared.map(work => [work.meta?.id, work.meta]));
 
-    if (write) {
-        await rm(WORKS_DIR, { recursive: true, force: true });
-        await rm(CHAPEL_DIR, { recursive: true, force: true });
-        await rm(SCHOOL_DIR, { recursive: true, force: true });
-        await mkdir(WORKS_DIR, { recursive: true });
-        await mkdir(CHAPEL_DIR, { recursive: true });
-        await mkdir(SCHOOL_DIR, { recursive: true });
-    }
+    await rm(WORKS_DIR, { recursive: true, force: true });
+    await rm(CHAPEL_DIR, { recursive: true, force: true });
+    await rm(SCHOOL_DIR, { recursive: true, force: true });
+    await mkdir(WORKS_DIR, { recursive: true });
+    await mkdir(CHAPEL_DIR, { recursive: true });
+    await mkdir(SCHOOL_DIR, { recursive: true });
 
     const works = [];
 
@@ -114,9 +112,7 @@ export async function buildContentPlane({ write = true } = {}) {
         // book.
         const bytes = Buffer.from(JSON.stringify(sections), 'utf8');
         const digest = sha256(bytes);
-        if (write) {
-            await writeFile(resolve(WORKS_DIR, `${digest}.json`), bytes);
-        }
+        await writeFile(resolve(WORKS_DIR, `${digest}.json`), bytes);
         works.push({
             id: text.id,
             sha256: digest,
@@ -165,9 +161,7 @@ export async function buildContentPlane({ write = true } = {}) {
                 + 'under an address its bytes do not satisfy.'
             );
         }
-        if (write) {
-            await writeFile(resolve(CHAPEL_DIR, `${digest}.txt`), bytes);
-        }
+        await writeFile(resolve(CHAPEL_DIR, `${digest}.txt`), bytes);
         chapel.push({
             id: book.id,
             sha256: digest,
@@ -199,9 +193,7 @@ export async function buildContentPlane({ write = true } = {}) {
                 + 'under an address its bytes do not satisfy.'
             );
         }
-        if (write) {
-            await writeFile(resolve(SCHOOL_DIR, `${digest}.json`), bytes);
-        }
+        await writeFile(resolve(SCHOOL_DIR, `${digest}.json`), bytes);
         school.push({
             id: work.id,
             sha256: digest,
@@ -224,15 +216,13 @@ export async function buildContentPlane({ write = true } = {}) {
         school
     };
 
-    if (write) {
-        await writeFile(
-            resolve(OUT, 'manifest.json'),
-            `${JSON.stringify(manifest, null, 2)}\n`
-        );
-        await buildDecisionCatalog({
-            source: resolve(ROOT, 'src/content/decision-catalog.json'),
-            out: resolve(OUT, 'catalog.json')
-        });
-    }
+    await writeFile(
+        resolve(OUT, 'manifest.json'),
+        `${JSON.stringify(manifest, null, 2)}\n`
+    );
+    await buildDecisionCatalog({
+        source: resolve(ROOT, 'src/content/decision-catalog.json'),
+        out: resolve(OUT, 'catalog.json')
+    });
     return manifest;
 }

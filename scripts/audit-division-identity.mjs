@@ -66,12 +66,12 @@ const tokenize = (text) => String(text || '')
  * class with their own detector (§2e, §2f); this one is for a whole division
  * that is a different book.
  */
-const MIN_DIVISION_WORDS = Number(process.env.FLOOR || 5_000);
+const MIN_DIVISION_WORDS = 5_000;
 
 /** Rare across the shelf is what makes a term this work's own. */
 const MAX_DOCUMENT_SHARE = 0.15;
 const MIN_TERM_COUNT = 20;
-const CHARACTERISTIC_TERMS = Number(process.env.TERMS || 120);
+const CHARACTERISTIC_TERMS = 120;
 
 function sectionsToText(sections) {
   if (!Array.isArray(sections)) return '';

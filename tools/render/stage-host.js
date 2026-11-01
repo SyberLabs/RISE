@@ -68,9 +68,8 @@ export async function openStageHost({
   cssWidth,
   cssHeight,
   dpr = 1,
-  subject = 'stage',
-  codePrefix = 'RENDER_STAGE',
-  readyTimeoutMs = 30_000
+  subject,
+  codePrefix
 } = {}) {
   const { createServer } = await import('vite');
   const server = await createServer({
@@ -131,7 +130,7 @@ export async function openStageHost({
       timeout: 60_000
     });
     await page.waitForFunction(() => window.__stage?.ready === true, null, {
-      timeout: readyTimeoutMs
+      timeout: 30_000
     });
   } catch (error) {
     await close();

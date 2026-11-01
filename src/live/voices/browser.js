@@ -91,7 +91,7 @@ export function utteranceEnd(text, from, limit = BROWSER_VOICE_LIMITS.utteranceC
     return from + (space > 0 ? space : limit);
 }
 
-export function createBrowserVoice({ speech, clock = createRealClock(), lang = 'en', rate = 1, voice = null } = {}) {
+export function createBrowserVoice({ speech, clock = createRealClock(), lang = 'en', voice = null } = {}) {
     const { synth, Utterance } = speech ?? {};
     if (!synth || typeof Utterance !== 'function') throw new TypeError('A browser voice needs speechSynthesis and its utterance');
     synth.cancel();
@@ -106,7 +106,8 @@ export function createBrowserVoice({ speech, clock = createRealClock(), lang = '
     };
 
     let report = { start() {}, mark() {}, end() {}, fail() {}, taken() {}, restarted() {}, rateApplied() {}, retried() {} };
-    /** The rate it last reported speaking at: the one it was made with, or the last that landed. */
+    let rate = 1;
+    /** The rate it last reported speaking at: 1 until another lands. */
     let spokenRate = rate;
     let closed = false;
     let held = false;
@@ -435,11 +436,11 @@ export function chooseVoice(voices, lang, preferredName = '') {
 /**
  * Voices load late in some browsers: `getVoices()` is empty until
  * `voiceschanged`. Resolves with the voice list once there is one, or with an
- * empty list after `timeoutMs`, so a host never waits on a browser that has none.
+ * empty list after 2.5 seconds, so a host never waits on a browser that has none.
  * A fresh frame in a host's sandbox takes well over a second to list its first
  * voice; the wait allows for that, and is paid in full only where there are none.
  */
-export function whenVoicesAvailable(synth, { timeoutMs = 2500, clock = createRealClock() } = {}) {
+export function whenVoicesAvailable(synth, { clock = createRealClock() } = {}) {
     const now = synth.getVoices?.() ?? [];
     if (now.length > 0 || typeof synth.addEventListener !== 'function') return Promise.resolve(now);
     return new Promise(resolve => {
@@ -450,6 +451,6 @@ export function whenVoicesAvailable(synth, { timeoutMs = 2500, clock = createRea
             resolve(synth.getVoices?.() ?? []);
         };
         synth.addEventListener('voiceschanged', done, { once: true });
-        cancel = clock.setTimer(done, timeoutMs);
+        cancel = clock.setTimer(done, 2500);
     });
 }

@@ -632,8 +632,8 @@ export function cancelAgentRun(run) {
   return deepFreeze({ ...run, cancelled: true });
 }
 
-export function createAgentOperationHistory(limit = 50) {
-  return deepFreeze({ limit, past: [], future: [] });
+export function createAgentOperationHistory() {
+  return deepFreeze({ limit: 50, past: [], future: [] });
 }
 
 export function recordAgentOperationSet(history, command) {
@@ -802,8 +802,8 @@ function visualAssetFor(assetId, { project, context, path = '$.assetId' }) {
   });
 }
 
-function audioAssetFor(assetId, { personalSwells = [], path = '$.assetId' }) {
-  const asset = audioScoreAssetFromId(assetId, personalSwells);
+function audioAssetFor(assetId, { path = '$.assetId' } = {}) {
+  const asset = audioScoreAssetFromId(assetId);
   if (!asset) {
     // A swell says which absence it is. `Unknown audio asset swell:ghost` is
     // true and useless: the reader's shelf is the only place it could have
@@ -955,7 +955,6 @@ export function applyAgentOperationSet({
   operationSet,
   context = null,
   resolvedSources = {},
-  personalSwells = [],
   run = null
 } = {}) {
   const set = validateAgentOperationSet(operationSet);
@@ -1025,7 +1024,7 @@ export function applyAgentOperationSet({
   for (const assignment of draft.audioAssignments) {
     if (draft.audioAssets.some(item => item.id === assignment.assetId)) continue;
     try {
-      draft.audioAssets.push(audioAssetFor(assignment.assetId, { personalSwells }));
+      draft.audioAssets.push(audioAssetFor(assignment.assetId));
     } catch {
       /* same as visual: compile will refuse if the asset is truly gone */
     }
@@ -1196,7 +1195,7 @@ export function applyAgentOperationSet({
     if (op.op === 'assign-audio' || op.op === 'replace-audio') {
       const source = findSource(op.sourceId, path);
       const span = resolveSpan(op, source, path);
-      const audio = audioAssetFor(op.assetId, { personalSwells, path });
+      const audio = audioAssetFor(op.assetId, { path });
       if (!draft.audioAssets.some(item => item.id === audio.id)) draft.audioAssets.push(audio);
       const overlap = op.op === 'replace-audio' ? 'replace' : (op.overlap || 'reject');
       draft.audioAssignments = assignAudioSpan({

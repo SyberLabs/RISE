@@ -340,7 +340,7 @@ describe('AudioEngine lifecycle ownership', () => {
 
       // Musical: part of the session, rides its reveal.
       for (const layer of ['binaural', 'harmonics', 'noise', 'drone',
-        'ambient', 'swell', 'soundscape']) {
+        'swell', 'soundscape']) {
         expect(engine.layerGains[layer].connectedTo).toBe(engine.sessionGain);
       }
       // Feedback: heard whether a session is running, fading or absent.
@@ -417,7 +417,6 @@ describe('AudioEngine lifecycle ownership', () => {
     vi.spyOn(engine, 'init').mockResolvedValue(undefined);
     vi.spyOn(engine, 'resume').mockResolvedValue(undefined);
     vi.spyOn(engine, 'fadeOutSession').mockResolvedValue(undefined);
-    vi.spyOn(engine, 'stopAmbient').mockImplementation(() => {});
     vi.spyOn(engine, 'playSwell').mockImplementation(() => {});
     const stopLayers = vi.spyOn(engine, 'stopEntrainment').mockImplementation(() => {});
 
@@ -436,7 +435,6 @@ describe('AudioEngine lifecycle ownership', () => {
     const engine = new AudioEngine();
     vi.spyOn(engine, 'init').mockResolvedValue(undefined);
     vi.spyOn(engine, 'resume').mockResolvedValue(undefined);
-    vi.spyOn(engine, 'stopAmbient').mockImplementation(() => {});
     vi.spyOn(engine, 'playSwell').mockImplementation(() => {});
     const applyPreset = vi.spyOn(engine, 'applyPreset').mockImplementation(() => {});
 
@@ -452,7 +450,6 @@ describe('AudioEngine lifecycle ownership', () => {
     const engine = new AudioEngine();
     vi.spyOn(engine, 'init').mockResolvedValue(undefined);
     vi.spyOn(engine, 'resume').mockResolvedValue(undefined);
-    vi.spyOn(engine, 'stopAmbient').mockImplementation(() => {});
     vi.spyOn(engine, 'playSwell').mockImplementation(() => {});
 
     engine.context = { currentTime: 0 };
@@ -483,22 +480,6 @@ describe('AudioEngine lifecycle ownership', () => {
 
     expect(startedAtVolumes).toEqual([0.85, 0.85]);
     expect(engine.config.layerVolumes.soundscape).toBe(0.85);
-  });
-
-  it('ends a session without starting the lobby drone, which is gone (Q6)', async () => {
-    vi.useFakeTimers();
-    const engine = new AudioEngine();
-    vi.spyOn(engine, 'init').mockResolvedValue(undefined);
-    vi.spyOn(engine, 'resume').mockResolvedValue(undefined);
-    vi.spyOn(engine, 'stopAmbient').mockImplementation(() => {});
-    vi.spyOn(engine, 'playSwell').mockImplementation(() => {});
-    const started = engine.startSession({ preset: 'focus' });
-    await vi.advanceTimersByTimeAsync(50);
-    await started;
-    const stopped = engine.stopSession();
-    await vi.runOnlyPendingTimersAsync();
-    await stopped;
-    expect(engine.layers.ambient).toBeNull();
   });
 });
 
@@ -547,7 +528,6 @@ describe('AudioEngine reading-clock entrainment', () => {
     const engine = engineWithBinaural();
     vi.spyOn(engine, 'init').mockResolvedValue(undefined);
     vi.spyOn(engine, 'resume').mockResolvedValue(undefined);
-    vi.spyOn(engine, 'stopAmbient').mockImplementation(() => {});
     vi.spyOn(engine, 'playSwell').mockImplementation(() => {});
     vi.spyOn(engine, 'setEntrainmentConfig').mockImplementation(() => {});
     engine.masterGain = { gain: beatParam() };
@@ -602,17 +582,6 @@ describe('AudioEngine reading-clock entrainment', () => {
     engine.stopSession({ immediate: true });
     expect(engine._positionRamp).toBeNull();
   });
-
-  it('honors an explicit points ramp via the wall-clock contract unchanged', () => {
-    const engine = engineWithBinaural();
-    engine.applyEntrainmentRamp({
-      curve: 'linear',
-      points: [{ time: 0, beat: 10 }, { time: 60, beat: 6 }]
-    });
-    const param = engine.layers.binaural.rightOsc.frequency;
-    expect(param.setValueAtTime).toHaveBeenCalled();
-    expect(param.linearRampToValueAtTime).toHaveBeenCalled();
-  });
 });
 
 describe('a named swell fails closed', () => {
@@ -636,7 +605,7 @@ describe('a named swell fails closed', () => {
         engine.isInitialized = true;
         engine.isMuted = false;
         engine.config = { layerVolumes: { swell: 0.5 } };
-        engine.buffers = { swells: [{ id: 'a' }, { id: 'b' }], personalSwells: [{ id: 'c' }] };
+        engine.buffers = { personalSwells: [{ id: 'c' }] };
         engine.personalPool = pool;
         engine.layers = {};
         // A REAL AudioParam CARRIES ITS SCHEDULING METHODS, so these
@@ -678,14 +647,6 @@ describe('a named swell fails closed', () => {
         expect(created).toHaveLength(1);
         expect(created[0].buffer, 'the swell asked for is the swell played').toBe(bell);
         expect(created[0].started, 'and it actually reached the speakers').toBe(true);
-    });
-
-    it('an unnamed request still takes any swell', async () => {
-        // "Give me a swell" is a different request from "give me THIS
-        // swell", and only the second fails closed.
-        const { engine, created } = engineWithPool(new Map());
-        await engine.playSwell();
-        expect(created).toHaveLength(1);
     });
 });
 

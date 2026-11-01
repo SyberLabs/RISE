@@ -9,6 +9,7 @@ import {
 } from '../../src/audio/voice-pack.js';
 
 const ROOT = resolve(import.meta.dirname, '../..');
+const PUBLIC_ROOT = join(ROOT, 'public');
 
 function sha256(bytes) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
@@ -71,7 +72,6 @@ async function keystoneUses() {
 }
 
 export async function inspectReleaseVoiceAssets({
-  publicRoot = join(ROOT, 'public'),
   distributionRoot = null
 } = {}) {
   const pack = voicePackManifest.voices?.[DEFAULT_VOICE_ID];
@@ -83,7 +83,7 @@ export async function inspectReleaseVoiceAssets({
   let totalBytes = 0;
 
   for (const [key, entry] of entries) {
-    const inspected = await readVerifiedAsset(publicRoot, key, entry, sourceIssues);
+    const inspected = await readVerifiedAsset(PUBLIC_ROOT, key, entry, sourceIssues);
     if (!inspected) continue;
     sourceAssets.set(key, inspected);
     totalBytes += inspected.byteLength;

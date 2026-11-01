@@ -95,7 +95,7 @@ export class LivingFlameField {
    */
   constructor(host, {
     recipe, energy = 0.35, clock = null, reducedMotion = false, onStatus = null,
-    cpuFallback = null, initialTier = LIVING_FLAME_DEFAULT_TIER, window: win = globalThis.window
+    cpuFallback = null, window: win = globalThis.window
   } = {}) {
     this.host = host;
     this.window = win;
@@ -109,7 +109,7 @@ export class LivingFlameField {
     this.paused = false;
     this.destroyed = false;
     this.renderer = 'none';
-    this.tier = clamp(initialTier, 0, LIVING_FLAME_TIERS.length - 1);
+    this.tier = LIVING_FLAME_DEFAULT_TIER;
     this.ceiling = LIVING_FLAME_TIERS.length - 1;
     this.steadyWindows = 0;
     this.intervals = [];

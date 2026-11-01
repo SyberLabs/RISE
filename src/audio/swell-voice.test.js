@@ -43,7 +43,7 @@ function bench() {
     engine.masterGain = { connect: vi.fn(), gain: gainStub() };
     engine.layerGains = {};
     engine.layers = {};
-    engine.buffers = { swells: [{ id: 'standard' }], personalSwells: [{ id: 'mine' }] };
+    engine.buffers = { personalSwells: [{ id: 'mine' }] };
     engine.personalPool = new Map([['mine', { id: 'mine' }]]);
     return { engine, started, stopped };
 }
@@ -87,7 +87,6 @@ describe('one swell at a time', () => {
         vi.spyOn(engine, 'init').mockResolvedValue(undefined);
         vi.spyOn(engine, 'resume').mockResolvedValue(undefined);
         vi.spyOn(engine, 'fadeInSession').mockResolvedValue(undefined);
-        vi.spyOn(engine, 'stopAmbient').mockImplementation(() => {});
         const swell = vi.spyOn(engine, 'playSwell').mockResolvedValue(undefined);
 
         await engine.startSession({ entrySwell: false, swellId: null });

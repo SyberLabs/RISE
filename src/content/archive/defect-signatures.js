@@ -159,11 +159,10 @@ export const DEFECT_SIGNATURES = Object.freeze([
  * cannot say where the defect is, and a finding you cannot point at is not
  * actionable.
  */
-export function scanLine(line, { skip = new Set() } = {}) {
+export function scanLine(line) {
     const text = String(line ?? '');
     if (!text.trim()) return [];
     return DEFECT_SIGNATURES
-        .filter(signature => !skip.has(signature.id))
         .filter(signature => signature.pattern.test(text))
         .map(signature => signature.id);
 }

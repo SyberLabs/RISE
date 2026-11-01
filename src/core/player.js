@@ -709,7 +709,6 @@ export class Player {
             this.shuttle.reset();
             this.emit('shuttle', { velocity: 1, reason: 'live-end' });
         }
-        this.emit('waiting', { index: this.sessionState.currentIndex });
     }
 
     /**

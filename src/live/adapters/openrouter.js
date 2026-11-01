@@ -141,7 +141,6 @@ function usageOf(raw, model) {
  * @param {(usage: {model: string, promptTokens?: number, completionTokens?: number, totalTokens?: number, cost?: number}) => void} [options.onUsage]
  *   what OpenRouter reported an answer cost, for the reader's own accounting
  * @param {string} [options.referer] this site's address, for OpenRouter's app attribution
- * @param {number} [options.capacity]
  * @param {number} [options.maxBytes] the most a stream may send before it is cut off
  */
 export function createOpenRouterAdapter({
@@ -149,13 +148,11 @@ export function createOpenRouterAdapter({
     getModel = () => undefined,
     onUsage,
     referer = globalThis.location?.origin,
-    capacity,
     maxBytes = OPENROUTER_LIMITS.stream
 } = {}) {
     return createTextStreamAdapter({
         id: 'openrouter-stream',
         origin: () => originOf(modelOf(getModel())),
-        capacity,
         async connect(request, sink, { signal } = {}) {
             if (signal?.aborted) throw stopped();
             const model = modelOf(getModel());

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { affectEnabled } from './flags.js';
 import { experienceState, slot, unavailableState, validateExperienceState } from './schema.js';
 
 describe('experience state', () => {
@@ -50,14 +49,5 @@ describe('experience state', () => {
         expect(state.dimensions).toEqual({});
         expect(state.provenance.status).toBe('unavailable');
         expect(state.provenance.reason).toBe('audio-features-absent');
-    });
-});
-
-describe('affect flag', () => {
-    it('stays off unless the caller turns it on', () => {
-        expect(affectEnabled({})).toBe(false);
-        expect(affectEnabled({ RISE_AFFECT: '0' })).toBe(false);
-        expect(affectEnabled({ RISE_AFFECT: '1' })).toBe(true);
-        expect(affectEnabled({ VITE_RISE_AFFECT: 'true' })).toBe(true);
     });
 });

@@ -48,8 +48,6 @@ export class Admit {
   constructor(options = {}) {
     this.onAdmit = options.onAdmit || (() => {});
     this.onReadNow = options.onReadNow || (() => {});
-    this.onCancel = options.onCancel || (() => {});
-    this.rungWords = options.rungWords;
     // The direct exit is the same act in both rooms — take the text and skip
     // the shelf — but it is not the same sentence. "Read it now" in a room
     // where nothing is read would describe a door that does not exist.
@@ -61,8 +59,7 @@ export class Admit {
     // corrected.
     this.record = options.record ? validateLocalWork(options.record) : draftLocalWork({
       text: options.text || '',
-      sourceName: options.sourceName || '',
-      title: options.title || ''
+      sourceName: options.sourceName || ''
     });
     this.element = null;
     this.drag = null;
@@ -125,7 +122,7 @@ export class Admit {
    * whether to accept a hundred cuts wants to know it is a hundred.
    */
   renderChips() {
-    const counts = describeMagnets(this.record.text, { rungWords: this.rungWords });
+    const counts = describeMagnets(this.record.text);
     const chips = Object.entries(counts)
       .filter(([kind, count]) => count >= CHIP_MINIMUM && MAGNET_WORDS[kind])
       .sort((a, b) => b[1] - a[1])
@@ -140,7 +137,7 @@ export class Admit {
   }
 
   renderParts() {
-    const parts = layoutPartition(this.record, { rungWords: this.rungWords });
+    const parts = layoutPartition(this.record);
     return parts.map((part, index) => `
       ${index === 0 ? '' : this.renderSeam(index)}
       <section class="admit-part" data-part="${index}">
@@ -193,7 +190,7 @@ export class Admit {
       if (magnet) return this.apply(partitionByMagnet(this.record, magnet.dataset.magnet));
 
       const action = event.target.closest('[data-action]')?.dataset.action;
-      if (action === 'cancel') this.close(() => this.onCancel());
+      if (action === 'cancel') this.close();
       if (action === 'read') this.close(() => this.onReadNow(this.record.text, this.record.title, this.record));
       if (action === 'admit') this.close(() => this.onAdmit(this.record));
     });
@@ -253,7 +250,7 @@ export class Admit {
     this.drag.seam?.releasePointerCapture?.(event.pointerId);
     this.cancelDrag();
     if (offset == null) return;
-    const snap = nearestSnap(this.record.text, offset, { rungWords: this.rungWords });
+    const snap = nearestSnap(this.record.text, offset);
     if (snap) this.apply(slideJoint(this.record, jointIndex, snap.offset));
   }
 

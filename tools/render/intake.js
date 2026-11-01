@@ -60,7 +60,7 @@ function cliArgs(argv) {
   return raw;
 }
 
-export function parseRenderCliArgs(argv, { cwd = process.cwd() } = {}) {
+export function parseRenderCliArgs(argv) {
   const args = cliArgs(argv);
   if (args.includes('--help') || args.includes('-h')) return { help: true };
   const values = {};
@@ -82,11 +82,11 @@ export function parseRenderCliArgs(argv, { cwd = process.cwd() } = {}) {
   if (!Number.isFinite(scale) || scale <= 0) {
     return { error: '--scale must be a positive number' };
   }
-  const outDir = resolve(cwd, values['--out'] || join('out', 'render'));
+  const outDir = resolve(values['--out'] || join('out', 'render'));
   const sourcesPath = values['--sources'];
   return {
-    inputPath: resolve(cwd, inputArg),
-    sourcesPath: sourcesPath ? resolve(cwd, sourcesPath) : null,
+    inputPath: resolve(inputArg),
+    sourcesPath: sourcesPath ? resolve(sourcesPath) : null,
     outDir,
     mp4Path: join(outDir, 'experience.mp4'),
     scale,
@@ -252,15 +252,13 @@ async function renderFromOperations(document, options = {}) {
     operationSet,
     resolvedSources,
     render: true,
-    proposePublication: false,
     encode: defined({
       painter: options.painter || 'chamber',
       scale: options.scale,
       outputPath: options.outputPath,
       ffmpegPath: options.ffmpegPath,
       fromMs: options.fromMs,
-      toMs: options.toMs,
-      tier: 'final'
+      toMs: options.toMs
     })
   });
   if (produced.stage === 'refused') {

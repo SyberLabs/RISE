@@ -58,7 +58,7 @@ export class Chapel {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
     this.getAudioEngine = options.getAudioEngine || (() => null);
-    this.onLaunchReading = options.onLaunchReading || options.onLaunchBook || (() => {});
+    this.onLaunchReading = options.onLaunchReading || (() => {});
     // Return-from-Chamber wayfinding: the last reading, softly marked;
     // its book arrives already open at its chapters
     this.lastBookId = typeof options.bookId === 'string' ? options.bookId : null;

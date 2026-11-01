@@ -93,7 +93,6 @@ export function wire(on) {
  * @param {() => string | undefined} [options.getModel] the model the reader named, if they did
  * @param {Function} [options.onUsage] the tokens OpenAI reported an answer used (it reports no price)
  * @param {typeof fetch} [options.fetch]
- * @param {number} [options.capacity]
  * @param {number} [options.maxBytes]
  */
 export function createOpenAIChatAdapter(options = {}) {

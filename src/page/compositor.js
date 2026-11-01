@@ -82,9 +82,6 @@ function placementFor(block) {
  * Compose a Flow into a Composition.
  *
  * @param {Object} flow - from compileFlow
- * @param {Object} [options]
- *   - maxBleedRun: consecutive bleeds allowed before demoting to inset,
- *     so a dense episode sequence does not become a slideshow (default 1)
  * @returns {{ items: Array, stats: Object }}
  */
 
@@ -155,9 +152,11 @@ function headingRunAhead(blocks, from) {
     return false;
 }
 
-export function compose(flow, options = {}) {
+export function compose(flow) {
     const blocks = Array.isArray(flow?.blocks) ? flow.blocks : [];
-    const maxBleedRun = Number.isFinite(options.maxBleedRun) ? options.maxBleedRun : 1;
+    // Consecutive bleeds allowed before demoting to inset, so a dense
+    // episode sequence does not become a slideshow.
+    const maxBleedRun = 1;
 
     const items = [];
     let bleedRun = 0;

@@ -308,7 +308,7 @@ class ScriptoriumSession {
    * Ask the reader's own decision model to select one existing output schema for the current request.
    * The response is a prompt-routing recommendation, never an approval.
    */
-  async routeWithJev(apiKey) {
+  async routeWithJev() {
     const intent = this.intent;
     const targetWords = this.targetWords;
     const requestId = ++this.jevRouteRequestId;
@@ -318,7 +318,7 @@ class ScriptoriumSession {
 
     let result;
     try {
-      result = await requestJevRoute(apiKey, { intent, targetWords });
+      result = await requestJevRoute({ intent, targetWords });
     } catch (error) {
       return { ok: false, message: error?.message || 'Decision service routing could not be completed.' };
     }

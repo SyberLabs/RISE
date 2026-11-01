@@ -53,7 +53,8 @@ function proseList(value) {
     return value.split(';').map(clean).filter(Boolean);
 }
 
-export function parseLiteratureDossier(markdown = readFileSync(DOSSIER_PATH, 'utf8')) {
+export function parseLiteratureDossier() {
+    const markdown = readFileSync(DOSSIER_PATH, 'utf8');
     const heading = /^### ([WEI]\d{2}) — \*(.+)\*$/gm;
     const hits = [...markdown.matchAll(heading)];
     return hits.map((match, i) => {

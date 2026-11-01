@@ -149,13 +149,8 @@ export function createRouteManifest(operations) {
               onSettingsTransaction: operations.handleSettingsTransaction
             },
             'visual-lab': {
-              mode: 'route',
               onUseInReading: operations.useRecipeInReading,
-              onEditInWorkshop: () => operations.handleNavigate('workshop'),
-              onClose: () => operations.handleNavigate('home')
-            },
-            'visual-catalog': {
-              onNavigate: (...args) => operations.handleNavigate(...args)
+              onEditInWorkshop: () => operations.handleNavigate('workshop')
             }
           }
         });

@@ -59,12 +59,6 @@ function isSymbol(atom) {
         && atom.content.trim() !== '';
 }
 
-/**
- * Procedural cues place figures when pagination makes the cost tractable.
- * Unresolved engines yield stillness (§1.5), never a broken frame.
- */
-const PROCEDURAL_FIGURES = true;
-
 /** Page collection ids for Living Flame stills: `living-flame:<recipe id>`. */
 const LIVING_FLAME_PAGE_PREFIX = 'living-flame:';
 
@@ -85,7 +79,7 @@ function collectionsOf(cue) {
 
     // Authored procedural cues only (unscheduled readings use
     // placeCollectionFigures). Id format: pageCollectionId(family, engine).
-    if (cue.kind === 'procedural' && collections.length && PROCEDURAL_FIGURES) {
+    if (cue.kind === 'procedural' && collections.length) {
         const engines = Array.isArray(cue.engines) ? cue.engines.filter(Boolean) : [];
         if (!engines.length) return collections.map(family => pageCollectionId(family));
         // One figure per named engine, per family it belongs to.
@@ -218,16 +212,12 @@ function placeCollectionFigures(blocks, collections) {
  * Compile a session into a Flow.
  *
  * @param {Object} session - { atoms, visualProgram, visualConfig }
- * @param {Object} [options]
- *   - includeVerseMarks: stamp verse coordinates on text blocks (default true)
- *   - collections: override the reading's sourced collections
  * @returns {{ blocks: Array, coordinateSpace: string|null, episodes: number }}
  */
-export function compileFlow(session, options = {}) {
+export function compileFlow(session) {
     const atoms = Array.isArray(session?.atoms) ? session.atoms : [];
     const program = session?.visualProgram || null;
     const coordinateSpace = program?.coordinateSpace || null;
-    const includeVerseMarks = options.includeVerseMarks !== false;
 
     const blocks = [];
     let activeCueId = null;       // the episode currently in force
@@ -366,8 +356,8 @@ export function compileFlow(session, options = {}) {
             flushRun();
             run = {
                 parts: [],
-                chapter: includeVerseMarks ? (coord?.chapter ?? null) : null,
-                verse: includeVerseMarks ? (coord?.verse ?? null) : null,
+                chapter: coord?.chapter ?? null,
+                verse: coord?.verse ?? null,
                 weightMax: 0,
                 tags: [],
                 episodeId: activeCueId,
@@ -387,10 +377,7 @@ export function compileFlow(session, options = {}) {
     // readings fall back to chosen sources.
     let derived = 0;
     if (!program) {
-        const chosen = Array.isArray(options.collections)
-            ? options.collections.filter(Boolean)
-            : sourcedCollectionsOf(session);
-        derived = placeCollectionFigures(blocks, chosen);
+        derived = placeCollectionFigures(blocks, sourcedCollectionsOf(session));
     }
 
     return {

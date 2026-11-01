@@ -99,7 +99,7 @@ function problemsAt(width, { frame, labels }) {
  * fault once at the narrowest width it shows; `requests()` the addresses the page tried to reach (none, by design);
  * `close()` ends it.
  */
-export async function openRenderCheck({ rooms = RENDER_ROOMS } = {}) {
+export async function openRenderCheck() {
   const { chromium } = await import('@playwright/test');
   const browser = await chromium.launch();
   try {
@@ -111,7 +111,7 @@ export async function openRenderCheck({ rooms = RENDER_ROOMS } = {}) {
       async check(svg) {
         const started = performance.now();
         const seen = new Map();
-        for (const { width, height } of rooms) {
+        for (const { width, height } of RENDER_ROOMS) {
           await page.setViewportSize({ width, height });
           await page.setContent(PAGE);
           const measured = await page.evaluate(measure, { svg, ink: ROOM.ink });

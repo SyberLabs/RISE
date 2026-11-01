@@ -108,10 +108,9 @@ function lookupBytes(key, bytesMap) {
   return null;
 }
 
-function loadPackBytes(assetPath, bytesMap, readVoiceAsset) {
+function loadPackBytes(assetPath, bytesMap) {
   const fromMap = lookupBytes(assetPath, bytesMap);
   if (fromMap) return fromMap;
-  if (typeof readVoiceAsset === 'function') return asBytes(readVoiceAsset(assetPath));
   return readPublicRecitationAsset(assetPath);
 }
 
@@ -162,7 +161,6 @@ function missingSpeech(message, path, details) {
 export function resolveSpokenClips(plan, {
   inventory = {},
   voiceBytes = null,
-  readVoiceAsset = null,
   manifest = voicePackManifest
 } = {}) {
   const bytesMap = collectVoiceBytes(inventory, voiceBytes);
@@ -174,8 +172,7 @@ export function resolveSpokenClips(plan, {
     const path = '$.narrationRuns';
 
     if (voiceAssetId) {
-      const bytes = lookupBytes(voiceAssetId, bytesMap)
-        || (typeof readVoiceAsset === 'function' ? asBytes(readVoiceAsset(voiceAssetId)) : null);
+      const bytes = lookupBytes(voiceAssetId, bytesMap);
       if (!bytes) {
         missingSpeech(
           `Spoken cue is missing assigned audio for ${voiceAssetId}`,
@@ -218,7 +215,7 @@ export function resolveSpokenClips(plan, {
           { voiceId, cueId: run.cueId, text: span.text }
         );
       }
-      const bytes = loadPackBytes(entry.asset, bytesMap, readVoiceAsset);
+      const bytes = loadPackBytes(entry.asset, bytesMap);
       if (!bytes) {
         missingSpeech(
           `Missing recitation bytes for ${entry.asset}`,

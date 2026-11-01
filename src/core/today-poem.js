@@ -33,10 +33,10 @@ export const seededRandom = text => random(hash(text));
  * The works take turns day by day (todayPoem), so the 244 Spoon River
  * epitaphs no longer outnumber Lyrical Ballads' 31 poems eight days to one.
  */
-export function todayPools(index = DIVISION_INDEX) {
+export function todayPools() {
   const pools = {};
   for (const workId of TODAY_WORKS) {
-    const work = index[workId];
+    const work = DIVISION_INDEX[workId];
     const list = [];
     work?.labels.forEach((label, entryId) => {
       const words = work.divisionWords[entryId];
@@ -53,7 +53,7 @@ export function todayPools(index = DIVISION_INDEX) {
 }
 
 /** Every poem the day can choose, across the works. */
-export const todayPool = (index = DIVISION_INDEX) => Object.values(todayPools(index)).flat();
+export const todayPool = () => Object.values(todayPools()).flat();
 
 export { localDateKey };
 export const dayNumber = date =>

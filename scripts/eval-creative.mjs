@@ -87,12 +87,12 @@ export function sealStreamed(lines) {
 }
 
 /** Every case in the corpus, in style and file order. A case in `streamed/` is the answer in beats, sealed here. */
-export function loadCorpus(dir = CORPUS_DIR) {
+export function loadCorpus() {
   const cases = [];
-  const styles = readdirSync(dir, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
+  const styles = readdirSync(CORPUS_DIR, { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
   for (const style of styles) {
-    for (const name of readdirSync(join(dir, style)).filter(file => file.endsWith('.json')).sort()) {
-      const file = join(dir, style, name);
+    for (const name of readdirSync(join(CORPUS_DIR, style)).filter(file => file.endsWith('.json')).sort()) {
+      const file = join(CORPUS_DIR, style, name);
       const { prompt, current, lines } = JSON.parse(readFileSync(file, 'utf8'));
       const where = relative(ROOT, file).split(sep).join('/');
       if (lines) {

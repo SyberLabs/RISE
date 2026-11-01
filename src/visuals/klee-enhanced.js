@@ -99,7 +99,7 @@ export function interpolatePresetProfiles(fromName, toName, amount) {
  */
 
 class KleeEngine {
-  constructor(options = {}) {
+  constructor() {
     // Core state
     this.seeds = [];
     this.lines = [];
@@ -122,8 +122,7 @@ class KleeEngine {
 
     // A seeded stream makes an artwork reproducible while subsequent calls
     // naturally advance to new stochastic siblings.
-    const autoSeed = `${Date.now()}-${Math.random()}`;
-    this.setSeed(options.seed ?? autoSeed, options.rng);
+    this.setSeed(`${Date.now()}-${Math.random()}`);
 
     this._worker = null;
     this._workerRequests = new Map();
@@ -135,9 +134,9 @@ class KleeEngine {
     this._generateDefaultPalette();
   }
 
-  setSeed(seed, rng) {
+  setSeed(seed) {
     this.seed = seed;
-    this._rng = rng || createSeededRandom(seed);
+    this._rng = createSeededRandom(seed);
     this.simplexPermutation = this._initializeSimplex();
     return this;
   }
@@ -1119,10 +1118,10 @@ class KleeEngine {
   }
 
   _renderLines(ctx, options) {
-    const style = { ...this.renderStyle, ...(options.style || {}) };
+    const style = this.renderStyle;
     const displayScale = clamp(Math.min(this.width, this.height) / 720, 0.7, 2.5);
-    const lineWidth = options.lineWidth ?? style.lineWidth * displayScale;
-    const alpha = (options.lineAlpha ?? style.alpha) * this.semantic.alpha;
+    const lineWidth = style.lineWidth * displayScale;
+    const alpha = style.alpha * this.semantic.alpha;
     const progress = clamp(options.progress ?? 1, 0, 1);
 
     ctx.lineCap = 'round';
@@ -1290,14 +1289,10 @@ class KleeEngine {
     return true;
   }
 
-  export(canvasElement, format = 'image/png') {
-    return canvasElement.toDataURL(format);
-  }
-
   generateRandom(theme = 'harmonic', options = {}) {
     this._generationEpoch += 1;
     this.seeds = [];
-    if (options.seed !== undefined) this.setSeed(options.seed, options.rng);
+    if (options.seed !== undefined) this.setSeed(options.seed);
     this.textureTile = null;
 
     // These five recipes intentionally mirror the canonical compositions in
@@ -1507,7 +1502,7 @@ class KleeEngine {
     const epoch = this._generationEpoch;
     const enhancements = Promise.all([
       options.detectForms === false ? Promise.resolve() : this._detectFormsAsync(epoch),
-      this._prepareTextureAsync(options.texture ?? this.renderStyle.texture, epoch)
+      this._prepareTextureAsync(this.renderStyle.texture, epoch)
     ]);
     this._enhancementPromise = enhancements.catch(() => undefined);
     if (options.awaitEnhancements !== false) await this._enhancementPromise;

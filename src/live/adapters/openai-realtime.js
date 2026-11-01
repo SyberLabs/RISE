@@ -16,12 +16,11 @@ import { AdapterError } from '../adapter.js';
 import { createOpenAIWire } from './openai-wire.js';
 import { createTextStreamAdapter } from './text-stream.js';
 
-export function createOpenAIRealtimeAdapter({ transport, capacity } = {}) {
+export function createOpenAIRealtimeAdapter({ transport } = {}) {
     if (!transport || typeof transport.open !== 'function') throw new TypeError('The OpenAI adapter is given a transport that can open');
     return createTextStreamAdapter({
         id: 'openai-realtime',
         provider: 'OpenAI Realtime',
-        capacity,
         async connect(request, sink, { signal } = {}) {
             let connection;
             try {

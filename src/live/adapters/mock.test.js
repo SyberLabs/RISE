@@ -142,7 +142,7 @@ describe('time', () => {
     });
 
     it('streams a segment in chunks, not all at once', async () => {
-        const run = await play({ options: { chunkChars: 24 } });
+        const run = await play();
         await run.reader;
         const chunks = run.arrivals.filter(a => a.event.type === 'segment.text' && a.event.segmentId === 'what');
         expect(chunks.length).toBeGreaterThan(3);

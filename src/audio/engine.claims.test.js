@@ -16,11 +16,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import {
-    BRAINWAVE_BANDS,
-    CARRIER_TUNINGS,
-    resolveCarrierTuning
-} from './engine.js';
+import { BRAINWAVE_BANDS } from './engine.js';
 
 const SOURCE = readFileSync(resolve(__dirname, 'engine.js'), 'utf8');
 
@@ -58,22 +54,5 @@ describe('a pitch is described by what it is, never by what it does', () => {
         // Deleting the claim must not delete the option.
         expect(BRAINWAVE_BANDS.delta.min).toBe(0.5);
         expect(BRAINWAVE_BANDS.gamma.max).toBe(100);
-        expect(new Set(Object.values(CARRIER_TUNINGS)))
-            .toEqual(new Set([200, 220, 216, 432]));
-    });
-});
-
-describe('renaming a tuning does not strand a saved session', () => {
-    it('resolves the names this module used to ship', () => {
-        expect(resolveCarrierTuning('sacred')).toBe('a432');
-        expect(resolveCarrierTuning('verdi')).toBe('a432_low');
-        expect(CARRIER_TUNINGS[resolveCarrierTuning('sacred')]).toBe(432);
-        expect(CARRIER_TUNINGS[resolveCarrierTuning('verdi')]).toBe(216);
-    });
-
-    it('passes current names through and falls back rather than throwing', () => {
-        expect(resolveCarrierTuning('a432')).toBe('a432');
-        expect(resolveCarrierTuning('standard')).toBe('standard');
-        expect(CARRIER_TUNINGS[resolveCarrierTuning('nonsense')]).toBe(432);
     });
 });

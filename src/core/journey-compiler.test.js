@@ -272,26 +272,6 @@ describe('authored cues fail closed before they reach the runtime', () => {
     });
 });
 
-describe('a flat playlist still compiles', () => {
-    it('reads a flat segment playlist as one movement', () => {
-        // Flat records must not have to be rewritten for the first
-        // authored movement shape to exist.
-        const { movementProgram } = compileJourney({
-            id: 'seq-hist-declaration-claim',
-            title: 'Declaring the People',
-            segments: [
-                { passageId: 'pass-us-declaration', role: 'proposition' },
-                { passageId: 'pass-rights-man', role: 'response' }
-            ]
-        });
-        expect(movementProgram.movements).toHaveLength(1);
-        expect(movementProgram.movements[0].sourceIds).toEqual([
-            'pass-us-declaration', 'pass-rights-man'
-        ]);
-        expect(movementProgram.boundaries).toEqual([]);
-    });
-});
-
 describe('a procedural cue names its engines', () => {
     it('carries collections, as a sourced cue does', () => {
         // They were dropped for every kind but `sourced`, which left a

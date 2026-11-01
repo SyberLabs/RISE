@@ -63,7 +63,7 @@ export const LIVE_PROVIDERS = Object.freeze([
                 import('./gemini.js'),
                 import('./gemini-fetch.js')
             ]);
-            return createGeminiAdapter({ transport: createGeminiFetchTransport({ getKey, getModel: () => undefined }) });
+            return createGeminiAdapter({ transport: createGeminiFetchTransport({ getKey }) });
         }
     }),
     Object.freeze({

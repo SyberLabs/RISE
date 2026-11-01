@@ -605,24 +605,21 @@ never put to it.
 The Homeric movement's museum works now reach the page, which is what
 that fix buys immediately.
 
-**Deferred: procedural figures, until the Page paginates.** The
-machinery is built and tested — `pageCollectionId` / `sampleWorkEngine`
-in work-engines.js, and the Chamber's resolver branch — and one constant
-in flow.js (`PROCEDURAL_FIGURES`) turns it on.
+**Procedural figures are on.** The machinery — `pageCollectionId` /
+`sampleWorkEngine` in work-engines.js, and the Chamber's resolver
+branch — samples a procedural movement's engine at its figures on the
+Page. An earlier draft of this section deferred them behind a switch
+until the Page paginates; the switch was always on and has been removed.
 
-It is off because of what the Page currently *is*. PAGE-MODE-SPEC §199
-and §250 put spread pagination at v4: v1 scrolls. A Journey is 23,000
-words, so its page is one continuous column of ~2,800 atoms, and a
-sampled engine still at every figure adds render cost to the largest
-document this projection has been asked to typeset. Pagination is what
-makes it tractable — it divides the reading into bounded units, and a
-bounded unit can afford its own imagery.
+The cost that draft named still holds. PAGE-MODE-SPEC §199 and §250 put
+spread pagination at v4: v1 scrolls. A Journey is 23,000 words, so its
+page is one continuous column of ~2,800 atoms, and a sampled engine
+still at every figure adds render cost to the largest document this
+projection typesets. Pagination is what bounds it — it divides the
+reading into bounded units, and a bounded unit can afford its own
+imagery.
 
-Until then a Journey's procedural movements typeset as text, which §1.5
-of JOURNEYS-SPEC names explicitly: *an unillustrated passage is a valid
-scored state.*
-
-**The doctrine, when it is turned on, is already settled.** The Chamber
+**The doctrine is settled.** The Chamber
 decided it for Genesis and the attractor: a persistent field is *"a
 dynamic system, not a pool, and a single still would misrepresent it —
 its honest spatial translation is a SEQUENCE, the same system sampled at
@@ -631,6 +628,3 @@ get the same treatment, and one thing the general fields cannot do:
 because a figure names its own engine, the id carries both family and
 engine, so the flaming sword stands beside the passage where Michael's
 sword falls.
-
-**Trigger to revisit:** pagination, or a Journey short enough that the
-column is bounded anyway — which the Demo journey would be.

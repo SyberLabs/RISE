@@ -28,10 +28,8 @@ function summarizeIds(ids) {
     return `${shown.join(', ')}${ids.length > shown.length ? `, and ${ids.length - shown.length} more` : ''}`;
 }
 
-function byteLengthOf(blob, fallback = 0) {
-    if (blob instanceof Blob) return blob.size;
-    const declared = Number(fallback);
-    return Number.isFinite(declared) && declared > 0 ? declared : 0;
+function byteLengthOf(blob) {
+    return blob instanceof Blob ? blob.size : 0;
 }
 
 function reserveInlineBytes(budget, byteLength) {

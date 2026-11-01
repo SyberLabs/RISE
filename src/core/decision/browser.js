@@ -11,13 +11,12 @@ export const CATALOG_PATH = '/content/catalog.json';
 const CATALOG_TTL_MS = 60_000;
 let catalogCache = null;
 
-export async function loadPublicCatalog(signal, { fetcher = fetch, now = Date.now } = {}) {
+export async function loadPublicCatalog({ fetcher = fetch, now = Date.now } = {}) {
   if (catalogCache && now() - catalogCache.at < CATALOG_TTL_MS) return catalogCache.catalog;
   let response;
   try {
-    response = await fetcher(CATALOG_PATH, { credentials: 'same-origin', signal, headers: { Accept: 'application/json' } });
+    response = await fetcher(CATALOG_PATH, { credentials: 'same-origin', headers: { Accept: 'application/json' } });
   } catch {
-    if (signal?.aborted) throw new DecisionError('CANCELED');
     throw new DecisionError('CATALOG_UNAVAILABLE', 'The reading catalog could not be loaded.');
   }
   let body;

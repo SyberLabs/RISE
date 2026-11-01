@@ -362,7 +362,6 @@ export class Workshop {
     this.onCreateSession = options.onCreateSession || (() => { });
     this.getAudioEngine = options.audioEngineProvider || (() => null);
     this.onBlueprintsChanged = options.onBlueprintsChanged || (() => {});
-    this.embedded = options.embedded === true;
     this.visualConsentScope = crypto.randomUUID();
 
     this.sessionData = createDefaultSessionData();
@@ -634,12 +633,12 @@ export class Workshop {
     if (notify) this.showToast('Workshop reset');
   }
 
-  openSavedBlueprint(blueprintId, { preserveCurrent = true, varyAsNew = false } = {}) {
-    void this.openSavedBlueprintAsync(blueprintId, { preserveCurrent, varyAsNew });
+  openSavedBlueprint(blueprintId, { varyAsNew = false } = {}) {
+    void this.openSavedBlueprintAsync(blueprintId, { varyAsNew });
     return true;
   }
 
-  async openSavedBlueprintAsync(blueprintId, { preserveCurrent = true, varyAsNew = false } = {}) {
+  async openSavedBlueprintAsync(blueprintId, { varyAsNew = false } = {}) {
     const requestId = ++this.blueprintLoadRequestId;
     this.setBlueprintLoadInProgress(true);
     try {
@@ -657,7 +656,7 @@ export class Workshop {
         return false;
       }
 
-      if (preserveCurrent) this.suspendCurrentDraft();
+      this.suspendCurrentDraft();
       this.pendingMediaBlobs.clear();
       const editable = normalizeSessionData(blueprint);
       // `schema` AND `id` LEAVE TOGETHER. A blueprint view carries
@@ -697,9 +696,7 @@ export class Workshop {
   }
 
   isBlueprintLoadExemptControl(control) {
-    return control.id === 'workshop-sequence-select'
-      || control.dataset.action === 'back'
-      || control.dataset.sa === 'back';
+    return control.id === 'workshop-sequence-select';
   }
 
   applyBlueprintLoadLock(root = this.container) {
@@ -896,12 +893,6 @@ export class Workshop {
     });
   }
 
-  leaveForHome() {
-    this.audioPreview.stop();
-    this.getAudioEngine()?.playClick();
-    this.onNavigate('home');
-  }
-
   /** Preview compiles the draft it is given and enters the Chamber the launch path uses. */
   previewSession(data = this.sessionData) {
     if (this.blueprintLoadInProgress) return false;
@@ -1002,7 +993,6 @@ export class Workshop {
       readingDuration: this.readingDurationLabel(),
       studioViewport: this.studioViewport,
       studioSurface: this.studioSurface,
-      embedded: this.embedded,
       scenesAvailable: this.sessionData.experienceProgram?.authority !== 'proposed',
       selectionActionHtml: this.renderSelectionActionBar(),
       selectionPopoverHtml: this.renderScoreSelectionPopover(),
@@ -1893,7 +1883,7 @@ export class Workshop {
     return true;
   }
 
-  cancelPendingScoreSelection({ announce = true } = {}) {
+  cancelPendingScoreSelection() {
     if (!this.pendingScoreSelection && !this.pendingScoreConflict) return false;
     this.pendingScoreSelection = null;
     this.pendingScoreConflict = null;
@@ -1901,7 +1891,7 @@ export class Workshop {
     window.getSelection?.()?.removeAllRanges?.();
     this.refreshSelectionActionBar();
     this.updateVisualScoreEditor();
-    if (announce) this.announce('Passage selection cancelled.');
+    this.announce('Passage selection cancelled.');
     return true;
   }
 
@@ -2173,8 +2163,6 @@ export class Workshop {
      only authoring surface; compatibility now lives at the project boundary. */
   openSourceBrowser() {
     this.sourceBrowser = new SourceBrowser({
-      providerIds: ['library-archive'],
-      autoSelectProviderId: 'library-archive',
       onSelect: (item, provider) => {
         this.addSource(item, provider);
         if (this.studioViewport !== 'desktop') {
@@ -4454,13 +4442,6 @@ export class Workshop {
   }
 
   attachEvents() {
-    // Back button
-    this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
-      this.audioPreview.stop();
-      this.getAudioEngine()?.playClick();
-      this.onNavigate('home');
-    });
-
     // Form submission
     const form = this.container.querySelector('#workshop-form');
     form?.addEventListener('submit', (e) => {
@@ -4661,7 +4642,7 @@ export class Workshop {
       target.closest('.studio-project-menu')?.removeAttribute('open');
 
       const action = target.dataset.action;
-      if (this.blueprintLoadInProgress && action !== 'back') {
+      if (this.blueprintLoadInProgress) {
         e.preventDefault();
         return;
       }

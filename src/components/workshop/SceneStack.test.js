@@ -26,7 +26,6 @@ function mount({ scenes = [], ...overrides } = {}) {
     soundOptions: () => [{ id: 'soundscape:aurora', name: 'Aurora' }, { id: 'tone:deep', name: 'Deep' }],
     visualConfig: () => ({}),
     pickableLeaves: () => new Set(['off', 'fractal']),
-    back: vi.fn(),
     addWritten: vi.fn(() => ({ ok: true })),
     divideAndAdd: vi.fn(),
     openLibrary: vi.fn(),

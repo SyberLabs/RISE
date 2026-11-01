@@ -18,13 +18,13 @@ function send(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-function readBody(req, limit = MAX_BODY_BYTES) {
+function readBody(req) {
   return new Promise((resolveBody, reject) => {
     const chunks = [];
     let size = 0;
     req.on('data', chunk => {
       size += chunk.length;
-      if (size > limit) {
+      if (size > MAX_BODY_BYTES) {
         req.destroy();
         reject(Object.assign(new Error('Export job JSON is too large'), { status: 413 }));
         return;
@@ -36,19 +36,19 @@ function readBody(req, limit = MAX_BODY_BYTES) {
   });
 }
 
-export function exportMp4Plugin({ root = process.cwd() } = {}) {
+export function exportMp4Plugin() {
   return {
     name: 'rise-export-mp4',
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use(EXPORT_MP4_PATH, (req, res) => {
-        void handleExportMp4(req, res, { root });
+        void handleExportMp4(req, res);
       });
     }
   };
 }
 
-export async function handleExportMp4(req, res, { root = process.cwd() } = {}) {
+export async function handleExportMp4(req, res) {
   if (req.method === 'GET' || req.method === 'HEAD') {
     send(res, 200, { ok: true, available: true, kernel: 'renderArtifact' });
     return;
@@ -71,7 +71,7 @@ export async function handleExportMp4(req, res, { root = process.cwd() } = {}) {
     send(res, 400, { ok: false, error: `Invalid JSON: ${error.message}` });
     return;
   }
-  const outDir = join(resolve(root, 'out', 'workshop-export'), `export-${Date.now()}`);
+  const outDir = join(resolve('out', 'workshop-export'), `export-${Date.now()}`);
   mkdirSync(outDir, { recursive: true });
   try {
     const { materializeExportJob } = await import('../tools/render/intake.js');

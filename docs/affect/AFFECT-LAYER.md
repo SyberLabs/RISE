@@ -36,6 +36,6 @@ Home → More → Emotions opens the map. Texts with valence and arousal sit in 
 
 ## Calling it
 
-`maybeEvaluate(candidate, env)` returns `{ status: 'disabled' }` unless `env.RISE_AFFECT` is `1` or `true`. `evaluateCandidate` always evaluates, never writes the candidate, and still returns a pacing or visual state when the text encoder throws.
+Call `evaluateCandidate(candidate, options)` (`src/affect/evaluate.js`, also exported from `src/affect/index.js`). There is no environment switch: it always evaluates, never writes the candidate, and still returns a pacing or visual state when the text encoder throws.
 
 The candidate is a plain object: `text`, `visualConfig` or `visual.measured`, `audioFeatures`, `pacing` (`wpm`, `chunkMode`, `curve`, `revealMode`), `typography`, and `intent`. `intent.target` names axes. `intent.intentionalContrast` keeps disagreement out of the conflict component. `intent.weights` is the only way a single composite is produced.

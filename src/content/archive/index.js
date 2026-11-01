@@ -525,7 +525,8 @@ export function uncertifiedCount() {
     return releaseArchiveMetadata().filter(meta => !isArchiveEditionCertified(meta)).length;
 }
 
-export function releaseArchiveTexts({ includeCandidates = serveCandidates() } = {}) {
+export function releaseArchiveTexts() {
+    const includeCandidates = serveCandidates();
     const works = includeCandidates
         ? WORKS
         : WORKS.filter(work => isArchiveEditionCertified(work.meta));

@@ -38,10 +38,6 @@ describe('the event writer', () => {
         expect(() => validateEvent(begin)).not.toThrow();
         expect(writer.nextSeq).toBe(2);
     });
-
-    it('can begin partway, for a stream that resumes', () => {
-        expect(createEventWriter('a', { start: 7 }).next('current.complete').seq).toBe(7);
-    });
 });
 
 describe('the channel', () => {

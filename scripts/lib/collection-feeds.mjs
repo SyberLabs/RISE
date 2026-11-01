@@ -78,7 +78,7 @@ export async function verifyDelivery(url) {
 }
 
 /** Probe with a small concurrency; this is a by-hand script, not a service. */
-export async function verifyAll(rows, lanes = 4) {
+export async function verifyAll(rows) {
     let next = 0;
     const worker = async () => {
         while (next < rows.length) {
@@ -86,7 +86,7 @@ export async function verifyAll(rows, lanes = 4) {
             row.delivery = await verifyDelivery(row.image);
         }
     };
-    await Promise.all(Array.from({ length: Math.min(lanes, rows.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(4, rows.length) }, worker));
 }
 
 /**

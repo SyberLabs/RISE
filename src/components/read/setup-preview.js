@@ -51,24 +51,20 @@ export function firstUnit({ text, sources, chunkMode, verseLines } = {}) {
 export function createSetupPreview(host, {
   factories,
   loadStill = engineStill,
-  dwellMs,
-  win = window,
-  doc = document
+  win = window
 } = {}) {
   host.innerHTML = '<div class="setup-preview-still"></div><div class="setup-preview-live"></div><p class="setup-preview-unit"></p>';
   const stillEl = host.querySelector('.setup-preview-still');
   const unitEl = host.querySelector('.setup-preview-unit');
   const stillOnly = () => {
-    const root = doc.documentElement.classList;
+    const root = document.documentElement.classList;
     return root.contains('reduced-motion') || root.contains('photosensitivity-mode')
       || (typeof win.matchMedia === 'function' && win.matchMedia('(prefers-reduced-motion: reduce)').matches);
   };
   const stage = createLiveStage({
     host: host.querySelector('.setup-preview-live'),
     ...(factories ? { factories } : {}),
-    ...(dwellMs !== undefined ? { dwellMs } : {}),
-    reducedMotion: stillOnly,
-    doc
+    reducedMotion: stillOnly
   });
   let stillEngine = null;
   let destroyed = false;

@@ -26,7 +26,6 @@ import { GLASS_CONTINUITY, createGlassContinuity } from './glass-continuity.js';
 import {
   splitWords, stripEmphasis, sizeAtomScale, revealBudget, revealSchedule
 } from '../../core/recitation.js';
-import { Voice } from '../../audio/voice.js';
 import { audioDiag } from '../../core/audio-diagnostics.js';
 
 /**
@@ -300,16 +299,9 @@ export class Chamber {
     // without emitting or laying out the atom a second time.
     this._concealedReveal = null;
 
-    // The voice exists only when a reading asks for it. It now resolves
-    // bundled static assets and never starts browser inference. App normally
-    // passes a prepared instance; this fallback preserves embedded callers.
-    this.voice = this.recitationEnabled
-      ? (options.voice || new Voice({
-        audioEngine: this.audioEngine,
-        voiceId: this.session?.voiceId,
-        packUrl: this.session?.recitation?.pack ?? null
-      }))
-      : null;
+    // The voice exists only when a reading asks for it. The session factory
+    // prepares it during loading and hands it in.
+    this.voice = this.recitationEnabled ? (options.voice || null) : null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
     this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
@@ -475,21 +467,10 @@ export class Chamber {
       this._audioSchedule = new AudioScheduleController(
         audioProgram,
         this.audioEngine,
-        // A JOURNEY'S AUDIO AUTHORITY IS ITS PROGRAM, NOT A PRESET.
-        //
-        // This asked `audioPreset !== 'silent'`, which is a question
-        // from the generic Session's vocabulary — the pure-tone bed a
-        // reader picks in the orbital. A Journey never sets it, so it
-        // defaulted to 'silent' and the controller was constructed
-        // DISABLED on every launch. Seven cues compiled, the schedule
-        // announced itself in the log, and not one of them was ever
-        // delivered.
-        //
-        // The absence of a preset is not a request for silence. §3.3's
-        // "a reader may silence a Journey" is an explicit act, and it
-        // has an explicit route: setEnabled(false).
+        // A Journey's audio authority is its program, not a preset. §3.3's
+        // "a reader may silence a Journey" is an explicit act, and it has
+        // an explicit route: setEnabled(false).
         {
-          enabled: true,
           defaultCue: this.session.soundscape && this.session.soundscape !== 'none'
             ? { kind: 'soundscape', soundscapeId: this.session.soundscape, fadeMs: 500 }
             : this.session.audioPreset && this.session.audioPreset !== 'silent'
@@ -2676,7 +2657,7 @@ export class Chamber {
       : cue;
     const transitionMs = Number.isFinite(meta.transitionMs)
       ? Math.max(0, Math.min(meta.transitionMs, 2000))
-      : authoredVisualTransition(meta.durationMs, 320);
+      : authoredVisualTransition(meta.durationMs);
     const authority = (Number.isInteger(this._scheduledVisualGeneration)
       ? this._scheduledVisualGeneration : 0) + 1;
     this._scheduledVisualGeneration = authority;
@@ -3152,7 +3133,7 @@ export class Chamber {
         const roseConfig = config.type === 'rose' ? config : {
           petala: config.petala || 12, seed: config.seed, roseMode: config.roseMode
         };
-        void this.initializeRoseFocal(host, roseConfig, { assign: false }).then(instance => {
+        void this.initializeRoseFocal(host, roseConfig).then(instance => {
           if (!instance) return;
           if (destroyed || !host.isConnected) instance.destroy();
           else { controller = instance; this.rosaField = instance; }
@@ -3324,7 +3305,7 @@ export class Chamber {
    * Lazy import keeps the engine out of non-Chapel graphs; any
    * failure yields stillness.
    */
-  async initializeRoseFocal(focalContainer, focals, { assign = true } = {}) {
+  async initializeRoseFocal(focalContainer, focals) {
     try {
       const { RosaMystica } = await import('../../visuals/rosa-mystica.js');
       if (!this.container.contains(focalContainer)) return;
@@ -3336,7 +3317,6 @@ export class Chamber {
         seed: focals.seed,
         mode: focals.roseMode
       });
-      if (assign) this.rosaField = instance;
       console.log('[Chamber] Rosa Mystica initialized:', instance.petala, 'petala,',
         instance.mode, '· OPVS', instance.seed.toString(16).toUpperCase());
       return instance;
@@ -4805,8 +4785,6 @@ export class Chamber {
         return this.pageModeActive;
       }
       this.pageReader = new PageReader(host, {
-        // One bar: the Chamber owns the page turn (see #page-turn).
-        showPager: false,
         // The public Page opens as one elongated composition. Pagination is
         // retained as an explicit projection choice in the Chamber bar.
         scrollUnderPages: Number.POSITIVE_INFINITY,

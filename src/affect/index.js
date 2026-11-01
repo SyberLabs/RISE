@@ -7,7 +7,6 @@
 
 export { EXPERIENCE_STATE_VERSION, DIMENSIONS, EMOTION_LABELS, SOURCES } from './dimensions.js';
 export { experienceState, validateExperienceState, unavailableState, slot } from './schema.js';
-export { affectEnabled } from './flags.js';
 export { encodeText, TEXT_ENCODER_MANIFEST, CONFIDENCE_CAP } from './text/encode.js';
 export { encodeLexical, LEXICAL_MANIFEST } from './text/lexical.js';
 export { FEATURE_NAMES, extractFeatures } from './text/features.js';
@@ -18,7 +17,7 @@ export { visualState, colorimetricWarmth } from './modalities/visual.js';
 export { pacingState, pacingActivation } from './modalities/pacing.js';
 export { typographyState } from './modalities/typography.js';
 export { audioState } from './modalities/audio.js';
-export { evaluateCandidate, maybeEvaluate } from './evaluate.js';
+export { evaluateCandidate } from './evaluate.js';
 export {
     slideWindows,
     textTrajectory,

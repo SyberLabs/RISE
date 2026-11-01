@@ -43,7 +43,7 @@ function operations() {
         preload: vi.fn(async () => {}),
         updateConfig: vi.fn()
     };
-    const audio = { stopAmbient: vi.fn(), stopSession: vi.fn(), startSession: vi.fn(async () => {}) };
+    const audio = { stopSession: vi.fn(), startSession: vi.fn(async () => {}) };
     return {
         cortex,
         router: { navigationRevision: 1, back: vi.fn(), getViewInstance: () => null },

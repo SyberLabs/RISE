@@ -140,18 +140,18 @@ describe('visual safety boundary', () => {
     grantVisualInterlocutionConsent();
     const gate = new VisualFlashGate({ minIntervalMs: 100, burstWindowMs: 1000, maxBurst: 3 });
 
-    expect(gate.allow(0)).toBe(true);
-    expect(gate.allow(50)).toBe(false);
-    expect(gate.allow(100)).toBe(true);
-    expect(gate.allow(200)).toBe(true);
-    expect(gate.allow(300)).toBe(false);
-    expect(gate.allow(1200)).toBe(true);
+    expect(gate.commit(0)).toBe(true);
+    expect(gate.commit(50)).toBe(false);
+    expect(gate.commit(100)).toBe(true);
+    expect(gate.commit(200)).toBe(true);
+    expect(gate.commit(300)).toBe(false);
+    expect(gate.commit(1200)).toBe(true);
   });
 
   it('enforces rest after a long visual presence', () => {
     const gate = new VisualFlashGate();
 
-    expect(gate.allow(0, 2000)).toBe(true);
+    expect(gate.commit(0, 2000)).toBe(true);
     expect(gate.canAllow(4499, 2000)).toBe(false);
     expect(gate.lastReason).toBe('rest');
     expect(gate.canAllow(4500, 2000)).toBe(true);
@@ -160,8 +160,8 @@ describe('visual safety boundary', () => {
   it('caps projected occupancy within the rolling presence window', () => {
     const gate = new VisualFlashGate();
 
-    expect(gate.allow(0, 2000)).toBe(true);
-    expect(gate.allow(4500, 2000)).toBe(true);
+    expect(gate.commit(0, 2000)).toBe(true);
+    expect(gate.commit(4500, 2000)).toBe(true);
     expect(gate.canAllow(9000, 2000)).toBe(false);
     expect(gate.lastReason).toBe('duty');
     expect(gate.canAllow(14001, 2000)).toBe(true);

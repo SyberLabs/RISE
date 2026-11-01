@@ -13,8 +13,8 @@ function option(name) {
   return index < 0 ? null : process.argv[index + 1];
 }
 
-function excerpt(value, limit = 360) {
-  return String(value || '').replace(/\s+/gu, ' ').trim().slice(0, limit);
+function excerpt(value) {
+  return String(value || '').replace(/\s+/gu, ' ').trim().slice(0, 360);
 }
 
 // Works are fetched by digest URL; Node has no origin to resolve them against.

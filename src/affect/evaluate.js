@@ -8,7 +8,6 @@
  */
 
 import { DIMENSION_BY_ID, DIMENSIONS } from './dimensions.js';
-import { affectEnabled } from './flags.js';
 import { audioState } from './modalities/audio.js';
 import { pacingState } from './modalities/pacing.js';
 import { typographyState } from './modalities/typography.js';
@@ -348,9 +347,4 @@ export function evaluateCandidate(candidate, options = {}) {
         status: 'evaluated',
         states
     };
-}
-
-export function maybeEvaluate(candidate, env = {}, options = {}) {
-    if (!affectEnabled(env)) return { status: 'disabled', evaluated: false };
-    return evaluateCandidate(candidate, options);
 }

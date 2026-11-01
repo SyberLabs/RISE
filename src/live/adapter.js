@@ -71,8 +71,8 @@ export const OPEN_LIMITS = Object.freeze({
 });
 
 /** Numbers events for one Current. Every adapter writes through one. */
-export function createEventWriter(currentId, { start = 0 } = {}) {
-    let seq = start;
+export function createEventWriter(currentId) {
+    let seq = 0;
     return {
         next(type, body = {}) {
             const event = { schema: RISE_CURRENT_EVENTS_SCHEMA, currentId, seq, type, ...body };

@@ -29,7 +29,7 @@ const session = () => ({ atoms: [{}], visualConfig: { visualMode: 'off' } });
 
 function operations() {
     const cortex = { warmImagery: vi.fn(), resetSessionVisualIdentity: vi.fn(), updateConfig: vi.fn() };
-    const audio = { stopAmbient: vi.fn(), stopSession: vi.fn(), startSession: vi.fn(async () => {}) };
+    const audio = { stopSession: vi.fn(), startSession: vi.fn(async () => {}) };
     return {
         router: { navigationRevision: 1, back: vi.fn(), getViewInstance: () => null },
         ensureVisualCortex: async () => cortex,
