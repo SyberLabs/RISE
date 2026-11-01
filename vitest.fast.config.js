@@ -6,12 +6,12 @@ import base from './vite.config.js';
 // This list used to live in .github/workflows/ci.yml as seventy CLI filters.
 // A filter that matched nothing after a file moved dropped those tests without
 // a sound (#377 moved three; #421 noticed). The list lives here now, and CI
-// fails when the number of files it collects is not FAST_TEST_FILES: moving,
-// adding or deleting a file in a listed directory makes CI fail until this
-// number is changed in the same pull request.
+// names the file and fails when an entry matches no file the run collected,
+// or when a change moves a test the run collected to a path it does not.
+// A test added under a listed directory needs no edit here. (A hand-kept count
+// of the files did, and parallel pull requests collided on that one line.)
 //
 //   npx vitest run --config vitest.fast.config.js
-export const FAST_TEST_FILES = 169;
 
 const FAST_TESTS = [
     'src/core/account-saves.test.js',

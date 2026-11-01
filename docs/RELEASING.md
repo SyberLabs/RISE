@@ -8,8 +8,8 @@ This page describes the workflow as it runs today.
 The [CI workflow](../.github/workflows/ci.yml) runs one job, `CI`, for every
 pull request: hygiene, roadmap and security checks, the generated architecture
 diagram, the content build, the fast unit tests listed in
-[`vitest.fast.config.js`](../vitest.fast.config.js) (CI fails if they collect
-a different number of files than the committed `FAST_TEST_FILES`),
+[`vitest.fast.config.js`](../vitest.fast.config.js) (CI fails, naming the
+file, when an entry matches no collected file or a moved test leaves the run),
 `vite build`, the first-load budget, a Worker deploy dry run, and the browser
 gate (`npm run test:e2e:gate`, no retries). The main-branch ruleset requires
 that check and no human approval.
