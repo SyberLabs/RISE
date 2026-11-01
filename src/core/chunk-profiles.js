@@ -110,7 +110,7 @@ function prepareVerse(rawText) {
     };
 }
 
-export const CHUNK_PROFILES = Object.freeze({
+const CHUNK_PROFILES = Object.freeze({
     verse: Object.freeze({
         id: 'verse',
         description: 'Declines the phrase floor: these short phrases are the author’s, not the printer’s.',
@@ -128,7 +128,7 @@ export const CHUNK_PROFILES = Object.freeze({
     })
 });
 
-export function findChunkProfile(profileId) {
+function findChunkProfile(profileId) {
     if (profileId == null) return null;
     return CHUNK_PROFILES[profileId] || null;
 }

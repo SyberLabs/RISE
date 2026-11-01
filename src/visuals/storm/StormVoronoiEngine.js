@@ -6,7 +6,7 @@
  * mud fractures, and explosive shell impact craters.
  */
 
-import { hashSeed, createSeededRandom } from '../lib/klee-core.js';
+import { createSeededRandom } from '../lib/klee-core.js';
 
 export class StormVoronoiEngine {
     constructor() {

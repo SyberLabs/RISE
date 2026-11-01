@@ -280,7 +280,6 @@ export class Rosarium {
 
   renderPrayer() {
     const step = this.compiled.steps[this.stepIndex];
-    const decade = step.state.decade;
     const artSlot = `<div class="rosarium-art" data-art-slot></div>`;
     return `
       ${this._renderQuietExit()}

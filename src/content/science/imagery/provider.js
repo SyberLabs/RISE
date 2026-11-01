@@ -24,7 +24,7 @@
 import { ShuffleBag } from '../../../sources/visual/shuffle-bag.js';
 
 /** Panel-issued ids are namespaced so they never collide with `aic-`. */
-export const SCIENCE_PREFIX = 'sci-';
+const SCIENCE_PREFIX = 'sci-';
 
 export const bareCategory = (categoryId) =>
     String(categoryId || '').startsWith(SCIENCE_PREFIX)
@@ -150,11 +150,6 @@ export class ScienceCatalogProvider {
                 sourceName: work.sourceName,
                 favourite: favourites.has(work.id)
             }));
-    }
-
-    /** Already resolved; nothing further to fetch. */
-    async getImageInfo(item) {
-        return item || null;
     }
 }
 

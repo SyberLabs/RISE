@@ -154,7 +154,7 @@ function boundedProvenance(value) {
   return Object.keys(provenance).length ? Object.freeze(provenance) : null;
 }
 
-export function sequenceAssetCollection(assetId) {
+function sequenceAssetCollection(assetId) {
   return `${SEQUENCE_ASSET_PREFIX}${exactId(assetId, 'Asset id')}`;
 }
 
@@ -316,7 +316,7 @@ function scoreCue(value) {
  * Normalize either a legacy project image or a Phase 3 editor asset into the
  * small, DOM-free contract required by the visual score compiler.
  */
-export function createVisualScoreAsset(value) {
+function createVisualScoreAsset(value) {
   if (value?.schema === EDITOR_ASSET_SCHEMA) {
     const asset = validateEditorAsset(value);
     if (!editorAssetSupports(asset, 'span') || !asset.cueTemplate) {

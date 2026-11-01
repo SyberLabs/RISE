@@ -705,7 +705,7 @@ export class LiveVenue {
             this.renderCredential();
         }
         if (returned.draft) this.field.value = returned.draft;
-        let code = null;
+        let code;
         try {
             const { finishOpenRouterReturn, outcomeMessage } = await import('../../core/openrouter-oauth.js');
             code = await finishOpenRouterReturn(returned);

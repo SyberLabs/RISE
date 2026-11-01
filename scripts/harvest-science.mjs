@@ -24,7 +24,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { licenceClassOf, artworkMayBeShown, normalizeArtworkLabel, LICENCE }
+import { licenceClassOf, artworkMayBeShown, normalizeArtworkLabel }
     from '../src/visuals/artwork-label.js';
 import { getJson as get, sleep, verifyAll, djangoplicity, interleave, nasaRow }
     from './lib/collection-feeds.mjs';
@@ -142,7 +142,7 @@ const report = [];
 
 for (const [name, run] of Object.entries(SOURCES)) {
     if (only && name !== only) continue;
-    let rows = [];
+    let rows;
     const keptRows = [];
     try { rows = await run(); } catch (err) {
         report.push({ source: name, error: String(err.message) });

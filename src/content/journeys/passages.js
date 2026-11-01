@@ -33,7 +33,7 @@
 
 import { ingestedArchiveTexts } from '../archive/index.js';
 
-export class PassageResolutionError extends Error {
+class PassageResolutionError extends Error {
     constructor(code, message, details = {}) {
         super(message);
         this.name = 'PassageResolutionError';

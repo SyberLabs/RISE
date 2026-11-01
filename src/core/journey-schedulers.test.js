@@ -86,16 +86,6 @@ describe('the movement controller announces once per movement', () => {
         expect(c.current.movement.id).toBe('war-heaven');
         expect(c.generation).toBe(1);
     });
-
-    it('re-emits after a reset, for restart', () => {
-        const seen = [];
-        const c = new MovementScheduleController(program().movementProgram, (p) => seen.push(p.movement?.id));
-        c.observe(atom('p1'));
-        c.reset();
-        c.observe(atom('p1'));
-        expect(seen).toEqual(['war-heaven', 'war-heaven']);
-        expect(c.generation).toBe(2);
-    });
 });
 
 describe('the audio controller sends bounded commands', () => {

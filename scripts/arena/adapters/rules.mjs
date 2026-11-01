@@ -33,7 +33,7 @@ export function rulesAnswers(body, intent, hints) {
   return answers;
 }
 
-export function floorAnswers(body) {
+function floorAnswers(body) {
   return Object.fromEntries(Object.entries(body.questions).map(([name, question]) =>
     [name, { type: 'choice', choice: Object.keys(question.criteria)[0] }]));
 }

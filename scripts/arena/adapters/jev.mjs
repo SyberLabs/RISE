@@ -6,7 +6,7 @@ import { connectionFor, DEADLINE_MS } from '../../decision-eval.mjs';
 
 // OpenRouter publishes no Decisions price for Jev; until a call reports its
 // billed cost, each one is budgeted at this ceiling.
-export const JEV_ESTIMATE_USD = 0.05;
+const JEV_ESTIMATE_USD = 0.05;
 
 /** Only numeric usage fields are kept; nothing else from the envelope is stored. */
 export function usageOf(usage) {

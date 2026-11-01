@@ -261,8 +261,6 @@ describe('the programs survive normalization, not only serialization', () => {
 
     it('keeps a procedural cue\'s engines through the Session', async () => {
         const { Session } = await import('./models.js');
-        const { visualProgram } = compileJourney(MANIFEST);
-        const session = new Session({ name: 'War', atoms: [], sources: [], visualProgram });
 
         // The fixture above is `sourced`; War's first movement is not,
         // so the procedural path needs a program of its own.

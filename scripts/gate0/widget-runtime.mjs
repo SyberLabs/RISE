@@ -11,7 +11,7 @@ function exactRecord(value, allowed) {
     && Object.hasOwn(Object.getOwnPropertyDescriptor(value, key), 'value'));
 }
 
-export function validateVisualSnapshot(value) {
+function validateVisualSnapshot(value) {
   const keys = ['runId', 'sequence', 'visual', 'intensity', 'serverReceivedAt', 'serverAppliedAt'];
   if (!exactRecord(value, keys) || !UUID.test(value.runId) || !Number.isSafeInteger(value.sequence) || value.sequence < 1) return null;
   const validUtc = text => typeof text === 'string' && ISO_UTC.test(text) && Number.isFinite(Date.parse(text));

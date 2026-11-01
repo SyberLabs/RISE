@@ -778,8 +778,6 @@ describe('every refusal the session can phrase has a status', () => {
       'publication is a human decision over a hashed artifact and the '
       + 'Scriptorium runs the producer with render: false, so it enqueues '
       + 'nothing and can refuse nothing',
-    VisualScoreHistoryError:
-      'undo and redo are the Workshop\'s; this sequence keeps no score history',
     WorkshopMediaError:
       'IndexedDB is the room\'s, reached through prepareAssets, which the room '
       + 'catches where it renders the panel that took the file',

@@ -17,7 +17,7 @@
  * rejects any response that is not audio.
  */
 
-import { chantProgram, findChant } from '../content/chapel/chants.js';
+import { chantProgram } from '../content/chapel/chants.js';
 
 /** Silence between tracks — a breath, not a gap in service.
  *  (Opened at 20s; eased to 12s on listening — still a real pause,

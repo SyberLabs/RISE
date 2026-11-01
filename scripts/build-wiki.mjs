@@ -79,7 +79,7 @@ function rewriteLinks(body, sourcePath) {
         const repoPath = relative(ROOT, resolve(ROOT, dirname(sourcePath), rawPath)).replaceAll('\\', '/');
         const suffix = anchor ? `#${anchor}` : '';
 
-        let onDisk = false;
+        let onDisk;
         try { onDisk = statSync(join(ROOT, repoPath)).isDirectory() ? 'dir' : 'file'; } catch { onDisk = false; }
 
         if (!onDisk) {

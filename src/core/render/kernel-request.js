@@ -43,7 +43,7 @@ export function sourcesForKernel(sources = []) {
   return [];
 }
 
-export function sessionInputFromWorkshopPayload(payload = {}) {
+function sessionInputFromWorkshopPayload(payload = {}) {
   return defined({
     wpm: payload.wpm,
     chunkMode: payload.chunkMode,

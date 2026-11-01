@@ -1209,7 +1209,7 @@ export function createLiveRuntime({
         } else if (change.kind === 'look.change') {
             if (readerSettings.has('theme')) { refused('READER_SET'); return; }
             const theme = lookTheme(change.look);
-            let receipt = null;
+            let receipt;
             try { receipt = host.changeLook?.({ role: 'main', player: main.player, look: change.look, theme }) ?? null; } catch { receipt = null; }
             if (receipt?.status !== 'accepted') { refused(receipt?.code ?? 'NO_ACTIVE_VISUAL'); return; }
             note('room.changed', { kind: change.kind, look: change.look, theme });

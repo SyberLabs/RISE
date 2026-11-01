@@ -48,7 +48,7 @@ function normalize(text) {
         .replace(/[\u201C\u201D]/gu, '"');
 }
 
-export function tokenize(text) {
+function tokenize(text) {
     return normalize(text).match(TOKEN) || [];
 }
 

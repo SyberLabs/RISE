@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { Shuttle, SHUTTLE_LADDER } from './shuttle.js';
 
-describe('The Shuttle (LATERAL-TRAVERSAL-SPEC §3, §6)', () => {
+describe('The Shuttle (LATERAL-TRAVERSAL-SPEC §3)', () => {
     it('is born at home (1×), the only steady state', () => {
         const s = new Shuttle();
         expect(s.velocity).toBe(1);
@@ -43,15 +43,6 @@ describe('The Shuttle (LATERAL-TRAVERSAL-SPEC §3, §6)', () => {
         expect(s.reset()).toBe(1);
         s.stepForward(); s.stepForward(); s.stepForward();
         expect(s.reset()).toBe(1);
-    });
-
-    it('the high-water mark only ever rises', () => {
-        const s = new Shuttle();
-        expect(s.markPosition(5)).toBe(5);
-        expect(s.markPosition(3)).toBe(5);   // rewound — the mark stands
-        expect(s.markPosition(12)).toBe(12); // new territory
-        expect(s.markPosition(-1)).toBe(12); // garbage cannot lower it
-        expect(s.markPosition(NaN)).toBe(12);
     });
 
     it('the duration divisor is speed in either direction', () => {

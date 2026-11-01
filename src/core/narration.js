@@ -8,8 +8,6 @@
 
 import { looksLikeUri } from './render/hash.js';
 
-export const PROGRAM_NARRATION_KINDS = Object.freeze(['spoken']);
-
 export const NARRATION_LIMITS = Object.freeze({
   maxIdLength: 160,
   maxWords: 512,
@@ -21,7 +19,7 @@ export const NARRATION_LIMITS = Object.freeze({
   maxDurationMs: 60_000
 });
 
-export const DEFAULT_NARRATION_DUCK = Object.freeze({
+const DEFAULT_NARRATION_DUCK = Object.freeze({
   target: 'bed',
   floor: 0.18,
   downMs: 150,
@@ -88,7 +86,7 @@ export function isVoiceIdentity(value) {
   return true;
 }
 
-export function validateNarrationDuck(value, path = '$.duck') {
+function validateNarrationDuck(value, path = '$.duck') {
   if (value == null) return null;
   const source = record(value, path);
   const allowed = new Set(['target', 'floor', 'downMs', 'upMs']);
@@ -149,7 +147,7 @@ export function validateNarrationWords(value, path = '$.words') {
   }));
 }
 
-export function validateNarrationPronunciations(value, path = '$.pronunciations') {
+function validateNarrationPronunciations(value, path = '$.pronunciations') {
   if (value == null) return null;
   if (!Array.isArray(value) || value.length > NARRATION_LIMITS.maxPronunciations) {
     fail('NARRATION_PRONUNCIATION',

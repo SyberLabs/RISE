@@ -5,7 +5,7 @@
  * Profiles change layout only — never source text, cues, or assets.
  */
 
-export const RENDER_QUALITY_TIERS = Object.freeze({
+const RENDER_QUALITY_TIERS = Object.freeze({
   draft: Object.freeze({
     id: 'draft',
     scale: 0.25,

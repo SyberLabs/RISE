@@ -535,7 +535,7 @@ function buildFadedSignal(ctx, destination, nodes) {
     return out;
 }
 
-function createFadedSignal(ctx, destination, options = {}) {
+function createFadedSignal(ctx, destination) {
     let nodes = [];
     let mainOut = null;
 

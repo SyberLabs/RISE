@@ -39,7 +39,7 @@ const STATE_KEYS = new Set(['version', 'modality', 'dimensions', 'provenance']);
 const SLOT_KEYS = new Set(['value', 'confidence', 'source']);
 const PROVENANCE_KEYS = new Set(['method']);
 
-export class AffectProgramError extends Error {
+class AffectProgramError extends Error {
     constructor(code, message, path = '$') {
         super(`${message} (${path})`);
         this.name = 'AffectProgramError';

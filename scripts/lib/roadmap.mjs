@@ -207,7 +207,7 @@ async function gitSnapshot(root) {
   }
 }
 
-export async function trackerSnapshot(root) {
+async function trackerSnapshot(root) {
   const [tasks, git] = await Promise.all([loadTasks(root), gitSnapshot(root)]);
   return { tasks, ...git, generatedAt: new Date().toISOString() };
 }

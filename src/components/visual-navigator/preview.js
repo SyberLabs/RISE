@@ -228,10 +228,8 @@ export const previewMethods = {
     if (!safe) return;
     slot.classList.add('has-still');
     slot.style.backgroundImage = `url("${safe}")`;
-    // The glyph and the caption were both placeholders for a picture. Once
-    // the picture is here they are not a label on it, they are litter on it.
-    for (const sel of ['.vnav-preview-note', '.vnav-preview-glyph']) {
-      slot.querySelector(sel)?.remove();
-    }
+    // The caption was a placeholder for a picture. Once the picture is here
+    // it is not a label on it, it is litter on it.
+    slot.querySelector('.vnav-preview-note')?.remove();
   },
 };

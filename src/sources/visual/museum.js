@@ -7,7 +7,6 @@
  */
 
 import { SourceProvider } from '../provider.js';
-import { SourceCache } from '../cache.js';
 import { createAbortError, isAbortError, withAbortTimeout } from './request.js';
 import { ShuffleBag } from './shuffle-bag.js';
 
@@ -16,7 +15,6 @@ import { ShuffleBag } from './shuffle-bag.js';
 // smuggle in jewelry, textiles, or sculpture — the recurring necklace
 // and carpet were exactly such strays.
 const TYPE_PAINTING = 1;
-const TYPE_PRINT = 18;
 
 /**
  * Categories are structured Elasticsearch clauses, not prose queries.
@@ -198,8 +196,7 @@ export class MuseumProvider extends SourceProvider {
             contentType: 'image',
             tier: 2, // Sacred tier
             description: 'Ultra-high-resolution art and cinematic photography',
-            supportsSearch: true,
-            supportsPreload: true
+            supportsSearch: true
         });
 
         this.baseUrl = 'https://api.artic.edu/api/v1/artworks';
@@ -508,7 +505,7 @@ export class MuseumProvider extends SourceProvider {
         }
     }
 
-    async list(filter = {}) {
+    async list() {
         return Object.entries(MUSEUM_CATEGORIES).map(([id, cat]) => ({
             id: id,
             type: 'image',

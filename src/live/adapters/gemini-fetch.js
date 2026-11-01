@@ -134,7 +134,7 @@ export function createGeminiFetchTransport({ getKey, getModel = () => undefined,
 
             if (!response.ok) {
                 // Stop stays wired until the refusal has been read: a body that stalls must not hold the request.
-                let text = '';
+                let text;
                 try {
                     text = await readSome(response, FETCH_LIMITS.error, controller.signal);
                 } finally {

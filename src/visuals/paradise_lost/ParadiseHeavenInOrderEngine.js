@@ -109,7 +109,7 @@ export class ParadiseHeavenInOrderEngine {
         return true;
     }
 
-    step(dt = 0.016, signal = {}) {
+    step(dt = 0.016) {
         // The only state this engine keeps. Everything drawn is a pure
         // function of it, which is what makes the order provably rigid
         // rather than carefully tuned.

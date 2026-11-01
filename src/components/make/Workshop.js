@@ -2746,7 +2746,7 @@ export class Workshop {
     // Gallery: an author must not be given Rhythmic controls for a
     // surface the reader will never be shown.
     const shownPresentation = normalizePresentation(interlocution.presentation);
-    let controls = '';
+    let controls;
     if (surface === 'focal') {
       const personal = this.sessionData.visualConfig?.focals?.type === 'personal'
         || this.personalFocalChooser?.target === 'whole-reading';

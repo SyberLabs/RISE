@@ -17,7 +17,7 @@ export const INTENSITY_BAND_IDS = Object.freeze(Object.keys(INTENSITY_BANDS));
  * abstract. They describe structure, scale, rhythm, and openness, never a
  * literal picture.
  */
-export const VISUAL_TREATMENTS = Object.freeze([
+const VISUAL_TREATMENTS = Object.freeze([
   Object.freeze({ id: 'ember-cathedral', label: 'Ember Cathedral', kind: 'flame',
     criterion: 'Ordered amber filaments in architectural symmetry: structure, resolve, deliberate argument, warmth held in order.' }),
   Object.freeze({ id: 'violet-nebula', label: 'Violet Nebula', kind: 'flame',

@@ -63,10 +63,10 @@ export const ONSET_MIN_GAP_MS = 55;
  * Measured over the 321 pack clips whose onset count reaches their word
  * count, so the final onset can be trusted: median 7% of the spoken span.
  */
-export const TRAILING_SILENCE_SHARE = 0.07;
+const TRAILING_SILENCE_SHARE = 0.07;
 
 /** Two onsets closer together than this were one word, not two. */
-export const ONSET_MIN_SPACING_MS = 110;
+const ONSET_MIN_SPACING_MS = 110;
 
 /**
  * Strip emphasis marks. Used for speech and for any consumer that wants

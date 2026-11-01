@@ -28,7 +28,6 @@ const LOAD_ATTEMPTS = 2;
 
 const LEAD = 12;
 const LEAD_TO_BEGIN = 8;
-const STARVED = 1;
 
 export class Voice {
     constructor({
@@ -303,10 +302,6 @@ export class Voice {
             durationMs: entry.durationMs,
             finished: playback.finished
         };
-    }
-
-    get starved() {
-        return this._cache.size <= STARVED;
     }
 
     stop() {

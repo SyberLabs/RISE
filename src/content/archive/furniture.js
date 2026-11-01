@@ -15,16 +15,16 @@
 export const RUNNING_HEAD = /^(?=[A-Z'’ .,\-]*[A-Z]{3})([A-Z][A-Z'’ .,\-]{2,44}?)\s+(\d{1,4})$/;
 
 /** A line that is nothing but a page number — the verso half. */
-export const BARE_NUMERAL = /^\d{1,4}$/;
+const BARE_NUMERAL = /^\d{1,4}$/;
 
 /** A finished sentence says so. Closing quotes and brackets count. */
-export const ENDS_A_SENTENCE = /[.!?…][")'\]]*$/;
+const ENDS_A_SENTENCE = /[.!?…][")'\]]*$/;
 
 /**
  * A stem seen once is a line, not a header. Three work-wide repeats
  * before a candidate is considered; the heading case scores one.
  */
-export const MIN_REPEATS = 3;
+const MIN_REPEATS = 3;
 
 /**
  * Repetition proof inside one division.
@@ -35,13 +35,13 @@ export const MIN_REPEATS = 3;
  * repeats with different page numbers. Threshold is three; a true
  * heading scores one.
  */
-export const MIN_REPEATS_IN_DIVISION = 3;
+const MIN_REPEATS_IN_DIVISION = 3;
 
 /**
  * What a proven span may contain, and nothing else: an optional verso
  * numeral and one running head. The last gate before a deletion.
  */
-export const FURNITURE_ONLY =
+const FURNITURE_ONLY =
     /^(\d{1,4} )?(?=[A-Z'’ .,\-]*[A-Z]{3})[A-Z][A-Z'’ .,\-]{2,44}? \d{1,4}$/;
 
 /** Every running-head stem in a work, so "repeats" is judged work-wide. */

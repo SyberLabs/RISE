@@ -5,13 +5,13 @@
 import { callDecision, DecisionError } from './call.js';
 import { decisionIdentity } from './providers.js';
 
-export const ROUTE_CHOICES = Object.freeze({
+const ROUTE_CHOICES = Object.freeze({
   experience_program: 'The intent is to create or curate a reading, learning, or other human-facing experience whose central output is a program of content.',
   agent_operation_set: 'The intent is to define or perform operational work through an agent, including concrete actions, workflows, or tool use.'
 });
 const ROUTE_DEADLINE_MS = 12000;
 
-export function buildRouteRequest({ intent, targetWords }) {
+function buildRouteRequest({ intent, targetWords }) {
   if (typeof intent !== 'string' || !intent.trim() || intent.length > 2000
     || !Number.isInteger(targetWords) || targetWords < 400 || targetWords > 18000) {
     throw new DecisionError('INVALID_REQUEST', 'The routing request is invalid.');
@@ -26,7 +26,7 @@ export function buildRouteRequest({ intent, targetWords }) {
   };
 }
 
-export function readRouteAnswer(result, provider) {
+function readRouteAnswer(result, provider) {
   const answer = result?.answers?.route;
   if (answer?.type !== 'choice' || !Object.hasOwn(ROUTE_CHOICES, answer.choice)
     || !Number.isFinite(answer.confidence) || answer.confidence < 0 || answer.confidence > 1) return null;

@@ -2,7 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 /** Lower bound of the Wilson score interval for k passes in n samples (default 95%). */
-export function wilsonLowerBound(k, n, z = 1.96) {
+function wilsonLowerBound(k, n, z = 1.96) {
   if (!(n > 0)) return 0;
   const p = k / n;
   const z2 = z * z;

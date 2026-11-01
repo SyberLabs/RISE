@@ -190,10 +190,9 @@ knowledge document), applied to every entrance.
 ### 2.3 Gaps
 
 **G1. Two positions, no shared coordinate. (verified)**
-The Stream's place is `player.sessionState.currentIndex`, an atom index, with the
-Shuttle holding the high-water mark. The Page's place is `Chamber._lastPageIndex`,
-a *page number*, recorded only when there is more than one page
-(`Chamber.js:214, 4256-4263`). Opening the Page pauses the Player
+The Stream's place is `player.sessionState.currentIndex`, an atom index. The
+Page's place is `Chamber._lastPageIndex`, a *page number*, recorded only when
+there is more than one page (`Chamber.js:214, 4256-4263`). Opening the Page pauses the Player
 (`Chamber.js:3656`) and closing it resumes at the Player's index. Reading
 forty pages does not advance the Stream, and going back to the Stream does not
 move the Page. `PageReader.onPageChange` reports a page index only

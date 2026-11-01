@@ -17,8 +17,8 @@ export const LIVING_FLAME_TIERS = Object.freeze([
   Object.freeze({ particles: 131072, dpr: 1.25 }),
   Object.freeze({ particles: 262144, dpr: 1.5 })
 ]);
-export const LIVING_FLAME_DEFAULT_TIER = 1;
-export const LIVING_FLAME_MAX_PIXELS = 2_000_000;
+const LIVING_FLAME_DEFAULT_TIER = 1;
+const LIVING_FLAME_MAX_PIXELS = 2_000_000;
 const SEEK_THRESHOLD_S = 1.5;
 const WINDOW_FRAMES = 90;
 const WARMUP_FRAMES = 30;
@@ -42,7 +42,7 @@ export function nextQualityTier({ tier, ceiling, p95, steadyWindows }) {
 }
 
 /** Pure sizing policy honoring the DPR and pixel ceilings. Exported for tests. */
-export function fieldBackingSize(cssWidth, cssHeight, devicePixelRatio, tierDpr) {
+function fieldBackingSize(cssWidth, cssHeight, devicePixelRatio, tierDpr) {
   const dpr = Math.min(devicePixelRatio || 1, tierDpr, 1.5);
   let width = Math.max(1, Math.round(cssWidth * dpr));
   let height = Math.max(1, Math.round(cssHeight * dpr));

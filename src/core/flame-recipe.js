@@ -15,7 +15,7 @@ export const FLAME_ENGINE_VERSION = 1;
 export const FLAME_VARIATIONS = Object.freeze([
   'linear', 'sinusoidal', 'spherical', 'swirl', 'horseshoe', 'polar'
 ]);
-export const FLAME_LIMITS = Object.freeze({
+const FLAME_LIMITS = Object.freeze({
   maxTransforms: 8,
   maxSymmetry: 8,
   maxPaletteStops: 6,

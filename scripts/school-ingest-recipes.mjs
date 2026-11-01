@@ -367,7 +367,6 @@ export const WEB_RECIPES = {
         units: [
             { heading: 'IHS', nth: 1, name: 'Prologue' },
             ...[['FIRST', 2], ['SECOND', 0], ['THIRD', 2], ['FOURTH', 3], ['FIFTH', 4], ['SIXTH', 11], ['SEVENTH', 4]].flatMap(([nth, chapters], mansion, all) => {
-                const before = all.slice(0, mansion).reduce((sum, [, count]) => sum + count, 0);
                 const name = `The ${nth[0]}${nth.slice(1).toLowerCase()} Mansions`;
                 return [
                     { heading: `THE ${nth} MANSIONS`, group: true },
@@ -644,5 +643,3 @@ export const WEB_RECIPES = {
         rights: { us: 'pd', life70: 'pd' }
     }
 };
-
-export { pages, roman };

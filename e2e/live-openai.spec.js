@@ -16,7 +16,6 @@ const OPEN = '/live?provider=openai&voice=paced';
 const ANSWER_SDP = 'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n';
 
 const shown = async page => (await page.locator('#atom-display').innerText()).replace(/\s+/gu, ' ').trim();
-const status = page => page.locator('.live-controls__status');
 const expectShown = (page, phrase, timeout = 12_000) =>
     expect.poll(() => shown(page).catch(() => ''), { timeout, message: `waiting to see “${phrase}”` }).toContain(phrase);
 

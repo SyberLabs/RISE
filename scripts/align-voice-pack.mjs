@@ -116,8 +116,8 @@ async function main() {
     const exactBefore = [];
     const exactAfter = [];
 
-    for (const [voiceId, voice] of Object.entries(manifest.voices || {})) {
-        for (const [key, entry] of Object.entries(voice.entries || {})) {
+    for (const voice of Object.values(manifest.voices || {})) {
+        for (const entry of Object.values(voice.entries || {})) {
             if (processed >= args.limit) break;
             const file = join(PUBLIC_ROOT, entry.asset.replace(/^\//, ''));
             if (!existsSync(file)) { missingAudio++; continue; }

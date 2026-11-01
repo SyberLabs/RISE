@@ -86,10 +86,6 @@ describe('quotation-only anchors', () => {
     expect(located.fromCharacter).toBe(0);
     expect(text.slice(located.fromCharacter, located.toCharacter)).toMatch(/Happy families/);
 
-    const atoms = [{
-      id: 'a0', sourceId: 'anna', position: 0,
-      text: 'Happy', comparable: 'Happy'
-    }];
     // Minimal atom alignment needs matching tokens — use empty atoms list path via omit
     const { resolutions, omitted } = compileSourceSpans(
       program,

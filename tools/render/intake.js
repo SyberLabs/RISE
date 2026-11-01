@@ -112,7 +112,7 @@ export function classifyRenderDocument(value) {
   );
 }
 
-export function resolvedSourcesFromInput(value) {
+function resolvedSourcesFromInput(value) {
   if (value == null) return {};
   if (Array.isArray(value)) {
     const map = {};
@@ -289,7 +289,7 @@ export async function renderFromDocument(document, options = {}) {
   return renderArtifact(request);
 }
 
-export function writeArtifactSidecars(outDir, artifact, extra = {}) {
+function writeArtifactSidecars(outDir, artifact, extra = {}) {
   mkdirSync(outDir, { recursive: true });
   if (artifact?.package) writeRenderPackageDir(outDir, artifact.package);
   const encoded = artifact?.encoded || {};

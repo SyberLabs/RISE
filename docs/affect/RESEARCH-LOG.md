@@ -26,13 +26,11 @@ No hosted API credential was in the environment. The three missing runs were exe
 
 `scripts/affect/fit-readout.mjs` still exits with status 2 until 24 judgments are marked `annotatorKind: "human"`. The window encoder was not refit.
 
-Reproduce:
+Reproduce (the MiniLM distillation and the teacher server were one-off scripts, since deleted; they are in git history):
 
 ```
 python3 scripts/affect/score-emopair.py
-node scripts/affect/distill-minilm.mjs
 python3 scripts/affect/score-teacher.py
-node scripts/affect/teacher-server.mjs
 AFFECT_TEACHER_URL=http://127.0.0.1:8765 npm run affect:benchmark
 ```
 

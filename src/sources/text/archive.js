@@ -61,8 +61,7 @@ export class ArchiveTextProvider extends SourceProvider {
             contentType: 'text',
             tier: 1,
             description: 'The complete curated, edition-verified RISE text library',
-            supportsSearch: true,
-            supportsPreload: false
+            supportsSearch: true
         });
 
         this.isLibraryRegistry = true;

@@ -274,7 +274,7 @@ const ladderWords = (minutes) => minutes * READING_PACE.default;
  * for Currents of beats); the curator's ladder, shelf and prompt were measured
  * at this number, so it stays theirs, never above the score's.
  */
-export const CURATOR_MOVEMENTS = 16;
+const CURATOR_MOVEMENTS = 16;
 
 export function curatorMovementCeiling() {
   return Math.min(CURATOR_MOVEMENTS, EXPERIENCE_PROGRAM_LIMITS.maxMovements);

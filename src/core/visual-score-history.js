@@ -4,7 +4,7 @@ const COMMAND_TYPES = new Set([
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 
-export class VisualScoreHistoryError extends Error {
+class VisualScoreHistoryError extends Error {
   constructor(code, message) {
     super(message);
     this.name = 'VisualScoreHistoryError';

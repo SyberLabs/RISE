@@ -45,7 +45,7 @@ function parseHex(value) {
   ];
 }
 
-export function parseAsciiColor(value, fallback = [220, 220, 226]) {
+function parseAsciiColor(value, fallback = [220, 220, 226]) {
   if (Array.isArray(value) && value.length >= 3) {
     return value.slice(0, 3).map(channel => clamp(finite(channel, 0), 0, 255));
   }
@@ -260,7 +260,7 @@ export function compileSampledRaster(sampled, columns, rows, options = {}) {
  * Reduce arbitrary ImageData to one RGBA sample per target cell. Contain-fit
  * preserves the source composition and leaves letterbox cells transparent.
  */
-export function sampleImageData(imageData, columns, rows, fit = 'contain') {
+function sampleImageData(imageData, columns, rows, fit = 'contain') {
   const sourceWidth = Math.max(1, finite(imageData?.width, 0));
   const sourceHeight = Math.max(1, finite(imageData?.height, 0));
   const source = imageData?.data;

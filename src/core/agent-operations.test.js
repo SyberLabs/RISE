@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   AGENT_OPERATION_SET_SCHEMA,
-  AgentOperationError,
   applyAgentOperationSet,
   cancelAgentRun,
   createAgentOperationHistory,

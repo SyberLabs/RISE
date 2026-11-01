@@ -147,7 +147,7 @@ export function findInNormalizedIndex(index, needle, fromOriginal = 0) {
 }
 
 /** Count non-overlapping occurrences of a normalized needle in the index. */
-export function countInNormalizedIndex(index, needle) {
+function countInNormalizedIndex(index, needle) {
   const target = normalizeQuote(needle);
   if (!target || !index?.normalized) return 0;
   let count = 0;

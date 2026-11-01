@@ -8,9 +8,9 @@
 import { DecisionError } from '../../../src/core/decision/call.js';
 import { probabilityList } from './jev.mjs';
 
-export const OPENAI_URL = 'https://api.openai.com/v1/decisions';
+const OPENAI_URL = 'https://api.openai.com/v1/decisions';
 export const OPENAI_MODEL = 'gpt-6-luna';
-export const PRICING = Object.freeze({ source: 'https://developers.openai.com/api/docs/guides/decisions',
+const PRICING = Object.freeze({ source: 'https://developers.openai.com/api/docs/guides/decisions',
   asOf: '2026-10-08', inputUsdPerMillionTokens: 0.10 });
 // The guide states no question limit; all 28 go in one call, and a rejection
 // is recorded as HTTP_<status>.

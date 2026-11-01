@@ -770,12 +770,6 @@
   margin-bottom: 0;
 }
 
-.config-subsection + .config-subsection {
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
-  border-top: 1px solid rgba(var(--color-accent-rgb), 0.12);
-}
-
 .config-label {
   display: block;
   font-size: 12px;
@@ -1026,16 +1020,6 @@
   display: none;
 }
 
-/* The one rule that governs both bed sections, said in the open rather
-   than in a tooltip: the panel is used on a phone, where nothing hovers. */
-.audio-bed-note {
-  margin: 0 0 var(--space-sm);
-  color: var(--color-fog);
-  font-size: 12px;
-  line-height: 1.45;
-  max-width: 46ch;
-}
-
 /* Soundscapes sit three across — composed names need the width, and
    the different rhythm marks the section as its own kind of choice */
 .soundscape-options {
@@ -1112,12 +1096,6 @@
 }
 
 /* Voice selector */
-.voice-select-section {
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--color-shadow);
-}
-
 .voice-select {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
@@ -1152,34 +1130,6 @@
 }
 
 /* Personal Swell Pool */
-.section-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-md);
-}
-
-.pool-upload-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: rgba(var(--color-accent-rgb), 0.1);
-  border: 1px solid var(--color-shadow);
-  border-radius: var(--radius-sm);
-  color: var(--color-threshold);
-  cursor: pointer;
-  transition: all var(--transition-fast) var(--ease-default);
-  font-size: 18px;
-}
-
-.pool-upload-btn:hover {
-  background: rgba(var(--color-accent-rgb), 0.2);
-  border-color: var(--color-threshold);
-  box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.2);
-}
-
 .personal-swell-list {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--color-shadow);
@@ -1187,15 +1137,6 @@
   max-height: 180px;
   overflow-y: auto;
   margin-bottom: var(--space-md);
-}
-
-.pool-empty {
-  padding: var(--space-lg);
-  text-align: center;
-  color: var(--color-mist);
-  font-size: 12px;
-  font-style: italic;
-  letter-spacing: 0.05em;
 }
 
 .swell-item {
@@ -1216,16 +1157,6 @@
   cursor: pointer;
 }
 
-.swell-item.selected {
-  background: rgba(var(--color-accent-rgb), 0.15);
-  border-left: 3px solid var(--color-threshold);
-}
-
-.swell-item.selected .swell-name {
-  color: var(--color-light);
-  font-weight: var(--font-weight-medium);
-}
-
 .swell-name {
   font-size: 13px;
   color: var(--color-cloud);
@@ -1239,31 +1170,6 @@
 .swell-actions {
   display: flex;
   gap: 4px;
-}
-
-.swell-btn {
-  background: transparent;
-  border: none;
-  color: var(--color-mist);
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast) var(--ease-default);
-  font-size: 12px;
-}
-
-.preview-btn:hover {
-  color: var(--color-threshold);
-  background: rgba(var(--color-accent-rgb), 0.1);
-}
-
-.delete-btn:hover {
-  color: var(--color-rose);
-  background: rgba(255, 107, 107, 0.1);
 }
 
 .config-note {
@@ -1347,8 +1253,7 @@
 }
 
 .orbital-modal .config-note,
-.orbital-modal .config-notice,
-.orbital-modal .audio-bed-note {
+.orbital-modal .config-notice {
   font-family: var(--rs-sans);
   font-style: normal;
   font-size: 14px !important;
@@ -1357,11 +1262,6 @@
   color: var(--rs-text-3);
   max-width: 60ch;
   margin: 12px 0 0;
-}
-
-.orbital-modal .audio-bed-note {
-  color: var(--rs-text-2);
-  margin: 0 0 16px;
 }
 
 .orbital-modal .config-info {
@@ -1563,12 +1463,6 @@
   display: block;
 }
 
-.orbital-modal .config-subsection + .config-subsection {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--rs-line);
-}
-
 /* Voice picker: a field. */
 .orbital-modal .voice-select {
   height: 44px;
@@ -1589,97 +1483,6 @@
 .orbital-modal .voice-select:focus-visible {
   outline: 2px solid var(--rs-brand);
   outline-offset: 2px;
-}
-
-/* Personal swell pool: a hairline list, a 44px add button. */
-.orbital-modal .section-header-row {
-  margin-bottom: 12px;
-}
-
-.orbital-modal .section-header-row .config-label {
-  margin: 0;
-}
-
-.orbital-modal .pool-upload-btn {
-  width: 44px;
-  height: 44px;
-  background: transparent;
-  border: 1px solid var(--rs-line-strong);
-  border-radius: 8px;
-  color: var(--rs-text);
-  font-family: var(--rs-sans);
-  font-size: 20px;
-  box-shadow: none;
-}
-
-.orbital-modal .pool-upload-btn:hover {
-  background: var(--rs-surface-2);
-  border-color: var(--rs-line-strong);
-  box-shadow: none;
-}
-
-.orbital-modal .pool-upload-btn:focus-within {
-  outline: 2px solid var(--rs-brand);
-  outline-offset: 2px;
-}
-
-.orbital-modal .personal-swell-list {
-  background: none;
-  border: none;
-  border-top: 1px solid var(--rs-line);
-  border-bottom: 1px solid var(--rs-line);
-  border-radius: 0;
-  margin-bottom: 0;
-}
-
-.orbital-modal .pool-empty {
-  padding: 16px 0;
-  text-align: left;
-  font-family: var(--rs-sans);
-  font-style: normal;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0;
-  color: var(--rs-text-3);
-}
-
-.orbital-modal .swell-item {
-  min-height: 44px;
-  padding: 0 8px;
-  border-bottom: 1px solid var(--rs-line);
-}
-
-.orbital-modal .swell-item:hover {
-  background: var(--rs-surface-2);
-}
-
-.orbital-modal .swell-item.selected {
-  background: none;
-  border-left: none;
-  box-shadow: inset 2px 0 0 var(--rs-brand);
-}
-
-.orbital-modal .swell-name {
-  font-family: var(--rs-sans);
-  font-size: 14px;
-  color: var(--rs-text-2);
-}
-
-.orbital-modal .swell-item.selected .swell-name {
-  color: var(--rs-text);
-}
-
-.orbital-modal .swell-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
-  color: var(--rs-text-3);
-}
-
-.orbital-modal .preview-btn:hover,
-.orbital-modal .delete-btn:hover {
-  background: var(--rs-surface-2);
-  color: var(--rs-text);
 }
 
 /* ─── Visuals: the Visual Navigator, inside this panel ───
@@ -1776,8 +1579,7 @@
   color: var(--rs-text);
 }
 
-#modal-visual .vnav-kind b,
-#modal-visual .vnav-preview-glyph {
+#modal-visual .vnav-kind b {
   color: var(--rs-text-3);
 }
 

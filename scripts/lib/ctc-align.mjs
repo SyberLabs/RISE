@@ -30,7 +30,7 @@ export const MODEL_RATE = 16000;
 export const FRAME_MS = 20;
 
 /** The transcript, in the alphabet the model emits. */
-export const normalizeWord = word => String(word ?? '')
+const normalizeWord = word => String(word ?? '')
     .toUpperCase()
     .replace(/[‘’ʼ´`]/g, "'")
     .replace(/[^A-Z']/g, '');
@@ -96,7 +96,7 @@ export function resample(src, from, to) {
 }
 
 /** Per-frame log-softmax, so scores can be summed along a path. */
-export function logSoftmax(raw, frames, vocab) {
+function logSoftmax(raw, frames, vocab) {
     const out = new Float64Array(frames * vocab);
     for (let t = 0; t < frames; t++) {
         const base = t * vocab;

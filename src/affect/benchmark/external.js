@@ -37,7 +37,7 @@ export function mapPert(raw) {
 }
 
 /** Reward valence is a 1–5 regression. Arousal and dominance use the checkpoint's published norm. */
-export function mapReward(raw, norm) {
+function mapReward(raw, norm) {
     const unit = (value, key) => {
         const span = norm?.[key];
         if (!span) return value;
@@ -80,7 +80,7 @@ function indexPassages(model) {
     return map;
 }
 
-export function emopairModels(document = readJson(SCORES)) {
+function emopairModels(document = readJson(SCORES)) {
     if (!document?.models) {
         return [{
             id: 'emopair-family',
@@ -133,7 +133,7 @@ export function emopairModels(document = readJson(SCORES)) {
     return models;
 }
 
-export function minilmModel(document = readJson(PROBE)) {
+function minilmModel(document = readJson(PROBE)) {
     if (!document?.passages) {
         return {
             id: 'minilm-distillation',

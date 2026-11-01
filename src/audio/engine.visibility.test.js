@@ -95,7 +95,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe('yielding the audio when the page goes away', () => {
     it('suspends a running context when the document hides', async () => {
         const ctx = fakeContext('running');
-        const engine = engineWith(ctx);
+        engineWith(ctx);
 
         await setVisibility('hidden');
 
@@ -171,7 +171,7 @@ describe('taking the audio back when the page returns', () => {
         // Audio was never admitted. Showing the page again is not a
         // reason to start it — that would be autoplay by the back door.
         const ctx = fakeContext('suspended');
-        const engine = engineWith(ctx);
+        engineWith(ctx);
 
         await setVisibility('hidden');
         ctx.resume.mockClear();

@@ -26,7 +26,7 @@ import { CuratorContextValidationError, exportCuratorContext } from './curator-c
 import { buildCuratorPrompt } from './curator-prompt.js';
 import { requestJevRoute } from './jev-client.js';
 import { describeProgramRundown } from './program-rundown.js';
-import { clampReadingWpm, MAX_SAFE_TARGET_WORDS } from './reading-limits.js';
+import { clampReadingWpm } from './reading-limits.js';
 import {
   describeImportFailure,
   ExperienceProgramIoError,
@@ -219,7 +219,7 @@ export function createScriptoriumSession(options = {}) {
   return new ScriptoriumSession(options);
 }
 
-export class ScriptoriumSession {
+class ScriptoriumSession {
   constructor({ wpm = null, getWpm = readerWpm, prepareAssets = null, mintId = null } = {}) {
     // NULL IS NOT A PACE. `Number(null)` is 0 and 0 is finite, so a surface
     // that passed no override was clamped to the window's floor and quoted a

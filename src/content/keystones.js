@@ -25,7 +25,7 @@ import { Voice } from '../audio/voice.js';
 import { DEFAULT_VOICE_ID, voicePackManifest } from '../audio/voice-pack.js';
 import { SEQUENCE_CAPABILITIES } from '../core/sequence-capabilities.js';
 
-export const KEYSTONE_SCHEMA = 'rise.keystone.v1';
+const KEYSTONE_SCHEMA = 'rise.keystone.v1';
 export { KEYSTONE_ROUTE_PREFIX, TRY_RISE_PATH, keystonePath, isTryRisePath };
 
 function freeze(value) {

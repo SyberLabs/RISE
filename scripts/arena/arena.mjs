@@ -50,7 +50,7 @@ import { agreementReport, CALIBRATION_VERSION, calibrationRows, scoreRun } from 
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 export const ARENA_DIR = 'public/content/arena';
-export const DECIDERS = Object.freeze(['openai', 'jev', 'kev', 'rules', 'rules-floor']);
+const DECIDERS = Object.freeze(['openai', 'jev', 'kev', 'rules', 'rules-floor']);
 const DEFAULT_CASES = 'scripts/jev-eval-cases.json';
 const DEFAULT_OPTIONS = 'scripts/jev-eval-options-candidate.json';
 const DEFAULT_CONTROLS = 'scripts/arena/controls.json';

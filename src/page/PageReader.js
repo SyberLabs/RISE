@@ -9,7 +9,6 @@ import { compileFlow, flowCollections, focalOf } from './flow.js';
 import { compose, PLACEMENT, RHYTHM } from './compositor.js';
 import { paginate, pageOfItem } from './paginator.js';
 import { normalizeArtworkLabel, displayedArtworkLabel, artworkMayBeShown } from '../visuals/artwork-label.js';
-import { createRemoteImage } from '../visuals/remote-image.js';
 
 const OBSERVER_MARGIN = '600px';   // begin resolving well before view
 
@@ -778,19 +777,6 @@ export class PageReader {
     /** True once the owning activation has been revoked. */
     _aborted() {
         return this.signal?.aborted === true;
-    }
-
-    /** Decode-before-reveal (SacredImage's contract). */
-    async _decode(url) {
-        try {
-            const probe = createRemoteImage();
-            probe.decoding = 'async';
-            probe.src = url;
-            if (typeof probe.decode === 'function') await probe.decode();
-            return true;
-        } catch {
-            return false;
-        }
     }
 
     /** The collections this page will need — for optional pre-warming. */

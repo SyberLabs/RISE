@@ -162,7 +162,7 @@ class App {
         void this.ensureAudioEngine().catch(() => { /* audio stays off */ });
 
         try {
-            await this.initializeApp({});
+            await this.initializeApp();
         } catch (error) {
             console.error('[RISE] Application initialization failed:', error);
             const recovery = document.createElement('div');
@@ -219,9 +219,8 @@ class App {
 
     /**
      * Full application initialization
-     * @param {Object} options - Init options
      */
-    async initializeApp(options = {}) {
+    async initializeApp() {
         // Load settings from localStorage. The master volume is applied by
         // ensureAudioEngine when the engine is actually created, which is the
         // only moment there is anything to apply it to.
@@ -241,7 +240,7 @@ class App {
             history: appHistory(),
             location: appLocation(),
             onNavigationIntent: (view, options) => this.handleNavigationIntent(view, options),
-            onViewChange: (view, data) => {
+            onViewChange: (view) => {
                 console.log(`[RISE] View: ${view}`);
             }
         });
@@ -414,7 +413,7 @@ class App {
      */
     setupErrorRecovery() {
         // Audio errors: disable audio and continue
-        errorBoundary.registerRecoveryHandler(ErrorCategory.AUDIO, (report) => {
+        errorBoundary.registerRecoveryHandler(ErrorCategory.AUDIO, () => {
             if (this.settings) {
                 this.settings.enableBinaural = false;
             }
@@ -422,20 +421,20 @@ class App {
         });
 
         // Visual errors: disable visual interlocution
-        errorBoundary.registerRecoveryHandler(ErrorCategory.VISUAL, (report) => {
+        errorBoundary.registerRecoveryHandler(ErrorCategory.VISUAL, () => {
             endVisualInterlocutionSession();
             this._visualCortex?.updateConfig({ enabled: false });
         });
 
         // Navigation errors: return to portal
-        errorBoundary.registerRecoveryHandler(ErrorCategory.NAVIGATION, (report) => {
+        errorBoundary.registerRecoveryHandler(ErrorCategory.NAVIGATION, () => {
             if (this.router) {
                 return this.router.navigate('home');
             }
         });
 
         // Playback errors: stop current session
-        errorBoundary.registerRecoveryHandler(ErrorCategory.PLAYBACK, (report) => {
+        errorBoundary.registerRecoveryHandler(ErrorCategory.PLAYBACK, () => {
             endVisualInterlocutionSession();
             if (this.currentSession) {
                 this.currentSession = null;

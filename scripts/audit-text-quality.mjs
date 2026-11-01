@@ -41,7 +41,7 @@ const works = ingestedArchiveTexts();
 const rows = [];
 
 for (const work of works) {
-    let text = '';
+    let text;
     try {
         const divisions = await work.getDivisions();
         const entries = divisions?.entries || [];

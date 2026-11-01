@@ -13,8 +13,6 @@
  * 4. 1/3 Rebellious Red Boundary: Starts 1/3 down the screen (y = 0.333 * H) and is swept downwards out of frame by expanding divine light.
  */
 
-import { createSeededRandom } from '../lib/klee-core.js';
-
 export class ParadiseFallHypercubeEngine {
     constructor() {
         this.name = "Fall of the Rebel Angels (Seamless Mandelbrot Red)";
@@ -131,7 +129,7 @@ export class ParadiseFallHypercubeEngine {
         this.mandelCtx.putImageData(imgData, 0, 0);
     }
 
-    generate(signal = {}, seed = 'fall-seed', options = {}) {
+    generate(signal = {}, seed = 'fall-seed') {
         this.seed = seed;
         this.time = 0;
         this.expansionProgress = 0.0;
@@ -139,7 +137,7 @@ export class ParadiseFallHypercubeEngine {
         return true;
     }
 
-    step(dt = 0.016, signal = {}) {
+    step(dt = 0.016) {
         this.time += dt;
 
         // Divine light expands over time, pushing 1/3 red rebellion downwards out of frame
@@ -148,7 +146,7 @@ export class ParadiseFallHypercubeEngine {
         }
     }
 
-    render(canvas, options = {}) {
+    render(canvas) {
         if (!canvas) return false;
         const ctx = canvas.getContext('2d');
         if (!ctx) return false;

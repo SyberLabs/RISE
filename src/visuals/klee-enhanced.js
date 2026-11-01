@@ -860,7 +860,7 @@ class KleeEngine {
     return Object.keys(variations)[0];
   }
 
-  _growLine(seed, lineIndex, totalLines) {
+  _growLine(seed) {
     const points = [];
     let x = seed.x;
     let y = seed.y;
@@ -908,7 +908,7 @@ class KleeEngine {
 
       if (varName === 'branching' || this.random() < seed.branchProbability) {
         if (this.lines.length < this._generationLineBudget) {
-          this._createBranch(x, y, theta, seed, step / steps);
+          this._createBranch(x, y, theta, seed);
         }
       }
     }
@@ -925,7 +925,7 @@ class KleeEngine {
     };
   }
 
-  _createBranch(x, y, theta, parentSeed, progress) {
+  _createBranch(x, y, theta, parentSeed) {
     const branchAngles = [Math.PI / 4, -Math.PI / 4, Math.PI / 3, -Math.PI / 3];
     const branchAngle = branchAngles[Math.floor(this.random() * branchAngles.length)];
 
@@ -942,7 +942,7 @@ class KleeEngine {
     };
 
     if (branchSeed.maxBranches > 0 && this.lines.length < this._generationLineBudget) {
-      const branchLine = this._growLine(branchSeed, this.lines.length, this.seeds.length * 10);
+      const branchLine = this._growLine(branchSeed);
       if (branchLine.points.length > 10) {
         this.lines.push(branchLine);
       }
@@ -1016,8 +1016,6 @@ class KleeEngine {
     this.forms = [];
     this._generationLineBudget = this.generationStyle.maxTotalLines;
 
-    const totalLines = this._generationLineBudget;
-
     for (let seed of this.seeds) {
       if (this.lines.length >= this._generationLineBudget) break;
       const span = this.generationStyle.maxLines - this.generationStyle.minLines + 1;
@@ -1029,7 +1027,7 @@ class KleeEngine {
       );
 
       for (let i = 0; i < linesForSeed; i++) {
-        const line = this._growLine(seed, this.lines.length, totalLines);
+        const line = this._growLine(seed);
 
         if (line.points.length > 10) {
           const symmetricLines = this._applySymmetry(

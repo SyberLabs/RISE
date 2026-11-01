@@ -4,7 +4,7 @@
  * for anyone reading the scores.
  */
 
-export const PAIR_QUESTIONS = Object.freeze({
+const PAIR_QUESTIONS = Object.freeze({
     'more-tense': Object.freeze({
         id: 'more-tense',
         prompt: 'Which passage feels more tense?',

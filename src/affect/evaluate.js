@@ -128,7 +128,7 @@ function compositeOf(components, weights) {
     return weight ? weighted / weight : null;
 }
 
-export function evaluateExperience({
+function evaluateExperience({
     states,
     intent = {},
     trajectory = null,

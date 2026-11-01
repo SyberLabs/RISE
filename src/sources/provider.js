@@ -44,7 +44,6 @@ export class SourceProvider {
      * @param {number} [config.tier=1] - Source taxonomy tier (1=Curated, 2=Sacred, 3=Literary, 4=Research, 5=Live)
      * @param {string} [config.description] - Provider description
      * @param {boolean} [config.supportsSearch=false] - Whether provider supports search
-     * @param {boolean} [config.supportsPreload=false] - Whether provider supports preloading
      */
     constructor(config) {
         if (new.target === SourceProvider) {
@@ -57,7 +56,6 @@ export class SourceProvider {
         this.tier = config.tier || 1;
         this.description = config.description || '';
         this.supportsSearch = config.supportsSearch || false;
-        this.supportsPreload = config.supportsPreload || false;
 
         this._ready = false;
         this._initPromise = null;
@@ -144,16 +142,5 @@ export class SourceProvider {
             return [];
         }
         throw new Error(`${this.constructor.name}.search() not implemented`);
-    }
-
-    /**
-     * Preload content for performance.
-     * @param {string[]} [ids] - Specific IDs to preload, or empty for auto-select
-     * @param {number} [count=5] - Number of items to preload if ids not specified
-     * @returns {Promise<void>}
-     */
-    async preload(ids = [], count = 5) {
-        if (!this.supportsPreload) return;
-        // Default: no-op, override in subclass
     }
 }

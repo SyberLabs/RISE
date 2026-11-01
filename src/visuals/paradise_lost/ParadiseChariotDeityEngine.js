@@ -109,7 +109,7 @@ export class ParadiseChariotDeityEngine {
         });
     }
 
-    step(dt = 0.016, signal = {}) {
+    step(dt = 0.016) {
         this.time += dt * this.params.rotSpeed;
 
         // Periodic divine lightning strikes
@@ -198,7 +198,7 @@ export class ParadiseChariotDeityEngine {
         ctx.fill();
 
         // 2. Render Ezekiel's Wheels Within Wheels (3D Attractor Traces)
-        this.wheels.forEach((wheel, wIdx) => {
+        this.wheels.forEach((wheel) => {
             const rotY = this.time * wheel.rotSpeed + wheel.tiltY;
             const rotX = Math.sin(this.time * 0.3 + wheel.tiltX) * 0.6;
 

@@ -27,7 +27,7 @@
 
 import { createRealClock } from '../clock.js';
 
-export const PROVIDER_VOICE_LIMITS = Object.freeze({
+const PROVIDER_VOICE_LIMITS = Object.freeze({
     /** Passages fetched ahead of the one playing. */
     prefetch: 1
 });

@@ -59,7 +59,7 @@ const GEAR_TEETH = [
 ].map(([x1, y1, x2, y2]) =>
   `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="2.1"/>`).join('');
 
-export const ICONS = Object.freeze({
+const ICONS = Object.freeze({
   play: svg('<path d="M9 6.4 18.2 12 9 17.6Z"/>',
     'fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"'),
   pause: svg('<rect x="8.6" y="6.4" width="2.6" height="11.2" rx="1.3"/>'
@@ -121,7 +121,7 @@ import { styleOf } from '../../core/styles.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../../core/jev-sequence.js';
-import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig, validateFlameRecipe } from '../../core/flame-recipe.js';
+import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig } from '../../core/flame-recipe.js';
 import { directionStateFor, ensureDirector, followProgram, permittedSourceDigests } from '../../core/passage-visuals/reading-state.js';
 import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
@@ -1991,10 +1991,6 @@ export class Chamber {
     this._toggleSheet('look');
   }
 
-  openLookSheet() {
-    return this._openSheet('look');
-  }
-
   closeLookSheet(refocus = true) {
     return this._closeSheet('look', refocus);
   }
@@ -2407,30 +2403,6 @@ export class Chamber {
     if (this._direction) this._direction.energy = this._visualEnergy;
     // Energy alone never changes the direction mode.
     this._visualFieldDirector?.active?.setEnergy?.();
-  }
-
-  /** Geometry, color, or mutation selects Hold: the reader has taken the scene. */
-  _editHeldFlame(transform, { record = true, transitionMs = this._visualTransitionMs() } = {}) {
-    const state = this._direction;
-    const current = this._currentFlameConfig();
-    if (!state || !current) return false;
-    let recipe;
-    try {
-      recipe = validateFlameRecipe(transform(current.recipe));
-    } catch {
-      return false;
-    }
-    if (record) {
-      state.history.push(current.recipe);
-      if (state.history.length > 20) state.history.shift();
-    }
-    state.mode = 'hold';
-    state.heldCue = this._flameCue(recipe, current.intensity);
-    this._visualSchedule = null;
-    this.applyScheduledVisualCue(state.heldCue, { transitionMs });
-    this._syncScoringActivity();
-    this._refreshLookSheet();
-    return true;
   }
 
   /** Explicit reader action, scoped to this exact source and this reading. */
@@ -5009,7 +4981,7 @@ export class Chamber {
   _fieldSamples(count, sample, title) {
     const works = [];
     for (let n = 0; n < count; n++) {
-      let url = null;
+      let url;
       try { url = sample(n); } catch { url = null; }
       // A field that will not draw yields stillness, never a broken frame.
       if (url) works.push({ name: title, data: { url, title } });

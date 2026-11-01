@@ -10,7 +10,7 @@ const DB_VERSION = 1;
 const STORE_NAME = 'swells';
 const MAX_SWELL_BYTES = 20 * 1024 * 1024;
 
-export class PersonalSwellStore {
+class PersonalSwellStore {
     constructor() {
         /** @type {IDBDatabase|null} */
         this.db = null;

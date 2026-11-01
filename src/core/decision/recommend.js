@@ -218,7 +218,7 @@ export function choiceMenu(rows) {
   };
 }
 
-export function validConfig(config, choices) {
+function validConfig(config, choices) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
     || Object.keys(config).length !== 38
     || !Number.isInteger(config.wpm) || !Object.hasOwn(choices.pace, String(config.wpm))) return null;
@@ -285,12 +285,12 @@ function explicitVisualTiming(intent) {
  * a soundtrack RISE could play.
  */
 /** An explicit ask for no music or sound; night-drive routing keeps it. */
-export function requestsNoSound(intent) {
+function requestsNoSound(intent) {
   const text = String(intent || '').normalize('NFKC').toLowerCase();
   return /\b(?:no|without|skip|avoid|mute|muted|zero)\s+(?:any\s+)?(?:audio|music|sounds?|soundscape|beat|soundtrack)\b|\b(?:silent|silence|muted)\b|\bsound\s+off\b/u.test(text);
 }
 
-export function requestsNightDrive(intent) {
+function requestsNightDrive(intent) {
   const text = String(intent || '').normalize('NFKC').toLowerCase();
   return /\b(?:drift(?:s|ing)?|night[\s-]?driv(?:e|es|ing)|racing|race\s*cars?|street\s*rac\w*|highway|synthwave|outrun|tokyo|neon)\b/u.test(text);
 }
@@ -442,11 +442,11 @@ export function validDecision(value, books, intent, choices, provider) {
   };
 }
 
-export const INTENT_MIN = 3;
-export const INTENT_MAX = 240;
-export const RECOMMEND_DEADLINE_MS = 8000;
+const INTENT_MIN = 3;
+const INTENT_MAX = 240;
+const RECOMMEND_DEADLINE_MS = 8000;
 
-export function readIntent(value) {
+function readIntent(value) {
   const intent = typeof value === 'string' ? value.trim() : '';
   return intent.length >= INTENT_MIN && intent.length <= INTENT_MAX ? intent : null;
 }
@@ -498,7 +498,7 @@ export function buildRecommendRequest({ intent, catalog, turn = 0, nightDrive = 
 }
 
 /** Per-tab memory: turn counters and validated decisions, bounded. */
-export function memoryStore(limit = 32) {
+function memoryStore(limit = 32) {
   const turns = new Map();
   const decisions = new Map();
   return {

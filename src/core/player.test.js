@@ -176,21 +176,6 @@ describe('Player', () => {
     });
   });
 
-  describe('toggle()', () => {
-    it('plays when paused', () => {
-      player.toggle();
-
-      expect(player.state).toBe('playing');
-    });
-
-    it('pauses when playing', () => {
-      player.play();
-      player.toggle();
-
-      expect(player.state).toBe('paused');
-    });
-  });
-
   describe('stop()', () => {
     it('resets state to idle', () => {
       player.play();
@@ -1089,16 +1074,6 @@ describe('Player + Shuttle (LATERAL-TRAVERSAL-SPEC)', () => {
     // …and normal FORWARD reading has resumed
     await vi.advanceTimersByTimeAsync(250);
     expect(player.sessionState.currentIndex).toBeGreaterThan(0);
-  });
-
-  it('the high-water mark survives rewind and re-reading', async () => {
-    player.play();
-    await vi.advanceTimersByTimeAsync(320);
-    const hwm = player.shuttle.highWaterMark;
-    expect(hwm).toBeGreaterThanOrEqual(2);
-    player.shuttleBackward();
-    await vi.advanceTimersByTimeAsync(150);
-    expect(player.shuttle.highWaterMark).toBe(hwm); // never falls
   });
 
   it('pausing while shuttling drops to home; resume is normal reading', async () => {

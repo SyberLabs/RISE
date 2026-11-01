@@ -13,7 +13,7 @@ export const RETIRED_INFERENCE_ROUTES = Object.freeze([
   '/api/personal-piece'
 ]);
 
-export const RETIRED_MESSAGE = 'RISE no longer pays for AI requests. Reload RISE, then connect your own OpenRouter account or run RISE locally. Reading and manual settings still work.';
+const RETIRED_MESSAGE = 'RISE no longer pays for AI requests. Reload RISE, then connect your own OpenRouter account or run RISE locally. Reading and manual settings still work.';
 
 export function isRetiredInferenceRoute(path) {
   return RETIRED_INFERENCE_ROUTES.includes(path);

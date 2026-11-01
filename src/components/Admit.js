@@ -270,8 +270,4 @@ export class Admit {
     this.element = null;
     then?.();
   }
-
-  destroy() {
-    this.close();
-  }
 }

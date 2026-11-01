@@ -966,11 +966,6 @@ export class LiveHost {
         return this.venue.adapterFor({ clock });
     }
 
-    /** The venue room's questions, each with its reading's journal once let go. */
-    venueTurns() {
-        return this.venue?.turns() ?? [];
-    }
-
     /**
      * The stage over a venue reading: the whole instrument, the browser's own full screen, Settings with Sound, the
      * reader's voice and About this reading, and the room's choices carried from the reading before.
@@ -1025,7 +1020,7 @@ export class LiveHost {
     }
 
     /** The live Current condition: the real runtime, with the fixed answer and a prompt to ask about the horizon. */
-    presentEvalCurrent({ container, done, note }) {
+    presentEvalCurrent({ done, note }) {
         this.providerName = 'mock';
         let finished = false;
         const guide = document.createElement('section');

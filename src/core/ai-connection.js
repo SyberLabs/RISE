@@ -11,7 +11,7 @@
  */
 import { JEV, KEV } from './decision/providers.js';
 
-export const LOCAL_STATUS_PATH = '/api/local/status';
+const LOCAL_STATUS_PATH = '/api/local/status';
 
 /**
  * Local RISE marks the page it serves (local/bridge.mjs injects this meta).

@@ -122,11 +122,6 @@ export class PinnedWorksProvider {
             sourceName: work.sourceName
         }));
     }
-
-    /** Pinned works are already resolved; nothing further to fetch. */
-    async getImageInfo(item) {
-        return item || null;
-    }
 }
 
 let instance = null;

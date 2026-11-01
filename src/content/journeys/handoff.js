@@ -70,7 +70,7 @@ function joinableBoundaries(boundaries) {
  * @param {string} text
  * @returns {{wordsBeforeLine: number[], totalWords: number}}
  */
-export function passageLineMetrics(text) {
+function passageLineMetrics(text) {
     const lines = String(text ?? '').split(/\r?\n/);
     const wordsBeforeLine = new Array(lines.length + 1);
     let running = 0;

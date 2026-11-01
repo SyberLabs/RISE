@@ -353,7 +353,7 @@ export const CHAPEL_PINNED_COLLECTIONS = freezeManifest({
     },
 });
 
-export function findChapelCollection(id) {
+function findChapelCollection(id) {
     return Object.hasOwn(CHAPEL_PINNED_COLLECTIONS, id)
         ? CHAPEL_PINNED_COLLECTIONS[id]
         : null;

@@ -29,7 +29,7 @@ export function parseNvidiaSmi(output) {
  * macOS counts inactive and speculative pages as reclaimable, but
  * os.freemem() reports only wholly free pages, so a busy Mac looks full.
  */
-export function parseVmStat(output) {
+function parseVmStat(output) {
   const text = String(output || '');
   const pageSize = Number(/page size of (\d+) bytes/u.exec(text)?.[1]);
   const pages = name => Number(new RegExp(`Pages ${name}:\\s+(\\d+)`, 'u').exec(text)?.[1] || 0);

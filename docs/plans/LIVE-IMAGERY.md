@@ -46,7 +46,7 @@ What must be true:
 
 1. **Only reviewed images.** Every picture a reader sees was looked at and accepted by the owner. A query never
    chooses what is shown. The live Wikimedia botanical service was disconnected for exactly this
-   (`src/content/science/imagery/science-pins.js`, `BOTANICAL_DEFERRED`).
+   (`src/content/science/imagery/science-pins.js`).
 2. **A credit that is owed is always shown.** A work that owes a credit and cannot show one is not shown
    (`artworkMayBeShown` in `src/visuals/artwork-label.js`). Nothing may weaken the CC0 path.
 3. **The words and the picture agree well enough.** A reader assumes the picture goes with what is said.

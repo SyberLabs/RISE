@@ -663,7 +663,7 @@ export class FractalFlameGenerator {
                 const normalizedDensity = logDensity / maxLogDensity;
                 const alpha = Math.pow(normalizedDensity, 1 / gamma);
 
-                let r = 0, g = 0, b = 0;
+                let r, g, b;
 
                 if (totalDensity > 0) {
                     const avgR = totalR / totalDensity;

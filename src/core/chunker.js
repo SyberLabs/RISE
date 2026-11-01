@@ -313,7 +313,7 @@ function floorOptions(phraseFloor) {
         : {};
 }
 
-export function applyPhraseFloor(phrases, paragraph = '', {
+function applyPhraseFloor(phrases, paragraph = '', {
     floor = PHRASE_FLOOR_WORDS,
     maxWords = MAX_CHUNK_WORDS
 } = {}) {

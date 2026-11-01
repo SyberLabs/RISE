@@ -78,13 +78,13 @@ history, not a distinction; read the status column instead.
 | --- | --- | --- |
 | [specs/ARCHIVE-CANON-SPEC.md](specs/ARCHIVE-CANON-SPEC.md) | Contract | Governs the fifteen-work canon. Cited by `src/content/archive/canon.js`. The authority on what may be served. |
 | [specs/ARCHIVE-CLEANSING-SPEC.md](specs/ARCHIVE-CLEANSING-SPEC.md) | Record | The defect vocabulary from the cleansing campaign. The campaign ended; the vocabulary survives as the regression suite. |
-| [specs/CORPUS-REVIEWER-PROMPT.md](specs/CORPUS-REVIEWER-PROMPT.md) | Record | The prompt those reviews ran under, kept because `scripts/corpus-review-*.mjs` still speak its format. |
+| [specs/CORPUS-REVIEWER-PROMPT.md](specs/CORPUS-REVIEWER-PROMPT.md) | Record | The prompt those reviews ran under. The `corpus-review-*.mjs` scripts that spoke its format were deleted; they are in git history. |
 | [specs/TYPESETTING-CANON.md](specs/TYPESETTING-CANON.md) | Contract | Compositor rules. Matches `src/page/compositor.js`. |
 | [vision/PHRASE-CHUNKING-STUDY.md](vision/PHRASE-CHUNKING-STUDY.md) | Record | Measured, not assumed. Reproduce with `npm run study:chunking`. |
 | [vision/CHUNKER-AWARENESS-STUDY.md](vision/CHUNKER-AWARENESS-STUDY.md) | Record | Reproduce with `npm run study:awareness`. |
 | [vision/LIBRARY-SPEC.md](vision/LIBRARY-SPEC.md) | Record | The critique that produced the canon. Superseded as policy by ARCHIVE-CANON-SPEC. |
 | [ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md](ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md) | Record | The acquisitions dossier the shelf was assembled from. Read by `scripts/archive-dossier.mjs`. |
-| [ingest-records/](ingest-records/) | Record | Dated ingest and audit artifacts alongside it. Read by `scripts/attic/legacy-ingest.mjs` and `scripts/literature-ingest.mjs`; JSON, not prose. |
+| [ingest-records/](ingest-records/) | Record | Dated ingest and audit artifacts alongside it. Read by `scripts/literature-ingest.mjs`; JSON, not prose. |
 
 ## Authoring - scores, rooms, and rendering
 

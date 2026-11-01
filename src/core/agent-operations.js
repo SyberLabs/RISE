@@ -72,15 +72,6 @@ export const AGENT_OPERATION_OPS = Object.freeze([
   'request-compile'
 ]);
 
-const MUTATING_OPS = new Set([
-  'add-source', 'remove-source', 'reorder-source', 'import-asset',
-  'assign-visual', 'replace-visual', 'erase-visual',
-  'assign-audio', 'replace-audio', 'erase-audio',
-  'assign-narration', 'replace-narration', 'erase-narration',
-  'configure-field', 'set-pace', 'create-sync-group', 'remove-sync-group',
-  'set-atmosphere', 'set-render-profile'
-]);
-
 const PENDING_OPS = new Set(['request-asset']);
 const HOST_REQUEST_OPS = new Set(['request-preview', 'request-compile']);
 const UNIMPLEMENTED_OPS = new Set(['create-transition', 'revise-transition']);
@@ -242,7 +233,7 @@ const NO_SOUNDSCAPE = 'none';
  *
  * @returns {{ family: string, id: string, kind: string }}
  */
-export function visualAssetReference(assetId) {
+function visualAssetReference(assetId) {
   const id = String(assetId ?? '');
   for (const prefix of ['project-image:', 'project-video:', 'sequence-asset:']) {
     if (id.startsWith(prefix)) {
@@ -265,7 +256,7 @@ export function visualAssetReference(assetId) {
 }
 
 /** The same for an audio `assetId`: `soundscape:`, `tone:` or `swell:`. */
-export function audioAssetReference(assetId) {
+function audioAssetReference(assetId) {
   const id = String(assetId ?? '');
   if (id.startsWith('soundscape:')) {
     return { family: 'soundscapes', id: id.slice('soundscape:'.length) };

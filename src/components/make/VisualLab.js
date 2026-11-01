@@ -295,10 +295,6 @@ export class VisualLab {
     }
   }
 
-  get currentRecipe() {
-    return this.recipe;
-  }
-
   activate() {
     if (!this.paused) this.field?.resume();
   }

@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 import { WAR_JOURNEY, WAR_PASSAGES, WAR_BOUND_MOVEMENTS } from './war.js';
 import { resolveJourneyPassages, entriesForDivision } from './passages.js';
-import { compileJourney, cueForSource, JourneyCompileError } from '../../core/journey-compiler.js';
+import { compileJourney, cueForSource } from '../../core/journey-compiler.js';
 import { readJourneySegments } from '../journeys/journey-segments.js';
 
 /**

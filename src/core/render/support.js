@@ -246,7 +246,7 @@ export function renderSupportFor(cueKind) {
   return RENDER_SUPPORT[cueKind] || null;
 }
 
-export function collectProgramCues(program) {
+function collectProgramCues(program) {
   const out = [];
   for (const [trackIndex, track] of (program?.tracks || []).entries()) {
     const trackPath = `$.tracks[${trackIndex}]`;

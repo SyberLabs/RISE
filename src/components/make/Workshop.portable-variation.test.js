@@ -516,7 +516,7 @@ it('ignores image files dropped while a saved sequence is loading', async () => 
 it('does not apply a dropped video probe to a newly selected project', async () => {
   const parent = await importedParent();
   const pendingLookup = deferred();
-  const { workshop, container } = makeWorkshop();
+  const { workshop } = makeWorkshop();
   vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
   const createElement = document.createElement.bind(document);
   let metadataVideo;

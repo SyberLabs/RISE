@@ -216,7 +216,6 @@ class AbstractFigureEngine {
   _distributeLateral(count, width, height, margin = 0.1) {
     const positions = [];
     const marginX = width * margin;
-    const marginY = height * margin;
 
     // Spread rocks horizontally with slight vertical variation
     const segmentWidth = (width - 2 * marginX) / count;

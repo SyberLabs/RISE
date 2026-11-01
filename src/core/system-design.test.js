@@ -68,7 +68,7 @@ describe('the system design document describes this tree', () => {
         'jev-dictation.js',      // voice input shared by Home and Library
         'room-chrome.js',        // SyberLabs header, icons and Alert shared by the quieter rooms
         'room-panes.js',         // the pane host shared by Library and Make
-        'atlas.js',              // SyberLabs atmosphere and sigil, shared by Home
+        'atlas.js',              // SyberLabs sigil, shared by Home
         'reading-backdrop.js',   // the featured reading's engine in Home's window
         'home-ask.js'            // Home's Ask for a reading dialog
     ]);

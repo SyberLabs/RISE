@@ -41,23 +41,6 @@ export const BRAINWAVE_BANDS = {
 };
 
 /**
- * Six drone pitches, under their conventional names.
- *
- * Historical note, because the previous comment had it wrong: this set
- * is a twentieth-century construction, not an "ancient healing" scale.
- * The frequencies are offered as pitches. No effect is claimed for any
- * of them.
- */
-export const SOLFEGGIO_FREQUENCIES = {
-    ut: { freq: 396 },
-    re: { freq: 417 },
-    mi: { freq: 528 },
-    fa: { freq: 639 },
-    sol: { freq: 741 },
-    la: { freq: 852 }
-};
-
-/**
  * Carrier frequency options, named by what they are.
  *
  * `sacred` was the shipped default and the name asserted something the
@@ -1326,7 +1309,7 @@ export class AudioEngine {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // LAYER: DRONE (432Hz or Solfeggio)
+    // LAYER: DRONE (432Hz)
     // ═══════════════════════════════════════════════════════════
 
     /**
@@ -1362,18 +1345,6 @@ export class AudioEngine {
         this.setLayerVolume('drone', this.config.layerVolumes.drone, true);
 
         console.log(`[AudioEngine] Drone: ${droneFreq}Hz`);
-    }
-
-    /**
-     * Start drone with solfeggio frequency
-     * @param {'ut' | 're' | 'mi' | 'fa' | 'sol' | 'la'} solfeggio
-     */
-    startSolfeggioDrone(solfeggio) {
-        const info = SOLFEGGIO_FREQUENCIES[solfeggio];
-        if (info) {
-            this.startDrone(info.freq);
-            console.log(`[AudioEngine] Drone pitch ${solfeggio.toUpperCase()}: ${info.freq}Hz`);
-        }
     }
 
     /**
@@ -2541,6 +2512,3 @@ export class AudioEngine {
         this.voiceGain = null;
     }
 }
-
-// Singleton export
-export const audioEngine = new AudioEngine();
