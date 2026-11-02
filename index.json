@@ -2,6 +2,16 @@
   "schema": "syberlabs.changes-index/v1",
   "digests": [
     {
+      "id": "2026-11-02",
+      "audience": "team",
+      "title": "What changed in RISE, 26 October – 2 November",
+      "period": {
+        "from": "2026-10-26T15:53:18.694Z",
+        "to": "2026-11-02T19:00:49.596Z"
+      },
+      "count": 20
+    },
+    {
       "id": "2026-10-26",
       "audience": "team",
       "title": "What changed in RISE, 19–26 October",

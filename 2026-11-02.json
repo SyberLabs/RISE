@@ -1,0 +1,622 @@
+{
+  "schema": "syberlabs.changes-digest/v1",
+  "id": "2026-11-02",
+  "audience": "team",
+  "title": "What changed in RISE, 26 October – 2 November",
+  "period": {
+    "from": "2026-10-26T15:53:18.694Z",
+    "to": "2026-11-02T19:00:49.596Z"
+  },
+  "generatedAt": "2026-11-02T19:00:49.596Z",
+  "model": {
+    "router": "claude-sonnet-5-5",
+    "composer": "claude-sonnet-5-5",
+    "via": "Claude Code"
+  },
+  "changes": [
+    {
+      "number": 766,
+      "title": "Delete dead options, flags and branches (dead-code sweep round 3)",
+      "url": "https://github.com/SyberLabs/RISE/pull/766",
+      "mergedAt": "2026-11-01T04:48:18Z",
+      "mergeSha": "a908c67c63493191650687c7b3aa6f60ce9bc4cc",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 765,
+      "title": "Delete dead code: 22k lines of unused files, exports, locals and CSS",
+      "url": "https://github.com/SyberLabs/RISE/pull/765",
+      "mergedAt": "2026-11-01T01:24:09Z",
+      "mergeSha": "2d2e403e34f2337f29671014d34fcef591d075b4",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 761,
+      "title": "Outer pages: the Midnight theme of syberlabs.io",
+      "url": "https://github.com/SyberLabs/RISE/pull/761",
+      "mergedAt": "2026-10-31T00:19:32Z",
+      "mergeSha": "19aabc777cf712b1c5ac25a25e6c3cb3d959232a",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 760,
+      "title": "README: credit SyberLabs as the builder",
+      "url": "https://github.com/SyberLabs/RISE/pull/760",
+      "mergedAt": "2026-10-28T09:36:29Z",
+      "mergeSha": "8b9c5ae98ebb261059526615657c7c49ea72f227",
+      "route": {
+        "audience": "skip",
+        "significance": "minor",
+        "kind": "records"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 759,
+      "title": "Figure kit: a system figure kind, with reference cases and a contact sheet",
+      "url": "https://github.com/SyberLabs/RISE/pull/759",
+      "mergedAt": "2026-10-28T09:11:55Z",
+      "mergeSha": "0e8b58e06c7b33a9b58a8554dea221eaac857b94",
+      "route": {
+        "audience": "team",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 758,
+      "title": "RISE Changes: a checked brand record, and listed teams' digests at /changes/<slug>",
+      "url": "https://github.com/SyberLabs/RISE/pull/758",
+      "mergedAt": "2026-10-28T08:58:34Z",
+      "mergeSha": "3df636472af0c206c806b60d614e080cd3a271ac",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 757,
+      "title": "RISE Live: a light-room switch on the home screen, the Demo names its pictures, the eye stays in its socket",
+      "url": "https://github.com/SyberLabs/RISE/pull/757",
+      "mergedAt": "2026-10-27T09:01:48Z",
+      "mergeSha": "0158bedc8f0f382c80fb486d687abeb9333e857e",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "design"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 756,
+      "title": "Align Old Masters readiness fixture with image-owned rights",
+      "url": "https://github.com/SyberLabs/RISE/pull/756",
+      "mergedAt": "2026-10-27T04:32:18Z",
+      "mergeSha": "0b82989b5bdab4bd330c4edc135ca90c90eba8f4",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 752,
+      "title": "Live: the Landscapes and Earth and sky collections, from the owner's review, opening on the owner's favourites (LIVE-041)",
+      "url": "https://github.com/SyberLabs/RISE/pull/752",
+      "mergedAt": "2026-10-27T04:18:41Z",
+      "mergeSha": "b23212e41bebd0060366a0767c5979b50eb498b7",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 747,
+      "title": "CSP: the injected analytics beacon reports to the site's own /cdn-cgi/rum, so connect-src admits no Insights host (FND-017)",
+      "url": "https://github.com/SyberLabs/RISE/pull/747",
+      "mergedAt": "2026-10-27T04:11:06Z",
+      "mergeSha": "a690b7e8b945b7829e478899f0d9424a80ad97f5",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 750,
+      "title": "Composer: refuse a scene that names a collection; offer only the engines the card can show",
+      "url": "https://github.com/SyberLabs/RISE/pull/750",
+      "mergedAt": "2026-10-27T04:02:29Z",
+      "mergeSha": "b00cf65cc8102d5a57d4f52144f150f765cd8432",
+      "route": {
+        "audience": "both",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 755,
+      "title": "Allow CI and full unit validation time for slow setup",
+      "url": "https://github.com/SyberLabs/RISE/pull/755",
+      "mergedAt": "2026-10-27T03:55:13Z",
+      "mergeSha": "392c657bac2c0d63eac047ac6be5e548ffba5203",
+      "route": {
+        "audience": "team",
+        "significance": "minor",
+        "kind": "infrastructure"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 753,
+      "title": "Rijksmuseum: read the image's own rights, never the CC0 of the record about it",
+      "url": "https://github.com/SyberLabs/RISE/pull/753",
+      "mergedAt": "2026-10-27T03:37:14Z",
+      "mergeSha": "a26f6a654bdee17983a6228c4e427301bcf55720",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 754,
+      "title": "Give static recitation retakes new immutable audio URLs",
+      "url": "https://github.com/SyberLabs/RISE/pull/754",
+      "mergedAt": "2026-10-27T02:24:29Z",
+      "mergeSha": "2cbae51872629ea75aeaa348acd79d457715411b",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 745,
+      "title": "Check out RISE at the called workflow's own commit in changes-public",
+      "url": "https://github.com/SyberLabs/RISE/pull/745",
+      "mergedAt": "2026-10-27T00:12:50Z",
+      "mergeSha": "8f4dc0a82cd05cc0d1b5da33978e50b83de86de9",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 748,
+      "title": "Live: astronomy in Sophia's circle, one photograph per scene, and a paused reading takes a named visual (LIVE-040)",
+      "url": "https://github.com/SyberLabs/RISE/pull/748",
+      "mergedAt": "2026-10-26T23:37:20Z",
+      "mergeSha": "cff309ee209d88c5d1684c9d46dc3730218eb0c7",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 740,
+      "title": "RISE Live: the light room — Porcelain, opt-in, cream and blue (LIVE-034)",
+      "url": "https://github.com/SyberLabs/RISE/pull/740",
+      "mergedAt": "2026-10-26T22:28:44Z",
+      "mergeSha": "ec53f05f59f285a8fa7f193a2dbfc942fb37190e",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 746,
+      "title": "RISE Live: the Astronomy collection hung in the room, with its credit (LIVE-039)",
+      "url": "https://github.com/SyberLabs/RISE/pull/746",
+      "mergedAt": "2026-10-26T22:18:16Z",
+      "mergeSha": "4031c3225230e22f0d926e56971a65a7b8a6cb6f",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 742,
+      "title": "RISE Live: the Reader's Klee Lines and night streaks in the room (LIVE-036)",
+      "url": "https://github.com/SyberLabs/RISE/pull/742",
+      "mergedAt": "2026-10-26T22:06:50Z",
+      "mergeSha": "e17bda7bb8a6af26122838a34314e9b7f3cf9ad6",
+      "route": {
+        "audience": "readers",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 744,
+      "title": "Live: who makes the pictures (RISE's own visuals · the model · another model), and scenes read as a model means them (LIVE-038)",
+      "url": "https://github.com/SyberLabs/RISE/pull/744",
+      "mergedAt": "2026-10-26T21:41:17Z",
+      "mergeSha": "5f22a8f03359d2f52bc733e509f604258f709898",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 743,
+      "title": "Design: collection imagery (astronomy and landscapes) in RISE Live (LIVE-037)",
+      "url": "https://github.com/SyberLabs/RISE/pull/743",
+      "mergedAt": "2026-10-26T21:36:17Z",
+      "mergeSha": "91267984f2475e107665834b67ba604ad951f045",
+      "route": {
+        "audience": "team",
+        "significance": "notable",
+        "kind": "records"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 741,
+      "title": "Live: name any OpenRouter model in the room (free Nemotron included), asked with reasoning off (LIVE-035)",
+      "url": "https://github.com/SyberLabs/RISE/pull/741",
+      "mergedAt": "2026-10-26T21:24:14Z",
+      "mergeSha": "7590a390cb7a49c005df380637b1c2355a1efbfd",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 738,
+      "title": "Let Cloudflare Web Analytics run, and say so in the Privacy Policy (FND-017)",
+      "url": "https://github.com/SyberLabs/RISE/pull/738",
+      "mergedAt": "2026-10-26T21:17:07Z",
+      "mergeSha": "ffec7e34ff3d49397ed2f14fc705f169a51d65c2",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "infrastructure"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 739,
+      "title": "Live Demo: offer the neural network, not the tesseract, on a first visit",
+      "url": "https://github.com/SyberLabs/RISE/pull/739",
+      "mergedAt": "2026-10-26T21:16:13Z",
+      "mergeSha": "772dd0c33c3dc9c0d8ee2ef93fe049deb823d79f",
+      "route": {
+        "audience": "readers",
+        "significance": "minor",
+        "kind": "fix"
+      },
+      "included": false,
+      "reason": "routed"
+    },
+    {
+      "number": 732,
+      "title": "Maths seen and heard from one parse, in RISE Live and Composer (LIVE-032)",
+      "url": "https://github.com/SyberLabs/RISE/pull/732",
+      "mergedAt": "2026-10-26T21:07:56Z",
+      "mergeSha": "02fff5214f49029099cb36c0f67ed172381c4967",
+      "route": {
+        "audience": "both",
+        "significance": "major",
+        "kind": "feature"
+      },
+      "included": true,
+      "reason": "routed"
+    },
+    {
+      "number": 736,
+      "title": "RISE Live: the experience audit's six findings (LIVE-033)",
+      "url": "https://github.com/SyberLabs/RISE/pull/736",
+      "mergedAt": "2026-10-26T17:44:03Z",
+      "mergeSha": "e6dc596c6dc4c9effd2a048ca987408b1ac2fa38",
+      "route": {
+        "audience": "both",
+        "significance": "notable",
+        "kind": "fix"
+      },
+      "included": true,
+      "reason": "routed"
+    }
+  ],
+  "current": {
+    "schema": "rise.current.v2",
+    "id": "rise-week-2026-11-02",
+    "title": "RISE this week: the live room, new figures, a cleanup",
+    "theme": "prism",
+    "origin": {
+      "kind": "model",
+      "name": "claude-sonnet-5-5",
+      "provider": "Anthropic, via Claude Code"
+    },
+    "scenes": [
+      {
+        "id": "picture-1",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Maths in RISE Live</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">Maths in RISE Live</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#F4F4FF\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">A formula</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Raw TeX, monospace</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Typeset inline</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">The voice</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Read the symbols</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Spoken as maths</text><text x=\"56\" y=\"412\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">Prices like $5 and $10</text><text x=\"56\" y=\"448\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Read as a formula</text><line x1=\"384\" y1=\"439\" x2=\"416\" y2=\"439\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 432 L416 439 L408 446\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"448\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Stay prices</text></svg>"
+      },
+      {
+        "id": "picture-2",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Who makes the pictures</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">Who makes the pictures</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">RISE's own visuals</text><text x=\"360.95\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">engines only</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">The model</text><text x=\"360.95\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">as before</text><circle cx=\"66\" cy=\"261\" r=\"7\" fill=\"#E84BFF\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Another model</text><text x=\"360.95\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">a second model</text></svg>"
+      },
+      {
+        "id": "picture-3",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>The light room</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">The light room</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#F4F4FF\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">Ground</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Dark</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Warm porcelain</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">Face</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Sophia</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Cobalt</text><text x=\"56\" y=\"412\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">Where to switch</text><text x=\"56\" y=\"448\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Settings only</text><line x1=\"384\" y1=\"439\" x2=\"416\" y2=\"439\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 432 L416 439 L408 446\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"448\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Home and Settings</text></svg>"
+      },
+      {
+        "id": "picture-4",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Works in each collection</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">Works in each collection</text><text x=\"56\" y=\"108\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">As reviewed for RISE Live</text><rect x=\"120\" y=\"190\" width=\"140\" height=\"240\" rx=\"3\" fill=\"#F4F4FF\" fill-opacity=\"0.34\"/><text x=\"190\" y=\"174\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4F4FF\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">216</text><text x=\"190\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.7\" text-anchor=\"middle\">Astronomy</text><rect x=\"330\" y=\"354.44\" width=\"140\" height=\"75.56\" rx=\"3\" fill=\"#F4F4FF\" fill-opacity=\"0.34\"/><text x=\"400\" y=\"338.44\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4F4FF\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">68</text><text x=\"400\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.7\" text-anchor=\"middle\">Landscapes</text><rect x=\"540\" y=\"357.78\" width=\"140\" height=\"72.22\" rx=\"3\" fill=\"#F4F4FF\" fill-opacity=\"0.34\"/><text x=\"610\" y=\"341.78\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"34\" fill=\"#F4F4FF\" fill-opacity=\"0.75\" text-anchor=\"middle\" font-weight=\"600\" font-variant-numeric=\"tabular-nums\">65</text><text x=\"610\" y=\"472\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.7\" text-anchor=\"middle\">Earth, sky</text><line x1=\"86\" y1=\"430\" x2=\"714\" y2=\"430\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/></svg>"
+      },
+      {
+        "id": "picture-5",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>What a Changes figure can do</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">What a Changes figure can do</text><text x=\"56\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">Before</text><text x=\"428\" y=\"146\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">After</text><line x1=\"56\" y1=\"162\" x2=\"744\" y2=\"162\" stroke=\"#F4F4FF\" stroke-opacity=\"0.2\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"56\" y=\"204\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">Colours</text><text x=\"56\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Nine themes only</text><line x1=\"384\" y1=\"231\" x2=\"416\" y2=\"231\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 224 L416 231 L408 238\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"240\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">A company's brand</text><text x=\"56\" y=\"308\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\" font-style=\"italic\">Services and queues</text><text x=\"56\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Plain flows</text><line x1=\"384\" y1=\"335\" x2=\"416\" y2=\"335\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><path d=\"M408 328 L416 335 L408 342\" fill=\"none\" stroke=\"#F4F4FF\" stroke-opacity=\"0.55\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><text x=\"428\" y=\"344\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">System figure</text></svg>"
+      },
+      {
+        "id": "picture-6",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Four quiet fixes</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">Four quiet fixes</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Cloudflare counts</text><text x=\"341.98\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">page views only</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Digest checkout</text><text x=\"341.98\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">right commit</text><line x1=\"56\" y1=\"261\" x2=\"76\" y2=\"261\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Audio retakes</text><text x=\"341.98\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">new addresses</text><circle cx=\"66\" cy=\"317\" r=\"7\" fill=\"#E84BFF\"/><text x=\"96\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Rights gate</text><text x=\"341.98\" y=\"326\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">image's own rights</text></svg>"
+      },
+      {
+        "id": "picture-7",
+        "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 500\"><title>Theme and cleanup</title><text x=\"56\" y=\"70\" font-family=\"Georgia, 'Iowan Old Style', 'Times New Roman', serif\" font-size=\"40\" fill=\"#F4F4FF\" text-anchor=\"start\">Theme and cleanup</text><line x1=\"56\" y1=\"149\" x2=\"76\" y2=\"149\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Midnight theme</text><text x=\"382.23\" y=\"158\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">colours only</text><line x1=\"56\" y1=\"205\" x2=\"76\" y2=\"205\" stroke=\"#F4F4FF\" stroke-opacity=\"0.35\" stroke-width=\"1.5\" stroke-linecap=\"round\"/><text x=\"96\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.8\" text-anchor=\"start\">Dead files, exports</text><text x=\"382.23\" y=\"214\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#F4F4FF\" fill-opacity=\"0.6\" text-anchor=\"start\">unused code</text><circle cx=\"66\" cy=\"261\" r=\"7\" fill=\"#E84BFF\"/><text x=\"96\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\" font-weight=\"600\">Dead options, flags</text><text x=\"382.23\" y=\"270\" font-family=\"system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif\" font-size=\"25\" fill=\"#E84BFF\" text-anchor=\"start\">102 of 147 cut</text></svg>"
+      },
+      {
+        "id": "eye",
+        "engine": "still"
+      }
+    ],
+    "beats": [
+      {
+        "say": "This week in RISE: the live room, new figures for Changes, and a large cleanup."
+      },
+      {
+        "say": "RISE Live first. A first visit now says to ask about black holes and more, and offers three questions you can press. After you ask, the stage takes the focus, so Space and the other keys work. Figures now use the reading's own colours and font."
+      },
+      {
+        "say": "A beat that starts a scene and cues it now works, because the cue is retried for up to two seconds. And the account check now runs only for browsers that have signed in, which ends a console error for everyone else."
+      },
+      {
+        "say": "Maths is now typeset and spoken from one reading of each formula. The lowest energy, E sub 0 equals one half h bar omega, shows at the size of the words, and the voice says it that way.",
+        "scene": "picture-1"
+      },
+      {
+        "say": "A display equation appears alone and centred while it is said, and the voice pauses after a formula. Prices stay prices."
+      },
+      {
+        "say": "Two new choices in the room. Under OpenRouter, a Model field names the model asked, free ones included. And a quiet line now opens Who makes the pictures, with three choices.",
+        "scene": "picture-2"
+      },
+      {
+        "say": "A reading on a model that thinks by default now takes about one and a half seconds, not 23 to 54. RISE now asks for reasoning to be off. When a model's provider is down, the room says so honestly."
+      },
+      {
+        "say": "Free models now get visuals. In a room where only RISE draws, free Nemotron put a visual in 5 of 5 readings. Before, none of its 4 scene lines survived."
+      },
+      {
+        "say": "There is now a light room. In Settings, choose Porcelain: a warm porcelain ground, navy ink and a cobalt face. A word in the top-left corner of the home screen switches between the light room and the dark room.",
+        "scene": "picture-3"
+      },
+      {
+        "say": "Visuals made of light keep a night of their own. The attractor and the flame show through the face's aperture on deep navy. Figures are drawn in ink on the cream."
+      },
+      {
+        "say": "The Demo's line now reads Answered by Demo, and the eye is more restrained. The pupil moves inside the iris instead of the whole eye sliding."
+      },
+      {
+        "say": "The room can now hang photographs from reviewed collections. A design came first. Astronomy has 216 works, and landscapes and earth and sky followed, with 68 and 65 works kept.",
+        "scene": "picture-4"
+      },
+      {
+        "say": "Say show me astronomy and RISE answers at once, with no model call. The photograph carries a credit with its title, makers and licence."
+      },
+      {
+        "say": "After the owner's trial, the photograph now sits in Sophia's circle, one photograph per scene. Its credit is a caption under the circle. A paused reading now takes a named visual and plays on."
+      },
+      {
+        "say": "Landscapes and earth and sky open on the owner's favourites. A missing NASA credit is fixed too."
+      },
+      {
+        "say": "The words klee and night streaks now show Genesis and the attractor with night streaks.",
+        "scene": "eye"
+      },
+      {
+        "say": "Now Changes. Figures can be drawn in a company's own colours, and a new system figure shows how a change moved what flows between services, queues and stores.",
+        "scene": "picture-5"
+      },
+      {
+        "say": "A brand is only data: a name, a ground, an ink and an accent. One that would make a label unreadable is refused. GitHits is the first brand, provisional until it confirms its colours. No team is listed until its company confirms, so the live site shows nothing new yet."
+      },
+      {
+        "say": "The system figure draws the parts a change touched, the paths between them, and up to three states: before, after, and a rollback. Three real OpenStatus cases are kept as reference cases. Whether the composer picks it on its own is not yet verified."
+      },
+      {
+        "say": "Behind the scenes, four fixes. Cloudflare Web Analytics now runs and the Privacy Policy says so. The shared digest workflow checks out the right commit. Recitation retakes get new audio addresses. The Rijksmuseum gate reads the image's own rights.",
+        "scene": "picture-6"
+      },
+      {
+        "say": "On analytics: the site policy now admits Cloudflare's script. The Privacy Policy says the counter sets no cookie and uses no identifier, and that anything that did would be asked about first."
+      },
+      {
+        "say": "Old audio files stay intact, and a retake gets an address named from its own hash. A returning reader's browser is no longer stuck on a stale take. No production audio is regenerated."
+      },
+      {
+        "say": "The Rijksmuseum check used to accept the public-domain tag of the record about an image, so an In Copyright image could pass. Every pinned work is public domain by its image's own rights, so nothing shown changes."
+      },
+      {
+        "say": "Two more changes. Plus, Privacy, Terms, Apps and the Try entry screen now wear the Midnight theme of syberlabs.io, colours only. And a cleanup removed dead code in three rounds.",
+        "scene": "picture-7"
+      },
+      {
+        "say": "Two rounds removed about 22 thousand lines of unused files and exports."
+      },
+      {
+        "say": "A third round removed dead options and flags, among them the ASCII render language and an affect switch nothing set. Of 147 candidates, 102 survived verification and were deleted, and the reviewer restored none."
+      }
+    ]
+  },
+  "sources": {
+    "1": [
+      736
+    ],
+    "2": [
+      736
+    ],
+    "3": [
+      732
+    ],
+    "4": [
+      732
+    ],
+    "5": [
+      741,
+      744
+    ],
+    "6": [
+      741
+    ],
+    "7": [
+      744
+    ],
+    "8": [
+      740,
+      757
+    ],
+    "9": [
+      740
+    ],
+    "10": [
+      757
+    ],
+    "11": [
+      743,
+      746,
+      752
+    ],
+    "12": [
+      746
+    ],
+    "13": [
+      748,
+      746
+    ],
+    "14": [
+      752
+    ],
+    "15": [
+      742
+    ],
+    "16": [
+      758,
+      759
+    ],
+    "17": [
+      758
+    ],
+    "18": [
+      759
+    ],
+    "19": [
+      738,
+      745,
+      754,
+      753
+    ],
+    "20": [
+      738
+    ],
+    "21": [
+      754
+    ],
+    "22": [
+      753
+    ],
+    "23": [
+      761,
+      765,
+      766
+    ],
+    "24": [
+      765
+    ],
+    "25": [
+      766
+    ]
+  },
+  "quality": {
+    "firstPass": false,
+    "repairs": {
+      "composition": 2,
+      "illustrator": 0
+    },
+    "checks": {
+      "composition": 1,
+      "density": 1,
+      "number": 1
+    },
+    "density": {
+      "pictures": 7,
+      "includedChanges": 20,
+      "speakingBeats": 25,
+      "pictured": 22,
+      "longestUnpictured": 2
+    }
+  }
+}
