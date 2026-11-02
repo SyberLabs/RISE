@@ -164,7 +164,7 @@ flowchart LR
     app["app<br/>composition root<br/>24 modules"]
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
     components["components<br/>routed views<br/>57 modules"]
-    content["content<br/>texts, imagery, journeys<br/>284 modules"]
+    content["content<br/>texts, imagery<br/>284 modules"]
     core["core<br/>session, player, router<br/>182 modules"]
     enterprise["enterprise<br/>talk program, speaker rail<br/>35 modules"]
     live["live<br/>realtime Current: events, runtime, providers<br/>76 modules"]
@@ -484,8 +484,7 @@ owning the glyph-mask state machine.
   cannot carry out and erase cannot clear.
 - **The renderer contract moves with its document.** What a third party builds
   against (the Current v2, manifests and cues, generated scenes and their
-  worker protocol, the MCP tools) is `docs/specs/RISE-SDK.md`, held to the code
-  by `src/core/rise-sdk.test.js`.
+  worker protocol, the MCP tools) is `docs/specs/RISE-SDK.md`.
 
 ---
 
@@ -806,7 +805,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.17 The catalogue is derived at build time
 
-- **Chosen:** `scripts/build-division-index.mjs` precomputes division structure;
+- **Chosen:** division structure is precomputed and committed;
   withheld divisions go to a separate file nothing shipping imports.
 - **Rejected:** deriving divisions in every browser.
 - **Why:** it lets a card say how many chapters a work has without downloading
@@ -1415,13 +1414,14 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.47 The arena is a frozen file; live runs are the reader's
 
 - **Chosen:** the Decision Arena compares deciders on RISE's own fixed cases
-  offline. An operator runs `scripts/arena/arena.mjs` by hand, on the
+  offline. An operator ran the harness by hand (deleted from the tree after
+  a908c67c; restore it from git to capture a new run), on the
   operator's own keys, under a spending cap; it refuses to run in CI, and
   without an explicit billing flag whenever a billed decider is asked. A
   decider left out is recorded as `not run: <reason>`, in the run and its
   replay. The capture is frozen into one file named
   by the hash of its bytes, served immutable beside an index that revalidates.
-  `scripts/arena/arena-file.mjs` refuses a file whose bytes do not match its
+  The harness refused a file whose bytes do not match its
   name or are not the one canonical encoding, whose schema is unknown, or whose harness had uncommitted changes
   (a mock run, a pipeline check never committed, is exempt). Every decider's answers pass through the same `admitAnswers` the browser
   uses, and both the raw and the admitted decision are kept. Beside each run
@@ -1435,8 +1435,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Why:** a comparison anyone can check must be the same bytes for everyone,
   and RISE spends no shared inference (§2, #294). A frozen file costs nothing
   per view, names the commit that produced it, and cannot be edited without
-  changing its name. Nothing under `src/` imports the harness, and the built
-  app never names the OpenAI endpoint; `scripts/arena/arena.test.mjs` holds both.
+  changing its name. The built app never names the OpenAI endpoint.
 - **Status:** settled.
 
 ---
@@ -1450,8 +1449,8 @@ Stated plainly so it is never rediscovered as a surprise.
   `ROUTE_ALIASES` and `ROUTE_PANES` in `src/core/route-url.js` map each of them
   onto one of the five rooms. The table only grows; deleting an entry breaks
   an address somebody holds.
-- **The build needs ffmpeg.** Recitation is encoded to Opus
-  (`scripts/lib/opus.mjs`), and the offline render path encodes with it too
+- **The build needs ffmpeg.** Recitation is encoded to Opus,
+  and the offline render path encodes with it too
   (§8.5, §8.6). A machine without it cannot rebuild the voice assets.
 - **The corpus is still versioned in the application repository**, even though
   it no longer travels through the module graph. §8.2 removed the build-time

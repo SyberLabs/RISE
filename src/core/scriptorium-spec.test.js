@@ -28,12 +28,9 @@ const CITING_FILES = Object.freeze([
     'src/core/curator-context.js',
     'src/core/curator-prompt.js',
     'src/core/scriptorium-resolve.js',
-    // The headless sequence and the second entrance onto it. Both cite the
-    // spec, so both are held to citing a section that exists — §13 was written
-    // in the same pass, because the exit-status mapping a red team scripts
-    // against cannot live only in a comment.
+    // The headless sequence cites the spec, so it is held to citing a section
+    // that exists.
     'src/core/scriptorium-session.js',
-    'src/core/scriptorium-cli.js',
     // A reader's own text became a source the room composes from, so the
     // record that makes it one is held to citing the section that states
     // the law it obeys — §7a, written in the same pass for the same reason
