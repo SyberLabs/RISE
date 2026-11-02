@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import worker from './index.mjs';
+import retiredNetlify, { config as netlifyConfig } from '../netlify/functions/retired-inference.mjs';
 import { RETIRED_INFERENCE_ROUTES } from './retired-inference.mjs';
 
 const SITE = 'https://rise.example';
@@ -40,6 +41,11 @@ describe('Cloudflare API Worker', () => {
       expect(body.error.message).toMatch(/OpenRouter account or run RISE locally/u);
     }
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('answers the same retired routes on Netlify previews', async () => {
+    expect([...netlifyConfig.path].sort()).toEqual([...RETIRED_INFERENCE_ROUTES].sort());
+    expect((await retiredNetlify(new Request(`${SITE}/api/jev/route`, { method: 'POST' }))).status).toBe(410);
   });
 
   it('no longer serves the catalog: it is a static file, so the route is an unknown API route', async () => {
@@ -108,7 +114,7 @@ describe('/.well-known/', () => {
 });
 
 describe('no shared inference credential in server code', () => {
-  const serverFiles = ['worker'].flatMap(dir => readdirSync(dir)
+  const serverFiles = ['worker', 'netlify/functions'].flatMap(dir => readdirSync(dir)
     .filter(name => /\.m?js$/.test(name) && !name.includes('.test.'))
     .map(name => `${dir}/${name}`));
 

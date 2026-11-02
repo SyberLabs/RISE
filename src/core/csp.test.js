@@ -8,12 +8,12 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const headers = readFileSync(resolve(process.cwd(), 'public/_headers'), 'utf8');
+const toml = readFileSync(resolve(process.cwd(), 'netlify.toml'), 'utf8');
 const voice = readFileSync(
     resolve(process.cwd(), 'src/audio/voice.js'),
     'utf8'
 );
-const csp = headers.match(/Content-Security-Policy: (.+)/)?.[1] ?? '';
+const csp = toml.match(/Content-Security-Policy = "([^"]+)"/)?.[1] ?? '';
 const directive = name =>
     csp.split(';').map(item => item.trim()).find(item => item.startsWith(name)) ?? '';
 
@@ -43,7 +43,7 @@ describe('content security policy', () => {
     it('allows same-origin static voice media', () => {
         expect(directive('media-src')).toContain("'self'");
         expect(directive('media-src')).toContain('blob:');
-        expect(headers).toContain('/audio/recitation/*');
+        expect(toml).toContain('for = "/audio/recitation/*"');
     });
 
     it('still names every content host the archive reads from', () => {

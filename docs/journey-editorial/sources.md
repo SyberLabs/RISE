@@ -178,5 +178,4 @@ source problems: reanchoring does not clear the Jünger gate.
 
 Relevant policy and score references: [Journey specification](../vision/JOURNEYS-SPEC.md)
 §§1.3–1.5, 2.4, and 10; [canonical-source policy](../specs/ARCHIVE-CANON-SPEC.md)
-§§5 and 8; [War score](../../src/content/journeys/war.js); [demonstration
-score](../../src/content/journeys/demo.js).
+§§5 and 8; the War and demonstration scores (deleted after a908c67c; restore from git).

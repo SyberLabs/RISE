@@ -122,8 +122,8 @@ describe('Engine + policy seams', () => {
   });
 
   it('the CSP allows the chant host — a missing host is silent absence, not an error', () => {
-    const headers = readFileSync(resolve('public/_headers'), 'utf8');
-    const connectSrc = /connect-src([^;]*)/.exec(headers)?.[1] ?? '';
+    const toml = readFileSync(resolve('netlify.toml'), 'utf8');
+    const connectSrc = /connect-src([^;]*)/.exec(toml)?.[1] ?? '';
     expect(connectSrc).toContain('https://upload.wikimedia.org');
   });
 
