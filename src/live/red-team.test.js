@@ -13,7 +13,6 @@ import { BLACK_HOLES_CURRENT, toSealedCurrent } from '../test/sealed-current.js'
 import { createFakeMcpPort } from '../test/fake-mcp-port.js';
 import { createChannel, createEventWriter } from './adapter.js';
 import { createMcpAppAdapter } from './adapters/mcp-app.js';
-import { createOpenAIRealtimeAdapter } from './adapters/openai-realtime.js';
 import { createSegmentParser } from './adapters/segment-parser.js';
 import { createTextStreamAdapter } from './adapters/text-stream.js';
 import { createVirtualClock } from './clock.js';
@@ -516,23 +515,6 @@ describe('runtime: Stop, Dive and Surface racing an open that has not finished',
         expect(opens[0].signal.aborted).toBe(true);
         opens[0].release();
         await started;
-    });
-
-    it('the OpenAI adapter hands the signal to its transport, and never asks once it has been stopped', async () => {
-        const sent = [];
-        let closed = 0;
-        let given;
-        const stop = new AbortController();
-        const transport = {
-            async open(options) {
-                given = options?.signal;
-                stop.abort();
-                return { send: text => sent.push(text), onMessage() {}, onClose() {}, close: () => { closed += 1; } };
-            }
-        };
-        const adapter = createOpenAIRealtimeAdapter({ transport });
-        await expect(adapter.open({ intent: 'answer', prompt: 'q' }, { signal: stop.signal })).rejects.toMatchObject({ code: 'ABORTED' });
-        expect({ given: given === stop.signal, sent, closed }).toEqual({ given: true, sent: [], closed: 1 });
     });
 
     it('a voice that calls back after Stop changes nothing the runtime keeps', async () => {

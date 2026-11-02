@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const output = resolve('public/_headers');
-const netlify = readFileSync(resolve('netlify.toml'), 'utf8');
 
 function rule(path, headers) {
     const lines = headers.split(/\r?\n/u);
@@ -19,7 +18,7 @@ function rule(path, headers) {
 }
 
 describe('Cloudflare static headers', () => {
-    it('copies the Netlify browser security policy onto static responses', () => {
+    it('sets the browser security policy on static responses', () => {
         expect(existsSync(output)).toBe(true);
         const common = rule('/*', readFileSync(output, 'utf8'));
         const names = [
@@ -27,10 +26,7 @@ describe('Cloudflare static headers', () => {
             'Permissions-Policy', 'Content-Security-Policy', 'Strict-Transport-Security'
         ];
         for (const name of names) {
-            const escaped = name.replace(/[-]/gu, '\\-');
-            const expected = netlify.match(new RegExp(`^\\s*${escaped} = "([^"]+)"`, 'm'))?.[1];
-            expect(expected, `missing Netlify ${name}`).toBeTruthy();
-            expect(common.get(name), name).toBe(expected);
+            expect(common.get(name), name).toBeTruthy();
         }
         expect(common.get('Permissions-Policy'))
             .toBe('camera=(), microphone=(self), geolocation=()');

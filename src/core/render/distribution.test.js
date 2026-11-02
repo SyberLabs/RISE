@@ -3,51 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildVerticalSlice } from '../../../tools/render/vertical-slice.js';
-import { renderDistributionPackages, renderPreview } from './distribution.js';
+import { renderPreview } from './distribution.js';
 import { verifyRenderPackage } from '../../../tools/render/verify.js';
 import { writeRenderPackageDir, readRenderPackageDir } from '../../../tools/render/package-fs.js';
-import { owedCreditLines } from './package.js';
 import { encodeBmp } from './bmp.js';
-import { execFileSync } from 'node:child_process';
 
 describe('distribution packages', () => {
-  it('yields portrait, square, and landscape packages from one composition', async () => {
-    const slice = await buildVerticalSlice();
-    const set = await renderDistributionPackages(slice, { tier: 'draft' });
-    const ids = Object.keys(set.packages);
-    expect(ids).toEqual([
-      'social-portrait-1080',
-      'social-square-1080',
-      'cinema-landscape-1080'
-    ]);
-    expect(new Set(Object.values(set.packages).map(item => item.job.programHash)).size).toBe(1);
-    expect(set.packages['social-portrait-1080'].job.viewport).toEqual({
-      width: 1080, height: 1920, pixelRatio: 1
-    });
-    expect(set.packages['social-square-1080'].job.viewport).toEqual({
-      width: 1080, height: 1080, pixelRatio: 1
-    });
-    expect(set.packages['cinema-landscape-1080'].job.viewport).toEqual({
-      width: 1920, height: 1080, pixelRatio: 1
-    });
-
-    const owed = owedCreditLines({ sources: slice.sources, inventory: slice.inventory });
-    for (const rendered of Object.values(set.packages)) {
-      expect(rendered.package['poster.bmp'][0]).toBe(0x42);
-      expect(rendered.package['poster.bmp'][1]).toBe(0x4d);
-      expect(rendered.package['thumbnail.bmp'].length).toBeLessThan(rendered.package['poster.bmp'].length);
-      expect(rendered.package['render-manifest.json'].quality).toBe('draft');
-      const credits = rendered.package['credits.txt'];
-      for (const line of owed) expect(credits).toContain(line);
-      const report = await verifyRenderPackage(rendered.package);
-      expect(report.ok).toBe(true);
-      expect(report.answers.hashesMatch).toBe(true);
-      expect(report.answers.degradations).toEqual([]);
-      expect(report.answers.rightsUnresolved).toEqual([]);
-    }
-    const posters = Object.values(set.packages).map(item => item.package['render-manifest.json'].outputHashes.poster);
-    expect(new Set(posters).size).toBe(3);
-  }, 30_000);
 
   it('records an excerpt range and keeps source coordinates on captions', async () => {
     const slice = await buildVerticalSlice();
@@ -69,13 +30,10 @@ describe('distribution packages', () => {
 
   it('writes a directory the verification CLI can inspect', async () => {
     const slice = await buildVerticalSlice();
-    const set = await renderDistributionPackages(slice, {
-      tier: 'draft',
-      profiles: ['social-portrait-1080']
-    });
+    const preview = await renderPreview(slice, { fromMs: 1000, toMs: 4000, tier: 'draft' });
     const dir = mkdtempSync(join(tmpdir(), 'rise-render-'));
     try {
-      writeRenderPackageDir(dir, set.packages['social-portrait-1080'].package);
+      writeRenderPackageDir(dir, preview.package);
       const roundTrip = await verifyRenderPackage(readRenderPackageDir(dir));
       expect(roundTrip.ok).toBe(true);
     } finally {

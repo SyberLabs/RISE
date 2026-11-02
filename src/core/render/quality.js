@@ -22,12 +22,6 @@ const RENDER_QUALITY_TIERS = Object.freeze({
   })
 });
 
-export const DISTRIBUTION_PROFILE_IDS = Object.freeze([
-  'social-portrait-1080',
-  'social-square-1080',
-  'cinema-landscape-1080'
-]);
-
 export function qualityTier(id = 'draft') {
   return RENDER_QUALITY_TIERS[id] || RENDER_QUALITY_TIERS.draft;
 }

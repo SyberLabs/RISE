@@ -13,11 +13,11 @@
  * tokenised — 16.3 million words. `identity.test.js` already pays 22s to load
  * them once, and a second full pass would put the unit suite past four minutes
  * for a corpus that changes on acquisition days only. So it is derived offline
- * by `scripts/audit-division-identity.mjs`, committed, and asserted here — the
+ * by an audit (its script is in git history), committed, and asserted here — the
  * same shape as `division-index.json`, for the same reason.
  *
  * The coverage check is the half that matters most: a work added to the shelf
- * without re-running the audit fails here rather than passing unexamined.
+ * without a fresh audit fails here rather than passing unexamined.
  */
 import { describe, expect, it } from 'vitest';
 import REPORT from './division-identity.json';

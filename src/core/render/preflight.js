@@ -428,20 +428,3 @@ export async function preflightRenderJob(input = {}) {
     }
   });
 }
-
-export function describePreflightFailure(reportOrError) {
-  if (reportOrError instanceof RenderError) {
-    return [
-      reportOrError.message,
-      reportOrError.code ? `(${reportOrError.code})` : null
-    ].filter(Boolean).join(' ');
-  }
-  const report = reportOrError;
-  if (!report?.refusals?.length) return 'Preflight passed.';
-  const lines = ['This job cannot render yet.', ''];
-  for (const item of report.refusals) {
-    lines.push(`- ${item.message} (${item.code})`);
-    if (item.repair) lines.push(`  ${item.repair}`);
-  }
-  return lines.join('\n');
-}

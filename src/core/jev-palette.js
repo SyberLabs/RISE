@@ -24,19 +24,6 @@ export const JEV_INKS = Object.freeze({
   silver: '#C9D0DA'
 });
 
-/** What the reader's Text and Backdrop pickers call each theme's ink and ground. */
-export const JEV_COLOR_NAMES = Object.freeze({
-  classic: Object.freeze({ ink: 'Ivory', ground: 'Night' }),
-  amethyst: Object.freeze({ ink: 'Lilac', ground: 'Violet' }),
-  prism: Object.freeze({ ink: 'Rose', ground: 'Prism' }),
-  ember: Object.freeze({ ink: 'Gold', ground: 'Ember' }),
-  cobalt: Object.freeze({ ink: 'Cyan', ground: 'Cobalt' }),
-  jade: Object.freeze({ ink: 'Mint', ground: 'Jade' }),
-  rose: Object.freeze({ ink: 'Blush', ground: 'Wine' }),
-  citrine: Object.freeze({ ink: 'Lemon', ground: 'Olive' }),
-  silver: Object.freeze({ ink: 'Silver', ground: 'Graphite' })
-});
-
 export function jevPalette(id) {
   return Object.hasOwn(JEV_PALETTES, id) ? JEV_PALETTES[id] : null;
 }

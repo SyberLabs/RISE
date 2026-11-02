@@ -405,11 +405,9 @@ export class Apparitio {
     const glowSmall=this.glowSmall;
     glowSmall.fill(0);
     const img=ctx.createImageData(W,H);
-    // The paper lift is `compositeInkOnPaper` unrolled. Calling it per pixel
-    // allocated a three-element array 1.5M times per plate and measured 64ms
-    // of the 240ms develop at 1240px; the same arithmetic inline is ~1ms.
-    // The exported function stays the definition of the rule and is what the
-    // tests hold; this is the same expression with no return array.
+    // The paper lift is inline. A function called per pixel allocated a
+    // three-element array 1.5M times per plate and measured 64ms of the 240ms
+    // develop at 1240px; the same arithmetic inline is ~1ms.
     const paperR=APPARITIO_VOID_RGB[0]/255,
           paperG=APPARITIO_VOID_RGB[1]/255,
           paperB=APPARITIO_VOID_RGB[2]/255;

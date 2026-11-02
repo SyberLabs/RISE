@@ -14,8 +14,7 @@
  *               for the venue's About this reading
  *   note        one sentence the reader should know before typing a key, shown under the key field
  *
- * A provider is offered here only if its key goes from the browser to that provider and nowhere else.
- * OpenAI Realtime is not: its session is opened through this site's Worker route (worker/live-realtime.mjs). The
+ * A provider is offered here only if its key goes from the browser to that provider and nowhere else. The
  * `openai` entry is OpenAI's chat completions, asked from the browser (openai-chat.js).
  */
 
@@ -49,7 +48,7 @@ export const LIVE_PROVIDERS = Object.freeze([
         credential: 'key',
         keyName: 'OpenAI',
         keyGoesTo: 'OpenAI',
-        // Chat completions, from this browser to OpenAI; not the Realtime adapter, which goes through this site's Worker.
+        // Chat completions, from this browser to OpenAI.
         adapter: async ({ getKey, onUsage }) => (await import('./openai-chat.js')).createOpenAIChatAdapter({ getKey, onUsage })
     }),
     Object.freeze({
@@ -77,8 +76,3 @@ export const LIVE_PROVIDERS = Object.freeze([
         adapter: async ({ getKey, onUsage }) => (await import('./nvidia.js')).createNvidiaAdapter({ getKey, onUsage })
     })
 ]);
-
-/** The entry for `id`, or null. */
-export function liveProvider(id) {
-    return LIVE_PROVIDERS.find(entry => entry.id === id) ?? null;
-}

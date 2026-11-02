@@ -9,36 +9,12 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { MovementScheduleController, AudioScheduleController } from './journey-schedulers.js';
-import { compileJourney, boundarySourceId } from './journey-compiler.js';
+import { TO_HERO, movementScore } from '../test/movement-score.fixture.js';
 import { cueForAtom, VisualScheduleController } from './visual-scheduler.js';
 
-const program = () => compileJourney({
-    schemaVersion: 'rise.journey.v1',
-    id: 'journey-war',
-    movements: [
-        {
-            id: 'war-heaven',
-            title: 'War in Heaven',
-            segments: [{ passageId: 'p1' }],
-            presentation: {
-                visual: { kind: 'sourced', collections: ['celestial'] },
-                audio: { kind: 'soundscape', soundscapeId: 'ordered-field', gain: 0.55, fadeMs: 1200 }
-            },
-            transitionOut: {
-                id: 'to-hero', durationMs: 1600,
-                visual: { kind: 'still' }, audio: { kind: 'silence', fadeMs: 300 }
-            }
-        },
-        {
-            id: 'war-hero',
-            title: 'The Hero Under Heaven',
-            segments: [{ passageId: 'p2' }, { passageId: 'p3' }],
-            presentation: {
-                visual: { kind: 'sourced', collections: ['bronze'] },
-                audio: { kind: 'soundscape', soundscapeId: 'mortal-pulse', gain: 0.48 }
-            }
-        }
-    ]
+const program = () => movementScore({
+    hero: ['p2', 'p3'],
+    heavenAudio: { kind: 'soundscape', soundscapeId: 'ordered-field', gain: 0.55, fadeMs: 1200 }
 });
 
 const atom = (sourceId) => ({ sourceId, content: 'word' });
@@ -64,7 +40,7 @@ describe('the movement controller announces once per movement', () => {
         const seen = [];
         const c = new MovementScheduleController(program().movementProgram, (pos) => seen.push(pos.kind));
         c.observe(atom('p1'));
-        c.observe(atom(boundarySourceId('to-hero')));
+        c.observe(atom(TO_HERO));
         c.observe(atom('p2'));
         expect(seen).toEqual(['movement', 'boundary', 'movement']);
     });
@@ -116,7 +92,7 @@ describe('the audio controller sends bounded commands', () => {
         const e = engine();
         const c = new AudioScheduleController(program().audioProgram, e);
         c.observe(atom('p1'));
-        c.observe(atom(boundarySourceId('to-hero')));
+        c.observe(atom(TO_HERO));
         expect(e.stopSoundscape).toHaveBeenCalled();
         c.observe(atom('p2'));
         expect(e.startSoundscape).toHaveBeenLastCalledWith('mortal-pulse');
@@ -212,7 +188,7 @@ describe('it only asks the engine for methods the engine has', () => {
 
         const c = new AudioScheduleController(program().audioProgram, spy);
         c.observe(atom('p1'));
-        c.observe(atom(boundarySourceId('to-hero')));
+        c.observe(atom(TO_HERO));
         c.observe(atom('p2'));
         c.silence();
 
@@ -302,7 +278,7 @@ describe('the visual scheduler reads the source coordinate', () => {
         const { visualProgram } = program();
         expect(cueForAtom(visualProgram, atom('p1')).cue)
             .toEqual({ kind: 'sourced', collections: ['celestial'] });
-        expect(cueForAtom(visualProgram, atom(boundarySourceId('to-hero'))).cue)
+        expect(cueForAtom(visualProgram, atom(TO_HERO)).cue)
             .toEqual({ kind: 'still' });
     });
 

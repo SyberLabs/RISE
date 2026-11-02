@@ -233,10 +233,6 @@ export function assertWordsInsideSpan(words, fromCharacter, toCharacter, text, p
   }
 }
 
-export function spokenCaptionText(sourceText, _pronunciations) {
-  return String(sourceText || '');
-}
-
 export function duckGainAt(run, ms) {
   if (!run?.duck || run.duck.target !== 'bed') return 1;
   const floor = run.duck.floor;

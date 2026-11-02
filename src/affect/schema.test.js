@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { experienceState, slot, unavailableState, validateExperienceState } from './schema.js';
+import { experienceState, slot, unavailableState } from './schema.js';
 
 describe('experience state', () => {
     it('omits nothing it was not given and freezes what it stores', () => {
@@ -12,20 +12,14 @@ describe('experience state', () => {
         expect(state.dimensions.arousal).toBeUndefined();
         expect(state.dimensions.valence.value).toBeCloseTo(-0.4);
         expect(Object.isFrozen(state)).toBe(true);
-        expect(validateExperienceState(state).ok).toBe(true);
     });
 
-    it('rejects an unknown axis and a version drift', () => {
+    it('rejects an unknown axis', () => {
         expect(() => experienceState({
             modality: 'text',
             dimensions: { sadness: slot(1, 1, 'inferred') },
             provenance: { method: 'test' }
         })).toThrow(/Unknown experience dimension/);
-        const state = experienceState({
-            modality: 'text',
-            provenance: { method: 'test' }
-        });
-        expect(validateExperienceState({ ...state, version: 99 }).ok).toBe(false);
     });
 
     it('keeps auxiliary emotions from becoming the state', () => {

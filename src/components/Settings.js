@@ -739,5 +739,3 @@ export class Settings {
         this.emotions = null;
     }
 }
-
-export default Settings;

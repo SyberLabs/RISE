@@ -50,22 +50,6 @@ export function presentationMs(frameIndex, frameRate) {
 }
 
 /**
- * Compare presentationTime(frame) to durationMs.
- * -1 before the duration, 0 exactly on it, 1 after.
- */
-export function compareFrameToDuration(frameIndex, frameRate, durationMs) {
-  const rate = validateFrameRate(frameRate);
-  if (!Number.isInteger(durationMs) || durationMs < 0) {
-    fail('RENDER_DURATION', 'Duration must be a non-negative integer millisecond count', '$.durationMs');
-  }
-  const left = BigInt(frameIndex) * BigInt(rate.denominator) * 1000n;
-  const right = BigInt(durationMs) * BigInt(rate.numerator);
-  if (left < right) return -1;
-  if (left > right) return 1;
-  return 0;
-}
-
-/**
  * Number of frames whose presentation times cover [0, durationMs).
  * Frame `n-1` is the last frame strictly before duration; if duration falls
  * exactly on a frame time, that frame is the exclusive end and is omitted.
@@ -86,11 +70,6 @@ export function frameCountForDuration(durationMs, frameRate) {
       { durationMs, frameRate: rate, frameCount: Number(count) });
   }
   return Number(count);
-}
-
-export function lastFrameIndex(durationMs, frameRate) {
-  const count = frameCountForDuration(durationMs, frameRate);
-  return count === 0 ? null : count - 1;
 }
 
 /** First frame whose presentation time is >= ms (exclusive-end friendly). */

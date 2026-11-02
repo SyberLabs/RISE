@@ -50,8 +50,7 @@ import { describe, expect, it } from 'vitest';
 import {
     SENTENCE_BOUNDARY,
     chunkText,
-    countWords as chunkerCountWords,
-    estimateDuration
+    countWords as chunkerCountWords
 } from './chunker.js';
 import {
     EXTENT_MIN_WORDS,
@@ -731,7 +730,6 @@ describe('one countWords, and it is the chunker\'s', () => {
         // so each door that leads to a count is knocked on with one.
         const doors = [
             ['countWords', (value) => chunkerCountWords(value)],
-            ['estimateDuration', (value) => estimateDuration(value, 220)],
             ['sentenceAlignedPrefix', (value) => sentenceAlignedPrefix(value, 200)],
             ['splitLongDivision', (value) => splitLongDivision(value, { maxWords: 4_000 })]
         ];

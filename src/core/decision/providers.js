@@ -6,7 +6,6 @@
  * and no SyberLabs credential exists anywhere in this path.
  */
 
-export const KEV_CODE_REVISION = '9c41005b2180347c3c646dfc9e50c4428483ec6b';
 export const KEV_REVISION = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
 
 export const JEV = Object.freeze({

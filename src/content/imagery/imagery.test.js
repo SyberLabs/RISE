@@ -262,8 +262,8 @@ describe('Deployment policy allows what the adapters call', () => {
     // against each other, not maintained in parallel by memory.
     const { readFileSync, readdirSync } = await import('node:fs');
     const { resolve } = await import('node:path');
-    const toml = readFileSync(resolve('netlify.toml'), 'utf8');
-    const connectSrc = /connect-src([^;]*)/.exec(toml)?.[1] ?? '';
+    const headers = readFileSync(resolve('public/_headers'), 'utf8');
+    const connectSrc = /connect-src([^;]*)/.exec(headers)?.[1] ?? '';
 
     // EVERY adapter in the directory, so a newly added adapter is
     // covered the moment it exists rather than when someone remembers

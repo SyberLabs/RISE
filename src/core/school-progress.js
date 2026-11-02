@@ -97,11 +97,3 @@ export function houseSeals(houseId, entryCountOf = () => 0) {
 export function holdsArcanum(houseId, entryCountOf = () => 0) {
     return houseRead(houseId, entryCountOf, 3).length > 0;
 }
-
-export function clearProgress() {
-    try {
-        storage()?.removeItem(USER_DATA_KEYS.schoolProgress);
-    } catch {
-        // An origin without storage holds no record to clear.
-    }
-}

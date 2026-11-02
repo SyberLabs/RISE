@@ -12,8 +12,7 @@
  * connection in `connections`, so a test can say that nothing was sent.
  */
 import { scriptFor } from '../live/fixtures/black-holes.js';
-import { requestFrom } from './fake-openai-transport.js';
-import { scriptToLines } from './fake-text-transport.js';
+import { requestFrom, scriptToLines } from './fake-text-transport.js';
 
 const SIZES = [7, 19, 3, 31, 11, 23];
 

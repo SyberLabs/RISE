@@ -151,10 +151,6 @@ export const CHAPEL_CHANTS = freezeManifest([
   }
 ]);
 
-export function findChant(id) {
-  return CHAPEL_CHANTS.find(chant => chant.id === id) || null;
-}
-
 export function chantsInFamily(family) {
   return CHAPEL_CHANTS.filter(chant => chant.family === family);
 }

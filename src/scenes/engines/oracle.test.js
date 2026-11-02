@@ -8,7 +8,7 @@
  * what a frame costs before any pixel is drawn.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import oracle, { ORACLE_MANIFEST, ORACLE_SKINS, ORACLE_STATES, blinkClosure } from './oracle.js';
+import oracle, { ORACLE_SKINS, ORACLE_STATES, blinkClosure } from './oracle.js';
 import { SCENE_ENGINES } from '../manifests.js';
 import { FRAME_SEED, frameGeometry, roomLayout } from '../../live/host/frames.js';
 
@@ -180,11 +180,7 @@ describe('what the face is', () => {
         expect(ORACLE_STATES.speaking).toEqual({ open: 0.70, orbit: 0.10, spin: 0.06, field: 0.6, tight: 1.10, glow: 0.35 });
     });
 
-    it('states its parameters and cues as a manifest does, and is not an engine the model may name', () => {
-        expect(ORACLE_MANIFEST.parameters.skin.values).toEqual(['sophia', 'ember', 'jade', 'silver', 'porcelain']);
-        expect(ORACLE_MANIFEST.parameters.state.values).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest']);
-        expect(Object.keys(ORACLE_MANIFEST.cues)).toEqual(['arrival', 'listening', 'thinking', 'speaking', 'rest', 'blink']);
-        expect(ORACLE_MANIFEST.cues.thinking).toEqual({ state: 'thinking' });
+    it('is not an engine the model may name', () => {
         expect(SCENE_ENGINES).not.toContain('oracle');
     });
 

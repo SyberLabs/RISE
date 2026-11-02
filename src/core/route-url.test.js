@@ -32,7 +32,6 @@ describe('route urls', () => {
             chapel: '/library/chapel',
             rosary: '/library/rosary',
             stations: '/library/stations',
-            journeys: '/library/journeys',
             keystones: '/try-rise',
             school: '/school',
             mint: '/library/mint',
@@ -48,6 +47,11 @@ describe('route urls', () => {
         expect(pathForRoute('library')).toBe('/library');
         expect(pathForRoute('library', { pane: 'no-such-pane' })).toBeNull();
         expect(routeFromPath('/library/keystones')).toEqual({ id: 'library', data: { pane: 'keystones' } });
+        // Journeys were withdrawn: the old address and id land on the Library itself.
+        expect(routeFromPath('/library/journeys')).toEqual({ id: 'library', data: {} });
+        expect(pathForRoute('library', { pane: 'journeys' })).toBeNull();
+        expect(ROUTE_ALIASES.journeys).toBe('library');
+        expect(ROUTE_PANES.journeys).toBeUndefined();
     });
 
     it('carries the Mystery School focus: a house, a record, or a path', () => {

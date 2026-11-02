@@ -1,8 +1,7 @@
 /**
  * The OpenAI chat adapter: a GPT model, asked directly from this browser on the reader's own OpenAI key.
  *
- * Not the Realtime adapter (openai-realtime.js), whose session is opened through this site's Worker. This is a keyed
- * text stream (keyed-stream.js) over chat completions, `POST https://api.openai.com/v1/chat/completions` with
+ * A keyed text stream (keyed-stream.js) over chat completions, `POST https://api.openai.com/v1/chat/completions` with
  * `stream: true`. Names and shapes are those of OpenAI's reference, read on 2026-10-12:
  *   https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create
  *     (developer messages replace system messages for newer models; max_completion_tokens, max_tokens deprecated;

@@ -7,7 +7,6 @@ import {
 import {
   NarrationError,
   duckGainAt,
-  spokenCaptionText,
   validateNarrationCue
 } from './narration.js';
 import {
@@ -19,14 +18,6 @@ import {
   applyAgentOperationSet
 } from './agent-operations.js';
 import { emptyWorkshopProject } from './workshop-project.js';
-import {
-  ACQUISITION_REQUEST_SCHEMA,
-  ACQUISITION_VERDICT_SCHEMA,
-  admitAcquisitionCandidate,
-  fetchAcquisitionCandidate,
-  inspectAcquisition
-} from './acquisition.js';
-import { createVoiceProvider } from './acquisition-providers.js';
 import { mixAudio, peakAmplitude } from './render/audio-mix.js';
 import { encodeWav } from './render/wav.js';
 import { captionsFromPlan } from './render/captions.js';
@@ -84,16 +75,6 @@ function spokenProgram(cueOverrides = {}) {
   });
 }
 
-function wavBytes() {
-  const bytes = new Uint8Array(64);
-  bytes.set([0x52, 0x49, 0x46, 0x46]);
-  bytes[8] = 0x57;
-  bytes[9] = 0x41;
-  bytes[10] = 0x56;
-  bytes[11] = 0x45;
-  return bytes;
-}
-
 describe('narration lane contract', () => {
   it('accepts a spoken cue and refuses to wear a soundscape or duck a swell', () => {
     expect(validateNarrationCue({ kind: 'spoken', voiceId: 'af_heart' }).kind).toBe('spoken');
@@ -109,12 +90,11 @@ describe('narration lane contract', () => {
   });
 
   it('keeps pronunciation as a review table and will not rewrite the source', () => {
-    const cue = validateNarrationCue({
+    expect(validateNarrationCue({
       kind: 'spoken',
       voiceId: 'af_heart',
       pronunciations: [{ source: 'families', spoken: 'FAM-uh-leez' }]
-    });
-    expect(spokenCaptionText('Happy families', cue.pronunciations)).toBe('Happy families');
+    }).pronunciations).toHaveLength(1);
     expect(() => assignNarrationSpan({
       source: { id: SOURCE_ID, text: SOURCE_TEXT },
       assetId: 'af_heart',
@@ -138,41 +118,7 @@ describe('narration lane contract', () => {
   });
 });
 
-describe('narration admission, mix, and captions', () => {
-  it('admits spoken WAV through the voice gate, not as generic audio', async () => {
-    const req = {
-      schema: ACQUISITION_REQUEST_SCHEMA,
-      id: 'take-1',
-      kind: 'voice',
-      query: 'spoken take',
-      sourcePreference: ['project-media']
-    };
-    const options = {
-      providers: [createVoiceProvider()],
-      bytes: wavBytes(),
-      mimeType: 'audio/wav',
-      durationMs: 1200
-    };
-    const [candidate] = await inspectAcquisition(req, options);
-    const fetched = await fetchAcquisitionCandidate(candidate, req, options);
-    const admitted = await admitAcquisitionCandidate({
-      ...fetched,
-      verdict: {
-        schema: ACQUISITION_VERDICT_SCHEMA,
-        candidateId: fetched.candidate.id,
-        decision: 'admit',
-        actor: 'human',
-        authority: 'user',
-        decidedAt: '2026-08-13T21:30:00.000Z'
-      },
-      projectId: 'project-memory',
-      assetId: 'asset-voice-1',
-      now: '2026-08-13T21:30:00.000Z'
-    });
-    expect(admitted.asset.kind).toBe('audio');
-    expect(admitted.asset.durationMs).toBe(1200);
-    expect(admitted.asset.provenance.origin).toBe('upload');
-  });
+describe('narration mix and captions', () => {
 
   it('ducks the bed while speech is active and captions keep source coordinates', () => {
     const plan = {

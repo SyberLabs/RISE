@@ -1,8 +1,7 @@
 import { CHANGES_PREFIX, serveChangesFile } from './changes.mjs';
 import { isKevWorkerScript, serveKevWorkerScript } from './kev-worker-script.mjs';
 import { isRetiredInferenceRoute, retiredInference } from './retired-inference.mjs';
-import { handleLiveRealtime } from './live-realtime.mjs';
-import { handleLive, handleMcp, MCP_PATH } from './mcp-server.mjs';
+import { handleMcp, MCP_PATH } from './mcp-server.mjs';
 import { handlePlus, isPlusRoute } from './plus.mjs';
 
 // The Plus allowance meter, a Durable Object class the configurations bind as PLUS_METER.
@@ -60,8 +59,7 @@ function serveWellKnown(request, path) {
   return error(404, 'NOT_FOUND', 'Nothing is published at this address.');
 }
 
-// Shared model inference is retired. The reader's browser connects to their
-// own provider; the Worker keeps only disabled local-key routes.
+// Shared model inference is retired. The reader's browser connects to their own provider.
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
@@ -72,10 +70,7 @@ export default {
     if (path.startsWith('/content/arena/')) return serveArenaFile(request, env);
     if (path.startsWith(CHANGES_PREFIX)) return serveChangesFile(request);
 
-    // Optional integration routes remain available but are disabled by default.
     if (path === MCP_PATH) return handleMcp(request, env);
-    if (path === '/live') return handleLive(request, env);
-    if (path === '/api/live/realtime') return handleLiveRealtime(request, env);
     // The paid voice: a Stripe receipt in a signed cookie, metered by PlusMeter (worker/plus.mjs).
     if (isPlusRoute(path)) return handlePlus(request, env);
 

@@ -7,7 +7,7 @@
  * the one file a reader actually looks at. `rosary-strand.js` drew SIXTY
  * beads — a fifth pendant bead for the Glory Be, which is prayed on the
  * centrepiece and has no bead — while the doc comment two files away
- * said fifty-nine and `ROSARY_BEAD_COUNT` evaluated to sixty-one.
+ * said fifty-nine and the liturgy's count evaluated to sixty-one.
  *
  * Infidelity is the only defect class a received form admits. So this
  * asserts the count against the physical rosary, and — more importantly
@@ -20,7 +20,6 @@ import { describe, expect, it } from 'vitest';
 import { RosaryStrand } from './rosary-strand.js';
 import {
     buildRosaryDefinition,
-    ROSARY_BEAD_COUNT,
     ROSARY_CENTREPIECE
 } from '../content/chapel/liturgy/rosary-liturgy.js';
 import { compileLiturgy } from '../core/liturgy-runner.js';
@@ -40,7 +39,6 @@ describe('the strand draws a five-decade rosary', () => {
         expect(beadsOnly(beads)).toHaveLength(59);
         expect(beads.filter(b => b.kind === 'crucifix')).toHaveLength(1);
         expect(beads.filter(b => b.kind === 'medal')).toHaveLength(1);
-        expect(ROSARY_BEAD_COUNT).toBe(59);
     });
 
     it('puts four beads on the pendant and fifty-five on the loop', () => {

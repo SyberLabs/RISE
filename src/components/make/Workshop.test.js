@@ -1847,46 +1847,14 @@ describe('Workshop Export MP4', () => {
         container.remove();
     });
 
-    it('POSTs the kernel request to the local export job', async () => {
-        const fetchMock = vi.fn(async (_url, init = {}) => {
-            if (init.method === 'GET') {
-                return { ok: true, json: async () => ({ ok: true, available: true }) };
-            }
-            return {
-                ok: true,
-                json: async () => ({
-                    ok: true,
-                    mp4Path: 'D:\\out\\workshop-export\\export-1\\experience.mp4',
-                    jobHash: 'sha256:abc'
-                })
-            };
-        });
-        vi.stubGlobal('fetch', fetchMock);
-        const { workshop, container } = scoredWorkshop();
-        await workshop.exportMp4();
-        expect(fetchMock.mock.calls.some(call => call[0] === '/__rise/export-mp4'
-            && call[1]?.method === 'GET')).toBe(true);
-        const post = fetchMock.mock.calls.find(call => call[1]?.method === 'POST');
-        expect(post[0]).toBe('/__rise/export-mp4');
-        const body = JSON.parse(post[1].body);
-        expect(body.schema).toBe('rise.kernel-request.v1');
-        expect(body.program.schema).toBe('rise.experience-program.v1');
-        expect(body.profileId).toBe('social-portrait-1080');
-        workshop.destroy();
-        container.remove();
-    });
-
-    it('downloads kernel JSON for the CLI when the Node path is absent', async () => {
-        vi.stubGlobal('fetch', vi.fn(async () => {
-            throw new TypeError('Failed to fetch');
-        }));
+    it('downloads kernel JSON for the CLI', () => {
         const { workshop, container } = scoredWorkshop();
         const downloaded = [];
         workshop.downloadKernelRequest = request => {
             downloaded.push(request);
             return 'score-source.kernel-request.json';
         };
-        await workshop.exportMp4();
+        workshop.exportMp4();
         expect(downloaded).toHaveLength(1);
         expect(downloaded[0].schema).toBe('rise.kernel-request.v1');
         expect(downloaded[0].program).toBeTruthy();

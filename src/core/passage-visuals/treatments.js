@@ -120,14 +120,6 @@ export function compileTreatmentCue(treatmentId, intensityBand, flameRecipe = nu
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 /**
- * The reader's effective energy: the band scaled by the global Energy
- * control, never above the reader ceiling of 0.65.
- */
-export function effectiveEnergy(bandEnergy, userEnergy = 0.35, ceiling = 0.65) {
-  return clamp((Number(bandEnergy) || 0) * (Number(userEnergy) || 0) / 0.35, 0, ceiling);
-}
-
-/**
  * What each mood draws, per family. A flame reads conflict through the intense
  * band in the nebula's dark folds, not in another colour; the gallery gives
  * agitation and grief their own painters.

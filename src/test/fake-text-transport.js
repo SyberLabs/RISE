@@ -18,6 +18,15 @@ export function scriptToLines(script) {
 
 const SIZES = [7, 19, 3, 31, 11, 23];
 
+/** What the reader asked, read back from the message the adapter sent. */
+export function requestFrom(text) {
+    if (text.startsWith('The reader stopped an answer')) {
+        const question = /^Their question: (.*)$/mu.exec(text)?.[1] ?? '';
+        return { intent: 'dive', prompt: question, parent: { currentId: 'x', segmentId: 's', atCharacter: 0, context: [] } };
+    }
+    return { intent: 'answer', prompt: text };
+}
+
 /**
  * @param {object} options
  * @param {{now: Function, sleep: Function}} options.clock

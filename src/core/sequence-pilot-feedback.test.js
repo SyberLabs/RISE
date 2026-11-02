@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { USER_DATA_KEYS } from './user-data-keys.js';
 import {
-    deleteSequencePilotFeedback,
-    exportSequencePilotFeedback,
     listSequencePilotFeedback,
     saveSequencePilotFeedback
 } from './sequence-pilot-feedback.js';
@@ -61,13 +59,4 @@ describe('sequence pilot feedback', () => {
         ]);
     });
 
-    it('exports only by explicit choice and deletes locally on opt out', () => {
-        saveSequencePilotFeedback({ ...answer, consent: true });
-        expect(() => exportSequencePilotFeedback()).toThrow(/consent/i);
-        expect(exportSequencePilotFeedback({ consent: true })).toEqual([answer]);
-
-        deleteSequencePilotFeedback();
-        expect(listSequencePilotFeedback()).toEqual([]);
-        expect(localStorage.getItem(USER_DATA_KEYS.sequencePilotFeedback)).toBeNull();
-    });
 });

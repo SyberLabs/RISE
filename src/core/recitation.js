@@ -390,8 +390,8 @@ function snapToOnsets(predicted, onsets, toleranceMs) {
  * report were not the word starts — one clip placed "trivial" at 2020ms
  * and "influence" at 2060ms, forty milliseconds apart.
  *
- * `scripts/align-voice-pack.mjs` derives the real thing from the audio and
- * the transcript together, and the pack ships that. What is left here is
+ * A forced alignment derives the real thing from the audio and the
+ * transcript together, and the pack ships that. What is left here is
  * the fallback for audio that arrives with no alignment at all, and
  * revealSchedule goes on tolerating a count that disagrees with the word
  * count because this is the source that produces one.

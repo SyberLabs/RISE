@@ -64,11 +64,8 @@ function compileOps() {
 describe('producer compile is final', () => {
   it('does not route compile through poster-package functions', () => {
     const producerSrc = readFileSync(join(HERE, 'producer.js'), 'utf8');
-    const intakeSrc = readFileSync(join(HERE, '..', '..', 'tools', 'render', 'intake.js'), 'utf8');
     expect(producerSrc).toMatch(/renderArtifact/);
     expect(producerSrc).toMatch(/tier: 'final'/);
-    expect(producerSrc).not.toMatch(/renderDistributionPackages/);
-    expect(intakeSrc).not.toMatch(/renderDistributionPackages/);
   });
 
   it.skipIf(!hasFfmpeg && !process.env.CI)('request-compile muxes a final 1080×1920 MP4 via renderArtifact', async () => {

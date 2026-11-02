@@ -621,58 +621,6 @@ export function validateAgentOperationSet(value, path = '$') {
   return deepFreeze(set);
 }
 
-export function createAgentRun({ generationId = `run-${Date.now()}` } = {}) {
-  return deepFreeze({
-    generationId: exactId(generationId, '$.generationId'),
-    cancelled: false
-  });
-}
-
-export function cancelAgentRun(run) {
-  return deepFreeze({ ...run, cancelled: true });
-}
-
-export function createAgentOperationHistory() {
-  return deepFreeze({ limit: 50, past: [], future: [] });
-}
-
-export function recordAgentOperationSet(history, command) {
-  const current = history && Array.isArray(history.past) ? history : createAgentOperationHistory();
-  return deepFreeze({
-    limit: current.limit,
-    past: [...current.past, deepFreeze(command)].slice(-current.limit),
-    future: []
-  });
-}
-
-export function undoAgentOperationSet(history) {
-  const current = history && Array.isArray(history.past) ? history : createAgentOperationHistory();
-  if (!current.past.length) return deepFreeze({ history: current, command: null });
-  const command = current.past[current.past.length - 1];
-  return deepFreeze({
-    history: {
-      limit: current.limit,
-      past: current.past.slice(0, -1),
-      future: [command, ...current.future]
-    },
-    command
-  });
-}
-
-export function redoAgentOperationSet(history) {
-  const current = history && Array.isArray(history.past) ? history : createAgentOperationHistory();
-  if (!current.future.length) return deepFreeze({ history: current, command: null });
-  const command = current.future[0];
-  return deepFreeze({
-    history: {
-      limit: current.limit,
-      past: [...current.past, command].slice(-current.limit),
-      future: current.future.slice(1)
-    },
-    command
-  });
-}
-
 /** Inspect a proposal without applying it. Pending acquisitions stay pending. */
 export function summarizeAgentOperationSet(value) {
   const set = validateAgentOperationSet(value);
@@ -932,20 +880,6 @@ function inspectionRow(op, extra = {}) {
   });
 }
 
-function assertGeneration(operationSet, run) {
-  if (!run) return;
-  if (run.cancelled) {
-    fail('AGENT_OP_CANCELLED', 'This agent run was cancelled; its result cannot apply',
-      '$.generationId', { generationId: operationSet.generationId });
-  }
-  if (operationSet.generationId && run.generationId !== operationSet.generationId) {
-    fail('AGENT_OP_STALE_GENERATION',
-      'This proposal belongs to a superseded agent run',
-      '$.generationId',
-      { expected: run.generationId, actual: operationSet.generationId });
-  }
-}
-
 /**
  * Apply a validated operation set to a Workshop project.
  * Either every mutating op commits or the original project is unchanged.
@@ -954,14 +888,12 @@ export function applyAgentOperationSet({
   project = null,
   operationSet,
   context = null,
-  resolvedSources = {},
-  run = null
+  resolvedSources = {}
 } = {}) {
   const set = validateAgentOperationSet(operationSet);
   const base = project
     ? validateWorkshopProject(project)
     : emptyWorkshopProject({ id: set.projectId, intent: 'custom' });
-  assertGeneration(set, run);
   if (base.id !== set.projectId) {
     fail('AGENT_OP_PROJECT', 'The operation set names a different project', '$.projectId', {
       expected: base.id, actual: set.projectId
@@ -1394,20 +1326,4 @@ export function applyAgentOperationSet({
     proposedVisual: draft.visualAssignments,
     proposedAudio: draft.audioAssignments
   });
-}
-
-export function previewAgentOperationSet(input) {
-  return applyAgentOperationSet(input);
-}
-
-export function rejectAgentOperation({ operationSet, operationId }) {
-  const set = validateAgentOperationSet(operationSet);
-  const kept = set.operations.filter(item => item.id !== operationId);
-  if (kept.length === set.operations.length) {
-    fail('AGENT_OP_MISSING', `No operation ${operationId} in this proposal`, '$.operationId');
-  }
-  if (!kept.length) {
-    return null;
-  }
-  return validateAgentOperationSet({ ...set, operations: kept });
 }

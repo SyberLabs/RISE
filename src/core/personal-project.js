@@ -37,24 +37,6 @@ function validateInertDefaults(value) {
   visit(value);
 }
 
-export function createPersonalProject(result, parent = null) {
-  const piece = validatePiece(result);
-  if (parent) validatePersonalProject(parent);
-  if (result.writerModel !== 'qwen/qwen3.5-9b' || result.promptVersion !== 'personal-v1') fail();
-  const id = `personal-${crypto.randomUUID()}`;
-  return validateWorkshopProject({
-    schema: 'rise.workshop-project.v1', id, title: piece.title, intent: 'personal-reading',
-    sources: [{ id: 'personal-text', name: piece.title, providerId: 'local', type: 'text/plain', data: piece.paragraphs.join('\n\n') }],
-    assets: [], experienceProgram: null, defaults: safeDefaults(), paceV2: true,
-    provenance: {
-      kind: 'personal-generated', compositionId: parent?.provenance.compositionId || id,
-      parentRevisionId: parent?.id || null, writerModel: result.writerModel,
-      promptVersion: result.promptVersion, presentationVersion: PRESENTATION_VERSION
-    },
-    revision: parent ? parent.revision + 1 : 0, updatedAt: Date.now()
-  });
-}
-
 function validatePersonalProject(value) {
   exact(value, ['schema','id','title','intent','sources','assets','experienceProgram','defaults','provenance','paceV2','revision','updatedAt']);
   if (value.schema !== 'rise.workshop-project.v1' || !idOK(value.id)
@@ -83,20 +65,6 @@ function validatePersonalProject(value) {
     if (canonicalPersonal(value.defaults) !== canonicalPersonal(safeDefaults())) fail();
   } else validateInertDefaults(value.defaults);
   return validateWorkshopProject({ ...value, defaults: safeDefaults() });
-}
-
-export function importPersonalProject(text) {
-  if (typeof text !== 'string' || new TextEncoder().encode(text).length > 65536) {
-    throw new Error('Personal reading imports are limited to 64 KiB.');
-  }
-  const value = JSON.parse(text, (key, item) => {
-    if (['__proto__','prototype','constructor'].includes(key)) fail();
-    return item;
-  });
-  const project = validatePersonalProject(value);
-  return { project, notice: project.provenance.presentationVersion === PRESENTATION_VERSION
-    ? 'Imported provenance is declared by this file, not verified.'
-    : 'Unknown presentation version: using neutral presentation. Imported provenance is declared, not verified.' };
 }
 
 export function serializePersonalProject(project) { return JSON.stringify(validatePersonalProject(project), null, 2); }

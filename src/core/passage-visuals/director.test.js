@@ -7,7 +7,6 @@ import {
   INTENSITY_BANDS,
   TREATMENT_IDS,
   compileTreatmentCue,
-  effectiveEnergy,
   FOLLOW_TREATMENT_IDS,
   followTreatmentIds,
   isFollowChoice,
@@ -116,12 +115,6 @@ describe('treatment cues', () => {
     expect(compileTreatmentCue('solar-bloom', 'extreme', flamePreset('solar-bloom'))).toEqual({ kind: 'still' });
   });
 
-  it('scales energy globally with a reader ceiling', () => {
-    expect(effectiveEnergy(0.35, 0.35)).toBeCloseTo(0.35);
-    expect(effectiveEnergy(0.6, 1)).toBe(0.65);
-    expect(effectiveEnergy(0.15, 0.7)).toBeCloseTo(0.3);
-    expect(effectiveEnergy(0.6, 0)).toBe(0);
-  });
 });
 
 describe('PassageDirector', () => {

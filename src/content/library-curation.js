@@ -144,12 +144,3 @@ export function curationFor(textId, isHeld = null) {
     const rhymes = entry.rhymes.filter(isHeld);
     return rhymes.length === entry.rhymes.length ? entry : { ...entry, rhymes };
 }
-
-/**
- * A work's shelf, or null. Null is meaningful: an unshelved work is
- * held but not yet placed, and the Archive says so rather than filing
- * it somewhere convenient.
- */
-export function shelfFor(textId) {
-    return ARCHIVE_CURATION[textId]?.shelf || null;
-}

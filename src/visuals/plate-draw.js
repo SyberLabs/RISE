@@ -23,25 +23,6 @@ export const APPARITIO_VOID_RGB = [10, 10, 12];
 const PLATE_FIT_INSET = 0.08;
 const PLATE_FIT_MIN_PAD = 24;
 
-function clamp01(x) {
-  return x < 0 ? 0 : x > 1 ? 1 : x;
-}
-
-/**
- * Apparitio develops on black film. Lift the ink onto chamber void so
- * empty plate is the wall, not a darker square inside the contain-fit.
- */
-export function compositeInkOnPaper(r, g, b, paperRgb = APPARITIO_VOID_RGB) {
-  const R = clamp01(r);
-  const G = clamp01(g);
-  const B = clamp01(b);
-  return [
-    (paperRgb[0] / 255) * (1 - R) + R,
-    (paperRgb[1] / 255) * (1 - G) + G,
-    (paperRgb[2] / 255) * (1 - B) + B
-  ];
-}
-
 /**
  * Bake resolution index for Chamber. HTML draft (760) is too small once
  * the plate is shown on a retina display; never drop below 1000px.

@@ -120,7 +120,6 @@ import { remixablePassages, remixPassage } from '../../core/portable-sequence.js
 import { PROCEDURAL_PATTERNS } from '../../core/visual-registry.js';
 import { SOUNDSCAPES } from '../../audio/soundscapes.js';
 import {
-  EXPORT_MP4_PATH,
   kernelRequestFromWorkshopPayload,
   renderCliCommand
 } from '../../core/render/kernel-request.js';
@@ -4658,7 +4657,7 @@ export class Workshop {
         this.exportExperienceProgramFile();
       } else if (action === 'export-mp4') {
         this.getAudioEngine()?.playHiss();
-        void this.exportMp4();
+        this.exportMp4();
       } else if (action === 'import-experience-program') {
         this.getAudioEngine()?.playHiss();
         this.fileDialogReturnFocus = target;
@@ -5451,25 +5450,6 @@ export class Workshop {
     });
   }
 
-  setExportMp4Busy(busy) {
-    this.exportMp4Busy = busy;
-    const button = this.container.querySelector('[data-action="export-mp4"]');
-    if (!button) return;
-    button.disabled = busy;
-    button.textContent = busy ? 'Exporting…' : 'Export MP4';
-  }
-
-  async kernelExportAvailable() {
-    try {
-      const response = await fetch(EXPORT_MP4_PATH, { method: 'GET' });
-      if (!response.ok) return false;
-      const body = await response.json();
-      return body?.available === true;
-    } catch {
-      return false;
-    }
-  }
-
   downloadKernelRequest(request) {
     const id = request.program?.id || request.projectId || 'experience';
     const filename = `${id}.kernel-request.json`;
@@ -5477,51 +5457,20 @@ export class Workshop {
     return filename;
   }
 
-  /**
-   * Write a kernel request and invoke the same Node path as the CLI.
-   * The browser does not grow ffmpeg. When the local export job is
-   * absent, download the JSON for `npm run render:mp4`.
-   */
-  async exportMp4() {
-    if (this.exportMp4Busy) return;
-    let request;
+  /** The browser does not grow ffmpeg: download the kernel request for `npm run render:mp4`. */
+  exportMp4() {
     try {
-      request = this.buildExportKernelRequest();
+      const request = this.buildExportKernelRequest();
+      if (!request) {
+        this.showToast('Score a passage before exporting an MP4');
+        return;
+      }
+      const filename = this.downloadKernelRequest(request);
+      const command = renderCliCommand(filename);
+      this.announce(`No local renderer. ${command}`);
+      this.showToast(`No local renderer. ${command}`);
     } catch (error) {
       this.showToast(error.message || 'Could not export MP4');
-      return;
-    }
-    if (!request) {
-      this.showToast('Score a passage before exporting an MP4');
-      return;
-    }
-    this.setExportMp4Busy(true);
-    try {
-      const available = await this.kernelExportAvailable();
-      if (!available) {
-        const filename = this.downloadKernelRequest(request);
-        const command = renderCliCommand(filename);
-        this.announce(`No local renderer. ${command}`);
-        this.showToast(`No local renderer. ${command}`);
-        return;
-      }
-      const response = await fetch(EXPORT_MP4_PATH, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(request)
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok || !body.ok) {
-        this.showToast(body.error || 'Export MP4 failed');
-        this.announce(body.error || 'Export MP4 failed');
-        return;
-      }
-      this.announce(`Wrote ${body.mp4Path}`);
-      this.showToast(`Wrote ${body.mp4Path}`);
-    } catch (error) {
-      this.showToast(error.message || 'Export MP4 failed');
-    } finally {
-      this.setExportMp4Busy(false);
     }
   }
 

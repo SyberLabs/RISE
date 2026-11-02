@@ -11,11 +11,9 @@
  * Audubon catalog established that boundary and the science sources need
  * it more, because their rights cannot be re-verified at render (see
  * SOURCE-EXPANSION-SPEC §3a, "the API key never leaves the workstation").
- * `scripts/build-science-catalog.mjs` is the controlled refresh.
+ * The catalog is a committed snapshot; no script here refreshes it.
  *
- * Verdicts are whole collections (or per-work includes), not survivors
- * alone: the retirement ledger records what was refused so later harvests
- * do not re-propose it.
+ * Verdicts are whole collections (or per-work includes).
  */
 
 /**
@@ -125,42 +123,3 @@ export const SCIENCE_CATEGORIES = Object.freeze({
  * a week later, and a collection is a list of works someone looked at and
  * accepted.
  */
-
-/**
- * RETIRED COLLECTIONS — reviewed, refused, and recorded so the refusal
- * survives the next harvest.
- *
- * The Smithsonian probe was worth running and its verdict is that the
- * collection is a SPECIMEN CATALOGUE. Titles are Linnaean binomials,
- * NMNH's holdings are tray photography, and neither belongs behind a
- * reading passage. Nothing here is a fault in the harvester: the rights
- * were clean, the delivery URLs resolved, and the images were simply the
- * wrong thing — which is the only failure a contact sheet can catch.
- *
- * ALL 54 REVIEWED WORKS ARE RETIRED, Cooper Hewitt included, and its
- * inclusion is the deliberate part. Those twelve are a genuinely
- * different register — decorative designs, the art-of tradition rather
- * than the witness-of one — and keeping them would have carried a design
- * museum forward as a remnant of a natural-history harvest. A collection
- * assembled that way is not curated, it is left over. If that register is
- * wanted it gets its own harvest, chosen for what it is.
- */
-export const RETIRED = Object.freeze([
-    Object.freeze({
-        unit: 'NMNH — Vertebrate Zoology (Birds), Botany, Education & Outreach, Mineral Sciences',
-        reviewed: 18,
-        why: 'low quality entry; specimen photography, not imagery for a reading surface'
-    }),
-    Object.freeze({
-        unit: 'Smithsonian Gardens',
-        reviewed: 14,
-        why: '14 photographs of flora; retired with the rest of the specimen holdings'
-    }),
-    Object.freeze({
-        unit: 'Cooper Hewitt, Smithsonian Design Museum',
-        reviewed: 22,
-        distinctWorks: 12,
-        why: 'decorative designs — a different register, and one that deserves its own '
-            + 'harvest rather than surviving as a remnant of a natural-history one'
-    })
-]);

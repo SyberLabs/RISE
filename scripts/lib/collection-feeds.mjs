@@ -36,7 +36,7 @@ export const getJson = async (url, label, { retries = 2, headers = {} } = {}) =>
  *
  * Nothing on Netlify holds an API key. The harvest runs here on a
  * workstation, the reviewed pins are committed, and the deployed reader
- * fetches the image directly — `img-src` in netlify.toml names each
+ * fetches the image directly — `img-src` in public/_headers names each
  * catalogue's image hosts (a new host is added there, and
  * src/core/csp-image-hosts.test.js holds the set), while `connect-src`
  * does NOT list api.si.edu, so the browser could not reach the search

@@ -110,10 +110,6 @@ export function isContinuousPresentation(value) {
     return value === 'continuous' || value === 'continuous-word';
 }
 
-export function isGalleryInTheWord(value) {
-    return value === 'continuous-word';
-}
-
 // Gallery has one temporal axis: how quickly one complete work yields to the
 // next. Keep it independent from Rhythmic frequency/presence so changing
 // presentation restores both surfaces exactly as the reader left them.
@@ -342,21 +338,6 @@ export function normalizeStreamRate(value) {
     return Math.max(STREAM_RATE_MIN_HZ, Math.min(STREAM_RATE_MAX_HZ, hz));
 }
 
-/**
- * The stream at explicit presentation time: which of `count` frames is on
- * screen, and for how long each is held. The held time never makes the stream
- * faster than the rate asked for, so a 60 Hz display shows 8 Hz as 7.5 Hz.
- *
- * Time is read as the nearest whole refresh. A frame boundary in time lands
- * exactly on a refresh, where a timestamp a fraction of a millisecond early
- * or late would end one frame a refresh short and the next a refresh long.
- */
-export function streamFrameAt(timeMs, count, options = {}) {
-    const refreshHz = streamRefreshHz(options.refreshHz);
-    const refreshes = Math.round(Math.max(0, Number(timeMs) || 0) * refreshHz / 1000);
-    return streamFrameAtRefresh(refreshes, count, { ...options, refreshHz });
-}
-
 function streamRefreshHz(value) {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : STREAM_REFRESH_DEFAULT_HZ;
@@ -382,9 +363,6 @@ export function streamFrameAtRefresh(refreshes, count, options = {}) {
 // to register beneath the text, so its default presence is a full beat
 export const VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS = 1000;
 const VISUAL_PRESENCE_MAX_MS = 2000;
-export const VISUAL_PRESENCE_STEPS_MS = Object.freeze([
-    150, 200, 300, 450, 700, 1000, 1400, 2000
-]);
 
 export const VISUAL_PRESENCE_WINDOW_MS = 12_000;
 export const VISUAL_PRESENCE_MAX_DUTY = 0.45;
@@ -402,35 +380,6 @@ export function normalizeVisualPresence(value, fallback = VISUAL_PRESENCE_DEFAUL
         VISUAL_PRESENCE_MIN_MS,
         Math.min(VISUAL_PRESENCE_MAX_MS, duration)
     ));
-}
-
-export function nearestVisualPresenceStep(value) {
-    const duration = normalizeVisualPresence(value);
-    return VISUAL_PRESENCE_STEPS_MS.reduce((nearest, step) => (
-        Math.abs(step - duration) < Math.abs(nearest - duration) ? step : nearest
-    ), VISUAL_PRESENCE_STEPS_MS[0]);
-}
-
-export function formatVisualPresence(value) {
-    const duration = normalizeVisualPresence(value);
-    if (duration < 1000) return `${duration} ms`;
-    return `${(duration / 1000).toFixed(1)} s`;
-}
-
-function visualPresenceRole(value) {
-    const duration = normalizeVisualPresence(value);
-    if (duration < 250) return 'punctuation';
-    if (duration < 500) return 'interruption';
-    if (duration < 1000) return 'exposure';
-    return 'tableau';
-}
-
-export function visualPresenceValueText(value) {
-    const duration = normalizeVisualPresence(value);
-    const amount = duration < 1000
-        ? `${duration} milliseconds`
-        : `${(duration / 1000).toFixed(1)} seconds`;
-    return `${amount}, ${visualPresenceRole(duration)}`;
 }
 
 export function responsiveVisualPresence(value, arousal = 0) {

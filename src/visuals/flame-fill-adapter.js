@@ -63,18 +63,6 @@ function clamp(value, lo, hi) {
     return Math.min(hi, Math.max(lo, value));
 }
 
-function createImageBuffer(width, height) {
-    const pixels = new Uint8ClampedArray(width * height * 4);
-    if (typeof ImageData === 'function') {
-        try {
-            return new ImageData(pixels, width, height);
-        } catch {
-            /* jsdom / node: fall through to a buffer the LUT can still write */
-        }
-    }
-    return { width, height, data: pixels };
-}
-
 function numberOr(value, fallback) {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
@@ -228,19 +216,6 @@ function writeFlameFill(src, dst, lut, width, height) {
         dst[i + 2] = dst[strongest + 2];
         dst[i + 3] = dst[strongest + 3];
     }
-}
-
-export function applyFlameFillLut(imageData, options = {}) {
-    if (!imageData?.data || !imageData.width || !imageData.height) return imageData;
-    const out = createImageBuffer(imageData.width, imageData.height);
-    writeFlameFill(
-        imageData.data,
-        out.data,
-        flameFillLut(resolveTone(options)),
-        imageData.width,
-        imageData.height
-    );
-    return out;
 }
 
 export function applyFlameFillToCanvas(canvas, options = {}) {

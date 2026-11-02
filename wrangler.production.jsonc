@@ -9,7 +9,7 @@
   "preview_urls": false,
   // Shared model inference is retired. Readers use their own OpenRouter account
   // or run Kev locally; the optional live integrations remain switched off.
-  "vars": { "LIVE_REALTIME_ENABLED": "false", "MCP_ENABLED": "true", "MCP_SELF_CONTAINED": "true", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_PAYMENT_LINK": "",
+  "vars": { "MCP_ENABLED": "true", "PLUS_VOICE_MODEL": "eleven_flash_v2_5", "PLUS_PAYMENT_LINK": "",
     // Open only after Stripe business verification, webhook delivery, recovery mail,
     // customer portal and the funded fixed offer are verified for this deployment.
     "PLUS_CHECKOUT_ENABLED": "false",
@@ -37,16 +37,13 @@
     "not_found_handling": "single-page-application",
     "binding": "ASSETS",
     // The Kev worker script carries its own policy (worker/kev-worker-script.mjs).
-    // /live reaches handleLive (worker/mcp-server.mjs), which loosens the embedded page's framing
-    // headers only while MCP_ENABLED is "true"; off, the page is served exactly as the asset.
     // /content/arena/* reaches serveArenaFile, so a missing run file is a 404, not the app shell.
     // /content/changes/* reaches serveChangesFile (worker/changes.mjs), which proxies the digest files
     // on the changes-data branch; no such file is in the build, so the app shell would answer instead.
     // /.well-known/* reaches serveWellKnown (worker/index.mjs): security.txt, and a JSON 404 for every
     // other probe (an authless MCP server has no OAuth metadata, and a 404 says so).
-    "run_worker_first": ["/api/*", "/live", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*", "/content/changes/*", "/.well-known/*"]
+    "run_worker_first": ["/api/*", "/assets/kev-worker-*", "/assets/embed-worker-*", "/content/arena/*", "/content/changes/*", "/.well-known/*"]
   },
-  // Serves the live Realtime route (worker/live-realtime.mjs); off by default.
   // The paid voice (worker/plus.mjs). It stores no audio and no reader text, so there is no bucket.
   // Secrets STRIPE_SECRET_KEY and PLUS_COOKIE_SECRET switch the routes on; without them they answer 503.
   // Also set as secrets (a dashboard var is dropped by the next deploy): PLUS_PRICE_ID, the live

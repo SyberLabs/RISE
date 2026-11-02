@@ -5,11 +5,11 @@
  * pinned-works provider calls `resolveCollection` because its pins are
  * museum object ids that must be turned into image URLs; these works arrive
  * already resolved, rights-checked and credit-composed by
- * `build-science-catalog.mjs`. There is nothing left to fetch, so this
+ * the harvest that froze the catalog. There is nothing left to fetch, so this
  * makes no network request at all.
  *
  * That is the whole point of the arrangement rather than a happy accident:
- * `connect-src` in netlify.toml does not list ESA/Hubble, NASA or
+ * `connect-src` in public/_headers does not list ESA/Hubble, NASA or
  * api.si.edu, and it does not need to (SOURCE-EXPANSION-SPEC §3a, "the API
  * key never leaves the workstation"). The reader's browser fetches images
  * and nothing else.

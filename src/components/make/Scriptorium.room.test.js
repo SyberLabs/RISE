@@ -20,7 +20,7 @@ import { MemoryCore } from '../../core/memory.js';
 import { WorkshopMedia, WorkshopMediaError } from '../../core/workshop-media.js';
 import { hydrateSessionSequenceAssets } from '../../core/workshop-asset-durability.js';
 import { workshopProjectToSessionConfig } from '../../core/workshop-project.js';
-import { boundarySourceId, isBoundarySource } from '../../core/journey-compiler.js';
+import { BOUNDARY_SOURCE_PREFIX, isBoundarySource } from '../../core/experience-program.js';
 import {
     MAX_SAFE_TARGET_WORDS,
     READING_LIMITS,
@@ -670,7 +670,7 @@ describe('the resolver stub names the ids the real resolver names', () => {
             tracks: [{
                 id: 'm',
                 kind: 'movement',
-                clips: [clip('m1', { sourceIds: ['nowhere-a', boundarySourceId('to-hero')] })]
+                clips: [clip('m1', { sourceIds: ['nowhere-a', `${BOUNDARY_SOURCE_PREFIX}to-hero`] })]
             }]
         },
         {

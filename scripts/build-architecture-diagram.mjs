@@ -38,7 +38,7 @@ const CAPTIONS = {
     app: 'composition root',
     audio: 'Web Audio, recitation',
     components: 'routed views',
-    content: 'texts, imagery, journeys',
+    content: 'texts, imagery',
     core: 'session, player, router',
     enterprise: 'talk program, speaker rail',
     live: 'realtime Current: events, runtime, providers',

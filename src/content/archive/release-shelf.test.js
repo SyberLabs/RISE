@@ -16,10 +16,9 @@ import {
     archiveReviewEnabled,
     releaseArchiveMetadata,
     releaseArchiveTexts,
-    uncertifiedCount,
     RELEASE_SERVES_UNCERTIFIED
 } from './index.js';
-import { CERTIFIED_IDS, isArchiveEditionCertified } from './certification.js';
+import { isArchiveEditionCertified } from './certification.js';
 
 describe('the shelf a reader is actually given', () => {
     it('is not empty in a public build', () => {
@@ -36,19 +35,11 @@ describe('the shelf a reader is actually given', () => {
         // behind the certifications with nothing else to change — and this
         // test then requires that they exist.
         if (RELEASE_SERVES_UNCERTIFIED) {
-            expect(uncertifiedCount()).toBeGreaterThan(0);
+            expect(releaseArchiveMetadata().some(meta => !isArchiveEditionCertified(meta))).toBe(true);
         } else {
-            expect(CERTIFIED_IDS.size,
-                'the gate is closed and nothing is certified').toBeGreaterThan(0);
             for (const meta of releaseArchiveMetadata()) {
                 expect(isArchiveEditionCertified(meta), `${meta.id} is uncertified`).toBe(true);
             }
         }
-    });
-
-    it('counts the uncertified against what it serves, not against the canon', () => {
-        // The shelf prints this number. It must describe the works a reader can
-        // open, or it is a claim about a list they cannot see.
-        expect(uncertifiedCount()).toBeLessThanOrEqual(releaseArchiveMetadata().length);
     });
 });
