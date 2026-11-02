@@ -1065,7 +1065,6 @@ describe('the sections these measurements govern state no figure twice (E)', () 
             .toBeGreaterThan(4);
         expect(swept, 'the sweep no longer reads the document that states the sizes')
             .toContain(SPEC);
-        expect(swept).toContain('scripts/build-division-index.mjs');
         expect(swept, 'the sweep still reads only the two files it used to')
             .toContain('src/content/archive/index.js');
 

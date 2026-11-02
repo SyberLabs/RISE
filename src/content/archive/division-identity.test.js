@@ -42,7 +42,7 @@ describe('no division is devoid of its own work’s vocabulary', () => {
         const shelved = INGESTED_META.map(meta => meta.id).sort();
         const audited = Object.keys(REPORT.works).sort();
         const missing = shelved.filter(id => !REPORT.works[id]);
-        expect(missing, 'run scripts/audit-division-identity.mjs --write').toEqual([]);
+        expect(missing, 'every shelved work needs an identity audit entry').toEqual([]);
         expect(audited.length).toBeGreaterThanOrEqual(shelved.length);
     });
 

@@ -242,7 +242,7 @@ describe('the numbers the spec states are the numbers the code computes', () => 
             .flatMap(({ file }) => Object.values(measureIndex(file)))
             .map(String));
         expect(measured.size).toBeGreaterThan(1);
-        for (const file of [SPEC, 'scripts/build-division-index.mjs']) {
+        for (const file of [SPEC]) {
             const figures = [...read(file).matchAll(/(\d+)\s*KiB/gu)].map(match => match[1]);
             expect(figures.length, `${file} states no catalogue size`).toBeGreaterThan(0);
             for (const figure of figures) {

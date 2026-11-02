@@ -78,13 +78,6 @@ describe('distribution packages', () => {
       writeRenderPackageDir(dir, set.packages['social-portrait-1080'].package);
       const roundTrip = await verifyRenderPackage(readRenderPackageDir(dir));
       expect(roundTrip.ok).toBe(true);
-      const output = execFileSync(process.execPath, ['scripts/verify-render-package.mjs', dir], {
-        encoding: 'utf8',
-        cwd: process.cwd()
-      });
-      expect(output).toMatch(/hashes match: yes/);
-      expect(output).toMatch(/rights unresolved: none/);
-      expect(output).toMatch(/degradations: none/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

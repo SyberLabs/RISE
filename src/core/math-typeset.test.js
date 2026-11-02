@@ -2,7 +2,7 @@
 // SRE's ClearSpeak rules are XPath conditions, and jsdom's XPath misreads them ("a raised to the 2 power");
 // in Node SRE parses with xmldom, as a browser's own XPath reads them. e2e/live-math.spec.js hears Chromium.
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MATH_CORPUS } from './math-corpus.js';
+import { MATH_CORPUS } from '../test/math-corpus.js';
 import { hasMath, loadMath, mathReady, renderMath, resetMathForTests, speakable, splitMath, typeset } from './math-typeset.js';
 
 // The stylesheet is the browser's concern; here only the code loads.
