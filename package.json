@@ -25,7 +25,6 @@
     "security:audit": "npm audit --audit-level=high",
     "security:compat": "node scripts/verify-security-dependencies.mjs",
     "docs:diagram": "node scripts/build-architecture-diagram.mjs",
-    "scriptorium:ci": "npm run content:build && node scripts/scriptorium-ci.mjs",
     "render:mp4": "node scripts/render-mp4.mjs",
     "render:mill": "node scripts/render-mill.mjs",
     "content:build": "vite-node scripts/build-content-plane.mjs",
@@ -37,11 +36,9 @@
     "test:roadmap": "node --test scripts/roadmap.test.mjs tools/roadmap/dashboard.test.mjs"
   },
   "devDependencies": {
-    "@huggingface/transformers": "^3.8.1",
     "@playwright/test": "^1.61.1",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^26.0.0",
-    "kokoro-js": "^1.2.1",
     "vite": "^7.3.7",
     "vite-node": "^3.2.4",
     "vitest": "^4.1.12",

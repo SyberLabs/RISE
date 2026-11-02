@@ -80,7 +80,6 @@ node scripts/ci-hygiene.mjs                   # licenses, credits, reader-facing
 npm run security:audit && npm run security:compat
 npm run build && npm run measure:first-load   # first-load size budget
 npm run docs:diagram && npx vitest run src/core/system-design.test.js
-npm run scriptorium:ci
 ```
 
 The full test suite needs `ffmpeg` and Playwright Chromium (`npx playwright install chromium`). The browser tests start their own server. Release and rollback steps are in [docs/RELEASING.md](docs/RELEASING.md).
