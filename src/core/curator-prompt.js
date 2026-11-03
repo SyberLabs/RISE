@@ -26,11 +26,11 @@ import {
   validateCuratorContext
 } from './curator-context.js';
 import {
+  BOUNDARY_SOURCE_PREFIX,
   EXPERIENCE_PROGRAM_LIMITS,
   EXPERIENCE_PROGRAM_SCHEMA
 } from './experience-program.js';
 import { AGENT_OPERATION_SET_SCHEMA } from './agent-operations.js';
-import { BOUNDARY_SOURCE_PREFIX } from './journey-compiler.js';
 import {
   MAX_SAFE_TARGET_WORDS, READING_LIMITS, READING_PACE
 } from './reading-limits.js';

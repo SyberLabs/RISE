@@ -52,11 +52,6 @@ export const WORK_ENGINE_MANIFEST = Object.freeze(
     )
 );
 
-/** The work a named engine was authored for, or null if it is general. */
-export function workEngineFamilyOf(engineId) {
-    return WORK_ENGINE_MANIFEST.find(entry => entry.id === engineId)?.family || null;
-}
-
 const cache = new Map();
 
 /** Is this a family authored for a work? */

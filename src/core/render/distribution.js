@@ -4,7 +4,6 @@
  */
 
 import { fail } from './errors.js';
-import { deriveRenderJob } from './job.js';
 import { compileRenderPlan, hashRenderPlan } from './plan.js';
 import { admitRenderJob } from './job.js';
 import { preflightRenderJob, PREFLIGHT_VERDICTS } from './preflight.js';
@@ -12,10 +11,8 @@ import { mixAudio, peakAmplitude } from './audio-mix.js';
 import { sha256Hex } from './hash.js';
 import { renderPoster } from './poster.js';
 import { buildRenderPackage, owedCreditLines } from './package.js';
-import { DISTRIBUTION_PROFILE_IDS, qualityTier } from './quality.js';
+import { qualityTier } from './quality.js';
 import { frameIndexAt } from './clock.js';
-
-export { DISTRIBUTION_PROFILE_IDS };
 
 function audioBytes(pcm) {
   return new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength);
@@ -118,33 +115,5 @@ export async function renderPreview(input, { fromMs, toMs, tier = 'draft' } = {}
   return renderAdmittedPackage(input, input.job, {
     tier,
     excerpt: { fromMs, toMs }
-  });
-}
-
-/**
- * Portrait, square, and landscape packages from one admitted composition.
- */
-export async function renderDistributionPackages(input, options = {}) {
-  const profiles = options.profiles || DISTRIBUTION_PROFILE_IDS;
-  const packages = {};
-  let credits = null;
-  for (const profileId of profiles) {
-    const rendered = await renderAdmittedPackage(input, deriveRenderJob(input.job, profileId), options);
-    if (!credits) credits = rendered.credits;
-    else {
-      const missing = credits.filter(line => !rendered.credits.includes(line));
-      if (missing.length) {
-        fail('RENDER_CREDITS_REMOVED',
-          'A profile cannot drop an owed credit',
-          '$.credits',
-          { profileId, missing });
-      }
-    }
-    packages[profileId] = rendered;
-  }
-  return Object.freeze({
-    programHash: packages[profiles[0]].job.programHash,
-    credits,
-    packages: Object.freeze(packages)
   });
 }

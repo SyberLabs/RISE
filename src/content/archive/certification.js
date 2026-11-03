@@ -95,12 +95,6 @@ export function isArchiveEditionCertified(meta) {
   return certificationFor(meta) !== null;
 }
 
-export const CERTIFIED_IDS = Object.freeze(new Set(
-  Object.values(ARCHIVE_CERTIFICATIONS)
-    .filter(completeCertification)
-    .map(record => record.workId)
-));
-
 /** Attach release identity without mutating generated ingest metadata. */
 export function withArchiveReleaseIdentity(meta) {
   const identity = archiveEditionIdentity(meta);

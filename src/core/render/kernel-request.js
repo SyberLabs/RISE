@@ -7,7 +7,6 @@ import { resolveCaptionStyle } from './caption-style.js';
 
 export const KERNEL_REQUEST_SCHEMA = 'rise.kernel-request.v1';
 export const DEFAULT_RENDER_PROFILE_ID = 'social-portrait-1080';
-export const EXPORT_MP4_PATH = '/__rise/export-mp4';
 
 function defined(value) {
   const out = {};

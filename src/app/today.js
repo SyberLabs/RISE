@@ -3,8 +3,8 @@
  * (the vivid look todayDecision draws), through the same edition gate as
  * Home's rolls. Leaving the reading returns Home.
  *
- * When this release carries the poem's recitation (src/audio/poem-recitation.json,
- * written by scripts/build-poem-recitation.mjs), it is read aloud a line at a
+ * When this release carries the poem's recitation (src/audio/poem-recitation.json),
+ * it is read aloud a line at a
  * time; otherwise it is read silently, as before.
  */
 import POEM_RECITATIONS from '../audio/poem-recitation.json' with { type: 'json' };

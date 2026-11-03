@@ -55,7 +55,7 @@ describe('createRouteManifest', () => {
     }
     expect(roomOptions('read', 'Read').setup.getAudioEngine, 'reader setup audio boundary').toBe(getAudioEngine);
     const panes = roomOptions('library', 'Library').paneCapabilities;
-    for (const pane of ['chapel', 'rosary', 'stations', 'journeys']) {
+    for (const pane of ['chapel', 'rosary', 'stations']) {
       expect(panes[pane].getAudioEngine, `${pane} audio boundary`).toBe(getAudioEngine);
     }
     const tabs = roomOptions('make', 'Make').tabCapabilities;
@@ -85,7 +85,7 @@ describe('createRouteManifest', () => {
     const panes = received.paneCapabilities;
     // Today's poem is not a pane: Home begins it through the app's launchToday.
     expect(Object.keys(panes).sort()).toEqual(
-      ['chapel', 'journeys', 'keystones', 'mint', 'provenance', 'rosary', 'school', 'stations']
+      ['chapel', 'keystones', 'mint', 'provenance', 'rosary', 'school', 'stations']
     );
     expect(panes.keystones.onLaunch).toBe(operations.launchKeystone);
     expect(panes.mint.onOpen).toBe(operations.openMintedProgram);

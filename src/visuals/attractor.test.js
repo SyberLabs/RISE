@@ -3,7 +3,6 @@ import {
   AttractorField,
   PALETTES,
   ATTRACTOR_PALETTES,
-  ATTRACTOR_PALETTE_IDS,
   ATTRACTOR_FORMS,
   ATTRACTOR_SYSTEMS
 } from './attractor.js';
@@ -85,6 +84,8 @@ describe('Attractor canvas size', () => {
     field.destroy();
   });
 });
+
+const ATTRACTOR_PALETTE_IDS = ATTRACTOR_PALETTES.map(p => p.id);
 
 describe('Attractor palettes', () => {
   it('offers exactly the ten selectable filament colors', () => {

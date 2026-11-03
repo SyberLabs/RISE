@@ -51,6 +51,14 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
   maxSceneSvgBytes: 32_768
 });
 
+/** The prefix that marks a source as an authored transition, not a text. */
+export const BOUNDARY_SOURCE_PREFIX = 'journey-boundary:';
+
+/** Is this source id an authored transition rather than a text? */
+export function isBoundarySource(sourceId) {
+  return typeof sourceId === 'string' && sourceId.startsWith(BOUNDARY_SOURCE_PREFIX);
+}
+
 /** The size of a scene's code as it travels, in UTF-8 bytes. */
 export const sceneCodeBytes = code => new TextEncoder().encode(code).length;
 

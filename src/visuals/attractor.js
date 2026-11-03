@@ -1085,5 +1085,4 @@ export class AttractorField {
     }
 }
 
-export const ATTRACTOR_PALETTE_IDS = ATTRACTOR_PALETTES.map(p => p.id);
 export { ATTRACTOR_FORMS, ATTRACTOR_PALETTES, ATTRACTOR_SYSTEMS };

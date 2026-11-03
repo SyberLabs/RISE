@@ -20,7 +20,7 @@ import worker from './index.mjs';
 import { admitSvg } from '../src/core/svg-admission.js';
 import { describeDiagnostic } from '../src/core/scene-admission.js';
 import { DISPLAY_MODES } from '../src/live/hosts/mcp-port.js';
-import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, GUIDE_TOOL, handleLive, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
+import { APP_MIME, APP_URI, currentJsonSchema, currentJsonSchemaV2, GUIDE_TOOL, handleMcp, MCP_PATH, PROTOCOL_VERSIONS, TOOL } from './mcp-server.mjs';
 
 const SITE = 'https://rise.example';
 /** The most the tool's description may say, in characters. */
@@ -741,9 +741,9 @@ describe('the guides to the styles', () => {
     }
   });
 
-  it('are served without reading the deployed page, even with the self-contained card switched on', async () => {
+  it('are served without reading the deployed page', async () => {
     const ASSETS = { asked: null, fetch: async request => { ASSETS.asked = request.url; return new Response('<!doctype html>'); } };
-    const response = await post(rpc('resources/read', { uri: GUIDE_URIS[0] }), { env: { ...ON, MCP_SELF_CONTAINED: 'true', ASSETS } });
+    const response = await post(rpc('resources/read', { uri: GUIDE_URIS[0] }), { env: { ...ON, ASSETS } });
     expect((await json(response)).result.contents[0].mimeType).toBe('text/markdown');
     expect(ASSETS.asked).toBeNull();
   });
@@ -766,7 +766,7 @@ describe('the app', () => {
     expect(content._meta['openai/widgetDescription']).toMatch(/^[^.]*Play[^.]*\.$/u);
   });
 
-  describe('self-contained, with MCP_SELF_CONTAINED (LIVE-010)', () => {
+  describe('self-contained (LIVE-010)', () => {
     const PAGE = '<!doctype html><html><head><meta charset="utf-8"><script type="module" crossorigin src="/assets/main-x.js"></script></head><body><div id="app"></div></body></html>';
     const assets = (page = PAGE, ok = true) => {
       const binding = { asked: null, fetch: async request => { binding.asked = request.url; return new Response(page, { status: ok ? 200 : 404 }); } };
@@ -776,7 +776,7 @@ describe('the app', () => {
 
     it('is RISE’s deployed page itself, its addresses at RISE, framing nothing and reaching only this origin', async () => {
       const ASSETS = assets();
-      const content = await read({ MCP_SELF_CONTAINED: 'true', ASSETS });
+      const content = await read({ ASSETS });
       expect(ASSETS.asked).toBe(`${SITE}/index.html`);
       // No <base>: a host's sandbox refuses one. The page's addresses are RISE's outright.
       expect(content.text).not.toContain('<base');
@@ -786,9 +786,8 @@ describe('the app', () => {
       expect(content._meta.ui.csp).toEqual({ connectDomains: [SITE], resourceDomains: [SITE], frameDomains: [] });
     });
 
-    it('serves the framed card while the switch is off, or when the deployed page cannot be read', async () => {
-      expect((await read({ ASSETS: assets() })).text).toContain(`src="${SITE}/live?embed=mcp"`);
-      expect((await read({ MCP_SELF_CONTAINED: 'true', ASSETS: assets('', false) })).text).toContain('<iframe');
+    it('serves the framed card when the deployed page cannot be read', async () => {
+      expect((await read({ ASSETS: assets('', false) })).text).toContain('<iframe');
     });
   });
 
@@ -810,18 +809,6 @@ describe('the app', () => {
     expect(result.contents[0]._meta.ui.csp.frameDomains).toEqual(['https://staging.rise.example']);
   });
 
-  it('frames the page with the witness log switched on only while MCP_WITNESS is true, and otherwise byte for byte as today', async () => {
-    const plain = (await json(await post(rpc('resources/read', { uri: APP_URI })))).result.contents[0];
-    const witness = (await json(await post(rpc('resources/read', { uri: APP_URI }), { env: { ...ON, MCP_WITNESS: 'true' } }))).result.contents[0];
-    expect(witness.text).toContain(`src="${SITE}/live?embed=mcp&log=host"`);
-    expect(witness.text.replace('&log=host', '')).toBe(plain.text);
-    expect(witness._meta).toEqual(plain._meta);
-    for (const value of [undefined, 'false', 'TRUE', '1']) {
-      const same = (await json(await post(rpc('resources/read', { uri: APP_URI }), { env: { ...ON, MCP_WITNESS: value } }))).result.contents[0];
-      expect(same, String(value)).toEqual(plain);
-    }
-  });
-
   it('says a resource it does not have is not found, and does not echo more than a clipped address', async () => {
     for (const uri of ['ui://rise/other', 'file:///etc/passwd', '', undefined, 5, null, {}]) {
       const { error } = await json(await post(rpc('resources/read', { uri })));
@@ -833,79 +820,3 @@ describe('the app', () => {
   });
 });
 
-describe('the one page that may be framed', () => {
-  const page = (headers = {}) => new Response('<html></html>', {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/html',
-      'X-Frame-Options': 'DENY',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self'; frame-ancestors 'none'",
-      ...headers
-    }
-  });
-  const ask = (path, { env = ON, method = 'GET', response = page() } = {}) => {
-    const ASSETS = { fetch: vi.fn(async () => response) };
-    return handleLive(new Request(`${SITE}${path}`, { method }), { ...env, ASSETS }).then(result => ({ result, ASSETS }));
-  };
-
-  it('keeps its framing headers while the self-contained card is on: nothing frames it then', async () => {
-    const { result } = await ask('/live?embed=mcp', { env: { ...ON, MCP_SELF_CONTAINED: 'true' } });
-    expect(result.headers.get('X-Frame-Options')).toBe('DENY');
-    expect(result.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
-  });
-
-  it('may be framed by any site when it is asked for as the embedded page, and only then', async () => {
-    const { result, ASSETS } = await ask('/live?embed=mcp');
-    expect(ASSETS.fetch).toHaveBeenCalledTimes(1);
-    expect(result.headers.get('X-Frame-Options')).toBeNull();
-    expect(result.headers.get('Content-Security-Policy')).toBe("default-src 'self'; script-src 'self'; frame-ancestors *");
-    expect(await result.text()).toBe('<html></html>');
-  });
-
-  it('keeps every header the site set, and changes nothing else about the response', async () => {
-    const { result } = await ask('/live?embed=mcp', { response: page({ 'Permissions-Policy': 'microphone=(self)', 'X-Content-Type-Options': 'nosniff' }) });
-    expect(result.headers.get('Permissions-Policy')).toBe('microphone=(self)');
-    expect(result.headers.get('X-Content-Type-Options')).toBe('nosniff');
-    expect(result.headers.get('Content-Type')).toBe('text/html');
-    expect(result.status).toBe(200);
-  });
-
-  it('is exactly the asset, framing headers included, when not asked for as the embedded page', async () => {
-    for (const path of ['/live', '/live?embed=other', '/live?embed=', '/live?provider=openai', '/live?xembed=mcp', '/live?embed=MCP']) {
-      const { result } = await ask(path);
-      expect(result.headers.get('X-Frame-Options'), path).toBe('DENY');
-      expect(result.headers.get('Content-Security-Policy'), path).toContain("frame-ancestors 'none'");
-    }
-  });
-
-  it('is exactly the asset while it is switched off, even when asked for as the embedded page', async () => {
-    for (const env of [{}, { MCP_ENABLED: 'false' }, { MCP_ENABLED: 'yes' }]) {
-      const { result } = await ask('/live?embed=mcp', { env });
-      expect(result.headers.get('X-Frame-Options'), JSON.stringify(env)).toBe('DENY');
-      expect(result.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
-    }
-  });
-
-  it('does not loosen a response for anything but a read of the page', async () => {
-    for (const method of ['POST', 'PUT', 'DELETE']) {
-      const { result } = await ask('/live?embed=mcp', { method });
-      expect(result.headers.get('X-Frame-Options'), method).toBe('DENY');
-    }
-  });
-
-  it('does not loosen an error: a page that was not found keeps its headers and its status', async () => {
-    const { result } = await ask('/live?embed=mcp', { response: new Response('nope', { status: 404, headers: { 'X-Frame-Options': 'DENY' } }) });
-    expect(result.status).toBe(404);
-  });
-
-  it('says it is unavailable, rather than failing, when there is nothing to serve the page from', async () => {
-    const response = await handleLive(new Request(`${SITE}/live?embed=mcp`), ON);
-    expect(response.status).toBe(503);
-  });
-
-  it('is reached at /live on the worker', async () => {
-    const ASSETS = { fetch: vi.fn(async () => page()) };
-    const response = await worker.fetch(new Request(`${SITE}/live?embed=mcp`), { ...ON, ASSETS });
-    expect(response.headers.get('X-Frame-Options')).toBeNull();
-  });
-});

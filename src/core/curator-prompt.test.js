@@ -20,12 +20,12 @@ import {
 } from './curator-context.js';
 import { buildCuratorPrompt, curatorMovementCeiling } from './curator-prompt.js';
 import { parseCuratorPaste } from './experience-program-io.js';
-import { isBoundarySource } from './journey-compiler.js';
 import {
     EXTENT_OVERSHOOT_LIMIT, extentNominalWords, extentReadingBound
 } from './library-extent.js';
 import { resolveLibrarySourceIds } from './scriptorium-resolve.js';
 import {
+  isBoundarySource,
     EXPERIENCE_PROGRAM_SCHEMA
 } from './experience-program.js';
 import {

@@ -4,7 +4,7 @@
  * guidance says how to write in the style; the worked Currents (two code
  * scenes and a figure) are real ones the validator accepts and whose scenes
  * the server admits (held by
- * src/live/guide/index.test.js, and run headless by npm run eval:creative).
+ * src/live/guide/index.test.js).
  */
 
 const ORIGIN = Object.freeze({ kind: 'model', name: 'Your name', provider: 'Who runs you' });

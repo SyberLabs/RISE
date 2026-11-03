@@ -27,7 +27,7 @@
  * matching the strand. Highest bead: 59. Count of beads: 59.
  *
  * This was wrong until now — the module allocated a sixth pendant
- * position to the Glory Be, so `ROSARY_BEAD_COUNT` evaluated to 61 two
+ * position to the Glory Be, so its bead count evaluated to 61 two
  * lines under a comment stating 59, and `rosary-strand.js` drew sixty
  * beads. The count IS the form; on the one subsystem whose whole thesis
  * is fidelity to a physical object, the object's most basic fact was
@@ -42,14 +42,6 @@ import {
 
 const P = ROSARY_PRAYERS;
 const D = PRAYER_DURATIONS_MS;
-
-/**
- * Beads on a five-decade rosary: 4 on the pendant + 5 × (1 + 10) on the
- * loop. The crucifix and the centrepiece are not beads and are not in
- * this number. It is also the highest bead position, because position 0
- * is the crucifix.
- */
-export const ROSARY_BEAD_COUNT = 4 + 5 * 11;
 
 /** The centrepiece medal. A position on the strand, not a bead. */
 export const ROSARY_CENTREPIECE = -1;

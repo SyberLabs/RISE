@@ -4,7 +4,7 @@
  * `counts`, and every property set kept, so a test can read back the last
  * lineWidth or font. Any method a scene may call answers; the few that
  * return something return a plausible shape. Used by the scene library's
- * tests and by the headless run of npm run eval:creative.
+ * tests.
  */
 const RETURNS = {
   measureText: text => ({ width: String(text).length * 8 }),

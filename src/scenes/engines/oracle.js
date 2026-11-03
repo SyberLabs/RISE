@@ -55,19 +55,6 @@ const PUPIL_REACH = 0.22;
 const SKIN_NAMES = Object.freeze(Object.keys(ORACLE_SKINS));
 const STATE_NAMES = Object.freeze(Object.keys(ORACLE_STATES));
 
-/** What the face takes, in a manifest's shape (src/scenes/manifests.js): read by the venue, never by a model. */
-export const ORACLE_MANIFEST = Object.freeze({
-    id: 'oracle', kind: 'presence', surface: 'oracle',
-    parameters: Object.freeze({
-        skin: Object.freeze({ type: 'enum', values: SKIN_NAMES, default: 'sophia', cueable: true }),
-        state: Object.freeze({ type: 'enum', values: STATE_NAMES, default: 'arrival', cueable: true })
-    }),
-    cues: Object.freeze({
-        ...Object.fromEntries(STATE_NAMES.map(name => [name, Object.freeze({ state: name })])),
-        blink: Object.freeze({})
-    })
-});
-
 const TAU = Math.PI * 2;
 const PHI = 1.618033988749895;
 const PETALS = 36;

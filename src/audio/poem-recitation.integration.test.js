@@ -2,8 +2,7 @@
  * The drift guard for today's poem recitations: the index may only name pool
  * poems from the served edition, and (when the audio is hydrated) every pack
  * must be the bytes its name says and cover exactly the lines a recited day
- * reads. If the chunker changes, this fails, and the fix is a re-cut from the
- * cached renders (npm run poem:recite -- --render …), which costs nothing.
+ * reads. If the chunker changes, this fails, and the packs must be re-cut.
  */
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';

@@ -39,12 +39,3 @@ export function saveSequencePilotFeedback({ sequenceId, version, value, consent 
     localStorage.setItem(USER_DATA_KEYS.sequencePilotFeedback, JSON.stringify(records.slice(-MAX_RECORDS)));
     return record;
 }
-
-export function deleteSequencePilotFeedback() {
-    localStorage.removeItem(USER_DATA_KEYS.sequencePilotFeedback);
-}
-
-export function exportSequencePilotFeedback({ consent } = {}) {
-    if (consent !== true) throw new Error('Feedback export requires explicit consent');
-    return listSequencePilotFeedback();
-}

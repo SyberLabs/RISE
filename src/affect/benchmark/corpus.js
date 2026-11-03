@@ -262,32 +262,3 @@ export const CORPUS = Object.freeze([
         })
     })
 ]);
-
-export const PROBES = Object.freeze([
-    Object.freeze({
-        id: 'probe-negation',
-        origin: 'constructed-probe',
-        text: 'I am not happy.',
-        provenance: Object.freeze({
-            archivePath: null,
-            work: null,
-            author: null,
-            form: 'probe',
-            cases: Object.freeze(['negation']),
-            note: 'Not a RISE passage. The weak baseline should miss the negation that the window encoder applies.'
-        })
-    })
-]);
-
-export const REQUIRED_CASES = Object.freeze([
-    'prose',
-    'poetry',
-    'philosophy',
-    'scripture',
-    'dialogue',
-    'descriptive',
-    'neutral',
-    'ambiguity',
-    'irony',
-    'difficult'
-]);

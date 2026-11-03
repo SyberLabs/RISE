@@ -50,7 +50,8 @@ import { School } from './School.js';
 import { SCHOOL_CANON } from '../../content/school/canon.js';
 import { HOUSES } from '../../content/school/houses.js';
 import { recordsOfHouse } from '../../content/school/index.js';
-import { clearProgress, markRead } from '../../core/school-progress.js';
+import { markRead } from '../../core/school-progress.js';
+import { USER_DATA_KEYS } from '../../core/user-data-keys.js';
 
 const settle = () => new Promise(resolve => setTimeout(resolve, 0));
 
@@ -70,7 +71,7 @@ const lectern = () => container.querySelector('.school-lectern');
 const press = selector => container.querySelector(selector).click();
 
 beforeEach(() => {
-  clearProgress();
+  localStorage.removeItem(USER_DATA_KEYS.schoolProgress);
   container = document.createElement('div');
   document.body.appendChild(container);
 });
@@ -78,7 +79,7 @@ beforeEach(() => {
 afterEach(() => {
   school?.destroy();
   container.remove();
-  clearProgress();
+  localStorage.removeItem(USER_DATA_KEYS.schoolProgress);
 });
 
 describe('the Mystery School pane', () => {

@@ -31,8 +31,6 @@ import { INTERJECTION_ENDINGS } from './interjection.js';
 export const RISE_CURRENT_EVENTS_SCHEMA = 'rise.current-events.v1';
 
 export const EVENT_LIMITS = Object.freeze({
-    /** The most a serialised event may be before it is even parsed. */
-    wireBytes: 16 * 1024,
     /** One committed chunk of a segment's text. */
     textChunk: 1_000,
     seq: 2_147_483_647,
@@ -47,32 +45,10 @@ export const EVENT_LIMITS = Object.freeze({
     errorMessage: 500,
     /** No utterance in a Current is longer than an hour. */
     speechMs: 3_600_000,
-    /** One piece of a scene's source: six bytes a character at worst in JSON, so a piece always fits `wireBytes`. */
+    /** One piece of a scene's source. */
     sceneChunk: 2_000,
     sceneParams: 16
 });
-
-export const EVENT_TYPES = Object.freeze([
-    'current.open',
-    'segment.begin',
-    'segment.text',
-    'segment.end',
-    'state.set',
-    'evidence.add',
-    'dive.attach',
-    'speech.start',
-    'speech.mark',
-    'speech.end',
-    'interrupt',
-    'branch.open',
-    'branch.close',
-    'current.cancel',
-    'current.complete',
-    'error',
-    'scene.declare',
-    'scene.text',
-    'room.change'
-]);
 
 /**
  * What the model may change in a room that is playing (docs/plans/LIVE-CURRENT.md §18), and the fields each takes:
@@ -633,37 +609,4 @@ export function validateEvent(input) {
         type: source.type,
         ...body.read(source, '$')
     });
-}
-
-function exceedsWireByteLimit(wire) {
-    let bytes = 0;
-    for (let index = 0; index < wire.length; index += 1) {
-        const code = wire.charCodeAt(index);
-        if (code <= 0x7f) bytes += 1;
-        else if (code <= 0x7ff) bytes += 2;
-        else if (code >= 0xd800 && code <= 0xdbff
-            && index + 1 < wire.length
-            && wire.charCodeAt(index + 1) >= 0xdc00
-            && wire.charCodeAt(index + 1) <= 0xdfff) {
-            bytes += 4;
-            index += 1;
-        } else bytes += 3;
-        if (bytes > EVENT_LIMITS.wireBytes) return true;
-    }
-    return false;
-}
-
-/**
- * An event as it arrives off a wire. Size is checked before anything is parsed.
- */
-export function decodeEvent(wire) {
-    if (typeof wire !== 'string') fail('EVENT_JSON', '$', 'Expected an event as text');
-    // Keep the constant-time fast path for oversized ASCII; shorter strings
-    // still need byte accounting because UTF-8 can exceed UTF-16 code units.
-    if (wire.length > EVENT_LIMITS.wireBytes || exceedsWireByteLimit(wire)) {
-        fail('EVENT_TOO_LARGE', '$', `An event is at most ${EVENT_LIMITS.wireBytes} bytes`);
-    }
-    let parsed;
-    try { parsed = JSON.parse(wire); } catch { fail('EVENT_JSON', '$', 'Not valid JSON'); }
-    return validateEvent(parsed);
 }

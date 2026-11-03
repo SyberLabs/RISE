@@ -225,14 +225,6 @@ export function getTextById(textId) {
     return LIBRARY_TEXTS.find(t => t.id === textId);
 }
 
-/**
- * Get all library texts
- * @returns {SacredText[]}
- */
-export function getAllTexts() {
-    return [...LIBRARY_TEXTS];
-}
-
 console.log('[Library] System initialized');
 
 // Register texts from providers on module load.

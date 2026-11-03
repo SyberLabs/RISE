@@ -66,7 +66,6 @@ export const ROUTE_PANES = {
     chapel: 'chapel',
     rosarium: 'rosary',
     via: 'stations',
-    journeys: 'journeys',
     keystones: 'keystones',
     mint: 'mint',
     curia: 'provenance',
@@ -198,7 +197,8 @@ const ROUTES = [
         })
     }),
     pane('stations', { pattern: '/library/stations', build: () => '/library/stations' }),
-    pane('journeys', { pattern: '/library/journeys', build: () => '/library/journeys' }),
+    // Journeys were withdrawn; an old address lands on the Library.
+    { id: 'library', pattern: '/library/journeys', build: null, parse: () => ({}) },
     pane('mint', { pattern: '/library/mint', build: () => '/library/mint' }),
     pane('provenance', { pattern: '/library/provenance', build: () => '/library/provenance' }),
 

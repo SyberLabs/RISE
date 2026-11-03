@@ -1,15 +1,14 @@
 /**
  * Producer runtime — Stages A–D in one host pass.
  *
- * The agent proposes. This module applies the proposal, inspects acquisition
- * without admitting, and compiles and packs a private review when asked.
- * It never admits a candidate, never approves a publication, and never
- * calls a destination adapter.
+ * The agent proposes. This module applies the proposal and compiles and packs
+ * a private review when asked. A requested asset stays pending: this never
+ * admits one, never approves a publication, and never calls a destination
+ * adapter.
  *
  * See AGENT-COMPOSITION-AND-RENDER-SPEC.md §8.
  */
 
-import { inspectRequestAsset } from './acquisition.js';
 import {
   applyAgentOperationSet,
   validateAgentOperationSet
@@ -47,45 +46,6 @@ function deepFreeze(value) {
   Object.freeze(value);
   for (const item of Object.values(value)) deepFreeze(item);
   return value;
-}
-
-async function inspectPending(operations, { projectId, providers }) {
-  const pending = [];
-  for (const op of operations) {
-    if (op.op !== 'request-asset') continue;
-    if (!providers || !providers.length) {
-      pending.push({
-        op: op.id,
-        requestId: op.requestId,
-        status: 'pending',
-        admitted: false,
-        code: 'ACQUISITION_PROVIDERS',
-        message: 'Acquisition needs an explicit provider list'
-      });
-      continue;
-    }
-    try {
-      const inspected = await inspectRequestAsset(op, { projectId, providers });
-      pending.push({
-        op: op.id,
-        requestId: op.requestId,
-        request: inspected.request,
-        candidates: inspected.candidates,
-        status: 'pending',
-        admitted: false
-      });
-    } catch (error) {
-      pending.push({
-        op: op.id,
-        requestId: op.requestId,
-        status: 'refused',
-        admitted: false,
-        code: error.code || 'ACQUISITION_INSPECT',
-        message: error.message
-      });
-    }
-  }
-  return pending;
 }
 
 async function inventoryFromProject(project) {
@@ -171,7 +131,6 @@ export async function runProducer({
   operationSet,
   context = null,
   resolvedSources = {},
-  providers = null,
   tier = 'draft',
   render = true,
   encode = null
@@ -183,17 +142,12 @@ export async function runProducer({
     context,
     resolvedSources
   });
-  const acquisition = await inspectPending(set.operations, {
-    projectId: applied.project.id,
-    providers
-  });
   const wantsCompile = applied.requests.some(item => item.op === 'request-compile');
   const previewOp = applied.requests.find(item => item.op === 'request-preview');
   const result = {
     project: applied.project,
     inspection: applied.inspection,
     requests: applied.requests,
-    acquisition,
     admitted: [],
     approved: [],
     delivered: [],

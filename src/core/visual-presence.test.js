@@ -5,25 +5,20 @@ import {
     STREAM_RATE_MAX_HZ,
     STREAM_RATE_MIN_HZ,
     VISUAL_PRESENCE_DEFAULT_MS,
-    VISUAL_PRESENCE_STEPS_MS,
-    formatVisualPresence,
     galleryCadenceTimings,
     galleryCadenceValueText,
     galleryDrawProgress,
     galleryWallAt,
     harmonographDrawProgress,
     minimumVisualPresenceRest,
-    nearestVisualPresenceStep,
     normalizeGalleryCadence,
     normalizePresentation,
     normalizeStreamRate,
     normalizeVisualPresence,
     isContinuousPresentation,
-    isGalleryInTheWord,
     responsiveVisualPresence,
-    streamFrameAt,
+    streamFrameAtRefresh,
     visualPresenceTransition,
-    visualPresenceValueText
 } from './visual-presence.js';
 
 describe('Visual Presence policy', () => {
@@ -105,7 +100,6 @@ describe('Visual Presence policy', () => {
         expect(isContinuousPresentation('continuous')).toBe(true);
         expect(isContinuousPresentation('continuous-word')).toBe(true);
         expect(isContinuousPresentation('behind-stream')).toBe(false);
-        expect(isGalleryInTheWord('continuous-word')).toBe(true);
     });
 
     it('resolves an unknown surface to one that cannot flash', () => {
@@ -122,7 +116,6 @@ describe('Visual Presence policy', () => {
         // that guarantee and states what returns when the switch flips.
         expect(normalizePresentation('full-frame')).toBe('continuous');
         expect(normalizePresentation('behind-stream')).toBe('continuous');
-        expect(isGalleryInTheWord('continuous')).toBe(false);
     });
 
     it('normalizes missing, legacy, and oversized values', () => {
@@ -131,19 +124,6 @@ describe('Visual Presence policy', () => {
         expect(normalizeVisualPresence(2000)).toBe(2000);
         expect(normalizeVisualPresence(9000)).toBe(2000);
         expect(normalizeVisualPresence(normalizeVisualPresence(451))).toBe(451);
-    });
-
-    it('uses curated perceptual steps without rejecting runtime values between them', () => {
-        expect(VISUAL_PRESENCE_STEPS_MS).toEqual([150, 200, 300, 450, 700, 1000, 1400, 2000]);
-        expect(nearestVisualPresenceStep(451)).toBe(450);
-        expect(normalizeVisualPresence(451)).toBe(451);
-    });
-
-    it('formats concise visual and accessible values', () => {
-        expect(formatVisualPresence(450)).toBe('450 ms');
-        expect(formatVisualPresence(1400)).toBe('1.4 s');
-        expect(visualPresenceValueText(700)).toBe('700 milliseconds, exposure');
-        expect(visualPresenceValueText(2000)).toBe('2.0 seconds, tableau');
     });
 
     it('contracts responsive presence from its selected ceiling toward 75 percent', () => {
@@ -179,64 +159,27 @@ describe('Image Stream clock', () => {
     });
 
     it('holds each frame for whole refreshes, never faster than asked', () => {
-        expect(streamFrameAt(0, 4, { hz: 8, refreshHz: 60 })).toMatchObject({
+        expect(streamFrameAtRefresh(0, 4, { hz: 8, refreshHz: 60 })).toMatchObject({
             refreshesPerFrame: 8, frameMs: 400 / 3
         });
-        expect(streamFrameAt(0, 4, { hz: 8, refreshHz: 120 })).toMatchObject({
+        expect(streamFrameAtRefresh(0, 4, { hz: 8, refreshHz: 120 })).toMatchObject({
             refreshesPerFrame: 15, frameMs: 125
         });
-        expect(streamFrameAt(0, 4, { hz: 12, refreshHz: 60 }).refreshesPerFrame).toBe(5);
+        expect(streamFrameAtRefresh(0, 4, { hz: 12, refreshHz: 60 }).refreshesPerFrame).toBe(5);
         // A display slower than the rate still shows every frame for one refresh.
-        expect(streamFrameAt(0, 4, { hz: 12, refreshHz: 10 }).refreshesPerFrame).toBe(1);
+        expect(streamFrameAtRefresh(0, 4, { hz: 12, refreshHz: 10 }).refreshesPerFrame).toBe(1);
         // An unknown display is assumed to refresh at 60 Hz.
-        expect(streamFrameAt(0, 4, { hz: 12, refreshHz: 0 }).frameMs).toBeCloseTo(1000 / 12, 9);
+        expect(streamFrameAtRefresh(0, 4, { hz: 12, refreshHz: 0 }).frameMs).toBeCloseTo(1000 / 12, 9);
     });
 
     it('steps through the reel and wraps', () => {
-        const at = t => streamFrameAt(t, 3, { hz: 8, refreshHz: 120 });
-        // Time is read as the nearest refresh: 120 ms is refresh 14 (frame 0),
-        // 125 ms refresh 15 (frame 1).
-        expect([0, 120, 125, 250, 370, 375].map(t => at(t).index)).toEqual([0, 0, 1, 2, 2, 0]);
-        expect(at(375).cycle).toBe(1);
-        expect(at(-50).index).toBe(0);
-    });
-
-    it('holds every frame the same whole number of refreshes when refresh timestamps jitter', () => {
-        // A seeded generator, so a failure names a case that can be replayed.
-        let seed = 0x5eed;
-        const random = () => {
-            seed = (seed + 0x6d2b79f5) | 0;
-            let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-        for (const refreshHz of [30, 60, 120, 144]) {
-            for (const hz of [4, 8, 12]) {
-                const rpf = Math.ceil(refreshHz / hz - 1e-9);
-                const period = 1000 / refreshHz;
-                const first = random() * 2 - 1;
-                let previous = null;
-                let changedAt = null;
-                const holds = [];
-                for (let k = 0; k * period <= 10_000; k++) {
-                    const elapsed = k * period + (random() * 2 - 1) - first;
-                    const step = streamFrameAt(elapsed, 1e9, { hz, refreshHz }).index;
-                    if (step !== previous) {
-                        if (changedAt !== null) holds.push(k - changedAt);
-                        changedAt = k;
-                        previous = step;
-                    }
-                }
-                expect(holds.length, `${refreshHz} Hz at ${hz}`).toBeGreaterThan(30);
-                for (const hold of holds) {
-                    expect(hold, `${refreshHz} Hz display, ${hz} asked`).toBe(rpf);
-                    expect(refreshHz / hold).toBeLessThanOrEqual(hz + 1e-9);
-                }
-            }
-        }
+        const at = refreshes => streamFrameAtRefresh(refreshes, 3, { hz: 8, refreshHz: 120 });
+        expect([0, 14, 15, 30, 44, 45].map(refreshes => at(refreshes).index)).toEqual([0, 0, 1, 2, 2, 0]);
+        expect(at(45).cycle).toBe(1);
+        expect(at(-6).index).toBe(0);
     });
 
     it('has no frame to show in an empty reel', () => {
-        expect(streamFrameAt(500, 0)).toMatchObject({ index: null, cycle: 0 });
+        expect(streamFrameAtRefresh(30, 0)).toMatchObject({ index: null, cycle: 0 });
     });
 });

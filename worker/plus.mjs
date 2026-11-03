@@ -1294,7 +1294,7 @@ export class PlusMeter {
   }
 }
 
-export const PLUS_INTERNALS = { sign, verify, livemode, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S, MAX_BODY_BYTES, WEBHOOK_TOLERANCE_S };
+export const PLUS_INTERNALS = { sign, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S, MAX_BODY_BYTES, WEBHOOK_TOLERANCE_S };
 
 /** Storage/configuration failures never fall through to a billable vendor call. */
 export async function handlePlus(request, env) {

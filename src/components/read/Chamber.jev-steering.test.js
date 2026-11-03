@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
-import { buildJevVisualProgram } from '../../core/jev-sequence.js';
+import { compileJevVisualProgram } from '../../core/jev-sequence.js';
 import { visualCortex } from '../../visuals/visual-cortex.js';
 
 const atoms = [
@@ -14,7 +14,7 @@ function session(overrides = {}) {
     title: 'A Jev reading', atoms, totalDuration: 3000, wpm: 200,
     origin: { view: 'home', experience: 'jev' },
     visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'continuous' } },
-    visualProgram: buildJevVisualProgram({
+    visualProgram: compileJevVisualProgram({
       visualArc: 'dual', arcSplit: '70', visualEngine: 'klee',
       middleEngine: 'turrell', finaleEngine: 'fractal',
       colorTheme: 'classic', middleTheme: 'amethyst', finaleTheme: 'prism'
@@ -71,7 +71,7 @@ describe('reader steering of a Jev visual arc', () => {
   });
 
   it('allows only one shift even when a Jev arc has three scenes', async () => {
-    const reading = session({ visualProgram: buildJevVisualProgram({
+    const reading = session({ visualProgram: compileJevVisualProgram({
       visualArc: 'triple', arcSplit: '50', visualEngine: 'klee',
       middleEngine: 'turrell', finaleEngine: 'fractal',
       colorTheme: 'classic', middleTheme: 'amethyst', finaleTheme: 'prism'

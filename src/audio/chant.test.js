@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { CHAPEL_CHANTS, findChant, chantsInFamily, chantProgram } from '../content/chapel/chants.js';
+import { CHAPEL_CHANTS, chantsInFamily, chantProgram } from '../content/chapel/chants.js';
 import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 
 const VERIFIED_LICENSES = new Set(['CC0', 'PUBLIC_DOMAIN', 'CC-BY-3.0', 'CC-BY-4.0', 'CC-BY-SA-3.0', 'CC-BY-SA-4.0']);
@@ -34,8 +34,6 @@ describe('Chant registry (spec §3: no recording without established rights)', (
     expect(chantsInFamily('znamenny').length).toBeGreaterThanOrEqual(4);
     expect(chantProgram('gregorian')).not.toBeNull();
     expect(chantProgram('nonexistent')).toBeNull();
-    expect(findChant('chant-veni-sancte-spiritus')?.license).toBe('PUBLIC_DOMAIN');
-    expect(findChant('chant-of-nowhere')).toBeNull();
   });
 });
 

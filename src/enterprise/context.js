@@ -12,7 +12,6 @@
 import { fail } from './errors.js';
 
 export const CONTEXT_SCHEMA = 'rise.enterprise-context.v1';
-export const DECISION_SCHEMA = 'rise.enterprise-decision.v1';
 
 export const CONTEXT_LIMITS = Object.freeze({
     window: 600,

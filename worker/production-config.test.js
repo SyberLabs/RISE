@@ -2,11 +2,8 @@
  * The Worker's configurations, read as Wrangler reads them.
  *
  * What is held: the production Worker runs first for the paths it must answer
- * itself. `/live` is one of them because handleLive (mcp-server.mjs) loosens
- * the framing headers of the embedded page, and a request the assets layer
- * answers by itself never reaches it. And every configuration that can switch
- * on a rate-limited route (live answers, the MCP server) declares the limiter
- * those routes key on, because without the binding the MCP route is unlimited.
+ * itself. And every configuration that can switch on the MCP server declares
+ * the limiter it keys on, because without the binding the route is unlimited.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -31,15 +28,12 @@ describe('the production Worker', () => {
     expect(config.compatibility_flags).not.toContain('global_fetch_private_origin');
   });
 
-  it('runs first for the API, for the page an MCP app frames, and for /.well-known/, so no metadata probe gets the app shell', () => {
-    expect(config.assets.run_worker_first).toEqual(expect.arrayContaining(['/api/*', '/live', '/content/arena/*', '/content/changes/*', '/.well-known/*']));
+  it('runs first for the API and for /.well-known/, so no metadata probe gets the app shell', () => {
+    expect(config.assets.run_worker_first).toEqual(expect.arrayContaining(['/api/*', '/content/arena/*', '/content/changes/*', '/.well-known/*']));
   });
 
-  // The Worker turns a route on only for the exact text "true" (live-realtime.mjs,
-  // mcp-server.mjs), so each switch is stated in so many words: a change is a
-  // visible one-line diff, never a missing or mistyped var. Live realtime is off.
-  // The MCP server is on only with the self-contained card: without it the
-  // embedded page drops its framing headers for any site (LIVE-RED-TEAM.md R-1).
+  // The Worker turns the MCP route on only for the exact text "true" (mcp-server.mjs), so the
+  // switch is stated in so many words: a change is a visible one-line diff, never a missing or mistyped var.
   // The paid voice keeps no audio, so production deploys with no bucket existing; its
   // allowance meter is a SQLite-backed Durable Object, the kind the free plan offers.
   it('binds the Plus meter, and no bucket', () => {
@@ -60,22 +54,17 @@ describe('the production Worker', () => {
     expect(new Set(voices.map(v => v.slug)).size).toBe(voices.length);
   });
 
-  it('ships live realtime off, and the MCP server on only with the self-contained card', () => {
-    expect(config.vars.LIVE_REALTIME_ENABLED).toBe('false');
+  it('states the MCP switch in so many words', () => {
     expect(['true', 'false']).toContain(config.vars.MCP_ENABLED);
-    if (config.vars.MCP_ENABLED === 'true') expect(config.vars.MCP_SELF_CONTAINED).toBe('true');
   });
 });
 
 describe('every Worker configuration', () => {
   const files = readdirSync('.').filter(file => /^wrangler\..*\.jsonc$/u.test(file));
 
-  it('declares DECISION_LIMITER wherever live answers or the MCP server can be switched on', () => {
-    const switchable = files.filter(file => {
-      const vars = load(file).vars ?? {};
-      return 'LIVE_REALTIME_ENABLED' in vars || 'MCP_ENABLED' in vars;
-    });
-    expect(switchable).toEqual(expect.arrayContaining(['wrangler.production.jsonc', 'wrangler.demo.jsonc']));
+  it('declares DECISION_LIMITER wherever the MCP server can be switched on', () => {
+    const switchable = files.filter(file => 'MCP_ENABLED' in (load(file).vars ?? {}));
+    expect(switchable).toEqual(expect.arrayContaining(['wrangler.production.jsonc']));
     for (const file of switchable) {
       expect(load(file).ratelimits ?? [], file).toContainEqual(expect.objectContaining({ name: 'DECISION_LIMITER' }));
     }

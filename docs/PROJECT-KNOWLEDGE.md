@@ -247,8 +247,8 @@ Leave these alone without new evidence.
   *anchored* placement work rather than only gallery.
 - **Workshop on mobile** — the room is a desktop timeline (`Workshop.js`, five
   thousand lines) with no phone architecture behind it.
-- **Journeys are on ice** — their scores quote editions the canon no longer
-  serves. Re-anchoring is an editorial act, not a repair.
+- **Journeys are withdrawn and their code deleted** — their scores quote editions
+  the canon no longer serves. Re-anchoring is an editorial act, not a repair.
 
 ---
 

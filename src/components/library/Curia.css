@@ -431,7 +431,6 @@
     color: var(--sy-text);
 }
 
-.curia-apply,
 .curia-copy {
     min-height: var(--sy-control-height);
     padding: 0 var(--sy-space-5);
@@ -447,7 +446,6 @@
     cursor: pointer;
 }
 
-.curia-apply:hover,
 .curia-copy:hover {
     box-shadow: var(--sy-primary-glow-hover);
 }

@@ -712,7 +712,3 @@ export function compileSession(input = {}) {
     });
     return session;
 }
-
-export function estimateCompiledDuration(input = {}) {
-    return compileSession(input).totalDuration;
-}

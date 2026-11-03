@@ -12,7 +12,7 @@ import { LITERATURE_WORKS } from './archive/literature-catalog.js';
 // hold the received shelf's forms, and the registry joins them with the
 // composed shelf's categories to make the whole vocabulary.
 import { LIBRARY_TEXTS, LIBRARY_CATEGORIES, DIVISIONS } from './library.js';
-import { ARCHIVE_CURATION, curationFor, shelfFor } from './library-curation.js';
+import { ARCHIVE_CURATION, curationFor } from './library-curation.js';
 import { PD_BASIS, RESONANCE_FUNCTIONS } from './library-constants.js';
 import { QUARANTINED, isQuarantined } from './library-quarantine.js';
 
@@ -187,7 +187,7 @@ describe('curation is editorial, and says so', () => {
         expect(walden.category).toBe('received');
         expect(walden.why).toBeTruthy();
         expect(walden.provenance.basis).toBe(PD_BASIS.PRE_1930);
-        expect(shelfFor('literary-walden')).toBe('received');
+        expect(curationFor('literary-walden').shelf).toBe('received');
         expect(curationFor('nothing-of-the-kind')).toBeNull();
     });
 });
