@@ -176,21 +176,6 @@ describe('Player', () => {
     });
   });
 
-  describe('toggle()', () => {
-    it('plays when paused', () => {
-      player.toggle();
-
-      expect(player.state).toBe('playing');
-    });
-
-    it('pauses when playing', () => {
-      player.play();
-      player.toggle();
-
-      expect(player.state).toBe('paused');
-    });
-  });
-
   describe('stop()', () => {
     it('resets state to idle', () => {
       player.play();
@@ -1091,16 +1076,6 @@ describe('Player + Shuttle (LATERAL-TRAVERSAL-SPEC)', () => {
     expect(player.sessionState.currentIndex).toBeGreaterThan(0);
   });
 
-  it('the high-water mark survives rewind and re-reading', async () => {
-    player.play();
-    await vi.advanceTimersByTimeAsync(320);
-    const hwm = player.shuttle.highWaterMark;
-    expect(hwm).toBeGreaterThanOrEqual(2);
-    player.shuttleBackward();
-    await vi.advanceTimersByTimeAsync(150);
-    expect(player.shuttle.highWaterMark).toBe(hwm); // never falls
-  });
-
   it('pausing while shuttling drops to home; resume is normal reading', async () => {
     player.play();
     player.shuttleForward();
@@ -1109,20 +1084,6 @@ describe('Player + Shuttle (LATERAL-TRAVERSAL-SPEC)', () => {
     expect(player.shuttle.atHome).toBe(true);
     player.play();
     expect(player.shuttle.velocity).toBe(1);
-  });
-
-  it('a shuttle-exempt session refuses the keys (the liturgy rule)', () => {
-    const exempt = new Session({
-      atoms: [new Atom({ content: 'fixed', duration: 100 })],
-      title: 'Liturgy', shuttleExempt: true
-    });
-    const liturgical = new Player(exempt);
-    liturgical.play();
-    expect(liturgical.shuttleAvailable).toBe(false);
-    expect(liturgical.shuttleForward()).toBeNull();
-    expect(liturgical.shuttleBackward()).toBeNull();
-    expect(liturgical.shuttle.atHome).toBe(true);
-    liturgical.destroy();
   });
 
   it('completion is met regardless of velocity (spec §7)', async () => {

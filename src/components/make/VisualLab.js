@@ -22,14 +22,12 @@ export class VisualLab {
    * @param {object|null} [options.recipe] starting recipe (validated)
    * @param {(recipe: object) => void} [options.onUseInReading]
    * @param {() => void} [options.onEditInWorkshop]
-   * @param {() => void} [options.onClose]
-   * @param {boolean} [options.embedded] a tab of Make: no Close of its own
+   * @param {() => void} [options.onClose] the overlay's Return to reading
    */
   constructor(container, {
-    mode = 'route', recipe = null, onUseInReading = null, onEditInWorkshop = null, onClose = null, embedded = false
+    mode = 'route', recipe = null, onUseInReading = null, onEditInWorkshop = null, onClose = null
   } = {}) {
     this.container = container;
-    this.embedded = embedded;
     this.mode = mode;
     this.onUseInReading = onUseInReading;
     this.onEditInWorkshop = onEditInWorkshop;
@@ -53,7 +51,7 @@ export class VisualLab {
         <aside class="vl-panel" id="vl-panel" aria-label="Scene controls">
           <header class="vl-head">
             <h1 class="vl-title">Visual Lab</h1>
-            ${this.embedded ? '' : `<button type="button" class="vl-close" data-vl="close">${overlay ? 'Return to reading' : 'Close'}</button>`}
+            ${overlay ? '<button type="button" class="vl-close" data-vl="close">Return to reading</button>' : ''}
           </header>
           <label class="vl-field">Composition
             <select name="vl-preset"></select>
@@ -96,7 +94,7 @@ export class VisualLab {
     this.module = await import('../../visuals/living-flame/index.js');
     if (this.destroyed) return;
     const { FLAME_PRESETS, RecipeHistory } = this.module;
-    this.history = new RecipeHistory(20);
+    this.history = new RecipeHistory();
     this.recipe = this.initialRecipe || FLAME_PRESETS[0];
     this.populatePresets();
     this.field = this.module.createLivingFlameField(this.root.querySelector('.vl-stage'), {
@@ -293,10 +291,6 @@ export class VisualLab {
     } catch (error) {
       this.status(`${error.message} The current scene is unchanged.`);
     }
-  }
-
-  get currentRecipe() {
-    return this.recipe;
   }
 
   activate() {

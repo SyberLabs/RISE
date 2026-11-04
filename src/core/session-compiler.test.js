@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   compileSession,
-  estimateCompiledDuration,
   normalizeProvenance,
   normalizeSessionConfig,
   normalizeVisualConfig,
@@ -233,17 +232,6 @@ describe('session compiler', () => {
     expect({}.polluted).toBeUndefined();
   });
 
-  it('uses the identical pipeline for estimates and playback', () => {
-    const config = {
-      text: 'A sentence, with deliberate punctuation.\n\n[PAUSE]\n\nThen return.',
-      wpm: 180,
-      chunkMode: 'phrase',
-      curve: 'induction'
-    };
-
-    expect(estimateCompiledDuration(config)).toBe(compileSession(config).totalDuration);
-  });
-
   it('normalizes invalid session controls', () => {
     expect(normalizeSessionConfig({ wpm: 0, chunkMode: 'tokens', curve: 'spiral' }))
       .toMatchObject({ wpm: 50, chunkMode: 'word', curve: 'flat' });
@@ -359,7 +347,7 @@ describe('session compiler', () => {
     expect(() => compileSession({ text: 'x'.repeat(2_000_001) })).toThrow(RangeError);
   });
 
-  it('rejects aggregate source text above the session budget in playback and estimates', () => {
+  it('rejects aggregate source text above the session budget in playback', () => {
     const config = {
       sources: [
         { id: 'a', name: 'A', data: 'a'.repeat(1_000_001) },
@@ -369,7 +357,6 @@ describe('session compiler', () => {
 
     expect(() => compileSession(config)).toThrowError(TypeError);
     expect(() => compileSession(config)).toThrow(/combined character limit/);
-    expect(() => estimateCompiledDuration(config)).toThrow(/combined character limit/);
   });
 
   it('rejects sessions whose post-chunk atom count exceeds the playback budget', () => {

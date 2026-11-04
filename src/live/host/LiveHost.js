@@ -11,10 +11,10 @@
  * runtime; the Chamber owns the screen; the runtime owns time.
  *
  * The provider is the deterministic mock unless the page is explicitly
- * configured otherwise (`?provider=openai`), so by default nothing here can
- * spend money or leave the device. OpenAI Realtime uses the reader's own key,
- * typed into this page, held in memory, sent once to this site to open each
- * session, and forgotten when the session ends. `?eval=1` replaces the prompt with a study
+ * configured otherwise (`?provider=gemini`), so by default nothing here can
+ * spend money or leave the device. A keyed provider uses the reader's own key,
+ * typed into this page, held in memory, and forgotten when the session ends.
+ * `?eval=1` replaces the prompt with a study
  * instrument (src/live/eval/study.js) and `?eval=later` with its later questions.
  * `?voice=paced` makes the reading silent and
  * paced as if spoken, which is what every automated test uses. `?measure=1`
@@ -70,7 +70,6 @@ const PLAY_GLYPH = '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden=
 const EMBED_THEME_VARS = [['--color-void', 'background'], ['--color-light', 'text'], ['--color-cloud', 'text'], ['--color-accent', 'accent']];
 const PROVIDERS = Object.freeze({
     mock: 'Deterministic demo provider (offline)',
-    openai: 'OpenAI Realtime, with your own key',
     gemini: 'Google Gemini, with your own key',
     openrouter: 'OpenRouter, on your own account'
 });
@@ -78,10 +77,6 @@ const PROVIDERS = Object.freeze({
 const OPENROUTER_NOTE = "Uses the OpenRouter account you connected with Connect OpenRouter on Home: the key is held in this tab's memory only and goes from this browser straight to OpenRouter, never to this site. Your prompt is billed to your OpenRouter account. RISE pays for nothing.";
 /** The providers the reader pays for with their own key: what to call it, and where the key goes. */
 const KEYED = Object.freeze({
-    openai: {
-        name: 'OpenAI',
-        note: "Held in this page's memory only: it is sent once, to this site, to open each session, and is never stored. Your prompt goes to OpenAI and is billed to your key. RISE pays for nothing."
-    },
     gemini: {
         name: 'Gemini',
         note: "Held in this page's memory only: it is sent from this browser straight to Google, never to this site, and is never stored. Your prompt goes to Google and is billed to your key. RISE pays for nothing."
@@ -859,22 +854,15 @@ export class LiveHost {
             const { createOpenRouterAdapter } = await import('../adapters/openrouter.js');
             return createOpenRouterAdapter({ getModel: () => this.model });
         }
-        if (this.providerName !== 'openai') {
-            if (!this.hasCatalogChoice) return createMockAdapter({ clock });
-            const admission = admitCatalogVisual(this.catalogId, this.caps);
-            if (admission.status === 'refused' && admission.code !== 'CAPABILITY_UNAVAILABLE') {
-                throw new Error('The catalog choice is unavailable.');
-            }
-            return createMockAdapter({
-                clock,
-                openingVisual: admission.status === 'accepted' ? admission.visual : 'still'
-            });
+        if (!this.hasCatalogChoice) return createMockAdapter({ clock });
+        const admission = admitCatalogVisual(this.catalogId, this.caps);
+        if (admission.status === 'refused' && admission.code !== 'CAPABILITY_UNAVAILABLE') {
+            throw new Error('The catalog choice is unavailable.');
         }
-        const [{ createOpenAIRealtimeAdapter }, { createOpenAIWebRtcTransport }] = await Promise.all([
-            import('../adapters/openai-realtime.js'),
-            import('../adapters/openai-webrtc.js')
-        ]);
-        return createOpenAIRealtimeAdapter({ transport: createOpenAIWebRtcTransport({ getKey: () => this.key, clock }) });
+        return createMockAdapter({
+            clock,
+            openingVisual: admission.status === 'accepted' ? admission.visual : 'still'
+        });
     }
 
     async buildVoices(clock) {
@@ -970,11 +958,6 @@ export class LiveHost {
         return this.venue.adapterFor({ clock });
     }
 
-    /** The venue room's questions, each with its reading's journal once let go. */
-    venueTurns() {
-        return this.venue?.turns() ?? [];
-    }
-
     /**
      * The stage over a venue reading: the whole instrument, the browser's own full screen, Settings with Sound, the
      * reader's voice and About this reading, and the room's choices carried from the reading before.
@@ -1029,7 +1012,7 @@ export class LiveHost {
     }
 
     /** The live Current condition: the real runtime, with the fixed answer and a prompt to ask about the horizon. */
-    presentEvalCurrent({ container, done, note }) {
+    presentEvalCurrent({ done, note }) {
         this.providerName = 'mock';
         let finished = false;
         const guide = document.createElement('section');

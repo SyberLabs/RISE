@@ -197,9 +197,9 @@ function systemColumns(spec) {
 }
 
 /** A label's box, [left, top, right, bottom], from where it is set and its measured width. */
-function labelBox(x, y, value, { anchor = 'middle', italic = false, bold = false } = {}) {
+function labelBox(x, y, value, { italic = false, bold = false } = {}) {
   const wide = width(value, SIZE.label, { bold }) * (italic ? 1.02 : 1);
-  const left = anchor === 'middle' ? x - wide / 2 : anchor === 'end' ? x - wide : x;
+  const left = x - wide / 2;
   return [left, y - SIZE.label * 0.8, left + wide, y + SIZE.label * 0.25];
 }
 const overlaps = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];

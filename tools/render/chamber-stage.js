@@ -692,8 +692,7 @@ const stage = {
     });
     painter.engine.renderRockGarden(ctx.canvas, {
       backgroundColor: VOID,
-      strokeColor: 'rgba(232, 232, 236, 0.8)',
-      brushStroke: true
+      strokeColor: 'rgba(232, 232, 236, 0.8)'
     });
   },
 

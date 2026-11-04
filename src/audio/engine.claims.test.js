@@ -16,12 +16,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import {
-    BRAINWAVE_BANDS,
-    SOLFEGGIO_FREQUENCIES,
-    CARRIER_TUNINGS,
-    resolveCarrierTuning
-} from './engine.js';
+import { BRAINWAVE_BANDS } from './engine.js';
 
 const SOURCE = readFileSync(resolve(__dirname, 'engine.js'), 'utf8');
 
@@ -49,9 +44,6 @@ describe('a pitch is described by what it is, never by what it does', () => {
     });
 
     it('carries no `description` on any frequency table', () => {
-        for (const [name, entry] of Object.entries(SOLFEGGIO_FREQUENCIES)) {
-            expect(Object.keys(entry), `SOLFEGGIO_FREQUENCIES.${name}`).toEqual(['freq']);
-        }
         for (const [name, entry] of Object.entries(BRAINWAVE_BANDS)) {
             expect(Object.keys(entry).sort(), `BRAINWAVE_BANDS.${name}`)
                 .toEqual(['default', 'max', 'min']);
@@ -60,26 +52,7 @@ describe('a pitch is described by what it is, never by what it does', () => {
 
     it('keeps every frequency a reader could already choose', () => {
         // Deleting the claim must not delete the option.
-        expect(Object.values(SOLFEGGIO_FREQUENCIES).map(e => e.freq))
-            .toEqual([396, 417, 528, 639, 741, 852]);
         expect(BRAINWAVE_BANDS.delta.min).toBe(0.5);
         expect(BRAINWAVE_BANDS.gamma.max).toBe(100);
-        expect(new Set(Object.values(CARRIER_TUNINGS)))
-            .toEqual(new Set([200, 220, 216, 432]));
-    });
-});
-
-describe('renaming a tuning does not strand a saved session', () => {
-    it('resolves the names this module used to ship', () => {
-        expect(resolveCarrierTuning('sacred')).toBe('a432');
-        expect(resolveCarrierTuning('verdi')).toBe('a432_low');
-        expect(CARRIER_TUNINGS[resolveCarrierTuning('sacred')]).toBe(432);
-        expect(CARRIER_TUNINGS[resolveCarrierTuning('verdi')]).toBe(216);
-    });
-
-    it('passes current names through and falls back rather than throwing', () => {
-        expect(resolveCarrierTuning('a432')).toBe('a432');
-        expect(resolveCarrierTuning('standard')).toBe('standard');
-        expect(CARRIER_TUNINGS[resolveCarrierTuning('nonsense')]).toBe(432);
     });
 });

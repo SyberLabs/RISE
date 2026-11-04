@@ -19,7 +19,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scriptorium } from './Scriptorium.js';
-import { clampTargetWords, SCRIPTORIUM_LENGTH } from '../../core/scriptorium-session.js';
+import { clampTargetWords } from '../../core/scriptorium-session.js';
 import { WorkshopMedia, WorkshopMediaError } from '../../core/workshop-media.js';
 import { hydrateSessionSequenceAssets } from '../../core/workshop-asset-durability.js';
 import { workshopProjectToSessionConfig } from '../../core/workshop-project.js';

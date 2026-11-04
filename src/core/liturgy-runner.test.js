@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { compileLiturgy } from './liturgy-runner.js';
-import { buildRosaryDefinition, ROSARY_BEAD_COUNT } from '../content/chapel/liturgy/rosary-liturgy.js';
+import { buildRosaryDefinition } from '../content/chapel/liturgy/rosary-liturgy.js';
 import { ROSARY_PRAYERS, MYSTERY_SETS, mysterySetForDate } from '../content/chapel/liturgy/rosary.js';
 
 describe('LiturgyRunner (non-negotiable #3: fixed forms are fixed)', () => {
@@ -64,12 +64,11 @@ describe('The Rosary structure (the count IS the form)', () => {
         .map(step => step.state.bead);
       expect(new Set(beads).size).toBe(50);
       // A LITERAL, NOT THE FORMULA THAT PRODUCED IT. This line used to
-      // read `ROSARY_BEAD_COUNT - 1`, where both sides derived from the
+      // read a bead-count constant minus one, where both sides derived from the
       // same 6 + (N-1)*11 expression — so it passed for any value of
       // that expression, including the wrong one it was then asserting.
       // A five-decade rosary's last bead is the fifty-ninth.
       expect(Math.max(...beads)).toBe(59);
-      expect(ROSARY_BEAD_COUNT).toBe(59);
     }
   });
 

@@ -14,7 +14,7 @@
  * handler and the DOM is the part jsdom is worst at.
  */
 import { describe, expect, it, vi } from 'vitest';
-import { compileJourney, boundarySourceId } from '../../core/journey-compiler.js';
+import { TO_HERO, movementScore } from '../../test/movement-score.fixture.js';
 import {
     MovementScheduleController, AudioScheduleController
 } from '../../core/journey-schedulers.js';
@@ -22,34 +22,10 @@ import { VisualScheduleController } from '../../core/visual-scheduler.js';
 import { Chamber } from './Chamber.js';
 import { visualCortex } from '../../visuals/visual-cortex.js';
 
-const MANIFEST = {
-    schemaVersion: 'rise.journey.v1',
-    id: 'journey-war',
-    movements: [
-        {
-            id: 'war-heaven',
-            title: 'War in Heaven',
-            segments: [{ passageId: 'p1' }],
-            presentation: {
-                visual: { kind: 'procedural', collections: ['paradise-lost'] },
-                audio: { kind: 'soundscape', soundscapeId: 'ordered-field', gain: 0.55 }
-            },
-            transitionOut: {
-                id: 'to-hero', durationMs: 1600,
-                visual: { kind: 'still' }, audio: { kind: 'silence', fadeMs: 300 }
-            }
-        },
-        {
-            id: 'war-hero',
-            title: 'The Hero Under Heaven',
-            segments: [{ passageId: 'p2' }],
-            presentation: {
-                visual: { kind: 'sourced', collections: ['atr-attic-vases'] },
-                audio: { kind: 'soundscape', soundscapeId: 'mortal-pulse', gain: 0.48 }
-            }
-        }
-    ]
-};
+const SCORE = () => movementScore({
+    heavenVisual: { kind: 'procedural', collections: ['paradise-lost'] },
+    heroVisual: { kind: 'sourced', collections: ['atr-attic-vases'] }
+});
 
 /**
  * The Chamber's atom handler, reduced to the part under test: the five
@@ -88,7 +64,7 @@ const atom = (sourceId, content, tags = []) => ({ sourceId, content, tags });
 describe('the order of §8.4', () => {
     it('announces the movement before the cues, and paints last', () => {
         const log = [];
-        const handle = makeHandler(compileJourney(MANIFEST), log);
+        const handle = makeHandler(SCORE(), log);
         handle(atom('p1', 'Of Man\'s first disobedience'));
 
         expect(log).toEqual([
@@ -103,7 +79,7 @@ describe('the order of §8.4', () => {
     it('holds everything through the rest of a movement', () => {
         // One announcement per world, not one per atom.
         const log = [];
-        const handle = makeHandler(compileJourney(MANIFEST), log);
+        const handle = makeHandler(SCORE(), log);
         handle(atom('p1', 'first'));
         log.length = 0;
         handle(atom('p1', 'second'));
@@ -118,10 +94,10 @@ describe('the order of §8.4', () => {
 describe('a boundary owns its time and says nothing', () => {
     it('speaks nothing and reveals nothing', () => {
         const log = [];
-        const handle = makeHandler(compileJourney(MANIFEST), log);
+        const handle = makeHandler(SCORE(), log);
         handle(atom('p1', 'heaven'));
         log.length = 0;
-        handle(atom(boundarySourceId('to-hero'), '', ['source-break', 'authored-boundary']));
+        handle(atom(TO_HERO, '', ['source-break', 'authored-boundary']));
 
         expect(log).toEqual([
             'movement:to-hero',
@@ -137,8 +113,8 @@ describe('a boundary owns its time and says nothing', () => {
         // tag is checked anyway, so that emptiness stays a decision
         // rather than a coincidence a later change could undo.
         const log = [];
-        const handle = makeHandler(compileJourney(MANIFEST), log);
-        handle(atom(boundarySourceId('to-hero'), 'stray', ['authored-boundary']));
+        const handle = makeHandler(SCORE(), log);
+        handle(atom(TO_HERO, 'stray', ['authored-boundary']));
         expect(log.some(entry => entry.startsWith('speak:'))).toBe(false);
         expect(log).toContain('display:stray');
     });
@@ -148,9 +124,9 @@ describe('a boundary owns its time and says nothing', () => {
         // Milton's procedurals would still be running under Homer's
         // first line.
         const log = [];
-        const handle = makeHandler(compileJourney(MANIFEST), log);
+        const handle = makeHandler(SCORE(), log);
         handle(atom('p1', 'heaven'));
-        handle(atom(boundarySourceId('to-hero'), '', ['authored-boundary']));
+        handle(atom(TO_HERO, '', ['authored-boundary']));
         handle(atom('p2', 'hector'));
 
         const visuals = log.filter(e => e.startsWith('visual:'));
@@ -162,7 +138,7 @@ describe('the Chamber interprets nothing', () => {
     it('passes the movement through as a label, not a meaning', () => {
         const seen = [];
         const controller = new MovementScheduleController(
-            compileJourney(MANIFEST).movementProgram,
+            SCORE().movementProgram,
             (position) => seen.push(position)
         );
         controller.observe(atom('p1', 'x'));
@@ -179,7 +155,7 @@ describe('the Chamber interprets nothing', () => {
             startSoundscape: vi.fn(), stopSoundscape: vi.fn(), setLayerVolume: vi.fn()
         };
         const controller = new AudioScheduleController(
-            compileJourney(MANIFEST).audioProgram, engine);
+            SCORE().audioProgram, engine);
         controller.observe(atom('p1', 'x'));
 
         // A soundscape id and nothing else — no cue objects, no Journey
@@ -200,7 +176,7 @@ describe('nothing outlives the reading', () => {
             startSoundscape: vi.fn(), stopSoundscape: vi.fn(), setLayerVolume: vi.fn()
         };
         const controller = new AudioScheduleController(
-            compileJourney(MANIFEST).audioProgram, engine);
+            SCORE().audioProgram, engine);
         controller.observe(atom('p1', 'x'));
         engine.stopSoundscape.mockClear();
 
@@ -217,7 +193,7 @@ describe('nothing outlives the reading', () => {
             startSoundscape: vi.fn(), stopSoundscape: vi.fn(), setLayerVolume: vi.fn()
         };
         const controller = new AudioScheduleController(
-            compileJourney(MANIFEST).audioProgram, engine);
+            SCORE().audioProgram, engine);
         controller.observe(atom('p1', 'x'));
         controller.silence();
         engine.startSoundscape.mockClear();

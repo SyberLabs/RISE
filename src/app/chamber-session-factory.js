@@ -276,7 +276,6 @@ export async function createChamberSession(operations, container, sessionData) {
 
         if (hasAudio) {
             ui.updateLoadingStatus('Stabilizing carrier frequencies...');
-            audioEngine.stopAmbient();
             audioEngine.sessionActive = true;
             const durationSec = (session.totalDuration || 0) / 1000;
             await audioEngine.startSession({
@@ -302,7 +301,6 @@ export async function createChamberSession(operations, container, sessionData) {
             assertCurrent();
             beginStep('factory:audio');
         } else {
-            audioEngine.stopAmbient();
             audioEngine.sessionActive = true;
         }
 
@@ -420,7 +418,6 @@ export async function createChamberSession(operations, container, sessionData) {
                     galleryCadence: normalizeGalleryCadence(
                         interlocution.galleryCadence ?? GALLERY_CADENCE_DEFAULT
                     ),
-                    renderLanguage: 'native',   // ASCII retired 2026-08-06
                     // The reading's chosen colors paint the flame; readings
                     // without a declared palette keep the mood palettes.
                     flameColors: sessionColorTheme(session),

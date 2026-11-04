@@ -28,8 +28,8 @@ import { getConnection } from '../ai-connection.js';
 import { scoreSection } from './score-provider.js';
 
 export const VISUAL_SCORE_CACHE_KEY = 'rise:visual-scores:v1';
-export const VISUAL_SCORE_CACHE_LIMIT = 100;
-export const CLIENT_REQUESTS_PER_MINUTE = 6;
+const VISUAL_SCORE_CACHE_LIMIT = 100;
+const CLIENT_REQUESTS_PER_MINUTE = 6;
 const CLIENT_TIMEOUT_MS = 12_000;
 
 /** Who directed a section, by the model that answered: local Kev or Jev. */
@@ -120,7 +120,6 @@ export class VisualScoreCoordinator {
     this.generation = 0;
     this.sent = [];
     this.timer = null;
-    this.destroyed = false;
   }
 
   /** Prepare identities for every source (async digests) and read the cache. */
@@ -131,7 +130,6 @@ export class VisualScoreCoordinator {
       this.director.identify(source.id, result.blocks);
       prepared.push({ ...result, sourceId: source.id, text: source.text });
     }
-    if (this.destroyed) return false;
     this.prepared = prepared;
     const firstBlockOf = new Map(this.director.sources.map(source => [source.id, source.firstBlock]));
     this.sections = prepared.flatMap((source, sourceIndex) => source.sections.map(section => ({
@@ -218,7 +216,7 @@ export class VisualScoreCoordinator {
 
   /** Pumps are serialized so two atoms can never race two requests. */
   _pump() {
-    if (this.destroyed || !this.prepared || this.currentBlock < 0) return;
+    if (!this.prepared || this.currentBlock < 0) return;
     this._chain = (this._chain || Promise.resolve())
       .then(() => this._pumpAsync())
       .catch(() => {});
@@ -229,7 +227,6 @@ export class VisualScoreCoordinator {
     if (index < 0) return;
     const wanted = [this.sections[index], this.sections[index + 1]].filter(Boolean);
     for (const section of wanted) await this._fromCache(section);
-    if (this.destroyed) return;
 
     // A large seek makes an in-flight section obsolete: cancel it and
     // prioritize the destination.
@@ -255,7 +252,7 @@ export class VisualScoreCoordinator {
 
   /** Starts synchronously (the digest is already known), then settles async. */
   _request(section) {
-    if (this.inFlight || this.destroyed || !section.digest) return;
+    if (this.inFlight || !section.digest) return;
     const previousIndex = section.startBlock - 1;
     const previous = previousIndex >= 0 ? this.director.pendingChoice(previousIndex)?.treatmentId : null;
     const request = {
@@ -288,7 +285,7 @@ export class VisualScoreCoordinator {
       this.clearTimer(timeout);
     }
     if (this.inFlight?.generation === generation) this.inFlight = null;
-    // A superseded, revoked, or destroyed request is discarded whatever it
+    // A superseded or revoked request is discarded whatever it
     // returned: its generation is no longer the current one.
     if (generation !== this.generation) return;
     if (outcome.ok && this.prepared?.[section.sourceIndex]?.sourceDigest === outcome.response.sourceDigest) {
@@ -306,12 +303,6 @@ export class VisualScoreCoordinator {
       this.status.set(section.key, 'failed');
       this.onEvent({ kind: 'failed', section: section.key, code: outcome.code || 'IDENTITY' });
     }
-    if (!this.destroyed) this._pump();
-  }
-
-  destroy() {
-    this.destroyed = true;
-    this._abort('destroyed');
-    this._clearTimer();
+    this._pump();
   }
 }

@@ -2,7 +2,8 @@
 
 **The Shuttle: continuous motion through the reading, DVD-grade.**
 
-Status: IMPLEMENTED in `src/core/shuttle.js`. Rulings by the creator
+Status: IMPLEMENTED in `src/core/shuttle.js`, except the high-water
+mark (§3, §6), which is design intent: no code keeps it. Rulings by the creator
 are marked ✦; open questions for future rulings are marked ⁇.
 
 ---

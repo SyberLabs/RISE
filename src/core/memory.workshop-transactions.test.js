@@ -28,7 +28,6 @@ beforeEach(async () => {
   MemoryCore._hydratedWorkshopViews = null;
   MemoryCore._workshopMutationTail = Promise.resolve();
   MemoryCore._workshopAssetReferenceProviders = new Set();
-  MemoryCore._workshopLeaseStorageHealthy = true;
   MemoryCore._workshopLeasePublishPending = null;
   MemoryCore._workshopDeferredAssetDeletes = new Set();
   MemoryCore._workshopOrphanSweepStarted = false;
@@ -155,7 +154,6 @@ describe('Workshop persistence transactions', () => {
 
     // A separate tab has independent module state.
     MemoryCore._workshopContextId = 'second-tab';
-    MemoryCore._workshopLeaseStorageHealthy = true;
     await MemoryCore.deleteWorkshopBlueprintAsync('original');
 
     expect(await WorkshopMedia.has(asset.id)).toBe(true);

@@ -153,22 +153,16 @@ export const DEFECT_SIGNATURES = Object.freeze([
     }
 ]);
 
-/** @returns {DefectSignature|undefined} */
-export function defectSignature(id) {
-    return DEFECT_SIGNATURES.find(signature => signature.id === id);
-}
-
 /**
  * Every signature that fires on one line, with the line as its own evidence.
  * Per LINE rather than per work: a pattern that must match a whole payload
  * cannot say where the defect is, and a finding you cannot point at is not
  * actionable.
  */
-export function scanLine(line, { skip = new Set() } = {}) {
+export function scanLine(line) {
     const text = String(line ?? '');
     if (!text.trim()) return [];
     return DEFECT_SIGNATURES
-        .filter(signature => !skip.has(signature.id))
         .filter(signature => signature.pattern.test(text))
         .map(signature => signature.id);
 }

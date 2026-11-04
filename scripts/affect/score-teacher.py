@@ -1,8 +1,8 @@
 """Ask a local instruction model to rate the corpus.
 
 No hosted API credential is present in this environment. The benchmark's
-teacher hook still speaks HTTP, so this script produces the ratings and
-scripts/affect/teacher-server.mjs serves them at AFFECT_TEACHER_URL.
+teacher hook still speaks HTTP, so this script writes the ratings to
+docs/affect/teacher-scores.json for any server at AFFECT_TEACHER_URL to serve.
 """
 
 import json

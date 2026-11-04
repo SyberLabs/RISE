@@ -1,15 +1,11 @@
 /**
- * The study: what is asked, how it is scored, and what may be concluded.
+ * The study: what is asked, and what a participant's record may hold.
  *
  * The question it exists to answer is whether a live Current is materially
  * different from text chat, from ordinary AI voice, and from voice over a
  * generic audio-reactive visualizer, in whether people understand, remember and
  * find their place in an answer. It is a claim RISE has not earned and may not
- * earn. So the analysis is written to be unable to overclaim: a small group
- * cannot conclude anything, a difference that is not larger than chance is
- * reported as none, and if RISE beats the generic visualizer only in how it was
- * rated (and not in what people understood or remembered), the summary says it
- * differs in experience, which is a preference and not evidence that it helps.
+ * earn.
  *
  * DESIGN. Between participants: each person meets one condition, because
  * meeting the same answer four times would teach them the answer. The content is
@@ -43,9 +39,6 @@ export const CONDITIONS = Object.freeze([
 ]);
 
 export const CONDITION_IDS = Object.freeze(CONDITIONS.map(condition => condition.id));
-
-/** The comparison the whole study turns on. */
-export const PRIMARY_CONTRAST = Object.freeze({ subject: 'rise-current', against: 'spoken-visualizer' });
 
 /** Where the answer is interrupted: after this passage, a side answer is given, then it carries on. */
 /** What a record may say about the device, and about what the participant did with it. */
@@ -99,13 +92,6 @@ export const RATING_SCALE = Object.freeze({ min: 1, max: 7, low: 'Strongly disag
 /** The side answer every condition gives at the interruption, in its own form. */
 export const SIDE_ANSWER = HORIZON_DIVE;
 export const SIDE_QUESTION = 'dive on event horizon';
-
-export const MEASURES = Object.freeze({
-    primary: Object.freeze(['comprehension', 'delayedRecall']),
-    secondary: Object.freeze(['evidence', 'orientation']),
-    exploratory: Object.freeze(['coherence', 'informative', 'decorative'])
-});
-export const ALL_MEASURES = Object.freeze([...MEASURES.primary, ...MEASURES.secondary, ...MEASURES.exploratory]);
 
 // ─── assigning and validating ───────────────────────────────────────────
 
@@ -232,139 +218,3 @@ export function validateRecord(input) {
 }
 
 // ─── scoring ───────────────────────────────────────────────────────────
-
-/** Right or wrong. An unanswered question is wrong, and is not a rating. */
-export function scoreAnswer(item, choice) {
-    return choice === item.answer ? 1 : 0;
-}
-
-const fraction = (items, answers) => items.filter(item => answers?.[item.id] === item.answer).length / items.length;
-
-/** A record's numbers: fractions correct from 0 to 1, ratings as given, and null for what was not asked. */
-export function scoreRecord(record) {
-    const answers = record.answers ?? {};
-    const evidence = SECONDARY.find(item => item.id === 'e1');
-    const orientation = SECONDARY.find(item => item.id === 'o1');
-    return {
-        comprehension: fraction(COMPREHENSION, answers),
-        delayedRecall: record.delayed ? fraction(COMPREHENSION, record.delayed.answers) : null,
-        evidence: scoreAnswer(evidence, answers.e1),
-        orientation: scoreAnswer(orientation, answers.o1),
-        coherence: record.ratings?.coherence ?? null,
-        informative: record.ratings?.informative ?? null,
-        decorative: record.ratings?.decorative ?? null
-    };
-}
-
-// ─── analysis ──────────────────────────────────────────────────────────
-
-/**
- * A spoken condition in which nothing was actually spoken (a silent, paced run,
- * which is what tests and devices with no voice give) measures nothing about
- * speech, and would flatter or punish the condition for no reason it can be
- * blamed for. Such a record is kept, and left out of the analysis.
- */
-export function usableForAnalysis(record) {
-    return record.condition === 'text' || record.environment?.voice === 'browser';
-}
-
-const mean = values => values.reduce((sum, value) => sum + value, 0) / values.length;
-const sd = values => {
-    if (values.length < 2) return null;
-    const m = mean(values);
-    return Math.sqrt(values.reduce((sum, value) => sum + (value - m) ** 2, 0) / (values.length - 1));
-};
-const round = (value, places = 3) => (value === null ? null : Math.round(value * 10 ** places) / 10 ** places);
-
-/**
- * The difference in means between two independent groups, with a 95% interval
- * from resampling each group with replacement. Deterministic for a given seed.
- */
-export function bootstrapDifference(a, b, { resamples = 2000, seed = 20260929 } = {}) {
-    if (a.length === 0 || b.length === 0) return null;
-    const random = mulberry32(seed);
-    const draw = values => { let sum = 0; for (let i = 0; i < values.length; i += 1) sum += values[Math.floor(random() * values.length)]; return sum / values.length; };
-    const differences = [];
-    for (let i = 0; i < resamples; i += 1) differences.push(draw(a) - draw(b));
-    differences.sort((x, y) => x - y);
-    return {
-        difference: mean(a) - mean(b),
-        low: differences[Math.floor(0.025 * resamples)],
-        high: differences[Math.min(resamples - 1, Math.ceil(0.975 * resamples) - 1)]
-    };
-}
-
-/** The fewest participants per group before the study will say anything but that it cannot. */
-export const MINIMUM_PER_GROUP = 10;
-
-/**
- * What the records show, and only what they can.
- *
- * @param {object[]} records validated study records
- * @returns {{groups: object, contrasts: object[], conclusion: {kind: string, text: string}}}
- */
-export function summarize(allRecords) {
-    const records = allRecords.filter(usableForAnalysis);
-    const excluded = allRecords.length - records.length;
-    const scored = records.map(record => ({ condition: record.condition, scores: scoreRecord(record) }));
-    const groups = {};
-    for (const condition of CONDITION_IDS) {
-        const mine = scored.filter(entry => entry.condition === condition);
-        const measures = {};
-        for (const measure of ALL_MEASURES) {
-            const values = mine.map(entry => entry.scores[measure]).filter(value => value !== null);
-            measures[measure] = { n: values.length, mean: values.length ? round(mean(values)) : null, sd: round(sd(values)) };
-        }
-        groups[condition] = { n: mine.length, measures };
-    }
-
-    const valuesOf = (condition, measure) => scored.filter(entry => entry.condition === condition).map(entry => entry.scores[measure]).filter(value => value !== null);
-    const contrasts = [];
-    for (const against of CONDITION_IDS.filter(id => id !== PRIMARY_CONTRAST.subject)) {
-        for (const measure of ALL_MEASURES) {
-            const a = valuesOf(PRIMARY_CONTRAST.subject, measure);
-            const b = valuesOf(against, measure);
-            if (a.length === 0 || b.length === 0) continue;
-            const result = bootstrapDifference(a, b);
-            contrasts.push({
-                subject: PRIMARY_CONTRAST.subject, against, measure, nSubject: a.length, nAgainst: b.length,
-                difference: round(result.difference), low: round(result.low), high: round(result.high),
-                tier: MEASURES.primary.includes(measure) ? 'primary' : MEASURES.secondary.includes(measure) ? 'secondary' : 'exploratory'
-            });
-        }
-    }
-    return { groups, contrasts, excluded, conclusion: conclude(groups, contrasts) };
-}
-
-/** Whether the interval excludes zero on the side that favours RISE. Ratings of "decorative" favour RISE when lower. */
-const favoursRise = contrast => (contrast.measure === 'decorative' ? contrast.high < 0 : contrast.low > 0);
-
-/** The sentence the study is allowed to say. It cannot say more than the numbers do. */
-function conclude(groups, contrasts) {
-    const subject = groups[PRIMARY_CONTRAST.subject];
-    const against = groups[PRIMARY_CONTRAST.against];
-    if (subject.n < MINIMUM_PER_GROUP || against.n < MINIMUM_PER_GROUP) {
-        return {
-            kind: 'insufficient',
-            text: `Too few participants to conclude anything: a live Current has ${subject.n} and the generic visualizer ${against.n}, and at least ${MINIMUM_PER_GROUP} in each are needed before this study will say anything but that.`
-        };
-    }
-    const main = contrasts.filter(contrast => contrast.against === PRIMARY_CONTRAST.against);
-    const objective = main.filter(contrast => contrast.tier !== 'exploratory' && favoursRise(contrast));
-    const experiential = main.filter(contrast => contrast.tier === 'exploratory' && favoursRise(contrast));
-    if (objective.length === 0) {
-        const felt = experiential.length
-            ? ` It was rated higher on ${experiential.map(contrast => contrast.measure).join(' and ')}, which is a difference in how it was experienced, not evidence that it helped anyone understand or remember more.`
-            : ' Nor was it rated differently in any way that can be told from chance.';
-        return {
-            kind: 'no-objective-difference',
-            text: `Against a spoken answer with a generic visualizer, a live Current did not measurably improve comprehension, delayed recall, evidence identification or orientation for these participants.${felt} On this evidence it differs from a generic visualizer in aesthetics and experience, not in what people took from the answer.`
-        };
-    }
-    const wins = objective.map(contrast => `${contrast.measure} (${contrast.difference > 0 ? '+' : ''}${contrast.difference}, 95% interval ${contrast.low} to ${contrast.high})`).join('; ');
-    const primaryWin = objective.some(contrast => contrast.tier === 'primary');
-    return {
-        kind: primaryWin ? 'primary-advantage' : 'secondary-advantage',
-        text: `Against a spoken answer with a generic visualizer, a live Current scored higher on ${wins}. ${primaryWin ? 'One of these is a primary measure.' : 'None of these is a primary measure.'} Four objective measures were compared without correction for that, so one may be chance; a result this size wants repeating before it is believed.`
-    };
-}

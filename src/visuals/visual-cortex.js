@@ -16,14 +16,6 @@ import { Harmonograph } from './harmonograph.js';
 import { Ostensoria } from './ostensoria.js';
 import { Apparitio } from './apparitio.js';
 import { createRemoteImage } from './remote-image.js';
-import {
-    AsciiCanvasRenderer,
-    AsciiFrameCompiler,
-    ASCII_BACKGROUND,
-    compileFieldPlanToAscii,
-    compilePolylinesToAscii,
-    resolveAsciiGrid
-} from './ascii-engine.js';
 import { MemoryCore } from '../core/memory.js';
 import { abortableDelay, createAbortError, isAbortError } from '../sources/visual/request.js';
 import {
@@ -109,6 +101,8 @@ const MAX_ADMITTED_CUE_IDENTITIES = 32;
 // after enterMs ensures the overlay is truly opaque before concealed text is
 // replaced behind it.
 const COVER_SETTLE_FRAME_MS = 17;
+// The Rock Garden's ground when the reading names no colours.
+const ROCK_GARDEN_GROUND = '#0A0A0C';
 const GALLERY_PROCEDURAL_TYPES = Object.freeze([
     // FAMILIES AUTHORED FOR A WORK COME FIRST, because they are the
     // reason this list stopped being complete. The gallery filters the
@@ -169,12 +163,7 @@ export class VisualCortex {
         this._adaptiveImageHandlers = new Map();
         this.diagramEl = null;
         this.artworkLabelEl = null;
-        this.asciiRenderer = null;
-        this.asciiCompiler = null;
-        this._asciiCanvas = null;
-        this._asciiScratchCanvas = null;
         this._fractalCanvas = null;
-        this._localAsciiAssets = new Map();
         this.initialized = false;
         this._destroyed = false;
 
@@ -267,7 +256,6 @@ export class VisualCortex {
             frequency: 0.3, // 30%
             duration: VISUAL_PRESENCE_DEFAULT_MS,
             galleryCadence: GALLERY_CADENCE_DEFAULT,
-            renderLanguage: 'native', // 'native' | 'ascii'
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
@@ -286,18 +274,16 @@ export class VisualCortex {
             // Gallery. This value is the fallback for a direct caller that
             // configures nothing, and it is deliberately still full-frame:
             // moving it to 'continuous' changed the FLASH SEMANTICS rather
-            // than a preference, and nine cortex tests said so — the ASCII
-            // adapter route, the presentation clock, and external asset
-            // hydration all read this field to decide what a flash is. A
+            // than a preference, and nine cortex tests said so — the
+            // presentation clock and external asset hydration both read
+            // this field to decide what a flash is. A
             // surface a reader picks and a surface the engine assumes are
             // two different constants that happened to share a value.
             presentation: 'full-frame',
             wordFill: { mode: 'same' },
             customVisuals: [],
             sequenceVisualAssets: [],
-            // null preserves legacy direct callers; App session entry always
-            // supplies an exact resolved array (including an intentional []).
-            globalVisuals: null
+            globalVisuals: []
         };
     }
 
@@ -357,22 +343,6 @@ export class VisualCortex {
         this._neuralCanvas = neuralCanvas;
         console.log('[Visual Cortex] Neural canvas bound:', neuralCanvas);
 
-        // ASCII is an orthogonal display language. It shares the same
-        // responsive, DPR-aware backing dimensions as every native source,
-        // while its compiler works on a bounded cell grid.
-        let asciiCanvas = document.getElementById('ascii-canvas');
-        if (!asciiCanvas) {
-            asciiCanvas = document.createElement('canvas');
-            asciiCanvas.id = 'ascii-canvas';
-            asciiCanvas.className = 'visual-canvas ascii-canvas';
-            asciiCanvas.hidden = true;
-            asciiCanvas.setAttribute('aria-hidden', 'true');
-            this.container.appendChild(asciiCanvas);
-        }
-        this._asciiCanvas = asciiCanvas;
-        this.asciiRenderer = new AsciiCanvasRenderer(asciiCanvas);
-        this.asciiCompiler = new AsciiFrameCompiler();
-        this._asciiScratchCanvas = document.createElement('canvas');
         this._resizeKleeCanvas();
 
         // Initialize Rock Garden (shares klee canvas)
@@ -414,9 +384,8 @@ export class VisualCortex {
             this.container.appendChild(this.diagramEl);
         }
 
-        // One caption surface serves every sourced flash, including its ASCII
-        // rendering. It is deliberately separate from the image element so
-        // the metadata survives render-language changes.
+        // One caption surface serves every sourced flash. It is deliberately
+        // separate from the image element.
         this.artworkLabelEl = document.getElementById('visual-artwork-label');
         if (!this.artworkLabelEl) {
             this.artworkLabelEl = document.createElement('div');
@@ -548,8 +517,7 @@ export class VisualCortex {
         const width = Math.max(1, Math.round(cssWidth * pixelRatio));
         const height = Math.max(1, Math.round(cssHeight * pixelRatio));
         const kleeChanged = this._kleeCanvas.width !== width || this._kleeCanvas.height !== height;
-        const asciiChanged = this.asciiRenderer?.resize(width, height) || false;
-        if (!kleeChanged) return asciiChanged;
+        if (!kleeChanged) return false;
 
         this._kleeCanvas.width = width;
         this._kleeCanvas.height = height;
@@ -787,7 +755,7 @@ export class VisualCortex {
         const identities = [...new Set(cue.collections.filter(id =>
             typeof id === 'string' && id))].sort();
         return identities.length
-            ? `${this.config.renderLanguage || 'native'}:${identities.join('|')}`
+            ? identities.join('|')
             : null;
     }
 
@@ -1356,12 +1324,10 @@ export class VisualCortex {
     }
 
     _continuousHarmonographLive() {
-        return (this.config.activeTypes || []).includes('harmonograph')
-            && this.config.renderLanguage !== 'ascii';
+        return (this.config.activeTypes || []).includes('harmonograph');
     }
 
     _continuousPlateFamilies() {
-        if (this.config.renderLanguage === 'ascii') return [];
         const active = this.config.activeTypes || [];
         return PLATE_FAMILIES.filter(id => active.includes(id));
     }
@@ -1375,13 +1341,11 @@ export class VisualCortex {
     }
 
     _wordFillHarmonographLive() {
-        if (this.config.renderLanguage === 'ascii') return false;
         if (!this._wordFillIsDistinct()) return this._continuousHarmonographLive();
         return this._wordFillTypes().includes('harmonograph');
     }
 
     _wordFillPlateFamilies() {
-        if (this.config.renderLanguage === 'ascii') return [];
         if (!this._wordFillIsDistinct()) return this._continuousPlateFamilies();
         return PLATE_FAMILIES.filter(id => this._wordFillTypes().includes(id));
     }
@@ -1392,7 +1356,7 @@ export class VisualCortex {
     }
 
     _wordFillHasLivingPick() {
-        if (!this._wordFillIsDistinct() || this.config.renderLanguage === 'ascii') return false;
+        if (!this._wordFillIsDistinct()) return false;
         const types = this._wordFillTypes();
         return types.includes('harmonograph')
             || types.includes('attractor')
@@ -1407,7 +1371,6 @@ export class VisualCortex {
     }
 
     _wordFillWorkFamilies() {
-        if (this.config.renderLanguage === 'ascii') return [];
         if (!this._wordFillIsDistinct()) return this._continuousWorkFamilies();
         const types = this._wordFillTypes();
         return workEngineFamilies().filter(type => types.includes(type));
@@ -1447,7 +1410,6 @@ export class VisualCortex {
      */
     _continuousPool() {
         return this._poolWorksForCategories(this._activePoolCategories(), {
-            warm: true,
             includeSequence: true
         });
     }
@@ -1478,11 +1440,8 @@ export class VisualCortex {
     _wordFillProceduralTypes() {
         if (!this._wordFillIsDistinct()) return [];
         const types = this._wordFillTypes();
-        const liveHarmonograph = types.includes('harmonograph')
-            && this.config.renderLanguage !== 'ascii';
-        const livePlates = this.config.renderLanguage === 'ascii'
-            ? []
-            : PLATE_FAMILIES.filter(id => types.includes(id));
+        const liveHarmonograph = types.includes('harmonograph');
+        const livePlates = PLATE_FAMILIES.filter(id => types.includes(id));
         return GALLERY_PROCEDURAL_TYPES.filter(type =>
             types.includes(type)
             && !isWorkEngineFamily(type)
@@ -1499,7 +1458,7 @@ export class VisualCortex {
 
     _continuousProjectionPool() {
         if (!this._wordFillIsDistinct()) return null;
-        return this._poolWorksForCategories(this._projectionPoolCategories(), { warm: true });
+        return this._poolWorksForCategories(this._projectionPoolCategories());
     }
 
     /**
@@ -1556,7 +1515,7 @@ export class VisualCortex {
         if (!this._wordFillIsDistinct()) return null;
         const identities = this._wordFillTypes().slice().sort();
         return identities.length
-            ? `word-fill:${this.config.renderLanguage || 'native'}:${identities.join('|')}`
+            ? `word-fill:${identities.join('|')}`
             : 'word-fill:empty';
     }
 
@@ -1574,7 +1533,7 @@ export class VisualCortex {
         ])];
     }
 
-    _poolWorksForCategories(categories, { warm = false, includeSequence = false } = {}) {
+    _poolWorksForCategories(categories, { includeSequence = false } = {}) {
         const works = [];
         const seen = new Set();
         if (includeSequence) {
@@ -1606,7 +1565,7 @@ export class VisualCortex {
         // must keep the pool filling toward target. Read cadence (~dwell)
         // is a fine warm cadence — a cold or under-target pool schedules a
         // warm, a full one a gentle rolling refresh.
-        if (warm && categories.length > 0) {
+        if (categories.length > 0) {
             const target = this._backgroundTarget();
             const needsWarmth = categories.some(id => this._poolFor(id).images.length < target);
             if (needsWarmth) this._scheduleBackgroundWarm(false);
@@ -1721,9 +1680,7 @@ export class VisualCortex {
         if (!GALLERY_PROCEDURAL_TYPES.includes(type)) return null;
         if (!this.initialized) this.init();
         const signal = this._nextContinuousSignal();
-        const asciiMode = this.config.renderLanguage === 'ascii';
         let canvas = null;
-        let asciiFrame = null;
         let rendered = false;
 
         if (isWorkEngineFamily(type) && this._kleeCanvas) {
@@ -1740,56 +1697,30 @@ export class VisualCortex {
             canvas = this._kleeCanvas;
         } else if (type === 'klee' && this.kleeFlashes && this._kleeCanvas) {
             this._resizeKleeCanvas();
-            if (asciiMode) {
-                asciiFrame = await this.kleeFlashes.createAsciiFlash(160, signal, {
-                    displayWidth: this._asciiCanvas?.width,
-                    displayHeight: this._asciiCanvas?.height
-                });
-            } else {
-                // Every caller of this path wants ONE finished work — a leaf
-                // preview, a word-fill ink, a collection still — never a
-                // glimpse that a later flash will add to.
-                rendered = await this.kleeFlashes.renderFlash(this._kleeCanvas, 160, signal, { complete: true });
-                canvas = this._kleeCanvas;
-            }
+            // Every caller of this path wants ONE finished work — a leaf
+            // preview, a word-fill ink, a collection still — never a
+            // glimpse that a later flash will add to.
+            rendered = await this.kleeFlashes.renderFlash(this._kleeCanvas, 160, signal, { complete: true });
+            canvas = this._kleeCanvas;
         } else if (type === 'turrell' && this.turrell && this._kleeCanvas) {
             this._resizeKleeCanvas();
             const plan = this.turrell.generate(this._themed('turrell'));
-            if (asciiMode) {
-                asciiFrame = compileFieldPlanToAscii(
-                    plan,
-                    this._asciiOptions(signal, { source: 'turrell' })
-                );
-            } else {
-                rendered = this.turrell.render(this._kleeCanvas, plan);
-                canvas = this._kleeCanvas;
-            }
+            rendered = this.turrell.render(this._kleeCanvas, plan);
+            canvas = this._kleeCanvas;
         } else if (type === 'fractal' && this.fractal && this._fractalCanvas) {
             if (!this.fractal.isReady()) await this.fractal.fillQueue(1);
-            if (asciiMode) {
-                const item = this.fractal.takeFrame(signal);
-                if (item) {
-                    item.asciiFrame ||= await this.asciiCompiler.compileImageData(
-                        item.imageData,
-                        this._asciiOptions(signal, { source: 'fractal' })
-                    );
-                    asciiFrame = item.asciiFrame;
-                }
-            } else {
-                rendered = this.fractal.generate(signal);
-                canvas = this._fractalCanvas;
-                if (rendered && wordFill) {
-                    applyFlameFillToCanvas(canvas, {
-                        reducedMotion: this._continuousReducedMotion()
-                            || prefersFlameFillReducedMotion(),
-                        visibleAreaRatio: this._fillProjectionVisibleAreaRatio
-                    });
-                }
+            rendered = this.fractal.generate(signal);
+            canvas = this._fractalCanvas;
+            if (rendered && wordFill) {
+                applyFlameFillToCanvas(canvas, {
+                    reducedMotion: this._continuousReducedMotion()
+                        || prefersFlameFillReducedMotion(),
+                    visibleAreaRatio: this._fillProjectionVisibleAreaRatio
+                });
             }
         } else if (type === 'neural' && this.neural && this._neuralCanvas) {
             rendered = this.neural.generate(this._themed('neural'));
-            if (asciiMode && rendered) asciiFrame = this._neuralAsciiFrame(signal);
-            else canvas = this._neuralCanvas;
+            canvas = this._neuralCanvas;
         } else if (type === 'harmonograph' && this.harmonograph && this._kleeCanvas) {
             this._resizeKleeCanvas();
             rendered = this.harmonograph.generate(signal, undefined, {
@@ -1797,8 +1728,7 @@ export class VisualCortex {
                 anchors: accentFlameAnchors(this.config.flameColors),
                 pendulums: this.config.harmonographPendulums
             });
-            if (asciiMode && rendered) asciiFrame = this._harmonographAsciiFrame(signal);
-            else if (rendered) {
+            if (rendered) {
                 rendered = this.harmonograph.render(this._kleeCanvas);
                 canvas = this._kleeCanvas;
             }
@@ -1819,25 +1749,15 @@ export class VisualCortex {
                 width: this._kleeCanvas.width,
                 height: this._kleeCanvas.height
             });
-            if (asciiMode) {
-                asciiFrame = this._rockGardenAsciiFrame(signal);
-            } else {
-                // The reading's ground and ink when it has colours, else today's.
-                rendered = this.rockgarden.renderRockGarden(this._kleeCanvas, {
-                    ...(rockGardenInk(this.config.flameColors) ?? {
-                        backgroundColor: ASCII_BACKGROUND,
-                        strokeColor: 'rgba(232, 232, 236, 0.8)'
-                    }),
-                    brushStroke: true
+            // The reading's ground and ink when it has colours, else today's.
+            rendered = this.rockgarden.renderRockGarden(this._kleeCanvas,
+                rockGardenInk(this.config.flameColors) ?? {
+                    backgroundColor: ROCK_GARDEN_GROUND,
+                    strokeColor: 'rgba(232, 232, 236, 0.8)'
                 }) !== false;
-                canvas = this._kleeCanvas;
-            }
+            canvas = this._kleeCanvas;
         }
 
-        if (asciiMode) {
-            rendered = !!asciiFrame && !!this.asciiRenderer?.render(asciiFrame);
-            canvas = this._asciiCanvas;
-        }
         if (!rendered) return null;
         // The opening still and every word fill export at once: a Fit word
         // waits on its mask, and a mask that arrives later lets an opaque word
@@ -1915,7 +1835,7 @@ export class VisualCortex {
             .slice()
             .sort();
         return identities.length
-            ? `${this.config.renderLanguage || 'native'}:${identities.join('|')}`
+            ? identities.join('|')
             : 'default';
     }
 
@@ -2290,9 +2210,6 @@ export class VisualCortex {
                     .slice(0, 32)
                 : [];
         }
-        if ('renderLanguage' in nextConfig) {
-            nextConfig.renderLanguage = nextConfig.renderLanguage === 'ascii' ? 'ascii' : 'native';
-        }
         if ('activeTypes' in nextConfig) {
             nextConfig.activeTypes = this._normalizeActiveTypes(nextConfig.activeTypes);
             // The Blend ledger belongs to ONE reading, not to the tab.
@@ -2416,9 +2333,7 @@ export class VisualCortex {
         console.log('[Visual Cortex] Config updated:', {
             ...this.config,
             customVisuals: `${this.config.customVisuals?.length || 0} local assets`,
-            globalVisuals: Array.isArray(this.config.globalVisuals)
-                ? `${this.config.globalVisuals.length} resolved global assets`
-                : 'legacy resolution'
+            globalVisuals: `${this.config.globalVisuals.length} resolved global assets`
         });
     }
 
@@ -2627,9 +2542,6 @@ export class VisualCortex {
                     loadedAt: now,
                     lastUsedAt: now
                 };
-                if (this.config.renderLanguage === 'ascii') {
-                    asset.asciiPromise = this._prepareAssetAscii(asset, signal);
-                }
                 succeed(asset);
             };
             img.onerror = () => {
@@ -2640,142 +2552,8 @@ export class VisualCortex {
         });
     }
 
-    _loadReadableImage(url, signal = this._assetAbortController.signal) {
-        return new Promise((resolve, reject) => {
-            if (!url || signal?.aborted) {
-                reject(signal?.aborted ? createAbortError() : new Error('Readable image URL is empty'));
-                return;
-            }
-            const img = createRemoteImage();
-            img.decoding = 'async';
-            img.fetchPriority = 'low';
-            // A second, CORS-enabled element protects the native hydration
-            // contract: providers that cannot be sampled may still display in
-            // Native, while ASCII intentionally skips an unreadable frame.
-            if (/^https?:/i.test(url)) img.crossOrigin = 'anonymous';
-
-            let settled = false;
-            const cleanup = () => {
-                clearTimeout(timeout);
-                signal?.removeEventListener('abort', onAbort);
-                img.onload = null;
-                img.onerror = null;
-            };
-            const fail = error => {
-                if (settled) return;
-                settled = true;
-                cleanup();
-                img.src = '';
-                reject(error);
-            };
-            const onAbort = () => fail(createAbortError('ASCII image load aborted'));
-            const timeout = setTimeout(() => {
-                const error = new Error(`ASCII image load timed out after ${IMAGE_LOAD_TIMEOUT_MS}ms`);
-                error.name = 'TimeoutError';
-                fail(error);
-            }, IMAGE_LOAD_TIMEOUT_MS);
-
-            img.onload = async () => {
-                try { await img.decode?.(); } catch { /* onload remains sufficient */ }
-                if (signal?.aborted) {
-                    fail(createAbortError('ASCII image load aborted'));
-                    return;
-                }
-                if (settled) return;
-                settled = true;
-                cleanup();
-                resolve(img);
-            };
-            img.onerror = () => fail(new Error(`Image is not CORS-readable for ASCII: ${url}`));
-            signal?.addEventListener('abort', onAbort, { once: true });
-            img.src = url;
-        });
-    }
-
-    _asciiOptions(signal, metadata = {}, fit = 'contain') {
-        return {
-            displayWidth: this._asciiCanvas?.width || this._kleeCanvas?.width || 1920,
-            displayHeight: this._asciiCanvas?.height || this._kleeCanvas?.height || 1080,
-            scratchCanvas: this._asciiScratchCanvas,
-            signal,
-            fit,
-            metadata
-        };
-    }
-
-    async _prepareAssetAscii(asset, signal = this._assetAbortController.signal) {
-        if (!asset?.url) return null;
-        try {
-            const readable = asset.asciiImg || await this._loadReadableImage(asset.url, signal);
-            asset.asciiImg = readable;
-            asset.asciiFrame = await this.asciiCompiler.compileDrawable(
-                readable,
-                this._asciiOptions(null, { source: 'external', category: asset.category })
-            );
-            return asset.asciiFrame;
-        } catch (error) {
-            // Sampling capability is separate from provider hydration. Do not
-            // count it as an external content failure, log expected CORS
-            // refusal, or trigger a fallback that violates source intent.
-            return null;
-        }
-    }
-
-    async _prepareExternalAsciiAssets(signal = this._assetAbortController.signal) {
-        const tasks = [];
-        for (const pool of this._assetPools.values()) {
-            for (const asset of pool.images) {
-                if (asset.asciiFrame) continue;
-                if (!asset.asciiPromise) asset.asciiPromise = this._prepareAssetAscii(asset, signal);
-                tasks.push(asset.asciiPromise);
-            }
-        }
-        await Promise.all(tasks);
-    }
-
     _globalVisualUris() {
-        const visuals = Array.isArray(this.config.globalVisuals)
-            ? this.config.globalVisuals
-            : (MemoryCore.getGlobalImages?.() || []);
-        return [...new Set(visuals.filter(Boolean))].slice(0, 20);
-    }
-
-    _localVisualUris() {
-        const types = this.config.activeTypes || [];
-        const uris = [];
-        uris.push(...(this.config.sequenceVisualAssets || []).map(asset => asset?.uri));
-        if (types.includes('custom')) uris.push(...(this.config.customVisuals || []));
-        if (types.includes('global') || types.includes('global-pool')) {
-            uris.push(...this._globalVisualUris());
-        }
-        for (const type of types) {
-            if (!type.startsWith?.('personal:')) continue;
-            const blueprintId = type.slice('personal:'.length);
-            const blueprint = (MemoryCore.getWorkshopBlueprints?.() || [])
-                .find(item => item.id === blueprintId);
-            uris.push(...(blueprint?.customVisuals || []));
-        }
-        return [...new Set(uris.filter(Boolean))].slice(0, 24);
-    }
-
-    async _prepareLocalAsciiAssets(signal = this._assetAbortController.signal) {
-        this._localAsciiAssets.clear();
-        for (const uri of this._localVisualUris()) {
-            if (signal?.aborted) throw createAbortError();
-            let img = null;
-            try {
-                img = await this._loadReadableImage(uri, signal);
-                const frame = await this.asciiCompiler.compileDrawable(
-                    img,
-                    this._asciiOptions(null, { source: 'local' }, 'cover')
-                );
-                if (frame) this._localAsciiAssets.set(uri, frame);
-            } catch (error) {
-                if (isAbortError(error)) throw error;
-            } finally {
-                if (img) img.src = '';
-            }
-        }
+        return [...new Set(this.config.globalVisuals.filter(Boolean))].slice(0, 20);
     }
 
     _poolFor(categoryId) {
@@ -2920,13 +2698,6 @@ export class VisualCortex {
             asset.img.onload = null;
             asset.img.onerror = null;
         }
-        if (asset.asciiImg) {
-            asset.asciiImg.onload = null;
-            asset.asciiImg.onerror = null;
-            asset.asciiImg.src = '';
-        }
-        asset.asciiFrame = null;
-        asset.asciiPromise = null;
         // The visible diagram element owns its own URL. Releasing this
         // off-DOM preload element lets the browser reclaim decoded pixels.
         if (asset.img) asset.img.src = '';
@@ -2987,7 +2758,6 @@ export class VisualCortex {
         for (let attempt = 0; attempt < pool.images.length; attempt++) {
             pool.cursor = (pool.cursor + 1) % pool.images.length;
             const candidate = pool.images[pool.cursor];
-            if (this.config.renderLanguage === 'ascii' && !candidate?.asciiFrame) continue;
             const url = candidate?.url || candidate?.img?.src || '';
             if (!url || !this._recentExternalUrls.includes(url)) {
                 asset = candidate;
@@ -3325,9 +3095,7 @@ export class VisualCortex {
             : activeExternal.length > 0 ? activeExternal : [ANY_POOL];
         const stockedPools = candidates
             .map(categoryId => ({ id: categoryId, pool: this._poolFor(categoryId) }))
-            .filter(entry => entry.pool.images.some(asset =>
-                this.config.renderLanguage !== 'ascii' || asset.asciiFrame
-            ));
+            .filter(entry => entry.pool.images.length > 0);
 
         const target = this._backgroundTarget();
         const needsWarmth = this._activePoolCategories()
@@ -3440,24 +3208,6 @@ export class VisualCortex {
 
         await Promise.all(preloadPromises);
         if (continuous && fractalGenerated) void this.fractal.fillQueue?.(this.fractal.maxQueueSize);
-        if (this.config.renderLanguage === 'ascii') {
-            // Precompile raster sources before the reading clock begins. The
-            // flash path only selects and paints a small immutable frame.
-            if (this.fractal && generationTypes.includes('fractal')) {
-                await Promise.all((this.fractal.queue || []).map(async item => {
-                    if (!item.asciiFrame) {
-                        item.asciiFrame = await this.asciiCompiler.compileImageData(
-                            item.imageData,
-                            this._asciiOptions(item.signal, { source: 'fractal' })
-                        );
-                    }
-                }));
-            }
-            await this._prepareExternalAsciiAssets();
-            await this._prepareLocalAsciiAssets();
-        } else {
-            this._localAsciiAssets.clear();
-        }
         const externalStatus = this.getExternalAssetStatus();
         if (externalPreload) this._scheduleBackgroundWarm(externalStatus.minimumReady);
         return externalStatus;
@@ -3470,98 +3220,6 @@ export class VisualCortex {
         if (!this.ostensoria.generate?.(signal, undefined, this._plateLook('ostensoria') || {})) return false;
         this.ostensoria.fillQueue?.(this.ostensoria.maxQueueSize ?? 3);
         return this.ostensoria.render(this._kleeCanvas);
-    }
-
-    _harmonographAsciiFrame(signal) {
-        const trace = this.harmonograph?.trace;
-        const plan = this.harmonograph?.plan;
-        if (!trace || !plan || !this._asciiCanvas) return null;
-        const width = this._asciiCanvas.width;
-        const height = this._asciiCanvas.height;
-        const scale = this.harmonograph.extent(width, height);
-        const points = [];
-        const pointCount = trace.length / 2;
-        const stride = Math.max(1, Math.ceil(pointCount / 1800));
-        for (let index = 0; index < pointCount; index += stride) {
-            points.push([
-                width / 2 + trace[index * 2] * scale,
-                height / 2 + trace[index * 2 + 1] * scale
-            ]);
-        }
-        return compilePolylinesToAscii({
-            width,
-            height,
-            palette: plan.anchors,
-            polylines: [{ points, color: plan.anchors?.[2] || '#e5e3df', delay: 0 }]
-        }, {
-            ...resolveAsciiGrid(this._asciiCanvas.width, this._asciiCanvas.height),
-            signal,
-            background: ASCII_BACKGROUND,
-            metadata: {
-                source: 'harmonograph',
-                ratio: [...plan.ratio],
-                paletteName: plan.paletteName
-            }
-        });
-    }
-
-    _neuralAsciiFrame(signal) {
-        if (!this.neural || !this._asciiCanvas) return null;
-        const palette = this.neural.currentPalette || {};
-        const connections = (this.neural.connections || []).map(connection => {
-            const from = this.neural.nodes?.[connection.from];
-            const to = this.neural.nodes?.[connection.to];
-            return {
-                points: from && to ? [[from.x, from.y], [to.x, to.y]] : [],
-                color: connection.active
-                    ? (palette.activationPulse || [220, 210, 255])
-                    : (palette.connectionBase || [80, 80, 90]),
-                delay: 0
-            };
-        });
-        const nodes = (this.neural.nodes || []).flatMap(node => {
-            const radius = Math.max(3, Number(node.radius) || 4);
-            const color = node.activation > 0.65
-                ? (palette.activationPulse || [255, 255, 255])
-                : (palette.nodeCore || [180, 180, 190]);
-            return [
-                { points: [[node.x - radius, node.y], [node.x + radius, node.y]], color, delay: 0 },
-                { points: [[node.x, node.y - radius], [node.x, node.y + radius]], color, delay: 0 }
-            ];
-        });
-        return compilePolylinesToAscii({
-            width: this._neuralCanvas?.width || this._asciiCanvas.width,
-            height: this._neuralCanvas?.height || this._asciiCanvas.height,
-            palette: [
-                palette.connectionBase || [80, 80, 90],
-                palette.nodeCore || [180, 180, 190],
-                palette.activationPulse || [255, 255, 255]
-            ],
-            polylines: [...connections, ...nodes]
-        }, {
-            ...resolveAsciiGrid(this._asciiCanvas.width, this._asciiCanvas.height),
-            signal,
-            background: ASCII_BACKGROUND,
-            metadata: { source: 'neural' }
-        });
-    }
-
-    _rockGardenAsciiFrame(signal) {
-        if (!this.rockgarden || !this._asciiCanvas) return null;
-        return compilePolylinesToAscii({
-            width: this._asciiCanvas.width,
-            height: this._asciiCanvas.height,
-            palette: ['#e8e8ec', '#a8a8ae'],
-            polylines: (this.rockgarden.shapes || []).map((shape, index) => ({
-                points: shape.points,
-                color: index % 3 === 0 ? '#e8e8ec' : '#a8a8ae',
-                delay: Math.min(0.12, index * 0.018)
-            }))
-        }, {
-            signal,
-            background: ASCII_BACKGROUND,
-            metadata: { source: 'rockgarden' }
-        });
     }
 
     /**
@@ -3632,12 +3290,6 @@ export class VisualCortex {
             this._blendDebt = (this._blendDebt || 0) + 1;
         }
         this._blendDebt = Math.max(-4, Math.min(4, this._blendDebt));
-    }
-
-    _showAsciiFrame(frame) {
-        if (!frame || !this.asciiRenderer?.render(frame)) return false;
-        this._asciiCanvas.hidden = false;
-        return true;
     }
 
     _presentationResult(requestedDurationMs, reason, {
@@ -3956,19 +3608,16 @@ export class VisualCortex {
         const turrellEl = document.getElementById('turrell-field');
         const fractalEl = document.getElementById('fractal-canvas');
         const neuralEl = document.getElementById('neural-canvas');
-        const asciiMode = this.config.renderLanguage === 'ascii';
 
         if (kleeEl) kleeEl.hidden = true;
         if (turrellEl) turrellEl.hidden = true;
         if (fractalEl) fractalEl.hidden = true;
         if (neuralEl) neuralEl.hidden = true;
-        if (this._asciiCanvas) this._asciiCanvas.hidden = true;
         if (this.diagramEl) this.diagramEl.hidden = true;
         if (this.customImageEl) this.customImageEl.hidden = true;
         this._hideAdaptiveImageWash();
         this._setFlashArtworkLabel(null);
 
-        let asciiFrame = null;
         let rendered = false;
 
         if (selectedType === 'klee' && this.kleeFlashes && this._kleeCanvas) {
@@ -3977,56 +3626,27 @@ export class VisualCortex {
             // animation was removed: durations are capped at 200ms, below
             // any threshold where nested motion reads as anything but flicker.)
             this._resizeKleeCanvas();
-            if (asciiMode) {
-                asciiFrame = await this.kleeFlashes.createAsciiFlash(duration, signal, {
-                    displayWidth: this._asciiCanvas?.width,
-                    displayHeight: this._asciiCanvas?.height
-                });
-            } else {
-                rendered = await this.kleeFlashes.renderFlash(this._kleeCanvas, duration, signal);
-                if (rendered && kleeEl) kleeEl.hidden = false;
-            }
+            rendered = await this.kleeFlashes.renderFlash(this._kleeCanvas, duration, signal);
+            if (rendered && kleeEl) kleeEl.hidden = false;
         } else if (selectedType === 'turrell' && this.turrell) {
-            const fieldPlan = this.turrell.generate();
-            if (asciiMode) {
-                asciiFrame = compileFieldPlanToAscii(
-                    fieldPlan,
-                    this._asciiOptions(signal, { source: 'turrell' })
-                );
-            } else {
-                rendered = true;
-                if (turrellEl) turrellEl.hidden = false;
-            }
+            this.turrell.generate();
+            rendered = true;
+            if (turrellEl) turrellEl.hidden = false;
         } else if (selectedType === 'fractal' && this.fractal) {
-            if (asciiMode) {
-                const item = this.fractal.takeFrame(signal);
-                if (item) {
-                    item.asciiFrame ||= await this.asciiCompiler.compileImageData(
-                        item.imageData,
-                        this._asciiOptions(signal, { source: 'fractal' })
-                    );
-                    asciiFrame = item.asciiFrame;
-                }
-            } else {
-                rendered = this.fractal.generate(signal);
-            }
-            if (!asciiFrame && !rendered) {
+            rendered = this.fractal.generate(signal);
+            if (!rendered) {
                 console.warn('[Visual Cortex] Fractal not ready, skipping flash.');
                 return this._presentationResult(duration, 'render-failed');
             }
-            if (!asciiMode && fractalEl) fractalEl.hidden = false;
+            if (fractalEl) fractalEl.hidden = false;
         } else if (selectedType === 'neural' && this.neural) {
             const success = this.neural.generate();
             if (!success) {
                 console.warn('[Visual Cortex] Neural not ready, skipping flash.');
                 return this._presentationResult(duration, 'render-failed');
             }
-            if (asciiMode) {
-                asciiFrame = this._neuralAsciiFrame(signal);
-            } else {
-                rendered = true;
-                if (neuralEl) neuralEl.hidden = false;
-            }
+            rendered = true;
+            if (neuralEl) neuralEl.hidden = false;
         } else if (this.diagramEl && (selectedType === 'diagram' || this._isExternalCategory(selectedType))) {
             try {
                 const requestedCategory = selectedType !== 'diagram' ? selectedType : null;
@@ -4042,19 +3662,11 @@ export class VisualCortex {
                     this._scheduleBackgroundWarm(false);
                     return this._presentationResult(duration, 'source-unavailable');
                 }
-                if (asciiMode) {
-                    asciiFrame = diagram.asciiFrame;
-                    if (!asciiFrame) {
-                        this._externalStatus.skippedFlashes++;
-                        return this._presentationResult(duration, 'source-unavailable');
-                    }
-                } else {
-                    rendered = this._showAdaptiveImage(
-                        this.diagramEl,
-                        diagram.img.src,
-                        diagram.name || 'External Asset'
-                    );
-                }
+                rendered = this._showAdaptiveImage(
+                    this.diagramEl,
+                    diagram.img.src,
+                    diagram.name || 'External Asset'
+                );
                 this._setFlashArtworkLabel(diagram.artworkLabel);
             } catch (err) {
                 this._externalStatus.skippedFlashes++;
@@ -4071,12 +3683,8 @@ export class VisualCortex {
                 climate: this.config.harmonographClimate,
                 pendulums: this.config.harmonographPendulums
             });
-            if (asciiMode) {
-                asciiFrame = this._harmonographAsciiFrame(signal);
-            } else {
-                rendered = this.harmonograph.render(this._kleeCanvas);
-                if (rendered && kleeEl) kleeEl.hidden = false;
-            }
+            rendered = this.harmonograph.render(this._kleeCanvas);
+            if (rendered && kleeEl) kleeEl.hidden = false;
         } else if (selectedType === 'ostensoria' && this.ostensoria && this._kleeCanvas) {
             this._resizeKleeCanvas();
             rendered = this._paintOstensoria(signal);
@@ -4092,17 +3700,12 @@ export class VisualCortex {
                 width: this._kleeCanvas.width,
                 height: this._kleeCanvas.height
             });
-            if (asciiMode) {
-                asciiFrame = this._rockGardenAsciiFrame(signal);
-            } else {
-                rendered = this.rockgarden.renderRockGarden(this._kleeCanvas, {
-                    backgroundColor: ASCII_BACKGROUND,
-                    strokeColor: 'rgba(232, 232, 236, 0.8)',
-                    brushStroke: true
-                });
-                if (rendered !== false && kleeEl) kleeEl.hidden = false;
-                rendered = rendered !== false;
-            }
+            rendered = this.rockgarden.renderRockGarden(this._kleeCanvas, {
+                backgroundColor: ROCK_GARDEN_GROUND,
+                strokeColor: 'rgba(232, 232, 236, 0.8)'
+            });
+            if (rendered !== false && kleeEl) kleeEl.hidden = false;
+            rendered = rendered !== false;
         } else if (selectedType.startsWith?.('sequence-asset:') && this.customImageEl) {
             const assetId = selectedType.slice('sequence-asset:'.length);
             const asset = (this.config.sequenceVisualAssets || [])
@@ -4110,40 +3713,28 @@ export class VisualCortex {
             if (!asset?.uri) {
                 return this._presentationResult(duration, 'source-unavailable');
             }
-            if (asciiMode) {
-                asciiFrame = this._localAsciiAssets.get(asset.uri) || null;
-            } else {
-                rendered = this._showAdaptiveImage(
-                    this.customImageEl,
-                    asset.uri,
-                    asset.name || 'Sequence Visual'
-                );
-            }
+            rendered = this._showAdaptiveImage(
+                this.customImageEl,
+                asset.uri,
+                asset.name || 'Sequence Visual'
+            );
         } else if (selectedType === 'custom' && this.customImageEl && this.config.customVisuals.length > 0) {
             const visuals = this.config.customVisuals;
             const customUri = visuals[Math.floor(Math.random() * visuals.length)];
-            if (asciiMode) {
-                asciiFrame = this._localAsciiAssets.get(customUri) || null;
-            } else {
-                rendered = this._showAdaptiveImage(
-                    this.customImageEl,
-                    customUri,
-                    'Custom Sequence Frame'
-                );
-            }
+            rendered = this._showAdaptiveImage(
+                this.customImageEl,
+                customUri,
+                'Custom Sequence Frame'
+            );
         } else if (selectedType === 'global' && this.customImageEl) {
             const globals = this._globalVisualUris();
             if (globals.length > 0) {
                 const globalUri = globals[Math.floor(Math.random() * globals.length)];
-                if (asciiMode) {
-                    asciiFrame = this._localAsciiAssets.get(globalUri) || null;
-                } else {
-                    rendered = this._showAdaptiveImage(
-                        this.customImageEl,
-                        globalUri,
-                        'Global Pool Frame'
-                    );
-                }
+                rendered = this._showAdaptiveImage(
+                    this.customImageEl,
+                    globalUri,
+                    'Global Pool Frame'
+                );
             }
         } else if (selectedType.startsWith('personal:') && this.customImageEl) {
             // Personal Sequence Images mapping
@@ -4153,20 +3744,16 @@ export class VisualCortex {
                 const bp = blueprints.find(b => b.id === blueprintId);
                 if (bp && bp.customVisuals && bp.customVisuals.length > 0) {
                     const personalUri = bp.customVisuals[Math.floor(Math.random() * bp.customVisuals.length)];
-                    if (asciiMode) {
-                        asciiFrame = this._localAsciiAssets.get(personalUri) || null;
-                    } else {
-                        rendered = this._showAdaptiveImage(
-                            this.customImageEl,
-                            personalUri,
-                            'Personal Sequence Frame'
-                        );
-                    }
+                    rendered = this._showAdaptiveImage(
+                        this.customImageEl,
+                        personalUri,
+                        'Personal Sequence Frame'
+                    );
                 }
             }
         }
 
-        // Rendering Klee/ASCII can cross an asynchronous boundary. A user
+        // Rendering Klee can cross an asynchronous boundary. A user
         // kill, pause, or safety-mode change during that work must not let
         // the completed render rebound onto the screen afterward.
         if (presentationEpoch !== this._presentationEpoch) {
@@ -4176,7 +3763,6 @@ export class VisualCortex {
             );
         }
 
-        if (asciiMode) rendered = this._showAsciiFrame(asciiFrame);
         if (!rendered) return this._presentationResult(duration, 'render-failed');
         if (!this._flashGate.commit(performance.now(), duration)) {
             return this._presentationResult(duration, 'cadence');
@@ -4256,11 +3842,6 @@ export class VisualCortex {
         this.fractal = null;
         this.ostensoria?.destroy?.();
         this.ostensoria = null;
-        this.asciiCompiler?.destroy?.();
-        this.asciiCompiler = null;
-        this.asciiRenderer = null;
-        this._asciiScratchCanvas = null;
-        this._localAsciiAssets.clear();
         this._continuousWorkBag.clear();
         this._continuousSignalCursor = 0;
         this._flashArtworkLabel = null;

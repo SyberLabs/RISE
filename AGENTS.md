@@ -202,9 +202,7 @@ Humans review the product at the live site, not the pull request.
 
 ## Running / manual testing
 
-- `npm run dev` serves on `http://localhost:5173/`. The Vite dev server also
-  mounts dev-only middleware (Curia `POST /__curia/apply`, Export-MP4) that
-  does not exist in the production build.
+- `npm run dev` serves on `http://localhost:5173/`.
 - Quickest path through the core reading experience: Home → **Library** →
   **Keystones** (or open `/try-rise`) → pick a canonical reading (e.g.
   Meditations) → **Enter reading**. Text then streams over time with

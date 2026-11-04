@@ -8,7 +8,7 @@
  * the same picture is the field the splats build, the tone pass over it, and
  * the pixels written out, so this compares those.
  */
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { Ostensoria } from './ostensoria.js';
 import { Apparitio } from './apparitio.js';
 

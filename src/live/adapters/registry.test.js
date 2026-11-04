@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { LIVE_PROVIDERS, liveProvider } from './registry.js';
+import { LIVE_PROVIDERS } from './registry.js';
+
+const liveProvider = id => LIVE_PROVIDERS.find(entry => entry.id === id);
 import { assertAdapter } from '../adapter.js';
 import { createVirtualClock } from '../clock.js';
 import { createFakeAnthropicFetch, createFakeNvidiaFetch, createFakeOpenAIChatFetch } from '../../test/fake-direct-fetch.js';
@@ -52,16 +54,6 @@ describe('the providers the venue offers', () => {
             await connection.close();
             vi.unstubAllGlobals();
         }
-    });
-
-    it('does not offer a provider whose key would pass through this site', () => {
-        // The OpenAI Realtime adapter opens its session through this site's Worker route; the OpenAI entry is chat completions, browser to OpenAI.
-        expect(LIVE_PROVIDERS.some(entry => entry.id === 'openai-realtime')).toBe(false);
-    });
-
-    it('says no for an id it does not know, or one inherited from Object', () => {
-        expect(liveProvider('nonsense')).toBeNull();
-        expect(liveProvider('toString')).toBeNull();
     });
 
     it('makes a conforming adapter for every provider that has one, without asking anything', async () => {

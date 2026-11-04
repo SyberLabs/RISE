@@ -18,7 +18,7 @@ import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
 import { codeNumberProblems, figureNumberProblems, numberProblems } from './admit.js';
 
 /** What the digest adds to Live's illustrator instructions: where its pictures are seen. */
-export const DIGEST_PICTURE_NOTE = [
+const DIGEST_PICTURE_NOTE = [
   'These pictures illustrate RISE’s weekly digest for the team that builds it, one change or group of changes each.',
   '- The room’s ground is dark, near black, and the picture fills the frame behind the words. Draw in currentColor, which RISE inks in the words’ light colour; leave the background empty; no dark fills.',
   '- Labels must read on a phone 390 pixels wide: text of at least 20 units in a viewBox about 400 wide, few words per label, nothing smaller.',

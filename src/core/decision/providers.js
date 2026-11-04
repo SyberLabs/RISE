@@ -8,8 +8,6 @@
 
 export const KEV_CODE_REVISION = '9c41005b2180347c3c646dfc9e50c4428483ec6b';
 export const KEV_REVISION = '139fdd94f1b6a6ad80cc15e08fcb99cac885a101';
-export const KEV_BASE = 'Qwen/Qwen3.5-4B-Base';
-export const KEV_BASE_REVISION = '1001bb4d826a52d1f399e183466143f4da7b741b';
 
 export const JEV = Object.freeze({
   name: 'TypeSafe',

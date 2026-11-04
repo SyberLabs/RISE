@@ -5,7 +5,7 @@
 const DB_NAME = 'rise-plus-voice';
 const DB_VERSION = 1;
 const STORE_NAME = 'voicings';
-export class PlusVoiceStore {
+class PlusVoiceStore {
     constructor() {
         /** @type {IDBDatabase|null} */
         this.db = null;

@@ -99,7 +99,7 @@ export function resolveFlameFrame(recipe, seconds = 0, energy = 0.35) {
 }
 
 /** The six-variation vocabulary, matching the CPU generator's conventions. */
-export function applyVariations(x, y, weights, out = [0, 0]) {
+function applyVariations(x, y, weights, out = [0, 0]) {
   const r2 = x * x + y * y;
   const r = Math.sqrt(r2);
   let ox = weights.linear * x;
@@ -121,7 +121,7 @@ export function applyVariations(x, y, weights, out = [0, 0]) {
 }
 
 /** Iterate one point through a resolved frame (CPU mirror of the shader). */
-export function iteratePoint(frame, state, rng) {
+function iteratePoint(frame, state, rng) {
   const pick = rng();
   const transform = frame.transforms.find(item => pick <= item.cumulative) || frame.transforms[0];
   const [a, b, c, d, e, f] = transform.affine;
@@ -149,7 +149,7 @@ export function iteratePoint(frame, state, rng) {
  * does: copies are drawn but never fed back into the iteration, so a
  * k-fold recipe shows k rotations of one attractor instead of filling in.
  */
-export function projectPoint(frame, x, y, aspect = 1, turn = 0) {
+function projectPoint(frame, x, y, aspect = 1, turn = 0) {
   const angle = frame.camera.rotation + (frame.symmetry > 1 ? turn * Math.PI * 2 / frame.symmetry : 0);
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
@@ -165,7 +165,9 @@ export function projectPoint(frame, x, y, aspect = 1, turn = 0) {
  * points land in view and they spread across many cells instead of
  * collapsing to a dot or escaping.
  */
-export function probeRecipe(recipe, { iterations = 6000, grid = 48 } = {}) {
+export function probeRecipe(recipe) {
+  const iterations = 6000;
+  const grid = 48;
   const frame = resolveFlameFrame(recipe, 0, recipe.macros.energy);
   const rng = createRng(recipe.seed ^ 0x51ed270b);
   const state = { x: rng() * 2 - 1, y: rng() * 2 - 1, color: 0.5, age: 0 };
@@ -264,12 +266,12 @@ function mutateOnce(recipe, rng, strength) {
  * macros. Returns null when no visible candidate appears within the attempt
  * budget, so the caller keeps the last working scene.
  */
-export function mutateRecipe(recipe, seed, { attempts = 6, strength = 1 } = {}) {
+export function mutateRecipe(recipe, seed, { attempts = 6 } = {}) {
   const rng = createRng(seed);
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     let candidate;
     try {
-      candidate = mutateOnce(recipe, rng, strength * (1 - attempt * 0.12));
+      candidate = mutateOnce(recipe, rng, 1 - attempt * 0.12);
     } catch {
       continue;
     }
@@ -280,8 +282,8 @@ export function mutateRecipe(recipe, seed, { attempts = 6, strength = 1 } = {}) 
 
 /** A bounded undo history of whole recipes. */
 export class RecipeHistory {
-  constructor(limit = 20) {
-    this.limit = limit;
+  constructor() {
+    this.limit = 20;
     this.entries = [];
   }
 

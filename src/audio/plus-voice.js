@@ -3,7 +3,7 @@
 import { VOICE_PACK_SCHEMA, normalizeVoiceText } from './voice-pack-key.js';
 import { fetchPlusStatus, plusAudioSession } from '../app/plus.js';
 
-export const PLUS_VOICE_ROUTE = '/api/plus/voice';
+const PLUS_VOICE_ROUTE = '/api/plus/voice';
 
 /** The spoken phrases of a compiled session, as the Worker and the Voice both key them. */
 export function spokenAtoms(atoms) {
@@ -59,7 +59,7 @@ export async function voiceReading(atoms, { voice = 'default', audioScope, fetch
     if (signal.aborted) return changed();
     return { ok: false, code: 'OFFLINE', message: 'The voice could not be reached.' };
   }
-  let body = null;
+  let body;
   try {
     body = await response.json();
   } catch {
@@ -70,7 +70,7 @@ export async function voiceReading(atoms, { voice = 'default', audioScope, fetch
     return { ok: false, code: body?.error?.code ?? 'UPSTREAM', message: body?.error?.message ?? 'The voice could not be rendered.' };
   }
   const pack = body?.pack;
-  let audio = null;
+  let audio;
   try {
     audio = typeof body?.audio === 'string' ? bytesFromBase64(body.audio) : null;
   } catch {

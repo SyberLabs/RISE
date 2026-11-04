@@ -75,8 +75,7 @@ export class Make {
       container: container.querySelector('.make-tabs'),
       loaders: LOADERS,
       factories: Object.fromEntries(Object.entries(FACTORIES).map(([name, create]) => [
-        // `embedded`: Make's header is the way home, so a tab draws none.
-        name, (el, module, data) => create(el, module, data, { ...tabCapabilities[name], embedded: true })
+        name, (el, module, data) => create(el, module, data, tabCapabilities[name])
       ]))
     });
   }

@@ -8,11 +8,10 @@ import releaseInventory from '../../content/archive/release-inventory.json' with
 import modernManifest from '../../content/modern-readings-manifest.json' with { type: 'json' };
 import { JEV_AUDIO_IDS } from '../jev-config.js';
 
-export const CATALOG_SCHEMA_VERSION = 1;
+const CATALOG_SCHEMA_VERSION = 1;
 export const OPTION_KINDS = Object.freeze(['chamberFace', 'fontSize']);
-export const SOUND_CATALOG_LIMIT = 64;
 
-export const RELEASE_EDITIONS = Object.freeze({
+const RELEASE_EDITIONS = Object.freeze({
   ...Object.fromEntries(Object.values(releaseInventory)
     .filter(item => item.editionId?.startsWith('standard-ebooks:')
       && item.source?.url?.startsWith('https://standardebooks.org/ebooks/'))
@@ -23,7 +22,7 @@ export const RELEASE_EDITIONS = Object.freeze({
 const BOOK_KEYS = ['work_id', 'title', 'author', 'edition_id', 'source_revision',
   'fit_description', 'decision_criterion', 'active'];
 
-export function admittedBook(row) {
+function admittedBook(row) {
   const edition = RELEASE_EDITIONS[row?.work_id];
   return Boolean(edition && row?.active === true
     && row.edition_id === edition.editionId

@@ -20,7 +20,6 @@ export class Vault {
     this.onSelectSequence = options.onSelectSequence || (() => {});
     this.onSelectBlueprint = options.onSelectBlueprint || (() => {});
     this.getAudioEngine = options.getAudioEngine || (() => null);
-    this.embedded = options.embedded === true;
 
     this.currentSection = options.initialSection === 'custom' ? 'custom' : 'sequences';
     this.blueprints = MemoryCore.getWorkshopBlueprints();
@@ -44,10 +43,6 @@ export class Vault {
         <!-- Header -->
         <header class="library-header">
           <div class="library-title-section">
-            ${this.embedded ? '' : `<button class="btn-ghost" data-action="back">
-              <span class="icon" aria-hidden="true">←</span>
-              <span>Home</span>
-            </button>`}
             <h1>Sequences</h1>
           </div>
 
@@ -257,17 +252,6 @@ export class Vault {
       if (!event.target.matches('[data-portable-credit]')) return;
       const id = event.target.closest('.sequence-card')?.dataset.id;
       if (id) this.portableCredits.set(id, event.target.value);
-    });
-
-    // Back button
-    this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
-      this.getAudioEngine()?.playClick();
-      this.onNavigate('home');
-    });
-
-    this.container.querySelector('[data-nav="journeys"]')?.addEventListener('click', () => {
-      this.getAudioEngine()?.playClick();
-      this.onNavigate('journeys');
     });
 
     // Section navigation

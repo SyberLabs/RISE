@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
+import { BOUNDARY_SOURCE_PREFIX, EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
 import { exportCuratorContext } from './curator-context.js';
-import { BOUNDARY_SOURCE_PREFIX } from './journey-compiler.js';
 import {
   assertProgramWithinContext,
   ExperienceProgramIoError,

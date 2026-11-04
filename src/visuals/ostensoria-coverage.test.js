@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { histogram, measureFieldVoid, VOID_FRACTION_LIMIT } from './ostensoria-coverage.js';
+import { measureFieldVoid, VOID_FRACTION_LIMIT } from './ostensoria-coverage.js';
 
 describe('Ostensoria void coverage', () => {
     it('treats an empty field as fully void', () => {
@@ -25,14 +25,5 @@ describe('Ostensoria void coverage', () => {
         const denser = measureFieldVoid(field, 4);
         expect(denser.voidFraction).toBe(0.94);
         expect(denser.sparse).toBe(false);
-    });
-
-    it('buckets a sample into void-fraction bands', () => {
-        const { counts, labels } = histogram([0.2, 0.7, 0.96, 0.995]);
-        expect(labels[0]).toBe('0%–50%');
-        expect(counts[0]).toBe(1);
-        expect(counts[1]).toBe(1);
-        expect(counts[4]).toBe(1);
-        expect(counts[5]).toBe(1);
     });
 });

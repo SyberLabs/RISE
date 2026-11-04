@@ -5,7 +5,7 @@ import { splitWords } from '../core/recitation.js';
 import { compileSession } from '../core/session-compiler.js';
 import { todayPool } from '../core/today-poem.js';
 import { todayDecision } from '../core/today-reading.js';
-import { mapAlignment, spokenText } from './poem-alignment.js';
+import { mapAlignment } from './poem-alignment.js';
 import { normalizeVoiceText } from './voice-pack-key.js';
 
 /** What a vendor that read the text faithfully would return: a time for every character sent. */
@@ -23,7 +23,7 @@ it('maps a faithful reading of every poem in the pool onto the atoms a recited d
     const input = await resolveJevReading(todayDecision({ ...item, seed: 'recitation' }),
       { entryId: item.entryId, label: item.label });
     const atoms = compileSession(input).atoms.map(atom => normalizeVoiceText(atom)).filter(Boolean);
-    const result = mapAlignment({ atoms, alignment: faithful(spokenText(entries[item.entryId].content)) });
+    const result = mapAlignment({ atoms, alignment: faithful(entries[item.entryId].content.normalize('NFKC')) });
     if (!result.ok) failures.push(`${item.workId}:${item.entryId} ${item.label}: ${result.reason}`);
     else {
       for (const atom of result.atoms) expect(atom.onsetsMs).toHaveLength(splitWords(atom.text).length);

@@ -73,7 +73,7 @@ export class StormBallisticSpirographEngine {
         return true;
     }
 
-    step(dt = 0.016, signal = {}) {
+    step(dt = 0.016) {
         this.time += dt * this.params.speed;
     }
 

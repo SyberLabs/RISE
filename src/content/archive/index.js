@@ -281,7 +281,7 @@ export const CORE_WORKS = [
 /**
  * WITHHELD FROM THE SHELF — a wrong edition, not a broken file.
  *
- * `npm run audit:text` scored these three far above everything else in
+ * An apparatus audit scored these three far above everything else in
  * the Archive:
  *
  *     king-lear     39.0% of lines are critical apparatus
@@ -520,12 +520,8 @@ export function ingestedArchiveTexts() {
 }
 
 /** Editions a reader-facing surface may expose in this build. */
-/** How many served works have no certification record for their exact bytes. */
-export function uncertifiedCount() {
-    return releaseArchiveMetadata().filter(meta => !isArchiveEditionCertified(meta)).length;
-}
-
-export function releaseArchiveTexts({ includeCandidates = serveCandidates() } = {}) {
+export function releaseArchiveTexts() {
+    const includeCandidates = serveCandidates();
     const works = includeCandidates
         ? WORKS
         : WORKS.filter(work => isArchiveEditionCertified(work.meta));

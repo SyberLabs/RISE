@@ -294,7 +294,7 @@ it('keeps the held pace slider when curve and chunk changes are followed by a la
   workshop.destroy();
 });
 
-it('keeps the phone Back control available and exposes loading while a sequence hydrates', async () => {
+it('exposes loading on the phone while a sequence hydrates', async () => {
   const parent = await importedParent();
   const pendingLookup = deferred();
   const { workshop, container } = makeWorkshop(vi.fn(), { viewportWidth: 390 });
@@ -304,8 +304,6 @@ it('keeps the phone Back control available and exposes loading while a sequence 
   workshop.update({ blueprintId: parent.id });
 
   const phoneHost = container.querySelector('.scene-stack-host');
-  const back = phoneHost.querySelector('[data-sa="back"]');
-  expect(back.disabled).toBe(false);
   expect(phoneHost.getAttribute('aria-busy')).toBe('true');
   expect(phoneHost.querySelector('[data-blueprint-loading]').textContent)
     .toContain('Loading selected sequence');
@@ -516,7 +514,7 @@ it('ignores image files dropped while a saved sequence is loading', async () => 
 it('does not apply a dropped video probe to a newly selected project', async () => {
   const parent = await importedParent();
   const pendingLookup = deferred();
-  const { workshop, container } = makeWorkshop();
+  const { workshop } = makeWorkshop();
   vi.spyOn(workshop, 'loadSavedBlueprints').mockReturnValue(pendingLookup.promise);
   const createElement = document.createElement.bind(document);
   let metadataVideo;

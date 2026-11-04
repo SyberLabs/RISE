@@ -134,24 +134,17 @@ export class StateCurve {
 export class PacingEngine {
     constructor(config = {}) {
         this.baseWpm = this.normalizeWpm(config.baseWpm);
-        this.stateCurve = config.stateCurve || StateCurve.flat();
+        this.stateCurve = StateCurve.flat();
 
-        // Modifier toggles.
         // TEMPORAL CONTRACT: Atom.duration as authored by the chunker
-        // IS the reading contract. Semantic texture is opt-in and
-        // zero-mean — it varies pace around the authored duration with
-        // no net WPM drift (the old always-on complexity/weight
-        // defaults compounded to a universal 1.4375× slowdown).
-        this.modifiers = {
-            semanticTexture: config.semanticTexture === true,
-            position: config.usePosition !== false
-        };
+        // IS the reading contract. Only the state curve and the breath
+        // vary pace around it.
         // Off unless a reading chose the breath profile (see setBreath).
         this.breath = null;
 
         // Duration limits
-        this.minDuration = config.minDuration || 100;   // ms
-        this.maxDuration = config.maxDuration || 10000; // ms
+        this.minDuration = 100;   // ms
+        this.maxDuration = 10000; // ms
 
         // Image defaults
         this.imageDurations = {
@@ -162,7 +155,7 @@ export class PacingEngine {
         };
 
         // Symbol defaults
-        this.symbolDuration = config.symbolDuration || 400;
+        this.symbolDuration = 400;
     }
 
     /**
@@ -211,21 +204,7 @@ export class PacingEngine {
                 baseDuration = atom.duration || 500;
         }
 
-        let duration = baseDuration;
-
-        // Semantic texture: zero-mean around the authored duration.
-        // Neutral atoms (0.5/0.5 defaults) map to exactly 1.0; the
-        // full range is bounded to [0.8, 1.2].
-        if (this.modifiers.semanticTexture) {
-            const complexity = Number.isFinite(atom.complexity) ? atom.complexity : 0.5;
-            const weight = Number.isFinite(atom.weight) ? atom.weight : 0.5;
-            duration *= 1 + (complexity - 0.5) * 0.24 + (weight - 0.5) * 0.16;
-        }
-
-        if (this.modifiers.position) {
-            const curveMultiplier = this.stateCurve.at(position);
-            duration *= curveMultiplier;
-        }
+        let duration = baseDuration * this.stateCurve.at(position);
 
         // Words only: an image or a sign is held as long as it was authored.
         if (this.breath && atom.modality === Modality.TEXT) {
@@ -254,14 +233,6 @@ export class PacingEngine {
      */
     setBreath({ totalMs }) {
         this.breath = { cycles: breathCycles(totalMs) };
-    }
-
-    /**
-     * Set base WPM
-     * @param {number} wpm
-     */
-    setWpm(wpm) {
-        this.baseWpm = this.normalizeWpm(wpm);
     }
 
     normalizeWpm(wpm) {

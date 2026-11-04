@@ -448,7 +448,7 @@ export function audioAssignmentsFromProgram(program) {
     }));
 }
 
-export function narrationAssignmentsFromProgram(program) {
+function narrationAssignmentsFromProgram(program) {
   if (!program) return [];
   const canonical = validateExperienceProgram(program);
   const track = canonical.tracks.find(item => item.kind === 'narration');

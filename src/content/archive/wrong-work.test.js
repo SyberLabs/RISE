@@ -3,8 +3,7 @@
  *
  * ARCHIVE-CLEANSING-SPEC §1b. These are gates because each one is a
  * MEASURED fact about a named work, not a heuristic applied to the
- * shelf. The heuristic exists too — `scripts/audit-division-identity.mjs`
- * — and is deliberately a report rather than a test, because the
+ * shelf. The heuristic was deliberately a report rather than a test, because the
  * distributions overlap: Don Quixote's interpolated novel and Le Morte
  * d'Arthur's glossary both score lower than the intruder did. No
  * threshold separates them, so a gate there would either miss the

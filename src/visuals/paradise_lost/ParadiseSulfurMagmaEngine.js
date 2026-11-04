@@ -41,7 +41,7 @@ export class ParadiseSulfurMagmaEngine {
         };
     }
 
-    generate(signal = {}, seed = 'infernal-lake-01', options = {}) {
+    generate(signal = {}, seed = 'infernal-lake-01') {
         this.seed = seed;
         const rng = createSeededRandom(seed);
         this.time = 0;
@@ -142,7 +142,7 @@ export class ParadiseSulfurMagmaEngine {
         return true;
     }
 
-    step(dt = 0.016, signal = {}) {
+    step(dt = 0.016) {
         this.time += dt;
 
         // Update rising embers & smoke
@@ -175,7 +175,7 @@ export class ParadiseSulfurMagmaEngine {
         }
     }
 
-    render(canvas, options = {}) {
+    render(canvas) {
         if (!canvas) return false;
         const ctx = canvas.getContext('2d');
         if (!ctx) return false;

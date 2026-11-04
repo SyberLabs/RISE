@@ -3,11 +3,11 @@
  * Navigator. The register IS the list of pictures, so an engine cannot be
  * withheld from live drawing without something to show in its place.
  *
- * Built by scripts/build-engine-stills.mjs from the engines' own output.
+ * Rendered from the engines' own output.
  */
 import { siteUrl } from '../core/embed-address.js';
 
-export const SHIPPED_STILLS = new Map([
+const SHIPPED_STILLS = new Map([
     ['fractal', 'fractal.webp'],
     ['ostensoria', 'ostensoria.webp'],
     ['apparitio', 'apparitio.webp'],
@@ -18,7 +18,7 @@ export const SHIPPED_STILLS = new Map([
  * Absolute, because safeUrl admits no relative path, and RISE's own address
  * even inside a host's card, where the document's base is the host's (siteUrl).
  */
-export function shippedStill(file) {
+function shippedStill(file) {
     if (typeof location === 'undefined') return null;
     try {
         return new URL(siteUrl(`/engine-stills/${file}`), location.origin + '/').href;

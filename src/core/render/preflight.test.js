@@ -9,7 +9,6 @@ import { RENDER_JOB_SCHEMA } from './environment.js';
 import { pinnedRendererForProfile } from './job.js';
 import {
   PREFLIGHT_VERDICTS,
-  describePreflightFailure,
   preflightRenderJob
 } from './preflight.js';
 
@@ -278,8 +277,9 @@ describe('render preflight', () => {
     });
     expect(report.verdict).toBe(PREFLIGHT_VERDICTS.REFUSED);
     expect(report.refusals.some(item => item.code === 'RENDER_CUE_UNSUPPORTED')).toBe(true);
-    expect(describePreflightFailure(report)).toMatch(/Swell/i);
-    expect(describePreflightFailure(report)).toMatch(/Replace this cue/);
+    const unsupported = report.refusals.find(item => item.code === 'RENDER_CUE_UNSUPPORTED');
+    expect(unsupported.message).toMatch(/Swell/i);
+    expect(unsupported.repair).toMatch(/Replace this cue/);
   });
 
   it('accepts a genesis field as a native Chamber painter', async () => {
@@ -321,7 +321,8 @@ describe('render preflight', () => {
     });
     expect(report.verdict).toBe(PREFLIGHT_VERDICTS.REFUSED);
     expect(report.refusals.some(item => item.code === 'RENDER_COLLECTION_UNPINNED')).toBe(true);
-    expect(describePreflightFailure(report)).toMatch(/admit stills/i);
+    const unpinned = report.refusals.find(item => item.code === 'RENDER_COLLECTION_UNPINNED');
+    expect(`${unpinned.message} ${unpinned.repair}`).toMatch(/admit stills/i);
   });
 
   it('admits embedded still bytes only when length and hash match', async () => {

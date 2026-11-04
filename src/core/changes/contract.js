@@ -25,7 +25,7 @@ export const ROUTE_MENU = Object.freeze({
 export const FALLBACK_ROUTE = Object.freeze({ audience: 'skip', significance: 'minor', kind: 'records' });
 
 /** Why a change is or is not in the reading; `unspoken`: chosen, but no beat spoke of it, so the run left it out. */
-export const REASONS = Object.freeze(['routed', 'records-only', 'limit', 'unspoken']);
+const REASONS = Object.freeze(['routed', 'records-only', 'limit', 'unspoken']);
 
 export const LIMITS = Object.freeze({
   changes: 60,
@@ -127,7 +127,7 @@ const isDensity = density => isObject(density) && sameKeys(density, DENSITY_KEYS
  * `density`, when there (digests written before it have none), how densely the reading is pictured:
  * `{ pictures, includedChanges, speakingBeats, pictured, longestUnpictured }`.
  */
-export function qualityProblems(quality) {
+function qualityProblems(quality) {
   const keys = ['firstPass', 'repairs', 'checks', ...(isObject(quality) && Object.hasOwn(quality, 'density') ? ['density'] : [])];
   const shaped = isObject(quality) && sameKeys(quality, keys) && typeof quality.firstPass === 'boolean'
     && isObject(quality.repairs) && sameKeys(quality.repairs, ['composition', 'illustrator'])

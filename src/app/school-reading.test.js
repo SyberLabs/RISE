@@ -44,9 +44,10 @@ vi.mock('../core/content-store.js', () => ({
 
 import { SCHOOL_ORIGIN, recordSchoolReading, schoolReading } from './school-reading.js';
 import { jevColors } from '../core/jev-palette.js';
-import { clearProgress, readProgress } from '../core/school-progress.js';
+import { readProgress } from '../core/school-progress.js';
+import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 
-afterEach(() => clearProgress());
+afterEach(() => localStorage.removeItem(USER_DATA_KEYS.schoolProgress));
 
 describe('a reading opened from the Mystery School', () => {
   it('opens a divided work at its first division, as the Library opens a division', async () => {

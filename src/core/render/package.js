@@ -7,7 +7,7 @@ import { RENDER_MANIFEST_SCHEMA, PINNED_RENDERER } from './environment.js';
 import { captionsFromPlan, captionsToSrt, captionsToVtt } from './captions.js';
 import { contentHashOf } from './hash.js';
 
-export function creditsText({ sources = [], inventory = {} } = {}) {
+function creditsText({ sources = [], inventory = {} } = {}) {
   const lines = ['Credits — RISE render package'];
   for (const source of sources) {
     const name = source.name || source.title || source.id;
@@ -30,7 +30,7 @@ export function owedCreditLines({ sources = [], inventory = {} } = {}) {
     .sort();
 }
 
-export function rightsReport(inventory = {}, distributionClass = 'private-review') {
+function rightsReport(inventory = {}, distributionClass = 'private-review') {
   const assets = (inventory.assets || []).map(asset => Object.freeze({
     assetId: asset.assetId,
     contentHash: asset.contentHash,

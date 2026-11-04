@@ -3,7 +3,7 @@
  * (docs/superpowers/specs/2026-10-08-creative-control-design.md §11). The
  * guidance says how to write in the style; the two worked Currents are real
  * ones the validator accepts and whose scenes the server admits (held by
- * src/live/guide/index.test.js, and run headless by npm run eval:creative).
+ * src/live/guide/index.test.js).
  */
 import { RISE_CURRENT_LOOKS } from '../../../core/rise-current.js';
 import { TYPE_ROLES } from '../../../core/typography.js';

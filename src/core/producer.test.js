@@ -4,20 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { RIGHTS } from '../content/imagery/works.js';
 import {
   AGENT_OPERATION_LIMITS,
   AGENT_OPERATION_OPS,
   AGENT_OPERATION_SET_SCHEMA
 } from './agent-operations.js';
-import { createDefaultAcquisitionProviders } from './acquisition-providers.js';
 import { emptyWorkshopProject } from './workshop-project.js';
 import { runProducer } from './producer.js';
-import {
-  PUBLICATION_REVIEW_SCHEMA,
-  approvePublication,
-  PublicationError
-} from './publication.js';
 import { PREFLIGHT_VERDICTS } from './render/preflight.js';
 
 const SOURCE_ID = 'source-anna';
@@ -25,7 +18,6 @@ const SOURCE_TEXT = [
   'Happy families are all alike; every unhappy family is unhappy in its own way.',
   "Everything was in confusion in the Oblonskys' house."
 ].join(' ');
-const NOW = '2026-08-13T21:00:00.000Z';
 
 const ffmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' });
 const hasFfmpeg = !ffmpeg.error && ffmpeg.status === 0;
@@ -77,15 +69,6 @@ function composeOps(extra = []) {
   ]);
 }
 
-function jpegBytes() {
-  const bytes = new Uint8Array(64).fill(7);
-  bytes[0] = 0xff;
-  bytes[1] = 0xd8;
-  bytes[2] = 0xff;
-  bytes[3] = 0xe0;
-  return bytes;
-}
-
 describe('producer runtime', () => {
   it('keeps the 32-op ceiling and never admits or publishes', async () => {
     const produced = await runProducer({
@@ -94,8 +77,7 @@ describe('producer runtime', () => {
       resolvedSources: {
         [SOURCE_ID]: { id: SOURCE_ID, name: 'Anna', data: SOURCE_TEXT }
       },
-      render: false,
-      now: NOW
+      render: false
     });
     expect(produced.admitted).toEqual([]);
     expect(produced.approved).toEqual([]);
@@ -106,7 +88,7 @@ describe('producer runtime', () => {
     expect(AGENT_OPERATION_OPS).not.toContain('publish');
   }, 20_000);
 
-  it.skipIf(!hasFfmpeg && !process.env.CI)('request-compile muxes an MP4 and queues human review', async () => {
+  it.skipIf(!hasFfmpeg && !process.env.CI)('request-compile muxes an MP4 for human review', async () => {
     expect(hasFfmpeg, 'CI installs ffmpeg; if it is missing, that step broke').toBe(true);
     const dir = mkdtempSync(join(tmpdir(), 'rise-producer-mp4-'));
     const outputPath = join(dir, 'experience.mp4');
@@ -117,7 +99,6 @@ describe('producer runtime', () => {
         resolvedSources: {
           [SOURCE_ID]: { id: SOURCE_ID, name: 'Anna', data: SOURCE_TEXT }
         },
-        now: NOW,
         tier: 'draft',
         encode: {
           painter: 'clerk',
@@ -136,36 +117,12 @@ describe('producer runtime', () => {
       expect(artifact.package['poster.bmp']).toBeTruthy();
       expect(artifact.srt).toMatch(/-->/);
       expect(readFileSync(artifact.mp4Path).subarray(4, 8).toString()).toBe('ftyp');
-      expect(produced.reviewItems).toHaveLength(1);
-      expect(produced.reviewItems[0].schema).toBe(PUBLICATION_REVIEW_SCHEMA);
-      expect(produced.reviewItems[0].status).toBe('queued');
-      expect(produced.reviewItems[0].rights.distributionClass).toBe('private-review');
-      try {
-        approvePublication({
-          item: produced.reviewItems[0],
-          approval: {
-            schema: 'rise.publication-approval.v1',
-            reviewItemId: produced.reviewItems[0].id,
-            artifactHash: produced.reviewItems[0].artifact.packageHash,
-            decision: 'approve',
-            actor: 'human',
-            authority: 'user',
-            watchedArtifact: true,
-            decidedAt: NOW
-          }
-        });
-        throw new Error('expected refusal');
-      } catch (error) {
-        expect(error).toBeInstanceOf(PublicationError);
-        expect(error.code).toBe('PUBLICATION_RIGHTS_UNRESOLVED');
-      }
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
   }, 30_000);
 
-  it('inspects a requested asset and will not admit it', async () => {
-    const jpeg = jpegBytes();
+  it('leaves a requested asset pending and will not admit it', async () => {
     const produced = await runProducer({
       project: emptyWorkshopProject({ id: 'project-memory', title: 'Memory' }),
       operationSet: composeOps([{
@@ -178,32 +135,11 @@ describe('producer runtime', () => {
       resolvedSources: {
         [SOURCE_ID]: { id: SOURCE_ID, name: 'Anna', data: SOURCE_TEXT }
       },
-      providers: createDefaultAcquisitionProviders({
-        resolveWork: async () => ({
-          id: 'aic:27992',
-          title: 'The Bedroom',
-          artist: 'Vincent van Gogh',
-          rights: RIGHTS.CC0,
-          imageUrl: 'https://www.artic.edu/iiif/2/2d484387-2509-5e8e-2c43-22f2526b23a8/full/843,/0/default.jpg',
-          sourceName: 'Art Institute of Chicago',
-          sourceUrl: 'https://www.artic.edu/artworks/27992'
-        }),
-        fetchImpl: async () => ({
-          ok: true,
-          status: 200,
-          type: 'basic',
-          headers: { get: () => 'image/jpeg' },
-          arrayBuffer: async () => jpeg.buffer
-        })
-      }),
-      render: false,
-      now: NOW
+      render: false
     });
-    expect(produced.acquisition).toHaveLength(1);
-    expect(produced.acquisition[0].admitted).toBe(false);
-    expect(produced.acquisition[0].status).toBe('pending');
-    expect(produced.acquisition[0].candidates.length).toBeGreaterThan(0);
+    expect(produced.inspection.find(row => row.id === 'op-req' || row.op === 'request-asset').status)
+      .toBe('pending');
     expect(produced.admitted).toEqual([]);
     expect(produced.project.assets).toEqual([]);
-  }, 20_000);
+  });
 });

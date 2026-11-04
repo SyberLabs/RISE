@@ -280,7 +280,6 @@ export class Rosarium {
 
   renderPrayer() {
     const step = this.compiled.steps[this.stepIndex];
-    const decade = step.state.decade;
     const artSlot = `<div class="rosarium-art" data-art-slot></div>`;
     return `
       ${this._renderQuietExit()}
@@ -537,7 +536,6 @@ export class Rosarium {
         line.textContent = chant.attribution || `${chant.title} — ${chant.performer}`;
         line.hidden = false;
       };
-      engine.stopAmbient?.();
       engine.startSoundscape?.(this.sound);
     } catch (e) {
       console.warn('[Rosarium] Sound unavailable:', e);

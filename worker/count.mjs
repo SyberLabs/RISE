@@ -10,7 +10,7 @@
  * a request sent is logged.
  */
 import EVENTS from '../telemetry/events.json' with { type: 'json' };
-import { readText } from './live-realtime.mjs';
+import { readText } from './mcp-server.mjs';
 import { countEvent } from './telemetry.mjs';
 
 export const COUNT_PATH = '/api/count';

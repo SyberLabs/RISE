@@ -3,7 +3,6 @@ import {
     DEFAULT_VOICE_ID,
     VOICE_PACK_SCHEMA,
     normalizeVoiceText,
-    speakableText,
     voiceAssetKey
 } from './voice-pack-key.js';
 
@@ -49,9 +48,9 @@ export function resolveVoicePackEntry(
     return entry;
 }
 
-export function availableVoicePacks(source = manifest) {
-    if (source?.schema !== VOICE_PACK_SCHEMA) return [];
-    return Object.entries(source.voices || {})
+export function availableVoicePacks() {
+    if (manifest?.schema !== VOICE_PACK_SCHEMA) return [];
+    return Object.entries(manifest.voices || {})
         .filter(([, pack]) =>
             pack
             && typeof pack === 'object'
@@ -63,8 +62,8 @@ export function availableVoicePacks(source = manifest) {
         }));
 }
 
-export function defaultVoicePackId(source = manifest) {
-    const packs = availableVoicePacks(source);
+export function defaultVoicePackId() {
+    const packs = availableVoicePacks();
     return packs.some(pack => pack.id === DEFAULT_VOICE_ID)
         ? DEFAULT_VOICE_ID
         : packs[0]?.id || null;

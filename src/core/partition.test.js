@@ -80,10 +80,9 @@ describe('what counts as a joint', () => {
         expect(describeMagnets(long, { rungWords: 10 }).sentence).toBeGreaterThan(0);
     });
 
-    it('resolves a pointer to the joint it meant, or to nothing', () => {
+    it('resolves a pointer to the joint it meant', () => {
         const [first] = snapPoints(TEXT);
-        expect(nearestSnap(TEXT, first.offset + 3, { within: 20 }).offset).toBe(first.offset);
-        expect(nearestSnap(TEXT, first.offset + 3, { within: 1 })).toBeNull();
+        expect(nearestSnap(TEXT, first.offset + 3).offset).toBe(first.offset);
     });
 });
 

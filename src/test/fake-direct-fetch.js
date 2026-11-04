@@ -29,8 +29,7 @@
  * Every event is sent as bytes cut at an uneven place, so a line arrives in pieces.
  */
 import { scriptFor } from '../live/fixtures/black-holes.js';
-import { requestFrom } from './fake-openai-transport.js';
-import { scriptToLines } from './fake-text-transport.js';
+import { requestFrom, scriptToLines } from './fake-text-transport.js';
 
 const SIZES = [7, 19, 3, 31, 11, 23];
 const encoder = new TextEncoder();

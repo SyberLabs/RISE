@@ -354,9 +354,6 @@ export class Keystones {
     this.applySelection(initialIndex(this.initialSlug));
   }
 
-  activate() {}
-  deactivate() {}
-
   destroy() {
     this._refreshToken = null;
     this._events.abort();

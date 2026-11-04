@@ -430,7 +430,7 @@ export class Router {
         this._pendingNav = null;
 
         // Destroy all view instances
-        for (const [name, view] of this.views) {
+        for (const [, view] of this.views) {
             if (view.instance?.destroy) {
                 view.instance.destroy();
             }
@@ -440,5 +440,3 @@ export class Router {
         this.viewStack = [];
     }
 }
-
-export default Router;

@@ -15,25 +15,20 @@
  *
  * @param {HTMLElement} slot - the container to mount into
  * @param {Object} work - { imageUrl, title, artist, attribution }
- * @param {Object} [options]
+ * @param {Object} options
  *   - stillAlive: () => boolean — re-checked after the async decode;
  *     a false return abandons the mount silently
- *   - alt / title overrides
  * @returns {Promise<boolean>} true when the image was revealed
  */
 
 import { createRemoteImage } from '../../../visuals/remote-image.js';
-export async function mountSacredImage(slot, work, options = {}) {
+export async function mountSacredImage(slot, work, { stillAlive }) {
     if (!slot || !work?.imageUrl) return false;
-    const stillAlive = typeof options.stillAlive === 'function'
-        ? options.stillAlive
-        : () => true;
 
     const img = createRemoteImage();
     img.decoding = 'async';
-    img.alt = options.alt ?? work.title ?? '';
-    const titleText = options.title
-        ?? work.attribution
+    img.alt = work.title ?? '';
+    const titleText = work.attribution
         ?? [work.title, work.artist].filter(Boolean).join(' — ');
     if (titleText) img.title = titleText;
 

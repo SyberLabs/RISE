@@ -7,8 +7,6 @@ import { HOST_ENGINES } from '../src/live/guide/beats.js';
 import { SOUND_IDS } from '../src/audio/sound-ids.js';
 import { EMBED_PATH, relayHtml } from '../src/live/hosts/mcp-relay.js';
 import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
-import { readText } from './live-realtime.mjs';
-import { callGate0, GATE0_TOOL, GATE0_TOOL_NAME } from './mcp-gate0.mjs';
 import { admitSceneCode, describeDiagnostic } from '../src/core/scene-admission.js';
 import { admitSvg } from '../src/core/svg-admission.js';
 import { logQuality } from './mcp-quality.mjs';
@@ -470,7 +468,7 @@ function guide(id, params) {
   return result(id, { content: [{ type: 'text', text: styleGuide(style) }] });
 }
 
-function read(id, params, origin, witness, card) {
+function read(id, params, origin, card) {
   const style = GUIDE_URIS.get(params?.uri);
   if (style !== undefined) return result(id, { contents: [{ uri: params.uri, mimeType: GUIDE_MIME, text: styleGuide(style) }] });
   if (params?.uri !== APP_URI) return failure(id, -32002, 'Resource not found', { uri: typeof params?.uri === 'string' ? clip(params.uri, 200) : null });
@@ -478,11 +476,10 @@ function read(id, params, origin, witness, card) {
     contents: [{
       uri: APP_URI,
       mimeType: APP_MIME,
-      // The witness log (docs/plans/EMBED-WITNESS.md) is switched on by the demo config for one session; production never sets it.
-      // The self-contained card (mcp-card.js) when the deployed page was given; the relay otherwise.
+      // The self-contained card (mcp-card.js) when the deployed page could be read; the relay otherwise.
       text: card === null
-        ? relayHtml({ origin, path: witness ? `${EMBED_PATH}&log=host` : EMBED_PATH })
-        : cardHtml({ origin, indexHtml: card, path: witness ? `${EMBED_PATH}&log=host` : EMBED_PATH }),
+        ? relayHtml({ origin, path: EMBED_PATH })
+        : cardHtml({ origin, indexHtml: card, path: EMBED_PATH }),
       _meta: {
         ui: {
           // The app frames RISE's own page and nothing else, fetches nothing itself, and asks for no device.
@@ -503,7 +500,7 @@ function read(id, params, origin, witness, card) {
 }
 
 /** One JSON-RPC message, answered. `null` for one that is not answered (a notification or a response). */
-export function dispatch(message, origin, { gate0 = false, witness = false, card = null, count = () => {} } = {}) {
+export function dispatch(message, origin, card = null, count = () => {}) {
   if (!message || typeof message !== 'object' || Array.isArray(message) || message.jsonrpc !== '2.0') {
     return failure(null, -32600, 'Invalid request');
   }
@@ -523,13 +520,10 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
       });
     }
     case 'ping': return result(id, {});
-    case 'tools/list': return result(id, { tools: gate0 ? [TOOL, GUIDE_TOOL, GATE0_TOOL] : [TOOL, GUIDE_TOOL] });
+    case 'tools/list': return result(id, { tools: [TOOL, GUIDE_TOOL] });
     case 'tools/call': {
       if (params?.name === GUIDE_TOOL_NAME) return guide(id, params);
-      if (!gate0 || params?.name !== GATE0_TOOL_NAME) return call(id, params, count);
-      const probe = callGate0(params.arguments, Date.now());
-      if (probe.log) console.log(probe.log);
-      return result(id, probe.result);
+      return call(id, params, count);
     }
     case 'resources/list':
       return result(id, {
@@ -541,9 +535,32 @@ export function dispatch(message, origin, { gate0 = false, witness = false, card
           }))
         ]
       });
-    case 'resources/read': return read(id, params, origin, witness, card);
+    case 'resources/read': return read(id, params, origin, card);
     default: return failure(id, -32601, 'Method not found');
   }
+}
+
+/** A request's body as text, read to at most `limit` bytes: too large throws 'size', invalid UTF-8 throws. */
+export async function readText(message, limit) {
+  const reader = message.body?.getReader();
+  if (!reader) throw new Error('body');
+  const chunks = [];
+  let bytes = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > limit) throw new Error('size');
+      chunks.push(value);
+    }
+  } finally {
+    void reader.cancel().catch(() => {});
+  }
+  const data = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) { data.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder('utf-8', { fatal: true }).decode(data);
 }
 
 export async function handleMcp(request, env) {
@@ -563,7 +580,7 @@ export async function handleMcp(request, env) {
   if (version !== null && !/^\d{4}-\d{2}-\d{2}$/u.test(version)) {
     return http(400, { error: { code: 'UNSUPPORTED_PROTOCOL_VERSION', message: `This server speaks MCP ${PROTOCOL_VERSIONS.join(', ')}.` } });
   }
-  // Each client address but Anthropic's shared egress is held to the limiter live answers use
+  // Each client address but Anthropic's shared egress is held to the site's limiter
   // (wrangler.production.jsonc), before the body is read, so that every request is charged, a malformed
   // or oversized one too. It fails open: with no limiter or no address (tests, a local run), or a limiter
   // that fails, the request is served, because the route holds nothing and spends nothing a limit would protect.
@@ -611,7 +628,7 @@ export async function handleMcp(request, env) {
   if (Array.isArray(message)) return failure(null, -32600, 'Batches are not supported');
   // The self-contained card is the deployed page itself, read when the host asks for the app.
   let card = null;
-  if (env.MCP_SELF_CONTAINED === 'true' && message?.method === 'resources/read' && message.params?.uri === APP_URI && typeof env.ASSETS?.fetch === 'function') {
+  if (message?.method === 'resources/read' && message.params?.uri === APP_URI) {
     try {
       const page = await env.ASSETS.fetch(new Request(`${origin}/index.html`));
       if (page.ok) card = await page.text();
@@ -623,25 +640,5 @@ export async function handleMcp(request, env) {
   // of its host app and what the door did, written where production binds EVENTS; nothing the host sent is in it.
   const host = hostOf(ip, request.headers.get('User-Agent'));
   const count = (event, fields) => countEvent(env, event, { host, ...fields });
-  return dispatch(message, origin, { gate0: env.MCP_GATE0 === 'true', witness: env.MCP_WITNESS === 'true', card, count });
-}
-
-/**
- * `/live`, for the page an MCP app frames. A page may not be framed by another site, and RISE's
- * headers say so everywhere; this one page, asked for as `?embed=mcp` and only while MCP_ENABLED
- * is 'true', may be framed by any site, because the host's sandbox is on an origin RISE cannot
- * know. Nothing else about the response changes, and every other request for `/live` is the asset's.
- */
-export async function handleLive(request, env) {
-  if (typeof env?.ASSETS?.fetch !== 'function') return http(503, { error: { code: 'ASSETS_UNAVAILABLE', message: 'The site is not available.' } });
-  const response = await env.ASSETS.fetch(request);
-  // With the self-contained card (MCP_SELF_CONTAINED) nothing legitimately frames this page, so it keeps RISE's framing headers.
-  const embedded = env.MCP_ENABLED === 'true' && env.MCP_SELF_CONTAINED !== 'true' && (request.method === 'GET' || request.method === 'HEAD')
-    && new URL(request.url).searchParams.get('embed') === 'mcp';
-  if (!embedded) return response;
-  const headers = new Headers(response.headers);
-  headers.delete('X-Frame-Options');
-  const policy = headers.get('Content-Security-Policy');
-  if (policy) headers.set('Content-Security-Policy', policy.replace(/frame-ancestors[^;]*/u, 'frame-ancestors *'));
-  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+  return dispatch(message, origin, card, count);
 }

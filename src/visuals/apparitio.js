@@ -101,21 +101,20 @@ export class Apparitio {
     const sr=mulberry32(xmur3(seedStr)());
     const form = {
       seed: seedStr,
-      wings: options.wings != null ? +options.wings : [2,3,3,4,4,5,6][(sr()*7)|0],
-      reach: options.reach != null ? +options.reach : (0.6+sr()*0.5),
-      filigree: options.filigree != null ? +options.filigree : (0.4+sr()*1.1),
-      crown: options.crown || 'auto',
+      wings: [2,3,3,4,4,5,6][(sr()*7)|0],
+      reach: 0.6+sr()*0.5,
+      filigree: 0.4+sr()*1.1,
       quality: options.quality != null ? +options.quality : chamberPlateQuality()
     };
     const look = {
-      exposure: options.exposure != null ? +options.exposure : 1.6,
-      gamma: options.gamma != null ? +options.gamma : 0.92,
-      bloom: options.bloom != null ? +options.bloom : 0.8,
-      sparkle: options.sparkle != null ? +options.sparkle : 0.7,
+      exposure: 1.6,
+      gamma: 0.92,
+      bloom: 0.8,
+      sparkle: 0.7,
       hue: options.hue != null ? +options.hue : 0,
       sat: options.sat != null ? +options.sat : 0.92,
-      chroma: options.chroma != null ? +options.chroma : 5,
-      grain: options.grain != null ? +options.grain : 0.06,
+      chroma: 5,
+      grain: 0.06,
       palette: options.palette || 'prism'
     };
 
@@ -125,8 +124,7 @@ export class Apparitio {
     const shR=new Float32Array(res*res); const shG=new Float32Array(res*res); const shB=new Float32Array(res*res);
 
     const seedRng=mulberry32(xmur3(form.seed)());
-    let crown=form.crown;
-    if(crown==="auto"){ crown=["rings","orb","eclipse","rings","orb"][(seedRng()*5)|0]; }
+    const crown=["rings","orb","eclipse","rings","orb"][(seedRng()*5)|0];
     const phase = seedRng();
     const cur={ seed:form.seed, wings:form.wings, reach:form.reach, filigree:form.filigree, crown, quality:form.quality,
           phase, flowSig:(seedRng()*1e4|0) };
@@ -321,7 +319,6 @@ export class Apparitio {
 
     jobs.push(function crownJob(){
       const topY=res*0.14;
-      if(crown==="none") return true;
       if(crown==="orb"){
         for(let ring=0;ring<40;ring++){ const rad=res*0.012*(1+ring*0.12); const a=Math.exp(-ring*0.16)*0.6;
           splatSoft(cx,topY,rad, a,a,a); }
@@ -397,13 +394,6 @@ export class Apparitio {
     return plate;
   }
 
-  _developPlate(){
-    const plate = this._openPlate();
-    if(!plate) return null;
-    this._develop(plate.getContext('2d'));
-    return plate;
-  }
-
   _develop(ctx){
     this._initDevelop(ctx);
     while(!this._stepDevelop(1e9)) {}
@@ -415,11 +405,9 @@ export class Apparitio {
     const glowSmall=this.glowSmall;
     glowSmall.fill(0);
     const img=ctx.createImageData(W,H);
-    // The paper lift is `compositeInkOnPaper` unrolled. Calling it per pixel
-    // allocated a three-element array 1.5M times per plate and measured 64ms
-    // of the 240ms develop at 1240px; the same arithmetic inline is ~1ms.
-    // The exported function stays the definition of the rule and is what the
-    // tests hold; this is the same expression with no return array.
+    // The paper lift is inline. A function called per pixel allocated a
+    // three-element array 1.5M times per plate and measured 64ms of the 240ms
+    // develop at 1240px; the same arithmetic inline is ~1ms.
     const paperR=APPARITIO_VOID_RGB[0]/255,
           paperG=APPARITIO_VOID_RGB[1]/255,
           paperB=APPARITIO_VOID_RGB[2]/255;

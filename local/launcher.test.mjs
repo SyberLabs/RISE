@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CUDA_TORCH, KEV_CODE_REVISION, KEV_PACKAGE, KEV_REVISION, ensureBuild, selfTest } from './rise-local.mjs';
-import { KEV_CODE_REVISION as CONTRACT_CODE, KEV_REVISION as CONTRACT_REVISION } from '../src/core/decision/providers.js';
+import { KEV_REVISION as CONTRACT_REVISION } from '../src/core/decision/providers.js';
 
 const TOKEN = 'k'.repeat(43);
 
@@ -21,8 +21,7 @@ function fakeServices({ run = `jaredpalmer/kev-4b@${KEV_REVISION}`, attest = KEV
 }
 
 describe('local launcher', () => {
-  it('pins the same Kev code and checkpoint as the reader contract', () => {
-    assert.equal(KEV_CODE_REVISION, CONTRACT_CODE);
+  it('pins the same Kev checkpoint as the reader contract, and installs the pinned code', () => {
     assert.equal(KEV_REVISION, CONTRACT_REVISION);
     assert.match(KEV_PACKAGE, new RegExp(`archive/${KEV_CODE_REVISION}\\.zip$`, 'u'));
     assert.deepEqual(CUDA_TORCH, ['torch==2.8.0', '--index-url', 'https://download.pytorch.org/whl/cu128']);

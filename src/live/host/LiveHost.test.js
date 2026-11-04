@@ -298,7 +298,7 @@ describe('refusing, in words', () => {
     });
 
     it('rejects catalog choices in keyed, embed, and evaluation modes before starting them', async () => {
-        mount('?catalog=attractor&provider=openai');
+        mount('?catalog=attractor&provider=gemini');
         expect(container.querySelector('.live-error').textContent).toMatch(/only available in the offline demonstration/u);
         const start = vi.spyOn(host, 'start');
         await host.start();
@@ -369,96 +369,16 @@ describe('leaving', () => {
     });
 });
 
-describe('the OpenAI provider, with the reader\u2019s own key', () => {
-    const fakeRuntime = () => ({
-        status: 'live',
-        snapshot: () => ({ status: 'live', error: null, main: {}, side: null }),
-        subscribe: () => () => {},
-        composed: () => null,
-        start: async () => {},
-        stop: async () => {}
-    });
-
-    it('asks for the key in a password field that nothing may remember, and says where the key goes', () => {
-        mount('?provider=openai&voice=paced');
-        const field = container.querySelector('#live-key');
-        expect(field.type).toBe('password');
-        expect(field.autocomplete).toBe('off');
-        expect(field.getAttribute('spellcheck')).toBe('false');
-        expect(container.querySelector('label[for="live-key"]').textContent).toMatch(/Your OpenAI API key/u);
-        const note = container.querySelector('.live-key-note').textContent;
-        expect(note).toMatch(/memory only/u);
-        expect(note).toMatch(/never stored/u);
-        expect(note).toMatch(/billed to your key/u);
-        expect(note).toMatch(/RISE pays for nothing/u);
-        expect(container.querySelector('.live-provider').textContent).toMatch(/OpenAI Realtime, with your own key/u);
-    });
-
+describe('a provider it does not offer', () => {
     it('offers no key field, and asks nothing, for the default provider, or for one it does not know', () => {
         mount('?voice=paced');
         expect(container.querySelector('#live-key')).toBeNull();
-        mount('?provider=nonsense');
-        expect(container.querySelector('#live-key')).toBeNull();
-        expect(host.chosenProvider()).toBe('mock');
-        expect(container.querySelector('.live-provider').textContent).toMatch(/not available\. Using: Deterministic demo provider/u);
-    });
-
-    it('will not start without a key, says why, and builds nothing', async () => {
-        mount('?provider=openai&voice=paced');
-        let built = 0;
-        host.buildRuntime = async () => { built += 1; return fakeRuntime(); };
-        await host.start();
-        expect(container.querySelector('.live-error').textContent).toBe('Enter your OpenAI key to use this provider.');
-        expect(built).toBe(0);
-        expect(host.key).toBe('');
-    });
-
-    it('takes the key into memory and empties the field at once, and forgets it when the session ends', async () => {
-        mount('?provider=openai&voice=paced');
-        host.buildRuntime = async () => fakeRuntime();
-        container.querySelector('#live-key').value = '  sk-test-0123456789abcdefghijklmnop  ';
-        await host.start();
-        expect(host.key).toBe('sk-test-0123456789abcdefghijklmnop');
-        expect(container.querySelector('#live-key').value).toBe('');
-        expect(container.innerHTML).not.toContain('sk-test');
-        await host.stop();
-        expect(host.key).toBe('');
-    });
-
-    it('forgets a key that was refused, keeps one that failed for another reason, and says what happened', async () => {
-        mount('?provider=openai&voice=paced');
-        host.buildRuntime = async () => { throw Object.assign(new Error('OpenAI refused the key.'), { code: 'KEY_REFUSED' }); };
-        container.querySelector('#live-key').value = 'sk-test-0123456789abcdefghijklmnop';
-        await host.start();
-        expect(host.key).toBe('');
-        expect(container.querySelector('.live-error').textContent).toContain('OpenAI refused the key.');
-
-        mount('?provider=openai&voice=paced');
-        host.buildRuntime = async () => { throw Object.assign(new Error('This site could not be reached.'), { code: 'NETWORK' }); };
-        container.querySelector('#live-key').value = 'sk-test-0123456789abcdefghijklmnop';
-        await host.start();
-        expect(host.key).toBe('sk-test-0123456789abcdefghijklmnop');
-        expect(container.querySelector('.live-start').disabled).toBe(false);
-    });
-
-    it('starts nothing, and keeps no key, when the page is left while it is still getting ready', async () => {
-        mount('?provider=openai&voice=paced');
-        let ready;
-        const runtime = { ...fakeRuntime(), start: vi.fn(async () => {}) };
-        host.buildRuntime = () => new Promise(resolve => { ready = () => resolve(runtime); });
-        container.querySelector('#live-key').value = 'sk-test-0123456789abcdefghijklmnop';
-        const starting = host.start();
-        host.destroy();
-        ready();
-        await starting;
-        expect(runtime.start).not.toHaveBeenCalled();
-        expect({ runtime: host.runtime, controls: host.controls, key: host.key }).toEqual({ runtime: null, controls: null, key: '' });
-    });
-
-    it('keeps the key out of everything it renders, including a hostile provider name', () => {
-        mount('?provider=openai');
-        container.querySelector('#live-key').value = 'sk-test-0123456789abcdefghijklmnop';
-        expect(container.querySelector('.live-provider').textContent).not.toContain('sk-');
+        for (const search of ['?provider=nonsense', '?provider=openai']) {
+            mount(search);
+            expect(container.querySelector('#live-key')).toBeNull();
+            expect(host.chosenProvider()).toBe('mock');
+            expect(container.querySelector('.live-provider').textContent).toMatch(/not available\. Using: Deterministic demo provider/u);
+        }
     });
 });
 
@@ -498,8 +418,6 @@ describe('the Gemini provider, with the reader’s own key', () => {
         expect(model.maxLength).toBe(64);
         expect(model.autocomplete).toBe('off');
         expect(container.querySelector('label[for="live-model"]').textContent).toMatch(/Model/u);
-        mount('?provider=openai&voice=paced');
-        expect(container.querySelector('#live-model')).toBeNull();
         mount('?voice=paced');
         expect(container.querySelector('#live-model')).toBeNull();
         expect(container.querySelector('#live-key')).toBeNull();
@@ -527,6 +445,20 @@ describe('the Gemini provider, with the reader’s own key', () => {
         expect(container.innerHTML).not.toContain('AIza');
         await host.stop();
         expect(host.key).toBe('');
+    });
+
+    it('starts nothing, and keeps no key, when the page is left while it is still getting ready', async () => {
+        mount('?provider=gemini&voice=paced');
+        let ready;
+        const runtime = { ...fakeRuntime(), start: vi.fn(async () => {}) };
+        host.buildRuntime = () => new Promise(resolve => { ready = () => resolve(runtime); });
+        container.querySelector('#live-key').value = KEY;
+        const starting = host.start();
+        host.destroy();
+        ready();
+        await starting;
+        expect(runtime.start).not.toHaveBeenCalled();
+        expect({ runtime: host.runtime, controls: host.controls, key: host.key }).toEqual({ runtime: null, controls: null, key: '' });
     });
 
     it('uses the default model when the field is emptied', async () => {
@@ -584,8 +516,6 @@ describe('the Gemini provider, with the reader’s own key', () => {
     it('is one of the providers the page knows, and the others are unchanged', () => {
         mount('?provider=gemini');
         expect(host.chosenProvider()).toBe('gemini');
-        mount('?provider=openai');
-        expect(host.chosenProvider()).toBe('openai');
         mount('?provider=GEMINI');
         expect(host.chosenProvider()).toBe('mock');
     });
@@ -1723,7 +1653,7 @@ describe('inside an MCP host', () => {
             start: vi.fn(async () => {}),
             stop: vi.fn(async () => {})
         };
-        const { environment, sent, listeners, hostSays } = framed({ answer: () => null });
+        const { environment, sent, hostSays } = framed({ answer: () => null });
         mount('?embed=mcp&voice=paced', environment);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         hostSays({ jsonrpc: '2.0', id: sent[0].id, result: { protocolVersion: '2026-01-26', hostCapabilities: {}, hostContext: {} } });

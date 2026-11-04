@@ -228,6 +228,5 @@ export class SequenceVideoField {
     this.root.remove();
   }
 
-  get active() { return this._active; }
   get assetId() { return this._assetId; }
 }

@@ -11,14 +11,14 @@
  */
 import { JEV, KEV } from './decision/providers.js';
 
-export const LOCAL_STATUS_PATH = '/api/local/status';
+const LOCAL_STATUS_PATH = '/api/local/status';
 
 /**
  * Local RISE marks the page it serves (local/bridge.mjs injects this meta).
  * The public site never has it, so it never probes for a local bridge.
  */
-export function isLocalRise(doc = globalThis.document) {
-  return doc?.querySelector?.('meta[name="rise-local"]')?.getAttribute('content') === '1';
+export function isLocalRise() {
+  return globalThis.document?.querySelector?.('meta[name="rise-local"]')?.getAttribute('content') === '1';
 }
 const KEY_SHAPE = /^[\x21-\x7e]{20,512}$/u;
 
@@ -123,10 +123,10 @@ export function getOpenRouterChat() {
  * Local RISE only: ask the same-origin bridge whether pinned Kev is ready.
  * On the public site this route does not exist and the answer is "no".
  */
-export async function detectLocalKev({ fetcher = fetch, signal } = {}) {
+export async function detectLocalKev({ fetcher = fetch } = {}) {
   let status = null;
   try {
-    const response = await fetcher(LOCAL_STATUS_PATH, { credentials: 'same-origin', cache: 'no-store', signal });
+    const response = await fetcher(LOCAL_STATUS_PATH, { credentials: 'same-origin', cache: 'no-store' });
     if (response.ok && (response.headers.get('content-type') || '').startsWith('application/json')) {
       status = await response.json();
     }

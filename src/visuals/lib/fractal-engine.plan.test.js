@@ -15,7 +15,7 @@ describe('generateFlameFromPlan', () => {
     it('builds the planned number of transforms using only the planned variations', () => {
         const gen = new FractalFlameGenerator();
         const plan = planFlame({ valence: -0.6, arousal: 0.9 }, rng());
-        gen.generateFlameFromPlan(plan, rng());
+        gen.generateFlameFromPlan(plan);
 
         expect(gen.transforms).toHaveLength(plan.numTransforms);
         for (const t of gen.transforms) {
@@ -31,7 +31,7 @@ describe('generateFlameFromPlan', () => {
     it('applies the planned palette to the generator', () => {
         const gen = new FractalFlameGenerator();
         const plan = planFlame({ valence: 0.7, arousal: 0.2 }, rng());
-        gen.generateFlameFromPlan(plan, rng());
+        gen.generateFlameFromPlan(plan);
 
         expect(gen.palette).toHaveLength(256);
         expect(gen.palette[128]).toEqual(plan.palette[128]);
@@ -43,7 +43,7 @@ describe('generateFlameFromPlan', () => {
         const gen = new FractalFlameGenerator();
         const plan = planFlame({ valence: -0.5, arousal: 0.95 }, rng());
         expect(plan.symmetryChance).toBe(0);
-        gen.generateFlameFromPlan(plan, rng());
+        gen.generateFlameFromPlan(plan);
         for (const t of gen.transforms) {
             expect(t.symmetry).toBe(0);
         }
@@ -51,7 +51,8 @@ describe('generateFlameFromPlan', () => {
 
     it('leaves generateRandomFlame (raw platform) untouched', () => {
         const gen = new FractalFlameGenerator();
-        gen.generateRandomFlame(3);
-        expect(gen.transforms).toHaveLength(3);
+        gen.generateRandomFlame();
+        expect(gen.transforms.length).toBeGreaterThanOrEqual(2);
+        expect(gen.transforms.length).toBeLessThanOrEqual(6);
     });
 });

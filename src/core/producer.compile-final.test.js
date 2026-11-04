@@ -64,12 +64,8 @@ function compileOps() {
 describe('producer compile is final', () => {
   it('does not route compile through poster-package functions', () => {
     const producerSrc = readFileSync(join(HERE, 'producer.js'), 'utf8');
-    const intakeSrc = readFileSync(join(HERE, '..', '..', 'tools', 'render', 'intake.js'), 'utf8');
     expect(producerSrc).toMatch(/renderArtifact/);
     expect(producerSrc).toMatch(/tier: 'final'/);
-    expect(producerSrc).not.toMatch(/renderProfilePackage|renderDistributionPackages/);
-    expect(intakeSrc).toMatch(/tier: 'final'/);
-    expect(intakeSrc).not.toMatch(/renderProfilePackage|renderDistributionPackages/);
   });
 
   it.skipIf(!hasFfmpeg && !process.env.CI)('request-compile muxes a final 1080×1920 MP4 via renderArtifact', async () => {
@@ -83,7 +79,6 @@ describe('producer compile is final', () => {
         resolvedSources: {
           [SOURCE_ID]: { id: SOURCE_ID, name: 'Anna', data: SOURCE_TEXT }
         },
-        proposePublication: false,
         tier: 'draft',
         encode: {
           painter: 'clerk',

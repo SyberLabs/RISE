@@ -113,19 +113,13 @@ export function snapPoints(text, { rungWords = 4000 } = {}) {
 /**
  * The snap a raw position means.
  *
- * A reader points at prose, not at an offset. `within` bounds how far a
- * pointer may be from a joint and still mean it — beyond that there is no
- * snap, and the caller shows no ghost rather than cutting somewhere the
- * reader did not indicate.
+ * A reader points at prose, not at an offset: the nearest joint is the one
+ * they meant, and a text with no joints has no snap.
  */
-export function nearestSnap(text, offset, { rungWords, within = Infinity, exclude = [] } = {}) {
-  const taken = new Set(exclude);
-  const candidates = snapPoints(text, { rungWords })
-    .filter(point => !taken.has(point.offset));
+export function nearestSnap(text, offset) {
   let best = null;
-  for (const point of candidates) {
+  for (const point of snapPoints(text)) {
     const distance = Math.abs(point.offset - offset);
-    if (distance > within) continue;
     if (!best || distance < best.distance) best = { ...point, distance };
   }
   return best;
@@ -328,11 +322,11 @@ export function describeMagnets(text, { rungWords } = {}) {
  * offset `placeJoint` wants. The first carries `snap: null` — there is already
  * a joint there, and it is the one above it.
  */
-export function layoutPartition(record, { rungWords } = {}) {
+export function layoutPartition(record) {
   validateLocalWork(record);
   const { text, cuts } = record;
   const interior = new Set(cuts.slice(1, -1));
-  const points = snapPoints(text, { rungWords });
+  const points = snapPoints(text);
 
   return localWorkParts(record).map((part, index) => {
     const from = cuts[index];

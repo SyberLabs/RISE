@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { chunkText, countWords, estimateDuration, detectVerseLineation } from './chunker.js';
+import { chunkText, countWords } from './chunker.js';
 // The compiler is imported because the defect below lives in the seam
 // between the two, and neither file can show it alone.
 import { compileSession } from './session-compiler.js';
@@ -257,27 +257,6 @@ describe('countWords', () => {
   });
 });
 
-describe('estimateDuration', () => {
-  it('calculates duration based on word count and WPM', () => {
-    // 220 words at 220 WPM = 1 minute = 60000ms
-    const duration = estimateDuration('word '.repeat(220), 220);
-
-    expect(duration).toBeCloseTo(60000, -2); // Within 100ms
-  });
-
-  it('faster WPM gives shorter duration', () => {
-    const text = 'one two three four five';
-    const slow = estimateDuration(text, 100);
-    const fast = estimateDuration(text, 400);
-
-    expect(fast).toBeLessThan(slow);
-  });
-
-  it('returns 0 for empty text', () => {
-    expect(estimateDuration('', 220)).toBe(0);
-  });
-});
-
 describe('scripture verse anchoring (PERICOPE-IMAGERY-SPEC §4)', () => {
   // The shape prepareScripture emits: anchors keyed by non-empty
   // paragraph ordinal, sentinels already stripped from the text.
@@ -410,7 +389,7 @@ describe('the phrase floor', () => {
     });
 });
 
-describe('verse lineation, detected rather than declared', () => {
+describe('verse lines', () => {
     const verse = (lines) => lines.join('\n');
     const miltonic = verse([
         'All night the dreadless Angel, unpursued,',
@@ -424,54 +403,6 @@ describe('verse lineation, detected rather than declared', () => {
         'Light issues forth, and at the other door',
         'Obsequious darkness enters, till her hour'
     ]);
-
-    it('recognises a text that still carries its lines', () => {
-        const found = detectVerseLineation(miltonic);
-        expect(found.lineated).toBe(true);
-        expect(found.medianWords).toBeLessThanOrEqual(12);
-    });
-
-    it('refuses a poem whose edition lost its lineation', () => {
-        // Our Dickinson and Leaves of Grass are set as running prose:
-        // median line 19-20 words, more than half over the ceiling. A
-        // manifest saying `structure: "verse"` would be true about the
-        // poem and false about the file, and the chunker can only act on
-        // the file.
-        const runTogether = verse([
-            'If I can stop one heart from breaking, I shall not live in vain; '
-            + 'if I can ease one life the aching, or cool one pain,',
-            'or help one fainting robin unto his nest again, I shall not live in vain. '
-            + 'And this is all there is to say of it, at length and over.',
-            'A wounded deer leaps highest, I have heard the hunter tell; '
-            + 'it is but the ecstasy of death, and then the brake is still.',
-            'The smitten rock that gushes, the trampled steel that springs, '
-            + 'a cheek is always redder just where the hectic stings.',
-            'Mirth is the mail of anguish, in which it caution arm, '
-            + 'lest anybody spy the blood and you be looking on.',
-            'I like a look of agony, because I know it is true; '
-            + 'men do not sham convulsion, nor simulate a throe.',
-            'The eyes glaze once, and that is death, impossible to feign '
-            + 'the beads upon the forehead by homely anguish strung.',
-            'Heart, we will forget him, you and I, tonight! '
-            + 'You must forget the warmth he gave, I will forget the light.',
-            'When you have done, pray tell me, that I my thoughts may dim; '
-            + 'haste, lest while you are lagging, I may remember him.'
-        ]);
-        expect(detectVerseLineation(runTogether).lineated).toBe(false);
-    });
-
-    it('refuses hard-wrapped prose, which by word count looks identical', () => {
-        // Gutenberg wraps at a fixed column, so Moby-Dick, Karamazov,
-        // Swann's Way and the prose Odyssey all have short lines with
-        // none over the ceiling. A wrap point is not an authored
-        // boundary. The tell is crowding: those files put 82-89% of
-        // their lines against the column; Milton and Dante sit at 40%.
-        const wrapped = verse(Array.from({ length: 20 }, () =>
-            'and it was upon that morning that he came down to the harbour side'));
-        const found = detectVerseLineation(wrapped);
-        expect(found.crowding).toBeGreaterThan(0.6);
-        expect(found.lineated).toBe(false);
-    });
 
     it('gives one atom per line where the lines are real', () => {
         const atoms = chunkText(miltonic, { mode: 'phrase', wpm: 200, verseLines: true })
@@ -742,9 +673,8 @@ describe('an enumerator must actually be one', () => {
 describe('the floor is a number a study can sweep, not a sentence', () => {
     // PHRASE_FLOOR_WORDS was documented as measured for six weeks while
     // the only study that could have measured it ran on a corpus where
-    // the floor never fired. `npm run study:chunking` now sweeps it, and
-    // it can only do that if chunkText accepts an explicit floor. This
-    // guards the seam the sweep depends on.
+    // the floor never fired. A sweep can only measure it if chunkText
+    // accepts an explicit floor; this guards that seam.
     const passage = 'When I go abroad I shall encounter meddling, ungrateful, '
         + 'violent, treacherous, envious, unsociable people. But all of this '
         + 'arises from ignorance of good and evil, and I have seen the nature '

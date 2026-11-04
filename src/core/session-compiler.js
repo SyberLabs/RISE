@@ -285,8 +285,7 @@ export function normalizeVisualConfig(value = {}) {
             // CHOSEN, so the compiler normalises rather than preserves:
             // a stored program that still names it compiles to native
             // instead of asking for a surface no control can reach.
-            // (The engine itself is still in the tree; deleting it is a
-            // separate decision from retiring the setting.)
+            // (The ASCII engine itself has since been deleted.)
             renderLanguage: 'native',
             presentation: normalizePresentation(raw.presentation),
             galleryCadence: normalizeGalleryCadence(raw.galleryCadence),
@@ -712,8 +711,4 @@ export function compileSession(input = {}) {
         enumerable: false
     });
     return session;
-}
-
-export function estimateCompiledDuration(input = {}) {
-    return compileSession(input).totalDuration;
 }

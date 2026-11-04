@@ -480,14 +480,15 @@ Introduce:
 readJourneySegments(journey)
 ```
 
-It returns:
-
-- `journey.movements.flatMap(movement => movement.segments)` for authored
-  Journeys;
-- `journey.segments` for existing Atrium Journeys.
+It returns `journey.movements.flatMap(movement => movement.segments)`.
 
 Readiness, coverage, itinerary, and handoff code migrate to this helper before
 any existing Journey record is rewritten.
+
+As built: every Journey manifest now declares movements, and the compiler
+rejects a flat, movement-less record. The helper no longer reads a flat
+`journey.segments` list; it is the one reader of segment order, not a
+compatibility adapter.
 
 There must never be two independently maintained segment orders.
 
@@ -912,7 +913,7 @@ music, or literature payload.
 
 Build:
 
-1. `readJourneySegments()` compatibility helper.
+1. `readJourneySegments()` segment-order helper.
 2. Pure `normalizeMovementProgram()` and Journey-manifest validation.
 3. `sourceBoundaries` normalization in `session-compiler.js`.
 4. Stable synthetic source ids on authored boundary atoms.

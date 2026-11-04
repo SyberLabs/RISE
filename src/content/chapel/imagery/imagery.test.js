@@ -295,9 +295,8 @@ describe('Rijksmuseum adapter', () => {
 
 describe('The Doré cycle', () => {
   it('pins 158 plates, every one with a book, a stated-PD Commons file, and a SHA-1', async () => {
-    const { DORE_PLATES, DORE_BOOKS } = await import('./dore.js');
+    const { DORE_PLATES } = await import('./dore.js');
     expect(DORE_PLATES.length).toBe(158);
-    expect(DORE_BOOKS.length).toBeGreaterThanOrEqual(20);
     for (const plate of DORE_PLATES) {
       expect(plate.book, plate.plate).toBeTruthy();
       expect(plate.image).toMatch(/^https:\/\/upload\.wikimedia\.org\//);

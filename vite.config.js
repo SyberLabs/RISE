@@ -2,8 +2,6 @@ import { cpus, totalmem } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
-import { curiaPlugin } from './scripts/curia-plugin.js';
-import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
 import { oversizedFiles } from './scripts/asset-size-limit.mjs';
 import { dropUnfetchedWasm } from './scripts/drop-unfetched-wasm.mjs';
 
@@ -80,11 +78,9 @@ export default defineConfig({
       return hostType === 'html' ? undefined : { relative: true };
     }
   },
-  // Curia / Export MP4: apply:'serve' means the endpoints exist only on
-  // the dev server; production builds carry no write path.
   // drop-unfetched-wasm: the embed worker supplies its own runtime binary,
   // so the copy Vite emits for the runtime's URL is never requested.
-  plugins: [curiaPlugin(), exportMp4Plugin(), dropUnfetchedWasm(), refuseOversizedAssets()],
+  plugins: [dropUnfetchedWasm(), refuseOversizedAssets()],
 
   // Console statements are left in: error reporting has to survive the
   // build, and the noisy paths are already gated by their own callers.

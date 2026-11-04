@@ -50,7 +50,7 @@ export const STREAM_APERTURE_PX = 140;
  * floor only narrows
  * (IMAGE-STREAM-SPEC §3).
  */
-export const METER_FLOOR_AREA_PX = FLASH_SAFE_AREA_PX * 64;
+const METER_FLOOR_AREA_PX = FLASH_SAFE_AREA_PX * 64;
 
 const REFRESH_MEASURE_MS = 500;
 // A small pool, loaded one at a time: at most 24 frames and sixteen
@@ -75,7 +75,7 @@ const REFRESH_DISAGREEMENT = 0.2;
  * Whether the reader's settings and the page allow the stream at all. Any
  * doubt, including a media query that cannot be asked, is a no.
  */
-export function imageStreamMayRun() {
+function imageStreamMayRun() {
     try {
         const root = document.documentElement;
         if (root.classList.contains('photosensitivity-mode')) return false;
@@ -154,7 +154,7 @@ function apertureSide(value) {
         : STREAM_APERTURE_PX;
 }
 
-export class ImageStream {
+class ImageStream {
     constructor(stage, { frames, hz, side, raf, caf, onFallback }) {
         this.frames = frames;
         this._onFallback = onFallback;

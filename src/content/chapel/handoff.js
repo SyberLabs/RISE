@@ -23,7 +23,7 @@ import { setDynamicChapelCollections } from './imagery/provider.js';
 // The four Gospels carry pericope schedules; other books do not.
 const GOSPEL_BOOKS = new Set(['matthew', 'mark', 'luke', 'john']);
 
-export class ChapelHandoffError extends Error {
+class ChapelHandoffError extends Error {
   constructor(code, message, details = {}) {
     super(message);
     this.name = 'ChapelHandoffError';
@@ -43,7 +43,7 @@ async function sha256Hex(text) {
 }
 
 /** What a division of this book is called in its own tradition. */
-export function chapterNoun(bookId) {
+function chapterNoun(bookId) {
   return bookId === 'psalms' ? 'Psalm' : 'Chapter';
 }
 
@@ -71,7 +71,7 @@ export function seedFromBook(bookId) {
  * of the book). A chapter that cannot be found in verified bytes is a
  * refusal, never an approximation.
  */
-export function sliceChapter(text, chapter, bookId, totalChapters = null) {
+function sliceChapter(text, chapter, bookId, totalChapters = null) {
   // The chapter's FIRST sentinel, whatever its verse number: the
   // Vulgate carries Hebrew verse numbers through the split psalms,
   // so Psalm 115 opens at [v 115:10] ("I have believed…") — an

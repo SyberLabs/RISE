@@ -13,15 +13,13 @@
  * So these are not tests that a room renders. They are the test that a
  * promise the licence was given is actually kept.
  */
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { Curia } from './Curia.js';
 import catalog from '../../sources/visual/science-catalog.generated.json';
 
 const mount = async () => {
     const host = document.createElement('div');
     document.body.appendChild(host);
-    // The dev-write probe is irrelevant here and would be an open handle.
-    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline'))));
     const curia = new Curia(host);
     await curia.load();
     return { curia, host };

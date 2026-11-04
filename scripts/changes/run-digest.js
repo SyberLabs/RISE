@@ -17,14 +17,14 @@ import { BRANDS } from '../../src/core/figures/brands.js';
 import { customerFor } from './customers.js';
 
 /** More merged pull requests than one router call should judge; narrow the period with --since. */
-export const MAX_CANDIDATES = 200;
+const MAX_CANDIDATES = 200;
 
 /**
  * The run's first-pass score (docs/plans/RISE-CHANGES.md, Quality gates): told each rule that fired and each repair
  * asked for; `score(letGo, density)` is the digest's `quality`, right the first time only with no repair and nothing
  * let go, with how densely the reading is pictured.
  */
-export function createTally() {
+function createTally() {
   const checks = {};
   const repairs = { composition: 0, illustrator: 0 };
   return {
@@ -45,7 +45,7 @@ export function createTally() {
  * How densely the finished reading is pictured: the pictures it shows, the included changes it speaks of, its speaking
  * beats (those with refs), how many are shown a picture of what they speak of, and the longest run of them without one.
  */
-export function measureDensity(current, { sources, pictureRefs, includedChanges }) {
+function measureDensity(current, { sources, pictureRefs, includedChanges }) {
   const starts = new Map();
   current.beats.forEach((beat, index) => { if (beat.scene !== undefined) starts.set(index, { refs: pictureRefs[beat.scene] ?? null }); });
   const { speaking, pictured, longest } = pictureCoverage(current.beats.length, starts, sources);

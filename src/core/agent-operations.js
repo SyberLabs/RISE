@@ -72,15 +72,6 @@ export const AGENT_OPERATION_OPS = Object.freeze([
   'request-compile'
 ]);
 
-const MUTATING_OPS = new Set([
-  'add-source', 'remove-source', 'reorder-source', 'import-asset',
-  'assign-visual', 'replace-visual', 'erase-visual',
-  'assign-audio', 'replace-audio', 'erase-audio',
-  'assign-narration', 'replace-narration', 'erase-narration',
-  'configure-field', 'set-pace', 'create-sync-group', 'remove-sync-group',
-  'set-atmosphere', 'set-render-profile'
-]);
-
 const PENDING_OPS = new Set(['request-asset']);
 const HOST_REQUEST_OPS = new Set(['request-preview', 'request-compile']);
 const UNIMPLEMENTED_OPS = new Set(['create-transition', 'revise-transition']);
@@ -242,7 +233,7 @@ const NO_SOUNDSCAPE = 'none';
  *
  * @returns {{ family: string, id: string, kind: string }}
  */
-export function visualAssetReference(assetId) {
+function visualAssetReference(assetId) {
   const id = String(assetId ?? '');
   for (const prefix of ['project-image:', 'project-video:', 'sequence-asset:']) {
     if (id.startsWith(prefix)) {
@@ -265,7 +256,7 @@ export function visualAssetReference(assetId) {
 }
 
 /** The same for an audio `assetId`: `soundscape:`, `tone:` or `swell:`. */
-export function audioAssetReference(assetId) {
+function audioAssetReference(assetId) {
   const id = String(assetId ?? '');
   if (id.startsWith('soundscape:')) {
     return { family: 'soundscapes', id: id.slice('soundscape:'.length) };
@@ -630,58 +621,6 @@ export function validateAgentOperationSet(value, path = '$') {
   return deepFreeze(set);
 }
 
-export function createAgentRun({ generationId = `run-${Date.now()}` } = {}) {
-  return deepFreeze({
-    generationId: exactId(generationId, '$.generationId'),
-    cancelled: false
-  });
-}
-
-export function cancelAgentRun(run) {
-  return deepFreeze({ ...run, cancelled: true });
-}
-
-export function createAgentOperationHistory(limit = 50) {
-  return deepFreeze({ limit, past: [], future: [] });
-}
-
-export function recordAgentOperationSet(history, command) {
-  const current = history && Array.isArray(history.past) ? history : createAgentOperationHistory();
-  return deepFreeze({
-    limit: current.limit,
-    past: [...current.past, deepFreeze(command)].slice(-current.limit),
-    future: []
-  });
-}
-
-export function undoAgentOperationSet(history) {
-  const current = history && Array.isArray(history.past) ? history : createAgentOperationHistory();
-  if (!current.past.length) return deepFreeze({ history: current, command: null });
-  const command = current.past[current.past.length - 1];
-  return deepFreeze({
-    history: {
-      limit: current.limit,
-      past: current.past.slice(0, -1),
-      future: [command, ...current.future]
-    },
-    command
-  });
-}
-
-export function redoAgentOperationSet(history) {
-  const current = history && Array.isArray(history.past) ? history : createAgentOperationHistory();
-  if (!current.future.length) return deepFreeze({ history: current, command: null });
-  const command = current.future[0];
-  return deepFreeze({
-    history: {
-      limit: current.limit,
-      past: [...current.past, command].slice(-current.limit),
-      future: current.future.slice(1)
-    },
-    command
-  });
-}
-
 /** Inspect a proposal without applying it. Pending acquisitions stay pending. */
 export function summarizeAgentOperationSet(value) {
   const set = validateAgentOperationSet(value);
@@ -811,8 +750,8 @@ function visualAssetFor(assetId, { project, context, path = '$.assetId' }) {
   });
 }
 
-function audioAssetFor(assetId, { personalSwells = [], path = '$.assetId' }) {
-  const asset = audioScoreAssetFromId(assetId, personalSwells);
+function audioAssetFor(assetId, { path = '$.assetId' } = {}) {
+  const asset = audioScoreAssetFromId(assetId);
   if (!asset) {
     // A swell says which absence it is. `Unknown audio asset swell:ghost` is
     // true and useless: the reader's shelf is the only place it could have
@@ -941,20 +880,6 @@ function inspectionRow(op, extra = {}) {
   });
 }
 
-function assertGeneration(operationSet, run) {
-  if (!run) return;
-  if (run.cancelled) {
-    fail('AGENT_OP_CANCELLED', 'This agent run was cancelled; its result cannot apply',
-      '$.generationId', { generationId: operationSet.generationId });
-  }
-  if (operationSet.generationId && run.generationId !== operationSet.generationId) {
-    fail('AGENT_OP_STALE_GENERATION',
-      'This proposal belongs to a superseded agent run',
-      '$.generationId',
-      { expected: run.generationId, actual: operationSet.generationId });
-  }
-}
-
 /**
  * Apply a validated operation set to a Workshop project.
  * Either every mutating op commits or the original project is unchanged.
@@ -963,15 +888,12 @@ export function applyAgentOperationSet({
   project = null,
   operationSet,
   context = null,
-  resolvedSources = {},
-  personalSwells = [],
-  run = null
+  resolvedSources = {}
 } = {}) {
   const set = validateAgentOperationSet(operationSet);
   const base = project
     ? validateWorkshopProject(project)
     : emptyWorkshopProject({ id: set.projectId, intent: 'custom' });
-  assertGeneration(set, run);
   if (base.id !== set.projectId) {
     fail('AGENT_OP_PROJECT', 'The operation set names a different project', '$.projectId', {
       expected: base.id, actual: set.projectId
@@ -1034,7 +956,7 @@ export function applyAgentOperationSet({
   for (const assignment of draft.audioAssignments) {
     if (draft.audioAssets.some(item => item.id === assignment.assetId)) continue;
     try {
-      draft.audioAssets.push(audioAssetFor(assignment.assetId, { personalSwells }));
+      draft.audioAssets.push(audioAssetFor(assignment.assetId));
     } catch {
       /* same as visual: compile will refuse if the asset is truly gone */
     }
@@ -1205,7 +1127,7 @@ export function applyAgentOperationSet({
     if (op.op === 'assign-audio' || op.op === 'replace-audio') {
       const source = findSource(op.sourceId, path);
       const span = resolveSpan(op, source, path);
-      const audio = audioAssetFor(op.assetId, { personalSwells, path });
+      const audio = audioAssetFor(op.assetId, { path });
       if (!draft.audioAssets.some(item => item.id === audio.id)) draft.audioAssets.push(audio);
       const overlap = op.op === 'replace-audio' ? 'replace' : (op.overlap || 'reject');
       draft.audioAssignments = assignAudioSpan({
@@ -1404,20 +1326,4 @@ export function applyAgentOperationSet({
     proposedVisual: draft.visualAssignments,
     proposedAudio: draft.audioAssignments
   });
-}
-
-export function previewAgentOperationSet(input) {
-  return applyAgentOperationSet(input);
-}
-
-export function rejectAgentOperation({ operationSet, operationId }) {
-  const set = validateAgentOperationSet(operationSet);
-  const kept = set.operations.filter(item => item.id !== operationId);
-  if (kept.length === set.operations.length) {
-    fail('AGENT_OP_MISSING', `No operation ${operationId} in this proposal`, '$.operationId');
-  }
-  if (!kept.length) {
-    return null;
-  }
-  return validateAgentOperationSet({ ...set, operations: kept });
 }

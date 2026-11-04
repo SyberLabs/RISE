@@ -174,8 +174,6 @@ export function createSceneApi(ws) {
     playScene: id => ws.previewSession(sessionForScene(ws.sessionData, id)),
     playAll: () => ws.previewSession(ws.sessionData),
     reset: () => ws.startNewSequence({ preserveCurrent: false, notify: true }),
-    openStudio: () => ws.setPhoneMode('studio'),
-    back: () => ws.leaveForHome(),
-    embedded: () => ws.embedded === true
+    openStudio: () => ws.setPhoneMode('studio')
   };
 }

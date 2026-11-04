@@ -39,7 +39,7 @@ const labels = () => [...at('.admit-label')].map(input => input.value);
 const click = element => element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 
 afterEach(() => {
-    room?.destroy();
+    room?.close();
     room = null;
 });
 

@@ -12,43 +12,16 @@
  */
 import { describe, expect, it } from 'vitest';
 import { compileSession } from './session-compiler.js';
-import { compileJourney, boundarySourceId } from './journey-compiler.js';
+import { TO_HERO, movementScore } from '../test/movement-score.fixture.js';
 import { cueForAtom } from './visual-scheduler.js';
 import { MovementScheduleController, AudioScheduleController } from './journey-schedulers.js';
 
-const MANIFEST = {
-    schemaVersion: 'rise.journey.v1',
-    id: 'journey-war',
-    movements: [
-        {
-            id: 'war-heaven',
-            title: 'War in Heaven',
-            segments: [{ passageId: 'pass-heaven' }],
-            presentation: {
-                visual: { kind: 'sourced', collections: ['celestial'] },
-                audio: { kind: 'soundscape', soundscapeId: 'ordered-field', gain: 0.55 }
-            },
-            transitionOut: {
-                id: 'to-hero', durationMs: 1600,
-                visual: { kind: 'still' }, audio: { kind: 'silence', fadeMs: 300 }
-            }
-        },
-        {
-            id: 'war-hero',
-            title: 'The Hero Under Heaven',
-            segments: [{ passageId: 'pass-hector' }],
-            presentation: {
-                visual: { kind: 'sourced', collections: ['bronze'] },
-                audio: { kind: 'soundscape', soundscapeId: 'mortal-pulse', gain: 0.48 }
-            }
-        }
-    ]
-};
+const SCORE = () => movementScore({ heaven: ['pass-heaven'], hero: ['pass-hector'] });
 
 const words = (n, w) => Array.from({ length: n }, () => w).join(' ');
 
 function buildSession() {
-    const programs = compileJourney(MANIFEST);
+    const programs = SCORE();
     const session = compileSession({
         name: 'War',
         wpm: 200,
@@ -73,7 +46,7 @@ describe('an authored transition becomes an atom', () => {
         const boundary = breaks[0];
         expect(boundary.tags).toContain('authored-boundary');
         expect(boundary.tags).toContain('boundary:to-hero');
-        expect(boundary.sourceId).toBe(boundarySourceId('to-hero'));
+        expect(boundary.sourceId).toBe(TO_HERO);
         // The authored duration, not three beats of the reading's pace.
         expect(boundary.duration).toBe(1600);
         expect(boundary.timingLocked).toBe(true);
@@ -182,7 +155,7 @@ describe('walking the compiled session', () => {
 describe('the programs survive the Session', () => {
     it('persists the canonical score and derives every runtime projection from it', async () => {
         const { Session } = await import('./models.js');
-        const programs = compileJourney(MANIFEST);
+        const programs = SCORE();
         const session = new Session({
             name: 'War', atoms: [], sources: [],
             experienceProgram: programs.experienceProgram,
@@ -204,7 +177,7 @@ describe('the programs survive the Session', () => {
         // A Journey that recompiled on every Chamber construction would
         // be a different Journey each time.
         const { Session } = await import('./models.js');
-        const { movementProgram, audioProgram, visualProgram } = compileJourney(MANIFEST);
+        const { movementProgram, audioProgram, visualProgram } = SCORE();
         const session = new Session({
             name: 'War', atoms: [], sources: [],
             movementProgram, audioProgram, visualProgram
@@ -212,13 +185,13 @@ describe('the programs survive the Session', () => {
         expect(session.movementProgram.movements.map(m => m.id))
             .toEqual(['war-heaven', 'war-hero']);
         expect(session.movementProgram.boundaries[0].sourceId)
-            .toBe(boundarySourceId('to-hero'));
+            .toBe(TO_HERO);
         expect(session.audioProgram.segments.length).toBeGreaterThan(0);
     });
 
     it('serializes without executable values', async () => {
         const { Session } = await import('./models.js');
-        const { experienceProgram } = compileJourney(MANIFEST);
+        const { experienceProgram } = SCORE();
         const session = new Session({ name: 'War', atoms: [], sources: [], experienceProgram });
         const round = JSON.parse(JSON.stringify({
             experienceProgram: session.experienceProgram,
@@ -251,7 +224,7 @@ describe('the programs survive normalization, not only serialization', () => {
         // announced itself, and the line between them was simply absent
         // from the log while a reader watched an empty field.
         const { Session } = await import('./models.js');
-        const { visualProgram } = compileJourney(MANIFEST);
+        const { visualProgram } = SCORE();
         const session = new Session({ name: 'War', atoms: [], sources: [], visualProgram });
 
         expect(session.visualProgram).not.toBeNull();
@@ -261,21 +234,11 @@ describe('the programs survive normalization, not only serialization', () => {
 
     it('keeps a procedural cue\'s engines through the Session', async () => {
         const { Session } = await import('./models.js');
-        const { visualProgram } = compileJourney(MANIFEST);
-        const session = new Session({ name: 'War', atoms: [], sources: [], visualProgram });
 
-        // The fixture above is `sourced`; War's first movement is not,
-        // so the procedural path needs a program of its own.
-        const procedural = compileJourney({
-            schemaVersion: 'rise.journey.v1',
-            id: 'j',
-            movements: [
-                {
-                    id: 'm', segments: [{ passageId: 'p' }],
-                    presentation: { visual: { kind: 'procedural', collections: ['paradise-lost'] } }
-                },
-                { id: 'm2', segments: [{ passageId: 'p2' }] }
-            ]
+        // The fixture's default is `sourced`, so the procedural path needs its own cue.
+        const procedural = movementScore({
+            heaven: ['p'],
+            heavenVisual: { kind: 'procedural', collections: ['paradise-lost'] }
         }).visualProgram;
         const kept = new Session({
             name: 'x', atoms: [], sources: [], visualProgram: procedural

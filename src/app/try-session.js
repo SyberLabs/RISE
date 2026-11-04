@@ -9,7 +9,7 @@
 import { DEFAULT_VOICE_ID } from '../audio/voice-pack-key.js';
 import { SEQUENCE_CAPABILITIES } from '../core/sequence-capabilities.js';
 
-export const TRY_PATH = '/try/';
+const TRY_PATH = '/try/';
 export const TRY_TEXT_PATH = '/try/your-text/';
 export const TRY_PUBLICATION_URL = 'https://syberlabs.io/services/';
 

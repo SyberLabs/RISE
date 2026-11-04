@@ -217,8 +217,6 @@ export class Session {
     voiceEnabled = false,
     voiceId = null,
     selectedSwellId = null,
-    // Liturgical sessions refuse traversal (LATERAL-TRAVERSAL-SPEC §8)
-    shuttleExempt = false,
     // A generic coordinate-tagged visual schedule (PERICOPE-IMAGERY-
     // SPEC §6): compiled by a content domain, followed by the runtime,
     // opaque to the Session model. Absent for plain sessions.
@@ -290,7 +288,6 @@ export class Session {
     this.voiceEnabled = voiceEnabled;
     this.voiceId = voiceId;
     this.selectedSwellId = selectedSwellId;
-    this.shuttleExempt = shuttleExempt === true;
     // A canonical score wins over every compatibility projection. Legacy
     // sessions may still carry the three sibling schedules directly, but a
     // new score is validated once and all of them are derived from it so a

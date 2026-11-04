@@ -105,7 +105,3 @@ export const QUARANTINED = Object.freeze({
 export function isQuarantined(textId) {
     return Object.prototype.hasOwnProperty.call(QUARANTINED, textId);
 }
-
-export function quarantineFor(textId) {
-    return QUARANTINED[textId] || null;
-}

@@ -11,8 +11,8 @@
  * in place before the first word). `scrub` cleans the provider's own words about
  * a failure of anything the transport must keep from the reader (their key); a
  * transport with none is trusted with none of them (gemini-wire.js). The adapter is tested with a fake one and
- * shipped with the browser's `fetch` (gemini-fetch.js). Unlike OpenAI's data
- * channel, the request is made by `open` itself: a refused key or a missing model
+ * shipped with the browser's `fetch` (gemini-fetch.js). The
+ * request is made by `open` itself: a refused key or a missing model
  * is refused there, before there is any answer to mistake it for.
  *
  * It carries text only: RISE speaks it with its own voice, which is what lets a
@@ -24,14 +24,13 @@ import { GEMINI_DEFAULT_MODEL } from './gemini-model.js';
 import { buildBody, createGeminiWire, geminiOrigin } from './gemini-wire.js';
 import { createTextStreamAdapter } from './text-stream.js';
 
-export function createGeminiAdapter({ transport, capacity } = {}) {
+export function createGeminiAdapter({ transport } = {}) {
     if (!transport || typeof transport.open !== 'function') throw new TypeError('The Gemini adapter is given a transport that can open');
     // The model the transport will ask, as a transport that knows says it (gemini-fetch.js model()).
     const model = () => transport.model?.() ?? GEMINI_DEFAULT_MODEL;
     return createTextStreamAdapter({
         id: 'gemini-stream',
         origin: () => geminiOrigin(model()),
-        capacity,
         async connect(request, sink, { signal } = {}) {
             // Stopped before it began: nothing is asked.
             if (signal?.aborted) throw new AdapterError('ABORTED', 'The live answer was stopped before it began.');

@@ -86,7 +86,7 @@ describe('the exact physical trace', () => {
             suspend: vi.fn(() => new Promise(() => {}))
         });
         const onNeedsGesture = vi.fn();
-        const { machine, gate, events, names } = build({
+        const { gate, events } = build({
             context,
             get visible() { return visible; },
             onNeedsGesture

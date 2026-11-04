@@ -18,12 +18,10 @@ export function createLivingFlameField(host, options = {}) {
  * Draw one still of a recipe off-screen and return a PNG data URL, or null.
  * Used by Page mode and export, where no animation loop may run.
  */
-export async function sampleLivingFlame(recipe, {
-  seconds = 0, energy = 0.35, width = 800, height = 500, document: doc = globalThis.document
-} = {}) {
-  const host = doc.createElement('div');
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${width}px;height:${height}px;`;
-  doc.body.appendChild(host);
+export async function sampleLivingFlame(recipe, { seconds = 0, energy = 0.35 } = {}) {
+  const host = document.createElement('div');
+  host.style.cssText = 'position:fixed;left:-10000px;top:0;width:800px;height:500px;';
+  document.body.appendChild(host);
   let field = null;
   try {
     field = new LivingFlameField(host, {

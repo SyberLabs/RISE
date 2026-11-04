@@ -39,7 +39,7 @@ export const RENDER_RIGHTS_STATUSES = Object.freeze([
  * Versioned projection policies. A profile may change layout, not text,
  * cues, or assets.
  */
-export const RENDER_PROFILES = Object.freeze({
+const RENDER_PROFILES = Object.freeze({
   'social-portrait-1080': Object.freeze({
     id: 'social-portrait-1080',
     viewport: Object.freeze({ width: 1080, height: 1920, pixelRatio: 1 }),

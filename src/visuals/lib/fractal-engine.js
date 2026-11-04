@@ -99,9 +99,6 @@ export class FractalFlameGenerator {
         this.useWorkers = this._detectWorkerSupport();
         this.maxWorkers = typeof navigator !== 'undefined' ?
             (navigator.hardwareConcurrency || 4) : 4;
-
-        // Progressive rendering callbacks
-        this.onProgressUpdate = null;
     }
 
     /**
@@ -141,7 +138,7 @@ export class FractalFlameGenerator {
     }
 
     /**
-     * Generate fractal flame with progressive rendering
+     * Generate fractal flame
      * @param {Object} options - Rendering options
      * @returns {Promise<ImageData>} Final rendered image
      */
@@ -154,12 +151,10 @@ export class FractalFlameGenerator {
             brightness = 4.0,
             vibrancy = 1.0,
             oversample = 2,
-            skipIterations = 20,
-            progressive = false,  // NEW: Enable progressive rendering
-            progressInterval = 1000000,  // Update every 1M iterations
             useWorkers = this.useWorkers,  // NEW: Enable Web Workers
             smooth = false  // Density-aware smoothing (see smoothHistograms)
         } = options;
+        const skipIterations = 20;
 
         if (this.transforms.length === 0) {
             throw new Error('No transforms defined');
@@ -168,13 +163,7 @@ export class FractalFlameGenerator {
         const renderWidth = width * oversample;
         const renderHeight = height * oversample;
 
-        if (progressive) {
-            return this._generateImageProgressive(
-                iterations, renderWidth, renderHeight,
-                width, height, gamma, brightness, vibrancy,
-                oversample, skipIterations, progressInterval, useWorkers
-            );
-        } else if (useWorkers) {
+        if (useWorkers) {
             return this._generateImageWithWorkers(
                 iterations, renderWidth, renderHeight,
                 width, height, gamma, brightness, vibrancy,
@@ -187,70 +176,6 @@ export class FractalFlameGenerator {
                 oversample, skipIterations, smooth
             );
         }
-    }
-
-    /**
-     * Progressive rendering - shows updates as it renders
-     * @private
-     */
-    async _generateImageProgressive(iterations, renderWidth, renderHeight,
-        finalWidth, finalHeight, gamma, brightness, vibrancy,
-        oversample, skipIterations, progressInterval, useWorkers) {
-        const histogramSize = renderWidth * renderHeight;
-        const density = new Float64Array(histogramSize);
-        const colorR = new Float64Array(histogramSize);
-        const colorG = new Float64Array(histogramSize);
-        const colorB = new Float64Array(histogramSize);
-
-        const batches = Math.ceil(iterations / progressInterval);
-        let totalIterationsCompleted = 0;
-
-        for (let batch = 0; batch < batches; batch++) {
-            const batchIterations = Math.min(progressInterval, iterations - totalIterationsCompleted);
-
-            if (useWorkers) {
-                await this._iterateFlameWithWorkers(
-                    density, colorR, colorG, colorB,
-                    renderWidth, renderHeight,
-                    batchIterations, skipIterations
-                );
-            } else {
-                await this._iterateFlame(
-                    density, colorR, colorG, colorB,
-                    renderWidth, renderHeight,
-                    batchIterations, skipIterations
-                );
-            }
-
-            totalIterationsCompleted += batchIterations;
-
-            const intermediateImage = this._renderFlame(
-                density, colorR, colorG, colorB,
-                renderWidth, renderHeight,
-                finalWidth, finalHeight,
-                gamma, brightness, vibrancy, oversample
-            );
-
-            // Call progress callback
-            if (this.onProgressUpdate) {
-                this.onProgressUpdate({
-                    progress: totalIterationsCompleted / iterations,
-                    iterations: totalIterationsCompleted,
-                    totalIterations: iterations,
-                    imageData: intermediateImage
-                });
-            }
-
-            // Yield control
-            await new Promise(resolve => setTimeout(resolve, 0));
-        }
-
-        return this._renderFlame(
-            density, colorR, colorG, colorB,
-            renderWidth, renderHeight,
-            finalWidth, finalHeight,
-            gamma, brightness, vibrancy, oversample
-        );
     }
 
     /**
@@ -313,35 +238,6 @@ export class FractalFlameGenerator {
             smooth
         }, parts.flatMap(part => [part.density, part.colorR, part.colorG, part.colorB]), 'toned');
         return new ImageData(new Uint8ClampedArray(pixels.pixels), finalWidth, finalHeight);
-    }
-
-    /**
-     * Parallel iteration using Web Workers, summed into the given histograms
-     * on this thread (the progressive path).
-     * @private
-     */
-    async _iterateFlameWithWorkers(density, colorR, colorG, colorB,
-        width, height, iterations, skipIterations) {
-        const parts = await this._workerHistograms(width, height, iterations, skipIterations);
-        if (!parts) {
-            await this._iterateFlame(
-                density, colorR, colorG, colorB,
-                width, height, iterations, skipIterations
-            );
-            return;
-        }
-        for (const part of parts) {
-            const workerDensity = new Float32Array(part.density);
-            const workerColorR = new Float32Array(part.colorR);
-            const workerColorG = new Float32Array(part.colorG);
-            const workerColorB = new Float32Array(part.colorB);
-            for (let j = 0; j < density.length; j++) {
-                density[j] += workerDensity[j];
-                colorR[j] += workerColorR[j];
-                colorG[j] += workerColorG[j];
-                colorB[j] += workerColorB[j];
-            }
-        }
     }
 
     /**
@@ -663,7 +559,7 @@ export class FractalFlameGenerator {
                 const normalizedDensity = logDensity / maxLogDensity;
                 const alpha = Math.pow(normalizedDensity, 1 / gamma);
 
-                let r = 0, g = 0, b = 0;
+                let r, g, b;
 
                 if (totalDensity > 0) {
                     const avgR = totalR / totalDensity;
@@ -762,7 +658,7 @@ export class FractalFlameGenerator {
      * all come from the plan. Same construction as generateRandomFlame,
      * constrained to the plan's parameter space.
      */
-    generateFlameFromPlan(plan, rng = Math.random) {
+    generateFlameFromPlan(plan) {
         this.clearTransforms();
 
         const pool = (plan.variationPool || []).filter(name => VARIATIONS[name]);
@@ -770,23 +666,23 @@ export class FractalFlameGenerator {
         const [minVars, maxVars] = plan.variationsPerTransform || [1, 2];
 
         for (let i = 0; i < count; i++) {
-            const angle = rng() * Math.PI * 2;
-            const scale = 0.3 + rng() * 0.7;
+            const angle = Math.random() * Math.PI * 2;
+            const scale = 0.3 + Math.random() * 0.7;
             const a = Math.cos(angle) * scale;
             const b = -Math.sin(angle) * scale;
             const d = Math.sin(angle) * scale;
             const e = Math.cos(angle) * scale;
-            const c = (rng() - 0.5) * 2;
-            const f = (rng() - 0.5) * 2;
+            const c = (Math.random() - 0.5) * 2;
+            const f = (Math.random() - 0.5) * 2;
 
-            const numVariations = minVars + Math.floor(rng() * (maxVars - minVars + 1));
+            const numVariations = minVars + Math.floor(Math.random() * (maxVars - minVars + 1));
             const variations = {};
             let totalWeight = 0;
             for (let j = 0; j < numVariations; j++) {
                 const varName = pool.length > 0
-                    ? pool[Math.floor(rng() * pool.length)]
+                    ? pool[Math.floor(Math.random() * pool.length)]
                     : 'linear';
-                const weight = 0.2 + rng() * 0.8;
+                const weight = 0.2 + Math.random() * 0.8;
                 variations[varName] = (variations[varName] || 0) + weight;
                 totalWeight += weight;
             }
@@ -799,7 +695,7 @@ export class FractalFlameGenerator {
                 variations: variations,
                 color: i / count,
                 weight: 1.0,
-                symmetry: rng() < (plan.symmetryChance ?? 0.2) ? Math.floor(rng() * 6) + 2 : 0
+                symmetry: Math.random() < (plan.symmetryChance ?? 0.2) ? Math.floor(Math.random() * 6) + 2 : 0
             });
         }
 
@@ -808,10 +704,10 @@ export class FractalFlameGenerator {
         }
     }
 
-    generateRandomFlame(numTransforms = null) {
+    generateRandomFlame() {
         this.clearTransforms();
 
-        const count = numTransforms || Math.floor(Math.random() * 5) + 2;
+        const count = Math.floor(Math.random() * 5) + 2;
 
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;

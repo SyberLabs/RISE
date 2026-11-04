@@ -63,10 +63,10 @@ export const ONSET_MIN_GAP_MS = 55;
  * Measured over the 321 pack clips whose onset count reaches their word
  * count, so the final onset can be trusted: median 7% of the spoken span.
  */
-export const TRAILING_SILENCE_SHARE = 0.07;
+const TRAILING_SILENCE_SHARE = 0.07;
 
 /** Two onsets closer together than this were one word, not two. */
-export const ONSET_MIN_SPACING_MS = 110;
+const ONSET_MIN_SPACING_MS = 110;
 
 /**
  * Strip emphasis marks. Used for speech and for any consumer that wants
@@ -390,26 +390,20 @@ function snapToOnsets(predicted, onsets, toleranceMs) {
  * report were not the word starts — one clip placed "trivial" at 2020ms
  * and "influence" at 2060ms, forty milliseconds apart.
  *
- * `scripts/align-voice-pack.mjs` derives the real thing from the audio and
- * the transcript together, and the pack ships that. What is left here is
+ * A forced alignment derives the real thing from the audio and the
+ * transcript together, and the pack ships that. What is left here is
  * the fallback for audio that arrives with no alignment at all, and
  * revealSchedule goes on tolerating a count that disagrees with the word
  * count because this is the source that produces one.
  *
  * @param {Float32Array} samples
  * @param {number} sampleRate
- * @param {{windowMs?: number, floorRatio?: number}} [opts]
  * @returns {number[]} onsets in ms, ascending, starting with 0
  */
-export function speechOnsets(samples, sampleRate, {
-    windowMs = 20,
-    floorRatio = 0.06,
-    minGapMs = ONSET_MIN_GAP_MS,
-    minSpacingMs = ONSET_MIN_SPACING_MS
-} = {}) {
+export function speechOnsets(samples, sampleRate) {
     if (!samples?.length || !sampleRate) return [];
 
-    const win = Math.max(1, Math.floor(sampleRate * (windowMs / 1000)));
+    const win = Math.max(1, Math.floor(sampleRate * (20 / 1000)));
     const energy = [];
     for (let i = 0; i + win <= samples.length; i += win) {
         let sum = 0;
@@ -418,12 +412,12 @@ export function speechOnsets(samples, sampleRate, {
     }
     if (!energy.length) return [];
 
-    const floor = Math.max(...energy) * floorRatio;
+    const floor = Math.max(...energy) * 0.06;
     // Two thresholds, not one. A single threshold with energy hovering
     // near it toggles every window and reports a boundary each time.
     const rise = floor * 1.8;
     const windowRealMs = (win / sampleRate) * 1000;
-    const minGapWindows = Math.max(1, Math.round(minGapMs / windowRealMs));
+    const minGapWindows = Math.max(1, Math.round(ONSET_MIN_GAP_MS / windowRealMs));
 
     const onsets = [];
     // Begin INSIDE a gap so the first burst of energy registers as an
@@ -452,7 +446,7 @@ export function speechOnsets(samples, sampleRate, {
         // inside one does not.
         if (inGap && gapWindows >= minGapWindows) {
             const at = Math.round(i * windowRealMs);
-            if (!onsets.length || at - onsets[onsets.length - 1] >= minSpacingMs) {
+            if (!onsets.length || at - onsets[onsets.length - 1] >= ONSET_MIN_SPACING_MS) {
                 onsets.push(at);
             }
         }

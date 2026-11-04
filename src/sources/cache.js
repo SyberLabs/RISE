@@ -239,28 +239,6 @@ export class SourceCacheClass {
         });
     }
 
-    /**
-     * Check if item exists in cache
-     * @param {string} providerId
-     * @param {string} itemId
-     * @returns {Promise<boolean>}
-     */
-    async has(providerId, itemId) {
-        const entry = await this.get(providerId, itemId);
-        return entry !== null;
-    }
-
-    /**
-     * Delete item from cache
-     * @param {string} providerId
-     * @param {string} itemId
-     * @returns {Promise<void>}
-     */
-    async delete(providerId, itemId) {
-        await this.init();
-        return this._deleteKey(this._makeKey(providerId, itemId));
-    }
-
     async _deleteKey(key) {
         if (!this.db) {
             this._memory.delete(key);

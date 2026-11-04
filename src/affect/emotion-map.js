@@ -8,9 +8,12 @@
  * are one drawing.
  */
 
-import { colorimetricWarmth } from './modalities/visual.js';
-
 const PLANE = 0.62;
+
+/** Warm hues near orange score positive. Opposite hues score negative. */
+function colorimetricWarmth(hue) {
+    return Math.cos((hue - 40) * Math.PI / 180);
+}
 
 function num(value) {
     return typeof value === 'number' && Number.isFinite(value) ? value : null;

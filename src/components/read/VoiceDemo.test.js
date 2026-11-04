@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi } from 'vitest';
 import { VoiceDemo } from './VoiceDemo.js';
-import { fetchPlusStatus, fetchPlusVoices, fetchPlusPaymentLink } from '../../app/plus.js';
-vi.mock('../../app/plus.js', async original => ({ ...await original(), fetchPlusStatus: vi.fn(), fetchPlusVoices: vi.fn(async () => [{ slug: 'river', label: 'River' }]), fetchPlusPaymentLink: vi.fn(async () => null) }));
+import { fetchPlusStatus } from '../../app/plus.js';
+vi.mock('../../app/plus.js', async original => ({ ...await original(), fetchPlusStatus: vi.fn(), fetchPlusVoices: vi.fn(async () => [{ slug: 'river', label: 'River' }]) }));
 let demo;
 afterEach(() => { demo?.destroy(); document.body.innerHTML = ''; sessionStorage.clear(); vi.clearAllMocks(); });
 const mount = async status => {
@@ -149,7 +149,6 @@ it('does not launch a stale Begin after leaving while audio resumes', async () =
 });
 
 it('offers customer recovery through Plus rather than a raw payment link', async () => {
-  fetchPlusPaymentLink.mockResolvedValue('https://buy.stripe.com/example');
   await mount({ subscriber: false, available: false });
   expect(document.querySelector('[data-access] a[href="/plus/"]')).not.toBeNull();
   expect(document.querySelector('[data-access] a[href^="https://buy.stripe.com"]')).toBeNull();

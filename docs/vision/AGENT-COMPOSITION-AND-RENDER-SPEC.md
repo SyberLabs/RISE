@@ -502,9 +502,9 @@ After admitted assets exist, the agent completes a render-ready Workshop draft,
 runs preflight, and renders a private review package.
 
 Landed: `runProducer` applies an operation set, inspects acquisition without
-admitting, compiles a private-review job when `request-compile` is present,
-and may enqueue destination-neutral review items. It never admits, approves,
-or delivers.
+admitting, and compiles a private-review job when `request-compile` is present. It never
+enqueues review items, admits, approves, or delivers; publication review stays
+a separate, human step.
 
 ### Stage D — distribution assistant
 
@@ -512,8 +512,9 @@ The agent derives multiple bounded distribution profiles and proposes titles,
 descriptions, excerpts, caption styles, and posting metadata. A human still
 approves each concrete artifact and destination.
 
-Landed: the producer may enqueue `rise.publication-review-item.v1` from a
-private pack. Approval still requires a person, a watched hash, and public
+Landed: `enqueuePublicationReview` creates a
+`rise.publication-review-item.v1` from a private pack as a separate step; the
+producer does not call it. Approval still requires a person, a watched hash, and public
 resolved rights.
 
 ### Stage E — policy-bounded channel automation

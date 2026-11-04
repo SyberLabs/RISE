@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DECISION_SCHEMA } from './context.js';
 import { ingestCorpus } from './corpus.js';
 import { demoCorpusInput, demoDeck } from './demo.js';
 import { createLiveLoop, localDecider } from './live.js';

@@ -23,7 +23,7 @@ const INDEX_SCHEMA = 'syberlabs.decision-arena-index/v1';
 const REPLAY_FILE = /^replay-[0-9a-f]{12}\.json$/u;
 const REQUESTS = new Map(cases.map(item => [item.id, item.intent]));
 
-export const ARENA_LABELS = Object.freeze({
+const ARENA_LABELS = Object.freeze({
   openai: 'A · OpenAI Decisions',
   jev: 'B · TypeSafe Jev',
   kev: 'C · Kev',
@@ -42,7 +42,7 @@ async function fetchJson(path) {
  * model that made it: the one the provider served, else the one asked for,
  * else the decider itself (rules call no model).
  */
-export function arenaReplayDecision(requestId, provider, admitted) {
+function arenaReplayDecision(requestId, provider, admitted) {
   const { workId, editionId, sourceRevision, reason, config } = admitted;
   return {
     schemaVersion: 2, requestId, model: 'rise/arena-replay-1', provider: 'RISE',
@@ -94,7 +94,7 @@ export function arenaCase({ replay }, caseId) {
 }
 
 /** What a frozen decision chose, in words: book, look, sound and pace. */
-export function describeArenaDecision(decision) {
+function describeArenaDecision(decision) {
   const work = getTextById(decision.workId);
   const book = [work?.title || decision.workId, work?.author].filter(Boolean).join(', by ');
   const [pace, imagery, sound, face] = summarizeJevPlan(decision.config);

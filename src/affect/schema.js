@@ -125,31 +125,6 @@ export function experienceState(spec = {}) {
     });
 }
 
-export function validateExperienceState(state) {
-    const errors = [];
-    if (!state || typeof state !== 'object') {
-        return { ok: false, errors: ['state is not an object'] };
-    }
-    if (state.version !== EXPERIENCE_STATE_VERSION) errors.push('version');
-    if (!MODALITY_SET.has(state.modality)) errors.push('modality');
-    if (typeof state.provenance?.method !== 'string') errors.push('provenance.method');
-    for (const [id, raw] of Object.entries(state.dimensions || {})) {
-        try {
-            copySlot(id, raw);
-        } catch (error) {
-            errors.push(`${id}: ${error.message}`);
-        }
-    }
-    if (state.emotions != null) {
-        try {
-            copyEmotions(state.emotions);
-        } catch (error) {
-            errors.push(error.message);
-        }
-    }
-    return { ok: errors.length === 0, errors };
-}
-
 export function unavailableState(modality, reason) {
     return experienceState({
         modality,

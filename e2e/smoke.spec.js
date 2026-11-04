@@ -45,7 +45,6 @@ function audioState(page) {
             sessionActive: !!engine?.sessionActive,
             soundscape: !!engine?.layers?.soundscape,
             soundscapeVolume: engine?.config?.layerVolumes?.soundscape ?? null,
-            ambient: !!engine?.layers?.ambient,
             contextState: engine?.context?.state ?? 'none'
         };
     });
@@ -140,7 +139,7 @@ test('4 · exiting a session leaves the rooms silent: the lobby drone is gone (Q
     await exitSession(page);
     await expect.poll(async () => {
         const s = await audioState(page);
-        return s.sessionActive === false && !s.ambient ? 'silent' : JSON.stringify(s);
+        return s.sessionActive === false ? 'silent' : JSON.stringify(s);
     }, { timeout: 20_000 }).toBe('silent');
 });
 

@@ -92,11 +92,6 @@ export function createRouteManifest(operations) {
               onNavigate: operations.handleNavigate,
               getAudioEngine: operations.getAudioEngine
             },
-            journeys: {
-              onNavigate: operations.handleNavigate,
-              onBeginSession: operations.handleBeginSession,
-              getAudioEngine: operations.getAudioEngine
-            },
             keystones: {
               onNavigate: operations.handleNavigate,
               onLaunch: operations.launchKeystone
@@ -149,13 +144,8 @@ export function createRouteManifest(operations) {
               onSettingsTransaction: operations.handleSettingsTransaction
             },
             'visual-lab': {
-              mode: 'route',
               onUseInReading: operations.useRecipeInReading,
-              onEditInWorkshop: () => operations.handleNavigate('workshop'),
-              onClose: () => operations.handleNavigate('home')
-            },
-            'visual-catalog': {
-              onNavigate: (...args) => operations.handleNavigate(...args)
+              onEditInWorkshop: () => operations.handleNavigate('workshop')
             }
           }
         });

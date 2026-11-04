@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  compareFrameToDuration,
   frameCountForDuration,
   frameIndexAt,
-  lastFrameIndex,
   presentationMs,
   presentationRational,
   validateFrameRate
@@ -24,16 +22,10 @@ describe('virtual render clock', () => {
 
   it('covers [0, duration) with an exclusive end on an exact frame time', () => {
     expect(frameCountForDuration(1000, FPS30)).toBe(30);
-    expect(lastFrameIndex(1000, FPS30)).toBe(29);
-    expect(compareFrameToDuration(29, FPS30, 1000)).toBe(-1);
-    expect(compareFrameToDuration(30, FPS30, 1000)).toBe(0);
-    expect(compareFrameToDuration(31, FPS30, 1000)).toBe(1);
   });
 
   it('counts frames for the vertical-slice duration without float accumulation', () => {
     expect(frameCountForDuration(27400, FPS30)).toBe(822);
-    expect(compareFrameToDuration(821, FPS30, 27400)).toBe(-1);
-    expect(compareFrameToDuration(822, FPS30, 27400)).toBe(0);
     expect(frameIndexAt(0, FPS30)).toBe(0);
     expect(frameIndexAt(1000, FPS30)).toBe(30);
   });

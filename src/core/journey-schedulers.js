@@ -18,7 +18,6 @@
  * reading it is following.
  */
 
-import { movementForSource } from './journey-compiler.js';
 import { cueForAtom } from './visual-scheduler.js';
 
 /**
@@ -60,9 +59,7 @@ export class MovementScheduleController {
         this._index();
     }
 
-    get active() { return !!this.program; }
     get generation() { return this._generation; }
-    get activeId() { return this._activeId; }
 
     /**
      * Observe one atom.
@@ -93,11 +90,6 @@ export class MovementScheduleController {
 
     /** Where the reading is, without observing anything. */
     get current() { return this._current || null; }
-
-    reset() {
-        this._activeId = null;
-        this._current = null;
-    }
 }
 
 /**
@@ -144,13 +136,11 @@ export class AudioScheduleController {
         this._activeBedCue = this.defaultCue;
         this._activeSwellCue = null;
         this._generation = 0;
-        this._enabled = options.enabled !== false;
+        this._enabled = true;
         this._paused = false;
         this._lastAtom = null;
     }
 
-    get active() { return !!this.program && this._enabled; }
-    get generation() { return this._generation; }
     get activeCueId() { return this._activeBedId; }
     get activeBedId() { return this._activeBedId; }
     get activeSwellId() { return this._activeSwellId; }
@@ -228,7 +218,8 @@ export class AudioScheduleController {
         return null;
     }
 
-    _cancelBed(cue = this._activeBedCue) {
+    _cancelBed() {
+        const cue = this._activeBedCue;
         if (!cue || cue.kind === 'hold') return;
         if (cue.kind === 'soundscape') this._command('stopSoundscape')?.(cue.fadeMs === 0);
         if (cue.kind === 'tone') this._command('applyPreset')?.('silent');
@@ -361,13 +352,5 @@ export class AudioScheduleController {
     /** Restore silence on stop and destroy (§8.3). */
     silence() {
         this.stop();
-    }
-
-    reset() {
-        this._activeBedId = null;
-        this._activeSwellId = null;
-        this._activeBedCue = null;
-        this._activeSwellCue = null;
-        this._lastAtom = null;
     }
 }

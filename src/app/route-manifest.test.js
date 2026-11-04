@@ -55,7 +55,7 @@ describe('createRouteManifest', () => {
     }
     expect(roomOptions('read', 'Read').setup.getAudioEngine, 'reader setup audio boundary').toBe(getAudioEngine);
     const panes = roomOptions('library', 'Library').paneCapabilities;
-    for (const pane of ['chapel', 'rosary', 'stations', 'journeys']) {
+    for (const pane of ['chapel', 'rosary', 'stations']) {
       expect(panes[pane].getAudioEngine, `${pane} audio boundary`).toBe(getAudioEngine);
     }
     const tabs = roomOptions('make', 'Make').tabCapabilities;
@@ -85,7 +85,7 @@ describe('createRouteManifest', () => {
     const panes = received.paneCapabilities;
     // Today's poem is not a pane: Home begins it through the app's launchToday.
     expect(Object.keys(panes).sort()).toEqual(
-      ['chapel', 'journeys', 'keystones', 'mint', 'provenance', 'rosary', 'school', 'stations']
+      ['chapel', 'keystones', 'mint', 'provenance', 'rosary', 'school', 'stations']
     );
     expect(panes.keystones.onLaunch).toBe(operations.launchKeystone);
     expect(panes.mint.onOpen).toBe(operations.openMintedProgram);
@@ -133,15 +133,12 @@ describe('createRouteManifest', () => {
     await createRouteManifest(operations).find(route => route.id === 'make')
       .create({}, { pane: 'visual-catalog', search: '?q=light' }, { Make });
     const tabs = received.tabCapabilities;
-    expect(Object.keys(tabs)).toEqual(['workshop', 'vault', 'scriptorium', 'visual-lab', 'visual-catalog']);
+    expect(Object.keys(tabs)).toEqual(['workshop', 'vault', 'scriptorium', 'visual-lab']);
     expect(tabs.workshop.onBlueprintsChanged).toBe(operations.refreshVaultBlueprints);
     expect(tabs.vault.onSelectBlueprint).toBe(operations.handleCreateSession);
     expect(tabs.scriptorium.onSettingsTransaction).toBe(operations.handleSettingsTransaction);
-    expect(tabs['visual-lab'].mode).toBe('route');
     tabs['visual-lab'].onEditInWorkshop();
     expect(operations.handleNavigate).toHaveBeenCalledWith('workshop');
-    tabs['visual-catalog'].onNavigate('home');
-    expect(operations.handleNavigate).toHaveBeenCalledWith('home');
     expect(shown).toEqual([{ pane: 'visual-catalog', search: '?q=light' }]);
   });
 

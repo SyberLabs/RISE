@@ -7,7 +7,7 @@ import { count } from './telemetry.js';
 /**
  * Error severity levels
  */
-export const ErrorSeverity = {
+const ErrorSeverity = {
   LOW: 'low',           // Minor issues, app continues normally
   MEDIUM: 'medium',     // Feature degradation, recoverable
   HIGH: 'high',         // Major feature broken
@@ -348,37 +348,3 @@ class ErrorBoundary {
 
 // Export singleton instance
 export const errorBoundary = new ErrorBoundary();
-
-/**
- * Convenience wrapper for catching errors in async functions
- * @param {Function} fn - Async function to wrap
- * @param {Object} context - Error context
- * @returns {Function} Wrapped function
- */
-export function withErrorBoundary(fn, context = {}) {
-  return async (...args) => {
-    try {
-      return await fn(...args);
-    } catch (error) {
-      errorBoundary.handleError(error, context);
-      throw error; // Re-throw to allow caller handling
-    }
-  };
-}
-
-/**
- * Convenience wrapper for catching errors in sync functions
- * @param {Function} fn - Function to wrap
- * @param {Object} context - Error context
- * @returns {Function} Wrapped function
- */
-export function tryCatch(fn, context = {}) {
-  return (...args) => {
-    try {
-      return fn(...args);
-    } catch (error) {
-      errorBoundary.handleError(error, context);
-      return null;
-    }
-  };
-}

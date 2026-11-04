@@ -51,6 +51,14 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
   maxSceneSvgBytes: 32_768
 });
 
+/** The prefix that marks a source as an authored transition, not a text. */
+export const BOUNDARY_SOURCE_PREFIX = 'journey-boundary:';
+
+/** Is this source id an authored transition rather than a text? */
+export function isBoundarySource(sourceId) {
+  return typeof sourceId === 'string' && sourceId.startsWith(BOUNDARY_SOURCE_PREFIX);
+}
+
 /** The size of a scene's code as it travels, in UTF-8 bytes. */
 export const sceneCodeBytes = code => new TextEncoder().encode(code).length;
 
@@ -95,7 +103,7 @@ const READING_KINDS = new Set(PROGRAM_READING_KINDS);
 const THREAD_KINDS = new Set(PROGRAM_THREAD_KINDS);
 
 /** Mirrors `models.js`; a score may not ask for a cut the chunker cannot make. */
-export const READING_CHUNK_MODES = Object.freeze(['word', 'phrase', 'sentence', 'paragraph']);
+const READING_CHUNK_MODES = Object.freeze(['word', 'phrase', 'sentence', 'paragraph']);
 const READING_CHUNK_MODE_SET = new Set(READING_CHUNK_MODES);
 
 const TRACK_LIMITS = Object.freeze({
@@ -825,7 +833,7 @@ function rangeEndpoints(anchor, system) {
  * Quotation-only anchors are a coordinate system of their own: without the
  * edition text, two quotes on one source cannot prove exclusivity.
  */
-export function sameLaneClipsConflict(left, right) {
+function sameLaneClipsConflict(left, right) {
   if (!left?.anchor || !right?.anchor) return false;
   const shared = (left.anchor.sourceIds || [])
     .filter(id => (right.anchor.sourceIds || []).includes(id));

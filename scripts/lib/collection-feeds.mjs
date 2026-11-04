@@ -78,7 +78,7 @@ export async function verifyDelivery(url) {
 }
 
 /** Probe with a small concurrency; this is a by-hand script, not a service. */
-export async function verifyAll(rows, lanes = 4) {
+export async function verifyAll(rows) {
     let next = 0;
     const worker = async () => {
         while (next < rows.length) {
@@ -86,7 +86,7 @@ export async function verifyAll(rows, lanes = 4) {
             row.delivery = await verifyDelivery(row.image);
         }
     };
-    await Promise.all(Array.from({ length: Math.min(lanes, rows.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(4, rows.length) }, worker));
 }
 
 /**
@@ -94,7 +94,7 @@ export async function verifyAll(rows, lanes = 4) {
  * Recorded in SOURCE-EXPANSION-SPEC §2z so it is handled rather than
  * rediscovered.
  */
-export const unbytes = (value) => {
+const unbytes = (value) => {
     const raw = String(value ?? '').trim();
     const wrapped = /^b(['"])([\s\S]*)\1$/.exec(raw);
     if (!wrapped) return raw;
@@ -161,12 +161,12 @@ export const unbytes = (value) => {
  * predicted one reviewer's 25 cuts is a hint worth showing, not a rule
  * worth trusting — that distinction is the whole of curation-only.
  */
-export const AVM_BRANCH = Object.freeze({
+const AVM_BRANCH = Object.freeze({
     A: 'Solar system', B: 'Stars & nebulae', C: 'Galaxies',
     D: 'Cosmology', E: 'Sky phenomena', F: 'Photographic / facilities'
 });
 
-export const avmSubject = (row) => {
+const avmSubject = (row) => {
     const raw = row['Subject.Category'];
     const codes = (Array.isArray(raw) ? raw : [raw]).map(unbytes).filter(Boolean);
     const branches = [...new Set(codes.map(c => c[0]))];
@@ -187,7 +187,7 @@ export const resourceOf = (row, ...types) => {
     return null;
 };
 
-export const fromResources = (row, ...types) => {
+const fromResources = (row, ...types) => {
     const hit = resourceOf(row, ...types);
     return hit ? String(hit.URL) : '';
 };
@@ -264,7 +264,7 @@ export function interleave(groups) {
  * The third-party fraction is not machine-detectable, so a prose scan is
  * the only available signal and anything it flags is withheld for review.
  */
-export const THIRD_PARTY = /copyright|©|\(c\)\s*\d{4}|all rights reserved|used with permission/i;
+const THIRD_PARTY = /copyright|©|\(c\)\s*\d{4}|all rights reserved|used with permission/i;
 
 /** One NASA search item as a candidate. */
 export function nasaRow(item) {

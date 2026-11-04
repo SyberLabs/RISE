@@ -28,11 +28,6 @@
 
 import { freezeManifest } from '../manifest.js';
 
-export const CHANT_FAMILIES = Object.freeze({
-  gregorian: 'Gregorian',
-  znamenny: 'Znamenny'
-});
-
 export const CHAPEL_CHANTS = freezeManifest([
   // ── Gregorian ──
   {
@@ -155,10 +150,6 @@ export const CHAPEL_CHANTS = freezeManifest([
     attribution: 'Let All Mortal Flesh Keep Silence, Znamenny chant — “Old Russian Chant” choir of the Moscow Patriarchate, CC0 (Wikimedia Commons)'
   }
 ]);
-
-export function findChant(id) {
-  return CHAPEL_CHANTS.find(chant => chant.id === id) || null;
-}
 
 export function chantsInFamily(family) {
   return CHAPEL_CHANTS.filter(chant => chant.family === family);

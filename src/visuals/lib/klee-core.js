@@ -5,7 +5,7 @@
  * and grain texture, so fixes land everywhere at once.
  */
 
-export function hashSeed(seed) {
+function hashSeed(seed) {
     const text = String(seed ?? 'klee');
     let hash = 2166136261;
     for (let i = 0; i < text.length; i++) {

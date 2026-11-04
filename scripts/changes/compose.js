@@ -24,7 +24,7 @@ import { COMPOSER_PROVIDER } from '../../src/core/changes/contract.js';
 import { quoted } from './route.js';
 import { RISE_PRODUCT } from './customers.js';
 
-export const REPAIRS = 2;
+const REPAIRS = 2;
 
 /** Each kit slot's budget in characters, written from the kit's own measure (KIT_BUDGETS), so the two cannot drift. */
 function budgetSentence(b) {

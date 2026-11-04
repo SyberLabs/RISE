@@ -82,7 +82,7 @@ function ordinalOf(token) {
  * judge, and deliberately line-anchored so prose mid-paragraph cannot
  * qualify however it is capitalised.
  */
-export function headingCandidates(text) {
+function headingCandidates(text) {
     if (typeof text !== 'string' || !text) return [];
     const out = [];
     const lines = text.split('\n');
@@ -229,7 +229,7 @@ function ascendingRatio(items) {
  * Returned strongest first, so a work using both books and chapters
  * offers the finer of the two.
  */
-export function schemesIn(text, { minCount = 3, minAscending = 0.6 } = {}) {
+function schemesIn(text, { minCount = 3, minAscending = 0.6 } = {}) {
     const candidates = headingCandidates(text).filter(c => Number.isFinite(c.ordinal));
     const byWord = new Map();
     for (const c of candidates) {
@@ -309,7 +309,7 @@ export function mostlyVerse(parts) {
     return total > 0 && verse / total > 0.5;
 }
 
-export function paragraphIsHeading(text) {
+function paragraphIsHeading(text) {
     const raw = String(text || '').trim();
     if (!raw || raw.length > 90 || raw.includes('\n')) return false;
     if (NUMBERED.test(raw) || BARE_ORDINAL.test(raw) || MATTER.test(raw)) return true;
@@ -487,7 +487,7 @@ const capitalise = (w) => w ? w[0].toUpperCase() + w.slice(1) : w;
  * @param {string} text the work's full text
  * @param {{maxWords?: number, minWords?: number}} [opts]
  */
-export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
+function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
     // THE ONE PLACE THIS MODULE MEETS A NON-STRING, and it is answered here
     // rather than inside the counter. `divide(null)` has always returned an
     // undivided nothing; the deleted `wordsIn` made that work by coercing
@@ -632,7 +632,7 @@ export function parseHeading(name) {
  * "CHAPTER II" — so the name is the only witness to where a division
  * begins, and it is a witness that lies 27% of the time.
  */
-export function schemeFromNames(names, { minCount = 3, minAscending = 0.5 } = {}) {
+export function schemeFromNames(names) {
     const parsed = names.map((n, i) => ({ i, h: parseHeading(n) }));
     const byWord = new Map();
     for (const { i, h } of parsed) {
@@ -644,10 +644,10 @@ export function schemeFromNames(names, { minCount = 3, minAscending = 0.5 } = {}
 
     let best = null;
     for (const [word, items] of byWord) {
-        if (items.length < minCount) continue;
+        if (items.length < 3) continue;
         if (!plausibleNumbering(word === '#' ? null : word, items)) continue;
         const ascending = ascendingRatio(items);
-        if (ascending < minAscending) continue;
+        if (ascending < 0.5) continue;
         const score = ascending * items.length;
         if (!best || score > best.score) {
             best = {
@@ -904,153 +904,9 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000, de
 }
 
 /**
- * The division vocabulary a work DECLARES for itself.
- *
- * Every dossier entry carries a `structure / reading unit / bounds`
- * line written by a curator — "50 runos with verse lines; one runo;
- * runo heading to next" — and until now the ingest copied it into the
- * metadata and parsed with a fixed global word list instead.
- *
- * That list has twenty entries and contains neither `runo` nor `laisse`
- * nor `adventure`, so the Kalevala's fifty runos arrived as 36 anonymous
- * readings, the Nibelungenlied's thirty-nine adventures as 27, and the
- * Song of Roland's laisses as 291 "Parts" — the right count under the
- * wrong word.
- *
- * Widening the global list is the wrong fix: `runo` would then be
- * matchable in all seventy-four works, buying four books at the cost of
- * false positives everywhere. Scoping the vocabulary PER WORK does the
- * opposite — the Kalevala looks for runos and nothing else, Hamlet for
- * scenes and nothing else — so the search space shrinks from twenty
- * words to one and false positives collapse with it.
- *
- * A declaration is a hint, not an authority. It is prose written for a
- * human, so extraction is imperfect by construction, and several units
- * ("one numbered narrative", "one editorially mapped movement") name no
- * heading that appears in any text. Callers must therefore treat an
- * empty result — and a declared vocabulary that finds nothing — as a
- * reason to fall back, never as a reason to refuse.
- *
- * @param {{levels?: string[], readingUnit?: string}} structure
- * @returns {string[]} candidate division nouns, singular and lowercased
- */
-export function declaredVocabulary(structure) {
-    const out = [];
-    const add = (word) => {
-        if (!word) return;
-        const w = String(word).toLowerCase().replace(/[^a-z]/g, '');
-        if (w.length < 3) return;
-        // Naive de-pluralisation is enough for this vocabulary; none of
-        // these nouns has an irregular plural. A cleverer "-ses" rule
-        // turned "laisses" into "laiss".
-        const singular = w.endsWith('s') ? w.slice(0, -1) : w;
-        if (!out.includes(singular)) out.push(singular);
-    };
-
-    const unit = String(structure?.readingUnit || '');
-    // "one book", "one runo", "one scene/ode", "one play or scene"
-    for (const m of unit.matchAll(/\b(?:one|each)\s+([a-z]+)/gi)) add(m[1]);
-    // "a route of 10–20 laisses" — a count and a plural, no "one".
-    for (const m of unit.matchAll(/\b\d+\s+([a-z]+s)\b/gi)) add(m[1]);
-    // "one scene/ode" — the alternative after a slash.
-    for (const m of unit.matchAll(/\/([a-z]+)/gi)) add(m[1]);
-
-    // The levels are consulted ONLY when the reading unit yielded
-    // nothing. Adding them unconditionally widens each work's search
-    // straight back out — "trilogy", "choral", "frame", "machine",
-    // "detectable" — which is the opposite of the point of scoping it.
-    if (!out.length) {
-        for (const level of structure?.levels || []) {
-            for (const m of String(level).matchAll(/\b([a-z]{3,})\b/gi)) add(m[1]);
-        }
-    }
-    return out;
-}
-
-/**
- * Words that describe a unit without ever appearing as a heading.
- * Kept out of a work's vocabulary so a declaration cannot narrow the
- * search to a term the text never uses.
- */
-const NON_HEADING = new Set([
-    'one', 'each', 'complete', 'declared', 'editorially', 'mapped', 'named',
-    'curated', 'numbered', 'route', 'while', 'with', 'and', 'the', 'its',
-    'pair', 'cluster', 'variant', 'variants', 'metadata', 'teller', 'day',
-    'riddle', 'return', 'present', 'where', 'beat', 'marked', 'editor',
-    'ordinary', 'reading', 'rsvp', 'nested', 'addressable', 'remains',
-    'narrative', 'movement', 'tradition', 'entry', 'arc', 'blocks',
-    'retained', 'speech', 'lines', 'verse', 'containing', 'titled'
-]);
-
-/** A work's declared vocabulary, filtered to words that can be headings. */
-export function headingVocabulary(structure) {
-    return declaredVocabulary(structure).filter(w => !NON_HEADING.has(w));
-}
-
-/**
- * Divisions that are TITLED rather than numbered.
- *
- * Jünger names his chapters for the places they happened — ORAINVILLE,
- * FROM BAZANCOURT TO HATTONCHATEL, LES EPARGES — and never numbers one.
- * Every rule above this looks for an ordinal, so the whole memoir
- * arrived as twenty-five readings of even length: our measurement of a
- * book that had told us its own structure.
- *
- * Running heads (title + changing page number) name chapters; the bare
- * occurrence without a page number is the start. Fires only when numbered
- * rules found nothing; still requires three distinct titles in order.
- */
-const PAGE_NUMBER = /^\s*(?:[IVXLCDM]+|\d{1,4})\s+|\s+(?:[IVXLCDM]+|\d{1,4})\s*$/g;
-const MIN_RUNNING_HEAD_PAGES = 3;
-const MIN_TITLED_DIVISIONS = 3;
-
-/** A line with its page number stripped from either end. */
-function withoutPageNumber(line) {
-    PAGE_NUMBER.lastIndex = 0;
-    return line.trim().replace(PAGE_NUMBER, '').trim();
-}
-
-/**
- * Chapter starts inferred from running heads.
- *
- * @param {string[]} lines
- * @returns {{index: number, title: string}[]} in document order
- */
-export function titledSchemeIn(lines) {
-    if (!Array.isArray(lines) || lines.length < 50) return [];
-
-    const seen = new Map();      // normalised title -> occurrences
-    for (let i = 0; i < lines.length; i++) {
-        const raw = lines[i].trim();
-        if (!raw || raw.length > 60) continue;
-        // Titles in this setting are capitals. Requiring that keeps
-        // body prose out without needing a prose detector.
-        if (!/[A-Z]/.test(raw) || raw !== raw.toUpperCase()) continue;
-        const title = withoutPageNumber(raw);
-        if (title.length < 4) continue;
-        if (!seen.has(title)) seen.set(title, []);
-        seen.get(title).push({ index: i, bare: raw === title });
-    }
-
-    const starts = [];
-    for (const [title, occurrences] of seen) {
-        if (occurrences.length < MIN_RUNNING_HEAD_PAGES) continue;
-        // The chapter opens where the title stands WITHOUT a page
-        // number. A title that never appears bare is a running head
-        // whose chapter opening the scan lost, and is not guessed at.
-        const opening = occurrences.find(o => o.bare);
-        if (!opening) continue;
-        starts.push({ index: opening.index, title });
-    }
-
-    starts.sort((a, b) => a.index - b.index);
-    return starts.length >= MIN_TITLED_DIVISIONS ? starts : [];
-}
-
-/**
  * Names that are TITLES rather than numbered headings.
  *
- * The counterpart of titledSchemeIn(), for the runtime. Once the ingest
+ * Once the ingest
  * cuts Jünger at ORAINVILLE and GUILLEMONT, the payload holds eighteen
  * correctly-titled sections — and the divider read them as nothing,
  * because parseHeading wants an ordinal and a place-name has none. The
@@ -1114,26 +970,11 @@ export function firstBodyOrdinal(entries, { noun = null } = {}) {
     return ordinal;
 }
 
-export function isFrontMatterLabel(label) {
+function isFrontMatterLabel(label) {
     return /^front matter\b/iu.test(String(label || '').trim());
 }
 
-/**
- * A label that says more than its own number.
- *
- * "Essay 12" tells a curator nothing the count and the noun did not; "The Cup
- * of Humanity" tells it what it would be choosing. Sending the first kind is
- * paying context for a number the model already has.
- */
-export function isInformativeLabel(label) {
-    const name = String(label || '').trim();
-    if (!name || isFrontMatterLabel(name)) return false;
-    if (/^complete text$/i.test(name)) return false;
-    // "Essay 12", "Chapter IV", "12.", "Reading 3 (2/3)"
-    return !/^(\p{L}+\s+)?([0-9]+|[ivxlcdm]+)\.?(\s*\([^)]*\))?$/iu.test(name);
-}
-
-export function titledSchemeFromNames(names, { minCount = 3 } = {}) {
+function titledSchemeFromNames(names, { minCount = 3 } = {}) {
     const list = (names || []).map(n => String(n || '').trim());
     const usable = list.filter(n =>
         n && n.length <= 60 && n !== 'Front matter' && !parseHeading(n));
@@ -1151,7 +992,7 @@ export function titledSchemeFromNames(names, { minCount = 3 } = {}) {
 }
 
 /** "ORAINVILLE" -> "Orainville"; leaves mixed-case names alone. */
-export function displayTitle(name) {
+function displayTitle(name) {
     const raw = String(name || '').trim();
     if (!raw || raw !== raw.toUpperCase()) return raw;
     return raw.toLowerCase().replace(/(^|[\s(\u2014-])([a-z])/g,

@@ -49,24 +49,11 @@ export const ORACLE_STATES = Object.freeze({
 
 /** How the face follows the pointer: the eye leans a hair (a fraction of the face's size) and stays in its socket;
  *  the pupil travels within the iris (a fraction of the eye's radius). */
-export const EYE_LEAN = 0.008;
-export const PUPIL_REACH = 0.22;
+const EYE_LEAN = 0.008;
+const PUPIL_REACH = 0.22;
 
 const SKIN_NAMES = Object.freeze(Object.keys(ORACLE_SKINS));
 const STATE_NAMES = Object.freeze(Object.keys(ORACLE_STATES));
-
-/** What the face takes, in a manifest's shape (src/scenes/manifests.js): read by the venue, never by a model. */
-export const ORACLE_MANIFEST = Object.freeze({
-    id: 'oracle', kind: 'presence', surface: 'oracle',
-    parameters: Object.freeze({
-        skin: Object.freeze({ type: 'enum', values: SKIN_NAMES, default: 'sophia', cueable: true }),
-        state: Object.freeze({ type: 'enum', values: STATE_NAMES, default: 'arrival', cueable: true })
-    }),
-    cues: Object.freeze({
-        ...Object.fromEntries(STATE_NAMES.map(name => [name, Object.freeze({ state: name })])),
-        blink: Object.freeze({})
-    })
-});
 
 const TAU = Math.PI * 2;
 const PHI = 1.618033988749895;
@@ -195,7 +182,7 @@ export default function oracle(rise) {
      * leaving it repaints the canvas whole; a new geometry in the room keeps the slow trails, as the study's room does.
      */
     function setRoom(json) {
-        let next = null;
+        let next;
         try { next = JSON.parse(json); } catch { next = null; }
         next = next && typeof next === 'object' && typeof next.frame === 'string' && next.face && next.big ? next : null;
         if ((next === null) !== (room === null)) repaint = true;

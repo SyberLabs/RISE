@@ -1,5 +1,5 @@
-export const JEV_SCENE_DEMO_PATH = '/jev-scene-demo';
-export const NIGHT_DRIVE_PATH = '/night-drive';
+const JEV_SCENE_DEMO_PATH = '/jev-scene-demo';
+const NIGHT_DRIVE_PATH = '/night-drive';
 
 const SAMPLE_PATHS = Object.freeze({
   [JEV_SCENE_DEMO_PATH]: 'jev-scene',

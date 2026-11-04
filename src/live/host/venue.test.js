@@ -336,9 +336,9 @@ describe('ask, read, ask again', () => {
         expect(runtimes[0].stop).toHaveBeenCalled();
         expect($('#rise-settings-theme').value).toBe('ember');
         expect(document.querySelectorAll('#rise-stage-controls')).toHaveLength(1);
-        expect(host.venueTurns().map(turn => turn.question)).toEqual(['First?', 'Second?']);
+        expect(host.venue.turns().map(turn => turn.question)).toEqual(['First?', 'Second?']);
         // The journal of the reading that ended is carried with the room, for perception (design §8 stage 4).
-        expect(host.venueTurns()[0].journal).toEqual([{ type: 'start' }]);
+        expect(host.venue.turns()[0].journal).toEqual([{ type: 'start' }]);
     });
 
     it('asks every question of a room through one adapter', async () => {
@@ -397,7 +397,7 @@ describe('ask, read, ask again', () => {
         await vi.waitFor(() => expect(runtimes[0].stop).toHaveBeenCalled());
         expect($('#rise-stage-controls')).toBeNull();
         expect($('.live-again')).toBeNull();
-        expect(host.venueTurns()).toEqual([]);
+        expect(host.venue.turns()).toEqual([]);
     });
 
     it('takes the stage and the bar away when the page goes', async () => {

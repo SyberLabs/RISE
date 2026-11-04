@@ -120,7 +120,6 @@ import { remixablePassages, remixPassage } from '../../core/portable-sequence.js
 import { PROCEDURAL_PATTERNS } from '../../core/visual-registry.js';
 import { SOUNDSCAPES } from '../../audio/soundscapes.js';
 import {
-  EXPORT_MP4_PATH,
   kernelRequestFromWorkshopPayload,
   renderCliCommand
 } from '../../core/render/kernel-request.js';
@@ -362,7 +361,6 @@ export class Workshop {
     this.onCreateSession = options.onCreateSession || (() => { });
     this.getAudioEngine = options.audioEngineProvider || (() => null);
     this.onBlueprintsChanged = options.onBlueprintsChanged || (() => {});
-    this.embedded = options.embedded === true;
     this.visualConsentScope = crypto.randomUUID();
 
     this.sessionData = createDefaultSessionData();
@@ -634,12 +632,12 @@ export class Workshop {
     if (notify) this.showToast('Workshop reset');
   }
 
-  openSavedBlueprint(blueprintId, { preserveCurrent = true, varyAsNew = false } = {}) {
-    void this.openSavedBlueprintAsync(blueprintId, { preserveCurrent, varyAsNew });
+  openSavedBlueprint(blueprintId, { varyAsNew = false } = {}) {
+    void this.openSavedBlueprintAsync(blueprintId, { varyAsNew });
     return true;
   }
 
-  async openSavedBlueprintAsync(blueprintId, { preserveCurrent = true, varyAsNew = false } = {}) {
+  async openSavedBlueprintAsync(blueprintId, { varyAsNew = false } = {}) {
     const requestId = ++this.blueprintLoadRequestId;
     this.setBlueprintLoadInProgress(true);
     try {
@@ -657,7 +655,7 @@ export class Workshop {
         return false;
       }
 
-      if (preserveCurrent) this.suspendCurrentDraft();
+      this.suspendCurrentDraft();
       this.pendingMediaBlobs.clear();
       const editable = normalizeSessionData(blueprint);
       // `schema` AND `id` LEAVE TOGETHER. A blueprint view carries
@@ -697,9 +695,7 @@ export class Workshop {
   }
 
   isBlueprintLoadExemptControl(control) {
-    return control.id === 'workshop-sequence-select'
-      || control.dataset.action === 'back'
-      || control.dataset.sa === 'back';
+    return control.id === 'workshop-sequence-select';
   }
 
   applyBlueprintLoadLock(root = this.container) {
@@ -896,12 +892,6 @@ export class Workshop {
     });
   }
 
-  leaveForHome() {
-    this.audioPreview.stop();
-    this.getAudioEngine()?.playClick();
-    this.onNavigate('home');
-  }
-
   /** Preview compiles the draft it is given and enters the Chamber the launch path uses. */
   previewSession(data = this.sessionData) {
     if (this.blueprintLoadInProgress) return false;
@@ -1002,7 +992,6 @@ export class Workshop {
       readingDuration: this.readingDurationLabel(),
       studioViewport: this.studioViewport,
       studioSurface: this.studioSurface,
-      embedded: this.embedded,
       scenesAvailable: this.sessionData.experienceProgram?.authority !== 'proposed',
       selectionActionHtml: this.renderSelectionActionBar(),
       selectionPopoverHtml: this.renderScoreSelectionPopover(),
@@ -1893,7 +1882,7 @@ export class Workshop {
     return true;
   }
 
-  cancelPendingScoreSelection({ announce = true } = {}) {
+  cancelPendingScoreSelection() {
     if (!this.pendingScoreSelection && !this.pendingScoreConflict) return false;
     this.pendingScoreSelection = null;
     this.pendingScoreConflict = null;
@@ -1901,7 +1890,7 @@ export class Workshop {
     window.getSelection?.()?.removeAllRanges?.();
     this.refreshSelectionActionBar();
     this.updateVisualScoreEditor();
-    if (announce) this.announce('Passage selection cancelled.');
+    this.announce('Passage selection cancelled.');
     return true;
   }
 
@@ -2173,8 +2162,6 @@ export class Workshop {
      only authoring surface; compatibility now lives at the project boundary. */
   openSourceBrowser() {
     this.sourceBrowser = new SourceBrowser({
-      providerIds: ['library-archive'],
-      autoSelectProviderId: 'library-archive',
       onSelect: (item, provider) => {
         this.addSource(item, provider);
         if (this.studioViewport !== 'desktop') {
@@ -2746,7 +2733,7 @@ export class Workshop {
     // Gallery: an author must not be given Rhythmic controls for a
     // surface the reader will never be shown.
     const shownPresentation = normalizePresentation(interlocution.presentation);
-    let controls = '';
+    let controls;
     if (surface === 'focal') {
       const personal = this.sessionData.visualConfig?.focals?.type === 'personal'
         || this.personalFocalChooser?.target === 'whole-reading';
@@ -4454,13 +4441,6 @@ export class Workshop {
   }
 
   attachEvents() {
-    // Back button
-    this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
-      this.audioPreview.stop();
-      this.getAudioEngine()?.playClick();
-      this.onNavigate('home');
-    });
-
     // Form submission
     const form = this.container.querySelector('#workshop-form');
     form?.addEventListener('submit', (e) => {
@@ -4661,7 +4641,7 @@ export class Workshop {
       target.closest('.studio-project-menu')?.removeAttribute('open');
 
       const action = target.dataset.action;
-      if (this.blueprintLoadInProgress && action !== 'back') {
+      if (this.blueprintLoadInProgress) {
         e.preventDefault();
         return;
       }
@@ -4677,7 +4657,7 @@ export class Workshop {
         this.exportExperienceProgramFile();
       } else if (action === 'export-mp4') {
         this.getAudioEngine()?.playHiss();
-        void this.exportMp4();
+        this.exportMp4();
       } else if (action === 'import-experience-program') {
         this.getAudioEngine()?.playHiss();
         this.fileDialogReturnFocus = target;
@@ -5470,25 +5450,6 @@ export class Workshop {
     });
   }
 
-  setExportMp4Busy(busy) {
-    this.exportMp4Busy = busy;
-    const button = this.container.querySelector('[data-action="export-mp4"]');
-    if (!button) return;
-    button.disabled = busy;
-    button.textContent = busy ? 'Exporting…' : 'Export MP4';
-  }
-
-  async kernelExportAvailable() {
-    try {
-      const response = await fetch(EXPORT_MP4_PATH, { method: 'GET' });
-      if (!response.ok) return false;
-      const body = await response.json();
-      return body?.available === true;
-    } catch {
-      return false;
-    }
-  }
-
   downloadKernelRequest(request) {
     const id = request.program?.id || request.projectId || 'experience';
     const filename = `${id}.kernel-request.json`;
@@ -5496,51 +5457,20 @@ export class Workshop {
     return filename;
   }
 
-  /**
-   * Write a kernel request and invoke the same Node path as the CLI.
-   * The browser does not grow ffmpeg. When the local export job is
-   * absent, download the JSON for `npm run render:mp4`.
-   */
-  async exportMp4() {
-    if (this.exportMp4Busy) return;
-    let request;
+  /** The browser does not grow ffmpeg: download the kernel request for `npm run render:mp4`. */
+  exportMp4() {
     try {
-      request = this.buildExportKernelRequest();
+      const request = this.buildExportKernelRequest();
+      if (!request) {
+        this.showToast('Score a passage before exporting an MP4');
+        return;
+      }
+      const filename = this.downloadKernelRequest(request);
+      const command = renderCliCommand(filename);
+      this.announce(`No local renderer. ${command}`);
+      this.showToast(`No local renderer. ${command}`);
     } catch (error) {
       this.showToast(error.message || 'Could not export MP4');
-      return;
-    }
-    if (!request) {
-      this.showToast('Score a passage before exporting an MP4');
-      return;
-    }
-    this.setExportMp4Busy(true);
-    try {
-      const available = await this.kernelExportAvailable();
-      if (!available) {
-        const filename = this.downloadKernelRequest(request);
-        const command = renderCliCommand(filename);
-        this.announce(`No local renderer. ${command}`);
-        this.showToast(`No local renderer. ${command}`);
-        return;
-      }
-      const response = await fetch(EXPORT_MP4_PATH, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(request)
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok || !body.ok) {
-        this.showToast(body.error || 'Export MP4 failed');
-        this.announce(body.error || 'Export MP4 failed');
-        return;
-      }
-      this.announce(`Wrote ${body.mp4Path}`);
-      this.showToast(`Wrote ${body.mp4Path}`);
-    } catch (error) {
-      this.showToast(error.message || 'Export MP4 failed');
-    } finally {
-      this.setExportMp4Busy(false);
     }
   }
 

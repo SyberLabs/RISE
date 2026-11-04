@@ -14,12 +14,6 @@ const PHONES = [
     { name: 'landscape', width: 844, height: 390 }
 ];
 
-// These contracts require the authored Demonstration Journey, which is
-// intentionally absent until its quotation anchors are re-authored against
-// certified editions. General mobile and Keystone release coverage remains
-// live; these return with Journey admission.
-const withdrawnJourneyTest = test.skip;
-
 async function enter(page, width, height) {
     await page.setViewportSize({ width, height });
     await page.goto('/');
@@ -124,46 +118,6 @@ test('a titled work opens its contents sheet', async ({ page }) => {
     // Generic "entries" when the work never named a division unit.
     expect(sheet.noun).toBe('entries');
     expect(sheet.first).toContain('Chapter I');
-});
-
-withdrawnJourneyTest('the Chamber reads as a band across the picture', async ({ page }) => {
-    // Phone: full-bleed reading band across the middle; imagery fills the rest.
-    test.setTimeout(300000);
-    await enter(page, 390, 844);
-    await openHomeNav(page, 'vault');
-    await page.locator('[data-nav="journeys"]').first().click();
-    const DEMO = '[data-journey="demo-procedural"]';
-    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
-    await page.locator(`${DEMO} .journey-begin`).click();
-    const accept = page.locator('#safety-accept');
-    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
-    if (await accept.isVisible()) await accept.click();
-    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
-    await page.waitForTimeout(12000);
-
-    const band = await page.evaluate(() => {
-        const el = document.querySelector('.atom-display');
-        const box = el.getBoundingClientRect();
-        const cs = getComputedStyle(el);
-        return {
-            text: el.textContent.trim().slice(0, 48),
-            font: parseFloat(cs.fontSize),
-            radius: cs.borderTopLeftRadius,
-            width: Math.round(box.width),
-            heightPct: (100 * box.height) / window.innerHeight,
-            viewport: window.innerWidth,
-            right: Math.round(box.right)
-        };
-    });
-    console.log('BAND ' + JSON.stringify(band));
-
-    // Full bleed, thin, viewport-sized type, no sideways clip.
-    expect(band.width).toBe(band.viewport);
-    expect(band.radius).toBe('0px');
-    expect(band.heightPct).toBeLessThan(30);
-    expect(band.font).toBeGreaterThan(16);
-    expect(band.font).toBeLessThan(30);
-    expect(band.right).toBeLessThanOrEqual(band.viewport);
 });
 
 test('Try RISE keeps its lateral rail on a phone', async ({ page }) => {
@@ -286,42 +240,6 @@ test('the visual navigator holds every visual and all of Text, on a phone and on
     expect(desktop.sideways).toBe(0);
     expect(desktop.entryWidth).toBeGreaterThan(250);
     expect(desktop.entryRight).toBeLessThanOrEqual(desktop.modalRight);
-});
-
-withdrawnJourneyTest('the Chamber control bar stays on the screen', async ({ page }) => {
-    // Control bar and every child must stay within the viewport.
-    test.setTimeout(300000);
-    await enter(page, 390, 844);
-    await openHomeNav(page, 'vault');
-    await page.locator('[data-nav="journeys"]').first().click();
-    const DEMO = '[data-journey="demo-procedural"]';
-    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
-    await page.locator(`${DEMO} .journey-begin`).click();
-    const accept = page.locator('#safety-accept');
-    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
-    if (await accept.isVisible()) await accept.click();
-    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
-    await page.waitForTimeout(5000);
-    await page.mouse.move(195, 700);
-    await page.waitForTimeout(600);
-
-    const bar = await page.evaluate(() => {
-        const el = document.querySelector('.chamber-controls');
-        const r = el.getBoundingClientRect();
-        const kids = [...el.children].map(c => c.getBoundingClientRect());
-        return {
-            left: Math.round(r.left), right: Math.round(r.right),
-            viewport: window.innerWidth,
-            worstLeft: Math.round(Math.min(...kids.map(k => k.left))),
-            worstRight: Math.round(Math.max(...kids.map(k => k.right))),
-            controls: kids.length
-        };
-    });
-    console.log('BAR ' + JSON.stringify(bar));
-
-    expect(bar.controls).toBeGreaterThan(3);
-    expect(bar.worstLeft).toBeGreaterThanOrEqual(0);
-    expect(bar.worstRight).toBeLessThanOrEqual(bar.viewport);
 });
 
 /**
@@ -461,141 +379,6 @@ test('Begin reading can actually be pressed on a phone', async ({ page }) => {
     await accept.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
     if (await accept.isVisible()) await accept.click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
-});
-
-withdrawnJourneyTest('the reading band holds steady while the reading fades', async ({ page }) => {
-    // Glass on #atom-band must stay lit while #atom-display fades or empties.
-    test.setTimeout(300000);
-    await enter(page, 390, 844);
-    await openHomeNav(page, 'vault');
-    await page.locator('[data-nav="journeys"]').first().click();
-    const DEMO = '[data-journey="demo-procedural"]';
-    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
-    await page.locator(`${DEMO} .journey-begin`).click();
-    const accept = page.locator('#safety-accept');
-    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
-    if (await accept.isVisible()) await accept.click();
-    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
-
-    await page.waitForFunction(() => {
-        const f = document.querySelector('#chamber-field');
-        const a = document.querySelector('#atom-display');
-        return f && a && a.classList.contains('glass-tile')
-            && (f.classList.contains('chamber-field-stream')
-                || f.classList.contains('chamber-field-genesis'));
-    }, { timeout: 150000 });
-
-    // Pause so atom swaps do not change measured band height mid-check.
-    await page.evaluate(() => {
-        document.querySelector('#play-pause-btn')?.click();
-    });
-    await page.waitForTimeout(600);
-
-    const band = await page.evaluate(async () => {
-        const el = document.querySelector('#atom-display');
-        const bandEl = document.querySelector('#atom-band');
-        const read = () => {
-            const cs = getComputedStyle(bandEl);
-            const r = bandEl.getBoundingClientRect();
-            return {
-                h: Math.round(r.height),
-                bg: cs.backgroundColor,
-                blur: (cs.backdropFilter || cs.webkitBackdropFilter || 'none'),
-                borderTop: cs.borderTopColor,
-                opacity: cs.opacity
-            };
-        };
-        const settle = () => new Promise(r =>
-            requestAnimationFrame(() => requestAnimationFrame(r)));
-
-        const saved = el.textContent;
-        const savedOpacity = el.style.opacity;
-
-        el.textContent = 'a phrase of ordinary length';
-        el.style.opacity = '1';
-        await settle();
-        const lit = read();
-
-        el.style.opacity = '0';
-        await settle();
-        const faded = read();
-
-        el.textContent = '';
-        await settle();
-        const empty = read();
-
-        el.textContent = saved;
-        el.style.opacity = savedOpacity;
-        return { hasBand: !!bandEl, lit, faded, empty };
-    });
-    console.log('BAND ' + JSON.stringify(band));
-
-    expect(band.hasBand).toBe(true);
-
-    expect(band.faded.bg).toBe(band.lit.bg);
-    expect(band.faded.blur).toBe(band.lit.blur);
-    expect(band.faded.borderTop).toBe(band.lit.borderTop);
-    expect(band.faded.opacity).toBe('1');
-    expect(band.faded.h).toBe(band.lit.h);
-
-    expect(band.empty.bg).toBe(band.lit.bg);
-    expect(band.empty.blur).not.toBe('none');
-    expect(band.empty.borderTop).toBe(band.lit.borderTop);
-    expect(band.empty.h).toBe(band.lit.h);
-    expect(band.empty.h).toBeGreaterThan(24);
-});
-
-withdrawnJourneyTest('the reading stays above the imagery it is presented over', async ({ page }) => {
-    // #atom-band must stack above behind-stream imagery (z-index ≥ 10).
-    test.setTimeout(300000);
-    await enter(page, 390, 844);
-    await openHomeNav(page, 'vault');
-    await page.locator('[data-nav="journeys"]').first().click();
-    const DEMO = '[data-journey="demo-procedural"]';
-    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
-    await page.locator(`${DEMO} .journey-begin`).click();
-    const accept = page.locator('#safety-accept');
-    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
-    if (await accept.isVisible()) await accept.click();
-    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
-    await page.waitForFunction(() => {
-        const f = document.querySelector('#chamber-field');
-        const a = document.querySelector('#atom-display');
-        return f && a && a.classList.contains('glass-tile')
-            && (f.classList.contains('chamber-field-stream')
-                || f.classList.contains('chamber-field-genesis'));
-    }, { timeout: 150000 });
-
-    const verdict = await page.evaluate(() => {
-        const field = document.querySelector('#chamber-field');
-        const band = document.querySelector('#atom-band');
-        const el = document.querySelector('#atom-display');
-        el.textContent = 'a phrase the reader must be able to see';
-
-        // Opaque probe at cortex imagery z-index 2.
-        const imagery = document.createElement('div');
-        imagery.id = 'probe-imagery';
-        imagery.style.cssText =
-            'position:absolute;inset:0;z-index:2;background:#fff;pointer-events:auto;';
-        field.insertBefore(imagery, field.firstChild);
-
-        const r = band.getBoundingClientRect();
-        const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-        const result = {
-            top: top ? `${top.tagName.toLowerCase()}#${top.id}.${top.className.toString().slice(0, 24)}` : 'null',
-            readingOnTop: !!(top && (top === band || band.contains(top))),
-            bandZ: getComputedStyle(band).zIndex,
-            bandPosition: getComputedStyle(band).position
-        };
-        imagery.remove();
-        return result;
-    });
-    console.log('LAYER ' + JSON.stringify(verdict));
-
-    expect(verdict.readingOnTop,
-        `imagery at z-index 2 covers the reading — topmost is ${verdict.top}`).toBe(true);
-    expect(verdict.bandPosition).not.toBe('static');
-    expect(Number(verdict.bandZ)).toBeGreaterThanOrEqual(10);
 });
 
 test('Page Mode keeps the whole measure on the screen', async ({ page }) => {

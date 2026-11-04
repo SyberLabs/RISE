@@ -26,7 +26,6 @@ import { GLASS_CONTINUITY, createGlassContinuity } from './glass-continuity.js';
 import {
   splitWords, stripEmphasis, sizeAtomScale, revealBudget, revealSchedule
 } from '../../core/recitation.js';
-import { Voice } from '../../audio/voice.js';
 import { audioDiag } from '../../core/audio-diagnostics.js';
 
 /**
@@ -59,7 +58,7 @@ const GEAR_TEETH = [
 ].map(([x1, y1, x2, y2]) =>
   `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="2.1"/>`).join('');
 
-export const ICONS = Object.freeze({
+const ICONS = Object.freeze({
   play: svg('<path d="M9 6.4 18.2 12 9 17.6Z"/>',
     'fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"'),
   pause: svg('<rect x="8.6" y="6.4" width="2.6" height="11.2" rx="1.3"/>'
@@ -122,7 +121,7 @@ import { styleOf } from '../../core/styles.js';
 import { SEQUENCE_PILOT, nextSequencePilot } from '../../content/sequence-pilot.js';
 import { saveSequencePilotFeedback } from '../../core/sequence-pilot-feedback.js';
 import { advanceJevVisualArc } from '../../core/jev-sequence.js';
-import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig, validateFlameRecipe } from '../../core/flame-recipe.js';
+import { livingFlameConfigKey, normalizeFlameRecipe, normalizeLivingFlameConfig } from '../../core/flame-recipe.js';
 import { directionStateFor, ensureDirector, followProgram, permittedSourceDigests } from '../../core/passage-visuals/reading-state.js';
 import { flamePreset } from '../../visuals/living-flame/flame-presets.js';
 import { JEV_INKS, JEV_PALETTES, jevColors } from '../../core/jev-palette.js';
@@ -319,16 +318,9 @@ export class Chamber {
     // without emitting or laying out the atom a second time.
     this._concealedReveal = null;
 
-    // The voice exists only when a reading asks for it. It now resolves
-    // bundled static assets and never starts browser inference. App normally
-    // passes a prepared instance; this fallback preserves embedded callers.
-    this.voice = this.recitationEnabled
-      ? (options.voice || new Voice({
-        audioEngine: this.audioEngine,
-        voiceId: this.session?.voiceId,
-        packUrl: this.session?.recitation?.pack ?? null
-      }))
-      : null;
+    // The voice exists only when a reading asks for it. The session factory
+    // prepares it during loading and hands it in.
+    this.voice = this.recitationEnabled ? (options.voice || null) : null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
     this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
@@ -494,21 +486,10 @@ export class Chamber {
       this._audioSchedule = new AudioScheduleController(
         audioProgram,
         this.audioEngine,
-        // A JOURNEY'S AUDIO AUTHORITY IS ITS PROGRAM, NOT A PRESET.
-        //
-        // This asked `audioPreset !== 'silent'`, which is a question
-        // from the generic Session's vocabulary — the pure-tone bed a
-        // reader picks in the orbital. A Journey never sets it, so it
-        // defaulted to 'silent' and the controller was constructed
-        // DISABLED on every launch. Seven cues compiled, the schedule
-        // announced itself in the log, and not one of them was ever
-        // delivered.
-        //
-        // The absence of a preset is not a request for silence. §3.3's
-        // "a reader may silence a Journey" is an explicit act, and it
-        // has an explicit route: setEnabled(false).
+        // A Journey's audio authority is its program, not a preset. §3.3's
+        // "a reader may silence a Journey" is an explicit act, and it has
+        // an explicit route: setEnabled(false).
         {
-          enabled: true,
           defaultCue: this.session.soundscape && this.session.soundscape !== 'none'
             ? { kind: 'soundscape', soundscapeId: this.session.soundscape, fadeMs: 500 }
             : this.session.audioPreset && this.session.audioPreset !== 'silent'
@@ -1652,12 +1633,11 @@ export class Chamber {
   }
 
   /**
-   * One shuttle keypress (direction +1 = →, -1 = ←). Liturgical
-   * sessions are traversal-exempt; outside a playing session the
-   * keys are inert.
+   * One shuttle keypress (direction +1 = →, -1 = ←). Outside a
+   * playing session the keys are inert.
    */
   shuttleStep(direction) {
-    if (!this.player?.shuttleAvailable) return;
+    if (!this.player) return;
     const velocity = direction > 0
       ? this.player.shuttleForward()
       : this.player.shuttleBackward();
@@ -2013,10 +1993,6 @@ export class Chamber {
 
   toggleLookSheet() {
     this._toggleSheet('look');
-  }
-
-  openLookSheet() {
-    return this._openSheet('look');
   }
 
   closeLookSheet(refocus = true) {
@@ -2433,30 +2409,6 @@ export class Chamber {
     this._visualFieldDirector?.active?.setEnergy?.();
   }
 
-  /** Geometry, color, or mutation selects Hold: the reader has taken the scene. */
-  _editHeldFlame(transform, { record = true, transitionMs = this._visualTransitionMs() } = {}) {
-    const state = this._direction;
-    const current = this._currentFlameConfig();
-    if (!state || !current) return false;
-    let recipe;
-    try {
-      recipe = validateFlameRecipe(transform(current.recipe));
-    } catch {
-      return false;
-    }
-    if (record) {
-      state.history.push(current.recipe);
-      if (state.history.length > 20) state.history.shift();
-    }
-    state.mode = 'hold';
-    state.heldCue = this._flameCue(recipe, current.intensity);
-    this._visualSchedule = null;
-    this.applyScheduledVisualCue(state.heldCue, { transitionMs });
-    this._syncScoringActivity();
-    this._refreshLookSheet();
-    return true;
-  }
-
   /** Explicit reader action, scoped to this exact source and this reading. */
   async grantVisualConsent() {
     const state = this._direction;
@@ -2729,7 +2681,7 @@ export class Chamber {
       : cue;
     const transitionMs = Number.isFinite(meta.transitionMs)
       ? Math.max(0, Math.min(meta.transitionMs, 2000))
-      : authoredVisualTransition(meta.durationMs, 320);
+      : authoredVisualTransition(meta.durationMs);
     const authority = (Number.isInteger(this._scheduledVisualGeneration)
       ? this._scheduledVisualGeneration : 0) + 1;
     this._scheduledVisualGeneration = authority;
@@ -3205,7 +3157,7 @@ export class Chamber {
         const roseConfig = config.type === 'rose' ? config : {
           petala: config.petala || 12, seed: config.seed, roseMode: config.roseMode
         };
-        void this.initializeRoseFocal(host, roseConfig, { assign: false }).then(instance => {
+        void this.initializeRoseFocal(host, roseConfig).then(instance => {
           if (!instance) return;
           if (destroyed || !host.isConnected) instance.destroy();
           else { controller = instance; this.rosaField = instance; }
@@ -3377,7 +3329,7 @@ export class Chamber {
    * Lazy import keeps the engine out of non-Chapel graphs; any
    * failure yields stillness.
    */
-  async initializeRoseFocal(focalContainer, focals, { assign = true } = {}) {
+  async initializeRoseFocal(focalContainer, focals) {
     try {
       const { RosaMystica } = await import('../../visuals/rosa-mystica.js');
       if (!this.container.contains(focalContainer)) return;
@@ -3389,7 +3341,6 @@ export class Chamber {
         seed: focals.seed,
         mode: focals.roseMode
       });
-      if (assign) this.rosaField = instance;
       console.log('[Chamber] Rosa Mystica initialized:', instance.petala, 'petala,',
         instance.mode, '· OPVS', instance.seed.toString(16).toUpperCase());
       return instance;
@@ -4858,8 +4809,6 @@ export class Chamber {
         return this.pageModeActive;
       }
       this.pageReader = new PageReader(host, {
-        // One bar: the Chamber owns the page turn (see #page-turn).
-        showPager: false,
         // The public Page opens as one elongated composition. Pagination is
         // retained as an explicit projection choice in the Chamber bar.
         scrollUnderPages: Number.POSITIVE_INFINITY,
@@ -5033,7 +4982,7 @@ export class Chamber {
   _fieldSamples(count, sample, title) {
     const works = [];
     for (let n = 0; n < count; n++) {
-      let url = null;
+      let url;
       try { url = sample(n); } catch { url = null; }
       // A field that will not draw yields stillness, never a broken frame.
       if (url) works.push({ name: title, data: { url, title } });

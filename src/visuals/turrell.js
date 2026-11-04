@@ -27,10 +27,10 @@
  * aperture shifts temperature across its own radius the way projected
  * light does through air.
  *
- * PLAN CONTRACT (unchanged): generate() still returns and stores a
- * {kind, center, radius, angle, stops} plan for the ASCII compiler. The
- * plan describes the APERTURE — the thing worth transcribing — so ASCII
- * mode reads as a luminous shape rather than an even wash.
+ * PLAN CONTRACT: generate() returns and stores a
+ * {kind, center, radius, angle, stops} plan that render() rasterizes. The
+ * plan describes the APERTURE, so a still reads as a luminous shape rather
+ * than an even wash.
  */
 
 // Aperture hues carry a core/body/spill triad. The eye reads the small
@@ -137,7 +137,7 @@ export class Turrell {
     /**
      * The aperture: a bounded shape of light whose edge is soft enough to
      * read as opening OR volume. Returns both the CSS layer and the plan
-     * the ASCII compiler transcribes.
+     * render() rasterizes.
      *
      * The three hues (core/body/spill) drift across the radius, which is
      * what gives the shape depth instead of a flat colored blob.
@@ -208,8 +208,8 @@ export class Turrell {
         const body = palette.body;
         const spill = palette.spill;
 
-        // The plan the ASCII compiler transcribes: an aperture, with the
-        // ground as its outermost stop so ASCII sees figure AND field.
+        // The plan render() rasterizes: an aperture, with the ground as
+        // its outermost stop so a still carries figure AND field.
         this.lastPlan = {
             kind: 'radial',
             center: [cx, cy],

@@ -43,27 +43,3 @@ export function measureFieldVoid(field, fMax = 0) {
     sparse: voidFraction >= VOID_FRACTION_LIMIT
   };
 }
-
-export function histogram(voidFractions, edges = [0.5, 0.8, 0.9, 0.95, 0.99, 1]) {
-  const counts = Array(edges.length + 1).fill(0);
-  for (const value of voidFractions) {
-    const v = Number(value) || 0;
-    let slot = edges.length;
-    for (let i = 0; i < edges.length; i++) {
-      if (v < edges[i]) { slot = i; break; }
-    }
-    counts[slot]++;
-  }
-  const labels = [];
-  let prev = 0;
-  for (const edge of edges) {
-    labels.push(`${pct(prev)}–${pct(edge)}`);
-    prev = edge;
-  }
-  labels.push(`${pct(edges[edges.length - 1])}+`);
-  return { edges, counts, labels };
-}
-
-function pct(x) {
-  return `${Math.round(x * 100)}%`;
-}
