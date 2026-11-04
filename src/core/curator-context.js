@@ -547,7 +547,7 @@ export function validateCuratorContext(value) {
  * this reads it, so a new form of id teaches both at once.
  */
 export const CURATOR_SOURCE_KNOWN = 'known';
-export const CURATOR_SOURCE_UNKNOWN_WORK = 'unknown-work';
+const CURATOR_SOURCE_UNKNOWN_WORK = 'unknown-work';
 export const CURATOR_SOURCE_UNKNOWN_DIVISION = 'unknown-division';
 
 /**

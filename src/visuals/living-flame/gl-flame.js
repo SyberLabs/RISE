@@ -159,7 +159,7 @@ void main() { o = vec4(0.75); }`;
 const PROBE_VS = `#version 300 es
 void main() { gl_Position = vec4(0.0, 0.0, 0.0, 1.0); gl_PointSize = 1.0; }`;
 
-export class FlameGpuError extends Error {
+class FlameGpuError extends Error {
   constructor(code, message) {
     super(message);
     this.name = 'FlameGpuError';

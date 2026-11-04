@@ -27,8 +27,6 @@ export const GLASS_CONTINUITY = Object.freeze({
 });
 
 export function createGlassContinuity({
-  holdMs = GLASS_CONTINUITY.holdMs,
-  graceMs = GLASS_CONTINUITY.graceMs,
   now = () => performance.now(),
   dissolve
 }) {
@@ -66,9 +64,9 @@ export function createGlassContinuity({
       if (state === 'words') {
         state = 'holding';
         since = now();
-        timer = setTimeout(end, graceMs);
+        timer = setTimeout(end, GLASS_CONTINUITY.graceMs);
       }
-      if (Number.isFinite(expectedMs) && now() - since + expectedMs > holdMs) {
+      if (Number.isFinite(expectedMs) && now() - since + expectedMs > GLASS_CONTINUITY.holdMs) {
         end();
         return 'dissolve';
       }

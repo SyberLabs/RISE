@@ -45,7 +45,7 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('recreates the canonical Gravitational orbital topology (parametric, capture guaranteed)', () => {
-        const engine = new KleeEngine({ seed: 'gravity-topology' });
+        const engine = new KleeEngine().setSeed('gravity-topology');
         engine.generateRandom('gravitational', { seed: 'gravity-topology' });
         // protagonist + echo + chorus(3-5) + whisper
         expect(engine.seeds.length).toBeGreaterThanOrEqual(6);
@@ -75,9 +75,9 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('gravitational responds to the signal compositionally, not dynamically', () => {
-        const calm = new KleeEngine({ seed: 'semantic-orbit' });
+        const calm = new KleeEngine().setSeed('semantic-orbit');
         calm.generateRandom('gravitational', { seed: 'semantic-orbit', signal: { valence: 0.5, arousal: 0 } });
-        const intense = new KleeEngine({ seed: 'semantic-orbit' });
+        const intense = new KleeEngine().setSeed('semantic-orbit');
         intense.generateRandom('gravitational', { seed: 'semantic-orbit', signal: { valence: -0.5, arousal: 1 } });
 
         // Arousal densifies the system with more chorus orbits (3 vs 5)
@@ -90,7 +90,7 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('the gravitational protagonist winds into its terminal coil (the mass renders itself)', () => {
-        const engine = new KleeEngine({ seed: 'gravity-coil' });
+        const engine = new KleeEngine().setSeed('gravity-coil');
         engine.generateRandom('gravitational', { seed: 'gravity-coil', detectForms: false });
 
         const protagonist = engine.seeds[0];
@@ -163,8 +163,8 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('replays the same artwork exactly from the same seed', () => {
-        const a = new KleeEngine({ seed: 'same' });
-        const b = new KleeEngine({ seed: 'same' });
+        const a = new KleeEngine().setSeed('same');
+        const b = new KleeEngine().setSeed('same');
         a.generateRandom('gravitational', { seed: 'orbit-42' });
         b.generateRandom('gravitational', { seed: 'orbit-42' });
         expect(a.seeds).toEqual(b.seeds);
@@ -172,7 +172,7 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('gives Gravitational stochastic siblings while retaining its orbital identity', () => {
-        const engine = new KleeEngine({ seed: 'sequence' });
+        const engine = new KleeEngine().setSeed('sequence');
         engine.generateRandom('gravitational');
         const first = engine.seeds.map(({ x, y, params }) => [x, y, params.angularStep]);
         engine.generateRandom('gravitational');
@@ -203,7 +203,7 @@ describe('KleeEngine curated presets', () => {
         expect(intense.density).toBeGreaterThan(1);
         expect(intense.density).toBeLessThanOrEqual(1.22);
 
-        const engine = new KleeEngine({ seed: 'semantic' });
+        const engine = new KleeEngine().setSeed('semantic');
         engine.generateRandom('architectural', { seed: 'semantic', signal: { valence: -1, arousal: 1 } });
         expect(engine.preset).toBe('architectural');
         expect(engine.seeds[0].params.stepLength).toBeGreaterThan(20);
@@ -211,7 +211,7 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('renders progressively with deterministic stroke hierarchy', () => {
-        const engine = new KleeEngine({ seed: 'progress' });
+        const engine = new KleeEngine().setSeed('progress');
         engine.generateRandom('harmonic', { seed: 'progress', detectForms: false });
         const makeCanvas = () => {
             const ctx = {
@@ -231,7 +231,7 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('renders a continuously moving tip: nearby progress values land between points', () => {
-        const engine = new KleeEngine({ seed: 'smooth-tip' });
+        const engine = new KleeEngine().setSeed('smooth-tip');
         engine.generateRandom('harmonic', { seed: 'smooth-tip', detectForms: false });
         const renderAt = (progress) => {
             const ctx = {
@@ -259,7 +259,7 @@ describe('KleeEngine curated presets', () => {
 
     it('enforces a hard composition budget for every preset', () => {
         for (const [preset, profile] of Object.entries(KLEE_PRESET_PROFILES)) {
-            const engine = new KleeEngine({ seed: `budget-${preset}` });
+            const engine = new KleeEngine().setSeed(`budget-${preset}`);
             engine.generateRandom(preset, { seed: `budget-${preset}`, detectForms: false });
             expect(engine.lines.length).toBeLessThanOrEqual(profile.generation.maxTotalLines);
             expect(engine.maxSteps).toBe(profile.generation.steps);
@@ -267,7 +267,7 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('captures and restores a preloaded artwork without regenerating it', () => {
-        const engine = new KleeEngine({ seed: 'snapshot' });
+        const engine = new KleeEngine().setSeed('snapshot');
         engine.generateRandom('harmonic', { seed: 'snapshot', detectForms: false });
         const snapshot = engine.captureArtwork();
         const originalLines = engine.lines;
@@ -280,7 +280,7 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('restoreArtwork rescales geometry captured at a different canvas size', () => {
-        const engine = new KleeEngine({ seed: 'rescale' });
+        const engine = new KleeEngine().setSeed('rescale');
         engine.width = 1000;
         engine.height = 500;
         engine.generateRandom('harmonic', { seed: 'rescale', detectForms: false });
@@ -298,7 +298,7 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('destroy() rejects in-flight worker requests instead of leaving them pending', async () => {
-        const engine = new KleeEngine({ seed: 'teardown' });
+        const engine = new KleeEngine().setSeed('teardown');
         let settled = false;
         const pending = new Promise((resolve, reject) => {
             engine._workerRequests.set(1, { resolve, reject });
@@ -313,7 +313,7 @@ describe('KleeEngine curated presets', () => {
     });
 
     it('starts rendering without waiting for worker enhancements', async () => {
-        const engine = new KleeEngine({ seed: 'responsive-worker' });
+        const engine = new KleeEngine().setSeed('responsive-worker');
         let releaseTexture;
         engine._requestWorker = vi.fn(() => new Promise(resolve => {
             releaseTexture = () => resolve({ size: 2, pixels: new ArrayBuffer(16) });

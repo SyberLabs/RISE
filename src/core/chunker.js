@@ -106,7 +106,7 @@ const MAX_CHUNK_WORDS = 16;
  *
  * This comment used to cite Book VI, Iliad XXII and Guillemont. No
  * script in this repository has ever measured those three texts, and the
- * one study that exists (`npm run study:chunking`) read a corpus in
+ * one study that existed then read a corpus in
  * which every sequence carries an authored `|` — so `applyPhraseFloor`
  * returned early on all of it and the floor never fired. Running that
  * study with the floor on and with the floor off gave byte-identical
@@ -137,9 +137,8 @@ const MAX_CHUNK_WORDS = 16;
  * 3187 between floors 4 and 12 with fragments flat. 5 sits one step into
  * that plateau, holding the median at a 9-word breath. It is a defensible
  * choice inside a flat region, not a measured optimum, and anyone moving
- * it should re-run the sweep rather than trust this paragraph.
- *
- * Reproduce:  npm run study:chunking
+ * it should run a new sweep rather than trust this paragraph; the script
+ * behind this one is in git history.
  */
 const PHRASE_FLOOR_WORDS = 5;
 
@@ -191,52 +190,6 @@ function getLengthModifier(word) {
 function getPunctuationPause(text, baseDuration) {
     const lastChar = text.trim().slice(-1);
     return (PUNCTUATION_PAUSE_WEIGHTS[lastChar] || 0) * baseDuration;
-}
-
-/**
- * Lossless subdivision of an over-long chunk: first at connective
- * boundaries (noncapturing — the connective stays exactly once at the
- * end of its segment), then any still-long piece is windowed into
- * near-equal word runs. Every source token appears exactly once.
- * @param {string} chunk
- * @param {number} maxWords
- * @returns {string[]}
- */
-/**
- * Phrase floor: merge short pieces after splitPhrases. Refusals: never
- * past MAX_CHUNK_WORDS; never across a sentence end; never across an
- * authored `|` (if the paragraph contains a pipe, leave it alone).
- *
- * @param {string[]} phrases pieces from splitPhrases, one paragraph's worth
- * @param {string} paragraph the text they came from, for authored marks
- */
-/**
- * Is this text actually printed as verse lines?
- *
- * Derived from the file, not a manifest flag: does the text still carry
- * its lines? Prose-set editions of poetry often do not.
- *
- * @returns {{lineated: boolean, lines: number, medianWords: number, overCeiling: number}}
- */
-export function detectVerseLineation(text, { maxWords = MAX_CHUNK_WORDS } = {}) {
-    const lines = String(text ?? '').split(/\r?\n/)
-        .map(l => l.trim()).filter(Boolean);
-    if (lines.length < 8) {
-        return { lineated: false, lines: lines.length, medianWords: 0, overCeiling: 1 };
-    }
-    const lengths = lines.map(l => l.split(/\s+/).filter(Boolean).length);
-    const sorted = [...lengths].sort((a, b) => a - b);
-    const medianWords = sorted[sorted.length >> 1];
-    const overCeiling = lengths.filter(n => n > maxWords).length / lengths.length;
-
-    // Wrap crowding (chars near column max) is not authored verse.
-    const chars = lines.map(l => l.length);
-    const charsSorted = [...chars].sort((a, b) => a - b);
-    const p90Chars = charsSorted[Math.floor(charsSorted.length * 0.9)] || 1;
-    const crowding = chars.filter(c => c >= p90Chars * 0.9).length / chars.length;
-
-    const lineated = medianWords <= 12 && overCeiling <= 0.08 && crowding < 0.6;
-    return { lineated, lines: lines.length, medianWords, overCeiling, crowding };
 }
 
 /**
@@ -313,9 +266,8 @@ function floorOptions(phraseFloor) {
         : {};
 }
 
-export function applyPhraseFloor(phrases, paragraph = '', {
-    floor = PHRASE_FLOOR_WORDS,
-    maxWords = MAX_CHUNK_WORDS
+function applyPhraseFloor(phrases, paragraph = '', {
+    floor = PHRASE_FLOOR_WORDS
 } = {}) {
     if (!Array.isArray(phrases) || phrases.length < 2) return phrases;
     // An author who marked their own phrasing has already answered the
@@ -325,7 +277,7 @@ export function applyPhraseFloor(phrases, paragraph = '', {
     const words = piece => piece.trim().split(/\s+/).filter(Boolean).length;
     const closesSentence = piece => /[.!?][)\]"'”’]*$/.test(piece.trim());
     const joinable = (prev, next) =>
-        prev && !closesSentence(prev) && words(prev) + words(next) <= maxWords;
+        prev && !closesSentence(prev) && words(prev) + words(next) <= MAX_CHUNK_WORDS;
 
     // Backward: a short piece rejoins what it was cut from.
     const grown = [];
@@ -353,9 +305,9 @@ export function applyPhraseFloor(phrases, paragraph = '', {
     return settled;
 }
 
-function splitLongChunk(chunk, maxWords = MAX_CHUNK_WORDS) {
+function splitLongChunk(chunk) {
     const words = chunk.split(/\s+/).filter(Boolean);
-    if (words.length <= maxWords) return [chunk];
+    if (words.length <= MAX_CHUNK_WORDS) return [chunk];
 
     // Stage 1: cut before connectives (hinge opens the next clause).
     // Skip after colon (speaker labels) and between adjacent connectives.
@@ -370,11 +322,11 @@ function splitLongChunk(chunk, maxWords = MAX_CHUNK_WORDS) {
     const result = [];
     for (const piece of stage1) {
         const pieceWords = piece.split(/\s+/).filter(Boolean);
-        if (pieceWords.length <= maxWords) {
+        if (pieceWords.length <= MAX_CHUNK_WORDS) {
             result.push(piece);
             continue;
         }
-        const windows = Math.ceil(pieceWords.length / maxWords);
+        const windows = Math.ceil(pieceWords.length / MAX_CHUNK_WORDS);
         const per = Math.ceil(pieceWords.length / windows);
         for (let i = 0; i < pieceWords.length; i += per) {
             result.push(pieceWords.slice(i, i + per).join(' '));
@@ -587,9 +539,8 @@ function splitSentences(text) {
 /**
  * Phrase floor on by default (PHRASE-CHUNKING-STUDY §7b). Pass
  * `phraseFloor: false` when short phrases are authored (verse profile),
- * or a NUMBER to run a different floor — which is how the sweep in
- * `npm run study:chunking` measures PHRASE_FLOOR_WORDS instead of
- * asserting it. A boolean `true` means the shipped floor.
+ * or a NUMBER to run a different floor — which is how a sweep measures
+ * PHRASE_FLOOR_WORDS instead of asserting it. A boolean `true` means the shipped floor.
  */
 export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null, phraseFloor = true, verseLines = false, literal = false, mathSpans = null } = {}) {
     if (typeof text !== 'string') return [];
@@ -862,15 +813,4 @@ export function countWords(text) {
         );
     }
     return text.split(/\s+/u).filter(word => word.length > 0).length;
-}
-
-/**
- * Estimate session duration in milliseconds
- * @param {string} text 
- * @param {number} wpm 
- * @returns {number}
- */
-export function estimateDuration(text, wpm) {
-    const wordCount = countWords(text);
-    return (wordCount / wpm) * 60 * 1000;
 }

@@ -13,9 +13,9 @@
  * verb all read from.
  */
 import { describe, expect, it } from 'vitest';
-import { getAllTexts, getTextById } from './library.js';
+import { LIBRARY_TEXTS, getTextById } from './library.js';
 
-const composed = () => getAllTexts().filter(text => text.category === 'composed');
+const composed = () => LIBRARY_TEXTS.filter(text => text.category === 'composed');
 
 describe('composed readings keep their identity', () => {
     it('treats a composed sequence as one reader-facing reading', () => {
@@ -50,7 +50,7 @@ describe('composed readings keep their identity', () => {
     it('retains the real reading count for ordinary collections', () => {
         // A found work's divisions ARE readings: entering one is entering a
         // different part of the book. Nothing here may flatten those.
-        const others = getAllTexts().filter(text => text.category !== 'composed');
+        const others = LIBRARY_TEXTS.filter(text => text.category !== 'composed');
         const divided = others.filter(text => Number(text.chapterCount) > 1);
         expect(divided.length, 'ordinary multi-division works still exist').toBeGreaterThan(0);
         for (const text of divided) {

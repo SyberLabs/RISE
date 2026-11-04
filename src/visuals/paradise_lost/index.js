@@ -41,8 +41,3 @@ export const PARADISE_LOST_ENGINES = PARADISE_LOST_ENGINE_META.map(entry => ({
     ...entry,
     engineClass: CLASSES[entry.id]
 }));
-
-export function createParadiseEngine(engineId) {
-    const entry = PARADISE_LOST_ENGINES.find(e => e.id === engineId) || PARADISE_LOST_ENGINES[0];
-    return new entry.engineClass();
-}

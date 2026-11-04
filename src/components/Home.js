@@ -663,7 +663,7 @@ export class Home {
   /** The RISE sigil in the header lockup. */
   drawMarks() {
     this._marksDrawn = true;
-    drawRiseSigil(this.container.querySelector('.sl-sigil'), { animate: false });
+    drawRiseSigil(this.container.querySelector('.sl-sigil'));
   }
 
   attachEvents() {

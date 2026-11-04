@@ -8,7 +8,7 @@ import { renderFrameRgba } from './raster.js';
 import { encodeBmp, scaleRgba, thumbnailSize } from './bmp.js';
 import { sha256Hex } from './hash.js';
 
-export function posterFrameIndex(plan) {
+function posterFrameIndex(plan) {
   const atom = plan.atoms.find(item => String(item.text || '').trim());
   const ms = atom ? atom.startMs : 0;
   return Math.min(plan.frameCount - 1, Math.max(0, frameIndexAt(ms, plan.frameRate)));

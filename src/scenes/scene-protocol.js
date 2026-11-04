@@ -82,7 +82,7 @@ export const SCENE_INPUTS = Object.freeze({
 });
 
 /** The instrument's keys (src/live/host/stage-controls.js) and Escape: the stage's, never a scene's. */
-export const INSTRUMENT_KEYS = Object.freeze([' ', 'r', 'R', 'f', 'F', '-', '_', '=', '+', '[', ']', 'Escape']);
+const INSTRUMENT_KEYS = Object.freeze([' ', 'r', 'R', 'f', 'F', '-', '_', '=', '+', '[', ']', 'Escape']);
 
 const ARROW_KEYS = Object.freeze(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 

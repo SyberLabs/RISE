@@ -26,7 +26,7 @@ appears when.
 
 Around that engine sit five rooms: Home, Read, Library, Make, Settings. Read
 holds the reader setup, the Chamber and the live host as panes; the Library
-opens the scripture, the liturgies, the journeys, the keystones and the day's
+opens the scripture, the liturgies, the keystones and the day's
 poem as panes; Make opens the Workshop, the Vault, the Scriptorium, the Visual
 Lab and the Visual Catalog as tabs. The Guide is an overlay, not a room.
 
@@ -160,22 +160,21 @@ it, and CI fails when the committed copy is not what `src/` produces.
 
 ```mermaid
 flowchart LR
-    affect["affect<br/>experience-state evaluation<br/>29 modules"]
-    app["app<br/>composition root<br/>25 modules"]
+    affect["affect<br/>experience-state evaluation<br/>9 modules"]
+    app["app<br/>composition root<br/>24 modules"]
     audio["audio<br/>Web Audio, recitation<br/>17 modules"]
-    components["components<br/>routed views<br/>58 modules"]
-    content["content<br/>texts, imagery, journeys<br/>307 modules"]
-    core["core<br/>session, player, router<br/>194 modules"]
-    enterprise["enterprise<br/>talk program, speaker rail<br/>36 modules"]
-    live["live<br/>realtime Current: events, runtime, providers<br/>79 modules"]
+    components["components<br/>routed views<br/>57 modules"]
+    content["content<br/>texts, imagery<br/>285 modules"]
+    core["core<br/>session, player, router<br/>182 modules"]
+    enterprise["enterprise<br/>talk program, speaker rail<br/>35 modules"]
+    live["live<br/>realtime Current: events, runtime, providers<br/>76 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     scenes["scenes<br/>engine manifests, cues; scene runtime<br/>9 modules"]
-    sources["sources<br/>text and visual providers<br/>14 modules"]
-    vendor["vendor<br/>SyberLabs design kit<br/>2 modules"]
-    visuals["visuals<br/>procedural generation<br/>61 modules"]
+    sources["sources<br/>text and visual providers<br/>11 modules"]
+    vendor["vendor<br/>SyberLabs design kit<br/>1 module"]
+    visuals["visuals<br/>procedural generation<br/>59 modules"]
     wormhole["wormhole<br/>7 modules"]
 
-    affect --> |7| core
     app --> |2| audio
     app -.-> |8 lazy| components
     app --> |7| content
@@ -188,22 +187,22 @@ flowchart LR
     audio --> |8| core
     components --> |3| affect
     components --> |10| app
-    components --> |6| audio
-    components --> |29| content
+    components --> |5| audio
+    components --> |27| content
     components --> |192| core
     components -.-> |1 lazy| page
     components --> |3| scenes
     components --> |4| sources
-    components -.-> |2 lazy| vendor
+    components -.-> |1 lazy| vendor
     components --> |18| visuals
-    content --> |3| audio
-    content --> |16| core
+    content --> |2| audio
+    content --> |11| core
     content --> |10| sources
     content --> |1| visuals
     core --> |1| app
     core --> |14| audio
-    core --> |16| content
-    core --> |13| scenes
+    core --> |12| content
+    core --> |9| scenes
     core --> |4| sources
     core --> |7| visuals
     live -.-> |3 lazy| app
@@ -213,7 +212,7 @@ flowchart LR
     live --> |3| scenes
     live -.-> |1 lazy| visuals
     page --> |4| core
-    page --> |4| visuals
+    page --> |3| visuals
     scenes --> |1| core
     scenes --> |1| visuals
     sources --> |1| content
@@ -345,7 +344,7 @@ outliving its room, fails a build.
 |---|---|---|
 | Home | `src/components/Home.js` | the hub, and the first screen |
 | Read | `src/components/Read.js` | reading: the reader setup, a reading in time, and the live host, as three panes |
-| Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, journeys, keystones and the day's poem, with provenance on every edition |
+| Library | `src/components/Library.js` | the prepared editions, scripture, liturgies, keystones and the day's poem, with provenance on every edition |
 | Make | `src/components/Make.js` | authoring: composition, saved work, the Scriptorium, the visual lab and catalog |
 | Settings | `src/components/Settings.js` | preferences, affect, export and erase |
 | Plus | `src/components/Plus.js` | lazy customer subscription pane of Settings at `/plus/`; verified checkout, recovery and billing |
@@ -361,8 +360,8 @@ routed rooms: `src/components/Admit.js`,
 `src/components/room-chrome.js` (header, icons, Alert), the pane host
 `src/components/room-panes.js`, and the SyberLabs
 chrome helper `src/components/atlas.js`, which lazily imports the vendored
-design-system kit in `src/vendor/syber/` (the ambient atmosphere behind Home
-and the RISE sigil) so neither engine is part of first load.
+design-system kit in `src/vendor/syber/` (the RISE sigil) so it is not part
+of first load.
 
 Everything else in `src/components/` sits in a directory, by the room it
 serves:
@@ -377,7 +376,6 @@ serves:
   than rooms (§8.43): `src/components/library/Chapel.js` (the scripture
   corpus), `src/components/library/Rosarium.js` (the Rosary, on the liturgy
   engine), `src/components/library/Via.js` (the Stations of the Cross),
-  `src/components/library/Journeys.js` (authored long-form experiences),
   `src/components/library/Keystones.js` (the public entry corridor),
   `src/components/library/School.js` (the Mystery School, the graded canon as
   a wheel), `src/components/library/Mint.js` (the door a minted sequence opens onto) and
@@ -486,8 +484,7 @@ owning the glyph-mask state machine.
   cannot carry out and erase cannot clear.
 - **The renderer contract moves with its document.** What a third party builds
   against (the Current v2, manifests and cues, generated scenes and their
-  worker protocol, the MCP tools) is `docs/specs/RISE-SDK.md`, held to the code
-  by `src/core/rise-sdk.test.js`.
+  worker protocol, the MCP tools) is `docs/specs/RISE-SDK.md`.
 
 ---
 
@@ -808,7 +805,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.17 The catalogue is derived at build time
 
-- **Chosen:** `scripts/build-division-index.mjs` precomputes division structure;
+- **Chosen:** division structure is precomputed and committed;
   withheld divisions go to a separate file nothing shipping imports.
 - **Rejected:** deriving divisions in every browser.
 - **Why:** it lets a card say how many chapters a work has without downloading
@@ -886,8 +883,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.23 Production carries no write path
 
-- **Chosen:** the Curia apply endpoint and the MP4 export endpoint are Vite
-  plugins with `apply: 'serve'`, so they exist only on the dev server.
+- **Chosen:** the Curia copies its changeset and the Workshop downloads its
+  export job; neither has an endpoint to write through.
 - **Rejected:** shipping write endpoints with the static build.
 - **Why:** a static deploy with no write path cannot be made to write. The cost
   is that the Workshop's export hands a reader a job description for the CLI
@@ -897,8 +894,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.24 Deferred rather than deleted
 
-- **Chosen:** Journeys are on ice — the published list is empty while the
-  scores, tests and compiler stay. RISE Chain stays out of production.
+- **Chosen:** Journeys are withdrawn: the pane, scores and compiler are deleted
+  (restore from git history); the runtime that follows an authored score stays.
+  RISE Chain stays out of production.
 - **Rejected:** re-anchoring Journey scores quickly, and shipping Chain under
   release pressure.
 - **Why:** Journey scores quote editions the canon no longer serves, so their
@@ -1172,12 +1170,8 @@ of `settled`, `open`, `deferred`, or `reversed`.
   the deterministic mock and a silent paced voice, in unit tests on a virtual
   clock and in a real browser. A provider that streams text is one `connect`
   function (`src/live/adapters/text-stream.js`), read only through a defensive
-  line format; an OpenAI Realtime adapter is built on it, with a same-origin
-  Worker route that uses the reader's own key for one request and stores
-  nothing (`worker/live-realtime.mjs`, off unless `LIVE_REALTIME_ENABLED`).
-  The mock, the generic adapter and the OpenAI adapter pass one conformance
-  suite. A real speech engine and a live provider are not verified: the OpenAI
-  wire is written from its documentation and has never been run against it.
+  line format, and the keyed providers are built on it. The mock and the
+  generic adapter pass one conformance suite.
 
 ### 8.35 Literal text is escaped where the controls are read
 
@@ -1274,12 +1268,10 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 ### 8.38 Affect is an optional evaluator, not a judge of the session
 
-- **Chosen:** `src/affect/index.js` is a versioned, inspectable experience-state
-  layer. The player does not import it; `/emotions` is a separate room. Text
-  uses a contextual window and an unfitted linear prior. Visual, pace, type,
-  and audio dimensions come from existing parameters or caller-supplied
-  measurements. Hue maps to warmth, never valence. Evaluation cannot write a
-  session configuration.
+- **Chosen:** `src/affect/` is a versioned, inspectable experience-state layer
+  that only the Emotions map in Settings reads. Text uses a contextual window
+  and an unfitted linear prior. Hue maps to warmth, never valence. Evaluation
+  cannot write a session configuration.
 - **Rejected:** a generative model judging a live reading; one opaque score;
   hue-to-sadness rules; a transformer in the first-load bundle; fabricated
   labels used to fit a model; coupling the evaluator to JEV or Kev.
@@ -1287,10 +1279,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
   inspectable and usable without a model. The available affect labels do not
   support a reliable valence model; the documented probes remain evidence,
   not runtime dependencies.
-- **Status:** open. The schema, evaluator, pairwise judgments, benchmark
-  harness, phrase-addressed programs, optional modulation functions, and
-  the Emotions map in Settings are covered by unit tests. The player does not read affect
-  programs, and the experience remains feature-gated. See
+- **Status:** open. The player does not read affect. See
   `docs/affect/RESEARCH-LOG.md` for limitations and the record of evidence.
 
 ### 8.39 Home proposes; the reader decides where to enter
@@ -1361,9 +1350,9 @@ of `settled`, `open`, `deferred`, or `reversed`.
   dependencies.
 - **Status:** settled.
 
-### 8.43 Liturgies, journeys and keystones are programs in the Library, not rooms
+### 8.43 Liturgies and keystones are programs in the Library, not rooms
 
-- **Chosen:** one Library room with panes; the Rosary, the Stations, a journey,
+- **Chosen:** one Library room with panes; the Rosary, the Stations,
   a keystone sequence and the day's poem are catalog entries that open a pane.
 - **Rejected:** a routed room per corpus, nine in all.
 - **Why:** each was a different door onto the same engine with the same
@@ -1425,13 +1414,14 @@ of `settled`, `open`, `deferred`, or `reversed`.
 ### 8.47 The arena is a frozen file; live runs are the reader's
 
 - **Chosen:** the Decision Arena compares deciders on RISE's own fixed cases
-  offline. An operator runs `scripts/arena/arena.mjs` by hand, on the
+  offline. An operator ran the harness by hand (deleted from the tree after
+  a908c67c; restore it from git to capture a new run), on the
   operator's own keys, under a spending cap; it refuses to run in CI, and
   without an explicit billing flag whenever a billed decider is asked. A
   decider left out is recorded as `not run: <reason>`, in the run and its
   replay. The capture is frozen into one file named
   by the hash of its bytes, served immutable beside an index that revalidates.
-  `scripts/arena/arena-file.mjs` refuses a file whose bytes do not match its
+  The harness refused a file whose bytes do not match its
   name or are not the one canonical encoding, whose schema is unknown, or whose harness had uncommitted changes
   (a mock run, a pipeline check never committed, is exempt). Every decider's answers pass through the same `admitAnswers` the browser
   uses, and both the raw and the admitted decision are kept. Beside each run
@@ -1445,8 +1435,7 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Why:** a comparison anyone can check must be the same bytes for everyone,
   and RISE spends no shared inference (§2, #294). A frozen file costs nothing
   per view, names the commit that produced it, and cannot be edited without
-  changing its name. Nothing under `src/` imports the harness, and the built
-  app never names the OpenAI endpoint; `scripts/arena/arena.test.mjs` holds both.
+  changing its name. The built app never names the OpenAI endpoint.
 - **Status:** settled.
 
 ---
@@ -1460,8 +1449,8 @@ Stated plainly so it is never rediscovered as a surprise.
   `ROUTE_ALIASES` and `ROUTE_PANES` in `src/core/route-url.js` map each of them
   onto one of the five rooms. The table only grows; deleting an entry breaks
   an address somebody holds.
-- **The build needs ffmpeg.** Recitation is encoded to Opus
-  (`scripts/lib/opus.mjs`), and the offline render path encodes with it too
+- **The build needs ffmpeg.** Recitation is encoded to Opus,
+  and the offline render path encodes with it too
   (§8.5, §8.6). A machine without it cannot rebuild the voice assets.
 - **The corpus is still versioned in the application repository**, even though
   it no longer travels through the module graph. §8.2 removed the build-time

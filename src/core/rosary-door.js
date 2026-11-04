@@ -7,13 +7,13 @@
 
 export const ROSARY_DOOR_HASH = '#rosary';
 
-export function isRosaryDoor(locationLike = globalThis.location) {
-  return (locationLike?.hash || '') === ROSARY_DOOR_HASH;
+export function isRosaryDoor() {
+  return (globalThis.location?.hash || '') === ROSARY_DOOR_HASH;
 }
 
 /** The URL a complete-screen copy must write. Same door, no set, no clip. */
-export function rosaryDoorHref(locationLike = globalThis.location) {
-  const origin = locationLike?.origin || '';
-  const pathname = locationLike?.pathname || '/';
+export function rosaryDoorHref() {
+  const origin = globalThis.location?.origin || '';
+  const pathname = globalThis.location?.pathname || '/';
   return `${origin}${pathname}${ROSARY_DOOR_HASH}`;
 }

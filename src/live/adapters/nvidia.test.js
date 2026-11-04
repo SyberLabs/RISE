@@ -15,7 +15,7 @@ import { createCurrentStream } from '../stream.js';
 import { createSyntheticVoice } from '../voices/synthetic.js';
 import { createFakeNvidiaFetch, fakeNvidiaKey, openaiChunk, openaiClose, openaiOpen, openaiText } from '../../test/fake-direct-fetch.js';
 import { instructionsFor, promptFor } from './openai-instructions.js';
-import { liveProvider } from './registry.js';
+import { LIVE_PROVIDERS } from './registry.js';
 import { createNvidiaAdapter, errorOf, isNvidiaModel, NVIDIA_CHAT_URL, NVIDIA_DEFAULT_MODEL, NVIDIA_UNREACHABLE } from './nvidia.js';
 
 const ASK = { intent: 'answer', prompt: 'Explain black holes.' };
@@ -64,7 +64,7 @@ describe('what it is', () => {
     });
 
     it('is offered on a typed key that goes to NVIDIA, with the sentence its failure would say shown before the key is typed', () => {
-        expect(liveProvider('nvidia')).toMatchObject({ label: 'NVIDIA (your key)', credential: 'key', keyName: 'NVIDIA', keyGoesTo: 'NVIDIA', note: NVIDIA_UNREACHABLE });
+        expect(LIVE_PROVIDERS.find(entry => entry.id === 'nvidia')).toMatchObject({ label: 'NVIDIA (your key)', credential: 'key', keyName: 'NVIDIA', keyGoesTo: 'NVIDIA', note: NVIDIA_UNREACHABLE });
     });
 });
 

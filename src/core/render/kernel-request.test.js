@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { EXPERIENCE_PROGRAM_SCHEMA } from '../experience-program.js';
 import {
   DEFAULT_RENDER_PROFILE_ID,
-  EXPORT_MP4_PATH,
   KERNEL_REQUEST_SCHEMA,
   buildKernelRequest,
   kernelRequestFromWorkshopPayload,
@@ -60,7 +59,6 @@ describe('kernel request hopper', () => {
   });
 
   it('names the CLI for a downloaded kernel request', () => {
-    expect(EXPORT_MP4_PATH).toBe('/__rise/export-mp4');
     expect(renderCliCommand('score-1.kernel-request.json'))
       .toBe('npm run render:mp4 -- score-1.kernel-request.json');
   });

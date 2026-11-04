@@ -107,12 +107,8 @@ export class Scriptorium {
   // ── The sequence's state, read rather than copied ────────────────────────
   get intent() { return this.session.intent; }
   get targetWords() { return this.session.targetWords; }
-  get lengthChosen() { return this.session.lengthChosen; }
   get materials() { return this.session.materials; }
-  get swells() { return this.session.swells; }
   get localWorks() { return this.session.localWorks; }
-  get jevRoute() { return this.session.jevRoute; }
-  get jevRouteRequestId() { return this.session.jevRouteRequestId; }
   get context() { return this.session.context; }
   get promptText() { return this.session.promptText; }
   get pasted() { return this.session.pasted; }
@@ -122,8 +118,6 @@ export class Scriptorium {
   get preview() { return this.session.preview; }
   get rundown() { return this.session.rundown; }
   get verdict() { return this.session.verdict; }
-  get projectId() { return this.session.projectId; }
-  get producer() { return this.session.producer; }
   get status() { return this.session.status; }
   set status(value) { this.session.status = value; }
 

@@ -70,7 +70,7 @@ export function buildVisualScoreDecision(request) {
 }
 
 /** Map admitted provider answers to choices; null on any irregularity. */
-export function choicesFromProvider(value, request) {
+function choicesFromProvider(value, request) {
   const answers = value?.answers;
   if (!answers || typeof answers !== 'object' || Array.isArray(answers)) return null;
   if (Object.keys(answers).length !== request.blocks.length * 2) return null;

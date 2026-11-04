@@ -37,7 +37,6 @@ export class WorkEngineField {
      * @param {number} [options.dwellMs] how long one engine holds
      * @param {number} [options.crossfadeMs] the fade between engines
      * @param {boolean} [options.reducedMotion] draw one frame and hold
-     * @param {number} [options.timeScale]
      * @param {() => object} [options.getSignal] semantic signal for step()
      */
     constructor(host, options = {}) {
@@ -47,7 +46,6 @@ export class WorkEngineField {
         this.dwellMs = Math.max(4000, options.dwellMs ?? 20000);
         this.crossfadeMs = Math.max(0, options.crossfadeMs ?? 2400);
         this.reducedMotion = !!options.reducedMotion;
-        this.timeScale = options.timeScale ?? TIME_SCALE;
         this.getSignal = typeof options.getSignal === 'function'
             ? options.getSignal
             : () => ({});
@@ -354,7 +352,7 @@ export class WorkEngineField {
             // is not frozen while it fades out.
             if (dt > 0) {
                 try {
-                    plane.engine.step?.(dt * this.timeScale, signal);
+                    plane.engine.step?.(dt * TIME_SCALE, signal);
                 } catch (error) {
                     console.warn('[WorkEngines] step failed:', error?.message || error);
                     plane.engine = null;

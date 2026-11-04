@@ -28,7 +28,6 @@ const LOAD_ATTEMPTS = 2;
 
 const LEAD = 12;
 const LEAD_TO_BEGIN = 8;
-const STARVED = 1;
 
 export class Voice {
     constructor({
@@ -68,7 +67,6 @@ export class Voice {
         this._queue = Promise.resolve();
         this._warned = new Set();
         this._reportedPlayback = false;
-        this.onProgress = null;
         // Told once when a clip answers 402: the Plus voice is no longer paid for.
         this.onLapse = null;
         this._signal = signal;
@@ -305,10 +303,6 @@ export class Voice {
         };
     }
 
-    get starved() {
-        return this._cache.size <= STARVED;
-    }
-
     stop() {
         if (!this._current) return;
         const playback = this._current;
@@ -416,11 +410,6 @@ export class Voice {
                     sampleRate
                 };
                 if (index >= this._readerIndex - 2) this._cache.set(index, entry);
-                this.onProgress?.({
-                    phase: 'asset',
-                    loaded: this._cache.size,
-                    total: LEAD
-                });
                 return entry;
             } catch (error) {
                 if (error?.name !== 'AbortError') {

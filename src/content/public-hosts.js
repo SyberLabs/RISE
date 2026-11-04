@@ -8,7 +8,7 @@
 
 import { KEYSTONE_MANIFESTS, TRY_RISE_PATH } from './keystones.js';
 
-export const RISE_CANONICAL_HOST = 'rise.syberlabs.space';
+const RISE_CANONICAL_HOST = 'rise.syberlabs.space';
 export const RISE_CANONICAL_ORIGIN = `https://${RISE_CANONICAL_HOST}`;
 
 function freeze(value) {

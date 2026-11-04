@@ -12,10 +12,7 @@
  * canvas never strobes: nothing changes brightness faster than it moves.
  */
 
-const PALETTES = {
-    neon: ['255,46,170', '0,190,255', '154,107,255', '255,120,220', '120,230,255', '255,181,74'],
-    ice: ['144,216,240', '72,144,240', '238,240,255']
-};
+const NEON = ['255,46,170', '0,190,255', '154,107,255', '255,120,220', '120,230,255', '255,181,74'];
 
 const COUNT = 260;
 const REDUCED_STILL_SECONDS = 7.5;
@@ -33,13 +30,12 @@ function mulberry32(seed) {
 export class NightStreaks {
     /**
      * @param {HTMLElement} host
-     * @param {{speed?:number,intensity?:number,palette?:string,seed?:number}} options
+     * @param {{speed?:number,intensity?:number}} options
      */
     constructor(host, options = {}) {
         this.host = host;
         this.speed = clampSpeed(options.speed);
         this.intensity = options.intensity ?? 0.8;
-        this.palette = PALETTES[options.palette] ? options.palette : 'neon';
         // Kept, not read once: the reader may turn reduced motion on mid-reading.
         this.reducedQuery = typeof window.matchMedia === 'function'
             ? window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -50,7 +46,7 @@ export class NightStreaks {
         host.appendChild(this.canvas);
         this.ctx = this.canvas.getContext('2d');
 
-        const rnd = mulberry32(options.seed ?? 20260927);
+        const rnd = mulberry32(20260927);
         this.streaks = Array.from({ length: COUNT }, () => {
             const side = rnd() < 0.5 ? -1 : 1;
             const band = rnd();
@@ -89,18 +85,6 @@ export class NightStreaks {
 
     motionTime(now) { return this._motionBase + ((now - this.t0) / 1000) * this.speed; }
 
-    setSpeed(speed) {
-        const next = clampSpeed(speed);
-        if (next === this.speed) return false;
-        const now = performance.now();
-        this._motionBase = this.motionTime(now);
-        this.t0 = now;
-        this.speed = next;
-        return true;
-    }
-
-    setIntensity(v) { if (Number.isFinite(v)) this.intensity = Math.min(1, Math.max(0.2, v)); }
-
     draw(t) {
         const { ctx, W, H } = this;
         if (!ctx || !W || !H) return;
@@ -109,7 +93,7 @@ export class NightStreaks {
         ctx.globalCompositeOperation = 'lighter';
         ctx.lineCap = 'round';
 
-        const colors = PALETTES[this.palette];
+        const colors = NEON;
         const f = Math.min(W, H) * 0.55;
         // drift: the vanishing point sways and the road bends with it
         const sway = Math.sin(t * 0.23) * 0.7 + Math.sin(t * 0.61 + 1.1) * 0.3;

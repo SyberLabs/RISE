@@ -329,12 +329,6 @@ export class RosaMystica {
     this._applyMode();
   }
 
-  reseed(seed) {
-    this.seed = Number.isInteger(seed) ? seed : ((Math.random() * 0xffffff) | 0);
-    this.seedF = mulberry(this.seed)();
-    this.renderOnce();
-  }
-
   _applyMode() {
     if (!this.gl) return;
     // Hosts style per mode (VERBUM claims a larger frame — grain

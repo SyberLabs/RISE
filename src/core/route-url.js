@@ -21,10 +21,10 @@
 import { KEYSTONE_ROUTE_PREFIX, TRY_RISE_PATH } from './keystone-paths.js';
 import { ARENA_DECIDERS } from './jev-demo-path.js';
 
-export const VISUAL_LAB_PATH = '/visual-lab';
-export const VISUAL_CATALOG_PATH = '/visual-catalog';
+const VISUAL_LAB_PATH = '/visual-lab';
+const VISUAL_CATALOG_PATH = '/visual-catalog';
 export const LIVE_PATH = '/live';
-export const EMOTIONS_PATH = '/emotions';
+const EMOTIONS_PATH = '/emotions';
 
 /**
  * Every id RISE has routed stays valid forever, mapped onto one of the five
@@ -66,7 +66,6 @@ export const ROUTE_PANES = {
     chapel: 'chapel',
     rosarium: 'rosary',
     via: 'stations',
-    journeys: 'journeys',
     keystones: 'keystones',
     mint: 'mint',
     curia: 'provenance',
@@ -198,7 +197,8 @@ const ROUTES = [
         })
     }),
     pane('stations', { pattern: '/library/stations', build: () => '/library/stations' }),
-    pane('journeys', { pattern: '/library/journeys', build: () => '/library/journeys' }),
+    // Journeys were withdrawn; an old address lands on the Library.
+    { id: 'library', pattern: '/library/journeys', build: null, parse: () => ({}) },
     pane('mint', { pattern: '/library/mint', build: () => '/library/mint' }),
     pane('provenance', { pattern: '/library/provenance', build: () => '/library/provenance' }),
 

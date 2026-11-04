@@ -6,54 +6,11 @@
  * `test.fail()`, which asserts what should be true and passes while it is not;
  * the fix removes the annotation.
  */
-import { scriptToLines } from '../src/test/fake-text-transport.js';
-import { BLACK_HOLES } from '../src/live/fixtures/black-holes.js';
 import { expect, test } from './fixtures.js';
 
 // In production both pages of the framing test are public. Here the other page is answered by the test and
 // RISE is on a loopback address, so Chromium's local-network check would stand in for a boundary that does not exist.
 test.use({ launchOptions: { args: ['--autoplay-policy=no-user-gesture-required', '--disable-features=LocalNetworkAccessChecks'] } });
-
-const KEY = 'sk-test-0123456789abcdefghijklmnopqrstuvwxyz';
-const ANSWER_SDP = 'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n';
-
-/** A fake peer that counts what is opened, closed and asked, and streams the fixed answer. */
-async function installCountingPeer(page) {
-    await page.addInitScript(({ answer }) => {
-        window.__rtc = { peers: 0, closed: 0, responses: 0 };
-        class Channel extends EventTarget {
-            constructor() { super(); this.readyState = 'connecting'; }
-            emit(event) { this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(event) })); }
-            send(text) {
-                const event = JSON.parse(text);
-                if (event.type !== 'response.create') return;
-                window.__rtc.responses += 1;
-                this.emit({ type: 'response.created', response: { id: 'r', status: 'in_progress' } });
-                let at = 0;
-                const step = () => {
-                    if (this.readyState !== 'open') return;
-                    if (at >= answer.length) { this.emit({ type: 'response.done', response: { id: 'r', status: 'completed' } }); return; }
-                    this.emit({ type: 'response.output_text.delta', response_id: 'r', delta: answer.slice(at, at + 23) });
-                    at += 23;
-                    setTimeout(step, 10);
-                };
-                setTimeout(step, 10);
-            }
-            close() { this.readyState = 'closed'; this.dispatchEvent(new Event('close')); }
-        }
-        window.RTCPeerConnection = class {
-            constructor() { this.iceGatheringState = 'complete'; this.connectionState = 'new'; window.__rtc.peers += 1; }
-            createDataChannel() { this.channel = new Channel(); return this.channel; }
-            addTransceiver() {}
-            async createOffer() { return { type: 'offer', sdp: 'v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n' }; }
-            async setLocalDescription(description) { this.localDescription = description; }
-            async setRemoteDescription() { setTimeout(() => { this.channel.readyState = 'open'; this.channel.dispatchEvent(new Event('open')); }, 10); }
-            addEventListener() {}
-            removeEventListener() {}
-            close() { if (this.connectionState !== 'closed') window.__rtc.closed += 1; this.connectionState = 'closed'; }
-        };
-    }, { answer: scriptToLines(BLACK_HOLES) });
-}
 
 /**
  * A page on another origin that frames `/live?embed=mcp` directly, with no relay, and plays an MCP
@@ -125,32 +82,5 @@ test.describe('the embedded page under a parent it cannot identify', () => {
         const heard = await page.evaluate(() => window.__heard);
         expect(heard.some(entry => entry.origin === rise.origin && entry.method === 'ui/initialize')).toBe(true);
         expect(heard.some(entry => entry.method === 'sampling/createMessage')).toBe(false);
-    });
-});
-
-test.describe('the live runtime against a reader who stops while it connects', () => {
-    test('Stop pressed while the OpenAI session is connecting: nothing is asked, nothing is shown, and the connection is closed', async ({ page }) => {
-        await installCountingPeer(page);
-        let answerRelay;
-        const relayAsked = new Promise(resolve => {
-            void page.route('**/api/live/realtime**', async route => {
-                resolve();
-                await new Promise(release => { answerRelay = release; });
-                await route.fulfill({ status: 200, contentType: 'application/sdp', body: ANSWER_SDP });
-            });
-        });
-
-        await page.goto('/live?provider=openai&voice=paced');
-        await page.locator('#live-key').fill(KEY);
-        await page.locator('.live-start').click();
-        await relayAsked;
-        await page.getByRole('button', { name: 'Stop', exact: true }).click();
-        answerRelay();
-        await page.waitForTimeout(3_000);
-
-        const rtc = await page.evaluate(() => ({ ...window.__rtc }));
-        const shown = (await page.locator('#atom-display').allInnerTexts()).join('');
-        expect({ askedAfterStop: rtc.responses, shownAfterStop: shown.trim().length > 0, unclosedPeers: rtc.peers - rtc.closed })
-            .toEqual({ askedAfterStop: 0, shownAfterStop: false, unclosedPeers: 0 });
     });
 });

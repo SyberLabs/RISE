@@ -207,7 +207,7 @@ async function gitSnapshot(root) {
   }
 }
 
-export async function trackerSnapshot(root) {
+async function trackerSnapshot(root) {
   const [tasks, git] = await Promise.all([loadTasks(root), gitSnapshot(root)]);
   return { tasks, ...git, generatedAt: new Date().toISOString() };
 }
@@ -244,7 +244,7 @@ export function createTrackerServer(root) {
   });
 }
 
-export async function serveTracker(root, port = 4173) {
+export async function serveTracker(root, port) {
   const server = createTrackerServer(root);
   await new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -261,7 +261,7 @@ function markStaticHtml(html) {
   return html.replace(/<html\b([^>]*)>/i, '<html$1 data-tracker-mode="static">');
 }
 
-export async function buildTracker(root, out = path.join(root, '.roadmap-dashboard')) {
+export async function buildTracker(root, out) {
   const absoluteRoot = path.resolve(root);
   const absoluteOut = path.resolve(out);
   const payload = await trackerSnapshot(absoluteRoot);

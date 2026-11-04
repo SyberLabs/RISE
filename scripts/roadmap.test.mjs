@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
-import { createTrackerServer, loadTasks, updateTask, validateTasks } from './lib/roadmap.mjs';
+import { createTrackerServer, updateTask, validateTasks } from './lib/roadmap.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const node = process.execPath;

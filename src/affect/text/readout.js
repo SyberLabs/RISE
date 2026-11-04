@@ -17,7 +17,7 @@ function row(partial) {
     return FEATURE_NAMES.map(name => partial[name] ?? 0);
 }
 
-export const READOUT = Object.freeze({
+const READOUT = Object.freeze({
     valence: Object.freeze({
         bias: 0,
         weights: Object.freeze(row({ valenceLex: 0.8, warmthLex: 0.15, solemnRate: -0.35 }))
@@ -153,8 +153,4 @@ export function linearCore(values) {
         out[dimension.id] = spec.bias + dot(spec.weights, values);
     }
     return out;
-}
-
-export function matrixColumns() {
-    return DIMENSIONS.map(dimension => READOUT[dimension.id].weights);
 }

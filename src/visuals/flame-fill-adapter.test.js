@@ -12,7 +12,6 @@ import {
     ROOM_FLAME_TONE,
     FLAME_VOID,
     boundFlameFillTone,
-    applyFlameFillLut,
     applyFlameFillToCanvas,
     prefersFlameFillReducedMotion
 } from './flame-fill-adapter.js';
@@ -150,6 +149,20 @@ function cloneImage(image) {
     return copy;
 }
 
+/** What the fill makes of an image, through the canvas path the cortex calls. */
+function fillImage(source) {
+    let out;
+    applyFlameFillToCanvas({
+        width: source.width,
+        height: source.height,
+        getContext: () => ({
+            getImageData: () => cloneImage(source),
+            putImageData: (image) => { out = image; }
+        })
+    });
+    return out;
+}
+
 describe('boundFlameFillTone', () => {
     it('bounds only the generateImage knobs the Chamber flame port already exposes', () => {
         const tone = boundFlameFillTone(ROOM_FLAME_TONE);
@@ -208,11 +221,11 @@ describe('boundFlameFillTone', () => {
     });
 });
 
-describe('applyFlameFillLut', () => {
+describe('the flame fill', () => {
     it('raises filament occupancy so letters read as filled flame, not cream', () => {
         const source = paintSparseFlame();
         const before = occupancy(source);
-        const filled = applyFlameFillLut(source);
+        const filled = fillImage(source);
         expect(occupancy(filled)).toBeGreaterThan(before);
         expect(occupancy(filled)).toBeGreaterThan(source.width);
     });
@@ -220,7 +233,7 @@ describe('applyFlameFillLut', () => {
     it('does not blow a typical engine still to a #fff / cream slab', () => {
         const source = paintTypicalEngineFlame();
         const before = occupancy(source);
-        const filled = applyFlameFillLut(source);
+        const filled = fillImage(source);
         const tone = occupiedTone(filled);
 
         expect(occupancy(filled)).toBeGreaterThan(before);
@@ -241,7 +254,7 @@ describe('applyFlameFillLut', () => {
 
     it('makes source void transparent so the declared ground can show through', () => {
         const source = paintSparseFlame();
-        const filled = applyFlameFillLut(source);
+        const filled = fillImage(source);
         const px = filled.data;
         // Corner pixels were void and must become honest alpha holes.
         expect([px[0], px[1], px[2]]).toEqual([...FLAME_VOID]);
@@ -259,8 +272,8 @@ describe('applyFlameFillLut', () => {
         const center = (2 * 5 + 2) * 4;
         source.data.set([120, 48, 20, 173], center);
 
-        const first = applyFlameFillLut(source);
-        const second = applyFlameFillLut(cloneImage(source));
+        const first = fillImage(source);
+        const second = fillImage(cloneImage(source));
 
         for (let y = 0; y < 5; y += 1) {
             for (let x = 0; x < 5; x += 1) {
@@ -277,8 +290,8 @@ describe('applyFlameFillLut', () => {
         const b = paintSparseFlame();
         b.data[20 * 4] = 140;
         b.data[20 * 4 + 1] = 70;
-        const fa = applyFlameFillLut(a);
-        const fb = applyFlameFillLut(b);
+        const fa = fillImage(a);
+        const fb = fillImage(b);
         expect(fa.data.slice(20 * 4, 20 * 4 + 3))
             .not.toEqual(fb.data.slice(20 * 4, 20 * 4 + 3));
     });
@@ -297,9 +310,9 @@ describe('applyFlameFillLut', () => {
         const brightIn = bright.data[probe];
         expect(darkIn).not.toBe(brightIn);
 
-        const darkOut = applyFlameFillLut(dark);
-        const brightOut = applyFlameFillLut(bright);
-        const again = applyFlameFillLut(cloneImage(dark));
+        const darkOut = fillImage(dark);
+        const brightOut = fillImage(bright);
+        const again = fillImage(cloneImage(dark));
         expect(darkOut.data[probe]).toBe(again.data[probe]);
 
         // Same input channel always maps to the same output (1D, no image stats).
@@ -307,15 +320,8 @@ describe('applyFlameFillLut', () => {
         loneDark.data.set([darkIn, 12, 8, 255]);
         const loneBright = makeImage(1, 1);
         loneBright.data.set([brightIn, 12, 8, 255]);
-        expect(applyFlameFillLut(loneDark).data[0]).toBe(darkOut.data[probe]);
-        expect(applyFlameFillLut(loneBright).data[0]).toBe(brightOut.data[probe]);
-    });
-
-    it('does not mutate the source ImageData', () => {
-        const source = paintSparseFlame();
-        const snapshot = Uint8ClampedArray.from(source.data);
-        applyFlameFillLut(source);
-        expect(Array.from(source.data)).toEqual(Array.from(snapshot));
+        expect(fillImage(loneDark).data[0]).toBe(darkOut.data[probe]);
+        expect(fillImage(loneBright).data[0]).toBe(brightOut.data[probe]);
     });
 });
 

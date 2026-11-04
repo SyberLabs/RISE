@@ -1,13 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { USER_DATA_KEYS } from './user-data-keys.js';
 import {
-    deleteSequencePilotFeedback,
-    exportSequencePilotFeedback,
     listSequencePilotFeedback,
     saveSequencePilotFeedback
 } from './sequence-pilot-feedback.js';
 
-const answer = { sequenceId: 'pilot-1', version: 1, value: 'yes', returnIntent: 'maybe' };
+const answer = { sequenceId: 'pilot-1', version: 1, value: 'yes' };
 
 describe('sequence pilot feedback', () => {
     afterEach(() => localStorage.clear());
@@ -23,6 +21,15 @@ describe('sequence pilot feedback', () => {
 
         expect(listSequencePilotFeedback()).toEqual([answer]);
         expect(localStorage.getItem(USER_DATA_KEYS.sequencePilotFeedback)).not.toMatch(/private/);
+    });
+
+    it('still reads a return intent stored by an earlier version', () => {
+        const stored = { ...answer, returnIntent: 'maybe' };
+        localStorage.setItem(USER_DATA_KEYS.sequencePilotFeedback, JSON.stringify([stored]));
+
+        expect(listSequencePilotFeedback()).toEqual([stored]);
+        saveSequencePilotFeedback({ sequenceId: 'pilot-2', version: 1, value: 'no', consent: true });
+        expect(listSequencePilotFeedback()[0]).toEqual(stored);
     });
 
     it('rejects free text and invalid choices before storage', () => {
@@ -52,13 +59,4 @@ describe('sequence pilot feedback', () => {
         ]);
     });
 
-    it('exports only by explicit choice and deletes locally on opt out', () => {
-        saveSequencePilotFeedback({ ...answer, consent: true });
-        expect(() => exportSequencePilotFeedback()).toThrow(/consent/i);
-        expect(exportSequencePilotFeedback({ consent: true })).toEqual([answer]);
-
-        deleteSequencePilotFeedback();
-        expect(listSequencePilotFeedback()).toEqual([]);
-        expect(localStorage.getItem(USER_DATA_KEYS.sequencePilotFeedback)).toBeNull();
-    });
 });

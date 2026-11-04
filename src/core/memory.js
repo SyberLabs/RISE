@@ -85,7 +85,6 @@ export class MemoryCore {
   static _workshopLeaseHeartbeat = null;
   static _workshopLeasePagehideHandler = null;
   static _workshopLeasePageshowHandler = null;
-  static _workshopLeaseStorageHealthy = true;
   static _workshopLeasePublishPending = null;
   static _workshopDeferredAssetDeletes = new Set();
   static _workshopDeferredDeleteTimer = null;
@@ -147,10 +146,8 @@ export class MemoryCore {
       } else {
         localStorage.removeItem(key);
       }
-      this._workshopLeaseStorageHealthy = true;
       return true;
     } catch (error) {
-      this._workshopLeaseStorageHealthy = false;
       console.warn('[Memory] Workshop media lease publish failed:', error);
       return false;
     }
@@ -178,9 +175,7 @@ export class MemoryCore {
   static _removeWorkshopContextLease() {
     try {
       localStorage.removeItem(`${WORKSHOP_MEDIA_LEASE_PREFIX}${this._workshopContextId}`);
-      this._workshopLeaseStorageHealthy = true;
     } catch (error) {
-      this._workshopLeaseStorageHealthy = false;
       console.warn('[Memory] Workshop media lease release failed:', error);
     }
   }
@@ -230,9 +225,7 @@ export class MemoryCore {
     try {
       localStorage.setItem(probeKey, WORKSHOP_MEDIA_LEASE_PROBE_VALUE);
       localStorage.removeItem(probeKey);
-      this._workshopLeaseStorageHealthy = true;
     } catch (error) {
-      this._workshopLeaseStorageHealthy = false;
       console.warn('[Memory] Workshop media lease storage unavailable:', error);
       return true;
     }

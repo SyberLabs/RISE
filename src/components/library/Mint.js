@@ -100,9 +100,6 @@ export class Mint {
     this.render();
   }
 
-  activate() {}
-  deactivate() {}
-
   destroy() {
     this._events.abort();
     this.container.innerHTML = '';

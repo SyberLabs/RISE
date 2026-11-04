@@ -5,7 +5,7 @@
  * Profiles change layout only — never source text, cues, or assets.
  */
 
-export const RENDER_QUALITY_TIERS = Object.freeze({
+const RENDER_QUALITY_TIERS = Object.freeze({
   draft: Object.freeze({
     id: 'draft',
     scale: 0.25,
@@ -21,12 +21,6 @@ export const RENDER_QUALITY_TIERS = Object.freeze({
     thumbnailMaxEdge: 320
   })
 });
-
-export const DISTRIBUTION_PROFILE_IDS = Object.freeze([
-  'social-portrait-1080',
-  'social-square-1080',
-  'cinema-landscape-1080'
-]);
 
 export function qualityTier(id = 'draft') {
   return RENDER_QUALITY_TIERS[id] || RENDER_QUALITY_TIERS.draft;

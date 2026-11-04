@@ -12,7 +12,7 @@ import {
     validateExperienceProgram
 } from './experience-program.js';
 import { applyNarrationTiming, applyProgressPace, buildReadingPlan, paceFactor } from './reading-score.js';
-import { compileSession, estimateCompiledDuration } from './session-compiler.js';
+import { compileSession } from './session-compiler.js';
 import {
     describeImportFailure,
     workshopProjectFromImportedProgram
@@ -186,15 +186,6 @@ describe('an unscored reading compiles exactly as it always did', () => {
         expect(plan.progressPace).toEqual([]);
     });
 
-    it('keeps estimates constant when no launch authors a pace', () => {
-        const input = {
-            sources: [{ id: 'dover', name: 'Dover Beach', type: 'text', data: PROSE }],
-            wpm: 320,
-            chunkMode: 'word'
-        };
-        expect(estimateCompiledDuration(input)).toBe(estimateCompiledDuration(input));
-        expect(estimateCompiledDuration(input)).toBe(compile(null).totalDuration);
-    });
 });
 
 describe('a scored pace reaches the atoms', () => {

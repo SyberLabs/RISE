@@ -15,7 +15,6 @@ import {
   STATIONS_VERSICLE,
   STATIONS_RESPONSE
 } from './stations.js';
-import { ROSARY_PRAYERS } from './rosary.js';
 
 const DURATIONS = Object.freeze({
   opening: 9000,

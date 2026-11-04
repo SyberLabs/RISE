@@ -121,9 +121,6 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     await expect.poll(() => pageCount(page), { timeout: 10_000 }).toBeGreaterThan(1);
 
     // Page holds Stream: Space/Play must not start playback underneath.
-    const scrollBefore = await page.evaluate(() =>
-        document.querySelector('#chamber-page').scrollTop);
-
     await page.keyboard.press('Space');
     await page.waitForTimeout(600);
 

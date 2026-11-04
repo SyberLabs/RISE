@@ -20,7 +20,7 @@ import { MemoryCore } from '../../core/memory.js';
 import { WorkshopMedia, WorkshopMediaError } from '../../core/workshop-media.js';
 import { hydrateSessionSequenceAssets } from '../../core/workshop-asset-durability.js';
 import { workshopProjectToSessionConfig } from '../../core/workshop-project.js';
-import { boundarySourceId, isBoundarySource } from '../../core/journey-compiler.js';
+import { BOUNDARY_SOURCE_PREFIX, isBoundarySource } from '../../core/experience-program.js';
 import {
     MAX_SAFE_TARGET_WORDS,
     READING_LIMITS,
@@ -501,8 +501,11 @@ describe('the Scriptorium as the reader meets it', () => {
             expect([...held].sort()).toEqual([...SEQUENCE_STATE].sort());
         });
 
+        /** Session state the room never reads, so it has no getter to prove. */
+        const UNREAD = Object.freeze(['lengthChosen', 'swells', 'jevRoute', 'jevRouteRequestId', 'projectId']);
+
         it('reports whatever the session currently holds, and forgets when it does', () => {
-            for (const field of SEQUENCE_STATE) {
+            for (const field of SEQUENCE_STATE.filter(name => !UNREAD.includes(name))) {
                 const first = { field, generation: 1 };
                 const second = { field, generation: 2 };
                 room.session[field] = first;
@@ -667,7 +670,7 @@ describe('the resolver stub names the ids the real resolver names', () => {
             tracks: [{
                 id: 'm',
                 kind: 'movement',
-                clips: [clip('m1', { sourceIds: ['nowhere-a', boundarySourceId('to-hero')] })]
+                clips: [clip('m1', { sourceIds: ['nowhere-a', `${BOUNDARY_SOURCE_PREFIX}to-hero`] })]
             }]
         },
         {

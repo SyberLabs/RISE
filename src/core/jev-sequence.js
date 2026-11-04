@@ -87,7 +87,7 @@ function phaseNames(count) {
  * @param {Object} value
  * @returns {Object|null} A canonical source-coordinate visual program.
  */
-export function buildJevVisualProgram(value = {}) {
+export function compileJevVisualProgram(value = {}) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   if (value.visualMode === 'off') return null;
 
@@ -159,8 +159,6 @@ export function compileJevAudioProgram(value = {}) {
     fallback: { kind: 'silence', fadeMs: 500 }
   };
 }
-
-export const compileJevVisualProgram = buildJevVisualProgram;
 
 /** Bring the next admitted Jev scene forward to a point within the current scene. */
 export function advanceJevVisualArc(program, sourceProgress) {

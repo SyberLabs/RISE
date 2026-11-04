@@ -155,7 +155,7 @@ export function narrationAssignmentsFromClips(clips = []) {
   });
 }
 
-export function clipsFromNarrationAssignments(assignments = []) {
+function clipsFromNarrationAssignments(assignments = []) {
   return assignments.map((assignment) => {
     const clip = {
       id: assignment.id,

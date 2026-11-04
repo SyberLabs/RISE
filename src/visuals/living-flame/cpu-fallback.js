@@ -10,7 +10,7 @@ import { createRng, paletteLut, resolveFlameFrame } from './flame-math.js';
 const MAX_SIDE = 720;
 
 /** Load one resolved recipe frame into a FractalFlameGenerator. */
-export function configureFlameGenerator(generator, recipe, seconds = 0, energy = 0.35) {
+function configureFlameGenerator(generator, recipe, seconds = 0, energy = 0.35) {
   const frame = resolveFlameFrame(recipe, seconds, energy);
   generator.clearTransforms?.();
   generator.backgroundColor = [0, 0, 0];

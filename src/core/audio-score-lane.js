@@ -48,7 +48,7 @@ function cue(value) {
   return Object.freeze({ ...value });
 }
 
-export function createAudioScoreAsset(value) {
+function createAudioScoreAsset(value) {
   if (value?.schema === EDITOR_ASSET_SCHEMA) {
     const asset = validateEditorAsset(value);
     if (!['audio', 'swell'].includes(asset.lane) || !editorAssetSupports(asset, 'span')) {

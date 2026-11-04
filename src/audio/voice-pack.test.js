@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import heartBeta from '../../scripts/voice-packs/heart-beta.mjs';
 import { splitWords } from '../core/recitation.js';
 import {
     availableVoicePacks,
@@ -17,23 +16,6 @@ describe('shipped Recitation pack', () => {
             label: 'Heart — warm, the reference voice',
             entryCount: 877
         }]);
-    });
-
-    it('covers every speakable atom in the Heart beta session', () => {
-        const atoms = heartBeta.sessions[0].atoms;
-        const speakable = atoms.filter(atom => speakableText(atom));
-        expect(speakable.length).toBeGreaterThan(90);
-
-        for (const atom of speakable) {
-            expect(
-                resolveVoicePackEntry(
-                    'af_heart',
-                    atom,
-                    voicePackManifest
-                ),
-                `missing static speech for "${speakableText(atom)}"`
-            ).not.toBeNull();
-        }
     });
 
     it('ships every manifest asset as a nonempty WAV', () => {

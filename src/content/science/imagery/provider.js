@@ -5,11 +5,11 @@
  * pinned-works provider calls `resolveCollection` because its pins are
  * museum object ids that must be turned into image URLs; these works arrive
  * already resolved, rights-checked and credit-composed by
- * `build-science-catalog.mjs`. There is nothing left to fetch, so this
+ * the harvest that froze the catalog. There is nothing left to fetch, so this
  * makes no network request at all.
  *
  * That is the whole point of the arrangement rather than a happy accident:
- * `connect-src` in netlify.toml does not list ESA/Hubble, NASA or
+ * `connect-src` in public/_headers does not list ESA/Hubble, NASA or
  * api.si.edu, and it does not need to (SOURCE-EXPANSION-SPEC §3a, "the API
  * key never leaves the workstation"). The reader's browser fetches images
  * and nothing else.
@@ -24,7 +24,7 @@
 import { ShuffleBag } from '../../../sources/visual/shuffle-bag.js';
 
 /** Panel-issued ids are namespaced so they never collide with `aic-`. */
-export const SCIENCE_PREFIX = 'sci-';
+const SCIENCE_PREFIX = 'sci-';
 
 export const bareCategory = (categoryId) =>
     String(categoryId || '').startsWith(SCIENCE_PREFIX)
@@ -61,9 +61,9 @@ async function loadCatalog(bare) {
 }
 
 export class ScienceCatalogProvider {
-    constructor(options = {}) {
-        this.id = options.id || 'science-catalog';
-        this.name = options.name || 'Science collections';
+    constructor() {
+        this.id = 'science-catalog';
+        this.name = 'Science collections';
         this.contentType = 'image';
         // A curated collection is finite; raw random would repeat a
         // nebula before the reader had seen the rest.
@@ -150,11 +150,6 @@ export class ScienceCatalogProvider {
                 sourceName: work.sourceName,
                 favourite: favourites.has(work.id)
             }));
-    }
-
-    /** Already resolved; nothing further to fetch. */
-    async getImageInfo(item) {
-        return item || null;
     }
 }
 

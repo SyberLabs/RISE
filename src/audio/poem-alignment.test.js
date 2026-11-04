@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { splitWords } from '../core/recitation.js';
-import { checkClip, cutPoints, groupAtoms, mapAlignment, sliceClips, spokenText } from './poem-alignment.js';
+import { mapAlignment } from './poem-alignment.js';
 
 // Lines from Spoon River (Lyman King, Sam Hookey), with the edition's word
 // joiner before an em-dash, a lone dash token, curly quotes and a stanza break.
@@ -45,31 +45,8 @@ function alignmentFor(text, { dropFrom = null } = {}) {
   return { characters, character_start_times_seconds: starts, character_end_times_seconds: ends };
 }
 
-/** Synthetic PCM: tone wherever a letter is spoken, near-silence elsewhere. */
-function pcmFor(alignment, sampleRate = 8000) {
-  const total = alignment.character_end_times_seconds.at(-1) + 1;
-  const pcm = new Float32Array(Math.ceil(total * sampleRate)).fill(0.001);
-  alignment.characters.forEach((ch, i) => {
-    if (!/\p{L}/u.test(ch)) return;
-    const a = Math.floor(alignment.character_start_times_seconds[i] * sampleRate);
-    const b = Math.floor(alignment.character_end_times_seconds[i] * sampleRate);
-    for (let s = a; s < b; s++) pcm[s] = 0.5 * Math.sin(s / 3);
-  });
-  return pcm;
-}
-
-describe('spokenText', () => {
-  it('drops format characters and runs of spaces, and keeps the line and stanza breaks', () => {
-    const spoken = spokenText(CONTENT);
-    expect(spoken).not.toMatch(/⁠/u);
-    expect(spoken).toContain('many—\nIt was');
-    expect(spoken).toContain('other men,\n\nAnd the floral');
-    expect(spokenText('  a  b \n c  ')).toBe('a b\nc');
-  });
-});
-
 describe('mapAlignment', () => {
-  const alignment = alignmentFor(spokenText(CONTENT));
+  const alignment = alignmentFor(CONTENT);
 
   it('gives every atom its span and one onset per word the Chamber reveals', () => {
     const result = mapAlignment({ atoms: ATOMS, alignment });
@@ -89,103 +66,16 @@ describe('mapAlignment', () => {
   });
 
   it('refuses a performance that skipped a word, and names where', () => {
-    const result = mapAlignment({ atoms: ATOMS, alignment: alignmentFor(spokenText(CONTENT), { dropFrom: 'floral ' }) });
+    const result = mapAlignment({ atoms: ATOMS, alignment: alignmentFor(CONTENT, { dropFrom: 'floral ' }) });
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/atom 4/u);
     expect(result.reason).toMatch(/floral/u);
   });
 
   it('refuses times that run backwards', () => {
-    const bad = alignmentFor(spokenText(CONTENT));
+    const bad = alignmentFor(CONTENT);
     const i = bad.characters.indexOf('I', 40);
     bad.character_start_times_seconds[i] = 0;
     expect(mapAlignment({ atoms: ATOMS, alignment: bad }).ok).toBe(false);
-  });
-});
-
-describe('cutting the performance into line clips', () => {
-  const sampleRate = 8000;
-  const alignment = alignmentFor(spokenText(CONTENT));
-  const pcm = pcmFor(alignment, sampleRate);
-  const { atoms } = mapAlignment({ atoms: ATOMS, alignment });
-
-  it('cuts in the quiet between lines, never through a word', () => {
-    const cuts = cutPoints(atoms, pcm, sampleRate);
-    expect(cuts).toHaveLength(atoms.length + 1);
-    for (let a = 0; a < atoms.length - 1; a++) {
-      expect(cuts[a + 1]).toBeGreaterThan(atoms[a].endMs);
-      expect(cuts[a + 1]).toBeLessThan(atoms[a + 1].startMs);
-    }
-    expect(cuts[0]).toBeLessThanOrEqual(atoms[0].startMs);
-    expect(cuts.at(-1)).toBeGreaterThanOrEqual(atoms.at(-1).endMs);
-  });
-
-  it('gives each clip its own audio, duration, onsets from its start, and peak', () => {
-    const cuts = cutPoints(atoms, pcm, sampleRate);
-    const clips = sliceClips(atoms, cuts, pcm, sampleRate);
-    const total = clips.reduce((sum, clip) => sum + clip.durationMs, 0);
-    expect(Math.abs(total - (cuts.at(-1) - cuts[0]))).toBeLessThan(clips.length + 1);
-    clips.forEach((clip, a) => {
-      expect(clip.text).toBe(ATOMS[a]);
-      expect(clip.samples.length).toBe(Math.round(clip.durationMs * sampleRate / 1000));
-      expect(clip.onsetsMs[0]).toBeGreaterThanOrEqual(0);
-      expect(clip.onsetsMs.at(-1)).toBeLessThan(clip.durationMs);
-      expect(clip.peak).toBeGreaterThan(0.4);
-      // Faded in and out, so a cut never clicks.
-      expect(Math.abs(clip.samples[0])).toBeLessThan(0.01);
-      expect(Math.abs(clip.samples.at(-1))).toBeLessThan(0.01);
-      expect(checkClip(clip).error).toBeUndefined();
-    });
-  });
-
-  it('fails a clip that is too short, clipped or silent, and flags one read too fast', () => {
-    const ok = { text: 'And the floral tributes', durationMs: 1800, onsetsMs: [0, 300, 700, 1200], peak: 0.7 };
-    expect(checkClip(ok)).toEqual({});
-    expect(checkClip({ ...ok, durationMs: 150 }).error).toMatch(/short/u);
-    expect(checkClip({ ...ok, peak: 1 }).error).toMatch(/clips/u);
-    expect(checkClip({ ...ok, peak: 0.005 }).error).toMatch(/silent/u);
-    expect(checkClip({ ...ok, onsetsMs: [0, 300] }).error).toMatch(/onsets/u);
-    expect(checkClip({ ...ok, durationMs: 600 }).suspect).toMatch(/fast/u);
-  });
-});
-
-describe('groupAtoms', () => {
-  it('keeps every atom whole and in order, under the cap', () => {
-    const atoms = ['one two', 'three', 'four five six', 'seven'];
-    const groups = groupAtoms(atoms, 14);
-    expect(groups.map(g => [g.from, g.to])).toEqual([[0, 2], [2, 3], [3, 4]]);
-    expect(groups.map(g => g.text)).toEqual(['one two three', 'four five six', 'seven']);
-    for (const group of groups) expect(group.text.length).toBeLessThanOrEqual(14);
-    expect(groups.flatMap(g => atoms.slice(g.from, g.to))).toEqual(atoms);
-  });
-
-  it('gives an over-long atom its own group rather than splitting it', () => {
-    const groups = groupAtoms(['short', 'x'.repeat(50), 'tail'], 20);
-    expect(groups.map(g => g.text)).toEqual(['short', 'x'.repeat(50), 'tail']);
-  });
-
-  it('is one group when everything fits, and none for no atoms', () => {
-    expect(groupAtoms(ATOMS, 10_000)).toHaveLength(1);
-    expect(groupAtoms([], 100)).toEqual([]);
-  });
-
-  it('maps each group on its own alignment to the same clips as one performance', () => {
-    const whole = mapAlignment({ atoms: ATOMS, alignment: alignmentFor(ATOMS.join('\n')) });
-    expect(whole.ok).toBe(true);
-    const groups = groupAtoms(ATOMS, 80);
-    expect(groups.length).toBeGreaterThan(1);
-    const perGroup = groups.flatMap(group => {
-      const atoms = ATOMS.slice(group.from, group.to);
-      const mapped = mapAlignment({ atoms, alignment: alignmentFor(atoms.join('\n')) });
-      expect(mapped.ok).toBe(true);
-      return mapped.atoms;
-    });
-    expect(perGroup.map(a => a.text)).toEqual(whole.atoms.map(a => a.text));
-    // Each clip's own timing (onsets relative to its start) does not depend on the group it was spoken in.
-    perGroup.forEach((atom, a) => {
-      const relative = atom.onsetsMs.map(t => Math.round(t - atom.startMs));
-      const wholeRelative = whole.atoms[a].onsetsMs.map(t => Math.round(t - whole.atoms[a].startMs));
-      expect(relative).toEqual(wholeRelative);
-    });
   });
 });

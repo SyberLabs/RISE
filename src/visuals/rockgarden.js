@@ -21,7 +21,6 @@ class AbstractFigureEngine {
 
     // Distribution strategies for rock gardens
     this.distributions = {
-      scatter: this._distributeScatter.bind(this),
       lateral: this._distributeLateral.bind(this),
       mountains: this._distributeMountains.bind(this)
     };
@@ -169,54 +168,11 @@ class AbstractFigureEngine {
   }
 
   /**
-   * Render background raking pattern
-   */
-  _renderBackgroundRaking(ctx, width, height) {
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.03)';
-    ctx.lineWidth = 1;
-
-    const spacing = 15;
-    const waveAmp = 10;
-    const waveFreq = 0.02;
-
-    for (let y = 0; y < height; y += spacing) {
-      ctx.beginPath();
-      for (let x = 0; x < width; x += 5) {
-        const yOffset = Math.sin(x * waveFreq) * waveAmp;
-        if (x === 0) {
-          ctx.moveTo(x, y + yOffset);
-        } else {
-          ctx.lineTo(x, y + yOffset);
-        }
-      }
-      ctx.stroke();
-    }
-  }
-
-  /**
-   * Distribution: Random scatter across canvas
-   */
-  _distributeScatter(count, width, height, margin = 0.1) {
-    const positions = [];
-    const marginX = width * margin;
-    const marginY = height * margin;
-
-    for (let i = 0; i < count; i++) {
-      positions.push([
-        marginX + Math.random() * (width - 2 * marginX),
-        marginY + Math.random() * (height - 2 * marginY)
-      ]);
-    }
-    return positions;
-  }
-
-  /**
    * Distribution: Lateral spread (wide horizontal arrangement)
    */
   _distributeLateral(count, width, height, margin = 0.1) {
     const positions = [];
     const marginX = width * margin;
-    const marginY = height * margin;
 
     // Spread rocks horizontally with slight vertical variation
     const segmentWidth = (width - 2 * marginX) / count;
@@ -269,9 +225,9 @@ class AbstractFigureEngine {
   generateRockGarden(config = {}) {
     const width = config.width || 1024;
     const height = config.height || 1024;
-    const rockCount = config.rockCount || (5 + Math.floor(Math.random() * 4)); // 5-8 rocks
+    const rockCount = 5 + Math.floor(Math.random() * 4); // 5-8 rocks
     // Random 50/50 selection between lateral and mountains distribution
-    const distribution = config.distribution || (Math.random() < 0.5 ? 'lateral' : 'mountains');
+    const distribution = Math.random() < 0.5 ? 'lateral' : 'mountains';
 
     this.shapes = [];
     this._initDensityGrid(width, height);
@@ -328,7 +284,7 @@ class AbstractFigureEngine {
    * Render shape with brush-stroke style outline
    */
   _renderBrushStroke(ctx, shape, config = {}) {
-    const baseWidth = config.strokeWidth || 2;
+    const baseWidth = 2;
     const strokeColor = config.strokeColor || '#2c2c2c';
     const points = shape.points;
 
@@ -358,7 +314,7 @@ class AbstractFigureEngine {
   }
 
   /**
-   * Render rock garden with outline-only style
+   * Render rock garden with brush-stroke outlines
    */
   renderRockGarden(canvasElement, config = {}) {
     const ctx = canvasElement.getContext('2d');
@@ -369,29 +325,8 @@ class AbstractFigureEngine {
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, width, height);
 
-    // Optional subtle raking in background
-    if (config.backgroundRaking) {
-      this._renderBackgroundRaking(ctx, width, height);
-    }
-
     this.shapes.forEach(shape => {
-      if (config.brushStroke) {
-        this._renderBrushStroke(ctx, shape, config);
-      } else {
-        // Simple outline
-        ctx.beginPath();
-        shape.points.forEach((point, i) => {
-          if (i === 0) {
-            ctx.moveTo(point[0], point[1]);
-          } else {
-            ctx.lineTo(point[0], point[1]);
-          }
-        });
-        ctx.closePath();
-        ctx.strokeStyle = config.strokeColor || '#2c2c2c';
-        ctx.lineWidth = config.strokeWidth || 1.5;
-        ctx.stroke();
-      }
+      this._renderBrushStroke(ctx, shape, config);
     });
   }
 }

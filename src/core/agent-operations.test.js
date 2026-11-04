@@ -1,18 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   AGENT_OPERATION_SET_SCHEMA,
-  AgentOperationError,
   applyAgentOperationSet,
-  cancelAgentRun,
-  createAgentOperationHistory,
-  createAgentRun,
   NO_TRANSITION_OPERATION,
-  previewAgentOperationSet,
-  recordAgentOperationSet,
-  redoAgentOperationSet,
-  rejectAgentOperation,
   summarizeAgentOperationSet,
-  undoAgentOperationSet,
   validateAgentOperationSet
 } from './agent-operations.js';
 import { EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
@@ -113,7 +104,7 @@ describe('rise.agent-operation-set.v1', () => {
     expect(result.requests[0].op).toBe('request-compile');
   });
 
-  it('refuses a stale revision and a cancelled generation without mutating the project', () => {
+  it('refuses a stale revision without mutating the project', () => {
     const project = emptyWorkshopProject({ id: 'project-memory' });
     expect(() => applyAgentOperationSet({
       project,
@@ -122,14 +113,6 @@ describe('rise.agent-operation-set.v1', () => {
       ], { baseRevision: 4 })
     })).toThrow(expect.objectContaining({ code: 'AGENT_OP_STALE_REVISION' }));
 
-    const run = cancelAgentRun(createAgentRun({ generationId: 'run-1' }));
-    expect(() => applyAgentOperationSet({
-      project,
-      operationSet: opSet([
-        { op: 'set-atmosphere', id: 'op-atm', soundscape: 'aurora' }
-      ]),
-      run
-    })).toThrow(expect.objectContaining({ code: 'AGENT_OP_CANCELLED' }));
     expect(project.revision).toBe(0);
   });
 
@@ -187,32 +170,6 @@ describe('rise.agent-operation-set.v1', () => {
     expect(row.summary).toBe(NO_TRANSITION_OPERATION);
   });
 
-  it('rejects one operation without corrupting the rest of the proposal', () => {
-    const trimmed = rejectAgentOperation({
-      operationSet: composeOps(),
-      operationId: 'op-audio'
-    });
-    expect(trimmed.operations.map(item => item.id)).not.toContain('op-audio');
-    expect(trimmed.operations.map(item => item.id)).toContain('op-visual');
-  });
-
-  it('records the accepted set on the same undo/redo stack a human command would use', () => {
-    const project = emptyWorkshopProject({ id: 'project-memory' });
-    const applied = applyAgentOperationSet({
-      project,
-      operationSet: opSet([
-        { op: 'set-atmosphere', id: 'op-atm', soundscape: 'aurora' }
-      ]),
-      resolvedSources: {}
-    });
-    let history = recordAgentOperationSet(createAgentOperationHistory(), applied.historyCommand);
-    const undone = undoAgentOperationSet(history);
-    expect(undone.command.before.revision).toBe(0);
-    expect(undone.command.after.defaults.audio.soundscape).toBe('aurora');
-    const redone = redoAgentOperationSet(undone.history);
-    expect(redone.command.after.revision).toBe(1);
-  });
-
   it('shows proposed clips on the sequence map in reading order', () => {
     const applied = applyAgentOperationSet({
       project: emptyWorkshopProject({ id: 'project-memory' }),
@@ -238,7 +195,7 @@ describe('rise.agent-operation-set.v1', () => {
       includeLibrary: false
     });
     const project = emptyWorkshopProject({ id: 'project-memory', title: 'Memory' });
-    const preview = previewAgentOperationSet({
+    const preview = applyAgentOperationSet({
       project,
       operationSet: composeOps(),
       context,

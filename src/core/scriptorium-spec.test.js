@@ -28,12 +28,9 @@ const CITING_FILES = Object.freeze([
     'src/core/curator-context.js',
     'src/core/curator-prompt.js',
     'src/core/scriptorium-resolve.js',
-    // The headless sequence and the second entrance onto it. Both cite the
-    // spec, so both are held to citing a section that exists — §13 was written
-    // in the same pass, because the exit-status mapping a red team scripts
-    // against cannot live only in a comment.
+    // The headless sequence cites the spec, so it is held to citing a section
+    // that exists.
     'src/core/scriptorium-session.js',
-    'src/core/scriptorium-cli.js',
     // A reader's own text became a source the room composes from, so the
     // record that makes it one is held to citing the section that states
     // the law it obeys — §7a, written in the same pass for the same reason
@@ -242,7 +239,7 @@ describe('the numbers the spec states are the numbers the code computes', () => 
             .flatMap(({ file }) => Object.values(measureIndex(file)))
             .map(String));
         expect(measured.size).toBeGreaterThan(1);
-        for (const file of [SPEC, 'scripts/build-division-index.mjs']) {
+        for (const file of [SPEC]) {
             const figures = [...read(file).matchAll(/(\d+)\s*KiB/gu)].map(match => match[1]);
             expect(figures.length, `${file} states no catalogue size`).toBeGreaterThan(0);
             for (const figure of figures) {

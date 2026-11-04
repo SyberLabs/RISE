@@ -22,7 +22,7 @@ import { PLUS_INTERNALS, PlusMeter, SUB_RATE_PER_MINUTE, VOICE_ALLOWANCE, isPlus
 const SITE = 'https://rise.example';
 const NOW = 1_800_000_000;
 const DAY = '2027-01-15'; // UTC day of NOW
-const { sign, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S, MAX_BODY_BYTES } = PLUS_INTERNALS;
+const { sign, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S } = PLUS_INTERNALS;
 const PRICE = 'price_plus';
 const EXP = NOW + 20 * DAY_S;
 /** The allowance is keyed by the start of the Plus item's billing period. */
@@ -72,7 +72,6 @@ function meterNamespace() {
     failOp: null,
     instance(name) {
       if (!instances.has(name)) {
-        const map = new Map();
         instances.set(name, new PlusMeter({ storage: audioStorage() }));
       }
       return instances.get(name);

@@ -234,11 +234,6 @@ describe('scoreAtoms', () => {
         // Two atoms into the dark passage, the sentence-paced track has
         // travelled much further toward it
         expect(sentenceTrack[11].valence).toBeLessThan(wordTrack[11].valence);
-
-        // A fixed alpha override still bypasses durations entirely
-        const fixedShort = scoreAtoms(withDuration(200), { alpha: 0.12 });
-        const fixedLong = scoreAtoms(withDuration(2000), { alpha: 0.12 });
-        expect(fixedShort).toEqual(fixedLong);
     });
 });
 

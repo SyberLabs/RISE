@@ -501,11 +501,6 @@ export function dorePlatesForBook(bookId) {
   return DORE_PLATES.filter(plate => plate.book === bookId);
 }
 
-/** Books the cycle serves (at least one plate). */
-export const DORE_BOOKS = Object.freeze(
-  [...new Set(DORE_PLATES.map(plate => plate.book))]
-);
-
 export function doreAttribution(plate) {
   return `Gustave Doré, ${plate.title} (1866) — Wikimedia Commons, public domain`;
 }

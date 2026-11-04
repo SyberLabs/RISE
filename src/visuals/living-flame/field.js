@@ -17,8 +17,8 @@ export const LIVING_FLAME_TIERS = Object.freeze([
   Object.freeze({ particles: 131072, dpr: 1.25 }),
   Object.freeze({ particles: 262144, dpr: 1.5 })
 ]);
-export const LIVING_FLAME_DEFAULT_TIER = 1;
-export const LIVING_FLAME_MAX_PIXELS = 2_000_000;
+const LIVING_FLAME_DEFAULT_TIER = 1;
+const LIVING_FLAME_MAX_PIXELS = 2_000_000;
 const SEEK_THRESHOLD_S = 1.5;
 const WINDOW_FRAMES = 90;
 const WARMUP_FRAMES = 30;
@@ -42,7 +42,7 @@ export function nextQualityTier({ tier, ceiling, p95, steadyWindows }) {
 }
 
 /** Pure sizing policy honoring the DPR and pixel ceilings. Exported for tests. */
-export function fieldBackingSize(cssWidth, cssHeight, devicePixelRatio, tierDpr) {
+function fieldBackingSize(cssWidth, cssHeight, devicePixelRatio, tierDpr) {
   const dpr = Math.min(devicePixelRatio || 1, tierDpr, 1.5);
   let width = Math.max(1, Math.round(cssWidth * dpr));
   let height = Math.max(1, Math.round(cssHeight * dpr));
@@ -95,7 +95,7 @@ export class LivingFlameField {
    */
   constructor(host, {
     recipe, energy = 0.35, clock = null, reducedMotion = false, onStatus = null,
-    cpuFallback = null, initialTier = LIVING_FLAME_DEFAULT_TIER, window: win = globalThis.window
+    cpuFallback = null, window: win = globalThis.window
   } = {}) {
     this.host = host;
     this.window = win;
@@ -109,7 +109,7 @@ export class LivingFlameField {
     this.paused = false;
     this.destroyed = false;
     this.renderer = 'none';
-    this.tier = clamp(initialTier, 0, LIVING_FLAME_TIERS.length - 1);
+    this.tier = LIVING_FLAME_DEFAULT_TIER;
     this.ceiling = LIVING_FLAME_TIERS.length - 1;
     this.steadyWindows = 0;
     this.intervals = [];

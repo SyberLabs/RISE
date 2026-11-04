@@ -1,23 +1,21 @@
 /**
  * Producer runtime — Stages A–D in one host pass.
  *
- * The agent proposes. This module applies the proposal, inspects acquisition
- * without admitting, compiles and packs a private review when asked, and
- * may enqueue destination-neutral review items. It never admits a candidate,
- * never approves a publication, and never calls a destination adapter.
+ * The agent proposes. This module applies the proposal and compiles and packs
+ * a private review when asked. A requested asset stays pending: this never
+ * admits one, never approves a publication, and never calls a destination
+ * adapter.
  *
  * See AGENT-COMPOSITION-AND-RENDER-SPEC.md §8.
  */
 
-import { inspectRequestAsset } from './acquisition.js';
 import {
   applyAgentOperationSet,
   validateAgentOperationSet
 } from './agent-operations.js';
-import { enqueuePublicationReview } from './publication.js';
 import { contentHashOf } from './render/hash.js';
 import { RENDER_JOB_SCHEMA } from './render/environment.js';
-import { admitRenderJob, pinnedRendererForProfile, deriveRenderJob } from './render/job.js';
+import { admitRenderJob, pinnedRendererForProfile } from './render/job.js';
 import { renderProfile } from './render/limits.js';
 import { preflightRenderJob, PREFLIGHT_VERDICTS } from './render/preflight.js';
 import { renderPreview } from './render/distribution.js';
@@ -48,45 +46,6 @@ function deepFreeze(value) {
   Object.freeze(value);
   for (const item of Object.values(value)) deepFreeze(item);
   return value;
-}
-
-async function inspectPending(operations, { projectId, providers }) {
-  const pending = [];
-  for (const op of operations) {
-    if (op.op !== 'request-asset') continue;
-    if (!providers || !providers.length) {
-      pending.push({
-        op: op.id,
-        requestId: op.requestId,
-        status: 'pending',
-        admitted: false,
-        code: 'ACQUISITION_PROVIDERS',
-        message: 'Acquisition needs an explicit provider list'
-      });
-      continue;
-    }
-    try {
-      const inspected = await inspectRequestAsset(op, { projectId, providers });
-      pending.push({
-        op: op.id,
-        requestId: op.requestId,
-        request: inspected.request,
-        candidates: inspected.candidates,
-        status: 'pending',
-        admitted: false
-      });
-    } catch (error) {
-      pending.push({
-        op: op.id,
-        requestId: op.requestId,
-        status: 'refused',
-        admitted: false,
-        code: error.code || 'ACQUISITION_INSPECT',
-        message: error.message
-      });
-    }
-  }
-  return pending;
 }
 
 async function inventoryFromProject(project) {
@@ -172,11 +131,7 @@ export async function runProducer({
   operationSet,
   context = null,
   resolvedSources = {},
-  providers = null,
-  now = null,
   tier = 'draft',
-  profiles = null,
-  proposePublication = true,
   render = true,
   encode = null
 } = {}) {
@@ -187,17 +142,12 @@ export async function runProducer({
     context,
     resolvedSources
   });
-  const acquisition = await inspectPending(set.operations, {
-    projectId: applied.project.id,
-    providers
-  });
   const wantsCompile = applied.requests.some(item => item.op === 'request-compile');
   const previewOp = applied.requests.find(item => item.op === 'request-preview');
   const result = {
     project: applied.project,
     inspection: applied.inspection,
     requests: applied.requests,
-    acquisition,
     admitted: [],
     approved: [],
     delivered: [],
@@ -240,54 +190,28 @@ export async function runProducer({
     );
     // Compile is always the final pin (scale 1, 48 kHz). Draft is preview only.
     const compileTier = qualityTier('final');
-    const ids = profiles || [compiled.profileId];
-    for (const profileId of ids) {
-      const job = profileId === compiled.profileId
-        ? compiled.job
-        : deriveRenderJob(compiled.job, profileId);
-      const artifact = await renderArtifact({
-        schema: KERNEL_REQUEST_SCHEMA,
-        program: compiled.program,
-        sources: compiled.sources,
-        inventory: compiled.inventory,
-        sessionInput: compiled.sessionInput,
-        job,
-        outputPath: encode?.outputPath,
-        painter: encode?.painter || 'chamber',
-        scale: encode?.scale ?? compileTier.scale,
-        sampleRate: encode?.sampleRate || compileTier.sampleRate,
-        ffmpegPath: encode?.ffmpegPath,
-        fromMs: encode?.fromMs,
-        toMs: encode?.toMs,
-        tier: 'final'
-      });
-      if (!artifact?.mp4Path) {
-        fail('PRODUCER_COMPILE_MP4', 'Compile must mux an MP4 via renderArtifact', '$');
-      }
-      packages[profileId] = artifact;
+    const artifact = await renderArtifact({
+      schema: KERNEL_REQUEST_SCHEMA,
+      program: compiled.program,
+      sources: compiled.sources,
+      inventory: compiled.inventory,
+      sessionInput: compiled.sessionInput,
+      job: compiled.job,
+      outputPath: encode?.outputPath,
+      painter: encode?.painter || 'chamber',
+      scale: encode?.scale ?? compileTier.scale,
+      sampleRate: encode?.sampleRate || compileTier.sampleRate,
+      ffmpegPath: encode?.ffmpegPath,
+      fromMs: encode?.fromMs,
+      toMs: encode?.toMs,
+      tier: 'final'
+    });
+    if (!artifact?.mp4Path) {
+      fail('PRODUCER_COMPILE_MP4', 'Compile must mux an MP4 via renderArtifact', '$');
     }
+    packages[compiled.profileId] = artifact;
   }
   result.packages = packages;
-
-  if (proposePublication && wantsCompile) {
-    const reviewItems = [];
-    for (const [profileId, rendered] of Object.entries(packages)) {
-      if (profileId === 'preview' || !rendered?.package) continue;
-      reviewItems.push(await enqueuePublicationReview({
-        id: `review-${applied.project.id}-${profileId}`.slice(0, 160),
-        projectId: applied.project.id,
-        destinationKind: 'social-short',
-        pack: rendered.package,
-        metadata: {
-          title: applied.project.title || applied.project.id,
-          thumbnail: 'poster',
-          captionsMode: 'sidecar-and-burn-in'
-        },
-        now
-      }));
-    }
-    result.reviewItems = reviewItems;
-  }
   result.stage = 'review-queued';
   return deepFreeze(result);
 }

@@ -101,12 +101,10 @@ export class ContentStore {
     constructor({
         manifest = null,
         fetchImpl = null,
-        caches = undefined,
-        manifestUrl = MANIFEST_URL
+        caches = undefined
     } = {}) {
         this._manifest = manifest;
         this._manifestLoad = null;
-        this._manifestUrl = manifestUrl;
         this._fetchImpl = fetchImpl;
         this._cachesImpl = caches;
         this._sections = new Map();   // id → sections
@@ -142,7 +140,7 @@ export class ContentStore {
         this._manifestLoad ||= (async () => {
             let response;
             try {
-                response = await this._fetch(this._manifestUrl, { cache: 'no-cache' });
+                response = await this._fetch(MANIFEST_URL, { cache: 'no-cache' });
             } catch (error) {
                 throw new ContentStoreError(
                     'CONTENT_MANIFEST_UNAVAILABLE',

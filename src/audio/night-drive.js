@@ -7,7 +7,7 @@
  *
  *   kick     sine with a fast pitch drop, every beat
  *   clap     band-passed noise on beats 2 and 4
- *   hats     high-passed noise on off-beats (16ths when intense)
+ *   hats     high-passed noise on every off-beat 16th
  *   bass     filtered saw, rolling 16ths between the kicks
  *   arp      filtered square arpeggio with a dotted-eighth echo
  *   pad      detuned saw chord, ducked by the kick (the "pump")
@@ -17,10 +17,11 @@
  * OfflineAudioContext: `renderInto(ctx, seconds)` pre-schedules a span.
  */
 
-export const NIGHT_DRIVE_LIMITS = Object.freeze({
-    bpm: Object.freeze({ min: 96, max: 140, default: 124 }),
-    intensity: Object.freeze({ min: 0, max: 1, default: 0.6 })
-});
+const BPM = 124;
+const INTENSITY = 0.6;
+// Output level, lower than unity so this bed sits near the loudness of
+// the other soundscapes instead of jumping out.
+const LEVEL = 0.4;
 
 const PROGRESSION = [
     { root: 45, third: 3 },  // Am
@@ -33,14 +34,8 @@ const LOOKAHEAD_S = 0.2;
 const TICK_MS = 25;
 
 const hz = midi => 440 * Math.pow(2, (midi - 69) / 12);
-const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-export function createNightDrive(ctx, destination, options = {}) {
-    let bpm = clamp(options.bpm ?? NIGHT_DRIVE_LIMITS.bpm.default, NIGHT_DRIVE_LIMITS.bpm.min, NIGHT_DRIVE_LIMITS.bpm.max);
-    let intensity = clamp(options.intensity ?? NIGHT_DRIVE_LIMITS.intensity.default, 0, 1);
-    // Output level. RISE's registry passes a lower level so this bed sits
-    // near the loudness of the other soundscapes instead of jumping out.
-    const level = clamp(options.level ?? 1, 0, 1);
+export function createNightDrive(ctx, destination) {
 
     // ── bus ────────────────────────────────────────────────────────
     const out = ctx.createGain();
@@ -89,9 +84,8 @@ export function createNightDrive(ctx, destination, options = {}) {
         return buf;
     })();
 
-    const stepDur = () => 60 / bpm / 4;
-    const setEcho = () => { echo.delayTime.value = stepDur() * 3; };
-    setEcho();
+    const stepDur = () => 60 / BPM / 4;
+    echo.delayTime.value = stepDur() * 3;
 
     // ── voices ─────────────────────────────────────────────────────
     function kick(t) {
@@ -163,9 +157,9 @@ export function createNightDrive(ctx, destination, options = {}) {
                 o.detune.value = det;
                 const f = ctx.createBiquadFilter();
                 f.type = 'lowpass';
-                f.frequency.value = 700 + 900 * intensity;
+                f.frequency.value = 700 + 900 * INTENSITY;
                 const g = ctx.createGain();
-                const lvl = 0.018 + 0.012 * intensity;
+                const lvl = 0.018 + 0.012 * INTENSITY;
                 g.gain.setValueAtTime(0.0001, t);
                 g.gain.linearRampToValueAtTime(lvl, t + 0.25);
                 g.gain.setValueAtTime(lvl, t + dur - 0.2);
@@ -186,14 +180,14 @@ export function createNightDrive(ctx, destination, options = {}) {
 
         if (s % 4 === 0) kick(t);
         if (s === 4 || s === 12) clap(t);
-        if (s % 4 === 2) hat(t, 0.16 + 0.08 * intensity);
-        else if (intensity >= 0.5 && s % 2 === 1) hat(t, 0.05 + 0.05 * intensity);
+        if (s % 4 === 2) hat(t, 0.16 + 0.08 * INTENSITY);
+        else if (s % 2 === 1) hat(t, 0.05 + 0.05 * INTENSITY);
 
         // rolling bass between the kicks
-        if (s % 4 !== 0 && (intensity >= 0.35 || s % 4 === 2)) {
+        if (s % 4 !== 0) {
             tone(t, {
                 freq: hz(chord.root - 12), type: 'sawtooth', dur: sd * 0.85,
-                level: 0.17, cutoff: 260 + 420 * intensity
+                level: 0.17, cutoff: 260 + 420 * INTENSITY
             });
         }
 
@@ -202,7 +196,7 @@ export function createNightDrive(ctx, destination, options = {}) {
         const n = chord.root + 24 + tones[ARP_SHAPE[s]];
         tone(t, {
             freq: hz(n), type: 'square', dur: sd * 0.9,
-            level: 0.035 + 0.035 * intensity, cutoff: 1400 + 2600 * intensity,
+            level: 0.035 + 0.035 * INTENSITY, cutoff: 1400 + 2600 * INTENSITY,
             send: 0.55
         });
 
@@ -224,15 +218,13 @@ export function createNightDrive(ctx, destination, options = {}) {
     }
 
     return {
-        get bpm() { return bpm; },
-        get intensity() { return intensity; },
         start() {
             if (running) return;
             running = true;
             const t = ctx.currentTime + 0.06;
             out.gain.cancelScheduledValues(ctx.currentTime);
             out.gain.setValueAtTime(0, ctx.currentTime);
-            out.gain.linearRampToValueAtTime(level, t + 0.4);
+            out.gain.linearRampToValueAtTime(LEVEL, t + 0.4);
             nextTime = t;
             timer = setInterval(() => pump(ctx.currentTime + LOOKAHEAD_S), TICK_MS);
             pump(ctx.currentTime + LOOKAHEAD_S);
@@ -247,17 +239,9 @@ export function createNightDrive(ctx, destination, options = {}) {
             out.gain.linearRampToValueAtTime(0, now + (instant ? 0.03 : 0.6));
             setTimeout(() => { try { out.disconnect(); } catch { /* gone */ } }, instant ? 60 : 700);
         },
-        /** Change tempo/intensity; takes effect on the next scheduled step. */
-        setParams(next = {}) {
-            if (Number.isFinite(next.bpm)) {
-                bpm = clamp(next.bpm, NIGHT_DRIVE_LIMITS.bpm.min, NIGHT_DRIVE_LIMITS.bpm.max);
-                setEcho();
-            }
-            if (Number.isFinite(next.intensity)) intensity = clamp(next.intensity, 0, 1);
-        },
         /** Offline rendering: schedule `seconds` of music from time 0. */
         renderInto(seconds) {
-            out.gain.setValueAtTime(level, 0);
+            out.gain.setValueAtTime(LEVEL, 0);
             nextTime = 0.02;
             pump(seconds);
         }
@@ -278,9 +262,9 @@ const hash = n => {
 const saw = phase => 2 * (phase - Math.floor(phase + 0.5));
 const square = phase => (phase - Math.floor(phase) < 0.5 ? 1 : -1);
 
-export function sampleNightDrive(timeSec, channel = 0, { bpm = 124, intensity = 0.6 } = {}) {
+export function sampleNightDrive(timeSec, channel = 0) {
     if (!(timeSec >= 0)) return 0;
-    const step = 60 / bpm / 4;
+    const step = 60 / BPM / 4;
     const index = Math.floor(timeSec / step);
     const into = timeSec - index * step;
     const s = index % STEPS_PER_BAR;
@@ -293,21 +277,21 @@ export function sampleNightDrive(timeSec, channel = 0, { bpm = 124, intensity = 
     out += Math.sin(2 * Math.PI * kickPhase) * Math.exp(-beatInto / 0.09) * 0.5;
     const duck = 0.35 + 0.65 * Math.min(1, beatInto / 0.2);
 
-    // clap on 2 and 4, hats on the off-beats (16ths when intense)
+    // clap on 2 and 4, hats on every off-beat 16th
     const noise = hash(Math.floor(timeSec * 22050) + channel * 7919);
     if (s === 4 || s === 12) out += noise * Math.exp(-into / 0.05) * 0.16;
-    if (s % 4 === 2) out += noise * Math.exp(-into / 0.012) * (0.06 + 0.03 * intensity);
-    else if (intensity >= 0.5 && s % 2 === 1) out += noise * Math.exp(-into / 0.01) * 0.03;
+    if (s % 4 === 2) out += noise * Math.exp(-into / 0.012) * (0.06 + 0.03 * INTENSITY);
+    else if (s % 2 === 1) out += noise * Math.exp(-into / 0.01) * 0.03;
 
     // rolling bass between kicks
-    if (s % 4 !== 0 && (intensity >= 0.35 || s % 4 === 2)) {
+    if (s % 4 !== 0) {
         out += saw(hz(chord.root - 12) * timeSec) * Math.exp(-into / 0.08) * 0.07 * duck;
     }
     // arpeggio, two octaves up
     const tones = [0, chord.third, 7, 12, 12 + chord.third];
     const ARP = [0, 1, 2, 3, 2, 1, 2, 4, 0, 1, 2, 3, 4, 3, 2, 1];
     const note = chord.root + 24 + tones[ARP[s]];
-    out += square(hz(note) * timeSec) * Math.exp(-into / 0.06) * (0.012 + 0.012 * intensity) * duck
+    out += square(hz(note) * timeSec) * Math.exp(-into / 0.06) * (0.012 + 0.012 * INTENSITY) * duck
         * (channel === 0 ? 1 : 0.85);
     // pad: the chord, quietly
     for (const n of [chord.root + 12, chord.root + 12 + chord.third, chord.root + 19]) {

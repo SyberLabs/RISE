@@ -32,7 +32,7 @@ const records = [];
  */
 const MEMO = 'rise:audio-diag';
 
-export function audioDiagEnabled() {
+function audioDiagEnabled() {
   if (enabled !== null) return enabled;
   if (typeof location === 'undefined') {
     enabled = false;

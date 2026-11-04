@@ -211,7 +211,7 @@ export function pruneProgramAssetReferences(program, missingIds) {
  * Build a session/blueprint view that carries hydrated URIs without writing
  * those URIs back through the persistence normalizer.
  */
-export function workshopHydratedProjectToView(project) {
+function workshopHydratedProjectToView(project) {
   const formal = isWorkshopProject(project)
     ? project
     : validateWorkshopProject(project);

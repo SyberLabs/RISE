@@ -163,7 +163,7 @@ describe('Chamber Mask', () => {
     });
 
     it('does not add is-mask when Mask is on and the session is phrase', () => {
-        const { chamber, container, settings } = makeChamber(
+        const { chamber, container } = makeChamber(
             { chunkMode: 'phrase' },
             {}
         );

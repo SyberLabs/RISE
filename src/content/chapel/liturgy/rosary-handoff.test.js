@@ -94,7 +94,7 @@ describe('The Rosarium (the Rosary’s own room)', () => {
 
   it('one art slot: the prayer screen never shows an icon AND a painting', () => {
     vi.useFakeTimers();
-    const { container, rosarium } = mount({ setId: 'joyful' });
+    const { container } = mount({ setId: 'joyful' });
     container.querySelector('[data-advance="manual"]').click();
     container.querySelector('[data-action="start"]').click();
     container.querySelector('[data-action="advance"]').click();

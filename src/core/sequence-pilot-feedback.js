@@ -28,9 +28,9 @@ export function listSequencePilotFeedback() {
     }));
 }
 
-export function saveSequencePilotFeedback({ sequenceId, version, value, returnIntent, consent } = {}) {
+export function saveSequencePilotFeedback({ sequenceId, version, value, consent } = {}) {
     if (consent !== true) throw new Error('Feedback requires explicit consent');
-    const record = { sequenceId, version, value, ...(returnIntent === undefined ? {} : { returnIntent }) };
+    const record = { sequenceId, version, value };
     if (!validRecord(record)) throw new TypeError('Invalid sequence pilot feedback');
 
     const records = listSequencePilotFeedback().filter(item =>
@@ -38,13 +38,4 @@ export function saveSequencePilotFeedback({ sequenceId, version, value, returnIn
     records.push(record);
     localStorage.setItem(USER_DATA_KEYS.sequencePilotFeedback, JSON.stringify(records.slice(-MAX_RECORDS)));
     return record;
-}
-
-export function deleteSequencePilotFeedback() {
-    localStorage.removeItem(USER_DATA_KEYS.sequencePilotFeedback);
-}
-
-export function exportSequencePilotFeedback({ consent } = {}) {
-    if (consent !== true) throw new Error('Feedback export requires explicit consent');
-    return listSequencePilotFeedback();
 }

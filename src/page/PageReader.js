@@ -9,7 +9,6 @@ import { compileFlow, flowCollections, focalOf } from './flow.js';
 import { compose, PLACEMENT, RHYTHM } from './compositor.js';
 import { paginate, pageOfItem } from './paginator.js';
 import { normalizeArtworkLabel, displayedArtworkLabel, artworkMayBeShown } from '../visuals/artwork-label.js';
-import { createRemoteImage } from '../visuals/remote-image.js';
 
 const OBSERVER_MARGIN = '600px';   // begin resolving well before view
 
@@ -48,7 +47,7 @@ export class PageReader {
         // hardcoding labels on. Required credits ignore this.
         this.showOptionalLabels = options.showOptionalLabels !== false;
         // The reading's held focal, shown once at the head of the page.
-        this.focal = options.focal !== undefined ? options.focal : focalOf(this.session);
+        this.focal = focalOf(this.session);
 
         this._observer = null;
         this._destroyed = false;
@@ -60,9 +59,8 @@ export class PageReader {
 
         this.composition = null;
 
-        // Pagination (§9): opt out for whole-column callers (e.g. print).
-        // Otherwise length decides (see render): scrollUnderPages threshold.
-        this.paginated = options.paginated !== false;
+        // Pagination (§9): length decides (see render), by the
+        // scrollUnderPages threshold.
         // INFINITY IS THE ANSWER TO "NEVER PAGINATE", AND IT WAS BEING REFUSED.
         //
         // The Chamber passes Number.POSITIVE_INFINITY to say the public Page
@@ -76,13 +74,9 @@ export class PageReader {
             && !Number.isNaN(options.scrollUnderPages)
             ? options.scrollUnderPages
             : 4;
-        // The Chamber draws the turn in its own control bar, so the
-        // reader does not float a second one. Standalone callers keep it.
-        this.showPager = options.showPager !== false;
         this.onPageChange = typeof options.onPageChange === 'function'
             ? options.onPageChange
             : null;
-        this.linesPerPage = options.linesPerPage;
         this.pages = [];
         this.pageIndex = 0;
         this._onKey = null;
@@ -106,9 +100,7 @@ export class PageReader {
 
         // Projection by length: short readings scroll; longer ones page.
         // Same Composition; threshold is page count (frame-aware), not chars.
-        const cut = this.paginated
-            ? paginate(this.composition, this._budget())
-            : { pages: [] };
+        const cut = paginate(this.composition, this._budget());
         const wholeColumn = () =>
             ({ pages: [{ index: 0, items: this.composition.items, weight: 0 }] });
 
@@ -116,7 +108,7 @@ export class PageReader {
         // recompiling the flow or re-composing anything (see setPaged).
         this._cut = cut;
         this._wholeColumn = wholeColumn;
-        this.canPage = this.paginated && cut.pages.length > 1;
+        this.canPage = cut.pages.length > 1;
         // Item → position in the reading, built once. Used to stamp the
         // DOM so a projection change can restore the reader; an
         // indexOf() per element would be quadratic on a long book.
@@ -125,7 +117,7 @@ export class PageReader {
             if (!this._itemIndex.has(item)) this._itemIndex.set(item, i);
         });
 
-        this.isPaged = this.paginated && cut.pages.length > this.scrollUnderPages;
+        this.isPaged = cut.pages.length > this.scrollUnderPages;
         const chosen = this.isPaged ? cut : wholeColumn();
         // A reading with nothing in it still needs a page to be on.
         this.pages = chosen.pages.length
@@ -169,10 +161,7 @@ export class PageReader {
         const usable = Math.max(lineHeight * 8, (h - furniture) * OVERRUN);
         const linesPerPage = Math.max(10, Math.floor(usable / lineHeight));
 
-        return {
-            charsPerLine,
-            linesPerPage: Number.isFinite(this.linesPerPage) ? this.linesPerPage : linesPerPage
-        };
+        return { charsPerLine, linesPerPage };
     }
 
     /**
@@ -261,9 +250,6 @@ export class PageReader {
         }
 
         this.host.appendChild(article);
-        if (this.showPager && this.pages.length > 1) {
-            this.host.appendChild(this._buildPager());
-        }
         // Object report (not positional args) so hosts cannot drop fields.
         this.onPageChange?.({
             index: clamped,
@@ -368,40 +354,6 @@ export class PageReader {
         head.setAttribute('aria-hidden', 'true'); // the article is titled already
         head.textContent = this.title;
         return head;
-    }
-
-    _buildPager() {
-        const nav = document.createElement('nav');
-        nav.className = 'page-pager';
-        nav.setAttribute('aria-label', 'Pages');
-
-        const prev = document.createElement('button');
-        prev.type = 'button';
-        prev.className = 'page-pager-btn';
-        prev.dataset.pageNav = 'prev';
-        prev.textContent = '←';
-        prev.setAttribute('aria-label', 'Previous page');
-        prev.disabled = this.pageIndex === 0;
-        prev.addEventListener('click', () => this.prevPage());
-
-        const count = document.createElement('span');
-        count.className = 'page-pager-count';
-        // aria-live so a page turn is announced to a reader who cannot
-        // see the column change.
-        count.setAttribute('aria-live', 'polite');
-        count.textContent = `${this.pageIndex + 1} / ${this.pages.length}`;
-
-        const next = document.createElement('button');
-        next.type = 'button';
-        next.className = 'page-pager-btn';
-        next.dataset.pageNav = 'next';
-        next.textContent = '→';
-        next.setAttribute('aria-label', 'Next page');
-        next.disabled = this.pageIndex >= this.pages.length - 1;
-        next.addEventListener('click', () => this.nextPage());
-
-        nav.append(prev, count, next);
-        return nav;
     }
 
     /**
@@ -778,19 +730,6 @@ export class PageReader {
     /** True once the owning activation has been revoked. */
     _aborted() {
         return this.signal?.aborted === true;
-    }
-
-    /** Decode-before-reveal (SacredImage's contract). */
-    async _decode(url) {
-        try {
-            const probe = createRemoteImage();
-            probe.decoding = 'async';
-            probe.src = url;
-            if (typeof probe.decode === 'function') await probe.decode();
-            return true;
-        } catch {
-            return false;
-        }
     }
 
     /** The collections this page will need — for optional pre-warming. */

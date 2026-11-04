@@ -1,11 +1,5 @@
-const [{ KokoroTTS }, { default: sharp }] = await Promise.all([
-    import('kokoro-js'),
-    import('sharp'),
-]);
+const { default: sharp } = await import('sharp');
 
-if (typeof KokoroTTS?.from_pretrained !== 'function') {
-    throw new Error('kokoro-js did not expose KokoroTTS.from_pretrained');
-}
 if (typeof sharp !== 'function') {
     throw new Error('sharp did not expose its image factory');
 }
@@ -31,4 +25,4 @@ if (half !== 'one half') {
     throw new Error(`speech-rule-engine read one half as ${JSON.stringify(half)}`);
 }
 
-console.log('Kokoro, Sharp and the speech engine compatibility verified.');
+console.log('Sharp and the speech engine compatibility verified.');

@@ -9,8 +9,6 @@
 import { BLACK_HOLES } from '../fixtures/black-holes.js';
 import { INTERRUPTION_AFTER, SIDE_ANSWER, SIDE_QUESTION } from './study.js';
 
-export const PROMPT = 'Explain black holes with RISE.';
-
 /** What is said about a source, in a sentence. */
 export const cite = evidence => `${evidence.title}${evidence.location ? `, ${evidence.location}` : ''}`;
 

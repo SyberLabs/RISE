@@ -264,7 +264,7 @@ async function verify(value, env, now) {
   const [keyId, payload, signature] = String(value ?? '').split('.');
   if (keyId !== KEY_ID || !payload || !signature) return null;
   for (const secret of [env.PLUS_COOKIE_SECRET, env.PLUS_COOKIE_SECRET_PREVIOUS].filter(Boolean)) {
-    let ok = false;
+    let ok;
     try {
       ok = await crypto.subtle.verify('HMAC', await hmacKey(secret), fromB64url(signature), encoder.encode(`${keyId}.${payload}`));
     } catch {
@@ -1294,7 +1294,7 @@ export class PlusMeter {
   }
 }
 
-export const PLUS_INTERNALS = { sign, verify, livemode, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S, MAX_BODY_BYTES, WEBHOOK_TOLERANCE_S };
+export const PLUS_INTERNALS = { sign, COOKIE, DAY_S, GRACE_S, MAX_COOKIE_S, MAX_BODY_BYTES, WEBHOOK_TOLERANCE_S };
 
 /** Storage/configuration failures never fall through to a billable vendor call. */
 export async function handlePlus(request, env) {

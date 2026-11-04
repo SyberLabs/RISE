@@ -29,7 +29,7 @@ export function parseNvidiaSmi(output) {
  * macOS counts inactive and speculative pages as reclaimable, but
  * os.freemem() reports only wholly free pages, so a busy Mac looks full.
  */
-export function parseVmStat(output) {
+function parseVmStat(output) {
   const text = String(output || '');
   const pageSize = Number(/page size of (\d+) bytes/u.exec(text)?.[1]);
   const pages = name => Number(new RegExp(`Pages ${name}:\\s+(\\d+)`, 'u').exec(text)?.[1] || 0);
@@ -65,18 +65,18 @@ export async function detectHardware({
 }
 
 /** Whether to load Kev now, and in plain words why not. Rechecked right before loading. */
-export function readiness(hardware, requirements = REQUIREMENTS) {
+export function readiness(hardware) {
   const { gpu, ram } = hardware;
   if (!gpu) {
     return { ok: false, code: 'NO_GPU', message: 'No supported GPU found. Local Kev needs an NVIDIA GPU with CUDA or an Apple Silicon Mac. RISE still works here for reading and manual settings.' };
   }
-  if (gpu.kind === 'nvidia' && gpu.memoryFreeMiB < requirements.nvidiaFreeVramMiB) {
-    return { ok: false, code: 'GPU_MEMORY', message: `${gpu.name} has ${gpu.memoryFreeMiB} MiB of free video memory; Kev-4B needs about ${requirements.nvidiaFreeVramMiB} MiB. Close GPU-heavy applications yourself and start again.` };
+  if (gpu.kind === 'nvidia' && gpu.memoryFreeMiB < REQUIREMENTS.nvidiaFreeVramMiB) {
+    return { ok: false, code: 'GPU_MEMORY', message: `${gpu.name} has ${gpu.memoryFreeMiB} MiB of free video memory; Kev-4B needs about ${REQUIREMENTS.nvidiaFreeVramMiB} MiB. Close GPU-heavy applications yourself and start again.` };
   }
-  if (gpu.kind === 'apple' && ram.totalMiB < requirements.appleTotalMiB) {
-    return { ok: false, code: 'UNIFIED_MEMORY', message: `This Mac has ${ram.totalMiB} MiB of memory; Kev-4B needs at least ${requirements.appleTotalMiB} MiB.` };
+  if (gpu.kind === 'apple' && ram.totalMiB < REQUIREMENTS.appleTotalMiB) {
+    return { ok: false, code: 'UNIFIED_MEMORY', message: `This Mac has ${ram.totalMiB} MiB of memory; Kev-4B needs at least ${REQUIREMENTS.appleTotalMiB} MiB.` };
   }
-  const needed = gpu.kind === 'apple' ? requirements.appleFreeMiB : requirements.loadFreeRamMiB;
+  const needed = gpu.kind === 'apple' ? REQUIREMENTS.appleFreeMiB : REQUIREMENTS.loadFreeRamMiB;
   if (ram.freeMiB < needed) {
     return { ok: false, code: 'RAM_PRESSURE', message: `Only ${ram.freeMiB} MiB of system memory is free; loading Kev needs about ${needed} MiB. RISE did not close anything. Free memory yourself and start again.` };
   }

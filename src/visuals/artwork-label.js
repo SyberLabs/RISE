@@ -109,8 +109,6 @@ const OWES_CREDIT = new Set([
     LICENCE.BY, LICENCE.BY_SA, LICENCE.PD_CREDIT, LICENCE.PERMISSION
 ]);
 
-export const creditIsRequired = (item) => OWES_CREDIT.has(licenceClassOf(item));
-
 /**
  * Concise licence identification (deed short form, not full legal title).
  * Share-alike matched first — "Attribution-ShareAlike" contains

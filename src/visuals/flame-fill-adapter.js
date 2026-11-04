@@ -63,18 +63,6 @@ function clamp(value, lo, hi) {
     return Math.min(hi, Math.max(lo, value));
 }
 
-function createImageBuffer(width, height) {
-    const pixels = new Uint8ClampedArray(width * height * 4);
-    if (typeof ImageData === 'function') {
-        try {
-            return new ImageData(pixels, width, height);
-        } catch {
-            /* jsdom / node: fall through to a buffer the LUT can still write */
-        }
-    }
-    return { width, height, data: pixels };
-}
-
 function numberOr(value, fallback) {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
@@ -167,7 +155,7 @@ function flameFillLut(tone) {
 }
 
 function resolveTone(options) {
-    return options.tone || boundFlameFillTone(options.roomTone || ROOM_FLAME_TONE, {
+    return boundFlameFillTone(ROOM_FLAME_TONE, {
         reducedMotion: options.reducedMotion === true,
         visibleAreaRatio: options.visibleAreaRatio
     });
@@ -230,19 +218,6 @@ function writeFlameFill(src, dst, lut, width, height) {
     }
 }
 
-export function applyFlameFillLut(imageData, options = {}) {
-    if (!imageData?.data || !imageData.width || !imageData.height) return imageData;
-    const out = createImageBuffer(imageData.width, imageData.height);
-    writeFlameFill(
-        imageData.data,
-        out.data,
-        flameFillLut(resolveTone(options)),
-        imageData.width,
-        imageData.height
-    );
-    return out;
-}
-
 export function applyFlameFillToCanvas(canvas, options = {}) {
     const ctx = typeof canvas?.getContext === 'function'
         ? canvas.getContext('2d')
@@ -250,15 +225,13 @@ export function applyFlameFillToCanvas(canvas, options = {}) {
     if (!ctx || typeof ctx.getImageData !== 'function' || !canvas.width || !canvas.height) {
         return false;
     }
-    const reducedMotion = options.reducedMotion
-        ?? prefersFlameFillReducedMotion();
     // getImageData already hands back a private copy, so fill it in place
     // rather than allocating a second full-canvas buffer per flash.
     const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
     writeFlameFill(
         image.data,
         image.data,
-        flameFillLut(resolveTone({ ...options, reducedMotion })),
+        flameFillLut(resolveTone(options)),
         canvas.width,
         canvas.height
     );

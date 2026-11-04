@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 26 October 2026**
+**Last updated: 2 November 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -343,19 +343,6 @@ processes the request under its own policy.
   the key in a request header, directly to ElevenLabs at `api.elevenlabs.io` to
   be spoken, billed per character to your account. RISE's servers do not see
   the key or the words. See <https://elevenlabs.io/privacy-policy>.
-- **OpenAI Realtime.** This route is switched off on rise.syberlabs.io
-  (`LIVE_REALTIME_ENABLED` is `false`), so today it refuses every request.
-  When it is switched on, your browser sends your OpenAI key, in a request
-  header, and a WebRTC session description (connection details, not your
-  prompt) once to RISE's server at `/api/live/realtime`. The server uses the
-  key for one request to OpenAI to open the session, with RISE's fixed
-  instructions, and returns OpenAI's answer to your browser. It does not store
-  or log the key, does not put it in a URL, and does not pass on OpenAI's error
-  text, which could contain it. Your prompt and the answer then travel
-  directly between your browser and OpenAI and never reach RISE's server.
-  Session starts are counted per IP address for one minute, by Cloudflare's
-  rate limiter, to stop abuse; RISE keeps no record of them. See
-  <https://openai.com/policies/privacy-policy/>.
 
 ### RISE inside ChatGPT or Claude
 

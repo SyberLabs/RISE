@@ -1,14 +1,14 @@
 /**
- * Gospel pericopes — the runtime concordance (GENERATED).
+ * Gospel pericopes — the runtime concordance.
  *
- * Machine output of scripts/build-pericopes.mjs from
- * image_map/rise-gospel-art-concordance.json. DO NOT EDIT BY HAND —
- * edit the concordance JSON and rebuild. Only cleared, pin-ready works
+ * Built once from image_map/rise-gospel-art-concordance.json and committed;
+ * change the JSON and this module together, and keep the count below in
+ * step (pericopes.test.js holds it). Only cleared, pin-ready works
  * are admitted (108 works across 50 pericopes with imagery;
  * the rest resolve to stillness until their works clear review).
  *
  * PERICOPE-IMAGERY-SPEC §3.1. Verse ranges within a book never
- * overlap (asserted at build time).
+ * overlap.
  */
 
 export const GOSPEL_PERICOPES = Object.freeze([
@@ -293,27 +293,3 @@ export const GOSPEL_PERICOPES = Object.freeze([
         works: [{ source: "cleveland", id: 130151 }, { source: "aic", id: 16313 }, { source: "rijks", id: 200397609 }, { source: "rijks", id: 200194093 }]
     }
 ].map(Object.freeze));
-
-/**
- * The pericope whose range contains (book, chapter, verse), or null.
- * When episodes nest or adjoin (the flagellation within the Pilate
- * scene, Noli me tangere within the resurrection), the NARROWEST
- * containing range wins — the most specific episode the reader is in.
- * Most of a Gospel is not a mapped episode; null is the common,
- * correct case (-> stillness). Pure; no side effects.
- */
-export function pericopeForVerse(book, chapter, verse) {
-    if (!book || !Number.isInteger(chapter) || !Number.isInteger(verse)) return null;
-    let best = null;
-    let bestSpan = Infinity;
-    for (const p of GOSPEL_PERICOPES) {
-        for (const r of p.ranges) {
-            if (r.book === book && r.chapter === chapter
-                && verse >= r.verseStart && verse <= r.verseEnd) {
-                const span = r.verseEnd - r.verseStart;
-                if (span < bestSpan) { bestSpan = span; best = p; }
-            }
-        }
-    }
-    return best;
-}

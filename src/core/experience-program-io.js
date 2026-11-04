@@ -10,6 +10,7 @@
 import {
   EXPERIENCE_PROGRAM_SCHEMA,
   PROGRAM_SURFACE_FIELD_RENDERERS,
+  isBoundarySource,
   validateExperienceProgram
 } from './experience-program.js';
 import {
@@ -37,7 +38,6 @@ import {
   WORKSHOP_PROJECT_SCHEMA,
   validateWorkshopProject
 } from './workshop-project.js';
-import { isBoundarySource } from './journey-compiler.js';
 import {
   SEQUENCE_ASSET_PREFIX,
   sequenceAssetReferencesFromCue
@@ -604,8 +604,8 @@ export function programCapabilities(program) {
  * Synthetic boundary sources are program-local and omitted from curator
  * context, but only when a transition clip in *this* program declares them.
  * A bare `journey-boundary:` prefix on a movement/visual does not bypass
- * membership — that was the hole. Uses isBoundarySource (shared with the
- * Journey compiler) rather than a second hardcoded literal.
+ * membership — that was the hole. Uses isBoundarySource rather than a
+ * second hardcoded literal.
  */
 export function assertProgramWithinContext(program, contextValue) {
   const context = validateCuratorContext(contextValue);
@@ -663,7 +663,7 @@ export function assertProgramWithinContext(program, contextValue) {
  * for a soundscape nobody offers was refused at one door and persisted at the
  * other under "Nothing refused."
  */
-export function assertOperationSetWithinContext(operationSetValue, contextValue) {
+function assertOperationSetWithinContext(operationSetValue, contextValue) {
   const context = validateCuratorContext(contextValue);
   const readSource = createCuratorSourceReader(context);
   const readings = new Map();
@@ -1686,13 +1686,6 @@ export function describeImportFailure(error, { context = null } = {}) {
       lines.push(
         `This proposal was built on project revision ${details.expected}, but the project is now at ${details.actual}.`,
         'Export a fresh context from the current revision, or discard the stale operations.'
-      );
-      break;
-    case 'AGENT_OP_CANCELLED':
-    case 'AGENT_OP_STALE_GENERATION':
-      lines.push(
-        'This agent run was cancelled or superseded. Late results cannot apply.',
-        'Start a new run against the current project revision.'
       );
       break;
     case 'AGENT_OP_NO_WORKSHOP_EQUIVALENT':

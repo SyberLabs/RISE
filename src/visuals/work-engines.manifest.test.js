@@ -20,7 +20,6 @@ import { describe, expect, it } from 'vitest';
 import {
     WORK_ENGINE_MANIFEST,
     workEngineFamilies,
-    workEngineFamilyOf,
     loadWorkEngines
 } from './work-engines.js';
 
@@ -55,16 +54,6 @@ describe('the work-engine manifest', () => {
             expect(entry.category, `${entry.id} has no category`).toBeTruthy();
             expect(entry.description, `${entry.id} has no description`).toBeTruthy();
         }
-    });
-
-    it('answers which work an engine belongs to', () => {
-        expect(workEngineFamilyOf('flaming_sword')).toBe('paradise-lost');
-        expect(workEngineFamilyOf('voronoi')).toBe('storm-of-steel');
-        // A cortex-general pattern belongs to no work — the distinction a
-        // curator needs, since a Milton engine over Anna Karenina is
-        // permitted by the capability list and wrong for the reading.
-        expect(workEngineFamilyOf('klee')).toBeNull();
-        expect(workEngineFamilyOf('nonexistent')).toBeNull();
     });
 
     it('carries no duplicate ids', () => {

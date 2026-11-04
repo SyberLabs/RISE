@@ -7,12 +7,8 @@
  * exclude, re-assign, promote. Replaces the era of one-off contact
  * sheets.
  *
- * PERSISTENCE: edits queue into a changeset. On the dev server the
- * "Apply" button POSTs it to /__curia/apply, which rewrites
- * museum-pins.js (the one machine-writable curation canon) —
- * instant git-visible edits. On a production build that endpoint
- * does not exist, so the Curia degrades to "Copy changeset":
- * the same JSON, applied later via the dev server or by hand.
+ * PERSISTENCE: edits queue into a changeset, and "Copy changeset" hands
+ * over its JSON to apply to museum-pins.js by hand.
  *
  * ORIGINS a card can carry:
  *   live — served by the category's AIC live-search clauses
@@ -24,15 +20,6 @@ import { escapeHtml } from '../../core/sanitize.js';
 import { REMOTE_IMAGE_ATTRS } from '../../visuals/remote-image.js';
 import { roomHeader, roomEyebrow, roomIcon, roomAlert } from '../room-chrome.js';
 import './Curia.css';
-
-const VERB_LABELS = {
-    exclude: 'exclude',
-    unexclude: 'restore',
-    addPin: 'pin',
-    removePin: 'unpin',
-    movePin: 'move',
-    setLiveSearch: 'live search'
-};
 
 const MODE_LABELS = {
     'live+pins': 'Live search and pins',
@@ -47,7 +34,6 @@ export class Curia {
         this.inventory = new Map();  // categoryId -> { live: [], pins: [], excluded: [] }
         this.changeset = { exclude: [], unexclude: [], addPin: [], removePin: [], movePin: [], setLiveSearch: [] };
         this.openCategory = null;
-        this._devWrite = null;       // tri-state: null unknown, true, false
         this.render();
         this.load().catch(error => this.renderLoadError(error));
     }
@@ -86,16 +72,12 @@ export class Curia {
         this._exclusions = CATEGORY_EXCLUSIONS;
         await this._loadScience();
         this.renderBoard();
-        // probe dev-write availability quietly
-        fetch('/__curia/apply', { method: 'GET' })
-            .then(r => { this._devWrite = r.status === 405; this.renderBar(); })
-            .catch(() => { this._devWrite = false; this.renderBar(); });
     }
 
     /**
      * Science collections as attribution records (full credits with URLs
      * for elided Chamber chips). Read-only here: pins live in
-     * `science-pins.js` + rebuild; no exclude/pin/move controls that
+     * `science-pins.js`; no exclude/pin/move controls that
      * would imply write authority the room lacks.
      */
     async _loadScience() {
@@ -206,35 +188,12 @@ export class Curia {
         return Object.values(this.changeset).reduce((n, a) => n + a.length, 0);
     }
 
-    async applyChangeset() {
-        const status = this.container.querySelector('.curia-status');
-        try {
-            const r = await fetch('/__curia/apply', {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify(this.changeset)
-            });
-            const j = await r.json();
-            if (!j.ok) throw new Error(j.error || 'apply failed');
-            status.textContent = `Written to canon: ${Object.entries(j.applied)
-                .filter(([, n]) => n > 0).map(([k, n]) => `${VERB_LABELS[k]} ${n}`).join(', ') || 'no changes'}`;
-            this.changeset = { exclude: [], unexclude: [], addPin: [], removePin: [], movePin: [], setLiveSearch: [] };
-            this.inventory.clear();
-            // re-import fresh canon (dev server serves the new module)
-            this.categories = null;
-            await this.load();
-            if (this.openCategory) this.openDetail(this.openCategory);
-        } catch (e) {
-            status.textContent = `Write failed: ${e.message}`;
-        }
-    }
-
     async copyChangeset() {
         const payload = JSON.stringify(this.changeset);
         try { await navigator.clipboard.writeText(payload); }
         catch { prompt('Copy this changeset:', payload); }
         const status = this.container.querySelector('.curia-status');
-        status.textContent = `Changeset copied (${this.changeCount()} edits). Apply it through the dev server.`;
+        status.textContent = `Changeset copied (${this.changeCount()} edits). Apply it to museum-pins.js by hand.`;
     }
 
     // ---------- render ----------
@@ -258,15 +217,12 @@ export class Curia {
                 </div>
                 <footer class="curia-bar">
                     <span class="curia-count"></span>
-                    <button type="button" class="curia-apply" hidden>Apply to canon</button>
                     <button type="button" class="curia-copy" hidden>Copy changeset</button>
                     <span class="curia-status"></span>
                 </footer>
             </div>`;
         this.container.querySelector('.curia-back')
             .addEventListener('click', () => this.onNavigate('home'));
-        this.container.querySelector('.curia-apply')
-            .addEventListener('click', () => this.applyChangeset());
         this.container.querySelector('.curia-copy')
             .addEventListener('click', () => this.copyChangeset());
         this.container.querySelector('.curia-board')
@@ -305,7 +261,7 @@ export class Curia {
                 <div class="curia-group-break">
                     <h2>Science collections</h2>
                     <p class="curia-group-note">Attribution record. Governed by
-                    <code>science-pins.js</code> and rebuilt, not edited here — so this
+                    <code>science-pins.js</code>, not edited here — so this
                     room reads them and does not pretend to rule them.</p>
                 </div>
                 ${this.scienceCategories.map(c => `
@@ -323,8 +279,7 @@ export class Curia {
         const n = this.changeCount();
         this.container.querySelector('.curia-count').textContent =
             n ? `${n} pending edit${n === 1 ? '' : 's'}` : '';
-        this.container.querySelector('.curia-apply').hidden = !(n && this._devWrite === true);
-        this.container.querySelector('.curia-copy').hidden = !(n && this._devWrite !== true);
+        this.container.querySelector('.curia-copy').hidden = !n;
     }
 
     /**
@@ -376,7 +331,7 @@ export class Curia {
             <p class="curia-group-note">
                 Rights here are <strong>frozen at harvest</strong>, not re-checked at render as
                 Cleveland's and the Rijksmuseum's are — these institutions cannot be queried from
-                the browser. Re-run <code>scripts/build-science-catalog.mjs</code> to refresh them.
+                the browser.
                 ${cat.elided ? `<br>${cat.elided} credits are shortened in the Chamber chip;
                 their full text is here, which is what makes the shortening permissible.` : ''}
             </p>

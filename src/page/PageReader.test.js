@@ -365,17 +365,13 @@ describe('PageReader pagination', () => {
         visualProgram: null
     });
 
-    it('renders one page and offers a way to the next', () => {
+    it('renders one page of several', () => {
         const { reader, host } = paged({ session: longSession(60) });
         expect(reader.pages.length).toBeGreaterThan(1);
 
         const shown = host.querySelectorAll('.page-text').length;
         const total = reader.composition.items.filter(i => i.type === 'text').length;
         expect(shown, 'the whole reading is still in the DOM at once').toBeLessThan(total);
-
-        expect(host.querySelector('.page-pager')).not.toBeNull();
-        expect(host.querySelector('[data-page-nav="prev"]').disabled).toBe(true);
-        expect(host.querySelector('[data-page-nav="next"]').disabled).toBe(false);
         reader.destroy();
     });
 
@@ -386,7 +382,6 @@ describe('PageReader pagination', () => {
         reader.nextPage();
         expect(reader.pageIndex).toBe(1);
         expect(host.querySelector('.page-text').textContent).not.toBe(firstText);
-        expect(host.querySelector('[data-page-nav="prev"]').disabled).toBe(false);
 
         reader.prevPage();
         expect(reader.pageIndex).toBe(0);
@@ -482,7 +477,6 @@ describe('PageReader pagination', () => {
         const { reader, host } = paged({ session: longSession(6) });
         expect(reader.isPaged).toBe(false);
         expect(reader.pages).toHaveLength(1);
-        expect(host.querySelector('.page-pager')).toBeNull();
         const shown = host.querySelectorAll('.page-text').length;
         expect(shown).toBe(reader.composition.items.filter(i => i.type === 'text').length);
         reader.destroy();
@@ -617,23 +611,10 @@ describe('PageReader pagination', () => {
         reader.destroy();
     });
 
-    it('a short reading gets no pager at all', () => {
+    it('a short reading gets no pages to turn', () => {
         const { reader, host } = paged();
         expect(reader.pages).toHaveLength(1);
-        expect(host.querySelector('.page-pager')).toBeNull();
         expect(host.classList.contains('is-paginated')).toBe(false);
-        reader.destroy();
-    });
-
-    it('paginated:false renders the whole column, for callers that need it', () => {
-        // Print is the caller this exists for: a paged DOM would emit one
-        // page and silently drop the rest of the reading.
-        const { reader, host } = paged({ session: longSession(60), paginated: false });
-        expect(reader.pages).toHaveLength(1);
-        const shown = host.querySelectorAll('.page-text').length;
-        const total = reader.composition.items.filter(i => i.type === 'text').length;
-        expect(shown).toBe(total);
-        expect(host.querySelector('.page-pager')).toBeNull();
         reader.destroy();
     });
 

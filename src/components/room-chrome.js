@@ -15,7 +15,6 @@ const ICON_PATHS = Object.freeze({
   forward: '<path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path>',
   close: '<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>',
   alert: '<circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path>',
-  info: '<circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path>',
   check: '<path d="M20 6 9 17l-5-5"></path>',
   // A plain Latin cross — the Stations and the Rosary's way out
   cross: '<path d="M12 3v18"></path><path d="M7 8h10"></path>',
@@ -46,7 +45,7 @@ function drawHeaderSigils() {
   queueMicrotask(() => {
     sigilsPending = false;
     for (const canvas of document.querySelectorAll('canvas.sl-sigil:not(.is-drawn)')) {
-      drawRiseSigil(canvas, { animate: false });
+      drawRiseSigil(canvas);
     }
   });
 }
@@ -80,20 +79,18 @@ export function roomEyebrow(text, className = '') {
 }
 
 /**
- * The system Alert. Variants: error (danger icon and border), info, success.
+ * The system Alert. Variants: error (danger icon and border), success.
  * Title and message are already-escaped HTML.
  */
-export function roomAlert({ title, message = '', variant = 'error', className = '', role = null, action = '' } = {}) {
-  const icon = variant === 'error' ? 'alert' : variant === 'success' ? 'check' : 'info';
-  const ariaRole = role || (variant === 'error' ? 'alert' : 'status');
+export function roomAlert({ title, message = '', variant = 'error', className = '' } = {}) {
+  const error = variant === 'error';
   return `
-    <div class="room-alert room-alert-${variant} ${className}" role="${ariaRole}">
-      ${roomIcon(icon)}
+    <div class="room-alert room-alert-${variant} ${className}" role="${error ? 'alert' : 'status'}">
+      ${roomIcon(error ? 'alert' : 'check')}
       <div class="room-alert-body">
         ${title ? `<p class="room-alert-title">${title}</p>` : ''}
         ${message ? `<p class="room-alert-message">${message}</p>` : ''}
       </div>
-      ${action}
     </div>
   `;
 }

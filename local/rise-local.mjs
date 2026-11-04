@@ -147,10 +147,10 @@ function createStatus() {
 }
 
 /** Kev says ready before its server has bound the port; wait until it answers. */
-async function reachable(port, fetchImpl = fetch, attempts = 60) {
-  for (let i = 0; i < attempts; i += 1) {
+async function reachable(port) {
+  for (let i = 0; i < 60; i += 1) {
     try {
-      await fetchImpl(`http://127.0.0.1:${port}/v1/models`, { signal: AbortSignal.timeout(1000) });
+      await fetch(`http://127.0.0.1:${port}/v1/models`, { signal: AbortSignal.timeout(1000) });
       return true;
     } catch {
       await new Promise(resolve => setTimeout(resolve, 500));

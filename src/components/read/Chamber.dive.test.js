@@ -61,7 +61,8 @@ function fakePlayer(head = 1, state = 'playing') {
         setInterlocutionHandler: vi.fn(),
         // ↑ and ↓ are pace and reach the real handler, which needs these.
         setSpeedFactor: vi.fn(),
-        shuttleAvailable: false
+        shuttleForward: vi.fn(() => null),
+        shuttleBackward: vi.fn(() => null)
     };
     return player;
 }

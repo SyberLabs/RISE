@@ -32,7 +32,7 @@ export function bandTravelPx(field, band) {
 }
 
 /** How close a band resting at the field's foot may rise to the field's top edge, in px. */
-export const BAND_FOOT_MARGIN_PX = 8;
+const BAND_FOOT_MARGIN_PX = 8;
 
 /**
  * The room above a band that rests at its field's foot (a card on a phone with a picture above the words,

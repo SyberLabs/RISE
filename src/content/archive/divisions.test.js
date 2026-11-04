@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    romanValue, parseHeading, schemeFromNames, splitLongDivision, divideSections, headingVocabulary, isContentsPage } from './divisions.js';
+    romanValue, parseHeading, schemeFromNames, splitLongDivision, divideSections, isContentsPage } from './divisions.js';
 
 describe('roman numerals', () => {
     it('reads the forms these editions actually use', () => {
@@ -576,40 +576,6 @@ describe('a work is read in the vocabulary it was written in', () => {
             expect(w.noun, `${word} should divide`).toBe(noun);
             expect(w.entries).toHaveLength(4);
         }
-    });
-});
-
-describe('a declared vocabulary is a hint, not an authority', () => {
-    it('reads the division noun out of a curator\'s prose', () => {
-        expect(headingVocabulary({ readingUnit: 'one runo', levels: ['50 runos'] }))
-            .toEqual(['runo']);
-        expect(headingVocabulary({ readingUnit: 'one book, with speech blocks retained' }))
-            .toEqual(['book']);
-        // "a route of 10–20 laisses, while each laisse remains addressable"
-        expect(headingVocabulary({ readingUnit: 'a route of 10-20 laisses, while each laisse remains addressable' }))
-            .toContain('laisse');
-    });
-
-    it('yields nothing for a unit that names no heading', () => {
-        // "one numbered narrative" describes a division without naming
-        // one. A vocabulary of "narrative" would search a text for a
-        // word it never uses and find no structure at all, so the
-        // caller must be told there is nothing to try.
-        expect(headingVocabulary({ readingUnit: 'one numbered narrative' })).toEqual([]);
-        expect(headingVocabulary({ readingUnit: 'one editorially mapped movement' })).toEqual([]);
-        expect(headingVocabulary({})).toEqual([]);
-    });
-
-    it('does not widen a work\'s search back out through its levels', () => {
-        // Levels are consulted only when the reading unit gave nothing.
-        // Adding them always would put "trilogy", "choral" and "frame"
-        // into the search, which is the opposite of scoping it.
-        const v = headingVocabulary({
-            readingUnit: 'one play for ordinary reading, one scene for RSVP',
-            levels: ['trilogy > play > choral/scene blocks']
-        });
-        expect(v).toEqual(['play', 'scene']);
-        expect(v).not.toContain('trilogy');
     });
 });
 

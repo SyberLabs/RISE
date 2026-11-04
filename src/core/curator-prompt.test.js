@@ -20,13 +20,13 @@ import {
 } from './curator-context.js';
 import { buildCuratorPrompt, curatorMovementCeiling } from './curator-prompt.js';
 import { parseCuratorPaste } from './experience-program-io.js';
-import { isBoundarySource } from './journey-compiler.js';
 import {
     EXTENT_OVERSHOOT_LIMIT, extentNominalWords, extentReadingBound
 } from './library-extent.js';
 import { resolveLibrarySourceIds } from './scriptorium-resolve.js';
 import {
-    EXPERIENCE_PROGRAM_LIMITS, EXPERIENCE_PROGRAM_SCHEMA
+  isBoundarySource,
+    EXPERIENCE_PROGRAM_SCHEMA
 } from './experience-program.js';
 import {
     MAX_SAFE_TARGET_WORDS, READING_LIMITS, READING_PACE

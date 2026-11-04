@@ -22,16 +22,22 @@ function mount(Room, options = {}) {
 }
 
 describe('shell room ownership', () => {
-  it.each([
-    ['Library', Library],
-    ['Vault', Vault]
-  ])('%s asks its owner for interaction audio', (_name, Room) => {
+  it('Library asks its owner for interaction audio', () => {
     const audio = { playClick: vi.fn() };
-    const { container } = mount(Room, { getAudioEngine: () => audio });
+    const { container } = mount(Library, { getAudioEngine: () => audio });
 
     container.querySelector('[data-action="back"]').click();
 
     expect(audio.playClick).toHaveBeenCalledOnce();
+  });
+
+  it('Vault asks its owner for interaction audio', () => {
+    const audio = { playHiss: vi.fn() };
+    const { container } = mount(Vault, { getAudioEngine: () => audio });
+
+    container.querySelector('[data-section="custom"]').click();
+
+    expect(audio.playHiss).toHaveBeenCalledOnce();
   });
 
   it('Settings reports through its owner', () => {

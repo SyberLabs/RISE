@@ -37,7 +37,7 @@ export class ParadiseDarkOceanChaosEngine {
         };
     }
 
-    generate(signal = {}, seed = 'dark-ocean-01', options = {}) {
+    generate(signal = {}, seed = 'dark-ocean-01') {
         this.seed = seed;
         const rng = createSeededRandom(seed);
         this.time = 0;
@@ -121,7 +121,7 @@ export class ParadiseDarkOceanChaosEngine {
         return [vx, vy];
     }
 
-    step(dt = 0.016, signal = {}) {
+    step(dt = 0.016) {
         this.time += dt;
         const t = this.time * this.params.flowSpeed;
 
@@ -161,7 +161,7 @@ export class ParadiseDarkOceanChaosEngine {
         }
     }
 
-    render(canvas, options = {}) {
+    render(canvas) {
         if (!canvas) return false;
         const ctx = canvas.getContext('2d');
         if (!ctx) return false;

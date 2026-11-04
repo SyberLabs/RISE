@@ -22,19 +22,19 @@
  *   position      "bottom-center"
  */
 
-export const CAPTION_REFERENCE_WIDTH = 1080;
+const CAPTION_REFERENCE_WIDTH = 1080;
 export const DEFAULT_CAPTION_FONT_FAMILY = '"Helvetica Neue", Arial, sans-serif';
 export const DEFAULT_CAPTION_FONT_SIZE = 42;
-export const DEFAULT_CAPTION_FONT_WEIGHT = 600;
-export const DEFAULT_CAPTION_LINE_HEIGHT = 1.28;
-export const DEFAULT_CAPTION_LETTER_SPACING = 0;
-export const DEFAULT_CAPTION_MAX_WIDTH = 0.9;
+const DEFAULT_CAPTION_FONT_WEIGHT = 600;
+const DEFAULT_CAPTION_LINE_HEIGHT = 1.28;
+const DEFAULT_CAPTION_LETTER_SPACING = 0;
+const DEFAULT_CAPTION_MAX_WIDTH = 0.9;
 export const DEFAULT_CAPTION_COLOR = '#FFFFFF';
 export const DEFAULT_CAPTION_EDGE_COLOR = '#000000';
 export const DEFAULT_CAPTION_POSITION = 'bottom-center';
 
 /** Soft drop shadow when `shadow: true`. Blur is in 1080-wide CSS px. */
-export const DEFAULT_CAPTION_SHADOW = Object.freeze({
+const DEFAULT_CAPTION_SHADOW = Object.freeze({
   blur: 18,
   color: '#000000',
   opacity: 0.55
@@ -46,13 +46,13 @@ export const DEFAULT_CAPTION_SHADOW = Object.freeze({
  * again below the text left bright imagery under the footer, which is
  * where a phone's own chrome already competes for the eye.
  */
-export const DEFAULT_CAPTION_SCRIM = Object.freeze({
+const DEFAULT_CAPTION_SCRIM = Object.freeze({
   height: 0.34,
   color: '#0A0A0C',
   opacity: 0.62
 });
 
-export const CAPTION_POSITION_PRESETS = Object.freeze({
+const CAPTION_POSITION_PRESETS = Object.freeze({
   'bottom-center': Object.freeze({ x: 0.5, y: 0.9 }),
   'top-center': Object.freeze({ x: 0.5, y: 0.1 }),
   center: Object.freeze({ x: 0.5, y: 0.5 })

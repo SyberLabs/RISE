@@ -7,7 +7,6 @@
 
 import { fail } from '../../src/core/render/errors.js';
 import { frameIndexAt } from '../../src/core/render/clock.js';
-import { compileRenderPlan } from '../../src/core/render/plan.js';
 import { renderFrameRgba } from '../../src/core/render/raster.js';
 import { mixAudio } from '../../src/core/render/audio-mix.js';
 import { RENDER_SAMPLE_RATE } from '../../src/core/render/layout.js';
@@ -25,12 +24,8 @@ function frameWindow(plan, fromMs, toMs) {
 }
 
 export async function exportRenderMp4({
-  plan = null,
-  job = null,
-  program = null,
-  sources = null,
+  plan,
   inventory = {},
-  sessionInput = null,
   outputPath,
   scale = 1,
   sampleRate = RENDER_SAMPLE_RATE,
@@ -47,35 +42,28 @@ export async function exportRenderMp4({
   motion = null
 } = {}) {
   if (!outputPath) fail('RENDER_ENCODE_PATH', 'exportRenderMp4 needs an output path', '$.outputPath');
-  const compiled = plan || compileRenderPlan({
-    job,
-    program,
-    sources,
-    inventory,
-    sessionInput
-  });
-  const mixed = audio || mixAudio(compiled, { sampleRate, inventory, fromMs, toMs });
-  const { start, end } = frameWindow(compiled, fromMs, toMs);
+  const mixed = audio || mixAudio(plan, { sampleRate, inventory, fromMs, toMs });
+  const { start, end } = frameWindow(plan, fromMs, toMs);
 
   if (painter === 'clerk') {
     return encodeMp4({
-      frameRate: compiled.frameRate,
+      frameRate: plan.frameRate,
       audio: mixed,
       outputPath,
       ffmpegPath,
       frames: async (index) => {
         const frameIndex = start + index;
         if (frameIndex >= end) return null;
-        return renderFrameRgba(compiled, frameIndex, { inventory, scale, caption });
+        return renderFrameRgba(plan, frameIndex, { inventory, scale, caption });
       }
     });
   }
 
   const { openChamberPainter } = await import('./chamber-paint.js');
-  const stage = await openChamberPainter({ plan: compiled, scale, inventory, caption, ...(motion || {}) });
+  const stage = await openChamberPainter({ plan, scale, inventory, caption, ...(motion || {}) });
   try {
     return await encodeMp4({
-      frameRate: compiled.frameRate,
+      frameRate: plan.frameRate,
       audio: mixed,
       outputPath,
       ffmpegPath,

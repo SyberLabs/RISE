@@ -240,16 +240,6 @@
     color: var(--color-light);
 }
 
-.sb-provider-tier.tier-2 {
-    background: var(--color-ember);
-    color: var(--color-void);
-}
-
-.sb-provider-tier.tier-3 {
-    background: var(--color-chamber);
-    color: var(--color-void);
-}
-
 /* Content */
 .sb-content {
     flex: 1;

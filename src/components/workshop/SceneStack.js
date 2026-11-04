@@ -15,9 +15,9 @@ import { escapeHtml, safeUrl } from '../../core/sanitize.js';
 import { stillQueue } from '../visual-navigator/preview.js';
 import './scene-stack.css';
 
-export const PACE_MIN = 120;
-export const PACE_MAX = 400;
-export const PACE_SNAPS = Object.freeze([160, 200, 260, 320]);
+const PACE_MIN = 120;
+const PACE_MAX = 400;
+const PACE_SNAPS = Object.freeze([160, 200, 260, 320]);
 export const DIVIDE_OFFER_WORDS = 400;
 const SNAP_WITHIN = 8;
 const LONG_PRESS_MS = 250;
@@ -79,7 +79,6 @@ export class SceneStack {
     this.host = host;
     this.api = api;
     this.Picker = options.Picker || null;
-    this.loadPicker = options.loadPicker || (async () => (await import('../VisualNavigator.js')).VisualNavigator);
     this.view = 'stack';
     this.sceneId = null;
     this.sheet = null;
@@ -222,7 +221,7 @@ export class SceneStack {
   renderBar() {
     const dirty = this.api.dirty();
     return `<header class="scenes-bar">
-      ${this.api.embedded?.() ? '<span class="scenes-icon" aria-hidden="true"></span>' : '<button type="button" class="scenes-icon" data-sa="back" aria-label="Back to Home">←</button>'}
+      <span class="scenes-icon" aria-hidden="true"></span>
       <button type="button" class="scenes-title" data-sa="more" aria-haspopup="dialog">
         <span>${escapeHtml(this.api.title() || 'Untitled sequence')}</span>
         ${dirty ? '<i class="scenes-dirty" aria-label="Unsaved changes"></i>' : ''}
@@ -468,7 +467,7 @@ export class SceneStack {
     // the one visual that moves on the stage.
     const before = scene ? scenes.slice(0, scene.index).reverse().find(item => item.visual?.leafId) : null;
     const initialLeafId = scene?.visual?.leafId || before?.visual?.leafId || 'attractor';
-    const Picker = this.Picker || await this.loadPicker();
+    const Picker = this.Picker || (await import('../VisualNavigator.js')).VisualNavigator;
     if (this._destroyed || this.sheet !== 'visual' || !host.isConnected) return;
     this.picker = new Picker(host, {
       mode: 'pick',
@@ -514,7 +513,6 @@ export class SceneStack {
     const action = target.dataset.sa;
     const sceneId = target.dataset.sceneId || this.sheetData?.sceneId || this.sceneId;
     switch (action) {
-      case 'back': return this.api.back();
       case 'more': return this.openSheet('more', null, target);
       case 'add': return this.openSheet('add', null, target);
       case 'write':

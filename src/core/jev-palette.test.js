@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { JEV_COLOR_NAMES, JEV_INKS, JEV_PALETTES, jevColors } from './jev-palette.js';
+import { JEV_INKS, JEV_PALETTES, jevColors } from './jev-palette.js';
 import { JEV_COLOR_THEMES, isJevColorTheme } from './jev-color-themes.js';
 
 function luminance(hex) {
@@ -24,8 +24,8 @@ it('keeps every offered text and background pairing readable', () => {
   expect(jevColors('prism')).toEqual(JEV_PALETTES.prism);
 });
 
-it('names exactly the themes the palettes and inks define, so the light copy of the names cannot drift', () => {
-  for (const table of [JEV_PALETTES, JEV_INKS, JEV_COLOR_NAMES]) expect(Object.keys(table)).toEqual([...JEV_COLOR_THEMES]);
+it('names exactly the themes the palettes and inks define', () => {
+  for (const table of [JEV_PALETTES, JEV_INKS]) expect(Object.keys(table)).toEqual([...JEV_COLOR_THEMES]);
   for (const id of JEV_COLOR_THEMES) expect(isJevColorTheme(id)).toBe(true);
   for (const id of ['', 'neon', 'toString', '__proto__', undefined, null, 7]) expect(isJevColorTheme(id)).toBe(false);
 });
@@ -50,13 +50,5 @@ it('keeps every ink and every theme text readable on the plate behind words over
       expect((luminance(ink) + 0.05) / (luminance(behind) + 0.05), `${id} ink on ${groundId}`).toBeGreaterThanOrEqual(4.5);
       expect((luminance(JEV_PALETTES[id].text) + 0.05) / (luminance(behind) + 0.05), `${id} text on ${groundId}`).toBeGreaterThanOrEqual(4.5);
     }
-  }
-});
-
-it('gives every theme an ink name and a ground name of its own', () => {
-  const names = Object.values(JEV_COLOR_NAMES);
-  for (const key of ['ink', 'ground']) {
-    for (const name of names) expect(name[key]).toMatch(/^\S(.*\S)?$/u);
-    expect(new Set(names.map(name => name[key])).size).toBe(names.length);
   }
 });

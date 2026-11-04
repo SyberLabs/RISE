@@ -108,21 +108,8 @@ describe('Workshop Composition Studio architecture', () => {
         container.remove();
     });
 
-    it('uses the injected audio provider for shell feedback', () => {
-        const audioEngine = { playClick: vi.fn() };
-        const { workshop, container } = makeWorkshop(vi.fn(), {
-            audioEngineProvider: () => audioEngine
-        });
-
-        container.querySelector('[data-action="back"]').click();
-
-        expect(audioEngine.playClick).toHaveBeenCalledOnce();
-        workshop.destroy();
-        container.remove();
-    });
-
     it('coordinates one asset library, score canvas, and contextual inspector', () => {
-        const { workshop, container } = makeWorkshop();
+        const { container } = makeWorkshop();
 
         const form = container.querySelector('#workshop-form');
         const panes = [...form.querySelectorAll(':scope > .studio-pane')];
@@ -527,7 +514,7 @@ describe('Workshop Phase 6 audio authoring', () => {
         expect(workshop.scoreView).toBe('combined');
         expect(workshop.pendingScoreSelection).toMatchObject({ fromCharacter: 0, toCharacter: 5 });
         expect(container.querySelector('#studio-audio-library-panel').hidden).toBe(false);
-        workshop.cancelPendingScoreSelection({ announce: false });
+        workshop.cancelPendingScoreSelection();
         workshop.destroy();
         container.remove();
     });
@@ -990,13 +977,13 @@ describe('Workshop visual selection repair', () => {
         await vi.waitFor(() => expect(workshop.pendingScoreSelection)
             .toMatchObject({ fromCharacter: 0, toCharacter: 3 }));
 
-        workshop.cancelPendingScoreSelection({ announce: false });
+        workshop.cancelPendingScoreSelection();
         const touchText = selectCharacters(container, 4, 12);
         touchText.dispatchEvent(new Event('touchend', { bubbles: true }));
         await vi.waitFor(() => expect(workshop.pendingScoreSelection)
             .toMatchObject({ fromCharacter: 4, toCharacter: 12 }));
 
-        workshop.cancelPendingScoreSelection({ announce: false });
+        workshop.cancelPendingScoreSelection();
         const keyboardText = selectCharacters(container, 13, 20);
         keyboardText.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift', bubbles: true }));
         expect(workshop.pendingScoreSelection).toMatchObject({ fromCharacter: 13, toCharacter: 20 });
@@ -1300,7 +1287,7 @@ describe('Workshop draft lifecycle', () => {
         expect(workshop.sessionData.title).toBe('');
         expect(workshop.sessionData.sources).toHaveLength(0);
 
-        await workshop.openSavedBlueprintAsync(saved.id, { preserveCurrent: false });
+        await workshop.openSavedBlueprintAsync(saved.id);
         expect(workshop.sessionData.title).toBe('First form');
 
         const titleInput = container.querySelector('#session-title');
@@ -1860,46 +1847,14 @@ describe('Workshop Export MP4', () => {
         container.remove();
     });
 
-    it('POSTs the kernel request to the local export job', async () => {
-        const fetchMock = vi.fn(async (_url, init = {}) => {
-            if (init.method === 'GET') {
-                return { ok: true, json: async () => ({ ok: true, available: true }) };
-            }
-            return {
-                ok: true,
-                json: async () => ({
-                    ok: true,
-                    mp4Path: 'D:\\out\\workshop-export\\export-1\\experience.mp4',
-                    jobHash: 'sha256:abc'
-                })
-            };
-        });
-        vi.stubGlobal('fetch', fetchMock);
-        const { workshop, container } = scoredWorkshop();
-        await workshop.exportMp4();
-        expect(fetchMock.mock.calls.some(call => call[0] === '/__rise/export-mp4'
-            && call[1]?.method === 'GET')).toBe(true);
-        const post = fetchMock.mock.calls.find(call => call[1]?.method === 'POST');
-        expect(post[0]).toBe('/__rise/export-mp4');
-        const body = JSON.parse(post[1].body);
-        expect(body.schema).toBe('rise.kernel-request.v1');
-        expect(body.program.schema).toBe('rise.experience-program.v1');
-        expect(body.profileId).toBe('social-portrait-1080');
-        workshop.destroy();
-        container.remove();
-    });
-
-    it('downloads kernel JSON for the CLI when the Node path is absent', async () => {
-        vi.stubGlobal('fetch', vi.fn(async () => {
-            throw new TypeError('Failed to fetch');
-        }));
+    it('downloads kernel JSON for the CLI', () => {
         const { workshop, container } = scoredWorkshop();
         const downloaded = [];
         workshop.downloadKernelRequest = request => {
             downloaded.push(request);
             return 'score-source.kernel-request.json';
         };
-        await workshop.exportMp4();
+        workshop.exportMp4();
         expect(downloaded).toHaveLength(1);
         expect(downloaded[0].schema).toBe('rise.kernel-request.v1');
         expect(downloaded[0].program).toBeTruthy();

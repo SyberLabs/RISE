@@ -58,9 +58,8 @@ function diagnoseScene(scene) {
  *   that runs it, as the adapter knows them at the moment of the request (the RISE Live design, §1 item 7); the
  *   Current's `origin` says it, and the venue's About shows it
  * @param {(request: object, sink: object) => Promise<{cancel: Function, close: Function}>} options.connect
- * @param {number} [options.capacity]
  */
-export function createTextStreamAdapter({ id, provider, origin = () => ({ name: provider, provider }), connect, capacity = 64 }) {
+export function createTextStreamAdapter({ id, provider, origin = () => ({ name: provider, provider }), connect }) {
     if (typeof id !== 'string' || !id) throw new TypeError('A text-stream adapter has a name');
     if (typeof connect !== 'function') throw new TypeError('A text-stream adapter is given a connect function');
     let opened = 0;
@@ -90,7 +89,7 @@ export function createTextStreamAdapter({ id, provider, origin = () => ({ name: 
 
             const writer = createEventWriter(currentId);
             const log = [];
-            let channel = createChannel({ capacity });
+            let channel = createChannel();
             let closed = false;
             let finished = false;
             let lost = null;
@@ -200,7 +199,7 @@ export function createTextStreamAdapter({ id, provider, origin = () => ({ name: 
                 async resume(fromSeq) {
                     if (closed) throw new AdapterError('CLOSED', 'The connection is closed');
                     if (!Number.isInteger(fromSeq) || fromSeq < 0) throw new AdapterError('RESUME', 'Expected a sequence number');
-                    channel = createChannel({ capacity });
+                    channel = createChannel();
                     for (const event of log.filter(item => item.seq >= fromSeq)) channel.pushNow(event);
                     if (lost && !finished) {
                         // What was lost cannot be fetched again. Say so, once, and end.

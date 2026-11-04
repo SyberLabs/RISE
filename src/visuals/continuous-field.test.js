@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
     ContinuousField,
     containedArtworkBounds,
@@ -473,7 +473,7 @@ describe('ContinuousField', () => {
 
     it('a cold (empty) pool shows nothing, then reveals when works arrive', async () => {
         let works = [];
-        const { field, host, clock } = mount({ getPool: () => works });
+        const { field, clock } = mount({ getPool: () => works });
         field.start();
         await Promise.resolve(); await Promise.resolve();
         expect(field.currentUrl).toBeNull();
@@ -505,7 +505,7 @@ describe('ContinuousField', () => {
     it('poolChanged crossfades to the new pool and discards stale decodes', async () => {
         let works = pool('old-a.jpg', 'old-b.jpg');
         let resolveDecode;
-        const { field, clock } = mount({
+        const { field } = mount({
             getPool: () => works,
             // a slow decode we can strand
             decode: () => new Promise(r => { resolveDecode = r; })
@@ -552,7 +552,7 @@ describe('ContinuousField', () => {
 
     it('a works-less pool change (stillness) fades the field to nothing', async () => {
         let works = pool('a.jpg', 'b.jpg');
-        const { field, host, clock } = mount({ getPool: () => works });
+        const { field, host } = mount({ getPool: () => works });
         field.start();
         await Promise.resolve(); await Promise.resolve();
         expect(field.currentUrl).toBeTruthy();
@@ -589,7 +589,7 @@ describe('ContinuousField', () => {
 
     it('stop clears the layers and halts the clock', async () => {
         const works = pool('a.jpg');
-        const { field, host, clock } = mount({ getPool: () => works });
+        const { field, host } = mount({ getPool: () => works });
         field.start();
         await Promise.resolve();
         field.stop();

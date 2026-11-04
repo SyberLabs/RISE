@@ -121,7 +121,6 @@ const LOADERS = {
   chapel: () => import('./library/Chapel.js'),
   rosary: () => import('./library/Rosarium.js'),
   stations: () => import('./library/Via.js'),
-  journeys: () => import('./library/Journeys.js'),
   keystones: () => import('./library/Keystones.js'),
   school: () => import('./library/School.js'),
   mint: () => import('./library/Mint.js'),
@@ -136,7 +135,6 @@ const FACTORIES = {
     ...capabilities, setId: data?.setId, iconId: data?.iconId, door: data?.door === true
   }),
   stations: (el, { Via }, _data, capabilities) => new Via(el, capabilities),
-  journeys: (el, { Journeys }, _data, capabilities) => new Journeys(el, capabilities),
   keystones: (el, { Keystones }, data, capabilities) => new Keystones(el, {
     ...capabilities, initialSlug: data?.slug || null
   }),
@@ -157,7 +155,6 @@ const PROGRAMS = [
   ['chapel', 'Chapel'],
   ['rosary', 'Rosary'],
   ['stations', 'Stations'],
-  ['journeys', 'Journeys'],
   ['keystones', 'Keystones'],
   ['school', 'School'],
   ['provenance', 'Provenance']
@@ -238,7 +235,7 @@ export class Library {
       </div>
     `;
 
-    drawRiseSigil(this.container.querySelector('.sl-sigil'), { animate: false });
+    drawRiseSigil(this.container.querySelector('.sl-sigil'));
     this.updateActiveNav();
   }
 
@@ -1060,13 +1057,6 @@ export class Library {
       // straight back to the punctuation splitter.
       verseLines: mostlyVerse(divisions.entries)
     });
-  }
-
-  formatDuration(ms) {
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
   /**

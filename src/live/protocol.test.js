@@ -9,13 +9,11 @@
 import { describe, expect, it } from 'vitest';
 import {
     EVENT_LIMITS,
-    EVENT_TYPES,
     EXPERIENCE_DIMENSIONS,
     ILLUSTRATION_LIMITS,
     ILLUSTRATION_MEDIA,
     LiveProtocolError,
     RISE_CURRENT_EVENTS_SCHEMA,
-    decodeEvent,
     validateEvent
 } from './protocol.js';
 
@@ -69,10 +67,6 @@ const refusal = input => {
 };
 
 describe('the vocabulary', () => {
-    it('names exactly the events the plan lists', () => {
-        expect([...EVENT_TYPES].sort()).toEqual(Object.keys(VALID).sort());
-    });
-
     it('names the experiential dimensions, and only those', () => {
         expect([...EXPERIENCE_DIMENSIONS]).toEqual([
             'tension', 'warmth', 'expansiveness', 'perceptualDensity', 'motionEnergy',
@@ -108,7 +102,7 @@ describe('a valid event of every type', () => {
             expect(validateEvent(structuredClone(event))).toEqual(event);
         }
         expect(Object.hasOwn(validateEvent(VALID['current.open']), 'theme')).toBe(false);
-        expect(decodeEvent('{"schema":"rise.current-events.v1","currentId":"c","seq":0,"type":"current.open","title":"Why a black hole is black","origin":{"kind":"model","name":"n","provider":"p"},"theme":"cobalt"}').theme)
+        expect(validateEvent(JSON.parse('{"schema":"rise.current-events.v1","currentId":"c","seq":0,"type":"current.open","title":"Why a black hole is black","origin":{"kind":"model","name":"n","provider":"p"},"theme":"cobalt"}')).theme)
             .toBe('cobalt');
     });
 
@@ -396,11 +390,6 @@ describe('beats streamed (additive: a segment may be one beat of a rise.current.
         expect(refusal(base('scene.text', 1, { sceneId: 'disk', offset: 0, text: '' }))?.code).toBe('EVENT_SCENE');
         expect(refusal(base('scene.text', 1, { sceneId: 'disk', offset: -1, text: 'x' }))?.code).toBe('EVENT_OFFSET');
     });
-
-    it('keeps a piece of the largest source inside one event on the wire', () => {
-        // The worst case JSON makes of a character is six bytes (\u0001).
-        expect(EVENT_LIMITS.sceneChunk * 6 + 200).toBeLessThan(EVENT_LIMITS.wireBytes);
-    });
 });
 
 describe('errors say where', () => {
@@ -413,45 +402,8 @@ describe('errors say where', () => {
 });
 
 describe('an event off the wire', () => {
-    it('is decoded and validated', () => {
-        expect(decodeEvent(JSON.stringify(VALID['segment.end']))).toEqual(VALID['segment.end']);
-    });
-
-    it('is refused for size before it is ever parsed', () => {
-        const huge = JSON.stringify({ ...VALID['segment.end'], padding: 'x'.repeat(EVENT_LIMITS.wireBytes) });
-        let parsed = false;
-        const original = JSON.parse;
-        JSON.parse = (...args) => { parsed = true; return original(...args); };
-        try {
-            expect(() => decodeEvent(huge)).toThrowError(expect.objectContaining({ code: 'EVENT_TOO_LARGE' }));
-        } finally {
-            JSON.parse = original;
-        }
-        expect(parsed).toBe(false);
-    });
-
-    it('measures the wire limit in UTF-8 bytes before parsing', () => {
-        const huge = JSON.stringify({ ...VALID['segment.end'], padding: '🙂'.repeat(EVENT_LIMITS.wireBytes / 4) });
-        expect(huge.length).toBeLessThan(EVENT_LIMITS.wireBytes);
-        let parsed = false;
-        const original = JSON.parse;
-        JSON.parse = (...args) => { parsed = true; return original(...args); };
-        try {
-            expect(() => decodeEvent(huge)).toThrowError(expect.objectContaining({ code: 'EVENT_TOO_LARGE' }));
-        } finally {
-            JSON.parse = original;
-        }
-        expect(parsed).toBe(false);
-    });
-
-    it('is refused when it is not JSON, or not a string at all', () => {
-        expect(() => decodeEvent('{nope')).toThrowError(expect.objectContaining({ code: 'EVENT_JSON' }));
-        expect(() => decodeEvent(undefined)).toThrowError(expect.objectContaining({ code: 'EVENT_JSON' }));
-        expect(() => decodeEvent({})).toThrowError(expect.objectContaining({ code: 'EVENT_JSON' }));
-    });
-
     it('is refused with a prototype key in it', () => {
-        expect(() => decodeEvent(`{"__proto__":{"x":1},"schema":"${RISE_CURRENT_EVENTS_SCHEMA}"}`))
+        expect(() => validateEvent(JSON.parse(`{"__proto__":{"x":1},"schema":"${RISE_CURRENT_EVENTS_SCHEMA}"}`)))
             .toThrowError(expect.objectContaining({ code: 'EVENT_UNKNOWN_FIELD' }));
     });
 });

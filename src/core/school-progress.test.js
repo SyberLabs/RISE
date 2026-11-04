@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { ERASABLE_LOCAL_KEYS, USER_DATA_KEYS } from './user-data-keys.js';
 import {
-    clearProgress,
     holdsArcanum,
     houseSeals,
     markRead,
@@ -122,13 +121,6 @@ describe('school progress', () => {
         expect(houseSeals('saturn')).toBe(0);
     });
 
-    it('erases the record', () => {
-        markRead('sun.meditations');
-        clearProgress();
-        expect(localStorage.getItem(KEY)).toBeNull();
-        expect(readProgress()).toEqual(EMPTY);
-    });
-
     it('survives an origin whose storage throws on access', () => {
         const own = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
         Object.defineProperty(globalThis, 'localStorage', {
@@ -139,7 +131,6 @@ describe('school progress', () => {
             expect(readProgress()).toEqual(EMPTY);
             expect(() => markRead('sun.meditations')).not.toThrow();
             expect(readState('sun.meditations', 1)).toBe('unread');
-            expect(() => clearProgress()).not.toThrow();
         } finally {
             Object.defineProperty(globalThis, 'localStorage', own);
         }

@@ -26,11 +26,11 @@ import {
   validateCuratorContext
 } from './curator-context.js';
 import {
+  BOUNDARY_SOURCE_PREFIX,
   EXPERIENCE_PROGRAM_LIMITS,
   EXPERIENCE_PROGRAM_SCHEMA
 } from './experience-program.js';
 import { AGENT_OPERATION_SET_SCHEMA } from './agent-operations.js';
-import { BOUNDARY_SOURCE_PREFIX } from './journey-compiler.js';
 import {
   MAX_SAFE_TARGET_WORDS, READING_LIMITS, READING_PACE
 } from './reading-limits.js';
@@ -87,7 +87,8 @@ const number = (value) => Number(value).toLocaleString('en-US');
  * A list of ids as a model can read it: named, wrapped, and honest about
  * what it left out. `${count} offered` is not a capability list.
  */
-function idLines(ids, indent = '  ') {
+function idLines(ids) {
+  const indent = '    ';
   const named = ids.slice(0, MAX_NAMED);
   const lines = [];
   let line = '';
@@ -274,7 +275,7 @@ const ladderWords = (minutes) => minutes * READING_PACE.default;
  * for Currents of beats); the curator's ladder, shelf and prompt were measured
  * at this number, so it stays theirs, never above the score's.
  */
-export const CURATOR_MOVEMENTS = 16;
+const CURATOR_MOVEMENTS = 16;
 
 export function curatorMovementCeiling() {
   return Math.min(CURATOR_MOVEMENTS, EXPERIENCE_PROGRAM_LIMITS.maxMovements);
@@ -449,9 +450,9 @@ function capabilityLines(ctx) {
         'IMAGERY — a `sourced` cue draws photographs from a museum collection;',
         'a `procedural` cue draws a generated field from a pool, and may name',
         'engines within it.',
-        ...(museums.length ? ['  museum collections:', ...idLines(museums, '    ')] : []),
-        ...(pools.length ? ['  procedural pools:', ...idLines(pools, '    ')] : []),
-        ...(engines.length ? ['  engines:', ...idLines(engines, '    ')] : []),
+        ...(museums.length ? ['  museum collections:', ...idLines(museums)] : []),
+        ...(pools.length ? ['  procedural pools:', ...idLines(pools)] : []),
+        ...(engines.length ? ['  engines:', ...idLines(engines)] : []),
         ...(families.length
           ? [`  work-engine families: ${families.join(', ')}`,
             '    — imagery written for one book and named after it. These are',

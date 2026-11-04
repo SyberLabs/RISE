@@ -49,7 +49,7 @@ const OUT = fileURLToPath(new URL('../src/content/landscapes/candidates.generate
 const SCIENCE_CATALOG = fileURLToPath(new URL('../src/sources/visual/science-catalog.generated.json', import.meta.url));
 
 /** The first sheet's size per source: a strong first look, not everything. */
-export const BUDGET = Object.freeze({
+const BUDGET = Object.freeze({
     clevelandPainting: 100,
     clevelandPhotograph: 50,
     rijksPhotograph: 30,
@@ -58,13 +58,13 @@ export const BUDGET = Object.freeze({
 });
 
 /** A photograph held in a circle: big enough to fill it, not so long that the circle shows a sliver. */
-export const MIN_LONG_EDGE = 1000;
-export const MAX_ASPECT = 2;
+const MIN_LONG_EDGE = 1000;
+const MAX_ASPECT = 2;
 /** No single maker fills a sheet. */
-export const PER_MAKER = 6;
+const PER_MAKER = 6;
 
 /** Each source's own hosts. Anything else is refused, however it got into the record. */
-export const HOSTS = Object.freeze({
+const HOSTS = Object.freeze({
     cleveland: { image: ['openaccess-cdn.clevelandart.org'], page: ['clevelandart.org', 'www.clevelandart.org'] },
     rijks: { image: ['iiif.micr.io'], page: ['id.rijksmuseum.nl'] },
     eso: { image: ['cdn.eso.org', 'www.eso.org'], page: ['www.eso.org'] },
@@ -309,7 +309,7 @@ export function rijksMakers(object) {
  * licence (`subject_of[].subject_to`, CC0 for every object), so a match anywhere in it passes an In Copyright
  * photograph: measured 2026-10-26 on 200114544, "Kaapverdische eilanden, 1981" (image InC, metadata CC0).
  */
-export function rijksImageRights(visual) {
+function rijksImageRights(visual) {
     const rights = Array.isArray(visual?.subject_to) ? visual.subject_to : [];
     return rights.flatMap(r => (Array.isArray(r?.classified_as) ? r.classified_as : []))
         .map(c => c?.id).filter(id => typeof id === 'string');
@@ -380,7 +380,7 @@ export async function rijksCandidate(lodId) {
     if (!rijksImageIsPublicDomain(visual)) {
         return { title: resolved.title, why: `image rights ${rijksImageRights(visual).join(', ') || 'unstated'}, not public domain` };
     }
-    let info = null;
+    let info;
     try {
         const res = await politeFetch(resolved.fullImageUrl.replace(/\/full\/max\/0\/default\.jpg$/, '/info.json'));
         info = res.ok ? await res.json() : null;
@@ -495,7 +495,7 @@ export function nasaCandidate(item) {
 }
 
 /** One source's candidates, by name. */
-export async function harvestSource(name, leftOut) {
+async function harvestSource(name, leftOut) {
     switch (name) {
         case 'cleveland-paintings': return cleveland('Painting', { register: 'painting', budget: BUDGET.clevelandPainting }, leftOut);
         case 'cleveland-photographs': return cleveland('Photograph', { register: 'photograph', budget: BUDGET.clevelandPhotograph }, leftOut);

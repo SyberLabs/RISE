@@ -8,7 +8,7 @@
  * site's origin (the last test replays that refusal). See src/live/adapters/nvidia.js and docs/plans/LIVE-NVIDIA.md.
  */
 import { BLACK_HOLES } from '../src/live/fixtures/black-holes.js';
-import { fakeNvidiaKey, openaiChunk, openaiClose, openaiOpen, openaiText } from '../src/test/fake-direct-fetch.js';
+import { fakeNvidiaKey, openaiClose, openaiOpen, openaiText } from '../src/test/fake-direct-fetch.js';
 import { scriptToLines } from '../src/test/fake-text-transport.js';
 import { expect, test } from './fixtures.js';
 

@@ -172,15 +172,11 @@ export class VisualFlashGate {
     constructor({
         minIntervalMs = 180,
         burstWindowMs = 1200,
-        maxBurst = 3,
-        presenceWindowMs = VISUAL_PRESENCE_WINDOW_MS,
-        maxVisibleDuty = VISUAL_PRESENCE_MAX_DUTY
+        maxBurst = 3
     } = {}) {
         this.minIntervalMs = minIntervalMs;
         this.burstWindowMs = burstWindowMs;
         this.maxBurst = maxBurst;
-        this.presenceWindowMs = presenceWindowMs;
-        this.maxVisibleDuty = maxVisibleDuty;
         this.history = [];
         this.lastReason = 'ready';
     }
@@ -191,7 +187,7 @@ export class VisualFlashGate {
     }
 
     _prune(now) {
-        const retention = Math.max(this.burstWindowMs, this.presenceWindowMs);
+        const retention = Math.max(this.burstWindowMs, VISUAL_PRESENCE_WINDOW_MS);
         this.history = this.history.filter(item => {
             const edge = item.presence ? item.end : item.start;
             return now - edge < retention;
@@ -224,14 +220,14 @@ export class VisualFlashGate {
                 }
             }
 
-            const windowStart = now - this.presenceWindowMs;
+            const windowStart = now - VISUAL_PRESENCE_WINDOW_MS;
             const occupied = this.history.reduce((total, item) => {
                 if (!item.presence) return total;
                 const overlapStart = Math.max(windowStart, item.start);
                 const overlapEnd = Math.min(now, item.end);
                 return total + Math.max(0, overlapEnd - overlapStart);
             }, 0);
-            if (occupied + duration > this.presenceWindowMs * this.maxVisibleDuty) {
+            if (occupied + duration > VISUAL_PRESENCE_WINDOW_MS * VISUAL_PRESENCE_MAX_DUTY) {
                 this.lastReason = 'duty';
                 return { allowed: false, reason: this.lastReason };
             }
@@ -257,9 +253,5 @@ export class VisualFlashGate {
             presence
         });
         return true;
-    }
-
-    allow(now = performance.now(), durationMs = null) {
-        return this.commit(now, durationMs);
     }
 }

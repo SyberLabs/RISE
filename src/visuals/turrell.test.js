@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { Turrell } from './turrell.js';
-import { compileFieldPlanToAscii } from './ascii-engine.js';
 import { JEV_COLOR_THEMES } from '../core/jev-color-themes.js';
 import { themeEngine } from '../core/theme-engine-map.js';
 
@@ -98,7 +97,7 @@ describe('Turrell aperture composition', () => {
 });
 
 describe('Turrell plan contract', () => {
-  it('emits a field plan the ASCII compiler can transcribe', () => {
+  it('emits a radial field plan', () => {
     const { turrell } = makeTurrell();
     for (let i = 0; i < 40; i++) {
       const plan = turrell.generate();
@@ -113,9 +112,6 @@ describe('Turrell plan contract', () => {
         expect(typeof stop.color.s).toBe('number');
         expect(typeof stop.color.l).toBe('number');
       }
-      const frame = compileFieldPlanToAscii(plan, { columns: 48, rows: 20 });
-      expect(frame).toBeTruthy();
-      expect(frame.metadata.fieldKind).toBe('radial');
     }
   });
 

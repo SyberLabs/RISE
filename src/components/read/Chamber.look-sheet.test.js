@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { compileSession } from '../../core/session-compiler.js';
-import { buildJevVisualProgram } from '../../core/jev-sequence.js';
+import { compileJevVisualProgram } from '../../core/jev-sequence.js';
 import { JEV_INKS, JEV_PALETTES } from '../../core/jev-palette.js';
 import { JEV_COLOR_THEMES } from '../../core/jev-color-themes.js';
 import { applyLook, lookOfSession } from '../../core/looks.js';
@@ -37,7 +37,7 @@ const streamReading = (overrides = {}) => ({
 const jevReading = () => streamReading({
   origin: { view: 'home', experience: 'jev' },
   visualConfig: { visualMode: 'interlocution', interlocution: { presentation: 'continuous' } },
-  visualProgram: buildJevVisualProgram({
+  visualProgram: compileJevVisualProgram({
     visualArc: 'dual', arcSplit: '70', visualEngine: 'klee',
     middleEngine: 'turrell', finaleEngine: 'fractal',
     colorTheme: 'classic', middleTheme: 'amethyst', finaleTheme: 'prism'
@@ -90,7 +90,8 @@ function fakePlayer() {
     on: vi.fn(),
     setInterlocutionHandler: vi.fn(),
     setSpeedFactor: vi.fn(),
-    shuttleAvailable: false
+    shuttleForward: vi.fn(() => null),
+    shuttleBackward: vi.fn(() => null)
   };
   return player;
 }

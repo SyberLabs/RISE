@@ -57,7 +57,7 @@ export class StormAsciiEngine {
         };
     }
 
-    generate(signal = {}, seed = 'ascii-seed', options = {}) {
+    generate(signal = {}, seed = 'ascii-seed') {
         this.seed = seed;
         const rng = createSeededRandom(seed);
         this.sparks = [];
@@ -76,7 +76,7 @@ export class StormAsciiEngine {
         return true;
     }
 
-    step(dt = 0.016, signal = {}) {
+    step(dt = 0.016) {
         this.time += dt * this.params.speed;
 
         // Animate falling sparks & drifting smoke

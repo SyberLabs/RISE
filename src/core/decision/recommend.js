@@ -218,7 +218,7 @@ export function choiceMenu(rows) {
   };
 }
 
-export function validConfig(config, choices) {
+function validConfig(config, choices) {
   if (!config || typeof config !== 'object' || Array.isArray(config)
     || Object.keys(config).length !== 38
     || !Number.isInteger(config.wpm) || !Object.hasOwn(choices.pace, String(config.wpm))) return null;
@@ -285,12 +285,12 @@ function explicitVisualTiming(intent) {
  * a soundtrack RISE could play.
  */
 /** An explicit ask for no music or sound; night-drive routing keeps it. */
-export function requestsNoSound(intent) {
+function requestsNoSound(intent) {
   const text = String(intent || '').normalize('NFKC').toLowerCase();
   return /\b(?:no|without|skip|avoid|mute|muted|zero)\s+(?:any\s+)?(?:audio|music|sounds?|soundscape|beat|soundtrack)\b|\b(?:silent|silence|muted)\b|\bsound\s+off\b/u.test(text);
 }
 
-export function requestsNightDrive(intent) {
+function requestsNightDrive(intent) {
   const text = String(intent || '').normalize('NFKC').toLowerCase();
   return /\b(?:drift(?:s|ing)?|night[\s-]?driv(?:e|es|ing)|racing|race\s*cars?|street\s*rac\w*|highway|synthwave|outrun|tokyo|neon)\b/u.test(text);
 }
@@ -442,11 +442,11 @@ export function validDecision(value, books, intent, choices, provider) {
   };
 }
 
-export const INTENT_MIN = 3;
-export const INTENT_MAX = 240;
-export const RECOMMEND_DEADLINE_MS = 8000;
+const INTENT_MIN = 3;
+const INTENT_MAX = 240;
+const RECOMMEND_DEADLINE_MS = 8000;
 
-export function readIntent(value) {
+function readIntent(value) {
   const intent = typeof value === 'string' ? value.trim() : '';
   return intent.length >= INTENT_MIN && intent.length <= INTENT_MAX ? intent : null;
 }
@@ -498,7 +498,8 @@ export function buildRecommendRequest({ intent, catalog, turn = 0, nightDrive = 
 }
 
 /** Per-tab memory: turn counters and validated decisions, bounded. */
-export function memoryStore(limit = 32) {
+function memoryStore() {
+  const limit = 32;
   const turns = new Map();
   const decisions = new Map();
   return {
@@ -521,16 +522,16 @@ export function memoryStore(limit = 32) {
  * validated decisions) stays in `store`, by default this tab's memory.
  * Nothing is sent anywhere except the one connection's decision request.
  *
- * @param loadCatalog async (signal) => admitted catalog, or throws
+ * @param loadCatalog async () => admitted catalog, or throws
  * @param getConnection () => the reader's connection, or null
  */
 export function createRecommender({ loadCatalog, getConnection, store = memoryStore() }) {
-  return async function recommend(rawIntent, { nightDrive = true, signal } = {}) {
+  return async function recommend(rawIntent, { nightDrive = true } = {}) {
     const intent = readIntent(rawIntent);
     if (!intent) throw new DecisionError('INVALID_REQUEST', `Enter a reading intent of ${INTENT_MIN} to ${INTENT_MAX} characters.`);
     const connection = getConnection();
     if (!connection) throw new DecisionError('NOT_CONNECTED');
-    const catalog = await loadCatalog(signal);
+    const catalog = await loadCatalog();
     const provider = connection.provider;
     const identity = `${provider.name}:${provider.revision}`;
     const turn = await store.nextTurn(`${identity}:${intent}`);
@@ -538,7 +539,7 @@ export function createRecommender({ loadCatalog, getConnection, store = memorySt
     const key = `${identity}:${cacheKey}`;
     const cached = await store.get(key);
     if (cached) return { ...cached, decisionCacheStatus: 'hit' };
-    const value = await callDecision(connection, body, { signal, deadlineMs: RECOMMEND_DEADLINE_MS });
+    const value = await callDecision(connection, body, { deadlineMs: RECOMMEND_DEADLINE_MS });
     const decision = validDecision(value, hints.eligibleBooks, intent, choices, provider);
     if (!decision) throw new DecisionError('INVALID_RESPONSE', 'The decision model returned an invalid choice.');
     await store.set(key, decision);

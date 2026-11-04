@@ -2,9 +2,7 @@
  * What a model is told when it answers through RISE, and how a reader's
  * question is put to it.
  *
- * The instructions are RISE's, fixed here and applied on the server side of the
- * one same-origin route that opens the session (worker/live-realtime.mjs), so a
- * page cannot change what the model is told, and the model's answer is read
+ * The instructions are RISE's, fixed here, and the model's answer is read
  * only through the defensive line format (segment-parser.js). They teach beats
  * (docs/specs/LIVE-CURRENT-EVENTS-V1.md, "Beats streamed"), so holds and scenes
  * arrive while the answer is still being written.
@@ -15,9 +13,6 @@ import { RISE_CURRENT_LOOKS } from '../../core/rise-current.js';
 import { SVG_ELEMENTS } from '../../core/svg-admission.js';
 import { FIGURE_EXAMPLE, INTERACTIVE_EXAMPLE, LIB_GUIDE, SCENE_CODE_EXAMPLE, WIDGET_GUIDE } from '../guide/beats.js';
 import { describePerception, oneLine } from '../perception.js';
-
-export const OPENAI_MODELS = Object.freeze(['gpt-realtime', 'gpt-realtime-mini']);
-export const DEFAULT_OPENAI_MODEL = OPENAI_MODELS[0];
 
 /**
  * The two answers the instructions show, each read by the parser exactly as a model's answer is

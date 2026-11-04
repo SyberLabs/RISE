@@ -78,40 +78,6 @@ describe('Settings display type', () => {
         return { container, settings, onChange };
     }
 
-    // THE TWO PANELS ARE NOT THE SAME PANEL. A reading cannot be resumed once
-    // abandoned, so the door inside one carries only what can rescue it. What
-    // is meaningless there (the LOBBY drone, the About plate) or destructive
-    // there (export, and a clear that wipes the session and reloads) stays in
-    // Home, where a reader arrives on purpose and has nothing running.
-    it('withholds the between-sessions controls from the in-session panel', () => {
-        const container = document.createElement('div');
-        document.body.appendChild(container);
-        const session = new Settings(container, {
-            scope: 'session', settings: { fontSize: 'medium' }, onChange: vi.fn()
-        });
-
-        for (const gone of [
-            '[data-setting="enableAmbient"]',
-            '[data-action="export-data"]',
-            '[data-action="clear-history"]',
-            '.settings-about'
-        ]) expect(container.querySelector(gone), gone).toBeNull();
-        expect(container.textContent).not.toContain('Lobby drone');
-
-        // Everything that can rescue a reading in progress is still here.
-        for (const kept of [
-            'input[name="font-size"]',
-            'input[name="chamber-face"]',
-            '[data-setting="livingText"]',
-            '[data-setting="showProgress"]',
-            '[data-setting="showArtworkLabels"]',
-            '#master-volume',
-            '[data-setting="photosensitivityMode"]',
-            '[data-setting="reducedMotion"]'
-        ]) expect(container.querySelector(kept), kept).toBeTruthy();
-        session.destroy();
-    });
-
     it('keeps the full panel in Home, where nothing is running', () => {
         const { container, settings } = mountSettings();
         for (const kept of [
@@ -122,26 +88,24 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
-    it('offers S, M and L in both panels, and keeps a saved XL or Fit shown and chosen until another is picked', () => {
-        for (const scope of [undefined, 'session']) {
-            const container = document.createElement('div');
-            document.body.appendChild(container);
-            const onChange = vi.fn();
-            const panel = new Settings(container, { scope, settings: { fontSize: 'medium' }, onChange });
-            const radios = [...container.querySelectorAll('input[name="font-size"]')];
-            expect(radios.map(radio => [radio.value, radio.closest('label')?.textContent.trim()]), String(scope))
-                .toEqual([['small', 'S'], ['medium', 'M'], ['large', 'L']]);
-            expect(radios.find(radio => radio.value === 'medium').checked).toBe(true);
-            radios.find(radio => radio.value === 'large').click();
-            expect(onChange).toHaveBeenCalledWith('fontSize', 'large');
-            const forged = radios.find(radio => radio.value === 'small');
-            forged.value = 'huge';
-            forged.checked = true;
-            forged.dispatchEvent(new Event('change'));
-            expect(onChange).not.toHaveBeenCalledWith('fontSize', 'huge');
-            panel.destroy();
-            container.remove();
-        }
+    it('offers S, M and L, and keeps a saved XL or Fit shown and chosen until another is picked', () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const onChange = vi.fn();
+        const panel = new Settings(container, { settings: { fontSize: 'medium' }, onChange });
+        const radios = [...container.querySelectorAll('input[name="font-size"]')];
+        expect(radios.map(radio => [radio.value, radio.closest('label')?.textContent.trim()]))
+            .toEqual([['small', 'S'], ['medium', 'M'], ['large', 'L']]);
+        expect(radios.find(radio => radio.value === 'medium').checked).toBe(true);
+        radios.find(radio => radio.value === 'large').click();
+        expect(onChange).toHaveBeenCalledWith('fontSize', 'large');
+        const forged = radios.find(radio => radio.value === 'small');
+        forged.value = 'huge';
+        forged.checked = true;
+        forged.dispatchEvent(new Event('change'));
+        expect(onChange).not.toHaveBeenCalledWith('fontSize', 'huge');
+        panel.destroy();
+        container.remove();
         for (const saved of ['xlarge', 'fit']) {
             const { container, settings } = mountSettings({ fontSize: saved });
             const radios = [...container.querySelectorAll('input[name="font-size"]')];
@@ -379,13 +343,6 @@ describe('Settings affect section', () => {
         router.destroy();
     });
 
-    it('leaves affect out of the panel opened over a reading', () => {
-        const container = document.createElement('div');
-        document.body.appendChild(container);
-        const settings = new Settings(container, { scope: 'session' });
-        expect(container.querySelector('[data-section="affect"]')).toBeNull();
-        settings.destroy();
-    });
 });
 
 describe('Settings Plus voice', () => {

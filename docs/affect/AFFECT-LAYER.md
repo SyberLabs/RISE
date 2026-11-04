@@ -22,7 +22,6 @@ A prior is a scale choice. It is not a result from this corpus.
 ```bash
 npm run affect:benchmark
 npm run affect:export-brief -- path/to/text.txt path/to/outdir
-node scripts/affect/fit-readout.mjs
 ```
 
 `affect:export-brief` writes `affect-brief.json` and `affect-prompt.md`. The brief is a proposal list. The prompt asks for `rise.affect-program.v1`. A returned program is admitted with `admitAffectProgram` and becomes `user` only when `saveAffectProgram` is called. The player does not read either file.
@@ -33,10 +32,10 @@ Home → More → Emotions opens the map. Texts with valence and arousal sit in 
 
 `modulateEnergyAt(engine, parameters, program, phraseIndex)` scales the one energy parameter attractor, night-streaks, and Living Flame already expose. The signal is `motionEnergy`. At 0.5 the authored value stays. Attractor and night-streak `speed` stay between 0.25 and 4. Living Flame `energy` stays between 0 and 1, on the field or on the recipe. Arousal does not move it. Apparitio, Ostensoria, Harmonograph, Klee, and Genesis are not channels. Brightness, hue, palette, and transforms stay put.
 
-`fit-readout` exits 2 until a JSON file of judgments contains 24 records with `annotatorKind` of `human`. It does not invent weights.
+`canFitReadout` (`src/affect/preference/judgments.js`) refuses a readout fit until 24 judgments have `annotatorKind` of `human`. It does not invent weights.
 
 ## Calling it
 
-`maybeEvaluate(candidate, env)` returns `{ status: 'disabled' }` unless `env.RISE_AFFECT` is `1` or `true`. `evaluateCandidate` always evaluates, never writes the candidate, and still returns a pacing or visual state when the text encoder throws.
+Call `evaluateCandidate(candidate, options)` (`src/affect/evaluate.js`, also exported from `src/affect/index.js`). There is no environment switch: it always evaluates, never writes the candidate, and still returns a pacing or visual state when the text encoder throws.
 
 The candidate is a plain object: `text`, `visualConfig` or `visual.measured`, `audioFeatures`, `pacing` (`wpm`, `chunkMode`, `curve`, `revealMode`), `typography`, and `intent`. `intent.target` names axes. `intent.intentionalContrast` keeps disagreement out of the conflict component. `intent.weights` is the only way a single composite is produced.

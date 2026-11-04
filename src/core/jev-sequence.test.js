@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   advanceJevVisualArc,
-  buildJevVisualProgram,
+  compileJevVisualProgram,
   compileJevAudioProgram
 } from './jev-sequence.js';
 
@@ -22,11 +22,11 @@ const input = (visualArc, overrides = {}) => ({
 
 describe('compileJevVisualProgram', () => {
   it('does not create a program for a single visual arc', () => {
-    expect(buildJevVisualProgram(input('single'))).toBeNull();
+    expect(compileJevVisualProgram(input('single'))).toBeNull();
   });
 
   it.each([[30, 0.3], [50, 0.5], [70, 0.7]])('compiles a dual arc at the requested split %s', (answer, split) => {
-    const program = buildJevVisualProgram(input('dual', { arcSplit: answer }));
+    const program = compileJevVisualProgram(input('dual', { arcSplit: answer }));
 
     expect(program.coordinateSpace).toBe('source');
     expect(program.segments.map(segment => segment.match)).toEqual([
@@ -40,7 +40,7 @@ describe('compileJevVisualProgram', () => {
   });
 
   it('compiles a triple arc into the fixed three normalized intervals', () => {
-    const program = buildJevVisualProgram(input('triple'));
+    const program = compileJevVisualProgram(input('triple'));
 
     expect(program.segments.map(segment => segment.match)).toEqual([
       { sourceIds: ['primary'], fromProgress: 0, toProgress: 0.3 },
@@ -55,26 +55,26 @@ describe('compileJevVisualProgram', () => {
 
   it('keeps an energetic arc off the calm engines', () => {
     for (const visualStyle of ['psychedelic', 'immersive']) {
-      const program = buildJevVisualProgram(input('triple', {
+      const program = compileJevVisualProgram(input('triple', {
         visualStyle, visualEngine: 'fractal', middleEngine: 'fractal', finaleEngine: 'fractal'
       }));
       expect(program.segments.map(segment => segment.cue.collections[0]))
         .toEqual(['fractal', 'apparitio', 'ostensoria']);
     }
-    const calm = buildJevVisualProgram(input('dual', {
+    const calm = compileJevVisualProgram(input('dual', {
       visualStyle: 'psychedelic', visualEngine: 'turrell', finaleEngine: 'harmonograph'
     }));
     expect(calm.segments.map(segment => segment.cue.collections[0])).toEqual(['fractal', 'apparitio']);
   });
 
   it('leaves quiet and gentle arcs exactly as Jev chose them', () => {
-    const program = buildJevVisualProgram(input('triple', { visualStyle: 'gentle' }));
+    const program = compileJevVisualProgram(input('triple', { visualStyle: 'gentle' }));
     expect(program.segments.map(segment => segment.cue.collections[0]))
       .toEqual(['klee', 'harmonograph', 'ostensoria']);
   });
 
   it('chooses the next fixed engine when a later answer repeats an earlier one', () => {
-    const program = buildJevVisualProgram(input('triple', {
+    const program = compileJevVisualProgram(input('triple', {
       middleEngine: 'klee',
       finaleEngine: 'klee'
     }));
@@ -84,14 +84,14 @@ describe('compileJevVisualProgram', () => {
   });
 
   it('bounds unknown arc and engine values without creating malformed segments', () => {
-    expect(buildJevVisualProgram(input('quad'))).toBeNull();
-    expect(buildJevVisualProgram(input('dual', {
+    expect(compileJevVisualProgram(input('quad'))).toBeNull();
+    expect(compileJevVisualProgram(input('dual', {
       visualEngine: 'unknown', middleEngine: 'also-unknown'
     }))).toBeNull();
   });
 
   it('bounds unknown phase themes', () => {
-    expect(buildJevVisualProgram(input('triple', { finaleTheme: 'unknown' })))
+    expect(compileJevVisualProgram(input('triple', { finaleTheme: 'unknown' })))
       .toBeNull();
   });
 });
@@ -120,7 +120,7 @@ describe('compileJevAudioProgram', () => {
 
 describe('advanceJevVisualArc', () => {
   it('shifts the next visual scene to the current source position without changing cues or input', () => {
-    const program = buildJevVisualProgram(input('triple'));
+    const program = compileJevVisualProgram(input('triple'));
     const original = structuredClone(program);
     const advanced = advanceJevVisualArc(program, 0.18);
 
@@ -132,14 +132,14 @@ describe('advanceJevVisualArc', () => {
   });
 
   it('shifts the next boundary from the middle scene or a dual arc', () => {
-    expect(advanceJevVisualArc(buildJevVisualProgram(input('triple')), 0.48)
+    expect(advanceJevVisualArc(compileJevVisualProgram(input('triple')), 0.48)
       .segments.map(segment => segment.match.toProgress)).toEqual([0.3, 0.48, 1]);
-    expect(advanceJevVisualArc(buildJevVisualProgram(input('dual')), 0.21)
+    expect(advanceJevVisualArc(compileJevVisualProgram(input('dual')), 0.21)
       .segments.map(segment => segment.match.toProgress)).toEqual([0.21, 1]);
   });
 
   it('rejects a missing future scene, out-of-range position, and malformed arc', () => {
-    const program = buildJevVisualProgram(input('triple'));
+    const program = compileJevVisualProgram(input('triple'));
     for (const position of [-0.1, 0, 0.3, 0.7, 0.9, 1, NaN]) {
       expect(advanceJevVisualArc(program, position)).toBeNull();
     }

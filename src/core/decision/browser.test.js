@@ -11,7 +11,7 @@ describe('browser catalog loader', () => {
     expect(CATALOG_PATH).toBe('/content/catalog.json');
     const calls = [];
     const fetcher = async (url) => { calls.push(url); return { ok: true, json: async () => validCatalogFixture }; };
-    await loadPublicCatalog(undefined, { fetcher });
+    await loadPublicCatalog({ fetcher });
     expect(calls).toEqual(['/content/catalog.json']);
   });
 });

@@ -10,7 +10,7 @@ export const RISE_PRODUCT = Object.freeze({
   themes: 'the reader, RISE Live, the connector, visuals, infrastructure'
 });
 
-export const CUSTOMERS = Object.freeze({
+const CUSTOMERS = Object.freeze({
   /** Written from their README; a sample on our side only until OpenStatus confirms the brand. */
   'openstatushq/openstatus': Object.freeze({
     product: Object.freeze({

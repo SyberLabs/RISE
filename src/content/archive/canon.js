@@ -72,17 +72,6 @@ export const CANON = Object.freeze([
 export const CANON_IDS = Object.freeze(new Set(CANON.map(entry => entry.id)));
 
 /**
- * A work is canonical when it has been certified, not when it appears above.
- *
- * The list names what we INTEND to certify. Until a work has a chosen edition,
- * a structure-preserving ingest and an end-to-end comparison recorded against
- * it, it is a candidate — and this flag is what a card may honestly claim.
- * Nothing here is certified yet; the campaign starts from the list, not from
- * an assertion that the list is already true.
- */
-export { CERTIFIED_IDS } from './certification.js';
-
-/**
  * The standing reason, for a work withheld only because it is not in the
  * canon. Works with a KNOWN defect say that instead — a reason a reader or a
  * future curator can act on beats a category every time.

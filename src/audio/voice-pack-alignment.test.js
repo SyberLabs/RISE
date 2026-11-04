@@ -18,8 +18,7 @@ import manifest from './voice-pack.manifest.json';
  * only 22% of words landing within 60ms. One clip placed "trivial" at
  * 2020ms and "influence" at 2060ms — forty milliseconds apart.
  *
- * `scripts/align-voice-pack.mjs` replaced those onsets with a real
- * alignment: p50 0ms, p90 30ms, worst 60ms, 100% within 60ms.
+ * A forced alignment replaced those onsets: p50 0ms, p90 30ms, worst 60ms, 100% within 60ms.
  *
  * This file is the ratchet. Regenerating the pack rewrites `onsetsMs`
  * from the energy detector again, so a build that forgets to re-align

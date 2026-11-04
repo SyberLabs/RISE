@@ -39,7 +39,7 @@ function watch(p) {
     seen = [];
     events = [];
     p.on('atom', ({ index, concealed }) => { if (!concealed) seen.push(index); });
-    for (const name of ['waiting', 'extended', 'complete', 'state']) {
+    for (const name of ['extended', 'complete', 'state']) {
         p.on(name, data => events.push([name, data]));
     }
 }
@@ -67,8 +67,6 @@ describe('holding at the end of the words', () => {
 
         expect(seen).toEqual(session.atoms.map((_, i) => i));
         expect(events.filter(([name]) => name === 'complete')).toEqual([]);
-        expect(events.filter(([name]) => name === 'waiting')).toHaveLength(1);
-        expect(events.find(([name]) => name === 'waiting')[1]).toEqual({ index: session.atoms.length });
         expect(player.state).toBe('playing');
     });
 
@@ -388,7 +386,6 @@ describe('finishing', () => {
         watch(player);
         player.play();
         await tick(60_000);
-        expect(events.filter(([name]) => name === 'waiting')).toEqual([]);
         expect(events.filter(([name]) => name === 'complete')).toHaveLength(1);
         expect(player.state).toBe('complete');
     });

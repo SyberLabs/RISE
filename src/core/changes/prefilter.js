@@ -4,7 +4,7 @@
  * never offered to a model.
  */
 
-export const RECORDS_PREFIX = 'docs/product/tasks/';
+const RECORDS_PREFIX = 'docs/product/tasks/';
 
 /** True only when every changed file was seen and each is a task record. */
 export function isRecordsOnly(pull) {

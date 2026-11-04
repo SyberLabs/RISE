@@ -136,7 +136,7 @@ function engineSpeech(source, display) {
 }
 
 /** A formula as it is said: ClearSpeak once the engine has loaded, else the plain reading; the same all session. */
-export function speechOf(tex, { display = false } = {}) {
+function speechOf(tex, { display = false } = {}) {
   const source = String(tex ?? '');
   const key = `${display ? '$$' : '$'}${source}`;
   if (!said.has(key)) said.set(key, engineSpeech(source, display) ?? fallbackMath(source).speech);
