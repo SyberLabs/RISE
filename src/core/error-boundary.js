@@ -2,6 +2,7 @@
  * RISE Global Error Boundary
  * Catches and handles uncaught errors and promise rejections
  */
+import { count } from './telemetry.js';
 
 /**
  * Error severity levels
@@ -82,7 +83,17 @@ class ErrorBoundary {
     if (this.isInitialized) return;
     if (typeof window === 'undefined') return;
 
+    // Counted once a page (src/core/telemetry.js), with nothing of the error in it: one that recurs every frame
+    // must not become a request every frame.
+    let counted = false;
+    const countUnhandled = () => {
+      if (counted) return;
+      counted = true;
+      count('rise.app.failed', { class: 'unhandled' });
+    };
+
     window.addEventListener('error', (event) => {
+      countUnhandled();
       this.handleError(event.error || new Error(event.message), {
         category: ErrorCategory.UNKNOWN,
         severity: ErrorSeverity.HIGH,
@@ -93,6 +104,7 @@ class ErrorBoundary {
     });
 
     window.addEventListener('unhandledrejection', (event) => {
+      countUnhandled();
       const error = event.reason instanceof Error
         ? event.reason
         : new Error(String(event.reason));

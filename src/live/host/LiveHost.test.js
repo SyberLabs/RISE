@@ -7,6 +7,10 @@
  * what the reader is told, what is refused, and that nothing starts by itself.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../core/telemetry.js', () => ({ count: vi.fn() }));
+
+import { count } from '../../core/telemetry.js';
 import { LiveHost, framedBy, sceneReportLine } from './LiveHost.js';
 import { createRealClock, createVirtualClock } from '../clock.js';
 import { createMockAdapter } from '../adapters/mock.js';
@@ -246,6 +250,18 @@ describe('what this device cannot do is said, and only what it cannot', () => {
         expect(notes()).toContain('reducedMotion');
         mount('?voice=paced', env({ motion: false, recognition: true }));
         expect(notes()).not.toContain('reducedMotion');
+    });
+
+    // The same record, counted as classes alone (src/core/telemetry.js): once a host, and nothing a browser has.
+    it('is counted once a host: no speech voice, and no WebGL2', () => {
+        count.mockClear();
+        const flat = env();
+        mount('', { ...flat, document: { ...flat.document, createElement: () => ({ getContext: kind => (kind === 'webgl2' ? null : {}) }) } });
+        expect(count.mock.calls).toEqual([['rise.app.failed', { class: 'speech_unavailable' }], ['rise.app.failed', { class: 'webgl_unavailable' }]]);
+        host.destroy();
+        count.mockClear();
+        mount('', env({ speech: true }));
+        expect(count).not.toHaveBeenCalled();
     });
 });
 

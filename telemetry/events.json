@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "dataset": "syberlabs_events",
+  "events": {
+    "rise.current.admitted": {
+      "owner": "Composer",
+      "decision": "Which host apps use RISE's connector, and how long and how pictured the readings their models compose are, to decide where Composer work goes next.",
+      "blobs": [
+        { "name": "host", "values": ["claude", "chatgpt", "other"], "derived": "the request: Anthropic's published connector egress, or a User-Agent that begins openai-mcp/; neither the address nor the string is written" }
+      ],
+      "doubles": [
+        { "name": "beats" },
+        { "name": "scenes" }
+      ]
+    },
+    "rise.current.refused": {
+      "owner": "Composer",
+      "decision": "Which refusals each host app's model meets, to decide what to fix first in the tool's description, the guide and the validator.",
+      "blobs": [
+        { "name": "host", "values": ["claude", "chatgpt", "other"], "derived": "the request: Anthropic's published connector egress, or a User-Agent that begins openai-mcp/; neither the address nor the string is written" },
+        {
+          "name": "code",
+          "values": [
+            "MCP_ARGUMENTS", "MCP_TOO_LARGE",
+            "CURRENT_ANCHOR", "CURRENT_DIVES", "CURRENT_DUPLICATE_ID", "CURRENT_ID", "CURRENT_LITERAL", "CURRENT_LOOK",
+            "CURRENT_OBJECT", "CURRENT_ORIGIN", "CURRENT_PROVIDER", "CURRENT_QUOTE", "CURRENT_RESERVED_TEXT", "CURRENT_SCHEMA",
+            "CURRENT_SEGMENTS", "CURRENT_STYLE", "CURRENT_TEXT", "CURRENT_THEME", "CURRENT_TOTAL_TEXT", "CURRENT_UNKNOWN_FIELD",
+            "CURRENT_VISUAL",
+            "BEAT_COUNT", "BEAT_CUE", "BEAT_EMPHASIS", "BEAT_HOLD", "BEAT_KIND", "BEAT_PLACE", "BEAT_SCENE", "BEAT_SIZE",
+            "BEAT_SOUND", "BEAT_TRANSITION", "BEAT_TYPE",
+            "SCENE_CODE", "SCENE_COUNT", "SCENE_ENGINE", "SCENE_PARAM", "SCENE_SVG",
+            "SCENE_COLLECTION", "SCENE_CODE_ADMISSION", "SCENE_SVG_ADMISSION",
+            "other"
+          ]
+        }
+      ],
+      "doubles": []
+    },
+    "rise.reading.begun": {
+      "owner": "Reader",
+      "decision": "Where readings start (RISE's library, the reader's own text, a public page) and how they open, on which browsers and devices, to decide what the Reader builds and tests next.",
+      "blobs": [
+        { "name": "browser", "values": ["chrome", "safari", "firefox", "edge", "other"], "derived": "the User-Agent, read by worker/count.mjs; the string is never written" },
+        { "name": "device", "values": ["mobile", "desktop"], "derived": "the User-Agent, read by worker/count.mjs; the string is never written" },
+        { "name": "source", "values": ["library", "import", "public", "other"] },
+        { "name": "mode", "values": ["stream", "page"] }
+      ],
+      "doubles": []
+    },
+    "rise.reading.ended": {
+      "owner": "Reader",
+      "decision": "How many readings reach their end and how long readers stay, to decide where readings lose their readers.",
+      "blobs": [
+        { "name": "browser", "values": ["chrome", "safari", "firefox", "edge", "other"], "derived": "the User-Agent, read by worker/count.mjs; the string is never written" },
+        { "name": "device", "values": ["mobile", "desktop"], "derived": "the User-Agent, read by worker/count.mjs; the string is never written" },
+        { "name": "end", "values": ["yes", "no"] }
+      ],
+      "doubles": [
+        { "name": "minutes", "values": [1, 2, 5, 10, 20, 30, 60, 120] }
+      ]
+    },
+    "rise.app.failed": {
+      "owner": "Reader",
+      "decision": "Which failures readers meet, on which browsers and devices, to decide what to fix first.",
+      "blobs": [
+        { "name": "browser", "values": ["chrome", "safari", "firefox", "edge", "other"], "derived": "the User-Agent, read by worker/count.mjs; the string is never written" },
+        { "name": "device", "values": ["mobile", "desktop"], "derived": "the User-Agent, read by worker/count.mjs; the string is never written" },
+        { "name": "class", "values": ["speech_unavailable", "audio_failed", "webgl_unavailable", "kev_load_failed", "unhandled"] }
+      ],
+      "doubles": []
+    },
+    "rise.reading.first_word": {
+      "owner": "Reader",
+      "decision": "How long Home's Begin takes to reach the first word on readers' own browsers and devices (R2, RDR-015), to decide whether its 1.5-second budget holds outside CI.",
+      "blobs": [
+        { "name": "browser", "values": ["chrome", "safari", "firefox", "edge", "other"], "derived": "the User-Agent, read by worker/count.mjs; the string is never written" },
+        { "name": "device", "values": ["mobile", "desktop"], "derived": "the User-Agent, read by worker/count.mjs; the string is never written" }
+      ],
+      "doubles": [
+        { "name": "ms", "max": 60000, "step": 50 }
+      ]
+    }
+  }
+}

@@ -42,6 +42,7 @@ import { claimOpenRouterReturn } from '../core/openrouter-callback.js';
 import { localDateKey, watchLocalDay } from '../core/local-day.js';
 import { USER_DATA_KEYS } from '../core/user-data-keys.js';
 import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
+import { markBegin, takeBegin } from '../core/begin-steps.js';
 
 const ICON_ATTRS = 'width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const SETTINGS_PATH = '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle>';
@@ -640,6 +641,8 @@ export class Home {
   async proceed(action) {
     const reading = this.reading;
     if (!reading || this.busy) return;
+    // Begin starts R2's interval, which the reading's first word ends and counts (src/core/begin-steps.js).
+    if (action === 'enter') markBegin();
     this.setBusy(action);
     this.getAudioEngine()?.playClick();
     this.showError('');
@@ -654,6 +657,8 @@ export class Home {
         if (preview) this.firstReadChoiceUsed = true;
       }
     } catch (error) {
+      // No reading began, so no later one measures from this press.
+      takeBegin();
       this.showError('That reading couldn’t be opened. Try again, or try another reading.', error?.message || '');
     } finally {
       this.setBusy(null);

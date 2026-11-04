@@ -10,6 +10,8 @@ import { cardCsp, cardHtml } from '../src/live/hosts/mcp-card.js';
 import { admitSceneCode, describeDiagnostic } from '../src/core/scene-admission.js';
 import { admitSvg } from '../src/core/svg-admission.js';
 import { logQuality } from './mcp-quality.mjs';
+import { pictureCadence } from '../src/core/quality/cadence.js';
+import { countEvent, valuesOf } from './telemetry.mjs';
 
 /**
  * RISE as an MCP server: one tool that presents a Current, and the app that shows it.
@@ -21,8 +23,11 @@ import { logQuality } from './mcp-quality.mjs';
  * it is stateless, keeps no session and no key, calls no model and spends
  * nothing. Its work is to say what the tool is, to refuse a Current that is not
  * valid so the model can be told why and try again, and to serve the app's
- * document. The transport is MCP's Streamable HTTP, in its simplest legal form:
- * every request is a POST answered with one JSON body, and there is no stream.
+ * document. Each call to present a Current is counted by the host app it came
+ * from and by what the door did with it, and nothing the host sent is in the
+ * count (worker/telemetry.mjs). The transport is MCP's Streamable HTTP, in its
+ * simplest legal form: every request is a POST answered with one JSON body, and
+ * there is no stream.
  *
  * It is off unless MCP_ENABLED is 'true'. It answers only requests from no
  * browser origin or from its own (an MCP host's server has none; a page on
@@ -79,6 +84,17 @@ export function inAnthropicEgress(ip) {
   const address = (octets[0] << 24 | octets[1] << 16 | octets[2] << 8 | octets[3]) >>> 0;
   const shift = 32 - ANTHROPIC_EGRESS.prefix;
   return address >>> shift === ANTHROPIC_EGRESS.network >>> shift;
+}
+
+/**
+ * The host app a call comes from, for the connector's counts: Claude by Anthropic's egress, the sign this door already
+ * reads, and ChatGPT by its connector's User-Agent, `openai-mcp/<version>`, matched at its start and nowhere else. Any
+ * other request is "other", so a miss undercounts a host and never names the wrong one. The address and the string are
+ * read here and never kept.
+ */
+export function hostOf(ip, agent) {
+  if (inAnthropicEgress(ip ?? '')) return 'claude';
+  return /^openai-mcp\//u.test(agent ?? '') ? 'chatgpt' : 'other';
 }
 
 const RETRY_AFTER_SECONDS = 60;
@@ -353,10 +369,15 @@ function refusal(error) {
   return `RISE refused this Current: ${clean(error?.message ?? 'The Current was not valid')}. Correct it and call ${TOOL_NAME} again.`;
 }
 
+/** A refusal's code for the connector's counts: one of the closed set telemetry/events.json lists (the validator's codes and the door's own), or other. */
+const REFUSAL_CODES = new Set(valuesOf('rise.current.refused', 'code'));
+const refusalCode = code => (REFUSAL_CODES.has(code) ? code : 'other');
+
 /**
  * Every generated scene's code, parsed and held to the scene rules (src/core/scene-admission.js), and every figure's SVG,
  * held to the figure rules the card holds it to again (svg-admission.js): the refusal's lines, or none. A scene naming
- * an engine the card is not offered (a collection, whose images it cannot load: HOST_ENGINES) is refused by name.
+ * an engine the card is not offered (a collection, whose images it cannot load: HOST_ENGINES) is refused by name. What
+ * the model is told to repair is also the refusal's code, for the connector's counts.
  */
 function sceneRefusals(current) {
   const lines = [];
@@ -373,32 +394,41 @@ function sceneRefusals(current) {
     code ||= scene.code !== undefined;
     for (const diagnostic of verdict.diagnostics) lines.push(clean(`Scene "${scene.id}" was refused: ${describeDiagnostic(diagnostic)}`));
   }
-  return { lines: lines.slice(0, MAX_SCENE_LINES), repair: named ? 'the scene' : code ? 'the scene’s code' : 'the figure' };
+  return {
+    lines: lines.slice(0, MAX_SCENE_LINES),
+    repair: named ? 'the scene' : code ? 'the scene’s code' : 'the figure',
+    code: named ? 'SCENE_COLLECTION' : code ? 'SCENE_CODE_ADMISSION' : 'SCENE_SVG_ADMISSION'
+  };
 }
 
-function call(id, params) {
+/** rise_present: the Current admitted, or refused with what to repair. `count` hears which, once a call (handleMcp). */
+function call(id, params, count) {
   if (!params || typeof params !== 'object' || params.name !== TOOL_NAME) return failure(id, -32602, 'Unknown tool');
   const args = params.arguments;
   if (!args || typeof args !== 'object' || Array.isArray(args) || !args.current || typeof args.current !== 'object') {
+    count('rise.current.refused', { code: 'MCP_ARGUMENTS' });
     return result(id, { content: [{ type: 'text', text: `Call ${TOOL_NAME} with {"current": <a Current>}.` }], isError: true });
   }
   const extra = Object.keys(args).find(key => key !== 'current');
   if (extra !== undefined) {
     const why = extra === 'theme' ? '"theme" belongs inside the Current, not beside it'
       : `unknown argument "${clip(extra.replace(/[\u0000-\u001F\u007F]/gu, ''), 40)}"`;
+    count('rise.current.refused', { code: 'MCP_ARGUMENTS' });
     return result(id, { content: [{ type: 'text', text: `RISE refused these arguments: ${why}. Call ${TOOL_NAME} with {"current": <a Current>} only.` }], isError: true });
   }
   try {
     if (serializedUtf8Bytes(args.current) > MCP_CURRENT_BYTES) {
-      throw new Error(`The Current exceeds the ${MCP_CURRENT_BYTES.toLocaleString('en-US')}-byte MCP limit`);
+      throw Object.assign(new Error(`The Current exceeds the ${MCP_CURRENT_BYTES.toLocaleString('en-US')}-byte MCP limit`), { code: 'MCP_TOO_LARGE' });
     }
     validateRiseCurrent(args.current);
   } catch (error) {
+    count('rise.current.refused', { code: refusalCode(error?.code) });
     return result(id, { content: [{ type: 'text', text: refusal(error) }], isError: true });
   }
   const refused = sceneRefusals(args.current);
   if (refused.lines.length) {
     const text = [...refused.lines, `Repair ${refused.repair} and call ${TOOL_NAME} again with the whole Current.`].join('\n');
+    count('rise.current.refused', { code: refused.code });
     return result(id, { content: [{ type: 'text', text }], isError: true });
   }
   // The app admits the Current from structuredContent; the model, which wrote it, is told only what was accepted.
@@ -407,6 +437,8 @@ function call(id, params) {
     structuredContent: { current: args.current }
   });
   logQuality(args.current);
+  const { beats, scenes } = pictureCadence(args.current);
+  count('rise.current.admitted', { beats, scenes });
   return answer;
 }
 
@@ -468,7 +500,7 @@ function read(id, params, origin, card) {
 }
 
 /** One JSON-RPC message, answered. `null` for one that is not answered (a notification or a response). */
-export function dispatch(message, origin, card = null) {
+export function dispatch(message, origin, card = null, count = () => {}) {
   if (!message || typeof message !== 'object' || Array.isArray(message) || message.jsonrpc !== '2.0') {
     return failure(null, -32600, 'Invalid request');
   }
@@ -491,7 +523,7 @@ export function dispatch(message, origin, card = null) {
     case 'tools/list': return result(id, { tools: [TOOL, GUIDE_TOOL] });
     case 'tools/call': {
       if (params?.name === GUIDE_TOOL_NAME) return guide(id, params);
-      return call(id, params);
+      return call(id, params, count);
     }
     case 'resources/list':
       return result(id, {
@@ -509,7 +541,7 @@ export function dispatch(message, origin, card = null) {
 }
 
 /** A request's body as text, read to at most `limit` bytes: too large throws 'size', invalid UTF-8 throws. */
-async function readText(message, limit) {
+export async function readText(message, limit) {
   const reader = message.body?.getReader();
   if (!reader) throw new Error('body');
   const chunks = [];
@@ -604,5 +636,9 @@ export async function handleMcp(request, env) {
       /* the relay card is served instead */
     }
   }
-  return dispatch(message, origin, card);
+  // The connector's counts (worker/telemetry.mjs): each rise_present call the door admits or refuses is one data point
+  // of its host app and what the door did, written where production binds EVENTS; nothing the host sent is in it.
+  const host = hostOf(ip, request.headers.get('User-Agent'));
+  const count = (event, fields) => countEvent(env, event, { host, ...fields });
+  return dispatch(message, origin, card, count);
 }

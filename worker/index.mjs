@@ -1,4 +1,5 @@
 import { CHANGES_PREFIX, serveChangesFile } from './changes.mjs';
+import { COUNT_PATH, handleCount } from './count.mjs';
 import { isKevWorkerScript, serveKevWorkerScript } from './kev-worker-script.mjs';
 import { isRetiredInferenceRoute, retiredInference } from './retired-inference.mjs';
 import { handleMcp, MCP_PATH } from './mcp-server.mjs';
@@ -69,6 +70,8 @@ export default {
     if (isRetiredInferenceRoute(path)) return retiredInference();
     if (path.startsWith('/content/arena/')) return serveArenaFile(request, env);
     if (path.startsWith(CHANGES_PREFIX)) return serveChangesFile(request);
+    // The reader's anonymous event counts (worker/count.mjs): a 204 always, written only where production binds EVENTS.
+    if (path === COUNT_PATH) return handleCount(request, env);
 
     if (path === MCP_PATH) return handleMcp(request, env);
     // The paid voice: a Stripe receipt in a signed cookie, metered by PlusMeter (worker/plus.mjs).
