@@ -32,6 +32,9 @@
     "PLUS_VOICES": [{ "slug": "default", "label": "Default" }, { "slug": "george", "label": "George — warm British narrator", "id": "JBFqnCBsd6RMkjVDRZzb" }, { "slug": "rachel", "label": "Rachel — calm American", "id": "21m00Tcm4TlvDq8ikWAM" }, { "slug": "daniel", "label": "Daniel — deep British", "id": "onwK4e9ZLuTAKqWW03F9" }, { "slug": "charlotte", "label": "Charlotte — soft, measured", "id": "XB0fDUnXU5powFXDhCwa" }] },
   // rise.syberlabs.io is attached to this Worker in the Cloudflare dashboard.
   "observability": { "enabled": true },
+  // The SyberLabs event counts (worker/telemetry.mjs): only what telemetry/events.json names, in the Analytics Engine
+  // dataset, which keeps a data point for three months. Production alone binds it; without it nothing is counted.
+  "analytics_engine_datasets": [{ "binding": "EVENTS", "dataset": "syberlabs_events" }],
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application",
