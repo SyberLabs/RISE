@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated: 2 November 2026**
+**Last updated: 5 November 2026**
 
 > **This document has not been reviewed by a lawyer.** Every factual claim in
 > it was checked against the RISE source code, but whether those facts satisfy
@@ -55,7 +55,7 @@ The rest of this document is the detail behind those sentences.
 
 ## 1. Who is responsible
 
-RISE is published by **Mateo Robles**, doing business as **SyberLabs**
+RISE is published by **SyberLabs**, a general partnership
 ("we", "us"), in California, United States.
 
 For any question about this policy or your data, contact
@@ -688,6 +688,6 @@ after a change means the revised policy applies.
 
 ## 15. Contact
 
-**Mateo Robles**, doing business as **SyberLabs**
+**SyberLabs**, a general partnership
 **syberlabs.support@gmail.com**
 <https://rise.syberlabs.io/>

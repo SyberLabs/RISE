@@ -1,0 +1,42 @@
+{
+  "id": "FND-021",
+  "title": "Name SyberLabs, a general partnership, as the operator in the Terms and Privacy Policy",
+  "lane": "shared",
+  "milestone": "Release reliability",
+  "status": "in_review",
+  "delivery": "branch",
+  "owner": "Claude legal-entity correction",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "TERMS.md and PRIVACY.md name the operator as \"SyberLabs, a general partnership\" wherever they named an individual doing business as SyberLabs; the surrounding sentences, the California location and the contact address syberlabs.support@gmail.com are unchanged.",
+    "Both documents read \"Last updated: 5 November 2026\".",
+    "public/PRIVACY.md, public/privacy.html and public/terms.html are regenerated from the sources and match them (npm run verify:legal).",
+    "No other user-facing page, string or document names an individual as RISE's operator, publisher or contact.",
+    "Copy only: no behaviour changes."
+  ],
+  "evidence": [
+    {
+      "kind": "document",
+      "ref": "TERMS.md",
+      "note": "Sections 1 and 18 of TERMS.md and sections 1 and 15 of PRIVACY.md now name SyberLabs, a general partnership; published copies regenerated with npm run build:legal.",
+      "date": "2026-11-05"
+    },
+    {
+      "kind": "test",
+      "ref": "e2e/account-saves.spec.js",
+      "note": "On branch claude/legal-entity-syberlabs: npm run verify:legal, ci-hygiene (9 checks), roadmap:check (130 tasks), test:roadmap (23 pass), security:audit and security:compat, docs:diagram (ARCHITECTURE.md unchanged), content:build, fast unit suite (157 files, 3762 passed, 4 skipped), vite build, measure:first-load, both wrangler dry runs, and the browser gate (72 passed, 3 skipped, including the standalone policy page test) all passed locally. dist/terms.html and dist/privacy.html name SyberLabs, a general partnership.",
+      "date": "2026-11-05"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-11-05T02:40:00.000Z",
+      "summary": "Claimed and implemented on branch claude/legal-entity-syberlabs; not merged."
+    }
+  ],
+  "updatedAt": "2026-11-05T02:40:00.000Z",
+  "revision": 1,
+  "summary": "Legal-text correction: SyberLabs is now a general partnership, so the Terms and Privacy Policy name it, not an individual, as the operator.",
+  "blocker": null
+}
