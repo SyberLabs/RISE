@@ -54,6 +54,29 @@ const isObject = value => value !== null && typeof value === 'object' && !Array.
 const isIso = value => typeof value === 'string' && ISO.test(value) && Number.isFinite(Date.parse(value));
 const sameKeys = (value, keys) => Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
 const title = value => typeof value === 'string' && value.trim().length > 0 && value.length <= LIMITS.title;
+const isRoute = route => isObject(route) && sameKeys(route, Object.keys(ROUTE_MENU))
+  && Object.entries(ROUTE_MENU).every(([question, options]) => options.includes(route[question]));
+
+/** A route cache file on the data branch: `cache/routes/<mergeSha>.json`. */
+export const ROUTE_CACHE_SCHEMA = 'syberlabs.changes-route/v1';
+/** A route cache file is about 250 bytes; one larger is not read. */
+export const ROUTE_CACHE_BYTES = 4096;
+
+/**
+ * What is wrong with a parsed route cache file for this merge SHA under this contract hash; empty when it is exactly
+ * `{ schema, mergeSha, route, contract, at }` with that SHA and hash, a route of one menu choice per question and an
+ * ISO time. The files sit on a public branch, so nothing else in one is trusted.
+ */
+export function cachedRouteProblems(entry, { mergeSha, contract }) {
+  if (!isObject(entry) || !sameKeys(entry, ['schema', 'mergeSha', 'route', 'contract', 'at'])) return ['A route cache file has exactly schema, mergeSha, route, contract, at'];
+  const problems = [];
+  if (entry.schema !== ROUTE_CACHE_SCHEMA) problems.push(`schema is not ${ROUTE_CACHE_SCHEMA}`);
+  if (entry.mergeSha !== mergeSha) problems.push('mergeSha is not the merge it is filed under');
+  if (entry.contract !== contract) problems.push('contract is not the router’s current contract');
+  if (!isRoute(entry.route)) problems.push('route is not one choice from the route menu per question');
+  if (!isIso(entry.at)) problems.push('at is not an ISO time');
+  return problems;
+}
 
 export function pullUrl(number, repo = REPOSITORY) {
   return `https://github.com/${repo}/pull/${number}`;
@@ -108,11 +131,7 @@ function changeProblems(change, index, repo) {
   if (change.url !== pullUrl(change.number, repo)) problems.push(`${path}.url must be ${pullUrl(change.number, repo)}`);
   if (!isIso(change.mergedAt)) problems.push(`${path}.mergedAt must be an ISO time`);
   if (typeof change.mergeSha !== 'string' || !SHA.test(change.mergeSha)) problems.push(`${path}.mergeSha must be 40 hex characters`);
-  const route = change.route;
-  if (!isObject(route) || !sameKeys(route, Object.keys(ROUTE_MENU))
-    || Object.entries(ROUTE_MENU).some(([question, options]) => !options.includes(route[question]))) {
-    problems.push(`${path}.route must be one choice from the route menu per question`);
-  }
+  if (!isRoute(change.route)) problems.push(`${path}.route must be one choice from the route menu per question`);
   if (typeof change.included !== 'boolean') problems.push(`${path}.included must be true or false`);
   if (!REASONS.includes(change.reason)) problems.push(`${path}.reason must be one of ${REASONS.join(', ')}`);
   if (change.included === true && change.reason !== 'routed') problems.push(`${path} is included, so its reason is routed`);

@@ -1,7 +1,8 @@
 /**
  * One run of RISE Changes (docs/plans/RISE-CHANGES.md): collect, prefilter,
- * route, compose, admit, illustrate, and the two files to write. `gh` and `ask` are
- * injected, so the whole run is testable without GitHub or a model; nothing
+ * route, compose, admit, illustrate, and the two files to write. `gh`, `ask` and
+ * `readCache` (a route cache file's text by merge SHA, or null) are injected, so
+ * the whole run is testable without GitHub, a model or the data branch; nothing
  * here writes a file, pushes a branch or opens an issue.
  */
 import { boundary, collectMergedPulls, readIndex } from '../../src/core/changes/collect.js';
@@ -10,8 +11,9 @@ import { composeCurrent } from './compose.js';
 import { illustrate } from './illustrate.js';
 import { endHeldPictures, pictureCoverage } from './held.js';
 import { DIGEST_ID, FALLBACK_ROUTE, MODEL, REPOSITORY, densityLine, qualityLine } from '../../src/core/changes/contract.js';
+import { factCard } from '../../src/core/changes/facts.js';
 import { prefilter } from '../../src/core/changes/prefilter.js';
-import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
+import { routeCandidates, selectChanges } from './route.js';
 import { buildDigest, digestId, issueFor, nextIndex, serialize } from '../../src/core/changes/write.js';
 import { BRANDS } from '../../src/core/figures/brands.js';
 import { customerFor } from './customers.js';
@@ -108,7 +110,7 @@ function measureDensity(current, { sources, pictureRefs, includedChanges }) {
 
 /**
  * `{ written: false, reason }` when there is nothing to write, else
- * `{ written: true, id, files, issue }`: the file names and their text, and
+ * `{ written: true, id, files, cache, issue }`: the file names and their text, the new route cache files by path, and
  * the notification issue's title and body. `renderCheck`, when given, renders
  * each admitted figure (illustrate.js). `onRefused` is given each model
  * answer RISE refuses, `{ stage, attempt, beat?, refusal, answer }`, the moment
@@ -116,7 +118,7 @@ function measureDensity(current, { sources, pictureRefs, includedChanges }) {
  */
 const kitBrief = picture => picture !== null && typeof picture === 'object' && (Object.hasOwn(picture, 'brief') || Object.hasOwn(picture, 'medium') || Object.hasOwn(picture, 'code'));
 
-export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures, dryRun = false, onRefused = () => {} }) {
+export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures, dryRun = false, readCache, onRefused = () => {} }) {
   const refused = entry => onRefused({ ...entry, answer: String(entry.answer ?? '') });
   if (figures !== undefined && figures !== 'kit') throw new Error('--figures kit is the only public-digest mode');
   const kitOnly = figures === 'kit';
@@ -148,14 +150,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     throw new Error(`${candidates.length} pull requests to route; at most ${MAX_CANDIDATES} in one run. Narrow the period with --since`);
   }
 
-  let routes = new Map();
-  if (candidates.length) {
-    const answer = await ask({ ...buildRouteRequest(candidates, customer?.product), model });
-    routes = admitRoutes(answer, candidates);
-    const unread = candidates.filter(pull => routes.get(pull.number) === FALLBACK_ROUTE);
-    const fallback = `${FALLBACK_ROUTE.audience}/${FALLBACK_ROUTE.significance}/${FALLBACK_ROUTE.kind}`;
-    if (unread.length) refused({ stage: 'router', attempt: 1, refusal: unread.map(pull => `#${pull.number}: its route could not be read, so it took the fallback route ${fallback}`), answer });
-  }
+  const { routes, cache } = await routeCandidates({ cards: candidates.map(factCard), ask, model, product: customer?.product, readCached: readCache, now, log, refused });
   const { changes, unlisted } = selectChanges({ candidates, records, routes });
   for (const change of changes) {
     log(`  #${change.number} ${change.route.audience}/${change.route.significance}/${change.route.kind} ${change.included ? 'included' : `not included (${change.reason})`}`);
@@ -215,6 +210,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     written: true,
     id,
     files: { [`${id}.json`]: serialize(digest), 'index.json': serialize(next) },
+    cache,
     issue: issueFor(digest, { supersedes: replaced?.id, repository: repo, name: customer?.product.name, unrouted })
   };
 }
