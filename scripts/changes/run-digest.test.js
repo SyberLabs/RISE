@@ -227,6 +227,17 @@ describe('runDigest on the week of #652–#671', () => {
     expect(lines).toContain('Unrouted: 15 of 15 pull requests; the router\'s answer for them could not be read, so they took the fallback route skip/minor/records');
   });
 
+  it('counts nothing as unrouted when the router itself routes every change to skip/minor/records', async () => {
+    const [route] = week();
+    const skipped = route.replace(/\{"audience": "[a-z]+", "significance": "[a-z]+", "kind": "[a-z]+"\}/g, '{"audience": "skip", "significance": "minor", "kind": "records"}');
+    expect(skipped.match(/"audience": "skip"/g)).toHaveLength(15);
+    const { ask } = scriptedAsk([skipped]);
+    const lines = [];
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
+    expect(result).toEqual({ written: false, reason: 'No change was included: none was routed to the team as notable or major' });
+    expect(lines.filter(line => line.startsWith('Unrouted'))).toEqual([]);
+  });
+
   it('writes nothing when nothing merged, without asking a model', async () => {
     const empty = JSON.stringify({ data: { repository: { pullRequests: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] } } } });
     const { ask, calls } = scriptedAsk([]);

@@ -116,9 +116,9 @@ const change = (pull, route, included, reason) => ({
  * The digest's changes: the team digest includes every change not routed to
  * skip that is notable or major, whatever its audience (kept for a readers
  * digest), at most 24 by significance then recency (the rest are
- * `limit`). At most 60 are listed: every included one, then the weightiest and
- * newest of the rest, records last. Listed newest first. A change on the
- * fallback route because its answer was not admitted is `unrouted`.
+ * `limit`). At most 60 are listed: every included one, then every `unrouted`
+ * one (on the fallback route because its answer was not admitted), then the
+ * weightiest and newest of the rest, records last. Listed newest first.
  */
 export function selectChanges({ candidates, records, routes }) {
   const routed = candidates.map(pull => ({ ...pull, route: routes.get(pull.number) ?? FALLBACK_ROUTE }));
@@ -128,12 +128,11 @@ export function selectChanges({ candidates, records, routes }) {
   const chosen = new Set(eligible.slice(0, LIMITS.included).map(pull => pull.number));
   const limited = eligible.slice(LIMITS.included).map(pull => change(pull, pull.route, false, 'limit'));
   const included = routed.filter(pull => chosen.has(pull.number)).map(pull => change(pull, pull.route, true, 'routed'));
-  const others = routed
-    .filter(pull => !chosen.has(pull.number) && !eligible.includes(pull))
-    .sort(weightiest)
-    .map(pull => change(pull, pull.route, false, pull.route === FALLBACK_ROUTE ? 'unrouted' : 'routed'));
+  const leftOut = routed.filter(pull => !chosen.has(pull.number) && !eligible.includes(pull)).sort(weightiest);
+  const unrouted = leftOut.filter(pull => pull.route === FALLBACK_ROUTE).map(pull => change(pull, pull.route, false, 'unrouted'));
+  const others = leftOut.filter(pull => pull.route !== FALLBACK_ROUTE).map(pull => change(pull, pull.route, false, 'routed'));
   const bookkeeping = [...records].sort(newest).map(pull => change(pull, FALLBACK_ROUTE, false, 'records-only'));
-  const ordered = [...included, ...limited.sort(weightiest), ...others, ...bookkeeping];
+  const ordered = [...included, ...unrouted, ...limited.sort(weightiest), ...others, ...bookkeeping];
   const listed = ordered.slice(0, LIMITS.changes).sort(newest);
   return { changes: listed, unlisted: ordered.length - listed.length };
 }

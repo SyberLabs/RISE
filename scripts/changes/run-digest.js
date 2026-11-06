@@ -104,7 +104,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   }
   if (unlisted) log(`${unlisted} more pull requests are not listed: a digest lists at most ${changes.length}`);
   const unrouted = [...routes.values()].filter(route => route === FALLBACK_ROUTE).length;
-  if (candidates.length) log(`Unrouted: ${unrouted} of ${candidates.length} pull requests; the router's answer for them could not be read, so they took the fallback route skip/minor/records`);
+  if (unrouted) log(`Unrouted: ${unrouted} of ${candidates.length} pull requests; the router's answer for them could not be read, so they took the fallback route skip/minor/records`);
   const includedNumbers = new Set(changes.filter(change => change.included).map(change => change.number));
   if (includedNumbers.size === 0) {
     return { written: false, reason: unrouted > 0 && unrouted === candidates.length
