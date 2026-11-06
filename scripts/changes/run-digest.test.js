@@ -438,6 +438,15 @@ describe('the answers a run refused (rejected.json)', () => {
     expect(all.map(entry => entry.attempt)).toEqual(many.map(entry => entry.attempt));
     expect(all.at(-1)).toEqual({ stage: 'illustrator', beat: 1, attempt: 100, refusal: ['figure'], answer: '', truncated: true });
   });
+
+  it('caps an entry’s refusal lines at their own bound, so the file stays under its bound', () => {
+    const lines = Array.from({ length: 50 }, () => 'y'.repeat(REJECTED_LIMITS.refusal));
+    const text = serializeRejected([{ stage: 'composition', attempt: 1, refusal: lines, answer: 'a' }]);
+    expect(Buffer.byteLength(text)).toBeLessThanOrEqual(REJECTED_LIMITS.file);
+    const [kept] = JSON.parse(text);
+    expect(kept.truncated).toBe(true);
+    expect(kept.refusal.join('').length).toBe(REJECTED_LIMITS.refusal);
+  });
 });
 
 describe('runDigest for a customer', () => {

@@ -24,16 +24,33 @@ const MAX_CANDIDATES = 200;
  * rejected.json's bounds: each answer at most the largest Current RISE admits (a picture's source is smaller), the
  * file at most 4 MiB.
  */
-export const REJECTED_LIMITS = Object.freeze({ answer: MCP_CURRENT_BYTES, file: 4 * 1024 * 1024 });
+export const REJECTED_LIMITS = Object.freeze({ answer: MCP_CURRENT_BYTES, refusal: 16 * 1024, file: 4 * 1024 * 1024 });
+
+/** A refusal's lines kept while they total at most the refusal bound, the last one cut to fit. */
+function capRefusal(lines) {
+  let left = REJECTED_LIMITS.refusal;
+  const kept = [];
+  for (const line of lines) {
+    if (left <= 0) break;
+    kept.push(line.slice(0, left));
+    left -= line.length;
+  }
+  return kept;
+}
 
 /**
  * The refused answers as rejected.json: a JSON array, one entry per line, in the order refused. An answer cut to its
- * bound, or emptied once the file would pass its bound, is marked `truncated`; every entry keeps its refusal lines.
+ * bound, or emptied once the file would pass its bound, is marked `truncated`; every entry keeps its refusal lines, cut to their own bound.
  */
 export function serializeRejected(entries) {
-  const capped = entries.map(entry => (entry.answer.length > REJECTED_LIMITS.answer
-    ? { ...entry, answer: entry.answer.slice(0, REJECTED_LIMITS.answer), truncated: true }
-    : entry));
+  const capped = entries.map(entry => {
+    const refusal = capRefusal(entry.refusal);
+    const cutRefusal = refusal.length < entry.refusal.length || refusal.some((line, i) => line.length < entry.refusal[i].length);
+    const cutAnswer = entry.answer.length > REJECTED_LIMITS.answer;
+    return cutRefusal || cutAnswer
+      ? { ...entry, refusal, answer: entry.answer.slice(0, REJECTED_LIMITS.answer), truncated: true }
+      : entry;
+  });
   const bare = capped.map(entry => JSON.stringify({ ...entry, answer: '', truncated: true }));
   // A line's bytes with its separator; "[\n" and "\n]\n" add 3 more than the lines do.
   const bytes = line => Buffer.byteLength(line, 'utf8') + 2;
