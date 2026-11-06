@@ -1,0 +1,31 @@
+{
+  "id": "SVC-013",
+  "title": "Routes are cached by merge SHA and read from fact cards",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [
+    "SVC-011"
+  ],
+  "acceptance": [
+    "The router is shown each pull request through a pure context contract read from its fact card (number, title, labels, areas with diff stats, flags, the first 600 characters of the body, quoted with < escaped); a test pins its fields and its byte size on the recorded week, and the before and after bytes are written in docs/plans/RISE-CHANGES.md.",
+    "Each admitted route is written as cache/routes/<mergeSha>.json { schema, mergeSha, route, contract, at }, contract the sha256 of the router's system text, the route context version and FACTS_VERSION; a cached route is used only when the file admits strictly under the current contract and menu, and a malformed or mismatched file is ignored and routed afresh.",
+    "A pull request whose answer could not be read is asked once more; still unread it stays unrouted and is not cached; the run log counts router calls, the retry among them, and routes from the cache.",
+    "A re-run over the same period with the same cache makes zero router calls, and a superseding run routes every pull request the first digest routed exactly as before (the #685 and #693 case of 2026-10-16-2).",
+    "Both Changes workflows check changes-data out read-only without credentials before the run, pass it as --cache, and commit only the new route files beside the digest on non-dry runs; the published digest format is unchanged."
+  ],
+  "evidence": [],
+  "activity": [
+    {
+      "date": "2026-11-06T22:00:00.000Z",
+      "summary": "Opened and claimed as P1-C of the RISE Changes v2 Phase 1 plan (owner-approved 2026-11-06)."
+    }
+  ],
+  "updatedAt": "2026-11-06T22:00:00.000Z",
+  "revision": 1,
+  "summary": "The router reads fact-card summaries through a pinned context contract, each route is cached on changes-data by merge SHA under a contract hash, and an unreadable answer is asked for once more, so re-runs and supersedes route as the first run did.",
+  "blocker": null
+}

@@ -1,12 +1,19 @@
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { FALLBACK_ROUTE, ROUTE_MENU } from '../../src/core/changes/contract.js';
-import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
+import { FALLBACK_ROUTE, ROUTE_CACHE_BYTES, ROUTE_CACHE_SCHEMA, ROUTE_MENU } from '../../src/core/changes/contract.js';
+import { FACTS_VERSION } from '../../src/core/changes/facts.js';
+import { ROUTE_CONTEXT_VERSION } from './route-context.js';
+import { admitRoutes, buildRouteRequest, cacheReader, contractHash, routeCandidates, routeContract, selectChanges } from './route.js';
 import { customerFor } from './customers.js';
 
 const sha = n => String(n).padStart(40, 'b');
 const pull = (number, mergedAt, extra = {}) => ({
   number, title: `Change ${number}`, body: `Body of ${number}.`, url: `https://github.com/SyberLabs/RISE/pull/${number}`,
-  mergedAt, mergeSha: sha(number), labels: [], files: ['src/a.js'], fileCount: 1, ...extra
+  mergedAt, mergeSha: sha(number), labels: [], files: ['src/a.js'], fileCount: 1,
+  areas: [{ area: 'src', files: 1, additions: 3, deletions: 1 }],
+  flags: { migration: false, config: false, dependency: false, workflow: false, docsOnly: false, testsOnly: false }, ...extra
 });
 const answer = routes => JSON.stringify({ routes });
 const route = (audience, significance, kind) => ({ audience, significance, kind });
@@ -169,5 +176,178 @@ describe('selectChanges', () => {
     expect(changes).toHaveLength(60);
     expect(unlisted).toBe(10);
     for (const number of [200, 201, 202, 203, 204]) expect(changes.find(change => change.number === number)?.included).toBe(true);
+  });
+});
+
+describe('routeContract', () => {
+  const system = buildRouteRequest([]).system;
+
+  it('is the sha256 of the router’s system text, the context contract’s version and the fact rules’ version', () => {
+    const hash = contractHash(system, ROUTE_CONTEXT_VERSION, FACTS_VERSION);
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(routeContract()).toBe(hash);
+    expect(contractHash(system, ROUTE_CONTEXT_VERSION, FACTS_VERSION)).toBe(hash);
+  });
+
+  it('changes when any of the three changes', () => {
+    const hash = contractHash(system, ROUTE_CONTEXT_VERSION, FACTS_VERSION);
+    expect(contractHash(`${system} `, ROUTE_CONTEXT_VERSION, FACTS_VERSION)).not.toBe(hash);
+    expect(contractHash(system, ROUTE_CONTEXT_VERSION + 1, FACTS_VERSION)).not.toBe(hash);
+    expect(contractHash(system, ROUTE_CONTEXT_VERSION, FACTS_VERSION + 1)).not.toBe(hash);
+    expect(routeContract(customerFor('openstatusHQ/openstatus').product)).not.toBe(hash);
+  });
+});
+
+describe('routeCandidates', () => {
+  const now = new Date('2026-10-14T09:00:00.000Z');
+  const cards = [pull(1, '2026-10-13T00:00:00Z'), pull(2, '2026-10-14T00:00:00Z'), pull(3, '2026-10-15T00:00:00Z')];
+  const all = answer({ 1: route('team', 'notable', 'feature'), 2: route('both', 'major', 'fix'), 3: route('skip', 'minor', 'records') });
+  const scripted = answers => {
+    const calls = [];
+    const ask = async request => { calls.push(request); const next = answers.shift(); if (next === undefined) throw new Error('unexpected ask'); return next; };
+    return { ask, calls };
+  };
+  const entry = (number, value, extra = {}) => JSON.stringify({ schema: ROUTE_CACHE_SCHEMA, mergeSha: sha(number), route: value, contract: routeContract(), at: '2026-10-14T09:00:00.000Z', ...extra });
+  const reader = files => async mergeSha => files[mergeSha] ?? null;
+  const offered = request => JSON.parse(request.prompt.slice(request.prompt.indexOf('<pull_requests>\n') + 16, request.prompt.indexOf('\n</pull_requests>'))).map(item => item.number);
+
+  it('routes every card in one call and writes one cache file per admitted route, keyed by merge SHA', async () => {
+    const { ask, calls } = scripted([all]);
+    const lines = [];
+    const { routes, cache } = await routeCandidates({ cards, ask, model: 'm', now, log: line => lines.push(line) });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].model).toBe('m');
+    expect([...routes.keys()]).toEqual([1, 2, 3]);
+    expect(routes.get(3)).toEqual(route('skip', 'minor', 'records'));
+    expect(routes.get(3)).not.toBe(FALLBACK_ROUTE);
+    expect(Object.keys(cache)).toEqual([1, 2, 3].map(number => `cache/routes/${sha(number)}.json`));
+    expect(JSON.parse(cache[`cache/routes/${sha(2)}.json`])).toEqual({
+      schema: ROUTE_CACHE_SCHEMA, mergeSha: sha(2), route: route('both', 'major', 'fix'), contract: routeContract(), at: '2026-10-14T09:00:00.000Z'
+    });
+    expect(cache[`cache/routes/${sha(2)}.json`].endsWith('}\n')).toBe(true);
+    expect(lines).toContain('Router: 1 call; 0 of 3 routes from the cache');
+  });
+
+  it('uses a cached route whose contract matches and asks the router only for the rest', async () => {
+    const { ask, calls } = scripted([answer({ 3: route('team', 'minor', 'fix') })]);
+    const lines = [];
+    const files = { [sha(1)]: entry(1, route('team', 'notable', 'feature')), [sha(2)]: entry(2, route('skip', 'minor', 'records')) };
+    const { routes, cache } = await routeCandidates({ cards, ask, model: 'm', now, readCached: reader(files), log: line => lines.push(line) });
+    expect(calls).toHaveLength(1);
+    expect(offered(calls[0])).toEqual([3]);
+    expect(routes.get(1)).toEqual(route('team', 'notable', 'feature'));
+    expect(routes.get(2)).toEqual(route('skip', 'minor', 'records'));
+    expect(routes.get(2)).not.toBe(FALLBACK_ROUTE);
+    expect([...routes.keys()]).toEqual([1, 2, 3]);
+    expect(Object.keys(cache)).toEqual([`cache/routes/${sha(3)}.json`]);
+    expect(lines).toContain('Router: 1 call; 2 of 3 routes from the cache');
+  });
+
+  it('makes no router call when every route is cached', async () => {
+    const { ask, calls } = scripted([]);
+    const lines = [];
+    const files = Object.fromEntries([1, 2, 3].map(number => [sha(number), entry(number, route('team', 'notable', 'fix'))]));
+    const { routes, cache } = await routeCandidates({ cards, ask, model: 'm', now, readCached: reader(files), log: line => lines.push(line) });
+    expect(calls).toHaveLength(0);
+    expect([...routes.values()]).toEqual([1, 2, 3].map(() => route('team', 'notable', 'fix')));
+    expect(cache).toEqual({});
+    expect(lines).toContain('Router: 0 calls; 3 of 3 routes from the cache');
+  });
+
+  it('ignores a cache file that is malformed, for another merge, judged under another contract, or off the menu, and routes it afresh', async () => {
+    const bad = [
+      'not json',
+      '[]',
+      'null',
+      entry(1, route('team', 'notable', 'feature'), { contract: '0'.repeat(64) }),
+      entry(1, route('team', 'notable', 'feature'), { mergeSha: sha(9) }),
+      entry(1, route('team', 'notable', 'feature'), { schema: 'syberlabs.changes-route/v2' }),
+      entry(1, route('team', 'notable', 'feature'), { note: 'extra' }),
+      entry(1, route('team', 'notable', 'feature'), { at: 'yesterday' }),
+      entry(1, route('everyone', 'major', 'feature')),
+      entry(1, { ...route('team', 'major', 'fix'), why: 'x' }),
+      entry(1, { audience: 'team', significance: 'major' }),
+      entry(1, ['team', 'major', 'fix']),
+      '{"schema": "syberlabs.changes-route/v1", "__proto__": {"route": {}}}'
+    ];
+    for (const text of bad) {
+      const { ask, calls } = scripted([answer({ 1: route('both', 'minor', 'design') })]);
+      const lines = [];
+      const { routes, cache } = await routeCandidates({ cards: [cards[0]], ask, model: 'm', now, readCached: reader({ [sha(1)]: text }), log: line => lines.push(line) });
+      expect(calls, text).toHaveLength(1);
+      expect(routes.get(1)).toEqual(route('both', 'minor', 'design'));
+      expect(Object.keys(cache)).toEqual([`cache/routes/${sha(1)}.json`]);
+      expect(lines.some(line => line.startsWith(`Route cache: ${sha(1).slice(0, 12)} ignored`)), text).toBe(true);
+    }
+  });
+
+  it('asks once more, alone, for the pull requests whose answer could not be read, and caches what it then admits', async () => {
+    const first = answer({ 1: route('team', 'notable', 'feature'), 2: route('both', 'major', 'everything'), 3: route('skip', 'minor', 'records') });
+    const { ask, calls } = scripted([first, answer({ 2: route('both', 'major', 'fix') })]);
+    const lines = [];
+    const { routes, cache } = await routeCandidates({ cards, ask, model: 'm', now, log: line => lines.push(line) });
+    expect(calls).toHaveLength(2);
+    expect(offered(calls[1])).toEqual([2]);
+    expect(routes.get(2)).toEqual(route('both', 'major', 'fix'));
+    expect([...routes.keys()]).toEqual([1, 2, 3]);
+    expect(Object.keys(cache)).toHaveLength(3);
+    expect(lines).toContain('Router: 2 calls, 1 a retry for 1 pull request whose answer could not be read; 0 of 3 routes from the cache');
+  });
+
+  it('leaves a pull request still unreadable after the retry on the fallback route, and never caches it', async () => {
+    const { ask, calls } = scripted(['not json', answer({ 1: route('team', 'notable', 'feature'), 2: { audience: 'team' } })]);
+    const { routes, cache } = await routeCandidates({ cards, ask, model: 'm', now, log: () => {} });
+    expect(calls).toHaveLength(2);
+    expect(offered(calls[1])).toEqual([1, 2, 3]);
+    expect(routes.get(1)).toEqual(route('team', 'notable', 'feature'));
+    expect(routes.get(2)).toBe(FALLBACK_ROUTE);
+    expect(routes.get(3)).toBe(FALLBACK_ROUTE);
+    expect(Object.keys(cache)).toEqual([`cache/routes/${sha(1)}.json`]);
+  });
+
+  it('asks nothing for no cards', async () => {
+    const { ask, calls } = scripted([]);
+    const { routes, cache } = await routeCandidates({ cards: [], ask, model: 'm', now, log: () => {} });
+    expect(calls).toHaveLength(0);
+    expect(routes.size).toBe(0);
+    expect(cache).toEqual({});
+  });
+});
+
+describe('cacheReader', () => {
+  it('reads a route cache file by merge SHA from <dir>/cache/routes, and nothing a merge SHA does not name', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'rise-cache-test-'));
+    try {
+      const routes = join(dir, 'cache', 'routes');
+      await mkdir(routes, { recursive: true });
+      await writeFile(join(routes, `${sha(1)}.json`), '{"cached": true}');
+      await writeFile(join(routes, `${sha(2)}.json`), 'x'.repeat(ROUTE_CACHE_BYTES + 1));
+      await writeFile(join(dir, 'outside.json'), '{"outside": true}');
+      await writeFile(join(routes, 'index.json'), '{"cached": true}');
+      const read = cacheReader(dir);
+      expect(await read('index'), 'a file in the directory that no merge SHA names').toBeNull();
+      expect(await read(sha(1))).toBe('{"cached": true}');
+      expect(await read(sha(3)), 'a missing file is no cache').toBeNull();
+      expect(await read(sha(2)), 'a file past ROUTE_CACHE_BYTES is not read').toBeNull();
+      expect(await read('../../outside'), 'only a merge SHA names a file').toBeNull();
+      expect(cacheReader(undefined)).toBeUndefined();
+      expect(await cacheReader(join(dir, 'none'))(sha(1)), 'a cache directory that does not exist is an empty cache').toBeNull();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  // Creating a symbolic link needs a privilege Windows does not grant by default; CI runs on Linux.
+  it.skipIf(process.platform === 'win32')('does not follow a link out of the cache directory', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'rise-cache-test-'));
+    try {
+      const routes = join(dir, 'cache', 'routes');
+      await mkdir(routes, { recursive: true });
+      await writeFile(join(dir, 'outside.json'), '{"outside": true}');
+      await symlink(join(dir, 'outside.json'), join(routes, `${sha(4)}.json`));
+      expect(await cacheReader(dir)(sha(4))).toBeNull();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
   });
 });

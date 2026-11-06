@@ -2,7 +2,39 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const text = readFileSync(resolve(process.cwd(), '.github/workflows/changes-public.yml'), 'utf8').replace(/\r\n/g, '\n');
+const read = name => readFileSync(resolve(process.cwd(), `.github/workflows/${name}`), 'utf8').replace(/\r\n/g, '\n');
+const text = read('changes-public.yml');
+
+/** One step's text, from its `- name:` line to the next step. */
+const step = (workflow, name) => {
+  const start = workflow.indexOf(`- name: ${name}\n`);
+  const end = workflow.indexOf('\n      - ', start + 1);
+  return start < 0 ? '' : workflow.slice(start, end < 0 ? undefined : end);
+};
+
+describe.each(['changes-digest.yml', 'changes-public.yml'])('the route cache in %s', name => {
+  const workflow = read(name);
+
+  it('checks the data branch out read-only, keeping no credential, before the run, and only when it exists', () => {
+    const cache = step(workflow, 'Check out the route cache');
+    expect(cache).toMatch(/if: steps\.branch\.outputs\.exists == 'true'\n/);
+    expect(cache).toMatch(/ref: changes-data\n {10}path: changes-cache\n {10}persist-credentials: false\n?$/);
+    expect(cache).not.toMatch(/token|secrets/);
+    expect(workflow.indexOf('- name: Find the data branch')).toBeLessThan(workflow.indexOf('- name: Check out the route cache'));
+    expect(workflow.indexOf('- name: Check out the route cache')).toBeLessThan(workflow.indexOf('- name: Route, compose and admit the digest'));
+    expect(step(workflow, 'Find the data branch')).not.toMatch(/\n {8}if:/);
+  });
+
+  it('passes the checkout to the run as --cache, and commits only the new route files beside the digest', () => {
+    expect(step(workflow, 'Route, compose and admit the digest'))
+      .toContain('if [ -d "$GITHUB_WORKSPACE/changes-cache" ]; then args+=(--cache "$GITHUB_WORKSPACE/changes-cache"); fi');
+    const commit = step(workflow, 'Commit the digest to changes-data');
+    expect(commit).toContain('cp "$RUNNER_TEMP/changes/cache/routes/"*.json cache/routes/\n            git add cache/routes\n');
+    // The digest, the index, and the route directory tested then copied: nothing else leaves the out directory.
+    expect(commit.match(/\$RUNNER_TEMP\/changes\//g)).toHaveLength(4);
+    expect(step(workflow, 'Check out the data branch')).toMatch(/if: steps\.digest\.outputs\.written == 'true' && !inputs\.dry_run/);
+  });
+});
 
 describe('the public Changes workflow', () => {
   it('is called by a repository and is not dispatched, nor run on a pull request', () => {
@@ -19,7 +51,7 @@ describe('the public Changes workflow', () => {
     expect(text).not.toMatch(/inputs\.repo/);
   });
 
-  it('runs the pinned RISE tree, never the caller’s dependencies, and checks the repository out only to publish', () => {
+  it('runs the pinned RISE tree, never the caller’s dependencies, and checks the repository out only after the install, to read the route cache and to publish', () => {
     const digest = text.indexOf('Route, compose and admit the digest');
     const publish = text.indexOf('Check out the data branch');
     const install = text.indexOf('npm ci');

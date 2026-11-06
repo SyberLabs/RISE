@@ -67,6 +67,25 @@ jobs:
           npm install --global --no-fund --no-audit @anthropic-ai/claude-code@2.1.287
           claude --version
 
+      - name: Find the data branch
+        id: branch
+        run: |
+          if git ls-remote --exit-code --heads origin changes-data > /dev/null; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      # Routes cached by merge SHA (docs/plans/RISE-CHANGES.md, Route). Read-only: no credential is kept in this checkout,
+      # and the run admits each file strictly, so a file it cannot admit is routed afresh.
+      - name: Check out the route cache
+        if: steps.branch.outputs.exists == 'true'
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: changes-data
+          path: changes-cache
+          persist-credentials: false
+
       - name: Route, compose and admit the digest
         id: digest
         env:
@@ -79,6 +98,7 @@ jobs:
           set -euo pipefail
           out="$RUNNER_TEMP/changes"
           args=(--out "$out")
+          if [ -d "$GITHUB_WORKSPACE/changes-cache" ]; then args+=(--cache "$GITHUB_WORKSPACE/changes-cache"); fi
           if [ -n "${SINCE:-}" ]; then args+=(--since "$SINCE"); fi
           if [ -n "${SUPERSEDE:-}" ]; then args+=(--supersede "$SUPERSEDE"); fi
           if [ "${DRY_RUN:-false}" = 'true' ]; then args+=(--dry-run); fi
@@ -104,16 +124,6 @@ jobs:
           cat "$RUNNER_TEMP/changes/issue.json"
           cat "$RUNNER_TEMP/changes/index.json"
           cat "$RUNNER_TEMP/changes/$ID.json"
-
-      - name: Find the data branch
-        id: branch
-        if: steps.digest.outputs.written == 'true' && !inputs.dry_run
-        run: |
-          if git ls-remote --exit-code --heads origin changes-data > /dev/null; then
-            echo 'exists=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'exists=false' >> "$GITHUB_OUTPUT"
-          fi
 
       # Credentials are kept in this checkout only, after every dependency script has run.
       - name: Check out the data branch
@@ -148,6 +158,11 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add README.md index.json "$ID.json"
+          if [ -d "$RUNNER_TEMP/changes/cache/routes" ]; then
+            mkdir -p cache/routes
+            cp "$RUNNER_TEMP/changes/cache/routes/"*.json cache/routes/
+            git add cache/routes
+          fi
           git commit -m "Changes digest $ID"
           git push origin HEAD:refs/heads/changes-data
 

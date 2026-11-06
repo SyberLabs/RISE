@@ -6,6 +6,12 @@
  * data, quoted where a prompt is built.
  */
 
+/**
+ * Bumped whenever a rule here changes a field the router reads (scripts/changes/route-context.js): it is part of the
+ * route cache's contract hash, so no route judged on the old facts is reused.
+ */
+export const FACTS_VERSION = 1;
+
 const DEPENDENCY_FILES = new Set([
   'package.json', 'package-lock.json', 'npm-shrinkwrap.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lock', 'bun.lockb',
   'go.mod', 'go.sum', 'Cargo.toml', 'Cargo.lock', 'poetry.lock', 'pyproject.toml', 'requirements.txt', 'Pipfile.lock',

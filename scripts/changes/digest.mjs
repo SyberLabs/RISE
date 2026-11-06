@@ -2,7 +2,7 @@
 /**
  * RISE Changes: one digest of what merged into main (docs/plans/RISE-CHANGES.md).
  *
- *   node scripts/changes/digest.mjs [--since <ISO>] [--out <dir>] [--dry-run] [--supersede <id>] [--figures kit] [--repo owner/name]
+ *   node scripts/changes/digest.mjs [--since <ISO>] [--out <dir>] [--dry-run] [--supersede <id>] [--figures kit] [--repo owner/name] [--cache <dir>]
  *
  * Reads GitHub through `gh` (GH_TOKEN) and asks Claude through the Claude
  * Code CLI (CLAUDE_CODE_OAUTH_TOKEN, passed to the CLI's environment only).
@@ -12,17 +12,21 @@
  * ({ written, id?, reason? }) in every case. It never commits, pushes or opens
  * an issue: the workflow does that, and skips it on a dry run. `--supersede`
  * re-runs a published digest's period (from its start, unless --since says
- * otherwise) and marks that digest superseded in the index.
+ * otherwise) and marks that digest superseded in the index. `--cache` names a
+ * read-only copy of the data branch: a route cached there by merge SHA is reused,
+ * and each new route is written to `cache/routes/<mergeSha>.json` in the out
+ * directory.
  */
 import { execFile, spawn } from 'node:child_process';
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createAsk } from '../../src/core/changes/claude-cli.js';
 import { repositoryNameProblems } from '../../src/core/changes/repository.js';
 import { runDigest } from './run-digest.js';
+import { cacheReader } from './route.js';
 import { openRenderCheck } from './render-check.mjs';
 import { serialize } from '../../src/core/changes/write.js';
 import { DIGEST_ID } from '../../src/core/changes/contract.js';
@@ -36,7 +40,7 @@ export function parseOptions(argv) {
     args: argv,
     options: {
       since: { type: 'string' }, out: { type: 'string' }, 'dry-run': { type: 'boolean', default: false }, supersede: { type: 'string' },
-      figures: { type: 'string' }, repo: { type: 'string' }
+      figures: { type: 'string' }, repo: { type: 'string' }, cache: { type: 'string' }
     },
     strict: true,
     allowPositionals: false
@@ -48,7 +52,7 @@ export function parseOptions(argv) {
   const repo = values.repo || undefined;
   const name = repo === undefined ? null : repositoryNameProblems(repo);
   if (name) throw new Error(name);
-  return { since: values.since || undefined, out: values.out, dryRun: values['dry-run'], supersede, figures, repo };
+  return { since: values.since || undefined, out: values.out, dryRun: values['dry-run'], supersede, figures, repo, cache: values.cache || undefined };
 }
 
 /** `gh` with these arguments, without the Claude credential: its stdout, or an error carrying its stderr. */
@@ -121,7 +125,7 @@ export async function main(argv, { env = process.env, log = line => console.log(
   };
   let result;
   try {
-    result = await runDigest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, dryRun: options.dryRun, log, renderCheck });
+    result = await runDigest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, dryRun: options.dryRun, log, renderCheck, readCache: cacheReader(options.cache) });
   } finally {
     if (renderer) await (await renderer.catch(() => null))?.close();
   }
@@ -131,9 +135,13 @@ export async function main(argv, { env = process.env, log = line => console.log(
     return result;
   }
   for (const [name, text] of Object.entries(result.files)) await writeFile(join(dir, name), text, 'utf8');
+  for (const [path, text] of Object.entries(result.cache)) {
+    await mkdir(dirname(join(dir, path)), { recursive: true });
+    await writeFile(join(dir, path), text, 'utf8');
+  }
   await writeFile(join(dir, 'issue.json'), serialize(result.issue), 'utf8');
   await writeFile(join(dir, 'run.json'), serialize({ written: true, id: result.id }), 'utf8');
-  log(`Wrote ${Object.keys(result.files).join(' and ')} to ${dir}.`);
+  log(`Wrote ${Object.keys(result.files).join(' and ')} and ${Object.keys(result.cache).length} route cache files to ${dir}.`);
   return result;
 }
 

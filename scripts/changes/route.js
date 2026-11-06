@@ -2,16 +2,21 @@
  * Route: one model call that answers three finite questions per pull request
  * (audience, significance, kind), admitted strictly against the menu in the
  * way Jev's answers are (src/core/decision/recommend.js). An answer that is
- * missing, malformed or off the menu becomes the fallback route for that pull
- * request, which stays listed; the model can choose an offered value and
- * nothing else. Selection after it is deterministic code.
+ * missing, malformed or off the menu is asked for once more; still unread, it
+ * becomes the fallback route for that pull request, which stays listed; the
+ * model can choose an offered value and nothing else. A route admitted once is
+ * kept by merge SHA and reused while its contract hash holds. Selection after
+ * it is deterministic code.
  */
+import { createHash } from 'node:crypto';
+import { readFile, realpath, stat } from 'node:fs/promises';
+import { join, resolve, sep } from 'node:path';
 import { parseModelJson } from './admit.js';
-import { FALLBACK_ROUTE, LIMITS, ROUTE_MENU } from '../../src/core/changes/contract.js';
+import { FALLBACK_ROUTE, LIMITS, ROUTE_CACHE_BYTES, ROUTE_CACHE_SCHEMA, ROUTE_MENU, cachedRouteProblems } from '../../src/core/changes/contract.js';
+import { FACTS_VERSION } from '../../src/core/changes/facts.js';
+import { serialize } from '../../src/core/changes/write.js';
 import { RISE_PRODUCT } from './customers.js';
-
-const EXCERPT = 1500;
-const LISTED_FILES = 30;
+import { ROUTE_CONTEXT_VERSION, routeContext } from './route-context.js';
 
 const questions = product => ({
   audience: {
@@ -58,16 +63,9 @@ const system = product => [
   'Answer for every pull request given, and only for those.'
 ].join('\n');
 
-/** The router's request: pure, so the same pull requests build the same request. */
-export function buildRouteRequest(candidates, product = RISE_PRODUCT) {
-  const pulls = candidates.map(pull => ({
-    number: pull.number,
-    title: pull.title,
-    labels: pull.labels,
-    files: pull.files.slice(0, LISTED_FILES),
-    moreFiles: Math.max(0, (Number.isFinite(pull.fileCount) ? pull.fileCount : pull.files.length) - LISTED_FILES),
-    body: Array.from(pull.body).slice(0, EXCERPT).join('')
-  }));
+/** The router's request from these fact cards: pure, so the same cards build the same request. */
+export function buildRouteRequest(cards, product = RISE_PRODUCT) {
+  const pulls = routeContext(cards);
   return {
     system: system(product),
     prompt: `Route these ${pulls.length} pull requests.\n\n${quoted('pull_requests', pulls)}`
@@ -101,6 +99,93 @@ export function admitRoutes(text, candidates) {
     const answer = routes !== null && Object.hasOwn(routes, key) ? routes[key] : null;
     return [pull.number, admitRoute(answer) ?? FALLBACK_ROUTE];
   }));
+}
+
+/** sha256 of what a route was judged under: the router's system text, the context contract's version, the fact rules' version. */
+export function contractHash(systemText, contextVersion, factsVersion) {
+  return createHash('sha256').update(JSON.stringify([systemText, contextVersion, factsVersion])).digest('hex');
+}
+
+/** The contract hash a cached route must carry to be reused for this product today. */
+export function routeContract(product = RISE_PRODUCT) {
+  return contractHash(system(product), ROUTE_CONTEXT_VERSION, FACTS_VERSION);
+}
+
+/**
+ * The route cache under `<dir>/cache/routes/` as `mergeSha => text | null`, or undefined without a directory. Only a
+ * 40-hex merge SHA names a file; a missing file, one larger than ROUTE_CACHE_BYTES, or one whose real path leaves the
+ * directory is no cache. What a file says is admitted by the router (cachedRouteProblems), never here.
+ */
+export function cacheReader(dir) {
+  if (dir === undefined) return undefined;
+  const root = resolve(dir, 'cache', 'routes');
+  return async mergeSha => {
+    if (!/^[0-9a-f]{40}$/.test(mergeSha)) return null;
+    try {
+      const path = await realpath(join(root, `${mergeSha}.json`));
+      if (!path.startsWith(`${await realpath(root)}${sep}`)) return null;
+      const info = await stat(path);
+      if (!info.isFile() || info.size > ROUTE_CACHE_BYTES) return null;
+      return await readFile(path, 'utf8');
+    } catch {
+      return null;
+    }
+  };
+}
+
+/** A cache file's admitted route, or the reason it is ignored. */
+function readCachedRoute(text, expected) {
+  let entry;
+  try {
+    entry = JSON.parse(text);
+  } catch {
+    return { problem: 'not JSON' };
+  }
+  const problems = cachedRouteProblems(entry, expected);
+  if (problems.length) return { problem: problems[0] };
+  return { route: Object.fromEntries(Object.keys(ROUTE_MENU).map(question => [question, entry.route[question]])) };
+}
+
+const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
+
+/**
+ * Each card's route, in the order given: from its cache file (`readCached(mergeSha)`, the text or null) when that file
+ * admits under the current contract, else from the router, asked once for every card not cached and once more, alone,
+ * for those whose answer could not be read; a card still unread takes FALLBACK_ROUTE itself. `cache` holds a new cache
+ * file for each route the router gave this run and no other: never a fallback, never one read from the cache.
+ */
+export async function routeCandidates({ cards, ask, model, product = RISE_PRODUCT, readCached = async () => null, now, log }) {
+  const contract = routeContract(product);
+  const routes = new Map();
+  for (const card of cards) {
+    const text = await readCached(card.mergeSha);
+    if (text === null) continue;
+    const { route, problem } = readCachedRoute(text, { mergeSha: card.mergeSha, contract });
+    if (route) routes.set(card.number, route);
+    else log(`Route cache: ${card.mergeSha.slice(0, 12)} ignored (${problem}); #${card.number} is routed afresh`);
+  }
+  const fromCache = routes.size;
+  const cache = {};
+  let pending = cards.filter(card => !routes.has(card.number));
+  let calls = 0;
+  let retried = 0;
+  while (pending.length && calls < 2) {
+    if (calls === 1) retried = pending.length;
+    const answers = admitRoutes(await ask({ ...buildRouteRequest(pending, product), model }), pending);
+    calls += 1;
+    for (const card of pending) {
+      const route = answers.get(card.number);
+      if (route === FALLBACK_ROUTE) continue;
+      routes.set(card.number, route);
+      cache[`cache/routes/${card.mergeSha}.json`] = serialize({ schema: ROUTE_CACHE_SCHEMA, mergeSha: card.mergeSha, route, contract, at: now.toISOString() });
+    }
+    pending = pending.filter(card => !routes.has(card.number));
+  }
+  if (cards.length) {
+    const retry = retried ? `, 1 a retry for ${plural(retried, 'pull request')} whose answer could not be read` : '';
+    log(`Router: ${plural(calls, 'call')}${retry}; ${fromCache} of ${cards.length} routes from the cache`);
+  }
+  return { routes: new Map(cards.map(card => [card.number, routes.get(card.number) ?? FALLBACK_ROUTE])), cache };
 }
 
 const SIGNIFICANCE = { major: 2, notable: 1, minor: 0 };

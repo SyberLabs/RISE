@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { renderFigure } from '../../src/core/figures/figure-kit.js';
 import { runDigest } from './run-digest.js';
+import { ROUTE_CONTEXT_FIELDS } from './route-context.js';
 
 // A Windows checkout may give the fixtures CRLF; the files the run writes are LF.
 const fixture = name => readFileSync(resolve(process.cwd(), 'src/core/changes/fixtures', name), 'utf8').replace(/\r\n/g, '\n');
@@ -48,13 +49,13 @@ describe('runDigest on the week of #652–#671', () => {
     expect(result.files['index.json']).toBe(fixture('index.json'));
     expect(calls).toHaveLength(2 + JSON.parse(fixture('illustrations.json')).length);
     expect(calls.every(call => call.model === MODEL)).toBe(true);
-    // The router and the composer are sent the v1 fields only: never the whole body or a fact card's fields.
+    // The router is sent its context contract read from the fact cards; the composer the v1 fields only, never the whole body.
     const quotedPulls = prompt => JSON.parse(prompt.slice(prompt.indexOf('<pull_requests>\n') + 16, prompt.indexOf('\n</pull_requests>')));
     const routed = quotedPulls(calls[0].prompt);
     const composed = quotedPulls(calls[1].prompt);
     expect(routed.length).toBeGreaterThan(0);
     expect(composed.length).toBeGreaterThan(0);
-    for (const pull of routed) expect(Object.keys(pull)).toEqual(['number', 'title', 'labels', 'files', 'moreFiles', 'body']);
+    for (const pull of routed) expect(Object.keys(pull)).toEqual(ROUTE_CONTEXT_FIELDS);
     for (const pull of composed) expect(Object.keys(pull)).toEqual(['number', 'included', 'title', 'mergedAt', 'labels', 'kind', 'significance', 'body']);
     const p655 = composed.find(pull => pull.number === 655);
     expect(Array.from(p655.body)).toHaveLength(4000);
@@ -205,20 +206,26 @@ describe('runDigest on the week of #652–#671', () => {
 
   it('writes nothing when nothing is included, and says why', async () => {
     const skipAll = JSON.stringify({ routes: {} });
-    const { ask, calls } = scriptedAsk([skipAll]);
+    const { ask, calls } = scriptedAsk([skipAll, skipAll]);
     const lines = [];
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
     expect(result).toEqual({ written: false, reason: expect.stringMatching(/included/) });
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(2);
   });
 
-  it('writes a change whose route answer could not be read as unrouted, counts it in the run log and says so in the issue', async () => {
+  it('writes a change whose route answer could not be read, even when asked again alone, as unrouted, counts it in the run log and says so in the issue', async () => {
     const [route, ...rest] = week();
     const slipped = route.replace('"671": {"audience": "readers"', '"671": {"audience": "reader"');
     expect(slipped).not.toBe(route);
-    const { ask } = scriptedAsk([slipped, ...rest]);
+    const { ask, calls } = scriptedAsk([slipped, 'not json', ...rest]);
     const lines = [];
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
+    expect(calls[1].prompt).toContain('"number": 671');
+    expect(calls[1].prompt.match(/"number": /g)).toHaveLength(1);
+    expect(lines).toContain('Router: 2 calls, 1 a retry for 1 pull request whose answer could not be read; 0 of 15 routes from the cache');
+    const p671 = JSON.parse(fixture('graphql-week.json')).data.repository.pullRequests.nodes.find(node => node.number === 671).mergeCommit.oid;
+    expect(Object.keys(result.cache)).toHaveLength(14);
+    expect(result.cache).not.toHaveProperty(`cache/routes/${p671}.json`);
     const digest = JSON.parse(result.files['2026-10-14.json']);
     expect(digest.changes.find(change => change.number === 671)).toMatchObject({ included: false, reason: 'unrouted', route: { audience: 'skip', significance: 'minor', kind: 'records' } });
     expect(digest.changes.find(change => change.number === 670)).toMatchObject({ included: false, reason: 'routed' });
@@ -231,7 +238,7 @@ describe('runDigest on the week of #652–#671', () => {
 
   it('says the router\'s answer could not be read when every route falls back and nothing is included', async () => {
     const [route] = week();
-    const { ask } = scriptedAsk([route.slice(0, route.length / 2)]);
+    const { ask } = scriptedAsk([route.slice(0, route.length / 2), route.slice(0, route.length / 2)]);
     const lines = [];
     const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
     expect(result).toEqual({ written: false, reason: 'No change was included: the router\'s answer could not be read for any of the 15 pull requests' });
@@ -278,6 +285,53 @@ describe('runDigest on the week of #652–#671', () => {
     expect(entries.map(entry => [entry.id, entry.supersededBy])).toEqual([['2026-10-14-2', undefined], ['2026-10-14', '2026-10-14-2']]);
     expect(lines).toContain('Supersedes 2026-10-14: /changes will list this digest in its place');
     expect(result.issue.body).toContain('https://rise.syberlabs.io/changes/2026-10-14, which /changes no longer lists.');
+  });
+
+  const routerCalls = calls => calls.filter(call => call.system.startsWith('You route the pull requests'));
+  const cacheOf = result => async mergeSha => result.cache[`cache/routes/${mergeSha}.json`] ?? null;
+
+  it('re-runs the same period with the routes it cached and makes no router call', async () => {
+    const first = scriptedAsk(week());
+    const published = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask: first.ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    expect(Object.keys(published.cache)).toHaveLength(15);
+    const [, ...afterRouting] = week();
+    const again = scriptedAsk(afterRouting);
+    const lines = [];
+    const rerun = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask: again.ask, repo: REPO, now, since, model: MODEL, readCache: cacheOf(published), log: line => lines.push(line) });
+    expect(routerCalls(again.calls)).toHaveLength(0);
+    expect(rerun.files['2026-10-14.json']).toBe(published.files['2026-10-14.json']);
+    expect(rerun.cache).toEqual({});
+    expect(lines).toContain('Router: 0 calls; 15 of 15 routes from the cache');
+  });
+
+  it('supersedes a period with the routes the first digest was given, so a resampled router cannot drop a change (#685 and #693 in 2026-10-16-2)', async () => {
+    const first = scriptedAsk(week());
+    const published = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask: first.ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    // Asked again, the router would now call #662 and #668 minor, as it called #685 and #693 when 2026-10-16 was superseded.
+    const [route, ...afterRouting] = week();
+    const resampled = route
+      .replace('"662": {"audience": "team", "significance": "notable"', '"662": {"audience": "team", "significance": "minor"')
+      .replace('"668": {"audience": "team", "significance": "notable"', '"668": {"audience": "team", "significance": "minor"');
+    expect(resampled.match(/"significance": "minor"/g)).toHaveLength(route.match(/"significance": "minor"/g).length + 2);
+    const calls = [];
+    const ask = async request => {
+      calls.push(request);
+      if (request.system.startsWith('You route the pull requests')) return resampled;
+      const next = afterRouting.shift();
+      if (next === undefined) throw new Error('unexpected ask');
+      return next;
+    };
+    const later = new Date('2026-10-14T12:00:00.000Z');
+    const superseding = await runDigest({
+      gh: fakeGh({ index: JSON.parse(fixture('index.json')), pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now: later,
+      supersede: '2026-10-14', model: MODEL, readCache: cacheOf(published), log: () => {}
+    });
+    expect(routerCalls(calls)).toHaveLength(0);
+    const routesOf = digest => digest.changes.map(({ number, route: given, included }) => ({ number, route: given, included }));
+    const before = JSON.parse(published.files['2026-10-14.json']);
+    const after = JSON.parse(superseding.files['2026-10-14-2.json']);
+    expect(routesOf(after)).toEqual(routesOf(before));
+    expect(after.changes.filter(change => change.included).map(change => change.number)).toEqual(expect.arrayContaining([662, 668]));
   });
 
   it('refuses to supersede a digest the index does not list, or one already superseded, before asking a model', async () => {
