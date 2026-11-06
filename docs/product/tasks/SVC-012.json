@@ -1,0 +1,46 @@
+{
+  "id": "SVC-012",
+  "title": "The Changes number rule checks numbers against the pull requests they cite, in any spelling",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "A beat's numbers must be stated by the pull requests in its own refs (a beat that cites none states none); a picture's by the pull requests it cites; the title and drawn figures by an included one.",
+    "Numbers compare by exact value only: 22k, 22,000 and 22 thousand are one number; 1.50 is 1.5; 09 is 9; a unit never converts (1.5 s and 1,500 ms stay two numbers). Each loosening has a test of the refusal it still makes.",
+    "Numbers written in words (one to ninety-nine, hundred, thousand and million compounds, one and a half) are held to the rule; the one idiom not read, \"one of\", is stated and tested.",
+    "A day, month or year of the period passes only inside a date expression, never as a count: 30 percent in a week ending 30 October is refused, 30 October passes. Versions (v2, 2.1.287) are whole tokens.",
+    "The seven published digests are checked under the new rule with their own included pull requests and any refusal is reported to the owner, not hidden; docs/plans/RISE-CHANGES.md states the rule with its motivating cases."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "scripts/changes/admit.test.js",
+      "note": "Branch changes/number-rule, local (Windows, not pushed). Red first on origin/main's admit.js: 10 failed of 68 (scope, 22k, trailing and leading zeros, units, comma groups, words, one of, dates, versions). Green: 73 passed. Red again on purpose, one rule undone at a time and restored: scope 2 failed, 22k 2, trailing zeros 1, words unread 5, one of 1, period date anywhere 1, versions unread 1. npx vitest run scripts/changes/ src/core/changes/: 14 files, 250 passed. node scripts/ci-hygiene.mjs clean.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "docs/plans/RISE-CHANGES.md",
+      "note": "Replay of the seven published digests (git show origin/changes-data:<id>.json) with their included pull requests (title and today's body cut at 4,000 characters, so a body edited after its run cannot be ruled out) and their own sources: 2026-10-14, 10-15, 10-16, 10-16-2, 10-19 and 11-02 admit; 2026-10-26 beat 0 is refused for \"Two\" (\"Two changes this week.\", a count of the digest's own changes, refs none). Left to the owner; the rule was not weakened. Study probes: 22,000 for 22k, 9:00 for 09:00 and 1.5 for 1.50 now pass; twelve, v2 in a period ending on the 2nd, 26 readings in one starting on the 26th, six services and 30 percent in a week ending 30 October are now refused.",
+      "date": "2026-11-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-11-06T20:00:00.000Z",
+      "summary": "Opened and claimed for PR P1-B of the RISE Changes v2 Phase 1 plan (owner-approved): the number rule refused #765's 22k as 22000 on 2026-11-02 and admitted spelled-out and period-date numbers no pull request states."
+    },
+    {
+      "date": "2026-11-06T21:05:45.915Z",
+      "summary": "Number rule built on the branch: scoped to cited pull requests, exact values in digits or words, period dates only as dates; one published beat refused, left to the owner"
+    }
+  ],
+  "updatedAt": "2026-11-06T21:05:45.915Z",
+  "revision": 2,
+  "summary": "The number rule reads each beat against the pull requests it cites, compares numbers by exact value in digits or words, and admits a date of the period only as a date.",
+  "blocker": null
+}
