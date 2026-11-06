@@ -3,7 +3,10 @@
  * reading, from a blob: URL it owns and lets go of.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { embeddedFace, hexOfColor, inkFigure, mountFigureLayer, paintFigure } from './figure-layer.js';
+import { embeddedFace, hexOfColor, inkFigure, mountFigureLayer, paintFigure, remarkFigures } from './figure-layer.js';
+import { ILLUSTRATOR_2026_10_15, KIT_LIST_2026_11_02 } from '../../test/figure-layer.fixture.js';
+import { svgLayoutProblems } from '../../core/quality/svg-layout.js';
+import { facePalette } from '../../live/host/face-still.js';
 
 const NS = 'xmlns="http://www.w3.org/2000/svg"';
 const SVG = `<svg ${NS} viewBox="0 0 4 3"><path d="M0,3 L4,3 z" stroke="currentColor"/></svg>`;
@@ -157,5 +160,64 @@ describe('a face the figure chose', () => {
   it('is kept: the reading’s face is given only to a figure that names none', () => {
     const chosen = `<svg ${NS} viewBox="0 0 4 3" font-family="monospace"><text x="0" y="3">x = 1</text></svg>`;
     expect(paintFigure(chosen, { face: { css: 'c', family: 'f' } })).toBe(chosen);
+  });
+});
+
+describe('a figure drawn in fixed inks for another ground (the light room, RISE-CHANGES.md)', () => {
+  const PORCELAIN_GROUND = '#f4efe6';
+  const PORCELAIN_DEEP = '#0e1b36';
+  const mount = (svg, ground, dark = PORCELAIN_DEEP) => mountFigureLayer({ field: field(), insertBehindReading: behind, svg, ink: '#172a4f', dark, ground }).node;
+  const figure = body => `<svg ${NS} viewBox="0 0 800 500">${body}</svg>`;
+
+  it('is marked to be shown on a night of its own when its inks cannot be read on the room’s ground', () => {
+    expect(mount(KIT_LIST_2026_11_02, PORCELAIN_GROUND).dataset.night).toBe('true');
+  });
+
+  it('is not marked when it draws in currentColor, on a ground its inks can be read on, or with no room ground given', () => {
+    expect(mount(ILLUSTRATOR_2026_10_15, PORCELAIN_GROUND).dataset.night).toBeUndefined();
+    expect(mount(KIT_LIST_2026_11_02, '#0a0619', '#0a0619').dataset.night).toBeUndefined();
+    expect(mount(KIT_LIST_2026_11_02, null, '#0a0619').dataset.night).toBeUndefined();
+  });
+
+  it('is not marked when it draws in currentColor and also names a light ink of its own', () => {
+    const mixed = figure('<path d="M56 100 H300" stroke="currentColor"/><text x="56" y="70" font-size="40" fill="#F4F4FF">Mixed</text>');
+    expect(mount(mixed, PORCELAIN_GROUND).dataset.night).toBeUndefined();
+  });
+
+  it('is not marked when the night would hide inks that read on the room’s ground: dark labels with one pale gridline', () => {
+    const darkInk = figure('<line x1="56" y1="200" x2="744" y2="200" stroke="#e5e5e5"/><text x="56" y="70" font-size="40" fill="#333">Dark labels</text><text x="56" y="160" font-size="25" fill="#333">read on cream</text>');
+    expect(mount(darkInk, PORCELAIN_GROUND).dataset.night).toBeUndefined();
+  });
+
+  it('reads a fill or stroke as the layout check does: hex, a style property, a named colour, rgb()', () => {
+    for (const ink of ['fill="#fff"', 'style="fill:#fff"', 'fill="white"', 'fill="rgb(240,240,255)"', 'stroke="#fff"']) {
+      expect(mount(figure(`<text x="56" y="70" font-size="40" ${ink}>Light</text>`), PORCELAIN_GROUND).dataset.night, ink).toBe('true');
+    }
+  });
+
+  it('ignores what names no colour: none, transparent, a paint server', () => {
+    const light = figure('<rect width="800" height="500" fill="none" stroke="url(#edge)"/><circle cx="9" cy="9" r="4" fill="transparent"/><text x="56" y="70" font-size="40" fill="#fff">Light</text>');
+    expect(mount(light, PORCELAIN_GROUND).dataset.night).toBe('true');
+    expect(mount(figure('<rect width="800" height="500" fill="none" stroke="url(#edge)"/><circle cx="9" cy="9" r="4" fill="transparent"/>'), PORCELAIN_GROUND).dataset.night).toBeUndefined();
+  });
+
+  it('is marked again when the room around it changes, and unmarked when the room names no ground', () => {
+    const host = field();
+    const layer = mountFigureLayer({ field: host, insertBehindReading: behind, svg: KIT_LIST_2026_11_02, ink: '#f4f4ff', dark: '#0a0619' });
+    expect(layer.node.dataset.night).toBeUndefined();
+    host.style.setProperty('--room-ground', 'rgb(244, 239, 230)');
+    host.style.setProperty('--room-dark', 'rgb(14, 27, 54)');
+    remarkFigures(host);
+    expect(layer.node.dataset.night).toBe('true');
+    host.style.removeProperty('--room-ground');
+    host.style.removeProperty('--room-dark');
+    remarkFigures(host);
+    expect(layer.node.dataset.night).toBeUndefined();
+  });
+
+  it('reads on the light room’s night, Porcelain’s deep, every label at 4.5:1 or more', () => {
+    const deep = hexOfColor(facePalette('porcelain')['--live-deep']);
+    expect(svgLayoutProblems(KIT_LIST_2026_11_02, { ground: PORCELAIN_GROUND }).problems.some(problem => problem.rule === 'text-low-contrast')).toBe(true);
+    expect(svgLayoutProblems(KIT_LIST_2026_11_02, { ground: deep }).problems).toEqual([]);
   });
 });

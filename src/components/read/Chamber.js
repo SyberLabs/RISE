@@ -2965,6 +2965,8 @@ export class Chamber {
       ink: hexOfColor(room.getPropertyValue('--room-ink')) ?? colors?.text ?? hexOfColor(words.color),
       // Its dark parts (class dark) in the theme's dark, here its background, and its labels in the words' face (figure-layer.js).
       dark: hexOfColor(room.getPropertyValue('--room-dark')) ?? colors?.background ?? hexOfColor(room.backgroundColor) ?? hexOfColor(getComputedStyle(document.body).backgroundColor),
+      // Only a host room names its ground: a figure drawn for another ground is shown there on a night of its own.
+      ground: hexOfColor(room.getPropertyValue('--room-ground')),
       face: /<text\b/u.test(cue.svg) ? embeddedFace(document, words.fontFamily) : null,
       onError: () => {
         failed('image', 'the figure could not be drawn as an image');

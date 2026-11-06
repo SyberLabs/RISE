@@ -30,6 +30,7 @@ import { addUsage, earlierFor, earlierLine, emptyUsage, faceStateOf, initialVenu
 import { FACE_SKINS, faceDark, faceLight, facePalette, faceStill } from './face-still.js';
 import { createFrameDirector, frameGeometry, frameOf, holdsContent, hungPicture, hungRect, restScale, roomLayout, visualOf, visualTransform } from './frames.js';
 import { collectionEngine } from '../../core/beats.js';
+import { remarkFigures } from '../../components/read/figure-layer.js';
 import { catalogNote, recogniseVisual } from '../catalog-words.js';
 import { DEMO_OFFERED, DEMO_QUESTIONS } from '../fixtures/demo-questions.js';
 
@@ -455,6 +456,9 @@ export class LiveVenue {
         // A light face makes a light room (LiveHost.css, "The light room"): the reading and the stage wear it too.
         if (faceLight(this.faceSkin)) root.dataset.liveRoom = 'light';
         else delete root.dataset.liveRoom;
+        // A figure on screen is weighed again against the room it is now in: its night is the light room's alone.
+        const field = this.doc.querySelector('#chamber-field');
+        if (field) remarkFigures(field);
         // The corner's switch names the room it leads to, and goes back to the dark face last worn.
         if (!faceLight(this.faceSkin)) this.darkFace = this.faceSkin;
         if (this.roomSwitch) this.roomSwitch.textContent = faceLight(this.faceSkin) ? 'Dark room' : 'Light room';

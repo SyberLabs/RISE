@@ -1522,8 +1522,11 @@ html[data-live-frame="full"] #chamber-field .atom-display { text-shadow: var(--l
    reading wears the room: its ground, its words and its figures (--room-ink, --room-dark; Chamber.js) are the room's,
    and the stage, the bar and the sheet are a pale glass. A visual made of light keeps a night of its own, the skin's
    deep: behind its layers inside the inner eye's or the shell's aperture, and in the full frame hung as a picture in
-   the room's safe rectangle (venue.js hangs) rather than laid over the room. The smallest text is the ink 72% toward
-   the ground: 5.4:1 (WCAG AA). The reading's theme sets its colours inline, so the room's are important here. */
+   the room's safe rectangle (venue.js hangs) rather than laid over the room. A figure drawn in fixed inks it cannot be
+   read in on the room's ground (--room-ground; figure-layer.js marks it data-night), as the figure kit draws in a dark
+   theme's, is one: hung on that night, where each of its labels measures 4.5:1 or more. The smallest text is the ink
+   72% toward the ground: 5.4:1 (WCAG AA). The reading's theme sets its colours inline, so the room's are important
+   here. */
 html[data-live-room="light"],
 html[data-live-room="light"] .chamber {
   --color-void: var(--live-ground) !important;
@@ -1533,6 +1536,7 @@ html[data-live-room="light"] .chamber {
   --color-accent: var(--live-iris) !important;
   --room-ink: var(--live-core);
   --room-dark: var(--live-deep);
+  --room-ground: var(--live-ground);
   --live-scheme: light;
   --live-glass: color-mix(in srgb, rgb(255, 253, 248) 62%, transparent);
   --live-glass-hover: color-mix(in srgb, rgb(255, 253, 248) 84%, transparent);
@@ -1557,7 +1561,7 @@ html[data-live-room="light"] .has-rise-account:has(.live-venue) .rise-account-co
 html[data-live-room="light"] .has-rise-account:has(.live-venue) .rise-account-control:is(:hover, :focus-visible) { color: var(--live-core); }
 
 html[data-live-room="light"]:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field::before,
-html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure))::before {
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure:not([data-night])))::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -1566,16 +1570,17 @@ html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-fie
   pointer-events: none;
 }
 html[data-live-room="light"]:is([data-live-frame="inner"], [data-live-frame="shell"]) #chamber-field::before,
-html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure)) > :not(.atom-band, .movement-title),
-html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure))::before {
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure:not([data-night]))) > :not(.atom-band, .movement-title),
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure:not([data-night])))::before {
   transform: translate(var(--live-vx, 0px), var(--live-vy, 0px)) scale(var(--live-vk, 1));
   transform-origin: 50% 50%;
 }
 /* Hung, a picture has corners of 20 px however far it is scaled, and on a tall screen is at most square: what these
    visuals draw is at their middle, and the rest of a tall room's height would be a slab of night over the words. */
-html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure)) > :not(.atom-band, .movement-title),
-html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure))::before {
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure:not([data-night]))) > :not(.atom-band, .movement-title),
+html[data-live-room="light"][data-live-frame="full"][data-live-fit] #chamber-field:not(:has(> .chamber-figure:not([data-night])))::before {
   clip-path: inset(max(0px, (100dvh - 100vw) / 2) 0 round calc(20px / var(--live-vk, 1)));
 }
-/* A figure is drawn on the room itself: the continuous field the Chamber keeps behind it is night, and steps aside. */
+/* A figure in the room's ink is drawn on the room itself, and one marked data-night on the plain night alone: the
+   continuous field the Chamber keeps behind either steps aside. */
 html[data-live-room="light"][data-live-frame] #chamber-field:has(> .chamber-figure) > .chamber-continuous-field { visibility: hidden; }
