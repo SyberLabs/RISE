@@ -112,21 +112,22 @@ export function routeContract({ product = RISE_PRODUCT, model }) {
 }
 
 /**
- * The route cache under `<dir>/cache/routes/` as `mergeSha => text | null`, or undefined without a directory. Only a
- * 40-hex merge SHA names a file; a missing file, one larger than ROUTE_CACHE_BYTES, or one reached through a link
- * anywhere below `dir` (its real path is not `<real dir>/cache/routes/<mergeSha>.json`) is no cache, and is not logged.
- * What a file says is admitted by the router (cachedRouteProblems), never here.
+ * A cache under `<dir>/cache/<directory>/` (the routes, unless the claims stage names its own) as
+ * `mergeSha => text | null`, or undefined without a directory. Only a 40-hex merge SHA names a file; a missing file,
+ * one larger than `bytes`, or one reached through a link anywhere below `dir` (its real path is not
+ * `<real dir>/cache/<directory>/<mergeSha>.json`) is no cache, and is not logged. What a file says is admitted by its
+ * stage (cachedRouteProblems, the claims stage's re-admission), never here.
  */
-export function cacheReader(dir) {
+export function cacheReader(dir, { directory = 'routes', bytes = ROUTE_CACHE_BYTES } = {}) {
   if (dir === undefined) return undefined;
   return async mergeSha => {
     if (!/^[0-9a-f]{40}$/.test(mergeSha)) return null;
     try {
-      const name = join('cache', 'routes', `${mergeSha}.json`);
+      const name = join('cache', directory, `${mergeSha}.json`);
       const path = await realpath(resolve(dir, name));
       if (path !== join(await realpath(resolve(dir)), name)) return null;
       const info = await stat(path);
-      if (!info.isFile() || info.size > ROUTE_CACHE_BYTES) return null;
+      if (!info.isFile() || info.size > bytes) return null;
       return await readFile(path, 'utf8');
     } catch {
       return null;

@@ -7,6 +7,8 @@ import { createAsk } from '../../src/core/changes/claude-cli.js';
 import { REJECTED_LIMITS, runDigest, serializeRejected } from './run-digest.js';
 import { main } from './digest.mjs';
 import { ROUTE_CONTEXT_FIELDS } from './route-context.js';
+import { CLAIMS_SYSTEM } from './claims-context.js';
+import { caveatSections } from './claims.js';
 
 // A Windows checkout may give the fixtures CRLF; the files the run writes are LF.
 const fixture = name => readFileSync(resolve(process.cwd(), 'src/core/changes/fixtures', name), 'utf8').replace(/\r\n/g, '\n');
@@ -554,5 +556,76 @@ describe('digest.mjs main and rejected.json on disk', () => {
     await main(['--out', out], { env: {}, log: () => {}, digest });
     expect(existsSync(join(out, 'rejected.json'))).toBe(false);
     expect(JSON.parse(readFileSync(join(out, 'run.json'), 'utf8'))).toEqual({ written: false, reason: 'No pull request was merged into main in the period' });
+  });
+});
+
+describe('runDigest with --claims', () => {
+  const now = new Date('2026-10-14T09:00:00.000Z');
+  const since = '2026-10-13T02:00:00Z';
+  const quotedPull = prompt => JSON.parse(prompt.slice(prompt.indexOf('<pull_request>\n') + 15, prompt.indexOf('\n</pull_request>')));
+  /** A claims answer that admits: the title, and the first line under each caveat section as pending. */
+  const claimsAnswer = prompt => {
+    const pull = quotedPull(prompt);
+    const caveats = caveatSections(pull.body).map(section => Array.from(pull.body).slice(section.start, section.end).join('').split('\n').find(line => line.trim()).trim());
+    return JSON.stringify({ claims: [
+      { text: 'It changes what its title says.', kind: 'behavior', status: 'shipped', quote: pull.title, field: 'title' },
+      ...caveats.map(quote => ({ text: 'Something here is left for later.', kind: 'process', status: 'pending', quote, field: 'body' }))
+    ] });
+  };
+  const askWith = answers => {
+    const calls = [];
+    const ask = async request => {
+      calls.push(request);
+      if (request.system === CLAIMS_SYSTEM) return claimsAnswer(request.prompt);
+      const next = answers.shift();
+      if (next === undefined) throw new Error('unexpected ask');
+      return next;
+    };
+    return { ask, calls };
+  };
+
+  it('without it, asks exactly the router, the composer and the illustrator, and returns no claims', async () => {
+    const { ask, calls } = askWith(week());
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    expect(Object.keys(result)).toEqual(['written', 'id', 'files', 'cache', 'issue']);
+    expect(calls).toHaveLength(2 + JSON.parse(fixture('illustrations.json')).length);
+    expect(calls.some(call => call.system === CLAIMS_SYSTEM)).toBe(false);
+    expect(Object.keys(result.cache).every(path => path.startsWith('cache/routes/'))).toBe(true);
+  });
+
+  it('claims each included pull request after routing, once, and writes claims.json and a cache file each, while the digest stays as it was', async () => {
+    const { ask, calls } = askWith(week());
+    const lines = [];
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, claims: true, log: line => lines.push(line) });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    const included = digest.changes.filter(change => change.included).map(change => change.number);
+    const claimCalls = calls.filter(call => call.system === CLAIMS_SYSTEM);
+    expect(claimCalls).toHaveLength(included.length);
+    expect(calls.findIndex(call => call.system === CLAIMS_SYSTEM)).toBe(1);
+    expect(result.files['2026-10-14.json']).toBe(fixture('2026-10-14.json'));
+    const claims = JSON.parse(result.claims);
+    expect(claims.pulls.map(pull => pull.number).sort()).toEqual([...included].sort());
+    expect(claims.pulls.every(pull => pull.claims.length > 0 && !pull.gap)).toBe(true);
+    expect(claims.pulls.find(pull => pull.number === 655).claims.find(claim => claim.status === 'pending').span.text)
+      .toContain('No real model has been asked a question with the block.');
+    expect(Object.keys(result.cache).filter(path => path.startsWith('cache/claims/'))).toHaveLength(included.length);
+    expect(lines).toContain(`Claims: ${included.length} calls, 0 repairs; 0 of ${included.length} pull requests from the cache; 0 with a caveat gap`);
+  });
+
+  it('digest.mjs passes --claims and the claims cache to the run, and writes claims.json beside the digest', async () => {
+    const out = join(mkdtempSync(join(tmpdir(), 'rise-changes-test-')), 'out');
+    let given = null;
+    const digest = async options => {
+      given = options;
+      return { written: true, id: '2026-10-14', files: { 'index.json': '{}\n' }, cache: { [`cache/claims/${'a'.repeat(40)}.json`]: '{}\n' }, claims: '{"pulls": []}\n', issue: { title: 't', body: 'b' } };
+    };
+    await main(['--out', out, '--claims', '--cache', out], { env: {}, log: () => {}, digest });
+    expect(given.claims).toBe(true);
+    expect(typeof given.readClaimsCache).toBe('function');
+    expect(readFileSync(join(out, 'claims.json'), 'utf8')).toBe('{"pulls": []}\n');
+    expect(existsSync(join(out, 'cache', 'claims', `${'a'.repeat(40)}.json`))).toBe(true);
+    let plain = null;
+    await main(['--out', join(out, 'plain')], { env: {}, log: () => {}, digest: async options => { plain = options; return { written: false, reason: 'nothing' }; } });
+    expect(plain.claims).toBe(false);
   });
 });

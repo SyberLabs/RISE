@@ -1,7 +1,7 @@
 /**
  * One run of RISE Changes (docs/plans/RISE-CHANGES.md): collect, prefilter,
- * route, compose, admit, illustrate, and the two files to write. `gh`, `ask` and
- * `readCache` (a route cache file's text by merge SHA, or null) are injected, so
+ * route, claims (with `claims` only), compose, admit, illustrate, and the two files to write. `gh`, `ask`,
+ * `readCache` (a route cache file's text by merge SHA, or null) and `readClaimsCache` (the same for claims) are injected, so
  * the whole run is testable without GitHub, a model or the data branch; nothing
  * here writes a file, pushes a branch or opens an issue.
  */
@@ -14,6 +14,7 @@ import { DIGEST_ID, FALLBACK_ROUTE, MODEL, REPOSITORY, densityLine, qualityLine 
 import { factCard } from '../../src/core/changes/facts.js';
 import { prefilter } from '../../src/core/changes/prefilter.js';
 import { routeCandidates, selectChanges } from './route.js';
+import { claimCards, claimsContract } from './claims.js';
 import { buildDigest, digestId, issueFor, nextIndex, serialize } from '../../src/core/changes/write.js';
 import { BRANDS } from '../../src/core/figures/brands.js';
 import { customerFor } from './customers.js';
@@ -110,15 +111,16 @@ function measureDensity(current, { sources, pictureRefs, includedChanges }) {
 
 /**
  * `{ written: false, reason }` when there is nothing to write, else
- * `{ written: true, id, files, cache, issue }`: the file names and their text, the new route cache files by path, and
- * the notification issue's title and body. `renderCheck`, when given, renders
+ * `{ written: true, id, files, cache, issue }`: the file names and their text, the new cache files by path, and
+ * the notification issue's title and body; with `claims`, also `claims`, claims.json's text, and the new claims cache
+ * files in `cache` (the composer is not given the claims). `renderCheck`, when given, renders
  * each admitted figure (illustrate.js). `onRefused` is given each model
  * answer RISE refuses, `{ stage, attempt, beat?, refusal, answer }`, the moment
  * it is refused, so a run that throws or is stopped has already handed it over.
  */
 const kitBrief = picture => picture !== null && typeof picture === 'object' && (Object.hasOwn(picture, 'brief') || Object.hasOwn(picture, 'medium') || Object.hasOwn(picture, 'code'));
 
-export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures, dryRun = false, readCache, onRefused = () => {} }) {
+export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures, dryRun = false, readCache, claims = false, readClaimsCache, onRefused = () => {} }) {
   const refused = entry => onRefused({ ...entry, answer: String(entry.answer ?? '') });
   if (figures !== undefined && figures !== 'kit') throw new Error('--figures kit is the only public-digest mode');
   const kitOnly = figures === 'kit';
@@ -150,7 +152,8 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     throw new Error(`${candidates.length} pull requests to route; at most ${MAX_CANDIDATES} in one run. Narrow the period with --since`);
   }
 
-  const { routes, cache } = await routeCandidates({ cards: candidates.map(factCard), ask, model, product: customer?.product, readCached: readCache, now, log, refused });
+  const cards = candidates.map(factCard);
+  const { routes, cache } = await routeCandidates({ cards, ask, model, product: customer?.product, readCached: readCache, now, log, refused });
   const { changes, unlisted } = selectChanges({ candidates, records, routes });
   for (const change of changes) {
     log(`  #${change.number} ${change.route.audience}/${change.route.significance}/${change.route.kind} ${change.included ? 'included' : `not included (${change.reason})`}`);
@@ -163,6 +166,12 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     return { written: false, reason: unrouted > 0 && unrouted === candidates.length
       ? `No change was included: the router's answer could not be read for any of the ${unrouted} pull requests`
       : 'No change was included: none was routed to the team as notable or major' };
+  }
+
+  let claimed = null;
+  if (claims) {
+    claimed = await claimCards({ cards: cards.filter(card => includedNumbers.has(card.number)), ask, model, repo, readCached: readClaimsCache, now, log, refused });
+    Object.assign(cache, claimed.cache);
   }
 
   const routed = candidates.map(pull => ({ ...pull, route: routes.get(pull.number) }));
@@ -211,6 +220,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     id,
     files: { [`${id}.json`]: serialize(digest), 'index.json': serialize(next) },
     cache,
-    issue: issueFor(digest, { supersedes: replaced?.id, repository: repo, name: customer?.product.name, unrouted })
+    issue: issueFor(digest, { supersedes: replaced?.id, repository: repo, name: customer?.product.name, unrouted }),
+    ...(claimed ? { claims: serialize({ repo, model, contract: claimsContract({ model }), calls: claimed.calls, repairs: claimed.repairs, pulls: claimed.results }) } : {})
   };
 }

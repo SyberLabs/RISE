@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import { parseOptions, runProcess } from './digest.mjs';
 
 test('reads --since, --out, --dry-run and --supersede, and refuses anything else', () => {
-  const rest = { figures: undefined, repo: undefined, cache: undefined };
+  const rest = { figures: undefined, repo: undefined, cache: undefined, claims: false };
   assert.deepEqual(parseOptions(['--since', '2026-10-13', '--out', 'x', '--dry-run']), { since: '2026-10-13', out: 'x', dryRun: true, supersede: undefined, ...rest });
   assert.deepEqual(parseOptions([]), { since: undefined, out: undefined, dryRun: false, supersede: undefined, ...rest });
   assert.deepEqual(parseOptions(['--supersede', '2026-10-16']), { since: undefined, out: undefined, dryRun: false, supersede: '2026-10-16', ...rest });
@@ -15,9 +15,11 @@ test('reads --since, --out, --dry-run and --supersede, and refuses anything else
 
 test('accepts --figures kit and --repo owner/name, and refuses a scene mode or a repository path', () => {
   assert.deepEqual(parseOptions(['--figures', 'kit', '--repo', 'SyberLabs/RISE']), {
-    since: undefined, out: undefined, dryRun: false, supersede: undefined, figures: 'kit', repo: 'SyberLabs/RISE', cache: undefined
+    since: undefined, out: undefined, dryRun: false, supersede: undefined, figures: 'kit', repo: 'SyberLabs/RISE', cache: undefined, claims: false
   });
   assert.equal(parseOptions(['--cache', 'changes-cache']).cache, 'changes-cache');
+  assert.equal(parseOptions(['--claims']).claims, true);
+  assert.throws(() => parseOptions(['--claims', 'yes']));
   assert.throws(() => parseOptions(['--figures', 'scene']), /--figures/);
   assert.throws(() => parseOptions(['--repo', 'https://github.com/SyberLabs/RISE']), /owner\/name/);
 });
