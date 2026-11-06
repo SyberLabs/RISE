@@ -117,7 +117,7 @@ export async function replay({ gh, ask, periods, hidden, cacheDir, model = MODEL
     hits.routes += cards.length - Object.keys(routeFiles).length - unrouted;
     const { changes } = selectChanges({ candidates, records, routes });
     const included = changes.filter(change => change.included).map(change => change.number);
-    const claimed = cards.filter(card => included.includes(card.number) || hidden.includes(card.number));
+    const claimed = merged.filter(pull => included.includes(pull.number) || hidden.includes(pull.number)).map(factCard);
     const { results, cache: claimFiles } = await claimCards({ cards: claimed, ask: metered.as('claims'), model, repo, readCached: readClaims, now, log });
     await writeCache(cacheDir, claimFiles);
     hits.claims += results.filter(result => result.fromCache).length;
