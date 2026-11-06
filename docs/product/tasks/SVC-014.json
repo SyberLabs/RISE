@@ -14,10 +14,10 @@
   "acceptance": [
     "The claims stage is shown one pull request through a pure context contract read from its fact card (title, labels, areas, flags set, the whole body, commit subjects, closed issues, quoted with < escaped, stable system text first); a test pins its fields and the byte size of one recorded pull request's request.",
     "Each claim is admitted by code: its quote occurs word for word in the field it names (line endings read as LF), code computes the span from the first occurrence, every number in its text is in the quote by the number rule's reader, kind and status are on the menu, at most 12 a pull request, text at most 300 characters; a refused claim is dropped and listed, and the claim id is cl_ and 12 hex of sha256(repo#pr@mergeSha:field:index:start-end).",
-    "A body section that names something not verified, not done, pending or awaiting a person is found by code; when no admitted pending or flagged claim's span overlaps it, the pull request is asked once more, and a gap still left is kept, recorded and logged, never filled by code; the detector finds a section past the 4,000-character cut in each of the 12 hidden-caveat pull requests of study 03.",
+    "A body section that names something not verified, not done, pending or awaiting a person is found by code; when no admitted pending or flagged claim's span overlaps it, the pull request is asked once more, and a gap still left is kept, recorded and logged, never filled by code; the detector finds a section past the 4,000-character cut in each of the 13 hidden-caveat pull requests (the 12 of study 03 and #734, found by this detector on 2026-11-06).",
     "Claims are cached as cache/claims/<mergeSha>.json under a contract hash (claims system text, model, CLAIMS_CONTEXT_VERSION, FACTS_VERSION), read through the route cache's containment and re-admitted strictly against the pull request's text; --claims runs the stage for included pull requests only, four at a time, and without it the run makes exactly the calls it made before.",
-    "scripts/changes/replay.mjs runs collect, facts, route and claims over the seven published periods with a local cache and reports calls by role, bytes, cache hits and the caveat check of the 12; a second replay with the same cache makes zero model calls; .github/workflows/changes-replay.yml runs it twice by hand only and fails when the second pass makes a call.",
-    "Exit test (Phase 1, run by the coordinator): on the replay set every included pull request has claims with exact spans, a second replay makes zero model calls, and each of the 12 hidden-caveat pull requests has a pending or flagged claim quoting its section."
+    "scripts/changes/replay.mjs runs collect, facts, route and claims over the seven published periods with a local cache and reports calls by role, bytes, cache hits and the caveat check of the 13; a second replay with the same cache makes zero model calls; .github/workflows/changes-replay.yml runs it twice by hand only and fails when the second pass makes a call.",
+    "Exit test (Phase 1, run by the coordinator): on the replay set every included pull request has claims with exact spans, a second replay makes zero model calls, and each of the 13 hidden-caveat pull requests has a pending or flagged claim quoting its section."
   ],
   "evidence": [
     {
@@ -37,6 +37,12 @@
       "ref": "scripts/changes/claims.test.js",
       "date": "2026-11-06",
       "note": "Review council fixes, one commit after 18820b96 on changes/claims-stage, local (Windows, not pushed, no model call, no dispatch): npx vitest run scripts/changes/ src/core/changes/: 19 files, 368 passed, 1 skipped; node --test scripts/changes/digest.test.mjs: 5 passed; ci-hygiene clean; docs:diagram unchanged; fast list 162. Red first, then green: fenced headings (1 failed), bold label with a colon (1), a quote found twice (1, Summary and Not verified both 'No model was asked.'), the repair kept only when no worse (1: 8 claims and a gap kept when the repair admits none), TODOs and known limitation(s) (1), the repair prompt bounded and caveatSections linear (2: 7,000 '# TODO' sections took 3,168 ms and 6,338 ms before, under 1 s after; 5 sections named then 'And 6996 more'; heading JSON-quoted, < escaped, cut to 80; previous answer in <previous_answer>), the refusal wording (1), cachedReCalls and uncachedRetries in replay (2), pull-requests: read and the cachedReCalls gate in the workflow (2). Test gaps pinned, each shown red by a mutation then restored: quote in another field (title reading the body: 2 failed); the recorded week's set #652, #653, #655, #660, #661 ('not done' dropped: 4); exactly 2 calls and 1 repair (a second repair call: 7); the composer asked the same with --claims (whole bodies given to it with --claims: 1). Scratch measurement over the 88 distinct candidates of the seven periods, no model: 20 bodies have a caveat section, the 12 plus #661, #674, #712, #719, #759, #761, #766 (inside the first 4,000 characters) and #734 ('Known limits' at character 4,283, past the cut, missed by study 03's heading list); written in docs/plans/RISE-CHANGES.md, Claims. The coordinator directed and reviewed changes-replay.yml."
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/changes/fixtures/hidden-caveats.json",
+      "date": "2026-11-06",
+      "note": "#734 added to the hidden-caveat set (13 pull requests), the coordinator's ruling: its body recorded verbatim with gh pr view 734 --json number,body,mergeCommit on 2026-11-06 into hidden-caveats.json, and 734 added to replay-set.json hiddenCaveats. Its Known limits section starts past the 4,000-character cut; the claims stage's own detector found it, the Phase 0 audit (study 03) missed it. Red first: the pinned lists in claims.test.js and replay.test.js changed to 13 (2 failed), then green. npx vitest run scripts/changes/ src/core/changes/: 19 files, 368 passed, 1 skipped; digest.test.mjs 5 passed; ci-hygiene clean; docs:diagram unchanged. Local, not pushed, no model call."
     }
   ],
   "activity": [
@@ -51,10 +57,14 @@
     {
       "date": "2026-11-06T23:48:22.638Z",
       "summary": "Review council fixes: fences, bold labels, single-occurrence quotes, repair rule and bounds, cached re-calls gate, pull-requests read; evidence recorded"
+    },
+    {
+      "date": "2026-11-06T23:50:17.444Z",
+      "summary": "Hidden-caveat set widened to 13 with #734, found by the claims stage's detector"
     }
   ],
-  "updatedAt": "2026-11-06T23:48:22.638Z",
-  "revision": 3,
+  "updatedAt": "2026-11-06T23:50:17.444Z",
+  "revision": 4,
   "summary": "One model call per included pull request lists its claims, each admitted by code against an exact source span, with a caveat rule for what the author says is not verified, a claims cache by merge SHA, a --claims flag and a replay command and workflow for the Phase 1 exit test.",
   "blocker": null
 }

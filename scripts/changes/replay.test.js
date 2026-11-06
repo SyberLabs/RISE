@@ -41,7 +41,7 @@ describe('replay.mjs', () => {
   it('reads the seven published periods built in, or a file of periods, and refuses a period that is not one', async () => {
     const builtin = await readPeriods('builtin');
     expect(builtin.periods.map(period => period.id)).toEqual(['2026-10-14', '2026-10-15', '2026-10-16', '2026-10-16-2', '2026-10-19', '2026-10-26', '2026-11-02']);
-    expect(builtin.hidden).toEqual([652, 653, 655, 660, 672, 673, 684, 686, 732, 738, 742, 746]);
+    expect(builtin.hidden).toEqual([652, 653, 655, 660, 672, 673, 684, 686, 732, 734, 738, 742, 746]);
     const file = join(scratch(), 'periods.json');
     writeFileSync(file, JSON.stringify({ periods: [WEEK] }));
     expect(await readPeriods(file)).toEqual({ periods: [WEEK], hidden: builtin.hidden });

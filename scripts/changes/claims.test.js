@@ -145,8 +145,8 @@ describe('admitClaims', () => {
 describe('caveatSections', () => {
   const recorded = JSON.parse(readFileSync(resolve(process.cwd(), 'src/core/changes/fixtures/hidden-caveats.json'), 'utf8'));
 
-  it('finds a caveat section in each of the 12 pull requests whose caveat the 4,000-character cut hid', () => {
-    expect(recorded.pulls.map(pull => pull.number)).toEqual([652, 653, 655, 660, 672, 673, 684, 686, 732, 738, 742, 746]);
+  it('finds a caveat section in each of the 13 pull requests whose caveat the 4,000-character cut hid', () => {
+    expect(recorded.pulls.map(pull => pull.number)).toEqual([652, 653, 655, 660, 672, 673, 684, 686, 732, 734, 738, 742, 746]);
     for (const pull of recorded.pulls) {
       const sections = caveatSections(pull.body);
       expect(sections.length, `#${pull.number}`).toBeGreaterThan(0);
@@ -199,7 +199,7 @@ describe('caveatSections', () => {
     const week = JSON.parse(readFileSync(resolve(process.cwd(), 'src/core/changes/fixtures/graphql-week.json'), 'utf8')).data.repository.pullRequests.nodes;
     const found = week.filter(node => caveatSections(node.body ?? '').length > 0).map(node => node.number).sort();
     expect(found).toEqual([652, 653, 655, 660, 661]);
-    // #661's "Not done or seen" is within the first 4,000 characters, so it is not one of the 12 the cut hid.
+    // #661's "Not done or seen" is within the first 4,000 characters, so it is not one of the 13 the cut hid.
     const p661 = week.find(node => node.number === 661).body;
     expect(caveatSections(p661)[0]).toMatchObject({ heading: 'Not done or seen' });
     expect(caveatSections(p661)[0].start).toBeLessThan(4000);

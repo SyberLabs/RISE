@@ -1,5 +1,5 @@
 {
-  "source": "The seven published digests' periods, from index.json on changes-data (git show origin/changes-data:index.json, read 2026-11-06), 2026-10-16 included though 2026-10-16-2 superseded it; the hidden-caveat pull requests from docs/plans/changes-v2/study/03-false-negatives.md, section 5, on the changes-study branch.",
+  "source": "The seven published digests' periods, from index.json on changes-data (git show origin/changes-data:index.json, read 2026-11-06), 2026-10-16 included though 2026-10-16-2 superseded it; the hidden-caveat pull requests from docs/plans/changes-v2/study/03-false-negatives.md, section 5, on the changes-study branch, and #734, found by the claims stage's own detector on 2026-11-06 and missed by that audit.",
   "periods": [
     { "id": "2026-10-14", "from": "2026-10-13T02:00:00.000Z", "to": "2026-10-14T20:52:50.603Z" },
     { "id": "2026-10-15", "from": "2026-10-13T02:00:00.000Z", "to": "2026-10-15T00:03:02.312Z" },
@@ -9,5 +9,5 @@
     { "id": "2026-10-26", "from": "2026-10-19T16:05:26.845Z", "to": "2026-10-26T15:53:18.694Z" },
     { "id": "2026-11-02", "from": "2026-10-26T15:53:18.694Z", "to": "2026-11-02T19:00:49.596Z" }
   ],
-  "hiddenCaveats": [652, 653, 655, 660, 672, 673, 684, 686, 732, 738, 742, 746]
+  "hiddenCaveats": [652, 653, 655, 660, 672, 673, 684, 686, 732, 734, 738, 742, 746]
 }
