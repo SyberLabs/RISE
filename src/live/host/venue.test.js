@@ -15,6 +15,8 @@ import { createFakeRecognition, open } from '../../test/fake-recognition.js';
 import { acceptOpenRouterKey, resetConnectionForTests } from '../../core/ai-connection.js';
 import { PENDING_KEY, takeOpenRouterReturn } from '../../core/openrouter-callback.js';
 import { DEMO_OFFERED, DEMO_QUESTIONS } from '../fixtures/demo-questions.js';
+import { mountFigureLayer } from '../../components/read/figure-layer.js';
+import { KIT_LIST_2026_11_02 } from '../../test/figure-layer.fixture.js';
 import { beatsTextFor } from '../fixtures/black-holes-beats.js';
 
 // The face's engine is a worker's to draw (face-layer.test.js holds it); here it is a fake that records its cues.
@@ -1108,6 +1110,36 @@ describe('the face: RISE rests in the room, listens, thinks, and steps back whil
         expect(root.dataset.liveRoom).toBeUndefined();
         expect(face().dataset.faceSkin).toBe('jade');
         expect(kept).toEqual([['liveFace', 'porcelain'], ['liveFace', 'jade']]);
+    });
+
+    it('marks a figure on screen for the light room’s night when the room turns light under it, and unmarks it on the way back', () => {
+        mount('?voice=paced', env(), { getSettings: () => ({ liveFace: 'jade' }) });
+        const style = document.head.appendChild(document.createElement('style'));
+        style.textContent = 'html[data-live-room="light"] #chamber-field { --room-ground: rgb(244, 239, 230); --room-dark: rgb(14, 27, 54); }';
+        const field = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'chamber-field' }));
+        const { node } = mountFigureLayer({ field, insertBehindReading: (host, img) => host.prepend(img), svg: KIT_LIST_2026_11_02, ink: '#e8fff4', dark: '#061912' });
+        expect(node.dataset.night).toBeUndefined();
+        const corner = $('.live-venue__room');
+        corner.click();
+        expect(node.dataset.night).toBe('true');
+        corner.click();
+        expect(node.dataset.night).toBeUndefined();
+        style.remove();
+        field.remove();
+    });
+
+    it('names the room’s ground once, in the light room only, and keeps off its night only a figure in the room’s ink', () => {
+        const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'LiveHost.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//gu, '');
+        const rules = css.match(/[^{}]*\{[^{}]*\}/gu) ?? [];
+        const grounds = rules.filter(rule => /--room-ground\s*:/u.test(rule.split('{')[1]));
+        expect(grounds).toHaveLength(1);
+        expect(grounds[0].split('{')[0].split(',').map(selector => selector.trim())).toEqual(['html[data-live-room="light"]', 'html[data-live-room="light"] .chamber']);
+        // The night, its fit and its clip are each kept off a field by :not(:has(> .chamber-figure…)).
+        const plates = rules.map(rule => rule.split('{')[0]).filter(head => head.includes('data-live-room="light"') && head.includes(':not(:has(> .chamber-figure'));
+        expect(plates).toHaveLength(3);
+        for (const head of plates) {
+            for (const has of head.match(/:not\(:has\(> \.chamber-figure[^,{]*/gu)) expect(has, head).toMatch(/^:not\(:has\(> \.chamber-figure:not\(\[data-night\]\)\)\)/u);
+        }
     });
 
     it('listens while the reader types, thinks from the ask until the first words, then withdraws', async () => {

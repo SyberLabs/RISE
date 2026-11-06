@@ -16,7 +16,7 @@ vi.mock('../../scenes/create-scene-worker.js', () => ({
 }));
 
 const { Chamber } = await import('./Chamber.js');
-const { KIT_LIST_2026_11_02 } = await import('./figure-layer.fixture.js');
+const { KIT_LIST_2026_11_02 } = await import('../../test/figure-layer.fixture.js');
 
 const NS = 'xmlns="http://www.w3.org/2000/svg"';
 const SVG = `<svg ${NS} viewBox="0 0 4 3"><path d="M0,3 L4,3 L4,0 z" fill="currentColor"/></svg>`;
@@ -273,6 +273,7 @@ describe('a figure in a host’s own room (the Live venue’s light room)', () =
     const field = container.querySelector('#chamber-field');
     field.style.setProperty('--room-ink', 'rgb(23, 42, 79)');
     field.style.setProperty('--room-ground', 'rgb(244, 239, 230)');
+    field.style.setProperty('--room-dark', 'rgb(14, 27, 54)');
     chamber.applyScheduledVisualCue({ ...FIGURE, svg: KIT_LIST_2026_11_02 }, { transitionMs: 0 });
     await settle();
     expect(field.querySelector('.chamber-figure').dataset.night).toBe('true');

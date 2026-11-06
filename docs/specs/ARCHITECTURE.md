@@ -189,7 +189,7 @@ flowchart LR
     components --> |10| app
     components --> |5| audio
     components --> |27| content
-    components --> |192| core
+    components --> |193| core
     components -.-> |1 lazy| page
     components --> |3| scenes
     components --> |4| sources
@@ -207,7 +207,7 @@ flowchart LR
     core --> |7| visuals
     live -.-> |3 lazy| app
     live --> |3| audio
-    live --> |1| components
+    live --> |2| components
     live --> |48| core
     live --> |3| scenes
     live -.-> |1 lazy| visuals

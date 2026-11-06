@@ -16,6 +16,7 @@
  * reading's face is carried in as data for a figure that has text (an
  * image fetches nothing, and data is not fetched).
  */
+import { MIN_CONTRAST, contrastRatio, parseColour } from '../../core/quality/svg-layout.js';
 
 const HEX = /^#[0-9a-f]{3,8}$/iu;
 /** Up to the root <svg>: what admission lets come before it. */
@@ -114,41 +115,50 @@ export function hexOfColor(color) {
   return `#${match.slice(1, 4).map(part => Math.min(255, Number(part)).toString(16).padStart(2, '0')).join('')}`;
 }
 
-const luminance = hex => {
-  const digits = hex.slice(1);
-  const full = digits.length < 6 ? [...digits.slice(0, 3)].map(digit => digit + digit).join('') : digits.slice(0, 6);
-  const [r, g, b] = [0, 2, 4].map(at => {
-    const channel = parseInt(full.slice(at, at + 2), 16) / 255;
-    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-};
-const NAMED_INK = /\b(?:fill|stroke)\s*(?:=\s*["']\s*|:\s*)(#[0-9a-f]{3,8})\b/giu;
+/** Each fill and stroke a figure names, as an attribute or a style property: its value, read as the layout check reads it. */
+const NAMED_INK = /\b(?:fill|stroke)\s*(?:=\s*["']([^"']*)["']|:\s*([^;"'}]+))/giu;
 
 /**
- * Whether the figure was drawn for another ground than `ground`: it names a fill or stroke of its own under 4.5:1
- * (WCAG AA) on it, as the figure kit names a dark theme's light inks. A figure in currentColor takes the room's ink
- * and is never one, since a night behind it would hide that ink.
+ * Whether the figure was drawn for another ground than `ground` and reads on `night`: some colour it names falls under
+ * MIN_CONTRAST on the ground, and every colour it names reaches it on the night, as a dark theme's light inks (the
+ * figure kit's) do. A figure in currentColor takes the room's ink, which a night would hide, and is never one.
  */
-export function drawnForAnotherGround(svg, ground) {
-  if (typeof ground !== 'string' || !HEX.test(ground) || /currentColor/iu.test(svg)) return false;
-  const under = luminance(ground);
-  return [...svg.matchAll(NAMED_INK)].some(([, colour]) => {
-    const [light, dark] = [luminance(colour), under].sort((a, b) => b - a);
-    return (light + 0.05) / (dark + 0.05) < 4.5;
-  });
+export function drawnForAnotherGround(svg, ground, night) {
+  const [under, behind] = [ground, night].map(colour => (typeof colour === 'string' ? parseColour(colour) : null));
+  if (!under || !behind || /currentColor/iu.test(svg)) return false;
+  const inks = [...svg.matchAll(NAMED_INK)].map(([, attribute, property]) => parseColour(attribute ?? property)).filter(Boolean);
+  return inks.some(ink => contrastRatio(ink, under) < MIN_CONTRAST) && inks.every(ink => contrastRatio(ink, behind) >= MIN_CONTRAST);
+}
+
+/** The SVG each figure on screen was drawn from, so it can be marked again when the room around it changes. */
+const sources = new WeakMap();
+
+function markNight(img, ground, night) {
+  if (drawnForAnotherGround(sources.get(img), ground, night)) img.dataset.night = 'true';
+  else delete img.dataset.night;
+}
+
+/**
+ * Marks each figure in the field again against the room's ground and night as they are now (--room-ground and
+ * --room-dark, which only a host's own room names): for a host whose room changes under a figure on screen.
+ */
+export function remarkFigures(field) {
+  const room = getComputedStyle(field);
+  const [ground, night] = ['--room-ground', '--room-dark'].map(name => hexOfColor(room.getPropertyValue(name)));
+  for (const img of field.querySelectorAll(':scope > .chamber-figure')) markNight(img, ground, night);
 }
 
 /**
  * `dark`: the theme's dark, for the class `dark`. `face`: a promise of embeddedFace's; a figure is drawn
  * once it has settled, so its text never changes face in front of the reader, and at once when there is none.
- * `ground`: the host room's own ground, when it has one; a figure drawn for another is marked `data-night`, for the
- * room to show it on a night of its own (LiveHost.css, "The light room").
+ * `ground`: the host room's own ground, when it has one; a figure drawn for another that reads on `dark` is marked
+ * `data-night`, for the room to show it on that night (LiveHost.css, "The light room").
  */
 export function mountFigureLayer({ field, insertBehindReading, svg, ink = null, dark = null, face = null, ground = null, onError = () => {} }) {
   const img = document.createElement('img');
   img.className = 'chamber-figure';
-  if (drawnForAnotherGround(svg, ground)) img.dataset.night = 'true';
+  sources.set(img, svg);
+  markNight(img, ground, dark);
   img.setAttribute('aria-hidden', 'true');
   img.setAttribute('alt', '');
   img.setAttribute('decoding', 'async');
