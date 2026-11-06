@@ -38,15 +38,23 @@ function runningAt(current, index) {
   return undefined;
 }
 
-/** A text-stream adapter whose one request is one `ask`, its admission widened by the number rule for figures. */
+const diagnosticLine = ({ rule, line, message }) => `${rule}${line === null || line === undefined ? '' : `, line ${line}`}${message === undefined ? '' : `: ${message}`}`;
+
+/**
+ * A text-stream adapter whose one request is one `ask`, its admission widened by the number rule for figures.
+ * `heard` holds the latest request's raw answer and the diagnostics this adapter gave it.
+ */
 function illustratorAdapter({ ask, model, pulls, period, tally }) {
   const system = `${ILLUSTRATOR_INSTRUCTIONS}\n\n${DIGEST_PICTURE_NOTE}`;
+  const heard = { text: '', found: [] };
   const adapter = createTextStreamAdapter({
     id: 'changes-illustrator',
     origin: () => ({ name: model, provider: COMPOSER_PROVIDER }),
     async connect(request, sink) {
+      heard.text = '';
+      heard.found = [];
       ask({ system, prompt: promptFor(request), model }).then(
-        text => { sink.delta(String(text)); sink.done(); },
+        text => { heard.text = String(text); sink.delta(String(text)); sink.done(); },
         error => sink.error({ code: 'PROVIDER_FAILED', message: String(error?.message ?? error), recoverable: false })
       );
       return { cancel() {}, close() {} };
@@ -60,9 +68,10 @@ function illustratorAdapter({ ask, model, pulls, period, tally }) {
       ...(scene.svg !== undefined ? svgLayoutProblems(scene.svg).problems.map(({ rule, line, message }) => ({ line, column: null, rule, message })) : [])
     ];
     for (const diagnostic of found) tally.fired(diagnostic.rule);
+    heard.found = found;
     return found;
   };
-  return { ...adapter, diagnoseScene };
+  return { ...adapter, diagnoseScene, heard };
 }
 
 /**
@@ -72,8 +81,9 @@ function illustratorAdapter({ ask, model, pulls, period, tally }) {
  * and each repair asked for. `renderCheck(svg)`, when given, renders an admitted figure and answers
  * `{ problems: [{ rule, message }], ms }`: a figure it finds fault with goes back to the illustrator once, as a
  * refusal, and is let go if the repaired one is still at fault. `brand`, when given, draws every kit figure in it.
+ * `refused` is given each illustrator answer refused, by admission or by the rendered check (the run's rejected.json).
  */
-export async function illustrate({ ask, model, current, pictures, pulls, period, log, now = Date.now, tally = { fired() {}, repaired() {} }, renderCheck, brand }) {
+export async function illustrate({ ask, model, current, pictures, pulls, period, log, now = Date.now, tally = { fired() {}, repaired() {} }, refused = () => {}, renderCheck, brand }) {
   const drawn = { ...current, scenes: [...(current.scenes ?? [])], beats: current.beats.map(beat => ({ ...beat })) };
   const notes = [];
   const ordered = [...pictures].sort((a, b) => a.beat - b.beat);
@@ -133,11 +143,20 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
     const running = runningAt(drawn, picture.beat);
     const room = { said, ...(RISE_CURRENT_THEME_IDS.includes(current.theme) ? { theme: current.theme } : {}), ...(running ? { running } : {}) };
     const adapter = illustratorAdapter({ ask, model, pulls: cited, period, tally });
+    // Counts every request for this picture, across the rendered check's repair, so each kept answer has its own attempt.
+    let asked = 0;
+    const keep = refusal => refused({ stage: 'illustrator', beat: picture.beat, attempt: asked, refusal, answer: adapter.heard.text });
     const attempt = repair => draw({
       adapter, brief: picture.brief, medium: picture.medium, room: repair ? { ...room, repair } : room, now,
       onNote: (type, body) => {
-        if (type === 'illustration.requested' && body.attempt > 1) tally.repaired('illustrator');
-        if (type === 'illustration.refused') log(`  picture for beat ${picture.beat}: attempt ${body.attempt} refused (${body.rule}${body.line === null ? '' : `, line ${body.line}`})`);
+        if (type === 'illustration.requested') {
+          asked += 1;
+          if (body.attempt > 1) tally.repaired('illustrator');
+        }
+        if (type === 'illustration.refused') {
+          log(`  picture for beat ${picture.beat}: attempt ${body.attempt} refused (${body.rule}${body.line === null ? '' : `, line ${body.line}`})`);
+          keep(adapter.heard.found.length ? adapter.heard.found.map(diagnosticLine) : [diagnosticLine(body)]);
+        }
       }
     });
     let result = await attempt(null);
@@ -145,6 +164,7 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
     if (renderCheck && result.status === 'admitted' && result.medium === 'figure') {
       const problems = await rendered(result.scene.svg);
       if (problems.length) {
+        keep(problems.map(diagnosticLine));
         tally.repaired('illustrator');
         result = await attempt({
           source: result.scene.svg.slice(0, OPEN_LIMITS.source),
@@ -152,7 +172,10 @@ export async function illustrate({ ask, model, current, pictures, pulls, period,
         });
         if (result.status === 'admitted' && result.medium === 'figure') {
           const again = await rendered(result.scene.svg);
-          if (again.length) fault = [...new Set(again.map(problem => problem.rule))].join(', ');
+          if (again.length) {
+            keep(again.map(diagnosticLine));
+            fault = [...new Set(again.map(problem => problem.rule))].join(', ');
+          }
         }
       }
     }

@@ -53,3 +53,29 @@ describe('the public Changes workflow', () => {
     expect(after.slice(nextStep)).not.toMatch(/CLAUDE_CODE_OAUTH_TOKEN|model_token/);
   });
 });
+
+describe.each(['changes-digest.yml', 'changes-public.yml'])('the run’s artifact and published files in %s', name => {
+  const workflow = readFileSync(resolve(process.cwd(), '.github/workflows', name), 'utf8').replace(/\r\n/g, '\n');
+  const step = title => {
+    const start = workflow.indexOf(`- name: ${title}`);
+    const end = workflow.indexOf('\n      - ', start + 1);
+    return workflow.slice(start, end === -1 ? undefined : end);
+  };
+
+  it('uploads run.json and rejected.json, and nothing else, after the digest step even when it fails', () => {
+    const upload = step("Keep the run's evidence as an artifact");
+    expect(workflow.indexOf('Keep the run')).toBeGreaterThan(workflow.indexOf('Route, compose and admit the digest'));
+    expect(upload).toMatch(/if: always\(\)/);
+    expect(upload).toMatch(/uses: actions\/upload-artifact@[0-9a-f]{40} # v\d+\.\d+\.\d+\n/);
+    expect(upload.match(/^ {12}\S.*$/gm)).toEqual(['            ${{ runner.temp }}/changes/run.json', '            ${{ runner.temp }}/changes/rejected.json']);
+    expect(upload).toMatch(/retention-days: 90/);
+    expect(upload).not.toMatch(/CLAUDE_CODE_OAUTH_TOKEN|model_token|GH_TOKEN/);
+  });
+
+  it('commits only the digest and the index to changes-data, never rejected.json', () => {
+    const commit = step('Commit the digest to changes-data');
+    expect(commit).toMatch(/cp "\$RUNNER_TEMP\/changes\/\$ID\.json" "\$RUNNER_TEMP\/changes\/index\.json" \.\n/);
+    expect(commit).toMatch(/git add README\.md index\.json "\$ID\.json"\n/);
+    expect(commit).not.toMatch(/rejected|run\.json/);
+  });
+});

@@ -133,9 +133,10 @@ function repairRequest(request, answer, diagnostics) {
 
 /**
  * The admitted `{ current, sources, pictures, unspoken, dropped }`, or an error after the last repair is refused. `tally` is told each
- * rule a refusal fired and each repair asked for (the digest's first-pass score).
+ * rule a refusal fired and each repair asked for (the digest's first-pass score). `refused` is given each refused answer
+ * with its attempt and refusal lines (the run's rejected.json).
  */
-export async function composeCurrent({ ask, pulls, context = [], model, period, log, tally = { fired() {}, repaired() {} }, kitOnly = false, product }) {
+export async function composeCurrent({ ask, pulls, context = [], model, period, log, tally = { fired() {}, repaired() {} }, refused = () => {}, kitOnly = false, product }) {
   const request = buildComposeRequest({ pulls, context, model, period, kitOnly, product });
   let next = request;
   for (let attempt = 0; attempt <= REPAIRS; attempt += 1) {
@@ -144,6 +145,7 @@ export async function composeCurrent({ ask, pulls, context = [], model, period, 
     if (verdict.ok) return { current: verdict.current, sources: verdict.sources, pictures: verdict.pictures, unspoken: verdict.unspoken, dropped: verdict.dropped };
     log(`Composition ${attempt + 1} of ${REPAIRS + 1} refused:`);
     for (const line of verdict.diagnostics) log(`  ${line}`);
+    refused({ stage: 'composition', attempt: attempt + 1, refusal: verdict.diagnostics, answer });
     for (const [rule, count] of Object.entries(verdict.rules)) tally.fired(rule, count);
     if (attempt < REPAIRS) tally.repaired('composition');
     next = repairRequest(request, typeof answer === 'string' ? answer : '', verdict.diagnostics);

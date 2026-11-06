@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { renderFigure } from '../../src/core/figures/figure-kit.js';
-import { runDigest } from './run-digest.js';
+import { createAsk } from '../../src/core/changes/claude-cli.js';
+import { REJECTED_LIMITS, runDigest, serializeRejected } from './run-digest.js';
 
 // A Windows checkout may give the fixtures CRLF; the files the run writes are LF.
 const fixture = name => readFileSync(resolve(process.cwd(), 'src/core/changes/fixtures', name), 'utf8').replace(/\r\n/g, '\n');
@@ -313,12 +314,104 @@ describe('runDigest on the week of #652–#671', () => {
     expect(calls.some(call => /"medium": "figure" \| "scene"/.test(call.system))).toBe(false);
   });
 
-  it('fails without writing when the composition is still refused after two repairs', async () => {
+  it('fails without writing when the composition is still refused after two repairs, and keeps the three answers it refused', async () => {
     const refused = JSON.stringify({ current: { schema: 'rise.current.v2' }, sources: {} });
     const { ask, calls } = scriptedAsk([fixture('route-answer.txt'), refused, refused, refused]);
-    await expect(runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {} }))
+    const rejected = [];
+    await expect(runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {}, rejected }))
       .rejects.toThrow(/refused/);
     expect(calls).toHaveLength(4);
+    expect(rejected.map(entry => [entry.stage, entry.attempt, entry.answer])).toEqual([1, 2, 3].map(attempt => ['composition', attempt, refused]));
+  });
+});
+
+describe('the answers a run refused (rejected.json)', () => {
+  const now = new Date('2026-10-14T09:00:00.000Z');
+  const since = '2026-10-13T02:00:00Z';
+  const run = (answers, rest = {}) => {
+    const rejected = [];
+    const lines = [];
+    const { ask } = scriptedAsk(answers);
+    return runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line), rejected, ...rest })
+      .then(result => ({ result, rejected, lines }));
+  };
+  const talkyComposition = say => {
+    const talky = JSON.parse(fixture('composition.json'));
+    talky.current.beats.at(-1).say = say;
+    return JSON.stringify(talky);
+  };
+
+  it('keeps a refused composition answer with its refusal lines, and the repaired one is not kept', async () => {
+    const [route, composition, ...rest] = week();
+    const talky = talkyComposition('That is the week; the next dry run will tell.');
+    const { result, rejected, lines } = await run([route, talky, composition, ...rest]);
+    expect(result.written).toBe(true);
+    expect(rejected).toEqual([{ stage: 'composition', attempt: 1, refusal: expect.any(Array), answer: talky }]);
+    expect(rejected[0].refusal.length).toBeGreaterThan(0);
+    expect(lines.slice(lines.indexOf('Composition 1 of 3 refused:') + 1, lines.indexOf('Composition 1 of 3 refused:') + 1 + rejected[0].refusal.length))
+      .toEqual(rejected[0].refusal.map(line => `  ${line}`));
+    expect(JSON.parse(serializeRejected(rejected))).toEqual(rejected);
+  });
+
+  it('keeps nothing from a first-pass run, so no rejected.json is written', async () => {
+    const { result, rejected } = await run(week());
+    expect(result.written).toBe(true);
+    expect(rejected).toEqual([]);
+  });
+
+  it('keeps the router answer only when a route in it could not be read', async () => {
+    const [route, ...rest] = week();
+    const slipped = route.replace('"671": {"audience": "readers"', '"671": {"audience": "reader"');
+    const { rejected } = await run([slipped, ...rest]);
+    expect(rejected).toEqual([{ stage: 'router', attempt: 1, refusal: ['#671: its route could not be read, so it took the fallback route skip/minor/records'], answer: slipped }]);
+  });
+
+  it('keeps each refused illustrator answer with the beat it was for, in order', async () => {
+    const refused = ['@scene picture svg', '```svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><script>x</script></svg>', '```'].join('\n');
+    const [route, composition, , ...rest] = week();
+    const { rejected } = await run([route, composition, refused, refused, refused, ...rest]);
+    const first = JSON.parse(fixture('composition.json')).pictures.find(picture => picture.brief !== undefined);
+    expect(rejected.map(({ stage, beat, attempt, answer }) => ({ stage, beat, attempt, answer }))).toEqual([1, 2, 3].map(attempt => ({ stage: 'illustrator', beat: first.beat, attempt, answer: refused })));
+    for (const entry of rejected) expect(entry.refusal.some(line => line.startsWith('figure'))).toBe(true);
+  });
+
+  it('keeps an illustrator figure the rendered check refused, with the check’s problems as its refusal', async () => {
+    const [route, composition, drawn, next] = week();
+    let faulted = false;
+    const renderCheck = async svg => {
+      const fault = !faulted && drawn.includes(svg);
+      faulted ||= fault;
+      return { problems: fault ? [{ rule: 'overlap', message: 'two labels touch' }] : [], ms: 1 };
+    };
+    const { rejected } = await run([route, composition, drawn, drawn, next], { renderCheck });
+    expect(faulted).toBe(true);
+    expect(rejected).toEqual([{ stage: 'illustrator', beat: 8, attempt: 1, refusal: ['overlap: two labels touch'], answer: drawn }]);
+  });
+
+  it('never keeps the model credential: an answer that echoes it is kept redacted', async () => {
+    const TOKEN = 'sk-ant-oat01-fake-token-for-the-redaction-test';
+    const [route, composition, ...rest] = week();
+    const talky = talkyComposition(`That is the week; the next dry run will tell. ${TOKEN}`);
+    const answers = [route, talky, composition, ...rest];
+    const cli = async () => ({ code: 0, stderr: '', stdout: JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result: answers.shift() }) });
+    const ask = createAsk({ run: cli, env: { CLAUDE_CODE_OAUTH_TOKEN: TOKEN }, log: () => {} });
+    const rejected = [];
+    await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: () => {}, rejected });
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].answer).toBe(talky.replace(TOKEN, '[redacted]'));
+    expect(serializeRejected(rejected)).not.toContain(TOKEN);
+  });
+
+  it('caps each answer at the largest Current RISE admits and the file at its bound, saying where it cut', () => {
+    const long = 'x'.repeat(REJECTED_LIMITS.answer + 10);
+    const [kept] = JSON.parse(serializeRejected([{ stage: 'composition', attempt: 1, refusal: ['too long'], answer: long }]));
+    expect(kept).toEqual({ stage: 'composition', attempt: 1, refusal: ['too long'], answer: long.slice(0, REJECTED_LIMITS.answer), truncated: true });
+    const many = Array.from({ length: 100 }, (_, index) => ({ stage: 'illustrator', beat: 1, attempt: index + 1, refusal: ['figure'], answer: long }));
+    const text = serializeRejected(many);
+    expect(Buffer.byteLength(text)).toBeLessThanOrEqual(REJECTED_LIMITS.file);
+    const all = JSON.parse(text);
+    expect(all.map(entry => entry.attempt)).toEqual(many.map(entry => entry.attempt));
+    expect(all.at(-1)).toEqual({ stage: 'illustrator', beat: 1, attempt: 100, refusal: ['figure'], answer: '', truncated: true });
   });
 });
 

@@ -15,9 +15,40 @@ import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
 import { buildDigest, digestId, issueFor, nextIndex, serialize } from '../../src/core/changes/write.js';
 import { BRANDS } from '../../src/core/figures/brands.js';
 import { customerFor } from './customers.js';
+import { MCP_CURRENT_BYTES } from '../../src/live/hosts/mcp-size.js';
 
 /** More merged pull requests than one router call should judge; narrow the period with --since. */
 const MAX_CANDIDATES = 200;
+
+/**
+ * rejected.json's bounds: each answer at most the largest Current RISE admits (a picture's source is smaller), the
+ * file at most 4 MiB.
+ */
+export const REJECTED_LIMITS = Object.freeze({ answer: MCP_CURRENT_BYTES, file: 4 * 1024 * 1024 });
+
+/**
+ * The refused answers as rejected.json: a JSON array, one entry per line, in the order refused. An answer cut to its
+ * bound, or emptied once the file would pass its bound, is marked `truncated`; every entry keeps its refusal lines.
+ */
+export function serializeRejected(entries) {
+  const capped = entries.map(entry => (entry.answer.length > REJECTED_LIMITS.answer
+    ? { ...entry, answer: entry.answer.slice(0, REJECTED_LIMITS.answer), truncated: true }
+    : entry));
+  const bare = capped.map(entry => JSON.stringify({ ...entry, answer: '', truncated: true }));
+  // A line's bytes with its separator; "[\n" and "\n]\n" add 3 more than the lines do.
+  const bytes = line => Buffer.byteLength(line, 'utf8') + 2;
+  let room = REJECTED_LIMITS.file - 3 - bare.reduce((sum, line) => sum + bytes(line), 0);
+  let open = true;
+  const lines = capped.map((entry, index) => {
+    room += bytes(bare[index]);
+    const whole = JSON.stringify(entry);
+    open &&= room >= bytes(whole);
+    const line = open ? whole : bare[index];
+    room -= bytes(line);
+    return line;
+  });
+  return `[\n${lines.join(',\n')}\n]\n`;
+}
 
 /**
  * The run's first-pass score (docs/plans/RISE-CHANGES.md, Quality gates): told each rule that fired and each repair
@@ -62,11 +93,14 @@ function measureDensity(current, { sources, pictureRefs, includedChanges }) {
  * `{ written: false, reason }` when there is nothing to write, else
  * `{ written: true, id, files, issue }`: the file names and their text, and
  * the notification issue's title and body. `renderCheck`, when given, renders
- * each admitted figure (illustrate.js).
+ * each admitted figure (illustrate.js). Each model answer RISE refuses is
+ * pushed to `rejected` as `{ stage, attempt, beat?, refusal, answer }` as it is
+ * refused, so a run that throws still leaves them for rejected.json.
  */
 const kitBrief = picture => picture !== null && typeof picture === 'object' && (Object.hasOwn(picture, 'brief') || Object.hasOwn(picture, 'medium') || Object.hasOwn(picture, 'code'));
 
-export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures, dryRun = false }) {
+export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), since, supersede, model = MODEL, log, renderCheck, figures, dryRun = false, rejected = [] }) {
+  const refused = entry => rejected.push({ ...entry, answer: String(entry.answer ?? '') });
   if (figures !== undefined && figures !== 'kit') throw new Error('--figures kit is the only public-digest mode');
   const kitOnly = figures === 'kit';
   // A customer's product names the digest, and its brand draws the figures; a brand the company has not confirmed runs only dry.
@@ -97,7 +131,14 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     throw new Error(`${candidates.length} pull requests to route; at most ${MAX_CANDIDATES} in one run. Narrow the period with --since`);
   }
 
-  const routes = candidates.length ? admitRoutes(await ask({ ...buildRouteRequest(candidates, customer?.product), model }), candidates) : new Map();
+  let routes = new Map();
+  if (candidates.length) {
+    const answer = await ask({ ...buildRouteRequest(candidates, customer?.product), model });
+    routes = admitRoutes(answer, candidates);
+    const unread = candidates.filter(pull => routes.get(pull.number) === FALLBACK_ROUTE);
+    const fallback = `${FALLBACK_ROUTE.audience}/${FALLBACK_ROUTE.significance}/${FALLBACK_ROUTE.kind}`;
+    if (unread.length) refused({ stage: 'router', attempt: 1, refusal: unread.map(pull => `#${pull.number}: its route could not be read, so it took the fallback route ${fallback}`), answer });
+  }
   const { changes, unlisted } = selectChanges({ candidates, records, routes });
   for (const change of changes) {
     log(`  #${change.number} ${change.route.audience}/${change.route.significance}/${change.route.kind} ${change.included ? 'included' : `not included (${change.reason})`}`);
@@ -117,7 +158,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   // The routed changes left out are context: a later minor fix may settle an included change's caveat.
   const context = routed.filter(pull => !includedNumbers.has(pull.number));
   const tally = createTally();
-  const composed = await composeCurrent({ ask, pulls: included, context, model, period, log, tally, kitOnly, product: customer?.product });
+  const composed = await composeCurrent({ ask, pulls: included, context, model, period, log, tally, refused, kitOnly, product: customer?.product });
   for (const end of composed.dropped ?? []) log(`  RISE gave up the ${end} to make room for the pictures`);
   // A change chosen for the reading that no beat speaks of is left out of it, said in the notes, and not repaired.
   const unspoken = new Set(composed.unspoken ?? []);
@@ -131,7 +172,7 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
   const kits = composed.pictures.filter(picture => picture.kit !== undefined).length;
   log(`Composed ${composed.current.beats.length} beats; drawing ${composed.pictures.length} pictures (${kits} from the figure kit, ${composed.pictures.length - kits} by the illustrator)`);
   if (kitOnly && composed.pictures.some(kitBrief)) throw new Error('A public digest draws kit figures only; an illustrator brief is refused before any picture is drawn');
-  const { current: illustrated, notes: pictureNotes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included.filter(pull => !unspoken.has(pull.number)), period, log, tally, renderCheck, brand: branded?.brand });
+  const { current: illustrated, notes: pictureNotes } = await illustrate({ ask, model, current: composed.current, pictures: composed.pictures, pulls: included.filter(pull => !unspoken.has(pull.number)), period, log, tally, refused, renderCheck, brand: branded?.brand });
   if (kitOnly && (illustrated.scenes ?? []).some(scene => scene !== null && typeof scene === 'object' && Object.hasOwn(scene, 'code'))) {
     throw new Error('A public digest draws kit figures only; a scene with code is refused and nothing is written');
   }
