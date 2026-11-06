@@ -1,13 +1,16 @@
 /**
  * Collect: the pull requests merged into main in a period, read through the
  * GitHub CLI (`gh`), which the caller injects as `gh(args) => stdout`. Every
- * field kept is one the contract names; the body is kept for the models only
- * and never written to the digest.
+ * field kept is one the contract names or a fact card reads (facts.js); the
+ * body, cut and whole, is kept for the models only and never written to the
+ * digest.
  */
 import { DATA_BRANCH, LIMITS, indexProblems, pullUrl } from './contract.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 50;
+const COMMITS = 100;
+const ISSUES = 10;
 
 /** Newest-updated first: a pull request merged in the period was updated in it or later. */
 const MERGED_PULLS_QUERY = `query($owner: String!, $name: String!, $cursor: String) {
@@ -15,10 +18,12 @@ const MERGED_PULLS_QUERY = `query($owner: String!, $name: String!, $cursor: Stri
     pullRequests(baseRefName: "main", states: MERGED, first: ${PAGE_SIZE}, after: $cursor, orderBy: { field: UPDATED_AT, direction: DESC }) {
       pageInfo { hasNextPage endCursor }
       nodes {
-        number title url body mergedAt updatedAt
+        number title url body mergedAt updatedAt additions deletions
         mergeCommit { oid }
         labels(first: 20) { nodes { name } }
-        files(first: ${LIMITS.files}) { totalCount nodes { path } }
+        files(first: ${LIMITS.files}) { totalCount nodes { path additions deletions } }
+        commits(first: ${COMMITS}) { nodes { commit { message } } }
+        closingIssuesReferences(first: ${ISSUES}) { nodes { number title } }
       }
     }
   }
@@ -62,7 +67,11 @@ function clip(text, length) {
   return characters.length <= length ? text : `${characters.slice(0, length - 1).join('')}…`;
 }
 
-/** One GraphQL node as the contract's fields, or an error that names what is wrong. */
+/** A line count GitHub gave, or 0 for a node recorded before the query asked for it. */
+const lines = value => (Number.isInteger(value) && value >= 0 ? value : 0);
+const oneLine = text => clip(text.replace(/\s+/g, ' ').trim(), LIMITS.title);
+
+/** One GraphQL node as the contract's and the fact card's fields, or an error that names what is wrong. */
 export function normalizePull(node, repo) {
   const number = node?.number;
   if (!Number.isInteger(number) || number < 1) throw new Error('A pull request without a number');
@@ -72,16 +81,29 @@ export function normalizePull(node, repo) {
   const oid = node.mergeCommit?.oid;
   if (typeof oid !== 'string' || !/^[0-9a-f]{40}$/.test(oid)) throw new Error(`#${number}: the merge commit is not a 40-character sha`);
   const body = typeof node.body === 'string' ? node.body : '';
+  const files = (node.files?.nodes ?? []).filter(file => typeof file?.path === 'string').slice(0, LIMITS.files);
   return {
     number,
-    title: clip(node.title.replace(/\s+/g, ' ').trim(), LIMITS.title),
+    title: oneLine(node.title),
     body: Array.from(body).slice(0, LIMITS.body).join(''),
+    fullBody: body,
     url: node.url,
     mergedAt: node.mergedAt,
     mergeSha: oid,
     labels: (node.labels?.nodes ?? []).map(label => label?.name).filter(name => typeof name === 'string'),
-    files: (node.files?.nodes ?? []).map(file => file?.path).filter(path => typeof path === 'string').slice(0, LIMITS.files),
-    fileCount: Number.isInteger(node.files?.totalCount) ? node.files.totalCount : Infinity
+    files: files.map(file => file.path),
+    fileCount: Number.isInteger(node.files?.totalCount) ? node.files.totalCount : Infinity,
+    fileStats: files.map(file => ({ path: file.path, additions: lines(file.additions), deletions: lines(file.deletions) })),
+    additions: lines(node.additions),
+    deletions: lines(node.deletions),
+    commits: (node.commits?.nodes ?? []).map(entry => entry?.commit?.message)
+      .filter(message => typeof message === 'string' && message.trim())
+      .slice(0, COMMITS)
+      .map(message => oneLine(message.trim().split(/\r?\n/)[0])),
+    issues: (node.closingIssuesReferences?.nodes ?? [])
+      .filter(issue => Number.isInteger(issue?.number) && typeof issue.title === 'string')
+      .slice(0, ISSUES)
+      .map(issue => ({ number: issue.number, title: oneLine(issue.title) }))
   };
 }
 

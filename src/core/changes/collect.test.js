@@ -93,6 +93,40 @@ describe('normalizePull', () => {
     expect(pull.url).toBe(`https://github.com/${REPO}/pull/652`);
   });
 
+  it('keeps the whole body, the diff stats, the commit subjects and the closing issues beside the cut body', () => {
+    const files = Array.from({ length: 101 }, (_, i) => ({ path: `src/f${i}.js`, additions: i, deletions: 1 }));
+    const subject = 's'.repeat(250);
+    const pull = normalizePull({
+      ...node(653, { mergedAt: '2026-10-13T10:00:00Z', body: 'y'.repeat(6000) }),
+      additions: 2578,
+      deletions: 198,
+      files: { totalCount: 101, nodes: files },
+      commits: { nodes: [{ commit: { message: 'First line\r\n\r\nThe rest of the message' } }, { commit: { message: `${subject}\nbody` } }, { commit: { message: '' } }] },
+      closingIssuesReferences: { nodes: [{ number: 12, title: '  Fix   the  thing ' }] }
+    }, REPO);
+    expect(pull.body).toHaveLength(4000);
+    expect(pull.fullBody).toHaveLength(6000);
+    expect(pull.additions).toBe(2578);
+    expect(pull.deletions).toBe(198);
+    expect(pull.files).toHaveLength(100);
+    expect(pull.fileStats).toHaveLength(100);
+    expect(pull.fileStats[7]).toEqual({ path: 'src/f7.js', additions: 7, deletions: 1 });
+    expect(pull.commits).toHaveLength(2);
+    expect(pull.commits[0]).toBe('First line');
+    expect(Array.from(pull.commits[1])).toHaveLength(200);
+    expect(pull.issues).toEqual([{ number: 12, title: 'Fix the thing' }]);
+  });
+
+  it('reads a node without the fact fields as no commits, no issues and no counted lines', () => {
+    const pull = normalizePull(node(4, { mergedAt: '2026-10-13T10:00:00Z' }), REPO);
+    expect(pull.fullBody).toBe('Body of 4.');
+    expect(pull.additions).toBe(0);
+    expect(pull.deletions).toBe(0);
+    expect(pull.fileStats).toEqual([{ path: 'src/a.js', additions: 0, deletions: 0 }]);
+    expect(pull.commits).toEqual([]);
+    expect(pull.issues).toEqual([]);
+  });
+
   it('reads a missing body as empty', () => {
     expect(normalizePull(node(1, { mergedAt: '2026-10-13T10:00:00Z', body: null }), REPO).body).toBe('');
   });
@@ -131,6 +165,16 @@ describe('collectMergedPulls', () => {
     expect(calls[0]).toContain('name=RISE');
     expect(calls[0].some(arg => arg.startsWith('cursor='))).toBe(false);
     expect(calls[1]).toContain('cursor=c1');
+  });
+
+  it('asks in the one query for the diff stats, the first 100 commits and the first 10 closing issues', async () => {
+    const { gh, calls } = fakeGh([page([])]);
+    await collectMergedPulls(gh, { repo: REPO, from, to });
+    const query = calls[0].find(arg => arg.startsWith('query='));
+    expect(query).toMatch(/mergedAt updatedAt additions deletions/);
+    expect(query).toContain('files(first: 100) { totalCount nodes { path additions deletions } }');
+    expect(query).toContain('commits(first: 100) { nodes { commit { message } } }');
+    expect(query).toContain('closingIssuesReferences(first: 10) { nodes { number title } }');
   });
 
   it('follows the cursor until a page has no next page', async () => {
