@@ -1,0 +1,51 @@
+{
+  "id": "SVC-007",
+  "title": "Changes page says what RISE checks and what it does not",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [
+    "SVC-002"
+  ],
+  "acceptance": [
+    "The /changes list says only what the page re-checks in every digest it shows, RISE's or a listed team's: that it cites only the included pull requests and that its pictures are safe to show. It claims no number or legibility check.",
+    "The same line says nothing checks that any change works; the phrase \"RISE checks it before showing it\" and the word \"verified\" appear nowhere in the text RISE itself writes on the /changes pages (pull request titles and model text are not RISE's).",
+    "A unit test pins the line and fails when either the checks or the disclaimer is dropped.",
+    "docs/plans/RISE-CHANGES.md describes the line and why it changed."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/app/changes.test.js",
+      "note": "Branch fix/changes-honest-copy, local only, not pushed (Windows, npx vitest run src/app/changes.test.js): before the copy change 1 failed, 55 passed (Received the old \"A model writes it; RISE checks it before showing it.\"); after it 56 passed; with \"RISE does not check that any change works.\" removed on purpose 1 failed, 55 passed; restored 56 passed. e2e/changes.spec.js does not pin this line and was not run.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "src/app/changes.test.js",
+      "note": "Review correction, branch fix/changes-honest-copy, local only, not pushed (npx vitest run src/app/changes.test.js): with the test pinning the narrower line (citations and safe pictures only; no number, legible or verif) and the old copy, 1 failed, 55 passed; with the new copy 56 passed; with \"Nothing checks that any change works.\" removed on purpose 1 failed, 55 passed; restored 56 passed.",
+      "date": "2026-11-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-11-06T18:05:00.000Z",
+      "summary": "Opened from the owner's decision D10 of the RISE Changes v2 study: the list's \"RISE checks it\" reads as the claims being checked, and no check reads code, a diff, a test, a check run or a deploy."
+    },
+    {
+      "date": "2026-11-06T18:16:08.537Z",
+      "summary": "Copy changed on branch fix/changes-honest-copy with a pinning unit test; red, green, red again, green recorded. Not pushed, merged, deployed or accepted."
+    },
+    {
+      "date": "2026-11-06T18:21:49.664Z",
+      "summary": "Review correction: the line now claims only what the page re-checks for every digest (citations, safe pictures); numbers and legibility are not claimed. Red, green, red again, green recorded. Not pushed, merged, deployed or accepted."
+    }
+  ],
+  "updatedAt": "2026-11-06T18:21:49.664Z",
+  "revision": 3,
+  "summary": "The /changes list names the checks the page re-runs on every digest (citations, safe pictures) and says nothing checks that any change works.",
+  "blocker": null
+}
