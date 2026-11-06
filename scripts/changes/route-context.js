@@ -7,13 +7,17 @@
  */
 
 export const ROUTE_CONTEXT_VERSION = 1;
-export const ROUTE_CONTEXT_FIELDS = Object.freeze(['number', 'title', 'labels', 'areas', 'flags', 'body']);
+export const ROUTE_CONTEXT_FIELDS = Object.freeze(['number', 'title', 'labels', 'fileCount', 'additions', 'deletions', 'areas', 'flags', 'body']);
 const BODY = 600;
 
 const summary = card => ({
   number: card.number,
   title: card.title,
   labels: [...card.labels],
+  // The whole pull request's size: areas cover only the first 100 files collect lists.
+  fileCount: card.fileCount,
+  additions: card.additions,
+  deletions: card.deletions,
   areas: card.areas.map(({ area, files, additions, deletions }) => ({ area, files, additions, deletions })),
   flags: Object.entries(card.flags).filter(([, set]) => set === true).map(([flag]) => flag),
   body: Array.from(card.body).slice(0, BODY).join('')

@@ -10,7 +10,7 @@
  */
 import { createHash } from 'node:crypto';
 import { readFile, realpath, stat } from 'node:fs/promises';
-import { join, resolve, sep } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseModelJson } from './admit.js';
 import { FALLBACK_ROUTE, LIMITS, ROUTE_CACHE_BYTES, ROUTE_CACHE_SCHEMA, ROUTE_MENU, cachedRouteProblems } from '../../src/core/changes/contract.js';
 import { FACTS_VERSION } from '../../src/core/changes/facts.js';
@@ -101,29 +101,30 @@ export function admitRoutes(text, candidates) {
   }));
 }
 
-/** sha256 of what a route was judged under: the router's system text, the context contract's version, the fact rules' version. */
-export function contractHash(systemText, contextVersion, factsVersion) {
-  return createHash('sha256').update(JSON.stringify([systemText, contextVersion, factsVersion])).digest('hex');
+/** sha256 of what a route was judged under: the router's system text, its model, the context contract's version, the fact rules' version. */
+export function contractHash(systemText, model, contextVersion, factsVersion) {
+  return createHash('sha256').update(JSON.stringify([systemText, model, contextVersion, factsVersion])).digest('hex');
 }
 
-/** The contract hash a cached route must carry to be reused for this product today. */
-export function routeContract(product = RISE_PRODUCT) {
-  return contractHash(system(product), ROUTE_CONTEXT_VERSION, FACTS_VERSION);
+/** The contract hash a cached route must carry to be reused for this product and router model today. */
+export function routeContract({ product = RISE_PRODUCT, model }) {
+  return contractHash(system(product), model, ROUTE_CONTEXT_VERSION, FACTS_VERSION);
 }
 
 /**
  * The route cache under `<dir>/cache/routes/` as `mergeSha => text | null`, or undefined without a directory. Only a
- * 40-hex merge SHA names a file; a missing file, one larger than ROUTE_CACHE_BYTES, or one whose real path leaves the
- * directory is no cache. What a file says is admitted by the router (cachedRouteProblems), never here.
+ * 40-hex merge SHA names a file; a missing file, one larger than ROUTE_CACHE_BYTES, or one reached through a link
+ * anywhere below `dir` (its real path is not `<real dir>/cache/routes/<mergeSha>.json`) is no cache, and is not logged.
+ * What a file says is admitted by the router (cachedRouteProblems), never here.
  */
 export function cacheReader(dir) {
   if (dir === undefined) return undefined;
-  const root = resolve(dir, 'cache', 'routes');
   return async mergeSha => {
     if (!/^[0-9a-f]{40}$/.test(mergeSha)) return null;
     try {
-      const path = await realpath(join(root, `${mergeSha}.json`));
-      if (!path.startsWith(`${await realpath(root)}${sep}`)) return null;
+      const name = join('cache', 'routes', `${mergeSha}.json`);
+      const path = await realpath(resolve(dir, name));
+      if (path !== join(await realpath(resolve(dir)), name)) return null;
       const info = await stat(path);
       if (!info.isFile() || info.size > ROUTE_CACHE_BYTES) return null;
       return await readFile(path, 'utf8');
@@ -155,7 +156,7 @@ const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one :
  * file for each route the router gave this run and no other: never a fallback, never one read from the cache.
  */
 export async function routeCandidates({ cards, ask, model, product = RISE_PRODUCT, readCached = async () => null, now, log }) {
-  const contract = routeContract(product);
+  const contract = routeContract({ product, model });
   const routes = new Map();
   for (const card of cards) {
     const text = await readCached(card.mergeSha);

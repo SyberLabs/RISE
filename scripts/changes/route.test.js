@@ -182,19 +182,21 @@ describe('selectChanges', () => {
 describe('routeContract', () => {
   const system = buildRouteRequest([]).system;
 
-  it('is the sha256 of the router’s system text, the context contract’s version and the fact rules’ version', () => {
-    const hash = contractHash(system, ROUTE_CONTEXT_VERSION, FACTS_VERSION);
+  it('is the sha256 of the router’s system text, its model, the context contract’s version and the fact rules’ version', () => {
+    const hash = contractHash(system, 'm', ROUTE_CONTEXT_VERSION, FACTS_VERSION);
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
-    expect(routeContract()).toBe(hash);
-    expect(contractHash(system, ROUTE_CONTEXT_VERSION, FACTS_VERSION)).toBe(hash);
+    expect(routeContract({ model: 'm' })).toBe(hash);
+    expect(contractHash(system, 'm', ROUTE_CONTEXT_VERSION, FACTS_VERSION)).toBe(hash);
   });
 
-  it('changes when any of the three changes', () => {
-    const hash = contractHash(system, ROUTE_CONTEXT_VERSION, FACTS_VERSION);
-    expect(contractHash(`${system} `, ROUTE_CONTEXT_VERSION, FACTS_VERSION)).not.toBe(hash);
-    expect(contractHash(system, ROUTE_CONTEXT_VERSION + 1, FACTS_VERSION)).not.toBe(hash);
-    expect(contractHash(system, ROUTE_CONTEXT_VERSION, FACTS_VERSION + 1)).not.toBe(hash);
-    expect(routeContract(customerFor('openstatusHQ/openstatus').product)).not.toBe(hash);
+  it('changes when any of the four changes', () => {
+    const hash = contractHash(system, 'm', ROUTE_CONTEXT_VERSION, FACTS_VERSION);
+    expect(contractHash(`${system} `, 'm', ROUTE_CONTEXT_VERSION, FACTS_VERSION)).not.toBe(hash);
+    expect(contractHash(system, 'claude-haiku-5', ROUTE_CONTEXT_VERSION, FACTS_VERSION)).not.toBe(hash);
+    expect(routeContract({ model: 'claude-haiku-5' })).not.toBe(hash);
+    expect(contractHash(system, 'm', ROUTE_CONTEXT_VERSION + 1, FACTS_VERSION)).not.toBe(hash);
+    expect(contractHash(system, 'm', ROUTE_CONTEXT_VERSION, FACTS_VERSION + 1)).not.toBe(hash);
+    expect(routeContract({ product: customerFor('openstatusHQ/openstatus').product, model: 'm' })).not.toBe(hash);
   });
 });
 
@@ -207,7 +209,7 @@ describe('routeCandidates', () => {
     const ask = async request => { calls.push(request); const next = answers.shift(); if (next === undefined) throw new Error('unexpected ask'); return next; };
     return { ask, calls };
   };
-  const entry = (number, value, extra = {}) => JSON.stringify({ schema: ROUTE_CACHE_SCHEMA, mergeSha: sha(number), route: value, contract: routeContract(), at: '2026-10-14T09:00:00.000Z', ...extra });
+  const entry = (number, value, extra = {}) => JSON.stringify({ schema: ROUTE_CACHE_SCHEMA, mergeSha: sha(number), route: value, contract: routeContract({ model: 'm' }), at: '2026-10-14T09:00:00.000Z', ...extra });
   const reader = files => async mergeSha => files[mergeSha] ?? null;
   const offered = request => JSON.parse(request.prompt.slice(request.prompt.indexOf('<pull_requests>\n') + 16, request.prompt.indexOf('\n</pull_requests>'))).map(item => item.number);
 
@@ -222,7 +224,7 @@ describe('routeCandidates', () => {
     expect(routes.get(3)).not.toBe(FALLBACK_ROUTE);
     expect(Object.keys(cache)).toEqual([1, 2, 3].map(number => `cache/routes/${sha(number)}.json`));
     expect(JSON.parse(cache[`cache/routes/${sha(2)}.json`])).toEqual({
-      schema: ROUTE_CACHE_SCHEMA, mergeSha: sha(2), route: route('both', 'major', 'fix'), contract: routeContract(), at: '2026-10-14T09:00:00.000Z'
+      schema: ROUTE_CACHE_SCHEMA, mergeSha: sha(2), route: route('both', 'major', 'fix'), contract: routeContract({ model: 'm' }), at: '2026-10-14T09:00:00.000Z'
     });
     expect(cache[`cache/routes/${sha(2)}.json`].endsWith('}\n')).toBe(true);
     expect(lines).toContain('Router: 1 call; 0 of 3 routes from the cache');
@@ -337,7 +339,22 @@ describe('cacheReader', () => {
     }
   });
 
-  // Creating a symbolic link needs a privilege Windows does not grant by default; CI runs on Linux.
+  it('does not read through a routes directory that is a link out of the cache root', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'rise-cache-test-'));
+    const elsewhere = await mkdtemp(join(tmpdir(), 'rise-cache-elsewhere-'));
+    try {
+      await writeFile(join(elsewhere, `${sha(5)}.json`), '{"elsewhere": true}');
+      await mkdir(join(dir, 'cache'), { recursive: true });
+      // A junction needs no privilege on Windows; elsewhere the type is ignored and this is a symbolic link.
+      await symlink(elsewhere, join(dir, 'cache', 'routes'), 'junction');
+      expect(await cacheReader(dir)(sha(5))).toBeNull();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+      await rm(elsewhere, { recursive: true, force: true });
+    }
+  });
+
+  // Creating a symbolic link to a file needs a privilege Windows does not grant by default; CI runs on Linux.
   it.skipIf(process.platform === 'win32')('does not follow a link out of the cache directory', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'rise-cache-test-'));
     try {

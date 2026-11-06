@@ -307,7 +307,7 @@ describe('runDigest on the week of #652–#671', () => {
   it('supersedes a period with the routes the first digest was given, so a resampled router cannot drop a change (#685 and #693 in 2026-10-16-2)', async () => {
     const first = scriptedAsk(week());
     const published = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask: first.ask, repo: REPO, now, since, model: MODEL, log: () => {} });
-    // Asked again, the router would now call #662 and #668 minor, as it called #685 and #693 when 2026-10-16 was superseded.
+    // Asked again, the router would now call #662 and #668 minor.
     const [route, ...afterRouting] = week();
     const resampled = route
       .replace('"662": {"audience": "team", "significance": "notable"', '"662": {"audience": "team", "significance": "minor"')

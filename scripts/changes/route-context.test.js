@@ -16,15 +16,16 @@ async function recordedCards() {
 }
 
 describe('routeContext, the router’s context contract', () => {
-  it('gives each pull request its number, title, labels, areas with diff stats, flags and the first 600 characters of its body, nothing more', async () => {
+  it('gives each pull request its number, title, labels, size, areas with diff stats, flags and the first 600 characters of its body, nothing more', async () => {
     const cards = await recordedCards();
     const context = routeContext(cards);
-    expect(ROUTE_CONTEXT_FIELDS).toEqual(['number', 'title', 'labels', 'areas', 'flags', 'body']);
+    expect(ROUTE_CONTEXT_FIELDS).toEqual(['number', 'title', 'labels', 'fileCount', 'additions', 'deletions', 'areas', 'flags', 'body']);
     expect(context).toHaveLength(15);
     context.forEach((entry, index) => {
       expect(Object.keys(entry)).toEqual(ROUTE_CONTEXT_FIELDS);
       expect(entry.number).toBe(cards[index].number);
       expect(entry.areas).toEqual(cards[index].areas);
+      expect([entry.fileCount, entry.additions, entry.deletions]).toEqual([cards[index].fileCount, cards[index].additions, cards[index].deletions]);
       for (const area of entry.areas) expect(Object.keys(area)).toEqual(['area', 'files', 'additions', 'deletions']);
     });
   });
@@ -40,6 +41,12 @@ describe('routeContext, the router’s context contract', () => {
     expect(routeContext([short])[0].body).toBe('A short body.');
   });
 
+  it('gives a pull request over 100 files its whole size, not the size of the files listed', async () => {
+    const [card] = await recordedCards();
+    const sweep = { ...card, fileCount: 400, additions: 12000, deletions: 9000 };
+    expect(routeContext([sweep])[0]).toMatchObject({ fileCount: 400, additions: 12000, deletions: 9000 });
+  });
+
   it('names only the flags that are set', async () => {
     const [card] = await recordedCards();
     const flagged = { ...card, flags: { migration: false, config: true, dependency: false, workflow: true, docsOnly: false, testsOnly: false } };
@@ -53,5 +60,5 @@ describe('routeContext, the router’s context contract', () => {
   });
 });
 
-/** Measured 2026-11-06 on the recorded week: 33,279 bytes before the contract (1,500 body characters and 30 paths a pull request), 19,568 with it. */
-const ROUTER_INPUT_BYTES = 19568;
+/** The recorded week's router input in bytes, system text included. */
+const ROUTER_INPUT_BYTES = 20514;

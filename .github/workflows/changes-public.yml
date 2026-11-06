@@ -167,7 +167,8 @@ jobs:
           One JSON file per digest (`<id>.json`) and `index.json`, written by the pinned
           RISE workflow `.github/workflows/changes-public.yml`. The format is
           `docs/plans/RISE-CHANGES.md` in SyberLabs/RISE. RISE does not fetch this
-          branch. Do not edit these files by hand.
+          branch. `cache/routes/<sha>.json` holds each pull request's route for later
+          runs and is not served. Do not edit these files by hand.
           README
           fi
           cp "$RUNNER_TEMP/changes/$ID.json" "$RUNNER_TEMP/changes/index.json" .

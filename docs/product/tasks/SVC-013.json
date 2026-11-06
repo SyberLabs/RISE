@@ -29,6 +29,12 @@
       "ref": "scripts/changes/route-context.test.js",
       "date": "2026-11-06",
       "note": "Router input on the recorded week (#652 to #671, 15 pull requests offered), system text included: 33,279 bytes before (1,500 body characters and 30 paths each), 19,568 after; the test pins 19,568 and the six fields. Workflow pins in scripts/changes/public-workflow.test.js for both changes-digest.yml and changes-public.yml. Not yet run in a workflow: no dispatch made."
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/changes/route-context.test.js",
+      "date": "2026-11-06",
+      "note": "Review council fixes on the same branch, one commit after 3ced15b1, local: npx vitest run scripts/changes/ src/core/changes/: 16 files, 277 passed, 1 skipped; node --test scripts/changes/digest.test.mjs: 5 passed (now in ci.yml's node --test list). Red first, then green: whole-PR fileCount, additions and deletions in the context (2 failed); router model in the contract hash (5 failed); a routes directory linked out of the cache root, made as a junction so it runs on Windows too (1 failed: the old containment read the linked file). Red on purpose: --cache dropped from parseOptions (2 failed). The pin moves from 19,568 to 20,514 bytes. Measurement: scratch script running collectMergedPulls on src/core/changes/fixtures/graphql-week.json (period 2026-10-13T02:00:00Z to 2026-10-14T09:00:00Z), prefilter, then buildRouteRequest, summing the UTF-8 bytes of system and prompt; 33,279 is that script over `git archive 58c3448c src scripts` (the base, pulls as candidates), 20,514 over this branch with factCard cards. 56,641 is the router input of run 41505796959 (2026-11-02) by the Phase 0 context inventory (docs/plans/changes-v2/study/02-context-and-cost.md, changes-study worktree)."
     }
   ],
   "activity": [
@@ -39,10 +45,14 @@
     {
       "date": "2026-11-06T21:47:21.351Z",
       "summary": "Context contract, route cache and one retry built on branch changes/route-cache, tests recorded"
+    },
+    {
+      "date": "2026-11-06T21:56:40.323Z",
+      "summary": "Review council fixes: whole-PR size, router model in the hash, cache root containment, digest.test.mjs in CI, docs, measurement recorded"
     }
   ],
-  "updatedAt": "2026-11-06T21:47:21.351Z",
-  "revision": 2,
+  "updatedAt": "2026-11-06T21:56:40.323Z",
+  "revision": 3,
   "summary": "The router reads fact-card summaries through a pinned context contract, each route is cached on changes-data by merge SHA under a contract hash, and an unreadable answer is asked for once more, so re-runs and supersedes route as the first run did.",
   "blocker": null
 }

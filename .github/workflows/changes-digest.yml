@@ -150,8 +150,9 @@ jobs:
           The data of RISE Changes: one JSON file per weekly digest (`<id>.json`) and
           `index.json`, written by `.github/workflows/changes-digest.yml` on main and
           served by RISE at `/content/changes/<file>`. The format is
-          `docs/plans/RISE-CHANGES.md` on main. Nothing here is built or deployed;
-          do not edit these files by hand.
+          `docs/plans/RISE-CHANGES.md` on main. `cache/routes/<sha>.json` holds each
+          pull request's route for later runs and is not served. Nothing here is built
+          or deployed; do not edit these files by hand.
           README
           fi
           cp "$RUNNER_TEMP/changes/$ID.json" "$RUNNER_TEMP/changes/index.json" .
