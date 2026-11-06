@@ -4,6 +4,9 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { embeddedFace, hexOfColor, inkFigure, mountFigureLayer, paintFigure } from './figure-layer.js';
+import { ILLUSTRATOR_2026_10_15, KIT_LIST_2026_11_02 } from './figure-layer.fixture.js';
+import { svgLayoutProblems } from '../../core/quality/svg-layout.js';
+import { facePalette } from '../../live/host/face-still.js';
 
 const NS = 'xmlns="http://www.w3.org/2000/svg"';
 const SVG = `<svg ${NS} viewBox="0 0 4 3"><path d="M0,3 L4,3 z" stroke="currentColor"/></svg>`;
@@ -157,5 +160,26 @@ describe('a face the figure chose', () => {
   it('is kept: the reading’s face is given only to a figure that names none', () => {
     const chosen = `<svg ${NS} viewBox="0 0 4 3" font-family="monospace"><text x="0" y="3">x = 1</text></svg>`;
     expect(paintFigure(chosen, { face: { css: 'c', family: 'f' } })).toBe(chosen);
+  });
+});
+
+describe('a figure drawn in fixed inks for another ground (the light room, RISE-CHANGES.md)', () => {
+  const PORCELAIN_GROUND = '#f4efe6';
+  const mount = (svg, ground) => mountFigureLayer({ field: field(), insertBehindReading: behind, svg, ink: '#172a4f', ground }).node;
+
+  it('is marked to be shown on a night of its own when its inks cannot be read on the room’s ground', () => {
+    expect(mount(KIT_LIST_2026_11_02, PORCELAIN_GROUND).dataset.night).toBe('true');
+  });
+
+  it('is not marked when it draws in currentColor, on a ground its inks can be read on, or with no room ground given', () => {
+    expect(mount(ILLUSTRATOR_2026_10_15, PORCELAIN_GROUND).dataset.night).toBeUndefined();
+    expect(mount(KIT_LIST_2026_11_02, '#0a0619').dataset.night).toBeUndefined();
+    expect(mount(KIT_LIST_2026_11_02, null).dataset.night).toBeUndefined();
+  });
+
+  it('reads on the light room’s night, Porcelain’s deep, every label at 4.5:1 or more', () => {
+    const deep = hexOfColor(facePalette('porcelain')['--live-deep']);
+    expect(svgLayoutProblems(KIT_LIST_2026_11_02, { ground: PORCELAIN_GROUND }).problems.some(problem => problem.rule === 'text-low-contrast')).toBe(true);
+    expect(svgLayoutProblems(KIT_LIST_2026_11_02, { ground: deep }).problems).toEqual([]);
   });
 });

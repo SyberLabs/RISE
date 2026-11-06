@@ -114,13 +114,41 @@ export function hexOfColor(color) {
   return `#${match.slice(1, 4).map(part => Math.min(255, Number(part)).toString(16).padStart(2, '0')).join('')}`;
 }
 
+const luminance = hex => {
+  const digits = hex.slice(1);
+  const full = digits.length < 6 ? [...digits.slice(0, 3)].map(digit => digit + digit).join('') : digits.slice(0, 6);
+  const [r, g, b] = [0, 2, 4].map(at => {
+    const channel = parseInt(full.slice(at, at + 2), 16) / 255;
+    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const NAMED_INK = /\b(?:fill|stroke)\s*(?:=\s*["']\s*|:\s*)(#[0-9a-f]{3,8})\b/giu;
+
+/**
+ * Whether the figure was drawn for another ground than `ground`: it names a fill or stroke of its own under 4.5:1
+ * (WCAG AA) on it, as the figure kit names a dark theme's light inks. A figure in currentColor takes the room's ink
+ * and is never one, since a night behind it would hide that ink.
+ */
+export function drawnForAnotherGround(svg, ground) {
+  if (typeof ground !== 'string' || !HEX.test(ground) || /currentColor/iu.test(svg)) return false;
+  const under = luminance(ground);
+  return [...svg.matchAll(NAMED_INK)].some(([, colour]) => {
+    const [light, dark] = [luminance(colour), under].sort((a, b) => b - a);
+    return (light + 0.05) / (dark + 0.05) < 4.5;
+  });
+}
+
 /**
  * `dark`: the theme's dark, for the class `dark`. `face`: a promise of embeddedFace's; a figure is drawn
  * once it has settled, so its text never changes face in front of the reader, and at once when there is none.
+ * `ground`: the host room's own ground, when it has one; a figure drawn for another is marked `data-night`, for the
+ * room to show it on a night of its own (LiveHost.css, "The light room").
  */
-export function mountFigureLayer({ field, insertBehindReading, svg, ink = null, dark = null, face = null, onError = () => {} }) {
+export function mountFigureLayer({ field, insertBehindReading, svg, ink = null, dark = null, face = null, ground = null, onError = () => {} }) {
   const img = document.createElement('img');
   img.className = 'chamber-figure';
+  if (drawnForAnotherGround(svg, ground)) img.dataset.night = 'true';
   img.setAttribute('aria-hidden', 'true');
   img.setAttribute('alt', '');
   img.setAttribute('decoding', 'async');

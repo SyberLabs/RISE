@@ -1,0 +1,40 @@
+{
+  "id": "SVC-006",
+  "title": "Changes figures readable in the light room",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "In RISE Live's light room (Porcelain), a published Changes figure drawn in a dark theme's fixed inks (the figure kit's) is hung on the room's night, Porcelain's deep #0e1b36, where every one of its labels measures 4.5:1 or more; the 23 kit figures published from 2026-10-16 to 2026-11-02 included, without changing a published file.",
+    "A figure drawn in currentColor (an illustrator's) is untouched: it is still drawn in the room's ink on the room's ground.",
+    "The dark room, the Reader and the card are unchanged: no figure is marked there, and no light-room rule applies."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/components/read/figure-layer.test.js",
+      "note": "Branch fix/changes-light-room-figures, local (Windows, Node 22), not pushed: npx vitest run src/components/read/figure-layer.test.js src/components/read/Chamber.figure.test.js src/live/host/venue.test.js src/components/read/Chamber.band-move.test.js: 4 files, 136 passed. The new tests failed first (2 failed: the published 2026-11-02 picture-2 kit figure was not marked on the Porcelain ground), passed after the fix, and failed again with the contrast threshold broken on purpose. vite build clean; first load 62.6 KB br of a 64.0 KB budget; ci-hygiene clean.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "src/live/host/LiveHost.css",
+      "note": "Rendered by the agent in Playwright Chromium against the Vite dev server, the 2026-11-02 digest in RISE Live at 390 x 844 and 1440 x 900: in Porcelain picture-2 hangs on a #0e1b36 plate (field ::before rgb(14, 27, 54), clipped and rounded like every hung visual), every label legible; in the default dark room no figure is marked, no plate, the figure as before. Not a human observation.",
+      "date": "2026-11-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-11-06T12:00:00.000Z",
+      "summary": "Opened from decision D10 of the RISE Changes v2 study: 23 of 29 published figures had labels at about 1:1 on Porcelain's cream ground. Fixed at display time on a local branch; not merged, deployed or accepted."
+    }
+  ],
+  "updatedAt": "2026-11-06T12:00:00.000Z",
+  "revision": 1,
+  "summary": "A Changes figure drawn in a dark theme's fixed inks is shown in the light room on the room's night, where it reads, instead of on the cream where its labels vanished. Illustrator figures and the dark room are unchanged.",
+  "blocker": null
+}
