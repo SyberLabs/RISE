@@ -157,6 +157,6 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     written: true,
     id,
     files: { [`${id}.json`]: serialize(digest), 'index.json': serialize(next) },
-    issue: issueFor(digest, { supersedes: replaced?.id, repository: repo, name: customer?.product.name })
+    issue: issueFor(digest, { supersedes: replaced?.id, repository: repo, name: customer?.product.name, unrouted })
   };
 }
