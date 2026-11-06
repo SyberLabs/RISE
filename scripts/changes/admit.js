@@ -167,7 +167,7 @@ function mentionsIn(text) {
     if ([i + 1, i + 2].some(next => dated.get(next) === 'day' && beforeMonth(next) && joined(i, next))) dated.set(i, 'day');
   });
   const found = [];
-  const add = (from, to, value, role = null) => found.push({ written: source.slice(tokens[from].start, tokens[to].end), value, role });
+  const add = (from, to, value, role = null) => found.push({ written: source.slice(tokens[from].start, tokens[to].end), value, role, end: tokens[to].end });
   for (let i = 0; i < tokens.length;) {
     const token = tokens[i];
     if (token.iso) {
@@ -236,19 +236,22 @@ const COLOUR = /^.(?:#[0-9a-f]{3,8}|(?:rgba?|hsla?)\([^)]*\)).$/iu;
 const codeText = code => (code.match(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g) ?? [])
   .filter(literal => !COLOUR.test(literal)).join(' ');
 
+/** What follows a count of changes; the host's count of cited changes is stated only there. */
+const COUNTED = /^\s+(?:(?:more|new|separate|distinct|included)\s+)?(?:changes?|pull\s+requests?|PRs?|updates?)\b/iu;
+
 /**
- * The numbers `texts` say that neither `pulls` nor `also` state, a date of the period in its role excepted: one
- * `{ written, value }` for each spelling.
+ * The numbers `texts` say that `pulls` do not state, a date of the period in its role excepted, and `count` only where
+ * it counts changes ("2 changes", "two pull requests"): one `{ written, value }` for each spelling.
  */
-function unstatedIn(texts, pulls, period, also = []) {
-  const stated = new Set(statedNumbers(pulls));
+function unstatedIn(texts, pulls, period, count = null) {
+  const stated = statedNumbers(pulls);
   const parts = periodParts(period);
   const found = new Map();
   for (const text of texts) {
     if (typeof text !== 'string') continue;
-    for (const { written, value, role } of mentionsIn(text)) {
-      const counted = also.includes(value) && new RegExp(`(?<![\\w-])${written.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+(?:(?:more|new|separate|distinct|included)\\s+)?(?:changes?|pull requests?|PRs?|updates?)\\b`, 'iu').test(text);
-      if (!stated.has(value) && !counted && !(role !== null && parts[role].has(value))) found.set(written, { written, value });
+    for (const { written, value, role, end } of mentionsIn(text)) {
+      const counts = value === count && COUNTED.test(text.slice(end));
+      if (!stated.has(value) && !counts && !(role !== null && parts[role].has(value))) found.set(written, { written, value });
     }
   }
   return [...found.values()];
@@ -276,12 +279,12 @@ export function sceneNumberProblems(current, { pulls, period }) {
  * refs (`sources`, beat index to pull request numbers; a beat with none may state only a date of the period), the
  * title against the pull requests some beat cites (an included one no beat cites leaves the reading), and the figures
  * against every included pull request. The count of cited changes is computed by the host, not written by the
- * composer, so every beat may state it; no other count is added, and the title is not given it.
+ * composer, so every beat may state it as a count of changes; no other count is added, and the title is not given it.
  */
 export function numberProblems(current, { pulls, period, sources = {} }) {
   const cited = new Set(Object.values(sources).filter(Array.isArray).flat());
   const spoken = pulls.filter(pull => cited.has(pull.number));
-  const count = [String(spoken.length)];
+  const count = String(spoken.length);
   const beats = current.beats.flatMap((beat, index) => {
     const refs = Array.isArray(sources[index]) ? sources[index] : [];
     return unstatedIn([beat?.say, beat?.show], pulls.filter(pull => refs.includes(pull.number)), period, count).map(({ written, value }) => {

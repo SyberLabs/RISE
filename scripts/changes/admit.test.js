@@ -236,7 +236,12 @@ describe('admitComposition', () => {
       const week = [pull(652, 'The swarm draws 700 particles.'), pull(653, 'Frames.'), pull(654, 'Faster.')];
       const said = say => numberProblems(current([{ say }, { say: 'Particles.' }, { say: 'Frames.' }]), { pulls: week, period, sources: { 1: [652], 2: [653] } });
       expect(said('Two changes this week.')).toEqual([]);
+      expect(said('2 pull requests this week.')).toEqual([]);
       expect(said('Three changes this week.').join('\n')).toMatch(/says "Three"/);
+      // The count states only a count of changes, never another count that happens to equal it.
+      expect(said('Two services were added.').join('\n')).toMatch(/says "Two"/);
+      // Read where the number stands: a count of changes later in the beat does not admit an earlier "Two".
+      expect(said('Two services were added across two changes.').join('\n')).toMatch(/says "Two"/);
     });
 
     it('holds the title to the pull requests the beats cite, with no count of the week’s changes', () => {
