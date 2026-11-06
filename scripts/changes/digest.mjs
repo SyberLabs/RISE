@@ -9,8 +9,10 @@
  * Renders each admitted figure in Playwright's Chromium (render-check.mjs).
  * Writes `<id>.json`, `index.json` and `issue.json` (the notification's title
  * and body) to the out directory, which must be new or empty, and `run.json`
- * ({ written, id?, reason? }) in every case. It never commits, pushes or opens
- * an issue: the workflow does that, and skips it on a dry run. `--supersede`
+ * ({ written, id?, reason? }) whenever the run completes, and `rejected.json`
+ * (run-digest.js serializeRejected) whenever a model answer was refused, even
+ * when the run fails; a run that refused nothing writes no rejected.json. It
+ * never commits, pushes or opens an issue: the workflow does that, and skips it on a dry run. `--supersede`
  * re-runs a published digest's period (from its start, unless --since says
  * otherwise) and marks that digest superseded in the index. `--cache` names a
  * read-only copy of the data branch: a route cached there by merge SHA is reused,
@@ -18,6 +20,7 @@
  * directory.
  */
 import { execFile, spawn } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -25,7 +28,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createAsk } from '../../src/core/changes/claude-cli.js';
 import { repositoryNameProblems } from '../../src/core/changes/repository.js';
-import { runDigest } from './run-digest.js';
+import { runDigest, serializeRejected } from './run-digest.js';
 import { cacheReader } from './route.js';
 import { openRenderCheck } from './render-check.mjs';
 import { serialize } from '../../src/core/changes/write.js';
@@ -107,7 +110,7 @@ async function outDirectory(out) {
   return dir;
 }
 
-export async function main(argv, { env = process.env, log = line => console.log(line) } = {}) {
+export async function main(argv, { env = process.env, log = line => console.log(line), digest = runDigest } = {}) {
   const options = parseOptions(argv);
   const dir = await outDirectory(options.out);
   if (options.dryRun) log('Dry run: the files are written to the out directory only; nothing is pushed and no issue is opened.');
@@ -124,8 +127,16 @@ export async function main(argv, { env = process.env, log = line => console.log(
     return (await renderer).check(svg);
   };
   let result;
+  const rejected = [];
+  // Written whole and synchronously at each refusal: a job that times out or is cancelled ends node before any
+  // finally runs, and must still leave every answer refused so far.
+  const onRefused = entry => {
+    rejected.push(entry);
+    writeFileSync(join(dir, 'rejected.json'), serializeRejected(rejected), 'utf8');
+    log(`Kept refused answer ${rejected.length} in rejected.json for the run's artifact.`);
+  };
   try {
-    result = await runDigest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, dryRun: options.dryRun, log, renderCheck, readCache: cacheReader(options.cache) });
+    result = await digest({ gh: runGh, ask, since: options.since, supersede: options.supersede, repo: options.repo, figures: options.figures, dryRun: options.dryRun, log, renderCheck, readCache: cacheReader(options.cache), onRefused });
   } finally {
     if (renderer) await (await renderer.catch(() => null))?.close();
   }

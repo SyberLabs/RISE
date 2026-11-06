@@ -7,7 +7,8 @@
  * no saved session (https://code.claude.com/docs/en/headless,
  * https://code.claude.com/docs/en/cli-reference). The token reaches the child
  * only through its environment: never argv, stdin, a file or a log line, and
- * any echo of it in the CLI's output is redacted before it is logged or thrown.
+ * any echo of it in the CLI's output is redacted before it is logged, thrown
+ * or returned as the answer.
  * Spawning is the caller's `run`, so tests inject a fake process.
  */
 
@@ -63,10 +64,11 @@ export function readClaudeResult(stdout) {
 
 export function createAsk({ run, env, log }) {
   const secret = env[TOKEN_NAME];
-  const redact = text => {
+  const scrub = text => {
     const line = String(text ?? '');
-    return (secret ? line.split(secret).join('[redacted]') : line).slice(0, MAX_LOGGED);
+    return secret ? line.split(secret).join('[redacted]') : line;
   };
+  const redact = text => scrub(text).slice(0, MAX_LOGGED);
   return async function ask({ system, prompt, model }) {
     const { code, stdout, stderr } = await run({
       command: 'claude',
@@ -87,6 +89,6 @@ export function createAsk({ run, env, log }) {
       if (stderr) log(`claude stderr: ${redact(stderr)}`);
       throw new Error(`The CLI exited with ${code}`);
     }
-    return text;
+    return scrub(text);
   };
 }

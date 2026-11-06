@@ -153,9 +153,10 @@ const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one :
  * Each card's route, in the order given: from its cache file (`readCached(mergeSha)`, the text or null) when that file
  * admits under the current contract, else from the router, asked once for every card not cached and once more, alone,
  * for those whose answer could not be read; a card still unread takes FALLBACK_ROUTE itself. `cache` holds a new cache
- * file for each route the router gave this run and no other: never a fallback, never one read from the cache.
+ * file for each route the router gave this run and no other: never a fallback, never one read from the cache. Each
+ * answer with a route that could not be read is passed to `refused` (rejected.json) with the cards it left unread.
  */
-export async function routeCandidates({ cards, ask, model, product = RISE_PRODUCT, readCached = async () => null, now, log }) {
+export async function routeCandidates({ cards, ask, model, product = RISE_PRODUCT, readCached = async () => null, now, log, refused = () => {} }) {
   const contract = routeContract({ product, model });
   const routes = new Map();
   for (const card of cards) {
@@ -172,7 +173,8 @@ export async function routeCandidates({ cards, ask, model, product = RISE_PRODUC
   let retried = 0;
   while (pending.length && calls < 2) {
     if (calls === 1) retried = pending.length;
-    const answers = admitRoutes(await ask({ ...buildRouteRequest(pending, product), model }), pending);
+    const answer = await ask({ ...buildRouteRequest(pending, product), model });
+    const answers = admitRoutes(answer, pending);
     calls += 1;
     for (const card of pending) {
       const route = answers.get(card.number);
@@ -181,6 +183,8 @@ export async function routeCandidates({ cards, ask, model, product = RISE_PRODUC
       cache[`cache/routes/${card.mergeSha}.json`] = serialize({ schema: ROUTE_CACHE_SCHEMA, mergeSha: card.mergeSha, route, contract, at: now.toISOString() });
     }
     pending = pending.filter(card => !routes.has(card.number));
+    const then = calls < 2 ? 'so it is asked once more' : `so it took the fallback route ${FALLBACK_ROUTE.audience}/${FALLBACK_ROUTE.significance}/${FALLBACK_ROUTE.kind}`;
+    if (pending.length) refused({ stage: 'router', attempt: calls, refusal: pending.map(card => `#${card.number}: its route could not be read, ${then}`), answer });
   }
   if (cards.length) {
     const retry = retried ? `, 1 a retry for ${plural(retried, 'pull request')} whose answer could not be read` : '';

@@ -116,6 +116,22 @@ jobs:
             echo "::notice::Nothing written: $(jq -r '.reason' "$out/run.json")"
           fi
 
+      # The run's evidence for a later audit: run.json and, when a model answer was refused, rejected.json
+      # (docs/plans/RISE-CHANGES.md). always(): a failed run keeps what it refused. Only those two files are named;
+      # the digest itself reaches changes-data through the commit step alone.
+      # continue-on-error: a failed upload (a name the caller's workflow already used) never skips the commit and the issue.
+      # v7.0.2: https://github.com/actions/upload-artifact/releases/tag/v7.0.2
+      - name: Keep the run's evidence as an artifact
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: changes-run-attempt-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/changes/run.json
+            ${{ runner.temp }}/changes/rejected.json
+          retention-days: 90
+
       - name: Show what a dry run wrote
         if: steps.digest.outputs.written == 'true' && inputs.dry_run
         env:
