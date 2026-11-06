@@ -11,9 +11,12 @@
  * Routes and claims are read from `<cache>/cache/{routes,claims}/` and each new one is written there, so a second
  * replay with the same cache makes no model call. Writes `report.json` to the out directory, which must be new or
  * empty: per pull request its claims, per period and per run the model calls by role, the input and output bytes, the
- * cache hits, and the caveat check of the hidden-caveat pull requests. Never commits, pushes or opens an issue.
+ * cache hits, and the caveat check of the hidden-caveat pull requests. Each pull request a stage asks the model about is
+ * counted once a stage: in `cachedReCalls` when its cache file was there when the replay started (a cache that did not
+ * hold), else in `uncachedRetries` (on a first pass over an empty cache, every pull request asked; on a second, those the
+ * first could not cache, whose call failed or admitted nothing). Never commits, pushes or opens an issue.
  */
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -71,6 +74,15 @@ async function writeCache(dir, files) {
   }
 }
 
+/** The merge SHAs a cache directory holds a file for, read once when the replay starts. */
+async function filed(cacheDir, directory) {
+  try {
+    return new Set((await readdir(join(cacheDir, 'cache', directory))).filter(name => /^[0-9a-f]{40}\.json$/.test(name)).map(name => name.slice(0, 40)));
+  } catch {
+    return new Set();
+  }
+}
+
 const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 const minus = (after, before) => Object.fromEntries(ROLES.map(role => [role, after[role] - before[role]]));
 
@@ -81,6 +93,15 @@ export async function replay({ gh, ask, periods, hidden, cacheDir, model = MODEL
   const readRoute = cacheReader(cacheDir);
   const readClaims = cacheReader(cacheDir, { directory: 'claims', bytes: CLAIMS_CACHE_BYTES });
   const hits = { routes: 0, claims: 0 };
+  const started = { routes: await filed(cacheDir, 'routes'), claims: await filed(cacheDir, 'claims') };
+  let cachedReCalls = 0;
+  let uncachedRetries = 0;
+  const asked = (directory, mergeShas) => {
+    for (const mergeSha of mergeShas) {
+      if (started[directory].has(mergeSha)) cachedReCalls += 1;
+      else uncachedRetries += 1;
+    }
+  };
   const pulls = {};
   const report = { repo, model, periods: [] };
   for (const period of periods) {
@@ -89,8 +110,9 @@ export async function replay({ gh, ask, periods, hidden, cacheDir, model = MODEL
     const merged = await collectMergedPulls(gh, { repo, from: period.from, to: period.to });
     const { records, candidates } = prefilter(merged);
     const cards = candidates.map(factCard);
-    const { routes, cache: routeFiles } = await routeCandidates({ cards, ask: metered.as('router'), model, product: customerFor(repo)?.product, readCached: readRoute, now, log });
+    const { routes, cache: routeFiles, fromCache } = await routeCandidates({ cards, ask: metered.as('router'), model, product: customerFor(repo)?.product, readCached: readRoute, now, log });
     await writeCache(cacheDir, routeFiles);
+    asked('routes', cards.filter(card => !fromCache.includes(card.number)).map(card => card.mergeSha));
     const unrouted = [...routes.values()].filter(route => route === FALLBACK_ROUTE).length;
     hits.routes += cards.length - Object.keys(routeFiles).length - unrouted;
     const { changes } = selectChanges({ candidates, records, routes });
@@ -99,6 +121,7 @@ export async function replay({ gh, ask, periods, hidden, cacheDir, model = MODEL
     const { results, cache: claimFiles } = await claimCards({ cards: claimed, ask: metered.as('claims'), model, repo, readCached: readClaims, now, log });
     await writeCache(cacheDir, claimFiles);
     hits.claims += results.filter(result => result.fromCache).length;
+    asked('claims', results.filter(result => !result.fromCache).map(result => result.mergeSha));
     for (const result of results) {
       const { number, ...rest } = result;
       const seen = pulls[number];
@@ -119,11 +142,12 @@ export async function replay({ gh, ask, periods, hidden, cacheDir, model = MODEL
     return { number, found: true, included: pull.included, pendingOrFlagged: caveat, sections: pull.caveats.length, covered: pull.caveats.length > 0 && !pull.gap };
   });
   log(`Replay: ${plural(calls.router, 'router call')}, ${plural(calls.claims, 'claims call')}; ${hits.routes} routes and ${hits.claims} claims from the cache`);
+  log(`Pull requests asked although their cache file was there: ${cachedReCalls}; asked with none there: ${uncachedRetries}`);
   log(`Bytes: router ${inputBytes.router} in, ${outputBytes.router} out; claims ${inputBytes.claims} in, ${outputBytes.claims} out`);
   for (const entry of hiddenCaveats) {
     log(`Hidden caveat #${entry.number}: ${entry.found ? `${entry.covered ? 'quoted' : 'NOT quoted'} by ${plural(entry.pendingOrFlagged, 'pending or flagged claim')}${entry.included ? '' : ' (not included)'}` : 'not merged in any period replayed'}`);
   }
-  return { ...report, calls: { ...calls, total: calls.router + calls.claims }, inputBytes, outputBytes, cacheHits: hits, hiddenCaveats, pulls };
+  return { ...report, calls: { ...calls, total: calls.router + calls.claims }, cachedReCalls, uncachedRetries, inputBytes, outputBytes, cacheHits: hits, hiddenCaveats, pulls };
 }
 
 export async function main(argv, { env = process.env, log = line => console.log(line), gh = runGh, ask } = {}) {

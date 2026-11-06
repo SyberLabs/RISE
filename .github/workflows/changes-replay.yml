@@ -1,15 +1,18 @@
 # RISE Changes replay (docs/plans/RISE-CHANGES.md, Claims): the claims stage's exit test as one job. It runs
 # scripts/changes/replay.mjs over the seven published periods twice with one fresh cache directory: the first pass
-# routes and claims (model calls on the Claude Code token), the second must make none. It reads GitHub and writes only
+# routes and claims (model calls on the Claude Code token), the second must not ask the model about any pull request the
+# first cached (one the first could not cache may be asked again, counted apart). It reads GitHub and writes only
 # to the runner; it commits, pushes and opens nothing. Run by hand only: never on a pull request, never required.
 name: Changes replay
 
 on:
   workflow_dispatch:
 
-# Reading the repository is all it needs: nothing is committed, pushed or opened.
+# Reading the repository and its pull requests (the same GraphQL reads as changes-digest.yml) is all it needs:
+# nothing is committed, pushed or opened.
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: changes-replay
@@ -45,7 +48,7 @@ jobs:
       # Both credentials are set on this step only, as in changes-digest.yml, and the code keeps them apart: gh runs
       # without the Claude token (digest.mjs runGh), and the CLI's environment is an allowlist without the GitHub token
       # (claude-cli.js childEnv). replay.mjs asks GitHub whether the repository is public before reading anything.
-      - name: Replay twice with one cache, the second pass without a model call
+      - name: Replay twice with one cache, the second pass without a model call for a cached pull request
         env:
           GH_TOKEN: ${{ github.token }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -54,12 +57,12 @@ jobs:
           root="$RUNNER_TEMP/replay"
           node scripts/changes/replay.mjs --periods builtin --cache "$root/cache" --out "$root/first"
           node scripts/changes/replay.mjs --periods builtin --cache "$root/cache" --out "$root/second"
-          calls=$(jq -r '.calls.total' "$root/second/report.json")
-          if [ "$calls" != '0' ]; then
-            echo "::error::The second replay made $calls model calls; with the first pass's cache it must make none."
+          recalls=$(jq -r '.cachedReCalls' "$root/second/report.json")
+          if [ "$recalls" != '0' ]; then
+            echo "::error::The second replay asked the model about $recalls pull requests the first pass had cached; it must ask about none."
             exit 1
           fi
-          echo "::notice::First pass: $(jq -r '.calls.total' "$root/first/report.json") model calls; second pass: 0."
+          echo "::notice::First pass: $(jq -r '.calls.total' "$root/first/report.json") model calls; second pass: $(jq -r '.calls.total' "$root/second/report.json"), retrying $(jq -r '.uncachedRetries' "$root/second/report.json") pull requests the first could not cache."
 
       # The two reports, for the exit test's record. always(): a failed pass keeps what it wrote.
       # v7.0.2: https://github.com/actions/upload-artifact/releases/tag/v7.0.2

@@ -14,18 +14,25 @@ import { CLAIMS_CACHE_SCHEMA, CLAIM_LIMITS, CLAIM_MENU, cachedClaimsProblems } f
 import { FACTS_VERSION } from '../../src/core/changes/facts.js';
 import { serialize } from '../../src/core/changes/write.js';
 import { CLAIMS_CONTEXT_VERSION, CLAIMS_SYSTEM, buildClaimsRequest, lf } from './claims-context.js';
-import { contractHash } from './route.js';
+import { contractHash, quoted } from './route.js';
 
 const CONCURRENCY = 4;
 const CAVEAT_STATUSES = new Set(['pending', 'flagged']);
 
-/** The words that make a heading or a label line a caveat section, matched whole and in any case. */
-export const CAVEAT_PHRASES = Object.freeze(['not verified', 'unverified', 'not done', 'not yet', 'not in this pr', 'pending', 'awaiting', 'human gate', 'needs a human', 'todo', 'known limits']);
+/**
+ * The words that make a heading or a label line a caveat section, as patterns matched whole and in any case: each
+ * phrase, with the plural of TODO and the inflections of known limits.
+ */
+export const CAVEAT_PHRASES = Object.freeze(['not verified', 'unverified', 'not done', 'not yet', 'not in this pr', 'pending', 'awaiting', 'human gate', 'needs a human', 'todos?', 'known limit(?:s|ations?)?']);
 const CAVEAT = new RegExp(`\\b(?:${CAVEAT_PHRASES.join('|')})\\b`, 'iu');
 
 const ATX = /^ {0,3}(#{1,6})[ \t]+(.+?)[ \t#]*$/u;
 const BOLD_LABEL = /^ {0,3}(\*\*|__)(.+?)\1[ \t]*$/u;
-const COLON_LABEL = /^(?![-*+>|#]|\d+[.)])\S.{0,78}:[ \t]*$/u;
+const COLON_LABEL = /^(?![-*+][ \t]|>|\||#{1,6}(?:[ \t]|$)|\d+[.)][ \t])\S.{0,78}:[ \t]*$/u;
+const FENCE = /^ {0,3}(`{3,}|~{3,})/u;
+/** A repair names at most this many unquoted sections, each heading cut to this many characters. */
+const REPAIR_SECTIONS = 5;
+const REPAIR_HEADING = 80;
 
 const codePoints = text => Array.from(text).length;
 
@@ -65,6 +72,9 @@ function admitOne(given, card, repo) {
   const quote = lf(given.quote);
   const at = source.indexOf(quote);
   if (at < 0) return { reason: `its quote is not in the ${given.field} word for word` };
+  let times = 1;
+  for (let next = source.indexOf(quote, at + 1); next >= 0; next = source.indexOf(quote, next + 1)) times += 1;
+  if (times > 1) return { reason: `its quote occurs ${times} times in the ${given.field}; quote enough words to be found once` };
   const stated = new Set(mentionsIn(quote).map(mention => mention.value));
   const unstated = mentionsIn(given.text).find(mention => !stated.has(mention.value));
   if (unstated) return { reason: `its text says "${unstated.written}", which its quote does not` };
@@ -88,16 +98,14 @@ export function admitClaims(text, card, { repo }) {
   if (!Array.isArray(given)) return { readable: false, claims: [], dropped: [] };
   const claims = [];
   const dropped = [];
-  given.forEach((entry, at) => {
-    if (at >= CLAIM_LIMITS.claims) {
-      dropped.push(`claim ${at + 1}: past the ${CLAIM_LIMITS.claims}-claim limit`);
-      return;
-    }
+  given.slice(0, CLAIM_LIMITS.claims).forEach((entry, at) => {
     const { claim, reason } = admitOne(entry, card, repo);
     if (claim && claims.some(earlier => earlier.id === claim.id)) dropped.push(`claim ${at + 1}: it repeats the span of an earlier claim`);
     else if (claim) claims.push(claim);
     else dropped.push(`claim ${at + 1}: ${reason}`);
   });
+  const past = CLAIM_LIMITS.claims + 1;
+  if (given.length >= past) dropped.push(`${given.length === past ? `claim ${past}` : `claims ${past} to ${given.length}`}: past the ${CLAIM_LIMITS.claims}-claim limit`);
   return { readable: true, claims, dropped };
 }
 
@@ -106,31 +114,49 @@ function headingOf(line) {
   const atx = ATX.exec(line);
   if (atx) return { level: atx[1].length, text: atx[2] };
   const label = BOLD_LABEL.exec(line)?.[2] ?? (COLON_LABEL.test(line) ? line.trim() : null);
-  return label === null ? null : { level: 7, text: label.replace(/:\s*$/u, '').trim() };
+  if (label === null) return null;
+  const text = label.replace(/:\s*$/u, '').trim();
+  return { level: 7, text: /^(\*\*|__)(.+)\1$/u.exec(text)?.[2].trim() ?? text };
 }
 
 /**
  * The body's caveat sections, `{ heading, start, end }` in code points over the body with line endings read as LF: the
  * text under each heading or label line that names a CAVEAT_PHRASES phrase, up to the next heading of its level or
- * higher (a label line ends at the next heading or label line). A section with nothing under it is none.
+ * higher (a label line ends at the next heading or label line). No line inside a fenced code block is a heading. A
+ * section with nothing under it is none. Linear in the body: a line is passed over by at most one open heading a level.
  */
 export function caveatSections(body) {
   const text = lf(body);
   const lines = [];
+  let fence = null;
+  let point = 0;
   for (let at = 0; at <= text.length;) {
     const end = text.indexOf('\n', at);
-    const stop = end < 0 ? text.length : end;
-    lines.push({ at, next: end < 0 ? text.length : end + 1, heading: headingOf(text.slice(at, stop)) });
+    const line = text.slice(at, end < 0 ? text.length : end);
+    const marker = FENCE.exec(line)?.[1];
+    let heading = null;
+    if (fence !== null) {
+      if (marker && marker[0] === fence[0] && marker.length >= fence.length && !line.trim().slice(marker.length).trim()) fence = null;
+    } else if (marker) {
+      fence = marker;
+    } else {
+      heading = headingOf(line);
+    }
+    const width = codePoints(line);
+    lines.push({ at, point, next: point + width + (end < 0 ? 0 : 1), heading, blank: !line.trim() });
+    point += width + 1;
     if (end < 0) break;
     at = end + 1;
   }
   const sections = [];
   lines.forEach((line, i) => {
     if (!line.heading || !CAVEAT.test(line.heading.text)) return;
-    const closing = lines.slice(i + 1).find(later => later.heading && (later.heading.level <= line.heading.level || line.heading.level === 7));
-    const end = closing ? closing.at : text.length;
-    if (!text.slice(line.next, end).trim()) return;
-    sections.push({ heading: line.heading.text, start: codePoints(text.slice(0, line.next)), end: codePoints(text.slice(0, end)) });
+    let j = i + 1;
+    while (j < lines.length && !(lines[j].heading && (lines[j].heading.level <= line.heading.level || line.heading.level === 7))) j += 1;
+    let content = false;
+    for (let k = i + 1; k < j && !content; k += 1) content = !lines[k].blank;
+    if (!content) return;
+    sections.push({ heading: line.heading.text, start: line.next, end: j < lines.length ? lines[j].point : point - 1 });
   });
   return sections;
 }
@@ -172,20 +198,27 @@ export function readClaimsCache(text, card, { repo, contract }) {
 const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 const sectionNames = sections => `section${sections.length === 1 ? '' : 's'} ${sections.map(section => `"${section.heading}"`).join(', ')}`;
 
+/** A body heading as data in a repair prompt: JSON-quoted with "<" escaped, cut to REPAIR_HEADING characters. */
+const headingData = heading => JSON.stringify(Array.from(heading).slice(0, REPAIR_HEADING).join('')).replace(/</g, '\\u003c');
+
 function refusalOf(verdict, caveats) {
   if (!verdict.readable) return ['The answer could not be read as one JSON object {"claims": [...]}.'];
   const lines = verdict.dropped.map(line => `Dropped ${line}.`);
   if (verdict.claims.length === 0) lines.push('No claim was admitted.');
-  for (const section of caveats.filter(caveat => !caveat.covered)) {
-    lines.push(`The body’s section "${section.heading}" (characters ${section.start} to ${section.end}) says what is not verified, not done or pending, and no claim of status pending or flagged quotes from it; add one, quoting its exact words.`);
+  const open = caveats.filter(caveat => !caveat.covered);
+  for (const section of open.slice(0, REPAIR_SECTIONS)) {
+    lines.push(`The body’s caveat section at characters ${section.start} to ${section.end}, headed ${headingData(section.heading)}, says what is not verified, not done or pending, and no claim of status pending or flagged quotes from it; add one, quoting its exact words.`);
   }
+  if (open.length > REPAIR_SECTIONS) lines.push(`And ${open.length - REPAIR_SECTIONS} more caveat sections are not quoted either.`);
   return lines;
 }
 
 const repairOf = (request, answer, refusal) => ({
   system: request.system,
-  prompt: [request.prompt, '', 'Your previous answer was:', '', answer, '', 'RISE refused it:', ...refusal.map(line => `- ${line}`), '', 'Answer again with the whole JSON object.'].join('\n')
+  prompt: [request.prompt, '', 'Your previous answer, quoted as data:', '', quoted('previous_answer', answer), '', 'RISE refused it:', ...refusal.map(line => `- ${line}`), '', 'Answer again with the whole JSON object.'].join('\n')
 });
+
+const uncovered = (card, claims) => caveatsOf(card, claims).filter(caveat => !caveat.covered).length;
 
 /** One card's claims: from its cache file when that re-admits, else from at most two calls. */
 async function claimOne({ card, ask, model, repo, contract, readCached, now, log, refused }) {
@@ -221,7 +254,8 @@ async function claimOne({ card, ask, model, repo, contract, readCached, now, log
     refused({ stage: 'claims', pull: card.number, attempt: 1, refusal, answer: String(first.answer ?? '') });
     const second = await attempt(repairOf(request, String(first.answer ?? ''), refusal));
     const repaired = second.failed === undefined ? admitClaims(second.answer, card, { repo }) : null;
-    if (repaired?.readable) verdict = repaired;
+    // The repair replaces the first answer only when it admits a claim and leaves no more sections unquoted.
+    if (repaired?.readable && repaired.claims.length > 0 && uncovered(card, repaired.claims) <= uncovered(card, verdict.claims)) verdict = repaired;
   }
   const done = result(verdict);
   if (!done.readable) log(`Claims: #${card.number} has no claim: its answer could not be read, even asked once more`);

@@ -154,7 +154,8 @@ const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one :
  * Each card's route, in the order given: from its cache file (`readCached(mergeSha)`, the text or null) when that file
  * admits under the current contract, else from the router, asked once for every card not cached and once more, alone,
  * for those whose answer could not be read; a card still unread takes FALLBACK_ROUTE itself. `cache` holds a new cache
- * file for each route the router gave this run and no other: never a fallback, never one read from the cache. Each
+ * file for each route the router gave this run and no other: never a fallback, never one read from the cache;
+ * `fromCache` the numbers whose route was read from the cache. Each
  * answer with a route that could not be read is passed to `refused` (rejected.json) with the cards it left unread.
  */
 export async function routeCandidates({ cards, ask, model, product = RISE_PRODUCT, readCached = async () => null, now, log, refused = () => {} }) {
@@ -168,6 +169,7 @@ export async function routeCandidates({ cards, ask, model, product = RISE_PRODUC
     else log(`Route cache: ${card.mergeSha.slice(0, 12)} ignored (${problem}); #${card.number} is routed afresh`);
   }
   const fromCache = routes.size;
+  const cached = new Set(routes.keys());
   const cache = {};
   let pending = cards.filter(card => !routes.has(card.number));
   let calls = 0;
@@ -191,7 +193,7 @@ export async function routeCandidates({ cards, ask, model, product = RISE_PRODUC
     const retry = retried ? `, 1 a retry for ${plural(retried, 'pull request')} whose answer could not be read` : '';
     log(`Router: ${plural(calls, 'call')}${retry}; ${fromCache} of ${cards.length} routes from the cache`);
   }
-  return { routes: new Map(cards.map(card => [card.number, routes.get(card.number) ?? FALLBACK_ROUTE])), cache };
+  return { routes: new Map(cards.map(card => [card.number, routes.get(card.number) ?? FALLBACK_ROUTE])), cache, fromCache: cards.filter(card => cached.has(card.number)).map(card => card.number) };
 }
 
 const SIGNIFICANCE = { major: 2, notable: 1, minor: 0 };

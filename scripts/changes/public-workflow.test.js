@@ -117,7 +117,7 @@ describe.each(['changes-digest.yml', 'changes-public.yml'])('the run’s artifac
 describe('the replay workflow', () => {
   const replay = read('changes-replay.yml');
   const digest = read('changes-digest.yml');
-  const run = step(replay, 'Replay twice with one cache, the second pass without a model call');
+  const run = step(replay, 'Replay twice with one cache, the second pass without a model call for a cached pull request');
 
   it('is dispatched by hand only, never on a pull request, a schedule, a push or a call', () => {
     expect(replay).toMatch(/^on:\n {2}workflow_dispatch:\n\n/m);
@@ -125,7 +125,8 @@ describe('the replay workflow', () => {
   });
 
   it('may only read the repository', () => {
-    expect(replay).toMatch(/^permissions:\n {2}contents: read\n\n/m);
+    expect(replay).toMatch(/^permissions:\n {2}contents: read\n {2}pull-requests: read\n\n/m);
+    expect(digest).toMatch(/^ {2}pull-requests: read\n/m);
     expect(replay).not.toMatch(/: write/);
   });
 
@@ -145,15 +146,18 @@ describe('the replay workflow', () => {
     expect(replay.replace(run, '')).not.toMatch(/GH_TOKEN|CLAUDE_CODE_OAUTH_TOKEN|secrets\./);
   });
 
-  it('replays twice with one cache directory and fails when the second pass made any model call', () => {
+  it('replays twice with one cache directory and fails when the second pass called the model for a pull request the first cached', () => {
     const passes = run.match(/node scripts\/changes\/replay\.mjs --periods builtin --cache "\$root\/cache" --out "\$root\/(first|second)"/g);
     expect(passes).toEqual([
       'node scripts/changes/replay.mjs --periods builtin --cache "$root/cache" --out "$root/first"',
       'node scripts/changes/replay.mjs --periods builtin --cache "$root/cache" --out "$root/second"'
     ]);
     expect(run).toMatch(/set -euo pipefail\n/);
-    expect(run).toContain('calls=$(jq -r \'.calls.total\' "$root/second/report.json")\n');
-    expect(run).toMatch(/if \[ "\$calls" != '0' \]; then\n[^\n]*::error::[^\n]*\n {12}exit 1\n/);
+    expect(run).toContain('recalls=$(jq -r \'.cachedReCalls\' "$root/second/report.json")\n');
+    expect(run).toMatch(/if \[ "\$recalls" != '0' \]; then\n[^\n]*::error::[^\n]*\n {12}exit 1\n/);
+    expect(run).toContain('jq -r \'.uncachedRetries\' "$root/second/report.json"');
+    // The one gate is the cached re-calls: a retry of a pull request the first pass could not cache never fails the job.
+    expect(run.match(/^ {10}if /gm)).toEqual(['          if ']);
   });
 
   it('uploads both reports, even after a failure, for 30 days, with the pinned upload action', () => {

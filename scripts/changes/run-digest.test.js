@@ -612,6 +612,14 @@ describe('runDigest with --claims', () => {
     expect(lines).toContain(`Claims: ${included.length} calls, 0 repairs; 0 of ${included.length} pull requests from the cache; 0 with a caveat gap`);
   });
 
+  it('asks every other role exactly what the run without --claims asks: the composer is not given the claims', async () => {
+    const plain = askWith(week());
+    await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask: plain.ask, repo: REPO, now, since, model: MODEL, log: () => {} });
+    const claimed = askWith(week());
+    await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask: claimed.ask, repo: REPO, now, since, model: MODEL, claims: true, log: () => {} });
+    expect(claimed.calls.filter(call => call.system !== CLAIMS_SYSTEM)).toEqual(plain.calls);
+  });
+
   it('digest.mjs passes --claims and the claims cache to the run, and writes claims.json beside the digest', async () => {
     const out = join(mkdtempSync(join(tmpdir(), 'rise-changes-test-')), 'out');
     let given = null;

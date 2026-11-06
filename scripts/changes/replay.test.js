@@ -35,6 +35,7 @@ function fakeAsk(route = fixture('route-answer.txt')) {
 }
 
 const scratch = () => mkdtempSync(join(tmpdir(), 'rise-replay-test-'));
+const TITLE_655 = JSON.parse(fixture('graphql-week.json')).data.repository.pullRequests.nodes.find(node => node.number === 655).title.slice(0, 40);
 
 describe('replay.mjs', () => {
   it('reads the seven published periods built in, or a file of periods, and refuses a period that is not one', async () => {
@@ -77,6 +78,8 @@ describe('replay.mjs', () => {
     const two = await main(['--periods', periods, '--cache', cache, '--out', join(dir, 'two')], { gh: fakeGh(), ask: second.ask, log: () => {} });
     expect(second.calls).toHaveLength(0);
     expect(two.calls).toEqual({ router: 0, claims: 0, total: 0 });
+    expect([one.cachedReCalls, one.uncachedRetries]).toEqual([0, 15 + claimCalls]);
+    expect([two.cachedReCalls, two.uncachedRetries]).toEqual([0, 0]);
     expect(two.pulls).toEqual(Object.fromEntries(Object.entries(one.pulls).map(([number, pull]) => [number, { ...pull, fromCache: true }])));
   });
 
@@ -91,6 +94,28 @@ describe('replay.mjs', () => {
     expect(report.periods[0].claimed).toContain(655);
     expect(calls.some(call => call.system === CLAIMS_SYSTEM && quotedPull(call.prompt).body.includes('## Not verified\n\n- **No real model'))).toBe(true);
     expect(report.hiddenCaveats.find(entry => entry.number === 655)).toEqual({ number: 655, found: true, included: false, pendingOrFlagged: 1, sections: 1, covered: true });
+  });
+
+  it('retries on the second pass a pull request the first could not cache, and counts it apart from a call for one it cached', async () => {
+    const dir = scratch();
+    const periods = join(dir, 'periods.json');
+    writeFileSync(periods, JSON.stringify({ periods: [WEEK] }));
+    const cache = join(dir, 'cache');
+    const fake = fakeAsk();
+    const failing = async request => {
+      if (request.system === CLAIMS_SYSTEM && quotedPull(request.prompt).title.startsWith(TITLE_655)) throw new Error('The CLI exited with 1');
+      return fake.ask(request);
+    };
+    const one = await main(['--periods', periods, '--cache', cache, '--out', join(dir, 'one')], { gh: fakeGh(), ask: failing, log: () => {} });
+    expect(one.pulls['655'].claims).toEqual([]);
+    const two = await main(['--periods', periods, '--cache', cache, '--out', join(dir, 'two')], { gh: fakeGh(), ask: fakeAsk().ask, log: () => {} });
+    expect(two.calls).toEqual({ router: 0, claims: 1, total: 1 });
+    expect([two.cachedReCalls, two.uncachedRetries]).toEqual([0, 1]);
+
+    writeFileSync(join(cache, 'cache', 'claims', `${one.pulls['652'].mergeSha}.json`), 'not json');
+    const three = await main(['--periods', periods, '--cache', cache, '--out', join(dir, 'three')], { gh: fakeGh(), ask: fakeAsk().ask, log: () => {} });
+    expect(three.calls).toEqual({ router: 0, claims: 1, total: 1 });
+    expect([three.cachedReCalls, three.uncachedRetries]).toEqual([1, 0]);
   });
 
   it('stops before reading a pull request or asking a model when the repository is not public', async () => {

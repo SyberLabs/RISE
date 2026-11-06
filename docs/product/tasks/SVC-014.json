@@ -31,6 +31,12 @@
       "ref": "scripts/changes/claims-context.test.js",
       "date": "2026-11-06",
       "note": "#655's claims request, system text included: 8,329 bytes (pinned). No model call made: a scratch script ran collectMergedPulls over the seven built-in periods through gh, then factCard and buildClaimsRequest: 88 distinct candidates, 581,242 bytes if every candidate were claimed (the run claims included ones only), 20 with a caveat section; each of the 12 hidden-caveat pull requests has one past character 4,000 (#655 'Not verified' from code point 4,907, its heading at 4,891). The replay and the Phase 1 exit test are not yet run: no dispatch made, by the coordinator later."
+    },
+    {
+      "kind": "test",
+      "ref": "scripts/changes/claims.test.js",
+      "date": "2026-11-06",
+      "note": "Review council fixes, one commit after 18820b96 on changes/claims-stage, local (Windows, not pushed, no model call, no dispatch): npx vitest run scripts/changes/ src/core/changes/: 19 files, 368 passed, 1 skipped; node --test scripts/changes/digest.test.mjs: 5 passed; ci-hygiene clean; docs:diagram unchanged; fast list 162. Red first, then green: fenced headings (1 failed), bold label with a colon (1), a quote found twice (1, Summary and Not verified both 'No model was asked.'), the repair kept only when no worse (1: 8 claims and a gap kept when the repair admits none), TODOs and known limitation(s) (1), the repair prompt bounded and caveatSections linear (2: 7,000 '# TODO' sections took 3,168 ms and 6,338 ms before, under 1 s after; 5 sections named then 'And 6996 more'; heading JSON-quoted, < escaped, cut to 80; previous answer in <previous_answer>), the refusal wording (1), cachedReCalls and uncachedRetries in replay (2), pull-requests: read and the cachedReCalls gate in the workflow (2). Test gaps pinned, each shown red by a mutation then restored: quote in another field (title reading the body: 2 failed); the recorded week's set #652, #653, #655, #660, #661 ('not done' dropped: 4); exactly 2 calls and 1 repair (a second repair call: 7); the composer asked the same with --claims (whole bodies given to it with --claims: 1). Scratch measurement over the 88 distinct candidates of the seven periods, no model: 20 bodies have a caveat section, the 12 plus #661, #674, #712, #719, #759, #761, #766 (inside the first 4,000 characters) and #734 ('Known limits' at character 4,283, past the cut, missed by study 03's heading list); written in docs/plans/RISE-CHANGES.md, Claims. The coordinator directed and reviewed changes-replay.yml."
     }
   ],
   "activity": [
@@ -41,10 +47,14 @@
     {
       "date": "2026-11-06T23:32:55.967Z",
       "summary": "Claims stage, caveat rule, claims cache, --claims and replay built on branch changes/claims-stage, tests recorded"
+    },
+    {
+      "date": "2026-11-06T23:48:22.638Z",
+      "summary": "Review council fixes: fences, bold labels, single-occurrence quotes, repair rule and bounds, cached re-calls gate, pull-requests read; evidence recorded"
     }
   ],
-  "updatedAt": "2026-11-06T23:32:55.967Z",
-  "revision": 2,
+  "updatedAt": "2026-11-06T23:48:22.638Z",
+  "revision": 3,
   "summary": "One model call per included pull request lists its claims, each admitted by code against an exact source span, with a caveat rule for what the author says is not verified, a claims cache by merge SHA, a --claims flag and a replay command and workflow for the Phase 1 exit test.",
   "blocker": null
 }
