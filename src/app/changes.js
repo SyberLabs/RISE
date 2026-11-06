@@ -129,7 +129,7 @@ function listView(digests, team = null) {
   return `${EYEBROW}
     <h1 class="portal-title changes-title" id="portal-ask-title" tabindex="-1">What changed in ${escape(nameOf(team))}</h1>
     <div id="changes">
-      <p class="portal-help">Each digest is the pull requests merged into ${escape(nameOf(team))} over a week, told as a RISE reading. A model writes it from the pull requests' titles and descriptions. Before it is shown, RISE checks that it cites only those pull requests and that its pictures are safe to show. Nothing checks that any change works. Nothing here calls a model.</p>
+      <p class="portal-help">Each digest is the pull requests merged into ${escape(nameOf(team))} over a week, told as a RISE reading. A model writes it from the pull requests' titles and descriptions. Before it is shown, RISE checks that it cites only those pull requests and that its pictures are safe to show. The digest does not check that any change works. Nothing here calls a model.</p>
       ${digests.length ? `<ul class="changes-digests">${rows}</ul>`
         : '<p class="portal-help" role="status">No digest has been written yet.</p>'}
     </div>`;
