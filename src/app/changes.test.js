@@ -138,6 +138,14 @@ describe('RISE Changes pages', () => {
     expect(go).toHaveBeenCalledWith(`/changes/${CHANGES_ID}`);
   });
 
+  it('says what RISE checks in a digest and that it does not check that any change works', async () => {
+    const { section } = await mount();
+    const help = section.querySelector('#changes .portal-help').textContent;
+    expect(help).toBe('Each digest is the pull requests merged into RISE over a week, told as a RISE reading. A model writes it from the pull requests\' titles and descriptions. Before it is shown, RISE checks that it cites only those pull requests, that every number in it other than its dates comes from one of them, and that its pictures are safe to show and legible. RISE does not check that any change works. Nothing here calls a model.');
+    expect(help).not.toContain('RISE checks it before showing it');
+    expect(help).not.toMatch(/verif/iu);
+  });
+
   it('shows one digest: Play, what changed as links to the pull requests, how each was chosen, and who wrote it', async () => {
     const { section, launch } = await mount({ digestId: CHANGES_ID });
     expect(section.querySelector('h1').textContent).toBe('What changed in RISE, 12–13 October');

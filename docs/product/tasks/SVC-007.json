@@ -1,0 +1,41 @@
+{
+  "id": "SVC-007",
+  "title": "Changes page says what RISE checks and what it does not",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [
+    "SVC-002"
+  ],
+  "acceptance": [
+    "The /changes list says what RISE checks before a digest is shown: that it cites only the included pull requests, that every number in it other than its dates comes from one of them, and that its pictures are safe to show and legible.",
+    "The same line says RISE does not check that any change works; the phrase \"RISE checks it before showing it\" and the word \"verified\" appear nowhere a reader of RISE Changes sees.",
+    "A unit test pins the line and fails when either the checks or the disclaimer is dropped.",
+    "docs/plans/RISE-CHANGES.md describes the line and why it changed."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/app/changes.test.js",
+      "note": "Branch fix/changes-honest-copy, local only, not pushed (Windows, npx vitest run src/app/changes.test.js): before the copy change 1 failed, 55 passed (Received the old \"A model writes it; RISE checks it before showing it.\"); after it 56 passed; with \"RISE does not check that any change works.\" removed on purpose 1 failed, 55 passed; restored 56 passed. e2e/changes.spec.js does not pin this line and was not run.",
+      "date": "2026-11-06"
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-11-06T18:05:00.000Z",
+      "summary": "Opened from the owner's decision D10 of the RISE Changes v2 study: the list's \"RISE checks it\" reads as the claims being checked, and no check reads code, a diff, a test, a check run or a deploy."
+    },
+    {
+      "date": "2026-11-06T18:16:08.537Z",
+      "summary": "Copy changed on branch fix/changes-honest-copy with a pinning unit test; red, green, red again, green recorded. Not pushed, merged, deployed or accepted."
+    }
+  ],
+  "updatedAt": "2026-11-06T18:16:08.537Z",
+  "revision": 2,
+  "summary": "The /changes list names the checks a digest passes (citations, numbers, pictures) and says RISE does not check that any change works.",
+  "blocker": null
+}
