@@ -216,10 +216,11 @@ export async function draw({ adapter, brief, medium, room, signal, now, onNote }
             return { status: 'admitted', scene: picture, medium: drawn, attempts: attempt, ms: now() - started };
         }
         const [first] = diagnostics;
-        onNote('illustration.refused', { attempt, rule: first.rule, line: first.line, column: first.column });
+        const told = diagnostics.slice(0, OPEN_LIMITS.diagnostics).map(item => ({ ...item, message: clip(String(item.message), OPEN_LIMITS.diagnostic) }));
+        onNote('illustration.refused', { attempt, rule: first.rule, line: first.line, column: first.column, diagnostics: told.map(item => ({ ...item })) });
         repair = {
             ...(scene?.form && scene.source ? { source: scene.source.slice(0, OPEN_LIMITS.source) } : {}),
-            diagnostics: diagnostics.slice(0, OPEN_LIMITS.diagnostics).map(item => ({ ...item, message: clip(String(item.message), OPEN_LIMITS.diagnostic) }))
+            diagnostics: told
         };
     }
     return { status: 'failed', reason: 'REFUSED', attempts: ILLUSTRATOR_LIMITS.attempts };

@@ -97,6 +97,12 @@ describe('createAsk', () => {
     expect(lines.join('\n') + error.message).toContain('[redacted]');
   });
 
+  it('redacts the token from the answer it returns, whole and uncut', async () => {
+    const answer = `${'a'.repeat(1000)} ${TOKEN} ${'b'.repeat(1000)}`;
+    const { run } = fakeRun({ code: 0, stdout: success(answer), stderr: '' });
+    expect(await createAsk({ run, env, log: () => {} })({ system: 's', prompt: 'p', model: MODEL })).toBe(answer.replace(TOKEN, '[redacted]'));
+  });
+
   it('fails on a non-zero exit even with a success result', async () => {
     const { run } = fakeRun({ code: 2, stdout: success('x'), stderr: '' });
     await expect(createAsk({ run, env, log: () => {} })({ system: 's', prompt: 'p', model: MODEL })).rejects.toThrow(/exited with 2/);
