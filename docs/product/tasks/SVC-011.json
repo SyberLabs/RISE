@@ -3,8 +3,8 @@
   "title": "Fact cards for every pull request in a Changes run",
   "lane": "shared",
   "milestone": "RISE Changes",
-  "status": "in_progress",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude",
   "priority": "now",
   "dependencies": [],
@@ -32,6 +32,18 @@
       "ref": "src/core/changes/collect.test.js",
       "date": "2026-11-06",
       "note": "Review council fixes on the same branch, local: npx vitest run src/core/changes/ scripts/changes/: 15 files, 255 passed. Red first (6 failed: line counts, body ceiling in collect, 502/504 retry, dependency manifests, card carrying bodyCut). Red again on purpose, one mutation each, restored after: composer entry {...pull, included} (run-digest pin of router and composer keys, 1 failed), uncapped fullBody (1), missing line counts admitted (1), go.sum dropped (1), no retry (1), area ties in insertion order (1), areas by file count (2). Live: the branch collect read 4 cards for #769 to #772 from SyberLabs/RISE with -F first=50."
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/774",
+      "note": "Merged into main 2026-11-06T21:28:28Z as merge commit 58c3448c.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/42297013364",
+      "note": "Main CI run for merge commit 58c3448c: CI, voice-provider and production jobs succeeded; the production job (deploys this commit's built dist/ to production) completed 2026-11-06T21:36:31Z. Deployment only; not accepted, awaiting the owner's live check.",
+      "date": "2026-11-06"
     }
   ],
   "activity": [
@@ -46,10 +58,14 @@
     {
       "date": "2026-11-06T21:18:45.226Z",
       "summary": "Review council fixes: prompt keys pinned, ceiling in collect, line counts required, more manifests, 502 retry"
+    },
+    {
+      "date": "2026-11-06T23:11:58.416Z",
+      "summary": "Merged and deployed (production job succeeded, run linked); not accepted, awaiting the owner's live check"
     }
   ],
-  "updatedAt": "2026-11-06T21:18:45.226Z",
-  "revision": 3,
+  "updatedAt": "2026-11-06T23:11:58.416Z",
+  "revision": 4,
   "summary": "Each collected pull request becomes a fact card made by code (diff stats, areas, path flags, commit subjects, closing issues and the whole body for model stages only), without changing what the router or composer are sent.",
   "blocker": null
 }

@@ -3,8 +3,8 @@
   "title": "The Changes number rule checks numbers against the pull requests they cite, in any spelling",
   "lane": "shared",
   "milestone": "RISE Changes",
-  "status": "in_progress",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude",
   "priority": "now",
   "dependencies": [],
@@ -39,6 +39,24 @@
       "ref": "scripts/changes/admit.test.js",
       "note": "Review council fixes on changes/number-rule, local, not pushed, after ee5a969c. Red first: 10 failed of 82 (count of cited changes only, title held to cited pull requests, refusal naming refs and the pull request that states the number, capitalised identifiers whole, a day after a month name only where the date ends, ordinals and Oct., constructor, pronoun one). Gap tests that passed on arrival (the forward range refusal, the 22000 kit figure for #765 on admitComposition, the published fixture) were shown red by undoing the code they guard. Green: 82 passed. Red again on purpose, 14 undos one at a time, each failing 1 to 4 tests, restored. admit, run-digest and illustrate tests: 3 files, 127 passed; npx vitest run scripts/changes/ src/core/changes/: 14 files, 259 passed; ci-hygiene clean.",
       "date": "2026-11-06"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/775",
+      "note": "Merged into main 2026-11-06T22:25:30Z as merge commit cb9e7b8f.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/42304615077",
+      "note": "Main CI run for merge commit cb9e7b8f: CI succeeded but voice-provider and production failed, so this run did not deploy #775.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/42304725124",
+      "note": "Main CI run for cbd5a8d5 (#776), whose history contains cb9e7b8f: CI, voice-provider and production jobs succeeded; the production job completed 2026-11-06T22:41:35Z. Deployment only; not accepted, awaiting the owner's live check.",
+      "date": "2026-11-06"
     }
   ],
   "activity": [
@@ -61,10 +79,14 @@
     {
       "date": "2026-11-06T21:23:42.644Z",
       "summary": "Review council fixes recorded; correction: the count exemption (revision 3 says owner decision) was the coordinating agent's decision on 2026-11-06, reported to the owner"
+    },
+    {
+      "date": "2026-11-06T23:11:58.572Z",
+      "summary": "Merged and deployed (production job succeeded, run linked); not accepted, awaiting the owner's live check"
     }
   ],
-  "updatedAt": "2026-11-06T21:23:42.644Z",
-  "revision": 5,
+  "updatedAt": "2026-11-06T23:11:58.572Z",
+  "revision": 6,
   "summary": "The number rule reads each beat against the pull requests it cites, compares numbers by exact value in digits or words, and admits a date of the period only as a date.",
   "blocker": null
 }

@@ -3,8 +3,8 @@
   "title": "A Changes run keeps the answers it refused in its artifact",
   "lane": "shared",
   "milestone": "RISE Changes",
-  "status": "in_progress",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude",
   "priority": "now",
   "dependencies": [],
@@ -32,6 +32,18 @@
       "ref": "scripts/changes/run-digest.test.js",
       "note": "Review council fixes on the same branch, local (not pushed), each red first then green: (1) rejected.json rewritten synchronously at each refusal (red: ENOENT mid-run); (2) main takes its digest function, tested writing on a throw and writing nothing when nothing was refused (red: the real run was called); (3) an illustrator answer let go as a cue is kept with its reason (red: nothing kept); (4) the illustration.refused note carries its diagnostics, so a drawn-nothing answer is kept as 'nothing-drawn: the answer drew no picture' (red: bare rule); (5) a figure the rendered check refuses twice gives attempts 1 and 2 (red with the second keep removed); (6) continue-on-error on both upload steps, pinned (red: 2 failed). npx vitest run scripts/changes/ src/core/changes/ src/live/illustrator.test.js src/live/runtime.illustrator.test.js src/live/perception.test.js: 17 files, 312 passed; ci-hygiene clean. Still not seen: a real workflow run.",
       "date": "2026-11-06"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/773",
+      "note": "Merged into main 2026-11-06T22:06:26Z as merge commit b6e898b5. The Codex review fix 9dd18d55 (github-actions[bot]) caps each entry's refusal lines at 16 KiB so the 4 MiB file bound holds.",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/42302105367",
+      "note": "Main CI run for merge commit b6e898b5: CI, voice-provider and production jobs succeeded; the production job (deploys this commit's built dist/ to production) completed 2026-11-06T22:14:05Z. Deployment only; not accepted, awaiting the owner's live check.",
+      "date": "2026-11-06"
     }
   ],
   "activity": [
@@ -46,10 +58,14 @@
     {
       "date": "2026-11-06T21:18:51.680Z",
       "summary": "Review council fixes: synchronous rejected.json, main tested, cue and full refusals kept, upload cannot skip the commit; activity wording corrected"
+    },
+    {
+      "date": "2026-11-06T23:11:58.267Z",
+      "summary": "Merged and deployed (production job succeeded, run linked); not accepted, awaiting the owner's live check"
     }
   ],
-  "updatedAt": "2026-11-06T21:18:51.680Z",
-  "revision": 3,
+  "updatedAt": "2026-11-06T23:11:58.267Z",
+  "revision": 4,
   "summary": "Each model answer RISE refuses in a Changes run is kept, redacted and bounded, in rejected.json and uploaded with run.json as the workflow run's artifact, so a later audit can label what today's could not.",
   "blocker": null
 }

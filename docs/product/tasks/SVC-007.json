@@ -3,8 +3,8 @@
   "title": "Changes page says what RISE checks and what it does not",
   "lane": "shared",
   "milestone": "RISE Changes",
-  "status": "in_progress",
-  "delivery": "branch",
+  "status": "done",
+  "delivery": "deployed",
   "owner": "Claude",
   "priority": "now",
   "dependencies": [
@@ -12,7 +12,7 @@
   ],
   "acceptance": [
     "The /changes list says only what the page re-checks in every digest it shows, RISE's or a listed team's: that it cites only the included pull requests and that its pictures are safe to show. It claims no number or legibility check.",
-    "The same line says nothing checks that any change works; the phrase \"RISE checks it before showing it\" and the word \"verified\" appear nowhere in the text RISE itself writes on the /changes pages (pull request titles and model text are not RISE's).",
+    "The same line says \"The digest does not check that any change works.\"; the phrase \"RISE checks it before showing it\" and the word \"verified\" appear nowhere in the text RISE itself writes on the /changes pages (pull request titles and model text are not RISE's).",
     "A unit test pins the line and fails when either the checks or the disclaimer is dropped.",
     "docs/plans/RISE-CHANGES.md describes the line and why it changed."
   ],
@@ -28,6 +28,18 @@
       "ref": "src/app/changes.test.js",
       "note": "Review correction, branch fix/changes-honest-copy, local only, not pushed (npx vitest run src/app/changes.test.js): with the test pinning the narrower line (citations and safe pictures only; no number, legible or verif) and the old copy, 1 failed, 55 passed; with the new copy 56 passed; with \"Nothing checks that any change works.\" removed on purpose 1 failed, 55 passed; restored 56 passed.",
       "date": "2026-11-06"
+    },
+    {
+      "kind": "pr",
+      "ref": "https://github.com/SyberLabs/RISE/pull/770",
+      "note": "Merged into main 2026-11-06T19:22:04Z as merge commit 3b1afb0e. The Codex review fix 4e0fe23c (github-actions[bot]) scoped the disclaimer to the digest: the shipped line says \"The digest does not check that any change works.\"",
+      "date": "2026-11-06"
+    },
+    {
+      "kind": "test",
+      "ref": "https://github.com/SyberLabs/RISE/actions/runs/42279000022",
+      "note": "Main CI run for merge commit 3b1afb0e: CI, voice-provider and production jobs succeeded; the production job (deploys this commit's built dist/ to production) completed 2026-11-06T19:30:26Z. Deployment only; not accepted, awaiting the owner's live check.",
+      "date": "2026-11-06"
     }
   ],
   "activity": [
@@ -42,10 +54,14 @@
     {
       "date": "2026-11-06T18:21:49.664Z",
       "summary": "Review correction: the line now claims only what the page re-checks for every digest (citations, safe pictures); numbers and legibility are not claimed. Red, green, red again, green recorded. Not pushed, merged, deployed or accepted."
+    },
+    {
+      "date": "2026-11-06T23:11:57.973Z",
+      "summary": "Merged and deployed (production job succeeded, run linked); not accepted, awaiting the owner's live check. Acceptance and summary now quote the shipped line, \"The digest does not check that any change works.\""
     }
   ],
-  "updatedAt": "2026-11-06T18:21:49.664Z",
-  "revision": 3,
-  "summary": "The /changes list names the checks the page re-runs on every digest (citations, safe pictures) and says nothing checks that any change works.",
+  "updatedAt": "2026-11-06T23:11:57.973Z",
+  "revision": 4,
+  "summary": "The /changes list names the checks the page re-runs on every digest (citations, safe pictures) and says the digest does not check that any change works.",
   "blocker": null
 }
