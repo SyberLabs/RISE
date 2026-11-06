@@ -107,6 +107,7 @@ const digestAddress = (repository, id) => (repository === REPOSITORY
 export function issueFor(digest, { supersedes, repository = REPOSITORY, name } = {}) {
   const label = periodLabel(digest.period);
   const included = digest.changes.filter(change => change.included).length;
+  const unrouted = digest.changes.filter(change => change.reason === 'unrouted').length;
   const subject = productName(repository, name);
   const address = digestAddress(repository, digest.id);
   return {
@@ -123,6 +124,9 @@ export function issueFor(digest, { supersedes, repository = REPOSITORY, name } =
       '| Pull request | Title | Audience | Significance | Kind | Included | Reason |',
       '|---|---|---|---|---|---|---|',
       ...digest.changes.map(change => `| [#${change.number}](${change.url}) | ${cell(change.title)} | ${change.route.audience} | ${change.route.significance} | ${change.route.kind} | ${change.included ? 'yes' : 'no'} | ${change.reason} |`),
+      ...(unrouted ? ['', unrouted === 1
+        ? 'Unrouted: the router\'s answer for 1 pull request could not be read, so it took the fallback route skip/minor/records and was left out.'
+        : `Unrouted: the router's answer for ${unrouted} pull requests could not be read, so they took the fallback route skip/minor/records and were left out.`] : []),
       ...(digest.notes ? ['', 'Notes from the run:', ...digest.notes.map(note => `- ${cell(note)}`)] : []),
       '',
       `Period: ${digest.period.from} to ${digest.period.to}. Files: \`${digest.id}.json\` and \`index.json\` on the changes-data branch.`

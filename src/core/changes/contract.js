@@ -21,11 +21,17 @@ export const ROUTE_MENU = Object.freeze({
   kind: Object.freeze(['feature', 'fix', 'performance', 'design', 'infrastructure', 'records'])
 });
 
-/** The route of a records-only change, and of any change whose answer was not admitted. */
+/**
+ * The route of a records-only change, and of any change whose answer was not admitted; the router gives this very
+ * object, never a copy, so a fallback stays distinguishable from a model that chose the same three values.
+ */
 export const FALLBACK_ROUTE = Object.freeze({ audience: 'skip', significance: 'minor', kind: 'records' });
 
-/** Why a change is or is not in the reading; `unspoken`: chosen, but no beat spoke of it, so the run left it out. */
-const REASONS = Object.freeze(['routed', 'records-only', 'limit', 'unspoken']);
+/**
+ * Why a change is or is not in the reading; `unspoken`: chosen, but no beat spoke of it, so the run left it out;
+ * `unrouted`: the router's answer for it was not admitted, so it took the fallback route.
+ */
+const REASONS = Object.freeze(['routed', 'records-only', 'limit', 'unspoken', 'unrouted']);
 
 export const LIMITS = Object.freeze({
   changes: 60,

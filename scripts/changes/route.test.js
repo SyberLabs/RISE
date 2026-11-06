@@ -127,6 +127,16 @@ describe('selectChanges', () => {
     expect(Object.keys(byNumber[1]).sort()).toEqual(['included', 'mergeSha', 'mergedAt', 'number', 'reason', 'route', 'title', 'url']);
   });
 
+  it('marks a change whose answer was not admitted unrouted, on the fallback route, and a change the router chose to skip routed', () => {
+    const candidates = [pull(1, '2026-10-13T00:00:00Z'), pull(2, '2026-10-14T00:00:00Z'), pull(3, '2026-10-15T00:00:00Z')];
+    const routes = admitRoutes(answer({ 1: route('skip', 'minor', 'records'), 2: route('skip', 'minor', 'everything') }), candidates);
+    const { changes } = selectChanges({ candidates, records: [], routes });
+    const byNumber = Object.fromEntries(changes.map(change => [change.number, change]));
+    expect(byNumber[1]).toMatchObject({ included: false, reason: 'routed', route: FALLBACK_ROUTE });
+    expect(byNumber[2]).toMatchObject({ included: false, reason: 'unrouted', route: FALLBACK_ROUTE });
+    expect(byNumber[3]).toMatchObject({ included: false, reason: 'unrouted', route: FALLBACK_ROUTE });
+  });
+
   it('caps the included at 24, majors first and then the newest, the rest marked limit', () => {
     const candidates = Array.from({ length: 30 }, (_, i) => pull(100 + i, new Date(Date.UTC(2026, 9, 13, i)).toISOString()));
     const routes = new Map(candidates.map((item, i) => [item.number, route('team', i < 3 ? 'major' : 'notable', 'feature')]));

@@ -250,6 +250,7 @@ describe('RISE Changes pages', () => {
     add(803, { audience: 'readers', significance: 'minor', kind: 'design' });
     add(804, { audience: 'team', significance: 'notable', kind: 'fix' }, { reason: 'limit' });
     add(805, { audience: 'readers', significance: 'notable', kind: 'fix' }, { reason: 'unspoken' });
+    add(806, { audience: 'skip', significance: 'minor', kind: 'records' }, { reason: 'unrouted' });
     const { section } = await mount({ digestId: CHANGES_ID, load: files(undefined, digest) });
     const words = number => section.querySelector(`.changes-routes a[href$="/${number}"]`).closest('li').querySelector('.changes-meta').textContent.split(' — ')[1];
     expect(words(801)).toBe('Left out: minor');
@@ -258,6 +259,7 @@ describe('RISE Changes pages', () => {
     expect(words(654)).toBe('Left out: records only');
     expect(words(804)).toBe('Left out: over the 24-change limit');
     expect(words(805)).toBe('Left out: the reading did not speak of it');
+    expect(words(806)).toBe('Left out: the router\'s answer for it could not be read');
     expect(words(653)).toBe('Included');
     expect(section.textContent).not.toMatch(/routed to (readers|the team) only/);
   });

@@ -9,7 +9,7 @@ import { requirePublicRepository } from '../../src/core/changes/repository.js';
 import { composeCurrent } from './compose.js';
 import { illustrate } from './illustrate.js';
 import { endHeldPictures, pictureCoverage } from './held.js';
-import { DIGEST_ID, MODEL, REPOSITORY, densityLine, qualityLine } from '../../src/core/changes/contract.js';
+import { DIGEST_ID, FALLBACK_ROUTE, MODEL, REPOSITORY, densityLine, qualityLine } from '../../src/core/changes/contract.js';
 import { prefilter } from '../../src/core/changes/prefilter.js';
 import { admitRoutes, buildRouteRequest, selectChanges } from './route.js';
 import { buildDigest, digestId, issueFor, nextIndex, serialize } from '../../src/core/changes/write.js';
@@ -103,8 +103,14 @@ export async function runDigest({ gh, ask, repo = REPOSITORY, now = new Date(), 
     log(`  #${change.number} ${change.route.audience}/${change.route.significance}/${change.route.kind} ${change.included ? 'included' : `not included (${change.reason})`}`);
   }
   if (unlisted) log(`${unlisted} more pull requests are not listed: a digest lists at most ${changes.length}`);
+  const unrouted = [...routes.values()].filter(route => route === FALLBACK_ROUTE).length;
+  if (candidates.length) log(`Unrouted: ${unrouted} of ${candidates.length} pull requests; the router's answer for them could not be read, so they took the fallback route skip/minor/records`);
   const includedNumbers = new Set(changes.filter(change => change.included).map(change => change.number));
-  if (includedNumbers.size === 0) return { written: false, reason: 'No change was included: none was routed to the team as notable or major' };
+  if (includedNumbers.size === 0) {
+    return { written: false, reason: unrouted > 0 && unrouted === candidates.length
+      ? `No change was included: the router's answer could not be read for any of the ${unrouted} pull requests`
+      : 'No change was included: none was routed to the team as notable or major' };
+  }
 
   const routed = candidates.map(pull => ({ ...pull, route: routes.get(pull.number) }));
   const included = routed.filter(pull => includedNumbers.has(pull.number));

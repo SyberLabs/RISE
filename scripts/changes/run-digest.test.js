@@ -201,6 +201,32 @@ describe('runDigest on the week of #652–#671', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it('writes a change whose route answer could not be read as unrouted, counts it in the run log and says so in the issue', async () => {
+    const [route, ...rest] = week();
+    const slipped = route.replace('"671": {"audience": "readers"', '"671": {"audience": "reader"');
+    expect(slipped).not.toBe(route);
+    const { ask } = scriptedAsk([slipped, ...rest]);
+    const lines = [];
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
+    const digest = JSON.parse(result.files['2026-10-14.json']);
+    expect(digest.changes.find(change => change.number === 671)).toMatchObject({ included: false, reason: 'unrouted', route: { audience: 'skip', significance: 'minor', kind: 'records' } });
+    expect(digest.changes.find(change => change.number === 670)).toMatchObject({ included: false, reason: 'routed' });
+    expect(digest.quality).toEqual(JSON.parse(fixture('2026-10-14.json')).quality);
+    expect(lines).toContain('  #671 skip/minor/records not included (unrouted)');
+    expect(lines).toContain('Unrouted: 1 of 15 pull requests; the router\'s answer for them could not be read, so they took the fallback route skip/minor/records');
+    expect(result.issue.body).toContain('| skip | minor | records | no | unrouted |');
+    expect(result.issue.body).toContain('Unrouted: the router\'s answer for 1 pull request could not be read, so it took the fallback route skip/minor/records and was left out.');
+  });
+
+  it('says the router\'s answer could not be read when every route falls back and nothing is included', async () => {
+    const [route] = week();
+    const { ask } = scriptedAsk([route.slice(0, route.length / 2)]);
+    const lines = [];
+    const result = await runDigest({ gh: fakeGh({ pages: [fixture('graphql-week.json')] }), ask, repo: REPO, now, since, model: MODEL, log: line => lines.push(line) });
+    expect(result).toEqual({ written: false, reason: 'No change was included: the router\'s answer could not be read for any of the 15 pull requests' });
+    expect(lines).toContain('Unrouted: 15 of 15 pull requests; the router\'s answer for them could not be read, so they took the fallback route skip/minor/records');
+  });
+
   it('writes nothing when nothing merged, without asking a model', async () => {
     const empty = JSON.stringify({ data: { repository: { pullRequests: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] } } } });
     const { ask, calls } = scriptedAsk([]);

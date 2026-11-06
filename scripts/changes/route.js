@@ -86,7 +86,7 @@ function admitRoute(answer) {
   return route;
 }
 
-/** Each offered pull request's admitted route, in the order offered. */
+/** Each offered pull request's admitted route, in the order offered; FALLBACK_ROUTE itself where none was admitted. */
 export function admitRoutes(text, candidates) {
   let routes = null;
   try {
@@ -117,7 +117,8 @@ const change = (pull, route, included, reason) => ({
  * skip that is notable or major, whatever its audience (kept for a readers
  * digest), at most 24 by significance then recency (the rest are
  * `limit`). At most 60 are listed: every included one, then the weightiest and
- * newest of the rest, records last. Listed newest first.
+ * newest of the rest, records last. Listed newest first. A change on the
+ * fallback route because its answer was not admitted is `unrouted`.
  */
 export function selectChanges({ candidates, records, routes }) {
   const routed = candidates.map(pull => ({ ...pull, route: routes.get(pull.number) ?? FALLBACK_ROUTE }));
@@ -130,7 +131,7 @@ export function selectChanges({ candidates, records, routes }) {
   const others = routed
     .filter(pull => !chosen.has(pull.number) && !eligible.includes(pull))
     .sort(weightiest)
-    .map(pull => change(pull, pull.route, false, 'routed'));
+    .map(pull => change(pull, pull.route, false, pull.route === FALLBACK_ROUTE ? 'unrouted' : 'routed'));
   const bookkeeping = [...records].sort(newest).map(pull => change(pull, FALLBACK_ROUTE, false, 'records-only'));
   const ordered = [...included, ...limited.sort(weightiest), ...others, ...bookkeeping];
   const listed = ordered.slice(0, LIMITS.changes).sort(newest);
