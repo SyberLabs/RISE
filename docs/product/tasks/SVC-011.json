@@ -1,0 +1,55 @@
+{
+  "id": "SVC-011",
+  "title": "Fact cards for every pull request in a Changes run",
+  "lane": "shared",
+  "milestone": "RISE Changes",
+  "status": "in_progress",
+  "delivery": "branch",
+  "owner": "Claude",
+  "priority": "now",
+  "dependencies": [],
+  "acceptance": [
+    "Collect asks, in its one query paged as before, for each pull request's added and deleted lines, each of the first 100 files' lines, the first line of each of the first 100 commit messages and the first 10 closing issues, and keeps the whole body beside the 4,000-character cut; the query's cost points are measured and written in docs/plans/RISE-CHANGES.md.",
+    "factCard(pull) in src/core/changes/facts.js returns the card with areas and path-rule flags, each rule tested, and the whole body up to 65,536 characters with bodyCut recorded past that.",
+    "On the recorded week of #652 to #671 every pull request has a card, and the published v1 digest the fixture produces is byte-identical; the composer still gets the 4,000-character cut.",
+    "Every field the plan listed that no Phase 1 or 2 stage reads is left out, with the reason in docs/plans/RISE-CHANGES.md."
+  ],
+  "evidence": [
+    {
+      "kind": "test",
+      "ref": "src/core/changes/facts.test.js",
+      "date": "2026-11-06",
+      "note": "Branch changes/fact-cards, local (Windows, not pushed): npx vitest run src/core/changes/ scripts/changes/: 15 files, 251 passed, including run-digest.test.js's byte-identical 2026-10-14.json and index.json. Red first: facts.js missing, 3 collect tests failed. Red again on purpose, one mutation each, restored after: workflow rule widened to .github/ (1 failed), only-flags without the complete-list check (2), areas without scripts/ (1), body cut by UTF-16 units (1), an extra url field on the card (1), fullBody cut at 4,000 (2), closing issues first 5 (1), pull.body uncut (3 in collect and facts tests; the run-digest pin alone stays green because the composition is scripted)."
+    },
+    {
+      "kind": "document",
+      "ref": "docs/plans/RISE-CHANGES.md",
+      "date": "2026-11-06",
+      "note": "gh api graphql against SyberLabs/RISE, one page of 50 merged PRs (#712 to #770): new query 2 rateLimit points and 373,537 bytes, old query 1 point and 202,784 bytes; with review summary and check runs added the page answered HTTP 502 on its one try. Recorded week #651 to #671: 0 approvals, 0 unresolved threads, 0 closing issues; 11 of 21 head commits show a failed non-CI Pages check while CI passed on all 21."
+    },
+    {
+      "kind": "test",
+      "ref": "src/core/changes/collect.test.js",
+      "date": "2026-11-06",
+      "note": "Review council fixes on the same branch, local: npx vitest run src/core/changes/ scripts/changes/: 15 files, 255 passed. Red first (6 failed: line counts, body ceiling in collect, 502/504 retry, dependency manifests, card carrying bodyCut). Red again on purpose, one mutation each, restored after: composer entry {...pull, included} (run-digest pin of router and composer keys, 1 failed), uncapped fullBody (1), missing line counts admitted (1), go.sum dropped (1), no retry (1), area ties in insertion order (1), areas by file count (2). Live: the branch collect read 4 cards for #769 to #772 from SyberLabs/RISE with -F first=50."
+    }
+  ],
+  "activity": [
+    {
+      "date": "2026-11-06T20:00:00.000Z",
+      "summary": "Opened and claimed as P1-A of the RISE Changes v2 Phase 1 plan (owner-approved 2026-11-06)."
+    },
+    {
+      "date": "2026-11-06T21:01:33.133Z",
+      "summary": "Fact cards and the extended collect query built on branch changes/fact-cards, tests and cost recorded"
+    },
+    {
+      "date": "2026-11-06T21:18:45.226Z",
+      "summary": "Review council fixes: prompt keys pinned, ceiling in collect, line counts required, more manifests, 502 retry"
+    }
+  ],
+  "updatedAt": "2026-11-06T21:18:45.226Z",
+  "revision": 3,
+  "summary": "Each collected pull request becomes a fact card made by code (diff stats, areas, path flags, commit subjects, closing issues and the whole body for model stages only), without changing what the router or composer are sent.",
+  "blocker": null
+}

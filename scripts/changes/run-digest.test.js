@@ -51,6 +51,17 @@ describe('runDigest on the week of #652–#671', () => {
     expect(result.files['index.json']).toBe(fixture('index.json'));
     expect(calls).toHaveLength(2 + JSON.parse(fixture('illustrations.json')).length);
     expect(calls.every(call => call.model === MODEL)).toBe(true);
+    // The router and the composer are sent the v1 fields only: never the whole body or a fact card's fields.
+    const quotedPulls = prompt => JSON.parse(prompt.slice(prompt.indexOf('<pull_requests>\n') + 16, prompt.indexOf('\n</pull_requests>')));
+    const routed = quotedPulls(calls[0].prompt);
+    const composed = quotedPulls(calls[1].prompt);
+    expect(routed.length).toBeGreaterThan(0);
+    expect(composed.length).toBeGreaterThan(0);
+    for (const pull of routed) expect(Object.keys(pull)).toEqual(['number', 'title', 'labels', 'files', 'moreFiles', 'body']);
+    for (const pull of composed) expect(Object.keys(pull)).toEqual(['number', 'included', 'title', 'mergedAt', 'labels', 'kind', 'significance', 'body']);
+    const p655 = composed.find(pull => pull.number === 655);
+    expect(Array.from(p655.body)).toHaveLength(4000);
+    expect(p655.body).not.toContain('Not verified');
   });
 
   it('draws each picture after the composition, kit figures by RISE and briefs by the illustrator, each on its beat', async () => {
